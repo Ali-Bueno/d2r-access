@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (stash/Charsi labels and basic inventory selection confirmed; menu/inventory latency optimization built/deployed; seven suites / 176 checks pass; responsiveness retest pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (stash/Charsi labels and basic inventory selection confirmed; asynchronous runtime logging and unfocused/controller tab announcements built/deployed; nine suites / 219 checks pass; user retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -24,15 +24,15 @@
 | Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
 | Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
-| Performance | wip — navigation optimization deployed | Inventory tree/title discovered once per entry; selected tabs remain live; redundant inventory scans removed; 30 Hz polling, short cell settling and immediate existing menu-row navigation. Full callback timings distinguish plugin cost from game-update gaps; user retest pending |
+| Performance | wip — SDK disk logging moved off UI thread | Prior optimization still had 719–1000 ms callbacks. Verified SDK logger flushes disk per line; runtime diagnostics now use a bounded worker queue, independent of PRISM. Nine suites pass; controller retest pending. `docs/navigation-latency.md` |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
 | NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Automated text tests | done (local) | Seven CTest suites, 176 checks: existing text/notifications, guarded memory/tree, gameplay lifecycle, primary tooltip capture, interaction reading and navigation latency/work limits |
+| Automated text tests | done (local) | Nine CTest suites, 219 checks: text/notifications, guarded memory/tree, gameplay lifecycle, tooltips, interaction latency, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
-| In-game panels (inventory, skills, stash) | wip — basic selection confirmed, latency retest pending | Shared item/grid archetype, native row/column, selected stash tabs and equipment section; skills/full inventory operations remain pending |
+| In-game panels (inventory, skills, stash) | wip — basic selection confirmed, latency retest pending | Shared item/grid archetype, native row/column, shared tab reader covers controller strip and unfocused stash changes; equipment section; skills/full inventory operations remain pending |
 | Item readout | wip — primary tooltip capture built/deployed | Reads stock body/footer before per-frame destruction; stale cell descriptions rejected; live item/order verification pending |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -97,6 +97,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 - **Primary tooltip**: `TooltipsPanel +0x168/+0x170` is a contiguous vector, stride `0x2E8`, body/footer strings `+0/+0x28`. Draw `0x880550` destroys/clears it every frame; single-record draw `0x8DA7E0` is hooked after byte verification. Live record zero was `Tu alijo personal`; record one only U+E013. `docs/native-tooltips.md`.
 - **Inventory selection**: controller x/y `+0x544/+0x548` (`0x2A89C0`); grid width/height `+0x628/+0x62C` (`0x2C5FA0`); TabBar selected index `+0x16C4` (`0x878D30`), runtime `TextN` label children.
 
+- **SDK runtime logging:** live context `logInfo` → D2RCore `0x3CF110` → `0x3D14F0`; `0x3D171D` calls `FlushFileBuffers` (IAT `0x5125C0`) after every line. `async_log.cpp` moves that work off UI callbacks.
+- **Controller tabs:** live `ControllerOverlay` contains `UISwitcherTabs` outside focused inventory; `+0x16C4 = 3` read `Inventario` while `+0x544 = 2`. Stash `SelectTab` also fires without moving player-inventory focus. Shared `tab_reader.cpp`; full evidence in `docs/navigation-latency.md`.
+
 ## References
 
 - `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
@@ -105,13 +108,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Retest responsiveness: open the empty stash with A, press D-pad Right/Left several times, then compare Charsi's menu navigation. Check `[pump] slow accessibility tick` against the existing longest-gap reports if pauses remain. All 176 automated checks passed; installed DLL SHA-256: `05859A4C68B42CCE1988410B8A37723BEF5F1CDF293BF28FF9BA567207F154A6`. Item descriptions await an actual item. Town-position work remains in `docs/map-landmarks.md`; terrain radar is deferred.
+Retest the installed build: navigate inventory cells with the D-pad, then change top tabs with LT/RT (L2/R2); repeat stash tab changes while focus stays in the player inventory. Expect one new tab label and no delayed cell interruption. Compare `[tabs]`, `[interaction]` and `[pump]` durations. Nine suites / 219 checks passed; installed DLL SHA-256: `64B841AF971BE0A5E99D3DBBCD745EF785C980CA5D0DD47D69F1BE968360D63F`. Responsiveness/tab confirmation and full item tests remain pending. Radar is deferred.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels and basic inventory selection confirmed. Charsi introduction/gossip/menu announcements appear in the 10:58:39 log session. The user reported slow menu/inventory navigation; that session had 14 of 26 pump samples above 500 ms (including loading), but no existing focus slow-tick warnings. Duplicate walks and avoidable settling were removed; full callback timing is now logged to investigate remaining pauses. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
+- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels and basic inventory selection confirmed. Charsi introduction/gossip/menu announcements appear in the 10:58:39 log session. The user reported slow menu/inventory navigation; that session had 14 of 26 pump samples above 500 ms (including loading), but no existing focus slow-tick warnings. Duplicate walks and avoidable settling were removed, but the user still reported pauses and the next session measured 719–1000 ms inside callbacks. Synchronous SDK log flushes are now off the UI thread; the next controller/NVDA trace must confirm the improvement. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

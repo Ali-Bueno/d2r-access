@@ -26,7 +26,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure` (seven suites, 176 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure` (nine suites, 219 checks).
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 
@@ -58,6 +58,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `native_tooltips.cpp`, `interaction_reader.cpp` | One verified tooltip draw hook copies primary target/item descriptions; shared grid/equipment reader with selected tabs, coordinates, stale-description filtering and target-name HUD; `docs/native-tooltips.md` |
 | `native_widgets.cpp` | Game widget objects via D2RCore.dll's slot table (PanelManager global, FindPanel, FindChildWidget, SetText); engine string reader; `TextAt(panel, path)`; probes |
 | `control_state.cpp`, `settings_file.cpp`, `input_direction.cpp`, `display_modes.cpp`, `character_saves.cpp` | Toggle/carousel/dropdown values (Settings.json baseline + input direction), display modes for the resolution list, offline character saves (fallback) |
+| `async_log.cpp` | Bounded background queue for runtime SDK logging; loader flushes disk per line, so UI callbacks only enqueue |
+| `tab_reader.cpp` | Shared selected-tab state across visible panels, including controller overlay and unfocused stash; inventory consumes the same state |
 | `screen_reader.cpp` | PRISM on a dedicated speech thread; `Speak(text, interrupt)` only queues |
 | `speech_strings.*`, `localization.cpp` | Plugin phrases (English/Spanish) and the game's own string tables via the SDK |
 | `tools/` | CASC extraction, layout indexer, catalog generators (`gen_panel_widgets.py`, `gen_panel_titles.py`) → `src/generated/` |

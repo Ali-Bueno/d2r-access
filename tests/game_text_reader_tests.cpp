@@ -1,5 +1,6 @@
 #include "game_text_reader.h"
 #include "interaction_reader.h"
+#include "tab_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -100,9 +101,13 @@ std::string ReadName(uintptr_t widget) {
 namespace D2RAccess::FocusTracker { void Reset() {} }
 namespace D2RAccess::InteractionReader {
 bool IsInventoryFocus(NativeUi::Focus current) { return current.widget == 81; }
-bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus, bool conversation) { ++interactionTicks; return inventoryOwns && !conversation; }
+bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus, bool conversation, std::string_view) { ++interactionTicks; return inventoryOwns && !conversation; }
 void Reset() {}
 std::string Repeat() { return {}; }
+}
+namespace D2RAccess::TabReader {
+std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return {}; }
+void Reset() {}
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::ScreenReader {

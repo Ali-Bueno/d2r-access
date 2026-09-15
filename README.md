@@ -43,6 +43,12 @@ already rendered item descriptions read immediately. Inventory section controls
 are discovered on entry and their selected values stay live, avoiding repeated
 full inventory walks. Gameplay focus is sampled at 30 Hz.
 
+The latest build also reads LT/RT (L2/R2) tab changes from the visible tab bars,
+including the controller menu strip and stash tabs while selection stays in the
+player inventory. Runtime logging now runs on a separate worker because the
+loader forces a disk flush on every line. Both changes await an in-game retest;
+see [latency and tab evidence](docs/navigation-latency.md).
+
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.

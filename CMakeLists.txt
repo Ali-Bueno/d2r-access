@@ -24,6 +24,8 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # D2RLoader picks up a companion d2rl-<id>.mpq by this file name, so keep the
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
+	src/async_log.cpp
+	src/tab_reader.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
@@ -79,7 +81,7 @@ if(BUILD_TESTING)
 	target_compile_features(native-ui-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-ui-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-ui COMMAND native-ui-tests)
-	add_executable(game-text-reader-tests tests/game_text_reader_tests.cpp src/game_text_reader.cpp src/ui_text.cpp src/ui_notifications.cpp src/speech_strings.cpp)
+	add_executable(game-text-reader-tests tests/game_text_reader_tests.cpp src/async_log.cpp src/game_text_reader.cpp src/ui_text.cpp src/ui_notifications.cpp src/speech_strings.cpp)
 	target_link_libraries(game-text-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(game-text-reader-tests PRIVATE src)
 	target_compile_features(game-text-reader-tests PRIVATE cxx_std_20)
@@ -95,12 +97,23 @@ if(BUILD_TESTING)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/interaction_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME interaction-reader COMMAND interaction-reader-tests)
+	add_executable(async-log-tests tests/async_log_tests.cpp src/async_log.cpp)
+	target_link_libraries(async-log-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(async-log-tests PRIVATE src)
+	target_compile_features(async-log-tests PRIVATE cxx_std_20)
+	add_test(NAME async-log COMMAND async-log-tests)
+	add_executable(tab-reader-tests tests/tab_reader_tests.cpp src/tab_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(tab-reader-tests PRIVATE src)
+	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
+	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(tab-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -66,9 +66,11 @@ cells retain distinct selection identities even when their item names match.
 Private-use font glyphs are removed from speech while the surrounding text and
 Unicode punctuation remain intact.
 
-Inventory section controls and the localized title are discovered once per panel
-entry. Only the actual selected tab labels are re-read during navigation; the
-cache is cleared on exit, overlays, toggles and session changes. The conversation
+The inventory title is cached per panel entry. Shared tab discovery now lives in
+`TabReader`, covering visible panels outside controller focus as well. It includes
+initially hidden sub-tabs, then rechecks visibility and selection without full
+walks; close, overlays, toggles and session changes clear the relevant cache.
+See [latency and tab evidence](navigation-latency.md). The conversation
 reader skips item grids instead of walking and discarding their full panel trees.
 An explicit `access-text dump` still walks the inventory for diagnostics. Tests
 verify scan counts and delivery timing. `[pump] slow accessibility tick` reports

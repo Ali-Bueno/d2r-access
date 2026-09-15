@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "ui_thread_pump.h"
 
 #include <windows.h>
@@ -31,7 +32,7 @@ void LogTickStats(const D2RL::PluginContext* context) {
 	lastTick = now;
 	++ticks;
 	if (now - windowStart >= StatsIntervalMs) {
-		D2RL::LogInfoF(context, "[pump] %u ticks in %llu ms, longest gap %llu ms", ticks, now - windowStart, maxGap);
+		D2RAccess::AsyncLog::InfoF(context, "[pump] %u ticks in %llu ms, longest gap %llu ms", ticks, now - windowStart, maxGap);
 		windowStart = now;
 		ticks       = 0;
 		maxGap      = 0;
@@ -53,7 +54,7 @@ void __cdecl OnUiTick(const D2RL::PluginContext* context, void*) noexcept {
 		constexpr ULONGLONG SlowTickMs = 30;
 		static ULONGLONG lastReport = 0;
 		if (elapsed >= SlowTickMs && (!lastReport || start - lastReport >= StatsIntervalMs)) {
-			D2RL::LogWarnF(context, "[pump] slow accessibility tick: %llu ms", elapsed);
+			D2RAccess::AsyncLog::WarnF(context, "[pump] slow accessibility tick: %llu ms", elapsed);
 			lastReport = start;
 		}
 	}
@@ -72,9 +73,9 @@ bool Queue(const D2RL::PluginContext* context) {
 	if (result != lastLogged) {
 		lastLogged = result;
 		if (result == D2RL::Threads::Result::Success) {
-			context->LogInfo("UI pump: running.");
+			D2RAccess::AsyncLog::Info(context, "UI pump: running.");
 		} else {
-			D2RL::LogWarnF(context, "UI pump: runOnUiThread returned %u; will retry on the next UI message.", static_cast<unsigned>(result));
+			D2RAccess::AsyncLog::WarnF(context, "UI pump: runOnUiThread returned %u; will retry on the next UI message.", static_cast<unsigned>(result));
 		}
 	}
 	if (result != D2RL::Threads::Result::Success) {
@@ -92,7 +93,7 @@ bool Start(const D2RL::PluginContext* context, TickFn tick) {
 	}
 	const D2RL::ServiceQueryResult query = context->QueryService(D2RL::ServiceId::Thread, D2RL::ThreadServiceV1Version, &g_threads);
 	if (query != D2RL::ServiceQueryResult::Success || !D2RL::HasThreadServiceV1Field(g_threads, D2RL::ThreadServiceV1RequiredSize)) {
-		D2RL::LogErrorF(context, "UI pump: Thread service query failed (%u).", static_cast<unsigned>(query));
+		D2RAccess::AsyncLog::ErrorF(context, "UI pump: Thread service query failed (%u).", static_cast<unsigned>(query));
 		g_threads = nullptr;
 		return false;
 	}

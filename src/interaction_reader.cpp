@@ -1,9 +1,11 @@
+#include "async_log.h"
 #include "interaction_reader.h"
 #include "localization.h"
 #include "native_tooltips.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "tab_reader.h"
 #include "ui_text.h"
 
 #include <cstdio>
@@ -16,7 +18,6 @@ constexpr uint64_t InventorySettleMs = 20; // at most one subsequent 30 Hz UI po
 struct InventoryContext {
 	uintptr_t panel = 0;
 	std::string name, title;
-	std::vector<uintptr_t> tabs;
 };
 InventoryContext g_inventoryContext;
 
@@ -38,17 +39,12 @@ std::string Title(uintptr_t panel) {
 
 UiText::Readout Inventory(NativeUi::Focus focus, const NativeUi::Type& type) {
 	if (g_inventoryContext.panel != focus.panel) {
-		g_inventoryContext = {focus.panel, NativeWidgets::ReadName(focus.panel), Title(focus.panel), {}};
-		// Discover the section controls once on entry. Re-read their actual
-		// selection below; unrelated item/equipment text needs no repeated walk.
-		for (const auto& node : NativeUi::Snapshot(focus.panel, focus.widget).nodes) {
-			if (node.kind == UiText::Kind::Tabs) g_inventoryContext.tabs.push_back(node.id);
-		}
+		g_inventoryContext = {focus.panel, NativeWidgets::ReadName(focus.panel), Title(focus.panel)};
 	}
 	UiText::Readout result;
 	result.context = g_inventoryContext.name;
 	result.body = g_inventoryContext.title;
-	for (uintptr_t tab : g_inventoryContext.tabs) Append(result.body, UiText::Clean(NativeUi::SelectedTabText(tab)));
+	Append(result.body, TabReader::Selected(focus.panel));
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
 	result.focusKey = std::to_string(focus.widget) + ":" + std::to_string(NativeUi::FocusSelection(focus.widget));
@@ -64,7 +60,7 @@ UiText::Readout Inventory(NativeUi::Focus focus, const NativeUi::Type& type) {
 
 bool IsInventoryFocus(NativeUi::Focus focus) { return IsInventory(NativeUi::Classify(focus.widget).kind); }
 
-bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation) {
+bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	if (conversation) { Reset(); return false; }
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
@@ -92,13 +88,21 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	g_inventory = inventory;
 	if (!inventory) g_inventoryContext = {};
+	if (!tabChange.empty()) {
+		// A tab switch announces only its name. Accept the current cell as the
+		// baseline so its delayed readout cannot immediately interrupt that name.
+		if (readout.Empty()) g_reader.Reset();
+		else (void)g_reader.Update(readout, now, 0);
+		ScreenReader::Speak(tabChange, true);
+		return true;
+	}
 	if (readout.Empty()) { g_reader.Reset(); return inventory; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	const auto announcement = inventory ? g_reader.Update(readout, now, renderedDescription ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (!announcement.text.empty()) {
-		D2RL::LogInfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, true);
 	}
 	return inventory;

@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "ui_message_monitor.h"
 
 #include "generated/panel_titles.h"
@@ -154,7 +155,7 @@ bool IsTraceNoise(const char* target, const char* command) {
 void Trace(const D2RL::PluginContext* context, const D2RL::SharedEvents::UiMessageEvent& event) {
 	char line[512] {};
 	std::snprintf(line, sizeof(line), "[ui] target=\"%s\" command=\"%s\" text=\"%s\"", Safe(event.target), Safe(event.command), Safe(event.text));
-	context->LogInfo(line);
+	D2RAccess::AsyncLog::Info(context, line);
 }
 
 void Say(const char* format, const std::string& subject, bool interrupt) {
@@ -332,7 +333,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string panel = std::move(g_modalRead.panel);
 	g_modalRead             = {};
 	const std::string prompt = NativeWidgets::TextAt(panel, ModalPromptPath);
-	D2RL::LogInfoF(context, "[modal] %s prompt: \"%s\"", panel.c_str(), prompt.c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[modal] %s prompt: \"%s\"", panel.c_str(), prompt.c_str());
 	if (!prompt.empty()) {
 		ScreenReader::Speak(prompt, false);
 	}

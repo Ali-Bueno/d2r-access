@@ -159,6 +159,14 @@ int main() {
 	Widget tabs("TabBarWidget", "AnyTabs"), tab0("TextBoxWidget", "Text0", "Personal"), tab1("TextBoxWidget", "Text1", "Comp.");
 	tabs.Add(tab0); tabs.Add(tab1); tabs.Put<int32_t>(0x16C4, 1);
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
+	tabs.Put<int32_t>(0x544, 0);
+	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "tab activation index differs from the FocusableWidget hover index");
+	Widget tabPanel("AnyPanel", "TabPanel"), container("Widget", "InitiallyHidden");
+	tabPanel.Add(container); container.Add(tabs); container.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::FindControls(tabPanel.Address(), UiText::Kind::Tabs) == std::vector<uintptr_t>{tabs.Address()}, "discovery includes tabs whose ancestors start hidden");
+	Check(NativeUi::SelectedTabText(tabs.Address()).empty(), "a hidden ancestor prevents a cached tab from being spoken");
+	container.Put<uint8_t>(0x51, 1);
+	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "cached tab becomes readable when its ancestor opens");
 	tabs.Put<int32_t>(0x16C4, -1);
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text.empty(), "unselected tabs have no inferred label");
 	Widget target("MonsterHealthPanel", "HUDMonsterHealth");

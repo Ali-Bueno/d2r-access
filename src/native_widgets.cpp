@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "native_widgets.h"
 #include "native_memory.h"
 
@@ -95,7 +96,7 @@ void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
 	}
 	const uintptr_t widget = Find(probe.panel, probe.path);
 	if (widget == 0) {
-		D2RL::LogInfoF(context, "[native] probe %s: not found", pathText.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[native] probe %s: not found", pathText.c_str());
 		return;
 	}
 	std::string report;
@@ -106,7 +107,7 @@ void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
 	}
 	uint8_t flags[2] {};
 	(void)Peek(widget + 0x50, flags);
-	D2RL::LogInfoF(context, "[native] probe %s at %p (flags +0x50=%u +0x51=%u):%s", pathText.c_str(), reinterpret_cast<void*>(widget), flags[0], flags[1], report.empty() ? " no strings" : report.c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[native] probe %s at %p (flags +0x50=%u +0x51=%u):%s", pathText.c_str(), reinterpret_cast<void*>(widget), flags[0], flags[1], report.empty() ? " no strings" : report.c_str());
 }
 
 }
@@ -118,7 +119,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	const HMODULE core = GetModuleHandleW(CoreModuleName);
 	const HMODULE exe  = GetModuleHandleW(nullptr);
 	if (core == nullptr || exe == nullptr) {
-		context->LogWarn("[native] D2RCore.dll not found; native widget access disabled.");
+		D2RAccess::AsyncLog::Warn(context, "[native] D2RCore.dll not found; native widget access disabled.");
 		return false;
 	}
 	const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(exe);
@@ -129,13 +130,13 @@ bool Initialize(const D2RL::PluginContext* context) {
 	const uintptr_t coreBase = reinterpret_cast<uintptr_t>(core);
 	uintptr_t       managerGlobal = 0, findPanel = 0, findChild = 0, setText = 0;
 	if (!Peek(coreBase + PanelManagerGlobalSlot, managerGlobal) || !Peek(coreBase + FindPanelSlot, findPanel) || !Peek(coreBase + FindChildSlot, findChild) || !Peek(coreBase + SetTextSlot, setText)) {
-		context->LogWarn("[native] D2RCore slots unreadable; native widget access disabled.");
+		D2RAccess::AsyncLog::Warn(context, "[native] D2RCore slots unreadable; native widget access disabled.");
 		return false;
 	}
 	// Every slot must point into the game executable, or this is not the
 	// D2RCore build these offsets were taken from.
 	if (!InExe(managerGlobal) || !InExe(findPanel) || !InExe(findChild) || !InExe(setText)) {
-		D2RL::LogWarnF(context, "[native] D2RCore slots do not point into D2R.exe (manager %p, findPanel %p, findChild %p, setText %p); native widget access disabled.",
+		D2RAccess::AsyncLog::WarnF(context, "[native] D2RCore slots do not point into D2R.exe (manager %p, findPanel %p, findChild %p, setText %p); native widget access disabled.",
 			reinterpret_cast<void*>(managerGlobal), reinterpret_cast<void*>(findPanel), reinterpret_cast<void*>(findChild), reinterpret_cast<void*>(setText));
 		return false;
 	}
@@ -153,15 +154,15 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_supportsTree = findChild - g_exeBase == VerifiedFindChildRva && setText - g_exeBase == VerifiedSetTextRva
 		&& NativeMemory::Copy(findChild + ChildVectorCodeOffset, actual, sizeof(actual))
 		&& std::memcmp(actual, ChildVectorCode, sizeof(actual)) == 0;
-	if (!g_supportsTree) context->LogWarn("[text] Unrecognized native layout; in-game text traversal disabled.");
-	D2RL::LogInfoF(context, "[native] D2R live RVAs: PanelManager global 0x%llX, FindPanel 0x%llX, FindChildWidget 0x%llX, TextBoxWidget::SetText 0x%llX",
+	if (!g_supportsTree) D2RAccess::AsyncLog::Warn(context, "[text] Unrecognized native layout; in-game text traversal disabled.");
+	D2RAccess::AsyncLog::InfoF(context, "[native] D2R live RVAs: PanelManager global 0x%llX, FindPanel 0x%llX, FindChildWidget 0x%llX, TextBoxWidget::SetText 0x%llX",
 		static_cast<unsigned long long>(managerGlobal - g_exeBase), static_cast<unsigned long long>(findPanel - g_exeBase), static_cast<unsigned long long>(findChild - g_exeBase), static_cast<unsigned long long>(setText - g_exeBase));
 	constexpr unsigned char EntryCode[] = { 0x48, 0x89, 0x5C, 0x24, 0x10, 0x48, 0x89, 0x6C, 0x24, 0x18, 0x48, 0x89, 0x74, 0x24, 0x20, 0x57 };
 	unsigned char entryCode[sizeof(EntryCode)]{};
 	g_supportsNotifications = g_supportsTree
 		&& NativeMemory::Copy(g_exeBase + NotificationEntryRva, entryCode, sizeof(entryCode))
 		&& std::memcmp(entryCode, EntryCode, sizeof(entryCode)) == 0;
-	if (g_supportsTree && !g_supportsNotifications) context->LogWarn("[notice] Unrecognized message accessor; repeated-delivery detection disabled.");
+	if (g_supportsTree && !g_supportsNotifications) D2RAccess::AsyncLog::Warn(context, "[notice] Unrecognized message accessor; repeated-delivery detection disabled.");
 	return true;
 }
 

@@ -203,5 +203,20 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	return snapshot;
 }
 
+std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
+	if (!Visible(panel)) return {};
+	std::vector<uintptr_t> result, pending{panel};
+	std::unordered_set<uintptr_t> visited;
+	while (!pending.empty() && visited.size() < MaxNodes) {
+		const uintptr_t widget = pending.back();
+		pending.pop_back();
+		if (!widget || !visited.insert(widget).second || NativeWidgets::ReadName(widget) == "Templates") continue;
+		if (Classify(widget).kind == kind) result.push_back(widget);
+		const auto children = VectorAt(widget + ChildrenOffset);
+		for (auto it = children.rbegin(); it != children.rend() && pending.size() < MaxNodes; ++it) pending.push_back(*it);
+	}
+	return result;
+}
+
 void Reset() { g_types.clear(); }
 }

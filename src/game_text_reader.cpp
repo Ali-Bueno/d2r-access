@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "game_text_reader.h"
 
 #include "focus_tracker.h"
@@ -8,6 +9,7 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "tab_reader.h"
 #include "ui_text.h"
 #include "ui_notifications.h"
 
@@ -36,6 +38,7 @@ void Reset() {
 	g_areaReader.Reset();
 	g_notices.Reset();
 	InteractionReader::Reset();
+	TabReader::Reset();
 	g_interactionFocus = false;
 	g_ownedFocus = false;
 	g_lastPoll = 0;
@@ -47,7 +50,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	Reset();
 	g_inGame = event->kind == D2RL::Lifecycle::GameplayEventKind::LocalPlayerReady;
-	D2RL::LogInfoF(context, "[text] gameplay event %u, session %llu, player ready %s",
+	D2RAccess::AsyncLog::InfoF(context, "[text] gameplay event %u, session %llu, player ready %s",
 		static_cast<unsigned>(event->kind), static_cast<unsigned long long>(event->sessionGeneration), g_inGame ? "yes" : "no");
 }
 
@@ -80,17 +83,17 @@ int Priority(const UiText::Snapshot& snapshot, const NativeUi::Focus& focus) {
 }
 
 void Dump(const D2RL::PluginContext* context, const UiText::Snapshot& snapshot) {
-	D2RL::LogInfoF(context, "[text-tree] %s panel=%p focus=%p nodes=%zu", snapshot.name.c_str(),
+	D2RAccess::AsyncLog::InfoF(context, "[text-tree] %s panel=%p focus=%p nodes=%zu", snapshot.name.c_str(),
 		reinterpret_cast<void*>(snapshot.panel), reinterpret_cast<void*>(snapshot.focus), snapshot.nodes.size());
 	for (const auto& node : snapshot.nodes) {
-		D2RL::LogInfoF(context, "[text-tree] parent=%d id=%p type=%s name=%s enabled=%u text=\"%s\"",
+		D2RAccess::AsyncLog::InfoF(context, "[text-tree] parent=%d id=%p type=%s name=%s enabled=%u text=\"%s\"",
 			node.parent, reinterpret_cast<void*>(node.id), node.type.c_str(), node.name.c_str(), node.enabled ? 1u : 0u, UiText::Clean(node.text).c_str());
 	}
 }
 
 void Speak(const D2RL::PluginContext* context, const UiText::Readout& readout, const UiText::Announcement& announcement, bool interrupt) {
 	if (announcement.text.empty()) return;
-	D2RL::LogInfoF(context, "[text] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[text] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 	ScreenReader::Speak(announcement.text, interrupt);
 }
 }
@@ -110,7 +113,7 @@ bool Register(const D2RL::PluginContext* context) {
 		}
 		g_listeners.push_back(handle);
 	}
-	context->LogInfo("[text] In-game text reader registered; waiting for local player.");
+	D2RAccess::AsyncLog::Info(context, "[text] In-game text reader registered; waiting for local player.");
 	return true;
 }
 
@@ -191,11 +194,13 @@ bool Tick(const D2RL::PluginContext* context) {
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;
-	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns);
+	const auto tabChange = TabReader::Update(panels, focus, owns);
+	if (!tabChange.empty()) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
+	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
 	else g_areaReader.Reset();
 	for (const auto& text : g_notices.Update(notices, now, deliveries)) {
-		D2RL::LogInfoF(context, "[notice] %s", text.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}
 	if (g_repeat.exchange(false)) {

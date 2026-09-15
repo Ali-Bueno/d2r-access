@@ -1,3 +1,4 @@
+#include "async_log.h"
 // D2RLoader entry points. Wiring only: every behaviour lives in a service.
 #include <D2RLPlugin/api.h>
 
@@ -124,29 +125,33 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		return false;
 	}
 
+	if (!D2RAccess::AsyncLog::Initialize()) return false;
+
 	if (!D2RAccess::Localization::Initialize(context)) {
-		context->LogWarn("Localization service unavailable; panel titles will use internal names.");
+		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
 
 	if (D2RAccess::ScreenReader::Initialize(context->pluginDirectory)) {
-		D2RL::LogInfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
+		D2RAccess::AsyncLog::InfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
 		D2RAccess::ScreenReader::Speak(D2RAccess::Strings::Current().pluginLoaded, true);
 	} else {
-		D2RL::LogErrorF(context, "%s: %s", D2RAccess::Strings::Current().screenReaderMissing, D2RAccess::ScreenReader::LastError());
+		D2RAccess::AsyncLog::ErrorF(context, "%s: %s", D2RAccess::Strings::Current().screenReaderMissing, D2RAccess::ScreenReader::LastError());
 	}
 	if (!D2RAccess::UiMessageMonitor::Register(context)) {
-		context->LogError("UI message listener could not be registered.");
+		D2RAccess::AsyncLog::Error(context, "UI message listener could not be registered.");
+		D2RAccess::ScreenReader::Shutdown();
+		D2RAccess::AsyncLog::Shutdown();
 		return false;
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
 	(void)D2RAccess::NativeTooltips::Initialize(context);
-	if (!D2RAccess::GameTextReader::Register(context)) context->LogWarn("[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
+	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
-		context->LogWarn("Widget service unavailable; focus tracking disabled.");
+		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
-		context->LogWarn("Thread service unavailable; focus tracking disabled.");
+		D2RAccess::AsyncLog::Warn(context, "Thread service unavailable; focus tracking disabled.");
 	}
 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
@@ -154,7 +159,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
-	context->LogInfo("d2r-access loaded.");
+	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
 }
 
@@ -166,4 +171,5 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::Widgets::Shutdown();
 	D2RAccess::Localization::Shutdown();
 	D2RAccess::ScreenReader::Shutdown();
+	D2RAccess::AsyncLog::Shutdown();
 }

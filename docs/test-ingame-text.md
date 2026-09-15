@@ -93,8 +93,8 @@ and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 
 ## Automated checks
 
-`ctest --test-dir build --output-on-failure` runs seven native C++ test executables
-(176 checks). Coverage includes complete long strings, invalid memory, hidden
+`ctest --test-dir build --output-on-failure` runs nine native C++ test executables
+(219 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
 Notification coverage includes native linked text and data-source filtering,
@@ -106,8 +106,10 @@ Tooltip/interaction coverage includes primary-only rendering, capture expiry,
 focus/cell association, invalid records, full item text, selected stash tabs,
 identical items, stale descriptions, equipment sections and lifecycle suspension.
 Latency tests cover immediate navigation between existing menu rows, the bounded
-inventory settling window, one inventory discovery per entry, live tab values,
-and avoiding duplicate inventory scans. When checking responsiveness in game,
+inventory settling window, shared tab discovery per visible panel, live tab values,
+and avoiding duplicate inventory scans. Tests also block the SDK logger while
+producers enqueue a bounded backlog, and cover LT/RT changes in unfocused stash
+and controller-overlay tabs. See [the controller retest](navigation-latency.md#validation). When checking responsiveness in game,
 compare `[pump] slow accessibility tick` with the existing longest-gap reports;
 the latter include time spent outside the mod's UI callback.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;

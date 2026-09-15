@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "character_saves.h"
 
 #include "settings_file.h"
@@ -74,22 +75,22 @@ std::vector<Character> Load(const D2RL::PluginContext* context) {
 	std::vector<Character> characters;
 	const std::wstring     directory = SettingsFile::SavedGamesDirectory();
 	if (directory.empty()) {
-		D2RL::LogWarnF(context, "[saves] saved games folder not resolved");
+		D2RAccess::AsyncLog::WarnF(context, "[saves] saved games folder not resolved");
 		return characters;
 	}
 	WIN32_FIND_DATAW found {};
 	const HANDLE     search = FindFirstFileW((directory + L"\\" + SaveExtension).c_str(), &found);
 	if (search == INVALID_HANDLE_VALUE) {
-		D2RL::LogWarnF(context, "[saves] no %ls in \"%s\" (error %lu)", SaveExtension, Narrow(directory).c_str(), GetLastError());
+		D2RAccess::AsyncLog::WarnF(context, "[saves] no %ls in \"%s\" (error %lu)", SaveExtension, Narrow(directory).c_str(), GetLastError());
 		return characters;
 	}
 	do {
 		Character character;
 		DWORD     lastError = 0;
 		if (const char* skipped = ReadHeader(directory + L"\\" + found.cFileName, character, lastError); skipped != nullptr) {
-			D2RL::LogWarnF(context, "[saves] %s skipped: %s (error %lu)", Narrow(found.cFileName).c_str(), skipped, lastError);
+			D2RAccess::AsyncLog::WarnF(context, "[saves] %s skipped: %s (error %lu)", Narrow(found.cFileName).c_str(), skipped, lastError);
 		} else {
-			D2RL::LogInfoF(context, "[saves] %s: \"%s\" class %d level %d last played %lu", Narrow(found.cFileName).c_str(), character.name.c_str(), character.classIndex, character.level, static_cast<unsigned long>(character.lastPlayed));
+			D2RAccess::AsyncLog::InfoF(context, "[saves] %s: \"%s\" class %d level %d last played %lu", Narrow(found.cFileName).c_str(), character.name.c_str(), character.classIndex, character.level, static_cast<unsigned long>(character.lastPlayed));
 			characters.push_back(std::move(character));
 		}
 	} while (FindNextFileW(search, &found));

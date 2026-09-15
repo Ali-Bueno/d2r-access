@@ -1,3 +1,4 @@
+#include "async_log.h"
 #include "focus_tracker.h"
 
 #include "generated/panel_widgets.h"
@@ -356,7 +357,7 @@ Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator
 			}
 		}
 		if (diagnostics) {
-			D2RL::LogInfoF(context, "[focus]   %s (root %s, anchor %.1f,%.1f): %u/%u resolved; nearest %s at %d,%d %dx%d; first error: %s", catalog->panel,
+			D2RAccess::AsyncLog::InfoF(context, "[focus]   %s (root %s, anchor %.1f,%.1f): %u/%u resolved; nearest %s at %d,%d %dx%d; first error: %s", catalog->panel,
 				Describe(Widgets::PanelRect(catalog->panel)).c_str(), catalog->rootAnchorX, catalog->rootAnchorY, resolved, catalog->count,
 				nearest != nullptr ? nearest->name : "-", nearestRect.x, nearestRect.y, nearestRect.width, nearestRect.height, firstError[0] != '\0' ? firstError : "none");
 		}
@@ -463,13 +464,13 @@ void ProbeValueChildren(const D2RL::PluginContext* context, const Generated::Pan
 	std::vector<Widgets::Step> steps = Steps(widget);
 	const Widgets::Step        root { nullptr, catalog.rootAnchorX, catalog.rootAnchorY };
 	const auto                 own = Widgets::AbsoluteRect(catalog.panel, root, steps);
-	D2RL::LogInfoF(context, "[probe] %s (%s) rect %s", id.c_str(), widget.type, Describe(own).c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[probe] %s (%s) rect %s", id.c_str(), widget.type, Describe(own).c_str());
 	for (const char* child : ValueChildProbes) {
 		steps.push_back({ child, 0.0f, 0.0f });
 		const auto rect = Widgets::AbsoluteRect(catalog.panel, root, steps);
 		steps.pop_back();
 		if (rect) {
-			D2RL::LogInfoF(context, "[probe]   child '%s' at %s", child, Describe(rect).c_str());
+			D2RAccess::AsyncLog::InfoF(context, "[probe]   child '%s' at %s", child, Describe(rect).c_str());
 		}
 	}
 }
@@ -587,7 +588,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 		}
 		phrase = text;
 	}
-	D2RL::LogInfoF(context, "[focus] popup option %d (row %d + scroll %d) -> \"%s\"", index, visibleRow, g_dropdown.scrollOffset, phrase.c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[focus] popup option %d (row %d + scroll %d) -> \"%s\"", index, visibleRow, g_dropdown.scrollOffset, phrase.c_str());
 	ScreenReader::Speak(phrase, true);
 }
 
@@ -655,7 +656,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	}
 	if (characterRow >= 0) {
 		const std::string phrase = CharacterRowPhrase(context, characterRow);
-		D2RL::LogInfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
 		ScreenReader::Speak(phrase, true);
 		std::string legend;
 		for (const LegendAction& action : CharacterRowActions) {
@@ -699,7 +700,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	}
 	const std::string tooltip = TextForKey(match.widget->tooltipKey);
 
-	D2RL::LogInfoF(context, "[focus] %s/%s (%s) -> \"%s\" coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), match.score);
+	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\" coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), match.score);
 	ScreenReader::Speak(phrase, true);
 	if (!tooltip.empty() && tooltip != label) {
 		ScreenReader::Speak(tooltip, false);
@@ -720,7 +721,7 @@ void Tick(const D2RL::PluginContext* context) {
 		~SlowTickReport() {
 			if (const double ms = ElapsedMs(start); ms > SlowTickMs) {
 				const Widgets::PollStats& stats = Widgets::Stats();
-				D2RL::LogWarnF(context, "[focus] slow tick: %.1f ms; loader: %u lookups + %u rects = %.1f ms (cached rects %zu, miss since %llu)", ms, stats.lookups, stats.rects, stats.ms, g_rectCache.size(), g_missSince);
+				D2RAccess::AsyncLog::WarnF(context, "[focus] slow tick: %.1f ms; loader: %u lookups + %u rects = %.1f ms (cached rects %zu, miss since %llu)", ms, stats.lookups, stats.rects, stats.ms, g_rectCache.size(), g_missSince);
 			}
 		}
 	} slowTickReport { context, tickStart };
@@ -732,7 +733,7 @@ void Tick(const D2RL::PluginContext* context) {
 		const std::string id       = WidgetId(*pending.panel, *pending.widget);
 		if (std::strcmp(pending.widget->type, SliderWidgetType) == 0) {
 			if (const auto percent = SliderPercent(*pending.panel, *pending.widget); percent) {
-				D2RL::LogInfoF(context, "[value] %s -> %d%%", id.c_str(), *percent);
+				D2RAccess::AsyncLog::InfoF(context, "[value] %s -> %d%%", id.c_str(), *percent);
 				ScreenReader::Speak(PercentText(*percent), true);
 			}
 		} else {
@@ -744,7 +745,7 @@ void Tick(const D2RL::PluginContext* context) {
 				ControlState::OnUpdateMessage(*pending.widget, id, pending.before);
 			}
 			const std::string state = ControlState::Describe(*pending.widget, id);
-			D2RL::LogInfoF(context, "[value] %s -> \"%s\" (last input %d)", id.c_str(), state.c_str(), static_cast<int>(InputDirection::LastHorizontal(1000)));
+			D2RAccess::AsyncLog::InfoF(context, "[value] %s -> \"%s\" (last input %d)", id.c_str(), state.c_str(), static_cast<int>(InputDirection::LastHorizontal(1000)));
 			if (!state.empty()) {
 				ScreenReader::Speak(state, true);
 			} else {
@@ -818,7 +819,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_rectCache.clear();
 		match = Resolve(context, *indicator, false);
 		if (match.widget == nullptr || match.score < MinimumCoverage) {
-			D2RL::LogInfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+			D2RAccess::AsyncLog::InfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
 				Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
 			if (g_diagnostics) {
 				(void)Resolve(context, *indicator, true); // per-panel diagnostics: expensive, on request only
@@ -852,7 +853,7 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 				const std::string text  = ValueText(widget, value);
 				char              phrase[512] {};
 				std::snprintf(phrase, sizeof(phrase), Strings::Current().valueChanged, label.c_str(), text.c_str());
-				D2RL::LogInfoF(context, "[value] %s <- \"%.*s\" -> \"%s\"", WidgetId(*catalog, widget).c_str(), static_cast<int>(value.size()), value.data(), phrase);
+				D2RAccess::AsyncLog::InfoF(context, "[value] %s <- \"%.*s\" -> \"%s\"", WidgetId(*catalog, widget).c_str(), static_cast<int>(value.size()), value.data(), phrase);
 				ScreenReader::Speak(phrase, true);
 			} else {
 				g_pendingValue = { catalog, &widget, ControlState::Index(widget, g_lastAnnounced) };

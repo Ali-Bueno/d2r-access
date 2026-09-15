@@ -22,6 +22,8 @@ uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
+// Bounded discovery, including hidden controls. Visibility is rechecked when read.
+std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind);
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
 void Reset();
 }
