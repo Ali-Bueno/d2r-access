@@ -31,42 +31,65 @@ uint32_t ReadU32(const unsigned char* bytes, size_t offset) {
 	return value;
 }
 
-bool ReadHeader(const std::wstring& path, Character& out) {
-	const HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+// Fills `out` or returns why the file was skipped.
+const char* ReadHeader(const std::wstring& path, Character& out, DWORD& lastError) {
+	const HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (file == INVALID_HANDLE_VALUE) {
-		return false;
+		lastError = GetLastError();
+		return "cannot open";
 	}
 	unsigned char header[HeaderBytes] {};
 	DWORD         read = 0;
 	const bool    ok   = ReadFile(file, header, sizeof(header), &read, nullptr) && read == sizeof(header);
+	lastError          = ok ? 0 : GetLastError();
 	CloseHandle(file);
-	if (!ok || ReadU32(header, 0) != SaveMagic || ReadU32(header, VersionOffset) != SupportedVersion) {
-		return false;
+	if (!ok) {
+		return "short read";
+	}
+	if (ReadU32(header, 0) != SaveMagic) {
+		return "bad magic";
+	}
+	if (ReadU32(header, VersionOffset) != SupportedVersion) {
+		return "unsupported version";
 	}
 	const char* name = reinterpret_cast<const char*>(header + NameOffset);
 	out.name.assign(name, strnlen(name, NameLength));
 	out.classIndex = header[ClassOffset];
 	out.level      = header[LevelOffset];
 	out.lastPlayed = ReadU32(header, LastPlayedOffset);
-	return !out.name.empty();
+	return out.name.empty() ? "empty name" : nullptr;
+}
+
+std::string Narrow(const std::wstring& text) {
+	std::string result;
+	for (const wchar_t c : text) {
+		result.push_back(c < 0x80 ? static_cast<char>(c) : '?');
+	}
+	return result;
 }
 
 }
 
-std::vector<Character> Load() {
+std::vector<Character> Load(const D2RL::PluginContext* context) {
 	std::vector<Character> characters;
 	const std::wstring     directory = SettingsFile::SavedGamesDirectory();
 	if (directory.empty()) {
+		D2RL::LogWarnF(context, "[saves] saved games folder not resolved");
 		return characters;
 	}
 	WIN32_FIND_DATAW found {};
 	const HANDLE     search = FindFirstFileW((directory + L"\\" + SaveExtension).c_str(), &found);
 	if (search == INVALID_HANDLE_VALUE) {
+		D2RL::LogWarnF(context, "[saves] no %ls in \"%s\" (error %lu)", SaveExtension, Narrow(directory).c_str(), GetLastError());
 		return characters;
 	}
 	do {
 		Character character;
-		if (ReadHeader(directory + L"\\" + found.cFileName, character)) {
+		DWORD     lastError = 0;
+		if (const char* skipped = ReadHeader(directory + L"\\" + found.cFileName, character, lastError); skipped != nullptr) {
+			D2RL::LogWarnF(context, "[saves] %s skipped: %s (error %lu)", Narrow(found.cFileName).c_str(), skipped, lastError);
+		} else {
+			D2RL::LogInfoF(context, "[saves] %s: \"%s\" class %d level %d last played %lu", Narrow(found.cFileName).c_str(), character.name.c_str(), character.classIndex, character.level, static_cast<unsigned long>(character.lastPlayed));
 			characters.push_back(std::move(character));
 		}
 	} while (FindNextFileW(search, &found));

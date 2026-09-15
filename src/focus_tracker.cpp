@@ -80,6 +80,10 @@ constexpr const char* ScreenResolutionWidget = "ScreenResolution";
 // the rows beyond the visible window.
 constexpr Widgets::Step PopupScrollTrackPath[] = { { "ScrollController", 0.0f, 0.0f }, { "Bar", 0.0f, 0.0f } };
 constexpr Widgets::Step PopupScrollThumbPath[] = { { "ScrollController", 0.0f, 0.0f }, { "Indicator", 0.0f, 0.0f } };
+// Names the game might give the rows cloned from ItemTemplate: a clone's own
+// rect would give the scroll (and the row count) directly. Probed once per
+// popup and logged.
+constexpr const char* PopupRowCloneProbes[] = { "Item0", "Item1", "Item_0", "ItemTemplate0", "ItemTemplate_0", "ItemTemplate1", "Row0", "ListItem0", "Option0", "Entry0", "0", "1" };
 // Fallback when the scroll bar cannot be read: a press that left the
 // indicator on the same row scrolled the list by one. It must follow within
 // one update.
@@ -454,6 +458,32 @@ std::optional<int> PopupScrollOffset(const D2RL::PluginContext* context, const G
 	return offset;
 }
 
+void ProbePopupRowClones(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup) {
+	const Widgets::Step        root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
+	std::vector<Widgets::Step> steps = { { "Items", 0.0f, 0.0f } };
+	std::string                report;
+	for (const char* child : PopupRowCloneProbes) {
+		steps.push_back({ child, 0.0f, 0.0f });
+		if (const auto rect = Widgets::AbsoluteRect(popup.panel, root, steps); rect) {
+			report += std::string(" ") + child + " " + Describe(rect);
+		}
+		steps.pop_back();
+	}
+	D2RL::LogInfoF(context, "[focus] popup row clones:%s", report.empty() ? " none" : report.c_str());
+}
+
+// Logs the scroll thumb whenever it moves, to see how the list scrolls over
+// time independently of the focus indicator.
+void LogPopupThumb(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup) {
+	static std::optional<Widgets::Rect> last;
+	const Widgets::Step                 root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
+	const auto                          thumb = Widgets::AbsoluteRect(popup.panel, root, PopupScrollThumbPath);
+	if (thumb != last) {
+		last = thumb;
+		D2RL::LogInfoF(context, "[focus] popup thumb %s", Describe(thumb).c_str());
+	}
+}
+
 // Fallback option index, tracking the list's scroll from the presses: the
 // popup is taken as unscrolled when it opens; afterwards a press that left
 // the indicator on the same row scrolled the list by one, and a press that
@@ -548,8 +578,8 @@ int CharacterRowIndex(const Match& match, const Widgets::Rect& indicator) {
 }
 
 // "name, class, level N" for the character shown on that row.
-std::string CharacterRowPhrase(int rowIndex) {
-	const std::vector<CharacterSaves::Character> characters = CharacterSaves::Load();
+std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex) {
+	const std::vector<CharacterSaves::Character> characters = CharacterSaves::Load(context);
 	if (rowIndex >= static_cast<int>(characters.size())) {
 		char text[64] {};
 		std::snprintf(text, sizeof(text), Strings::Current().optionIndex, rowIndex + 1);
@@ -586,7 +616,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		}
 	}
 	if (characterRow >= 0) {
-		const std::string phrase = CharacterRowPhrase(characterRow);
+		const std::string phrase = CharacterRowPhrase(context, characterRow);
 		D2RL::LogInfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
 		ScreenReader::Speak(phrase, true);
 		return;
@@ -669,6 +699,12 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	g_lastPollTick = now;
 
+	if (PanelState::Active() == DropdownPopupPanel) {
+		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
+			LogPopupThumb(context, *popup);
+		}
+	}
+
 	// When a list scrolls to keep the focused row visible, the indicator can
 	// stay put while the rows move under it, so a scroll forces a re-check.
 	const auto indicator = IndicatorRect();
@@ -687,6 +723,9 @@ void Tick(const D2RL::PluginContext* context) {
 		g_dropdown.popupIndex.reset(); // a fresh popup starts unscrolled
 		g_dropdown.visibleRow.reset();
 		g_dropdown.scrollOffset = 0;
+		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
+			ProbePopupRowClones(context, *popup);
+		}
 	}
 	g_popupWasActive = popupActive;
 	if (popupActive) {

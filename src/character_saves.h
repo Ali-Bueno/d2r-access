@@ -1,5 +1,7 @@
 #pragma once
 
+#include <D2RLPlugin/api.h>
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -26,8 +28,9 @@ struct Character {
 
 // Every readable save, most recently played first (the order the select
 // screen lists them in). Re-reads the folder on each call: it is only asked
-// when the player moves through the list.
-std::vector<Character> Load();
+// when the player moves through the list. Logs what it found and why a file
+// was skipped.
+std::vector<Character> Load(const D2RL::PluginContext* context);
 
 // String-table key of the class name for `classIndex`, or nullptr.
 const char* ClassKey(int classIndex);
