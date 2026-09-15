@@ -1,5 +1,7 @@
 #include "widgets.h"
 
+#include <windows.h>
+
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -37,6 +39,19 @@ std::unordered_map<std::string, D2RL::Widgets::WidgetHandle> g_childHandles; // 
 // once. Cleared by BeginPoll.
 std::unordered_map<D2RL::Widgets::WidgetHandle, Rect> g_placed;
 std::optional<Rect>                                   g_screen;
+PollStats                                             g_stats;
+
+// Accumulates the wall time of one loader call into the poll stats.
+struct Timed {
+	LARGE_INTEGER start;
+	Timed() { QueryPerformanceCounter(&start); }
+	~Timed() {
+		static LARGE_INTEGER frequency = [] { LARGE_INTEGER f; QueryPerformanceFrequency(&f); return f; }();
+		LARGE_INTEGER        end;
+		QueryPerformanceCounter(&end);
+		g_stats.ms += 1000.0 * static_cast<double>(end.QuadPart - start.QuadPart) / static_cast<double>(frequency.QuadPart);
+	}
+};
 
 void Fail(const char* what, const char* name, unsigned code) {
 	std::snprintf(g_lastError, sizeof(g_lastError), "%s '%s' (result %u)", what, name, code);
@@ -48,7 +63,9 @@ std::string ChildKey(D2RL::Widgets::WidgetHandle parent, const char* name) {
 
 std::optional<Rect> LocalRect(D2RL::Widgets::WidgetHandle handle, const char* name) {
 	D2RL::Widgets::Rect rect {};
-	const auto          result = g_service->getWidgetRect(g_context, handle, &rect);
+	++g_stats.rects;
+	const Timed timed;
+	const auto  result = g_service->getWidgetRect(g_context, handle, &rect);
 	if (result != D2RL::Widgets::Result::Success) {
 		Fail("rect failed for", name, static_cast<unsigned>(result));
 		return std::nullopt;
@@ -61,8 +78,10 @@ std::optional<D2RL::Widgets::WidgetHandle> FindChild(D2RL::Widgets::WidgetHandle
 	if (const auto cached = g_childHandles.find(key); cached != g_childHandles.end()) {
 		return cached->second;
 	}
-	D2RL::Widgets::WidgetHandle child  = D2RL::Widgets::InvalidHandle;
-	const auto                  result = g_service->findWidget(g_context, parent, name, &child);
+	D2RL::Widgets::WidgetHandle child = D2RL::Widgets::InvalidHandle;
+	++g_stats.lookups;
+	const Timed timed;
+	const auto  result = g_service->findWidget(g_context, parent, name, &child);
 	if (result != D2RL::Widgets::Result::Success) {
 		Fail("widget not found", name, static_cast<unsigned>(result));
 		return std::nullopt;
@@ -152,6 +171,11 @@ bool IsAvailable() {
 
 void BeginPoll() {
 	g_placed.clear();
+	g_stats = {};
+}
+
+const PollStats& Stats() {
+	return g_stats;
 }
 
 void ForgetHandles() {
@@ -170,7 +194,9 @@ std::optional<D2RL::Widgets::WidgetHandle> FindPanel(std::string_view panel) {
 		return cached->second;
 	}
 	D2RL::Widgets::WidgetHandle handle = D2RL::Widgets::InvalidHandle;
-	const auto                  result = g_service->findPanel(g_context, name.c_str(), &handle);
+	++g_stats.lookups;
+	const Timed timed;
+	const auto  result = g_service->findPanel(g_context, name.c_str(), &handle);
 	if (result != D2RL::Widgets::Result::Success) {
 		Fail("panel not found", name.c_str(), static_cast<unsigned>(result));
 		return std::nullopt;

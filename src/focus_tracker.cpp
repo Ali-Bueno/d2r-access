@@ -41,9 +41,12 @@ constexpr double MinimumCoverage = 0.5;
 // The indicator is polled at most this often: resolving it costs four loader
 // calls, and menus do not move faster than this.
 constexpr unsigned long long PollIntervalMs = 33;
-// After a scroll message the game moves the highlight and the rows over the
-// next few updates, so the focus is re-checked on every tick for this long.
-constexpr unsigned long long RecheckWindowMs = 250;
+// After a scroll message the game either moves the highlight (the indicator
+// moves: cached rects stay valid) or, at the edge of the window, scrolls the
+// rows under a still indicator. The rows have settled after this long; only
+// then, and only if the indicator has not moved, are the nearby rects
+// re-read (each read is a loader call that has cost up to 50 ms).
+constexpr unsigned long long ScrollSettleMs = 120;
 // When a list scrolls, the row now under the indicator came from one row
 // away, so only cached rects within this many indicator heights of it are
 // refreshed (each refresh is a loader tree walk); a miss refreshes them all.
@@ -184,8 +187,8 @@ unsigned long long           g_missSince   = 0;     // first tick the indicator 
 bool                         g_missRetried = false; // the full re-read for this miss already happened
 bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
-bool                         g_scrollPending = false; // rows moved: refresh the cached rects near the indicator
-unsigned long long           g_recheckUntil  = 0;     // keep re-checking until this tick (see RecheckWindowMs)
+unsigned long long           g_scrollAt      = 0;     // tick of the last scroll message not yet settled (0: none)
+std::optional<Widgets::Rect> g_indicatorAtScroll;      // where the indicator was when that message arrived
 int                          g_scrollInputs = 0;     // ManualScrollInput messages since the last popup read
 unsigned long long           g_lastPollTick = 0;
 std::string                  g_lastAnnounced;
@@ -682,7 +685,8 @@ void Tick(const D2RL::PluginContext* context) {
 		LARGE_INTEGER              start;
 		~SlowTickReport() {
 			if (const double ms = ElapsedMs(start); ms > SlowTickMs) {
-				D2RL::LogWarnF(context, "[focus] slow tick: %.1f ms (cached rects %zu, miss since %llu)", ms, g_rectCache.size(), g_missSince);
+				const Widgets::PollStats& stats = Widgets::Stats();
+				D2RL::LogWarnF(context, "[focus] slow tick: %.1f ms; loader: %u lookups + %u rects = %.1f ms (cached rects %zu, miss since %llu)", ms, stats.lookups, stats.rects, stats.ms, g_rectCache.size(), g_missSince);
 			}
 		}
 	} slowTickReport { context, tickStart };
@@ -715,9 +719,8 @@ void Tick(const D2RL::PluginContext* context) {
 		}
 	}
 
-	const unsigned long long now     = GetTickCount64();
-	const bool               recheck = now < g_recheckUntil;
-	if (!g_forceResolve && !recheck && now - g_lastPollTick < PollIntervalMs) {
+	const unsigned long long now = GetTickCount64();
+	if (!g_forceResolve && now - g_lastPollTick < PollIntervalMs) {
 		return;
 	}
 	g_lastPollTick = now;
@@ -727,7 +730,18 @@ void Tick(const D2RL::PluginContext* context) {
 	// When a list scrolls to keep the focused row visible, the indicator can
 	// stay put while the rows move under it, so a scroll forces a re-check.
 	const auto indicator = IndicatorRect();
-	if (indicator == g_lastIndicator && !g_forceResolve && !recheck) {
+	// A scroll message is settled either by the indicator moving (the
+	// highlight moved: nothing else changed) or by time (the rows moved).
+	bool rowsMoved = false;
+	if (g_scrollAt != 0) {
+		if (indicator != g_indicatorAtScroll) {
+			g_scrollAt = 0;
+		} else if (now - g_scrollAt >= ScrollSettleMs) {
+			g_scrollAt = 0;
+			rowsMoved  = true;
+		}
+	}
+	if (indicator == g_lastIndicator && !g_forceResolve && !rowsMoved) {
 		return;
 	}
 	g_forceResolve  = false;
@@ -735,9 +749,8 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!indicator) {
 		return;
 	}
-	if (g_scrollPending || recheck) {
+	if (rowsMoved) {
 		RefreshNear(*indicator);
-		g_scrollPending = false;
 	}
 
 	// An open dropdown popup captures focus: read its rows, not the panels below.
@@ -817,15 +830,14 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 }
 
 void InvalidateRects() {
-	g_scrollPending = true;
-	g_forceResolve  = true;
-	g_recheckUntil  = GetTickCount64() + RecheckWindowMs;
+	g_scrollAt          = GetTickCount64();
+	g_indicatorAtScroll = g_lastIndicator;
+	g_forceResolve      = true;
 }
 
 void PanelsChanged() {
-	Widgets::ForgetHandles();
 	g_rectCache.clear();
-	InvalidateRects();
+	g_forceResolve = true;
 }
 
 void NoteScrollInput() {
@@ -845,6 +857,7 @@ void Reset() {
 	g_focusedCharacter.clear();
 	g_scrollInputs = 0;
 	g_missSince    = 0;
+	g_scrollAt     = 0;
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
 	g_lastMatchedPanel = nullptr;

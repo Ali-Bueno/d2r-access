@@ -17,12 +17,20 @@ bool Initialize(const D2RL::PluginContext* context);
 void Shutdown();
 bool IsAvailable();
 
-// Widget handles are cached by name so the loader's tree walks happen once
-// per panel set; rects are memoized within one poll. Call BeginPoll before
-// each poll (rects may have moved) and ForgetHandles when panels open or
-// close (handles may be gone).
+// Widget handles are cached by name for the plugin's lifetime: the SDK
+// documents them as plugin-owned paths that survive a panel being reopened,
+// and every lookup costs a loader tree walk. Rects are memoized within one
+// poll: call BeginPoll before each poll (rects may have moved).
 void BeginPoll();
 void ForgetHandles();
+
+// Loader calls made since BeginPoll and the time they took, for cost logging.
+struct PollStats {
+	unsigned lookups = 0; // findPanel + findWidget
+	unsigned rects   = 0; // getWidgetRect
+	double   ms      = 0.0;
+};
+const PollStats& Stats();
 
 struct Rect {
 	int32_t x      = 0;
