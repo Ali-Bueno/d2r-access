@@ -18,9 +18,9 @@
 - [x] Leer las ayudas de botones del inventario, como «Soltar oro», y nombrar
   los huecos de equipo. Confirmado por el usuario el 15 de septiembre de 2026:
   «funcionó».
-- [ ] Omitir fila y columna al seleccionar un objeto, incluso antes de que
-  aparezca su descripción. Implementado e instalado; 255 comprobaciones
-  automáticas superadas. Pendiente de confirmación del usuario.
+- [x] Omitir fila y columna al seleccionar un objeto, incluso antes de que
+  aparezca su descripción. Confirmado por el usuario el 15 de septiembre
+  de 2026: «parece que funcionó bien». 255 comprobaciones automáticas superadas.
 
 Las tareas nuevas solo se marcarán como completadas tras la confirmación del
 usuario. El estado técnico, las pruebas y los datos derivados están en `STATUS.md`.

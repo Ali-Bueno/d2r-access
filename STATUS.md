@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (action/slot names and blacksmith axe descriptions confirmed; grid items now omit coordinates, including while waiting for their tooltip; built/deployed; nine suites / 255 checks pass; wording retest pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (user confirmed grid item speech without coordinates, including the delayed-tooltip fix; built/deployed; nine suites / 255 checks pass; publishing the validated UI checkpoint). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -34,7 +34,7 @@
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
-| Item readout | wip — blacksmith axes confirmed; coordinate suppression retest pending | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
+| Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 
@@ -112,13 +112,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Retest the installed build at the blacksmith: D-pad Up/Down among axes should read their descriptions without a prior row/column announcement; empty inventory cells should still provide prompt coordinates. Sequence in `docs/test-ingame-text.md`. Nine suites / 255 checks passed; built and installed DLL SHA-256: `5A379AB56D59575C9D01596D885321DE4C4618DB6CA82710BD17713E82B6C060`. Action/slot names, inventory fluency and blacksmith item speech are confirmed; the new native occupancy query and coordinate suppression need user validation. Tabs, scroll-control identification and full inventory/storage operations remain pending. Radar is deferred.
+The user confirmed the installed coordinate-suppression fix and requested publishing this UI checkpoint only. Nine suites / 255 checks passed; built and installed DLL SHA-256: `5A379AB56D59575C9D01596D885321DE4C4618DB6CA82710BD17713E82B6C060`. Action/slot names, inventory fluency, blacksmith item speech and removal of coordinate prefixes are confirmed. No further implementation is in progress. Tabs, scroll-control identification and full inventory/storage operations remain open for future work; radar remains deferred.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels, basic inventory selection/fluency, action/slot names and blacksmith axe descriptions confirmed. Earlier pauses reached 719–1000 ms inside callbacks before SDK logging moved off the UI thread. Occupied grid cells now await their description without coordinates; empty/unknown cells retain coordinate feedback. This change awaits user validation; an occupied cell with no rendered tooltip remains silent. The exact scroll-related control is still unidentified. Full inventory operations, chat history, HUD/combat and navigation remain pending.
+- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels, basic inventory selection/fluency, action/slot names, blacksmith axe descriptions and coordinate suppression confirmed. Earlier pauses reached 719–1000 ms inside callbacks before SDK logging moved off the UI thread. Occupied grid cells await their description without coordinates; empty/unknown cells retain coordinate feedback. An occupied cell with no rendered tooltip remains silent. The exact scroll-related control is still unidentified. Full inventory operations, chat history, HUD/combat and navigation remain pending.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

@@ -42,6 +42,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Temporary files go to the session scratchpad, never into the repo.
 - Keep `STATUS.md` current (section table, derived facts with sources, next step) whenever a chunk
   is finished; update `README.md` when user-facing behaviour changes.
+- Record user confirmations in `STATUS.md`. The user retired `GEMINI.md` on 2026-09-15:
+  ignore it and do not update it, overriding the earlier Gemini tracking instructions.
 
 ## Architecture (src/)
 

@@ -36,7 +36,7 @@ also exposes inventory coordinates and selected stash tabs. It follows item grid
 equipment; it reads complete rendered descriptions and suppresses stationary
 repeats. Described grid items now read without row/column prefixes. An occupied
 cell waits for the game's tooltip without announcing coordinates first; empty
-cells retain coordinate feedback. This wording change awaits user confirmation. See
+cells retain coordinate feedback. The user confirmed this behavior. See
 [native tooltip evidence](docs/native-tooltips.md).
 
 Existing NPC menu rows read

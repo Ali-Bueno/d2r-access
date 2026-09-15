@@ -106,7 +106,8 @@ An occupied cell waits silently for the rendered tooltip. Once available, its
 description replaces the coordinate option; name, stats and footer remain intact.
 Empty/unknown cells retain the existing 20 ms coordinate fallback. Equipment slot
 names and action labels are unaffected. If an occupied cell never renders text,
-it remains silent. Live confirmation of this new query/wording remains pending.
+it remains silent. The user confirmed the new behavior on 2026-09-15:
+“parece que funcionó bien”.
 
 ## Inventory action labels and equipment locations
 

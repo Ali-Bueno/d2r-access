@@ -111,7 +111,7 @@ visually locate an unread control. The user confirmed the new action/slot labels
 
 Compare `[interaction]` messages against the previous blacksmith session around
 12:10 on 2026-09-15. Item speech was confirmed there; this reduction in coordinate
-speech is installed but still awaits user confirmation.
+speech was subsequently confirmed by the user on 2026-09-15.
 
 ## Optional diagnostic commands
 
