@@ -29,6 +29,7 @@ constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration,
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
+constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusPanelOffset = 0x188, FocusWidgetOffset = 0x190; // 0x868230 / 0x876CA0
 constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindPanel 0x89F760
@@ -40,6 +41,13 @@ uintptr_t CallType(uintptr_t function, uintptr_t widget) noexcept {
 	__try {
 		return reinterpret_cast<uintptr_t(*)(uintptr_t)>(function)(widget);
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
+}
+
+ItemPresence CallItemAtCell(uintptr_t function, uintptr_t widget, Cell cell) noexcept {
+	__try {
+		const auto item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
+		return item ? ItemPresence::Occupied : ItemPresence::Empty;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return ItemPresence::Unknown; }
 }
 
 std::vector<uintptr_t> VectorAt(uintptr_t address) {
@@ -195,6 +203,17 @@ int EquipmentLocation(uintptr_t widget) {
 	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)
 		|| !Peek(widget + EquipmentLocationOffset, location)) return 0;
 	return location; // caller maps only the verified body locations
+}
+
+ItemPresence GridItemPresence(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return ItemPresence::Unknown;
+	const auto cell = GridCell(widget);
+	uintptr_t vtable = 0, getter = 0;
+	if (cell.x < 0 || !Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
+	// InventoryGridWidget 0x2C49F0 queries the widget's owner/page and cell;
+	// its 0x386A00 lookup reads the inventory grid, without moving any item.
+	return CallItemAtCell(getter, widget, cell);
 }
 
 std::vector<uintptr_t> Panels() {

@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (inventory fluency confirmed by user; native action help and equipment slot names built/deployed; nine suites / 241 checks pass; new labels await user confirmation). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (action/slot names and blacksmith axe descriptions confirmed; grid items now omit coordinates, including while waiting for their tooltip; built/deployed; nine suites / 255 checks pass; wording retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -30,11 +30,11 @@
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Automated text tests | done (local) | Nine CTest suites, 241 checks: text/notifications, guarded memory/tree, gameplay lifecycle, tooltips, action help, equipment locations, interaction latency, shared tabs and a deliberately blocked SDK log sink |
+| Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
-| Inventory actions / equipment slot names | wip — built/deployed, user retest pending | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots, even without items. Live gold_button contained Soltar oro; reported scroll control still unidentified. `docs/native-tooltips.md` |
-| Item readout | wip — primary tooltip capture built/deployed | Reads stock body/footer before per-frame destruction; stale cell descriptions rejected; live item/order verification pending |
+| Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
+| Item readout | wip — blacksmith axes confirmed; coordinate suppression retest pending | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 
@@ -99,6 +99,7 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 - **Inventory selection**: controller x/y `+0x544/+0x548` (`0x2A89C0`); grid width/height `+0x628/+0x62C` (`0x2C5FA0`); TabBar selected index `+0x16C4` (`0x878D30`), runtime `TextN` label children.
 - **Icon button help**: FocusableWidget registration `0x875CB0`, live reflection records `0x2535D90`/`0x2535E20`: tooltipString `+0x88`, buttonLegendString `+0x310`. Both contained `Soltar oro` on live gold_button while its embedded caption was empty. Applied only to known button classes; toggles retain the value reader.
 - **Equipment location**: InventorySlotWidget registration `0x2CA5F0`, live record `0x236C530`: int32 `location +0x5D8`. Ten live slots match stock layout values 1–10 (head, neck, torso, right/left weapon, right/left ring, belt, feet, gloves). Full mapping in `docs/native-tooltips.md`.
+- **Grid occupancy query**: `0x2A89C0` calls vtable `+0xC8` with selected x/y; live grid vtable `0x1CF3800` points to `0x2C49F0`. That getter resolves the widget owner (`0x2A7810`), page `+0x630`, and cell (`0x386A00`). Guarded UI-thread query distinguishes occupied/empty/unknown; no pointer is retained. Blacksmith log showed tooltip delay ~350–390 ms, so occupied cells now wait without speaking early coordinates. `docs/native-tooltips.md`.
 
 - **SDK runtime logging:** live context `logInfo` → D2RCore `0x3CF110` → `0x3D14F0`; `0x3D171D` calls `FlushFileBuffers` (IAT `0x5125C0`) after every line. `async_log.cpp` moves that work off UI callbacks.
 - **Controller tabs:** live `ControllerOverlay` contains `UISwitcherTabs` outside focused inventory; `+0x16C4 = 3` read `Inventario` while `+0x544 = 2`. Stash `SelectTab` also fires without moving player-inventory focus. Shared `tab_reader.cpp`; full evidence in `docs/navigation-latency.md`.
@@ -111,13 +112,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Retest installed action/slot labels with the controller: from the inventory grid, move Up into equipment for individual location names; move Down beyond the grid to `Soltar oro`, then Up/Down to revisit without activating it. No items or visual targeting required; sequence in `docs/test-ingame-text.md`. Identify the reported scroll-related control from actual focus/rendered help when encountered. Nine suites / 241 checks passed; built and installed DLL SHA-256: `EC89DAA3354F0711FB5F61B68CDF19070B7B3CD3749ED3CD84368DF8F714A23F`. Inventory fluency is confirmed; action/slot speech, tabs and full item tests remain pending. Radar is deferred.
+Retest the installed build at the blacksmith: D-pad Up/Down among axes should read their descriptions without a prior row/column announcement; empty inventory cells should still provide prompt coordinates. Sequence in `docs/test-ingame-text.md`. Nine suites / 255 checks passed; built and installed DLL SHA-256: `5A379AB56D59575C9D01596D885321DE4C4618DB6CA82710BD17713E82B6C060`. Action/slot names, inventory fluency and blacksmith item speech are confirmed; the new native occupancy query and coordinate suppression need user validation. Tabs, scroll-control identification and full inventory/storage operations remain pending. Radar is deferred.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels, basic inventory selection and inventory fluency confirmed. Charsi introduction/gossip/menu announcements appear in the 10:58:39 log session. Earlier pauses reached 719–1000 ms inside callbacks; the user confirmed smooth inventory navigation after synchronous SDK log flushes moved off the UI thread. New action/slot labels await confirmation, and the exact scroll-related control is still unidentified. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
+- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels, basic inventory selection/fluency, action/slot names and blacksmith axe descriptions confirmed. Earlier pauses reached 719–1000 ms inside callbacks before SDK logging moved off the UI thread. Occupied grid cells now await their description without coordinates; empty/unknown cells retain coordinate feedback. This change awaits user validation; an occupied cell with no rendered tooltip remains silent. The exact scroll-related control is still unidentified. Full inventory operations, chat history, HUD/combat and navigation remain pending.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

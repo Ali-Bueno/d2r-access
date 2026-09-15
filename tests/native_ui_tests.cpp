@@ -6,10 +6,14 @@
 
 #include <array>
 #include <cstring>
+#include <windows.h>
 
 namespace {
 uintptr_t managerAddress = 0;
 bool supported = true;
+uintptr_t cellItem = 0, queriedWidget = 0;
+D2RAccess::NativeUi::Cell queriedCell;
+bool itemQueryFault = false;
 D2RAccess::NativeWidgets::Notification latestNotification;
 struct Metadata { uintptr_t vtable = 0; const char* name = nullptr; Metadata* base = nullptr; };
 
@@ -19,11 +23,17 @@ uintptr_t TypeGetter(uintptr_t widget) {
 	return value;
 }
 
+uintptr_t ItemAtCell(uintptr_t widget, const D2RAccess::NativeUi::Cell* cell) {
+	queriedWidget = widget; queriedCell = *cell;
+	if (itemQueryFault) RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+	return cellItem;
+}
+
 // Minimal synthetic native objects, using the layout recovered from the live
 // functions in docs/native-ui.md. No game executable or screen reader needed.
 struct Widget {
 	std::array<unsigned char, 0x1800> data{};
-	std::array<uintptr_t, 12> vtable{};
+	std::array<uintptr_t, 26> vtable{};
 	Metadata metadata;
 	std::string name, text;
 	std::vector<uintptr_t> children;
@@ -151,8 +161,23 @@ int main() {
 		&& NativeUi::Classify(slot.Address()).kind == UiText::Kind::InventorySlot, "item subclasses retain their grid/slot archetypes");
 	auto cell = NativeUi::GridCell(grid.Address());
 	Check(cell.x == 2 && cell.y == 3, "inventory coordinates use actual native selection and dimensions");
+	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Empty, "grid lookup distinguishes a confirmed empty cell");
+	cellItem = 123;
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Occupied
+		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup passes the native owner widget and selected coordinates");
+	itemQueryFault = true;
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
+	itemQueryFault = false; grid.vtable[25] = 0;
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "missing item getter is not called");
+	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	grid.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "hidden inventory is not queried");
+	grid.Put<uint8_t>(0x51, 1);
+	Check(NativeUi::GridItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment does not use the grid item getter");
 	grid.Put<int32_t>(0x544, 10);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "out-of-range grid selection is ignored");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "out-of-range selection never reaches the item getter");
 	grid.Put<int32_t>(0x628, 10000);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "corrupt inventory dimensions are bounded");
 	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");

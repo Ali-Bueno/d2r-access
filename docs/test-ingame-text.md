@@ -4,8 +4,8 @@ Build/install: close D2R, run `./build.ps1`, then launch D2RLoader with NVDA run
 The build deploys automatically to the already configured game folder. Use the
 existing offline character. The user confirmed the Rogue Encampment entry
 announcement, repeated G warnings, stash/Charsi labels, basic inventory selection,
-and smooth inventory navigation. NPC dialogue and full item descriptions still
-need live verification.
+smooth inventory navigation, inventory action/slot names, and axe descriptions at
+the blacksmith. NPC dialogue and full inventory/storage operations still need verification.
 
 ## Reported G warning
 
@@ -95,8 +95,23 @@ shortcut already used by the player, then navigate using these stock layout link
 
 Inspect the last session's `[interaction]` lines. The scroll-related control still
 needs identification from actual focus/rendered text; do not ask the player to
-visually locate an unread control. User confirmation of these new labels remains
-pending, separately from the already confirmed navigation responsiveness.
+visually locate an unread control. The user confirmed the new action/slot labels.
+
+## Grid items without coordinate prefixes
+
+1. Return to the blacksmith's trade grid using the same controller interaction
+   as before. Move among the axes with **D-pad Up/Down**, pausing on each item.
+   Expect its description and price, without **Fila** or **columna** beforehand.
+2. Repeat a few faster **Up/Down** movements. A new occupied cell must not read
+   the previous cell's tooltip or a coordinate prefix while awaiting its description.
+3. In the player's inventory, move onto a cell without an item. Expect its row
+   and column promptly. Return to an item: its text must omit those coordinates.
+4. Remain still: no repeated announcement. Close with **B** and reopen to check
+   section entry and subsequent item-only navigation.
+
+Compare `[interaction]` messages against the previous blacksmith session around
+12:10 on 2026-09-15. Item speech was confirmed there; this reduction in coordinate
+speech is installed but still awaits user confirmation.
 
 ## Optional diagnostic commands
 
@@ -117,7 +132,7 @@ and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 ## Automated checks
 
 `ctest --test-dir build --output-on-failure` runs nine native C++ test executables
-(241 checks). Coverage includes complete long strings, invalid memory, hidden
+(255 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
 Notification coverage includes native linked text and data-source filtering,
@@ -135,6 +150,8 @@ producers enqueue a bounded backlog, and cover LT/RT changes in unfocused stash
 and controller-overlay tabs. Action tests cover caption/help/legend fallbacks,
 disabled buttons, exact duplicate suppression, rendered help, stale focus rejection,
 toggle ownership, equipment locations and dialogue priority.
+Grid occupancy tests cover guarded native queries and occupied/empty/unknown
+results; delayed-tooltip tests verify that item speech never acquires a coordinate prefix.
 See [the controller retest](navigation-latency.md#validation). When checking responsiveness in game,
 compare `[pump] slow accessibility tick` with the existing longest-gap reports;
 the latter include time spent outside the mod's UI callback.

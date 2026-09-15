@@ -23,6 +23,7 @@ uint64_t now = 1000, selection = UINT64_MAX;
 const D2RL::PluginContext context{};
 int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
+NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -40,6 +41,7 @@ Type Classify(uintptr_t widget) {
 	return {};
 }
 Cell GridCell(uintptr_t) { return cell; }
+ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
@@ -107,14 +109,14 @@ int main() {
 	cell = {0, 0}; selection = 0;
 	inventory = {10, 11, "BankExpansionLayout", UiText::Surface::Other, {{12, -1, UiText::Kind::Tabs, "BankTabs", "TabBarWidget", "Personal"}}};
 	Tooltip("Poción de curación menor\nRecupera 45 de vida"); tooltip.footer = "Usar";
-	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Fila 1, columna 1. Poción de curación menor Recupera 45 de vida. Usar"}, "stash opens with its selected tab, cell, complete item text and footer");
+	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Poción de curación menor Recupera 45 de vida. Usar"}, "stash opens with its selected tab and complete item text, without coordinates");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "stationary inventory selection stays quiet");
 	Check(inventoryWalks == 0 && titleLookups == 1, "localized title is cached; shared tab tracking owns discovery");
 	cell = {1, 0}; selection = 1; Tick();
 	Tooltip("Poción de curación menor\nRecupera 45 de vida"); tooltip.footer = "Usar";
 	Settle();
-	Check(speech.size() == 1 && speech[0].starts_with("Fila 1, columna 2. Poción"), "identical items in different cells are announced without repeating the section");
+	Check(speech == std::vector<std::string>{"Poción de curación menor Recupera 45 de vida. Usar"}, "identical items in different cells are announced without coordinates or section repetition");
 	ClearSpeech(); inventory.nodes[0].text = "Comp."; Settle();
 	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
 	Check(inventoryWalks == 0 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
@@ -122,7 +124,7 @@ int main() {
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "old tooltip is discarded when selection moves to a cell without a rendered description");
 	ClearSpeech(); focus = {20, 21}; inventory = {}; cell = {0, 1}; selection = uint64_t{1} << 32;
 	Tooltip("Pergamino del portal de la ciudad"); Settle();
-	Check(speech.size() == 1 && speech[0].starts_with("Inventario. Fila 2, columna 1."), "player inventory uses the same item and grid reader");
+	Check(speech == std::vector<std::string>{"Inventario. Pergamino del portal de la ciudad"}, "player inventory reads the item without coordinates");
 	ClearSpeech(); focus.widget = 22; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; cell = {};
 	Tooltip("Hacha de mano\nDaño: 3–6\nDurabilidad: 28 de 28"); Settle();
 	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano Daño: 3–6 Durabilidad: 28 de 28"}, "equipment announces its subsection and every displayed stat");
@@ -178,5 +180,21 @@ int main() {
 	Check(!InteractionReader::HandlesFocus(focus) && !Tick() && speech.empty(), "toggle state stays with the existing value reader");
 	widgetType = {"ButtonWidget", UiText::Kind::Button}; conversation = true; ClearSpeech();
 	Check(!Tick() && speech.empty(), "conversation priority suppresses background action help");
+	conversation = false; InteractionReader::Reset(); inventory = {}; ClearSpeech();
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid}; cell = {0, 0}; selection = 0;
+	itemPresence = NativeUi::ItemPresence::Occupied;
+	for (int i = 0; i < 5; ++i) Tick();
+	Check(speech.empty(), "occupied cell stays quiet while the stock tooltip is delayed, without early coordinates");
+	Tooltip("Hacha grande\nDaño: 6-13"); tooltip.footer = "Coste: 331";
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande Daño: 6-13. Coste: 331"}, "delayed item reads immediately with all properties and price but no coordinates");
+	ClearSpeech(); selection = 1; cell = {1, 0}; Settle();
+	Check(speech.empty(), "moving to another occupied cell waits instead of reading stale item text or coordinates");
+	Tooltip("Hacha de mano"); Tick();
+	Check(speech == std::vector<std::string>{"Hacha de mano"}, "next occupied cell announces only the item");
+	Check(InteractionReader::Repeat() == "Inventario. Hacha de mano", "repeat also omits coordinates for a described item");
+	ClearSpeech(); selection = 2; cell = {2, 0}; itemPresence = NativeUi::ItemPresence::Empty; Settle();
+	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "confirmed empty cell retains quick coordinate feedback after an occupied cell");
+	ClearSpeech(); itemPresence = NativeUi::ItemPresence::Occupied; Tooltip("Poción"); Tick();
+	Check(speech == std::vector<std::string>{"Poción"}, "an item appearing in the same cell replaces its coordinate readout");
 	Passed();
 }

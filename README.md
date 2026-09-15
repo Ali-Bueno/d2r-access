@@ -31,10 +31,12 @@ again; simply leaving a notice visible stays silent. Notification text with link
 uses its native embedded textbox.
 
 The user confirmed the stash and Charsi target labels, basic inventory
-selection, and smooth inventory navigation. Primary item descriptions still await a live item test. The reader
+selection, smooth inventory navigation, and axe descriptions in the blacksmith's shop. The reader
 also exposes inventory coordinates and selected stash tabs. It follows item grids and
 equipment; it reads complete rendered descriptions and suppresses stationary
-repeats. A cell without a description announces its coordinates. See
+repeats. Described grid items now read without row/column prefixes. An occupied
+cell waits for the game's tooltip without announcing coordinates first; empty
+cells retain coordinate feedback. This wording change awaits user confirmation. See
 [native tooltip evidence](docs/native-tooltips.md).
 
 Existing NPC menu rows read
@@ -53,7 +55,7 @@ see [latency and tab evidence](docs/navigation-latency.md).
 Inventory icon buttons now use their native label/help or controller legend,
 including **Soltar oro**, and equipment slots announce their body location
 (head, neck, weapon, ring, belt, and so on), followed by any rendered item description.
-These additions are installed and await controller/NVDA confirmation. The specific
+The user confirmed these additions. The specific
 scroll-related control reported by the user has not yet been identified live.
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.

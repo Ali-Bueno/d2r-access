@@ -89,7 +89,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		std::string description = UiText::Clean(tooltip.body);
 		Append(description, UiText::Clean(tooltip.footer));
 		renderedDescription = !description.empty();
-		if (inventory || button) Append(readout.option, description);
+		if (type.kind == UiText::Kind::InventoryGrid && renderedDescription) readout.option = description;
+		else if (inventory || button) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (!focus.panel && readout.Empty()) {
@@ -110,6 +111,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		ScreenReader::Speak(tabChange, true);
 		return true;
 	}
+	// The stock item tooltip can appear ~350 ms after selection. An occupied
+	// grid cell waits for it without speaking coordinates first; other cells
+	// keep their existing quick coordinate feedback.
+	if (type.kind == UiText::Kind::InventoryGrid && !renderedDescription
+		&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied) return true;
 	if (readout.Empty()) { g_reader.Reset(); return inventory; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.

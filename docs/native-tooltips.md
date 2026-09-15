@@ -78,10 +78,35 @@ callbacks over 30 ms, at most once per five seconds, independently of gaps betwe
 game updates. The user confirmed smooth inventory navigation after SDK logging
 was moved to its own worker (2026-09-15). Tab announcements remain unconfirmed.
 
-Current boundary: cells without a rendered tooltip announce their coordinates.
-They are **not declared empty**, since absence of a tooltip alone is insufficient
-evidence. This is an initial inventory reader, not complete inventory operation
-coverage. Item order and equipment/storage behavior still need a live item test.
+The user confirmed axe descriptions at the blacksmith on 2026-09-15. Full equipment
+and storage operations still need live item tests. Cells with no rendered text
+are not declared empty solely because a tooltip is absent.
+
+## Item speech without grid coordinates
+
+The blacksmith trace showed a coordinate-only announcement followed approximately
+350–390 ms later by coordinates plus the item description (12:10:01–12:10:20).
+Removing only the latter prefix would leave the first interruption intact.
+
+`InventoryItemWidget` function `0x2A89C0` obtains the selected x/y and calls the
+virtual item-at-cell getter at vtable `+0xC8`. The live `InventoryGridWidget`
+vtable `0x1CF3800` points that slot to `0x2C49F0`: it resolves the widget's owner
+through `0x2A7810`, uses its inventory page at `+0x630`, and queries the selected
+cell through `0x386A00`. The latter looks up a pointer in the inventory grid;
+it does not move an item. Source: existing live `.rdata` capture and Ghidra
+decompilation of those functions, 2026-09-15.
+
+The native adapter now uses this getter on the UI thread, after verifying widget
+class, visibility, grid bounds, and executable function memory. A native fault or
+unavailable getter returns **Unknown**, distinct from an empty cell; no item
+pointer is retained. This lookup is needed only while a grid's current description
+is absent. It works through the widget owner for vendor, player and storage grids.
+
+An occupied cell waits silently for the rendered tooltip. Once available, its
+description replaces the coordinate option; name, stats and footer remain intact.
+Empty/unknown cells retain the existing 20 ms coordinate fallback. Equipment slot
+names and action labels are unaffected. If an occupied cell never renders text,
+it remains silent. Live confirmation of this new query/wording remains pending.
 
 ## Inventory action labels and equipment locations
 
@@ -141,5 +166,8 @@ registration interface. It covers primary-only capture, full text, focus/cell
 association, expiry, reset, invalid memory/counts and rejected installation.
 `interaction-reader` covers target return, duplicate suppression, overlays,
 storage tabs, coordinates, identical items, stale text rejection and equipment.
+Grid-query tests cover occupied/empty/unknown, invalid cells, hidden widgets and
+fault containment. Interaction tests simulate delayed descriptions, movement to
+another occupied cell, return to an empty cell, and complete coordinate-free speech.
 The existing native UI and gameplay tests cover archetype selection and lifecycle
 integration. Build/test results are recorded in `STATUS.md`.
