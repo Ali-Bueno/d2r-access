@@ -2,6 +2,7 @@
 
 #include "generated/panel_widgets.h"
 #include "control_state.h"
+#include "input_direction.h"
 #include "localization.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -44,6 +45,9 @@ constexpr const char* SliderIndicatorChild = "Indicator";
 // whose state is not readable yet (toggles, dropdowns).
 constexpr const char* ValueChildProbes[] = { "Indicator", "Handle", "Knob", "ValueText", "Value", "Text", "Label", "Toggle", "Checkbox", "Icon", "Image", "Selected", "Current", "Option", "Item", "List" };
 
+// A value message is handled one UI update later: sliders so the layout has
+// moved the handle, toggles/carousels so InputDirection::Poll has seen the
+// press that caused the message (it happens in the same frame, before our tick).
 struct PendingValue {
 	const Generated::PanelWidgets* panel  = nullptr;
 	const Generated::WidgetEntry*  widget = nullptr;
@@ -54,6 +58,8 @@ struct PendingValue {
 // the row under the focus indicator: its index is the indicator's distance
 // from the first row in row heights.
 constexpr const char* DropdownPopupPanel  = "DropdownListContents";
+// A dropdown whose options are built at runtime declares this placeholder.
+constexpr const char* DynamicStatesMarker = "?";
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
 
@@ -317,8 +323,23 @@ void ProbeValueChildren(const D2RL::PluginContext* context, const Generated::Pan
 
 // Row highlighted in a dropdown popup: spoken as the owning dropdown's state
 // name when its options are static, else as "option N of M".
-void AnnouncePopupRow(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator) {
-	const auto row = WidgetRect(*match.panel, *match.widget);
+bool HasStaticStates(const Generated::WidgetEntry* widget) {
+	return widget != nullptr && widget->states != nullptr && widget->stateCount > 0 && std::strcmp(widget->states[0], DynamicStatesMarker) != 0;
+}
+
+// The popup captures focus while open: the highlighted row is the indicator's
+// distance from the first row (all rows share the template's name and size).
+void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup, const Widgets::Rect& indicator) {
+	const Generated::WidgetEntry* rowTemplate = nullptr;
+	for (uint32_t i = 0; i < popup.count; ++i) {
+		if (std::strcmp(popup.widgets[i].name, DropdownPopupItem) == 0) {
+			rowTemplate = &popup.widgets[i];
+		}
+	}
+	if (rowTemplate == nullptr) {
+		return;
+	}
+	const auto row = WidgetRect(popup, *rowTemplate);
 	if (!row || row->height <= 0) {
 		return;
 	}
@@ -329,7 +350,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Match& match, co
 	g_dropdown.popupIndex = index;
 
 	std::string phrase;
-	if (g_dropdown.widget != nullptr && g_dropdown.widget->states != nullptr && index < static_cast<int>(g_dropdown.widget->stateCount)) {
+	if (HasStaticStates(g_dropdown.widget) && index < static_cast<int>(g_dropdown.widget->stateCount)) {
 		phrase = Localization::Text(g_dropdown.widget->states[index]);
 		if (phrase.empty()) {
 			phrase = g_dropdown.widget->states[index];
@@ -344,13 +365,8 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Match& match, co
 	ScreenReader::Speak(phrase, true);
 }
 
-void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator) {
+void Announce(const D2RL::PluginContext* context, const Match& match) {
 	std::string id = std::string(match.panel->panel) + "/" + match.widget->name;
-	if (std::strcmp(match.panel->panel, DropdownPopupPanel) == 0 && std::strcmp(match.widget->name, DropdownPopupItem) == 0) {
-		g_lastAnnounced = id;
-		AnnouncePopupRow(context, match, indicator);
-		return;
-	}
 	if (id == g_lastAnnounced) {
 		return;
 	}
@@ -392,9 +408,27 @@ void Tick(const D2RL::PluginContext* context) {
 	if (g_pendingValue.widget != nullptr) {
 		const PendingValue pending = g_pendingValue;
 		g_pendingValue             = {};
-		if (const auto percent = SliderPercent(*pending.panel, *pending.widget); percent) {
-			D2RL::LogInfoF(context, "[value] %s -> %d%%", WidgetId(*pending.panel, *pending.widget).c_str(), *percent);
-			ScreenReader::Speak(PercentText(*percent), true);
+		const std::string id       = WidgetId(*pending.panel, *pending.widget);
+		if (std::strcmp(pending.widget->type, SliderWidgetType) == 0) {
+			if (const auto percent = SliderPercent(*pending.panel, *pending.widget); percent) {
+				D2RL::LogInfoF(context, "[value] %s -> %d%%", id.c_str(), *percent);
+				ScreenReader::Speak(PercentText(*percent), true);
+			}
+		} else {
+			// A dropdown takes the row picked in its popup; toggles and
+			// carousels step from the player's last horizontal input.
+			if (std::strcmp(pending.widget->type, DropdownWidgetType) == 0 && g_dropdown.id == id && g_dropdown.popupIndex) {
+				ControlState::SetIndex(id, *g_dropdown.popupIndex);
+			} else {
+				ControlState::OnUpdateMessage(*pending.widget, id);
+			}
+			const std::string state = ControlState::Describe(*pending.widget, id);
+			D2RL::LogInfoF(context, "[value] %s -> \"%s\" (last input %d)", id.c_str(), state.c_str(), static_cast<int>(InputDirection::LastHorizontal(1000)));
+			if (!state.empty()) {
+				ScreenReader::Speak(state, true);
+			} else {
+				ProbeValueChildren(context, *pending.panel, *pending.widget);
+			}
 		}
 	}
 
@@ -407,6 +441,14 @@ void Tick(const D2RL::PluginContext* context) {
 		return;
 	}
 
+	// An open dropdown popup captures focus: read its rows, not the panels below.
+	if (PanelState::Active() == DropdownPopupPanel) {
+		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
+			AnnouncePopupRow(context, *popup, *indicator);
+		}
+		return;
+	}
+
 	Match match = Resolve(context, *indicator, false);
 	if (match.widget == nullptr || match.score < MinimumCoverage) {
 		D2RL::LogInfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
@@ -414,7 +456,7 @@ void Tick(const D2RL::PluginContext* context) {
 		match = Resolve(context, *indicator, true);
 		return;
 	}
-	Announce(context, match, *indicator);
+	Announce(context, match);
 }
 
 bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, std::string_view command, std::string_view value) {
@@ -441,24 +483,8 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 				std::snprintf(phrase, sizeof(phrase), Strings::Current().valueChanged, label.c_str(), text.c_str());
 				D2RL::LogInfoF(context, "[value] %s <- \"%.*s\" -> \"%s\"", WidgetId(*catalog, widget).c_str(), static_cast<int>(value.size()), value.data(), phrase);
 				ScreenReader::Speak(phrase, true);
-			} else if (std::strcmp(widget.type, SliderWidgetType) == 0) {
-				g_pendingValue = { catalog, &widget };
 			} else {
-				// A dropdown takes the row picked in its popup; toggles and
-				// carousels step from the player's last horizontal input.
-				const std::string id = WidgetId(*catalog, widget);
-				if (std::strcmp(widget.type, DropdownWidgetType) == 0 && g_dropdown.id == id && g_dropdown.popupIndex) {
-					ControlState::SetIndex(id, *g_dropdown.popupIndex);
-				} else {
-					ControlState::OnUpdateMessage(widget, id);
-				}
-				const std::string state = ControlState::Describe(widget, id);
-				D2RL::LogInfoF(context, "[value] %s -> \"%s\"", id.c_str(), state.c_str());
-				if (!state.empty()) {
-					ScreenReader::Speak(state, true);
-				} else {
-					ProbeValueChildren(context, *catalog, widget);
-				}
+				g_pendingValue = { catalog, &widget };
 			}
 			return true;
 		}
