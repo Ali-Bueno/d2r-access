@@ -67,6 +67,11 @@
 | Class selectors | `CharacterCreatePanel` `HDCharacterSelectorWidget` Amazon…Warlock resolve under the focus indicator but carry only the panel title as label; the game announces them itself via `CharacterCreate:Hover`, so the tracker skips that type (`MessageAnnouncedTypes`) | log 2026-09-15 |
 | Class descriptions | `CharacterCreatePanelHD.json` text boxes `ClassTitle`/`ClassDescription` are filled at runtime from `strAmazonDesc`, `strAssDesc`, `strBarbDesc`, `strDruDesc`, `strNecroDesc`, `strPalDesc`, `strSorcDesc`, `strWarlockDesc` (ui.json); spoken after the class name on `CharacterCreate:Hover` | extraction 2026-09-15 |
 | Preloaded in-game panels | Right after `OpenExclusivePanel TitleScreenPanel` the game opens `ShowItemsPanel` and `EmoteWheelPanel` (never closed); their buttons are invisible in the front end but overlapped CharacterCreate's class area (Emote6 "¡Adiós!" at coverage 0.51). `FrontEndNavigation:ToFrontEnd` now resets the panel record | log 2026-09-15 03:58 |
+| SDK widget handles | `WidgetHandle` = plugin-owned name PATH, not a game pointer (README "Existing Widgets"; widgets.h:20). Every `getWidgetRect`/`findWidget` re-walks the tree inside the loader: measured up to ~50 ms per call and one-second UI stalls when a hundred rects were re-read (pump log 2026-09-15). Handles are cached for the plugin's lifetime; rects re-read only near the indicator after a settled scroll | log + README |
+| Native widget access | D2RCore.dll 1.2.1-beta slot table (offsets from the DLL base, filled at startup): **0x5AA340** → address of the game's `PanelManager*` global, **0x5AB880** `FindPanel(mgr, name)`, **0x5AB610** `FindChildWidget(parent, name)` (recursive below parent), **0x5ADA48** `TextBoxWidget::SetText(widget, {ptr,len}*)`; D2R live RVAs are logged at load ("[native] D2R live RVAs"). `src/native_widgets.cpp` | Opus RE 2026-09-15 (D2RCore call sites 0x2AE3B3, 0x2AE3C2, 0x2A6FB6, 0x2A7260) |
+| Engine string | 0x28 bytes: `{char* data; size_t size (bytes, no NUL); size_t capacity | bit63 = non-owning; char inline[16]}`; `data` always valid (points at the inline buffer or heap). D2RCore 0x699509 (ctor), 0x314622 (dtor), 0x3F911B (size≠cap). 1-byte chars (UTF-8 vs ANSI unconfirmed) | Opus RE |
+| Reflection records (corrected) | Stride 0x30, **base = the qword holding the name pointer**: `+0x08 type, +0x10 memberOffset, +0x20 memberSize`. Live RVAs: `name` 0x23FE4E0 (string, off 0x0), `rect` 0x23FEBA0 (struct, off 0x70), `text` 0x2400130 / `tooltipString` 0x23FFCE0 / `states` 0x2401000 / `isToggled` 0x2400430 are name-only on disk (runtime fill unconfirmed). Offsets are relative to a reflected sub-object after the vptr (widget+0 is a vtable), shift F unconfirmed. `re/out/schema2.tsv` | Opus RE |
+| Widget flags | `widget+0x50` / `+0x51` are bools with vtable setters (+0x48/+0x50); `+0x51` tested as "panel up/active" (D2RCore 0x2C35FC) → likely visible/enabled — candidates for disabled-control detection | Opus RE |
 | Button → panel wiring | `ButtonWidget.fields.onClickMessage = "PanelManager:OpenPanel:SettingsPanel"`, `textString = "@OptionsHD"` (MainMenuButtonRibbonHD.json:43) | extraction |
 
 ## References
@@ -75,11 +80,12 @@
 
 ## Next step
 
-Verify with the controller: (1) Video → Resolución: 18 rows from 640x480 to 3620x2036 (log "popup option N of 18 (clones)"); (2) Crear personaje → Versión del juego popup says Clásico / Expansión / Reign of the Warlock; (3) main menu character list says "yarkey, Bárbaro, nivel 1" then "X: Borrar"; X opens the modal announced as "Borrar yarkey"; (4) Audio → Idioma del texto value.
+Read the probe build's log: "[native] D2R live RVAs …" at load, then "[native] probe …" lines after opening the delete modal, the resolution popup and the character list. Confirm (a) the widget name appears at some offset F (reflection base), (b) the visible text appears at another offset, (c) no crash. Then implement `ReadWidgetText` for TextBoxWidget rows/prompts and replace the popup scroll tracking. Also check the pump log ("[pump] … longest gap") and "[focus] slow tick" lines for the loader call cost.
 
 ## Known issues / open questions
 
-- Character list rows beyond the visible window (many characters) are not scroll-corrected yet (same scroll-bar approach as the popup would apply).
+- Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
+- **Dynamic text (modal prompts, popup rows, legends) is being unlocked natively**: the probe build logs the strings found in `ConfirmationModal/Frame/Prompt`, `DropdownListContents/Items/ListItemN/TextBox` and `CharacterSelectPanel/…/CharacterTemplate` ("[native] probe …"). Once the text offset per widget class is confirmed, popup rows and modals are read directly (no scroll tracking).
 - **In-game phase (requested 2026-09-15):** tutorials and auto-shown texts (e.g. the graphics hint on G), NPC dialogue, area/sub-area/dungeon names. Not started.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
