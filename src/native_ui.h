@@ -20,6 +20,7 @@ Focus CurrentFocus();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
+int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 // Bounded discovery, including hidden controls. Visibility is rechecked when read.

@@ -30,14 +30,14 @@ without interrupting a conversation. A new delivery of identical text is read
 again; simply leaving a notice visible stays silent. Notification text with links
 uses its native embedded textbox.
 
-The user confirmed the stash and Charsi target labels and basic inventory
-selection. Primary item descriptions still await a live item test. The reader
+The user confirmed the stash and Charsi target labels, basic inventory
+selection, and smooth inventory navigation. Primary item descriptions still await a live item test. The reader
 also exposes inventory coordinates and selected stash tabs. It follows item grids and
 equipment; it reads complete rendered descriptions and suppresses stationary
 repeats. A cell without a description announces its coordinates. See
 [native tooltip evidence](docs/native-tooltips.md).
 
-Navigation optimization, awaiting user retest: existing NPC menu rows read
+Existing NPC menu rows read
 without a population delay; inventory coordinates settle for one poll and
 already rendered item descriptions read immediately. Inventory section controls
 are discovered on entry and their selected values stay live, avoiding repeated
@@ -46,8 +46,15 @@ full inventory walks. Gameplay focus is sampled at 30 Hz.
 The latest build also reads LT/RT (L2/R2) tab changes from the visible tab bars,
 including the controller menu strip and stash tabs while selection stays in the
 player inventory. Runtime logging now runs on a separate worker because the
-loader forces a disk flush on every line. Both changes await an in-game retest;
+loader forces a disk flush on every line. The user confirmed inventory responsiveness
+after this change; tab announcements still await confirmation;
 see [latency and tab evidence](docs/navigation-latency.md).
+
+Inventory icon buttons now use their native label/help or controller legend,
+including **Soltar oro**, and equipment slots announce their body location
+(head, neck, weapon, ring, belt, and so on), followed by any rendered item description.
+These additions are installed and await controller/NVDA confirmation. The specific
+scroll-related control reported by the user has not yet been identified live.
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).

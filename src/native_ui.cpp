@@ -21,6 +21,8 @@ constexpr size_t ChildrenOffset = 0x58; // FindChildWidget 0x855C90
 constexpr size_t GetTypeSlot = 0x58;    // vtable, distinct from the instance member
 constexpr size_t TypeNameOffset = 0x8, BaseTypeOffset = 0x10; // 0x851030
 constexpr size_t ButtonTextOffset = 0x818; // 0x8496CA calls SetText on embedded TextBoxWidget
+constexpr size_t ButtonLegendOffset = 0x310; // FocusableWidget registration 0x875CB0; live gold_button
+constexpr size_t EquipmentLocationOffset = 0x5D8; // InventorySlotWidget location, live metadata 0x236C530
 constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to embedded TextBoxWidget
 constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
@@ -62,6 +64,7 @@ void MatchType(Type& result, const std::string& name) {
 	if (name == "TextBoxWidget") result.kind = Kind::Text;
 	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
 	else if (name == "ChatListWidget") result.kind = Kind::NotificationList;
+	else if (name == "ToggleButtonWidget") result.kind = Kind::Toggle; // existing value reader retains toggles
 	else if (name == "ButtonWidget") result.kind = Kind::Button;
 	else if (name == "ListItemWidget" || name == "HoverListItemWidget") result.kind = Kind::ListItem;
 	else if (name == "ListWidget") result.kind = Kind::List;
@@ -90,7 +93,15 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	node.kind = type.kind;
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
 	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
-	else if (type.kind == Kind::Button) node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+	else if (type.kind == Kind::Button || type.kind == Kind::Toggle) {
+		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+		// A button's +0x88 string is FocusableWidget::tooltipString, not its
+		// embedded caption. Icon buttons such as gold_button have only this text.
+		const auto hint = NativeWidgets::ReadText(widget);
+		if (node.text.empty()) node.text = hint;
+		else if (!hint.empty() && UiText::Clean(hint) != UiText::Clean(node.text)) node.text += ". " + hint;
+		if (node.text.empty()) (void)NativeMemory::ReadEngineString(widget + ButtonLegendOffset, node.text);
+	}
 	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
@@ -177,6 +188,13 @@ Cell GridCell(uintptr_t widget) {
 		|| dimensions.width > 64 || dimensions.height > 64 || x < 0 || y < 0
 		|| x >= dimensions.width || y >= dimensions.height) return cell;
 	return {x, y};
+}
+
+int EquipmentLocation(uintptr_t widget) {
+	int32_t location = 0;
+	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)
+		|| !Peek(widget + EquipmentLocationOffset, location)) return 0;
+	return location; // caller maps only the verified body locations
 }
 
 std::vector<uintptr_t> Panels() {

@@ -78,7 +78,7 @@ std::vector<uintptr_t> Panels() {
 	return result;
 }
 UiText::Snapshot Snapshot(uintptr_t widget, uintptr_t focused) {
-	if (widget == 80 || widget == 81) ++inventorySnapshots;
+	if (widget == 80 || widget == 81 || widget == 82) ++inventorySnapshots;
 	for (const auto& panel : panels) {
 		if (panel.panel == widget) { auto result = panel; result.focus = focused; return result; }
 		for (const auto& node : panel.nodes) if (node.id == widget) {
@@ -100,7 +100,7 @@ std::string ReadName(uintptr_t widget) {
 }
 namespace D2RAccess::FocusTracker { void Reset() {} }
 namespace D2RAccess::InteractionReader {
-bool IsInventoryFocus(NativeUi::Focus current) { return current.widget == 81; }
+bool HandlesFocus(NativeUi::Focus current) { return current.widget == 81 || current.widget == 82; }
 bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus, bool conversation, std::string_view) { ++interactionTicks; return inventoryOwns && !conversation; }
 void Reset() {}
 std::string Repeat() { return {}; }
@@ -188,6 +188,9 @@ int main() {
 	focus = {80, 81}; inventoryOwns = true;
 	Check(Settle() && GameTextReader::Tick(&context), "inventory retains focus ownership between text polls");
 	Check(inventorySnapshots == 0, "conversation reader does not walk and discard the inventory tree or grid");
+	focus.widget = 82;
+	Check(Settle() && inventorySnapshots == 0, "focused inventory button avoids the discarded full panel/fallback walks");
+	focus.widget = 81;
 	GameTextReader::RequestDump(); Settle();
 	Check(inventorySnapshots == 1, "explicit diagnostics can still inspect the inventory tree");
 	const int beforeDisable = stops;

@@ -14,6 +14,7 @@ NativeUi::Focus focus;
 NativeUi::Type widgetType;
 NativeUi::Cell cell;
 UiText::Snapshot inventory, target;
+UiText::Snapshot buttonSnapshot;
 NativeTooltips::Snapshot tooltip;
 std::vector<std::string> speech;
 bool conversation = false;
@@ -21,6 +22,7 @@ uintptr_t tracked = 0;
 uint64_t now = 1000, selection = UINT64_MAX;
 const D2RL::PluginContext context{};
 int inventoryWalks = 0, titleLookups = 0;
+int equipmentLocation = 0;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -38,9 +40,11 @@ Type Classify(uintptr_t widget) {
 	return {};
 }
 Cell GridCell(uintptr_t) { return cell; }
+int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
+	if (panel == focus.widget && widgetType.kind == UiText::Kind::Button) return buttonSnapshot;
 	++inventoryWalks;
 	return inventory;
 }
@@ -148,5 +152,31 @@ int main() {
 		&& speech == std::vector<std::string>{"Árbol de hab."}, "leaving inventory for another tab still reads the new tab");
 	ClearSpeech();
 	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Opciones") && speech.empty(), "dialogue priority also suppresses tab speech");
+	conversation = false; InteractionReader::Reset(); inventory = {}; tooltip = {}; ClearSpeech();
+	focus = {20, 22}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; equipmentLocation = 1;
+	Check(InteractionReader::HandlesFocus(focus), "native equipment focus remains owned by the interaction reader");
+	Settle();
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza"}, "equipment location is named even without an item tooltip");
+	ClearSpeech(); focus.widget = 23; equipmentLocation = 2; Settle();
+	Check(speech == std::vector<std::string>{"Cuello"}, "moving between equipment slots reads the location without repeating the group");
+	ClearSpeech(); equipmentLocation = 4; focus.widget = 24; Tooltip("Hacha de mano"); Settle();
+	Check(speech == std::vector<std::string>{"Arma derecha. Hacha de mano"}, "equipment location precedes its rendered item description");
+	ClearSpeech(); tooltip = {}; equipmentLocation = 999; focus.widget = 25; Settle();
+	Check(speech.empty(), "unknown equipment locations do not invent a slot name");
+	equipmentLocation = 0; tooltip = {}; focus.widget = 26; widgetType = {"ButtonWidget", UiText::Kind::Button};
+	buttonSnapshot = {26, 26, "gold_button", UiText::Surface::Other, {{26, -1, UiText::Kind::Button, "gold_button", "ButtonWidget", "Soltar oro"}}};
+	Check(InteractionReader::HandlesFocus(focus), "icon buttons use native focus instead of rectangle matching");
+	ClearSpeech(); Check(Tick() && speech == std::vector<std::string>{"Soltar oro"}, "gold action is announced immediately upon leaving equipment");
+	ClearSpeech(); Tooltip("Soltar oro"); Settle();
+	Check(speech.empty(), "matching rendered tooltip does not repeat the button label");
+	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
+	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";
+	Check(Tick() && speech == std::vector<std::string>{"Pergamino del portal de la ciudad. Usar"}, "focused action can read its complete rendered help without a native caption");
+	ClearSpeech(); focus.widget = 28; buttonSnapshot = {28, 28, "OtherAction", UiText::Surface::Other, {{28, -1, UiText::Kind::Button, "OtherAction", "ButtonWidget", "Identificar"}}};
+	Check(Tick() && speech == std::vector<std::string>{"Identificar"}, "previous action tooltip is rejected after focus changes");
+	ClearSpeech(); widgetType = {"ToggleButtonWidget", UiText::Kind::Toggle};
+	Check(!InteractionReader::HandlesFocus(focus) && !Tick() && speech.empty(), "toggle state stays with the existing value reader");
+	widgetType = {"ButtonWidget", UiText::Kind::Button}; conversation = true; ClearSpeech();
+	Check(!Tick() && speech.empty(), "conversation priority suppresses background action help");
 	Passed();
 }

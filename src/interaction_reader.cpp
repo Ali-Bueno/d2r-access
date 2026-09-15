@@ -22,7 +22,7 @@ struct InventoryContext {
 InventoryContext g_inventoryContext;
 
 void Append(std::string& text, const std::string& part) {
-	if (part.empty()) return;
+	if (part.empty() || text == part) return;
 	if (!text.empty()) text += ". ";
 	text += part;
 }
@@ -54,18 +54,32 @@ UiText::Readout Inventory(NativeUi::Focus focus, const NativeUi::Type& type) {
 		std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
 		result.option = phrase;
 	}
+	if (type.kind == UiText::Kind::InventorySlot) {
+		const int location = NativeUi::EquipmentLocation(focus.widget);
+		const auto& labels = Strings::Current().equipmentSlots;
+		if (location > 0 && static_cast<size_t>(location) < labels.size()) Append(result.option, labels[location]);
+	}
 	return result;
 }
 }
 
-bool IsInventoryFocus(NativeUi::Focus focus) { return IsInventory(NativeUi::Classify(focus.widget).kind); }
+bool HandlesFocus(NativeUi::Focus focus) {
+	const auto kind = NativeUi::Classify(focus.widget).kind;
+	return IsInventory(kind) || kind == UiText::Kind::Button;
+}
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	if (conversation) { Reset(); return false; }
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	const bool button = type.kind == UiText::Kind::Button;
 	UiText::Readout readout = inventory ? Inventory(focus, type) : UiText::Readout{};
+	if (button) {
+		readout = UiText::Describe(NativeUi::Snapshot(focus.widget, focus.widget));
+		readout.context = NativeWidgets::ReadName(focus.panel);
+		readout.focusKey = std::to_string(focus.widget);
+	}
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
 	// Discard the previous focus/cell's last rendered description while the new
@@ -75,7 +89,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		std::string description = UiText::Clean(tooltip.body);
 		Append(description, UiText::Clean(tooltip.footer));
 		renderedDescription = !description.empty();
-		if (inventory) Append(readout.option, description);
+		if (inventory || button) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (!focus.panel && readout.Empty()) {
@@ -99,13 +113,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (readout.Empty()) { g_reader.Reset(); return inventory; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
-	const auto announcement = inventory ? g_reader.Update(readout, now, renderedDescription ? 0 : InventorySettleMs)
+	const auto announcement = button ? g_reader.Update(readout, now, 0)
+		: inventory ? g_reader.Update(readout, now, renderedDescription ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, true);
 	}
-	return inventory;
+	return inventory || button;
 }
 
 void Reset() {

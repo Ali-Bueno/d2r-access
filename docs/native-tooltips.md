@@ -75,12 +75,64 @@ reader skips item grids instead of walking and discarding their full panel trees
 An explicit `access-text dump` still walks the inventory for diagnostics. Tests
 verify scan counts and delivery timing. `[pump] slow accessibility tick` reports
 callbacks over 30 ms, at most once per five seconds, independently of gaps between
-game updates. End-to-end responsiveness still requires a controller/NVDA retest.
+game updates. The user confirmed smooth inventory navigation after SDK logging
+was moved to its own worker (2026-09-15). Tab announcements remain unconfirmed.
 
 Current boundary: cells without a rendered tooltip announce their coordinates.
 They are **not declared empty**, since absence of a tooltip alone is insufficient
 evidence. This is an initial inventory reader, not complete inventory operation
 coverage. Item order and equipment/storage behavior still need a live item test.
+
+## Inventory action labels and equipment locations
+
+A read-only probe with the inventory open found `gold_button` as a native
+`ButtonWidget` (vtable RVA `0x1CE4148`). Its embedded caption at `+0x8A0` was
+empty, but both `+0x88` and `+0x310` contained **Soltar oro**. Reading only the
+caption therefore missed this action. The generated layout catalog also offered
+an unrelated sibling label, so native focus and strings own these actions now.
+
+`FocusableWidget` registration `0x875CB0` and the live reflection table confirm:
+
+| Field | Member offset | Live reflection record RVA |
+|---|---|---|
+| tooltipString | `+0x88` | `0x2535D90` |
+| buttonLegendString | `+0x310` | `0x2535E20` |
+
+Each reflection record is 0x30 bytes: name pointer `+0`, kind `+8`, member offset
+`+0x10`, and member size `+0x20`. Both string fields have size 0x28. The button
+reader combines a caption with distinct help, or falls back to its legend when
+both are empty. `+0x88` is read only on known button classes here; it is not a
+generic text field on every widget. Toggle buttons retain the existing value
+reader. A focused action can also use the captured primary tooltip body/footer,
+but only when the capture belongs to that exact panel and widget.
+
+`InventorySlotWidget` registration `0x2CA5F0` identifies `location` at `+0x5D8`
+(live reflection record `0x236C530`, size 4). All ten live equipment slots matched
+the `location` fields in `game-data/global/ui/Layouts/PlayerInventoryOriginalLayout.json`:
+
+| Value | Layout location | Spoken Spanish location |
+|---|---|---|
+| 1 | head | Cabeza |
+| 2 | neck | Cuello |
+| 3 | torso | Torso |
+| 4 | right_arm | Arma derecha |
+| 5 | left_arm | Arma izquierda |
+| 6 | right_hand | Anillo derecho |
+| 7 | left_hand | Anillo izquierdo |
+| 8 | belt | Cinturón |
+| 9 | feet | Pies |
+| 10 | gloves | Guantes |
+
+The layout's weapon/ring sprites corroborate the arm/hand distinction. Runtime
+reading uses the native location value, not widget names. Unknown values add no
+invented location. A slot name precedes its rendered item description and remains
+available without items; absence of a tooltip still does not imply an empty slot.
+
+Actions read immediately and inspect only the focused control subtree. The
+conversation reader skips discarded full-panel/fallback walks for this archetype,
+as it already did for inventory cells. NPC dialogues retain priority. The user's
+specific scroll-related control is still unidentified; synthetic scroll-action
+tests validate the common rendered-help path, not that live control's coverage.
 
 ## Validation
 

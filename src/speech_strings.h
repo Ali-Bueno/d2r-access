@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <array>
 
 // Every phrase the plugin speaks lives here so wording and translation are
 // changed in one place, never inside the services or the hooks. Game text
@@ -42,6 +43,8 @@ struct Table {
 	const char* equipment;
 	const char* belt;
 	const char* gridCell; // one-based row, column
+	// InventorySlotWidget location values, verified against live slots and the stock layout.
+	std::array<const char*, 11> equipmentSlots;
 };
 
 inline constexpr Table English {
@@ -76,6 +79,8 @@ inline constexpr Table English {
 	.equipment           = "Equipment",
 	.belt                = "Belt",
 	.gridCell            = "Row %d, column %d",
+	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
+		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
 };
 
 inline constexpr Table Spanish {
@@ -110,6 +115,8 @@ inline constexpr Table Spanish {
 	.equipment           = "Equipo",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
+	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
+		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

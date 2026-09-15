@@ -3,8 +3,9 @@
 Build/install: close D2R, run `./build.ps1`, then launch D2RLoader with NVDA running.
 The build deploys automatically to the already configured game folder. Use the
 existing offline character. The user confirmed the Rogue Encampment entry
-announcement and the first G warning; NPC dialogue and repeated identical notice
-deliveries still need live verification.
+announcement, repeated G warnings, stash/Charsi labels, basic inventory selection,
+and smooth inventory navigation. NPC dialogue and full item descriptions still
+need live verification.
 
 ## Reported G warning
 
@@ -75,6 +76,28 @@ Review `[tooltip] Verified native tooltip draw hook installed.` at startup and
 the resulting `[interaction]` announcements. This pass validates actual item
 text order and controller behavior; automated tests cannot replace it.
 
+## Inventory buttons and equipment names
+
+No items or visual targeting are required. Open inventory with the controller
+shortcut already used by the player, then navigate using these stock layout links:
+
+1. From the grid, press **D-pad Up** until selection enters equipment. Continue
+   **Up/Left/Right/Down**, pausing after each press. Expect **Equipo** on section
+   entry and specific slot names such as **Cabeza**, **Cuello**, and **Anillo derecho**.
+2. Return to the grid with **D-pad Down**. Continue **Down** beyond its bottom
+   row: the stock controller layout links the grid to `gold_button`. Expect
+   **Soltar oro**, without pressing **A** or activating the action.
+3. Press **Up** to return to the grid, then **Down** to revisit the button. Its
+   name should read on each return; remaining on it should stay quiet.
+4. Press **B** to close inventory and reopen it. Repeat a few cell/slot movements
+   to check that navigation remains fluid. Any rendered action help should belong
+   to the current selection; a previous item's description must not carry over.
+
+Inspect the last session's `[interaction]` lines. The scroll-related control still
+needs identification from actual focus/rendered text; do not ask the player to
+visually locate an unread control. User confirmation of these new labels remains
+pending, separately from the already confirmed navigation responsiveness.
+
 ## Optional diagnostic commands
 
 Developer console, `Ctrl+backquote`:
@@ -94,7 +117,7 @@ and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 ## Automated checks
 
 `ctest --test-dir build --output-on-failure` runs nine native C++ test executables
-(219 checks). Coverage includes complete long strings, invalid memory, hidden
+(241 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
 Notification coverage includes native linked text and data-source filtering,
@@ -109,7 +132,10 @@ Latency tests cover immediate navigation between existing menu rows, the bounded
 inventory settling window, shared tab discovery per visible panel, live tab values,
 and avoiding duplicate inventory scans. Tests also block the SDK logger while
 producers enqueue a bounded backlog, and cover LT/RT changes in unfocused stash
-and controller-overlay tabs. See [the controller retest](navigation-latency.md#validation). When checking responsiveness in game,
+and controller-overlay tabs. Action tests cover caption/help/legend fallbacks,
+disabled buttons, exact duplicate suppression, rendered help, stale focus rejection,
+toggle ownership, equipment locations and dialogue priority.
+See [the controller retest](navigation-latency.md#validation). When checking responsiveness in game,
 compare `[pump] slow accessibility tick` with the existing longest-gap reports;
 the latter include time spent outside the mod's UI callback.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;

@@ -142,7 +142,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	g_lastPoll = now;
 	const NativeUi::Focus focus = NativeUi::CurrentFocus();
 	const auto focusedSurface = NativeUi::Classify(focus.panel).surface;
-	const bool inventoryFocus = InteractionReader::IsInventoryFocus(focus);
+	const bool nativeControlFocus = InteractionReader::HandlesFocus(focus);
 	const bool dump = g_dump.exchange(false);
 	UiText::Readout active, area;
 	std::vector<std::string> notices;
@@ -154,9 +154,9 @@ bool Tick(const D2RL::PluginContext* context) {
 		const auto type = NativeUi::Classify(panel);
 		if (type.surface == Surface::Target) continue; // shared interaction reader, passive HUD target
 		if (!NativeUi::Visible(panel) || (type.surface == Surface::Other && panel != focus.panel)) continue;
-		// The item reader owns this archetype. Avoid a full inventory walk that
+		// The interaction reader owns this archetype. Avoid a full panel walk that
 		// this loop would immediately discard; keep explicit diagnostic dumps.
-		if (!dump && inventoryFocus && type.surface == Surface::Other) continue;
+		if (!dump && nativeControlFocus && type.surface == Surface::Other) continue;
 		const bool notification = type.surface == Surface::Notice || type.surface == Surface::NotificationFeed;
 		// A different menu/modal receiving input covers this conversation. An
 		// area banner is passive and may still be announced without taking focus.
@@ -178,7 +178,7 @@ bool Tick(const D2RL::PluginContext* context) {
 		const int priority = Priority(snapshot, focus);
 		if (priority > best) { best = priority; active = readout; }
 	}
-	if (best < 0 && focus.widget && !inventoryFocus) {
+	if (best < 0 && focus.widget && !nativeControlFocus) {
 		auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		snapshot.name = NativeWidgets::ReadName(focus.panel);
 		if (dump) Dump(context, snapshot);

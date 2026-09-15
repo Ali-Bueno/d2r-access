@@ -7,7 +7,7 @@
 
 namespace D2RAccess::UiText {
 
-enum class Kind { Other, Text, LinkedText, NotificationList, Button, ListItem, List, Focusable, ScrollingText,
+enum class Kind { Other, Text, LinkedText, NotificationList, Button, Toggle, ListItem, List, Focusable, ScrollingText,
 	InventoryGrid, InventorySlot, InventoryItem, Tabs };
 enum class Surface { Other, Menu, Narrative, Tip, Area, Notice, NotificationFeed, Target };
 
