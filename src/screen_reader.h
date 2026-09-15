@@ -4,6 +4,8 @@
 
 // Single speech sink for the whole plugin. Wraps the PRISM C API loaded
 // dynamically from prism.dll next to the plugin (see prism-prebuilt.md).
+// Speech runs on its own thread: Speak/Stop only queue, so the caller (the
+// game's UI thread) never waits for the screen reader.
 namespace D2RAccess::ScreenReader {
 
 // Loads prism.dll from the given directory and acquires the best backend.

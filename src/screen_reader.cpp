@@ -3,8 +3,13 @@
 #include <prism.h>
 #include <windows.h>
 
+#include <condition_variable>
 #include <cstdio>
+#include <deque>
+#include <future>
+#include <mutex>
 #include <string>
+#include <thread>
 
 namespace D2RAccess::ScreenReader {
 
@@ -29,22 +34,35 @@ struct PrismApi {
 	decltype(&prism_error_string)          errorString         = nullptr;
 };
 
+// Everything PRISM-related is touched only by the speech thread: a speak
+// request to NVDA is a synchronous call that measured 300-800 ms
+// (2026-09-15), which stalled the game's UI thread on every announcement.
 struct State {
 	HMODULE       library = nullptr;
 	PrismApi      api {};
 	PrismContext* context = nullptr;
 	PrismBackend* backend = nullptr;
-	std::string   lastError;
+	std::string   lastError;   // written by the speech thread during Initialize, read after
+	std::string   backendName; // copied once so callers never touch PRISM
 };
 
-State g_state {};
+struct Request {
+	std::string text;
+	bool        interrupt = false;
+	bool        stop      = false; // Stop(): silence without speaking
+};
+
+State                   g_state {};
+std::thread             g_thread;
+std::mutex              g_mutex;
+std::condition_variable g_wake;
+std::deque<Request>     g_queue;
+bool                    g_quit      = false;
+bool                    g_available = false; // backend acquired (set by Initialize, cleared by Shutdown)
 
 template <typename Fn>
 bool Resolve(HMODULE library, const char* name, Fn& out) {
 	out = reinterpret_cast<Fn>(GetProcAddress(library, name));
-	if (out == nullptr) {
-		g_state.lastError = std::string("export not found: ") + name;
-	}
 	return out != nullptr;
 }
 
@@ -62,79 +80,24 @@ bool ResolveApi(HMODULE library, PrismApi& api) {
 }
 
 std::string Narrow(const std::wstring& text) {
-	if (text.empty()) {
-		return {};
+	std::string result;
+	result.reserve(text.size());
+	for (const wchar_t c : text) {
+		result.push_back(c < 0x80 ? static_cast<char>(c) : '?');
 	}
-	const int size = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-	std::string out(size > 0 ? static_cast<size_t>(size - 1) : 0, '\0');
-	if (size > 0) {
-		WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, out.data(), size, nullptr, nullptr);
-	}
-	return out;
+	return result;
 }
 
 std::wstring BuildPrismPath(const wchar_t* pluginDirectory) {
-	std::wstring path = pluginDirectory;
+	std::wstring path(pluginDirectory);
 	if (!path.empty() && path.back() != L'\\' && path.back() != L'/') {
 		path += L'\\';
 	}
-	path += PrismRelativePath;
-	return path;
+	return path + PrismRelativePath;
 }
 
-}
-
-bool Initialize(const wchar_t* pluginDirectory) {
-	if (g_state.backend != nullptr) {
-		return true;
-	}
-	if (pluginDirectory == nullptr) {
-		g_state.lastError = "plugin directory unknown";
-		return false;
-	}
-
-	// Absolute path: the game's DLL search path must not decide which prism.dll loads.
-	const std::wstring path = BuildPrismPath(pluginDirectory);
-	g_state.library         = LoadLibraryW(path.c_str());
-	if (g_state.library == nullptr) {
-		char detail[64] {};
-		std::snprintf(detail, sizeof(detail), " (LoadLibrary error %lu)", GetLastError());
-		g_state.lastError = "cannot load " + Narrow(path) + detail;
-		return false;
-	}
-	if (!ResolveApi(g_state.library, g_state.api)) {
-		Shutdown();
-		return false;
-	}
-
-	PrismConfig config = g_state.api.configInit();
-	g_state.context    = g_state.api.init(&config);
-	if (g_state.context == nullptr) {
-		g_state.lastError = "prism_init returned null";
-		Shutdown();
-		return false;
-	}
-
-	g_state.backend = g_state.api.registryAcquireBest(g_state.context);
-	if (g_state.backend == nullptr) {
-		g_state.lastError = "no screen reader backend available (is NVDA/JAWS running?)";
-		Shutdown();
-		return false;
-	}
-	// Since PRISM v0.18 acquire_best hands out a shared backend that is already
-	// initialized, so ALREADY_INITIALIZED is the normal outcome here, not a failure.
-	const PrismError error = g_state.api.backendInitialize(g_state.backend);
-	if (error != PRISM_OK && error != PRISM_ERROR_ALREADY_INITIALIZED) {
-		const char* name = g_state.api.backendName(g_state.backend);
-		g_state.lastError = std::string("backend ") + (name != nullptr ? name : "?") + " failed to initialize: " + g_state.api.errorString(error);
-		Shutdown();
-		return false;
-	}
-	g_state.lastError.clear();
-	return true;
-}
-
-void Shutdown() {
+// Speech thread only.
+void ReleasePrism() {
 	if (g_state.backend != nullptr) {
 		g_state.api.backendFree(g_state.backend);
 		g_state.backend = nullptr;
@@ -150,8 +113,112 @@ void Shutdown() {
 	g_state.api = {};
 }
 
+// Speech thread only. Loads prism.dll and acquires the best backend.
+bool AcquirePrism(const std::wstring& path) {
+	g_state.library = LoadLibraryW(path.c_str());
+	if (g_state.library == nullptr) {
+		char detail[64] {};
+		std::snprintf(detail, sizeof(detail), " (LoadLibrary error %lu)", GetLastError());
+		g_state.lastError = "cannot load " + Narrow(path) + detail;
+		return false;
+	}
+	if (!ResolveApi(g_state.library, g_state.api)) {
+		g_state.lastError = "prism.dll is missing an expected export";
+		ReleasePrism();
+		return false;
+	}
+	PrismConfig config = g_state.api.configInit();
+	g_state.context    = g_state.api.init(&config);
+	if (g_state.context == nullptr) {
+		g_state.lastError = "prism_init returned null";
+		ReleasePrism();
+		return false;
+	}
+	g_state.backend = g_state.api.registryAcquireBest(g_state.context);
+	if (g_state.backend == nullptr) {
+		g_state.lastError = "no screen reader backend available (is NVDA/JAWS running?)";
+		ReleasePrism();
+		return false;
+	}
+	// Since PRISM v0.18 acquire_best hands out a shared backend that is already
+	// initialized, so ALREADY_INITIALIZED is the normal outcome here, not a failure.
+	const PrismError error = g_state.api.backendInitialize(g_state.backend);
+	if (error != PRISM_OK && error != PRISM_ERROR_ALREADY_INITIALIZED) {
+		const char* name  = g_state.api.backendName(g_state.backend);
+		g_state.lastError = std::string("backend ") + (name != nullptr ? name : "?") + " failed to initialize: " + g_state.api.errorString(error);
+		ReleasePrism();
+		return false;
+	}
+	const char* name    = g_state.api.backendName(g_state.backend);
+	g_state.backendName = name != nullptr ? name : "";
+	g_state.lastError.clear();
+	return true;
+}
+
+void SpeechThread(std::wstring path, std::promise<bool> ready) {
+	ready.set_value(AcquirePrism(path));
+	for (;;) {
+		Request request;
+		{
+			std::unique_lock<std::mutex> lock(g_mutex);
+			g_wake.wait(lock, [] { return g_quit || !g_queue.empty(); });
+			if (g_quit && g_queue.empty()) {
+				break;
+			}
+			request = std::move(g_queue.front());
+			g_queue.pop_front();
+		}
+		if (g_state.backend == nullptr) {
+			continue;
+		}
+		if (request.stop) {
+			(void)g_state.api.backendStop(g_state.backend);
+		} else {
+			(void)g_state.api.backendSpeak(g_state.backend, request.text.c_str(), request.interrupt);
+		}
+	}
+	ReleasePrism();
+}
+
+}
+
+bool Initialize(const wchar_t* pluginDirectory) {
+	if (g_available) {
+		return true;
+	}
+	if (pluginDirectory == nullptr) {
+		g_state.lastError = "plugin directory unknown";
+		return false;
+	}
+	Shutdown(); // a previous failed attempt may have left the thread running
+
+	// Absolute path: the game's DLL search path must not decide which prism.dll loads.
+	std::promise<bool> ready;
+	std::future<bool>  result = ready.get_future();
+	g_quit                    = false;
+	g_thread                  = std::thread(SpeechThread, BuildPrismPath(pluginDirectory), std::move(ready));
+	g_available               = result.get();
+	if (!g_available) {
+		Shutdown();
+	}
+	return g_available;
+}
+
+void Shutdown() {
+	{
+		std::lock_guard<std::mutex> lock(g_mutex);
+		g_quit = true;
+		g_queue.clear();
+	}
+	g_wake.notify_all();
+	if (g_thread.joinable()) {
+		g_thread.join();
+	}
+	g_available = false;
+}
+
 bool IsAvailable() {
-	return g_state.backend != nullptr;
+	return g_available;
 }
 
 const char* LastError() {
@@ -159,25 +226,33 @@ const char* LastError() {
 }
 
 const char* BackendName() {
-	if (!IsAvailable()) {
-		return "";
-	}
-	const char* name = g_state.api.backendName(g_state.backend);
-	return name != nullptr ? name : "";
+	return g_available ? g_state.backendName.c_str() : "";
 }
 
 void Speak(std::string_view text, bool interrupt) {
-	if (!IsAvailable() || text.empty()) {
+	if (!g_available || text.empty()) {
 		return;
 	}
-	const std::string owned(text);
-	(void)g_state.api.backendSpeak(g_state.backend, owned.c_str(), interrupt);
+	{
+		std::lock_guard<std::mutex> lock(g_mutex);
+		if (interrupt) {
+			g_queue.clear(); // what was waiting is now stale
+		}
+		g_queue.push_back({ std::string(text), interrupt, false });
+	}
+	g_wake.notify_one();
 }
 
 void Stop() {
-	if (IsAvailable()) {
-		(void)g_state.api.backendStop(g_state.backend);
+	if (!g_available) {
+		return;
 	}
+	{
+		std::lock_guard<std::mutex> lock(g_mutex);
+		g_queue.clear();
+		g_queue.push_back({ {}, false, true });
+	}
+	g_wake.notify_one();
 }
 
 }

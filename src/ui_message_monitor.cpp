@@ -98,6 +98,9 @@ constexpr TextProbe TextProbes[] = {
 	{ "DropdownListContents", { "Items", "ListItem0", "TextBox" } },
 	{ "DropdownListContents", { "Items", "ListItem1", "TextBox" } },
 	{ "CharacterSelectPanel", { "Background", "CharacterList", "CharacterTemplate" } },
+	{ "CharacterSelectPanel", { "CharacterList", "ListItem0", "Name" } },
+	{ "CharacterSelectPanel", { "CharacterList", "ListItem0", "Level&Class" } },
+	{ "CharacterSelectPanel", { "CharacterList", "CharacterTemplate", "Name" } },
 };
 constexpr unsigned TextProbeDelayMs = 150;
 
