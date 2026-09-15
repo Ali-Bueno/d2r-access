@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (front-end menus done: focus, values, popups, character list, modal prompts via native text; speech on its own thread). Quick guide for agents: `AGENTS.md`.
+**Last updated:** 2026-09-15 (in-game text implementation built and deployed; 73 automated checks pass; live NVDA/controller verification pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -25,7 +25,9 @@
 | Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
 | Performance | done | Loader handles cached for life; per-poll rect memo; transient focus misses ignored for 300 ms; slow ticks (>30 ms) logged with loader cost |
-| In-game text (tutorials, auto hints, NPC dialogue, area names) | todo | Next phase. Same native text access + hook on `TextBoxWidget::SetText` (live RVA logged at load) for text set at runtime; SDK lifecycle events for act/level changes |
+| In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — built, awaiting user test | Native visible-tree/focus reader at 20 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
+| NPC menus / dialogue topics | wip — built, awaiting user test | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded |
+| Automated text tests | done (local) | Four CTest suites, 73 checks: policy, guarded memory, native object fixtures, gameplay lifecycle/overlays. No live-game test claimed |
 | In-game panels (inventory, skills, stash) | todo | |
 | Item readout | todo | `ItemInfo` has code/grid/quality but no name/stats → data-table row RE or tooltip hook |
 
@@ -79,22 +81,34 @@
 | Widget flags | `widget+0x50` / `+0x51` are bools with vtable setters (+0x48/+0x50); `+0x51` tested as "panel up/active" (D2RCore 0x2C35FC) → likely visible/enabled — candidates for disabled-control detection | Opus RE |
 | Button → panel wiring | `ButtonWidget.fields.onClickMessage = "PanelManager:OpenPanel:SettingsPanel"`, `textString = "@OptionsHD"` (MainMenuButtonRibbonHD.json:43) | extraction |
 
+## In-game native UI evidence (2026-09-15)
+
+Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runtime log).
+
+- Widget: parent `+0x30`, enabled/list availability `+0x50`, visible `+0x51`, child pointer/count `+0x58/+0x60`. Source: game `0x855C90`, `0x8562F0`, `0x886420`, `0x886840`.
+- Native class ancestry: vtable `+0x58` getter → descriptor name `+0x8`, base `+0x10`; source `0x851030`, `0x89F760`.
+- **Actual controller focus**: PanelManager `+0xD0` → focused panel `+0x188`, focused widget `+0x190`; source `0x846020`, `0x868230`, `0x876CA0`. This is separate from the ECS/game-world focus research above.
+- **Button label**: embedded TextBoxWidget `+0x818`, displayed text `+0x8A0`; stock modal code `0x8496CA–0x8496D6` calls SetText on it. Used by the new in-game native reader; front-end modal-label integration remains unchanged.
+- Extended traversal requires the recorded FindChild/SetText RVAs and verified child-vector machine code. New builds fail closed. No hooks, additional DLLs or gameplay changes.
+
 ## References
 
 - `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
+- User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` is reserved for the later radar phase (movement-relative, dual-range, one-shot terrain cues). No radar code or dependencies added.
+
 ## Next step
 
-Verify build 6136de4 with the controller (popup rows spoken from their own text incl. 2560x1440, character row "yarkey, Bárbaro de niv. 1", delete modal prompt read aloud), then read the modal button labels from the "[native] probe ConfirmationModal/Frame/Confirm" log line. Next phase (requested): in-game text — tutorials / auto-shown hints (e.g. graphics hint on G), NPC dialogue, area/sub-area/dungeon names — using the same native text access plus `TextBoxWidget::SetText` (D2R live RVA logged at load) as a hook point for text set at runtime.
+Run `docs/test-ingame-text.md` with NVDA and the controller: two NPCs, topic submenu, scrolling dialogue, B/back, a tutorial hint and an area boundary; then review `[text]`/`[text-tree]` logs. Build/deployment and four test suites pass; these features remain wip until the user confirms live behavior. Radar stays deferred per the user.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
-- Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). Still pending: ButtonWidget label offset (modal Confirm/Dismiss labels, probed on open), legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase (requested 2026-09-15):** tutorials and auto-shown texts (e.g. the graphics hint on G), NPC dialogue, area/sub-area/dungeon names. Not started.
+- Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
+- **In-game phase:** implemented and automatically tested, but not exercised live during this session (game closed, user away). Runtime class/visibility coverage, NPC controller behavior and glyph-heavy hints still require the controller test guide. Item tooltips, chat, general HUD/combat and inventories remain out of scope.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
-- **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). General detection needs the widget object's enabled flag (RE) or an SDK `getWidgetEnabled`.
+- **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.
 - Widget rect resolution is expensive (name walk per call); rects are cached per widget until a panel opens/closes or a list scrolls.
 
 - ~~Does `UiMessageListener` fire pre-game?~~ **Yes** (run 1, 2026-09-14): title/logo screens emit `PanelManager` `OpenPanel`/`OpenExclusivePanel`/`ClosePanel` with names `LogoMenuPanel`, `TitleScreenPanel`, `TooltipsPanel`, `GammaCalibrationPanel`. Keyboard navigation inside a menu does NOT produce messages (only raw `InputMessage:KeyDown/KeyUp`), so focus tracking still needs phase 2.

@@ -34,6 +34,9 @@ struct Table {
 	const char* unavailable;       // spoken after a control the game has disabled
 	const char* modalConfirmHint;  // spoken after a confirmation modal's title
 	const char* modalDismissHint;  // spoken after a dismissable modal's title
+	const char* dialogueMenu;
+	const char* gameTextEnabled;
+	const char* gameTextDisabled;
 };
 
 inline constexpr Table English {
@@ -60,6 +63,9 @@ inline constexpr Table English {
 	.unavailable         = "unavailable",
 	.modalConfirmHint    = "A to confirm, B to cancel",
 	.modalDismissHint    = "A to close",
+	.dialogueMenu        = "Conversation",
+	.gameTextEnabled     = "In-game text reading on",
+	.gameTextDisabled    = "In-game text reading off",
 };
 
 inline constexpr Table Spanish {
@@ -86,6 +92,9 @@ inline constexpr Table Spanish {
 	.unavailable         = "no disponible",
 	.modalConfirmHint    = "A para confirmar, B para cancelar",
 	.modalDismissHint    = "A para cerrar",
+	.dialogueMenu        = "Conversación",
+	.gameTextEnabled     = "Lectura de textos del juego activada",
+	.gameTextDisabled    = "Lectura de textos del juego desactivada",
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

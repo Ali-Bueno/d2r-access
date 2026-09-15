@@ -14,10 +14,16 @@ blind players using a controller; keyboard and mouse are planned.
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
+- Native text in dropdown rows, character rows and confirmation prompts.
 - Everything is spoken in the game's text language (Spanish and English connective phrases so far).
 
-Not yet: dynamic text (confirmation prompts, chat, item tooltips), in-game HUD and combat,
-navigation. See `STATUS.md` for the live ledger.
+Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
+lists, full scrolling dialogues, tutorial/automatic hints and area-name banners. The
+reader follows native controller focus and visible text, and suppresses repeated
+announcements. See [the controller test guide](docs/test-ingame-text.md).
+
+Not yet: chat, item tooltips, inventory readout, general in-game HUD/combat and navigation.
+See `STATUS.md` for the live ledger.
 
 ## How it works (no game patching)
 
@@ -28,6 +34,10 @@ navigation. See `STATUS.md` for the live ledger.
   the game's UI layout JSON (`tools/`). Labels, tooltips and option lists come from the same layouts
   and are resolved through the game's localization tables at runtime.
 - Speech goes through PRISM, loaded dynamically from `d2rloader/plugins/d2r-access/prism.dll`.
+- In-game text uses a guarded native widget adapter: actual focused widget, visible
+  children, class ancestry and runtime strings. It polls on the UI thread after the
+  local player is ready; all speech stays on the dedicated PRISM thread. Details and
+  verified build checks: [native UI evidence](docs/native-ui.md).
 
 ## Requirements
 
@@ -52,7 +62,11 @@ loaded" when it starts. If the game runs in the wrong language under D2RLoader, 
 in `d2rloader/config/d2rloader.toml`.
 
 Console commands (developer console, `Ctrl+`` in game): `access-say <text>`, `access-trace on|off`,
-`access-dump-code`.
+`access-dump-code`, `access-text on|off|repeat|dump`. The latter controls in-game text
+reading and can log the visible native text tree. Its toggle lasts until the game exits.
+
+Run automated checks after building: `ctest --test-dir build --output-on-failure`.
+Test executables are not installed into the game.
 
 ## Regenerating the UI catalog after a game patch
 
@@ -70,6 +84,9 @@ python tools\gen_panel_widgets.py
   `ui_message_monitor` (UI bus listener), `focus_tracker` (indicator matching, labels, values),
   `control_state`, `settings_file`, `input_direction`, `panel_state`, `widgets`, `localization`,
   `ui_thread_pump`, `speech_strings` (all spoken phrases), `generated/` (catalog headers).
+  `native_memory`/`native_ui` provide guarded native snapshots; `ui_text` contains the
+  testable reading policy; `game_text_reader` manages gameplay lifecycle and speech context.
+- `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor and the layout indexer/generators.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.
 

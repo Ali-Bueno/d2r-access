@@ -29,16 +29,20 @@ add_library(d2r-access SHARED
 	src/control_state.cpp
 	src/display_modes.cpp
 	src/focus_tracker.cpp
+	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/plugin.cpp
 	src/localization.cpp
 	src/native_widgets.cpp
+	src/native_memory.cpp
+	src/native_ui.cpp
 	src/panel_state.cpp
 	src/screen_reader.cpp
 	src/settings_file.cpp
 	src/speech_strings.cpp
 	src/ui_message_monitor.cpp
 	src/ui_thread_pump.cpp
+	src/ui_text.cpp
 	src/widgets.cpp
 	plugin.rc
 )
@@ -53,6 +57,37 @@ set_target_properties(d2r-access PROPERTIES
 target_compile_definitions(d2r-access PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
 if(MSVC)
 	target_compile_options(d2r-access PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+	add_executable(ui-text-tests tests/ui_text_tests.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(ui-text-tests PRIVATE src)
+	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
+	add_test(NAME ui-text COMMAND ui-text-tests)
+	add_executable(native-memory-tests tests/native_memory_tests.cpp src/native_memory.cpp)
+	target_include_directories(native-memory-tests PRIVATE src)
+	target_compile_features(native-memory-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-memory-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-memory COMMAND native-memory-tests)
+	add_executable(native-ui-tests tests/native_ui_tests.cpp src/native_ui.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(native-ui-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(native-ui-tests PRIVATE src)
+	target_compile_features(native-ui-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-ui-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-ui COMMAND native-ui-tests)
+	add_executable(game-text-reader-tests tests/game_text_reader_tests.cpp src/game_text_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(game-text-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(game-text-reader-tests PRIVATE src)
+	target_compile_features(game-text-reader-tests PRIVATE cxx_std_20)
+	target_compile_definitions(game-text-reader-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME game-text-reader COMMAND game-text-reader-tests)
+	if(MSVC)
+		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+	endif()
 endif()
 
 add_custom_command(TARGET d2r-access POST_BUILD

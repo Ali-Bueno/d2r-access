@@ -1,0 +1,54 @@
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace D2RAccess::UiText {
+
+enum class Kind { Other, Text, Button, ListItem, List, Focusable, ScrollingText };
+enum class Surface { Other, Menu, Narrative, Tip, Area };
+
+// A value-only snapshot. Native pointers are identities, never dereferenced here.
+struct Node {
+	uintptr_t id = 0;
+	int parent = -1;
+	Kind kind = Kind::Other;
+	std::string name, type, text;
+	bool enabled = true;
+};
+struct Snapshot {
+	uintptr_t panel = 0, focus = 0;
+	std::string name;
+	Surface surface = Surface::Other;
+	std::vector<Node> nodes; // visible nodes, in tree order; hidden subtrees omitted
+};
+struct Readout {
+	std::string context, body, option, focusKey;
+	Surface surface = Surface::Other;
+	bool operator==(const Readout&) const = default;
+	bool Empty() const { return body.empty() && option.empty(); }
+};
+struct Announcement {
+	std::string text;
+	bool interrupt = true;
+};
+
+std::string Clean(std::string_view text);
+Readout Describe(const Snapshot& snapshot);
+
+// Wait for a coherent snapshot after repopulation, then announce actual changes.
+// The 80 ms settling window spans multiple UI frames without delaying navigation
+// by a full speech call (PRISM runs on another thread).
+class Reader {
+public:
+	Announcement Update(const Readout& readout, uint64_t now);
+	void Reset();
+	std::string Repeat() const;
+private:
+	Readout candidate_, spoken_;
+	uint64_t candidateSince_ = 0;
+	bool pending_ = false;
+};
+}

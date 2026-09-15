@@ -26,6 +26,9 @@ namespace D2RAccess::NativeWidgets {
 
 bool Initialize(const D2RL::PluginContext* context);
 bool IsAvailable();
+// Extended traversal is enabled only for the code layout verified in docs/native-ui.md.
+bool SupportsTree();
+uintptr_t PanelManager();
 
 // Native object for a panel or for a child reached by name path; 0 when not found.
 uintptr_t FindPanel(std::string_view panel);

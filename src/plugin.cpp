@@ -3,6 +3,7 @@
 
 #include "code_dump.h"
 #include "focus_tracker.h"
+#include "game_text_reader.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "native_widgets.h"
@@ -34,9 +35,20 @@ constexpr D2RL::PluginInfo PluginInfo {
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
-	D2RAccess::FocusTracker::Tick(context);
+	if (!D2RAccess::GameTextReader::Tick(context)) D2RAccess::FocusTracker::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
+}
+
+auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (!command || !command->plugin) return D2RL::ConsoleCommandResult::Failed;
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	if (args == "on") D2RAccess::GameTextReader::SetEnabled(true);
+	else if (args == "off") D2RAccess::GameTextReader::SetEnabled(false);
+	else if (args == "repeat") D2RAccess::GameTextReader::RequestRepeat();
+	else if (args == "dump") D2RAccess::GameTextReader::RequestDump();
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	return D2RL::ConsoleCommandResult::Handled;
 }
 
 // Console: "access-probe Panel/Child/Child" logs the engine strings inside
@@ -128,6 +140,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
+	if (!D2RAccess::GameTextReader::Register(context)) context->LogWarn("[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		context->LogWarn("Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
@@ -138,12 +151,14 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
+	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
 	context->LogInfo("d2r-access loaded.");
 	return true;
 }
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::GameTextReader::Unregister();
 	D2RAccess::InputDirection::Shutdown();
 	D2RAccess::UiMessageMonitor::Unregister();
 	D2RAccess::Widgets::Shutdown();

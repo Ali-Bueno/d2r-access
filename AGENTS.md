@@ -9,7 +9,8 @@ general playbook lives one folder up (`../AGENTS.md` / `../CLAUDE.md`, `../PRINC
 A **D2RLoader plugin** (`d2rl-d2r-access.dll`, C++20, PluginSDK API v4 as a git submodule in
 `external/PluginSDK`) that speaks through **PRISM** (`third_party/prism`, `prism.dll` shipped next
 to the plugin in `plugins/d2r-access/`). Target: a blind player using **NVDA and an Xbox-style
-controller**, game in **Spanish**. Front-end menus are done; the next phase is in-game text.
+controller**, game in **Spanish**. Front-end menus are done. In-game text is implemented and built,
+awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 
 ## Build, deploy, test
 
@@ -24,7 +25,8 @@ controller**, game in **Spanish**. Front-end menus are done; the next phase is i
   probes), `[saves]`, `[pump]` (tick rate / longest gap), `slow tick`.
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
-  widget), `access-dump-code`.
+  widget), `access-dump-code`, `access-text on|off|repeat|dump`.
+- Automated tests: `ctest --test-dir build --output-on-failure` (four suites, 73 checks).
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 
@@ -45,11 +47,13 @@ controller**, game in **Spanish**. Front-end menus are done; the next phase is i
 
 | Module | Role |
 |---|---|
-| `plugin.cpp` | D2RLoader entry points, console commands, per-tick order: `InputDirection::Poll`, `FocusTracker::Tick`, `UiMessageMonitor::Tick`, `NativeWidgets::Tick` |
+| `plugin.cpp` | D2RLoader entry points, console commands, per-tick order: input, `GameTextReader::Tick`, old `FocusTracker::Tick` when text does not own focus, UI messages, native probes |
 | `ui_message_monitor.cpp` | Listens to the game's UI message bus (`PanelManager:OpenPanel`, `FrontEndNavigation:To*`, `CharacterCreate:Hover`, `OptionsPanelMessage:Set*`, `ScrollController:ManualScrollInput`); announces panels, navigation, class hover + description, modal prompts (native text, 120 ms after open) |
 | `panel_state.cpp` | Open-panel stack (reset on `ToFrontEnd`: preloaded in-game panels like EmoteWheelPanel are invisible) |
 | `focus_tracker.cpp` | Controller focus: polls the game's `FocusManager/FocusIndicator` rect (self-requeued `runOnUiThread` pump), matches it against `generated/panel_widgets.h`, speaks label/role/value/tooltip; dropdown popup rows and character rows from native text |
 | `widgets.cpp` | SDK WidgetService wrapper: handles cached for the plugin's lifetime (they are name paths), anchors applied against the 3840x2160 canvas for 0x0 parents, per-poll rect memo |
+| `game_text_reader.cpp`, `ui_text.cpp` | Gameplay text context, lifecycle and testable reading policy; runs before the old focus reader and owns NPC/dialogue/tutorial focus while active |
+| `native_memory.cpp`, `native_ui.cpp` | Guarded copies, native visible tree, class ancestry, actual focus, embedded button text; evidence in `docs/native-ui.md` |
 | `native_widgets.cpp` | Game widget objects via D2RCore.dll's slot table (PanelManager global, FindPanel, FindChildWidget, SetText); engine string reader; `TextAt(panel, path)`; probes |
 | `control_state.cpp`, `settings_file.cpp`, `input_direction.cpp`, `display_modes.cpp`, `character_saves.cpp` | Toggle/carousel/dropdown values (Settings.json baseline + input direction), display modes for the resolution list, offline character saves (fallback) |
 | `screen_reader.cpp` | PRISM on a dedicated speech thread; `Speak(text, interrupt)` only queues |

@@ -1,4 +1,5 @@
 #include "native_widgets.h"
+#include "native_memory.h"
 
 #include <windows.h>
 
@@ -19,10 +20,6 @@ constexpr uintptr_t      SetTextSlot            = 0x5ADA48; // void (TextBoxWidg
 
 // Engine string type (0x28 bytes).
 constexpr size_t   EngineStringSize   = 0x28;
-constexpr size_t   EngineStringInline = 0x18; // offset of the 16-byte inline buffer
-constexpr size_t   EngineStringInlineCapacity = 15;
-constexpr uint64_t EngineStringNonOwningBit   = 1ull << 63;
-constexpr size_t   MaxTextBytes       = 4096; // never trust a size beyond this
 // Measured with the probe (2026-09-15, D2R 3.3.93787): every widget keeps
 // its name at +0x8 (CharacterTemplate, Name, TextBox, Prompt) and a text box
 // keeps the text it displays at +0x88 ("yarkey", "Bárbaro de niv. 1",
@@ -41,6 +38,7 @@ uintptr_t   g_exeEnd     = 0;
 void**      g_managerGlobal = nullptr; // the game's PanelManager* global
 FindPanelFn g_findPanel  = nullptr;
 FindChildFn g_findChild  = nullptr;
+bool g_supportsTree = false;
 
 struct PendingProbe {
 	std::string              panel;
@@ -49,37 +47,10 @@ struct PendingProbe {
 };
 std::deque<PendingProbe> g_probes;
 
-bool Readable(const void* pointer, size_t bytes) {
-	if (pointer == nullptr || bytes == 0) {
-		return false;
-	}
-	const auto* cursor = static_cast<const uint8_t*>(pointer);
-	const auto* end    = cursor + bytes;
-	if (end < cursor) {
-		return false;
-	}
-	MEMORY_BASIC_INFORMATION info {};
-	while (cursor < end) {
-		if (VirtualQuery(cursor, &info, sizeof(info)) != sizeof(info) || info.State != MEM_COMMIT || (info.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0) {
-			return false;
-		}
-		constexpr DWORD readable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-		if ((info.Protect & readable) == 0) {
-			return false;
-		}
-		cursor = static_cast<const uint8_t*>(info.BaseAddress) + info.RegionSize;
-	}
-	return true;
-}
-
-template <typename T>
-bool Peek(uintptr_t address, T& out) {
-	if (!Readable(reinterpret_cast<const void*>(address), sizeof(T))) {
-		return false;
-	}
-	std::memcpy(&out, reinterpret_cast<const void*>(address), sizeof(T));
-	return true;
-}
+using NativeMemory::Peek;
+using NativeMemory::Readable;
+using NativeMemory::ReadEngineString;
+using NativeMemory::LooksLikeText;
 
 bool InExe(uintptr_t address) {
 	return address >= g_exeBase && address < g_exeEnd;
@@ -102,43 +73,6 @@ uintptr_t CallFindChild(void* parent, const char* name) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		return 0;
 	}
-}
-
-bool ReadEngineString(uintptr_t address, std::string& out) {
-	struct {
-		uint64_t data, size, capacityAndFlags;
-	} header {};
-	if (!Peek(address, header)) {
-		return false;
-	}
-	const uint64_t capacity = header.capacityAndFlags & ~EngineStringNonOwningBit;
-	if (header.size > capacity || header.size > MaxTextBytes || header.data == 0) {
-		return false;
-	}
-	if (header.size == 0) {
-		out.clear();
-		return true;
-	}
-	if (header.data == address + EngineStringInline && header.size > EngineStringInlineCapacity) {
-		return false;
-	}
-	if (!Readable(reinterpret_cast<const void*>(header.data), static_cast<size_t>(header.size))) {
-		return false;
-	}
-	out.assign(reinterpret_cast<const char*>(header.data), static_cast<size_t>(header.size));
-	return true;
-}
-
-bool LooksLikeText(const std::string& text) {
-	if (text.empty()) {
-		return false;
-	}
-	for (const unsigned char c : text) {
-		if (c < 0x20 && c != '\t' && c != '\n' && c != '\r') {
-			return false;
-		}
-	}
-	return true;
 }
 
 void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
@@ -195,6 +129,18 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_managerGlobal = reinterpret_cast<void**>(managerGlobal);
 	g_findPanel     = reinterpret_cast<FindPanelFn>(findPanel);
 	g_findChild     = reinterpret_cast<FindChildFn>(findChild);
+	// These resolved RVAs and the child-vector instructions were recovered from
+	// this install's live code (docs/native-ui.md). A different build fails closed
+	// for tree/focus traversal while retaining the existing name-based readers.
+	constexpr uintptr_t VerifiedFindChildRva = 0x855C90;
+	constexpr uintptr_t VerifiedSetTextRva = 0x86DD50;
+	constexpr size_t ChildVectorCodeOffset = 0x95;
+	constexpr unsigned char ChildVectorCode[] = { 0x48, 0x8B, 0x5F, 0x58, 0x48, 0x8B, 0x47, 0x60, 0x48, 0x8D, 0x2C, 0xC3 };
+	unsigned char actual[sizeof(ChildVectorCode)]{};
+	g_supportsTree = findChild - g_exeBase == VerifiedFindChildRva && setText - g_exeBase == VerifiedSetTextRva
+		&& NativeMemory::Copy(findChild + ChildVectorCodeOffset, actual, sizeof(actual))
+		&& std::memcmp(actual, ChildVectorCode, sizeof(actual)) == 0;
+	if (!g_supportsTree) context->LogWarn("[text] Unrecognized native layout; in-game text traversal disabled.");
 	D2RL::LogInfoF(context, "[native] D2R live RVAs: PanelManager global 0x%llX, FindPanel 0x%llX, FindChildWidget 0x%llX, TextBoxWidget::SetText 0x%llX",
 		static_cast<unsigned long long>(managerGlobal - g_exeBase), static_cast<unsigned long long>(findPanel - g_exeBase), static_cast<unsigned long long>(findChild - g_exeBase), static_cast<unsigned long long>(setText - g_exeBase));
 	return true;
@@ -202,6 +148,13 @@ bool Initialize(const D2RL::PluginContext* context) {
 
 bool IsAvailable() {
 	return g_findPanel != nullptr;
+}
+
+bool SupportsTree() { return IsAvailable() && g_supportsTree; }
+
+uintptr_t PanelManager() {
+	uintptr_t manager = 0;
+	return IsAvailable() && Peek(reinterpret_cast<uintptr_t>(g_managerGlobal), manager) ? manager : 0;
 }
 
 uintptr_t FindPanel(std::string_view panel) {
