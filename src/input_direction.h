@@ -35,6 +35,18 @@ Horizontal LastHorizontal(unsigned maxAgeMs);
 // reveals which way it moved through the press that caused it.
 Vertical LastVertical(unsigned maxAgeMs);
 
+// Gamepad face buttons. Some screens open a modal from a face button without
+// any UI message saying which action it was (character select: X deletes);
+// the press that preceded the modal tells.
+enum class FaceButton {
+	None,
+	A,
+	B,
+	X,
+	Y,
+};
+FaceButton LastFaceButton(unsigned maxAgeMs);
+
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.
 void Shutdown();

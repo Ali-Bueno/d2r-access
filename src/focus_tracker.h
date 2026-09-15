@@ -26,4 +26,8 @@ void InvalidateRects();
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();
 
+// Name of the character whose row in the select list was announced last, or
+// "" when focus has moved elsewhere since.
+std::string_view FocusedCharacter();
+
 }

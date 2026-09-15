@@ -73,20 +73,16 @@ constexpr const char* DynamicStatesMarker = "?";
 // The one runtime list we can rebuild: the display's modes (VideoOptionsPanel).
 constexpr const char* ScreenResolutionWidget = "ScreenResolution";
 // DropdownListContentsHD.json: rows live in ListWidget "Items", scrolled by
-// ScrollControllerWidget "ScrollController". Measured 2026-09-15: "Items" and
-// its "Selector" report screen positions (no scroll information), but the
-// controller owns runtime children "Bar" (the track, 25x540) and "Indicator"
-// (the thumb, 26x33) whose travel along the track is the scrolled share of
-// the rows beyond the visible window.
-constexpr Widgets::Step PopupScrollTrackPath[] = { { "ScrollController", 0.0f, 0.0f }, { "Bar", 0.0f, 0.0f } };
-constexpr Widgets::Step PopupScrollThumbPath[] = { { "ScrollController", 0.0f, 0.0f }, { "Indicator", 0.0f, 0.0f } };
-// Names the game might give the rows cloned from ItemTemplate: a clone's own
-// rect would give the scroll (and the row count) directly. Probed once per
-// popup and logged.
-constexpr const char* PopupRowCloneProbes[] = { "Item0", "Item1", "Item_0", "ItemTemplate0", "ItemTemplate_0", "ItemTemplate1", "Row0", "ListItem0", "Option0", "Entry0", "0", "1" };
-// Fallback when the scroll bar cannot be read: a press that left the
-// indicator on the same row scrolled the list by one. It must follow within
-// one update.
+// ScrollControllerWidget "ScrollController". Measured 2026-09-15: the game
+// clones ItemTemplate into children of Items named "ListItem0", "ListItem1",
+// ... (one per option) which move with the list, so the clone under the
+// indicator is the option index however far the list has scrolled, and the
+// number of clones is the option count. ("Items", "Selector" and the scroll
+// bar's "Indicator" only report screen positions or stale values.)
+constexpr const char* PopupRowCloneFormat = "ListItem%d";
+constexpr int         PopupRowCloneLimit  = 256; // safety cap on the clone walk
+// Fallback when no clones resolve: a press that left the indicator on the
+// same row scrolled the list by one. It must follow within one update.
 constexpr unsigned PopupDirectionMaxAgeMs = 400;
 
 // CharacterSelectPanelHD.json: the character list's rows are clones of one
@@ -95,6 +91,13 @@ constexpr unsigned PopupDirectionMaxAgeMs = 400;
 // (character_saves.h), most recently played first like the list.
 constexpr const char* CharacterSelectPanelName = "CharacterSelectPanel";
 constexpr const char* CharacterRowWidget       = "CharacterTemplate";
+// The controller legend under the list (filled at runtime, unreadable) shows
+// the delete action on the X face button (observed on an Xbox pad,
+// 2026-09-15); the tooltip of the layout's DeleteCharacter button names it.
+constexpr const char* CharacterDeleteButton    = "X";
+constexpr const char* CharacterDeleteTextKey   = "strDelete";
+
+std::string g_focusedCharacter;
 
 // Widgets the game announces itself through a UI message that carries the
 // selection (CharacterCreate:Hover <ClassKey>), so the focus tracker stays
@@ -430,58 +433,33 @@ std::optional<int> PopupOptionCount() {
 	return std::nullopt;
 }
 
-// Rows the list has scrolled by, read from the scroll bar: thumb travel /
-// track travel is the scrolled share of the rows that do not fit in the popup
-// (popup height / row height rows are visible). Needs the option count.
-std::optional<int> PopupScrollOffset(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup, int rowHeight) {
-	const auto          count = PopupOptionCount();
+// The cloned row covering the indicator and how many clones exist.
+struct PopupRows {
+	int index = -1;
+	int count = 0;
+};
+PopupRows FindPopupRow(const Generated::PanelWidgets& popup, const Widgets::Rect& indicator) {
 	const Widgets::Step root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
-	const auto          panel = Widgets::PanelRect(popup.panel);
-	const auto          track = Widgets::AbsoluteRect(popup.panel, root, PopupScrollTrackPath);
-	const auto          thumb = Widgets::AbsoluteRect(popup.panel, root, PopupScrollThumbPath);
-	if (!count || !panel || !track || !thumb || rowHeight <= 0) {
-		D2RL::LogInfoF(context, "[focus] popup scroll unreadable: count %d, panel %s, track %s, thumb %s", count ? *count : -1, Describe(panel).c_str(), Describe(track).c_str(), Describe(thumb).c_str());
-		return std::nullopt;
-	}
-	const int visible = panel->height / rowHeight;
-	const int hidden  = *count - visible;
-	const int travel  = track->height - thumb->height;
-	if (hidden <= 0) {
-		return 0;
-	}
-	if (travel <= 0) {
-		return std::nullopt;
-	}
-	const double fraction = std::clamp(static_cast<double>(thumb->y - track->y) / static_cast<double>(travel), 0.0, 1.0);
-	const int    offset   = static_cast<int>(std::lround(fraction * hidden));
-	D2RL::LogInfoF(context, "[focus] popup scroll: thumb at %d of %d -> %d of %d hidden rows (%d visible of %d)", thumb->y - track->y, travel, offset, hidden, visible, *count);
-	return offset;
-}
-
-void ProbePopupRowClones(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup) {
-	const Widgets::Step        root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
-	std::vector<Widgets::Step> steps = { { "Items", 0.0f, 0.0f } };
-	std::string                report;
-	for (const char* child : PopupRowCloneProbes) {
-		steps.push_back({ child, 0.0f, 0.0f });
-		if (const auto rect = Widgets::AbsoluteRect(popup.panel, root, steps); rect) {
-			report += std::string(" ") + child + " " + Describe(rect);
+	char                name[32] {};
+	Widgets::Step       steps[] = { { "Items", 0.0f, 0.0f }, { name, 0.0f, 0.0f } };
+	PopupRows           rows;
+	double              best = 0.0;
+	for (int i = 0; i < PopupRowCloneLimit; ++i) {
+		std::snprintf(name, sizeof(name), PopupRowCloneFormat, i);
+		const auto rect = Widgets::AbsoluteRect(popup.panel, root, steps);
+		if (!rect) {
+			break;
 		}
-		steps.pop_back();
+		rows.count = i + 1;
+		if (const double coverage = Coverage(indicator, *rect); coverage > best) {
+			best       = coverage;
+			rows.index = i;
+		}
 	}
-	D2RL::LogInfoF(context, "[focus] popup row clones:%s", report.empty() ? " none" : report.c_str());
-}
-
-// Logs the scroll thumb whenever it moves, to see how the list scrolls over
-// time independently of the focus indicator.
-void LogPopupThumb(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup) {
-	static std::optional<Widgets::Rect> last;
-	const Widgets::Step                 root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
-	const auto                          thumb = Widgets::AbsoluteRect(popup.panel, root, PopupScrollThumbPath);
-	if (thumb != last) {
-		last = thumb;
-		D2RL::LogInfoF(context, "[focus] popup thumb %s", Describe(thumb).c_str());
+	if (best < MinimumCoverage) {
+		rows.index = -1;
 	}
+	return rows;
 }
 
 // Fallback option index, tracking the list's scroll from the presses: the
@@ -532,12 +510,13 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 	if (visibleRow < 0) {
 		return;
 	}
-	const auto scrolled = PopupScrollOffset(context, popup, row->height);
-	if (scrolled) {
-		g_dropdown.visibleRow   = visibleRow;
-		g_dropdown.scrollOffset = *scrolled;
+	const PopupRows rows  = FindPopupRow(popup, indicator);
+	const int       index = rows.index >= 0 ? rows.index : PopupTrackedOption(visibleRow);
+	if (rows.count > 0) {
+		if (const auto declared = PopupOptionCount(); declared && *declared != rows.count) {
+			D2RL::LogWarnF(context, "[focus] popup has %d rows but %d options are known for %s", rows.count, *declared, g_dropdown.widget != nullptr ? g_dropdown.widget->name : "-");
+		}
 	}
-	const int index = scrolled ? visibleRow + *scrolled : PopupTrackedOption(visibleRow);
 	if (g_dropdown.popupIndex && *g_dropdown.popupIndex == index) {
 		return;
 	}
@@ -560,7 +539,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 		}
 		phrase = text;
 	}
-	D2RL::LogInfoF(context, "[focus] popup option %d (row %d + scroll %d, %s) -> \"%s\"", index, visibleRow, g_dropdown.scrollOffset, scrolled ? "scroll bar" : "tracked", phrase.c_str());
+	D2RL::LogInfoF(context, "[focus] popup option %d of %d (%s) -> \"%s\"", index, rows.count, rows.count > 0 ? "clones" : "tracked", phrase.c_str());
 	ScreenReader::Speak(phrase, true);
 }
 
@@ -577,14 +556,17 @@ int CharacterRowIndex(const Match& match, const Widgets::Rect& indicator) {
 	return std::max(0, static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height))));
 }
 
-// "name, class, level N" for the character shown on that row.
+// "name, class, level N" for the character shown on that row; records the
+// name for the delete modal.
 std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex) {
 	const std::vector<CharacterSaves::Character> characters = CharacterSaves::Load(context);
+	g_focusedCharacter.clear();
 	if (rowIndex >= static_cast<int>(characters.size())) {
 		char text[64] {};
 		std::snprintf(text, sizeof(text), Strings::Current().optionIndex, rowIndex + 1);
 		return text;
 	}
+	g_focusedCharacter = characters[static_cast<size_t>(rowIndex)].name;
 	const CharacterSaves::Character& character = characters[static_cast<size_t>(rowIndex)];
 	std::string                      phrase    = character.name;
 	if (const char* classKey = CharacterSaves::ClassKey(character.classIndex); classKey != nullptr) {
@@ -619,8 +601,12 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		const std::string phrase = CharacterRowPhrase(context, characterRow);
 		D2RL::LogInfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
 		ScreenReader::Speak(phrase, true);
+		if (const std::string action = TextForKey(CharacterDeleteTextKey); !action.empty()) {
+			ScreenReader::Speak(std::string(CharacterDeleteButton) + ": " + action, false);
+		}
 		return;
 	}
+	g_focusedCharacter.clear();
 	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {
 		g_dropdown = { match.panel, match.widget, g_lastAnnounced };
 	}
@@ -699,11 +685,6 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	g_lastPollTick = now;
 
-	if (PanelState::Active() == DropdownPopupPanel) {
-		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
-			LogPopupThumb(context, *popup);
-		}
-	}
 
 	// When a list scrolls to keep the focused row visible, the indicator can
 	// stay put while the rows move under it, so a scroll forces a re-check.
@@ -723,9 +704,6 @@ void Tick(const D2RL::PluginContext* context) {
 		g_dropdown.popupIndex.reset(); // a fresh popup starts unscrolled
 		g_dropdown.visibleRow.reset();
 		g_dropdown.scrollOffset = 0;
-		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
-			ProbePopupRowClones(context, *popup);
-		}
 	}
 	g_popupWasActive = popupActive;
 	if (popupActive) {
@@ -788,7 +766,12 @@ void InvalidateRects() {
 	g_forceResolve = true;
 }
 
+std::string_view FocusedCharacter() {
+	return g_focusedCharacter;
+}
+
 void Reset() {
+	g_focusedCharacter.clear();
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
 	g_lastMatchedPanel = nullptr;

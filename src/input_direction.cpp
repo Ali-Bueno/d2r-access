@@ -39,6 +39,10 @@ struct PadEdgeState {
 	bool dpadDownHeld   = false;
 	bool stickUpHeld    = false;
 	bool stickDownHeld  = false;
+	bool aHeld          = false;
+	bool bHeld          = false;
+	bool xHeld          = false;
+	bool yHeld          = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -51,6 +55,8 @@ Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
 Vertical   g_lastVertical         = Vertical::None;
 ULONGLONG  g_lastVerticalTickMs   = 0;
+FaceButton g_lastFaceButton       = FaceButton::None;
+ULONGLONG  g_lastFaceButtonTickMs = 0;
 
 void RecordEdge(Horizontal direction) {
 	g_lastHorizontal       = direction;
@@ -60,6 +66,11 @@ void RecordEdge(Horizontal direction) {
 void RecordEdge(Vertical direction) {
 	g_lastVertical       = direction;
 	g_lastVerticalTickMs = GetTickCount64();
+}
+
+void RecordEdge(FaceButton button) {
+	g_lastFaceButton       = button;
+	g_lastFaceButtonTickMs = GetTickCount64();
 }
 
 // Updates `held` to `currentlyHeld` and returns whether this call is a rising
@@ -136,6 +147,18 @@ void Poll() {
 			if (UpdateEdge(edges.stickDownHeld, pad.sThumbLY <= -kThumbstickDirectionThreshold)) {
 				RecordEdge(Vertical::Down);
 			}
+			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
+				RecordEdge(FaceButton::A);
+			}
+			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
+				RecordEdge(FaceButton::B);
+			}
+			if (UpdateEdge(edges.xHeld, (pad.wButtons & XINPUT_GAMEPAD_X) != 0)) {
+				RecordEdge(FaceButton::X);
+			}
+			if (UpdateEdge(edges.yHeld, (pad.wButtons & XINPUT_GAMEPAD_Y) != 0)) {
+				RecordEdge(FaceButton::Y);
+			}
 		}
 	}
 
@@ -194,6 +217,10 @@ Horizontal LastHorizontal(unsigned maxAgeMs) {
 	return g_lastHorizontal != Horizontal::None && WithinAge(g_lastHorizontalTickMs, maxAgeMs) ? g_lastHorizontal : Horizontal::None;
 }
 
+FaceButton LastFaceButton(unsigned maxAgeMs) {
+	return g_lastFaceButton != FaceButton::None && WithinAge(g_lastFaceButtonTickMs, maxAgeMs) ? g_lastFaceButton : FaceButton::None;
+}
+
 Vertical LastVertical(unsigned maxAgeMs) {
 	if (const Vertical held = HeldVertical(); held != Vertical::None) {
 		return held;
@@ -221,6 +248,8 @@ void Shutdown() {
 	g_lastHorizontalTickMs = 0;
 	g_lastVertical         = Vertical::None;
 	g_lastVerticalTickMs   = 0;
+	g_lastFaceButton       = FaceButton::None;
+	g_lastFaceButtonTickMs = 0;
 }
 
 }

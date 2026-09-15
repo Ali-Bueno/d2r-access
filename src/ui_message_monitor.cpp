@@ -7,6 +7,7 @@
 #include "code_dump.h"
 #include "control_state.h"
 #include "focus_tracker.h"
+#include "input_direction.h"
 #include "speech_strings.h"
 #include "ui_thread_pump.h"
 
@@ -82,6 +83,11 @@ constexpr ModalPrompt ModalPrompts[] = {
 	{ "CharacterSelect", "ShowDeleteCharacterModal", "strDelete" },
 };
 std::string g_pendingModalPrompt;
+
+// The character select screen opens its delete confirmation from the X face
+// button directly (no UI message); the press must be this recent.
+constexpr unsigned DeletePressMaxAgeMs = 1500;
+constexpr const char* DeleteTextKey    = "strDelete";
 
 // Option values are re-read from Settings.json after these, since the game
 // wrote (or reverted) them.
@@ -165,6 +171,9 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		PanelState::Opened(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
+			if (g_pendingModalPrompt.empty() && panel == ConfirmationModalPanel && !FocusTracker::FocusedCharacter().empty() && InputDirection::LastFaceButton(DeletePressMaxAgeMs) == InputDirection::FaceButton::X) {
+				g_pendingModalPrompt = Localization::Text(DeleteTextKey) + " " + std::string(FocusTracker::FocusedCharacter());
+			}
 			if (!g_pendingModalPrompt.empty() && EndsWith(panel, ModalNameSuffix)) {
 				ScreenReader::Speak(g_pendingModalPrompt, false);
 				g_pendingModalPrompt.clear();

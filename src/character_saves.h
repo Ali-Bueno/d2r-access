@@ -12,7 +12,7 @@
 // runtime and cannot be read through the SDK.
 //
 // Header layout measured on a D2R 3.3 save (file version 105, "yarkey":
-// magic 0x55AA55AA at 0, version at 4, file size at 8, checksum at 0xC,
+// magic bytes 55 AA 55 AA at 0, version at 4, file size at 8, checksum at 0xC,
 // last-played timestamp at 0x20, class at 0x18, level at 0x1B, name (16 bytes,
 // NUL padded) at 0x12B). Compared with the documented version-99 layout the
 // fields after the checksum sit 0x10 earlier and the name 0x20 later; only

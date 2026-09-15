@@ -11,7 +11,7 @@ namespace D2RAccess::CharacterSaves {
 
 namespace {
 
-constexpr uint32_t SaveMagic          = 0x55AA55AA;
+constexpr uint32_t SaveMagic          = 0xAA55AA55; // bytes 55 AA 55 AA, read little-endian
 constexpr uint32_t SupportedVersion   = 105;
 constexpr size_t   VersionOffset      = 0x04;
 constexpr size_t   ClassOffset        = 0x18;
