@@ -139,6 +139,15 @@ Persistent radar preference: `[radar] enabled = true` (or `false`) in
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
 Test executables are not installed into the game.
 
+## Local computer-use testing
+
+The [desktop test tools](tools/computer_use/README.md) can capture the foreground
+game, operate menus and send short movement inputs using Python and existing
+Windows APIs. No packages or controller driver are required. Compare each action
+with screenshots and Ctrl+T diagnostics; audio capture and analog stick emulation
+are not implemented. The [first live measurements](docs/computer-use-radar-check.md)
+record navigation discrepancies that still need investigation.
+
 ## Regenerating the UI catalog after a game patch
 
 ```powershell
@@ -162,7 +171,7 @@ python tools\gen_panel_widgets.py
   evaluate navigation; `radar_audio`/`radar_synth` render cues and `radar_service`
   wires lifecycle, UI suspension and shortcuts.
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
-- `tools/` — CASC extractor and the layout indexer/generators.
+- `tools/` — CASC extractor, layout indexer/generators and local computer-use tools.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.
 
 ## License

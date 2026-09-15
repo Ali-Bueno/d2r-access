@@ -17,8 +17,11 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Build: `.\build.ps1` (vcvars64 + CMake/Ninja Release). The POST_BUILD step copies the DLL and
   `prism.dll` into `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\`.
   Build only while the game is closed.
-- The user tests in game; **every test is scripted as controller button sequences** and verified
-  from the plugin log: `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\logs\d2r-access.log`.
+- User-led tests use controller button sequences. The user also authorized local computer-use
+  setup/testing on 2026-09-15: `tools/computer_use/README.md` documents the working capture/input
+  tools and game bindings. Inspect screenshots between short actions; do not assume keyboard
+  movement validates analog controller behavior or audible cues. Verify from screenshots and
+  the plugin log: `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\logs\d2r-access.log`.
   The last session starts at the last line containing `d2r-access loaded.`; ignore `MonsterHealth`
   lines (per-frame noise). Useful line prefixes: `[ui]` (game UI messages), `[focus]` (what was
   announced and why), `[value]`, `[popup]`/`popup option`, `[modal]`, `[native]` (native widget
@@ -33,6 +36,9 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Speed/reaction forecasts and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
+- Latest report is reduced radar detection. First desktop checks found sliding along blocked
+  edges and short spaces below the opening threshold; `docs/computer-use-radar-check.md` records
+  exact measurements and an unresolved adjacent NO_PATH marker. Do not infer a fix from these alone.
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 

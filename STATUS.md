@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (user confirms fixed-axis radar improved but too noisy; Kirandur code studied, speed/reaction forecast and occupancy filtering deployed; thirteen suites / 800 checks; live validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (user reports reduced detection after filtering; local computer use configured and tested in camp; edge sliding observed; radar unchanged, precision investigation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -31,7 +31,8 @@
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 17 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip — reaction and noise filtering deployed | User reports fixed-axis version improved but noisy (538 emitted changes in last session). Original Kirandur code reviewed; 600 ms reaction plus audio budget, measured velocity, full-body forecast, occupancy separation and world-boundary filtering. 50 ms cue gaps retained; live retest pending |
+| Sonar radar | wip — reduced detection reported | Reaction/occupancy filtering deployed, 50 ms cue gaps. Computer-use check observed movement along edges despite zero straight-sweep clearance; 3.5–7.5-subtile stationary spaces produce no opening. Full accuracy and moving forecast still unverified. `docs/computer-use-radar-check.md` |
+| Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar automated tests | done (local) | 200 guidance + 288 radar/audio + 45 native-world/config + 12 radar UI; thirteen total suites / 800 checks. Actor oscillation, useful versus fleeting exits, speed/turns, occupied doors, unknown coverage and full-body preservation. 35-room synthetic queries median 1.56 ms, max 1.93 ms |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
@@ -123,11 +124,11 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Validate reaction-aware radar: A into camp, approach a wall with the left stick, turn toward an opening tin, then release. Check that walls warn with room to react and brief gaps are quiet; stop at a small passage to hear its opening once. Repeat near enemies in Blood Moor. At a failed passage press Ctrl+T before leaving the spot; inspect new raw obstruction flags, terrain/movement depths, velocity, forecast and A/# map cells. Thirteen suites / 800 checks pass; live navigation/perceptual accuracy remains pending.
+Use the working computer-use tools to compare native directional sliding with strict radar sweeps, and investigate the initial adjacent NO_PATH marker before tuning thresholds. Measurements and exact positions: `docs/computer-use-radar-check.md`. Then validate short passages, moving reaction forecasts, controller turns and audible cues. Last test left the character at (4467,4609), camp, pause menu open. Plugin remains `2ac87e3` (thirteen suites / 800 checks); twelve desktop-tool tests pass separately.
 
 ## Known issues / open questions
 
-- **Radar prototype:** user confirms improvement, still reports spam in camp/Blood Moor. New speed/occupancy filtering awaits live validation. Prediction assumes continuing motion/current collision; future actor movement, animation locks and room streaming are not guaranteed. Actor/terrain NO_PATH ownership is ambiguous, so openings always check original movement collision. `docs/kirandur-radar-comparison.md` records reference corrections, native sources and tuning. Far range remains limited to loaded rooms; no generated map or beacon backend.
+- **Radar prototype:** latest report is reduced detection after speed/occupancy filtering. Live desktop tests found edge sliding and short clearances suppressed as openings; neither establishes full accuracy or explains every reported failure. Initial (4463,4604) had rawCell 0080, removedPresence=0 and adjacent NO_PATH; stamp ownership remains unresolved. Prediction assumes continuing motion/current collision. Actor movement, animation locks and room streaming are not guaranteed. `docs/computer-use-radar-check.md` and `docs/kirandur-radar-comparison.md`. Far range remains limited to loaded rooms; no generated map or beacon backend.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
