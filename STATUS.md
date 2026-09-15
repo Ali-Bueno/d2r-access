@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (repeated G-notice correction built and deployed; 116 automated checks pass; camp entry and first warning confirmed, repeated delivery/NPC verification pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (repeated G warning confirmed by user; live stash label recovered; target/item capture built and deployed; seven suites / 163 checks pass; live NVDA validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -28,18 +28,19 @@
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — built, awaiting user test | Native visible-tree/focus reader at 20 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
 | NPC menus / dialogue topics | wip — built, awaiting user test | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
-| System notices / G graphics restriction | wip — first read confirmed, repeated delivery fix awaiting test | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md` |
+| System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Automated text tests | done (local) | Five CTest suites, 116 checks: policy, guarded memory, native object fixtures, gameplay lifecycle/overlays, visible notifications and repeated delivery |
-| In-game panels (inventory, skills, stash) | todo | |
-| Item readout | todo | `ItemInfo` has code/grid/quality but no name/stats → data-table row RE or tooltip hook |
+| Automated text tests | done (local) | Seven CTest suites, 163 checks: existing text/notifications, guarded memory/tree, gameplay lifecycle, primary tooltip capture and interaction reading |
+| Highlighted NPC/object labels | wip — built/deployed, awaiting user test | Exact `Tu alijo personal` captured live from primary tooltip. Shared draw capture plus visible target-name HUD. `docs/native-tooltips.md` |
+| In-game panels (inventory, skills, stash) | wip — initial inventory/stash reader built/deployed | Shared item/grid archetype, native row/column, selected stash tabs and equipment section; skills/full inventory operations remain pending |
+| Item readout | wip — primary tooltip capture built/deployed | Reads stock body/footer before per-frame destruction; stale cell descriptions rejected; live item/order verification pending |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 
 | Fact | Value | Source |
 |---|---|---|
 | Required exports | `D2RLoaderGetPluginInfo`, `D2RLoaderLoadPlugin(const PluginContext*)`, `D2RLoaderUnloadPlugin` | lifecycle.h:7-9 |
-| Plugin flags | `PluginFlags::Client` (ours) + `NativeHooks` (0x2) only if using `InstallInlineHook` | lifecycle.h:13-20 |
+| Plugin flags | `PluginFlags::Client | NativeHooks` for the primary tooltip draw hook | lifecycle.h:13-20 |
 | Service lookup | `ctx->QueryService(ServiceId::X, XServiceV1Version, &svc)` | context.h:158 |
 | Threads | UI thread vs game thread; **no per-frame callback** → self-requeue `runOnUiThread` as pump; all widget calls UI-thread only | threads.h:40-41, widgets.h:62 |
 | Widget API (all of it) | `findPanel`, `findWidget(parent,name)`, `getWidgetRect`, `setWidgetVisible`, `setWidgetEnabled`, `dispatchUiAction` — **no tree enum, no text, no focus** | widgets.h:55-60 |
@@ -92,7 +93,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 - Native class ancestry: vtable `+0x58` getter → descriptor name `+0x8`, base `+0x10`; source `0x851030`, `0x89F760`.
 - **Actual controller focus**: PanelManager `+0xD0` → focused panel `+0x188`, focused widget `+0x190`; source `0x846020`, `0x868230`, `0x876CA0`. This is separate from the ECS/game-world focus research above.
 - **Button label**: embedded TextBoxWidget `+0x818`, displayed text `+0x8A0`; stock modal code `0x8496CA–0x8496D6` calls SetText on it. Used by the new in-game native reader; front-end modal-label integration remains unchanged.
-- Extended traversal requires the recorded FindChild/SetText RVAs and verified child-vector machine code. New builds fail closed. No hooks, additional DLLs or gameplay changes.
+- Extended traversal requires the recorded FindChild/SetText RVAs and verified child-vector machine code. New builds fail closed. The tree reader needs no hooks; transient target/item descriptions use one verified draw hook, without additional DLLs or gameplay changes.
+- **Primary tooltip**: `TooltipsPanel +0x168/+0x170` is a contiguous vector, stride `0x2E8`, body/footer strings `+0/+0x28`. Draw `0x880550` destroys/clears it every frame; single-record draw `0x8DA7E0` is hooked after byte verification. Live record zero was `Tu alijo personal`; record one only U+E013. `docs/native-tooltips.md`.
+- **Inventory selection**: controller x/y `+0x544/+0x548` (`0x2A89C0`); grid width/height `+0x628/+0x62C` (`0x2C5FA0`); TabBar selected index `+0x16C4` (`0x878D30`), runtime `TextN` label children.
 
 ## References
 
@@ -102,13 +105,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Retest **G** several times in the existing RotW character, allowing speech to finish between presses but without waiting for the notice to disappear; expect a read for each new delivery and silence between presses. Review `[notice]` logs. Then validate NPC/topic/scrolling dialogue with `docs/test-ingame-text.md`. Town-position work remains in `docs/map-landmarks.md`; terrain radar is deferred.
+Validate the installed build: stash label disappearing/returning, opening stash and moving focus through item cells/equipment; review `[tooltip]` and `[interaction]` logs. Build/deploy and all 163 automated checks passed. Installed DLL SHA-256: `A8069079DDD48A34AD00231153AD29585EA5EA504A7FE8BD9FA7FDF7EC844FAA`. NPC/topic/scrolling dialogue tests remain in `docs/test-ingame-text.md`. Town-position work remains in `docs/map-landmarks.md`; terrain radar is deferred.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry and first G warning confirmed by user. Repeated identical deliveries were suppressed by text-only deduplication; a native-message identity correction now passes automated tests, awaiting another user test. NPCs have not yet been found/tested by the user. Item tooltips, full chat history, general HUD/combat and inventories remain out of scope.
+- **In-game phase:** camp entry and repeated G warnings confirmed by user. NPCs have not yet been found/tested. Target and item capture are the active task. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

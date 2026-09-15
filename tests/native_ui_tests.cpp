@@ -22,7 +22,7 @@ uintptr_t TypeGetter(uintptr_t widget) {
 // Minimal synthetic native objects, using the layout recovered from the live
 // functions in docs/native-ui.md. No game executable or screen reader needed.
 struct Widget {
-	std::array<unsigned char, 0xB00> data{};
+	std::array<unsigned char, 0x1800> data{};
 	std::array<uintptr_t, 12> vtable{};
 	Metadata metadata;
 	std::string name, text;
@@ -57,6 +57,11 @@ struct Widget {
 // are the actual production implementation under test.
 namespace D2RAccess::NativeWidgets {
 bool SupportsTree() { return supported; }
+uintptr_t FindChild(uintptr_t parent, std::string_view name) {
+	const auto* widget = reinterpret_cast<Widget*>(parent);
+	for (uintptr_t child : widget->children) if (ReadName(child) == name) return child;
+	return 0;
+}
 uintptr_t PanelManager() { return managerAddress; }
 Notification ReadLatestNotification(uintptr_t) { return latestNotification; }
 std::string ReadName(uintptr_t widget) {
@@ -137,6 +142,27 @@ int main() {
 	Check(NativeUi::Snapshot(feed.Address(), 0).nodes.size() == 2, "invisible notification rows are omitted");
 	Widget notice("NotificationPanel", "NotificationPanel");
 	Check(NativeUi::Classify(notice.Address()).surface == UiText::Surface::Notice, "temporary notification panels share a notice reader");
+	Widget grid("InventoryGridWidget", "grid"), slot("InventorySlotWidget", "head");
+	Metadata itemBase{0, "InventoryItemWidget", &focusBase};
+	grid.metadata.base = &itemBase; slot.metadata.base = &itemBase;
+	grid.Put<uint64_t>(0x544, (uint64_t{3} << 32) | 2);
+	grid.Put<int32_t>(0x628, 10); grid.Put<int32_t>(0x62C, 4);
+	Check(NativeUi::Classify(grid.Address()).kind == UiText::Kind::InventoryGrid
+		&& NativeUi::Classify(slot.Address()).kind == UiText::Kind::InventorySlot, "item subclasses retain their grid/slot archetypes");
+	auto cell = NativeUi::GridCell(grid.Address());
+	Check(cell.x == 2 && cell.y == 3, "inventory coordinates use actual native selection and dimensions");
+	grid.Put<int32_t>(0x544, 10);
+	Check(NativeUi::GridCell(grid.Address()).x == -1, "out-of-range grid selection is ignored");
+	grid.Put<int32_t>(0x628, 10000);
+	Check(NativeUi::GridCell(grid.Address()).x == -1, "corrupt inventory dimensions are bounded");
+	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");
+	Widget tabs("TabBarWidget", "AnyTabs"), tab0("TextBoxWidget", "Text0", "Personal"), tab1("TextBoxWidget", "Text1", "Comp.");
+	tabs.Add(tab0); tabs.Add(tab1); tabs.Put<int32_t>(0x16C4, 1);
+	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
+	tabs.Put<int32_t>(0x16C4, -1);
+	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text.empty(), "unselected tabs have no inferred label");
+	Widget target("MonsterHealthPanel", "HUDMonsterHealth");
+	Check(NativeUi::Classify(target.Address()).surface == UiText::Surface::Target, "target-name panel is a passive interaction archetype");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

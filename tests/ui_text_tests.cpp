@@ -93,5 +93,7 @@ int main() {
 	(void)reader.Update({}, 1800);
 	Check(reader.Update(transient, 1900).text.empty(), "empty snapshots restart the settling window");
 	Check(reader.Update(transient, 1980).text == "half", "stable text after a gap is delivered");
+	Check(Clean("\xEE\x80\x93").empty(), "controller-image tooltip is silent");
+	Check(Clean("\xEE\x80\x93 Recoger. Daño: 2–6") == "Recoger. Daño: 2–6", "controller images do not hide real item text or Unicode punctuation");
 	Passed();
 }

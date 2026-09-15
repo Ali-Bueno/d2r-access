@@ -24,6 +24,9 @@ constexpr size_t ButtonTextOffset = 0x818; // 0x8496CA calls SetText on embedded
 constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to embedded TextBoxWidget
 constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
+constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
+constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
+constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusPanelOffset = 0x188, FocusWidgetOffset = 0x190; // 0x868230 / 0x876CA0
 constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindPanel 0x89F760
@@ -54,6 +57,7 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "LevelNamePanel") result.surface = Surface::Area;
 	else if (name == "NotificationPanel") result.surface = Surface::Notice;
 	else if (name == "HUDMessagePanel") result.surface = Surface::NotificationFeed;
+	else if (name == "MonsterHealthPanel") result.surface = Surface::Target;
 	if (result.kind != Kind::Other) return;
 	if (name == "TextBoxWidget") result.kind = Kind::Text;
 	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
@@ -61,6 +65,10 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "ButtonWidget") result.kind = Kind::Button;
 	else if (name == "ListItemWidget" || name == "HoverListItemWidget") result.kind = Kind::ListItem;
 	else if (name == "ListWidget") result.kind = Kind::List;
+	else if (name == "InventoryGridWidget") result.kind = Kind::InventoryGrid;
+	else if (name == "InventorySlotWidget") result.kind = Kind::InventorySlot;
+	else if (name == "InventoryItemWidget") result.kind = Kind::InventoryItem;
+	else if (name == "TabBarWidget") result.kind = Kind::Tabs;
 	else if (name == "FocusableWidget") result.kind = Kind::Focusable;
 	else if (name == "ScrollingSpeechWidget") result.kind = Kind::ScrollingText;
 }
@@ -83,6 +91,11 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
 	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
 	else if (type.kind == Kind::Button) node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+	else if (type.kind == Kind::Tabs) {
+		int32_t selected = -1;
+		if (Peek(widget + SelectedTabOffset, selected) && selected >= 0 && selected < 8)
+			node.text = NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
+	}
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
@@ -143,6 +156,24 @@ Focus CurrentFocus() {
 	if (!Visible(result.panel)) return {};
 	if (!Visible(result.widget)) result.widget = 0;
 	return result;
+}
+
+uint64_t FocusSelection(uintptr_t widget) {
+	uint64_t result = UINT64_MAX;
+	if (NativeWidgets::SupportsTree() && widget) (void)Peek(widget + SelectionOffset, result);
+	return result;
+}
+
+Cell GridCell(uintptr_t widget) {
+	Cell cell;
+	if (Classify(widget).kind != Kind::InventoryGrid) return cell;
+	struct { int32_t width, height; } dimensions{};
+	const uint64_t selection = FocusSelection(widget);
+	const auto x = static_cast<int32_t>(selection), y = static_cast<int32_t>(selection >> 32);
+	if (!Peek(widget + GridDimensionsOffset, dimensions) || dimensions.width < 1 || dimensions.height < 1
+		|| dimensions.width > 64 || dimensions.height > 64 || x < 0 || y < 0
+		|| x >= dimensions.width || y >= dimensions.height) return cell;
+	return {x, y};
 }
 
 std::vector<uintptr_t> Panels() {

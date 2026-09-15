@@ -37,6 +37,11 @@ struct Table {
 	const char* dialogueMenu;
 	const char* gameTextEnabled;
 	const char* gameTextDisabled;
+	const char* inventory;
+	const char* stash;
+	const char* equipment;
+	const char* belt;
+	const char* gridCell; // one-based row, column
 };
 
 inline constexpr Table English {
@@ -66,6 +71,11 @@ inline constexpr Table English {
 	.dialogueMenu        = "Conversation",
 	.gameTextEnabled     = "In-game text reading on",
 	.gameTextDisabled    = "In-game text reading off",
+	.inventory           = "Inventory",
+	.stash               = "Stash",
+	.equipment           = "Equipment",
+	.belt                = "Belt",
+	.gridCell            = "Row %d, column %d",
 };
 
 inline constexpr Table Spanish {
@@ -95,6 +105,11 @@ inline constexpr Table Spanish {
 	.dialogueMenu        = "Conversación",
 	.gameTextEnabled     = "Lectura de textos del juego activada",
 	.gameTextDisabled    = "Lectura de textos del juego desactivada",
+	.inventory           = "Inventario",
+	.stash               = "Alijo",
+	.equipment           = "Equipo",
+	.belt                = "Cinturón",
+	.gridCell            = "Fila %d, columna %d",
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

@@ -1,6 +1,7 @@
 #include "game_text_reader.h"
 
 #include "focus_tracker.h"
+#include "interaction_reader.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -24,15 +25,18 @@ const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
+bool g_interactionFocus = false;
 uint64_t g_lastPoll = 0;
 UiText::Reader g_reader, g_areaReader;
 UiNotifications::Reader g_notices;
 
 void Reset() {
-	if (g_ownedFocus) ScreenReader::Stop();
+	if (g_ownedFocus || g_interactionFocus) ScreenReader::Stop();
 	g_reader.Reset();
 	g_areaReader.Reset();
 	g_notices.Reset();
+	InteractionReader::Reset();
+	g_interactionFocus = false;
 	g_ownedFocus = false;
 	g_lastPoll = 0;
 	g_repeat.store(false);
@@ -131,7 +135,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	}
 	if (!g_inGame || !enabled || !NativeWidgets::SupportsTree()) return false;
 	const uint64_t now = GetTickCount64();
-	if (now - g_lastPoll < PollMs) return g_ownedFocus;
+	if (now - g_lastPoll < PollMs) return g_ownedFocus || g_interactionFocus;
 	g_lastPoll = now;
 	const NativeUi::Focus focus = NativeUi::CurrentFocus();
 	const auto focusedSurface = NativeUi::Classify(focus.panel).surface;
@@ -144,6 +148,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	if (focus.panel && std::find(panels.begin(), panels.end(), focus.panel) == panels.end()) panels.push_back(focus.panel);
 	for (uintptr_t panel : panels) {
 		const auto type = NativeUi::Classify(panel);
+		if (type.surface == Surface::Target) continue; // shared interaction reader, passive HUD target
 		if (!NativeUi::Visible(panel) || (type.surface == Surface::Other && panel != focus.panel)) continue;
 		const bool notification = type.surface == Surface::Notice || type.surface == Surface::NotificationFeed;
 		// A different menu/modal receiving input covers this conversation. An
@@ -182,17 +187,19 @@ bool Tick(const D2RL::PluginContext* context) {
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;
-	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns);
+	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns);
+	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
 	else g_areaReader.Reset();
 	for (const auto& text : g_notices.Update(notices, now, deliveries)) {
 		D2RL::LogInfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}
 	if (g_repeat.exchange(false)) {
-		const auto phrase = owns ? g_reader.Repeat() : !g_notices.Repeat().empty() ? g_notices.Repeat() : g_areaReader.Repeat();
+		const auto phrase = owns ? g_reader.Repeat() : !InteractionReader::Repeat().empty() ? InteractionReader::Repeat()
+			: !g_notices.Repeat().empty() ? g_notices.Repeat() : g_areaReader.Repeat();
 		if (!phrase.empty()) ScreenReader::Speak(phrase, true);
 	}
-	return owns;
+	return owns || g_interactionFocus;
 }
 
 void SetEnabled(bool enabled) { g_enabled.store(enabled); }

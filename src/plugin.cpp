@@ -7,6 +7,7 @@
 #include "input_direction.h"
 #include "localization.h"
 #include "native_widgets.h"
+#include "native_tooltips.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
@@ -28,7 +29,7 @@ constexpr D2RL::PluginInfo PluginInfo {
 	.version     = "0.1.0",
 	.author      = "d2r-access",
 	.description = "Screen reader support for blind players (PRISM).",
-	.flags       = D2RL::PluginFlags::Client,
+	.flags       = D2RL::PluginFlags::Client | D2RL::PluginFlags::NativeHooks,
 };
 
 // One UI update: sample input first so a value message arriving this update
@@ -140,6 +141,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
+	(void)D2RAccess::NativeTooltips::Initialize(context);
 	if (!D2RAccess::GameTextReader::Register(context)) context->LogWarn("[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		context->LogWarn("Widget service unavailable; focus tracking disabled.");

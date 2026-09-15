@@ -24,17 +24,24 @@ announcements. See [the controller test guide](docs/test-ingame-text.md).
 
 The user confirmed the Rogue Encampment entry announcement. Informational notices
 (including the Classic/Expansion restriction when pressing **G**) and the visible
-HUD notification feed now have a reader. The user confirmed the first G warning;
-the repeated-delivery correction awaits in-game verification. New notices queue
+HUD notification feed now have a reader. The user confirmed that the G warning
+also reads on subsequent presses. New notices queue
 without interrupting a conversation. A new delivery of identical text is read
 again; simply leaving a notice visible stays silent. Notification text with links
 uses its native embedded textbox.
 
-Not yet: full chat history, item tooltips, inventory readout, general in-game HUD/combat and navigation.
+New, awaiting in-game verification: highlighted world labels (the real stash
+label was located in live memory), primary item descriptions, inventory grid
+coordinates and selected stash tabs. The same reader follows item grids and
+equipment; it reads complete rendered descriptions and suppresses stationary
+repeats. A cell without a description announces its coordinates. See
+[native tooltip evidence](docs/native-tooltips.md).
+
+Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.
 
-## How it works (no game patching)
+## How it works
 
 - The plugin listens to the game's UI message bus through the D2RLoader SDK (`PanelManager`,
   `FrontEndNavigation`, `OptionsPanelMessage`…).
@@ -47,6 +54,10 @@ See `STATUS.md` for the live ledger.
   children, class ancestry and runtime strings. It polls on the UI thread after the
   local player is ready; all speech stays on the dedicated PRISM thread. Details and
   verified build checks: [native UI evidence](docs/native-ui.md).
+- World labels and item descriptions use one verified native tooltip render
+  hook. It copies the primary displayed text before the game frees it each
+  frame, then preserves the stock draw call. It requires the supported game
+  build and adds no DLL dependencies. It never reads all nearby loot at once.
 
 ## Requirements
 

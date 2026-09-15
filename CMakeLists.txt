@@ -31,11 +31,13 @@ add_library(d2r-access SHARED
 	src/focus_tracker.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
+	src/interaction_reader.cpp
 	src/plugin.cpp
 	src/localization.cpp
 	src/native_widgets.cpp
 	src/native_memory.cpp
 	src/native_ui.cpp
+	src/native_tooltips.cpp
 	src/panel_state.cpp
 	src/screen_reader.cpp
 	src/settings_file.cpp
@@ -87,12 +89,25 @@ if(BUILD_TESTING)
 	target_include_directories(ui-notifications-tests PRIVATE src)
 	target_compile_features(ui-notifications-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-notifications COMMAND ui-notifications-tests)
+	add_executable(native-tooltips-tests tests/native_tooltips_tests.cpp src/native_tooltips.cpp src/native_memory.cpp)
+	target_link_libraries(native-tooltips-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(native-tooltips-tests PRIVATE src)
+	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/interaction_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(interaction-reader-tests PRIVATE src)
+	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
+	add_test(NAME interaction-reader COMMAND interaction-reader-tests)
 	if(MSVC)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-notifications-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-tooltips-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(interaction-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 	endif()
 endif()
 

@@ -1,4 +1,5 @@
 #include "game_text_reader.h"
+#include "interaction_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -16,6 +17,8 @@ std::vector<UiText::Announcement> speech;
 std::vector<D2RL::Lifecycle::GameplayEventListener> listeners;
 std::vector<std::string> openPanels;
 int stops = 0, removed = 0;
+bool inventoryOwns = false;
+int interactionTicks = 0;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener);
@@ -93,6 +96,11 @@ std::string ReadName(uintptr_t widget) {
 }
 }
 namespace D2RAccess::FocusTracker { void Reset() {} }
+namespace D2RAccess::InteractionReader {
+bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus, bool conversation) { ++interactionTicks; return inventoryOwns && !conversation; }
+void Reset() {}
+std::string Repeat() { return {}; }
+}
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::ScreenReader {
 void Stop() { ++stops; }
@@ -167,6 +175,14 @@ int main() {
 	panels.back().nodes[0].text = "Disabled notice";
 	Check(!Settle() && speech.empty(), "disabling game text also disables notifications");
 	GameTextReader::SetEnabled(true); Settle();
+	panels.clear(); focus = {}; inventoryOwns = true;
+	Check(Settle() && GameTextReader::Tick(&context), "inventory retains focus ownership between text polls");
+	const int beforeDisable = stops;
+	GameTextReader::SetEnabled(false); Settle();
+	const int disabledTicks = interactionTicks;
+	Settle();
+	Check(stops > beforeDisable && interactionTicks == disabledTicks, "disabling text stops inventory speech and polling");
+	inventoryOwns = false; GameTextReader::SetEnabled(true); Settle();
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

@@ -55,13 +55,33 @@ games G may switch graphics successfully and will not produce this restriction.
 Stop if there is a crash or sustained input delay and retain the log. It is enough
 to report the NPC/menu and last button pressed; screen captures are unnecessary.
 
+## Highlighted targets and initial inventory readout
+
+1. Launch the installed build with NVDA running and enter the same character.
+2. Use the **left stick** near the stash until the game highlights it. Expect
+   **Tu alijo personal** once. Remain still for two seconds: it should stay quiet.
+3. Move away until the highlight disappears, then return. Expect the same name
+   again. A nearby NPC or chest should use the same visible-label mechanism.
+4. Press **A** to open the highlighted stash. Expect **Alijo**, its actual
+   selected tab, and the initial grid position. Use **D-pad Right**, then
+   **D-pad Down** to check that the spoken column/row follow the selection.
+5. Move onto an existing item without picking it up. Expect its displayed name
+   and properties. An item without a tooltip only announces its grid position;
+   the reader does not infer that it is empty. Check equipment when reachable.
+6. Press **B** to close the panel. Return to the stash highlight and check that
+   its world label can be read again. NPC conversations must retain priority.
+
+Review `[tooltip] Verified native tooltip draw hook installed.` at startup and
+the resulting `[interaction]` announcements. This pass validates actual item
+text order and controller behavior; automated tests cannot replace it.
+
 ## Optional diagnostic commands
 
 Developer console, `Ctrl+backquote`:
 
 - `access-text dump`: capture visible native text trees/focus on the next gameplay poll.
 - `access-text repeat`: repeat the conversation/tutorial, otherwise the current
-  notification, otherwise the visible area banner.
+  target/item, notification, or visible area banner.
 - `access-text off` / `access-text on`: toggle this reader for the current game process.
 
 The console can itself change focus. For a useful dump, close it immediately
@@ -73,8 +93,8 @@ and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 
 ## Automated checks
 
-`ctest --test-dir build --output-on-failure` runs five native C++ test executables
-(116 checks). Coverage includes complete long strings, invalid memory, hidden
+`ctest --test-dir build --output-on-failure` runs seven native C++ test executables
+(163 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
 Notification coverage includes native linked text and data-source filtering,
@@ -82,5 +102,8 @@ unfocused notices, coexistence with dialogue, fading/recycled/duplicate rows,
 reappearance, partial text settling, repeat and feature disable. Delivery tests
 cover identical successive messages, ring-slot reuse, older notices staying silent,
 missing native metadata, hidden backing-store text and rapid-burst coalescing.
+Tooltip/interaction coverage includes primary-only rendering, capture expiry,
+focus/cell association, invalid records, full item text, selected stash tabs,
+identical items, stale descriptions, equipment sections and lifecycle suspension.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;
 only the plugin and the existing PRISM DLL are deployed.

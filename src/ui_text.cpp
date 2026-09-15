@@ -69,6 +69,17 @@ std::string Clean(std::string_view text) {
 			i += marker + 2;
 			continue;
 		}
+		// The game's private-use font characters are controller/button images,
+		// not pronounceable text (e.g. U+E013 beside the stash target label).
+		if (i + 2 < text.size()) {
+			const auto a = static_cast<unsigned char>(text[i]);
+			const auto b = static_cast<unsigned char>(text[i + 1]);
+			const auto c = static_cast<unsigned char>(text[i + 2]);
+			if (a >= 0xEE && a <= 0xEF && (b & 0xC0) == 0x80 && (c & 0xC0) == 0x80) {
+				const unsigned code = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
+				if (code >= 0xE000 && code <= 0xF8FF) { i += 3; space = !result.empty(); continue; }
+			}
+		}
 		const unsigned char ch = static_cast<unsigned char>(text[i++]);
 		if (ch <= ' ' || ch == '|') { space = !result.empty(); continue; }
 		if (space) result += ' ';
