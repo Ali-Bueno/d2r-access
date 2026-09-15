@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (user reports reduced detection after filtering; local computer use configured and tested in camp; edge sliding observed; radar unchanged, precision investigation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (cue lifecycle logging requested, built and installed; four complete navigation cue chains verified live; thirteen suites / 811 checks pass; navigation precision investigation remains open). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -33,7 +33,8 @@
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 17 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Sonar radar | wip — reduced detection reported | Reaction/occupancy filtering deployed, 50 ms cue gaps. Computer-use check observed movement along edges despite zero straight-sweep clearance; 3.5–7.5-subtile stationary spaces produce no opening. Full accuracy and moving forecast still unverified. `docs/computer-use-radar-check.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
-| Radar automated tests | done (local) | 200 guidance + 288 radar/audio + 45 native-world/config + 12 radar UI; thirteen total suites / 800 checks. Actor oscillation, useful versus fleeting exits, speed/turns, occupied doors, unknown coverage and full-body preservation. 35-room synthetic queries median 1.56 ms, max 1.93 ms |
+| Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; reasons and monotonic times, event-only AsyncLog writes. 20:18 session: four complete chains, one opening queued 94 ms. `docs/radar-event-log.md`. Audio capture deferred per user preference |
+| Radar automated tests | done (local) | 200 guidance + 299 radar/audio + 45 native-world/config + 12 radar UI; thirteen total suites / 811 checks. Includes eleven queue source checks; actor oscillation, fleeting exits, speed/turns, occupied doors, unknown coverage and full-body preservation. 35-room synthetic queries median 1.56 ms, max 1.93 ms |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -124,7 +125,7 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Use the working computer-use tools to compare native directional sliding with strict radar sweeps, and investigate the initial adjacent NO_PATH marker before tuning thresholds. Measurements and exact positions: `docs/computer-use-radar-check.md`. Then validate short passages, moving reaction forecasts, controller turns and audible cues. Last test left the character at (4467,4609), camp, pause menu open. Plugin remains `2ac87e3` (thirteen suites / 800 checks); twelve desktop-tool tests pass separately.
+Use computer use and the new cue lifecycle log to compare native directional sliding with strict radar sweeps, and investigate the initial adjacent NO_PATH marker before tuning thresholds. `docs/computer-use-radar-check.md` records the original movement discrepancies; `docs/radar-event-log.md` records current delivery checks. Then validate short passages and moving reaction forecasts with controller turns. Latest live check left the game paused in camp at 20:21:10. Navigation behavior unchanged; logging build installed (thirteen suites / 811 checks); twelve desktop-tool tests pass separately.
 
 ## Known issues / open questions
 

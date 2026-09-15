@@ -334,3 +334,12 @@ The latest reaction/occupancy build needs the controller test above. Future acto
 motion, animation locks, room streaming, every act's collision flags and perceived
 audio latency remain unverified. Native code checks target this installed build;
 a different patch requires revalidation.
+
+### Cue delivery diagnostics
+
+Generated events now retain an ID and origin through queueing, replacement,
+submission and completion/cancellation. The 20:18 live session verified four
+navigation cue chains, including an opening queued behind a blocking cue.
+See [radar-event-log.md](radar-event-log.md) for fields, timestamps and limitations.
+This adds observability; it does not change navigation thresholds or resolve the
+movement discrepancies in [the computer-use check](computer-use-radar-check.md).

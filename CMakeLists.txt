@@ -43,6 +43,7 @@ add_library(d2r-access SHARED
 	src/radar_grid.cpp
 	src/radar_guidance.cpp
 	src/radar_audio.cpp
+	src/radar_trace.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
 	src/radar_ui.cpp

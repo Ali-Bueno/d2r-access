@@ -128,6 +128,10 @@ reading and can log the visible native text tree. Its toggle lasts until the gam
 
 Radar commands: `access-radar on|off|status|dump|test`. `test` auditions the
 synthesized sounds; `dump` logs nearby native collision and sensor states.
+Generated cues and their queue, submission, completion or cancellation are
+logged automatically with event IDs, directions, origins and timing. See the
+[radar event log](docs/radar-event-log.md) to compare cues with movement without
+recording audio.
 `status` (Ctrl+T) distinguishes dialogue/pause, an inactive game window, waiting
 for the player, and unavailable terrain. Failed terrain reads record their
 specific stage in the plugin log.

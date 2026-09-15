@@ -242,8 +242,47 @@ void QueueTests() {
 	queue.Push(openings); queue.Retain({});
 	Check(queue.Empty(), "terrain loss cancels every queued direction");
 }
+void QueueSourceTests() {
+	RadarAudio::CueQueue queue;
+	const RadarAudio::CueSource first{.eventMs = 1000, .session = 7, .level = 1, .position = {110, 100}};
+	const RadarAudio::CueSource second{.eventMs = 1100, .session = 7, .level = 1, .position = {112, 102}};
+	RadarAudio::CueSource taken{};
+	Events pair{}; pair[1] = pair[2] = State::Open;
+	queue.Push(pair, first);
+	Check(queue.Take(&taken)[1] == State::Open && taken.eventMs == first.eventMs,
+		"the first serial cue keeps its generated event ID");
+	Events up{}; up[0] = State::Blocked;
+	queue.Push(up, second);
+	Check(queue.Take(&taken)[2] == State::Open && taken.eventMs == first.eventMs,
+		"a newer direction cannot relabel an older queued cue");
+	Check(taken.position.x == 110 && taken.position.y == 100 && taken.session == 7 && taken.level == 1,
+		"queued cue context is the original position and session");
+	Check(queue.Take(&taken)[0] == State::Blocked && taken.eventMs == second.eventMs,
+		"round-robin playback reports the matching source rather than the last popped source");
+	queue.Push(pair, first);
+	Events closing{}; closing[1] = State::Blocked;
+	queue.Push(closing, second);
+	Check(queue.Pending()[1] == State::Blocked && queue.Source(1).eventMs == second.eventMs,
+		"replacing a pending direction also replaces its trace ID");
+	Check(queue.Pending()[2] == State::Open && queue.Source(2).eventMs == first.eventMs,
+		"replacement preserves the unrelated pending direction's trace ID");
+	Events observations{}; observations[1] = State::Blocked;
+	queue.Retain(observations);
+	Check(queue.Pending()[2] == State::Unknown, "invalidated directions no longer appear in pending traces");
+	Check(queue.Take(&taken)[1] == State::Blocked && taken.eventMs == second.eventMs,
+		"retaining a valid cue preserves its replacement source");
+	Check(Silent(queue.Take(&taken)) && taken.eventMs == 0,
+		"an empty dequeue clears its output source instead of attributing a phantom cue");
+	queue.Push(pair, first);
+	queue = {};
+	Check(Silent(queue.Take(&taken)) && taken.eventMs == 0, "silencing the queue clears states and source data together");
+	queue.Push(up, {.eventMs = 1200, .audition = true});
+	Check(queue.Take(&taken)[0] == State::Blocked && taken.audition && taken.eventMs == 1200,
+		"audition cues retain their test source and event ID");
+}
 }
 int main() {
+	QueueSourceTests();
 	QueueTests();
 	PassageRegressionTests();
 	GridTests();

@@ -29,7 +29,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20` (thirteen suites, 800 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20` (thirteen suites, 811 checks).
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
@@ -39,6 +39,10 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Latest report is reduced radar detection. First desktop checks found sliding along blocked
   edges and short spaces below the opening threshold; `docs/computer-use-radar-check.md` records
   exact measurements and an unresolved adjacent NO_PATH marker. Do not infer a fix from these alone.
+- User prefers cue logging before audio capture. `docs/radar-event-log.md` describes automatic
+  generated/queued/submitted/completed/cancelled records. Join event_ms + direction in the latest
+  load session, using monotonic timing instead of the delayed SDK prefix. Four navigation chains
+  were verified live; submission is not proof of speaker output or navigation accuracy.
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 

@@ -5,20 +5,25 @@
 #include <numbers>
 
 namespace D2RAccess::RadarAudio {
-void CueQueue::Push(const Radar::Events& events) {
-	for (size_t i = 0; i < events.size(); ++i)
-		if (events[i] != Radar::State::Unknown) pending_[i] = events[i];
+void CueQueue::Push(const Radar::Events& events, CueSource source) {
+	for (size_t i = 0; i < events.size(); ++i) {
+		if (events[i] == Radar::State::Unknown) continue;
+		pending_[i] = events[i];
+		sources_[i] = source;
+	}
 }
 void CueQueue::Retain(const Radar::Events& observations) {
 	for (size_t i = 0; i < pending_.size(); ++i)
 		if (pending_[i] != observations[i]) pending_[i] = Radar::State::Unknown;
 }
-Radar::Events CueQueue::Take() {
+Radar::Events CueQueue::Take(CueSource* source) {
 	Radar::Events result{};
+	if (source) *source = {};
 	for (size_t offset = 0; offset < pending_.size(); ++offset) {
 		const size_t i = (next_ + offset) % pending_.size();
 		if (pending_[i] == Radar::State::Unknown) continue;
 		result[i] = pending_[i];
+		if (source) *source = sources_[i];
 		pending_[i] = Radar::State::Unknown;
 		next_ = (i + 1) % pending_.size();
 		break;

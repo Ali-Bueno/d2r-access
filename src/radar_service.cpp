@@ -5,6 +5,7 @@
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "radar_config.h"
+#include "radar_trace.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -35,15 +36,15 @@ uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0;
 int g_level = 0, g_testStep = -1;
 std::string g_lastReason;
 
-void Suspend() {
-	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence();
+void Suspend(const char* reason = "suspended") {
+	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence(reason);
 	g_suspended = true;
 	g_testStep = -1;
 	g_engine.Reset();
 }
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
-	Suspend();
+	Suspend("lifecycle");
 	g_session = event->sessionGeneration;
 	if (event->kind == Kind::GameJoined || event->kind == Kind::GameLeft) { g_ready = false; g_level = 0; }
 	else if (event->kind == Kind::LocalPlayerReady) { g_ready = true; g_playerId = event->playerId; g_level = 0; }
@@ -170,11 +171,11 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	if (command == Command::On || command == Command::Off || command == Command::Toggle) {
 		g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
-		Suspend();
+		Suspend(g_enabled ? "enabled-reset" : "disabled");
 		ScreenReader::Speak(g_enabled ? Strings::Current().radarEnabled : Strings::Current().radarDisabled, true);
 	}
 	if (command == Command::Test && RadarAudio::Available()) {
-		Suspend();
+		Suspend("audition");
 		g_testStep = 0;
 		g_testDue = now + TestStepMs * 3; // let the introductory speech begin first
 		ScreenReader::Speak(Strings::Current().radarTest, true);
@@ -189,7 +190,7 @@ void Tick(const D2RL::PluginContext* context) {
 			Radar::Events events{};
 			const size_t step = static_cast<size_t>(g_testStep++);
 			events[step % Radar::DirectionCount] = step < Radar::DirectionCount ? Radar::State::Open : Radar::State::Blocked;
-			RadarAudio::Play(events);
+			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true});
 			g_testDue = now + TestStepMs;
 		}
 		return;
@@ -207,13 +208,13 @@ void Tick(const D2RL::PluginContext* context) {
 		g_lastReason = reason;
 	}
 	if (!available) {
-		Suspend();
+		Suspend(reason.c_str());
 	} else {
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern);
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
 		const auto events = g_engine.Tick(world, now);
-		if (revision != g_engine.Revision()) RadarAudio::Silence();
+		if (revision != g_engine.Revision()) RadarAudio::Silence("world-rebased");
 		Radar::Events observations{}, audible{};
 		for (size_t i = 0; i < observations.size(); ++i) {
 			const auto& sensor = g_engine.Sensors()[i];
@@ -223,16 +224,18 @@ void Tick(const D2RL::PluginContext* context) {
 			audible[i] = sensor.cueState == Radar::State::Blocked ? Radar::State::Blocked : sensor.probe.observed;
 		}
 		RadarAudio::Validate(observations, audible);
-		RadarAudio::Play(events);
 		for (size_t i = 0; i < events.size(); ++i) {
 			if (events[i] != Radar::State::Unknown) {
 				const auto& sensor = g_engine.Sensors()[i];
 				const auto velocity = g_engine.Velocity();
-				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f",
+				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f",
 					i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.probe.clearDepth,
-					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth);
+					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth,
+					static_cast<unsigned long long>(now), RadarTrace::DirectionName(i), RadarTrace::StateName(events[i]),
+					static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y, sensor.guidance.openDepth);
 			}
 		}
+		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});
 	}
 	if (command == Command::Status || command == Command::Dump) {
 		Describe(available, ui);
@@ -241,7 +244,7 @@ void Tick(const D2RL::PluginContext* context) {
 }
 
 void Unregister() {
-	Suspend();
+	Suspend("unregister");
 	RadarAudio::Stop();
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
