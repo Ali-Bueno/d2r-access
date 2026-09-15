@@ -55,6 +55,7 @@ struct Table {
 	const char* radarAudioUnavailable;
 	const char* radarTest;
 	const char* radarDepth; // %.0f = clear depth in collision subtiles
+	const char* radarNearbyObstacle;
 	std::array<const char*, 4> radarDirections;
 	std::array<const char*, 3> radarStates;
 };
@@ -104,6 +105,7 @@ inline constexpr Table English {
 	.radarAudioUnavailable = "Radar audio unavailable",
 	.radarTest = "Radar sound test: front, left, right, back; opening then blocked",
 	.radarDepth = "%.0f subtiles clear",
+	.radarNearbyObstacle = "obstacle nearby",
 	.radarDirections = {"Front", "Left", "Right", "Back"},
 	.radarStates = {"unknown", "open", "blocked"},
 };
@@ -153,6 +155,7 @@ inline constexpr Table Spanish {
 	.radarAudioUnavailable = "Sonidos del radar no disponibles",
 	.radarTest = "Prueba de radar: delante, izquierda, derecha, atrás; apertura y después bloqueo",
 	.radarDepth = "%.0f subcasillas libres",
+	.radarNearbyObstacle = "obstáculo cercano",
 	.radarDirections = {"Delante", "Izquierda", "Derecha", "Atrás"},
 	.radarStates = {"desconocido", "abierto", "bloqueado"},
 };

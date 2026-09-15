@@ -41,6 +41,7 @@ struct World {
 struct Probe {
 	std::array<double, 3> depths{};
 	double bodyDepth = 0, medianDepth = 0;
+	State body = State::Unknown;
 	State observed = State::Unknown;
 	bool available = false;
 };

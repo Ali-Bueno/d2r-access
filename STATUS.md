@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (17:32 sonar log identified projected coordinates being used as collision coordinates; native unsigned-word coordinate fix deployed; twelve suites / 529 checks pass; live retest pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (17:38 camp terrain confirmed; native self-presence filtering and clearer status deployed; twelve suites / 543 checks pass; movement/audio retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -30,9 +30,9 @@
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. Logical room list and collision unload path also derived; full-map detail not established. `docs/sonar-radar.md` |
-| Sonar radar | wip — coordinate fix deployed | 17:32 session: correct player/level, failed position `-2480,72816`. Switched from projected fields to native collision getters (`Path+2/+6`, uint16). Pause/open-panel and detailed diagnostics retained. Live grid/audio retest pending |
-| Radar automated tests | done (local) | 235 radar/audio + 27 native-world/config + 12 radar UI checks; twelve total suites / 529 total checks. Live-value regression failed before coordinate fix; fractional words and unsigned coordinates also covered |
+| Native world / local map | wip — camp runtime confirmed | 17:38 session: level 1, position 4473/4628, 35 rooms, pattern 1; terrain remained ready while moving. No regeneration. Thirteen code fingerprints. Other areas/full-map detail remain unverified. `docs/sonar-radar.md` |
+| Sonar radar | wip — self-collision correction deployed | User heard initial cues, then inconsistent silence/zero depths. Native NO_PATH self-presence caused false body/diagonal blocks; copied marker now removed only from its own shape. Ctrl+T distinguishes nearby obstacles from unknown terrain. Live retest pending |
+| Radar automated tests | done (local) | 235 radar/audio + 41 native-world/config + 12 radar UI checks; twelve total suites / 543 total checks. Self-presence regression fails before fix and passes after; native cells, walls/doors and unrelated no-path remain intact |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -117,13 +117,15 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Room lifetime / orientation:** logical list `Level+0x10 → RoomEx+0x48`, rectangles `RoomEx+0x60..0x6C` (`0x3614C0`); active instance `RoomEx+0x58` set/cleared by `0x361290/0x361260`; unloading frees collision (`0x2F0110 → 0x363A10`). Room metadata does not establish persistent detailed collision. Projection `0x334DB0`: X down/right, Y down/left, supporting left = −90°. Full evidence: `docs/sonar-radar.md`.
 
+- **Local presence:** `Path+0x60` footprint mask (`0x341860`); setter/resetter `0x363CF0/0x3636D0` add/remove NO_PATH `0x1000` at the centre (pattern 1) or cross (2); pet patterns 3/4 use `0x2000`. Ignore only the local marker in copied cells that also carry its footprint mask, preserving other obstacles. Logs expose `footprint`, `rawCell`, `removedPresence` and Ctrl+T sensor details.
+
 ## Next step
 
-Retest the installed coordinate fix: enter Rogue Encampment with A, move the left stick a few steps, close menus and press Ctrl+T. Inspect `[radar] status=...` and `Live terrain ready`; the 17:32 session confirmed the position failure before any grid read. Once terrain works, follow the direction/opening/dialogue/pause sequence in `docs/sonar-radar.md`. Twelve suites / 529 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
+Retest self-presence filtering: enter camp with A, move the left stick steadily a few seconds, stop and press Ctrl+T; repeat after moving farther. Inspect rawCell/removedPresence and body/lanes in `[radar-state]`. Check that the player no longer appears blocked in every direction, then test a building opening, turns and pause/dialogue. Unchanged terrain remains intentionally silent. Twelve suites / 543 checks pass. Earlier UI confirmations and unrelated open work remain unchanged.
 
 ## Known issues / open questions
 
-- **Radar prototype:** pending live position/grid calibration, direction convention, room-streaming coverage, door flags/animations, pause behavior and audio/performance. Far range is a maximum over loaded rooms, not a guarantee of full map availability. Runtime code checks fail quiet after patches. No generated map or beacon backend is included.
+- **Radar prototype:** camp position/grid acquisition works. Self-presence filtering, direction calibration, room-streaming coverage, door flags/animations, pause behavior and perceived audio/performance still need live validation. Far range is limited to loaded rooms. Runtime code checks fail quiet after patches; no generated map or beacon backend is included.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.

@@ -58,6 +58,7 @@ Probe Scan(const World& world, Position axis, const Settings& settings) {
 		if (body != State::Open) break;
 		probe.bodyDepth = depth;
 	}
+	probe.body = body;
 	std::array<State, 3> ends{};
 	for (size_t lane = 0; lane < probe.depths.size(); ++lane) {
 		const double offset = (static_cast<double>(lane) - 1) * settings.laneSpacing;

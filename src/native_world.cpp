@@ -19,6 +19,7 @@ constexpr size_t UnitType = 0, UnitId = 8, UnitPath = 0x38;
 // Collision getters 0x341A20/30 read unsigned words from the high halves of
 // the fixed-point coordinates. Path+8/+C instead holds projected coordinates.
 constexpr size_t PathSubtileX = 2, PathSubtileY = 6, PathRoom = 0x20, PathPattern = 0x5C;
+constexpr size_t PathFootprintMask = 0x60; // getter 0x341860; setter 0x342670
 constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38, RoomExtended = 0x18;
 constexpr size_t ExtendedLevel = 0x90, LevelId = 0x1F8;
 // 0x22F0A3 passes this mask to 0x364C70: terrain, objects, doors and no-path;
@@ -41,6 +42,9 @@ constexpr Evidence Checks[] = {
 	{0x341A20, 5, 0xCE32643327F7AF15ULL},
 	{0x341A30, 5, 0xCE264C3327EEAEF1ULL},
 	{0x341870, 17, 0x850E898DB8A253A0ULL},
+	{0x341860, 14, 0xF2D1DCF8A918C439ULL},
+	{0x363CF0, 344, 0x652C884296D3F7EDULL},
+	{0x3636D0, 353, 0x07A933B5F15EAE54ULL},
 	{0x366250, 148, 0x92BE7DBD292A006FULL},
 	{0x366D40, 895, 0x4A0CFAC2C8F9877CULL},
 	{0x364C70, 197, 0x17506F77209FE3D8ULL},
@@ -73,6 +77,31 @@ bool ReadRoom(uintptr_t room, Radar::Position position, Radar::RoomGrid& output)
 	if (count > MaxCopiedCells) return false;
 	output.cells.resize(count);
 	return NativeMemory::Copy(header.data, output.cells.data(), output.cells.size() * sizeof(uint16_t));
+}
+void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
+	// Native set/reset pattern routines 0x363CF0 / 0x3636D0 add/remove a
+	// separate presence marker: centre for patterns 1/3, cross for 2/4.
+	// Clear only this local contribution in our copies. Never strip NO_PATH
+	// globally, or clear wall/door/object flags that share the player's cell.
+	constexpr uint16_t NoPath = 0x1000, PetPresence = 0x2000;
+	const bool cross = world.bodyPattern == 2 || world.bodyPattern == 4;
+	const uint16_t marker = world.bodyPattern == 1 || world.bodyPattern == 2 ? NoPath
+		: world.bodyPattern == 3 || world.bodyPattern == 4 ? PetPresence : 0;
+	for (auto& room : world.rooms) {
+		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) {
+			const int x = static_cast<int>(world.player.x) + dx - room.x;
+			const int y = static_cast<int>(world.player.y) + dy - room.y;
+			if (x < 0 || y < 0 || x >= room.width || y >= room.height) continue;
+			auto& cell = room.cells[static_cast<size_t>(y) * room.width + x];
+			const bool centre = dx == 0 && dy == 0;
+			if (centre) detail.rawPlayerCell = cell;
+			if (!centre && (!cross || (dx != 0 && dy != 0))) continue;
+			if (detail.footprintMask && (cell & detail.footprintMask) == detail.footprintMask && (cell & marker)) {
+				cell &= static_cast<uint16_t>(~marker);
+				++detail.removedPresenceCells;
+			}
+		}
+	}
 }
 }
 
@@ -131,6 +160,8 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	y = subtileY;
 	detail.stage = "footprint";
 	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
+	detail.stage = "footprint-mask";
+	if (!Peek(path + PathFootprintMask, detail.footprintMask) || detail.footprintMask > std::numeric_limits<uint16_t>::max()) return false;
 	detail.stage = "room";
 	if (!Peek(path + PathRoom, room) || !room || !Peek(room + RoomExtended, extended) || !extended) return false;
 	detail.stage = "level";
@@ -163,6 +194,7 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 			if (rooms[n] && std::find(pending.begin(), pending.end(), rooms[n]) == pending.end()) pending.push_back(rooms[n]);
 		}
 	}
+	RemovePlayerPresence(output, detail);
 	detail.stage = "player-cell";
 	if (output.Cell(x, y) == Radar::State::Unknown) { output = {}; return false; }
 	detail.stage = "ready";

@@ -62,7 +62,7 @@ An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes directional `tin` (opening) / `tock` (blocked) cues,
 including a lower-pitched rear sensor. It starts enabled, baselines silently
 after a few steps, and pauses for dialogue and offline pause menus. It uses the
-game's map data directly. Live spatial/audio validation is still pending;
+game's map data directly. Live camp snapshots are confirmed; spatial/audio tuning continues;
 see [the radar evidence and controller test](docs/sonar-radar.md).
 **Ctrl+R** toggles it; **Ctrl+T** reads its state. The embedded default config
 preserves existing settings and adds no external sound/map installation step.
@@ -121,6 +121,8 @@ synthesized sounds; `dump` logs nearby native collision and sensor states.
 `status` (Ctrl+T) distinguishes dialogue/pause, an inactive game window, waiting
 for the player, and unavailable terrain. Failed terrain reads record their
 specific stage in the plugin log.
+Unknown directions omit distances; an immediate body obstruction is described
+as nearby. Unchanged terrain is intentionally silent between state changes.
 Persistent radar preference: `[radar] enabled = true` (or `false`) in
 `d2rloader/config/d2r-access.toml`, created from the DLL only when missing.
 

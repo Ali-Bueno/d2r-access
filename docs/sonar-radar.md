@@ -1,8 +1,8 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Built and deployed; live diagnostics identified incorrect position fields.
-The collision-coordinate correction is installed, awaiting another in-game check.**
+**Live camp snapshots now work. A correction for false self-collisions is built
+and deployed; movement/audio behavior needs another in-game check.**
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the state, movement and heading rules come from the supplied v2 spec itself.
@@ -64,6 +64,7 @@ installed `D2RCore.dll`. No classic Diablo address is used as a D2R address.
 | Neighbor rooms | `0x2EFDE0`: neighbor-pointer array at `Room+0`, count at `Room+0x40`. `0x38DFB0` checks the current room then this array. `0x2F0680` checks active-room subtile bounds at `+0x80/+0x84/+0x88/+0x8C`. |
 | Actual body footprint | `0x341870` reads `Path+0x5C`; `0x364C70` dispatches pattern 0 to one cell, patterns 1/3/5 to `0x366D40`'s centre plus four adjacent cells, patterns 2/4 to a 3x3 box. The prototype obtains this pattern from the player every snapshot. |
 | Player walking mask | Calls at `0x22F0A3` and `0x566A95` pass **`0x1C09`** to the footprint query at `0x364C70`. This includes terrain, object, door and no-path bits; ordinary player/monster/item presence bits are absent. |
+| Local unit presence | `0x341860` reads the unit's footprint mask from `Path+0x60`. Pattern setter `0x363CF0` additionally stamps `0x1000` at the centre for pattern 1 or on a cross for pattern 2 whenever that mask is nonzero. Patterns 3/4 stamp `0x2000` instead; 0/5 add no such marker. `0x3636D0` removes the same shapes. The added `0x1000` intersects the walking mask and must not make the player block its own radar. |
 | Isometric orientation | `0x334DB0`, used by active-room projection `0x2EFC60`: `screenX = 80*(tileX-tileY)-80`, `screenY = 40*(tileX+tileY)+80`. Therefore +X projects down/right and +Y down/left; left is a negative quarter-turn in world coordinates. Perceived direction still needs a live headphone check. |
 
 The installed code therefore offers both a native collision query and readable
@@ -74,7 +75,7 @@ the loader's already resolved client-player lookup, with its code checked first.
 Queries and copies run on the UI thread, matching Core's client-player access.
 No authoritative/server game state is modified.
 
-`native_world.cpp` verifies complete-code FNV-1a fingerprints for ten recovered
+`native_world.cpp` verifies complete-code FNV-1a fingerprints for thirteen recovered
 accessors/readers before enabling the adapter. It validates the loader-resolved
 functions, local identity, level, footprint, dimensions and pointers. All copies
 use `NativeMemory`'s memory checks and fault containment. Neighbors are deduplicated
@@ -98,6 +99,10 @@ Public research was a lead, not build verification:
 ## Behavior and module responsibilities
 
 - `native_world`: acquire the local player and copy loaded collision grids.
+  Remove the local player's derived presence marker from the copied centre/cross
+  only where the runtime footprint mask is also present. Retain wall, door,
+  object, blank and all other bits. No game memory is changed; no-path flags
+  elsewhere are retained.
 - `radar_grid`: test the actual body footprint; scan three parallel lanes per
   direction, at half-subtile increments, up to 150 subtiles (30 D2 map tiles).
   Integer cell positions are sampled about their centres, with boundary ties
@@ -123,6 +128,11 @@ Public research was a lead, not build verification:
 Initialization is silent. Walk a few steps to acquire a heading. Stable open
 fields and unchanged walls are silent. The radar is not a repeated proximity
 beeper and gives no navigation speech automatically.
+
+Ctrl+T reports current conclusive observations (falling back to the stable state
+inside the distance dead band). Unknown directions have no invented zero
+distance. A body obstruction is described as nearby rather than paired with a
+misleading long clear centre ray. Audio still waits for stable state changes.
 
 The first tuning values are two subtiles of body sweep, eight subtiles of open
 depth and three subtiles of blocked depth. These are named design parameters in
@@ -180,15 +190,17 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 - `[radar-audio]` records output readiness/failure.
 - `[radar] lifecycle=...` records event kind, session, player and level.
 - `[radar] status=...` identifies the first blocking condition and reports
-  expected/observed player and level, path coordinates and footprint. It logs
+  expected/observed player and level, path coordinates, footprint mask, raw
+  player-cell flags and the number of copied presence cells cleared. It logs
   only on reason changes or explicit `status`/`dump` requests.
 - `[radar] direction=...` records emitted changes (0 front, 1 left, 2 right, 3 back).
-- `[radar-map]` / `[radar-state]` are explicit diagnostics only; no per-frame dump.
+- `[radar-state]` reports body and lane probes on Ctrl+T or an explicit dump.
+  `[radar-map]` is the console dump's grid; neither logs every frame.
 
 ## Validation and remaining limits
 
-Twelve CTest suites / 529 checks pass: the previous 255 checks, 235 radar/audio
-checks, 27 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
+Twelve CTest suites / 543 checks pass: the previous 255 checks, 235 radar/audio
+checks, 41 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
 door masks, actor filtering, unknown cells, crossroads, stable walls/open fields,
 stationary changes, turns/zig-zag/diagonal staircases, session/level/teleport/gap
 rebasing, equal depths around symmetric walls in all eight headings, cardinal
@@ -227,6 +239,23 @@ projected values alongside valid collision coordinates; it failed before the fix
 and passes afterward. Additional checks cover nonzero fractional words and
 coordinates above 32767 to prevent accidental sign extension. Successful live
 grid acquisition and audio navigation still require the next in-game test.
+
+### First successful terrain read and self-collision correction
+
+The 17:38 session acquired level 1, position `4473,4628`, 35 loaded rooms and
+body pattern 1. Terrain remained available while the player moved. The user
+heard some cues, then inconsistent silence and zero-distance reports. Several
+blocked events had long clear centre rays (for example depths 16/40/37), which
+pointed to the near-body probe rather than loss of the map.
+
+Following the native pattern set/reset routines established the extra presence
+marker described above. A nearby body probe overlaps the player's own centre,
+and the old code treated its `0x1000` as an obstacle. Diagonal point samples can
+also revisit that centre and stop at zero depth. The regression reproduces the
+false block with `0x1080` at the player cell; it fails before the correction and
+passes afterward. It also checks all four body directions, preservation of the
+original memory, walls/doors, no-path outside the player's shape, zero masks and
+large-unit corner exclusions. Live verification of the correction remains due.
 
 These checks do **not** establish live spatial calibration, perceived latency,
 actual room coverage at 150 subtiles, door animations, every act's collision

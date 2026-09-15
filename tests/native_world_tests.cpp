@@ -27,6 +27,7 @@ struct Fixture {
 		path.At<uint16_t>(2, 104); path.At<uint16_t>(6, 104);
 		path.At<int>(8, -2480); path.At<int>(12, 72816);
 		path.At(0x20, room.Address()); path.At<int>(0x5C, 1);
+		path.At<uint32_t>(0x60, 0x80); // native player footprint flag
 		room.At(0x18, extended.Address()); room.At(0x38, grid.Address());
 		extended.At(0x90, level.Address()); level.At<int>(0x1F8, 1);
 		grid.At<int>(0, 100); grid.At<int>(4, 100); grid.At<int>(8, 10); grid.At<int>(12, 10);
@@ -34,8 +35,42 @@ struct Fixture {
 	}
 	bool Read(Radar::World& world) { return NativeWorld::ReadPlayer(unit.Address(), 42, 7, 1, world); }
 };
+void PlayerPresenceTests() {
+	Fixture fixture;
+	Radar::World world;
+	// The native pattern-1 setter stamps the actor's bit on a cross and adds
+	// NO_PATH to its centre. A body probe overlaps that centre in every direction.
+	for (size_t cell : {34u, 43u, 44u, 45u, 54u}) fixture.cells[cell] = 0x80;
+	fixture.cells[44] |= 0x1000;
+	Check(fixture.Read(world) && world.Body(105, 104) == Radar::State::Open,
+		"the local player's own presence marker cannot block its body probe");
+	Check(fixture.cells[44] == 0x1080, "removing self presence modifies only the owned snapshot");
+	for (const Radar::Position axis : std::array<Radar::Position, 4>{{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}})
+		Check(Radar::Scan(world, axis, {}).bodyDepth == 2, "all body probes can leave the occupied player cell");
+	fixture.cells[44] |= 1;
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "a real wall sharing the player cell remains blocked");
+	fixture.cells[44] = 0x1880;
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "a door bit sharing the player cell remains blocked");
+	fixture.cells[44] = 0x1080;
+	fixture.cells[45] = 0x1080;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked, "no-path outside the local presence shape is preserved");
+	fixture.cells[44] = 0x1000;
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "no-path without the local player's footprint bit is preserved");
+	fixture.cells[44] = 0x1080;
+	fixture.path.At<uint32_t>(0x60, 0);
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "zero footprint mask cannot erase terrain");
+	fixture.path.At<uint32_t>(0x60, 0x80);
+	fixture.path.At<int>(0x5C, 5);
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "a pattern without presence cannot erase no-path");
+	fixture.path.At<int>(0x5C, 2);
+	for (size_t cell : {34u, 43u, 44u, 45u, 54u, 55u}) fixture.cells[cell] = 0x1080;
+	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Open && world.Cell(105, 104) == Radar::State::Open,
+		"a large unit's native cross-shaped presence is removed");
+	Check(world.Cell(105, 105) == Radar::State::Blocked, "large unit presence removal preserves no-path at square corners");
+}
 }
 int main() {
+	PlayerPresenceTests();
 	Check(RadarConfig::Parse("[radar]\nenabled = false # quiet default\n").enabled == false, "embedded radar preference can disable startup audio");
 	Check(RadarConfig::Parse("[other]\nenabled=false\n").enabled, "other features' switches cannot disable the radar");
 	Check(!RadarConfig::Parse("[radar]\nenabled=FALSE\n").valid, "non-TOML boolean is rejected");

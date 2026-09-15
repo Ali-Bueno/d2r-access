@@ -8,6 +8,9 @@ struct Diagnostics {
 	const char* stage = "not-read";
 	uint32_t playerId = 0;
 	int x = 0, y = 0, pattern = -1, level = 0;
+	uint32_t footprintMask = 0;
+	uint16_t rawPlayerCell = 0;
+	unsigned removedPresenceCells = 0;
 };
 bool Initialize(const D2RL::PluginContext* context);
 // UI thread only, client rooms only. No retained game pointers across ticks.

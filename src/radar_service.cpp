@@ -71,14 +71,30 @@ void Describe(bool available, RadarUi::State ui) {
 	std::string result;
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& sensor = g_engine.Sensors()[i];
-		char depth[80]{};
-		std::snprintf(depth, sizeof(depth), text.radarDepth, sensor.probe.depths[1]);
+		const auto state = !sensor.probe.available ? Radar::State::Unknown
+			: sensor.probe.observed != Radar::State::Unknown ? sensor.probe.observed : sensor.stable;
 		if (!result.empty()) result += ". ";
-		result += std::string(text.radarDirections[i]) + ": " + text.radarStates[static_cast<size_t>(sensor.stable)] + ", " + depth;
+		result += std::string(text.radarDirections[i]) + ": " + text.radarStates[static_cast<size_t>(state)];
+		if (state == Radar::State::Unknown) continue;
+		if (sensor.probe.body == Radar::State::Blocked) result += std::string(", ") + text.radarNearbyObstacle;
+		else {
+			char depth[80]{};
+			std::snprintf(depth, sizeof(depth), text.radarDepth, sensor.probe.depths[1]);
+			result += std::string(", ") + depth;
+		}
 	}
 	ScreenReader::Speak(result, true);
 }
-void Dump(const Radar::World& world, uint64_t now) {
+void LogSensors(uint64_t now) {
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
+		const auto& s = g_engine.Sensors()[i];
+		AsyncLog::InfoF(g_context, "[radar-state] direction=%zu body=%u near=%.1f lanes=%.1f/%.1f/%.1f median=%.1f available=%u observed=%u candidate=%u stable=%u age=%llu travel=%.1f",
+			i, static_cast<unsigned>(s.probe.body), s.probe.bodyDepth, s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
+			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
+			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
+	}
+}
+void Dump(const Radar::World& world) {
 	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X heading=%d; # blocked, . open, ? unknown, @ player; rows +Y, columns +X",
 		static_cast<unsigned long long>(world.session), world.level, world.player.x, world.player.y,
 		world.rooms.size(), world.bodyPattern, world.walkingMask, g_engine.Heading());
@@ -89,13 +105,6 @@ void Dump(const Radar::World& world, uint64_t now) {
 			line += x == 0 && y == 0 ? '@' : cell == Radar::State::Open ? '.' : cell == Radar::State::Blocked ? '#' : '?';
 		}
 		AsyncLog::InfoF(g_context, "[radar-map] %s", line.c_str());
-	}
-	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
-		const auto& s = g_engine.Sensors()[i];
-		AsyncLog::InfoF(g_context, "[radar-state] direction=%zu near=%.1f lanes=%.1f/%.1f/%.1f median=%.1f available=%u observed=%u candidate=%u stable=%u age=%llu travel=%.1f",
-			i, s.probe.bodyDepth, s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
-			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
-			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
 	}
 }
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -186,8 +195,9 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
 		: blocked ? UiReasons[static_cast<size_t>(ui)] : detail.stage;
 	if (reason != g_lastReason || command == Command::Status || command == Command::Dump) {
-		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d",
-			reason.c_str(), g_playerId, detail.playerId, g_level, detail.level, detail.x, detail.y, detail.pattern);
+		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d footprint=%04X rawCell=%04X removedPresence=%u",
+			reason.c_str(), g_playerId, detail.playerId, g_level, detail.level, detail.x, detail.y, detail.pattern,
+			detail.footprintMask, static_cast<unsigned>(detail.rawPlayerCell), detail.removedPresenceCells);
 		g_lastReason = reason;
 	}
 	if (!available) {
@@ -204,8 +214,11 @@ void Tick(const D2RL::PluginContext* context) {
 				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Heading(), g_engine.Sensors()[i].probe.depths[1]);
 		}
 	}
-	if (command == Command::Status || command == Command::Dump) Describe(available, ui);
-	if (command == Command::Dump && available) Dump(world, now);
+	if (command == Command::Status || command == Command::Dump) {
+		Describe(available, ui);
+		if (available) LogSensors(now);
+	}
+	if (command == Command::Dump && available) Dump(world);
 }
 
 void Unregister() {
