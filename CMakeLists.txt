@@ -38,6 +38,13 @@ add_library(d2r-access SHARED
 	src/localization.cpp
 	src/native_widgets.cpp
 	src/native_memory.cpp
+	src/native_world.cpp
+	src/radar.cpp
+	src/radar_grid.cpp
+	src/radar_audio.cpp
+	src/radar_synth.cpp
+	src/radar_service.cpp
+	src/radar_config.cpp
 	src/native_ui.cpp
 	src/native_tooltips.cpp
 	src/panel_state.cpp
@@ -51,7 +58,8 @@ add_library(d2r-access SHARED
 	src/widgets.cpp
 	plugin.rc
 )
-target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin)
+target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm)
+d2rlplugin_embed_config(TARGET d2r-access FILE "${CMAKE_CURRENT_SOURCE_DIR}/radar.toml")
 target_include_directories(d2r-access PRIVATE "${PRISM_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(d2r-access PROPERTIES
 	CXX_STANDARD 20
@@ -66,6 +74,17 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_synth.cpp)
+	target_link_libraries(radar-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(radar-tests PRIVATE src)
+	target_compile_features(radar-tests PRIVATE cxx_std_20)
+	add_test(NAME radar COMMAND radar-tests)
+	add_executable(native-world-tests tests/native_world_tests.cpp src/native_world.cpp src/native_memory.cpp src/radar_grid.cpp src/radar_config.cpp src/async_log.cpp)
+	target_link_libraries(native-world-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(native-world-tests PRIVATE src)
+	target_compile_features(native-world-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-world-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-world COMMAND native-world-tests)
 	add_executable(ui-text-tests tests/ui_text_tests.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
@@ -112,6 +131,8 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(radar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(tab-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -9,6 +9,7 @@
 #include "localization.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
+#include "radar_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
@@ -40,6 +41,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	if (!D2RAccess::GameTextReader::Tick(context)) D2RAccess::FocusTracker::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
+	D2RAccess::RadarService::Tick(context);
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -147,6 +149,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
 	(void)D2RAccess::NativeTooltips::Initialize(context);
+	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
@@ -165,6 +168,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();
 	D2RAccess::InputDirection::Shutdown();
 	D2RAccess::UiMessageMonitor::Unregister();

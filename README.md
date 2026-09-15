@@ -58,7 +58,17 @@ including **Soltar oro**, and equipment slots announce their body location
 The user confirmed these additions. The specific
 scroll-related control reported by the user has not yet been identified live.
 
-Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.
+An experimental **navigation radar** now reads the collision grids of loaded
+game rooms. It synthesizes directional `tin` (opening) / `tock` (blocked) cues,
+including a lower-pitched rear sensor. It starts enabled, baselines silently
+after a few steps, and pauses for dialogue and offline pause menus. It uses the
+game's map data directly. Live spatial/audio validation is still pending;
+see [the radar evidence and controller test](docs/sonar-radar.md).
+**Ctrl+R** toggles it; **Ctrl+T** reads its state. The embedded default config
+preserves existing settings and adds no external sound/map installation step.
+
+Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat,
+full-map navigation and destination beacons.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.
 
@@ -106,6 +116,11 @@ Console commands (developer console, `Ctrl+`` in game): `access-say <text>`, `ac
 `access-dump-code`, `access-text on|off|repeat|dump`. The latter controls in-game text
 reading and can log the visible native text tree. Its toggle lasts until the game exits.
 
+Radar commands: `access-radar on|off|status|dump|test`. `test` auditions the
+synthesized sounds; `dump` logs nearby native collision and sensor states.
+Persistent radar preference: `[radar] enabled = true` (or `false`) in
+`d2rloader/config/d2r-access.toml`, created from the DLL only when missing.
+
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
 Test executables are not installed into the game.
 
@@ -128,6 +143,9 @@ python tools\gen_panel_widgets.py
   `native_memory`/`native_ui` provide guarded native snapshots; `ui_text` contains the
   testable reading policy; `ui_notifications` reads and deduplicates visible notices;
   `game_text_reader` manages gameplay lifecycle and speech context.
+  `native_world` provides guarded client collision snapshots; `radar`/`radar_grid`
+  evaluate navigation; `radar_audio`/`radar_synth` render cues and `radar_service`
+  wires lifecycle, UI suspension and shortcuts.
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor and the layout indexer/generators.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.

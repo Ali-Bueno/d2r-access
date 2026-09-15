@@ -1,0 +1,4 @@
+# Navigation radar. Restart the game after changing this default.
+# Ctrl+R also toggles the radar for the current run.
+[radar]
+enabled = true

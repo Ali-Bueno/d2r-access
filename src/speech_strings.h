@@ -45,6 +45,15 @@ struct Table {
 	const char* gridCell; // one-based row, column
 	// InventorySlotWidget location values, verified against live slots and the stock layout.
 	std::array<const char*, 11> equipmentSlots;
+	const char* radarEnabled;
+	const char* radarDisabled;
+	const char* radarUnavailable;
+	const char* radarWaitingHeading;
+	const char* radarAudioUnavailable;
+	const char* radarTest;
+	const char* radarDepth; // %.0f = clear depth in collision subtiles
+	std::array<const char*, 4> radarDirections;
+	std::array<const char*, 3> radarStates;
 };
 
 inline constexpr Table English {
@@ -81,6 +90,15 @@ inline constexpr Table English {
 	.gridCell            = "Row %d, column %d",
 	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
 		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
+	.radarEnabled = "Radar enabled",
+	.radarDisabled = "Radar disabled",
+	.radarUnavailable = "Radar waiting for loaded terrain, or paused",
+	.radarWaitingHeading = "Walk a few steps to orient the radar",
+	.radarAudioUnavailable = "Radar audio unavailable",
+	.radarTest = "Radar sound test: front, left, right, back; opening then blocked",
+	.radarDepth = "%.0f subtiles clear",
+	.radarDirections = {"Front", "Left", "Right", "Back"},
+	.radarStates = {"unknown", "open", "blocked"},
 };
 
 inline constexpr Table Spanish {
@@ -117,6 +135,15 @@ inline constexpr Table Spanish {
 	.gridCell            = "Fila %d, columna %d",
 	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
 		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
+	.radarEnabled = "Radar activado",
+	.radarDisabled = "Radar desactivado",
+	.radarUnavailable = "Radar esperando terreno cargado, o en pausa",
+	.radarWaitingHeading = "Camina unos pasos para orientar el radar",
+	.radarAudioUnavailable = "Sonidos del radar no disponibles",
+	.radarTest = "Prueba de radar: delante, izquierda, derecha, atrás; apertura y después bloqueo",
+	.radarDepth = "%.0f subcasillas libres",
+	.radarDirections = {"Delante", "Izquierda", "Derecha", "Atrás"},
+	.radarStates = {"desconocido", "abierto", "bloqueado"},
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

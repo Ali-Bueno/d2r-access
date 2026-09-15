@@ -1,0 +1,216 @@
+#include "radar_service.h"
+#include "async_log.h"
+#include "native_world.h"
+#include "native_ui.h"
+#include "native_widgets.h"
+#include "radar_audio.h"
+#include "radar_config.h"
+#include "screen_reader.h"
+#include "speech_strings.h"
+
+#include <windows.h>
+#include <atomic>
+#include <cstdio>
+#include <string>
+#include <string_view>
+
+namespace D2RAccess::RadarService {
+namespace {
+using Kind = D2RL::Lifecycle::GameplayEventKind;
+enum class Command { None, On, Off, Toggle, Status, Dump, Test };
+constexpr uint64_t PollMs = 50, TestStepMs = 400; // spec 20 Hz; separated audition cues
+constexpr int DumpRadius = 12; // 25x25 local ASCII diagnostic, not sensor range
+const D2RL::PluginContext* g_context = nullptr;
+const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
+const D2RL::InputServiceV1* g_input = nullptr;
+std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
+std::vector<D2RL::Input::ActionHandle> g_actions;
+std::atomic<Command> g_command{Command::None};
+Radar::Engine g_engine;
+bool g_supported = false, g_ready = false, g_enabled = true, g_suspended = true;
+uint32_t g_playerId = 0;
+uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0;
+int g_level = 0, g_testStep = -1;
+
+void Suspend() {
+	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence();
+	g_suspended = true;
+	g_testStep = -1;
+	g_engine.Reset();
+}
+void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
+	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
+	Suspend();
+	g_session = event->sessionGeneration;
+	if (event->kind == Kind::GameJoined || event->kind == Kind::GameLeft) { g_ready = false; g_level = 0; }
+	else if (event->kind == Kind::LocalPlayerReady) { g_ready = true; g_playerId = event->playerId; }
+	else if (event->kind == Kind::LevelChanged) g_level = event->currentValue;
+}
+
+bool UiBlocked() {
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	if (process != GetCurrentProcessId()) return true;
+	if (!NativeWidgets::SupportsTree()) return true;
+	for (const auto panel : NativeUi::Panels()) {
+		if (!NativeUi::Visible(panel)) continue;
+		const auto surface = NativeUi::Classify(panel).surface;
+		if (surface == UiText::Surface::Menu || surface == UiText::Surface::Narrative) return true;
+		// Installed layout roots: PauseLayout{Garden,...}, SettingsPanel. These
+		// pause offline play. Inventory, automap and the passive HUD do not.
+		const auto name = NativeWidgets::ReadName(panel);
+		if (name.starts_with("PauseLayout") || name == "SettingsPanel") return true;
+	}
+	return false;
+}
+
+void Describe(bool available) {
+	const auto& text = Strings::Current();
+	if (!g_enabled) { ScreenReader::Speak(text.radarDisabled, true); return; }
+	if (!RadarAudio::Available()) { ScreenReader::Speak(text.radarAudioUnavailable, true); return; }
+	if (!available) { ScreenReader::Speak(text.radarUnavailable, true); return; }
+	if (g_engine.Heading() < 0) { ScreenReader::Speak(text.radarWaitingHeading, true); return; }
+	std::string result;
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
+		const auto& sensor = g_engine.Sensors()[i];
+		char depth[80]{};
+		std::snprintf(depth, sizeof(depth), text.radarDepth, sensor.probe.depths[1]);
+		if (!result.empty()) result += ". ";
+		result += std::string(text.radarDirections[i]) + ": " + text.radarStates[static_cast<size_t>(sensor.stable)] + ", " + depth;
+	}
+	ScreenReader::Speak(result, true);
+}
+void Dump(const Radar::World& world, uint64_t now) {
+	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X heading=%d; # blocked, . open, ? unknown, @ player; rows +Y, columns +X",
+		static_cast<unsigned long long>(world.session), world.level, world.player.x, world.player.y,
+		world.rooms.size(), world.bodyPattern, world.walkingMask, g_engine.Heading());
+	for (int y = -DumpRadius; y <= DumpRadius; ++y) {
+		std::string line;
+		for (int x = -DumpRadius; x <= DumpRadius; ++x) {
+			const auto cell = world.Cell(static_cast<int>(world.player.x) + x, static_cast<int>(world.player.y) + y);
+			line += x == 0 && y == 0 ? '@' : cell == Radar::State::Open ? '.' : cell == Radar::State::Blocked ? '#' : '?';
+		}
+		AsyncLog::InfoF(g_context, "[radar-map] %s", line.c_str());
+	}
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
+		const auto& s = g_engine.Sensors()[i];
+		AsyncLog::InfoF(g_context, "[radar-state] direction=%zu near=%.1f lanes=%.1f/%.1f/%.1f median=%.1f available=%u observed=%u candidate=%u stable=%u age=%llu travel=%.1f",
+			i, s.probe.bodyDepth, s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
+			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
+			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
+	}
+}
+auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (!command) return D2RL::ConsoleCommandResult::Failed;
+	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	Command request = Command::None;
+	if (arg == "on") request = Command::On;
+	else if (arg == "off") request = Command::Off;
+	else if (arg == "status") request = Command::Status;
+	else if (arg == "dump") request = Command::Dump;
+	else if (arg == "test") request = Command::Test;
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	g_command = request;
+	return D2RL::ConsoleCommandResult::Handled;
+}
+auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void* data) noexcept -> D2RL::Input::ActionResult {
+	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize) || event->kind != D2RL::Input::ActionEventKind::Pressed) return D2RL::Input::ActionResult::Ignored;
+	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
+	return D2RL::Input::ActionResult::Handled;
+}
+}
+
+bool Register(const D2RL::PluginContext* context) {
+	g_context = context;
+	g_enabled = RadarConfig::Enabled(context);
+	g_supported = NativeWorld::Initialize(context);
+	if (!context || context->QueryService(D2RL::ServiceId::Lifecycle, D2RL::LifecycleServiceV1Version, &g_lifecycle) != D2RL::ServiceQueryResult::Success
+		|| !D2RL::HasLifecycleServiceV1Field(g_lifecycle, D2RL::LifecycleServiceV1RequiredSize)) return false;
+	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged, Kind::PlayerResurrected}) {
+		const D2RL::Lifecycle::GameplayEventListener listener{.structSize = D2RL::Lifecycle::GameplayEventListenerSize, .kind = kind, .callback = OnGameplay};
+		D2RL::Lifecycle::ListenerHandle handle = D2RL::Lifecycle::InvalidHandle;
+		if (g_lifecycle->registerGameplayEventListener(context, &listener, &handle) != D2RL::Lifecycle::Result::Success) { Unregister(); return false; }
+		g_listeners.push_back(handle);
+	}
+	if (context->QueryService(D2RL::ServiceId::Input, D2RL::InputServiceV1Version, &g_input) == D2RL::ServiceQueryResult::Success
+		&& D2RL::HasInputServiceV1Field(g_input, D2RL::InputServiceV1RequiredSize)) {
+		struct Shortcut { const char* id; const char* label; D2RL::Input::Key key; Command command; };
+		const Shortcut shortcuts[] = {{"radar-toggle", "Toggle navigation radar", D2RL::Input::Key::R, Command::Toggle},
+			{"radar-status", "Read navigation radar", D2RL::Input::Key::T, Command::Status}};
+		for (const auto& shortcut : shortcuts) {
+			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
+				.logicalId = shortcut.id, .displayName = shortcut.label, .category = "Accessibility",
+				.defaultPrimary = {shortcut.key, D2RL::Input::Modifier::Control}, .callback = Action,
+				.userData = reinterpret_cast<void*>(shortcut.command)};
+			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
+			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		}
+	}
+	(void)context->RegisterConsoleCommand("access-radar", Console, "Navigation sonar: on|off|status|dump|test.");
+	(void)RadarAudio::Start(context);
+	AsyncLog::Info(context, "[radar] Four-direction sonar registered; waiting for local player and level.");
+	return true;
+}
+
+void Tick(const D2RL::PluginContext* context) {
+	const auto command = g_command.exchange(Command::None);
+	const uint64_t now = GetTickCount64();
+	if (command == Command::On || command == Command::Off || command == Command::Toggle) {
+		g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
+		Suspend();
+		ScreenReader::Speak(g_enabled ? Strings::Current().radarEnabled : Strings::Current().radarDisabled, true);
+	}
+	if (command == Command::Test && RadarAudio::Available()) {
+		Suspend();
+		g_testStep = 0;
+		g_testDue = now + TestStepMs * 3; // let the introductory speech begin first
+		ScreenReader::Speak(Strings::Current().radarTest, true);
+	}
+	if (command == Command::None && now - g_lastPoll < PollMs) return;
+	g_lastPoll = now;
+	const bool blocked = g_ready && UiBlocked();
+	if (g_testStep >= 0 && !blocked) {
+		if (now >= g_testDue) {
+			if (g_testStep == static_cast<int>(Radar::DirectionCount * 2)) { g_testStep = -1; return; }
+			Radar::Events events{};
+			const size_t step = static_cast<size_t>(g_testStep++);
+			events[step % Radar::DirectionCount] = step < Radar::DirectionCount ? Radar::State::Open : Radar::State::Blocked;
+			RadarAudio::Play(events);
+			g_testDue = now + TestStepMs;
+		}
+		return;
+	}
+	Radar::World world;
+	const bool available = g_supported && g_ready && g_enabled && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world);
+	if (!available) {
+		if (!g_suspended) AsyncLog::Info(context, "[radar] Suspended: unavailable terrain, disabled, inactive window or dialogue/pause.");
+		Suspend();
+	} else {
+		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern);
+		g_suspended = false;
+		const uint64_t revision = g_engine.Revision();
+		const auto events = g_engine.Tick(world, now);
+		if (revision != g_engine.Revision()) RadarAudio::Silence();
+		RadarAudio::Play(events);
+		for (size_t i = 0; i < events.size(); ++i) {
+			if (events[i] != Radar::State::Unknown) AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f heading=%d depth=%.1f",
+				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Heading(), g_engine.Sensors()[i].probe.depths[1]);
+		}
+	}
+	if (command == Command::Status || command == Command::Dump) Describe(available);
+	if (command == Command::Dump && available) Dump(world, now);
+}
+
+void Unregister() {
+	Suspend();
+	RadarAudio::Stop();
+	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
+	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	g_listeners.clear();
+	g_actions.clear();
+	g_context = nullptr;
+	g_lifecycle = nullptr;
+	g_input = nullptr;
+	g_ready = g_supported = false;
+}
+}

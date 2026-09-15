@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (user confirmed grid item speech without coordinates, including the delayed-tooltip fix; built/deployed; nine suites / 255 checks pass; publishing the validated UI checkpoint). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (first native-collision sonar prototype built/deployed; eleven suites / 458 checks pass; live radar calibration pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -30,6 +30,9 @@
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
+| Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. `docs/sonar-radar.md` |
+| Sonar radar | wip — implemented, built/deployed | Four movement-relative axes, near body + 150-subtile lanes, hysteresis/movement gating, silent rebases, synthesized stereo tin/tock. Ctrl+R toggle, Ctrl+T state; `access-radar on|off|status|dump|test`. Live direction/doors/pause/audio validation pending |
+| Radar automated tests | done (local) | 183 radar/audio checks + 20 native-world/config checks; eleven total suites / 458 total checks |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -108,13 +111,17 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
-- User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` is reserved for the later radar phase (movement-relative, dual-range, one-shot terrain cues). No radar code or dependencies added.
+- User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
+
+- **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, X/Y **32-bit `+8/+0xC`** (`0x341C10/20`), body pattern `+0x5C` (`0x341870`). Room collision pointer `+0x38` (`0x2EFB30`); neighbor array/count `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); native walking mask `0x1C09` at `0x22F0A3`. Read loaded client rooms; unloaded cells remain unknown. Full-act residency not established.
 
 ## Next step
 
-The user confirmed the installed coordinate-suppression fix and requested publishing this UI checkpoint only. Nine suites / 255 checks passed; built and installed DLL SHA-256: `5A379AB56D59575C9D01596D885321DE4C4618DB6CA82710BD17713E82B6C060`. Action/slot names, inventory fluency, blacksmith item speech and removal of coordinate prefixes are confirmed. No further implementation is in progress. Tabs, scroll-control identification and full inventory/storage operations remain open for future work; radar remains deferred.
+Validate the installed sonar in Rogue Encampment with NVDA/headphones and the controller sequence in `docs/sonar-radar.md`: obtain `[radar] Live terrain ready`, check left/right and rear, pass a building opening, turn, interact with Charsi and pause/resume. Then test doors/outdoor boundaries and a portal. The map/collision layout was derived from this build, but no live radar run is claimed yet. Eleven suites / 458 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
 
 ## Known issues / open questions
+
+- **Radar prototype:** pending live position/grid calibration, direction convention, room-streaming coverage, door flags/animations, pause behavior and audio/performance. Far range is a maximum over loaded rooms, not a guarantee of full map availability. Runtime code checks fail quiet after patches. No generated map or beacon backend is included.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
