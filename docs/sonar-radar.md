@@ -1,8 +1,8 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Built and deployed; the first live attempt could not acquire terrain. A startup
-and pause-detection correction is installed, awaiting another in-game check.**
+**Built and deployed; live diagnostics identified incorrect position fields.
+The collision-coordinate correction is installed, awaiting another in-game check.**
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the state, movement and heading rules come from the supplied v2 spec itself.
@@ -57,7 +57,7 @@ installed `D2RCore.dll`. No classic Diablo address is used as a D2R address.
 | Finding | Source and interpretation |
 |---|---|
 | Get the local client player | Core SDK `getLocalPlayer` wrapper `0x372AD0`, calls at `0x372C44` and `0x372C4D`: slot `0x5A8CF8` resolves the local index getter; `0x5A8D10` resolves player lookup. The latter is D2R `0x9A480`, accepting indices 0–7. The SDK handle itself is **not** a unit pointer. |
-| Path and integer world position | Unit path `+0x38` (`0x34AE80`); native X/Y getters `0x341C10` / `0x341C20` read **32-bit `Path+0x08/+0x0C`**. These are the getters used by `0x34AF60/0x34AFB0`. This prototype does not assume the public `+0x02/+0x06` position fields are authoritative for this build. |
+| Path and integer collision position | Unit path `+0x38` (`0x34AE80`). **`0x341A20/0x341A30` use `movzx` to read unsigned 16-bit `Path+0x02/+0x06`**. `0x341A60` passes those same fields directly to collision query `0x364D50`, and `0x22EEB0` uses the getters when preparing the walking query. These are the high words of the fixed-point position at `+0/+4`. The original interpretation of `0x341C10/20` and `Path+8/+0xC` as collision coordinates was incorrect. |
 | Level identity | Core exported `GetLevelIdFromUnit`, `0x69A620`: dynamic path room `+0x20`, active room extended context `+0x18`, extended level `+0x90`, level ID `+0x1F8`. Compare against SDK `LevelChanged` when known; before its initial event, use the verified player's positive native level. Compare unit ID `+0x08` against `LocalPlayerReady.playerId`. |
 | Active room collision grid | D2R `0x2EFB30`: `return *(room + 0x38)`. |
 | Grid indexing | `0x366250`: grid starts with signed 32-bit X/Y/width/height at `+0/+4/+8/+0xC`; cell buffer at `+0x20`. Cell is `uint16_t[(y-originY)*width + x-originX]`. Missing room yields `0x27` before masking. |
@@ -187,8 +187,8 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-Twelve CTest suites / 527 checks pass: the previous 255 checks, 235 radar/audio
-checks, 25 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
+Twelve CTest suites / 529 checks pass: the previous 255 checks, 235 radar/audio
+checks, 27 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
 door masks, actor filtering, unknown cells, crossroads, stable walls/open fields,
 stationary changes, turns/zig-zag/diagonal staircases, session/level/teleport/gap
 rebasing, equal depths around symmetric walls in all eight headings, cardinal
@@ -210,7 +210,23 @@ initial level to come from the verified player's room, and adds specific spoken
 suspension reasons plus native read-stage diagnostics. Regression fixtures cover
 preloaded pause/dialogue roots, opening/closing actual menus, unpaused inventory,
 initial level discovery and invalid native levels. These fixes and diagnostics
-are installed; successful live terrain acquisition remains to be confirmed.
+were installed. The next session isolated the remaining failure below.
+
+### Confirmed position failure and correction
+
+The 17:32 session delivered player ID 1 and level ID 1 correctly. The read failed
+at `status=position`, with values such as `-2480,72816`: the adapter was reading
+the projected coordinate fields at `Path+8/+0xC`. It had not reached the footprint
+or collision-grid reads. This establishes a position-source bug, not missing
+terrain or a pause in that attempt.
+
+Following native collision callers established the unsigned word getters
+`0x341A20/30` above. The adapter now reads `Path+2/+6` and verifies the complete
+five-byte bodies of these getters. The native fixture stores the failed session's
+projected values alongside valid collision coordinates; it failed before the fix
+and passes afterward. Additional checks cover nonzero fractional words and
+coordinates above 32767 to prevent accidental sign extension. Successful live
+grid acquisition and audio navigation still require the next in-game test.
 
 These checks do **not** establish live spatial calibration, perceived latency,
 actual room coverage at 150 subtiles, door animations, every act's collision

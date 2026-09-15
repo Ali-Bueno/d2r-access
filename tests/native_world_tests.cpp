@@ -22,7 +22,11 @@ struct Fixture {
 	std::array<uintptr_t, 2> neighbors{};
 	Fixture() {
 		unit.At<uint32_t>(8, 42); unit.At(0x38, path.Address());
-		path.At<int>(8, 104); path.At<int>(12, 104); path.At(0x20, room.Address()); path.At<int>(0x5C, 1);
+		// Native collision getters read the high 16-bit words, not the projected
+		// screen coordinates at +8/+C (values from the failed live camp session).
+		path.At<uint16_t>(2, 104); path.At<uint16_t>(6, 104);
+		path.At<int>(8, -2480); path.At<int>(12, 72816);
+		path.At(0x20, room.Address()); path.At<int>(0x5C, 1);
 		room.At(0x18, extended.Address()); room.At(0x38, grid.Address());
 		extended.At(0x90, level.Address()); level.At<int>(0x1F8, 1);
 		grid.At<int>(0, 100); grid.At<int>(4, 100); grid.At<int>(8, 10); grid.At<int>(12, 10);
@@ -42,6 +46,17 @@ int main() {
 	Radar::World world;
 	Check(fixture.Read(world), "verified-shaped live room snapshot reads successfully");
 	Check(world.player.x == 104 && world.player.y == 104 && world.bodyPattern == 1, "position and actual footprint come from path getters' fields");
+	fixture.path.At<uint16_t>(0, 0xFFFF); fixture.path.At<uint16_t>(4, 0x8000);
+	Check(fixture.Read(world) && world.player.x == 104 && world.player.y == 104,
+		"fractional position words and projected screen coordinates cannot corrupt collision coordinates");
+	{
+		Fixture distant;
+		distant.path.At<uint16_t>(2, 40004); distant.path.At<uint16_t>(6, 50004);
+		distant.grid.At<int>(0, 40000); distant.grid.At<int>(4, 50000);
+		Radar::World distantWorld;
+		Check(distant.Read(distantWorld) && distantWorld.player.x == 40004 && distantWorld.player.y == 50004,
+			"collision coordinates use unsigned words as the native movzx getters do");
+	}
 	Check(world.session == 7 && world.level == 1 && world.rooms.size() == 1, "snapshot carries session and area identity");
 	NativeWorld::Diagnostics detail;
 	Check(NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 0, world, &detail) && world.level == 1,
@@ -78,9 +93,9 @@ int main() {
 	fixture.grid.At<uintptr_t>(0x20, 1);
 	Check(!fixture.Read(world), "inaccessible collision cells fail quiet");
 	fixture.grid.At(0x20, reinterpret_cast<uintptr_t>(fixture.cells.data()));
-	fixture.path.At<int>(8, 200);
+	fixture.path.At<uint16_t>(2, 200);
 	Check(!fixture.Read(world), "player outside copied collision bounds is rejected");
-	fixture.path.At<int>(8, 104);
+	fixture.path.At<uint16_t>(2, 104);
 	fixture.path.At<int>(0x5C, 6);
 	Check(!fixture.Read(world), "unknown body patterns are rejected instead of guessed");
 	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)

@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (first live sonar attempt could not acquire terrain; pause/startup fixes and detailed diagnostics deployed; twelve suites / 527 checks pass; live retest pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (17:32 sonar log identified projected coordinates being used as collision coordinates; native unsigned-word coordinate fix deployed; twelve suites / 529 checks pass; live retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -31,8 +31,8 @@
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. Logical room list and collision unload path also derived; full-map detail not established. `docs/sonar-radar.md` |
-| Sonar radar | wip — first live startup failed; follow-up deployed | 17:08 session verified native code/audio, but no terrain-ready snapshot. Pause now requires an open panel; initial level can come from the player's native room. Ctrl+T gives specific reasons; logs include lifecycle and failed read stage. Live retest pending |
-| Radar automated tests | done (local) | 235 radar/audio + 25 native-world/config + 12 radar UI checks; twelve total suites / 527 total checks. Includes heading symmetry, unloaded vs open menus, initial native-level discovery and diagnostics |
+| Sonar radar | wip — coordinate fix deployed | 17:32 session: correct player/level, failed position `-2480,72816`. Switched from projected fields to native collision getters (`Path+2/+6`, uint16). Pause/open-panel and detailed diagnostics retained. Live grid/audio retest pending |
+| Radar automated tests | done (local) | 235 radar/audio + 27 native-world/config + 12 radar UI checks; twelve total suites / 529 total checks. Live-value regression failed before coordinate fix; fractional words and unsigned coordinates also covered |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -113,13 +113,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
 
-- **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, X/Y **32-bit `+8/+0xC`** (`0x341C10/20`), body pattern `+0x5C` (`0x341870`). Room collision pointer `+0x38` (`0x2EFB30`); neighbor array/count `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); native walking mask `0x1C09` at `0x22F0A3`. Read loaded client rooms; unloaded cells remain unknown. Full-act residency not established.
+- **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, collision X/Y **uint16 `Path+2/+6`** (`0x341A20/30`, used directly by collision caller `0x341A60`), body pattern `+0x5C` (`0x341870`). **Correction:** `Path+8/+0xC` / getters `0x341C10/20` are projected positions, not collision coordinates; the 17:32 log exposed this earlier error. Room collision pointer `+0x38` (`0x2EFB30`); neighbors `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); walking mask `0x1C09` at `0x22F0A3`. Full-act residency not established.
 
 - **Room lifetime / orientation:** logical list `Level+0x10 → RoomEx+0x48`, rectangles `RoomEx+0x60..0x6C` (`0x3614C0`); active instance `RoomEx+0x58` set/cleared by `0x361290/0x361260`; unloading frees collision (`0x2F0110 → 0x363A10`). Room metadata does not establish persistent detailed collision. Projection `0x334DB0`: X down/right, Y down/left, supporting left = −90°. Full evidence: `docs/sonar-radar.md`.
 
 ## Next step
 
-Retest the installed sonar: enter Rogue Encampment with A, move the left stick a few steps, close menus and press Ctrl+T. Inspect `[radar] lifecycle=...`, `status=...` and `Live terrain ready`; the 17:08 session's combined message did not distinguish the blocking condition. Once terrain works, follow the direction/opening/dialogue/pause sequence in `docs/sonar-radar.md`. Twelve suites / 527 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
+Retest the installed coordinate fix: enter Rogue Encampment with A, move the left stick a few steps, close menus and press Ctrl+T. Inspect `[radar] status=...` and `Live terrain ready`; the 17:32 session confirmed the position failure before any grid read. Once terrain works, follow the direction/opening/dialogue/pause sequence in `docs/sonar-radar.md`. Twelve suites / 529 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
 
 ## Known issues / open questions
 

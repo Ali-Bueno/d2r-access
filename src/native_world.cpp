@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 
 namespace D2RAccess::NativeWorld {
 namespace {
@@ -15,13 +16,15 @@ using NativeMemory::Peek;
 constexpr uintptr_t PlayerIndexSlot = 0x5A8CF8, PlayerLookupSlot = 0x5A8D10;
 constexpr uintptr_t PlayerLookupRva = 0x9A480;
 constexpr size_t UnitType = 0, UnitId = 8, UnitPath = 0x38;
-constexpr size_t PathX = 8, PathY = 12, PathRoom = 0x20, PathPattern = 0x5C;
+// Collision getters 0x341A20/30 read unsigned words from the high halves of
+// the fixed-point coordinates. Path+8/+C instead holds projected coordinates.
+constexpr size_t PathSubtileX = 2, PathSubtileY = 6, PathRoom = 0x20, PathPattern = 0x5C;
 constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38, RoomExtended = 0x18;
 constexpr size_t ExtendedLevel = 0x90, LevelId = 0x1F8;
 // 0x22F0A3 passes this mask to 0x364C70: terrain, objects, doors and no-path;
 // ordinary player/monster/item presence bits are absent.
 constexpr uint16_t WalkingMask = 0x1C09;
-constexpr int MaxCoordinate = 65535; // legacy subtile coordinate domain
+constexpr int MaxCoordinate = std::numeric_limits<uint16_t>::max(); // native movzx word getters
 constexpr int MaxRoomSide = 1024, MaxNeighbors = 64, MaxRooms = 256; // corruption/work bounds
 constexpr size_t MaxCopiedCells = 512 * 1024; // <= 1 MiB per local snapshot
 constexpr double SnapshotRadius = 152; // default 150-subtile radar plus footprint
@@ -35,8 +38,8 @@ constexpr Evidence Checks[] = {
 	{0x2EFB30, 5, 0x71FA801FF8C90D42ULL},
 	{0x2EFDE0, 13, 0x0746FEFCB398B135ULL},
 	{0x2F0680, 62, 0xF0ADAC690E656CD0ULL},
-	{0x341C10, 4, 0x1D6FAEF6FF900168ULL},
-	{0x341C20, 4, 0x1D7D46F6FF9B8E0CULL},
+	{0x341A20, 5, 0xCE32643327F7AF15ULL},
+	{0x341A30, 5, 0xCE264C3327EEAEF1ULL},
 	{0x341870, 17, 0x850E898DB8A253A0ULL},
 	{0x366250, 148, 0x92BE7DBD292A006FULL},
 	{0x366D40, 895, 0x4A0CFAC2C8F9877CULL},
@@ -122,7 +125,10 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	detail.stage = "path";
 	if (!Peek(player + UnitPath, path) || !path) return false;
 	detail.stage = "position";
-	if (!Peek(path + PathX, x) || !Peek(path + PathY, y) || x < 0 || y < 0 || x > MaxCoordinate || y > MaxCoordinate) return false;
+	uint16_t subtileX = 0, subtileY = 0;
+	if (!Peek(path + PathSubtileX, subtileX) || !Peek(path + PathSubtileY, subtileY)) return false;
+	x = subtileX;
+	y = subtileY;
 	detail.stage = "footprint";
 	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
 	detail.stage = "room";
