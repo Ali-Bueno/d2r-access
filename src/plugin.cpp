@@ -35,6 +35,7 @@ constexpr D2RL::PluginInfo PluginInfo {
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
 	D2RAccess::FocusTracker::Tick(context);
+	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
 }
 

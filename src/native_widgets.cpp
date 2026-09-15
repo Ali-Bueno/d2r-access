@@ -23,6 +23,12 @@ constexpr size_t   EngineStringInline = 0x18; // offset of the 16-byte inline bu
 constexpr size_t   EngineStringInlineCapacity = 15;
 constexpr uint64_t EngineStringNonOwningBit   = 1ull << 63;
 constexpr size_t   MaxTextBytes       = 4096; // never trust a size beyond this
+// Measured with the probe (2026-09-15, D2R 3.3.93787): every widget keeps
+// its name at +0x8 (CharacterTemplate, Name, TextBox, Prompt) and a text box
+// keeps the text it displays at +0x88 ("yarkey", "Bárbaro de niv. 1",
+// "1280x720", the modal prompt), UTF-8.
+constexpr size_t NameOffset    = 0x8;
+constexpr size_t TextBoxTextOffset = 0x88;
 // Reflection offsets seen for widget members reach 0xAD0, so a scan spans this much.
 constexpr size_t   WidgetScanSpan     = 0xB80;
 constexpr size_t   ScanStep           = 8; // strings are pointer-aligned members
@@ -147,8 +153,8 @@ void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
 	}
 	std::string report;
 	for (const FoundString& found : ScanStrings(widget, WidgetScanSpan)) {
-		char item[96] {};
-		std::snprintf(item, sizeof(item), " +0x%zX \"%.60s\"", found.offset, found.value.c_str());
+		char item[240] {};
+		std::snprintf(item, sizeof(item), " +0x%zX \"%.200s\"", found.offset, found.value.c_str());
 		report += item;
 	}
 	uint8_t flags[2] {};
@@ -238,6 +244,20 @@ std::vector<FoundString> ScanStrings(uintptr_t widget, size_t span) {
 		}
 	}
 	return found;
+}
+
+std::string ReadName(uintptr_t widget) {
+	std::string text;
+	return widget != 0 && ReadEngineString(widget + NameOffset, text) ? text : std::string {};
+}
+
+std::string ReadText(uintptr_t widget) {
+	std::string text;
+	return widget != 0 && ReadEngineString(widget + TextBoxTextOffset, text) && LooksLikeText(text) ? text : std::string {};
+}
+
+std::string TextAt(std::string_view panel, std::span<const std::string> path) {
+	return ReadText(Find(panel, path));
 }
 
 void RequestProbe(std::string_view panel, std::span<const std::string> path, unsigned delayMs) {

@@ -6,6 +6,7 @@
 #include "display_modes.h"
 #include "input_direction.h"
 #include "localization.h"
+#include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -94,12 +95,20 @@ constexpr const char* ScreenResolutionWidget = "ScreenResolution";
 // ScrollControllerWidget "ScrollController". Measured 2026-09-15: the game
 // clones ItemTemplate into 13 children of Items named "ListItem0".."ListItem12"
 // (one per VISIBLE slot, recycled as the list scrolls), so no rect reveals
-// which option a slot shows; "Items", "Selector" and the scroll bar's
-// "Indicator" report screen positions or stale values. Until the slots'
-// text can be read, the scroll is tracked from the presses: one that left
-// the indicator on the same row scrolled the list by one. It must follow
-// within one update.
-constexpr unsigned PopupDirectionMaxAgeMs = 400;
+// which option a slot shows: the slot's own text is read from its native
+// "TextBox" child (native_widgets.h). The press-tracked scroll below only
+// keeps the option index for the dropdown's value when the text cannot be
+// read: one press that left the indicator on the same row scrolled the list
+// by one. It must follow within one update.
+constexpr unsigned    PopupDirectionMaxAgeMs = 400;
+constexpr const char* PopupSlotFormat        = "ListItem%d";
+constexpr const char* PopupSlotItems         = "Items";
+constexpr const char* PopupSlotTextBox       = "TextBox";
+// Character list rows are the same kind of slots, with "Name" and
+// "Level&Class" text boxes ("yarkey", "Bárbaro de niv. 1").
+constexpr const char* CharacterListWidget    = "CharacterList";
+constexpr const char* CharacterRowName       = "Name";
+constexpr const char* CharacterRowDetail     = "Level&Class";
 
 // CharacterSelectPanelHD.json: the character list's rows are clones of one
 // ListItemWidget template whose texts (name, class and level) are set at
@@ -120,7 +129,6 @@ constexpr LegendAction CharacterRowActions[] = {
 	{ "X", "strDelete" },
 };
 
-std::string g_focusedCharacter;
 
 // Widgets the game announces itself through a UI message that carries the
 // selection (CharacterCreate:Hover <ClassKey>), so the focus tracker stays
@@ -517,6 +525,23 @@ int PopupTrackedOption(int visibleRow) {
 	return visibleRow + g_dropdown.scrollOffset;
 }
 
+// Displayed text of the popup slot `visibleRow`, spoken as "W by H" when it
+// is a resolution; "" when native access is unavailable.
+std::string PopupSlotText(int visibleRow) {
+	char slot[32] {};
+	std::snprintf(slot, sizeof(slot), PopupSlotFormat, visibleRow);
+	const std::string path[] = { PopupSlotItems, slot, PopupSlotTextBox };
+	const std::string text   = NativeWidgets::TextAt(DropdownPopupPanel, path);
+	unsigned          width = 0, height = 0;
+	char              trailing = '\0';
+	if (sscanf_s(text.c_str(), "%ux%u%c", &width, &height, &trailing, 1) == 2) {
+		char spoken[64] {};
+		std::snprintf(spoken, sizeof(spoken), Strings::Current().resolution, width, height);
+		return spoken;
+	}
+	return text;
+}
+
 // The popup captures focus while open: the highlighted row is the indicator's
 // distance from the first row (all rows share the template's name and size).
 void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup, const Widgets::Rect& indicator) {
@@ -543,8 +568,10 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 	}
 	g_dropdown.popupIndex = index;
 
-	std::string phrase;
-	if (HasStaticStates(g_dropdown.widget) && index < static_cast<int>(g_dropdown.widget->stateCount)) {
+	std::string phrase = PopupSlotText(visibleRow);
+	if (!phrase.empty()) {
+		// The game's own text for the slot: exact whatever the scroll.
+	} else if (HasStaticStates(g_dropdown.widget) && index < static_cast<int>(g_dropdown.widget->stateCount)) {
 		phrase = Localization::Text(g_dropdown.widget->states[index]);
 		if (phrase.empty()) {
 			phrase = g_dropdown.widget->states[index];
@@ -577,17 +604,25 @@ int CharacterRowIndex(const Match& match, const Widgets::Rect& indicator) {
 	return std::max(0, static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height))));
 }
 
-// "name, class, level N" for the character shown on that row; records the
-// name for the delete modal.
+// The row's own text ("yarkey, Bárbaro de niv. 1"), else "name, class,
+// level N" from the save files.
 std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex) {
+	char slot[32] {};
+	std::snprintf(slot, sizeof(slot), PopupSlotFormat, rowIndex);
+	const std::string namePath[]   = { CharacterListWidget, slot, CharacterRowName };
+	const std::string detailPath[] = { CharacterListWidget, slot, CharacterRowDetail };
+	if (std::string name = NativeWidgets::TextAt(CharacterSelectPanelName, namePath); !name.empty()) {
+		if (const std::string detail = NativeWidgets::TextAt(CharacterSelectPanelName, detailPath); !detail.empty()) {
+			name += ", " + detail;
+		}
+		return name;
+	}
 	const std::vector<CharacterSaves::Character> characters = CharacterSaves::Load(context);
-	g_focusedCharacter.clear();
 	if (rowIndex >= static_cast<int>(characters.size())) {
 		char text[64] {};
 		std::snprintf(text, sizeof(text), Strings::Current().optionIndex, rowIndex + 1);
 		return text;
 	}
-	g_focusedCharacter = characters[static_cast<size_t>(rowIndex)].name;
 	const CharacterSaves::Character& character = characters[static_cast<size_t>(rowIndex)];
 	std::string                      phrase    = character.name;
 	if (const char* classKey = CharacterSaves::ClassKey(character.classIndex); classKey != nullptr) {
@@ -634,7 +669,6 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		}
 		return;
 	}
-	g_focusedCharacter.clear();
 	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {
 		g_dropdown = { match.panel, match.widget, g_lastAnnounced };
 	}
@@ -849,12 +883,7 @@ void SetDiagnosticsEnabled(bool enabled) {
 	g_diagnostics = enabled;
 }
 
-std::string_view FocusedCharacter() {
-	return g_focusedCharacter;
-}
-
 void Reset() {
-	g_focusedCharacter.clear();
 	g_scrollInputs = 0;
 	g_missSince    = 0;
 	g_scrollAt     = 0;

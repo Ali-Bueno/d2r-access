@@ -7,10 +7,11 @@
 #include "code_dump.h"
 #include "control_state.h"
 #include "focus_tracker.h"
-#include "input_direction.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 #include "ui_thread_pump.h"
+
+#include <windows.h>
 
 #include <cstdio>
 #include <cstring>
@@ -70,37 +71,27 @@ constexpr const char* ModalNameSuffix        = "Modal";
 constexpr const char* ConfirmationModalPanel = "ConfirmationModal";
 constexpr const char* DismissableModalPanel  = "DismissableModal";
 
-// Modals whose prompt is set at runtime but whose opening message says what
-// they ask: that message's text is spoken with the modal's title.
-// CharacterSelectPanelHD.json: DeleteCharacter button -> "CharacterSelect:
-// ShowDeleteCharacterModal" (tooltip "@strDelete"); the game then opens a
-// ConfirmationModal.
-struct ModalPrompt {
-	const char* target;
-	const char* command;
-	const char* promptKey;
+// A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
+// runtime; it is read natively a few updates after the modal opens, then the
+// controller hint follows it.
+const std::string  ModalPromptPath[] = { "Frame", "Prompt" };
+constexpr unsigned ModalTextDelayMs  = 120;
+struct ModalRead {
+	std::string        panel;
+	unsigned long long dueTick = 0;
 };
-constexpr ModalPrompt ModalPrompts[] = {
-	{ "CharacterSelect", "ShowDeleteCharacterModal", "strDelete" },
-};
-std::string g_pendingModalPrompt;
+ModalRead g_modalRead;
 
-// Widgets whose runtime text is probed natively when their panel opens, to
-// learn where each class keeps it (see native_widgets.h). The game fills the
-// text a few updates after opening.
+// Widgets whose runtime text is still being probed natively when their panel
+// opens, to learn where their class keeps it (see native_widgets.h).
 struct TextProbe {
 	const char* panel;
 	const char* path[3];
 };
 constexpr TextProbe TextProbes[] = {
-	{ "ConfirmationModal", { "Frame", "Prompt", nullptr } },
-	{ "DismissableModal", { "Frame", "Prompt", nullptr } },
-	{ "DropdownListContents", { "Items", "ListItem0", "TextBox" } },
-	{ "DropdownListContents", { "Items", "ListItem1", "TextBox" } },
-	{ "CharacterSelectPanel", { "Background", "CharacterList", "CharacterTemplate" } },
-	{ "CharacterSelectPanel", { "CharacterList", "ListItem0", "Name" } },
-	{ "CharacterSelectPanel", { "CharacterList", "ListItem0", "Level&Class" } },
-	{ "CharacterSelectPanel", { "CharacterList", "CharacterTemplate", "Name" } },
+	{ "ConfirmationModal", { "Frame", "Confirm", nullptr } },
+	{ "ConfirmationModal", { "Frame", "Dismiss", nullptr } },
+	{ "DismissableModal", { "Frame", "Dismiss", nullptr } },
 };
 constexpr unsigned TextProbeDelayMs = 150;
 
@@ -118,11 +109,6 @@ void RequestTextProbes(std::string_view panel) {
 		NativeWidgets::RequestProbe(panel, path, TextProbeDelayMs);
 	}
 }
-
-// The character select screen opens its delete confirmation from the X face
-// button directly (no UI message); the press must be this recent.
-constexpr unsigned DeletePressMaxAgeMs = 1500;
-constexpr const char* DeleteTextKey    = "strDelete";
 
 // Option values are re-read from Settings.json after these, since the game
 // wrote (or reverted) them.
@@ -207,17 +193,8 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		RequestTextProbes(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
-			if (g_pendingModalPrompt.empty() && panel == ConfirmationModalPanel && !FocusTracker::FocusedCharacter().empty() && InputDirection::LastFaceButton(DeletePressMaxAgeMs) == InputDirection::FaceButton::X) {
-				g_pendingModalPrompt = Localization::Text(DeleteTextKey) + " " + std::string(FocusTracker::FocusedCharacter());
-			}
-			if (!g_pendingModalPrompt.empty() && EndsWith(panel, ModalNameSuffix)) {
-				ScreenReader::Speak(g_pendingModalPrompt, false);
-				g_pendingModalPrompt.clear();
-			}
-			if (panel == ConfirmationModalPanel) {
-				ScreenReader::Speak(Strings::Current().modalConfirmHint, false);
-			} else if (panel == DismissableModalPanel) {
-				ScreenReader::Speak(Strings::Current().modalDismissHint, false);
+			if (panel == ConfirmationModalPanel || panel == DismissableModalPanel) {
+				g_modalRead = { panel, GetTickCount64() + ModalTextDelayMs };
 			}
 		}
 	} else if (std::strcmp(event.command, ClosePanelCommand) == 0 || std::strcmp(event.command, UnloadPanelCommand) == 0) {
@@ -307,11 +284,6 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 				Localization::ForgetSpeechLanguage();
 			}
 		}
-		for (const ModalPrompt& prompt : ModalPrompts) {
-			if (std::strcmp(event->target, prompt.target) == 0 && std::strcmp(event->command, prompt.command) == 0) {
-				g_pendingModalPrompt = Localization::Text(prompt.promptKey);
-			}
-		}
 		// Value controls report changes through their layout update message.
 		(void)FocusTracker::AnnounceValue(context, event->target, event->command, Safe(event->text));
 	}
@@ -351,6 +323,20 @@ void Unregister() {
 	g_events  = nullptr;
 	g_lastSelection.clear();
 	PanelState::Reset();
+}
+
+void Tick(const D2RL::PluginContext* context) {
+	if (g_modalRead.panel.empty() || GetTickCount64() < g_modalRead.dueTick) {
+		return;
+	}
+	const std::string panel = std::move(g_modalRead.panel);
+	g_modalRead             = {};
+	const std::string prompt = NativeWidgets::TextAt(panel, ModalPromptPath);
+	D2RL::LogInfoF(context, "[modal] %s prompt: \"%s\"", panel.c_str(), prompt.c_str());
+	if (!prompt.empty()) {
+		ScreenReader::Speak(prompt, false);
+	}
+	ScreenReader::Speak(panel == ConfirmationModalPanel ? Strings::Current().modalConfirmHint : Strings::Current().modalDismissHint, false);
 }
 
 void SetTraceEnabled(bool enabled) {

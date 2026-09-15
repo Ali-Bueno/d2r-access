@@ -39,6 +39,13 @@ struct FoundString {
 // Every readable engine string inside the object's first `span` bytes.
 std::vector<FoundString> ScanStrings(uintptr_t widget, size_t span);
 
+// The widget's name and, for text boxes (TextBoxWidget, modal Prompt, list
+// row TextBox), the text it currently displays; "" when unreadable.
+std::string ReadName(uintptr_t widget);
+std::string ReadText(uintptr_t widget);
+// Displayed text of the text box at panel/path, "" when not found.
+std::string TextAt(std::string_view panel, std::span<const std::string> path);
+
 // Logs the strings found in the widget at panel/path, after `delayMs` so the
 // game has filled its runtime text (modal prompts, list rows).
 void RequestProbe(std::string_view panel, std::span<const std::string> path, unsigned delayMs);

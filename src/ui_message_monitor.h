@@ -12,6 +12,12 @@ void Unregister();
 
 // Discovery logging of every message to the plugin log. Toggled from the
 // console; off once the vocabulary is mapped.
+// Runs deferred work (a modal's prompt is read a few updates after it opens).
+void Tick(const D2RL::PluginContext* context);
+
+// Runs deferred work (a modal's prompt is read a few updates after it opens).
+void Tick(const D2RL::PluginContext* context);
+
 void SetTraceEnabled(bool enabled);
 bool IsTraceEnabled();
 

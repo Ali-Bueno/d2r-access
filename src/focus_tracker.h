@@ -39,8 +39,4 @@ void Reset();
 // pass over every open panel); off unless the console trace is on.
 void SetDiagnosticsEnabled(bool enabled);
 
-// Name of the character whose row in the select list was announced last, or
-// "" when focus has moved elsewhere since.
-std::string_view FocusedCharacter();
-
 }
