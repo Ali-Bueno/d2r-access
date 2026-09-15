@@ -48,6 +48,14 @@ constexpr unsigned long long RecheckWindowMs = 250;
 // away, so only cached rects within this many indicator heights of it are
 // refreshed (each refresh is a loader tree walk); a miss refreshes them all.
 constexpr int NearbyIndicatorHeights = 3;
+// An indicator that matches nothing is usually in transition (moving between
+// rows, a panel swapping in); only when it stays unmatched this long are all
+// rects re-read, once. Every rect read is a loader tree walk, and re-reading
+// a hundred widgets three times over stalled the game's UI thread for a
+// second (measured 2026-09-15).
+constexpr unsigned long long MissRetryMs = 300;
+// A tick longer than this is logged with its cost, to catch such stalls.
+constexpr double SlowTickMs = 30.0;
 
 // Value controls declare no children in their layout, but the engine creates
 // some at runtime. Measured 2026-09-14: a SettingsSliderWidget owns a child
@@ -172,6 +180,9 @@ const char*                  g_focusManagerName = nullptr;
 const Generated::PanelWidgets* g_lastMatchedPanel = nullptr; // checked first: focus usually stays in one panel
 std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // widget id -> resolved rect (or failure)
 std::optional<Widgets::Rect> g_lastIndicator;
+unsigned long long           g_missSince   = 0;     // first tick the indicator matched nothing (0: matched)
+bool                         g_missRetried = false; // the full re-read for this miss already happened
+bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
 bool                         g_scrollPending = false; // rows moved: refresh the cached rects near the indicator
 unsigned long long           g_recheckUntil  = 0;     // keep re-checking until this tick (see RecheckWindowMs)
@@ -248,6 +259,13 @@ std::optional<Widgets::Rect> WidgetRect(const Generated::PanelWidgets& catalog, 
 	const auto          rect = Widgets::AbsoluteRect(catalog.panel, root, steps);
 	g_rectCache[id]          = rect;
 	return rect;
+}
+
+double ElapsedMs(LARGE_INTEGER start) {
+	static LARGE_INTEGER frequency = [] { LARGE_INTEGER f; QueryPerformanceFrequency(&f); return f; }();
+	LARGE_INTEGER        now;
+	QueryPerformanceCounter(&now);
+	return 1000.0 * static_cast<double>(now.QuadPart - start.QuadPart) / static_cast<double>(frequency.QuadPart);
 }
 
 // Drops cached rects near the indicator so the next Resolve re-reads them.
@@ -657,6 +675,17 @@ void Tick(const D2RL::PluginContext* context) {
 	if (context == nullptr || !Widgets::IsAvailable()) {
 		return;
 	}
+	LARGE_INTEGER tickStart;
+	QueryPerformanceCounter(&tickStart);
+	struct SlowTickReport {
+		const D2RL::PluginContext* context;
+		LARGE_INTEGER              start;
+		~SlowTickReport() {
+			if (const double ms = ElapsedMs(start); ms > SlowTickMs) {
+				D2RL::LogWarnF(context, "[focus] slow tick: %.1f ms (cached rects %zu, miss since %llu)", ms, g_rectCache.size(), g_missSince);
+			}
+		}
+	} slowTickReport { context, tickStart };
 	// A value change is read one update after its message so the layout has
 	// moved the handle; it must not wait for the focus indicator to move.
 	if (g_pendingValue.widget != nullptr) {
@@ -728,16 +757,29 @@ void Tick(const D2RL::PluginContext* context) {
 
 	Match match = Resolve(context, *indicator, false);
 	if (match.widget == nullptr || match.score < MinimumCoverage) {
-		// Cached rects may be stale (a list scrolled, a row appeared): re-resolve once.
+		if (g_missSince == 0) {
+			g_missSince   = now;
+			g_missRetried = false;
+			return; // most likely a transition: wait for the next tick
+		}
+		if (g_missRetried || now - g_missSince < MissRetryMs) {
+			return;
+		}
+		// Persistent miss: cached rects may be stale (a row appeared, a
+		// panel changed without a message): re-read everything, once.
+		g_missRetried = true;
 		g_rectCache.clear();
 		match = Resolve(context, *indicator, false);
+		if (match.widget == nullptr || match.score < MinimumCoverage) {
+			D2RL::LogInfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+				Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
+			if (g_diagnostics) {
+				(void)Resolve(context, *indicator, true); // per-panel diagnostics: expensive, on request only
+			}
+			return;
+		}
 	}
-	if (match.widget == nullptr || match.score < MinimumCoverage) {
-		D2RL::LogInfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
-			Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
-		match = Resolve(context, *indicator, true);
-		return;
-	}
+	g_missSince = 0;
 	Announce(context, match, *indicator);
 }
 
@@ -791,6 +833,10 @@ void NoteScrollInput() {
 	InvalidateRects();
 }
 
+void SetDiagnosticsEnabled(bool enabled) {
+	g_diagnostics = enabled;
+}
+
 std::string_view FocusedCharacter() {
 	return g_focusedCharacter;
 }
@@ -798,6 +844,7 @@ std::string_view FocusedCharacter() {
 void Reset() {
 	g_focusedCharacter.clear();
 	g_scrollInputs = 0;
+	g_missSince    = 0;
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
 	g_lastMatchedPanel = nullptr;

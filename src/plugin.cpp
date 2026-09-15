@@ -62,8 +62,10 @@ auto TraceCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command
 	const char* args = command->args != nullptr ? command->args : "";
 	if (std::strcmp(args, "on") == 0) {
 		D2RAccess::UiMessageMonitor::SetTraceEnabled(true);
+		D2RAccess::FocusTracker::SetDiagnosticsEnabled(true);
 	} else if (std::strcmp(args, "off") == 0) {
 		D2RAccess::UiMessageMonitor::SetTraceEnabled(false);
+		D2RAccess::FocusTracker::SetDiagnosticsEnabled(false);
 	} else {
 		return D2RL::ConsoleCommandResult::InvalidArguments;
 	}

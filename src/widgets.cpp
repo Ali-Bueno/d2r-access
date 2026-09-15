@@ -152,12 +152,12 @@ bool IsAvailable() {
 
 void BeginPoll() {
 	g_placed.clear();
-	g_screen.reset();
 }
 
 void ForgetHandles() {
 	g_panelHandles.clear();
 	g_childHandles.clear();
+	g_screen.reset(); // the screen frame only changes with the panel set (and never has so far)
 	BeginPoll();
 }
 

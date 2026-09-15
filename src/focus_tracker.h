@@ -35,6 +35,10 @@ void NoteScrollInput();
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();
 
+// Per-panel resolution diagnostics after a persistent miss (one expensive
+// pass over every open panel); off unless the console trace is on.
+void SetDiagnosticsEnabled(bool enabled);
+
 // Name of the character whose row in the select list was announced last, or
 // "" when focus has moved elsewhere since.
 std::string_view FocusedCharacter();
