@@ -74,7 +74,8 @@ void Describe(bool available, RadarUi::State ui) {
 		const auto state = sensor.probe.observed;
 		if (!result.empty()) result += ". ";
 		const bool limited = sensor.probe.available && state == Radar::State::Unknown;
-		result += std::string(text.radarDirections[i]) + ": " + (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
+		const bool occupied = state == Radar::State::Blocked && sensor.terrain.clearDepth > sensor.probe.clearDepth;
+		result += std::string(text.radarDirections[i]) + ": " + (occupied ? text.radarOccupied : limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
 		if (state == Radar::State::Unknown && !limited) continue;
 		if (sensor.probe.body == Radar::State::Blocked) result += std::string(", ") + text.radarNearbyObstacle;
 		else {
@@ -92,17 +93,22 @@ void LogSensors(uint64_t now) {
 			i, static_cast<unsigned>(s.probe.body), s.probe.bodyDepth, s.probe.clearDepth, static_cast<unsigned>(s.probe.end), s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
 			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
 			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
+		const auto velocity = g_engine.Velocity();
+		AsyncLog::InfoF(g_context, "[radar-guidance] direction=%zu terrain=%.1f flags=%04X velocity=%.1f,%.1f openDepth=%.1f warnDepth=%.1f usable=%u cue=%u",
+			i, s.terrain.clearDepth, s.probe.endFlags, velocity.x, velocity.y, s.guidance.openDepth, s.guidance.warningDepth,
+			s.guidance.openingSafe ? 1u : 0u, static_cast<unsigned>(s.cueState));
 	}
 }
 void Dump(const Radar::World& world) {
-	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X axes=screen; # blocked, . open, ? unknown, @ player; rows +Y, columns +X",
+	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X axes=screen; # blocked, A occupied, . open, ? unknown, @ player; rows +Y, columns +X",
 		static_cast<unsigned long long>(world.session), world.level, world.player.x, world.player.y,
 		world.rooms.size(), world.bodyPattern, world.walkingMask);
 	for (int y = -DumpRadius; y <= DumpRadius; ++y) {
 		std::string line;
 		for (int x = -DumpRadius; x <= DumpRadius; ++x) {
 			const auto cell = world.Cell(static_cast<int>(world.player.x) + x, static_cast<int>(world.player.y) + y);
-			line += x == 0 && y == 0 ? '@' : cell == Radar::State::Open ? '.' : cell == Radar::State::Blocked ? '#' : '?';
+			const auto terrain = world.Cell(static_cast<int>(world.player.x) + x, static_cast<int>(world.player.y) + y, Radar::Layer::Terrain);
+			line += x == 0 && y == 0 ? '@' : cell == Radar::State::Open ? '.' : cell == Radar::State::Blocked ? (terrain == Radar::State::Open ? 'A' : '#') : '?';
 		}
 		AsyncLog::InfoF(g_context, "[radar-map] %s", line.c_str());
 	}
@@ -208,13 +214,24 @@ void Tick(const D2RL::PluginContext* context) {
 		const uint64_t revision = g_engine.Revision();
 		const auto events = g_engine.Tick(world, now);
 		if (revision != g_engine.Revision()) RadarAudio::Silence();
-		Radar::Events observations{};
-		for (size_t i = 0; i < observations.size(); ++i) observations[i] = g_engine.Sensors()[i].probe.observed;
-		RadarAudio::Validate(observations);
+		Radar::Events observations{}, audible{};
+		for (size_t i = 0; i < observations.size(); ++i) {
+			const auto& sensor = g_engine.Sensors()[i];
+			observations[i] = sensor.cueState;
+			// Once a tin starts, let its short tail finish while the physical
+			// passage is still clear. A shorter forecast alone must not chop it.
+			audible[i] = sensor.cueState == Radar::State::Blocked ? Radar::State::Blocked : sensor.probe.observed;
+		}
+		RadarAudio::Validate(observations, audible);
 		RadarAudio::Play(events);
 		for (size_t i = 0; i < events.size(); ++i) {
-			if (events[i] != Radar::State::Unknown) AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f",
-				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Sensors()[i].probe.clearDepth);
+			if (events[i] != Radar::State::Unknown) {
+				const auto& sensor = g_engine.Sensors()[i];
+				const auto velocity = g_engine.Velocity();
+				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f",
+					i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.probe.clearDepth,
+					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth);
+			}
 		}
 	}
 	if (command == Command::Status || command == Command::Dump) {

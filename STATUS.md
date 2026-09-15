@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (user reports improved radar consistency; fixed stick axes, full-body clearance/native movement mask and 50 ms cue gaps deployed; twelve suites / 550 checks pass; live validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (user confirms fixed-axis radar improved but too noisy; Kirandur code studied, speed/reaction forecast and occupancy filtering deployed; thirteen suites / 800 checks; live validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -30,9 +30,9 @@
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Native world / local map | wip — camp runtime confirmed | 17:38 session: level 1, position 4473/4628, 35 rooms, pattern 1; terrain remained ready while moving. No regeneration. Fifteen code fingerprints. Other areas/full-map detail remain unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip — fixed stick axes and accuracy changes deployed | User reports improved consistency; 17:58 rear-open mismatch was stick down versus movement-relative back. User chose fixed up/left/right/down. Full-body passage, runtime movement mask, stationary confirmation, 50 ms gaps and stale-cue cancellation implemented; live retest pending |
-| Radar automated tests | done (local) | 238 radar/audio + 45 native-world/config + 12 radar UI checks; twelve total suites / 550 total checks. Narrow-gap and runtime-mask regressions fail before fixes and pass after; fixed axes, stationary changes, audio spacing/queue and native preservation covered |
+| Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 17 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
+| Sonar radar | wip — reaction and noise filtering deployed | User reports fixed-axis version improved but noisy (538 emitted changes in last session). Original Kirandur code reviewed; 600 ms reaction plus audio budget, measured velocity, full-body forecast, occupancy separation and world-boundary filtering. 50 ms cue gaps retained; live retest pending |
+| Radar automated tests | done (local) | 200 guidance + 288 radar/audio + 45 native-world/config + 12 radar UI; thirteen total suites / 800 checks. Actor oscillation, useful versus fleeting exits, speed/turns, occupied doors, unknown coverage and full-body preservation. 35-room synthetic queries median 1.56 ms, max 1.93 ms |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -119,13 +119,15 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Local presence:** `Path+0x60` footprint mask (`0x341860`); setter/resetter `0x363CF0/0x3636D0` add/remove NO_PATH `0x1000` at the centre (pattern 1) or cross (2); pet patterns 3/4 use `0x2000`. Remove the local footprint and added marker in copies, preserving other obstacles. 17:58 `rawCell=1080 removedPresence=1` confirms the marker filter. Ctrl+T logs `footprint`, `movement`, `rawCell`, `removedPresence`, full-body depths and a local grid.
 
+- **Creature versus terrain:** `0x341D70` restores footprint `0x100`, `0x341600` changes a monster to corpse footprint `0x8000`; both now fingerprinted. Actor-filtered estimates suppress wall/exit chatter but original movement collision gates every opening. Ctrl+T adds obstruction flags, velocity, forecast and occupied cells. Original Kirandur `0x1403f5de0` compares world hit points; its two-frame counter is classification retention, not unconditional audio. Full evidence: `docs/kirandur-radar-comparison.md`.
+
 ## Next step
 
-Validate fixed stick directions: A into camp, Ctrl+T before moving, push an announced open direction literally on the left stick, release and repeat. At a blocked passage that was called open, press Ctrl+T there before moving away. Check native `movement` mask, body-clear depths and the saved grid. Listen for separate up/down or left/right cues (50 ms silent gap), and a closing cue after stopping against an obstacle. Twelve suites / 550 checks pass; in-game accuracy/audio remain pending.
+Validate reaction-aware radar: A into camp, approach a wall with the left stick, turn toward an opening tin, then release. Check that walls warn with room to react and brief gaps are quiet; stop at a small passage to hear its opening once. Repeat near enemies in Blood Moor. At a failed passage press Ctrl+T before leaving the spot; inspect new raw obstruction flags, terrain/movement depths, velocity, forecast and A/# map cells. Thirteen suites / 800 checks pass; live navigation/perceptual accuracy remains pending.
 
 ## Known issues / open questions
 
-- **Radar prototype:** camp position/grid acquisition works. User confirmed better consistency after self-presence filtering. New fixed directions, full-body clearance/native mask and cue separation need live validation; room streaming, actors, doors and perceived audio/performance remain open. Far range is limited to loaded rooms. Runtime code checks fail quiet after patches; no generated map or beacon backend is included.
+- **Radar prototype:** user confirms improvement, still reports spam in camp/Blood Moor. New speed/occupancy filtering awaits live validation. Prediction assumes continuing motion/current collision; future actor movement, animation locks and room streaming are not guaranteed. Actor/terrain NO_PATH ownership is ambiguous, so openings always check original movement collision. `docs/kirandur-radar-comparison.md` records reference corrections, native sources and tuning. Far range remains limited to loaded rooms; no generated map or beacon backend.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.

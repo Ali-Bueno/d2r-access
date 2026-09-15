@@ -95,11 +95,11 @@ void Play(const Radar::Events& events) {
 	g_pending.Push(events);
 	g_wake.notify_one();
 }
-void Validate(const Radar::Events& observations) {
+void Validate(const Radar::Events& observations, const Radar::Events& audible) {
 	std::lock_guard lock(g_mutex);
 	g_pending.Retain(observations);
 	for (size_t i = 0; i < g_playing.size(); ++i) {
-		if (g_playing[i] != Radar::State::Unknown && g_playing[i] != observations[i]) {
+		if (g_playing[i] != Radar::State::Unknown && g_playing[i] != audible[i]) {
 			++g_generation;
 			g_playing = {};
 			break;

@@ -113,9 +113,10 @@ void ScreenAxisTests() {
 void TopologyTests() {
 	auto world = Field();
 	// Horizontal on screen: x+y is constant. A wide vertical side opening
-	// interrupts both banks of this corridor at x-y in [30, 50].
+	// interrupts both banks of this corridor at x-y in [30, 130]. This gives
+	// enough time for a whole audio batch and reaction at this running speed.
 	for (int y = 0; y < 400; ++y) for (int x = 0; x < 400; ++x) {
-		if (x-y >= 30 && x-y <= 50) continue;
+		if (x-y >= 30 && x-y <= 130) continue;
 		if (x+y == 206 || x+y == 214) Put(world, x, y, 1);
 	}
 	Engine engine; Baseline(engine, world);
@@ -123,7 +124,7 @@ void TopologyTests() {
 		"horizontal screen corridor has blocked up/down sides");
 	unsigned upOpen = 0, downOpen = 0, upClose = 0, downClose = 0;
 	bool simultaneous = false;
-	for (uint64_t tick = 5; tick <= 35; ++tick) {
+	for (uint64_t tick = 5; tick <= 85; ++tick) {
 		world.player.x += 1; world.player.y -= 1;
 		const auto events = engine.Tick(world, 1000 + tick * 50);
 		upOpen += events[0] == State::Open; downOpen += events[3] == State::Open;
@@ -133,7 +134,7 @@ void TopologyTests() {
 	}
 	Check(upOpen == 1 && downOpen == 1 && upClose == 1 && downClose == 1, "one opening and closing per side while passing a crossroad");
 	Check(simultaneous, "both sides of a crossroad reach the audio queue");
-	for (uint64_t tick = 36; tick < 50; ++tick)
+	for (uint64_t tick = 86; tick < 100; ++tick)
 		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "stationary corridor never repeats cues");
 }
 void StabilityTests() {

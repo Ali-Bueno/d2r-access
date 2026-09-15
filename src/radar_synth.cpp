@@ -30,7 +30,7 @@ bool CueQueue::Empty() const {
 }
 std::vector<int16_t> Synthesize(const Radar::Events& events) {
 	// Sound-design values, deliberately separate from collision constants.
-	constexpr double Duration = 0.12, Attack = 0.003, Release = 0.015;
+	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003, Release = 0.015;
 	constexpr double OpenHz = 1100, BlockedHz = 260, DownPitch = 0.86;
 	constexpr double Level = 0.15, PcmPeak = 32767;
 	constexpr std::array<double, Radar::DirectionCount> Pan{0, -0.9, 0.9, 0};

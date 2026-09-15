@@ -56,6 +56,7 @@ struct Table {
 	const char* radarDepth; // %.0f = clear depth in collision subtiles
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
+	const char* radarOccupied;
 	std::array<const char*, 4> radarDirections;
 	std::array<const char*, 3> radarStates;
 };
@@ -106,6 +107,7 @@ inline constexpr Table English {
 	.radarDepth = "%.0f subtiles clear",
 	.radarNearbyObstacle = "obstacle nearby",
 	.radarLimited = "limited space",
+	.radarOccupied = "occupied passage",
 	.radarDirections = {"Up", "Left", "Right", "Down"},
 	.radarStates = {"unknown", "open", "blocked"},
 };
@@ -156,6 +158,7 @@ inline constexpr Table Spanish {
 	.radarDepth = "%.0f subcasillas libres",
 	.radarNearbyObstacle = "obstáculo cercano",
 	.radarLimited = "espacio limitado",
+	.radarOccupied = "paso ocupado",
 	.radarDirections = {"Arriba", "Izquierda", "Derecha", "Abajo"},
 	.radarStates = {"desconocido", "abierto", "bloqueado"},
 };

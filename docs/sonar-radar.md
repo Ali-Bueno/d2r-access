@@ -1,9 +1,11 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Live camp snapshots work; the user reports improved consistency. Fixed stick
-directions, full-body passage checks and separated cues are deployed, pending
-controller/headphone validation.**
+**Live camp and Blood Moor snapshots work. The user reports improved fixed-axis
+navigation but excessive cues. Speed/reaction forecasts and occupancy filtering
+are now deployed, pending controller/headphone validation.** See the
+[original Kirandur code comparison](kirandur-radar-comparison.md) for the research,
+reference-document correction, reaction model and new regression coverage.
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the initial state/movement rules came from v2. **The user explicitly replaced
@@ -79,7 +81,7 @@ the loader's already resolved client-player lookup, with its code checked first.
 Queries and copies run on the UI thread, matching Core's client-player access.
 No authoritative/server game state is modified.
 
-`native_world.cpp` verifies complete-code FNV-1a fingerprints for fifteen recovered
+`native_world.cpp` verifies complete-code FNV-1a fingerprints for seventeen recovered
 accessors/readers before enabling the adapter. It validates the loader-resolved
 functions, local identity, level, footprint, dimensions and pointers. All copies
 use `NativeMemory`'s memory checks and fault containment. Neighbors are deduplicated
@@ -120,15 +122,25 @@ Public research was a lead, not build verification:
   Confirm changes for 100 ms with movement evidence, or 250 ms while stationary
   (so stopping against a wall or opening a door cannot suppress the cue forever).
   A 250 ms per-direction cooldown and distance dead band reject chatter.
+  World-boundary comparison filters small changes and retreat from the same wall.
   Session/level changes, teleports and polling gaps silently rebase and invalidate
-  pending audio.
+  pending audio and measured velocity.
+- `radar_guidance`: measure recent speed/direction, warn of approaching walls
+  using time to contact, and check that a proposed opening remains physically
+  usable through a 600 ms reaction allowance plus 680 ms audio budget. Test the
+  full body at every half-subtile along continued movement, including the turn
+  from each possible reaction point. Narrow fleeting openings remain silent;
+  stopping can make them eligible. Separate the actor-filtered terrain estimate
+  from physical collision, so moving creatures do not alternate walls/exits.
+  Never use filtered terrain alone to announce free passage.
 - `radar_synth` / `radar_audio`: synthesize 120 ms PCM cues on a separate worker.
   Opening is a high `tin`; blocking is a low `tock`. Left/right use stereo pan;
   down is centred at 0.86 pitch, distinct from up. **Cues play one at a time,
   with at least 50 ms of silence after each**, including cues from adjacent
   scans. A four-slot round-robin queue retains the latest change per direction.
-  Each scan cancels pending/in-progress cues whose observations no longer agree;
-  there is no long backlog of stale openings. A fresh simultaneous set plays
+  Each scan cancels queued cues that no longer satisfy guidance. A started tin
+  finishes its short tail while physical clearance remains open, but cancels on
+  a current obstruction. There is no long backlog of stale openings. A fresh simultaneous set plays
   up, left, right, down; later sets resume the queue's fair direction order.
   No PRISM call or audio-device wait occurs on the game UI thread. See the
   [Windows waveform API](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveoutopen).
@@ -142,16 +154,18 @@ Initialization and unchanged terrain remain silent. Ctrl+T works without first
 walking. It describes the current observation, never substituting an old open
 state for uncertain clearance. The intermediate distance band is **limited
 space**; unavailable coverage is **unknown**, without an invented zero distance.
-A near-body obstruction is described as nearby. Other known distances use the
-complete body sweep and round down for speech.
+A near-body obstruction is described as nearby; recognized actor obstruction can
+be **paso ocupado**. Other known distances use the complete movement body sweep
+and round down for speech. Manual clearance does not include the extra forecast
+required for an automatic opening cue.
 
-The tuning values are a two-subtile near-body warning, eight subtiles of open
-passage and three subtiles of blocked depth. These are named design parameters
-in `Radar::Settings`, not recovered engine constants. A blocked cue warns of
-an obstruction within this short range; it is not a claim that absolutely no
-partial step can be taken. A clear ray does not promise an entire route to a
-faraway destination. Boundary-jump enhancement, proximity tones and full-map
-guidance remain outside this prototype.
+The minimum tuning values are a two-subtile near-body warning, eight subtiles of
+open passage and three subtiles of blocked depth. Guidance increases distances
+according to measured speed; a tock can warn before the manual status says
+blocked. These and the reaction allowance are named design parameters in
+`Radar::Settings`, not recovered engine constants. A cue describes a local
+passage or approaching obstruction, not a guaranteed route to a destination.
+Continuous proximity tones and full-map guidance remain outside this prototype.
 
 ## Controls
 
@@ -180,11 +194,16 @@ Existing user configuration is preserved. Ctrl+R does not rewrite the file.
 2. Choose a reported open direction and hold the **left stick in that exact
    direction** briefly, release, then press **Ctrl+T**. Reverse and turn; the
    directions must continue matching the stick, independently of the last move.
-3. Approach an obstacle, release the stick and wait briefly. A stable closing
-   must not need further movement. If a direction says open but the matching
+3. Approach an obstacle, listen for its tock before contact, release the stick
+   and wait briefly. Repeat at your usual faster movement speed; its warning
+   should occur farther away. If a direction says open but the matching
    stick push fails, **press Ctrl+T while still at that spot before moving
    elsewhere**: the log now saves the nearby grid and full-body sensor depths.
-4. Pass an opening with more than one changing direction. Cues should be
+4. Pass an opening with more than one changing direction. Turn the left stick
+   toward a tin; verify that there is time to enter it. Brief niches passed
+   quickly should stay quiet. Stop at a small passage: it can now announce once.
+   Repeat in Blood Moor near creatures; their movement should not sound like
+   repeated new walls and exits. Cues should be
    successive with a short silent gap, not mixed; down has the lower pitch.
    Verify ordinary left/right panning and that unchanged terrain stays silent.
 5. Press **A** at an NPC, then **B** to leave; test **Menu/Start**, then **B**.
@@ -206,21 +225,29 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
   expected/observed player and level, path coordinates, footprint mask, raw
   player-cell flags, native movement mask and the number of copied presence cells cleared. It logs
   only on reason changes or explicit `status`/`dump` requests.
-- `[radar] direction=...` records emitted changes (0 up, 1 left, 2 right, 3 down; `axes=screen`).
+- `[radar] direction=...` records emitted changes (0 up, 1 left, 2 right, 3 down; `axes=screen`), speed, terrain and physical depths, raw blocking flags and warning depth. Emission does not prove completion of audio playback.
 - `[radar-state]` reports body and lane probes on Ctrl+T or an explicit dump.
-  `[radar-map]` saves the local grid on either Ctrl+T or a console dump;
+  `[radar-guidance]` adds velocity, required opening/warning distances and forecast
+  eligibility. `[radar-map]` saves the local grid with `A` for recognized actor
+  obstruction and `#` for other blocks on either Ctrl+T or a console dump;
   neither logs every frame.
 
 ## Validation and remaining limits
 
-Twelve CTest suites / **550 checks** pass: the previous 255 checks, 238
-radar/audio checks, 45 native-world/config checks and 12 radar UI checks.
+Thirteen CTest suites / **800 checks** pass: the previous 255 checks, 288
+radar/audio checks, 200 reaction/occupancy guidance checks, 45 native-world/config
+checks and 12 radar UI checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
 beyond the old near sweep, leaving an overlapping obstacle, stationary door
 changes, unknown terrain, lifecycle rebasing, native mask changes and self
 footprint removal. Audio tests verify isolated stereo cues, the 50 ms silent
 interval and replacement/cancellation of stale queued changes.
+Guidance tests cover actor oscillation, preserved walls/water, acceleration,
+turns, early warnings, fleeting versus usable openings, stopping, occupied doors,
+intermediate forecast collisions and unknown terrain. A limited corridor can
+reveal an exit without first touching its wall. The Kirandur comparison records
+the bounded query timing exercise and the remaining prediction limits.
 
 The narrow-gap and dynamic-mask regressions failed before their corrections
 and pass afterward. Normal build/deployment succeeded; installed and built DLL
@@ -292,9 +319,18 @@ not the dynamic movement-test field. Installed-code analysis recovered
 `Path+0x64` through `0x3C5610`, `0x3AD660` and setter `0x342740`. Native movement
 trace `0x364700` tests destination footprints and excludes its origin. The
 adapter/grid now follows those facts without calling movement or mutating game
-state. No live value of the new `movement` diagnostic has been recorded yet.
+state. The subsequent 18:19–18:29 session consistently recorded `movement=1C09`.
 
-The latest fixed-axis/full-body/serialized-audio build still needs the controller
-test above. Room-streaming coverage, moving actors, door animations, every act's
-collision flags and perceived audio latency remain unverified. Native code checks
-target this installed build; a different patch requires revalidation.
+### 18:19–18:29 excessive cues and reaction timing
+
+The user reports that the fixed-axis/full-body version is better, but too noisy
+to navigate reliably in combat. The log contains 538 emitted changes, including
+55 opening-to-blocking pairs under one second. Terrain acquisition continued
+through entry into Blood Moor. Investigation, Kirandur corrections, native actor
+evidence and the implemented response are recorded in
+[kirandur-radar-comparison.md](kirandur-radar-comparison.md).
+
+The latest reaction/occupancy build needs the controller test above. Future actor
+motion, animation locks, room streaming, every act's collision flags and perceived
+audio latency remain unverified. Native code checks target this installed build;
+a different patch requires revalidation.

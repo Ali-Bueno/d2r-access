@@ -41,6 +41,7 @@ add_library(d2r-access SHARED
 	src/native_world.cpp
 	src/radar.cpp
 	src/radar_grid.cpp
+	src/radar_guidance.cpp
 	src/radar_audio.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
@@ -75,12 +76,16 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(radar-guidance-tests tests/radar_guidance_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
+	target_include_directories(radar-guidance-tests PRIVATE src)
+	target_compile_features(radar-guidance-tests PRIVATE cxx_std_20)
+	add_test(NAME radar-guidance COMMAND radar-guidance-tests)
 	add_executable(radar-ui-tests tests/radar_ui_tests.cpp src/radar_ui.cpp src/panel_state.cpp)
 	target_link_libraries(radar-ui-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-ui-tests PRIVATE src)
 	target_compile_features(radar-ui-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-ui COMMAND radar-ui-tests)
-	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_synth.cpp)
+	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp src/radar_synth.cpp)
 	target_link_libraries(radar-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-tests PRIVATE src)
 	target_compile_features(radar-tests PRIVATE cxx_std_20)
@@ -137,6 +142,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(radar-guidance-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
