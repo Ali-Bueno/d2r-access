@@ -10,6 +10,8 @@
 #include "speech_strings.h"
 #include "widgets.h"
 
+#include <windows.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -34,6 +36,10 @@ constexpr Widgets::Step FocusIndicatorPath[] = { { "FocusIndicator", 0.0f, 0.0f 
 
 // Minimum share of a candidate's area the indicator must cover to count as a match.
 constexpr double MinimumCoverage = 0.5;
+
+// The indicator is polled at most this often: resolving it costs four loader
+// calls, and menus do not move faster than this.
+constexpr unsigned long long PollIntervalMs = 33;
 
 // Value controls declare no children in their layout, but the engine creates
 // some at runtime. Measured 2026-09-14: a SettingsSliderWidget owns a child
@@ -115,6 +121,8 @@ const char*                  g_focusManagerName = nullptr;
 const Generated::PanelWidgets* g_lastMatchedPanel = nullptr; // checked first: focus usually stays in one panel
 std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // widget id -> resolved rect (or failure)
 std::optional<Widgets::Rect> g_lastIndicator;
+bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
+unsigned long long           g_lastPollTick = 0;
 std::string                  g_lastAnnounced;
 PendingValue                 g_pendingValue; // read on the next UI tick, after the layout updated
 
@@ -489,10 +497,19 @@ void Tick(const D2RL::PluginContext* context) {
 		}
 	}
 
-	const auto indicator = IndicatorRect();
-	if (indicator == g_lastIndicator) {
+	const unsigned long long now = GetTickCount64();
+	if (!g_forceResolve && now - g_lastPollTick < PollIntervalMs) {
 		return;
 	}
+	g_lastPollTick = now;
+
+	// When a list scrolls to keep the focused row visible, the indicator can
+	// stay put while the rows move under it, so a scroll forces a re-check.
+	const auto indicator = IndicatorRect();
+	if (indicator == g_lastIndicator && !g_forceResolve) {
+		return;
+	}
+	g_forceResolve  = false;
 	g_lastIndicator = indicator;
 	if (!indicator) {
 		return;
@@ -556,6 +573,7 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 
 void InvalidateRects() {
 	g_rectCache.clear();
+	g_forceResolve = true;
 }
 
 void Reset() {

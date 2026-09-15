@@ -13,8 +13,9 @@ struct Mode {
 	uint32_t height = 0;
 };
 
-// Distinct width x height modes of the primary display, ascending by width
-// then height (the order the game's dropdown shows). Enumerated once.
+// Distinct width x height modes of the primary display at or above the game's
+// minimum, ascending by width then height (the order the game's dropdown
+// shows). Enumerated once.
 const std::vector<Mode>& Modes();
 
 }
