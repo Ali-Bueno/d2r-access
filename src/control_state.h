@@ -22,8 +22,11 @@ std::optional<int> Index(const Generated::WidgetEntry& widget, std::string_view 
 // for carousels and dropdowns; empty when unknown.
 std::string Describe(const Generated::WidgetEntry& widget, std::string_view widgetId);
 
-// The control reported a change through its update message.
-void OnUpdateMessage(const Generated::WidgetEntry& widget, std::string_view widgetId);
+// The control reported a change through its update message. `before` is the
+// index captured when the message arrived: the game may rewrite Settings.json
+// (and the cache be invalidated) before the message is processed, so stepping
+// from a re-read baseline would count the change twice.
+void OnUpdateMessage(const Generated::WidgetEntry& widget, std::string_view widgetId, std::optional<int> before);
 
 // A popup list item was chosen for a dropdown.
 void SetIndex(std::string_view widgetId, int index);

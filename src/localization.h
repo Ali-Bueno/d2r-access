@@ -21,4 +21,8 @@ std::string Text(std::string_view key);
 // loads, so call again once the front end is up; it settles on first success.
 void DetectSpeechLanguage(const D2RL::PluginContext* context);
 
+// The game's text language changed (it reloads its string tables): probe
+// again on the next DetectSpeechLanguage call.
+void ForgetSpeechLanguage();
+
 }

@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <iterator>
 #include <unordered_map>
 
 namespace D2RAccess::ControlState {
@@ -18,6 +19,21 @@ constexpr const char* ToggleType = "ToggleButtonWidget";
 // A value message follows the D-pad press that caused it within one UI update
 // or so; anything older is not the cause.
 constexpr unsigned DirectionMaxAgeMs = 400;
+
+// Controls whose stored value is not a position in their layout `states` but
+// the game's own enumeration. The text language is stored as the locale's
+// index in the game's string tables (game-data/local/lng/strings/ui.json lists
+// the locales in this order: enUS, zhTW, deDE, esES, frFR, itIT, koKR, plPL,
+// esMX, jaJP, ptBR, ruRU, zhCN), named here with the layout's state names.
+struct StoredValueOrder {
+	const char*        updateCommand;
+	const char* const* stateNames;
+	int                count;
+};
+constexpr const char* const TextLanguageStoredOrder[] = { "English", "ChineseTraditional", "German", "Spanish", "French", "Italian", "Korean", "Polish", "SpanishMexican", "Japanese", "Portuguese", "Russian", "ChineseSimplified" };
+constexpr StoredValueOrder StoredValueOrders[] = {
+	{ "SetTextLanguage", TextLanguageStoredOrder, static_cast<int>(std::size(TextLanguageStoredOrder)) },
+};
 
 std::unordered_map<std::string, int> g_index;
 
@@ -38,8 +54,23 @@ std::optional<int> Baseline(const Generated::WidgetEntry& widget) {
 	if (!value) {
 		return std::nullopt;
 	}
-	const int index = static_cast<int>(std::lround(*value));
+	int       index = static_cast<int>(std::lround(*value));
 	const int count = Count(widget);
+	for (const StoredValueOrder& order : StoredValueOrders) {
+		if (std::strcmp(order.updateCommand, widget.updateCommand) != 0) {
+			continue;
+		}
+		if (index < 0 || index >= order.count || widget.states == nullptr) {
+			return std::nullopt;
+		}
+		const char* stateName = order.stateNames[index];
+		index                 = -1;
+		for (int i = 0; i < count; ++i) {
+			if (std::strcmp(widget.states[i], stateName) == 0) {
+				index = i;
+			}
+		}
+	}
 	if (index < 0 || (count > 0 && index >= count)) {
 		return std::nullopt;
 	}
@@ -75,8 +106,8 @@ std::string Describe(const Generated::WidgetEntry& widget, std::string_view widg
 	return {};
 }
 
-void OnUpdateMessage(const Generated::WidgetEntry& widget, std::string_view widgetId) {
-	const auto current = Index(widget, widgetId);
+void OnUpdateMessage(const Generated::WidgetEntry& widget, std::string_view widgetId, std::optional<int> before) {
+	const auto current = before ? before : Index(widget, widgetId);
 	if (!current) {
 		return;
 	}

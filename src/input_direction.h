@@ -14,6 +14,12 @@ enum class Horizontal {
 	Right,
 };
 
+enum class Vertical {
+	None,
+	Up,
+	Down,
+};
+
 // Samples all input sources once; call from the UI poll (see
 // ui_thread_pump.h). Records a press EDGE per source (not-held -> held), so
 // holding a direction down does not keep re-triggering it. Cheap, does not
@@ -24,6 +30,10 @@ void Poll();
 // `maxAgeMs` milliseconds (measured via GetTickCount64); Horizontal::None
 // otherwise, or if no edge has been recorded yet.
 Horizontal LastHorizontal(unsigned maxAgeMs);
+
+// Same for up/down: a list that scrolls under a still focus indicator only
+// reveals which way it moved through the press that caused it.
+Vertical LastVertical(unsigned maxAgeMs);
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.

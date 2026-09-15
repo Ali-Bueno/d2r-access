@@ -23,6 +23,16 @@ namespace {
 // against reading a corrupt or unrelated huge file, not a real limit.
 constexpr LONGLONG kMaxSettingsFileBytes = 4LL * 1024 * 1024;
 
+// Update commands whose value the game stores under a differently named key
+// (observed in Settings.json next to the command that changes it).
+struct CommandKeyAlias {
+	const char* updateCommand;
+	const char* key;
+};
+constexpr CommandKeyAlias kCommandKeyAliases[] = {
+	{ "SetTextLanguage", "Language" },
+};
+
 std::wstring ResolveSavedGamesDirectory() {
 	PWSTR        knownPath = nullptr;
 	std::wstring result;
@@ -146,8 +156,14 @@ bool TryParseNumber(std::string_view token, double& out) {
 	return result.ec == std::errc() && result.ptr == token.data() + token.size();
 }
 
-bool ParseSettingsJson(const std::string& text, std::unordered_map<std::string, double>& out) {
-	out.clear();
+struct ParsedValues {
+	std::unordered_map<std::string, double>      numbers;
+	std::unordered_map<std::string, std::string> texts; // string values that are not numbers
+};
+
+bool ParseSettingsJson(const std::string& text, ParsedValues& out) {
+	out.numbers.clear();
+	out.texts.clear();
 	size_t i = 0;
 	SkipWhitespace(text, i);
 	if (i >= text.size() || text[i] != '{') {
@@ -173,7 +189,9 @@ bool ParseSettingsJson(const std::string& text, std::unordered_map<std::string, 
 			ParseJsonString(text, i, value);
 			double number = 0.0;
 			if (TryParseNumber(value, number)) {
-				out[NormalizeKey(key)] = number;
+				out.numbers[NormalizeKey(key)] = number;
+			} else {
+				out.texts[NormalizeKey(key)] = value;
 			}
 		} else if (i < text.size() && (text[i] == '{' || text[i] == '[')) {
 			SkipJsonValue(text, i); // nested value: not a scalar, ignore
@@ -182,7 +200,7 @@ bool ParseSettingsJson(const std::string& text, std::unordered_map<std::string, 
 			SkipJsonValue(text, i);
 			double number = 0.0;
 			if (TryParseNumber(std::string_view(text).substr(start, i - start), number)) {
-				out[NormalizeKey(key)] = number;
+				out.numbers[NormalizeKey(key)] = number;
 			}
 		}
 
@@ -220,9 +238,9 @@ bool ReadFileContents(const std::wstring& path, std::string& outContents, FILETI
 	return ok;
 }
 
-std::unordered_map<std::string, double> g_values;
-FILETIME                                g_lastWriteTime {};
-bool                                    g_loaded = false;
+ParsedValues g_values;
+FILETIME     g_lastWriteTime {};
+bool         g_loaded = false;
 
 }
 
@@ -249,7 +267,7 @@ bool Reload() {
 		return g_loaded; // transient read failure (e.g. the game is writing it now): keep old values
 	}
 
-	std::unordered_map<std::string, double> parsed;
+	ParsedValues parsed;
 	if (!ParseSettingsJson(contents, parsed)) {
 		return g_loaded; // malformed file: keep whatever was already loaded
 	}
@@ -266,8 +284,19 @@ std::optional<double> Number(std::string_view normalizedKey) {
 	}
 	// Idempotent to call again here even when the caller already normalized
 	// the key, and it protects a caller that passed a raw key by mistake.
-	const auto it = g_values.find(NormalizeKey(normalizedKey));
-	if (it == g_values.end()) {
+	const auto it = g_values.numbers.find(NormalizeKey(normalizedKey));
+	if (it == g_values.numbers.end()) {
+		return std::nullopt;
+	}
+	return it->second;
+}
+
+std::optional<std::string> Text(std::string_view normalizedKey) {
+	if (!g_loaded) {
+		return std::nullopt;
+	}
+	const auto it = g_values.texts.find(NormalizeKey(normalizedKey));
+	if (it == g_values.texts.end()) {
 		return std::nullopt;
 	}
 	return it->second;
@@ -291,6 +320,11 @@ std::string NormalizeKey(std::string_view key) {
 
 std::optional<double> NumberForCommand(std::string_view updateCommand) {
 	// SDK update-command naming convention, e.g. "SetNPCSpeech" -> "npcspeech".
+	for (const CommandKeyAlias& alias : kCommandKeyAliases) {
+		if (updateCommand == alias.updateCommand) {
+			return Number(NormalizeKey(alias.key));
+		}
+	}
 	constexpr std::string_view kSetPrefix = "Set";
 	const std::string_view     remainder  = updateCommand.starts_with(kSetPrefix) ? updateCommand.substr(kSetPrefix.size()) : updateCommand;
 	return Number(NormalizeKey(remainder));

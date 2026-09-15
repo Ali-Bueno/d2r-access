@@ -35,18 +35,31 @@ struct PadEdgeState {
 	bool dpadRightHeld  = false;
 	bool stickLeftHeld  = false;
 	bool stickRightHeld = false;
+	bool dpadUpHeld     = false;
+	bool dpadDownHeld   = false;
+	bool stickUpHeld    = false;
+	bool stickDownHeld  = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
 bool         g_keyLeftHeld  = false;
 bool         g_keyRightHeld = false;
+bool         g_keyUpHeld    = false;
+bool         g_keyDownHeld  = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
+Vertical   g_lastVertical         = Vertical::None;
+ULONGLONG  g_lastVerticalTickMs   = 0;
 
 void RecordEdge(Horizontal direction) {
 	g_lastHorizontal       = direction;
 	g_lastHorizontalTickMs = GetTickCount64();
+}
+
+void RecordEdge(Vertical direction) {
+	g_lastVertical       = direction;
+	g_lastVerticalTickMs = GetTickCount64();
 }
 
 // Updates `held` to `currentlyHeld` and returns whether this call is a rising
@@ -110,16 +123,37 @@ void Poll() {
 			if (UpdateEdge(edges.stickRightHeld, pad.sThumbLX >= kThumbstickDirectionThreshold)) {
 				RecordEdge(Horizontal::Right);
 			}
+			// XInput's Y axis grows upward.
+			if (UpdateEdge(edges.dpadUpHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0)) {
+				RecordEdge(Vertical::Up);
+			}
+			if (UpdateEdge(edges.dpadDownHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0)) {
+				RecordEdge(Vertical::Down);
+			}
+			if (UpdateEdge(edges.stickUpHeld, pad.sThumbLY >= kThumbstickDirectionThreshold)) {
+				RecordEdge(Vertical::Up);
+			}
+			if (UpdateEdge(edges.stickDownHeld, pad.sThumbLY <= -kThumbstickDirectionThreshold)) {
+				RecordEdge(Vertical::Down);
+			}
 		}
 	}
 
 	const bool keyLeft  = (GetAsyncKeyState(VK_LEFT) & kKeyDownFlag) != 0;
 	const bool keyRight = (GetAsyncKeyState(VK_RIGHT) & kKeyDownFlag) != 0;
+	const bool keyUp    = (GetAsyncKeyState(VK_UP) & kKeyDownFlag) != 0;
+	const bool keyDown  = (GetAsyncKeyState(VK_DOWN) & kKeyDownFlag) != 0;
 	if (UpdateEdge(g_keyLeftHeld, keyLeft)) {
 		RecordEdge(Horizontal::Left);
 	}
 	if (UpdateEdge(g_keyRightHeld, keyRight)) {
 		RecordEdge(Horizontal::Right);
+	}
+	if (UpdateEdge(g_keyUpHeld, keyUp)) {
+		RecordEdge(Vertical::Up);
+	}
+	if (UpdateEdge(g_keyDownHeld, keyDown)) {
+		RecordEdge(Vertical::Down);
 	}
 }
 
@@ -137,15 +171,34 @@ Horizontal HeldHorizontal() {
 	return left ? Horizontal::Left : Horizontal::Right;
 }
 
+Vertical HeldVertical() {
+	bool up = g_keyUpHeld, down = g_keyDownHeld;
+	for (const PadEdgeState& edges : g_padState) {
+		up   = up || edges.dpadUpHeld || edges.stickUpHeld;
+		down = down || edges.dpadDownHeld || edges.stickDownHeld;
+	}
+	if (up == down) {
+		return Vertical::None;
+	}
+	return up ? Vertical::Up : Vertical::Down;
+}
+
+bool WithinAge(ULONGLONG tickMs, unsigned maxAgeMs) {
+	return GetTickCount64() - tickMs <= maxAgeMs;
+}
+
 Horizontal LastHorizontal(unsigned maxAgeMs) {
 	if (const Horizontal held = HeldHorizontal(); held != Horizontal::None) {
 		return held;
 	}
-	if (g_lastHorizontal == Horizontal::None) {
-		return Horizontal::None;
+	return g_lastHorizontal != Horizontal::None && WithinAge(g_lastHorizontalTickMs, maxAgeMs) ? g_lastHorizontal : Horizontal::None;
+}
+
+Vertical LastVertical(unsigned maxAgeMs) {
+	if (const Vertical held = HeldVertical(); held != Vertical::None) {
+		return held;
 	}
-	const ULONGLONG elapsedMs = GetTickCount64() - g_lastHorizontalTickMs;
-	return elapsedMs <= maxAgeMs ? g_lastHorizontal : Horizontal::None;
+	return g_lastVertical != Vertical::None && WithinAge(g_lastVerticalTickMs, maxAgeMs) ? g_lastVertical : Vertical::None;
 }
 
 void Shutdown() {
@@ -161,9 +214,13 @@ void Shutdown() {
 	}
 	g_keyLeftHeld  = false;
 	g_keyRightHeld = false;
+	g_keyUpHeld    = false;
+	g_keyDownHeld  = false;
 
 	g_lastHorizontal       = Horizontal::None;
 	g_lastHorizontalTickMs = 0;
+	g_lastVertical         = Vertical::None;
+	g_lastVerticalTickMs   = 0;
 }
 
 }

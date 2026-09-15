@@ -7,6 +7,7 @@
 #include "localization.h"
 #include "panel_state.h"
 #include "screen_reader.h"
+#include "settings_file.h"
 #include "speech_strings.h"
 #include "widgets.h"
 
@@ -59,6 +60,7 @@ constexpr const char* ValueChildProbes[] = { "Indicator", "Handle", "Knob", "Val
 struct PendingValue {
 	const Generated::PanelWidgets* panel  = nullptr;
 	const Generated::WidgetEntry*  widget = nullptr;
+	std::optional<int>             before; // state index when the message arrived
 };
 
 // A dropdown opens a popup panel whose rows are clones of one template, all
@@ -69,7 +71,11 @@ constexpr const char* DropdownPopupPanel  = "DropdownListContents";
 // A dropdown whose options are built at runtime declares this placeholder.
 constexpr const char* DynamicStatesMarker = "?";
 // The one runtime list we can rebuild: the display's modes (VideoOptionsPanel).
-constexpr const char* ScreenResolutionWidget = "ScreenResolution";
+// The chosen one is stored in Settings.json under this key as "WxH".
+constexpr const char* ScreenResolutionWidget      = "ScreenResolution";
+constexpr const char* ScreenResolutionSettingsKey = "Screen Resolution (Windowed)";
+// A popup row read follows the press that scrolled the list by one UI update.
+constexpr unsigned PopupDirectionMaxAgeMs = 400;
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
 
@@ -86,13 +92,19 @@ constexpr DisabledWhen DisabledWhenRules[] = {
 	{ "VideoOptionsPanel", "ScreenResolution", "WindowMode", 1 }, // resolution is fixed in Fullscreen
 };
 
+// The popup shows a window of rows: once the highlight reaches the last
+// visible row the list scrolls under a still indicator, so the option index is
+// the visible row plus how far the list has scrolled.
 struct DropdownSession {
 	const Generated::PanelWidgets* panel      = nullptr;
 	const Generated::WidgetEntry*  widget     = nullptr;
 	std::string                    id;
-	std::optional<int>             popupIndex; // last row highlighted in the popup
+	std::optional<int>             popupIndex;   // last option highlighted in the popup
+	std::optional<int>             visibleRow;   // row under the indicator when it was read
+	int                            scrollOffset = 0;
 };
 DropdownSession g_dropdown;
+bool            g_popupWasActive = false;
 
 // Widget type (from the layout JSON) -> spoken control role. Types not listed
 // are spoken by label alone.
@@ -250,8 +262,11 @@ Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator
 				nearest         = &widget;
 				nearestRect     = *rect;
 			}
+			// A stacked layout (options table) lays out visible rows only:
+			// when two siblings end up on the same spot, the earlier one was
+			// hidden, so on a tie within a panel the later widget wins.
 			const double score = Coverage(indicator, *rect);
-			if (score > best.score) {
+			if (score > best.score || (score == best.score && score > 0.0 && best.panel == catalog)) {
 				best = { catalog, &widget, score };
 			}
 		}
@@ -376,6 +391,72 @@ bool HasStaticStates(const Generated::WidgetEntry* widget) {
 	return widget != nullptr && widget->states != nullptr && widget->stateCount > 0 && std::strcmp(widget->states[0], DynamicStatesMarker) != 0;
 }
 
+// Number of options in the open dropdown's popup, when known.
+std::optional<int> PopupOptionCount() {
+	if (HasStaticStates(g_dropdown.widget)) {
+		return static_cast<int>(g_dropdown.widget->stateCount);
+	}
+	if (g_dropdown.widget != nullptr && std::strcmp(g_dropdown.widget->name, ScreenResolutionWidget) == 0) {
+		return static_cast<int>(DisplayModes::Modes().size());
+	}
+	return std::nullopt;
+}
+
+// Option currently applied for the open dropdown, when known: the popup opens
+// scrolled so that this option is visible and highlighted.
+std::optional<int> PopupCurrentOption() {
+	if (g_dropdown.widget == nullptr) {
+		return std::nullopt;
+	}
+	if (HasStaticStates(g_dropdown.widget)) {
+		return ControlState::Index(*g_dropdown.widget, g_dropdown.id);
+	}
+	if (std::strcmp(g_dropdown.widget->name, ScreenResolutionWidget) == 0) {
+		(void)SettingsFile::Reload();
+		const auto stored = SettingsFile::Text(ScreenResolutionSettingsKey);
+		unsigned   width = 0, height = 0;
+		if (!stored || sscanf_s(stored->c_str(), "%ux%u", &width, &height) != 2) {
+			return std::nullopt;
+		}
+		const auto& modes = DisplayModes::Modes();
+		for (size_t i = 0; i < modes.size(); ++i) {
+			if (modes[i].width == width && modes[i].height == height) {
+				return static_cast<int>(i);
+			}
+		}
+	}
+	return std::nullopt;
+}
+
+// Option index for the row under the indicator, tracking the list's scroll:
+// the first read assumes the current option is highlighted; afterwards a press
+// that left the indicator on the same row scrolled the list by one, and a
+// press that moved it against its direction wrapped around the list.
+int PopupOptionIndex(int visibleRow) {
+	const auto count     = PopupOptionCount();
+	const auto direction = InputDirection::LastVertical(PopupDirectionMaxAgeMs);
+	if (!g_dropdown.visibleRow) {
+		const auto current     = PopupCurrentOption();
+		g_dropdown.scrollOffset = current ? std::max(0, *current - visibleRow) : 0;
+	} else if (visibleRow == *g_dropdown.visibleRow) {
+		if (direction == InputDirection::Vertical::Down) {
+			++g_dropdown.scrollOffset;
+		} else if (direction == InputDirection::Vertical::Up) {
+			--g_dropdown.scrollOffset;
+		}
+	} else if (direction == InputDirection::Vertical::Down && visibleRow < *g_dropdown.visibleRow) {
+		g_dropdown.scrollOffset = 0; // wrapped to the top
+	} else if (direction == InputDirection::Vertical::Up && visibleRow > *g_dropdown.visibleRow && count) {
+		g_dropdown.scrollOffset = *count - 1 - visibleRow; // wrapped to the bottom
+	}
+	g_dropdown.scrollOffset = std::max(0, g_dropdown.scrollOffset);
+	if (count) {
+		g_dropdown.scrollOffset = std::min(g_dropdown.scrollOffset, std::max(0, *count - 1 - visibleRow));
+	}
+	g_dropdown.visibleRow = visibleRow;
+	return visibleRow + g_dropdown.scrollOffset;
+}
+
 // The popup captures focus while open: the highlighted row is the indicator's
 // distance from the first row (all rows share the template's name and size).
 void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::PanelWidgets& popup, const Widgets::Rect& indicator) {
@@ -392,8 +473,12 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 	if (!row || row->height <= 0) {
 		return;
 	}
-	const int index = static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height)));
-	if (index < 0 || (g_dropdown.popupIndex && *g_dropdown.popupIndex == index)) {
+	const int visibleRow = static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height)));
+	if (visibleRow < 0) {
+		return;
+	}
+	const int index = PopupOptionIndex(visibleRow);
+	if (g_dropdown.popupIndex && *g_dropdown.popupIndex == index) {
 		return;
 	}
 	g_dropdown.popupIndex = index;
@@ -415,7 +500,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 		}
 		phrase = text;
 	}
-	D2RL::LogInfoF(context, "[focus] popup row %d -> \"%s\" (display modes: %zu)", index, phrase.c_str(), DisplayModes::Modes().size());
+	D2RL::LogInfoF(context, "[focus] popup row %d (visible %d + scroll %d) -> \"%s\"", index, visibleRow, g_dropdown.scrollOffset, phrase.c_str());
 	ScreenReader::Speak(phrase, true);
 }
 
@@ -426,7 +511,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match) {
 	}
 	g_lastAnnounced = std::move(id);
 	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {
-		g_dropdown = { match.panel, match.widget, g_lastAnnounced, std::nullopt };
+		g_dropdown = { match.panel, match.widget, g_lastAnnounced };
 	}
 
 	std::string phrase = Label(*match.widget);
@@ -485,7 +570,7 @@ void Tick(const D2RL::PluginContext* context) {
 			if (std::strcmp(pending.widget->type, DropdownWidgetType) == 0 && g_dropdown.id == id && g_dropdown.popupIndex) {
 				ControlState::SetIndex(id, *g_dropdown.popupIndex);
 			} else {
-				ControlState::OnUpdateMessage(*pending.widget, id);
+				ControlState::OnUpdateMessage(*pending.widget, id, pending.before);
 			}
 			const std::string state = ControlState::Describe(*pending.widget, id);
 			D2RL::LogInfoF(context, "[value] %s -> \"%s\" (last input %d)", id.c_str(), state.c_str(), static_cast<int>(InputDirection::LastHorizontal(1000)));
@@ -516,7 +601,14 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 
 	// An open dropdown popup captures focus: read its rows, not the panels below.
-	if (PanelState::Active() == DropdownPopupPanel) {
+	const bool popupActive = PanelState::Active() == DropdownPopupPanel;
+	if (popupActive && !g_popupWasActive) {
+		g_dropdown.popupIndex.reset(); // a fresh popup starts unscrolled
+		g_dropdown.visibleRow.reset();
+		g_dropdown.scrollOffset = 0;
+	}
+	g_popupWasActive = popupActive;
+	if (popupActive) {
 		if (const Generated::PanelWidgets* popup = Catalog(DropdownPopupPanel); popup != nullptr) {
 			AnnouncePopupRow(context, *popup, *indicator);
 		}
@@ -563,7 +655,7 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 				D2RL::LogInfoF(context, "[value] %s <- \"%.*s\" -> \"%s\"", WidgetId(*catalog, widget).c_str(), static_cast<int>(value.size()), value.data(), phrase);
 				ScreenReader::Speak(phrase, true);
 			} else {
-				g_pendingValue = { catalog, &widget };
+				g_pendingValue = { catalog, &widget, ControlState::Index(widget, g_lastAnnounced) };
 			}
 			return true;
 		}

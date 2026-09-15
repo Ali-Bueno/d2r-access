@@ -34,13 +34,19 @@ bool Reload();
 // nothing is loaded or the key is absent/non-numeric.
 std::optional<double> Number(std::string_view normalizedKey);
 
+// Raw string value for a key (e.g. "Screen Resolution (Windowed)" holds
+// "WxH" once the player applied one); std::nullopt when nothing is loaded,
+// the key is absent, or its value is not a string.
+std::optional<std::string> Text(std::string_view normalizedKey);
+
 // Lowercases and keeps only [a-z0-9], so "NPC Speech", "npcspeech" and
 // "NPC-Speech" all address the same stored value.
 std::string NormalizeKey(std::string_view key);
 
 // Convenience for UI update-command names such as "SetNPCSpeech" or
 // "SetTextToSpeech": strips a leading "Set", normalizes what remains, and
-// looks it up (e.g. "SetMasterVolume" -> "mastervolume").
+// looks it up (e.g. "SetMasterVolume" -> "mastervolume"). The few commands
+// whose key in the file is named differently are mapped explicitly.
 std::optional<double> NumberForCommand(std::string_view updateCommand);
 
 }

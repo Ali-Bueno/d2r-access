@@ -32,16 +32,21 @@ void Shutdown() {
 	g_context = nullptr;
 }
 
+bool g_speechLanguageDetected = false;
+
+void ForgetSpeechLanguage() {
+	g_speechLanguageDetected = false;
+}
+
 void DetectSpeechLanguage(const D2RL::PluginContext* context) {
-	static bool detected = false;
-	if (detected) {
+	if (g_speechLanguageDetected) {
 		return;
 	}
 	const std::string cancel = Text(Strings::CancelProbeKey);
 	if (cancel.empty()) {
 		return; // string tables not loaded yet
 	}
-	detected = true;
+	g_speechLanguageDetected = true;
 	const bool spanish = cancel == Strings::CancelProbeSpanish;
 	Strings::Select(spanish ? Strings::Language::Spanish : Strings::Language::English);
 	D2RL::LogInfoF(context, "Speech language: %s (probe \"%s\" = \"%s\")", spanish ? "Spanish" : "English", std::string(Strings::CancelProbeKey).c_str(), cancel.c_str());

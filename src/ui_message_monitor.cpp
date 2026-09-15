@@ -30,6 +30,10 @@ constexpr const char* UnloadPanelCommand        = "UnloadPanel";
 constexpr const char* TogglePanelCommand        = "TogglePanel";
 
 // Front-end screen transitions ("FrontEndNavigation:ToExit", "To<Screen>").
+// Panels opened before the front end is entered (the title screen, and the
+// in-game HUD panels the game preloads then, such as EmoteWheelPanel) are not
+// shown in the front end even though no close message follows, so entering
+// it starts the panel record afresh.
 constexpr const char* FrontEndNavigationTarget = "FrontEndNavigation";
 constexpr const char* NavigationCommandPrefix  = "To";
 
@@ -51,6 +55,9 @@ constexpr const char* DismissableModalPanel  = "DismissableModal";
 constexpr const char* OptionsPanelTarget    = "OptionsPanelMessage";
 constexpr const char* SettingsPanelName     = "SettingsPanel";
 constexpr const char* OptionsCommitCommands[] = { "AcceptChanges", "CancelChanges", "ResetToDefaults" };
+// Changing the text language reloads the game's string tables (and the front
+// end), so the speech language is probed again afterwards.
+constexpr const char* SetTextLanguageCommand = "SetTextLanguage";
 
 // Scrolling moves every row of a list, so cached widget rects go stale.
 constexpr const char* ScrollControllerTarget = "ScrollController";
@@ -186,12 +193,15 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 	}
 	if (std::strcmp(event->target, PanelManagerTarget) == 0) {
 		FocusTracker::InvalidateRects();
+		Localization::DetectSpeechLanguage(context); // no-op once detected
 		AnnouncePanel(*event);
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
 		FocusTracker::InvalidateRects();
 	} else if (std::strcmp(event->target, FrontEndNavigationTarget) == 0) {
 		AnnounceNavigation(*event);
 		if (std::strcmp(event->command, FrontEndReadyCommand) == 0) {
+			PanelState::Reset();
+			FocusTracker::Reset();
 			Localization::DetectSpeechLanguage(context);
 			(void)CodeDump::EnsureDumped(context);
 		}
@@ -203,6 +213,9 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 				if (std::strcmp(event->command, commit) == 0) {
 					ControlState::Invalidate();
 				}
+			}
+			if (std::strcmp(event->command, SetTextLanguageCommand) == 0) {
+				Localization::ForgetSpeechLanguage();
 			}
 		}
 		// Value controls report changes through their layout update message.
