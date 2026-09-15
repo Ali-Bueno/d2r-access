@@ -2,6 +2,7 @@
 
 #include "generated/panel_widgets.h"
 #include "control_state.h"
+#include "display_modes.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "panel_state.h"
@@ -61,6 +62,8 @@ struct PendingValue {
 constexpr const char* DropdownPopupPanel  = "DropdownListContents";
 // A dropdown whose options are built at runtime declares this placeholder.
 constexpr const char* DynamicStatesMarker = "?";
+// The one runtime list we can rebuild: the display's modes (VideoOptionsPanel).
+constexpr const char* ScreenResolutionWidget = "ScreenResolution";
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
 
@@ -394,12 +397,17 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 			phrase = g_dropdown.widget->states[index];
 		}
 	} else {
-		// Runtime option lists (screen resolutions) have no known count.
 		char text[64] {};
-		std::snprintf(text, sizeof(text), Strings::Current().optionIndex, index + 1);
+		const auto& modes = DisplayModes::Modes();
+		if (g_dropdown.widget != nullptr && std::strcmp(g_dropdown.widget->name, ScreenResolutionWidget) == 0 && index < static_cast<int>(modes.size())) {
+			std::snprintf(text, sizeof(text), Strings::Current().resolution, modes[static_cast<size_t>(index)].width, modes[static_cast<size_t>(index)].height);
+		} else {
+			// Other runtime lists have no known content or count.
+			std::snprintf(text, sizeof(text), Strings::Current().optionIndex, index + 1);
+		}
 		phrase = text;
 	}
-	D2RL::LogInfoF(context, "[focus] popup row %d -> \"%s\"", index, phrase.c_str());
+	D2RL::LogInfoF(context, "[focus] popup row %d -> \"%s\" (display modes: %zu)", index, phrase.c_str(), DisplayModes::Modes().size());
 	ScreenReader::Speak(phrase, true);
 }
 

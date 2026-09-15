@@ -26,6 +26,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 add_library(d2r-access SHARED
 	src/code_dump.cpp
 	src/control_state.cpp
+	src/display_modes.cpp
 	src/focus_tracker.cpp
 	src/input_direction.cpp
 	src/plugin.cpp
