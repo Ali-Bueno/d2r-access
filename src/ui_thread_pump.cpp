@@ -1,5 +1,7 @@
 #include "ui_thread_pump.h"
 
+#include <windows.h>
+
 #include <atomic>
 
 namespace D2RAccess::UiThreadPump {
@@ -13,11 +15,35 @@ std::atomic<bool>            g_queued  = false; // a tick is waiting in the UI q
 
 bool Queue(const D2RL::PluginContext* context);
 
+// The SDK only promises that a queued callback runs "during a later
+// root-widget update"; how often that is decides how quickly focus changes
+// are noticed, so the tick rate and the longest gap are logged periodically.
+constexpr unsigned long long StatsIntervalMs = 5000;
+
+void LogTickStats(const D2RL::PluginContext* context) {
+	static unsigned long long windowStart = 0, lastTick = 0, maxGap = 0;
+	static unsigned           ticks = 0;
+	const unsigned long long  now   = GetTickCount64();
+	if (windowStart == 0) {
+		windowStart = lastTick = now;
+	}
+	maxGap   = lastTick != now && now - lastTick > maxGap ? now - lastTick : maxGap;
+	lastTick = now;
+	++ticks;
+	if (now - windowStart >= StatsIntervalMs) {
+		D2RL::LogInfoF(context, "[pump] %u ticks in %llu ms, longest gap %llu ms", ticks, now - windowStart, maxGap);
+		windowStart = now;
+		ticks       = 0;
+		maxGap      = 0;
+	}
+}
+
 void __cdecl OnUiTick(const D2RL::PluginContext* context, void*) noexcept {
 	g_queued.store(false);
 	if (!g_enabled.load() || context == nullptr) {
 		return;
 	}
+	LogTickStats(context);
 	if (g_tick != nullptr) {
 		g_tick(context);
 	}

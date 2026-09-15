@@ -41,6 +41,13 @@ constexpr double MinimumCoverage = 0.5;
 // The indicator is polled at most this often: resolving it costs four loader
 // calls, and menus do not move faster than this.
 constexpr unsigned long long PollIntervalMs = 33;
+// After a scroll message the game moves the highlight and the rows over the
+// next few updates, so the focus is re-checked on every tick for this long.
+constexpr unsigned long long RecheckWindowMs = 250;
+// When a list scrolls, the row now under the indicator came from one row
+// away, so only cached rects within this many indicator heights of it are
+// refreshed (each refresh is a loader tree walk); a miss refreshes them all.
+constexpr int NearbyIndicatorHeights = 3;
 
 // Value controls declare no children in their layout, but the engine creates
 // some at runtime. Measured 2026-09-14: a SettingsSliderWidget owns a child
@@ -166,6 +173,8 @@ const Generated::PanelWidgets* g_lastMatchedPanel = nullptr; // checked first: f
 std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // widget id -> resolved rect (or failure)
 std::optional<Widgets::Rect> g_lastIndicator;
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
+bool                         g_scrollPending = false; // rows moved: refresh the cached rects near the indicator
+unsigned long long           g_recheckUntil  = 0;     // keep re-checking until this tick (see RecheckWindowMs)
 int                          g_scrollInputs = 0;     // ManualScrollInput messages since the last popup read
 unsigned long long           g_lastPollTick = 0;
 std::string                  g_lastAnnounced;
@@ -239,6 +248,20 @@ std::optional<Widgets::Rect> WidgetRect(const Generated::PanelWidgets& catalog, 
 	const auto          rect = Widgets::AbsoluteRect(catalog.panel, root, steps);
 	g_rectCache[id]          = rect;
 	return rect;
+}
+
+// Drops cached rects near the indicator so the next Resolve re-reads them.
+void RefreshNear(const Widgets::Rect& indicator) {
+	const int32_t band    = std::max<int32_t>(indicator.height, 1) * NearbyIndicatorHeights;
+	const int32_t centerY = indicator.y + indicator.height / 2;
+	for (auto it = g_rectCache.begin(); it != g_rectCache.end();) {
+		const auto& rect = it->second;
+		if (!rect || std::abs((rect->y + rect->height / 2) - centerY) <= band) {
+			it = g_rectCache.erase(it);
+		} else {
+			++it;
+		}
+	}
 }
 
 std::string Describe(const std::optional<Widgets::Rect>& rect) {
@@ -663,8 +686,9 @@ void Tick(const D2RL::PluginContext* context) {
 		}
 	}
 
-	const unsigned long long now = GetTickCount64();
-	if (!g_forceResolve && now - g_lastPollTick < PollIntervalMs) {
+	const unsigned long long now     = GetTickCount64();
+	const bool               recheck = now < g_recheckUntil;
+	if (!g_forceResolve && !recheck && now - g_lastPollTick < PollIntervalMs) {
 		return;
 	}
 	g_lastPollTick = now;
@@ -674,13 +698,17 @@ void Tick(const D2RL::PluginContext* context) {
 	// When a list scrolls to keep the focused row visible, the indicator can
 	// stay put while the rows move under it, so a scroll forces a re-check.
 	const auto indicator = IndicatorRect();
-	if (indicator == g_lastIndicator && !g_forceResolve) {
+	if (indicator == g_lastIndicator && !g_forceResolve && !recheck) {
 		return;
 	}
 	g_forceResolve  = false;
 	g_lastIndicator = indicator;
 	if (!indicator) {
 		return;
+	}
+	if (g_scrollPending || recheck) {
+		RefreshNear(*indicator);
+		g_scrollPending = false;
 	}
 
 	// An open dropdown popup captures focus: read its rows, not the panels below.
@@ -747,12 +775,14 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 }
 
 void InvalidateRects() {
-	g_rectCache.clear();
-	g_forceResolve = true;
+	g_scrollPending = true;
+	g_forceResolve  = true;
+	g_recheckUntil  = GetTickCount64() + RecheckWindowMs;
 }
 
 void PanelsChanged() {
 	Widgets::ForgetHandles();
+	g_rectCache.clear();
 	InvalidateRects();
 }
 
