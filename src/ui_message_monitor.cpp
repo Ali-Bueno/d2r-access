@@ -245,11 +245,11 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		Trace(context, *event);
 	}
 	if (std::strcmp(event->target, PanelManagerTarget) == 0) {
-		FocusTracker::InvalidateRects();
+		FocusTracker::PanelsChanged();
 		Localization::DetectSpeechLanguage(context); // no-op once detected
 		AnnouncePanel(*event);
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
-		FocusTracker::InvalidateRects();
+		FocusTracker::NoteScrollInput();
 	} else if (std::strcmp(event->target, FrontEndNavigationTarget) == 0) {
 		AnnounceNavigation(*event);
 		if (std::strcmp(event->command, FrontEndReadyCommand) == 0) {

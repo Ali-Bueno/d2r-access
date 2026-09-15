@@ -21,7 +21,16 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 
 // Widget rects are cached while the UI stays still; call when panels open,
 // close or scroll so the next poll re-resolves them.
+// Cached widget rects are stale: a list scrolled. Rows moved under a still
+// indicator, so the next tick re-checks even if it did not move.
 void InvalidateRects();
+
+// The panel set changed: rects and widget handles are stale.
+void PanelsChanged();
+
+// The game reported a scroll input (ScrollController:ManualScrollInput):
+// the press count, not the sampled positions, drives popup scroll tracking.
+void NoteScrollInput();
 
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();

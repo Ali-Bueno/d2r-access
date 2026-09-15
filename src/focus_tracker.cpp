@@ -166,6 +166,7 @@ const Generated::PanelWidgets* g_lastMatchedPanel = nullptr; // checked first: f
 std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // widget id -> resolved rect (or failure)
 std::optional<Widgets::Rect> g_lastIndicator;
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
+int                          g_scrollInputs = 0;     // ManualScrollInput messages since the last popup read
 unsigned long long           g_lastPollTick = 0;
 std::string                  g_lastAnnounced;
 PendingValue                 g_pendingValue; // read on the next UI tick, after the layout updated
@@ -439,24 +440,30 @@ std::optional<int> PopupOptionCount() {
 }
 
 // Fallback option index, tracking the list's scroll from the presses: the
-// popup is taken as unscrolled when it opens; afterwards a press that left
-// the indicator on the same row scrolled the list by one, and a press that
-// moved it against its direction wrapped around the list.
+// popup is taken as unscrolled when it opens; afterwards every scroll input
+// the game reported either moved the highlight one row or, when the
+// highlight was already at the edge, scrolled the list by one. So the inputs
+// not accounted for by the highlight's movement are the rows scrolled. A
+// highlight that moved against the pressed direction wrapped around.
 int PopupTrackedOption(int visibleRow) {
 	const auto count     = PopupOptionCount();
 	const auto direction = InputDirection::LastVertical(PopupDirectionMaxAgeMs);
+	const int  inputs    = g_scrollInputs;
+	g_scrollInputs       = 0;
 	if (!g_dropdown.visibleRow) {
 		g_dropdown.scrollOffset = 0;
-	} else if (visibleRow == *g_dropdown.visibleRow) {
-		if (direction == InputDirection::Vertical::Down) {
-			++g_dropdown.scrollOffset;
-		} else if (direction == InputDirection::Vertical::Up) {
-			--g_dropdown.scrollOffset;
-		}
 	} else if (direction == InputDirection::Vertical::Down && visibleRow < *g_dropdown.visibleRow) {
 		g_dropdown.scrollOffset = 0; // wrapped to the top
 	} else if (direction == InputDirection::Vertical::Up && visibleRow > *g_dropdown.visibleRow && count) {
 		g_dropdown.scrollOffset = *count - 1 - visibleRow; // wrapped to the bottom
+	} else {
+		const int moved    = std::abs(visibleRow - *g_dropdown.visibleRow);
+		const int scrolled = std::max(0, inputs - moved);
+		if (direction == InputDirection::Vertical::Down) {
+			g_dropdown.scrollOffset += scrolled;
+		} else if (direction == InputDirection::Vertical::Up) {
+			g_dropdown.scrollOffset -= scrolled;
+		}
 	}
 	g_dropdown.scrollOffset = std::max(0, g_dropdown.scrollOffset);
 	if (count) {
@@ -661,6 +668,7 @@ void Tick(const D2RL::PluginContext* context) {
 		return;
 	}
 	g_lastPollTick = now;
+	Widgets::BeginPoll();
 
 
 	// When a list scrolls to keep the focused row visible, the indicator can
@@ -743,12 +751,23 @@ void InvalidateRects() {
 	g_forceResolve = true;
 }
 
+void PanelsChanged() {
+	Widgets::ForgetHandles();
+	InvalidateRects();
+}
+
+void NoteScrollInput() {
+	++g_scrollInputs;
+	InvalidateRects();
+}
+
 std::string_view FocusedCharacter() {
 	return g_focusedCharacter;
 }
 
 void Reset() {
 	g_focusedCharacter.clear();
+	g_scrollInputs = 0;
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
 	g_lastMatchedPanel = nullptr;

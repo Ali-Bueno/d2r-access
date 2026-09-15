@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <unordered_map>
 
 namespace D2RAccess::Widgets {
 
@@ -24,8 +25,25 @@ const D2RL::WidgetServiceV1* g_service = nullptr;
 const D2RL::PluginContext*   g_context = nullptr;
 char                         g_lastError[160] {};
 
+// Name lookups walk the widget tree inside the loader, so a panel's handle
+// and each child's handle are kept until the panel set changes
+// (ForgetHandles). A handle whose rect can no longer be read is dropped, so
+// a stale entry costs one failed call.
+std::unordered_map<std::string, D2RL::Widgets::WidgetHandle> g_panelHandles; // panel name -> root
+std::unordered_map<std::string, D2RL::Widgets::WidgetHandle> g_childHandles; // "<parent handle>/<name>" -> child
+
+// Screen-space rects computed during the current poll, keyed by handle:
+// widgets under one parent share its placement, and the screen rect is asked
+// once. Cleared by BeginPoll.
+std::unordered_map<D2RL::Widgets::WidgetHandle, Rect> g_placed;
+std::optional<Rect>                                   g_screen;
+
 void Fail(const char* what, const char* name, unsigned code) {
 	std::snprintf(g_lastError, sizeof(g_lastError), "%s '%s' (result %u)", what, name, code);
+}
+
+std::string ChildKey(D2RL::Widgets::WidgetHandle parent, const char* name) {
+	return std::to_string(parent) + "/" + name;
 }
 
 std::optional<Rect> LocalRect(D2RL::Widgets::WidgetHandle handle, const char* name) {
@@ -36,6 +54,21 @@ std::optional<Rect> LocalRect(D2RL::Widgets::WidgetHandle handle, const char* na
 		return std::nullopt;
 	}
 	return Rect { rect.x, rect.y, rect.width, rect.height };
+}
+
+std::optional<D2RL::Widgets::WidgetHandle> FindChild(D2RL::Widgets::WidgetHandle parent, const char* name) {
+	const std::string key = ChildKey(parent, name);
+	if (const auto cached = g_childHandles.find(key); cached != g_childHandles.end()) {
+		return cached->second;
+	}
+	D2RL::Widgets::WidgetHandle child  = D2RL::Widgets::InvalidHandle;
+	const auto                  result = g_service->findWidget(g_context, parent, name, &child);
+	if (result != D2RL::Widgets::Result::Success) {
+		Fail("widget not found", name, static_cast<unsigned>(result));
+		return std::nullopt;
+	}
+	g_childHandles[key] = child;
+	return child;
 }
 
 // Places `local` inside `parent`. Measured behaviour: the SDK's local rect
@@ -60,13 +93,33 @@ Rect Place(const Rect& parent, const Rect& local, float anchorX, float anchorY) 
 // (see Place), so it resolves to the canvas unless the focus manager root
 // ever reports a real size.
 Rect ScreenRect() {
+	if (g_screen) {
+		return *g_screen;
+	}
+	g_screen = Rect { 0, 0, 0, 0 };
 	for (const char* name : ScreenPanelNames) {
 		const auto rect = PanelRect(name);
 		if (rect && rect->width > 0 && rect->height > 0) {
-			return Rect { 0, 0, rect->width, rect->height };
+			g_screen = Rect { 0, 0, rect->width, rect->height };
+			break;
 		}
 	}
-	return Rect { 0, 0, 0, 0 };
+	return *g_screen;
+}
+
+// Screen-space placement of `handle` (already known or computed from its
+// local rect inside `parent`), memoized for this poll.
+std::optional<Rect> Placed(D2RL::Widgets::WidgetHandle handle, const char* name, const Rect& parent, float anchorX, float anchorY) {
+	if (const auto cached = g_placed.find(handle); cached != g_placed.end()) {
+		return cached->second;
+	}
+	const auto local = LocalRect(handle, name);
+	if (!local) {
+		return std::nullopt;
+	}
+	const Rect placed = Place(parent, *local, anchorX, anchorY);
+	g_placed[handle]  = placed;
+	return placed;
 }
 
 }
@@ -88,6 +141,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 }
 
 void Shutdown() {
+	ForgetHandles();
 	g_service = nullptr;
 	g_context = nullptr;
 }
@@ -96,18 +150,33 @@ bool IsAvailable() {
 	return g_service != nullptr;
 }
 
+void BeginPoll() {
+	g_placed.clear();
+	g_screen.reset();
+}
+
+void ForgetHandles() {
+	g_panelHandles.clear();
+	g_childHandles.clear();
+	BeginPoll();
+}
+
 std::optional<D2RL::Widgets::WidgetHandle> FindPanel(std::string_view panel) {
 	if (!IsAvailable()) {
 		return std::nullopt;
 	}
-	const std::string           name(panel);
+	const std::string name(panel);
+	if (const auto cached = g_panelHandles.find(name); cached != g_panelHandles.end()) {
+		return cached->second;
+	}
 	D2RL::Widgets::WidgetHandle handle = D2RL::Widgets::InvalidHandle;
 	const auto                  result = g_service->findPanel(g_context, name.c_str(), &handle);
 	if (result != D2RL::Widgets::Result::Success) {
 		Fail("panel not found", name.c_str(), static_cast<unsigned>(result));
 		return std::nullopt;
 	}
-	g_lastError[0] = '\0';
+	g_panelHandles[name] = handle;
+	g_lastError[0]       = '\0';
 	return handle;
 }
 
@@ -117,7 +186,11 @@ std::optional<Rect> PanelRect(std::string_view panel) {
 		return std::nullopt;
 	}
 	const std::string name(panel);
-	return LocalRect(*handle, name.c_str());
+	const auto        rect = LocalRect(*handle, name.c_str());
+	if (!rect) {
+		g_panelHandles.erase(name); // the panel went away: look it up again next time
+	}
+	return rect;
 }
 
 std::optional<Rect> AbsoluteRect(std::string_view panel, Step rootAnchor, std::span<const Step> path) {
@@ -125,32 +198,31 @@ std::optional<Rect> AbsoluteRect(std::string_view panel, Step rootAnchor, std::s
 	if (!panelHandle) {
 		return std::nullopt;
 	}
-	const std::string panelName(panel);
-	const auto        rootLocal = LocalRect(*panelHandle, panelName.c_str());
-	if (!rootLocal) {
-		return std::nullopt;
-	}
-
 	// A root keeps its reported size (0x0 for most panels): that is what tells
 	// Place whether its children's anchors were already applied by the SDK.
-	Rect                        current = Place(ScreenRect(), *rootLocal, rootAnchor.anchorX, rootAnchor.anchorY);
-	D2RL::Widgets::WidgetHandle parent  = *panelHandle;
+	const std::string panelName(panel);
+	const auto        current = Placed(*panelHandle, panelName.c_str(), ScreenRect(), rootAnchor.anchorX, rootAnchor.anchorY);
+	if (!current) {
+		g_panelHandles.erase(panelName);
+		return std::nullopt;
+	}
+	Rect                        placed = *current;
+	D2RL::Widgets::WidgetHandle parent = *panelHandle;
 	for (const Step& step : path) {
-		D2RL::Widgets::WidgetHandle child  = D2RL::Widgets::InvalidHandle;
-		const auto                  result = g_service->findWidget(g_context, parent, step.name, &child);
-		if (result != D2RL::Widgets::Result::Success) {
-			Fail("widget not found", step.name, static_cast<unsigned>(result));
+		const auto child = FindChild(parent, step.name);
+		if (!child) {
 			return std::nullopt;
 		}
-		const auto local = LocalRect(child, step.name);
-		if (!local) {
+		const auto rect = Placed(*child, step.name, placed, step.anchorX, step.anchorY);
+		if (!rect) {
+			g_childHandles.erase(ChildKey(parent, step.name)); // stale handle: re-find next time
 			return std::nullopt;
 		}
-		current = Place(current, *local, step.anchorX, step.anchorY);
-		parent  = child;
+		placed = *rect;
+		parent = *child;
 	}
 	g_lastError[0] = '\0';
-	return current;
+	return placed;
 }
 
 const char* LastError() {

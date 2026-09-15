@@ -17,6 +17,13 @@ bool Initialize(const D2RL::PluginContext* context);
 void Shutdown();
 bool IsAvailable();
 
+// Widget handles are cached by name so the loader's tree walks happen once
+// per panel set; rects are memoized within one poll. Call BeginPoll before
+// each poll (rects may have moved) and ForgetHandles when panels open or
+// close (handles may be gone).
+void BeginPoll();
+void ForgetHandles();
+
 struct Rect {
 	int32_t x      = 0;
 	int32_t y      = 0;
