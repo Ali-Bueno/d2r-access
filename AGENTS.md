@@ -1,0 +1,69 @@
+# AGENTS.md — d2r-access (Diablo II: Resurrected accessibility plugin)
+
+Read **`STATUS.md` first** (identity, section table, derived facts, next step, known issues). The
+general playbook lives one folder up (`../AGENTS.md` / `../CLAUDE.md`, `../PRINCIPLES.md`,
+`../reference/`). This file is the mod-specific quick guide.
+
+## What this is
+
+A **D2RLoader plugin** (`d2rl-d2r-access.dll`, C++20, PluginSDK API v4 as a git submodule in
+`external/PluginSDK`) that speaks through **PRISM** (`third_party/prism`, `prism.dll` shipped next
+to the plugin in `plugins/d2r-access/`). Target: a blind player using **NVDA and an Xbox-style
+controller**, game in **Spanish**. Front-end menus are done; the next phase is in-game text.
+
+## Build, deploy, test
+
+- Build: `.\build.ps1` (vcvars64 + CMake/Ninja Release). The POST_BUILD step copies the DLL and
+  `prism.dll` into `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\`.
+  Build only while the game is closed.
+- The user tests in game; **every test is scripted as controller button sequences** and verified
+  from the plugin log: `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\logs\d2r-access.log`.
+  The last session starts at the last line containing `d2r-access loaded.`; ignore `MonsterHealth`
+  lines (per-frame noise). Useful line prefixes: `[ui]` (game UI messages), `[focus]` (what was
+  announced and why), `[value]`, `[popup]`/`popup option`, `[modal]`, `[native]` (native widget
+  probes), `[saves]`, `[pump]` (tick rate / longest gap), `slow tick`.
+- Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
+  per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
+  widget), `access-dump-code`.
+- Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
+  `audio_locale = "esES"`, `enable_console = true`.
+
+## Rules
+
+- Commit (English, short) and push to `origin main` after each fix the user asked for; the repo is
+  the deliverable. **Never create GitHub releases** unless explicitly asked.
+- PRISM is the only screen-reader library. No Tolk.
+- No magic numbers: every offset/constant is named and documented with its source (layout JSON,
+  log measurement, RE evidence). Derive from game data at runtime when possible.
+- Never block the game's UI thread: all PRISM calls run on the speech thread
+  (`screen_reader.cpp`); loader widget calls are cheap but must stay on the UI thread.
+- Temporary files go to the session scratchpad, never into the repo.
+- Keep `STATUS.md` current (section table, derived facts with sources, next step) whenever a chunk
+  is finished; update `README.md` when user-facing behaviour changes.
+
+## Architecture (src/)
+
+| Module | Role |
+|---|---|
+| `plugin.cpp` | D2RLoader entry points, console commands, per-tick order: `InputDirection::Poll`, `FocusTracker::Tick`, `UiMessageMonitor::Tick`, `NativeWidgets::Tick` |
+| `ui_message_monitor.cpp` | Listens to the game's UI message bus (`PanelManager:OpenPanel`, `FrontEndNavigation:To*`, `CharacterCreate:Hover`, `OptionsPanelMessage:Set*`, `ScrollController:ManualScrollInput`); announces panels, navigation, class hover + description, modal prompts (native text, 120 ms after open) |
+| `panel_state.cpp` | Open-panel stack (reset on `ToFrontEnd`: preloaded in-game panels like EmoteWheelPanel are invisible) |
+| `focus_tracker.cpp` | Controller focus: polls the game's `FocusManager/FocusIndicator` rect (self-requeued `runOnUiThread` pump), matches it against `generated/panel_widgets.h`, speaks label/role/value/tooltip; dropdown popup rows and character rows from native text |
+| `widgets.cpp` | SDK WidgetService wrapper: handles cached for the plugin's lifetime (they are name paths), anchors applied against the 3840x2160 canvas for 0x0 parents, per-poll rect memo |
+| `native_widgets.cpp` | Game widget objects via D2RCore.dll's slot table (PanelManager global, FindPanel, FindChildWidget, SetText); engine string reader; `TextAt(panel, path)`; probes |
+| `control_state.cpp`, `settings_file.cpp`, `input_direction.cpp`, `display_modes.cpp`, `character_saves.cpp` | Toggle/carousel/dropdown values (Settings.json baseline + input direction), display modes for the resolution list, offline character saves (fallback) |
+| `screen_reader.cpp` | PRISM on a dedicated speech thread; `Speak(text, interrupt)` only queues |
+| `speech_strings.*`, `localization.cpp` | Plugin phrases (English/Spanish) and the game's own string tables via the SDK |
+| `tools/` | CASC extraction, layout indexer, catalog generators (`gen_panel_widgets.py`, `gen_panel_titles.py`) → `src/generated/` |
+
+## Hard-won facts (details and sources in STATUS.md)
+
+- SDK widget handles are **name paths**, not objects; there is no text, focus or enabled getter.
+  Native objects come from D2RCore's resolved game functions; widget name at `+0x8`, a text box's
+  displayed text at `+0x88` (UTF-8).
+- Dropdown popups show 13 recycled slots (`Items/ListItem0..12`): read each slot's `TextBox`
+  text, do not infer options from rects.
+- PRISM/NVDA `speak` blocks 300-800 ms → speech thread. Re-reading many rects per press through
+  the loader also stalls; refresh only near the indicator after a settled scroll.
+- Class selectors, hidden table rows (VoiceLanguage), the game version dropdown, save file v105
+  header, and the text-language locale order all have documented handling in STATUS.md.

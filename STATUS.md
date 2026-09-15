@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-14 (menus readable with controller; option values)
+**Last updated:** 2026-09-15 (front-end menus done: focus, values, popups, character list, modal prompts via native text; speech on its own thread). Quick guide for agents: `AGENTS.md`.
 
 ## Identity
 
@@ -16,14 +16,17 @@
 
 | Section / feature | Status | Notes |
 |---|---|---|
-| Adapter + Speech (`Speak("test")` through PRISM) | done | Verified with NVDA 2026-09-14 (PRISM 0.18.2, backend NVDA). Console: `access-say <text>` |
-| UiMessage logger (discovery + panel open/close announcer) | wip | `src/ui_message_monitor.cpp` + `panel_state.cpp` (open stack; close spoken only if it was the active panel, never interrupting). Speaks raw panel names for now |
-| Widget vocabulary from layout JSON | wip | Extracted (2026-09-14): 329 layouts + 31 string tables in `game-data/` (gitignored) via `tools/casc-extract` (CascLib CLI; open the game root, not `Data\`). Indexer: `tools/layout_index.py` → `game-data/index/` |
-| Focus/hover tracking (own inline hook) | todo | phase 2; needs Ghidra on D2R.exe 3.3 |
-| Main menu / char select | todo | SDK input actions do NOT fire pre-game → own key poll from UI-thread pump |
+| Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
+| Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
+| Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
+| Controller focus tracking (front end) | done | `focus_tracker.cpp`: `FocusManager/FocusIndicator` rect polled at ≤30 Hz, matched by coverage; labels/roles/tooltips; class selectors left to the game's Hover message (+ class description) |
+| Control values | done | Sliders (runtime `Indicator`), toggles/carousels (Settings.json baseline + input direction; text language locale order), dropdowns (popup rows spoken from native slot text; picked index tracked) |
+| Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
+| Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
+| Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
+| Performance | done | Loader handles cached for life; per-poll rect memo; transient focus misses ignored for 300 ms; slow ticks (>30 ms) logged with loader cost |
+| In-game text (tutorials, auto hints, NPC dialogue, area names) | todo | Next phase. Same native text access + hook on `TextBoxWidget::SetText` (live RVA logged at load) for text set at runtime; SDK lifecycle events for act/level changes |
 | In-game panels (inventory, skills, stash) | todo | |
-| Control values | wip | Sliders: percent from the runtime `Indicator` child (done). Toggles/carousels: baseline from `%USERPROFILE%\Saved Games\Diablo II Resurrected\Settings.json` (key = update command minus `Set`, normalized) + flip / step by last horizontal input (`control_state`, `settings_file`, `input_direction`); dropdowns: popup row index from the indicator y on `DropdownListContents/ItemTemplate`. **Untested in game** |
-| Dynamic text (modals, tooltips, chat) | todo | Needs a widget pointer + text offset. Ghidra `D2R_live` DB analyzed (81,635 fns) but Arxan stripped constant xrefs; the focus getter at live RVA 0xE20BE0 returns a static focus-manager object (no widget). Modals get a controller hint instead (`A para confirmar, B para cancelar`). Next lead: call-graph descent from 0xF7BF80 (only ref to "SliderWidget") |
 | Item readout | todo | `ItemInfo` has code/grid/quality but no name/stats → data-table row RE or tooltip hook |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
