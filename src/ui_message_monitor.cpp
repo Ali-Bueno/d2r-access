@@ -8,6 +8,7 @@
 #include "control_state.h"
 #include "focus_tracker.h"
 #include "input_direction.h"
+#include "native_widgets.h"
 #include "speech_strings.h"
 #include "ui_thread_pump.h"
 
@@ -83,6 +84,37 @@ constexpr ModalPrompt ModalPrompts[] = {
 	{ "CharacterSelect", "ShowDeleteCharacterModal", "strDelete" },
 };
 std::string g_pendingModalPrompt;
+
+// Widgets whose runtime text is probed natively when their panel opens, to
+// learn where each class keeps it (see native_widgets.h). The game fills the
+// text a few updates after opening.
+struct TextProbe {
+	const char* panel;
+	const char* path[3];
+};
+constexpr TextProbe TextProbes[] = {
+	{ "ConfirmationModal", { "Frame", "Prompt", nullptr } },
+	{ "DismissableModal", { "Frame", "Prompt", nullptr } },
+	{ "DropdownListContents", { "Items", "ListItem0", "TextBox" } },
+	{ "DropdownListContents", { "Items", "ListItem1", "TextBox" } },
+	{ "CharacterSelectPanel", { "Background", "CharacterList", "CharacterTemplate" } },
+};
+constexpr unsigned TextProbeDelayMs = 150;
+
+void RequestTextProbes(std::string_view panel) {
+	for (const TextProbe& probe : TextProbes) {
+		if (panel != probe.panel) {
+			continue;
+		}
+		std::vector<std::string> path;
+		for (const char* step : probe.path) {
+			if (step != nullptr) {
+				path.emplace_back(step);
+			}
+		}
+		NativeWidgets::RequestProbe(panel, path, TextProbeDelayMs);
+	}
+}
 
 // The character select screen opens its delete confirmation from the X face
 // button directly (no UI message); the press must be this recent.
@@ -169,6 +201,7 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 
 	if (std::strcmp(event.command, OpenPanelCommand) == 0 || exclusive) {
 		PanelState::Opened(panel);
+		RequestTextProbes(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
 			if (g_pendingModalPrompt.empty() && panel == ConfirmationModalPanel && !FocusTracker::FocusedCharacter().empty() && InputDirection::LastFaceButton(DeletePressMaxAgeMs) == InputDirection::FaceButton::X) {

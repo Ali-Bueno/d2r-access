@@ -32,6 +32,7 @@ add_library(d2r-access SHARED
 	src/input_direction.cpp
 	src/plugin.cpp
 	src/localization.cpp
+	src/native_widgets.cpp
 	src/panel_state.cpp
 	src/screen_reader.cpp
 	src/settings_file.cpp

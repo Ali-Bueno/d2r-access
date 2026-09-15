@@ -5,6 +5,7 @@
 #include "focus_tracker.h"
 #include "input_direction.h"
 #include "localization.h"
+#include "native_widgets.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
@@ -13,6 +14,8 @@
 
 #include <cstring>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace {
 
@@ -32,6 +35,29 @@ constexpr D2RL::PluginInfo PluginInfo {
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
 	D2RAccess::FocusTracker::Tick(context);
+	D2RAccess::NativeWidgets::Tick(context);
+}
+
+// Console: "access-probe Panel/Child/Child" logs the engine strings inside
+// that widget's native object.
+auto ProbeCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	if (command->args == nullptr || command->argsLength == 0) {
+		return D2RL::ConsoleCommandResult::InvalidArguments;
+	}
+	std::vector<std::string> steps;
+	std::string_view         rest(command->args, command->argsLength);
+	while (!rest.empty()) {
+		const size_t slash = rest.find('/');
+		steps.emplace_back(rest.substr(0, slash));
+		rest = slash == std::string_view::npos ? std::string_view {} : rest.substr(slash + 1);
+	}
+	const std::string panel = steps.front();
+	steps.erase(steps.begin());
+	D2RAccess::NativeWidgets::RequestProbe(panel, steps, 0);
+	return D2RL::ConsoleCommandResult::Handled;
 }
 
 // Console: "access-say <text>" speaks the text through the screen reader.
@@ -100,6 +126,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		return false;
 	}
 
+	(void)D2RAccess::NativeWidgets::Initialize(context);
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		context->LogWarn("Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
@@ -109,6 +136,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
+	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	context->LogInfo("d2r-access loaded.");
 	return true;
 }
