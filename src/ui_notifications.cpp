@@ -1,0 +1,59 @@
+#include "ui_notifications.h"
+
+#include <algorithm>
+
+namespace D2RAccess::UiNotifications {
+namespace {
+constexpr uint64_t SettleMs = 80;
+
+bool InNotificationList(const UiText::Snapshot& snapshot, size_t index) {
+	for (int parent = snapshot.nodes[index].parent; parent >= 0 && parent < static_cast<int>(index);) {
+		const auto& node = snapshot.nodes[static_cast<size_t>(parent)];
+		if (node.kind == UiText::Kind::NotificationList) return true;
+		const int next = node.parent;
+		if (next >= parent) break;
+		parent = next;
+	}
+	return false;
+}
+}
+
+std::vector<std::string> Describe(const UiText::Snapshot& snapshot) {
+	if (snapshot.surface == UiText::Surface::Notice) {
+		auto text = UiText::Describe(snapshot).body;
+		return text.empty() ? std::vector<std::string>{} : std::vector<std::string>{std::move(text)};
+	}
+	std::vector<std::string> result;
+	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
+		const auto& node = snapshot.nodes[i];
+		if (node.kind != UiText::Kind::Text && node.kind != UiText::Kind::LinkedText) continue;
+		if (!InNotificationList(snapshot, i)) continue;
+		auto text = UiText::Clean(node.text);
+		if (!text.empty() && std::find(result.begin(), result.end(), text) == result.end()) result.push_back(std::move(text));
+	}
+	return result;
+}
+
+std::vector<std::string> Reader::Update(const std::vector<std::string>& visible, uint64_t now) {
+	// Recycling/scrolling can move the same visible message to another object.
+	// Diff by content, not address or row index; fading old rows must stay silent.
+	std::erase_if(entries_, [&](const Entry& entry) {
+		return std::find(visible.begin(), visible.end(), entry.text) == visible.end();
+	});
+	if (std::find(visible.begin(), visible.end(), last_) == visible.end()) last_.clear();
+	std::vector<std::string> result;
+	for (const auto& text : visible) {
+		if (text.empty()) continue;
+		auto it = std::find_if(entries_.begin(), entries_.end(), [&](const Entry& entry) { return entry.text == text; });
+		if (it == entries_.end()) entries_.push_back({text, now, false});
+		else if (!it->spoken && now - it->since >= SettleMs) {
+			it->spoken = true;
+			last_ = text;
+			result.push_back(text);
+		}
+	}
+	return result;
+}
+
+void Reader::Reset() { entries_.clear(); last_.clear(); }
+}

@@ -137,6 +137,30 @@ int main() {
 	Check(!Settle() && speech.size() == 1 && speech.back().text == Strings::Current().gameTextDisabled, "feature can be disabled");
 	speech.clear(); GameTextReader::SetEnabled(true); Settle();
 	Check(!speech.empty() && speech.front().text == Strings::Current().gameTextEnabled, "reenabling announces mode and rebuilds context");
+	panels.clear(); focus = {}; Settle(); speech.clear();
+	const std::string warning = "Solo disponible en partidas de clásico y de expansión";
+	panels.push_back({40, 0, "HUDMessagePanel", UiText::Surface::NotificationFeed, {
+		{40, -1, UiText::Kind::Other, "Root", "HUDMessagePanel", ""},
+		{41, 0, UiText::Kind::NotificationList, "Messages", "ChatListWidget", ""},
+		{42, 1, UiText::Kind::ListItem, "ChatEntryTemplate", "ListItemWidget", ""},
+		{43, 2, UiText::Kind::LinkedText, "MessageText", "TextBoxWithLinksWidget", warning},
+	}});
+	Check(!Settle() && speech.size() == 1 && speech.back().text == warning && !speech.back().interrupt, "G-style notice reads without controller focus and does not interrupt");
+	speech.clear(); Settle();
+	Check(speech.empty(), "persistent G warning is not repeated");
+	GameTextReader::RequestRepeat(); Settle();
+	Check(speech.size() == 1 && speech.back().text == warning, "repeat works for the current notification");
+	panels.push_back(Menu()); focus = {1, 2}; Settle(); speech.clear();
+	panels[0].nodes.back().text = "A new system message";
+	Check(Settle() && speech.size() == 1 && speech.back().text == "A new system message" && !speech.back().interrupt, "notifications coexist with an NPC conversation without stealing focus");
+	panels.pop_back(); focus = {};
+	panels[0].nodes.clear(); Settle(); speech.clear();
+	panels.push_back({50, 0, "NotificationPanel", UiText::Surface::Notice, {{51, -1, UiText::Kind::Text, "Prompt", "TextBoxWidget", "An informative notice"}}});
+	Check(!Settle() && speech.size() == 1 && speech.back().text == "An informative notice", "unfocused temporary information panel is readable");
+	speech.clear(); GameTextReader::SetEnabled(false); Settle(); speech.clear();
+	panels.back().nodes[0].text = "Disabled notice";
+	Check(!Settle() && speech.empty(), "disabling game text also disables notifications");
+	GameTextReader::SetEnabled(true); Settle();
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

@@ -2,8 +2,24 @@
 
 Build/install: close D2R, run `./build.ps1`, then launch D2RLoader with NVDA running.
 The build deploys automatically to the already configured game folder. Use the
-existing offline character. This feature is implemented but not yet confirmed
-in a live controller session.
+existing offline character. The user confirmed the Rogue Encampment entry
+announcement; NPC dialogue and the new notice reader still need live verification.
+
+## Reported G warning
+
+1. Select the existing Reign of the Warlock character with the controller and
+   press **A** to enter town. No NPC needs to be found for this check.
+2. Press keyboard **G**, the exact trigger in the user's report. NVDA should read
+   "Solo disponible en partidas de clásico y de expansión" from the visible notice.
+3. Wait while it remains visible. It should not repeat. Repeated identical warnings
+   still on screen are intentionally deduplicated. After the notice disappears,
+   press **G** again; the new appearance should be read.
+4. Return to controller input and open **Menu/Start**, then **B** to return. Menu
+   focus should still work. A new informational notice should also read without
+   moving controller focus onto it.
+
+Verify `[notice]` entries in the last plugin-log session. In Classic/Expansion
+games G may switch graphics successfully and will not produce this restriction.
 
 ## Controller test sequence
 
@@ -27,8 +43,6 @@ in a live controller session.
 7. Repeat the interaction with a second NPC. The same reader should handle it.
 8. When a tutorial/automatic hint appears naturally, hear its displayed text once
    and, if one exists, the focused button. Use **A/B** as the game's prompt indicates.
-   Optional keyboard check: trigger the graphics-mode hint with **G** if that hint
-   has not already been dismissed in this save; toggling G does not guarantee it reappears.
 9. Cross from town into another area, then return. Expect each displayed area name
    once. If possible, also check a dungeon entrance. Do not expect navigation cues.
 10. Open **Menu/Start** during gameplay and return with **B**. Existing pause-menu
@@ -43,21 +57,25 @@ to report the NPC/menu and last button pressed; screen captures are unnecessary.
 Developer console, `Ctrl+backquote`:
 
 - `access-text dump`: capture visible native text trees/focus on the next gameplay poll.
-- `access-text repeat`: repeat the current conversation/tutorial or visible area banner.
+- `access-text repeat`: repeat the conversation/tutorial, otherwise the current
+  notification, otherwise the visible area banner.
 - `access-text off` / `access-text on`: toggle this reader for the current game process.
 
 The console can itself change focus. For a useful dump, close it immediately
 after requesting one. The reader always uses actual current game focus.
 
 Log: `D:/games/steam/steamapps/common/Diablo II Resurrected/d2rloader/logs/d2r-access.log`.
-Use the last `d2r-access loaded.` session; inspect `[text]`, `[text-tree]`, `[ui]`
+Use the last `d2r-access loaded.` session; inspect `[notice]`, `[text]`, `[text-tree]`, `[ui]`
 and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 
 ## Automated checks
 
-`ctest --test-dir build --output-on-failure` runs four native C++ test executables
-(73 checks). Coverage includes complete long strings, invalid memory, hidden
+`ctest --test-dir build --output-on-failure` runs five native C++ test executables
+(101 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
+Notification coverage includes native linked text and data-source filtering,
+unfocused notices, coexistence with dialogue, fading/recycled/duplicate rows,
+reappearance, partial text settling, repeat and feature disable.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;
 only the plugin and the existing PRISM DLL are deployed.

@@ -22,7 +22,14 @@ lists, full scrolling dialogues, tutorial/automatic hints and area-name banners.
 reader follows native controller focus and visible text, and suppresses repeated
 announcements. See [the controller test guide](docs/test-ingame-text.md).
 
-Not yet: chat, item tooltips, inventory readout, general in-game HUD/combat and navigation.
+The user confirmed the Rogue Encampment entry announcement. Informational notices
+(including the Classic/Expansion restriction when pressing **G**) and the visible
+HUD notification feed now have a reader, awaiting in-game verification. New notices
+queue without interrupting a conversation; unchanged text stays silent until it
+disappears. Notification text with links uses its native embedded textbox.
+
+Not yet: full chat history, item tooltips, inventory readout, general in-game HUD/combat and navigation.
+Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.
 
 ## How it works (no game patching)
@@ -85,7 +92,8 @@ python tools\gen_panel_widgets.py
   `control_state`, `settings_file`, `input_direction`, `panel_state`, `widgets`, `localization`,
   `ui_thread_pump`, `speech_strings` (all spoken phrases), `generated/` (catalog headers).
   `native_memory`/`native_ui` provide guarded native snapshots; `ui_text` contains the
-  testable reading policy; `game_text_reader` manages gameplay lifecycle and speech context.
+  testable reading policy; `ui_notifications` reads and deduplicates visible notices;
+  `game_text_reader` manages gameplay lifecycle and speech context.
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor and the layout indexer/generators.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.

@@ -8,6 +8,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_text.h"
+#include "ui_notifications.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -25,11 +26,13 @@ std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
 uint64_t g_lastPoll = 0;
 UiText::Reader g_reader, g_areaReader;
+UiNotifications::Reader g_notices;
 
 void Reset() {
 	if (g_ownedFocus) ScreenReader::Stop();
 	g_reader.Reset();
 	g_areaReader.Reset();
+	g_notices.Reset();
 	g_ownedFocus = false;
 	g_lastPoll = 0;
 	g_repeat.store(false);
@@ -134,18 +137,25 @@ bool Tick(const D2RL::PluginContext* context) {
 	const auto focusedSurface = NativeUi::Classify(focus.panel).surface;
 	const bool dump = g_dump.exchange(false);
 	UiText::Readout active, area;
+	std::vector<std::string> notices;
 	int best = -1;
 	auto panels = NativeUi::Panels();
 	if (focus.panel && std::find(panels.begin(), panels.end(), focus.panel) == panels.end()) panels.push_back(focus.panel);
 	for (uintptr_t panel : panels) {
 		const auto type = NativeUi::Classify(panel);
 		if (!NativeUi::Visible(panel) || (type.surface == Surface::Other && panel != focus.panel)) continue;
+		const bool notification = type.surface == Surface::Notice || type.surface == Surface::NotificationFeed;
 		// A different menu/modal receiving input covers this conversation. An
 		// area banner is passive and may still be announced without taking focus.
-		if (type.surface != Surface::Area && focus.widget && focus.panel != panel && focusedSurface == Surface::Other) continue;
+		if (!notification && type.surface != Surface::Area && focus.widget && focus.panel != panel && focusedSurface == Surface::Other) continue;
 		const auto snapshot = NativeUi::Snapshot(panel, panel == focus.panel ? focus.widget : 0);
 		if (snapshot.nodes.empty()) continue;
 		if (dump) Dump(context, snapshot);
+		if (notification) {
+			const auto messages = UiNotifications::Describe(snapshot);
+			notices.insert(notices.end(), messages.begin(), messages.end());
+			continue;
+		}
 		if (snapshot.surface == Surface::Other) continue;
 		const auto readout = UiText::Describe(snapshot);
 		if (readout.Empty()) continue;
@@ -171,8 +181,12 @@ bool Tick(const D2RL::PluginContext* context) {
 	g_ownedFocus = owns;
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns);
 	else g_areaReader.Reset();
+	for (const auto& text : g_notices.Update(notices, now)) {
+		D2RL::LogInfoF(context, "[notice] %s", text.c_str());
+		ScreenReader::Speak(text, false);
+	}
 	if (g_repeat.exchange(false)) {
-		const auto phrase = owns ? g_reader.Repeat() : g_areaReader.Repeat();
+		const auto phrase = owns ? g_reader.Repeat() : !g_notices.Repeat().empty() ? g_notices.Repeat() : g_areaReader.Repeat();
 		if (!phrase.empty()) ScreenReader::Speak(phrase, true);
 	}
 	return owns;

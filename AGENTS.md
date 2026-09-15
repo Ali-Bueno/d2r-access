@@ -26,7 +26,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure` (four suites, 73 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure` (five suites, 101 checks).
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 
@@ -53,6 +53,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `focus_tracker.cpp` | Controller focus: polls the game's `FocusManager/FocusIndicator` rect (self-requeued `runOnUiThread` pump), matches it against `generated/panel_widgets.h`, speaks label/role/value/tooltip; dropdown popup rows and character rows from native text |
 | `widgets.cpp` | SDK WidgetService wrapper: handles cached for the plugin's lifetime (they are name paths), anchors applied against the 3840x2160 canvas for 0x0 parents, per-poll rect memo |
 | `game_text_reader.cpp`, `ui_text.cpp` | Gameplay text context, lifecycle and testable reading policy; runs before the old focus reader and owns NPC/dialogue/tutorial focus while active |
+| `ui_notifications.cpp` | Visible HUD notification rows and temporary informational prompts; text diffing and noninterrupting speech, without reading chat history |
 | `native_memory.cpp`, `native_ui.cpp` | Guarded copies, native visible tree, class ancestry, actual focus, embedded button text; evidence in `docs/native-ui.md` |
 | `native_widgets.cpp` | Game widget objects via D2RCore.dll's slot table (PanelManager global, FindPanel, FindChildWidget, SetText); engine string reader; `TextAt(panel, path)`; probes |
 | `control_state.cpp`, `settings_file.cpp`, `input_direction.cpp`, `display_modes.cpp`, `character_saves.cpp` | Toggle/carousel/dropdown values (Settings.json baseline + input direction), display modes for the resolution list, offline character saves (fallback) |

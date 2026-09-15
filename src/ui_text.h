@@ -7,8 +7,8 @@
 
 namespace D2RAccess::UiText {
 
-enum class Kind { Other, Text, Button, ListItem, List, Focusable, ScrollingText };
-enum class Surface { Other, Menu, Narrative, Tip, Area };
+enum class Kind { Other, Text, LinkedText, NotificationList, Button, ListItem, List, Focusable, ScrollingText };
+enum class Surface { Other, Menu, Narrative, Tip, Area, Notice, NotificationFeed };
 
 // A value-only snapshot. Native pointers are identities, never dereferenced here.
 struct Node {

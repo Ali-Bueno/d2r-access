@@ -101,7 +101,7 @@ Readout Describe(const Snapshot& snapshot) {
 	std::vector<std::string> seen;
 	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
 		const Node& node = snapshot.nodes[i];
-		if (node.kind != Kind::Text) continue;
+		if (node.kind != Kind::Text && node.kind != Kind::LinkedText) continue;
 		bool inControl = false;
 		for (int parent = node.parent; parent >= 0 && parent < static_cast<int>(i);) {
 			if (Interactive(snapshot.nodes[static_cast<size_t>(parent)].kind)) { inControl = true; break; }

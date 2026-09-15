@@ -43,6 +43,7 @@ add_library(d2r-access SHARED
 	src/ui_message_monitor.cpp
 	src/ui_thread_pump.cpp
 	src/ui_text.cpp
+	src/ui_notifications.cpp
 	src/widgets.cpp
 	plugin.rc
 )
@@ -76,17 +77,22 @@ if(BUILD_TESTING)
 	target_compile_features(native-ui-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-ui-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-ui COMMAND native-ui-tests)
-	add_executable(game-text-reader-tests tests/game_text_reader_tests.cpp src/game_text_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(game-text-reader-tests tests/game_text_reader_tests.cpp src/game_text_reader.cpp src/ui_text.cpp src/ui_notifications.cpp src/speech_strings.cpp)
 	target_link_libraries(game-text-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(game-text-reader-tests PRIVATE src)
 	target_compile_features(game-text-reader-tests PRIVATE cxx_std_20)
 	target_compile_definitions(game-text-reader-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME game-text-reader COMMAND game-text-reader-tests)
+	add_executable(ui-notifications-tests tests/ui_notifications_tests.cpp src/ui_notifications.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(ui-notifications-tests PRIVATE src)
+	target_compile_features(ui-notifications-tests PRIVATE cxx_std_20)
+	add_test(NAME ui-notifications COMMAND ui-notifications-tests)
 	if(MSVC)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(ui-notifications-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 	endif()
 endif()
 

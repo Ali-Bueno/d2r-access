@@ -117,6 +117,22 @@ int main() {
 	futurePanel.Add(speech); speech.Add(speechText);
 	Check(NativeUi::Snapshot(futurePanel.Address(), 0).surface == UiText::Surface::Narrative, "scrolling speech archetype works in an unknown panel");
 	Check(NativeUi::Classify(1).name.empty(), "invalid native widget does not fault");
+	Widget feed("HUDMessagePanel", "HUDMessagePanel"), notifications("ChatListWidget", "Messages");
+	Widget linkedText("TextBoxWithLinksWidget", "MessageText", "NoSDSwap notice");
+	Metadata focusBase{0, "FocusableWidget", nullptr};
+	linkedText.metadata.base = &focusBase;
+	linkedText.StringAt(0x5F8, linkedText.text); // embedded textbox +0x570, string +0x88
+	notifications.Put<uint32_t>(0x300, 1); // ChatNotificationMessages, not ChatHistory
+	feed.Add(notifications); notifications.Add(linkedText);
+	snapshot = NativeUi::Snapshot(feed.Address(), 0);
+	Check(snapshot.surface == UiText::Surface::NotificationFeed && snapshot.nodes[1].kind == UiText::Kind::NotificationList, "native notification feed and data source are identified");
+	Check(snapshot.nodes[2].kind == UiText::Kind::LinkedText && snapshot.nodes[2].text == linkedText.text, "linked text uses its embedded textbox, not FocusableWidget fields");
+	notifications.Put<uint32_t>(0x300, 0);
+	Check(NativeUi::Snapshot(feed.Address(), 0).nodes[1].kind == UiText::Kind::List, "chat history is excluded from notifications");
+	linkedText.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::Snapshot(feed.Address(), 0).nodes.size() == 2, "invisible notification rows are omitted");
+	Widget notice("NotificationPanel", "NotificationPanel");
+	Check(NativeUi::Classify(notice.Address()).surface == UiText::Surface::Notice, "temporary notification panels share a notice reader");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

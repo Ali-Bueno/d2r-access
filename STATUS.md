@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (in-game text implementation built and deployed; 73 automated checks pass; live NVDA/controller verification pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (G/system-notice reader built and deployed; 101 automated checks pass; camp entry confirmed by user, notices/NPC verification pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -27,7 +27,10 @@
 | Performance | done | Loader handles cached for life; per-poll rect memo; transient focus misses ignored for 300 ms; slow ticks (>30 ms) logged with loader cost |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — built, awaiting user test | Native visible-tree/focus reader at 20 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
 | NPC menus / dialogue topics | wip — built, awaiting user test | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded |
-| Automated text tests | done (local) | Four CTest suites, 73 checks: policy, guarded memory, native object fixtures, gameplay lifecycle/overlays. No live-game test claimed |
+| Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
+| System notices / G graphics restriction | wip — built, awaiting user test | HUD notification source + TextBoxWithLinksWidget and NotificationPanel prompts; no input focus required, unchanged text stays silent. `docs/test-ingame-text.md` |
+| Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
+| Automated text tests | done (local) | Five CTest suites, 101 checks: policy, guarded memory, native object fixtures, gameplay lifecycle/overlays and visible notifications |
 | In-game panels (inventory, skills, stash) | todo | |
 | Item readout | todo | `ItemInfo` has code/grid/quality but no name/stats → data-table row RE or tooltip hook |
 
@@ -99,13 +102,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Run `docs/test-ingame-text.md` with NVDA and the controller: two NPCs, topic submenu, scrolling dialogue, B/back, a tutorial hint and an area boundary; then review `[text]`/`[text-tree]` logs. Build/deployment and four test suites pass; these features remain wip until the user confirms live behavior. Radar stays deferred per the user.
+First retest **G** in the existing RotW character and review `[notice]` logs. No NPC needs to be found for this test. Then validate NPC/topic/scrolling dialogue with `docs/test-ingame-text.md`. For town orientation, derive live player/NPC/object positions following `docs/map-landmarks.md`; the terrain radar remains deferred. Build/deployment and five test suites pass; notices/NPCs remain wip until user confirmation.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** implemented and automatically tested, but not exercised live during this session (game closed, user away). Runtime class/visibility coverage, NPC controller behavior and glyph-heavy hints still require the controller test guide. Item tooltips, chat, general HUD/combat and inventories remain out of scope.
+- **In-game phase:** camp entry announcement confirmed by user. The reported G warning used an uncovered notification feed and linked-text class; the correction passes synthetic/native-service tests, with character-session validation pending. NPCs have not yet been found/tested by the user. Item tooltips, full chat history, general HUD/combat and inventories remain out of scope.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

@@ -21,6 +21,9 @@ constexpr size_t ChildrenOffset = 0x58; // FindChildWidget 0x855C90
 constexpr size_t GetTypeSlot = 0x58;    // vtable, distinct from the instance member
 constexpr size_t TypeNameOffset = 0x8, BaseTypeOffset = 0x10; // 0x851030
 constexpr size_t ButtonTextOffset = 0x818; // 0x8496CA calls SetText on embedded TextBoxWidget
+constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to embedded TextBoxWidget
+constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
+constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusPanelOffset = 0x188, FocusWidgetOffset = 0x190; // 0x868230 / 0x876CA0
 constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindPanel 0x89F760
@@ -49,8 +52,12 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "ScrollSpeechPanel" || name == "QuestLogSpeechPanel") result.surface = Surface::Narrative;
 	else if (name == "TutorialTooltip" || name == "DismissibleTooltipPanel") result.surface = Surface::Tip;
 	else if (name == "LevelNamePanel") result.surface = Surface::Area;
+	else if (name == "NotificationPanel") result.surface = Surface::Notice;
+	else if (name == "HUDMessagePanel") result.surface = Surface::NotificationFeed;
 	if (result.kind != Kind::Other) return;
 	if (name == "TextBoxWidget") result.kind = Kind::Text;
+	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
+	else if (name == "ChatListWidget") result.kind = Kind::NotificationList;
 	else if (name == "ButtonWidget") result.kind = Kind::Button;
 	else if (name == "ListItemWidget" || name == "HoverListItemWidget") result.kind = Kind::ListItem;
 	else if (name == "ListWidget") result.kind = Kind::List;
@@ -74,7 +81,12 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	node.type = type.name;
 	node.kind = type.kind;
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
+	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
 	else if (type.kind == Kind::Button) node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+	if (type.kind == Kind::NotificationList) {
+		uint32_t source = 0;
+		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
+	}
 	if (type.kind == Kind::ScrollingText && snapshot.surface == Surface::Other) snapshot.surface = Surface::Narrative;
 	const int index = static_cast<int>(snapshot.nodes.size());
 	snapshot.nodes.push_back(std::move(node));
