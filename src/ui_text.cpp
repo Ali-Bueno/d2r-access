@@ -5,8 +5,6 @@
 
 namespace D2RAccess::UiText {
 namespace {
-constexpr uint64_t SettleMs = 80;
-
 void Append(std::string& result, std::string_view part) {
 	if (part.empty()) return;
 	if (!result.empty()) result += ". ";
@@ -130,15 +128,18 @@ Readout Describe(const Snapshot& snapshot) {
 	return result;
 }
 
-Announcement Reader::Update(const Readout& readout, uint64_t now) {
+Announcement Reader::Update(const Readout& readout, uint64_t now, uint64_t settleMs) {
 	if (readout.Empty()) { pending_ = false; return {}; }
+	// Existing menu rows already have complete labels. Moving between them
+	// needs no population delay; new contexts and recycled text still settle.
+	if (!spoken_.Empty() && readout.surface == Surface::Menu && readout.context == spoken_.context
+		&& readout.body == spoken_.body && !readout.option.empty() && readout.focusKey != spoken_.focusKey) settleMs = 0;
 	if (!pending_ || readout != candidate_) {
 		candidate_ = readout;
 		candidateSince_ = now;
 		pending_ = true;
-		return {};
 	}
-	if (now - candidateSince_ < SettleMs || readout == spoken_) return {};
+	if (now - candidateSince_ < settleMs || readout == spoken_) return {};
 	const bool contextChanged = readout.context != spoken_.context || readout.body != spoken_.body;
 	std::string phrase;
 	if (contextChanged) Append(phrase, readout.body);

@@ -35,8 +35,8 @@ int main() {
 	Check(reader.Repeat() == "Akara. Hablar", "repeat uses the current context");
 	snapshot.focus = 6;
 	readout = Describe(snapshot);
-	(void)reader.Update(readout, 600);
-	Check(reader.Update(readout, 680).text == "Comerciar", "navigation reads only the new option");
+	Check(reader.Update(readout, 600).text == "Comerciar", "navigation reads the existing new option immediately");
+	Check(reader.Update(readout, 680).text.empty(), "immediate menu navigation does not repeat on the next poll");
 	snapshot.nodes[6].text = "Identificar objetos";
 	readout = Describe(snapshot);
 	(void)reader.Update(readout, 700);
@@ -95,5 +95,12 @@ int main() {
 	Check(reader.Update(transient, 1980).text == "half", "stable text after a gap is delivered");
 	Check(Clean("\xEE\x80\x93").empty(), "controller-image tooltip is silent");
 	Check(Clean("\xEE\x80\x93 Recoger. Daño: 2–6") == "Recoger. Daño: 2–6", "controller images do not hide real item text or Unicode punctuation");
+	reader.Reset();
+	const Readout item{"Inventory", "Inventario", "Poción", "0", Surface::Other};
+	Check(reader.Update(item, 2000, 0).text == "Inventario. Poción", "already rendered descriptions need no additional settling delay");
+	Check(reader.Update(item, 2001, 0).text.empty(), "immediate descriptions remain deduplicated");
+	reader.Reset();
+	Check(reader.Update(item, 2100, 20).text.empty(), "coordinate-only selection allows one poll for item capture");
+	Check(reader.Update(item, 2119, 20).text.empty() && reader.Update(item, 2120, 20).text == "Inventario. Poción", "short inventory settle has an explicit latency bound");
 	Passed();
 }

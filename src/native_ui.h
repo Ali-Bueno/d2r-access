@@ -20,6 +20,7 @@ Focus CurrentFocus();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
+std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
 void Reset();

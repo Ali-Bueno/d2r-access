@@ -19,7 +19,7 @@
 namespace D2RAccess::GameTextReader {
 namespace {
 using UiText::Surface;
-constexpr uint64_t PollMs = 50; // 20 Hz, independent of the game's render rate
+constexpr uint64_t PollMs = 33; // match the existing 30 Hz controller focus reader
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
@@ -139,6 +139,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	g_lastPoll = now;
 	const NativeUi::Focus focus = NativeUi::CurrentFocus();
 	const auto focusedSurface = NativeUi::Classify(focus.panel).surface;
+	const bool inventoryFocus = InteractionReader::IsInventoryFocus(focus);
 	const bool dump = g_dump.exchange(false);
 	UiText::Readout active, area;
 	std::vector<std::string> notices;
@@ -150,6 +151,9 @@ bool Tick(const D2RL::PluginContext* context) {
 		const auto type = NativeUi::Classify(panel);
 		if (type.surface == Surface::Target) continue; // shared interaction reader, passive HUD target
 		if (!NativeUi::Visible(panel) || (type.surface == Surface::Other && panel != focus.panel)) continue;
+		// The item reader owns this archetype. Avoid a full inventory walk that
+		// this loop would immediately discard; keep explicit diagnostic dumps.
+		if (!dump && inventoryFocus && type.surface == Surface::Other) continue;
 		const bool notification = type.surface == Surface::Notice || type.surface == Surface::NotificationFeed;
 		// A different menu/modal receiving input covers this conversation. An
 		// area banner is passive and may still be announced without taking focus.
@@ -171,7 +175,7 @@ bool Tick(const D2RL::PluginContext* context) {
 		const int priority = Priority(snapshot, focus);
 		if (priority > best) { best = priority; active = readout; }
 	}
-	if (best < 0 && focus.widget) {
+	if (best < 0 && focus.widget && !inventoryFocus) {
 		auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		snapshot.name = NativeWidgets::ReadName(focus.panel);
 		if (dump) Dump(context, snapshot);

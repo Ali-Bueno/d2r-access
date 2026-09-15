@@ -19,6 +19,7 @@ bool conversation = false;
 uintptr_t tracked = 0;
 uint64_t now = 1000, selection = UINT64_MAX;
 const D2RL::PluginContext context{};
+int inventoryWalks = 0, titleLookups = 0;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -37,7 +38,15 @@ Type Classify(uintptr_t widget) {
 }
 Cell GridCell(uintptr_t) { return cell; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) { return panel == 40 ? target : inventory; }
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+	if (panel == 40) return target;
+	++inventoryWalks;
+	return inventory;
+}
+std::string SelectedTabText(uintptr_t widget) {
+	for (const auto& node : inventory.nodes) if (node.id == widget) return node.text;
+	return {};
+}
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
@@ -48,7 +57,7 @@ void Track(uintptr_t panel) { tracked = panel; }
 void Reset() { tracked = 0; tooltip = {}; }
 Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
-namespace D2RAccess::Localization { std::string Text(std::string_view) { return {}; } }
+namespace D2RAccess::Localization { std::string Text(std::string_view) { ++titleLookups; return {}; } }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool) { speech.emplace_back(text); }
 void Stop() {}
@@ -86,12 +95,14 @@ int main() {
 	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Fila 1, columna 1. Poción de curación menor Recupera 45 de vida. Usar"}, "stash opens with its selected tab, cell, complete item text and footer");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "stationary inventory selection stays quiet");
+	Check(inventoryWalks == 1 && titleLookups == 1, "inventory tree and localized title are resolved once on entry");
 	cell = {1, 0}; selection = 1; Tick();
 	Tooltip("Poción de curación menor\nRecupera 45 de vida"); tooltip.footer = "Usar";
 	Settle();
 	Check(speech.size() == 1 && speech[0].starts_with("Fila 1, columna 2. Poción"), "identical items in different cells are announced without repeating the section");
 	ClearSpeech(); inventory.nodes[0].text = "Comp."; Settle();
 	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
+	Check(inventoryWalks == 1 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
 	ClearSpeech(); cell = {2, 0}; selection = 2; Settle();
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "old tooltip is discarded when selection moves to a cell without a rendered description");
 	ClearSpeech(); focus = {20, 21}; inventory = {}; cell = {0, 1}; selection = uint64_t{1} << 32;
@@ -105,5 +116,16 @@ int main() {
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "a dialogue overlay stops inventory readout");
 	conversation = false; InteractionReader::Reset();
 	Check(tracked == 0, "leaving gameplay or disabling text also disables native tooltip capture");
+	focus = {10, 11}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid}; cell = {0, 0}; selection = 0;
+	inventory = {10, 11, "BankExpansionLayout", UiText::Surface::Other, {{13, -1, UiText::Kind::Tabs, "BankTabs", "TabBarWidget", "Personal"}}};
+	const auto priorWalks = inventoryWalks;
+	ClearSpeech(); Tooltip("Poción");
+	Check(Tick() && speech.size() == 1 && speech[0].find("Poción") != std::string::npos, "rendered item speech is emitted on the first inventory poll");
+	Check(inventoryWalks == priorWalks + 1, "reopening inventory discovers its current section controls again");
+	ClearSpeech(); tooltip = {}; cell = {1, 0}; selection = 1;
+	Tick();
+	Check(speech.empty(), "new cell permits a brief wait for the renderer");
+	now += 33; InteractionReader::Tick(&context, now, focus, false);
+	Check(speech == std::vector<std::string>{"Fila 1, columna 2"}, "coordinate navigation speaks by the next 30 Hz poll");
 	Passed();
 }

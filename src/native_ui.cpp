@@ -91,11 +91,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
 	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
 	else if (type.kind == Kind::Button) node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
-	else if (type.kind == Kind::Tabs) {
-		int32_t selected = -1;
-		if (Peek(widget + SelectedTabOffset, selected) && selected >= 0 && selected < 8)
-			node.text = NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
-	}
+	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
@@ -162,6 +158,13 @@ uint64_t FocusSelection(uintptr_t widget) {
 	uint64_t result = UINT64_MAX;
 	if (NativeWidgets::SupportsTree() && widget) (void)Peek(widget + SelectionOffset, result);
 	return result;
+}
+
+std::string SelectedTabText(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
+	int32_t selected = -1;
+	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return {};
+	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
 }
 
 Cell GridCell(uintptr_t widget) {

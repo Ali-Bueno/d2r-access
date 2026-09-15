@@ -30,12 +30,18 @@ without interrupting a conversation. A new delivery of identical text is read
 again; simply leaving a notice visible stays silent. Notification text with links
 uses its native embedded textbox.
 
-New, awaiting in-game verification: highlighted world labels (the real stash
-label was located in live memory), primary item descriptions, inventory grid
-coordinates and selected stash tabs. The same reader follows item grids and
+The user confirmed the stash and Charsi target labels and basic inventory
+selection. Primary item descriptions still await a live item test. The reader
+also exposes inventory coordinates and selected stash tabs. It follows item grids and
 equipment; it reads complete rendered descriptions and suppresses stationary
 repeats. A cell without a description announces its coordinates. See
 [native tooltip evidence](docs/native-tooltips.md).
+
+Navigation optimization, awaiting user retest: existing NPC menu rows read
+without a population delay; inventory coordinates settle for one poll and
+already rendered item descriptions read immediately. Inventory section controls
+are discovered on entry and their selected values stay live, avoiding repeated
+full inventory walks. Gameplay focus is sampled at 30 Hz.
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat and navigation.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).

@@ -53,13 +53,27 @@ mutex; speech remains on the existing PRISM thread. Gameplay lifecycle,
   `minipanelinv`; equipment and belt transitions use localized plugin phrases.
 - `MonsterHealthPanel` provides a second, visible-tree target-name source,
   including its Name/Unique/Additional text boxes. It is suppressed while a
-  different menu owns focus. Actual NPC/controller validation remains pending.
+  different menu owns focus. The user confirmed hearing Charsi's target label;
+  the log identifies that particular announcement as a primary world tooltip.
 
-The interaction reader settles changes for 80 ms. A stationary target is
+World labels settle for 80 ms. Inventory coordinates allow 20 ms (one subsequent
+30 Hz poll) for a new tooltip; an already rendered, focus-matching item description
+is delivered immediately. Existing NPC menu-row navigation also reads immediately,
+while new dialogues and repopulated text keep the 80 ms settling window.
+A stationary target is
 silent; losing it and returning re-arms the same name. Different inventory
 cells retain distinct selection identities even when their item names match.
 Private-use font glyphs are removed from speech while the surrounding text and
 Unicode punctuation remain intact.
+
+Inventory section controls and the localized title are discovered once per panel
+entry. Only the actual selected tab labels are re-read during navigation; the
+cache is cleared on exit, overlays, toggles and session changes. The conversation
+reader skips item grids instead of walking and discarding their full panel trees.
+An explicit `access-text dump` still walks the inventory for diagnostics. Tests
+verify scan counts and delivery timing. `[pump] slow accessibility tick` reports
+callbacks over 30 ms, at most once per five seconds, independently of gaps between
+game updates. End-to-end responsiveness still requires a controller/NVDA retest.
 
 Current boundary: cells without a rendered tooltip announce their coordinates.
 They are **not declared empty**, since absence of a tooltip alone is insufficient

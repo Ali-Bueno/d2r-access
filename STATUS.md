@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (repeated G warning confirmed by user; live stash label recovered; target/item capture built and deployed; seven suites / 163 checks pass; live NVDA validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (stash/Charsi labels and basic inventory selection confirmed; menu/inventory latency optimization built/deployed; seven suites / 176 checks pass; responsiveness retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -24,15 +24,15 @@
 | Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
 | Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
-| Performance | done | Loader handles cached for life; per-poll rect memo; transient focus misses ignored for 300 ms; slow ticks (>30 ms) logged with loader cost |
-| In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — built, awaiting user test | Native visible-tree/focus reader at 20 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
-| NPC menus / dialogue topics | wip — built, awaiting user test | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded |
+| Performance | wip — navigation optimization deployed | Inventory tree/title discovered once per entry; selected tabs remain live; redundant inventory scans removed; 30 Hz polling, short cell settling and immediate existing menu-row navigation. Full callback timings distinguish plugin cost from game-update gaps; user retest pending |
+| In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
+| NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Automated text tests | done (local) | Seven CTest suites, 163 checks: existing text/notifications, guarded memory/tree, gameplay lifecycle, primary tooltip capture and interaction reading |
-| Highlighted NPC/object labels | wip — built/deployed, awaiting user test | Exact `Tu alijo personal` captured live from primary tooltip. Shared draw capture plus visible target-name HUD. `docs/native-tooltips.md` |
-| In-game panels (inventory, skills, stash) | wip — initial inventory/stash reader built/deployed | Shared item/grid archetype, native row/column, selected stash tabs and equipment section; skills/full inventory operations remain pending |
+| Automated text tests | done (local) | Seven CTest suites, 176 checks: existing text/notifications, guarded memory/tree, gameplay lifecycle, primary tooltip capture, interaction reading and navigation latency/work limits |
+| Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
+| In-game panels (inventory, skills, stash) | wip — basic selection confirmed, latency retest pending | Shared item/grid archetype, native row/column, selected stash tabs and equipment section; skills/full inventory operations remain pending |
 | Item readout | wip — primary tooltip capture built/deployed | Reads stock body/footer before per-frame destruction; stale cell descriptions rejected; live item/order verification pending |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -105,13 +105,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Validate the installed build: stash label disappearing/returning, opening stash and moving focus through item cells/equipment; review `[tooltip]` and `[interaction]` logs. Build/deploy and all 163 automated checks passed. Installed DLL SHA-256: `A8069079DDD48A34AD00231153AD29585EA5EA504A7FE8BD9FA7FDF7EC844FAA`. NPC/topic/scrolling dialogue tests remain in `docs/test-ingame-text.md`. Town-position work remains in `docs/map-landmarks.md`; terrain radar is deferred.
+Retest responsiveness: open the empty stash with A, press D-pad Right/Left several times, then compare Charsi's menu navigation. Check `[pump] slow accessibility tick` against the existing longest-gap reports if pauses remain. All 176 automated checks passed; installed DLL SHA-256: `05859A4C68B42CCE1988410B8A37723BEF5F1CDF293BF28FF9BA567207F154A6`. Item descriptions await an actual item. Town-position work remains in `docs/map-landmarks.md`; terrain radar is deferred.
 
 ## Known issues / open questions
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry and repeated G warnings confirmed by user. NPCs have not yet been found/tested. Target and item capture are the active task. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
+- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels and basic inventory selection confirmed. Charsi introduction/gossip/menu announcements appear in the 10:58:39 log session. The user reported slow menu/inventory navigation; that session had 14 of 26 pump samples above 500 ms (including loading), but no existing focus slow-tick warnings. Duplicate walks and avoidable settling were removed; full callback timing is now logged to investigate remaining pauses. Cells without a rendered description announce coordinates, not an unverified empty/occupied status. Full inventory operations, chat history, HUD/combat and navigation remain pending.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.

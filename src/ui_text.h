@@ -41,11 +41,11 @@ std::string Clean(std::string_view text);
 Readout Describe(const Snapshot& snapshot);
 
 // Wait for a coherent snapshot after repopulation, then announce actual changes.
-// The 80 ms settling window spans multiple UI frames without delaying navigation
-// by a full speech call (PRISM runs on another thread).
+// New text settles for 80 ms by default. Existing menu-row navigation and
+// descriptions already captured while rendering can be delivered immediately.
 class Reader {
 public:
-	Announcement Update(const Readout& readout, uint64_t now);
+	Announcement Update(const Readout& readout, uint64_t now, uint64_t settleMs = 80);
 	void Reset();
 	std::string Repeat() const;
 private:

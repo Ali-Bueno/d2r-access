@@ -5,6 +5,7 @@
 #include <string>
 
 namespace D2RAccess::InteractionReader {
+bool IsInventoryFocus(NativeUi::Focus focus);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation);
 void Reset();
 std::string Repeat();

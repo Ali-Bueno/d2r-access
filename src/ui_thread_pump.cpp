@@ -45,7 +45,17 @@ void __cdecl OnUiTick(const D2RL::PluginContext* context, void*) noexcept {
 	}
 	LogTickStats(context);
 	if (g_tick != nullptr) {
+		const auto start = GetTickCount64();
 		g_tick(context);
+		const auto elapsed = GetTickCount64() - start;
+		// Separate accessibility work from gaps between root-widget updates.
+		// Limit reports so diagnostics cannot turn a slow tick into log spam.
+		constexpr ULONGLONG SlowTickMs = 30;
+		static ULONGLONG lastReport = 0;
+		if (elapsed >= SlowTickMs && (!lastReport || start - lastReport >= StatsIntervalMs)) {
+			D2RL::LogWarnF(context, "[pump] slow accessibility tick: %llu ms", elapsed);
+			lastReport = start;
+		}
 	}
 	(void)Queue(context);
 }
