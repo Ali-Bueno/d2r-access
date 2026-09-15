@@ -28,6 +28,7 @@ struct Fixture {
 		path.At<int>(8, -2480); path.At<int>(12, 72816);
 		path.At(0x20, room.Address()); path.At<int>(0x5C, 1);
 		path.At<uint32_t>(0x60, 0x80); // native player footprint flag
+		path.At<uint32_t>(0x64, 0x1C09); // native movement-test mask
 		room.At(0x18, extended.Address()); room.At(0x38, grid.Address());
 		extended.At(0x90, level.Address()); level.At<int>(0x1F8, 1);
 		grid.At<int>(0, 100); grid.At<int>(4, 100); grid.At<int>(8, 10); grid.At<int>(12, 10);
@@ -68,8 +69,24 @@ void PlayerPresenceTests() {
 		"a large unit's native cross-shaped presence is removed");
 	Check(world.Cell(105, 105) == Radar::State::Blocked, "large unit presence removal preserves no-path at square corners");
 }
+void MovementMaskTests() {
+	Fixture fixture;
+	Radar::World world;
+	fixture.path.At<uint32_t>(0x64, 0x1D89); // also test actor presence
+	fixture.cells[47] = 0x100;
+	Check(fixture.Read(world) && world.walkingMask == 0x1D89 && world.Cell(107, 104) == Radar::State::Blocked,
+		"radar uses the current native movement mask instead of a fixed skill-target mask");
+	for (size_t cell : {34u, 43u, 44u, 45u, 54u}) fixture.cells[cell] = 0x80;
+	fixture.cells[44] |= 0x1000;
+	Check(fixture.Read(world) && world.Body(105, 104) == Radar::State::Open,
+		"the player's full footprint is excluded when the movement mask includes actors");
+	Check(fixture.cells[44] == 0x1080 && fixture.cells[45] == 0x80, "native occupancy remains unchanged");
+	fixture.path.At<uint32_t>(0x64, 0x10000);
+	Check(!fixture.Read(world), "out-of-range native collision mask fails closed");
+}
 }
 int main() {
+	MovementMaskTests();
 	PlayerPresenceTests();
 	Check(RadarConfig::Parse("[radar]\nenabled = false # quiet default\n").enabled == false, "embedded radar preference can disable startup audio");
 	Check(RadarConfig::Parse("[other]\nenabled=false\n").enabled, "other features' switches cannot disable the radar");

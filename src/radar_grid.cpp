@@ -48,17 +48,24 @@ State World::Body(int x, int y) const {
 Probe Scan(const World& world, Position axis, const Settings& settings) {
 	Probe probe;
 	const Position side{-axis.y, axis.x};
-	State body = State::Open;
+	probe.body = State::Open;
+	probe.end = State::Open;
 	// Half-subtile steps include diagonal crossings; footprint checks at each
 	// step keep a single thin centre ray from accepting an unusable gap.
 	constexpr double Step = 0.5;
-	for (double depth = Step; depth <= settings.nearRange; depth += Step) {
-		body = world.Body(CellCoordinate(world.player.x, axis.x * depth),
-			CellCoordinate(world.player.y, axis.y * depth));
-		if (body != State::Open) break;
-		probe.bodyDepth = depth;
+	for (double depth = Step; depth <= settings.farRange; depth += Step) {
+		const int x = CellCoordinate(world.player.x, axis.x * depth);
+		const int y = CellCoordinate(world.player.y, axis.y * depth);
+		// Native movement trace 0x364700 tests destination cells, not the
+		// origin. A diagonal half-step can still round to the player's cell;
+		// testing it would prevent leaving an overlapping obstacle behind.
+		if (x == static_cast<int>(world.player.x) && y == static_cast<int>(world.player.y)) continue;
+		probe.end = world.Body(x, y);
+		if (depth <= settings.nearRange) probe.body = probe.end;
+		if (probe.end != State::Open) break;
+		probe.clearDepth = depth;
+		probe.bodyDepth = std::min(depth, settings.nearRange);
 	}
-	probe.body = body;
 	std::array<State, 3> ends{};
 	for (size_t lane = 0; lane < probe.depths.size(); ++lane) {
 		const double offset = (static_cast<double>(lane) - 1) * settings.laneSpacing;
@@ -74,11 +81,10 @@ Probe Scan(const World& world, Position axis, const Settings& settings) {
 	auto ordered = probe.depths;
 	std::sort(ordered.begin(), ordered.end());
 	probe.medianDepth = ordered[1];
-	probe.available = body == State::Blocked || (body == State::Open
-		&& (ends[1] == State::Blocked || (probe.depths[1] >= settings.openDepth && probe.medianDepth >= settings.openDepth)));
-	if (body == State::Blocked || (ends[1] == State::Blocked && probe.depths[1] <= settings.blockedDepth))
+	probe.available = probe.end == State::Blocked || probe.clearDepth >= settings.openDepth;
+	if (probe.body == State::Blocked || (probe.end == State::Blocked && probe.clearDepth <= settings.blockedDepth))
 		probe.observed = State::Blocked;
-	else if (body == State::Open && probe.depths[1] >= settings.openDepth && probe.medianDepth >= settings.openDepth)
+	else if (probe.clearDepth >= settings.openDepth && probe.medianDepth >= settings.openDepth)
 		probe.observed = State::Open;
 	// Unknown includes the spatial dead band. Never claim an unloaded boundary
 	// is open merely because a ray did not find a wall.

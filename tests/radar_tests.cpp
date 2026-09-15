@@ -24,12 +24,9 @@ void Put(World& world, int x, int y, uint16_t value) {
 }
 bool Silent(const Events& events) { return std::all_of(events.begin(), events.end(), [](State s) { return s == State::Unknown; }); }
 void Baseline(Engine& engine, World& world) {
-	Check(Silent(engine.Tick(world, 1000)), "initial player observation is silent");
-	for (uint64_t tick = 1; tick <= 4; ++tick) {
-		world.player.x += 1;
-		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "heading acquisition and baseline are silent");
-	}
-	Check(engine.Heading() == 0, "actual +X movement acquires the expected heading");
+	Check(Silent(engine.Tick(world, 1000)), "first screen-axis baseline is silent without walking");
+	for (uint64_t tick = 1; tick <= 4; ++tick)
+		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "unchanged terrain at rest stays silent");
 }
 void GridTests() {
 	auto world = Field();
@@ -69,132 +66,110 @@ void SymmetryTests() {
 	constexpr std::array<Position, 8> steps{{{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}}};
 	for (size_t heading = 0; heading < steps.size(); ++heading) {
 		auto world = Field();
-		const auto step = steps[heading];
-		constexpr int Center = 200, WallDistance = 6;
+		world.player = {200, 200};
 		for (int cell = 0; cell < 400; ++cell) {
-			Put(world, Center - WallDistance, cell, 1);
-			Put(world, Center + WallDistance, cell, 1);
-			Put(world, cell, Center - WallDistance, 1);
-			Put(world, cell, Center + WallDistance, 1);
+			Put(world, 194, cell, 1); Put(world, 206, cell, 1);
+			Put(world, cell, 194, 1); Put(world, cell, 206, 1);
 		}
-		Engine engine;
-		for (uint64_t tick = 0; tick <= 4; ++tick) {
-			world.player = {Center - (4 - double(tick)) * step.x, Center - (4 - double(tick)) * step.y};
-			(void)engine.Tick(world, 1000 + tick * 50);
-		}
-		Check(engine.Heading() == static_cast<int>(heading), "all eight actual movement headings are acquired");
-		// Rays start at the cell centre. The wall begins 5.5 subtiles away on
-		// each cardinal axis, or 5.5 * sqrt(2) diagonally. Last clear 0.5 step:
-		const double expectedDepth = heading % 2 == 0 ? 5.0 : 7.5;
-		for (const auto& sensor : engine.Sensors())
-			Check(sensor.probe.depths[1] == expectedDepth, "symmetric walls have equal depths in every relative direction");
+		const auto step = steps[heading];
+		const double norm = std::hypot(step.x, step.y);
+		const auto probe = Scan(world, {step.x / norm, step.y / norm}, {});
+		Check(probe.depths[1] == (heading % 2 == 0 ? 5.0 : 7.5), "point rays remain symmetric in all eight directions");
+		Check(probe.clearDepth == (heading % 2 == 0 ? 4.0 : 6.0), "full-body clearance remains symmetric in all eight directions");
 	}
 	for (size_t heading = 0; heading < steps.size(); heading += 2) {
-		auto world = Field();
-		world.bodyPattern = 0;
+		auto world = Field(); world.player = {200, 200}; world.bodyPattern = 0;
 		const auto step = steps[heading];
-		constexpr int Center = 200;
 		for (int cell = 0; cell < 400; ++cell) {
-			if (step.x != 0) { Put(world, cell, Center - 1, 1); Put(world, cell, Center + 1, 1); }
-			else { Put(world, Center - 1, cell, 1); Put(world, Center + 1, cell, 1); }
+			if (step.x != 0) { Put(world, cell, 199, 1); Put(world, cell, 201, 1); }
+			else { Put(world, 199, cell, 1); Put(world, 201, cell, 1); }
 		}
-		Engine engine;
-		for (uint64_t tick = 0; tick <= 4; ++tick) {
-			world.player = {Center - (4 - double(tick)) * step.x, Center - (4 - double(tick)) * step.y};
-			(void)engine.Tick(world, 1000 + tick * 50);
+		Check(Scan(world, step, {}).depths[1] == Settings{}.farRange, "cardinal rays stay in their own grid row or column");
+	}
+}
+void ScreenAxisTests() {
+	// World diagonals projected by the installed game's X-Y / X+Y transform.
+	constexpr std::array<Position, 4> steps{{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}}};
+	for (size_t direction = 0; direction < steps.size(); ++direction) {
+		auto world = Field(); const auto step = steps[direction];
+		Put(world, 110 + int(step.x) * 2, 100 + int(step.y) * 2, 1);
+		Engine engine; Baseline(engine, world);
+		for (size_t i = 0; i < DirectionCount; ++i)
+			Check(engine.Sensors()[i].probe.observed == (i == direction ? State::Blocked : State::Open),
+				"a screen-axis obstacle is assigned to the matching stick direction at rest");
+		uint64_t now = 1200;
+		const uint64_t revision = engine.Revision();
+		for (const auto movement : steps) {
+			world.player = {110 + movement.x, 100 + movement.y};
+			(void)engine.Tick(world, now += 50);
+			world.player = {110, 100};
+			(void)engine.Tick(world, now += 50);
+			Check(engine.Sensors()[direction].probe.observed == State::Blocked,
+				"returning from any movement keeps the same screen-axis obstacle");
 		}
-		Check(engine.Heading() == static_cast<int>(heading), "one-cell corridor acquires its cardinal heading");
-		for (auto direction : {Direction::Front, Direction::Back})
-			Check(engine.Sensors()[static_cast<size_t>(direction)].probe.depths[1] == Settings{}.farRange,
-				"cardinal centre rays stay in the same row or column for their full range");
+		Check(engine.Revision() == revision, "turning never rotates the reference or cancels screen-axis cues");
 	}
 }
 void TopologyTests() {
 	auto world = Field();
-	for (int x = 0; x < 400; ++x) {
-		if (x >= 120 && x <= 130) continue;
-		Put(world, x, 97, 1);
-		Put(world, x, 103, 1);
+	// Horizontal on screen: x+y is constant. A wide vertical side opening
+	// interrupts both banks of this corridor at x-y in [30, 50].
+	for (int y = 0; y < 400; ++y) for (int x = 0; x < 400; ++x) {
+		if (x-y >= 30 && x-y <= 50) continue;
+		if (x+y == 206 || x+y == 214) Put(world, x, y, 1);
 	}
-	Engine engine;
-	Baseline(engine, world);
-	Check(engine.Sensors()[1].stable == State::Blocked && engine.Sensors()[2].stable == State::Blocked, "straight corridor baselines both sides as blocked");
-	unsigned leftOpen = 0, rightOpen = 0, leftClose = 0, rightClose = 0;
+	Engine engine; Baseline(engine, world);
+	Check(engine.Sensors()[0].stable == State::Blocked && engine.Sensors()[3].stable == State::Blocked,
+		"horizontal screen corridor has blocked up/down sides");
+	unsigned upOpen = 0, downOpen = 0, upClose = 0, downClose = 0;
 	bool simultaneous = false;
 	for (uint64_t tick = 5; tick <= 35; ++tick) {
-		world.player.x += 1;
+		world.player.x += 1; world.player.y -= 1;
 		const auto events = engine.Tick(world, 1000 + tick * 50);
-		leftOpen += events[1] == State::Open;
-		rightOpen += events[2] == State::Open;
-		leftClose += events[1] == State::Blocked;
-		rightClose += events[2] == State::Blocked;
-		simultaneous |= events[1] == State::Open && events[2] == State::Open;
-		Check(events[0] == State::Unknown && events[3] == State::Unknown, "unchanged front and rear stay silent at crossroad");
+		upOpen += events[0] == State::Open; downOpen += events[3] == State::Open;
+		upClose += events[0] == State::Blocked; downClose += events[3] == State::Blocked;
+		simultaneous |= events[0] == State::Open && events[3] == State::Open;
+		Check(events[1] == State::Unknown && events[2] == State::Unknown, "unchanged left/right remain silent at a screen-axis crossroad");
 	}
-	Check(leftOpen == 1 && rightOpen == 1 && leftClose == 1 && rightClose == 1, "one opening and closing per side while passing a crossroad");
-	Check(simultaneous, "both sides of a crossroad are delivered in one batch");
-	for (uint64_t tick = 36; tick < 50; ++tick) Check(Silent(engine.Tick(world, 1000 + tick * 50)), "stationary corridor never repeats cues");
-	// Rotation must not present the old front/rear as newly appeared side paths.
-	for (uint64_t tick = 50; tick < 58; ++tick) {
-		world.player.y -= 0.5;
-		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "ninety-degree heading rebase is silent");
-	}
+	Check(upOpen == 1 && downOpen == 1 && upClose == 1 && downClose == 1, "one opening and closing per side while passing a crossroad");
+	Check(simultaneous, "both sides of a crossroad reach the audio queue");
+	for (uint64_t tick = 36; tick < 50; ++tick)
+		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "stationary corridor never repeats cues");
 }
 void StabilityTests() {
-	auto world = Field();
-	Engine engine;
-	Baseline(engine, world);
+	auto world = Field(); Engine engine; Baseline(engine, world);
+	auto revision = engine.Revision();
 	world.player = {200, 200};
-	Check(Silent(engine.Tick(world, 1250)) && engine.Heading() == -1, "teleport discards old topology and heading");
-	Baseline(engine, world);
-	++world.level;
-	Check(Silent(engine.Tick(world, 1250)) && engine.Heading() == -1, "new area is silently rebased");
-	Baseline(engine, world);
-	Check(Silent(engine.Tick(world, 2000)) && engine.Heading() == -1, "long pause cannot replay stale topology");
-	world = Field();
-	engine.Reset();
-	Baseline(engine, world);
+	Check(Silent(engine.Tick(world, 1250)) && engine.Revision() != revision, "teleport cancels old cues and silently baselines the destination");
+	revision = engine.Revision(); ++world.level;
+	Check(Silent(engine.Tick(world, 1300)) && engine.Revision() != revision, "new area silently cancels old cues");
+	revision = engine.Revision();
+	Check(Silent(engine.Tick(world, 2000)) && engine.Revision() != revision, "long pause cannot replay stale topology");
+	world = Field(); engine.Reset(); Baseline(engine, world);
 	for (uint64_t tick = 5; tick < 30; ++tick) {
-		world.player.x += 1;
-		world.player.y += tick % 2 ? 1 : -1;
-		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "joystick zig-zag never causes four fake topology cues");
+		world.player.x += 1; world.player.y += tick % 2 ? 1 : -1;
+		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "zig-zag in an open field does not cause topology events");
 	}
-	world = Field();
-	engine.Reset();
-	Baseline(engine, world);
-	for (int x = 0; x < 400; ++x) Put(world, x, 99, 1);
-	Check(Silent(engine.Tick(world, 1250)), "a stationary raw collision change starts a candidate only");
-	Check(Silent(engine.Tick(world, 1350)), "time alone cannot confirm stationary terrain changes");
-	for (int x = 0; x < 400; ++x) Put(world, x, 99, 0);
-	Check(Silent(engine.Tick(world, 1400)), "brief unstable blockage is discarded");
-	world = Field();
-	engine.Reset();
-	(void)engine.Tick(world, 1000);
-	for (uint64_t tick = 1; tick <= 12; ++tick) {
-		if (tick % 2) world.player.x += 1;
-		else world.player.y += 1;
-		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "integer diagonal staircase does not emit false transitions");
-	}
-	Check(engine.Heading() == 1, "alternating X/Y subtiles acquire a stable diagonal heading");
-	world = Field();
-	engine.Reset();
-	Baseline(engine, world);
-	const uint64_t revision = engine.Revision();
-	world.session += 1;
+	world = Field(); engine.Reset(); Baseline(engine, world);
+	Put(world, 111, 101, 0x800);
+	Check(Silent(engine.Tick(world, 1250)), "stationary door closure starts a candidate");
+	Check(Silent(engine.Tick(world, 1350)), "brief stationary blockage is not confirmed yet");
+	Check(Silent(engine.Tick(world, 1450)), "stationary changes use the longer confirmation window");
+	Check(engine.Tick(world, 1500)[3] == State::Blocked, "stopping cannot suppress a confirmed closing cue");
+	Check(Silent(engine.Tick(world, 1550)), "the same blocked state is announced only once");
+	Put(world, 111, 101, 0);
+	(void)engine.Tick(world, 1600); (void)engine.Tick(world, 1700); (void)engine.Tick(world, 1800);
+	Check(engine.Tick(world, 1850)[3] == State::Open, "opening a door while stationary is confirmed once");
+	world = Field(); engine.Reset(); Baseline(engine, world);
+	revision = engine.Revision(); ++world.session;
 	(void)engine.Tick(world, 1250);
-	Check(engine.Revision() != revision, "session change invalidates audio already queued in the old frame");
-	world = Field();
-	engine.Reset();
-	Baseline(engine, world);
-	const auto originalRoom = world.rooms.front();
-	world.rooms.front().width = 117;
-	world.rooms.front().cells.resize(117 * 400);
-	Check(Silent(engine.Tick(world, 1250)) && engine.Sensors()[0].stable == State::Unknown, "loss of nearby terrain drops the old state without a closing sound");
-	world.rooms.front() = originalRoom;
-	for (uint64_t tick = 6; tick <= 10; ++tick) {
-		world.player.x += 0.5;
-		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "restored terrain silently establishes a new baseline");
-	}
+	Check(engine.Revision() != revision, "session change invalidates queued audio");
+	world = Field(); engine.Reset(); Baseline(engine, world);
+	const auto rooms = world.rooms; world.rooms.clear();
+	Check(Silent(engine.Tick(world, 1250)) && engine.Sensors()[0].stable == State::Unknown, "missing terrain drops the old state without inventing a wall");
+	world.rooms = rooms;
+	for (uint64_t tick = 6; tick <= 10; ++tick)
+		Check(Silent(engine.Tick(world, 1000 + tick * 50)), "restored terrain silently establishes a baseline");
 }
 void AudioTests() {
 	Events events{};
@@ -209,7 +184,7 @@ void AudioTests() {
 		Check(left + right > 0, "each direction synthesizes an audible cue");
 		if (direction == 1) Check(left > right * 10, "left cue is strongly left-panned");
 		else if (direction == 2) Check(right > left * 10, "right cue is strongly right-panned");
-		else Check(left == right, "front and rear cues use centred stereo");
+		else Check(left == right, "up and down cues use centred stereo");
 		Check(pcm.front() == 0 && std::abs(pcm.back()) < 50, "cue envelope avoids endpoint clicks");
 	}
 	events.fill(State::Open);
@@ -217,14 +192,62 @@ void AudioTests() {
 	Check(std::none_of(batch.begin(), batch.end(), [](int s) { return std::abs(s) >= 32767; }), "simultaneous cues stay below clipping");
 	Events front{}, rear{};
 	front[0] = rear[3] = State::Open;
-	Check(RadarAudio::Synthesize(front) != RadarAudio::Synthesize(rear), "rear has a distinct pitch");
+	Check(RadarAudio::Synthesize(front) != RadarAudio::Synthesize(rear), "down has a distinct pitch");
 	front[0] = State::Blocked;
 	Check(RadarAudio::Synthesize(front) != RadarAudio::Synthesize(rear), "blocked tock differs from opening tin");
 }
+void PassageRegressionTests() {
+	auto world = Field();
+	Put(world, 109, 100, 1);
+	Check(Scan(world, {std::sqrt(0.5), std::sqrt(0.5)}, {}).observed == State::Open,
+		"a clear destination allows moving away from an obstacle overlapping the current footprint");
+	world = Field();
+	// A clear centre ray and two clear lanes are insufficient: the player's
+	// right shoulder hits this wall beyond the old two-subtile body sweep.
+	for (int x = 114; x < 125; ++x) Put(world, x, 101, 1);
+	Check(Scan(world, {1, 0}, {}).observed != State::Open,
+		"an opening must fit the player's body throughout its claimed depth");
+	world = Field();
+	for (int x = 113; x < 125; ++x) Put(world, x, 101, 1);
+	Check(Scan(world, {1, 0}, {}).observed == State::Blocked,
+		"a shoulder obstruction within blocking distance is blocked even with a clear centre ray");
+	Events pair{};
+	pair[1] = pair[2] = State::Open;
+	Events one{}; one[1] = State::Open;
+	const auto single = RadarAudio::Synthesize(one), sequence = RadarAudio::Synthesize(pair);
+	const size_t gap = RadarAudio::SampleRate * RadarAudio::Channels * 50 / 1000;
+	Check(sequence.size() == 2 * single.size() + gap,
+		"two simultaneous cues play successively with a 50 ms silent gap");
+	Check(std::equal(single.begin(), single.end(), sequence.begin()), "the first cue is not mixed with the second");
+	Check(std::all_of(sequence.begin() + single.size(), sequence.begin() + single.size() + gap,
+		[](auto value) { return value == 0; }), "the interval between cues is silent");
+}
+void QueueTests() {
+	RadarAudio::CueQueue queue;
+	Events openings{}; openings.fill(State::Open);
+	queue.Push(openings);
+	for (size_t direction = 0; direction < DirectionCount; ++direction) {
+		Events expected{}; expected[direction] = State::Open;
+		Check(queue.Take() == expected, "simultaneous cues leave the queue individually in screen order");
+	}
+	Check(queue.Empty() && Silent(queue.Take()), "drained queue cannot repeat cues");
+	queue.Push(openings);
+	Events newest = openings; newest[1] = State::Blocked; newest[3] = State::Unknown;
+	queue.Retain(newest);
+	Events changes{}; changes[1] = State::Blocked; queue.Push(changes);
+	Check(queue.Take()[0] == State::Open, "a still-valid opening is retained");
+	Check(queue.Take()[1] == State::Blocked, "a queued opening is replaced by the newer block");
+	Check(queue.Take()[2] == State::Open && queue.Empty(), "unknown or disappeared openings never reach playback");
+	queue.Push(openings); queue.Retain({});
+	Check(queue.Empty(), "terrain loss cancels every queued direction");
+}
 }
 int main() {
+	QueueTests();
+	PassageRegressionTests();
 	GridTests();
 	SymmetryTests();
+	ScreenAxisTests();
 	TopologyTests();
 	StabilityTests();
 	AudioTests();

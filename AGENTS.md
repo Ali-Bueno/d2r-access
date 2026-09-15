@@ -26,10 +26,12 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20` (twelve suites, 543 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20` (twelve suites, 550 checks).
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
-  `docs/sonar-radar.md`. Live camp terrain works; self-presence correction and audio tuning need retesting.
+  `docs/sonar-radar.md`. Live camp terrain/self-presence filtering work. Fixed stick axes, full-body
+  clearance and serialized cues (50 ms silent gap) need live validation. Ctrl+T
+  now saves the local grid; use it at the exact spot of any failed passage.
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 

@@ -51,11 +51,11 @@ struct Table {
 	const char* radarReaderUnavailable;
 	const char* radarWaitingPlayer;
 	std::array<const char*, 4> radarUiStates; // inactive, unavailable, dialogue, paused
-	const char* radarWaitingHeading;
 	const char* radarAudioUnavailable;
 	const char* radarTest;
 	const char* radarDepth; // %.0f = clear depth in collision subtiles
 	const char* radarNearbyObstacle;
+	const char* radarLimited;
 	std::array<const char*, 4> radarDirections;
 	std::array<const char*, 3> radarStates;
 };
@@ -101,12 +101,12 @@ inline constexpr Table English {
 	.radarWaitingPlayer = "Radar waiting for the character to enter the game",
 	.radarUiStates = {"Radar suspended while the game window is inactive", "Radar cannot read the menu state",
 		"Radar suspended during dialogue", "Radar suspended in the pause menu"},
-	.radarWaitingHeading = "Walk a few steps to orient the radar",
 	.radarAudioUnavailable = "Radar audio unavailable",
-	.radarTest = "Radar sound test: front, left, right, back; opening then blocked",
+	.radarTest = "Radar sound test: up, left, right, down; opening then blocked",
 	.radarDepth = "%.0f subtiles clear",
 	.radarNearbyObstacle = "obstacle nearby",
-	.radarDirections = {"Front", "Left", "Right", "Back"},
+	.radarLimited = "limited space",
+	.radarDirections = {"Up", "Left", "Right", "Down"},
 	.radarStates = {"unknown", "open", "blocked"},
 };
 
@@ -151,12 +151,12 @@ inline constexpr Table Spanish {
 	.radarWaitingPlayer = "Radar esperando a que el personaje entre en la partida",
 	.radarUiStates = {"Radar suspendido: la ventana del juego no está activa", "El radar no puede leer el estado de los menús",
 		"Radar suspendido durante el diálogo", "Radar suspendido en el menú de pausa"},
-	.radarWaitingHeading = "Camina unos pasos para orientar el radar",
 	.radarAudioUnavailable = "Sonidos del radar no disponibles",
-	.radarTest = "Prueba de radar: delante, izquierda, derecha, atrás; apertura y después bloqueo",
+	.radarTest = "Prueba de radar: arriba, izquierda, derecha, abajo; apertura y después bloqueo",
 	.radarDepth = "%.0f subcasillas libres",
 	.radarNearbyObstacle = "obstáculo cercano",
-	.radarDirections = {"Delante", "Izquierda", "Derecha", "Atrás"},
+	.radarLimited = "espacio limitado",
+	.radarDirections = {"Arriba", "Izquierda", "Derecha", "Abajo"},
 	.radarStates = {"desconocido", "abierto", "bloqueado"},
 };
 

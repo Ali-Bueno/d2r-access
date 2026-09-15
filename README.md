@@ -60,11 +60,16 @@ scroll-related control reported by the user has not yet been identified live.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes directional `tin` (opening) / `tock` (blocked) cues,
-including a lower-pitched rear sensor. It starts enabled, baselines silently
-after a few steps, and pauses for dialogue and offline pause menus. It uses the
-game's map data directly. Live camp snapshots are confirmed; spatial/audio tuning continues;
+using fixed **up / left / right / down** directions that match the left stick;
+down has a lower pitch. Simultaneous cues play successively with **50 ms of
+silence between them**. The radar checks the full body along each passage using
+the player's native movement mask. It starts enabled, baselines silently without
+walking, and pauses for dialogue and offline pause menus. It uses the game's map
+data directly. Live camp snapshots are confirmed; the latest direction, passage
+and audio changes still need controller validation;
 see [the radar evidence and controller test](docs/sonar-radar.md).
-**Ctrl+R** toggles it; **Ctrl+T** reads its state. The embedded default config
+**Ctrl+R** toggles it; **Ctrl+T** reads current clearance and records a local
+diagnostic snapshot. Short uncertain passages are described as limited space. The embedded default config
 preserves existing settings and adds no external sound/map installation step.
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat,

@@ -20,11 +20,9 @@ constexpr size_t UnitType = 0, UnitId = 8, UnitPath = 0x38;
 // the fixed-point coordinates. Path+8/+C instead holds projected coordinates.
 constexpr size_t PathSubtileX = 2, PathSubtileY = 6, PathRoom = 0x20, PathPattern = 0x5C;
 constexpr size_t PathFootprintMask = 0x60; // getter 0x341860; setter 0x342670
+constexpr size_t PathMovementMask = 0x64; // movement wrapper 0x3C5610; setter 0x342740
 constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38, RoomExtended = 0x18;
 constexpr size_t ExtendedLevel = 0x90, LevelId = 0x1F8;
-// 0x22F0A3 passes this mask to 0x364C70: terrain, objects, doors and no-path;
-// ordinary player/monster/item presence bits are absent.
-constexpr uint16_t WalkingMask = 0x1C09;
 constexpr int MaxCoordinate = std::numeric_limits<uint16_t>::max(); // native movzx word getters
 constexpr int MaxRoomSide = 1024, MaxNeighbors = 64, MaxRooms = 256; // corruption/work bounds
 constexpr size_t MaxCopiedCells = 512 * 1024; // <= 1 MiB per local snapshot
@@ -45,6 +43,8 @@ constexpr Evidence Checks[] = {
 	{0x341860, 14, 0xF2D1DCF8A918C439ULL},
 	{0x363CF0, 344, 0x652C884296D3F7EDULL},
 	{0x3636D0, 353, 0x07A933B5F15EAE54ULL},
+	{0x3C5610, 54, 0x49DB70EEE3861E43ULL},
+	{0x342740, 4, 0x139702E42DDC56F6ULL},
 	{0x366250, 148, 0x92BE7DBD292A006FULL},
 	{0x366D40, 895, 0x4A0CFAC2C8F9877CULL},
 	{0x364C70, 197, 0x17506F77209FE3D8ULL},
@@ -81,7 +81,8 @@ bool ReadRoom(uintptr_t room, Radar::Position position, Radar::RoomGrid& output)
 void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 	// Native set/reset pattern routines 0x363CF0 / 0x3636D0 add/remove a
 	// separate presence marker: centre for patterns 1/3, cross for 2/4.
-	// Clear only this local contribution in our copies. Never strip NO_PATH
+	// Remove the footprint and this local marker in our copies, matching the
+	// native reset before movement testing. Never strip NO_PATH
 	// globally, or clear wall/door/object flags that share the player's cell.
 	constexpr uint16_t NoPath = 0x1000, PetPresence = 0x2000;
 	const bool cross = world.bodyPattern == 2 || world.bodyPattern == 4;
@@ -95,11 +96,13 @@ void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 			auto& cell = room.cells[static_cast<size_t>(y) * room.width + x];
 			const bool centre = dx == 0 && dy == 0;
 			if (centre) detail.rawPlayerCell = cell;
-			if (!centre && (!cross || (dx != 0 && dy != 0))) continue;
-			if (detail.footprintMask && (cell & detail.footprintMask) == detail.footprintMask && (cell & marker)) {
-				cell &= static_cast<uint16_t>(~marker);
-				++detail.removedPresenceCells;
-			}
+			const bool inFootprint = world.bodyPattern != 0
+				&& (cross || dx == 0 || dy == 0);
+			if (!inFootprint || !detail.footprintMask || (cell & detail.footprintMask) != detail.footprintMask) continue;
+			const bool inPresence = centre || (cross && (dx == 0 || dy == 0));
+			const uint16_t remove = static_cast<uint16_t>(detail.footprintMask | (inPresence ? marker : 0));
+			if (cell & marker & remove) ++detail.removedPresenceCells;
+			cell &= static_cast<uint16_t>(~remove);
 		}
 	}
 }
@@ -162,6 +165,8 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
 	detail.stage = "footprint-mask";
 	if (!Peek(path + PathFootprintMask, detail.footprintMask) || detail.footprintMask > std::numeric_limits<uint16_t>::max()) return false;
+	detail.stage = "movement-mask";
+	if (!Peek(path + PathMovementMask, detail.movementMask) || detail.movementMask > std::numeric_limits<uint16_t>::max()) return false;
 	detail.stage = "room";
 	if (!Peek(path + PathRoom, room) || !room || !Peek(room + RoomExtended, extended) || !extended) return false;
 	detail.stage = "level";
@@ -172,7 +177,7 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	output.session = session;
 	output.level = actualLevel;
 	output.bodyPattern = pattern;
-	output.walkingMask = WalkingMask;
+	output.walkingMask = static_cast<uint16_t>(detail.movementMask);
 	std::vector<uintptr_t> pending{room};
 	size_t copied = 0;
 	detail.stage = "collision-grid";

@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -67,19 +68,18 @@ void Describe(bool available, RadarUi::State ui) {
 	if (!g_ready) { ScreenReader::Speak(text.radarWaitingPlayer, true); return; }
 	if (ui != RadarUi::State::Playing) { ScreenReader::Speak(text.radarUiStates[static_cast<size_t>(ui) - 1], true); return; }
 	if (!available) { ScreenReader::Speak(text.radarUnavailable, true); return; }
-	if (g_engine.Heading() < 0) { ScreenReader::Speak(text.radarWaitingHeading, true); return; }
 	std::string result;
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& sensor = g_engine.Sensors()[i];
-		const auto state = !sensor.probe.available ? Radar::State::Unknown
-			: sensor.probe.observed != Radar::State::Unknown ? sensor.probe.observed : sensor.stable;
+		const auto state = sensor.probe.observed;
 		if (!result.empty()) result += ". ";
-		result += std::string(text.radarDirections[i]) + ": " + text.radarStates[static_cast<size_t>(state)];
-		if (state == Radar::State::Unknown) continue;
+		const bool limited = sensor.probe.available && state == Radar::State::Unknown;
+		result += std::string(text.radarDirections[i]) + ": " + (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
+		if (state == Radar::State::Unknown && !limited) continue;
 		if (sensor.probe.body == Radar::State::Blocked) result += std::string(", ") + text.radarNearbyObstacle;
 		else {
 			char depth[80]{};
-			std::snprintf(depth, sizeof(depth), text.radarDepth, sensor.probe.depths[1]);
+			std::snprintf(depth, sizeof(depth), text.radarDepth, std::floor(sensor.probe.clearDepth));
 			result += std::string(", ") + depth;
 		}
 	}
@@ -88,16 +88,16 @@ void Describe(bool available, RadarUi::State ui) {
 void LogSensors(uint64_t now) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& s = g_engine.Sensors()[i];
-		AsyncLog::InfoF(g_context, "[radar-state] direction=%zu body=%u near=%.1f lanes=%.1f/%.1f/%.1f median=%.1f available=%u observed=%u candidate=%u stable=%u age=%llu travel=%.1f",
-			i, static_cast<unsigned>(s.probe.body), s.probe.bodyDepth, s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
+		AsyncLog::InfoF(g_context, "[radar-state] direction=%zu body=%u near=%.1f passage=%.1f end=%u lanes=%.1f/%.1f/%.1f median=%.1f available=%u observed=%u candidate=%u stable=%u age=%llu travel=%.1f",
+			i, static_cast<unsigned>(s.probe.body), s.probe.bodyDepth, s.probe.clearDepth, static_cast<unsigned>(s.probe.end), s.probe.depths[0], s.probe.depths[1], s.probe.depths[2], s.probe.medianDepth,
 			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
 			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
 	}
 }
 void Dump(const Radar::World& world) {
-	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X heading=%d; # blocked, . open, ? unknown, @ player; rows +Y, columns +X",
+	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X axes=screen; # blocked, . open, ? unknown, @ player; rows +Y, columns +X",
 		static_cast<unsigned long long>(world.session), world.level, world.player.x, world.player.y,
-		world.rooms.size(), world.bodyPattern, world.walkingMask, g_engine.Heading());
+		world.rooms.size(), world.bodyPattern, world.walkingMask);
 	for (int y = -DumpRadius; y <= DumpRadius; ++y) {
 		std::string line;
 		for (int x = -DumpRadius; x <= DumpRadius; ++x) {
@@ -195,9 +195,9 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
 		: blocked ? UiReasons[static_cast<size_t>(ui)] : detail.stage;
 	if (reason != g_lastReason || command == Command::Status || command == Command::Dump) {
-		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d footprint=%04X rawCell=%04X removedPresence=%u",
+		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d footprint=%04X movement=%04X rawCell=%04X removedPresence=%u axes=screen",
 			reason.c_str(), g_playerId, detail.playerId, g_level, detail.level, detail.x, detail.y, detail.pattern,
-			detail.footprintMask, static_cast<unsigned>(detail.rawPlayerCell), detail.removedPresenceCells);
+			detail.footprintMask, detail.movementMask, static_cast<unsigned>(detail.rawPlayerCell), detail.removedPresenceCells);
 		g_lastReason = reason;
 	}
 	if (!available) {
@@ -208,17 +208,19 @@ void Tick(const D2RL::PluginContext* context) {
 		const uint64_t revision = g_engine.Revision();
 		const auto events = g_engine.Tick(world, now);
 		if (revision != g_engine.Revision()) RadarAudio::Silence();
+		Radar::Events observations{};
+		for (size_t i = 0; i < observations.size(); ++i) observations[i] = g_engine.Sensors()[i].probe.observed;
+		RadarAudio::Validate(observations);
 		RadarAudio::Play(events);
 		for (size_t i = 0; i < events.size(); ++i) {
-			if (events[i] != Radar::State::Unknown) AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f heading=%d depth=%.1f",
-				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Heading(), g_engine.Sensors()[i].probe.depths[1]);
+			if (events[i] != Radar::State::Unknown) AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f",
+				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Sensors()[i].probe.clearDepth);
 		}
 	}
 	if (command == Command::Status || command == Command::Dump) {
 		Describe(available, ui);
-		if (available) LogSensors(now);
+		if (available) { LogSensors(now); Dump(world); }
 	}
-	if (command == Command::Dump && available) Dump(world);
 }
 
 void Unregister() {

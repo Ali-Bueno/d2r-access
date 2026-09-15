@@ -2,13 +2,12 @@
 
 #include <array>
 #include <cstdint>
-#include <deque>
 #include <vector>
 
 namespace D2RAccess::Radar {
 struct Position { double x = 0, y = 0; };
 enum class State { Unknown, Open, Blocked };
-enum class Direction { Front, Left, Right, Back };
+enum class Direction { Up, Left, Right, Down }; // fixed screen / left-stick axes
 inline constexpr size_t DirectionCount = 4;
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
 
@@ -20,9 +19,9 @@ struct Settings {
 	double blockedDepth = 3;
 	double laneSpacing = 1;
 	double minTravel = 0.5;
-	double headingTravel = 2;
 	double teleportDistance = 20; // discontinuity between 50 ms observations
-	uint64_t stableMs = 100, cooldownMs = 100, headingMs = 100, maxGapMs = 250;
+	uint64_t stableMs = 100, cooldownMs = 250, maxGapMs = 250;
+	uint64_t stationaryMs = 250; // confirm a closed/open door even when movement stops
 };
 
 struct RoomGrid {
@@ -41,7 +40,9 @@ struct World {
 struct Probe {
 	std::array<double, 3> depths{};
 	double bodyDepth = 0, medianDepth = 0;
+	double clearDepth = 0; // continuous clearance for the complete body, not a point ray
 	State body = State::Unknown;
+	State end = State::Unknown;
 	State observed = State::Unknown;
 	bool available = false;
 };
@@ -58,19 +59,15 @@ public:
 	Events Tick(const World& world, uint64_t now);
 	void Reset();
 	const auto& Sensors() const { return sensors_; }
-	int Heading() const { return heading_; }
 	uint64_t Revision() const { return revision_; } // cancel pending audio after a rebase
 private:
 	Settings settings_;
 	std::array<Sensor, DirectionCount> sensors_{};
 	Position previous_{};
-	uint64_t session_ = 0, lastTick_ = 0, headingSince_ = 0;
-	int level_ = 0, heading_ = -1, candidateHeading_ = -1;
-	double headingTravel_ = 0;
+	uint64_t session_ = 0, lastTick_ = 0;
+	int level_ = 0;
 	bool positioned_ = false;
 	uint64_t revision_ = 0;
-	struct HeadingSample { Position position; uint64_t time; };
-	std::deque<HeadingSample> headingSamples_;
 };
 Probe Scan(const World& world, Position axis, const Settings& settings);
 }

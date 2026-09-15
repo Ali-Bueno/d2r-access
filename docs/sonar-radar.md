@@ -1,11 +1,14 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Live camp snapshots now work. A correction for false self-collisions is built
-and deployed; movement/audio behavior needs another in-game check.**
+**Live camp snapshots work; the user reports improved consistency. Fixed stick
+directions, full-body passage checks and separated cues are deployed, pending
+controller/headphone validation.**
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
-the state, movement and heading rules come from the supplied v2 spec itself.
+the initial state/movement rules came from v2. **The user explicitly replaced
+movement-relative directions with fixed screen/left-stick directions on
+2026-09-15**, and requested separation between simultaneous cues.
 
 ## Can we read the game's map?
 
@@ -63,9 +66,10 @@ installed `D2RCore.dll`. No classic Diablo address is used as a D2R address.
 | Grid indexing | `0x366250`: grid starts with signed 32-bit X/Y/width/height at `+0/+4/+8/+0xC`; cell buffer at `+0x20`. Cell is `uint16_t[(y-originY)*width + x-originX]`. Missing room yields `0x27` before masking. |
 | Neighbor rooms | `0x2EFDE0`: neighbor-pointer array at `Room+0`, count at `Room+0x40`. `0x38DFB0` checks the current room then this array. `0x2F0680` checks active-room subtile bounds at `+0x80/+0x84/+0x88/+0x8C`. |
 | Actual body footprint | `0x341870` reads `Path+0x5C`; `0x364C70` dispatches pattern 0 to one cell, patterns 1/3/5 to `0x366D40`'s centre plus four adjacent cells, patterns 2/4 to a 3x3 box. The prototype obtains this pattern from the player every snapshot. |
-| Player walking mask | Calls at `0x22F0A3` and `0x566A95` pass **`0x1C09`** to the footprint query at `0x364C70`. This includes terrain, object, door and no-path bits; ordinary player/monster/item presence bits are absent. |
+| Native movement-test mask | **Read `Path+0x64` each snapshot.** Wrapper `0x3C5610` passes this field and `Path+0x5C` to movement trace `0x364700`; `0x3AD660` also passes it to `0x364C70`. Setter `0x342740` writes the field. The old fixed `0x1C09` came from a destination query at `0x22F0A3`, not the current player's movement mask. |
+| Movement origin | `0x364700` advances to destination cells before checking the body footprint; it does not retest the starting cell. The snapshot scan likewise skips an initial diagonal sample that rounds back to the player cell, so an existing overlap does not prevent leaving an obstacle. |
 | Local unit presence | `0x341860` reads the unit's footprint mask from `Path+0x60`. Pattern setter `0x363CF0` additionally stamps `0x1000` at the centre for pattern 1 or on a cross for pattern 2 whenever that mask is nonzero. Patterns 3/4 stamp `0x2000` instead; 0/5 add no such marker. `0x3636D0` removes the same shapes. The added `0x1000` intersects the walking mask and must not make the player block its own radar. |
-| Isometric orientation | `0x334DB0`, used by active-room projection `0x2EFC60`: `screenX = 80*(tileX-tileY)-80`, `screenY = 40*(tileX+tileY)+80`. Therefore +X projects down/right and +Y down/left; left is a negative quarter-turn in world coordinates. Perceived direction still needs a live headphone check. |
+| Isometric orientation | `0x334DB0`, used by active-room projection `0x2EFC60`: `screenX = 80*(tileX-tileY)-80`, `screenY = 40*(tileX+tileY)+80`. Therefore fixed screen up/left/right/down map to world (-X,-Y)/(-X,+Y)/(+X,-Y)/(+X,+Y), normalized for distance. This directly matches the four stick axes; movement never rotates them. Perceived direction still needs a live headphone check. |
 
 The installed code therefore offers both a native collision query and readable
 room grids. The grid path was selected because bounded guarded copies preserve
@@ -75,7 +79,7 @@ the loader's already resolved client-player lookup, with its code checked first.
 Queries and copies run on the UI thread, matching Core's client-player access.
 No authoritative/server game state is modified.
 
-`native_world.cpp` verifies complete-code FNV-1a fingerprints for thirteen recovered
+`native_world.cpp` verifies complete-code FNV-1a fingerprints for fifteen recovered
 accessors/readers before enabling the adapter. It validates the loader-resolved
 functions, local identity, level, footprint, dimensions and pointers. All copies
 use `NativeMemory`'s memory checks and fault containment. Neighbors are deduplicated
@@ -99,24 +103,33 @@ Public research was a lead, not build verification:
 ## Behavior and module responsibilities
 
 - `native_world`: acquire the local player and copy loaded collision grids.
-  Remove the local player's derived presence marker from the copied centre/cross
-  only where the runtime footprint mask is also present. Retain wall, door,
-  object, blank and all other bits. No game memory is changed; no-path flags
-  elsewhere are retained.
-- `radar_grid`: test the actual body footprint; scan three parallel lanes per
-  direction, at half-subtile increments, up to 150 subtiles (30 D2 map tiles).
-  Integer cell positions are sampled about their centres, with boundary ties
-  resolved toward the scan direction. The eight heading vectors have exact
-  cardinal zero components. This prevents reversed rays from reporting unequal
-  depths and avoids numerical drift into a neighboring row or column.
-- `radar`: movement-relative front/left/right/back; stable state per direction,
-  spatial dead band, 100 ms confirmation plus movement evidence and cooldown.
-  Heading uses 150 ms of actual displacement to tolerate integer-coordinate
-  staircases. A confirmed heading change, session/level change, teleport or
-  polling gap rebases silently and invalidates pending audio.
+  Read the runtime movement-test mask and footprint. Remove only the local
+  footprint and its derived extra marker from the copied native shapes, where
+  its footprint bits are present. Preserve other walls, doors, objects and
+  unrelated occupancy. No game memory is changed. Occupancy bitfields do not
+  encode separate owners; coincident actor contributions cannot be distinguished.
+- `radar_grid`: sweep the **complete body footprint throughout the scanned
+  passage**, not only in the first two subtiles. Keep the three point lanes as
+  context, but they cannot override an earlier body collision. Sample every
+  half subtile, up to 150 subtiles (30 D2 map tiles), stopping at an obstruction
+  or unknown coverage. Cell-centred sampling and exact direction components
+  preserve symmetry; destination tests skip the starting cell as native movement
+  does. Report the body-clear distance, not a thin ray through an unusable gap.
+- `radar`: fixed **up/left/right/down** screen directions, available immediately
+  on entering gameplay. Walking, turning or reversing never remaps the cues.
+  Confirm changes for 100 ms with movement evidence, or 250 ms while stationary
+  (so stopping against a wall or opening a door cannot suppress the cue forever).
+  A 250 ms per-direction cooldown and distance dead band reject chatter.
+  Session/level changes, teleports and polling gaps silently rebase and invalidate
+  pending audio.
 - `radar_synth` / `radar_audio`: synthesize 120 ms PCM cues on a separate worker.
-  Opening is a high `tin`; blocking is a low `tock`. Left/right use flat stereo
-  pan; rear is centred at 0.86 pitch. Same-scan events share a mixed buffer.
+  Opening is a high `tin`; blocking is a low `tock`. Left/right use stereo pan;
+  down is centred at 0.86 pitch, distinct from up. **Cues play one at a time,
+  with at least 50 ms of silence after each**, including cues from adjacent
+  scans. A four-slot round-robin queue retains the latest change per direction.
+  Each scan cancels pending/in-progress cues whose observations no longer agree;
+  there is no long backlog of stale openings. A fresh simultaneous set plays
+  up, left, right, down; later sets resume the queue's fair direction order.
   No PRISM call or audio-device wait occurs on the game UI thread. See the
   [Windows waveform API](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveoutopen).
 - `radar_service`: gameplay lifecycle, 20 Hz polling, commands and diagnostics.
@@ -125,30 +138,31 @@ Public research was a lead, not build verification:
   losing application focus silence cues. Merely preloaded panels, inventory and
   automap do not suspend them. Screen-reader wording stays in `speech_strings.h`.
 
-Initialization is silent. Walk a few steps to acquire a heading. Stable open
-fields and unchanged walls are silent. The radar is not a repeated proximity
-beeper and gives no navigation speech automatically.
+Initialization and unchanged terrain remain silent. Ctrl+T works without first
+walking. It describes the current observation, never substituting an old open
+state for uncertain clearance. The intermediate distance band is **limited
+space**; unavailable coverage is **unknown**, without an invented zero distance.
+A near-body obstruction is described as nearby. Other known distances use the
+complete body sweep and round down for speech.
 
-Ctrl+T reports current conclusive observations (falling back to the stable state
-inside the distance dead band). Unknown directions have no invented zero
-distance. A body obstruction is described as nearby rather than paired with a
-misleading long clear centre ray. Audio still waits for stable state changes.
-
-The first tuning values are two subtiles of body sweep, eight subtiles of open
-depth and three subtiles of blocked depth. These are named design parameters in
-`Radar::Settings`, not recovered engine constants. Boundary-jump enhancement,
-proximity tones and full-map guidance are not part of this prototype.
+The tuning values are a two-subtile near-body warning, eight subtiles of open
+passage and three subtiles of blocked depth. These are named design parameters
+in `Radar::Settings`, not recovered engine constants. A blocked cue warns of
+an obstruction within this short range; it is not a claim that absolutely no
+partial step can be taken. A clear ray does not promise an entire route to a
+faraway destination. Boundary-jump enhancement, proximity tones and full-map
+guidance remain outside this prototype.
 
 ## Controls
 
 | Control | Action |
 |---|---|
 | Ctrl+R | Toggle radar for this run; announces the switch |
-| Ctrl+T | Read front/left/right/back states and known clear depths |
+| Ctrl+T | Read up/left/right/down states and body-clear depths |
 | `access-radar on` / `off` | Console equivalent of the toggle |
-| `access-radar status` | Speak states, or explain that terrain/heading/audio is unavailable |
-| `access-radar dump` | Speak status and log the local 25x25 grid plus sensor diagnostics |
-| `access-radar test` | Audition opening cues front/left/right/back, then blocking cues in that order |
+| `access-radar status` | Speak states, or explain that terrain/audio is unavailable |
+| `access-radar dump` | Same diagnostics as Ctrl+T: status, local 25x25 grid and sensor details |
+| `access-radar test` | Audition opening cues up/left/right/down, then blocking cues in that order |
 
 Shortcuts use the SDK input service and are rebindable in its controls UI. They
 do not fire in text-editing or key-binding contexts. The controller remains the
@@ -158,29 +172,28 @@ The DLL embeds `radar.toml`; the loader creates `d2rloader/config/d2r-access.tom
 only when absent. `[radar] enabled = false` disables radar on the next launch.
 Existing user configuration is preserved. Ctrl+R does not rewrite the file.
 
-## First in-game test (controller)
+## Current in-game test (controller)
 
-1. Launch D2RLoader with NVDA and stereo headphones. Select the existing offline
-   character and press **A** to enter the Rogue Encampment.
-2. Hold the **left stick** in one direction for a few steps, then release it.
-   No four-cue startup burst should occur. At rest, unchanged terrain is silent.
-3. Move along an existing building boundary with the **left stick**, pass an
-   opening and continue beyond it. Listen for one side `tin`, then one `tock`.
-4. Reverse or turn the **left stick**. Confirm that changing direction alone
-   does not produce four sounds. Check left/right with a known building edge;
-   the projection convention still requires this perceptual validation.
-5. Approach Charsi, press **A** to interact and use **A** to open a spoken topic.
-   Terrain cues should remain silent through dialogue; use **B** to return.
-6. Press **Menu/Start** to pause, then **B** to return. There should be no queued
-   burst on return. Open inventory through the normal controller menu and close
-   it with **B**; the unpaused world should retain radar sensing.
-7. After this baseline, test a closed/open door, an outdoor area boundary and
-   a waypoint/portal transition. These have not yet been verified live.
+1. Launch D2RLoader with NVDA and stereo headphones. Press **A** to enter the
+   existing offline character's camp. Press **Ctrl+T** before walking: it should
+   report **Arriba, Izquierda, Derecha, Abajo**, without waiting for a heading.
+2. Choose a reported open direction and hold the **left stick in that exact
+   direction** briefly, release, then press **Ctrl+T**. Reverse and turn; the
+   directions must continue matching the stick, independently of the last move.
+3. Approach an obstacle, release the stick and wait briefly. A stable closing
+   must not need further movement. If a direction says open but the matching
+   stick push fails, **press Ctrl+T while still at that spot before moving
+   elsewhere**: the log now saves the nearby grid and full-body sensor depths.
+4. Pass an opening with more than one changing direction. Cues should be
+   successive with a short silent gap, not mixed; down has the lower pitch.
+   Verify ordinary left/right panning and that unchanged terrain stays silent.
+5. Press **A** at an NPC, then **B** to leave; test **Menu/Start**, then **B**.
+   Dialogue/offline pause must silence the radar with no burst on return.
+6. Once the camp checks pass, test a narrow door, an outdoor boundary and a
+   waypoint/portal transition. Those remain unverified live.
 
-Optional keyboard diagnostics: Ctrl+T gives a spoken observation. For an ASCII
-sample, open the developer console with Ctrl+backquote, enter `access-radar dump`,
-then close the console before movement checks. `access-radar test` auditions
-sound identity independently of terrain availability.
+Optional console audition: Ctrl+backquote, `access-radar test`, then close the
+console. This tests cue identity independently of terrain availability.
 
 Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
@@ -191,23 +204,28 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 - `[radar] lifecycle=...` records event kind, session, player and level.
 - `[radar] status=...` identifies the first blocking condition and reports
   expected/observed player and level, path coordinates, footprint mask, raw
-  player-cell flags and the number of copied presence cells cleared. It logs
+  player-cell flags, native movement mask and the number of copied presence cells cleared. It logs
   only on reason changes or explicit `status`/`dump` requests.
-- `[radar] direction=...` records emitted changes (0 front, 1 left, 2 right, 3 back).
+- `[radar] direction=...` records emitted changes (0 up, 1 left, 2 right, 3 down; `axes=screen`).
 - `[radar-state]` reports body and lane probes on Ctrl+T or an explicit dump.
-  `[radar-map]` is the console dump's grid; neither logs every frame.
+  `[radar-map]` saves the local grid on either Ctrl+T or a console dump;
+  neither logs every frame.
 
 ## Validation and remaining limits
 
-Twelve CTest suites / 543 checks pass: the previous 255 checks, 235 radar/audio
-checks, 41 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
-door masks, actor filtering, unknown cells, crossroads, stable walls/open fields,
-stationary changes, turns/zig-zag/diagonal staircases, session/level/teleport/gap
-rebasing, equal depths around symmetric walls in all eight headings, cardinal
-rays staying in their own cell row/column, stereo direction and clipping, and
-guarded native-memory fixtures. The symmetry regression failed with the original
-floor-based sampling before the centre/boundary and heading-vector correction.
-The normal build deployed the DLL to the game's plugins folder.
+Twelve CTest suites / **550 checks** pass: the previous 255 checks, 238
+radar/audio checks, 45 native-world/config checks and 12 radar UI checks.
+Coverage includes all four fixed stick axes at rest and after turns, symmetric
+body and point depths in eight directions, crossroads, narrow shoulder gaps
+beyond the old near sweep, leaving an overlapping obstacle, stationary door
+changes, unknown terrain, lifecycle rebasing, native mask changes and self
+footprint removal. Audio tests verify isolated stereo cues, the 50 ms silent
+interval and replacement/cancellation of stale queued changes.
+
+The narrow-gap and dynamic-mask regressions failed before their corrections
+and pass afterward. Normal build/deployment succeeded; installed and built DLL
+SHA-256 values match. Tests establish these modeled cases, not complete live
+navigation accuracy or perceptual suitability.
 
 ### First live attempt and follow-up
 
@@ -255,10 +273,28 @@ also revisit that centre and stop at zero depth. The regression reproduces the
 false block with `0x1080` at the player cell; it fails before the correction and
 passes afterward. It also checks all four body directions, preservation of the
 original memory, walls/doors, no-path outside the player's shape, zero masks and
-large-unit corner exclusions. Live verification of the correction remains due.
+large-unit corner exclusions. In the next session, `rawCell=1080 removedPresence=1` confirmed the
+filter running, and the user reported improved consistency.
 
-These checks do **not** establish live spatial calibration, perceived latency,
-actual room coverage at 150 subtiles, door animations, every act's collision
-flags, controller pause behavior or audio-device compatibility in game. Those
-are the next validation step. Code or pointer mismatches leave the radar quiet.
-Native code checks target this installed build; a different patch needs revalidation.
+### 17:58 direction mismatch and accuracy investigation
+
+The final Ctrl+T at 17:58:02 reported position `4467,4700`, old heading 0
+(world +X), open front/back and blocked sides. Back meant world -X, which
+projects up/left; the user **pushed the stick straight down**. The mismatch
+establishes a confusing reference frame, not proof that the specific -X ray
+was wrong. The user explicitly chose fixed stick axes, superseding the original
+movement-relative v2 design.
+
+Independent investigation found two additional correctness weaknesses: the
+body sweep ended after two subtiles, allowing farther shoulder obstructions to
+be outvoted by point rays; and `0x1C09` was a constant from a destination query,
+not the dynamic movement-test field. Installed-code analysis recovered
+`Path+0x64` through `0x3C5610`, `0x3AD660` and setter `0x342740`. Native movement
+trace `0x364700` tests destination footprints and excludes its origin. The
+adapter/grid now follows those facts without calling movement or mutating game
+state. No live value of the new `movement` diagnostic has been recorded yet.
+
+The latest fixed-axis/full-body/serialized-audio build still needs the controller
+test above. Room-streaming coverage, moving actors, door animations, every act's
+collision flags and perceived audio latency remain unverified. Native code checks
+target this installed build; a different patch requires revalidation.
