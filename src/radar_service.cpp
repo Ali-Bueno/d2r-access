@@ -104,6 +104,8 @@ void Dump(const Radar::World& world) {
 	AsyncLog::InfoF(g_context, "[radar-map] session=%llu level=%d position=%.0f,%.0f rooms=%zu pattern=%d mask=%04X axes=screen; # blocked, A occupied, . open, ? unknown, @ player; rows +Y, columns +X",
 		static_cast<unsigned long long>(world.session), world.level, world.player.x, world.player.y,
 		world.rooms.size(), world.bodyPattern, world.walkingMask);
+	AsyncLog::InfoF(g_context, "[radar-motion] position=%.5f,%.5f source=path-16.16",
+		world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y);
 	for (int y = -DumpRadius; y <= DumpRadius; ++y) {
 		std::string line;
 		for (int x = -DumpRadius; x <= DumpRadius; ++x) {

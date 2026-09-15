@@ -27,7 +27,7 @@ struct Settings {
 	uint64_t stableMs = 100, cooldownMs = 250, maxGapMs = 250;
 	uint64_t stationaryMs = 250; // confirm a closed/open door even when movement stops
 	uint64_t reactionMs = 600; // design allowance after hearing a cue, not a game constant
-	uint64_t motionWindowMs = 250, stoppedMs = 200; // smooth integer-cell motion without lingering at rest
+	uint64_t motionWindowMs = 250, stoppedMs = 200; // smooth motion without lingering at rest
 	uint64_t recentMotionMs = 100; // detect acceleration before a candidate can be confirmed
 	double boundaryChange = 3; // one full cross-footprint width; ignore sub-cell hit-point jitter
 };
@@ -38,6 +38,7 @@ struct RoomGrid {
 };
 struct World {
 	Position player;
+	Position subtileFraction; // native 16.16 low words, for motion only; collision uses player cells
 	uint64_t session = 0;
 	int level = 0, bodyPattern = 0;
 	uint16_t walkingMask = 0;

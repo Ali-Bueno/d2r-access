@@ -177,6 +177,39 @@ void AccelerationAndTurns() {
 	}
 	Check(engine.Velocity().x < 0 && engine.Velocity().y < 0, "forecast follows a changed movement direction within its confirmation interval");
 }
+void SubtileMotion() {
+	auto world = Field(); Engine engine;
+	const auto position = [&](double x, double y) {
+		world.player = {std::floor(x), std::floor(y)};
+		world.subtileFraction = {x - world.player.x, y - world.player.y};
+	};
+	position(110.875, 100.25); (void)engine.Tick(world, 1000);
+	bool smooth = true;
+	for (uint64_t tick = 1; tick <= 24; ++tick) {
+		// Constant 2.5 / 1.25 subtiles per second, crossing the X and Y cell
+		// boundaries on different ticks. Integer-only motion invents turns.
+		position(110.875 + tick * 0.125, 100.25 + tick * 0.0625);
+		(void)engine.Tick(world, 1000 + tick * 50);
+		const auto velocity = engine.Velocity();
+		smooth &= std::abs(velocity.x - 2.5) < 0.0001 && std::abs(velocity.y - 1.25) < 0.0001;
+	}
+	Check(smooth, "constant subcell travel preserves speed and direction across unequal cell crossings");
+	(void)engine.Tick(world, 2250); (void)engine.Tick(world, 2350); (void)engine.Tick(world, 2450);
+	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "fractional position settles to zero speed after a real stop");
+	engine.Reset(); position(110.25, 100.5); (void)engine.Tick(world, 3000);
+	for (uint64_t tick = 1; tick <= 6; ++tick) {
+		position(110.25 + tick * 0.0625, 100.5);
+		(void)engine.Tick(world, 3000 + tick * 50);
+	}
+	Check(world.player.x == 110 && engine.Velocity().x > 1,
+		"movement inside one cell is not mistaken for standing still after 200 milliseconds");
+	position(110.5625, 100.5); (void)engine.Tick(world, 3350);
+	position(110.5, 100.5); (void)engine.Tick(world, 3400);
+	Check(world.player.x == 110 && engine.Velocity().x < 0,
+		"a turn inside the same collision cell changes the forecast direction");
+	position(200.25, 200.5); (void)engine.Tick(world, 3450);
+	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "fractional teleport still resets motion");
+}
 void ProfileQueries() {
 	// Optional manual timing: comparable room count to the live camp (35),
 	// with the containing room last to exercise room lookup's expensive case.
@@ -197,6 +230,7 @@ void ProfileQueries() {
 int main(int argc, char**) {
 	if (argc > 1) { ProfileQueries(); Passed(); return 0; }
 	AccelerationAndTurns();
+	SubtileMotion();
 	CollisionLayers();
 	ReactionWindow();
 	SpeedAndBoundary();

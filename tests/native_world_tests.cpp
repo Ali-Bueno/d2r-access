@@ -101,6 +101,12 @@ int main() {
 	fixture.path.At<uint16_t>(0, 0xFFFF); fixture.path.At<uint16_t>(4, 0x8000);
 	Check(fixture.Read(world) && world.player.x == 104 && world.player.y == 104,
 		"fractional position words and projected screen coordinates cannot corrupt collision coordinates");
+	Check(world.subtileFraction.x == 65535.0 / 65536 && world.subtileFraction.y == 0.5,
+		"native low words preserve exact motion within the collision cell");
+	fixture.path.At<uint32_t>(0, (105u << 16) | 1u);
+	Check(fixture.Read(world) && world.player.x == 105 && world.subtileFraction.x == 1.0 / 65536,
+		"crossing a subtile boundary carries into the integer cell without losing motion precision");
+	fixture.path.At<uint16_t>(2, 104);
 	{
 		Fixture distant;
 		distant.path.At<uint16_t>(2, 40004); distant.path.At<uint16_t>(6, 50004);

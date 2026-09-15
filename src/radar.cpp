@@ -41,7 +41,10 @@ void Engine::UpdateMotion(Position player, uint64_t now) {
 }
 Events Engine::Tick(const World& world, uint64_t now) {
 	Events events{};
-	double travel = std::hypot(world.player.x - previous_.x, world.player.y - previous_.y);
+	// Preserve subcell movement for speed, turns and confirmation travel. The
+	// collision adapter still supplies the native integer footprint origin.
+	const Position motion{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
+	double travel = std::hypot(motion.x - previous_.x, motion.y - previous_.y);
 	const bool rebase = !positioned_ || world.session != session_ || world.level != level_
 		|| now < lastTick_ || now - lastTick_ > settings_.maxGapMs || travel >= settings_.teleportDistance;
 	if (rebase) {
@@ -51,9 +54,9 @@ Events Engine::Tick(const World& world, uint64_t now) {
 		level_ = world.level;
 		travel = 0;
 	}
-	previous_ = world.player;
+	previous_ = motion;
 	lastTick_ = now;
-	UpdateMotion(world.player, now);
+	UpdateMotion(motion, now);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);

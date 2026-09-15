@@ -81,7 +81,7 @@ the loader's already resolved client-player lookup, with its code checked first.
 Queries and copies run on the UI thread, matching Core's client-player access.
 No authoritative/server game state is modified.
 
-`native_world.cpp` verifies complete-code FNV-1a fingerprints for seventeen recovered
+`native_world.cpp` verifies complete-code FNV-1a fingerprints for nineteen recovered
 accessors/readers before enabling the adapter. It validates the loader-resolved
 functions, local identity, level, footprint, dimensions and pointers. All copies
 use `NativeMemory`'s memory checks and fault containment. Neighbors are deduplicated
@@ -103,6 +103,25 @@ Public research was a lead, not build verification:
   research paths; none is linked, bundled or needed by this prototype.
 
 ## Behavior and module responsibilities
+
+### Fractional motion source
+
+In the installed image, `0x382AA0` converts a subtile coordinate to
+`(coordinate << 16) + 0x8000`, and `0x3818E0` stores packed X/Y at `Path+0/+4`.
+The latter projects the values separately into `Path+8/+C`. Both complete
+functions are fingerprinted. Reading the eight position bytes together retains
+their unsigned low words for motion; `>> 16` still supplies the same collision
+cells as `0x341A20/30`. No native setter is invoked.
+
+Discarding those low words caused stationary samples between cell crossings and
+spurious direction changes when X and Y crossed at different times. Motion and
+confirmation travel now include the fractions; geometry and self-presence
+removal still use the integer footprint location. A Ctrl+T snapshot adds one
+`[radar-motion]` record with the precise coordinates. Tests cover unequal cell
+crossings, subcell movement lasting longer than the stop timeout, a subcell
+reversal, stopping, teleport rebasing and unsigned fixed-point decoding.
+
+### Responsibilities
 
 - `native_world`: acquire the local player and copy loaded collision grids.
   Read the runtime movement-test mask and footprint. Remove only the local
@@ -133,6 +152,9 @@ Public research was a lead, not build verification:
   stopping can make them eligible. Separate the actor-filtered terrain estimate
   from physical collision, so moving creatures do not alternate walls/exits.
   Never use filtered terrain alone to announce free passage.
+  Motion uses the native 16.16 position, while collision and local-footprint
+  removal retain the native integer cell. This avoids false stops and direction
+  changes when X and Y cross their cell boundaries on different polls.
 - `radar_synth` / `radar_audio`: synthesize 120 ms PCM cues on a separate worker.
   Opening is a high `tin`; blocking is a low `tock`. Left/right use stereo pan;
   down is centred at 0.86 pitch, distinct from up. **Cues play one at a time,

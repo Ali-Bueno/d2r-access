@@ -64,7 +64,7 @@ using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using
 the player's native movement mask. It filters brief openings using measured
-movement speed and a reaction window, warns earlier when approaching walls
+movement speed from the game's fractional position and a reaction window, warns earlier when approaching walls
 faster, and separates creature occupancy from terrain changes. Openings must
 still pass the full movement-collision check. It starts enabled, baselines silently without
 walking, and pauses for dialogue and offline pause menus. It uses the game's map

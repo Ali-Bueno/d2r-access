@@ -18,7 +18,12 @@ constexpr uintptr_t PlayerLookupRva = 0x9A480;
 constexpr size_t UnitType = 0, UnitId = 8, UnitPath = 0x38;
 // Collision getters 0x341A20/30 read unsigned words from the high halves of
 // the fixed-point coordinates. Path+8/+C instead holds projected coordinates.
-constexpr size_t PathSubtileX = 2, PathSubtileY = 6, PathRoom = 0x20, PathPattern = 0x5C;
+constexpr size_t PathPosition = 0, PathRoom = 0x20, PathPattern = 0x5C;
+// 0x382AA0 forms (subtile << 16) + 0x8000, then 0x3818E0 stores the
+// packed X/Y qword at Path+0. Retain low words for continuous motion.
+constexpr unsigned FractionBits = std::numeric_limits<uint16_t>::digits;
+constexpr uint32_t FractionMask = std::numeric_limits<uint16_t>::max();
+constexpr double PositionScale = static_cast<double>(FractionMask) + 1;
 constexpr size_t PathFootprintMask = 0x60; // getter 0x341860; setter 0x342670
 constexpr size_t PathMovementMask = 0x64; // movement wrapper 0x3C5610; setter 0x342740
 constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38, RoomExtended = 0x18;
@@ -39,6 +44,8 @@ constexpr Evidence Checks[] = {
 	{0x2F0680, 62, 0xF0ADAC690E656CD0ULL},
 	{0x341A20, 5, 0xCE32643327F7AF15ULL},
 	{0x341A30, 5, 0xCE264C3327EEAEF1ULL},
+	{0x382AA0, 374, 0x91726DCDA3AFD43EULL}, // subtile centre to 16.16 position
+	{0x3818E0, 310, 0x260F7E3A027B8F70ULL}, // packed position setter
 	{0x341870, 17, 0x850E898DB8A253A0ULL},
 	{0x341860, 14, 0xF2D1DCF8A918C439ULL},
 	{0x341D70, 255, 0xA39B91A111FA8DD3ULL}, // restores live monster footprint 0x100
@@ -159,10 +166,10 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	detail.stage = "path";
 	if (!Peek(player + UnitPath, path) || !path) return false;
 	detail.stage = "position";
-	uint16_t subtileX = 0, subtileY = 0;
-	if (!Peek(path + PathSubtileX, subtileX) || !Peek(path + PathSubtileY, subtileY)) return false;
-	x = subtileX;
-	y = subtileY;
+	struct FixedPosition { uint32_t x, y; } position{};
+	if (!Peek(path + PathPosition, position)) return false;
+	x = position.x >> FractionBits;
+	y = position.y >> FractionBits;
 	detail.stage = "footprint";
 	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
 	detail.stage = "footprint-mask";
@@ -176,6 +183,7 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	detail.stage = "level-mismatch";
 	if (level < 0 || (level > 0 && actualLevel != level)) return false;
 	output.player = {static_cast<double>(x), static_cast<double>(y)};
+	output.subtileFraction = {(position.x & FractionMask) / PositionScale, (position.y & FractionMask) / PositionScale};
 	output.session = session;
 	output.level = actualLevel;
 	output.bodyPattern = pattern;
