@@ -42,6 +42,24 @@ constexpr const char* NavigationCommandPrefix  = "To";
 constexpr const char* HoverCommand  = "Hover";
 constexpr const char* SelectCommand = "Select";
 
+// CharacterCreatePanelHD.json fills its "ClassDescription" text box at
+// runtime; the texts are these string-table records (local/lng/strings/ui.json),
+// keyed here by the class key the Hover message carries.
+struct ClassDescription {
+	const char* classKey;
+	const char* descriptionKey;
+};
+constexpr ClassDescription ClassDescriptions[] = {
+	{ "Amazon", "strAmazonDesc" },
+	{ "Assassin", "strAssDesc" },
+	{ "Barbarian", "strBarbDesc" },
+	{ "Druid", "strDruDesc" },
+	{ "Necromancer", "strNecroDesc" },
+	{ "Paladin", "strPalDesc" },
+	{ "Sorceress", "strSorcDesc" },
+	{ "Warlock", "strWarlockDesc" },
+};
+
 // Modal panels have no static title but always deserve an announcement. Their
 // prompt text is set at runtime (not readable yet), so the controller hint is
 // spoken instead: ConfirmationModal has Confirm/Dismiss buttons
@@ -174,6 +192,13 @@ void AnnounceSelection(const D2RL::SharedEvents::UiMessageEvent& event) {
 		label = item;
 	}
 	ScreenReader::Speak(label, true);
+	for (const ClassDescription& entry : ClassDescriptions) {
+		if (item == entry.classKey) {
+			if (const std::string description = Localization::Text(entry.descriptionKey); !description.empty()) {
+				ScreenReader::Speak(description, false);
+			}
+		}
+	}
 }
 
 auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedEvents::UiMessageEvent* event, void*) noexcept -> D2RL::SharedEvents::UiMessageAction {

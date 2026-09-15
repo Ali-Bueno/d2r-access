@@ -60,6 +60,7 @@
 | Dropdown popup scrolling | `DropdownListContents` shows 13 rows; past the last visible row the list scrolls under a still `FocusIndicator` (every D-pad press emits `ScrollController:ManualScrollInput`). The option index = visible row + scroll offset, tracked from the press direction (`InputDirection::LastVertical`); the first read assumes the applied option is highlighted (static states from Settings.json; resolution from `"Screen Resolution (Windowed)"` = `"WxH"`). Display modes: GDI `EnumDisplaySettings` and DXGI list the same set; the game's list starts at 1024x768 | log 2026-09-15 04:04 |
 | Text language storage | `Settings.json "Language"` (not `TextLanguage`) holds the locale's index in the string-table order `enUS, zhTW, deDE, esES, frFR, itIT, koKR, plPL, esMX, jaJP, ptBR, ruRU, zhCN` (`local/lng/strings/ui.json`), which differs from the carousel's `states` order; mapped in `control_state.cpp` (`StoredValueOrders`). `SetTextLanguage` applies immediately (`AcceptChanges` + front-end reload) | Settings.json 2026-09-15 |
 | Hidden table rows | `SoundOptionsPanel` `Row VoiceLanguage` is hidden on this install (one voice pack), so `Row TextLanguage` is laid out on its slot and both carousels resolve to the same rect. The SDK has no visibility getter; on a coverage tie within a panel the later sibling wins (a stacked layout only skips hidden rows) | log 2026-09-15 03:57 |
+| Class descriptions | `CharacterCreatePanelHD.json` text boxes `ClassTitle`/`ClassDescription` are filled at runtime from `strAmazonDesc`, `strAssDesc`, `strBarbDesc`, `strDruDesc`, `strNecroDesc`, `strPalDesc`, `strSorcDesc`, `strWarlockDesc` (ui.json); spoken after the class name on `CharacterCreate:Hover` | extraction 2026-09-15 |
 | Preloaded in-game panels | Right after `OpenExclusivePanel TitleScreenPanel` the game opens `ShowItemsPanel` and `EmoteWheelPanel` (never closed); their buttons are invisible in the front end but overlapped CharacterCreate's class area (Emote6 "¡Adiós!" at coverage 0.51). `FrontEndNavigation:ToFrontEnd` now resets the panel record | log 2026-09-15 03:58 |
 | Button → panel wiring | `ButtonWidget.fields.onClickMessage = "PanelManager:OpenPanel:SettingsPanel"`, `textString = "@OptionsHD"` (MainMenuButtonRibbonHD.json:43) | extraction |
 
@@ -69,7 +70,7 @@
 
 ## Next step
 
-Verify with the controller: (1) Video → Resolución popup reaches 2560x1440 (row 14 of 15) and the highlighted row on open matches `Settings.json` once a resolution has been applied; (2) Audio → "Idioma del texto" is announced with its current value and the new one after a change; (3) Crear personaje no longer reads emote buttons.
+Verify with the controller: (1) Video → Resolución popup reaches 2560x1440 (row 14 of 15) and the highlighted row on open matches `Settings.json` once a resolution has been applied; (2) Audio → "Idioma del texto" is announced with its current value and the new one after a change; (3) Crear personaje no longer reads emote buttons and each class is followed by its description; (4) the popup log line "popup items … selector …" confirms the Selector tracks the highlighted row (option index must keep growing past row 12).
 
 ## Known issues / open questions
 
