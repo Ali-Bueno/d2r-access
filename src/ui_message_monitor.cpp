@@ -52,6 +52,9 @@ constexpr const char* OptionsPanelTarget    = "OptionsPanelMessage";
 constexpr const char* SettingsPanelName     = "SettingsPanel";
 constexpr const char* OptionsCommitCommands[] = { "AcceptChanges", "CancelChanges", "ResetToDefaults" };
 
+// Scrolling moves every row of a list, so cached widget rects go stale.
+constexpr const char* ScrollControllerTarget = "ScrollController";
+
 // Messages that flood the trace without carrying UI state (observed per
 // frame). Entries are "target" or "target:command".
 constexpr const char* TraceIgnored[] = { "MonsterHealth", "InputMessage", "CharacterSelect:SelectAct", "MainMenuHD" };
@@ -182,7 +185,10 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		Trace(context, *event);
 	}
 	if (std::strcmp(event->target, PanelManagerTarget) == 0) {
+		FocusTracker::InvalidateRects();
 		AnnouncePanel(*event);
+	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
+		FocusTracker::InvalidateRects();
 	} else if (std::strcmp(event->target, FrontEndNavigationTarget) == 0) {
 		AnnounceNavigation(*event);
 		if (std::strcmp(event->command, FrontEndReadyCommand) == 0) {

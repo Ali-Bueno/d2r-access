@@ -19,6 +19,10 @@ void Tick(const D2RL::PluginContext* context);
 // when no open panel owns such a widget. Any thread.
 bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, std::string_view command, std::string_view value);
 
+// Widget rects are cached while the UI stays still; call when panels open,
+// close or scroll so the next poll re-resolves them.
+void InvalidateRects();
+
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();
 

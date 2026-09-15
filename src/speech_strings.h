@@ -28,6 +28,8 @@ struct Table {
 	const char* checked;
 	const char* unchecked;
 	const char* optionOfCount;     // %d = index (1-based), %d = count
+	const char* optionIndex;       // %d = index (1-based), count unknown
+	const char* unavailable;       // spoken after a control the game has disabled
 	const char* modalConfirmHint;  // spoken after a confirmation modal's title
 	const char* modalDismissHint;  // spoken after a dismissable modal's title
 };
@@ -50,6 +52,8 @@ inline constexpr Table English {
 	.checked             = "checked",
 	.unchecked           = "unchecked",
 	.optionOfCount       = "option %d of %d",
+	.optionIndex         = "option %d",
+	.unavailable         = "unavailable",
 	.modalConfirmHint    = "A to confirm, B to cancel",
 	.modalDismissHint    = "A to close",
 };
@@ -72,6 +76,8 @@ inline constexpr Table Spanish {
 	.checked             = "marcado",
 	.unchecked           = "no marcado",
 	.optionOfCount       = "opción %d de %d",
+	.optionIndex         = "opción %d",
+	.unavailable         = "no disponible",
 	.modalConfirmHint    = "A para confirmar, B para cancelar",
 	.modalDismissHint    = "A para cerrar",
 };

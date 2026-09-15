@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace D2RAccess::FocusTracker {
@@ -63,6 +64,19 @@ constexpr const char* DynamicStatesMarker = "?";
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
 
+// Controls the game disables depending on another control's state. The SDK
+// cannot read the enabled flag, so the dependency observed in the game is
+// recorded here (indices refer to the controlling widget's `states`).
+struct DisabledWhen {
+	const char* panel;
+	const char* widget;
+	const char* controller; // widget in the same panel whose state decides
+	int         controllerIndex;
+};
+constexpr DisabledWhen DisabledWhenRules[] = {
+	{ "VideoOptionsPanel", "ScreenResolution", "WindowMode", 1 }, // resolution is fixed in Fullscreen
+};
+
 struct DropdownSession {
 	const Generated::PanelWidgets* panel      = nullptr;
 	const Generated::WidgetEntry*  widget     = nullptr;
@@ -95,12 +109,23 @@ struct Match {
 };
 
 const char*                  g_focusManagerName = nullptr;
+const Generated::PanelWidgets* g_lastMatchedPanel = nullptr; // checked first: focus usually stays in one panel
+std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // widget id -> resolved rect (or failure)
 std::optional<Widgets::Rect> g_lastIndicator;
 std::string                  g_lastAnnounced;
 PendingValue                 g_pendingValue; // read on the next UI tick, after the layout updated
 
 std::string WidgetId(const Generated::PanelWidgets& catalog, const Generated::WidgetEntry& widget) {
 	return std::string(catalog.panel) + "/" + widget.name;
+}
+
+const Generated::WidgetEntry* FindWidget(const Generated::PanelWidgets& catalog, const char* name) {
+	for (uint32_t i = 0; i < catalog.count; ++i) {
+		if (std::strcmp(catalog.widgets[i].name, name) == 0) {
+			return &catalog.widgets[i];
+		}
+	}
+	return nullptr;
 }
 
 std::optional<Widgets::Rect> IndicatorRect() {
@@ -142,15 +167,22 @@ const Generated::PanelWidgets* Catalog(std::string_view panel) {
 }
 
 // Screen-space rect of a catalog widget, applying the panel root's and each
-// step's layout anchor.
+// step's layout anchor. Resolving walks the widget tree by name through the
+// loader on every call, so results are cached until the UI changes.
 std::optional<Widgets::Rect> WidgetRect(const Generated::PanelWidgets& catalog, const Generated::WidgetEntry& widget) {
+	const std::string id = WidgetId(catalog, widget);
+	if (const auto cached = g_rectCache.find(id); cached != g_rectCache.end()) {
+		return cached->second;
+	}
 	std::vector<Widgets::Step> steps;
 	steps.reserve(widget.pathLength);
 	for (uint32_t i = 0; i < widget.pathLength; ++i) {
 		steps.push_back({ widget.path[i].name, widget.path[i].anchorX, widget.path[i].anchorY });
 	}
 	const Widgets::Step root { nullptr, catalog.rootAnchorX, catalog.rootAnchorY };
-	return Widgets::AbsoluteRect(catalog.panel, root, steps);
+	const auto          rect = Widgets::AbsoluteRect(catalog.panel, root, steps);
+	g_rectCache[id]          = rect;
+	return rect;
 }
 
 std::string Describe(const std::optional<Widgets::Rect>& rect) {
@@ -175,11 +207,17 @@ int64_t Distance(const Widgets::Rect& a, const Widgets::Rect& b) {
 Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator, bool diagnostics) {
 	Match best;
 	const auto& open = PanelState::OpenPanels();
+	std::vector<const Generated::PanelWidgets*> order;
+	if (g_lastMatchedPanel != nullptr && std::find(open.begin(), open.end(), g_lastMatchedPanel->panel) != open.end()) {
+		order.push_back(g_lastMatchedPanel);
+	}
 	for (auto it = open.rbegin(); it != open.rend(); ++it) {
 		const Generated::PanelWidgets* catalog = Catalog(*it);
-		if (catalog == nullptr) {
-			continue;
+		if (catalog != nullptr && catalog != g_lastMatchedPanel) {
+			order.push_back(catalog);
 		}
+	}
+	for (const Generated::PanelWidgets* catalog : order) {
 		uint32_t                      resolved        = 0;
 		const Generated::WidgetEntry* nearest         = nullptr;
 		Widgets::Rect                 nearestRect {};
@@ -356,9 +394,9 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 			phrase = g_dropdown.widget->states[index];
 		}
 	} else {
-		const int count = g_dropdown.widget != nullptr ? static_cast<int>(g_dropdown.widget->stateCount) : 0;
-		char      text[64] {};
-		std::snprintf(text, sizeof(text), Strings::Current().optionOfCount, index + 1, count);
+		// Runtime option lists (screen resolutions) have no known count.
+		char text[64] {};
+		std::snprintf(text, sizeof(text), Strings::Current().optionIndex, index + 1);
 		phrase = text;
 	}
 	D2RL::LogInfoF(context, "[focus] popup row %d -> \"%s\"", index, phrase.c_str());
@@ -388,6 +426,17 @@ void Announce(const D2RL::PluginContext* context, const Match& match) {
 		phrase += ", ";
 		phrase += state;
 	}
+	for (const DisabledWhen& rule : DisabledWhenRules) {
+		if (std::strcmp(rule.panel, match.panel->panel) != 0 || std::strcmp(rule.widget, match.widget->name) != 0) {
+			continue;
+		}
+		const Generated::WidgetEntry* controller = FindWidget(*match.panel, rule.controller);
+		if (controller != nullptr && ControlState::Index(*controller, WidgetId(*match.panel, *controller)) == rule.controllerIndex) {
+			phrase += ", ";
+			phrase += Strings::Current().unavailable;
+		}
+	}
+	g_lastMatchedPanel = match.panel;
 	const std::string tooltip = TextForKey(match.widget->tooltipKey);
 
 	D2RL::LogInfoF(context, "[focus] %s/%s (%s) -> \"%s\" coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), match.score);
@@ -451,6 +500,11 @@ void Tick(const D2RL::PluginContext* context) {
 
 	Match match = Resolve(context, *indicator, false);
 	if (match.widget == nullptr || match.score < MinimumCoverage) {
+		// Cached rects may be stale (a list scrolled, a row appeared): re-resolve once.
+		g_rectCache.clear();
+		match = Resolve(context, *indicator, false);
+	}
+	if (match.widget == nullptr || match.score < MinimumCoverage) {
 		D2RL::LogInfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
 			Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
 		match = Resolve(context, *indicator, true);
@@ -492,9 +546,15 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 	return false;
 }
 
+void InvalidateRects() {
+	g_rectCache.clear();
+}
+
 void Reset() {
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
+	g_lastMatchedPanel = nullptr;
+	InvalidateRects();
 }
 
 }
