@@ -1,7 +1,8 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Built and deployed; live controller/headphone validation is still pending.**
+**Built and deployed; the first live attempt could not acquire terrain. A startup
+and pause-detection correction is installed, awaiting another in-game check.**
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the state, movement and heading rules come from the supplied v2 spec itself.
@@ -57,7 +58,7 @@ installed `D2RCore.dll`. No classic Diablo address is used as a D2R address.
 |---|---|
 | Get the local client player | Core SDK `getLocalPlayer` wrapper `0x372AD0`, calls at `0x372C44` and `0x372C4D`: slot `0x5A8CF8` resolves the local index getter; `0x5A8D10` resolves player lookup. The latter is D2R `0x9A480`, accepting indices 0–7. The SDK handle itself is **not** a unit pointer. |
 | Path and integer world position | Unit path `+0x38` (`0x34AE80`); native X/Y getters `0x341C10` / `0x341C20` read **32-bit `Path+0x08/+0x0C`**. These are the getters used by `0x34AF60/0x34AFB0`. This prototype does not assume the public `+0x02/+0x06` position fields are authoritative for this build. |
-| Level identity | Core exported `GetLevelIdFromUnit`, `0x69A620`: dynamic path room `+0x20`, active room extended context `+0x18`, extended level `+0x90`, level ID `+0x1F8`. Compare against SDK `LevelChanged`, and compare unit ID `+0x08` against `LocalPlayerReady.playerId`. |
+| Level identity | Core exported `GetLevelIdFromUnit`, `0x69A620`: dynamic path room `+0x20`, active room extended context `+0x18`, extended level `+0x90`, level ID `+0x1F8`. Compare against SDK `LevelChanged` when known; before its initial event, use the verified player's positive native level. Compare unit ID `+0x08` against `LocalPlayerReady.playerId`. |
 | Active room collision grid | D2R `0x2EFB30`: `return *(room + 0x38)`. |
 | Grid indexing | `0x366250`: grid starts with signed 32-bit X/Y/width/height at `+0/+4/+8/+0xC`; cell buffer at `+0x20`. Cell is `uint16_t[(y-originY)*width + x-originX]`. Missing room yields `0x27` before masking. |
 | Neighbor rooms | `0x2EFDE0`: neighbor-pointer array at `Room+0`, count at `Room+0x40`. `0x38DFB0` checks the current room then this array. `0x2F0680` checks active-room subtile bounds at `+0x80/+0x84/+0x88/+0x8C`. |
@@ -113,10 +114,11 @@ Public research was a lead, not build verification:
   pan; rear is centred at 0.86 pitch. Same-scan events share a mixed buffer.
   No PRISM call or audio-device wait occurs on the game UI thread. See the
   [Windows waveform API](https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/nf-mmeapi-waveoutopen).
-- `radar_service`: gameplay lifecycle, 20 Hz polling, existing native UI state,
-  commands and diagnostics. Visible NPC dialogue/narrative, offline pause/settings
-  panels and losing application focus silence cues. Inventory and automap alone
-  do not suspend them. Screen-reader wording stays in `speech_strings.h`.
+- `radar_service`: gameplay lifecycle, 20 Hz polling, commands and diagnostics.
+  `radar_ui` combines the existing `PanelState` open-panel record with native
+  visibility. Open NPC dialogue/narrative, offline pause/settings panels and
+  losing application focus silence cues. Merely preloaded panels, inventory and
+  automap do not suspend them. Screen-reader wording stays in `speech_strings.h`.
 
 Initialization is silent. Walk a few steps to acquire a heading. Stable open
 fields and unchanged walls are silent. The radar is not a repeated proximity
@@ -176,13 +178,17 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 - `[radar] Live terrain ready` records actual level, position, room count and
   player footprint. Its absence is a failure to acquire terrain, not an open map.
 - `[radar-audio]` records output readiness/failure.
+- `[radar] lifecycle=...` records event kind, session, player and level.
+- `[radar] status=...` identifies the first blocking condition and reports
+  expected/observed player and level, path coordinates and footprint. It logs
+  only on reason changes or explicit `status`/`dump` requests.
 - `[radar] direction=...` records emitted changes (0 front, 1 left, 2 right, 3 back).
 - `[radar-map]` / `[radar-state]` are explicit diagnostics only; no per-frame dump.
 
 ## Validation and remaining limits
 
-Eleven CTest suites / 510 checks pass: the previous 255 checks, 235 radar/audio
-checks and 20 native-world/config checks. Synthetic cases cover body-width gaps,
+Twelve CTest suites / 527 checks pass: the previous 255 checks, 235 radar/audio
+checks, 25 native-world/config checks and 12 radar UI checks. Synthetic cases cover body-width gaps,
 door masks, actor filtering, unknown cells, crossroads, stable walls/open fields,
 stationary changes, turns/zig-zag/diagonal staircases, session/level/teleport/gap
 rebasing, equal depths around symmetric walls in all eight headings, cardinal
@@ -190,6 +196,21 @@ rays staying in their own cell row/column, stereo direction and clipping, and
 guarded native-memory fixtures. The symmetry regression failed with the original
 floor-based sampling before the centre/boundary and heading-vector correction.
 The normal build deployed the DLL to the game's plugins folder.
+
+### First live attempt and follow-up
+
+The 2026-09-15 17:08 session passed the native-code checks and initialized stereo
+audio. The player entered Rogue Encampment and reported the combined "waiting for
+terrain, or paused" message. No `Live terrain ready` line was recorded. The old
+logging did not identify the blocking condition, so it cannot establish whether
+UI gating or a native read failed in that session.
+
+The follow-up rejects preloaded-but-unopened panels as pause evidence, allows the
+initial level to come from the verified player's room, and adds specific spoken
+suspension reasons plus native read-stage diagnostics. Regression fixtures cover
+preloaded pause/dialogue roots, opening/closing actual menus, unpaused inventory,
+initial level discovery and invalid native levels. These fixes and diagnostics
+are installed; successful live terrain acquisition remains to be confirmed.
 
 These checks do **not** establish live spatial calibration, perceived latency,
 actual room coverage at 150 subtiles, door animations, every act's collision

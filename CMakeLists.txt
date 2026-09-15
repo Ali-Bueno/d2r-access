@@ -44,6 +44,7 @@ add_library(d2r-access SHARED
 	src/radar_audio.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
+	src/radar_ui.cpp
 	src/radar_config.cpp
 	src/native_ui.cpp
 	src/native_tooltips.cpp
@@ -74,6 +75,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(radar-ui-tests tests/radar_ui_tests.cpp src/radar_ui.cpp src/panel_state.cpp)
+	target_link_libraries(radar-ui-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(radar-ui-tests PRIVATE src)
+	target_compile_features(radar-ui-tests PRIVATE cxx_std_20)
+	add_test(NAME radar-ui COMMAND radar-ui-tests)
 	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_synth.cpp)
 	target_link_libraries(radar-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-tests PRIVATE src)
@@ -131,6 +137,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(radar-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

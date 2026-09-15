@@ -43,6 +43,16 @@ int main() {
 	Check(fixture.Read(world), "verified-shaped live room snapshot reads successfully");
 	Check(world.player.x == 104 && world.player.y == 104 && world.bodyPattern == 1, "position and actual footprint come from path getters' fields");
 	Check(world.session == 7 && world.level == 1 && world.rooms.size() == 1, "snapshot carries session and area identity");
+	NativeWorld::Diagnostics detail;
+	Check(NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 0, world, &detail) && world.level == 1,
+		"ready player supplies the initial level before its lifecycle event arrives");
+	Check(std::string_view(detail.stage) == "ready" && detail.playerId == 42 && detail.x == 104 && detail.level == 1,
+		"successful native read reports the observed identity and position");
+	fixture.level.At<int>(0x1F8, 0);
+	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 0, world, &detail) && std::string_view(detail.stage) == "level",
+		"unknown expected level never accepts an invalid native level");
+	fixture.level.At<int>(0x1F8, 1);
+	Check(fixture.Read(world), "valid native level restores terrain after loading");
 	fixture.cells[44] = 0x800;
 	Check(world.Cell(104, 104) == Radar::State::Open, "snapshot owns its cells after game memory changes");
 	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "next snapshot sees dynamic door collision");
@@ -73,5 +83,8 @@ int main() {
 	fixture.path.At<int>(8, 104);
 	fixture.path.At<int>(0x5C, 6);
 	Check(!fixture.Read(world), "unknown body patterns are rejected instead of guessed");
+	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)
+		&& std::string_view(detail.stage) == "footprint" && detail.pattern == 6,
+		"failed footprint validation reports its actual stage and value");
 	Passed();
 }

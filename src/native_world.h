@@ -4,9 +4,15 @@
 #include <D2RLPlugin/api.h>
 
 namespace D2RAccess::NativeWorld {
+struct Diagnostics {
+	const char* stage = "not-read";
+	uint32_t playerId = 0;
+	int x = 0, y = 0, pattern = -1, level = 0;
+};
 bool Initialize(const D2RL::PluginContext* context);
 // UI thread only, client rooms only. No retained game pointers across ticks.
-bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output);
+// level == 0 permits bootstrapping from the verified player's native room.
+bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
 // Factored for fault/structure tests. Performs only guarded reads.
-bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output);
+bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
 }

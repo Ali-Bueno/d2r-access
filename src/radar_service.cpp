@@ -5,6 +5,7 @@
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "radar_config.h"
+#include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 
@@ -31,6 +32,7 @@ bool g_supported = false, g_ready = false, g_enabled = true, g_suspended = true;
 uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0;
 int g_level = 0, g_testStep = -1;
+std::string g_lastReason;
 
 void Suspend() {
 	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence();
@@ -43,31 +45,27 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	Suspend();
 	g_session = event->sessionGeneration;
 	if (event->kind == Kind::GameJoined || event->kind == Kind::GameLeft) { g_ready = false; g_level = 0; }
-	else if (event->kind == Kind::LocalPlayerReady) { g_ready = true; g_playerId = event->playerId; }
+	else if (event->kind == Kind::LocalPlayerReady) { g_ready = true; g_playerId = event->playerId; g_level = 0; }
+	else if (event->kind == Kind::ActChanged) g_level = 0;
 	else if (event->kind == Kind::LevelChanged) g_level = event->currentValue;
+	AsyncLog::InfoF(g_context, "[radar] lifecycle=%u session=%llu player=%u ready=%u level=%d previous=%d current=%d",
+		static_cast<unsigned>(event->kind), static_cast<unsigned long long>(g_session), g_playerId, g_ready ? 1u : 0u,
+		g_level, event->previousValue, event->currentValue);
 }
 
-bool UiBlocked() {
+RadarUi::State UiState() {
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	if (process != GetCurrentProcessId()) return true;
-	if (!NativeWidgets::SupportsTree()) return true;
-	for (const auto panel : NativeUi::Panels()) {
-		if (!NativeUi::Visible(panel)) continue;
-		const auto surface = NativeUi::Classify(panel).surface;
-		if (surface == UiText::Surface::Menu || surface == UiText::Surface::Narrative) return true;
-		// Installed layout roots: PauseLayout{Garden,...}, SettingsPanel. These
-		// pause offline play. Inventory, automap and the passive HUD do not.
-		const auto name = NativeWidgets::ReadName(panel);
-		if (name.starts_with("PauseLayout") || name == "SettingsPanel") return true;
-	}
-	return false;
+	return RadarUi::Inspect(process == GetCurrentProcessId());
 }
 
-void Describe(bool available) {
+void Describe(bool available, RadarUi::State ui) {
 	const auto& text = Strings::Current();
 	if (!g_enabled) { ScreenReader::Speak(text.radarDisabled, true); return; }
 	if (!RadarAudio::Available()) { ScreenReader::Speak(text.radarAudioUnavailable, true); return; }
+	if (!g_supported) { ScreenReader::Speak(text.radarReaderUnavailable, true); return; }
+	if (!g_ready) { ScreenReader::Speak(text.radarWaitingPlayer, true); return; }
+	if (ui != RadarUi::State::Playing) { ScreenReader::Speak(text.radarUiStates[static_cast<size_t>(ui) - 1], true); return; }
 	if (!available) { ScreenReader::Speak(text.radarUnavailable, true); return; }
 	if (g_engine.Heading() < 0) { ScreenReader::Speak(text.radarWaitingHeading, true); return; }
 	std::string result;
@@ -168,7 +166,8 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (command == Command::None && now - g_lastPoll < PollMs) return;
 	g_lastPoll = now;
-	const bool blocked = g_ready && UiBlocked();
+	const auto ui = UiState();
+	const bool blocked = ui != RadarUi::State::Playing;
 	if (g_testStep >= 0 && !blocked) {
 		if (now >= g_testDue) {
 			if (g_testStep == static_cast<int>(Radar::DirectionCount * 2)) { g_testStep = -1; return; }
@@ -181,9 +180,17 @@ void Tick(const D2RL::PluginContext* context) {
 		return;
 	}
 	Radar::World world;
-	const bool available = g_supported && g_ready && g_enabled && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world);
+	NativeWorld::Diagnostics detail;
+	const bool available = g_supported && g_ready && g_enabled && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world, &detail);
+	constexpr const char* UiReasons[] = {"playing", "inactive-window", "ui-unavailable", "dialogue", "pause"};
+	const std::string reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
+		: blocked ? UiReasons[static_cast<size_t>(ui)] : detail.stage;
+	if (reason != g_lastReason || command == Command::Status || command == Command::Dump) {
+		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d",
+			reason.c_str(), g_playerId, detail.playerId, g_level, detail.level, detail.x, detail.y, detail.pattern);
+		g_lastReason = reason;
+	}
 	if (!available) {
-		if (!g_suspended) AsyncLog::Info(context, "[radar] Suspended: unavailable terrain, disabled, inactive window or dialogue/pause.");
 		Suspend();
 	} else {
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern);
@@ -197,7 +204,7 @@ void Tick(const D2RL::PluginContext* context) {
 				i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, g_engine.Heading(), g_engine.Sensors()[i].probe.depths[1]);
 		}
 	}
-	if (command == Command::Status || command == Command::Dump) Describe(available);
+	if (command == Command::Status || command == Command::Dump) Describe(available, ui);
 	if (command == Command::Dump && available) Dump(world, now);
 }
 

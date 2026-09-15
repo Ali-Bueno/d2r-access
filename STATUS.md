@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (sonar symmetry corrected and deployed; logical-room/collision lifetime derived; eleven suites / 510 checks pass; live radar calibration pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (first live sonar attempt could not acquire terrain; pause/startup fixes and detailed diagnostics deployed; twelve suites / 527 checks pass; live retest pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -31,8 +31,8 @@
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. Logical room list and collision unload path also derived; full-map detail not established. `docs/sonar-radar.md` |
-| Sonar radar | wip — implemented, built/deployed | Four movement-relative axes, near body + 150-subtile lanes, hysteresis/movement gating, silent rebases, synthesized stereo tin/tock. Ctrl+R toggle, Ctrl+T state; `access-radar on|off|status|dump|test`. Live direction/doors/pause/audio validation pending |
-| Radar automated tests | done (local) | 235 radar/audio checks + 20 native-world/config checks; eleven total suites / 510 total checks. Eight-heading symmetry regression caught and fixed unequal ray depths/cardinal drift |
+| Sonar radar | wip — first live startup failed; follow-up deployed | 17:08 session verified native code/audio, but no terrain-ready snapshot. Pause now requires an open panel; initial level can come from the player's native room. Ctrl+T gives specific reasons; logs include lifecycle and failed read stage. Live retest pending |
+| Radar automated tests | done (local) | 235 radar/audio + 25 native-world/config + 12 radar UI checks; twelve total suites / 527 total checks. Includes heading symmetry, unloaded vs open menus, initial native-level discovery and diagnostics |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -119,7 +119,7 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-Validate the installed sonar in Rogue Encampment with NVDA/headphones and the controller sequence in `docs/sonar-radar.md`: obtain `[radar] Live terrain ready`, check left/right and rear, pass a building opening, turn, interact with Charsi and pause/resume. Then test doors/outdoor boundaries and a portal. The map/collision layout was derived from this build, but no live radar run is claimed yet. Eleven suites / 510 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
+Retest the installed sonar: enter Rogue Encampment with A, move the left stick a few steps, close menus and press Ctrl+T. Inspect `[radar] lifecycle=...`, `status=...` and `Live terrain ready`; the 17:08 session's combined message did not distinguish the blocking condition. Once terrain works, follow the direction/opening/dialogue/pause sequence in `docs/sonar-radar.md`. Twelve suites / 527 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
 
 ## Known issues / open questions
 

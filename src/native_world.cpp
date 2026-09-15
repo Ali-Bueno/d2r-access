@@ -106,18 +106,31 @@ bool Initialize(const D2RL::PluginContext* context) {
 	return true;
 }
 
-bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output) {
+bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics) {
 	output = {};
+	Diagnostics local;
+	auto& detail = diagnostics ? *diagnostics : local;
+	detail = {};
 	uint32_t type = ~0U, id = 0;
 	uintptr_t path = 0, room = 0, extended = 0, nativeLevel = 0;
-	int x = 0, y = 0, pattern = -1, actualLevel = 0;
-	if (!player || !Peek(player + UnitType, type) || type != 0 || !Peek(player + UnitId, id) || id != playerId
-		|| !Peek(player + UnitPath, path) || !path || !Peek(path + PathX, x) || !Peek(path + PathY, y)
-		|| x < 0 || y < 0 || x > MaxCoordinate || y > MaxCoordinate
-		|| !Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5
-		|| !Peek(path + PathRoom, room) || !room || !Peek(room + RoomExtended, extended) || !extended
-		|| !Peek(extended + ExtendedLevel, nativeLevel) || !nativeLevel || !Peek(nativeLevel + LevelId, actualLevel)
-		|| level <= 0 || actualLevel != level) return false;
+	auto& x = detail.x; auto& y = detail.y; auto& pattern = detail.pattern; auto& actualLevel = detail.level;
+	detail.stage = "player";
+	if (!player || !Peek(player + UnitType, type) || type != 0 || !Peek(player + UnitId, id)) return false;
+	detail.playerId = id;
+	detail.stage = "player-identity";
+	if (id != playerId) return false;
+	detail.stage = "path";
+	if (!Peek(player + UnitPath, path) || !path) return false;
+	detail.stage = "position";
+	if (!Peek(path + PathX, x) || !Peek(path + PathY, y) || x < 0 || y < 0 || x > MaxCoordinate || y > MaxCoordinate) return false;
+	detail.stage = "footprint";
+	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
+	detail.stage = "room";
+	if (!Peek(path + PathRoom, room) || !room || !Peek(room + RoomExtended, extended) || !extended) return false;
+	detail.stage = "level";
+	if (!Peek(extended + ExtendedLevel, nativeLevel) || !nativeLevel || !Peek(nativeLevel + LevelId, actualLevel) || actualLevel <= 0) return false;
+	detail.stage = "level-mismatch";
+	if (level < 0 || (level > 0 && actualLevel != level)) return false;
 	output.player = {static_cast<double>(x), static_cast<double>(y)};
 	output.session = session;
 	output.level = actualLevel;
@@ -125,6 +138,7 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	output.walkingMask = WalkingMask;
 	std::vector<uintptr_t> pending{room};
 	size_t copied = 0;
+	detail.stage = "collision-grid";
 	for (size_t i = 0; i < pending.size(); ++i) {
 		Radar::RoomGrid grid;
 		if (!ReadRoom(pending[i], output.player, grid)) {
@@ -143,12 +157,18 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 			if (rooms[n] && std::find(pending.begin(), pending.end(), rooms[n]) == pending.end()) pending.push_back(rooms[n]);
 		}
 	}
+	detail.stage = "player-cell";
 	if (output.Cell(x, y) == Radar::State::Unknown) { output = {}; return false; }
+	detail.stage = "ready";
 	return true;
 }
 
-bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output) {
-	if (!g_indexFunction || !g_playerFunction) { output = {}; return false; }
-	return ReadPlayer(LocalPlayer(), playerId, session, level, output);
+bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics) {
+	if (!g_indexFunction || !g_playerFunction) {
+		output = {};
+		if (diagnostics) { *diagnostics = {}; diagnostics->stage = "not-initialized"; }
+		return false;
+	}
+	return ReadPlayer(LocalPlayer(), playerId, session, level, output, diagnostics);
 }
 }

@@ -48,6 +48,9 @@ struct Table {
 	const char* radarEnabled;
 	const char* radarDisabled;
 	const char* radarUnavailable;
+	const char* radarReaderUnavailable;
+	const char* radarWaitingPlayer;
+	std::array<const char*, 4> radarUiStates; // inactive, unavailable, dialogue, paused
 	const char* radarWaitingHeading;
 	const char* radarAudioUnavailable;
 	const char* radarTest;
@@ -92,7 +95,11 @@ inline constexpr Table English {
 		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
 	.radarEnabled = "Radar enabled",
 	.radarDisabled = "Radar disabled",
-	.radarUnavailable = "Radar waiting for loaded terrain, or paused",
+	.radarUnavailable = "Radar terrain is not available yet",
+	.radarReaderUnavailable = "Radar terrain reader could not start",
+	.radarWaitingPlayer = "Radar waiting for the character to enter the game",
+	.radarUiStates = {"Radar suspended while the game window is inactive", "Radar cannot read the menu state",
+		"Radar suspended during dialogue", "Radar suspended in the pause menu"},
 	.radarWaitingHeading = "Walk a few steps to orient the radar",
 	.radarAudioUnavailable = "Radar audio unavailable",
 	.radarTest = "Radar sound test: front, left, right, back; opening then blocked",
@@ -137,7 +144,11 @@ inline constexpr Table Spanish {
 		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
 	.radarEnabled = "Radar activado",
 	.radarDisabled = "Radar desactivado",
-	.radarUnavailable = "Radar esperando terreno cargado, o en pausa",
+	.radarUnavailable = "Terreno del radar todavía no disponible",
+	.radarReaderUnavailable = "No se pudo iniciar el lector de terreno del radar",
+	.radarWaitingPlayer = "Radar esperando a que el personaje entre en la partida",
+	.radarUiStates = {"Radar suspendido: la ventana del juego no está activa", "El radar no puede leer el estado de los menús",
+		"Radar suspendido durante el diálogo", "Radar suspendido en el menú de pausa"},
 	.radarWaitingHeading = "Camina unos pasos para orientar el radar",
 	.radarAudioUnavailable = "Sonidos del radar no disponibles",
 	.radarTest = "Prueba de radar: delante, izquierda, derecha, atrás; apertura y después bloqueo",
