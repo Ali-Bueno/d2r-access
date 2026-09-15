@@ -74,15 +74,13 @@ constexpr const char* DynamicStatesMarker = "?";
 constexpr const char* ScreenResolutionWidget = "ScreenResolution";
 // DropdownListContentsHD.json: rows live in ListWidget "Items", scrolled by
 // ScrollControllerWidget "ScrollController". Measured 2026-09-15: the game
-// clones ItemTemplate into children of Items named "ListItem0", "ListItem1",
-// ... (one per option) which move with the list, so the clone under the
-// indicator is the option index however far the list has scrolled, and the
-// number of clones is the option count. ("Items", "Selector" and the scroll
-// bar's "Indicator" only report screen positions or stale values.)
-constexpr const char* PopupRowCloneFormat = "ListItem%d";
-constexpr int         PopupRowCloneLimit  = 256; // safety cap on the clone walk
-// Fallback when no clones resolve: a press that left the indicator on the
-// same row scrolled the list by one. It must follow within one update.
+// clones ItemTemplate into 13 children of Items named "ListItem0".."ListItem12"
+// (one per VISIBLE slot, recycled as the list scrolls), so no rect reveals
+// which option a slot shows; "Items", "Selector" and the scroll bar's
+// "Indicator" report screen positions or stale values. Until the slots'
+// text can be read, the scroll is tracked from the presses: one that left
+// the indicator on the same row scrolled the list by one. It must follow
+// within one update.
 constexpr unsigned PopupDirectionMaxAgeMs = 400;
 
 // CharacterSelectPanelHD.json: the character list's rows are clones of one
@@ -92,10 +90,17 @@ constexpr unsigned PopupDirectionMaxAgeMs = 400;
 constexpr const char* CharacterSelectPanelName = "CharacterSelectPanel";
 constexpr const char* CharacterRowWidget       = "CharacterTemplate";
 // The controller legend under the list (filled at runtime, unreadable) shows
-// the delete action on the X face button (observed on an Xbox pad,
-// 2026-09-15); the tooltip of the layout's DeleteCharacter button names it.
-constexpr const char* CharacterDeleteButton    = "X";
-constexpr const char* CharacterDeleteTextKey   = "strDelete";
+// play on the A face button and delete on X (observed on an Xbox pad,
+// 2026-09-15); the layout's QuickPlayButton text and DeleteCharacter tooltip
+// name the actions.
+struct LegendAction {
+	const char* button;
+	const char* textKey;
+};
+constexpr LegendAction CharacterRowActions[] = {
+	{ "A", "PlayTab" },
+	{ "X", "strDelete" },
+};
 
 std::string g_focusedCharacter;
 
@@ -433,35 +438,6 @@ std::optional<int> PopupOptionCount() {
 	return std::nullopt;
 }
 
-// The cloned row covering the indicator and how many clones exist.
-struct PopupRows {
-	int index = -1;
-	int count = 0;
-};
-PopupRows FindPopupRow(const Generated::PanelWidgets& popup, const Widgets::Rect& indicator) {
-	const Widgets::Step root { nullptr, popup.rootAnchorX, popup.rootAnchorY };
-	char                name[32] {};
-	Widgets::Step       steps[] = { { "Items", 0.0f, 0.0f }, { name, 0.0f, 0.0f } };
-	PopupRows           rows;
-	double              best = 0.0;
-	for (int i = 0; i < PopupRowCloneLimit; ++i) {
-		std::snprintf(name, sizeof(name), PopupRowCloneFormat, i);
-		const auto rect = Widgets::AbsoluteRect(popup.panel, root, steps);
-		if (!rect) {
-			break;
-		}
-		rows.count = i + 1;
-		if (const double coverage = Coverage(indicator, *rect); coverage > best) {
-			best       = coverage;
-			rows.index = i;
-		}
-	}
-	if (best < MinimumCoverage) {
-		rows.index = -1;
-	}
-	return rows;
-}
-
 // Fallback option index, tracking the list's scroll from the presses: the
 // popup is taken as unscrolled when it opens; afterwards a press that left
 // the indicator on the same row scrolled the list by one, and a press that
@@ -510,13 +486,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 	if (visibleRow < 0) {
 		return;
 	}
-	const PopupRows rows  = FindPopupRow(popup, indicator);
-	const int       index = rows.index >= 0 ? rows.index : PopupTrackedOption(visibleRow);
-	if (rows.count > 0) {
-		if (const auto declared = PopupOptionCount(); declared && *declared != rows.count) {
-			D2RL::LogWarnF(context, "[focus] popup has %d rows but %d options are known for %s", rows.count, *declared, g_dropdown.widget != nullptr ? g_dropdown.widget->name : "-");
-		}
-	}
+	const int index = PopupTrackedOption(visibleRow);
 	if (g_dropdown.popupIndex && *g_dropdown.popupIndex == index) {
 		return;
 	}
@@ -539,7 +509,7 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 		}
 		phrase = text;
 	}
-	D2RL::LogInfoF(context, "[focus] popup option %d of %d (%s) -> \"%s\"", index, rows.count, rows.count > 0 ? "clones" : "tracked", phrase.c_str());
+	D2RL::LogInfoF(context, "[focus] popup option %d (row %d + scroll %d) -> \"%s\"", index, visibleRow, g_dropdown.scrollOffset, phrase.c_str());
 	ScreenReader::Speak(phrase, true);
 }
 
@@ -601,8 +571,15 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		const std::string phrase = CharacterRowPhrase(context, characterRow);
 		D2RL::LogInfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
 		ScreenReader::Speak(phrase, true);
-		if (const std::string action = TextForKey(CharacterDeleteTextKey); !action.empty()) {
-			ScreenReader::Speak(std::string(CharacterDeleteButton) + ": " + action, false);
+		std::string legend;
+		for (const LegendAction& action : CharacterRowActions) {
+			if (const std::string text = TextForKey(action.textKey); !text.empty()) {
+				legend += legend.empty() ? "" : ", ";
+				legend += std::string(action.button) + ": " + text;
+			}
+		}
+		if (!legend.empty()) {
+			ScreenReader::Speak(legend, false);
 		}
 		return;
 	}
