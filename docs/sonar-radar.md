@@ -21,6 +21,27 @@ space. A known clear run can establish local passability even if the far end of
 the 150-subtile scan is not loaded. Detailed coverage depends on room streaming.
 Full-act maps, exits, seed derivation and destination beacons remain separate work.
 
+### What exists beyond an active room?
+
+The installed engine has two related structures: **logical rooms** describe the
+level's layout; **active rooms** own live collision grids. The following was
+confirmed by static analysis of this build, independently of community offsets:
+
+| Data / lifetime | Native evidence |
+|---|---|
+| Logical room list | `0x3614C0` starts at `Level+0x10`, follows `RoomEx+0x48`, and compares room rectangles at `RoomEx+0x60/+0x64/+0x68/+0x6C` while building neighbor lists. `RoomEx+0x90` is the containing level. |
+| Logical → active room | `0x361290` sets `RoomEx+0x58`; active-room creation `0x2EF340` calls it, then constructs collision with `0x363A90`. The reverse reference is `ActiveRoom+0x18`. |
+| Collision allocation | `0x363A90` allocates the grid from the active room's bounds and populates it from tile data. `0x2F0540` stores its pointer at `ActiveRoom+0x38`. |
+| Room unloading | `0x2F0110` calls `0x361260`, which clears `RoomEx+0x58`, and `0x363A10`, which frees the grid and clears `ActiveRoom+0x38`. |
+
+Thus logical room rectangles are another possible **direct read**, but a room
+rectangle does not describe its internal walls or traversable doorways. The
+unload path proves that collision is not permanently attached to every logical
+room. It does not rule out other engine caches; no complete, persistent detailed
+map has been established. How many logical rooms exist before exploration also
+requires a live snapshot. These additional fields are research findings only;
+the radar continues to read active collision grids without invoking room creation.
+
 The engine automap is a rendering layer (see [map landmarks](map-landmarks.md)),
 not a menu tree of traversable cells. The collision grid is the useful source
 for this first radar. No generated-map runtime or extra shipped native dependency
@@ -42,6 +63,7 @@ installed `D2RCore.dll`. No classic Diablo address is used as a D2R address.
 | Neighbor rooms | `0x2EFDE0`: neighbor-pointer array at `Room+0`, count at `Room+0x40`. `0x38DFB0` checks the current room then this array. `0x2F0680` checks active-room subtile bounds at `+0x80/+0x84/+0x88/+0x8C`. |
 | Actual body footprint | `0x341870` reads `Path+0x5C`; `0x364C70` dispatches pattern 0 to one cell, patterns 1/3/5 to `0x366D40`'s centre plus four adjacent cells, patterns 2/4 to a 3x3 box. The prototype obtains this pattern from the player every snapshot. |
 | Player walking mask | Calls at `0x22F0A3` and `0x566A95` pass **`0x1C09`** to the footprint query at `0x364C70`. This includes terrain, object, door and no-path bits; ordinary player/monster/item presence bits are absent. |
+| Isometric orientation | `0x334DB0`, used by active-room projection `0x2EFC60`: `screenX = 80*(tileX-tileY)-80`, `screenY = 40*(tileX+tileY)+80`. Therefore +X projects down/right and +Y down/left; left is a negative quarter-turn in world coordinates. Perceived direction still needs a live headphone check. |
 
 The installed code therefore offers both a native collision query and readable
 room grids. The grid path was selected because bounded guarded copies preserve
@@ -77,6 +99,10 @@ Public research was a lead, not build verification:
 - `native_world`: acquire the local player and copy loaded collision grids.
 - `radar_grid`: test the actual body footprint; scan three parallel lanes per
   direction, at half-subtile increments, up to 150 subtiles (30 D2 map tiles).
+  Integer cell positions are sampled about their centres, with boundary ties
+  resolved toward the scan direction. The eight heading vectors have exact
+  cardinal zero components. This prevents reversed rays from reporting unequal
+  depths and avoids numerical drift into a neighboring row or column.
 - `radar`: movement-relative front/left/right/back; stable state per direction,
   spatial dead band, 100 ms confirmation plus movement evidence and cooldown.
   Heading uses 150 ms of actual displacement to tolerate integer-coordinate
@@ -155,11 +181,14 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-Eleven CTest suites / 458 checks pass: the previous 255 checks, 183 radar/audio
+Eleven CTest suites / 510 checks pass: the previous 255 checks, 235 radar/audio
 checks and 20 native-world/config checks. Synthetic cases cover body-width gaps,
 door masks, actor filtering, unknown cells, crossroads, stable walls/open fields,
 stationary changes, turns/zig-zag/diagonal staircases, session/level/teleport/gap
-rebasing, stereo direction and clipping, and guarded native-memory fixtures.
+rebasing, equal depths around symmetric walls in all eight headings, cardinal
+rays staying in their own cell row/column, stereo direction and clipping, and
+guarded native-memory fixtures. The symmetry regression failed with the original
+floor-based sampling before the centre/boundary and heading-vector correction.
 The normal build deployed the DLL to the game's plugins folder.
 
 These checks do **not** establish live spatial calibration, perceived latency,

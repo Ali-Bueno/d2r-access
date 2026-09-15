@@ -12,7 +12,12 @@ int Sector(Position delta) {
 	return (result + Sectors) % Sectors;
 }
 Position Axis(int sector) {
-	return {std::cos(sector * SectorAngle), std::sin(sector * SectorAngle)};
+	// Exact zero components keep cardinal rays in their own grid row/column.
+	// Trigonometric roundoff would otherwise move an integer cell index.
+	constexpr double Diagonal = std::numbers::sqrt2 / 2;
+	constexpr std::array<Position, Sectors> Axes{{{1, 0}, {Diagonal, Diagonal}, {0, 1}, {-Diagonal, Diagonal},
+		{-1, 0}, {-Diagonal, -Diagonal}, {0, -1}, {Diagonal, -Diagonal}}};
+	return Axes[static_cast<size_t>((sector % Sectors + Sectors) % Sectors)];
 }
 // D2 world Y increases toward screen-left/down. Its isometric projection has
 // positive determinant, so -90 degrees is the player's left (see radar docs).

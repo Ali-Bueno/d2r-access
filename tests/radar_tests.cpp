@@ -65,6 +65,50 @@ void GridTests() {
 	probe = Scan(world, {1, 0}, {});
 	Check(probe.observed == State::Unknown && !probe.available, "an early unloaded boundary is neither open nor blocked");
 }
+void SymmetryTests() {
+	constexpr std::array<Position, 8> steps{{{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}}};
+	for (size_t heading = 0; heading < steps.size(); ++heading) {
+		auto world = Field();
+		const auto step = steps[heading];
+		constexpr int Center = 200, WallDistance = 6;
+		for (int cell = 0; cell < 400; ++cell) {
+			Put(world, Center - WallDistance, cell, 1);
+			Put(world, Center + WallDistance, cell, 1);
+			Put(world, cell, Center - WallDistance, 1);
+			Put(world, cell, Center + WallDistance, 1);
+		}
+		Engine engine;
+		for (uint64_t tick = 0; tick <= 4; ++tick) {
+			world.player = {Center - (4 - double(tick)) * step.x, Center - (4 - double(tick)) * step.y};
+			(void)engine.Tick(world, 1000 + tick * 50);
+		}
+		Check(engine.Heading() == static_cast<int>(heading), "all eight actual movement headings are acquired");
+		// Rays start at the cell centre. The wall begins 5.5 subtiles away on
+		// each cardinal axis, or 5.5 * sqrt(2) diagonally. Last clear 0.5 step:
+		const double expectedDepth = heading % 2 == 0 ? 5.0 : 7.5;
+		for (const auto& sensor : engine.Sensors())
+			Check(sensor.probe.depths[1] == expectedDepth, "symmetric walls have equal depths in every relative direction");
+	}
+	for (size_t heading = 0; heading < steps.size(); heading += 2) {
+		auto world = Field();
+		world.bodyPattern = 0;
+		const auto step = steps[heading];
+		constexpr int Center = 200;
+		for (int cell = 0; cell < 400; ++cell) {
+			if (step.x != 0) { Put(world, cell, Center - 1, 1); Put(world, cell, Center + 1, 1); }
+			else { Put(world, Center - 1, cell, 1); Put(world, Center + 1, cell, 1); }
+		}
+		Engine engine;
+		for (uint64_t tick = 0; tick <= 4; ++tick) {
+			world.player = {Center - (4 - double(tick)) * step.x, Center - (4 - double(tick)) * step.y};
+			(void)engine.Tick(world, 1000 + tick * 50);
+		}
+		Check(engine.Heading() == static_cast<int>(heading), "one-cell corridor acquires its cardinal heading");
+		for (auto direction : {Direction::Front, Direction::Back})
+			Check(engine.Sensors()[static_cast<size_t>(direction)].probe.depths[1] == Settings{}.farRange,
+				"cardinal centre rays stay in the same row or column for their full range");
+	}
+}
 void TopologyTests() {
 	auto world = Field();
 	for (int x = 0; x < 400; ++x) {
@@ -180,6 +224,7 @@ void AudioTests() {
 }
 int main() {
 	GridTests();
+	SymmetryTests();
 	TopologyTests();
 	StabilityTests();
 	AudioTests();

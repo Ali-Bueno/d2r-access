@@ -4,6 +4,15 @@
 #include <cmath>
 
 namespace D2RAccess::Radar {
+namespace {
+int CellCoordinate(double origin, double displacement) {
+	// Native integer positions identify cell centres. At an exact half-cell
+	// boundary, visit the cell in the scan direction, symmetrically both ways.
+	constexpr double HalfCell = 0.5;
+	const double position = origin + displacement;
+	return static_cast<int>(displacement < 0 ? std::ceil(position - HalfCell) : std::floor(position + HalfCell));
+}
+}
 State World::Cell(int x, int y) const {
 	for (const auto& room : rooms) {
 		const int64_t dx = int64_t(x) - room.x, dy = int64_t(y) - room.y;
@@ -44,8 +53,8 @@ Probe Scan(const World& world, Position axis, const Settings& settings) {
 	// step keep a single thin centre ray from accepting an unusable gap.
 	constexpr double Step = 0.5;
 	for (double depth = Step; depth <= settings.nearRange; depth += Step) {
-		body = world.Body(static_cast<int>(std::floor(world.player.x + axis.x * depth)),
-			static_cast<int>(std::floor(world.player.y + axis.y * depth)));
+		body = world.Body(CellCoordinate(world.player.x, axis.x * depth),
+			CellCoordinate(world.player.y, axis.y * depth));
 		if (body != State::Open) break;
 		probe.bodyDepth = depth;
 	}
@@ -54,8 +63,8 @@ Probe Scan(const World& world, Position axis, const Settings& settings) {
 		const double offset = (static_cast<double>(lane) - 1) * settings.laneSpacing;
 		ends[lane] = State::Open;
 		for (double depth = Step; depth <= settings.farRange; depth += Step) {
-			const int x = static_cast<int>(std::floor(world.player.x + axis.x * depth + side.x * offset));
-			const int y = static_cast<int>(std::floor(world.player.y + axis.y * depth + side.y * offset));
+			const int x = CellCoordinate(world.player.x, axis.x * depth + side.x * offset);
+			const int y = CellCoordinate(world.player.y, axis.y * depth + side.y * offset);
 			ends[lane] = world.Cell(x, y);
 			if (ends[lane] != State::Open) break;
 			probe.depths[lane] = depth;

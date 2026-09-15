@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (first native-collision sonar prototype built/deployed; eleven suites / 458 checks pass; live radar calibration pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (sonar symmetry corrected and deployed; logical-room/collision lifetime derived; eleven suites / 510 checks pass; live radar calibration pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -30,9 +30,9 @@
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
-| Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. `docs/sonar-radar.md` |
+| Native world / local map | wip — code derived, runtime pending | Loader-resolved player lookup; actual path position/footprint and loaded room grids. No map regeneration. Ten code fingerprints and guarded snapshots. Logical room list and collision unload path also derived; full-map detail not established. `docs/sonar-radar.md` |
 | Sonar radar | wip — implemented, built/deployed | Four movement-relative axes, near body + 150-subtile lanes, hysteresis/movement gating, silent rebases, synthesized stereo tin/tock. Ctrl+R toggle, Ctrl+T state; `access-radar on|off|status|dump|test`. Live direction/doors/pause/audio validation pending |
-| Radar automated tests | done (local) | 183 radar/audio checks + 20 native-world/config checks; eleven total suites / 458 total checks |
+| Radar automated tests | done (local) | 235 radar/audio checks + 20 native-world/config checks; eleven total suites / 510 total checks. Eight-heading symmetry regression caught and fixed unequal ray depths/cardinal drift |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -115,9 +115,11 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, X/Y **32-bit `+8/+0xC`** (`0x341C10/20`), body pattern `+0x5C` (`0x341870`). Room collision pointer `+0x38` (`0x2EFB30`); neighbor array/count `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); native walking mask `0x1C09` at `0x22F0A3`. Read loaded client rooms; unloaded cells remain unknown. Full-act residency not established.
 
+- **Room lifetime / orientation:** logical list `Level+0x10 → RoomEx+0x48`, rectangles `RoomEx+0x60..0x6C` (`0x3614C0`); active instance `RoomEx+0x58` set/cleared by `0x361290/0x361260`; unloading frees collision (`0x2F0110 → 0x363A10`). Room metadata does not establish persistent detailed collision. Projection `0x334DB0`: X down/right, Y down/left, supporting left = −90°. Full evidence: `docs/sonar-radar.md`.
+
 ## Next step
 
-Validate the installed sonar in Rogue Encampment with NVDA/headphones and the controller sequence in `docs/sonar-radar.md`: obtain `[radar] Live terrain ready`, check left/right and rear, pass a building opening, turn, interact with Charsi and pause/resume. Then test doors/outdoor boundaries and a portal. The map/collision layout was derived from this build, but no live radar run is claimed yet. Eleven suites / 458 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
+Validate the installed sonar in Rogue Encampment with NVDA/headphones and the controller sequence in `docs/sonar-radar.md`: obtain `[radar] Live terrain ready`, check left/right and rear, pass a building opening, turn, interact with Charsi and pause/resume. Then test doors/outdoor boundaries and a portal. The map/collision layout was derived from this build, but no live radar run is claimed yet. Eleven suites / 510 checks pass. Earlier UI confirmations remain valid; tabs, scroll-control identification and full inventory/storage operations remain separate open work.
 
 ## Known issues / open questions
 
