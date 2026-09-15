@@ -86,6 +86,11 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
+		else {
+			auto message = NativeWidgets::ReadLatestNotification(widget);
+			node.contentId = message.id;
+			node.text = std::move(message.text);
+		}
 	}
 	if (type.kind == Kind::ScrollingText && snapshot.surface == Surface::Other) snapshot.surface = Surface::Narrative;
 	const int index = static_cast<int>(snapshot.nodes.size());

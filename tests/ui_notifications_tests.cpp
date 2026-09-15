@@ -51,5 +51,37 @@ int main() {
 	(void)reader.Update({"partial"}, 1010);
 	Check(reader.Update({"complete"}, 1080).empty(), "partially populated text is not spoken");
 	Check(reader.Update({"complete"}, 1160) == std::vector<std::string>{"complete"}, "complete replacement text is delivered");
+
+	feed.nodes[1].text = "ÿc1" + warning;
+	feed.nodes[1].contentId = 700;
+	const auto nativeDeliveries = UiNotifications::Deliveries(feed);
+	Check(nativeDeliveries.size() == 1 && nativeDeliveries[0].source == 2 && nativeDeliveries[0].id == 700 && nativeDeliveries[0].text == warning, "delivery identity comes from the source list and native message, with colors removed");
+	feed.nodes[1].kind = Kind::List;
+	Check(UiNotifications::Deliveries(feed).empty(), "chat history cannot rearm notification speech");
+	reader.Reset();
+	messages = {warning, "An older notice"};
+	std::vector<UiNotifications::Delivery> deliveries{{2, 100, warning}};
+	(void)reader.Update(messages, 2000, deliveries);
+	Check(reader.Update(messages, 2080, deliveries) == messages, "initial delivery reads visible text once");
+	deliveries[0].id = 101;
+	Check(reader.Update(messages, 2200, deliveries).empty(), "a second identical delivery settles before speech");
+	Check(reader.Update(messages, 2280, deliveries) == std::vector<std::string>{warning}, "second delivery repeats only its own text, not older notices");
+	Check(reader.Update(messages, 2400, deliveries).empty(), "unchanged message identity does not repeat between key presses");
+	std::swap(messages[0], messages[1]);
+	Check(reader.Update(messages, 2500, deliveries).empty(), "reordering recycled widgets does not create a delivery");
+	deliveries[0].id = 100;
+	(void)reader.Update(messages, 2600, deliveries);
+	Check(reader.Update(messages, 2680, deliveries) == std::vector<std::string>{warning}, "a reused ring slot after intermediate deliveries still reads");
+	deliveries[0] = {2, 102, "Invisible backing-store text"};
+	Check(reader.Update(messages, 2800, deliveries).empty() && reader.Update(messages, 2880, deliveries).empty(), "a hidden or expired native message never repeats stale visible text");
+	deliveries[0] = {2, 0, warning};
+	Check(reader.Update(messages, 3000, deliveries).empty(), "unavailable native identity retains the text-only fallback");
+	deliveries[0] = {2, 103, warning};
+	(void)reader.Update(messages, 3100, deliveries);
+	deliveries[0].id = 104;
+	(void)reader.Update(messages, 3150, deliveries);
+	Check(reader.Update(messages, 3230, deliveries) == std::vector<std::string>{warning}, "a sub-settling burst coalesces into its latest delivery");
+	reader.Reset();
+	Check(reader.Update(messages, 3300, deliveries).empty() && reader.Update(messages, 3380, deliveries) == messages, "session reset also clears delivery identities");
 	Passed();
 }

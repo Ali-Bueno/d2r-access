@@ -28,6 +28,7 @@ this document preserves the conclusions needed to maintain the adapter.
 | Textbox contents | `0x86DD50` | Copies supplied string into widget `+0x88`, then refreshes its layout |
 | Linked text | `0x87D950`, `0x87DAB0`, `0x87DC10`, `0x87EFE0` | TextBoxWithLinksWidget derives from **FocusableWidget**, not TextBoxWidget. Update/render delegate to the embedded textbox at `+0x570`; its string is at `+0x5F8` |
 | Notification list source | `0x84CC70`, `0x8BA3A0` | ChatListWidget uses source enum at `+0x300`: 0 = ChatHistory, 1 = ChatNotificationMessages, 2 = PartyNotificationMessages. Only source 1 uses the HUD notice reader |
+| Notification delivery identity | `0x84DC80`, `0x84D0B0`, `0x850060` | The stock new-entry handler asks list vtable `+0xC8` for the count, then `0x84D0B0(list, count - 1)` for the latest message. Source 1 uses a 19-slot ring (18 usable), entry stride `0x2E8`. Its first engine string is the message body; appending advances the entry address even for identical text |
 | Managed panels | `0x89F760` | Additional panel pointer/count vectors at manager `+0x88/+0x90` and `+0xA0/+0xA8`, alongside root children |
 
 `native_widgets.cpp` enables extended traversal only when the resolved FindChild
@@ -51,9 +52,11 @@ searching another version. A changed layout disables the new reader and logs why
   underlying NPC text; area banners do not interrupt a conversation. The existing
   front-end/value reader continues to handle its established controls.
 - `ui_notifications.*`: notification rows are read independently of menu focus.
-  New text settles for 80 ms and queues without interrupting; identical visible
-  messages and recycled rows remain silent. A message can be read again after it
-  disappears. Closed/disabled sessions clear the reader. Only source 1 is read;
+  New text settles for 80 ms and queues without interrupting; unchanged visible
+  messages and recycled rows remain silent. A new native delivery rearms only its
+  matching visible text, including identical repeated warnings. The latest ring
+  identity is compared with its predecessor, so slot reuse after intervening
+  deliveries is supported. Closed/disabled sessions clear the reader. Only source 1 is read;
   chat history and unrelated HUD lists are excluded.
 
 Class mappings: NpcDialogPanel → menu; ScrollSpeechPanel/QuestLogSpeechPanel →
@@ -101,6 +104,19 @@ section. Function bodies in the analyzed live Ghidra program still match; use
 live `.rdata` for name/xref lookup. Old disk-data addresses are not runtime offsets.
 This investigation briefly opened and closed the game at the front end; it did
 not exercise the new warning reader in a character session.
+
+The user subsequently confirmed the first warning at 10:04:54 but reported that
+further G presses stayed silent. The log contains new `ChatEntryPushed` events at
+10:04:56 and later, while content deduplication suppressed speech until the old
+warning disappeared. `native_widgets.cpp` now reads the latest native delivery
+using the stock count/entry accessors, under SEH. It requires the existing build
+checks, count-vtable target `0x84CC70`, and entry prologue at `0x84D0B0`:
+`48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57`. Counts outside 1–18 fail closed.
+Native strings still use guarded copies, and only bodies matching currently
+visible text can rearm speech. If metadata is unavailable or a custom formatted
+body does not match, ordinary visible-text change detection remains available.
+No key-specific handler or hardcoded Spanish warning is used. Very fast bursts
+within the 80 ms settling window coalesce into the latest delivery.
 
 The existing log at 2026-09-14 16:35:38–16:36:52 confirms NPC and scrolling-speech
 panels opening separately and the NPC list being rebuilt after ListItemClicked.

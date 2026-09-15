@@ -138,6 +138,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	const bool dump = g_dump.exchange(false);
 	UiText::Readout active, area;
 	std::vector<std::string> notices;
+	std::vector<UiNotifications::Delivery> deliveries;
 	int best = -1;
 	auto panels = NativeUi::Panels();
 	if (focus.panel && std::find(panels.begin(), panels.end(), focus.panel) == panels.end()) panels.push_back(focus.panel);
@@ -154,6 +155,8 @@ bool Tick(const D2RL::PluginContext* context) {
 		if (notification) {
 			const auto messages = UiNotifications::Describe(snapshot);
 			notices.insert(notices.end(), messages.begin(), messages.end());
+			const auto latest = UiNotifications::Deliveries(snapshot);
+			deliveries.insert(deliveries.end(), latest.begin(), latest.end());
 			continue;
 		}
 		if (snapshot.surface == Surface::Other) continue;
@@ -181,7 +184,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	g_ownedFocus = owns;
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns);
 	else g_areaReader.Reset();
-	for (const auto& text : g_notices.Update(notices, now)) {
+	for (const auto& text : g_notices.Update(notices, now, deliveries)) {
 		D2RL::LogInfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}

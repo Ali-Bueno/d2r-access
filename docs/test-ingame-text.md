@@ -3,7 +3,8 @@
 Build/install: close D2R, run `./build.ps1`, then launch D2RLoader with NVDA running.
 The build deploys automatically to the already configured game folder. Use the
 existing offline character. The user confirmed the Rogue Encampment entry
-announcement; NPC dialogue and the new notice reader still need live verification.
+announcement and the first G warning; NPC dialogue and repeated identical notice
+deliveries still need live verification.
 
 ## Reported G warning
 
@@ -11,9 +12,11 @@ announcement; NPC dialogue and the new notice reader still need live verificatio
    press **A** to enter town. No NPC needs to be found for this check.
 2. Press keyboard **G**, the exact trigger in the user's report. NVDA should read
    "Solo disponible en partidas de clásico y de expansión" from the visible notice.
-3. Wait while it remains visible. It should not repeat. Repeated identical warnings
-   still on screen are intentionally deduplicated. After the notice disappears,
-   press **G** again; the new appearance should be read.
+3. Wait without pressing anything: the notice should not repeat automatically.
+   Press **G** again while the first notice remains visible. The newly delivered
+   warning should be read again, despite having identical text. Repeat three times,
+   allowing speech to finish between presses. Then wait until it disappears and
+   press **G** once more; that new appearance should also be read.
 4. Return to controller input and open **Menu/Start**, then **B** to return. Menu
    focus should still work. A new informational notice should also read without
    moving controller focus onto it.
@@ -71,11 +74,13 @@ and `[native]` lines. The startup native-RVA line precedes `d2r-access loaded.`.
 ## Automated checks
 
 `ctest --test-dir build --output-on-failure` runs five native C++ test executables
-(101 checks). Coverage includes complete long strings, invalid memory, hidden
+(116 checks). Coverage includes complete long strings, invalid memory, hidden
 ancestors/templates, native focus and embedded button text, menu diffing, dialogue
 transitions, covering modals, toggling, session readiness and listener cleanup.
 Notification coverage includes native linked text and data-source filtering,
 unfocused notices, coexistence with dialogue, fading/recycled/duplicate rows,
-reappearance, partial text settling, repeat and feature disable.
+reappearance, partial text settling, repeat and feature disable. Delivery tests
+cover identical successive messages, ring-slot reuse, older notices staying silent,
+missing native metadata, hidden backing-store text and rapid-burst coalescing.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;
 only the plugin and the existing PRISM DLL are deployed.

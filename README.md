@@ -24,9 +24,11 @@ announcements. See [the controller test guide](docs/test-ingame-text.md).
 
 The user confirmed the Rogue Encampment entry announcement. Informational notices
 (including the Classic/Expansion restriction when pressing **G**) and the visible
-HUD notification feed now have a reader, awaiting in-game verification. New notices
-queue without interrupting a conversation; unchanged text stays silent until it
-disappears. Notification text with links uses its native embedded textbox.
+HUD notification feed now have a reader. The user confirmed the first G warning;
+the repeated-delivery correction awaits in-game verification. New notices queue
+without interrupting a conversation. A new delivery of identical text is read
+again; simply leaving a notice visible stays silent. Notification text with links
+uses its native embedded textbox.
 
 Not yet: full chat history, item tooltips, inventory readout, general in-game HUD/combat and navigation.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).

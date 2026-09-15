@@ -10,6 +10,7 @@
 namespace {
 uintptr_t managerAddress = 0;
 bool supported = true;
+D2RAccess::NativeWidgets::Notification latestNotification;
 struct Metadata { uintptr_t vtable = 0; const char* name = nullptr; Metadata* base = nullptr; };
 
 uintptr_t TypeGetter(uintptr_t widget) {
@@ -57,6 +58,7 @@ struct Widget {
 namespace D2RAccess::NativeWidgets {
 bool SupportsTree() { return supported; }
 uintptr_t PanelManager() { return managerAddress; }
+Notification ReadLatestNotification(uintptr_t) { return latestNotification; }
 std::string ReadName(uintptr_t widget) {
 	std::string value;
 	return NativeMemory::ReadEngineString(widget + 8, value) ? value : "";
@@ -124,9 +126,11 @@ int main() {
 	linkedText.StringAt(0x5F8, linkedText.text); // embedded textbox +0x570, string +0x88
 	notifications.Put<uint32_t>(0x300, 1); // ChatNotificationMessages, not ChatHistory
 	feed.Add(notifications); notifications.Add(linkedText);
+	latestNotification = {12345, linkedText.text};
 	snapshot = NativeUi::Snapshot(feed.Address(), 0);
 	Check(snapshot.surface == UiText::Surface::NotificationFeed && snapshot.nodes[1].kind == UiText::Kind::NotificationList, "native notification feed and data source are identified");
 	Check(snapshot.nodes[2].kind == UiText::Kind::LinkedText && snapshot.nodes[2].text == linkedText.text, "linked text uses its embedded textbox, not FocusableWidget fields");
+	Check(snapshot.nodes[1].contentId == 12345 && snapshot.nodes[1].text == linkedText.text, "notification list snapshots include the actual latest delivery");
 	notifications.Put<uint32_t>(0x300, 0);
 	Check(NativeUi::Snapshot(feed.Address(), 0).nodes[1].kind == UiText::Kind::List, "chat history is excluded from notifications");
 	linkedText.Put<uint8_t>(0x51, 0);

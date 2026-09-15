@@ -146,8 +146,14 @@ int main() {
 		{43, 2, UiText::Kind::LinkedText, "MessageText", "TextBoxWithLinksWidget", warning},
 	}});
 	Check(!Settle() && speech.size() == 1 && speech.back().text == warning && !speech.back().interrupt, "G-style notice reads without controller focus and does not interrupt");
+	panels[0].nodes[1].text = warning;
+	panels[0].nodes[1].contentId = 100;
 	speech.clear(); Settle();
 	Check(speech.empty(), "persistent G warning is not repeated");
+	panels[0].nodes[1].contentId = 101;
+	Check(!Settle() && speech.size() == 1 && speech.back().text == warning, "second G delivery reads even with identical visible text");
+	speech.clear(); Settle();
+	Check(speech.empty(), "second G delivery does not repeat on later polls");
 	GameTextReader::RequestRepeat(); Settle();
 	Check(speech.size() == 1 && speech.back().text == warning, "repeat works for the current notification");
 	panels.push_back(Menu()); focus = {1, 2}; Settle(); speech.clear();

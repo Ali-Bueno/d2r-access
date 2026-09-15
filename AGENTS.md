@@ -26,7 +26,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure` (five suites, 101 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure` (five suites, 116 checks).
 - Loader config `d2rloader/config/d2rloader.toml` must keep `text_locale = "esES"`,
   `audio_locale = "esES"`, `enable_console = true`.
 

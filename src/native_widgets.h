@@ -46,6 +46,9 @@ std::vector<FoundString> ScanStrings(uintptr_t widget, size_t span);
 // row TextBox), the text it currently displays; "" when unreadable.
 std::string ReadName(uintptr_t widget);
 std::string ReadText(uintptr_t widget);
+struct Notification { uintptr_t id = 0; std::string text; };
+// Native message-ring identity distinguishes delivery from a recycled UI row.
+Notification ReadLatestNotification(uintptr_t list);
 // Displayed text of the text box at panel/path, "" when not found.
 std::string TextAt(std::string_view panel, std::span<const std::string> path);
 

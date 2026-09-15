@@ -34,13 +34,38 @@ std::vector<std::string> Describe(const UiText::Snapshot& snapshot) {
 	return result;
 }
 
-std::vector<std::string> Reader::Update(const std::vector<std::string>& visible, uint64_t now) {
+std::vector<Delivery> Deliveries(const UiText::Snapshot& snapshot) {
+	std::vector<Delivery> result;
+	for (const auto& node : snapshot.nodes) {
+		if (node.kind != UiText::Kind::NotificationList || !node.contentId) continue;
+		auto text = UiText::Clean(node.text);
+		if (!text.empty()) result.push_back({node.id, node.contentId, std::move(text)});
+	}
+	return result;
+}
+
+std::vector<std::string> Reader::Update(const std::vector<std::string>& visible, uint64_t now, const std::vector<Delivery>& deliveries) {
 	// Recycling/scrolling can move the same visible message to another object.
 	// Diff by content, not address or row index; fading old rows must stay silent.
 	std::erase_if(entries_, [&](const Entry& entry) {
 		return std::find(visible.begin(), visible.end(), entry.text) == visible.end();
 	});
 	if (std::find(visible.begin(), visible.end(), last_) == visible.end()) last_.clear();
+	for (const auto& delivery : deliveries) {
+		// An expired/hidden message in the backing store must never be spoken.
+		if (!delivery.source || !delivery.id || std::find(visible.begin(), visible.end(), delivery.text) == visible.end()) continue;
+		auto previous = std::find_if(deliveries_.begin(), deliveries_.end(), [&](const Delivery& item) { return item.source == delivery.source; });
+		if (previous == deliveries_.end()) deliveries_.push_back(delivery);
+		else if (previous->id != delivery.id || previous->text != delivery.text) {
+			*previous = delivery;
+			// Only the newly delivered text is rearmed; older visible notices stay
+			// silent. Ring slots may wrap, so compare with the last delivery only.
+			for (auto& entry : entries_) if (entry.text == delivery.text) {
+				entry.spoken = false;
+				entry.since = now;
+			}
+		}
+	}
 	std::vector<std::string> result;
 	for (const auto& text : visible) {
 		if (text.empty()) continue;
@@ -55,5 +80,5 @@ std::vector<std::string> Reader::Update(const std::vector<std::string>& visible,
 	return result;
 }
 
-void Reader::Reset() { entries_.clear(); last_.clear(); }
+void Reader::Reset() { entries_.clear(); deliveries_.clear(); last_.clear(); }
 }

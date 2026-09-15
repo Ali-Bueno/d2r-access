@@ -17,6 +17,7 @@ struct Node {
 	Kind kind = Kind::Other;
 	std::string name, type, text;
 	bool enabled = true;
+	uintptr_t contentId = 0; // optional native notification delivery, not a widget address
 };
 struct Snapshot {
 	uintptr_t panel = 0, focus = 0;

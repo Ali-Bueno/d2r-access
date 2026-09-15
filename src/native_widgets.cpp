@@ -39,6 +39,11 @@ void**      g_managerGlobal = nullptr; // the game's PanelManager* global
 FindPanelFn g_findPanel  = nullptr;
 FindChildFn g_findChild  = nullptr;
 bool g_supportsTree = false;
+bool g_supportsNotifications = false;
+constexpr uintptr_t NotificationCountRva = 0x84CC70;
+constexpr uintptr_t NotificationEntryRva = 0x84D0B0;
+constexpr size_t NotificationCountSlot = 0xC8;
+constexpr uint64_t NotificationCapacity = 19; // one unused ring slot; 0x850060
 
 struct PendingProbe {
 	std::string              panel;
@@ -73,6 +78,14 @@ uintptr_t CallFindChild(void* parent, const char* name) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		return 0;
 	}
+}
+
+uintptr_t CallLatestNotification(uintptr_t list, uintptr_t countFunction, uintptr_t entryFunction) noexcept {
+	__try {
+		const auto count = reinterpret_cast<uint64_t(*)(uintptr_t)>(countFunction)(list);
+		return count > 0 && count < NotificationCapacity
+			? reinterpret_cast<uintptr_t(*)(uintptr_t, int)>(entryFunction)(list, static_cast<int>(count - 1)) : 0;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
 
 void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
@@ -143,6 +156,12 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!g_supportsTree) context->LogWarn("[text] Unrecognized native layout; in-game text traversal disabled.");
 	D2RL::LogInfoF(context, "[native] D2R live RVAs: PanelManager global 0x%llX, FindPanel 0x%llX, FindChildWidget 0x%llX, TextBoxWidget::SetText 0x%llX",
 		static_cast<unsigned long long>(managerGlobal - g_exeBase), static_cast<unsigned long long>(findPanel - g_exeBase), static_cast<unsigned long long>(findChild - g_exeBase), static_cast<unsigned long long>(setText - g_exeBase));
+	constexpr unsigned char EntryCode[] = { 0x48, 0x89, 0x5C, 0x24, 0x10, 0x48, 0x89, 0x6C, 0x24, 0x18, 0x48, 0x89, 0x74, 0x24, 0x20, 0x57 };
+	unsigned char entryCode[sizeof(EntryCode)]{};
+	g_supportsNotifications = g_supportsTree
+		&& NativeMemory::Copy(g_exeBase + NotificationEntryRva, entryCode, sizeof(entryCode))
+		&& std::memcmp(entryCode, EntryCode, sizeof(entryCode)) == 0;
+	if (g_supportsTree && !g_supportsNotifications) context->LogWarn("[notice] Unrecognized message accessor; repeated-delivery detection disabled.");
 	return true;
 }
 
@@ -151,6 +170,17 @@ bool IsAvailable() {
 }
 
 bool SupportsTree() { return IsAvailable() && g_supportsTree; }
+
+Notification ReadLatestNotification(uintptr_t list) {
+	uintptr_t vtable = 0, count = 0;
+	if (!g_supportsNotifications || !Peek(list, vtable) || !Peek(vtable + NotificationCountSlot, count)
+		|| count != g_exeBase + NotificationCountRva) return {};
+	const uintptr_t entry = CallLatestNotification(list, count, g_exeBase + NotificationEntryRva);
+	std::string text;
+	// The producer copies the localized message into the entry's first string.
+	if (!entry || !ReadEngineString(entry, text) || !LooksLikeText(text)) return {};
+	return {entry, std::move(text)};
+}
 
 uintptr_t PanelManager() {
 	uintptr_t manager = 0;
