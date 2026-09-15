@@ -350,7 +350,7 @@ inline constexpr PathStep Path_CharacterCreatePanel_8[] = { { "LeftAnchor", -0.5
 inline constexpr PathStep Path_CharacterCreatePanel_9[] = { { "RightAnchor", 0.5f, 1.0f }, { "ToggleLegacy", 0.0f, 0.0f } };
 inline constexpr PathStep Path_CharacterCreatePanel_10[] = { { "RightAnchor", 0.5f, 1.0f }, { "GameVersionContainer", 0.0f, 0.0f }, { "GameVersionInfoButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_CharacterCreatePanel_11[] = { { "RightAnchor", 0.5f, 1.0f }, { "GameVersionContainer", 0.0f, 0.0f }, { "GameVersionDropdown", 0.0f, 0.0f } };
-inline constexpr const char* const States_CharacterCreatePanel_11[] = { "" };
+inline constexpr const char* const States_CharacterCreatePanel_11[] = { "Classic", "Expansion", "RotWLong" };
 inline constexpr PathStep Path_CharacterCreatePanel_12[] = { { "RightAnchor", 0.5f, 1.0f }, { "ToGame", 0.0f, 0.0f } };
 inline constexpr PathStep Path_CharacterCreatePanel_13[] = { { "RightAnchor", 0.5f, 1.0f }, { "UpsellButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_CharacterCreatePanel_14[] = { { "InputContainer", 0.0f, 0.0f }, { "InputText", 0.0f, 0.0f } };
@@ -370,7 +370,7 @@ inline constexpr WidgetEntry Widgets_CharacterCreatePanel[] = {
 	{ "ToMainMenu", "ButtonWidget", "UIBack", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_8, 2 },
 	{ "ToggleLegacy", "ButtonWidget", "FrontEndToggleLegacyButtonText", nullptr, nullptr, "ToggleRendererHint", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_9, 2 },
 	{ "GameVersionInfoButton", "ButtonWidget", nullptr, nullptr, "GameVersionLabel", "CharacterGameVersionTooltip", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_10, 3 },
-	{ "GameVersionDropdown", "DropdownListWidget", nullptr, nullptr, "GameVersionLabel", nullptr, "CharacterCreate", "GameVersionSelected", States_CharacterCreatePanel_11, 1, Path_CharacterCreatePanel_11, 3 },
+	{ "GameVersionDropdown", "DropdownListWidget", nullptr, nullptr, "GameVersionLabel", nullptr, "CharacterCreate", "GameVersionSelected", States_CharacterCreatePanel_11, 3, Path_CharacterCreatePanel_11, 3 },
 	{ "ToGame", "ButtonWidget", "UICreate", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_12, 2 },
 	{ "UpsellButton", "ButtonWidget", "UILearnMore", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_13, 2 },
 	{ "InputText", "InputTextBoxWidget", nullptr, nullptr, "strCharacterName", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_14, 2 },

@@ -24,6 +24,10 @@
 // (e.g. a numeric string); other strings (like the IP above) are skipped.
 namespace D2RAccess::SettingsFile {
 
+// The game's save folder (<Saved Games>\Diablo II Resurrected), which also
+// holds the character saves; empty when it cannot be resolved.
+std::wstring SavedGamesDirectory();
+
 // Re-reads the file if its last-write time changed since the previous read
 // attempt. Returns whether values are currently loaded (true if a prior read
 // already succeeded, even when nothing changed this call).

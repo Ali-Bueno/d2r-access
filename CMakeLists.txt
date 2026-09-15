@@ -24,6 +24,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # D2RLoader picks up a companion d2rl-<id>.mpq by this file name, so keep the
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
+	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
 	src/display_modes.cpp

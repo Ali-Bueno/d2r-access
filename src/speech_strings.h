@@ -30,6 +30,7 @@ struct Table {
 	const char* optionOfCount;     // %d = index (1-based), %d = count
 	const char* optionIndex;       // %d = index (1-based), count unknown
 	const char* resolution;        // %u = width, %u = height
+	const char* characterLevel;    // %d = level
 	const char* unavailable;       // spoken after a control the game has disabled
 	const char* modalConfirmHint;  // spoken after a confirmation modal's title
 	const char* modalDismissHint;  // spoken after a dismissable modal's title
@@ -55,6 +56,7 @@ inline constexpr Table English {
 	.optionOfCount       = "option %d of %d",
 	.optionIndex         = "option %d",
 	.resolution          = "%u by %u",
+	.characterLevel      = "level %d",
 	.unavailable         = "unavailable",
 	.modalConfirmHint    = "A to confirm, B to cancel",
 	.modalDismissHint    = "A to close",
@@ -80,6 +82,7 @@ inline constexpr Table Spanish {
 	.optionOfCount       = "opción %d de %d",
 	.optionIndex         = "opción %d",
 	.resolution          = "%u por %u",
+	.characterLevel      = "nivel %d",
 	.unavailable         = "no disponible",
 	.modalConfirmHint    = "A para confirmar, B para cancelar",
 	.modalDismissHint    = "A para cerrar",

@@ -57,13 +57,12 @@ std::wstring ResolveSavedGamesDirectory() {
 	return std::wstring(profile) + L"\\Saved Games";
 }
 
+constexpr const wchar_t* GameSaveFolder = L"\\Diablo II Resurrected";
+
 const std::wstring& SettingsFilePath() {
 	static const std::wstring path = [] {
-		std::wstring directory = ResolveSavedGamesDirectory();
-		if (directory.empty()) {
-			return std::wstring();
-		}
-		return directory + L"\\Diablo II Resurrected\\Settings.json";
+		const std::wstring directory = SavedGamesDirectory();
+		return directory.empty() ? std::wstring() : directory + L"\\Settings.json";
 	}();
 	return path;
 }
@@ -242,6 +241,14 @@ ParsedValues g_values;
 FILETIME     g_lastWriteTime {};
 bool         g_loaded = false;
 
+}
+
+std::wstring SavedGamesDirectory() {
+	static const std::wstring directory = [] {
+		const std::wstring base = ResolveSavedGamesDirectory();
+		return base.empty() ? std::wstring() : base + GameSaveFolder;
+	}();
+	return directory;
 }
 
 bool Reload() {

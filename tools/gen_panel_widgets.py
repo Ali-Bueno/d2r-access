@@ -279,12 +279,23 @@ def compute_update_message(fields: dict[str, Any], wtype: str | None) -> tuple[s
     return target, command, extra
 
 
-def compute_states(fields: dict[str, Any], profiles: list[tuple[str, dict[str, Any]]]) -> list[str] | None:
+# A placeholder list ([""]) means the game fills the states at runtime; some
+# layouts keep the source list in a field of their root (CharacterCreatePanelHD:
+# "gameVersionNames", per the comment next to its GameVersionDropdown).
+RUNTIME_STATE_SOURCES = ("gameVersionNames",)
+
+
+def compute_states(fields: dict[str, Any], profiles: list[tuple[str, dict[str, Any]]], root_fields: dict[str, Any]) -> list[str] | None:
     raw = fields.get("states")
     if isinstance(raw, str) and raw.startswith("$"):
         raw = lookup_profile(raw[1:], profiles)
     if not isinstance(raw, list) or not raw:
         return None
+    if all(item == "" for item in raw):
+        for source in RUNTIME_STATE_SOURCES:
+            if isinstance(root_fields.get(source), list) and root_fields[source]:
+                raw = root_fields[source]
+                break
     return [item[1:] if isinstance(item, str) and item.startswith("@") else str(item) for item in raw]
 
 
@@ -306,6 +317,7 @@ class Walker:
         self.entries: list[dict[str, Any]] = []
         self.unnamed_ancestor_ids: set[int] = set()
         self.root_anchor: tuple[float, float] = (0.0, 0.0)
+        self.root_fields: dict[str, Any] = {}
 
     def walk(
         self,
@@ -328,6 +340,7 @@ class Walker:
             # Panel root: never an entry, never contributes to the path --
             # only its own anchor fraction is recorded.
             self.root_anchor = (anchor_x, anchor_y)
+            self.root_fields = fields
             child_named_path = named_path
         else:
             if real_name:
@@ -342,7 +355,7 @@ class Walker:
                 label_key = None if text_key is not None else find_label_key(display_name, node, ancestor_siblings)
                 tooltip_key = compute_tooltip_key(fields, self.profiles)
                 update_target, update_command, update_extra = compute_update_message(fields, wtype)
-                states = compute_states(fields, self.profiles)
+                states = compute_states(fields, self.profiles, self.root_fields)
                 self.entries.append({
                     "name": display_name,
                     "type": wtype or "Widget",

@@ -68,6 +68,21 @@ constexpr const char* ModalNameSuffix        = "Modal";
 constexpr const char* ConfirmationModalPanel = "ConfirmationModal";
 constexpr const char* DismissableModalPanel  = "DismissableModal";
 
+// Modals whose prompt is set at runtime but whose opening message says what
+// they ask: that message's text is spoken with the modal's title.
+// CharacterSelectPanelHD.json: DeleteCharacter button -> "CharacterSelect:
+// ShowDeleteCharacterModal" (tooltip "@strDelete"); the game then opens a
+// ConfirmationModal.
+struct ModalPrompt {
+	const char* target;
+	const char* command;
+	const char* promptKey;
+};
+constexpr ModalPrompt ModalPrompts[] = {
+	{ "CharacterSelect", "ShowDeleteCharacterModal", "strDelete" },
+};
+std::string g_pendingModalPrompt;
+
 // Option values are re-read from Settings.json after these, since the game
 // wrote (or reverted) them.
 constexpr const char* OptionsPanelTarget    = "OptionsPanelMessage";
@@ -150,6 +165,10 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		PanelState::Opened(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
+			if (!g_pendingModalPrompt.empty() && EndsWith(panel, ModalNameSuffix)) {
+				ScreenReader::Speak(g_pendingModalPrompt, false);
+				g_pendingModalPrompt.clear();
+			}
 			if (panel == ConfirmationModalPanel) {
 				ScreenReader::Speak(Strings::Current().modalConfirmHint, false);
 			} else if (panel == DismissableModalPanel) {
@@ -241,6 +260,11 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 			}
 			if (std::strcmp(event->command, SetTextLanguageCommand) == 0) {
 				Localization::ForgetSpeechLanguage();
+			}
+		}
+		for (const ModalPrompt& prompt : ModalPrompts) {
+			if (std::strcmp(event->target, prompt.target) == 0 && std::strcmp(event->command, prompt.command) == 0) {
+				g_pendingModalPrompt = Localization::Text(prompt.promptKey);
 			}
 		}
 		// Value controls report changes through their layout update message.
