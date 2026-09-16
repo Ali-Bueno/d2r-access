@@ -249,14 +249,14 @@ void Tick(const D2RL::PluginContext* context) {
 			if (events[i] != Radar::State::Unknown) {
 				const auto& sensor = g_engine.Sensors()[i];
 				const auto velocity = g_engine.Velocity();
-				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu trigger=passage retry=%u hit=%.0f,%.0f structure=%.1f structure_flags=%04X connected=%.1f physical_connected=%.1f known=%u new_exit=%u exit_depth=%.1f",
+				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu trigger=passage retry=%u hit=%.0f,%.0f structure=%.1f structure_flags=%04X connected=%.1f physical_connected=%.1f known=%u new_exit=%u exit_depth=%.1f revisit=%u",
 					i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.probe.clearDepth,
 					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth,
 					static_cast<unsigned long long>(now), RadarTrace::DirectionName(i), RadarTrace::StateName(events[i]),
 					static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y, sensor.guidance.openDepth,
 					static_cast<unsigned long long>(sensor.guidance.playbackMs), sensor.retrying ? 1u : 0u,
 					sensor.structure.hit.x, sensor.structure.hit.y, sensor.structure.clearDepth, sensor.structure.endFlags, sensor.passage.depth, sensor.movementPassage.depth, sensor.passage.available ? 1u : 0u,
-					sensor.newOpening ? 1u : 0u, sensor.wallMemory.RequiredDepth());
+					sensor.newOpening ? 1u : 0u, sensor.wallMemory.RequiredDepth(), sensor.revisitCue ? 1u : 0u);
 			}
 		}
 		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});

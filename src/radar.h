@@ -112,11 +112,32 @@ public:
 	State Candidate() const { return candidate_; }
 	uint64_t CandidateSince() const { return since_; }
 	State Pending() const { return state_ == reported_ && !(state_ == State::Open && rearmed_) ? State::Unknown : state_; }
-	void RearmOpening() { if (announcedOpening_) rearmed_ = true; }
+	// A stored, previously announced visit also survives a temporary loss of
+	// passage observations. Silent open baselines do not qualify on their own.
+	void RearmOpening(bool rememberedVisit = false) { if (announcedOpening_ || rememberedVisit) rearmed_ = true; }
 private:
 	State state_ = State::Unknown, reported_ = State::Unknown, candidate_ = State::Unknown;
 	uint64_t since_ = 0;
 	bool announcedOpening_ = false, rearmed_ = false;
+};
+// Last announced turn in this direction, with a physical approach witness.
+// Leaving and returning can recall it without requiring an intervening wall.
+class OpeningVisit {
+public:
+	void Remember(Position player, Position axis, double depth);
+	void Update(Position player, Position axis, const Probe& structure, const Probe& movement,
+		bool aligned, int bodyPattern, uint64_t now, const Settings& settings);
+	void Reported() { departed_ = arriving_ = ready_ = false; }
+	bool Known() const { return known_; }
+	bool Ready() const { return ready_; }
+	bool Valid() const { return valid_; }
+	bool Departed() const { return departed_; }
+	Position Point() const { return point_; }
+	Position Target() const { return target_; }
+private:
+	Position point_, target_;
+	bool known_ = false, departed_ = false, arriving_ = false, ready_ = false, valid_ = false;
+	uint64_t since_ = 0;
 };
 // A world-space wall reference, independent of the player's current clearance.
 // It gates new opening cues; it never overrides physical movement queries.
@@ -151,7 +172,9 @@ struct Sensor {
 	Passage passage, movementPassage;
 	PassageTracker passageState;
 	WallMemory wallMemory;
+	OpeningVisit openingVisit;
 	bool newOpening = false;
+	bool revisitCue = false;
 	State lastCue = State::Unknown;
 	State AudibleState() const {
 		return cueState == State::Blocked ? State::Blocked : guidance.openingSafe ? State::Open : State::Unknown;

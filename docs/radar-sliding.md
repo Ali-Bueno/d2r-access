@@ -1,5 +1,8 @@
 # Wall contours and sliding investigation
 
+The later [short return visit correction](radar-revisits.md) adds remembered
+turn locations and supersedes this document's current test/deployment status.
+
 2026-09-16. The user reports a downward wall warning followed by a downward
 opening while continuing to hold the stick down, and proposes preventing wall
 sliding. This update corrects a reproduced radar defect and captures geometry

@@ -87,21 +87,33 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		else if (!sensor.probe.available) sensor.stable = State::Unknown;
 		sensor.newOpening = sensor.wallMemory.Update(sensor.structure, world.player, Axes[i],
 			sensor.passage.observed == State::Blocked, now, settings_, &structure);
+		sensor.openingVisit.Update(world.player,Axes[i],sensor.structure,sensor.probe,
+			sensor.guidance.openingSafe && sensor.passage.observed == State::Open,world.bodyPattern,now,settings_);
+		const bool revisit = sensor.openingVisit.Ready();
 		// A real wall returning between two visits rearms an announced exit
 		// even when the player stays outside the proximity-warning distance.
-		if (sensor.wallMemory.BarrierConfirmed()) sensor.passageState.RearmOpening();
-		const bool opening = sensor.newOpening && sensor.guidance.openingSafe
-			&& sensor.probe.clearDepth >= sensor.wallMemory.RequiredDepth();
+		if (sensor.wallMemory.BarrierConfirmed() || revisit) sensor.passageState.RearmOpening(revisit);
+		const bool opening = revisit || (sensor.newOpening && sensor.guidance.openingSafe
+			&& sensor.probe.clearDepth >= sensor.wallMemory.RequiredDepth());
 		events[i] = sensor.passageState.Observe(sensor.passage, opening, now, settings_.stableMs);
+		if (events[i] == State::Open) {
+			if (revisit) sensor.openingVisit.Reported();
+			else sensor.openingVisit.Remember(world.player,Axes[i],sensor.wallMemory.RequiredDepth());
+		}
+		if (events[i] != State::Unknown) sensor.revisitCue = events[i] == State::Open && revisit;
 		if (!sensor.passage.available) {
 			sensor.lastCue = State::Unknown;
+			sensor.revisitCue = false;
 			sensor.retry = false;
 		}
 		sensor.retrying = false;
 		const auto failure = audio.failed[i];
 		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = !failure.submitted;
 		const State lastCue = events[i] != State::Unknown ? events[i] : sensor.lastCue;
-		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, opening) ? lastCue : State::Unknown;
+		// A consumed reminder remains valid for queue/retry delivery while its
+		// remembered approach is clear, without rearming another announcement.
+		const bool cueOpening = opening || (sensor.revisitCue && sensor.openingVisit.Valid());
+		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, cueOpening) ? lastCue : State::Unknown;
 		if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue && lastCue != State::Unknown
 			&& now - sensor.lastEmit >= settings_.retryMs) {
 			events[i] = lastCue;

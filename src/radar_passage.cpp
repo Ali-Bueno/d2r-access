@@ -80,4 +80,29 @@ bool PassageTracker::Accepts(State cue, const Passage& passage, bool openingSafe
 		&& (passage.observed == State::Unknown || passage.observed == cue)
 		&& (cue != State::Open || openingSafe);
 }
+void OpeningVisit::Remember(Position player, Position axis, double depth) {
+	*this = {};
+	known_ = valid_ = true;
+	point_ = player;
+	target_ = {player.x+axis.x*depth,player.y+axis.y*depth};
+}
+void OpeningVisit::Update(Position player, Position axis, const Probe& structure, const Probe& movement,
+	bool aligned, int bodyPattern, uint64_t now, const Settings& settings) {
+	ready_ = valid_ = false;
+	if (!known_) return;
+	const double distance = std::hypot(player.x-point_.x,player.y-point_.y);
+	const double span = BodySpan(bodyPattern);
+	// Spatial hysteresis is tied to the native footprint: leave its full
+	// span, return within its radius. An actually moved cell losing the
+	// structural approach also proves departure from a narrow mouth.
+	constexpr double NativeCell = 1;
+	if (distance >= span || (distance >= NativeCell && structure.end == State::Blocked
+		&& structure.clearDepth < settings.openDepth)) departed_ = true;
+	const double required = std::max(settings.openDepth,(target_.x-player.x)*axis.x+(target_.y-player.y)*axis.y);
+	valid_ = distance <= span/2 && aligned && structure.clearDepth >= required && movement.clearDepth >= required;
+	if (!valid_ || !departed_) { arriving_ = false; return; }
+	// Time confirms a return; elapsed time alone never repeats a cue.
+	if (!arriving_) { arriving_ = true; since_ = now; }
+	ready_ = now > since_ && now-since_ >= settings.stableMs;
+}
 }

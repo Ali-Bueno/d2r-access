@@ -103,7 +103,10 @@ The radar follows **usable connected passages** and remembers a wall's position
 when you move away from it. More free floor before the same wall stays silent;
 an opening must prove a clear approach past that remembered edge. A nearer
 observed barrier updates the reference, and an announced doorway can sound on
-return after the intervening wall is confirmed. Local contour checks keep
+return after the intervening wall is confirmed. It also remembers the last
+announced turn in each direction: leaving and returning to that spot can recall
+it once, even without an intervening wall, if the original approach remains
+clear. Staying at the same spot does not repeat it. Local contour checks keep
 small raster changes on an observed continuous wall from becoming exits. Moving along
 the wall can still reveal a doorway or its end. Unknown coverage does not turn
 an old wall into an exit. The four wall references supplement the local native
@@ -124,6 +127,7 @@ filtering and connected passages helped. The latest correction retains known
 walls during retreat, follows local raster contours and rearms return visits.
 Cue events automatically capture local collision for diagnosis. This update is
 built and installed; controller/listening validation is pending. See
+[short return visits](docs/radar-revisits.md),
 [wall contours and sliding](docs/radar-sliding.md),
 [remembered walls](docs/radar-wall-memory.md),
 [connected passages and tests](docs/radar-connected-passages.md) and

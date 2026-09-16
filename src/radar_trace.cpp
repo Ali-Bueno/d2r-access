@@ -48,9 +48,11 @@ void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, con
 	for (size_t direction=0;direction<Radar::DirectionCount;++direction) {
 		const auto& sensor=engine.Sensors()[direction];
 		const auto point=sensor.wallMemory.Point(), normal=sensor.wallMemory.Normal();
-		AsyncLog::InfoF(context,"[radar-reference] event_ms=%llu direction=%zu known=%u point=%.0f,%.0f normal=%.5f,%.5f hit=%.0f,%.0f new_exit=%u required=%.1f",
+		const auto visit=sensor.openingVisit.Point(), target=sensor.openingVisit.Target();
+		AsyncLog::InfoF(context,"[radar-reference] event_ms=%llu direction=%zu known=%u point=%.0f,%.0f normal=%.5f,%.5f hit=%.0f,%.0f new_exit=%u required=%.1f visit_known=%u visit=%.0f,%.0f target=%.1f,%.1f departed=%u revisit=%u",
 			static_cast<unsigned long long>(now),direction,sensor.wallMemory.Known()?1u:0u,point.x,point.y,normal.x,normal.y,
-			sensor.structure.hit.x,sensor.structure.hit.y,sensor.newOpening?1u:0u,sensor.wallMemory.RequiredDepth());
+			sensor.structure.hit.x,sensor.structure.hit.y,sensor.newOpening?1u:0u,sensor.wallMemory.RequiredDepth(),
+			sensor.openingVisit.Known()?1u:0u,visit.x,visit.y,target.x,target.y,sensor.openingVisit.Departed()?1u:0u,sensor.revisitCue?1u:0u);
 	}
 }
 void Audio(const D2RL::PluginContext* context, size_t direction, Radar::State state,

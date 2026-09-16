@@ -2,20 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 wall contours and sliding
+## Active build coordination - 2026-09-16 short return visits
 
-- **No active build owner.** Codex /root completed local contour tracking,
-  automatic event collision snapshots, tests, compilation and deployment.
-- User held the stick down through the reported wall/opening change and proposes
-  disabling sliding. Native movement investigation is documented, not installed.
-- **31 suites / 1836 checks pass**, including 277 contour and 49 snapshot checks.
-- Installed/build SHA-256: `BBD91F823BF77D0838291D7C8E6966D88B0312FFC050C5DE0E568F08662A63DF`.
+- **No active build owner.** Codex /root completed remembered turn visits,
+  recorded-map regressions, tests, compilation and deployment.
+- User confirms improvement; a short departure/return sometimes stays silent.
+  Each direction now recalls its last announced turn after a real return and
+  current full-body clearance, even without an intervening wall warning.
+- **32 suites / 2022 checks pass**, including 186 new revisit checks.
+- Installed/build SHA-256: `BE1A3B6293D42AB22E67D3908F37E12039EF9671ED4AB03112792ABA018E82E9`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (continuous contour correction and automatic collision snapshots installed; 31 suites / 1836 checks pass; user-held-down sliding investigated, no movement change; live validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (short-return reminders installed; actual captured map reproduces the formerly silent return; 32 suites / 2022 checks pass; live controller validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -51,12 +52,12 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip - contour correction installed; live validation pending | Continuous local raster boundaries supplement remembered planes; full-body opening checks remain. Automatic event snapshots preserve original collision and wall references. `docs/radar-sliding.md`. |
+| Sonar radar | wip - short return reminders installed; live validation pending | Last announced turn per direction can sound once after leaving/returning without a wall transition. Current full-body approach required; silence at rest retained. Original wall/contour detection remains. `docs/radar-revisits.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph now feeds bounded directional passage queries; no backward first route or distant side detour counted as forward. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md`. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 1401 checks; shared build: 31 suites / 1836 checks. New contour suite: 277 checks for four-direction raster/curved faces and modeled slides; snapshot suite: 49 checks for raw collision replay and bounded chunks. |
+| Radar / footstep automated tests | done (local) | 1587 checks; shared build: 32 suites / 2022 checks. New revisit suite: 186 checks using captured Blood Moor geometry, four rotations/poll intervals, repeated short trips, occupied approaches, back-wall/coverage changes and delivery. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -178,11 +179,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Next radar step: user-led listening check of contour correction, then inspect automatic [radar-collision]/[radar-reference] snapshots at any contradictory cue. For optional no-slide movement, verify the live type-17 path-dispatch entry and desired/actual vectors before choosing a player-only manual-movement hook. No movement hook is installed. Do not mix desktop inputs. Read `docs/radar-sliding.md` first.
+Next radar step: user-led listening comparison of a short departure/return to an announced turn, including a repeated trip and a pause at the turn. Compare revisit=1 events with [radar-reference] visit/target state and automatic [radar-collision] snapshots. The last session decoded to 302 complete maps. Do not mix desktop inputs. Optional no-slide movement still requires live native-path verification; no movement hook is installed. Read `docs/radar-revisits.md` first.
 
 ## Known issues / open questions
 
-- **Radar prototype:** local contour correction is installed, not yet validated live. The previous 109-event session has no complete map captures; new fixtures are independent reproductions. Larger recesses and contours leaving local coverage can still sound as widening. Four references and event snapshots are not a saved whole map. User proposes no sliding; shared path/collision code was studied but no verified player-only interception exists yet. `docs/radar-sliding.md`.
+- **Radar prototype:** user confirms contour improvement; short-return reminders are installed and await live listening. Four last-announced turn memories are not a complete door catalogue; each new turn replaces that direction's previous visit. Current approach coverage/occupancy still gate reminders. Larger recesses and contours leaving coverage retain geometric limits. The saved map regression is not the exact whole user trajectory. Native wall sliding remains active; see `docs/radar-revisits.md` and `docs/radar-sliding.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
