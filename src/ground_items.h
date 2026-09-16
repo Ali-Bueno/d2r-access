@@ -23,8 +23,9 @@ inline constexpr double AudibleRadius = 30, SpeakRadius = 3, RearmRadius = 6;
 inline constexpr size_t MaxVoices = 8, MaxNamesPerAnnouncement = 4;
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
 // Near-source gain for peak-normalized recordings; center panning halves each channel.
-inline constexpr float LoopVolume = 0.6f, RearPitch = 0.94f;
-inline constexpr float MixGainLimit = 0.75f; // headroom even when nearby loops peak together
+// User listening feedback: lower both individual sources and piles by about 3.5 dB.
+inline constexpr float LoopVolume = 0.4f, RearPitch = 0.94f;
+inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops peak together
 inline constexpr const char* SoundFiles[] = {"gold.wav", "potion.wav", "normal equipment.wav",
 	"magic equipment.wav", "rare equipment.wav", "legendary equipment.wav"};
 

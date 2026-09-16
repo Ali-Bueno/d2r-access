@@ -35,22 +35,25 @@ does not reveal unidentified affixes.
 | `rare equipment.ogg` | Rare and crafted quality |
 | `legendary equipment.ogg` | Unique and set quality |
 
+Loops begin only once the native item mode is **OnGround (3)**. The falling
+animation (**Dropping, 5**) is excluded; there is no guessed landing timer.
 Up to eight nearest items have independent continuous XAudio2 voices. X3DAudio
 supplies the stereo speaker matrix. Fixed screen axes derive from native
 projection `0x334DB0`: right = `(dx-dy)/sqrt(2)`, front = `-(dx+dy)/sqrt(2)`.
 Distance attenuates each source to silence at 30 subtiles. Rear sources smoothly
 lower pitch to 94% across the first subtile behind the listener. Voices keep
-their loop position across updates. The summed gain is limited to 0.75 for
+their loop position across updates. The summed gain is limited to 0.5 for
 headroom when a pile of objects peaks together. These ranges, gains and timings
 are accessibility tuning, not claims about native pickup range or acoustic units.
 
 Recordings are peak-normalized to 0.9 when loaded, before applying the near-source
-gain of 0.6 and distance attenuation. This preserves their waveform and dynamics
+gain of 0.4 and distance attenuation. This preserves their waveform and dynamics
 without modifying the OGG files. A silent recording is rejected. The original
 gold and normal recordings measured -44.6 and -41.0 dBFS RMS; applying the old
 0.22 gain and stereo panning made them effectively inaudible against gameplay.
-Normalization plus the revised gain raises those categories by approximately
-36 and 33 dB respectively, while retaining the bounded pile mix.
+The user confirmed that normalization restored audibility, but requested a lower
+level. Near gain was reduced from 0.6 to 0.4 and the pile limit from 0.75 to 0.5:
+about 3.5 dB quieter for both individual items and piles.
 
 Pickup, range exit, lifecycle changes, death, dialogue, pause and losing foreground
 stop the applicable voices. Nonpausing inventory keeps the cues running and
@@ -99,7 +102,7 @@ on the UI thread. It retains no native item/room pointers between polls.
 
 The scan covers the player's resident room and its native neighbors, with finite
 bounds on room/unit counts, table rows and type ancestry. It only accepts ground
-or dropping item modes (3/5) whose static path still refers to the enumerated
+item mode (3) whose static path still refers to the enumerated
 room. These snapshots do not create items, collect items, change targeting, move
 the player or load other rooms. Unreadable/inconsistent chains discard the
 snapshot so stale positions do not persist in audio.
@@ -112,7 +115,10 @@ guarded native layouts, corrupt/cyclic memory, real OGG-to-WAV output and actual
 X3DAudio left/right/front/rear matrices. The existing interaction-reader suite
 also checks tooltip suppression and restoration. A separate local check verifies
 all native fingerprints against `re/D2R.rebuilt.exe` and rejects a changed byte.
-The shared build passes **36 suites / 2302 checks**. The audio suite checks
+The preceding full build passed **36 suites / 2377 checks**. After lowering the
+level and requiring landing, **5 affected suites / 341 checks pass**, including
+the native Dropping-to-OnGround transition through the actual item tracker.
+The audio suite checks
 normalization, negative full-scale samples, silent input and actual per-ear RMS
 after distance/panning for every supplied recording, rather than merely checking
 that a file contains a nonzero sample.
@@ -126,14 +132,16 @@ The measured level defect above was then corrected. A standalone XAudio2 check
 on the actual default endpoint, with its diagnostic master muted, confirmed
 advancing samples and a nonzero signal using the Windows volume-meter effect;
 the endpoint was unmuted at full volume. It issued no gameplay inputs or audio
-capture. Corrected normal-item output at 5.4 subtiles is about -29.4 dBFS per ear
+capture. With the initial 0.6 gain, normal-item output at 5.4 subtiles was about -29.4 dBFS per ear
 at the measured maximum RMS, compared with about -62 dBFS before the fix.
 
 The **13:03:06** live load confirms normalization and all six loops initialized.
 Each source now logs one progress record after 250 ms (samples played, queue,
 gain, stereo matrix and pitch); failures include the HRESULT. These are software
-checks, not confirmation of speaker output. Listening validation of the corrected
-volume, direction, distance, rear pitch and remaining categories is pending.
+checks, not confirmation of speaker output. The user subsequently confirmed
+audibility and requested lower volume and silence during the falling animation.
+Listening validation of that follow-up, direction, distance, rear pitch and
+remaining categories is pending.
 
 User-led check: approach a potion, scroll, gold and equipment; stop beside each;
 walk away and return; collect one; open dialogue and inventory; leave/rejoin.

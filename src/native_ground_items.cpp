@@ -55,7 +55,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	uintptr_t path = 0, itemRoom = 0, data = 0;
 	int x = 0, y = 0;
 	if (!Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitMode, mode)
-		|| (mode != OnGround && mode != Dropping) || !Peek(unit + UnitPath, path) || !path
+		|| mode != OnGround || !Peek(unit + UnitPath, path) || !path
 		|| !Peek(path, itemRoom) || itemRoom != room || !Peek(path + StaticX, x) || !Peek(path + StaticY, y)
 		|| x < 0 || y < 0 || x > UINT16_MAX || y > UINT16_MAX) return false;
 	item.position = {static_cast<double>(x), static_cast<double>(y)};

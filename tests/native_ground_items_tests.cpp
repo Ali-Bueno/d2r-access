@@ -51,8 +51,16 @@ int main(int argc, char** argv) {
 	for (uint32_t mode : {0, 1, 2, 4, 6}) {
 		f.item.At<uint32_t>(0xC, mode); Check(f.Read(snapshot) && snapshot.items.empty(), "carried, equipped and cursor items are excluded");
 	}
-	f.item.At<uint32_t>(0xC, 5); Check(f.Read(snapshot) && snapshot.items.size() == 1, "dropping items are included");
-	f.item.At<uint32_t>(0xC, 3); f.item.At<uint32_t>(0, 1);
+	f.item.At<uint32_t>(0xC, GroundItemLayout::Dropping);
+	Check(f.Read(snapshot) && snapshot.items.empty(), "falling items remain silent until the native landing transition");
+	GroundItems::Tracker tracker;
+	const auto falling = tracker.Tick(snapshot, 0, true);
+	Check(falling.voices.empty() && falling.speech.empty(), "falling objects create neither a loop nor premature proximity speech");
+	f.item.At<uint32_t>(0xC, GroundItemLayout::OnGround);
+	Check(f.Read(snapshot) && snapshot.items.size() == 1, "landed item appears in the very next snapshot");
+	const auto landed = tracker.Tick(snapshot, GroundItems::PollMs, true);
+	Check(landed.voices.size() == 1 && landed.speech == "Poción", "landing starts the correct loop and permits nearby speech without an artificial delay");
+	f.item.At<uint32_t>(0, 1);
 	Check(f.Read(snapshot) && snapshot.items.empty(), "monsters are not loot"); f.item.At<uint32_t>(0, 4);
 	f.itemPath.At(0, f.otherRoom.Address()); Check(f.Read(snapshot) && snapshot.items.empty(), "stale room linkage cannot make an item audible");
 	f.itemPath.At(0, f.room.Address()); f.itemPath.At<int>(0x10, 150);

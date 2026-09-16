@@ -156,11 +156,13 @@ See `STATUS.md` for the live ledger.
 loops, with stereo direction, distance attenuation and slightly lower pitch
 behind you. Orientation follows the screen: up is ahead, down is behind.
 **Ctrl+I** toggles proximity speech and **Ctrl+L** toggles loops independently.
+Loops start only after an item lands. Their level is normalized and was reduced
+by about 3.5 dB following the user's listening feedback, including piles of items.
 Sounds stop for pickup, dialogue, pause and leaving the game. See
 [item sound categories, controls and validation](docs/ground-items.md).
 The native reader and all six audio assets have initialized in a live game.
-After a report of inaudible loops, recording levels are now normalized before
-spatial attenuation; listening validation of that correction remains pending.
+The user confirms that the loops are audible. The quieter level and landing-only
+start await a follow-up listening check.
 
 ## How it works
 

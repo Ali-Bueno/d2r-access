@@ -31,14 +31,16 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
   Latest shared-workspace run: 36 suites / 2377 checks, including UI navigation.
+  Item volume/landing follow-up: 5 affected suites / 341 checks pass.
   Radar and footsteps account for 1662 checks, including 261 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Ground items: Ctrl+I toggles proximity speech; Ctrl+L toggles spatial loops;
   `access-items on|off|sound-on|sound-off|status`. Fixed screen axes, rear pitch
   0.94. Six OGG assets require FFmpeg at build time, no runtime decoder DLL.
   User reported silence in the first live test: raw loops were much too quiet.
-  Peak normalization and higher near gain are installed; the 13:03 load confirms
-  all six corrected loops. User listening remains pending. Read
+  User now confirms audibility but requested quieter loops and silence while
+  falling. Installed: gain 0.4, pile cap 0.5 (about 3.5 dB lower), and native
+  OnGround-only playback. Follow-up listening remains pending. Read
   `docs/ground-items.md`; `[item-audio] progress` records actual sample advancement.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:

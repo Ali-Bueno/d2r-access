@@ -2,22 +2,25 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 radar opening memory
+## Active build coordination - 2026-09-16 item volume and landing
 
-- **Active build owner: none.** Radar memory is built, installed and verified;
-  item follow-up may now take shared build ownership. Ground-item changes from
-  `b873b2c` are included; radar source edits are complete.
+- **Active build owner: none.** Lower item volume and native OnGround-only cues
+  are built, installed and verified automatically. Completed radar memory work
+  remains included in this build.
 - Multiple announced approach regions survive newer openings and temporary
   suspension within the same area. Current body clearance remains mandatory.
   A proved clear connecting strip groups both edges of the same opening.
-- **36 suites / 2377 checks pass**, including 261 revisit checks.
-- Installed/build SHA-256: `3B388E34DA911FD63C5677A2B1661495D0CB3D27471D7DD63528FFEEBAE9ABE4`.
+- **5 affected suites / 341 checks pass** for item volume/landing; previous full
+  run: 36 suites / 2377 checks, including 261 revisit checks.
+- Installed/build SHA-256: `453416F61909684797FBD6BED53637D039CCA98237ADD8CBB758DCC7C72379A0`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
+- User confirms item loops are audible but too loud, and requests starting only
+  after landing. Both adjustments are installed; listening follow-up is pending.
 
 ---
 
-**Last updated:** 2026-09-16 (radar opening memory installed with ground-item changes; 36 suites / 2377 checks pass; user-led listening pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (quieter item loops start after landing; 5 affected suites / 341 checks pass; radar opening memory remains installed). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -66,7 +69,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
-| Spatial item loops | wip — low-level defect corrected; listening pending | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User heard silence in first test. Normalization + gain fix installed and loaded at 13:03; actual XAudio2 processing checked locally. 100 audio checks, HRESULT/progress diagnostics. `docs/ground-items.md` |
+| Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 
@@ -183,7 +186,7 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
-Items: user-led listening check of the normalized loops in the current game.
+Items: user-led listening check of the quieter loops and landing-only start.
 Approach gold, equipment, potion and scroll; check left/right, distance and lower
 pitch below the character. Compare `[item-audio] progress` with listening feedback.
 No gameplay input or audio capture during the user's test. `docs/ground-items.md`.
@@ -197,8 +200,8 @@ Next radar step: user-led listening at two different openings in the same direct
 
 ## Known issues / open questions
 
-- **Ground items:** the first listening test failed (inaudible loops). The level
-  correction is installed and initialized; actual audibility is not yet confirmed.
+- **Ground items:** audibility is confirmed. Quieter volume and landing-only start
+  are installed and await listening feedback.
   Equipment speech gives base name and quality, not the complete generated name.
   Only resident room/neighbors are scanned. User-added drop sounds are unused;
   this feature uses the six loop recordings. `docs/ground-items.md`.
