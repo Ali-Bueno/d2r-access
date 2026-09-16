@@ -11,8 +11,15 @@ enum class State { Unknown, Open, Blocked };
 enum class Direction { Up, Left, Right, Down }; // fixed screen / left-stick axes
 inline constexpr size_t DirectionCount = 4;
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
-// Shared audio timing: guidance includes a whole four-cue batch in its forecast.
+// Shared audio timing. The guard allows one 20 Hz poll for scheduling/driver jitter.
 inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
+inline constexpr uint64_t PollMs = 50, AudioGuardMs = PollMs;
+inline constexpr uint64_t CueSlotMs = CueDurationMs + CueGapMs + AudioGuardMs;
+struct AudioLoad {
+	Events pending{};
+	bool busy = false; // playback, its silent gap, or a pending cue the worker may take
+};
+uint64_t PlaybackBudget(const AudioLoad& load, const Events& candidates, size_t direction);
 enum class Layer { Movement, Terrain };
 
 // Tuning defaults from D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md, not game offsets.
@@ -60,6 +67,7 @@ struct Guidance {
 	State observed = State::Unknown;
 	bool openingSafe = false;
 	double openDepth = 0, warningDepth = 0;
+	uint64_t playbackMs = 0;
 };
 struct Sensor {
 	State stable = State::Unknown, candidate = State::Unknown;
@@ -77,7 +85,7 @@ struct Sensor {
 class Engine {
 public:
 	explicit Engine(Settings settings = {}) : settings_(settings) {}
-	Events Tick(const World& world, uint64_t now);
+	Events Tick(const World& world, uint64_t now, AudioLoad audio = {});
 	void Reset();
 	const auto& Sensors() const { return sensors_; }
 	uint64_t Revision() const { return revision_; } // cancel pending audio after a rebase
@@ -99,5 +107,9 @@ private:
 Probe SweepBody(const World& world, Position origin, Position axis, double range, double nearRange, Layer layer);
 Probe Scan(const World& world, Position axis, const Settings& settings, Layer layer = Layer::Movement);
 Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrain, const Probe& movement,
-	Position velocity, const Settings& settings);
+	Position velocity, const Settings& settings, uint64_t playbackMs = CueDurationMs + AudioGuardMs);
+// Classification only; it never promises an opening. Used to reserve all possible
+// same-poll events before the final full-body reaction forecast.
+Guidance ClassifyGuidance(Position axis, const Probe& terrain, Position velocity,
+	const Settings& settings, uint64_t playbackMs);
 }

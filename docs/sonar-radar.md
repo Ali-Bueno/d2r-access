@@ -169,7 +169,9 @@ Ctrl+T reports `presenceOffset=X,Y`, relative to the integer player cell.
   pending audio and measured velocity.
 - `radar_guidance`: measure recent speed/direction, warn of approaching walls
   using time to contact, and check that a proposed opening remains physically
-  usable through a 600 ms reaction allowance plus 680 ms audio budget. Test the
+  usable through a 600 ms reaction allowance plus a playback budget derived from
+  pending and possible simultaneous cues (170 ms for one idle-queue cue).
+  See [the running timing revision](radar-running-timing.md). Test the
   full body at every half-subtile along continued movement, including the turn
   from each possible reaction point. Narrow fleeting openings remain silent;
   stopping can make them eligible. Separate the actor-filtered terrain estimate
@@ -280,9 +282,10 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-Thirteen CTest suites / **836 checks** pass: the previous 255 checks, 299
-radar/audio checks, 205 reaction/occupancy guidance checks, 65 native-world/config
-checks and 12 radar UI checks.
+The latest shared-workspace build passes sixteen CTest suites / **917 checks**,
+including concurrent menu work. Radar/footsteps cover **621 checks**: 299
+radar/audio, 205 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
+13 playback-timing and 27 [stalled-footstep](footsteps.md) checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
 beyond the old near sweep, leaving an overlapping obstacle, stationary door

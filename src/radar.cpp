@@ -39,7 +39,7 @@ void Engine::UpdateMotion(Position player, uint64_t now) {
 	const double speed = std::max(std::hypot(velocity_.x, velocity_.y), distance / recentSeconds);
 	velocity_ = {delta.x * speed / distance, delta.y * speed / distance};
 }
-Events Engine::Tick(const World& world, uint64_t now) {
+Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	Events events{};
 	// Preserve subcell movement for speed, turns and confirmation travel. The
 	// collision adapter still supplies the native integer footprint origin.
@@ -57,11 +57,23 @@ Events Engine::Tick(const World& world, uint64_t now) {
 	previous_ = motion;
 	lastTick_ = now;
 	UpdateMotion(motion, now);
+	if (rebase) audio = {}; // the service cancels old-world audio after this tick
+	Events candidates{}, all{};
+	all.fill(State::Open); // reservation mask, not a statement about clear passages
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);
 		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
-		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_);
+		// A longer queue can advance a warning or remove an opening. Reserve
+		// either possible transition before deciding this poll's final budget.
+		for (const uint64_t budget : {PlaybackBudget(audio, {}, i), PlaybackBudget(audio, all, i)}) {
+			const auto possible = ClassifyGuidance(Axes[i], sensor.terrain, velocity_, settings_, budget).observed;
+			if (!rebase && possible != State::Unknown && possible != sensor.stable) candidates[i] = possible;
+		}
+	}
+	for (size_t i = 0; i < sensors_.size(); ++i) {
+		auto& sensor = sensors_[i];
+		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_, PlaybackBudget(audio, candidates, i));
 		const State observed = sensor.guidance.observed;
 		sensor.cueState = observed == State::Open && !sensor.guidance.openingSafe ? State::Unknown : observed;
 		const double boundary = world.player.x * Axes[i].x + world.player.y * Axes[i].y + sensor.terrain.clearDepth;

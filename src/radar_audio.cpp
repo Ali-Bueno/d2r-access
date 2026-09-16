@@ -21,6 +21,7 @@ CueQueue g_pending;
 Radar::Events g_playing{};
 const D2RL::PluginContext* g_context = nullptr;
 CueSource g_playingSource{};
+std::chrono::steady_clock::time_point g_nextCue{}; // guarded by g_mutex
 
 void Trace(const Radar::Events& events, const CueSource& source, const char* stage,
 	const char* reason, unsigned result = 0, uint64_t audioMs = 0) {
@@ -60,7 +61,6 @@ void Worker(const D2RL::PluginContext* context) {
 	}
 	g_available = true;
 	AsyncLog::Info(context, "[radar-audio] Synthesized stereo tin/tock ready.");
-	std::chrono::steady_clock::time_point nextCue{};
 	const char* exitReason = "stopped";
 	while (g_running) {
 		Radar::Events events{};
@@ -70,7 +70,7 @@ void Worker(const D2RL::PluginContext* context) {
 			std::unique_lock lock(g_mutex);
 			g_wake.wait(lock, [] { return !g_running || !g_pending.Empty(); });
 			if (!g_running) break;
-			g_wake.wait_until(lock, nextCue, [] { return !g_running; });
+			g_wake.wait_until(lock, g_nextCue, [] { return !g_running; });
 			if (!g_running) break;
 			if (g_pending.Empty()) continue;
 			events = g_pending.Take(&source);
@@ -111,8 +111,11 @@ void Worker(const D2RL::PluginContext* context) {
 		Trace(events, source, interrupted ? "interrupted" : "completed",
 			interrupted ? "cancelled" : "buffer-returned", 0, GetTickCount64() - submitted);
 		waveOutUnprepareHeader(device, &header, sizeof(header));
-		nextCue = std::chrono::steady_clock::now() + std::chrono::milliseconds(CueGapMs);
-		ClearPlaying();
+		{
+			std::lock_guard lock(g_mutex);
+			g_nextCue = std::chrono::steady_clock::now() + std::chrono::milliseconds(CueGapMs);
+			g_playing = {};
+		}
 	}
 	g_available = false;
 	{
@@ -179,4 +182,10 @@ void Stop() {
 	g_context = nullptr;
 }
 bool Available() { return g_available; }
+Radar::AudioLoad Load() {
+	std::lock_guard lock(g_mutex);
+	bool busy = !g_pending.Empty() || std::chrono::steady_clock::now() < g_nextCue;
+	for (const auto state : g_playing) busy |= state != Radar::State::Unknown;
+	return {g_pending.Pending(), busy};
+}
 }

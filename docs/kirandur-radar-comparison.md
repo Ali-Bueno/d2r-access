@@ -57,14 +57,16 @@ Level 2 (Blood Moor) was reached at 18:24:56, with terrain still available.
 - Measure actual displacement over 250 ms, using the recent 100 ms direction and
   the larger speed estimate to respond to acceleration/turns. Stop estimating
   movement after 200 ms without displacement. Lifecycle resets discard velocity.
-- Allow **600 ms of reaction after playback**, plus a conservative four-cue
-  batch of `4 × (120 + 50) = 680 ms`. At the current speed, test each half-subtile
-  of continued movement through that 1.28-second horizon. At every future origin,
+- Allow **600 ms of reaction after playback**. The initial implementation added
+  a fixed four-cue batch of `4 × (120 + 50) = 680 ms`. The
+  [running revision](radar-running-timing.md) now budgets the actual pending and
+  simultaneous cues, including scheduling guards. At the current speed, test each
+  half-subtile of continued movement through that horizon. At every future origin,
   the proposed turn must still fit the body through the required open depth.
   Unknown coverage rejects the cue. An exit must already be usable now.
 - Required depth after turning is at least eight subtiles or 600 ms of travel,
   whichever is larger. Approaching-wall warnings use closing speed times the
-  1.28-second horizon plus confirmation time, with a three-subtile minimum.
+  resulting reaction/playback horizon plus confirmation time, with a three-subtile minimum.
   Thus a tock means **obstacle approaching**, possibly before immediate blockage.
 - Compare projected world boundaries when confirming openings. Retreating from
   the same wall is not a newly discovered exit; changes below three subtiles

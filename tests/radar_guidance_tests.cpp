@@ -97,7 +97,10 @@ double FirstWarning(uint64_t interval) {
 		if (events[3] == State::Blocked) {
 			const auto v = engine.Velocity();
 			const double distance = engine.Sensors()[3].terrain.clearDepth;
-			Check(distance / std::hypot(v.x, v.y) >= 1.1, "wall warning leaves reaction and audio queue time before contact");
+			// Idle audio: one cue + scheduling guard + reaction, allowing one
+			// observation interval of discrete travel before confirmation.
+			const double minimum = (Settings{}.reactionMs + CueDurationMs + AudioGuardMs - interval) / 1000.0;
+			Check(distance / std::hypot(v.x, v.y) >= minimum, "wall warning leaves reaction and actual audio budget before contact");
 			return distance;
 		}
 	}

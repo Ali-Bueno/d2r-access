@@ -46,6 +46,9 @@ struct Table {
 	// InventorySlotWidget location values, verified against live slots and the stock layout.
 	std::array<const char*, 11> equipmentSlots;
 	const char* radarEnabled;
+	const char* footstepsEnabled;
+	const char* footstepsDisabled;
+	const char* footstepsUnavailable;
 	const char* radarDisabled;
 	const char* radarUnavailable;
 	const char* radarReaderUnavailable;
@@ -96,6 +99,9 @@ inline constexpr Table English {
 	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
 		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
 	.radarEnabled = "Radar enabled",
+	.footstepsEnabled = "Stalled footstep filter enabled",
+	.footstepsDisabled = "Stalled footstep filter disabled",
+	.footstepsUnavailable = "Footstep filter unavailable for this game build",
 	.radarDisabled = "Radar disabled",
 	.radarUnavailable = "Radar terrain is not available yet",
 	.radarReaderUnavailable = "Radar terrain reader could not start",
@@ -147,6 +153,9 @@ inline constexpr Table Spanish {
 	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
 		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
 	.radarEnabled = "Radar activado",
+	.footstepsEnabled = "Silenciar pasos al quedar bloqueado: activado",
+	.footstepsDisabled = "Silenciar pasos al quedar bloqueado: desactivado",
+	.footstepsUnavailable = "Filtro de pasos no disponible para esta versión del juego",
 	.radarDisabled = "Radar desactivado",
 	.radarUnavailable = "Terreno del radar todavía no disponible",
 	.radarReaderUnavailable = "No se pudo iniciar el lector de terreno del radar",

@@ -31,6 +31,9 @@ add_library(d2r-access SHARED
 	src/control_state.cpp
 	src/display_modes.cpp
 	src/focus_tracker.cpp
+	src/footsteps.cpp
+	src/footstep_service.cpp
+	src/native_footsteps.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/interaction_reader.cpp
@@ -84,6 +87,14 @@ if(BUILD_TESTING)
 	target_include_directories(progression-tests PRIVATE src)
 	target_compile_features(progression-tests PRIVATE cxx_std_20)
 	add_test(NAME progression COMMAND progression-tests)
+	add_executable(footstep-tests tests/footstep_tests.cpp src/footsteps.cpp)
+	target_include_directories(footstep-tests PRIVATE src)
+	target_compile_features(footstep-tests PRIVATE cxx_std_20)
+	add_test(NAME footsteps COMMAND footstep-tests)
+	add_executable(radar-timing-tests tests/radar_timing_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
+	target_include_directories(radar-timing-tests PRIVATE src)
+	target_compile_features(radar-timing-tests PRIVATE cxx_std_20)
+	add_test(NAME radar-timing COMMAND radar-timing-tests)
 	add_executable(radar-guidance-tests tests/radar_guidance_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-guidance-tests PRIVATE src)
 	target_compile_features(radar-guidance-tests PRIVATE cxx_std_20)
@@ -151,6 +162,8 @@ if(BUILD_TESTING)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
 		target_compile_options(progression-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(footstep-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(radar-timing-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-guidance-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

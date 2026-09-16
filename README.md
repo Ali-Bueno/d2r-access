@@ -82,13 +82,23 @@ faster, and separates creature occupancy from terrain changes. Openings must
 still pass the full movement-collision check. It starts enabled, baselines silently without
 walking, and pauses for dialogue and offline pause menus. It uses the game's map
 data directly. Live camp/Blood Moor reads are confirmed; the latest speed and
-noise filtering still needs controller validation;
+noise filtering still needs controller validation. The running forecast now
+accounts for actual pending and simultaneous cues, so an empty sound queue no
+longer reserves four sounds before every turn;
 see [the radar evidence and controller test](docs/sonar-radar.md).
 **Ctrl+R** toggles it; **Ctrl+T** reads current clearance and records a local
 diagnostic snapshot. Short passages are described as limited space; recognizable
 actor obstruction is described as an occupied passage. The embedded default config
 preserves existing settings and adds no external sound/map installation step.
 See the [Kirandur comparison and reaction model](docs/kirandur-radar-comparison.md).
+Details and regression checks: [running radar timing](docs/radar-running-timing.md).
+
+An experimental **stalled-footstep filter** suppresses repeated local HD
+footfalls when the character remains at exactly the same position while walking
+or running. Any fractional movement restores footsteps, including sliding along
+a wall. It starts enabled; **Ctrl+F** toggles it for comparison. The first blocked
+footfall may still sound. Native code checks and automated tests pass; the new
+filter awaits live listening validation. See [footstep behavior and limits](docs/footsteps.md).
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat,
 full-map navigation and destination beacons.
@@ -152,6 +162,9 @@ Unknown directions omit distances; an immediate body obstruction is described
 as nearby. Unchanged terrain is intentionally silent between state changes.
 Persistent radar preference: `[radar] enabled = true` (or `false`) in
 `d2rloader/config/d2r-access.toml`, created from the DLL only when missing.
+
+Footstep commands: `access-footsteps on|off|status`; Ctrl+F toggles the filter
+until the game exits. The log records audible/stalled transitions and counts.
 
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
 Test executables are not installed into the game.

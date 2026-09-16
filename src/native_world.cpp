@@ -242,6 +242,9 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	return true;
 }
 
+bool IsLocalPlayer(uintptr_t player) noexcept {
+	return player && g_indexFunction && g_playerFunction && player == LocalPlayer();
+}
 bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics) {
 	if (!g_indexFunction || !g_playerFunction) {
 		output = {};

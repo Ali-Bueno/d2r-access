@@ -15,6 +15,8 @@ struct Diagnostics {
 	int presenceOffsetX = 0, presenceOffsetY = 0;
 };
 bool Initialize(const D2RL::PluginContext* context);
+// Compare against the same verified native local-player lookup used by Read.
+bool IsLocalPlayer(uintptr_t player) noexcept;
 // UI thread only, client rooms only. No retained game pointers across ticks.
 // level == 0 permits bootstrapping from the verified player's native room.
 bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);

@@ -4,15 +4,24 @@
 #include <cmath>
 
 namespace D2RAccess::Radar {
-Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrain, const Probe& movement,
-	Position velocity, const Settings& settings) {
+uint64_t PlaybackBudget(const AudioLoad& load, const Events& candidates, size_t direction) {
+	uint64_t result = CueDurationMs + AudioGuardMs;
+	// Reserve a full in-flight cue/gap if the worker is active. Count every
+	// other pending/candidate direction once, regardless of fair-queue order.
+	// This also covers the worker taking a pending cue during this poll.
+	if (load.busy) result += CueSlotMs;
+	for (size_t i = 0; i < DirectionCount; ++i)
+		if (i != direction && (load.pending[i] != State::Unknown || candidates[i] != State::Unknown))
+			result += CueSlotMs;
+	return result;
+}
+Guidance ClassifyGuidance(Position axis, const Probe& terrain, Position velocity,
+	const Settings& settings, uint64_t playbackMs) {
 	Guidance result;
+	result.playbackMs = playbackMs;
 	const double speed = std::hypot(velocity.x, velocity.y);
-	// A new event can arrive just after playback started, with three other
-	// directions pending. Include all four cues and their gaps, then reaction.
-	constexpr double QueueSeconds = DirectionCount * (CueDurationMs + CueGapMs) / 1000.0;
 	const double reaction = settings.reactionMs / 1000.0;
-	const double horizon = reaction + QueueSeconds;
+	const double horizon = reaction + playbackMs / 1000.0;
 	const double approach = std::max(0.0, velocity.x * axis.x + velocity.y * axis.y);
 	result.warningDepth = std::max(settings.blockedDepth, approach * (horizon + settings.stableMs / 1000.0));
 	// Open depth covers travel after turning. Round up to the collision sweep's
@@ -26,12 +35,21 @@ Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrai
 	}
 	if (terrain.clearDepth < result.openDepth || terrain.medianDepth < result.openDepth) return result;
 	result.observed = State::Open;
+	return result;
+}
+Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrain, const Probe& movement,
+	Position velocity, const Settings& settings, uint64_t playbackMs) {
+	auto result = ClassifyGuidance(axis, terrain, velocity, settings, playbackMs);
+	if (result.observed != State::Open) return result;
 	if (movement.clearDepth < result.openDepth || movement.medianDepth < result.openDepth) return result;
+	const double speed = std::hypot(velocity.x, velocity.y);
+	const double horizon = (settings.reactionMs + playbackMs) / 1000.0;
 	const double advance = speed * horizon;
 	// Forecast only within our acquired local range. Missing coverage rejects a
 	// promise of an opening; it never invents an obstacle or an exit.
 	if (advance > settings.farRange || result.openDepth > settings.farRange) return result;
 	if (speed > 0) {
+		constexpr double Step = 0.5; // same half-cell sampling as the body sweep
 		const Position heading{velocity.x / speed, velocity.y / speed};
 		for (double distance = Step; distance < advance + Step; distance += Step) {
 			const double travel = std::min(distance, advance);

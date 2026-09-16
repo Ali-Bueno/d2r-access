@@ -29,19 +29,29 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - Console (Ctrl+` in game): `access-say <text>`, `access-trace on|off` (log every UI message +
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
-- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20` (thirteen suites, 836 checks).
+- Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
+  Latest shared-workspace run: sixteen suites / 917 checks, including concurrent UI work.
+  Radar and footsteps account for 621 checks; 40 new timing/footstep checks.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
   Speed/reaction forecasts and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest report is reduced radar detection. Controlled desktop checks found and corrected
+- Latest report confirms improvement but requests better running cues and collision feedback.
+  Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.
   `docs/computer-use-radar-check.md` records the failing reproduction and installed live checks.
   Ctrl+T includes `presenceOffset`: infer displacement only from a complete unique native shape;
   never clear arbitrary adjacent NO_PATH markers or use Path+0x10/+0x12 (targets) as its anchor.
   Short spaces, edge sliding and the moving forecast still need controller validation.
+- Running cues now budget actual pending and simultaneous sounds instead of always reserving
+  four cues. `playback_ms` is logged with guidance/events; `docs/radar-running-timing.md`.
+- HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
+  events are suppressed; any native fractional movement restores them. Three whole-function
+  fingerprints guard the hook. `[footsteps]` logs state changes/counters; `docs/footsteps.md`.
+  Installed and policy-tested, live hook/audio validation pending. User chose to test while
+  playing; do not take control or mix desktop inputs with their movements.
 - User prefers cue logging before audio capture. `docs/radar-event-log.md` describes automatic
   generated/queued/submitted/completed/cancelled records. Join event_ms + direction in the latest
   load session, using monotonic timing instead of the delayed SDK prefix. Eight navigation chains
@@ -82,6 +92,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `async_log.cpp` | Bounded background queue for runtime SDK logging; loader flushes disk per line, so UI callbacks only enqueue |
 | `tab_reader.cpp` | Shared selected-tab state across visible panels, including controller overlay and unfocused stash; inventory consumes the same state |
 | `screen_reader.cpp` | PRISM on a dedicated speech thread; `Speak(text, interrupt)` only queues |
+| `footsteps.cpp`, `native_footsteps.cpp`, `footstep_service.cpp` | Pure stalled-motion policy, verified HD footfall hook, local identity/position reads, toggle and event-only diagnostics |
 | `speech_strings.*`, `localization.cpp` | Plugin phrases (English/Spanish) and the game's own string tables via the SDK |
 | `tools/` | CASC extraction, layout indexer, catalog generators (`gen_panel_widgets.py`, `gen_panel_titles.py`) → `src/generated/` |
 

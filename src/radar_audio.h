@@ -38,4 +38,5 @@ void Validate(const Radar::Events& observations, const Radar::Events& audible);
 void Silence(const char* reason = "suspended");
 void Stop();
 bool Available();
+Radar::AudioLoad Load();
 }
