@@ -282,7 +282,7 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-The latest shared-workspace build passes sixteen CTest suites / **917 checks**,
+The latest shared-workspace build passes sixteen CTest suites / **918 checks**,
 including concurrent menu work. Radar/footsteps cover **621 checks**: 299
 radar/audio, 205 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
 13 playback-timing and 27 [stalled-footstep](footsteps.md) checks.

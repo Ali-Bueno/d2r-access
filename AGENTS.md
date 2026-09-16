@@ -30,7 +30,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: sixteen suites / 917 checks, including concurrent UI work.
+  Latest shared-workspace run: sixteen suites / 918 checks, including concurrent UI work.
   Radar and footsteps account for 621 checks; 40 new timing/footstep checks.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:

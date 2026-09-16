@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-15 (running playback budget and stalled local HD footsteps installed; shared-workspace build passes sixteen suites / 917 checks, including concurrent UI work; user will test while playing). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-15 (running playback budget and stalled local HD footsteps installed; shared-workspace build passes sixteen suites / 918 checks, including concurrent UI work; user will test while playing). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -39,7 +39,7 @@ pass; corrected controller readout awaits confirmation. `docs/progression.md`.
 | Stalled local footsteps | wip — installed, live validation pending | Verified HD footfall hook preserves the first event, suppresses repeated unchanged native positions after 150 ms, restores on any fractional displacement. Ctrl+F toggle, event-only `[footsteps]` diagnostics, 27 policy checks. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 205 guidance + 299 radar/audio + 65 native-world/config + 12 radar UI + 13 timing + 27 footsteps = 621 checks. Shared-workspace run: sixteen suites / 917 checks, including concurrent UI changes. Running queue occupancy, simultaneous cues, stalled/resumed subcell movement covered; full-body/unknown/actor guards retained. |
+| Radar / footstep automated tests | done (local) | 205 guidance + 299 radar/audio + 65 native-world/config + 12 radar UI + 13 timing + 27 footsteps = 621 checks. Shared-workspace run: sixteen suites / 918 checks, including concurrent UI changes. Running queue occupancy, simultaneous cues, stalled/resumed subcell movement covered; full-body/unknown/actor guards retained. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
