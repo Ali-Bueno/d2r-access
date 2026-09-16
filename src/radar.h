@@ -110,26 +110,32 @@ public:
 	State Current() const { return state_; }
 	State Candidate() const { return candidate_; }
 	uint64_t CandidateSince() const { return since_; }
-	State Pending() const { return state_ == reported_ ? State::Unknown : state_; }
+	State Pending() const { return state_ == reported_ && !(state_ == State::Open && rearmed_) ? State::Unknown : state_; }
+	void RearmOpening() { if (announcedOpening_) rearmed_ = true; }
 private:
 	State state_ = State::Unknown, reported_ = State::Unknown, candidate_ = State::Unknown;
 	uint64_t since_ = 0;
+	bool announcedOpening_ = false, rearmed_ = false;
 };
 // A world-space wall reference, independent of the player's current clearance.
 // It gates new opening cues; it never overrides physical movement queries.
 class WallMemory {
 public:
 	bool Update(const Probe& wall, Position player, Position axis, bool near,
-		uint64_t now, const Settings& settings, int bodyPattern);
+		uint64_t now, const Settings& settings);
 	bool Known() const { return known_; }
 	Position Point() const { return point_; }
 	double RequiredDepth() const { return requiredDepth_; }
+	bool BarrierConfirmed() const { return barrierConfirmed_; }
 private:
 	void Remember(const Probe& wall, Position axis);
+	bool ObserveBarrier(uint64_t now, uint64_t confirmationMs);
 	Position point_, normal_;
 	bool known_ = false, supported_ = false, clearing_ = false, cleared_ = false;
 	uint64_t since_ = 0;
 	double requiredDepth_ = 0;
+	bool barrierObserved_ = false, barrierConfirmed_ = false;
+	uint64_t barrierSince_ = 0;
 };
 struct Sensor {
 	State stable = State::Unknown;

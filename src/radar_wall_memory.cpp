@@ -19,11 +19,20 @@ void WallMemory::Remember(const Probe& wall, Position axis) {
 	known_ = true;
 	clearing_ = cleared_ = false;
 }
+bool WallMemory::ObserveBarrier(uint64_t now, uint64_t confirmationMs) {
+	if (!barrierObserved_) { barrierObserved_ = true; barrierSince_ = now; }
+	barrierConfirmed_ = now > barrierSince_ && now-barrierSince_ >= confirmationMs;
+	return false;
+}
 bool WallMemory::Update(const Probe& wall, Position player, Position axis, bool near,
-	uint64_t now, const Settings& settings, int bodyPattern) {
+	uint64_t now, const Settings& settings) {
 	requiredDepth_ = settings.openDepth;
-	if (wall.end == State::Blocked && (!known_ || near)) { Remember(wall,axis); return false; }
+	barrierConfirmed_ = false;
+	if (wall.end == State::Blocked && (!known_ || near)) {
+		Remember(wall,axis); return ObserveBarrier(now,settings.stableMs);
+	}
 	if (!known_) return true; // no previous barrier for a newly observed passage
+	const double referenceDepth = Dot(Delta(point_,player),normal_) / Dot(axis,normal_);
 	if (wall.end == State::Blocked) {
 		const auto delta = Delta(wall.hit,point_);
 		const bool currentSupported = Dot(wall.surfaceNormal,wall.surfaceNormal) > 0;
@@ -36,14 +45,23 @@ bool WallMemory::Update(const Probe& wall, Position player, Position axis, bool 
 			&& (!currentSupported || onCurrent)) {
 			if (currentSupported) Remember(wall,axis);
 			else { point_ = wall.hit; clearing_ = cleared_ = false; }
-			return false;
+			return ObserveBarrier(now,settings.stableMs);
+		}
+		// A real nearer first obstruction supersedes the old extrapolated
+		// plane. Keeping the old plane until contact would hide doorways in
+		// this new wall on the first pass, then reveal them on the return.
+		const double hitDepth = Dot(Delta(wall.hit,player),axis);
+		if (hitDepth + RasterBand < referenceDepth) {
+			Remember(wall,axis); return ObserveBarrier(now,settings.stableMs);
 		}
 	}
+	barrierObserved_ = false;
 	// Moving the player does not move this plane. Even after the old wall
 	// leaves the local map window, eight free subtiles before it prove no exit.
-	const double referenceDepth = Dot(Delta(point_,player),normal_) / Dot(axis,normal_);
-	const double bodySpan = bodyPattern == 0 ? 1.0 : 3.0;
-	requiredDepth_ = std::max(settings.openDepth,referenceDepth+bodySpan);
+	// Both the reference and scan already include the complete native body.
+	// Prove one further native destination step, without inflating it twice.
+	const double destinationStep = std::abs(axis.x) + std::abs(axis.y);
+	requiredDepth_ = std::max(settings.openDepth,referenceDepth+destinationStep);
 	const bool beyond = wall.clearDepth >= requiredDepth_;
 	if (!beyond) { clearing_ = cleared_ = false; return false; }
 	if (!clearing_) { clearing_ = true; since_ = now; }

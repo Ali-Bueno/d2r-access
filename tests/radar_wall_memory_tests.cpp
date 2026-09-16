@@ -106,21 +106,21 @@ void LateralExitAfterRetreat() {
 void PlaneConfirmationAndReset() {
 	WallMemory memory; Settings settings;
 	Probe wall; wall.end = State::Blocked; wall.clearDepth = 3; wall.hit = {104,100}; wall.surfaceNormal = {1,0};
-	Check(!memory.Update(wall,{100,100},{1,0},true,1000,settings,1), "a nearby wall establishes a world-space reference");
+	Check(!memory.Update(wall,{100,100},{1,0},true,1000,settings), "a nearby wall establishes a world-space reference");
 	wall.clearDepth = 12; wall.hit = {104,101};
-	Check(!memory.Update(wall,{91,101},{1,0},false,1050,settings,1), "tangential drift of the same hit cannot prove an exit");
+	Check(!memory.Update(wall,{91,101},{1,0},false,1050,settings), "tangential drift of the same hit cannot prove an exit");
 	wall.hit = {124,101}; wall.clearDepth = 32;
-	Check(!memory.Update(wall,{91,101},{1,0},false,1100,settings,1), "crossing the old plane starts independent geometric confirmation");
+	Check(!memory.Update(wall,{91,101},{1,0},false,1100,settings), "crossing the old plane starts independent geometric confirmation");
 	wall.end = State::Unknown; wall.clearDepth = 9;
-	Check(!memory.Update(wall,{91,101},{1,0},false,1150,settings,1) && memory.Known(),
+	Check(!memory.Update(wall,{91,101},{1,0},false,1150,settings) && memory.Known(),
 		"a partial map before the old wall cancels confirmation without forgetting the wall");
 	wall.end = State::Blocked; wall.clearDepth = 32;
-	Check(!memory.Update(wall,{91,101},{1,0},false,1200,settings,1), "restored geometric proof needs a fresh first sample");
-	Check(memory.Update(wall,{91,101},{1,0},false,1250,settings,1), "two fresh beyond-wall samples confirm a new opening");
+	Check(!memory.Update(wall,{91,101},{1,0},false,1200,settings), "restored geometric proof needs a fresh first sample");
+	Check(memory.Update(wall,{91,101},{1,0},false,1250,settings), "two fresh beyond-wall samples confirm a new opening");
 	WallMemory unfitted; wall.hit = {104,100}; wall.surfaceNormal = {}; wall.clearDepth = 3;
-	(void)unfitted.Update(wall,{100,100},{1,0},true,1000,settings,1);
+	(void)unfitted.Update(wall,{100,100},{1,0},true,1000,settings);
 	wall.clearDepth = 12;
-	Check(!unfitted.Update(wall,{91,100},{1,0},false,1050,settings,1),
+	Check(!unfitted.Update(wall,{91,100},{1,0},false,1050,settings),
 		"an ambiguous wall without a fitted normal still retains the same world hit during retreat");
 	auto world = Field(); Barrier(world,Steps[3]); Engine engine; (void)engine.Tick(world,1000);
 	world = Field(); ++world.session;

@@ -101,7 +101,9 @@ remain structural barriers. Uncertain cases retain their collision.
 
 The radar follows **usable connected passages** and remembers a wall's position
 when you move away from it. More free floor before the same wall stays silent;
-an opening must prove a clear approach past that remembered edge. Moving along
+an opening must prove a clear approach past that remembered edge. A nearer
+observed barrier updates the reference, and an announced doorway can sound on
+return after the intervening wall is confirmed. Moving along
 the wall can still reveal a doorway or its end. Unknown coverage does not turn
 an old wall into an exit. The four wall references supplement the local native
 body graph; they are not a saved exploration map. Speed and queue length do not
@@ -118,8 +120,8 @@ are preserved; no external map or sound installation is required.
 
 Live map reads work in the camp and Blood Moor. The user confirmed that object
 filtering and connected passages helped. The latest correction retains known
-walls during retreat and is built and installed; controller/listening validation
-of that correction remains pending. See
+walls during retreat, refreshes nearer barriers and rearms return visits. It is
+built and installed; controller/listening validation of this update is pending. See
 [remembered walls](docs/radar-wall-memory.md),
 [connected passages and tests](docs/radar-connected-passages.md) and
 [object filtering](docs/radar-object-filtering.md) for behavior and limits.

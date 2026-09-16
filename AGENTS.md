@@ -30,8 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 28 suites / 1435 checks, including UI navigation.
-  Radar and footsteps account for 1000 checks, including 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
+  Latest shared-workspace run: 29 suites / 1510 checks, including UI navigation.
+  Radar and footsteps account for 1075 checks, including 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
@@ -39,19 +39,20 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Current connected passage cues need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar change: user confirms connected passages help but reports that
-  retreat from a known wall sounds as a new exit. `radar_wall_memory` now retains
-  a world-space reference per direction; free floor before that wall is not a
-  new opening. Read `docs/radar-wall-memory.md` first. Physical travel must clear
-  the remembered edge, including a distant approach; missing wall coverage
-  preserves the reference. Engine/lifecycle resets still clear it. This is not
-  a saved map. 77 new checks cover all-direction retreat, the inferred live
-  angled-wall case, doors/wall ends after retreat, occupancy and coverage loss.
-  Build and deployment are complete; new live controller/audio validation is
-  user-led. Ctrl+T includes the reference, connected state and physical snapshot.
-  `navigation_grid`/`radar_passage` remain in the plugin; the old ray-boundary
-  tracker does not generate audio. Keep fixed stick directions, rear ray and
-  120 ms cues / 50 ms silence.
+- Latest radar change: user confirms memory helps but reports missed first-pass
+  exits, return-only detection and wall/opening changes on approach. Nearer
+  observed first walls now supersede old planes before contact; confirmed wall
+  returns rearm already announced exits independently of near-wall warnings.
+  Beyond-wall proof adds one native step to a full-body scan, avoiding duplicate
+  body inflation. `docs/radar-wall-memory.md` describes evidence and limits.
+  75 new checks reproduce the former failures and cover four directions and
+  50/100/150/200 ms polls. All retreat/far-recess/delivery/UI regressions pass.
+  Build and deployment are complete; live controller/audio validation is user-led.
+  The latest 44-event session has no full wall snapshots. New automatic
+  `[radar-opening-hold]` reason changes expose withheld cues; Ctrl+T retains
+  wall references and the physical grid. Four local references are not a saved
+  map and still reset with engine lifecycle. Keep fixed/rear axes, original
+  physical body checks and 120 ms cues / 50 ms silence.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.

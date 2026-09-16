@@ -68,9 +68,11 @@ State PassageTracker::Observe(const Passage& passage, bool openingSafe, uint64_t
 	}
 	// If an occupied opening disappears before it is usable, returning to
 	// the already reported closed state must not produce an orphan closing.
-	if (state_ == reported_ || candidate_ != State::Unknown
+	if ((state_ == reported_ && !(state_ == State::Open && rearmed_)) || candidate_ != State::Unknown
 		|| (state_ == State::Open && !openingSafe)) return State::Unknown;
 	reported_ = state_;
+	announcedOpening_ = state_ == State::Open;
+	rearmed_ = false;
 	return state_;
 }
 bool PassageTracker::Accepts(State cue, const Passage& passage, bool openingSafe) const {

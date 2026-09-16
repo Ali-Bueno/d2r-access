@@ -36,12 +36,15 @@ uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0;
 int g_level = 0, g_testStep = -1;
 std::string g_lastReason;
+enum class OpeningHold { None, Physical, Reference, Approach, Confirmation };
+std::array<OpeningHold, Radar::DirectionCount> g_openingHolds{};
 
 void Suspend(const char* reason = "suspended") {
 	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence(reason);
 	g_suspended = true;
 	g_testStep = -1;
 	g_engine.Reset();
+	g_openingHolds = {};
 }
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -71,6 +74,28 @@ void Describe(bool available, RadarUi::State ui) {
 	if (ui != RadarUi::State::Playing) { ScreenReader::Speak(text.radarUiStates[static_cast<size_t>(ui) - 1], true); return; }
 	if (!available) { ScreenReader::Speak(text.radarUnavailable, true); return; }
 	ScreenReader::Speak(RadarReadout::Describe(g_engine, text), true);
+}
+OpeningHold OpeningReason(const Radar::Sensor& sensor) {
+	if (sensor.passageState.Pending() != Radar::State::Open && sensor.passageState.Candidate() != Radar::State::Open)
+		return OpeningHold::None;
+	if (!sensor.guidance.openingSafe) return OpeningHold::Physical;
+	if (!sensor.newOpening) return OpeningHold::Reference;
+	if (sensor.probe.clearDepth < sensor.wallMemory.RequiredDepth()) return OpeningHold::Approach;
+	return sensor.passageState.Candidate() == Radar::State::Open ? OpeningHold::Confirmation : OpeningHold::None;
+}
+void LogOpeningHolds(const Radar::World& world, uint64_t now) {
+	constexpr const char* Reasons[]{"none", "physical", "reference", "approach", "confirmation"};
+	for (size_t i=0; i<Radar::DirectionCount; ++i) {
+		const auto& sensor = g_engine.Sensors()[i];
+		const auto reason = OpeningReason(sensor);
+		if (reason == g_openingHolds[i]) continue;
+		g_openingHolds[i] = reason;
+		const auto reference = sensor.wallMemory.Point();
+		AsyncLog::InfoF(g_context, "[radar-opening-hold] event_ms=%llu direction=%zu reason=%s position=%.0f,%.0f physical=%.1f structure=%.1f reference=%.0f,%.0f hit=%.0f,%.0f required=%.1f returning_wall=%u",
+			static_cast<unsigned long long>(now), i, Reasons[static_cast<size_t>(reason)], world.player.x, world.player.y,
+			sensor.probe.clearDepth, sensor.structure.clearDepth, reference.x, reference.y, sensor.structure.hit.x, sensor.structure.hit.y,
+			sensor.wallMemory.RequiredDepth(), sensor.wallMemory.BarrierConfirmed() ? 1u : 0u);
+	}
 }
 void LogSensors(uint64_t now) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
@@ -218,6 +243,7 @@ void Tick(const D2RL::PluginContext* context) {
 			audible[i] = sensor.AudibleState();
 		}
 		RadarAudio::Validate(observations, audible);
+		LogOpeningHolds(world, now);
 		for (size_t i = 0; i < events.size(); ++i) {
 			if (events[i] != Radar::State::Unknown) {
 				const auto& sensor = g_engine.Sensors()[i];
