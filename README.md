@@ -164,7 +164,9 @@ Persistent radar preference: `[radar] enabled = true` (or `false`) in
 `d2rloader/config/d2r-access.toml`, created from the DLL only when missing.
 
 Footstep commands: `access-footsteps on|off|status`; Ctrl+F toggles the filter
-until the game exits. The log records audible/stalled transitions and counts.
+until the game exits. The log records audible/stalled transitions and grouped
+movement/animation/read-failure diagnostics, so a failed case can be investigated
+without visually identifying whether the character is sliding along a wall.
 
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
 Test executables are not installed into the game.

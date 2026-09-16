@@ -282,10 +282,10 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-The latest shared-workspace build passes sixteen CTest suites / **918 checks**,
-including concurrent menu work. Radar/footsteps cover **621 checks**: 299
+The latest shared-workspace build passes seventeen CTest suites / **940 checks**,
+including concurrent menu work. Radar/footsteps cover **631 checks**: 299
 radar/audio, 205 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
-13 playback-timing and 27 [stalled-footstep](footsteps.md) checks.
+13 playback-timing and 37 [stalled-footstep](footsteps.md) checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
 beyond the old near sweep, leaving an overlapping obstacle, stationary door

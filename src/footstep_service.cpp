@@ -5,7 +5,11 @@
 #include "speech_strings.h"
 
 #include <windows.h>
+#include <algorithm>
+#include <array>
 #include <atomic>
+#include <cmath>
+#include <limits>
 #include <mutex>
 #include <string_view>
 
@@ -21,6 +25,42 @@ std::mutex g_mutex;
 Footsteps::Filter g_filter;
 bool g_supported = false, g_muted = false, g_seen = false;
 uint64_t g_allowed = 0, g_suppressed = 0;
+// Aggregate active sound events, at most once per five seconds; never per frame.
+constexpr uint64_t ReportIntervalMs = 5000;
+constexpr double PositionScale = uint64_t{1} << std::numeric_limits<uint16_t>::digits;
+std::array<uint64_t, static_cast<size_t>(Footsteps::Reason::Count)> g_reasons{};
+Footsteps::Sample g_lastSample{};
+Footsteps::Decision g_lastDecision{};
+uint64_t g_reportAt = 0, g_maxStationary = 0, g_unresolvedForeign = 0;
+double g_travel = 0, g_netX = 0, g_netY = 0;
+bool g_dirty = false;
+
+void Report(uint64_t now, bool force = false) {
+	if (!g_dirty || (!force && now < g_reportAt)) return;
+	const auto count = [](Footsteps::Reason reason) { return static_cast<unsigned long long>(g_reasons[static_cast<size_t>(reason)]); };
+	AsyncLog::InfoF(g_context, "[footsteps] summary mode=%u last_reason=%s position_raw=%016llX travel=%.6f net=%.6f,%.6f max_stationary_ms=%llu baseline=%llu moved=%llu settling=%llu stalled=%llu animation=%llu unavailable=%llu unrelated=%llu unresolved_foreign=%llu allowed=%llu suppressed=%llu",
+		g_lastSample.mode, Footsteps::ReasonName(g_lastDecision.reason), static_cast<unsigned long long>(g_lastSample.position),
+		g_travel, g_netX, g_netY, static_cast<unsigned long long>(g_maxStationary),
+		count(Footsteps::Reason::Baseline), count(Footsteps::Reason::Moved), count(Footsteps::Reason::Settling), count(Footsteps::Reason::Stalled),
+		count(Footsteps::Reason::Animation), count(Footsteps::Reason::Unavailable), count(Footsteps::Reason::Unrelated),
+		static_cast<unsigned long long>(g_unresolvedForeign), static_cast<unsigned long long>(g_allowed), static_cast<unsigned long long>(g_suppressed));
+	g_reasons = {}; g_maxStationary = g_unresolvedForeign = 0;
+	g_travel = g_netX = g_netY = 0; g_dirty = false;
+	g_reportAt = now + ReportIntervalMs;
+}
+
+void Record(const Footsteps::Sample& sample, const Footsteps::Decision& decision, uint64_t now) {
+	++g_reasons[static_cast<size_t>(decision.reason)];
+	if (decision.reason == Footsteps::Reason::Unrelated) {
+		if (!sample.valid) ++g_unresolvedForeign;
+		return;
+	}
+	if (!g_reportAt) g_reportAt = now + ReportIntervalMs;
+	g_dirty = true; g_lastSample = sample; g_lastDecision = decision;
+	g_maxStationary = std::max(g_maxStationary, decision.stationaryMs);
+	const double dx = decision.dx / PositionScale, dy = decision.dy / PositionScale;
+	g_travel += std::hypot(dx, dy); g_netX += dx; g_netY += dy;
+}
 
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
@@ -53,8 +93,9 @@ void Register(const D2RL::PluginContext* context) {
 }
 void Tick() {
 	const auto command = g_command.exchange(Command::None);
-	if (command == Command::None) return;
 	std::lock_guard lock(g_mutex);
+	Report(GetTickCount64(), command != Command::None);
+	if (command == Command::None) return;
 	if (command != Command::Status) {
 		g_enabled = g_supported && (command == Command::On || (command == Command::Toggle && !g_enabled));
 		g_filter.Reset(); g_seen = g_muted = false;
@@ -70,13 +111,17 @@ bool Suppress(uint32_t entity) noexcept {
 		const auto sample = NativeFootsteps::Read(entity);
 		std::lock_guard lock(g_mutex);
 		if (!g_enabled) return false;
-		const bool muted = g_filter.Suppress(sample, GetTickCount64());
+		const uint64_t now = GetTickCount64();
+		const bool muted = g_filter.Suppress(sample, now);
+		const auto& decision = g_filter.LastDecision();
+		Record(sample, decision, now);
 		if (sample.valid && sample.local) {
 			if (muted) ++g_suppressed; else ++g_allowed;
 			if (!g_seen || muted != g_muted) {
-				AsyncLog::InfoF(g_context, "[footsteps] state=%s entity=%u position_raw=%016llX locomotion=%u allowed=%llu suppressed=%llu",
+				AsyncLog::InfoF(g_context, "[footsteps] state=%s entity=%u position_raw=%016llX locomotion=%u allowed=%llu suppressed=%llu mode=%u reason=%s stationary_ms=%llu delta=%.6f,%.6f",
 					muted ? "stalled" : "audible", entity, static_cast<unsigned long long>(sample.position), sample.locomotion ? 1u : 0u,
-					static_cast<unsigned long long>(g_allowed), static_cast<unsigned long long>(g_suppressed));
+					static_cast<unsigned long long>(g_allowed), static_cast<unsigned long long>(g_suppressed), sample.mode, Footsteps::ReasonName(decision.reason),
+					static_cast<unsigned long long>(decision.stationaryMs), decision.dx / PositionScale, decision.dy / PositionScale);
 				g_seen = true; g_muted = muted;
 			}
 		}
@@ -86,6 +131,7 @@ bool Suppress(uint32_t entity) noexcept {
 void Unregister() {
 	g_enabled = false;
 	std::lock_guard lock(g_mutex);
+	Report(GetTickCount64(), true);
 	if (g_input && g_action != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, g_action);
 	g_filter.Reset(); g_context = nullptr; g_input = nullptr; g_action = D2RL::Input::InvalidHandle;
 }

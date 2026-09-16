@@ -30,8 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: sixteen suites / 918 checks, including concurrent UI work.
-  Radar and footsteps account for 621 checks; 40 new timing/footstep checks.
+  Latest shared-workspace run: seventeen suites / 940 checks, including concurrent UI work.
+  Radar and footsteps account for 631 checks; footsteps now has 37 policy checks.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
@@ -50,7 +50,11 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
   events are suppressed; any native fractional movement restores them. Three whole-function
   fingerprints guard the hook. `[footsteps]` logs state changes/counters; `docs/footsteps.md`.
-  Installed and policy-tested, live hook/audio validation pending. User chose to test while
+  Hook installation/local callback confirmed in the 22:54 load; user still reports audible
+  steps in some cases and cannot distinguish sliding by sound. Foreign read failures no
+  longer reset the local baseline. Five-second active-event summaries include native mode,
+  movement, reset reasons and unresolved foreign events; check these on the next reproduction.
+  Actual stall suppression/audio validation is still pending. User chose to test while
   playing; do not take control or mix desktop inputs with their movements.
 - User prefers cue logging before audio capture. `docs/radar-event-log.md` describes automatic
   generated/queued/submitted/completed/cancelled records. Join event_ms + direction in the latest

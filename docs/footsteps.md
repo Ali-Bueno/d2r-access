@@ -48,18 +48,47 @@ mode/path offsets come from the installed native code.
 - The first footfall remains audible. Repeated unchanged positions become
   silent after a 150 ms observation window; any fractional displacement restores
   the next footfall immediately. These timings are design guards, not offsets.
-- A one-second break, entity-generation change, clock discontinuity, non-walking
-  animation or unavailable position clears the baseline. Turning the filter
+- A one-second break, local entity-generation change, clock discontinuity,
+  non-walking animation or unavailable local position clears the baseline. An
+  unresolved event from a different full ECS entity ID cannot reset the local
+  sequence. Turning the filter
   off restores the normal footfall function.
 - The hook skips the floor and equipment-footstep event only. It does not change
   movement, animation, terrain, global mixer volume or other sound categories.
   A sound already playing may finish its short tail.
 - `[footsteps]` logs the first local event and audible/stalled transitions, with
-  cumulative allowed/suppressed counts. It does not log every frame or footfall.
+  cumulative allowed/suppressed counts, native mode, decision reason, stationary
+  time and fractional displacement. Active-event summaries run at most once per
+  five seconds; toggle/status/shutdown flush the pending summary. There are no
+  per-frame or per-footfall log writes.
+
+## Follow-up: steps still audible in some cases
+
+The user cannot distinguish a full stall from wall sliding by sound alone. The
+22:54:32 load installed the hook, but its old transition-only log contained no
+suppressed local event. At the last wall snapshot (22:57:28), the radar measured
+velocity `(5.1, approximately 0)` subtiles/s: there was still lateral displacement
+beside the obstacle. This does not establish the cause of every reported case.
+
+Inspection also found a reproducible policy defect: an unresolved **foreign**
+entity event reset the local baseline. Interleaving such events with stationary
+local footfalls could keep allowing the first sound indefinitely. The correction
+ignores foreign read failures but still fails audible and resets on an unreadable
+event belonging to the local full ECS identity. Tests cover both cases and
+generation-distinct IDs.
+
+The new summary records counts for `baseline`, `moved`, `settling`, `stalled`,
+`animation`, `unavailable`, `unrelated`, and unresolved foreign events. `mode` is
+the last native local mode; `travel` and `net` accumulate only comparable samples
+accepted by the walking policy, not movement across gaps or excluded animations.
+`max_stationary_ms` reports the longest observed unchanged sequence in that
+summary. These distinguish actual movement from a mode/read/reset problem without
+asking the player to see the character. Other causes remain under investigation;
+do not infer a confirmed physical collision from a sound event alone.
 
 ## Verification scope
 
-Pure policy tests cover a sustained stall, immediate subcell resumption, slow
+Thirty-seven pure policy checks cover a sustained stall, immediate subcell resumption, slow
 movement, NPC interleaving, action animations, missing data, identity changes,
 long gaps and reset. Build and live verification are recorded in `STATUS.md`.
 The native hook targets the HD sound event; classic graphics/audio coverage is

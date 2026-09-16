@@ -62,6 +62,7 @@ Footsteps::Sample Read(uint32_t entity) noexcept {
 	if (!NativeMemory::Peek(unit + UnitType, type) || type != 0 || !NativeMemory::Peek(unit + UnitMode, mode)
 		|| !NativeMemory::Peek(unit + UnitPath, path) || !path || !NativeMemory::Peek(path + PathPosition, result.position)) return result;
 	result.valid = true;
+	result.mode = mode;
 	result.locomotion = mode == Walk || mode == Run || mode == TownWalk;
 	return result;
 }
