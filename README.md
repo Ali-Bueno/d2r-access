@@ -63,7 +63,10 @@ game rooms. It synthesizes directional `tin` (opening) / `tock` (blocked) cues,
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using
-the player's native movement mask. It filters brief openings using measured
+the player's native movement mask. It also recognizes a complete, uniquely
+identifiable player footprint displaced from the reported cell, preventing that
+footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
+markers. It filters brief openings using measured
 movement speed from the game's fractional position and a reaction window, warns earlier when approaching walls
 faster, and separates creature occupancy from terrain changes. Openings must
 still pass the full movement-collision check. It starts enabled, baselines silently without

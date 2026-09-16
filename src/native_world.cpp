@@ -97,19 +97,45 @@ void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 	const bool cross = world.bodyPattern == 2 || world.bodyPattern == 4;
 	const uint16_t marker = world.bodyPattern == 1 || world.bodyPattern == 2 ? NoPath
 		: world.bodyPattern == 3 || world.bodyPattern == 4 ? PetPresence : 0;
+	const int playerX = static_cast<int>(world.player.x), playerY = static_cast<int>(world.player.y);
+	(void)world.Cell(playerX, playerY, Radar::Layer::Movement, &detail.rawPlayerCell);
+	const auto footprint = [&](int dx, int dy) { return world.bodyPattern != 0 && (cross || dx == 0 || dy == 0); };
+	const auto presence = [&](int dx, int dy) { return (dx == 0 && dy == 0) || (cross && (dx == 0 || dy == 0)); };
+	// The live client can stop with its complete stamp displaced from Path's
+	// integer cell (docs/computer-use-radar-check.md). Infer its origin only
+	// from one complete native player shape overlapping the reported cell.
+	// Targets at Path+0x10/+0x12 are not authoritative stamp coordinates.
+	constexpr uint16_t Player = 0x80, Missile = 0x40, Monster = 0x100;
+	if (detail.footprintMask == Player && marker && (detail.rawPlayerCell & Player) && !(detail.rawPlayerCell & marker)) {
+		unsigned matches = 0;
+		int offsetX = 0, offsetY = 0;
+		// Every supported footprint extends one cell from its centre. Candidate
+		// centres must contain the reported player cell in that exact footprint.
+		for (int cy = -1; cy <= 1; ++cy) for (int cx = -1; cx <= 1; ++cx) {
+			if (!footprint(cx, cy)) continue;
+			bool complete = true;
+			for (int dy = -1; dy <= 1 && complete; ++dy) for (int dx = -1; dx <= 1; ++dx) {
+				if (!footprint(dx, dy)) continue;
+				uint16_t flags = 0;
+				const auto state = world.Cell(playerX + cx + dx, playerY + cy + dy, Radar::Layer::Movement, &flags);
+				const uint16_t required = Player | (presence(dx, dy) ? marker : 0);
+				if (state == Radar::State::Unknown || (flags & required) != required || (flags & (Missile | Monster))) {
+					complete = false;
+					break;
+				}
+			}
+			if (complete) { ++matches; offsetX = cx; offsetY = cy; }
+		}
+		if (matches == 1) { detail.presenceOffsetX = offsetX; detail.presenceOffsetY = offsetY; }
+	}
 	for (auto& room : world.rooms) {
 		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) {
-			const int x = static_cast<int>(world.player.x) + dx - room.x;
-			const int y = static_cast<int>(world.player.y) + dy - room.y;
+			const int x = playerX + detail.presenceOffsetX + dx - room.x;
+			const int y = playerY + detail.presenceOffsetY + dy - room.y;
 			if (x < 0 || y < 0 || x >= room.width || y >= room.height) continue;
 			auto& cell = room.cells[static_cast<size_t>(y) * room.width + x];
-			const bool centre = dx == 0 && dy == 0;
-			if (centre) detail.rawPlayerCell = cell;
-			const bool inFootprint = world.bodyPattern != 0
-				&& (cross || dx == 0 || dy == 0);
-			if (!inFootprint || !detail.footprintMask || (cell & detail.footprintMask) != detail.footprintMask) continue;
-			const bool inPresence = centre || (cross && (dx == 0 || dy == 0));
-			const uint16_t remove = static_cast<uint16_t>(detail.footprintMask | (inPresence ? marker : 0));
+			if (!footprint(dx, dy) || !detail.footprintMask || (cell & detail.footprintMask) != detail.footprintMask) continue;
+			const uint16_t remove = static_cast<uint16_t>(detail.footprintMask | (presence(dx, dy) ? marker : 0));
 			if (cell & marker & remove) ++detail.removedPresenceCells;
 			cell &= static_cast<uint16_t>(~remove);
 		}

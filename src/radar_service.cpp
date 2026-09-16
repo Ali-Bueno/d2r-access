@@ -204,9 +204,10 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
 		: blocked ? UiReasons[static_cast<size_t>(ui)] : detail.stage;
 	if (reason != g_lastReason || command == Command::Status || command == Command::Dump) {
-		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d footprint=%04X movement=%04X rawCell=%04X removedPresence=%u axes=screen",
+		AsyncLog::InfoF(context, "[radar] status=%s expectedPlayer=%u actualPlayer=%u expectedLevel=%d actualLevel=%d position=%d,%d pattern=%d footprint=%04X movement=%04X rawCell=%04X removedPresence=%u presenceOffset=%d,%d axes=screen",
 			reason.c_str(), g_playerId, detail.playerId, g_level, detail.level, detail.x, detail.y, detail.pattern,
-			detail.footprintMask, detail.movementMask, static_cast<unsigned>(detail.rawPlayerCell), detail.removedPresenceCells);
+			detail.footprintMask, detail.movementMask, static_cast<unsigned>(detail.rawPlayerCell), detail.removedPresenceCells,
+			detail.presenceOffsetX, detail.presenceOffsetY);
 		g_lastReason = reason;
 	}
 	if (!available) {

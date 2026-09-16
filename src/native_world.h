@@ -12,6 +12,7 @@ struct Diagnostics {
 	uint32_t movementMask = 0;
 	uint16_t rawPlayerCell = 0;
 	unsigned removedPresenceCells = 0;
+	int presenceOffsetX = 0, presenceOffsetY = 0;
 };
 bool Initialize(const D2RL::PluginContext* context);
 // UI thread only, client rooms only. No retained game pointers across ticks.

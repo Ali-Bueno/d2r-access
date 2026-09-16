@@ -115,11 +115,34 @@ cells as `0x341A20/30`. No native setter is invoked.
 
 Discarding those low words caused stationary samples between cell crossings and
 spurious direction changes when X and Y crossed at different times. Motion and
-confirmation travel now include the fractions; geometry and self-presence
-removal still use the integer footprint location. A Ctrl+T snapshot adds one
+confirmation travel now include the fractions; geometry still uses the native
+integer cell. Self-presence removal can infer a displaced stamp as described
+below. A Ctrl+T snapshot adds one
 `[radar-motion]` record with the precise coordinates. Tests cover unequal cell
 crossings, subcell movement lasting longer than the stop timeout, a subcell
 reversal, stopping, teleport rebasing and unsigned fixed-point decoding.
+
+### Displaced local presence
+
+Controlled movement reproduced a stopped player at (4463,4614) with its complete
+native cross centered at (4464,4614). The old removal left the center's NO_PATH
+marker behind, giving down/right zero clearance. A 250 ms down input then moved
+to (4466,4617), confirming a false obstruction. The raw cross and movement are
+recorded in [the computer-use checks](computer-use-radar-check.md).
+
+If the reported cell contains player footprint `0x80` but lacks its expected
+presence marker, the adapter searches only overlapping native shapes within
+one cell. It shifts removal only for exactly one complete, readable shape with
+all required footprint and presence bits. Unknown cells, missile/water overlap,
+monster overlap, missing cells and multiple matching shapes reject inference.
+Other wall, door, object and no-player bits remain intact. This changes copied
+collision only; the reported position and game memory remain unchanged.
+
+This is an inference from a unique complete shape, not an authoritative ownership
+getter. Bitfields cannot distinguish coincident owners. Path+0x10/+0x12 must not
+be used as stamp coordinates: `0x34120B` copies the last path point into those
+target fields; `0x380A70` compares the current cell with that target.
+Ctrl+T reports `presenceOffset=X,Y`, relative to the integer player cell.
 
 ### Responsibilities
 
@@ -152,8 +175,8 @@ reversal, stopping, teleport rebasing and unsigned fixed-point decoding.
   stopping can make them eligible. Separate the actor-filtered terrain estimate
   from physical collision, so moving creatures do not alternate walls/exits.
   Never use filtered terrain alone to announce free passage.
-  Motion uses the native 16.16 position, while collision and local-footprint
-  removal retain the native integer cell. This avoids false stops and direction
+  Motion uses the native 16.16 position, while collision retains the native
+  integer cell. This avoids false stops and direction
   changes when X and Y cross their cell boundaries on different polls.
 - `radar_synth` / `radar_audio`: synthesize 120 ms PCM cues on a separate worker.
   Opening is a high `tin`; blocking is a low `tock`. Left/right use stereo pan;
@@ -245,7 +268,8 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 - `[radar] lifecycle=...` records event kind, session, player and level.
 - `[radar] status=...` identifies the first blocking condition and reports
   expected/observed player and level, path coordinates, footprint mask, raw
-  player-cell flags, native movement mask and the number of copied presence cells cleared. It logs
+  player-cell flags, native movement mask, the number of copied presence cells
+  cleared and their inferred `presenceOffset`. It logs
   only on reason changes or explicit `status`/`dump` requests.
 - `[radar] direction=...` records emitted changes (0 up, 1 left, 2 right, 3 down; `axes=screen`), speed, terrain and physical depths, raw blocking flags and warning depth. Emission does not prove completion of audio playback.
 - `[radar-state]` reports body and lane probes on Ctrl+T or an explicit dump.
@@ -256,8 +280,8 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-Thirteen CTest suites / **800 checks** pass: the previous 255 checks, 288
-radar/audio checks, 200 reaction/occupancy guidance checks, 45 native-world/config
+Thirteen CTest suites / **836 checks** pass: the previous 255 checks, 299
+radar/audio checks, 205 reaction/occupancy guidance checks, 65 native-world/config
 checks and 12 radar UI checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
@@ -265,6 +289,10 @@ beyond the old near sweep, leaving an overlapping obstacle, stationary door
 changes, unknown terrain, lifecycle rebasing, native mask changes and self
 footprint removal. Audio tests verify isolated stereo cues, the 50 ms silent
 interval and replacement/cancellation of stale queued changes.
+Eighteen displaced-presence checks include the failing live regression, all four
+cross offsets, a large footprint, ambiguous/incomplete shapes and preservation
+of real obstacles. Live checks activated offsets (0,1) and (-1,0), followed an
+announced opening and preserved the actual camp wall. See the computer-use log.
 Guidance tests cover actor oscillation, preserved walls/water, acceleration,
 turns, early warnings, fleeting versus usable openings, stopping, occupied doors,
 intermediate forecast collisions and unknown terrain. A limited corridor can

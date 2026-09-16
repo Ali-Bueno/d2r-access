@@ -84,10 +84,61 @@ void MovementMaskTests() {
 	fixture.path.At<uint32_t>(0x64, 0x10000);
 	Check(!fixture.Read(world), "out-of-range native collision mask fails closed");
 }
+void DisplacedPresenceTests() {
+	Fixture fixture; Radar::World world;
+	// Live camp 20:47:06: player (4463,4614), complete player cross at
+	// (4464,4614). Down/right falsely hit NO_PATH; a down input crossed it.
+	const auto stamp = [&](int x, int y) {
+		for (const auto offset : std::array<int, 5>{0, -1, 1, -10, 10}) fixture.cells[y * 10 + x + offset] |= 0x80;
+		fixture.cells[y * 10 + x] |= 0x1000;
+	};
+	stamp(5, 4);
+	Check(fixture.Read(world) && world.Body(105, 105) == Radar::State::Open,
+		"a complete displaced player stamp cannot masquerade as a blocked downward step");
+	Check(world.Body(105, 103) == Radar::State::Open, "the same displaced stamp cannot block the rightward step");
+	Check(fixture.cells[45] == 0x1080, "displaced presence removal never mutates game collision cells");
+	for (const uint16_t solid : std::array<uint16_t, 4>{1, 8, 0x400, 0x800}) {
+		fixture.cells[45] = 0x1080 | solid;
+		Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+			"wall, door, object and no-player bits under a displaced stamp remain blocked");
+	}
+	fixture.cells[45] = 0x1080; fixture.cells[46] = 0;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+		"an incomplete neighboring footprint cannot authorize clearing NO_PATH");
+	fixture.cells.fill(0); stamp(5, 4); stamp(4, 5);
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked && world.Cell(104, 105) == Radar::State::Blocked,
+		"two complete neighboring stamps are ambiguous and preserve both presence markers");
+	fixture.cells.fill(0); fixture.cells[44] = 0x80; fixture.cells[45] = 0x1000;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+		"an isolated neighboring NO_PATH bit is never treated as the player");
+	fixture.cells.fill(0); stamp(5, 4); fixture.cells[35] |= 0x40;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+		"water or missile overlap prevents displaced footprint inference");
+	fixture.cells.fill(0); stamp(5, 4); fixture.cells[35] |= 0x100;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+		"another actor overlapping the proposed footprint prevents its inference");
+	fixture.cells.fill(0); stamp(5, 4); fixture.cells[35] |= 0x20;
+	Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked,
+		"unloaded footprint cells cannot authorize presence removal");
+	for (const auto offset : std::array<std::array<int, 2>, 4>{{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}}) {
+		fixture.cells.fill(0); stamp(4 + offset[0], 4 + offset[1]);
+		NativeWorld::Diagnostics detail;
+		Check(NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)
+			&& detail.presenceOffsetX == offset[0] && detail.presenceOffsetY == offset[1]
+			&& detail.rawPlayerCell == 0x80 && detail.removedPresenceCells == 1,
+			"all four displaced crosses retain the original raw cell and report the selected offset");
+	}
+	fixture.cells.fill(0); fixture.path.At<int>(0x5C, 2);
+	for (int y = 4; y <= 6; ++y) for (int x = 4; x <= 6; ++x)
+		fixture.cells[y * 10 + x] = 0x80 | ((x == 5 || y == 5) ? 0x1000 : 0);
+	Check(fixture.Read(world) && world.Cell(105, 105) == Radar::State::Open && world.Cell(106, 105) == Radar::State::Open,
+		"a complete large footprint uses its native square and cross-shaped presence");
+}
 }
 int main() {
 	MovementMaskTests();
 	PlayerPresenceTests();
+	DisplacedPresenceTests();
 	Check(RadarConfig::Parse("[radar]\nenabled = false # quiet default\n").enabled == false, "embedded radar preference can disable startup audio");
 	Check(RadarConfig::Parse("[other]\nenabled=false\n").enabled, "other features' switches cannot disable the radar");
 	Check(!RadarConfig::Parse("[radar]\nenabled=FALSE\n").valid, "non-TOML boolean is rejected");
