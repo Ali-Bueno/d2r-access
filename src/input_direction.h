@@ -52,6 +52,20 @@ enum class FaceButton {
 };
 FaceButton LastFaceButton(unsigned maxAgeMs);
 
+// Right thumbstick push edges for the entity scan: a push is recorded once
+// when the stick leaves its dead zone (same threshold as the left stick), in
+// the dominant axis at that moment. Releasing below the threshold re-arms it,
+// so cycling means push, release, push. Take() returns the latest push since
+// the previous Take() and clears it.
+enum class StickPush {
+	None,
+	Up,
+	Left,
+	Right,
+	Down,
+};
+StickPush TakeRightStickPush();
+
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.
 void Shutdown();

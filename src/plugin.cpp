@@ -7,6 +7,7 @@
 #include "footstep_service.h"
 #include "game_text_reader.h"
 #include "ground_item_service.h"
+#include "entity_radar_service.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "native_widgets.h"
@@ -50,6 +51,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::RadarService::Tick(context);
 	D2RAccess::FootstepService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
+	D2RAccess::EntityRadarService::Tick(context);
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -170,6 +172,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
 	D2RAccess::FootstepService::Register(context);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
+	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
@@ -190,6 +193,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
 	D2RAccess::SkillNavigation::Reset();
+	D2RAccess::EntityRadarService::Unregister();
 	D2RAccess::GroundItemService::Unregister();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::RadarService::Unregister();

@@ -4,6 +4,7 @@
 
 #include <xinput.h>
 
+#include <cstdlib>
 #include <limits>
 
 namespace D2RAccess::InputDirection {
@@ -43,6 +44,7 @@ struct PadEdgeState {
 	bool bHeld          = false;
 	bool xHeld          = false;
 	bool yHeld          = false;
+	bool rightStickHeld = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -58,6 +60,7 @@ ULONGLONG  g_lastHorizontalTickMs = 0;
 Vertical   g_lastVertical         = Vertical::None;
 ULONGLONG  g_lastVerticalTickMs   = 0;
 FaceButton g_lastFaceButton       = FaceButton::None;
+StickPush  g_rightStickPush       = StickPush::None;
 ULONGLONG  g_lastFaceButtonTickMs = 0;
 
 void RecordEdge(Horizontal direction) {
@@ -165,6 +168,14 @@ void Poll() {
 			if (UpdateEdge(edges.yHeld, (pad.wButtons & XINPUT_GAMEPAD_Y) != 0)) {
 				RecordEdge(FaceButton::Y);
 			}
+			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
+				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
+			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
+				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
+				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
+				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
+					: (pad.sThumbRX > 0 ? StickPush::Right : StickPush::Left);
+			}
 		}
 	}
 
@@ -190,6 +201,12 @@ void Poll() {
 	if (UpdateEdge(g_keyDownHeld, keyDown)) {
 		RecordEdge(Vertical::Down);
 	}
+}
+
+StickPush TakeRightStickPush() {
+	const StickPush push = g_rightStickPush;
+	g_rightStickPush    = StickPush::None;
+	return push;
 }
 
 // Direction currently held by any source (None when nothing is held): key

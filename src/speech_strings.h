@@ -70,6 +70,15 @@ struct Table {
 	const char* radarMotionUnknown;
 	const char* radarStraight;
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
+	const char* scanEnabled;
+	const char* scanDisabled;
+	const char* scanUnavailable;
+	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
+	const char* scanNothing; // %s = scan direction
+	const char* scanMeter; // exactly one metre
+	const char* scanMeters; // %d = whole metres
+	const char* scanAdjacent; // under one metre away
+	const char* scanIndexOfCount; // %d = index (1-based), %d = count
 };
 
 inline constexpr Table English {
@@ -132,6 +141,15 @@ inline constexpr Table English {
 	.radarMotionUnknown = "Movement not yet measured",
 	.radarStraight = "Straight-line passages",
 	.radarMovementDirections = {"up", "up and right", "right", "down and right", "down", "down and left", "left", "up and left"},
+	.scanEnabled = "Scan enabled",
+	.scanDisabled = "Scan disabled",
+	.scanUnavailable = "Scan unavailable",
+	.scanDirections = {"ahead", "to the left", "to the right", "behind"},
+	.scanNothing = "Nothing %s",
+	.scanMeter = "1 meter",
+	.scanMeters = "%d meters",
+	.scanAdjacent = "right here",
+	.scanIndexOfCount = "%d of %d",
 };
 
 inline constexpr Table Spanish {
@@ -194,6 +212,15 @@ inline constexpr Table Spanish {
 	.radarMotionUnknown = "Desplazamiento todavía sin medir",
 	.radarStraight = "Pasos en línea recta",
 	.radarMovementDirections = {"arriba", "arriba y derecha", "derecha", "abajo y derecha", "abajo", "abajo y izquierda", "izquierda", "arriba y izquierda"},
+	.scanEnabled = "Escáner activado",
+	.scanDisabled = "Escáner desactivado",
+	.scanUnavailable = "Escáner no disponible",
+	.scanDirections = {"adelante", "a la izquierda", "a la derecha", "atrás"},
+	.scanNothing = "Nada %s",
+	.scanMeter = "1 metro",
+	.scanMeters = "%d metros",
+	.scanAdjacent = "aquí mismo",
+	.scanIndexOfCount = "%d de %d",
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

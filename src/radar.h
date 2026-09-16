@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <deque>
+#include <numbers>
 #include <vector>
 
 namespace D2RAccess::Radar {
@@ -10,6 +11,11 @@ struct Position { double x = 0, y = 0; };
 enum class State { Unknown, Open, Blocked };
 enum class Direction { Up, Left, Right, Down }; // fixed screen / left-stick axes
 inline constexpr size_t DirectionCount = 4;
+// Native projection 0x334DB0: screen X = 80*(X-Y), screen Y = 40*(X+Y).
+// Stick up/left/right/down map to these fixed world diagonals.
+inline constexpr double Diagonal = std::numbers::sqrt2 / 2;
+inline constexpr std::array<Position, DirectionCount> Axes{{{-Diagonal, -Diagonal},
+	{-Diagonal, Diagonal}, {Diagonal, -Diagonal}, {Diagonal, Diagonal}}};
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
 // Shared audio timing. The guard allows one 20 Hz poll for scheduling/driver jitter.
 inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;

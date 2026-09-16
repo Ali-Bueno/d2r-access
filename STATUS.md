@@ -2,25 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 item volume and landing
+## Active build coordination - 2026-09-16 entity scan phase 2
 
-- **Active build owner: none.** Lower item volume and native OnGround-only cues
-  are built, installed and verified automatically. Completed radar memory work
-  remains included in this build.
-- Multiple announced approach regions survive newer openings and temporary
-  suspension within the same area. Current body clearance remains mandatory.
-  A proved clear connecting strip groups both edges of the same opening.
-- **5 affected suites / 341 checks pass** for item volume/landing; previous full
-  run: 36 suites / 2377 checks, including 261 revisit checks.
-- Installed/build SHA-256: `453416F61909684797FBD6BED53637D039CCA98237ADD8CBB758DCC7C72379A0`.
+- **Active build owner: none.** Right-stick entity scan reads monsters, NPCs
+  and world objects (`native_entities.cpp`, 11 fingerprints verified at load)
+  plus ground items. User confirmed live in the camp and Blood Moor (Kashya,
+  Warriv, Charsi, stash, enemies). Hidden "evil force" helpers now excluded by
+  the game's killable nameplate rule; that build is installed.
+- **38 suites / 2446 checks pass** (`entity-radar` 44, `native-entities` 22).
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
-- User confirms item loops are audible but too loud, and requests starting only
-  after landing. Both adjustments are installed; listening follow-up is pending.
 
 ---
 
-**Last updated:** 2026-09-16 (quieter item loops start after landing; 5 affected suites / 341 checks pass; radar opening memory remains installed). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (entity scan confirmed live; 38 suites / 2446 checks pass). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -56,6 +51,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
+| Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
 | Sonar radar | wip - area-scoped opening memory installed; listening pending | Multiple approach regions, clear-strip grouping and pause/gap retention; fresh physical validation on return. Native movement unchanged. `docs/radar-opening-memory.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph now feeds bounded directional passage queries; no backward first route or distant side detour counted as forward. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md`. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
@@ -186,6 +182,12 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
+Entity scan: confirm the hidden "una fuerza maligna" units no longer appear
+in the camp, then calibrate `metersPerSubtile` by walking to an NPC at a known
+spoken distance. Open RE items still unobserved live: cached unique/champion
+names, shrine names, opened-chest modes, minion flag
+(`docs/entity-units-re.md` "live check"). `docs/entity-scan.md`.
+
 Items: user-led listening check of the quieter loops and landing-only start.
 Approach gold, equipment, potion and scroll; check left/right, distance and lower
 pitch below the character. Compare `[item-audio] progress` with listening feedback.
@@ -200,6 +202,12 @@ Next radar step: user-led listening at two different openings in the same direct
 
 ## Known issues / open questions
 
+- **Entity scan:** distance factor (one subtile per metre) is provisional;
+  line of sight uses terrain walkability, so a see-through fence hides what is
+  behind it until the native BLOCK_LOS flag is verified. Monster/object
+  offsets are verified offline against the live image and CASC tables, not yet
+  in-game (`docs/entity-units-re.md`). The right stick showed no native
+  gameplay use in the first live test.
 - **Ground items:** audibility is confirmed. Quieter volume and landing-only start
   are installed and await listening feedback.
   Equipment speech gives base name and quality, not the complete generated name.

@@ -6,13 +6,6 @@
 #include <numbers>
 
 namespace D2RAccess::Radar {
-namespace {
-// Native projection 0x334DB0: screen X = 80*(X-Y), screen Y = 40*(X+Y).
-// Stick up/left/right/down map to these fixed world diagonals.
-constexpr double Diagonal = std::numbers::sqrt2 / 2;
-constexpr std::array<Position, DirectionCount> Axes{{{-Diagonal, -Diagonal},
-	{-Diagonal, Diagonal}, {Diagonal, -Diagonal}, {Diagonal, Diagonal}}};
-}
 void Engine::Reset() {
 	const uint64_t nextRevision = revision_ + 1;
 	*this = Engine(settings_);

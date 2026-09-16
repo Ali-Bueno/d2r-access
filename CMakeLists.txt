@@ -56,6 +56,9 @@ add_library(d2r-access SHARED
 	src/radar_service.cpp
 	src/radar_ui.cpp
 	src/radar_config.cpp
+	src/entity_radar.cpp
+	src/entity_radar_service.cpp
+	src/native_entities.cpp
 	src/native_ui.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
@@ -183,6 +186,16 @@ if(BUILD_TESTING)
 	target_include_directories(radar-guidance-tests PRIVATE src)
 	target_compile_features(radar-guidance-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-guidance COMMAND radar-guidance-tests)
+	add_executable(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(entity-radar-tests PRIVATE src)
+	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
+	add_test(NAME entity-radar COMMAND entity-radar-tests)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(native-entities-tests PRIVATE src)
+	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-entities-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-entities COMMAND native-entities-tests)
 	add_executable(radar-ui-tests tests/radar_ui_tests.cpp src/radar_ui.cpp src/panel_state.cpp)
 	target_link_libraries(radar-ui-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-ui-tests PRIVATE src)

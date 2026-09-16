@@ -4,6 +4,8 @@
 
 namespace D2RAccess::NativeGroundItems {
 bool Initialize(const D2RL::PluginContext* context);
+// Verified local player unit and its table bank; shared with NativeEntities.
+bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept;
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

@@ -30,7 +30,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 36 suites / 2377 checks, including UI navigation.
+  Latest shared-workspace run: 38 suites / 2446 checks, including UI navigation.
   Item volume/landing follow-up: 5 affected suites / 341 checks pass.
   Radar and footsteps account for 1662 checks, including 261 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
@@ -42,6 +42,11 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   falling. Installed: gain 0.4, pile cap 0.5 (about 3.5 dB lower), and native
   OnGround-only playback. Follow-up listening remains pending. Read
   `docs/ground-items.md`; `[item-audio] progress` records actual sample advancement.
+- Entity scan: right-stick push speaks the nearest visible entity in that screen
+  direction with its distance; repeat cycles. Ctrl+Numpad 8/4/6/2 and Ctrl+E;
+  `access-scan on|off|status|up|left|right|down|range <subtiles>`; log `[scan]`.
+  Sources: monsters/NPCs/objects (`native_entities.cpp`, `docs/entity-units-re.md`)
+  and ground items. `docs/entity-scan.md`.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.

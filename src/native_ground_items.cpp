@@ -17,6 +17,7 @@ using namespace GroundItemLayout;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
 struct Tables { uintptr_t items = 0, types = 0; uint64_t itemCount = 0, typeCount = 0; };
+}
 bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept {
 	__try {
 		const auto index = reinterpret_cast<uint32_t(*)()>(g_base + LocalIndex)();
@@ -28,6 +29,7 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept {
 		return tables != 0;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
+namespace {
 int GoldAmount(uintptr_t unit) noexcept {
 	if (!g_base) return 0;
 	__try { return reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GetStat)(unit, GoldStat, 0); }
