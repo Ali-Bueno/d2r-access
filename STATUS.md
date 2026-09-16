@@ -6,6 +6,10 @@
 
 ## Identity
 
+**UI update (2026-09-15):** attribute labels/values and skill-grid/branch speech
+implemented and installed. Fourteen isolated / sixteen integrated CTest suites
+pass; corrected controller readout awaits confirmation. `docs/progression.md`.
+
 - **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, v1.2.1-beta 2026-09-03, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, API v4).
 - **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
 - **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `prism.dll` into the game. PRISM v0.18.2 vendored in `third_party/prism/`.
@@ -39,6 +43,7 @@
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
+| Attribute allocation / skill-tree reading | wip — installed, automated checks pass | Attributes read their own name/value/points; value changes are incremental. Native D-pad cells and branch tabs read; skill tooltip lines reordered with name first. User navigation reproduced old failure and supplied live evidence; corrected speech awaits confirmation. `docs/progression.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -111,6 +116,13 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## References
 
+- **Progression widgets:** `CharacterStatLevelUpButtonWidget` companions
+  `<stat>Title` / `<stat>Stat`, `CombinedPointsInfo`; real skill buttons under
+  `SkillButtonContainer` inside `TabWidget`, named `SkillButton<tree> <x>,<y>`.
+  Live raw skill tooltips store reversed lines and U+E07E font-size commands;
+  the existing render hook supplies their text. Sources and validation:
+  `docs/progression.md` (22:27–22:34 controller navigation).
+
 - `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
 - User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
@@ -126,6 +138,10 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 - **Creature versus terrain:** `0x341D70` restores footprint `0x100`, `0x341600` changes a monster to corpse footprint `0x8000`; both now fingerprinted. Actor-filtered estimates suppress wall/exit chatter but original movement collision gates every opening. Ctrl+T adds obstruction flags, velocity, forecast and occupied cells. Original Kirandur `0x1403f5de0` compares world hit points; its two-frame counter is classification retention, not unconditional audio. Full evidence: `docs/kirandur-radar-comparison.md`.
 
 ## Next step
+
+UI: confirm the installed attribute labels/values and skill names, requirements,
+branch tabs and row/column while navigating with the controller. No point spending
+is needed for this check. Independent radar work continues below.
 
 Compare the 1.28-second continued-motion forecast with short side passages and turns, then validate controller feel. Fractional motion and displaced-stamp fixes are installed and verified (19 fingerprints, thirteen suites / 836 checks). Character left paused in camp at (4472,4622), 21:07:12; Ctrl+T resumes diagnostics after leaving pause. User authorized independent tests/restarts while away for dinner; exclude mixed-input 20:32–20:38 measurements because they confirmed playing then. Evidence and remaining limits: `docs/computer-use-radar-check.md`.
 

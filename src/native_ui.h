@@ -17,6 +17,7 @@ struct Type {
 // UI thread only. All object addresses are re-resolved every poll.
 Type Classify(uintptr_t widget);
 bool Visible(uintptr_t widget);
+uintptr_t Parent(uintptr_t widget);
 Focus CurrentFocus();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);

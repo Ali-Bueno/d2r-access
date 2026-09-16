@@ -2,6 +2,8 @@
 #include "interaction_reader.h"
 #include "localization.h"
 #include "native_tooltips.h"
+#include "native_progression.h"
+#include "progression_text.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -20,10 +22,12 @@ struct InventoryContext {
 	std::string name, title;
 };
 InventoryContext g_inventoryContext;
+struct StatValue { uintptr_t widget = 0; std::string value, points; };
+StatValue g_stat;
 
 void Append(std::string& text, const std::string& part) {
 	if (part.empty() || text == part) return;
-	if (!text.empty()) text += ". ";
+	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
 	text += part;
 }
 
@@ -65,7 +69,7 @@ UiText::Readout Inventory(NativeUi::Focus focus, const NativeUi::Type& type) {
 
 bool HandlesFocus(NativeUi::Focus focus) {
 	const auto kind = NativeUi::Classify(focus.widget).kind;
-	return IsInventory(kind) || kind == UiText::Kind::Button;
+	return IsInventory(kind) || kind == UiText::Kind::Button || kind == UiText::Kind::StatButton || kind == UiText::Kind::TabButton;
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
@@ -73,12 +77,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
-	const bool button = type.kind == UiText::Kind::Button;
+	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton;
+	const auto progression = button ? NativeProgression::Read(focus, type) : NativeProgression::Details{};
+	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(focus, type) : UiText::Readout{};
 	if (button) {
-		readout = UiText::Describe(NativeUi::Snapshot(focus.widget, focus.widget));
+		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
+		readout = UiText::Describe(snapshot);
 		readout.context = NativeWidgets::ReadName(focus.panel);
 		readout.focusKey = std::to_string(focus.widget);
+		if (!progression.readout.Empty() || progression.skill) {
+			readout = progression.readout;
+			if (!progression.skill && !snapshot.nodes.empty() && !snapshot.nodes.front().enabled)
+				Append(readout.option, Strings::Current().unavailable);
+		}
 	}
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
@@ -86,11 +98,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
 		&& (!inventory || tooltip.selection == NativeUi::FocusSelection(focus.widget))) {
-		std::string description = UiText::Clean(tooltip.body);
+		std::string description = progression.skill ? ProgressionText::SkillDescription(tooltip.body) : UiText::Clean(tooltip.body);
 		Append(description, UiText::Clean(tooltip.footer));
 		renderedDescription = !description.empty();
 		if (type.kind == UiText::Kind::InventoryGrid && renderedDescription) readout.option = description;
-		else if (inventory || button) Append(readout.option, description);
+		else if (progression.skill) {
+			// Identify the skill before its position and available points.
+			Append(description, readout.option);
+			Append(description, progression.points);
+			readout.option = std::move(description);
+		}
+		else if ((inventory || button) && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (!focus.panel && readout.Empty()) {
@@ -116,12 +134,22 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// keep their existing quick coordinate feedback.
 	if (type.kind == UiText::Kind::InventoryGrid && !renderedDescription
 		&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied) return true;
-	if (readout.Empty()) { g_reader.Reset(); return inventory; }
+	if (progression.skill && !renderedDescription) return true;
+	if (readout.Empty()) { g_reader.Reset(); return inventory || button; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
-	const auto announcement = button ? g_reader.Update(readout, now, 0)
+	auto announcement = button ? g_reader.Update(readout, now, 0)
 		: inventory ? g_reader.Update(readout, now, renderedDescription ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
+	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
+		std::string changed;
+		if (g_stat.widget == focus.widget) {
+			if (g_stat.value != progression.value) Append(changed, progression.value);
+			if (g_stat.points != progression.points) Append(changed, progression.points);
+		}
+		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
+		g_stat = {focus.widget, progression.value, progression.points};
+	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, true);
@@ -133,6 +161,7 @@ void Reset() {
 	g_reader.Reset();
 	g_inventory = false;
 	g_inventoryContext = {};
+	g_stat = {};
 	NativeTooltips::Reset();
 }
 

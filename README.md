@@ -52,6 +52,16 @@ loader forces a disk flush on every line. The user confirmed inventory responsiv
 after this change; tab announcements still await confirmation;
 see [latency and tab evidence](docs/navigation-latency.md).
 
+Character point-allocation buttons now announce **Strength, Dexterity, Vitality
+or Energy**, their current value, remaining points and help in the game's language.
+Allocating a point reads the changed value and remaining count. Skill trees follow
+the game's **D-pad grid navigation**: branch tabs are named, and each highlighted
+skill reads its name first, followed by its displayed description, requirements,
+level, row/column and remaining points. General/item-granted skills use the same
+description reader. No points are spent by the mod. These additions passed
+automated checks; corrected controller speech awaits live confirmation.
+See [progression evidence](docs/progression.md).
+
 Inventory icon buttons now use their native label/help or controller legend,
 including **Soltar oro**, and equipment slots announce their body location
 (head, neck, weapon, ring, belt, and so on), followed by any rendered item description.

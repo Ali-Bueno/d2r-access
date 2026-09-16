@@ -12,7 +12,8 @@ void Append(std::string& result, std::string_view part) {
 }
 
 bool Interactive(Kind kind) {
-	return kind == Kind::Button || kind == Kind::ListItem || kind == Kind::List || kind == Kind::Focusable;
+	return kind == Kind::Button || kind == Kind::StatButton || kind == Kind::TabButton
+		|| kind == Kind::ListItem || kind == Kind::List || kind == Kind::Focusable;
 }
 
 bool Under(const Snapshot& snapshot, size_t index, int ancestor) {

@@ -49,6 +49,8 @@ add_library(d2r-access SHARED
 	src/radar_ui.cpp
 	src/radar_config.cpp
 	src/native_ui.cpp
+	src/native_progression.cpp
+	src/progression_text.cpp
 	src/native_tooltips.cpp
 	src/panel_state.cpp
 	src/screen_reader.cpp
@@ -77,6 +79,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(progression-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(progression-tests PRIVATE src)
+	target_compile_features(progression-tests PRIVATE cxx_std_20)
+	add_test(NAME progression COMMAND progression-tests)
 	add_executable(radar-guidance-tests tests/radar_guidance_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-guidance-tests PRIVATE src)
 	target_compile_features(radar-guidance-tests PRIVATE cxx_std_20)
@@ -128,7 +135,7 @@ if(BUILD_TESTING)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -143,6 +150,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(progression-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-guidance-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

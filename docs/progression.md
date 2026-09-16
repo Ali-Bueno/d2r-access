@@ -1,0 +1,80 @@
+# Character attributes and controller skill trees
+
+Evidence: D2R 3.3.93787, Spanish, live controller navigation on 2026-09-15
+at 22:27–22:34. This reader extends the existing native action pipeline and
+PRISM sink. It does not change controller navigation or allocate any points.
+
+## Attribute actions
+
+The reported failure is reproduced in the log: every selected attribute
+announced only `Gastar punto de estadística`. The actual type is
+`CharacterStatLevelUpButtonWidget`, derived from `ButtonWidget`.
+
+`CharacterStatsPanelHD.json` and its controller override define the companion
+names below. Native reads confirmed the labels and values in the current game:
+
+| Button | Label | Value widget | Observed value |
+|---|---|---|---|
+| StrengthPointButton | StrengthTitle: Fuerza | StrengthStat | 30 |
+| DexPointButton | DexTitle: Destreza | DexStat | 20 |
+| VitalityPointButton | VitalityTitle: Vitalidad | VitalityStat | 25 |
+| EnergyPointButton | EnergyTitle: Energía | EnergyStat | 10 |
+
+The reader resolves these live companion widgets by their shared naming
+convention. It also reads the title's `Tooltip` child and `CombinedPointsInfo`
+(observed: five points remaining). Values are never hardcoded. Stat actions
+have a distinct archetype, including inherited subclasses. Missing companions
+fall through to the existing native action reader; unavailable state is retained.
+After allocating a point, only the changed value and remaining-point count read.
+
+## Skills and tabs
+
+Controller `TabWidget` objects inherit `FocusableWidget`, not `TabBarWidget`.
+Their localized native help string contains the branch name. The previous
+reader handled tab bars but omitted these individual tabs. They now use the
+same native focus/action pipeline.
+
+Class skills are plain `ButtonWidget` objects beneath `SkillButtonContainer`
+inside a `TabWidget`. Their live names encode the game's selected cell:
+`SkillButton<tree> <column>,<row>`, with zero-based coordinates. Examples observed
+include `SkillButton3 0,0`, `SkillButton3 2,4`, and `SkillButton1 1,2`.
+The controller layout declares six `skillRow` positions and three `skillColumn`
+positions. The reader announces the actual cell with one-based row/column;
+the game's existing D-pad traversal and gaps remain intact.
+
+`CommonSkillsContainer` and `ItemSkillsContainer` contain granted/general skills
+(`SkillSelectButtonWidget`, also derived from `ButtonWidget`). These use the
+same description reader. Their names lack coordinates, so none are invented.
+The owning tab supplies branch context; `SkillCounter` supplies remaining points.
+
+## Description order
+
+Despite its name, the visible `TooltipTextBox` widget remained empty during
+navigation. Skill descriptions reach the existing primary tooltip renderer
+instead: [native tooltip hook](native-tooltips.md). The old speech trace already
+contained Aullido, Buscar poción, Aturdir and others, but in bottom-to-top order.
+
+A read-only sample of the transient record confirmed reversed newline order and
+the native `U+E07E` font-size commands followed by `1` or `2`. For example, the
+stored Aturdir text ends with its wrapped description, `U+E07E2Aturdir`, then
+`Todavía no has aprendido esta habilidad`. The old generic glyph cleaner removed
+the marker but left the size digit attached to the name.
+
+Only skill descriptions are reordered. The skill name leads, then learned state,
+description, requirements, levels and bonuses in displayed order. Font-size digits
+are removed without deleting actual levels or numbers. Row/column and remaining
+points follow. Focus identity must match the render capture; pending skills wait
+without reading a prior skill or prematurely speaking just coordinates.
+
+## Validation
+
+- `progression-tests`: 27 checks for all four attributes, live value changes,
+  hidden/missing companions, skill container roles, malformed cell names,
+  actual captured text ordering, formatting commands and learned/general skills.
+- Native UI and interaction suites cover classification, tab labels, stat
+  value-only updates, disabled state, grid speech, stale descriptions and repeats.
+- Isolated patch build: fourteen CTest suites pass. Integrated build, including
+  concurrent radar work: sixteen suites pass. Normal `build.ps1` deployed the DLL;
+  its SHA-256 matched the installed artifact.
+- User navigation established the original failure and data sources. A live
+  controller/screen-reader confirmation of the corrected build is still pending.

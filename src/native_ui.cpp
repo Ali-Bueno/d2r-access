@@ -73,6 +73,8 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
 	else if (name == "ChatListWidget") result.kind = Kind::NotificationList;
 	else if (name == "ToggleButtonWidget") result.kind = Kind::Toggle; // existing value reader retains toggles
+	else if (name == "CharacterStatLevelUpButtonWidget") result.kind = Kind::StatButton;
+	else if (name == "TabWidget") result.kind = Kind::TabButton;
 	else if (name == "ButtonWidget") result.kind = Kind::Button;
 	else if (name == "ListItemWidget" || name == "HoverListItemWidget") result.kind = Kind::ListItem;
 	else if (name == "ListWidget") result.kind = Kind::List;
@@ -101,7 +103,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	node.kind = type.kind;
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
 	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
-	else if (type.kind == Kind::Button || type.kind == Kind::Toggle) {
+	else if (type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::StatButton) {
 		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
 		// A button's +0x88 string is FocusableWidget::tooltipString, not its
 		// embedded caption. Icon buttons such as gold_button have only this text.
@@ -111,6 +113,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 		if (node.text.empty()) (void)NativeMemory::ReadEngineString(widget + ButtonLegendOffset, node.text);
 	}
 	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
+	else if (type.kind == Kind::TabButton) node.text = NativeWidgets::ReadText(widget);
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
@@ -159,6 +162,12 @@ bool Visible(uintptr_t widget) {
 		if (!widget) return true;
 	}
 	return false;
+}
+
+uintptr_t Parent(uintptr_t widget) {
+	uintptr_t parent = 0;
+	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + ParentOffset, parent) || parent == widget) return 0;
+	return parent;
 }
 
 Focus CurrentFocus() {

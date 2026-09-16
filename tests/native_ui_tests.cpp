@@ -211,6 +211,15 @@ int main() {
 	Check(UiText::Describe(NativeUi::Snapshot(actionButton.Address(), actionButton.Address())).option == caption + ". no disponible", "native action help retains unavailable state");
 	Widget toggle("ToggleButtonWidget", "AnyToggle"); Metadata buttonBase{0, "ButtonWidget", &focusBase}; toggle.metadata.base = &buttonBase;
 	Check(NativeUi::Classify(toggle.Address()).kind == UiText::Kind::Toggle, "toggle archetype is preserved before walking its ButtonWidget base");
+	Widget statButton("CharacterStatLevelUpButtonWidget", "StrengthPointButton", "Gastar punto"); statButton.metadata.base = &buttonBase;
+	Check(NativeUi::Classify(statButton.Address()).kind == UiText::Kind::StatButton, "stat action keeps its role ahead of the button base");
+	Widget skillTab("TabWidget", "Tab0", "Gritos de guerra"); skillTab.metadata.base = &focusBase;
+	Check(NativeUi::Classify(skillTab.Address()).kind == UiText::Kind::TabButton, "individual tab retains its role ahead of the focusable base");
+	Check(UiText::Describe(NativeUi::Snapshot(skillTab.Address(), skillTab.Address())).option == "Gritos de guerra", "individual focused tabs speak native labels");
+	skillTab.Add(statButton);
+	Check(NativeUi::Parent(statButton.Address()) == skillTab.Address(), "companion reader can resolve the actual parent");
+	statButton.Put(0x30, statButton.Address());
+	Check(NativeUi::Parent(statButton.Address()) == 0, "self-parent pointers fail closed");
 	slot.Put<int32_t>(0x5D8, 4);
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 4, "equipment slot location uses the reflected body location member");
 	Check(NativeUi::EquipmentLocation(goldButton.Address()) == 0, "button memory is never interpreted as an equipment location");

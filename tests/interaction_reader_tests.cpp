@@ -1,5 +1,6 @@
 #include "interaction_reader.h"
 #include "native_tooltips.h"
+#include "native_progression.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -16,6 +17,7 @@ NativeUi::Cell cell;
 UiText::Snapshot inventory, target;
 UiText::Snapshot buttonSnapshot;
 NativeTooltips::Snapshot tooltip;
+NativeProgression::Details progression;
 std::vector<std::string> speech;
 bool conversation = false;
 uintptr_t tracked = 0;
@@ -46,7 +48,7 @@ int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
-	if (panel == focus.widget && widgetType.kind == UiText::Kind::Button) return buttonSnapshot;
+	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
 	++inventoryWalks;
 	return inventory;
 }
@@ -63,6 +65,9 @@ namespace D2RAccess::NativeTooltips {
 void Track(uintptr_t panel) { tracked = panel; }
 void Reset() { tracked = 0; tooltip = {}; }
 Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
+}
+namespace D2RAccess::NativeProgression {
+Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::TabReader {
 std::string Selected(uintptr_t) {
@@ -196,5 +201,33 @@ int main() {
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "confirmed empty cell retains quick coordinate feedback after an occupied cell");
 	ClearSpeech(); itemPresence = NativeUi::ItemPresence::Occupied; Tooltip("Poción"); Tick();
 	Check(speech == std::vector<std::string>{"Poción"}, "an item appearing in the same cell replaces its coordinate readout");
+	conversation = false; InteractionReader::Reset(); ClearSpeech();
+	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
+	buttonSnapshot = {61, 61, "StrengthPointButton", UiText::Surface::Other, {{61, -1, UiText::Kind::StatButton, "StrengthPointButton", "", "Gastar punto"}}};
+	progression.readout = {"Stats", "Personaje", "Fuerza. 30. Gastar punto", "61"};
+	progression.value = "30"; progression.points = "5 puntos";
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Personaje. Fuerza. 30. Gastar punto"}, "stat selection reads its own label and value immediately");
+	ClearSpeech(); Tooltip("Gastar punto"); Settle();
+	Check(speech.empty(), "rendered stat action does not repeat generic spend instruction");
+	buttonSnapshot.nodes[0].enabled = false; Tick();
+	Check(speech.size() == 1 && speech[0].ends_with("no disponible"), "enriched stat readout preserves disabled state");
+	ClearSpeech(); progression.value = "31"; progression.points = "4 puntos";
+	progression.readout.option = "Fuerza. 31. 4 puntos. Gastar punto"; Tick();
+	Check(speech == std::vector<std::string>{"31. 4 puntos"}, "spending a stat point reads only the changed value and remaining points");
+	InteractionReader::Reset(); ClearSpeech(); progression = {}; tooltip = {};
+	focus = {70, 71}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
+	progression.skill = true; progression.points = "1 punto";
+	progression.readout = {"Skills", "Gritos de guerra", "Fila 1, columna 1", "71"};
+	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
+	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. Sin aprender Huyen aterrorizados. Fila 1, columna 1. 1 punto"}, "skill description is reordered and includes the actual grid cell");
+	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
+	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.option = "Fila 2, columna 1";
+	Check(Tick() && speech.empty(), "moving to another skill rejects the previous tooltip");
+	Tooltip("Registra un cadáver.\nBuscar poción"); Tick();
+	Check(speech.size() == 1 && speech[0].starts_with("Buscar poción."), "next native D-pad selection reads its skill without repeating the branch");
+	ClearSpeech(); progression = {}; widgetType = {"TabWidget", UiText::Kind::TabButton}; focus.widget = 73;
+	buttonSnapshot = {73, 73, "Tab1", UiText::Surface::Other, {{73, -1, UiText::Kind::TabButton, "Tab1", "", "Dominio del combate"}}};
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Dominio del combate"}, "focused branch tabs are readable through the shared interaction pipeline");
 	Passed();
 }
