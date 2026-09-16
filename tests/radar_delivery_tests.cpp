@@ -90,11 +90,11 @@ void RunningPair(bool vertical, bool finite = false) {
 	auto world = Crossing(vertical); Engine engine;
 	if (finite) {
 		world.player = {110, 100};
-		// Two finite side walls recede and return while both old and new
-		// distances still exceed the eight-subtile passability threshold.
+		// Two finite side walls prevent useful travel; their removal exposes
+		// real passages with farther walls, in both screen orientations.
 		for (int y=0; y<240; ++y) for (int x=0; x<240; ++x) {
 			const int axis = vertical ? x-y-10 : x+y-210;
-			Put(world, x, y, std::abs(axis) == 26 || std::abs(axis) == 16 ? 1 : 0);
+			Put(world, x, y, std::abs(axis) == 26 || std::abs(axis) == 6 ? 1 : 0);
 		}
 	}
 	RadarAudio::CueQueue queue;
@@ -120,7 +120,7 @@ void RunningPair(bool vertical, bool finite = false) {
 				const bool recessed = (elapsed >= 500 && elapsed < 1500) || (elapsed >= 2500 && elapsed < 3500);
 				for (int y=0; y<240; ++y) for (int x=0; x<240; ++x) {
 					const int axis = vertical ? x-y-10 : x+y-210;
-					if (std::abs(axis) == 16) Put(world, x, y, recessed ? 0 : 1);
+					if (std::abs(axis) == 6) Put(world, x, y, recessed ? 0 : 1);
 				}
 			} else {
 				const double advance = 12.0 * (elapsed <= 3000 ? elapsed : elapsed < 6000 ? 6000-elapsed : 0) / 1000;
@@ -136,7 +136,7 @@ void RunningPair(bool vertical, bool finite = false) {
 				if (queue.Pending()[i] != State::Unknown && queue.Pending()[i] != valid[i]) {
 					failed[i] = {queue.Pending()[i], queue.Source(i).eventMs}; ++discarded;
 				}
-				const auto audible = sensor.cueState == State::Blocked ? State::Blocked : sensor.probe.observed;
+				const auto audible = sensor.AudibleState();
 				if (playing[i] != State::Unknown && playing[i] != audible) {
 					failed[i] = {playing[i], source.eventMs}; playing = {}; nextCue = now + Radar::CueGapMs; ++discarded;
 				}

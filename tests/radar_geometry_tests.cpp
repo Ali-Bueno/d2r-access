@@ -22,12 +22,12 @@ void FiniteOpening() {
 	Engine engine; (void)engine.Tick(world, 1000);
 	Check(engine.Sensors()[3].probe.observed == State::Open, "the near wall leaves usable space before the junction");
 	Wall(world, 216, 0);
-	Check(Silent(engine.Tick(world, 1050)), "a recessed boundary needs a second observation");
-	Check(engine.Tick(world, 1100)[3] == State::Open, "receding to a farther wall announces an opening even when both distances are open");
+	Check(Silent(engine.Tick(world, 1050)), "a far recessed boundary leaves usable travel unchanged");
+	Check(engine.Tick(world, 1100)[3] == State::Unknown, "a farther wall does not reopen an already usable passage");
 	Check(Silent(engine.Tick(world, 1150)), "the farther wall is not repeated while standing still");
 	Wall(world, 216, 1); (void)engine.Tick(world, 1200);
-	Check(engine.Tick(world, 1250)[3] == State::Blocked, "returning to the near wall announces closing even while it remains farther than the blocked threshold");
-	Check(Silent(engine.Tick(world, 1300)), "the returned boundary is announced only once");
+	Check(engine.Tick(world, 1250)[3] == State::Unknown, "a returning wall beyond useful travel does not announce a false closure");
+	Check(Silent(engine.Tick(world, 1300)), "the returned far boundary remains silent");
 }
 void TurnBeforeWall() {
 	auto world = Field(); Wall(world, 206, 1);
@@ -66,9 +66,9 @@ void BoundaryRules() {
 	Check(tick(1600) == State::Blocked, "a wall returning inside the scanned range announces its arrival");
 }
 void OccupiedRecess() {
-	auto world = Field(); Wall(world, 216, 1); Wall(world, 226, 1);
+	auto world = Field(); Wall(world, 206, 1); Wall(world, 226, 1);
 	Engine engine; (void)engine.Tick(world, 1000);
-	Wall(world, 216, 0);
+	Wall(world, 206, 0);
 	world.rooms[0].cells[101*240+101] = 0x1100;
 	(void)engine.Tick(world, 1050);
 	Check(engine.Tick(world, 1100)[3] == State::Unknown, "a new recessed wall cannot announce a passage occupied by a creature");
@@ -78,7 +78,7 @@ void OccupiedRecess() {
 	Check(engine.Tick(world, 1200, failure)[3] == State::Unknown, "failed geometry cues respect the same retry spacing");
 	(void)engine.Tick(world, 1300);
 	Check(engine.Tick(world, 1400)[3] == State::Open, "a still-valid recessed-wall cue recovers from failed playback");
-	Wall(world, 216, 1); (void)engine.Tick(world, 1450);
+	Wall(world, 206, 1); (void)engine.Tick(world, 1450);
 	Check(engine.Tick(world, 1500)[3] == State::Blocked, "a returned finite boundary closes the previous recess");
 	for (uint64_t now = 1550; now <= 1800; now += 50) {
 		Check(engine.Tick(world, now)[3] == State::Unknown && engine.Sensors()[3].cueState == State::Blocked,

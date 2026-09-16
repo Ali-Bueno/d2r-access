@@ -1,5 +1,9 @@
 # D2R navigation research and proposed experiment
 
+> Follow-up: the local graph now drives the installed passage radar. See
+> [connected passage implementation](radar-connected-passages.md). The audit
+> and isolated PoC results below describe the earlier research stage.
+
 Investigated 2026-09-16 against the supplied
 `../D2R_Navigation_Radar_Research.md`. Read together with
 [CurrentRadarAnalysis](CurrentRadarAnalysis.md). Sources were inspected as source

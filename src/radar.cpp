@@ -1,4 +1,5 @@
 #include "radar.h"
+#include "radar_passage.h"
 
 #include <algorithm>
 #include <cmath>
@@ -56,70 +57,57 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	lastTick_ = now;
 	UpdateMotion(motion, now);
 	if (rebase) audio = {}; // the service cancels old-world audio after this tick
-	Events candidates{};
 	const auto structure = StructuralWorld(world, settings_);
+	const int radius = PassageRadius(settings_, world.bodyPattern);
+	const auto structuralGrid = Navigation::Build(structure, radius);
+	const auto movementGrid = Navigation::Build(world, radius);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);
 		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
 		sensor.structure = Scan(structure, Axes[i], settings_, Layer::Terrain);
-		// Only real player observations advance confirmation. Collision
-		// sliding makes an interpolated path between polls unknowable.
-		const auto change = sensor.boundary.Observe(sensor.structure, Axes[i], now, settings_.stableMs, settings_.boundaryRange);
-		if (change != State::Unknown) {
-			// A niche/occupied recess that never qualified as an opening must
-			// not announce an orphan closing when its original wall returns.
-			if (sensor.boundaryPending == State::Open && change == State::Blocked
-				&& sensor.boundary.Accepts(sensor.pendingOrigin, State::Unknown)) sensor.boundaryPending = State::Unknown;
-			else {
-				sensor.boundaryPending = change;
-				sensor.pendingBoundary = sensor.boundary.Current();
-				sensor.pendingOrigin = sensor.boundary.ChangeOrigin();
-			}
-		}
-		candidates[i] = sensor.boundaryPending;
-	}
-	for (size_t i = 0; i < sensors_.size(); ++i) {
-		auto& sensor = sensors_[i];
-		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_, PlaybackBudget(audio, candidates, i));
-		if (!sensor.structure.available || sensor.boundary.Current().end == State::Unknown) {
-			sensor = Sensor{.probe = sensor.probe, .terrain = sensor.terrain, .structure = sensor.structure, .guidance = sensor.guidance};
-			continue;
-		}
+		sensor.passage = ScanPassage(structuralGrid, Axes[i], settings_);
+		sensor.movementPassage = ScanPassage(movementGrid, Axes[i], settings_);
+		// Sideways steps along an angled wall add route length without
+		// extending the useful turn. Keep the direct near-wall warning when
+		// no connected route reaches the opening depth.
+		if (sensor.passage.available && sensor.passage.depth < settings_.openDepth
+			&& sensor.structure.end == State::Blocked && sensor.structure.clearDepth <= sensor.passage.closeDepth)
+			sensor.passage.observed = State::Blocked;
+		// Connected but offset travel can retain an existing opening. A new
+		// opening requires alignment with the direct structural passage.
+		if (sensor.passage.observed == State::Open && sensor.structure.observed != State::Open)
+			sensor.passage.observed = State::Unknown;
+		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_);
+		// A nearby offset route retains the passage state, but the opening
+		// cue waits until the actual named direction is clear for the body.
+		sensor.guidance.openingSafe &= sensor.movementPassage.observed == State::Open;
+		sensor.guidance.warningDepth = sensor.passage.closeDepth;
 		if (sensor.guidance.observed != State::Unknown) sensor.stable = sensor.guidance.observed;
-		if (rebase) continue;
+		else if (!sensor.probe.available) sensor.stable = State::Unknown;
+		events[i] = sensor.passageState.Observe(sensor.passage, sensor.guidance.openingSafe, now, settings_.stableMs);
+		if (!sensor.passage.available) {
+			sensor.lastCue = State::Unknown;
+			sensor.retry = false;
+		}
 		sensor.retrying = false;
 		const auto failure = audio.failed[i];
 		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = !failure.submitted;
-		if (sensor.boundaryPending != State::Unknown
-			&& sensor.boundary.Accepts(sensor.pendingBoundary, sensor.boundaryPending)
-			&& (sensor.boundaryPending == State::Blocked || sensor.guidance.openingSafe)) {
-			events[i] = sensor.boundaryPending;
-			// Consume adjacent changes describing the same opening/corner, as
-			// AHC consumes its line after firing. D2's body spans three cells
-			// (one for pattern 0); tiny facets within that span are one encounter.
-			const double bodySpan = world.bodyPattern == 0 ? 1 : 3;
-			if (events[i] == sensor.lastCue
-				&& std::max(std::abs(world.player.x-sensor.emittedPosition.x), std::abs(world.player.y-sensor.emittedPosition.y)) < bodySpan
-				&& sensor.boundary.Accepts(sensor.emittedBoundary, sensor.lastCue)) events[i] = State::Unknown;
-			sensor.emittedBoundary = sensor.pendingBoundary;
-			sensor.boundaryPending = State::Unknown;
-		}
 		const State lastCue = events[i] != State::Unknown ? events[i] : sensor.lastCue;
-		sensor.cueState = sensor.boundary.Accepts(sensor.emittedBoundary, lastCue)
-			&& (lastCue == State::Blocked || sensor.guidance.openingSafe) ? lastCue : State::Unknown;
-		if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue
+		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, sensor.guidance.openingSafe) ? lastCue : State::Unknown;
+		if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue && lastCue != State::Unknown
 			&& now - sensor.lastEmit >= settings_.retryMs) {
 			events[i] = lastCue;
 			sensor.retrying = true;
 		}
 		if (events[i] != State::Unknown) {
 			sensor.lastEmit = now;
-			sensor.emittedPosition = world.player;
 			sensor.lastCue = events[i];
 			sensor.retry = false;
 		}
 	}
+	for (size_t i = 0; i < sensors_.size(); ++i)
+		sensors_[i].guidance.playbackMs = PlaybackBudget(audio, events, i);
 	return events;
 }
 }

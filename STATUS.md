@@ -2,19 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 navigation research
+## Active build coordination - 2026-09-16 connected passages
 
-- **No active build owner.** Research PoC compiled and checked in isolation;
-  the plugin's installed object-filtering radar is unchanged.
-- User confirms improvement from object filtering, but still finds it cluttered.
-- **26 suites / 1284 checks pass**, including 36 new navigation-grid checks.
-- Installed/build SHA-256: `DF188862EEAC1511A7D4FBA563A27ED682D8D61725DDD0C8E5F634EC69C18C2C`.
+- **No active build owner.** Codex /root completed radar implementation, build,
+  deployment and validation. The installed DLL matches the build exactly.
+- **27 suites / 1358 checks pass**, including 74 new passage checks.
+- Installed/build SHA-256: `4B6CEADFF64F89567A3A00AED642C53C703F160571974E5598472201ECC7E6A4`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (user confirms partial radar improvement; navigation research and isolated graph PoC complete; 26 suites / 1284 checks pass; installed audio unchanged). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (connected passage radar compiled and installed; 27 suites / 1358 checks pass; user controller/listening validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -50,12 +49,12 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip - user confirms improvement, still cluttered | Object filtering remains installed. Latest 08:47 session: 120 events, no retries; no full snapshots. Ray-hit changes lack persistent passage identity. `docs/CurrentRadarAnalysis.md`. |
-| Connected navigation research | wip - isolated PoC validated | Direct native collision already provides the source. Full-resolution body graph, reachability, route first steps and clearance pass 36 checks. Historical camp: 380 reachable centres, post retained. No runtime/audio integration. `docs/D2RNavigationResearch.md`. |
+| Sonar radar | wip - connected passages installed; live validation pending | Useful local passage states replace far ray-hit changes. Direct full-body opening guards, fixed/rear axes and 120/50 ms audio retained. Twenty sustained far-wall changes stay silent in tests. `docs/radar-connected-passages.md`. |
+| Connected navigation research | done locally - runtime integration built | Native body graph now feeds bounded directional passage queries; no backward first route or distant side detour counted as forward. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md`. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 849 checks including 36 isolated navigation checks; shared build: 26 suites / 1284 checks. Offset doors, disconnected regions, native footprints, origin overlap, room seams and captured camp covered. |
+| Radar / footstep automated tests | done (local) | 923 checks; shared build: 27 suites / 1358 checks. New passage suite: 74 checks for native bodies, offset doors, remote detours, room seams/unknown coverage, far-recess silence and running real openings. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -177,11 +176,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Next radar step: evaluate stable passage/entrance grouping and compare with straight physical clearance. The graph PoC alone is not an antispam sound design. Before audio integration, validate fresh native snapshots in camp, Blood Moor, Den of Evil and room/level transitions. User leads live controller tests; do not mix desktop input. Read both navigation research documents first.
+Next radar step: user-led controller/audio comparison of installed connected passage radar in camp, Blood Moor, Den of Evil and room/level transitions. Check useful openings and local warning timing while running. Ctrl+T captures physical clearance, passage state and local grid at a problem spot. Do not mix desktop input with the user. Read `docs/radar-connected-passages.md` first.
 
 ## Known issues / open questions
 
-- **Radar prototype:** user confirms structural object filtering helps but remains cluttered. The navigation-grid PoC is test-only and does not generate audio. Connected/oversized clutter and unknown detours are retained conservatively; semantic object identities are unavailable. Loaded-room coverage and actor-over-terrain bit ownership remain limitations. Full-body opening checks, fixed directions, surface tracking and original audio timing remain. `docs/radar-object-filtering.md`.
+- **Radar prototype:** connected passage state is installed but live precision is not yet confirmed. No global doorway IDs, full-level map or destination guidance. Very brief openings can fall between polls; local closures cannot guarantee reaction time at every speed/audio load. Conservative clutter retention and native room/flag ambiguity remain. Full-body direct opening checks and fixed/rear axes are preserved. `docs/radar-connected-passages.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

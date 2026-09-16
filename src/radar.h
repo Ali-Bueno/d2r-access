@@ -29,9 +29,9 @@ enum class Layer { Movement, Terrain };
 // Tuning defaults from D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md, not game offsets.
 struct Settings {
 	double farRange = 150; // 30 map tiles; D2 collision has five subtiles per tile.
-	double boundaryRange = 20; // Kirandur scanner +0x24 default, mapped to D2 collision subtiles
+	double boundaryRange = 20; // structural neighborhood; original Kirandur +0x24 range in D2 subtiles
 	double nearRange = 2; // subtile body sweep; avoid rejecting a narrow side doorway.
-	double openDepth = 8;
+	double openDepth = 8; // useful local travel policy, not the length of a D2 room
 	double blockedDepth = 3;
 	double laneSpacing = 1;
 	double teleportDistance = 20; // discontinuity between 50 ms observations
@@ -75,6 +75,8 @@ struct Boundary {
 	double along = 0; // world projection with smooth wall drift removed
 	double depth = 0; // current body clearance, for confirming a finite recess/return
 };
+// Historical ray-boundary model, retained for comparison tests. The runtime
+// engine uses PassageTracker below instead of projected hit changes.
 class BoundaryTracker {
 public:
 	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range);
@@ -96,6 +98,23 @@ struct Guidance {
 	double openDepth = 0, warningDepth = 0;
 	uint64_t playbackMs = 0;
 };
+struct Passage {
+	double depth = 0, closeDepth = 0; // proved forward reach, capped at the first useful-depth destination
+	State observed = State::Unknown;
+	bool available = false; // false means coverage is insufficient, not a dead end
+};
+class PassageTracker {
+public:
+	State Observe(const Passage& passage, bool openingSafe, uint64_t now, uint64_t confirmationMs);
+	bool Accepts(State cue, const Passage& passage, bool openingSafe) const;
+	State Current() const { return state_; }
+	State Candidate() const { return candidate_; }
+	uint64_t CandidateSince() const { return since_; }
+	State Pending() const { return state_ == reported_ ? State::Unknown : state_; }
+private:
+	State state_ = State::Unknown, reported_ = State::Unknown, candidate_ = State::Unknown;
+	uint64_t since_ = 0;
+};
 struct Sensor {
 	State stable = State::Unknown;
 	uint64_t lastEmit = 0;
@@ -105,10 +124,12 @@ struct Sensor {
 	Guidance guidance;
 	State cueState = State::Unknown; // currently valid sound, separate from manual physical clearance
 	bool retry = false, retrying = false;
-	BoundaryTracker boundary;
-	Boundary pendingBoundary, pendingOrigin, emittedBoundary;
-	Position emittedPosition;
-	State boundaryPending = State::Unknown, lastCue = State::Unknown;
+	Passage passage, movementPassage;
+	PassageTracker passageState;
+	State lastCue = State::Unknown;
+	State AudibleState() const {
+		return cueState == State::Blocked ? State::Blocked : guidance.openingSafe ? State::Open : State::Unknown;
+	}
 };
 
 class Engine {

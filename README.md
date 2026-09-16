@@ -85,8 +85,8 @@ The user confirmed these additions. The specific
 scroll-related control reported by the user has not yet been identified live.
 
 An experimental **navigation radar** now reads the collision grids of loaded
-game rooms. It synthesizes directional `tin` (opening/widening) / `tock`
-(space narrowing or an approaching structural barrier) cues,
+game rooms. It synthesizes directional `tin` (a usable passage opens) / `tock`
+(a nearby structural barrier closes that passage) cues,
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using
@@ -99,16 +99,14 @@ are excluded from automatic space changes when a full-body check proves a route
 around them. Walls, doors, enclosed spaces and objects cutting off a corridor
 remain structural barriers. Uncertain cases retain their collision.
 
-The radar follows changes in the
-world hit position: a side wall receding or returning can sound even when both
-old and new clearances count as open. It describes a currently usable opening
-without requiring the player to continue straight past it first. Speed and sound
-queue length no longer create extra wall/open transitions. Supporting wall lines,
-adapted from A Hero's Call to D2's body collision, distinguish travelling along
-a wall from crossing an edge. Only real player observations advance confirmation;
-adjacent facets within the body's span produce one cue. Two consecutive scans
-confirm changes. Cues last 120 ms with 50 ms silent gaps; a cancelled cue can retry
-only if it never started, avoiding repeated partially played chirps.
+The radar now follows **usable connected passages**. Changes in a distant wall
+remain silent while the same useful space stays open. Local routes use the
+native body footprint and cannot count a distant detour as a forward opening.
+An offset doorway waits until the actual turn has enough straight physical
+clearance before sounding. Each direction retains its state through small edge
+changes; a real closure rearms the next opening. Speed and audio queue length do
+not create extra transitions. Two consecutive scans confirm changes. Cues last
+120 ms with 50 ms silent gaps; a cancelled cue can retry only if it never started.
 
 **Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
 (including diagonals), then the four straight-line clearances, and saves a local
@@ -118,11 +116,11 @@ recognizable actor obstruction is an occupied passage. It starts enabled,
 baselines silently and pauses during dialogue/offline pause. Existing settings
 are preserved; no external map or sound installation is required.
 
-Live map reads work in the camp and Blood Moor. The object filter still needs
-controller/listening validation after the user rejected the previous running
-behavior. See [object filtering](docs/radar-object-filtering.md) for the captured
-camp obstruction, classification limits and controlled before/after regression;
-[surface tracking](docs/radar-surface-tracking.md) records the A Hero's Call study.
+Live map reads work in the camp and Blood Moor. The user confirmed that object
+filtering helped; the new connected passage behavior is built and installed,
+with controller/listening validation still pending. See
+[connected passages and tests](docs/radar-connected-passages.md) and
+[object filtering](docs/radar-object-filtering.md) for behavior and limits.
 [Sonar controls](docs/sonar-radar.md) and
 [cue delivery](docs/radar-state-delivery.md) document the rest.
 

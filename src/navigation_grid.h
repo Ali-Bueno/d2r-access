@@ -27,7 +27,7 @@ struct Grid {
 	const Cell* At(int worldX, int worldY) const;
 	std::string Dump() const; // P player, . reachable, o disconnected, # blocked, ? unknown
 };
-// Research PoC only: original movement collision, no structural object removal,
-// native calls, persistence, audio or TTS. Radius is in collision subtiles.
+// Reads the supplied world without modifying it; no native calls or persistence.
+// Callers choose physical or structural snapshots. Radius is in collision subtiles.
 Grid Build(const Radar::World& world, int radius);
 }

@@ -99,15 +99,15 @@ void AdjacentFacets() {
 	const auto wall = [&](int sum, uint16_t flags) {
 		for (int y=0; y<240; ++y) if (sum-y >= 0 && sum-y < 240) Put(world, sum-y, y, flags);
 	};
-	wall(216, 1); wall(222, 1); wall(228, 1);
+	wall(206, 1); wall(222, 1); wall(228, 1);
 	Engine engine; (void)engine.Tick(world, 1000);
-	wall(216, 0); (void)engine.Tick(world, 1050);
+	wall(206, 0); (void)engine.Tick(world, 1050);
 	Check(engine.Tick(world, 1100)[3] == State::Open, "the first widening is announced");
 	world.player = {101, 99}; wall(222, 0); (void)engine.Tick(world, 1150);
 	Check(engine.Tick(world, 1200)[3] == State::Unknown, "adjacent facets of the same widening produce one cue");
-	wall(216, 1); (void)engine.Tick(world, 1250);
+	wall(206, 1); (void)engine.Tick(world, 1250);
 	Check(engine.Tick(world, 1300)[3] == State::Blocked, "coalescing consecutive openings does not delay an opposite closure");
-	wall(216, 0); (void)engine.Tick(world, 1350);
+	wall(206, 0); (void)engine.Tick(world, 1350);
 	Check(engine.Tick(world, 1400)[3] == State::Open, "a confirmed closure rearms the next opening even without leaving the cell");
 }
 void RecordedCampPost() {

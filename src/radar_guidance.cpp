@@ -30,7 +30,7 @@ Guidance EvaluateGuidance(const World&, Position, const Probe& terrain, const Pr
 	result.playbackMs = playbackMs;
 	result.warningDepth = settings.blockedDepth;
 	// Physical clearance is for readout and validating openings. Only the
-	// local geometry tracker generates sounds, as in Kirandur. Speed and queue
+	// connected passage tracker generates sounds. Speed and queue
 	// length must never turn the same wall into a newly open passage.
 	result.openDepth = settings.openDepth;
 	result.openingSafe = movement.clearDepth >= result.openDepth && movement.medianDepth >= result.openDepth;

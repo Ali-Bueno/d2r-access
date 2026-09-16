@@ -30,25 +30,26 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 26 suites / 1284 checks, including UI navigation.
-  Radar and footsteps account for 849 checks, including 36 isolated navigation, 82 structure and 25 surface regressions.
+  Latest shared-workspace run: 27 suites / 1358 checks, including UI navigation.
+  Radar and footsteps account for 923 checks, including 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
-  Current geometry cues and actor/terrain separation need live validation;
+  Current connected passage cues need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar request: study `../D2R_Navigation_Radar_Research.md` after the user
-  confirms object filtering helps but remains cluttered. Read
-  `docs/CurrentRadarAnalysis.md` and `docs/D2RNavigationResearch.md` first.
-  The real native collision grids are already available; the missing layer is
-  connected passage interpretation and cue grouping. External Legacy graphs use
-  coarse 5x5 cells and are not exact body navigation. `navigation_grid` is an
-  isolated test-only PoC (36 checks), not connected to runtime or audio.
-  Installed object filtering and its physical clearance guards remain unchanged.
-  Historical camp capture is shared in `tests/camp_grid.h`; no original flags.
-  Next: validate live local connectivity and stable entrances before audio.
+- Latest radar change: after studying `../D2R_Navigation_Radar_Research.md`,
+  the user requested a practical precision improvement. Connected passage state
+  is now compiled and installed. Read `docs/radar-connected-passages.md` first.
+  `navigation_grid` is part of the plugin; `radar_passage` checks short native
+  body routes with bounded sideways travel and no backward first step. Open
+  cues still require original full-body straight clearance. Far wall changes
+  stay silent while usable travel persists. Historical surface tracking is no
+  longer the audio trigger. The graph does not provide persistent portal IDs.
+  74 new checks cover false detours, offset doors, unknown room seams, real
+  running openings and sustained recess silence. Live controller/audio tests
+  remain user-led; Ctrl+T includes connected state plus the physical snapshot.
   Keep fixed stick directions, rear ray and 120 ms cues / 50 ms silence.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected

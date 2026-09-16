@@ -118,28 +118,28 @@ void RecessAtSpeed() {
 			}
 		}
 		for (size_t direction : {size_t{0}, size_t{2}}) {
-			if (open[direction] != 2 || closed[direction] != 2)
+			if (open[direction] != 0 || closed[direction] != 0)
 				std::cerr << "recess stride=" << stride << " direction=" << direction << " open=" << open[direction] << " closed=" << closed[direction] << '\n';
-			Check(open[direction] == 2 && closed[direction] == 2,
-				"spatial sampling keeps real finite recesses and returns on both rays at every tested speed/poll interval");
+			Check(open[direction] == 0 && closed[direction] == 0,
+				"far wall recesses stay silent on both rays at every tested speed/poll interval");
 		}
 		Check(open[1] == 0 && closed[1] == 0 && open[3] == 0 && closed[3] == 0,
 			"recesses do not invent changes on the opposite clear side");
 	}
 }
 void PendingCoverageLoss() {
-	auto world = Field(); Wall(world, 216); Wall(world, 226);
+	auto world = Field(); Wall(world, 206); Wall(world, 226);
 	Engine engine; (void)engine.Tick(world, 1000);
-	Wall(world, 216, 0); world.rooms[0].cells[101*240+101] = 0x1100;
+	Wall(world, 206, 0); world.rooms[0].cells[101*240+101] = 0x1100;
 	(void)engine.Tick(world, 1050); (void)engine.Tick(world, 1100);
-	Check(engine.Sensors()[3].boundaryPending == State::Open, "occupied recess waits for physical clearance");
-	Wall(world, 226, 0x20); (void)engine.Tick(world, 1150);
-	Check(engine.Sensors()[3].boundaryPending == State::Unknown && engine.Sensors()[3].cueState == State::Unknown,
-		"missing local geometry clears old cues even when the first eight subtiles remain loaded");
-	Wall(world, 226); world.rooms[0].cells[101*240+101] = 0;
+	Check(engine.Sensors()[3].passageState.Pending() == State::Open, "occupied recess waits for physical clearance");
+	Wall(world, 212, 0x20); (void)engine.Tick(world, 1150);
+	Check(engine.Sensors()[3].passageState.Pending() == State::Unknown && engine.Sensors()[3].cueState == State::Unknown,
+		"missing local geometry clears old cues when the short connected route is no longer covered");
+	Wall(world, 212, 0); world.rooms[0].cells[101*240+101] = 0;
 	for (uint64_t now = 1200; now <= 1600; now += 50)
 		Check(Silent(engine.Tick(world, now)), "restored local coverage cannot replay an opening from before data loss");
-	Wall(world, 216); (void)engine.Tick(world, 1650);
+	Wall(world, 206); (void)engine.Tick(world, 1650);
 	Check(engine.Tick(world, 1700)[3] == State::Blocked, "fresh geometry after coverage recovery still announces a real narrowing");
 }
 void PendingWallDrift() {
