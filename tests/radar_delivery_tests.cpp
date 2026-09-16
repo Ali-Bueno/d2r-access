@@ -35,12 +35,12 @@ void Backtrack() {
 			world.player.x -= 1; world.player.y -= 1; now += 100;
 			open += engine.Tick(world, now)[3] == State::Open;
 		}
-		Check(open == 1, "walking away updates the same wall direction to open on every trip");
+		Check(open == 0, "walking away from a remembered wall never labels retreat as a new exit");
 		for (unsigned step = 0; step < 18; ++step) {
 			world.player.x += 1; world.player.y += 1; now += 100;
 			closed += engine.Tick(world, now)[3] == State::Blocked;
 		}
-		Check(closed == 1, "returning to the same wall announces blocked again on every trip");
+		Check(closed == 0, "returning to the already reported wall does not repeat its closure");
 	}
 	for (unsigned step = 0; step < 10; ++step) Check(Silent(engine.Tick(world, now += 50)), "unchanged wall stays silent after returning");
 }

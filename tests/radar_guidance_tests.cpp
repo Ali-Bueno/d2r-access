@@ -119,7 +119,7 @@ void SpeedAndBoundary() {
 		world.player.x -= 1; world.player.y -= 1;
 		retreatOpenings += engine.Tick(world, 1000 + tick * 100)[3] == State::Open;
 	}
-	Check(retreatOpenings == 1, "backing away from the same wall announces the changed usable clearance once");
+	Check(retreatOpenings == 0, "backing away retains the known wall instead of announcing a new exit");
 	Check(std::hypot(engine.Velocity().x, engine.Velocity().y) > 0, "velocity derives from actual subtile displacement");
 	(void)engine.Tick(world, 2700); (void)engine.Tick(world, 2800);
 	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "velocity settles to zero after stopping");

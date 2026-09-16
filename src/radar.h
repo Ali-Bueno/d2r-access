@@ -115,6 +115,22 @@ private:
 	State state_ = State::Unknown, reported_ = State::Unknown, candidate_ = State::Unknown;
 	uint64_t since_ = 0;
 };
+// A world-space wall reference, independent of the player's current clearance.
+// It gates new opening cues; it never overrides physical movement queries.
+class WallMemory {
+public:
+	bool Update(const Probe& wall, Position player, Position axis, bool near,
+		uint64_t now, const Settings& settings, int bodyPattern);
+	bool Known() const { return known_; }
+	Position Point() const { return point_; }
+	double RequiredDepth() const { return requiredDepth_; }
+private:
+	void Remember(const Probe& wall, Position axis);
+	Position point_, normal_;
+	bool known_ = false, supported_ = false, clearing_ = false, cleared_ = false;
+	uint64_t since_ = 0;
+	double requiredDepth_ = 0;
+};
 struct Sensor {
 	State stable = State::Unknown;
 	uint64_t lastEmit = 0;
@@ -126,6 +142,8 @@ struct Sensor {
 	bool retry = false, retrying = false;
 	Passage passage, movementPassage;
 	PassageTracker passageState;
+	WallMemory wallMemory;
+	bool newOpening = false;
 	State lastCue = State::Unknown;
 	State AudibleState() const {
 		return cueState == State::Blocked ? State::Blocked : guidance.openingSafe ? State::Open : State::Unknown;

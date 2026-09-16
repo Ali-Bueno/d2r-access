@@ -99,14 +99,14 @@ are excluded from automatic space changes when a full-body check proves a route
 around them. Walls, doors, enclosed spaces and objects cutting off a corridor
 remain structural barriers. Uncertain cases retain their collision.
 
-The radar now follows **usable connected passages**. Changes in a distant wall
-remain silent while the same useful space stays open. Local routes use the
-native body footprint and cannot count a distant detour as a forward opening.
-An offset doorway waits until the actual turn has enough straight physical
-clearance before sounding. Each direction retains its state through small edge
-changes; a real closure rearms the next opening. Speed and audio queue length do
-not create extra transitions. Two consecutive scans confirm changes. Cues last
-120 ms with 50 ms silent gaps; a cancelled cue can retry only if it never started.
+The radar follows **usable connected passages** and remembers a wall's position
+when you move away from it. More free floor before the same wall stays silent;
+an opening must prove a clear approach past that remembered edge. Moving along
+the wall can still reveal a doorway or its end. Unknown coverage does not turn
+an old wall into an exit. The four wall references supplement the local native
+body graph; they are not a saved exploration map. Speed and queue length do not
+create geometry transitions. Changes require two observations, with 120 ms cues
+and 50 ms silent gaps; a cancelled cue retries only if it never started.
 
 **Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
 (including diagonals), then the four straight-line clearances, and saves a local
@@ -117,8 +117,10 @@ baselines silently and pauses during dialogue/offline pause. Existing settings
 are preserved; no external map or sound installation is required.
 
 Live map reads work in the camp and Blood Moor. The user confirmed that object
-filtering helped; the new connected passage behavior is built and installed,
-with controller/listening validation still pending. See
+filtering and connected passages helped. The latest correction retains known
+walls during retreat and is built and installed; controller/listening validation
+of that correction remains pending. See
+[remembered walls](docs/radar-wall-memory.md),
 [connected passages and tests](docs/radar-connected-passages.md) and
 [object filtering](docs/radar-object-filtering.md) for behavior and limits.
 [Sonar controls](docs/sonar-radar.md) and

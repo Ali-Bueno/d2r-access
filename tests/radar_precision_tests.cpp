@@ -46,7 +46,7 @@ void Encounter() {
 	for (int step = 0; step < 12; ++step) tick();
 	Check(closed == 1 && open == 0, "approaching then stopping at one wall produces one encounter, without a second proximity warning or false opening");
 	for (int step = 0; step < 28; ++step) { --world.player.x; --world.player.y; tick(); }
-	Check(closed == 1 && open == 1, "leaving the local wall range produces exactly one opening");
+	Check(closed == 1 && open == 0, "leaving the local wall range retains its reference without inventing an exit");
 }
 void RangeEdge() {
 	BoundaryTracker tracker;

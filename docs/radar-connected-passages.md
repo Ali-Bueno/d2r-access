@@ -1,5 +1,9 @@
 # Connected passage radar
 
+> Follow-up: [remembered wall references](radar-wall-memory.md) now prevent
+> retreat from a known wall from sounding like a new exit. The original physical
+> approach must clear the remembered edge as well as the short useful depth.
+
 Implemented 2026-09-16 following the user's request for less clutter and more
 precise navigation. This supersedes automatic ray-hit/surface-change cues in
 [surface tracking](radar-surface-tracking.md). The underlying native collision

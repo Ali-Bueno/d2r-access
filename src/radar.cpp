@@ -85,7 +85,11 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		sensor.guidance.warningDepth = sensor.passage.closeDepth;
 		if (sensor.guidance.observed != State::Unknown) sensor.stable = sensor.guidance.observed;
 		else if (!sensor.probe.available) sensor.stable = State::Unknown;
-		events[i] = sensor.passageState.Observe(sensor.passage, sensor.guidance.openingSafe, now, settings_.stableMs);
+		sensor.newOpening = sensor.wallMemory.Update(sensor.structure, world.player, Axes[i],
+			sensor.passage.observed == State::Blocked, now, settings_, world.bodyPattern);
+		const bool opening = sensor.newOpening && sensor.guidance.openingSafe
+			&& sensor.probe.clearDepth >= sensor.wallMemory.RequiredDepth();
+		events[i] = sensor.passageState.Observe(sensor.passage, opening, now, settings_.stableMs);
 		if (!sensor.passage.available) {
 			sensor.lastCue = State::Unknown;
 			sensor.retry = false;
@@ -94,7 +98,7 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		const auto failure = audio.failed[i];
 		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = !failure.submitted;
 		const State lastCue = events[i] != State::Unknown ? events[i] : sensor.lastCue;
-		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, sensor.guidance.openingSafe) ? lastCue : State::Unknown;
+		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, opening) ? lastCue : State::Unknown;
 		if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue && lastCue != State::Unknown
 			&& now - sensor.lastEmit >= settings_.retryMs) {
 			events[i] = lastCue;
