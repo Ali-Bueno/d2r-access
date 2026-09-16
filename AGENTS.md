@@ -50,11 +50,12 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 - HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
   events are suppressed; any native fractional movement restores them. Three whole-function
   fingerprints guard the hook. `[footsteps]` logs state changes/counters; `docs/footsteps.md`.
-  Hook installation/local callback confirmed in the 22:54 load; user still reports audible
-  steps in some cases and cannot distinguish sliding by sound. Foreign read failures no
-  longer reset the local baseline. Five-second active-event summaries include native mode,
-  movement, reset reasons and unresolved foreign events; check these on the next reproduction.
-  Actual stall suppression/audio validation is still pending. User chose to test while
+  The 23:19–23:22 reproduction confirms up-left wall sliding while held-up clearance stays
+  blocked: 328 allowed footfalls, no stalled/read-failure/unresolved-foreign events. Footfalls
+  stopped being recorded once the final position became fixed. Keep sliding audible; a blocked
+  straight ray does not prove total immobility. Ctrl+T currently omits actual movement feedback.
+  Five-second active-event summaries expose mode, movement and reset reasons for any different
+  failure. Actual repeated-stall suppression remains unverified. User chose to test while
   playing; do not take control or mix desktop inputs with their movements.
 - User prefers cue logging before audio capture. `docs/radar-event-log.md` describes automatic
   generated/queued/submitted/completed/cancelled records. Join event_ms + direction in the latest

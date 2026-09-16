@@ -86,6 +86,39 @@ summary. These distinguish actual movement from a mode/read/reset problem withou
 asking the player to see the character. Other causes remain under investigation;
 do not infer a confirmed physical collision from a sound event alone.
 
+## Reproduction at 23:19–23:22: wall sliding confirmed
+
+The user held stick-up while repeatedly requesting Ctrl+T and reported that up
+remained blocked. In the 23:19:29 session, both the radar snapshots and footfall
+positions show sustained displacement along the wall:
+
+| Local time | Native position X,Y | Result |
+|---|---|---|
+| 23:21:44.655 | 4497.88356,4592.50232 | Up body clearance 0; velocity approximately (-5.1,0) |
+| 23:21:56.970 | 4445.58965,4592.50232 | Up still blocked; X continues decreasing |
+| 23:22:04.203 | 4412.81310,4592.50009 | Velocity zero; up/left/right blocked |
+| 23:22:06.394 | 4412.81310,4592.50009 | Position remains exactly unchanged |
+
+Decreasing world X with fixed Y projects up-left on screen (the native projection
+is documented in `sonar-radar.md`). Together with the user's held-up report, this
+establishes wall sliding. It is substantial motion, not fractional jitter. The
+radar's straight-up body sweep correctly remained closed throughout.
+
+The session recorded 328 allowed local footfalls: 288 changed-position samples,
+19 sequence baselines, and 21 excluded animation-mode samples. There were zero
+settling/stalled decisions, local read failures or unresolved foreign events.
+The continuous final wall segment was mode 6 with moved decisions, no resets,
+and approximately 17–24 subtiles of travel per five-second group. Once the final
+position stopped changing, no further local footfalls were recorded; the last
+summary flushed the earlier moving events, ending at allowed=328/suppressed=0.
+
+This reproduction validates preserving footsteps while sliding. It does **not**
+validate suppression of repeated stationary footfalls, nor establish whether any
+of the 21 excluded animation events elsewhere happened during a stall. No audio
+capture was made. The foreign-reset correction was not exercised in this run.
+An orientation limitation remains: Ctrl+T reports straight directional clearance
+without describing the character's actual deflected movement.
+
 ## Verification scope
 
 Thirty-seven pure policy checks cover a sustained stall, immediate subcell resumption, slow
