@@ -3,6 +3,7 @@
 #include "ground_item_service.h"
 #include "localization.h"
 #include "native_tooltips.h"
+#include "native_controller_help.h"
 #include "native_progression.h"
 #include "progression_text.h"
 #include "native_widgets.h"
@@ -25,6 +26,7 @@ struct InventoryContext {
 InventoryContext g_inventoryContext;
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
+std::string g_help, g_spokenHelp, g_helpContext;
 
 void Append(std::string& text, const std::string& part) {
 	if (part.empty() || text == part) return;
@@ -78,6 +80,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	const auto selection = NativeUi::FocusSelection(focus.widget);
+	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
+		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;
 	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton;
 	const auto progression = button ? NativeProgression::Read(focus, type) : NativeProgression::Details{};
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
@@ -98,7 +103,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
-		&& (!inventory || tooltip.selection == NativeUi::FocusSelection(focus.widget))) {
+		&& (!inventory || tooltip.selection == selection)
+		&& equipmentPresence != NativeUi::ItemPresence::Empty) {
 		std::string description = progression.skill ? ProgressionText::SkillDescription(tooltip.body) : UiText::Clean(tooltip.body);
 		Append(description, UiText::Clean(tooltip.footer));
 		renderedDescription = !description.empty();
@@ -110,6 +116,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if ((inventory || button) && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
+		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
+		else if (equipmentPresence == NativeUi::ItemPresence::Occupied) Append(readout.option, Strings::Current().slotOccupied);
+	}
+	const auto help = (inventory || button) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
+	const auto helpContext = readout.context + ":" + readout.body;
+	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
+	g_help = help;
 	if (!focus.panel && readout.Empty()) {
 		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel("HUDMonsterHealth"), 0);
 		if (target.surface == UiText::Surface::Target) readout = UiText::Describe(target);
@@ -136,13 +150,21 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// grid cell waits for it without speaking coordinates first; other cells
 	// keep their existing quick coordinate feedback.
 	if (type.kind == UiText::Kind::InventoryGrid && !renderedDescription
-		&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied) return true;
+		&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied) {
+		if (helpChanged && !help.empty()) {
+			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s actions -> \"%s\"", readout.context.c_str(), help.c_str());
+			ScreenReader::Speak(help, true);
+		}
+		g_spokenHelp = help;
+		g_helpContext = helpContext;
+		return true;
+	}
 	if (progression.skill && !renderedDescription) return true;
-	if (readout.Empty()) { g_reader.Reset(); return inventory || button; }
+	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	auto announcement = button ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, renderedDescription ? 0 : InventorySettleMs)
+		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
@@ -153,6 +175,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
+	if (helpChanged) Append(announcement.text, help);
+	g_spokenHelp = help;
+	g_helpContext = helpContext;
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, true);
@@ -165,8 +190,16 @@ void Reset() {
 	g_inventory = false;
 	g_inventoryContext = {};
 	g_stat = {};
+	g_help.clear();
+	g_spokenHelp.clear();
+	g_helpContext.clear();
+	NativeControllerHelp::Reset();
 	NativeTooltips::Reset();
 }
 
-std::string Repeat() { return g_reader.Repeat(); }
+std::string Repeat() {
+	auto text = g_reader.Repeat();
+	Append(text, g_help);
+	return text;
+}
 }

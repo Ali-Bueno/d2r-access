@@ -84,6 +84,17 @@ including **Soltar oro**, and equipment slots announce their body location
 The user confirmed these additions. The specific
 scroll-related control reported by the user has not yet been identified live.
 
+The inventory/NPC follow-up reads equipment slot names immediately, reports
+confirmed empty/occupied slots even while the game has no item tooltip, and
+rejects lingering descriptions after equipment is removed. Controller footer
+actions now cover inventory, stash and NPC services as well as skills: repair,
+shop/refresh and other available actions use the game's current button labels
+and hold instructions. Unchanged actions are not repeated on every item; manual
+text repeat includes them. No purchase, repair or quest service runs automatically.
+UI memory permission checks are reused within each reading pass to reduce cursor
+stalls. These changes are built and tested; live controller/NVDA validation remains
+pending. See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
+
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes directional `tin` (a usable passage opens) / `tock`
 (a nearby structural barrier closes that passage) cues,

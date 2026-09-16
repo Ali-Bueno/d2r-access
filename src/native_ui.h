@@ -23,6 +23,7 @@ Focus CurrentFocus();
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
+ItemPresence EquipmentItemPresence(uintptr_t widget);
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();

@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <cstring>
 #include <limits>
+#include <array>
 
 namespace D2RAccess::NativeMemory {
 namespace {
@@ -12,13 +13,32 @@ constexpr uint64_t BorrowedBit = uint64_t{1} << 63;
 constexpr size_t InlineOffset = 0x18;
 constexpr size_t InlineCapacity = 15;
 constexpr size_t MaxTextBytes = 64 * 1024; // corruption guard, not a truncation limit
+// A bounded per-thread permission cache for a synchronous UI read. Saturation
+// simply falls back to VirtualQuery; no entries survive the outer scope.
+struct Region { uintptr_t begin = 0, end = 0; };
+thread_local std::array<Region, 64> g_regions;
+thread_local size_t g_regionCount = 0, g_readDepth = 0;
 }
+
+ReadScope::ReadScope() noexcept { if (g_readDepth++ == 0) g_regionCount = 0; }
+ReadScope::~ReadScope() { if (--g_readDepth == 0) g_regionCount = 0; }
 
 bool Readable(const void* address, size_t size) noexcept {
 	uintptr_t cursor = reinterpret_cast<uintptr_t>(address);
 	if (cursor == 0 || size == 0 || size > std::numeric_limits<uintptr_t>::max() - cursor) return false;
 	const uintptr_t end = cursor + size;
 	while (cursor < end) {
+		if (g_readDepth) {
+			bool found = false;
+			for (size_t i = 0; i < g_regionCount; ++i) {
+				if (cursor >= g_regions[i].begin && cursor < g_regions[i].end) {
+					cursor = g_regions[i].end;
+					found = true;
+					break;
+				}
+			}
+			if (found) continue;
+		}
 		MEMORY_BASIC_INFORMATION info{};
 		if (VirtualQuery(reinterpret_cast<void*>(cursor), &info, sizeof(info)) != sizeof(info)
 			|| info.State != MEM_COMMIT || (info.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0) return false;
@@ -27,6 +47,8 @@ bool Readable(const void* address, size_t size) noexcept {
 		if ((info.Protect & flags) == 0) return false;
 		const uintptr_t next = reinterpret_cast<uintptr_t>(info.BaseAddress) + info.RegionSize;
 		if (next <= cursor) return false;
+		if (g_readDepth && g_regionCount < g_regions.size())
+			g_regions[g_regionCount++] = {reinterpret_cast<uintptr_t>(info.BaseAddress), next};
 		cursor = next;
 	}
 	return true;
@@ -38,6 +60,7 @@ bool Copy(uintptr_t address, void* output, size_t size) noexcept {
 		std::memcpy(output, reinterpret_cast<void*>(address), size);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
+		g_regionCount = 0; // permissions may have changed during the pass
 		return false;
 	}
 }

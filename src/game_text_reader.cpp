@@ -5,6 +5,7 @@
 #include "interaction_reader.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
+#include "native_memory.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -140,6 +141,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	if (now - g_lastPoll < PollMs) return g_ownedFocus || g_interactionFocus;
 	g_lastPoll = now;
+	const NativeMemory::ReadScope readScope;
 	const NativeUi::Focus focus = NativeUi::CurrentFocus();
 	const auto focusedSurface = NativeUi::Classify(focus.panel).surface;
 	const bool nativeControlFocus = InteractionReader::HandlesFocus(focus);

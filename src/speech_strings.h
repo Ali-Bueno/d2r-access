@@ -41,6 +41,8 @@ struct Table {
 	const char* inventory;
 	const char* stash;
 	const char* equipment;
+	const char* slotEmpty;
+	const char* slotOccupied;
 	const char* belt;
 	const char* gridCell; // one-based row, column
 	const char* skillOfCount; // one-based skill position within the visible branch
@@ -111,6 +113,8 @@ inline constexpr Table English {
 	.inventory           = "Inventory",
 	.stash               = "Stash",
 	.equipment           = "Equipment",
+	.slotEmpty           = "Empty",
+	.slotOccupied        = "Occupied",
 	.belt                = "Belt",
 	.gridCell            = "Row %d, column %d",
 	.skillOfCount        = "Skill %d of %d",
@@ -182,6 +186,8 @@ inline constexpr Table Spanish {
 	.inventory           = "Inventario",
 	.stash               = "Alijo",
 	.equipment           = "Equipo",
+	.slotEmpty           = "Vacío",
+	.slotOccupied        = "Ocupado",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
 	.skillOfCount        = "Habilidad %d de %d",

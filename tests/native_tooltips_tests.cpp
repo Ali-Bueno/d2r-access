@@ -62,6 +62,12 @@ int main() {
 	snapshot = NativeTooltips::Latest(GetTickCount64());
 	Check(snapshot.body == text && snapshot.footer == footer, "full native item description and footer are copied without truncation");
 	Check(snapshot.panel == 100 && snapshot.widget == 200 && snapshot.selection == selection, "capture records the controller focus and selected cell");
+	selection += 1; text = "Amuleto"; StringAt(0, text); hook(first);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.body == "Amuleto" && snapshot.selection == selection, "a new cell bypasses capture throttling immediately");
+	focus.widget = 201; text = "Casco"; StringAt(0, text); hook(first);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.body == "Casco" && snapshot.widget == 201, "equipment focus changes bypass the previous slot's capture throttle");
 	NativeTooltips::Reset(); NativeTooltips::Track(root);
 	Put<uint64_t>(panel.data(), 0x170, 99999); hook(first);
 	Check(NativeTooltips::Latest(GetTickCount64()).body.empty(), "corrupt tooltip vector is rejected");

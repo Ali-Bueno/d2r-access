@@ -59,16 +59,22 @@ void Capture(uintptr_t tooltip) noexcept {
 		if (!panel || !tooltip || !NativeMemory::Peek(panel + RecordsOffset, records)
 			|| !records.count || records.count > MaxRecords || records.data != tooltip) return;
 		const uint64_t now = GetTickCount64();
+		const NativeMemory::ReadScope readScope;
+		const auto focus = NativeUi::CurrentFocus();
+		const auto selection = NativeUi::FocusSelection(focus.widget);
 		std::lock_guard lock(g_mutex);
 		if (g_panel.load() != panel) return;
-		if (g_lastCopy && now - g_lastCopy < CaptureMs) { g_latest.seenAt = now; return; }
+		if (g_lastCopy && now - g_lastCopy < CaptureMs && g_latest.panel == focus.panel
+			&& g_latest.widget == focus.widget && g_latest.selection == selection) {
+			g_latest.seenAt = now;
+			return;
+		}
 		Snapshot next;
 		if (!NativeMemory::ReadEngineString(tooltip, next.body)) return;
 		(void)NativeMemory::ReadEngineString(tooltip + FooterOffset, next.footer);
-		const auto focus = NativeUi::CurrentFocus();
 		next.panel = focus.panel;
 		next.widget = focus.widget;
-		next.selection = NativeUi::FocusSelection(focus.widget);
+		next.selection = selection;
 		next.seenAt = now;
 		g_latest = std::move(next);
 		g_lastCopy = now;

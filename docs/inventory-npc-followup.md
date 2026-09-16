@@ -1,0 +1,73 @@
+# Inventory latency, equipment and NPC actions
+
+Target: native D2R 3.3.93787 / D2RLoader, 2026-09-16.
+
+The user reports both cursor stalls and delayed speech when shopping, repairing
+or using the stash, intermittently missing equipment locations/occupancy, and
+an undiscoverable blacksmith repair action.
+
+## Changes and evidence
+
+- `NativeMemory::Copy` previously called `VirtualQuery` for every small field or
+  string copy, including repeated reads of the same region during the 30 Hz UI
+  pass. `ReadScope` caches only readable region permissions on the current thread
+  until that pass returns. Actual contents are always copied, every copy remains
+  SEH guarded, a fault clears the cache, and full caches fall back to fresh queries.
+  Gameplay text and tooltip capture use separate scopes; no cache spans frames.
+- The tooltip's 40 ms copy throttle now applies only to unchanged panel/widget/
+  cell identities. The first render for a new selection is copied immediately.
+  The game's own tooltip creation delay remains; this does not force rendering.
+- Equipment names no longer wait for the next polling interval. Slot presence
+  comes from the slot's own inventory getter, rather than assuming that a missing
+  tooltip means empty. Confirmed empty slots reject leftover rendered descriptions.
+  Occupied slots say so while awaiting their complete native item description.
+- `NativeControllerHelp::ForFocus`, previously consumed only by skills, now feeds
+  the shared inventory and button reader. It reads available controller actions
+  even while an occupied grid cell is awaiting its item tooltip. Unchanged actions
+  do not repeat on item movement; changed actions are spoken and manual repeat
+  includes current help. Conversation ownership suppresses covered inventory help.
+  Footer discovery caches names, resolving the actual widgets again each poll,
+  so adding this read does not add two full tree walks per inventory poll.
+
+Equipment source: captured `live-rdata.bin` maps InventorySlotWidget vtable
+`0x1CF3F20 + 0xC8` to `0x2CA060`. Disassembly of `D2R_live.exe` at
+`0x2CA060–0x2CA0A2` resolves the widget's owner via `0x2A7810`, loads its
+location at `+0x5D8`, obtains the inventory through `0x34A360`, and tail-calls
+`0x3886D0` with that location. It ignores the selection argument. The existing
+grid override uses that same virtual slot with explicit cell coordinates.
+The query is UI-thread only, archetype/visibility/executable checked and SEH
+guarded; a failure is unknown, never empty. See [prior tooltip evidence](native-tooltips.md).
+
+NPC review used the extracted stock `VendorPanelLayout.json`: native actions
+include Buy, Sell, Repair, RepairAll and RefreshAll, each with its own tooltip
+label. `Controller/VendorPanelLayoutHD.json` uses the shared controller UI;
+`ControllerOverlayHD.json` owns a `ButtonLegendScrollWidget` footer. Its active
+runtime records supply the actual buttons, captions and hold wording. We do not
+hardcode a repair shortcut or force hidden mouse buttons into controller focus.
+`Controller/ImbueItemsPanelHD.json` exposes the existing Confirm buttons with
+native labels; NPC dialogue services still use the shared list-row reader.
+Availability remains controlled by the NPC, quest and game state. The synthetic
+repair/refresh button examples in tests do not establish a live controller binding.
+
+## Validation
+
+Plugin compiled and deployed with the game closed. Thirteen UI CTest suites /
+458 checks pass, covering immediate equipment locations, occupied/empty transitions,
+missing and delayed descriptions, capture during rapid movement, action changes,
+footer rebuilds, cached discovery, dialogue suppression and native memory faults.
+The 257-widget synthetic UI traversal averaged 3.325 ms without a scope and
+0.094 ms with one over forty passes. Timing is reported, not asserted; this is
+not a measurement of live FPS or screen-reader output latency.
+
+The full `build.ps1` attempt also encountered incompatible radar tests in the
+parallel radar edits (`Radar::Engine::CloseDepth` / removed `OpenDepth` in
+`radar_passage_tests.cpp`). The plugin and all thirteen relevant suites were
+then compiled as explicit CMake targets. No radar source or tests were changed
+for this task.
+
+Pending user-led live check: navigate rapidly through inventory, a vendor and
+the stash; cross head/neck/weapon slots with and without an item held; remove
+and equip an item; confirm the spoken repair action in the blacksmith's shop
+and other services when available. Compare `[pump] slow accessibility tick`
+with the previous session and `[interaction]` action/selection messages with
+what NVDA actually reads. No purchases or quest services were exercised here.

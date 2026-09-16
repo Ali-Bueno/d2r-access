@@ -1,5 +1,6 @@
 #include "interaction_reader.h"
 #include "native_tooltips.h"
+#include "native_controller_help.h"
 #include "native_progression.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -30,6 +31,8 @@ uint64_t now = 1000, selection = UINT64_MAX;
 const D2RL::PluginContext context{};
 int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
+std::string controllerHelp;
+NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
@@ -49,6 +52,7 @@ Type Classify(uintptr_t widget) {
 }
 Cell GridCell(uintptr_t) { return cell; }
 ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
+ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
@@ -73,6 +77,10 @@ Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
 namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
+}
+namespace D2RAccess::NativeControllerHelp {
+std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
+void Reset() {}
 }
 namespace D2RAccess::TabReader {
 std::string Selected(uintptr_t) {
@@ -240,5 +248,36 @@ int main() {
 	ClearSpeech(); progression = {}; widgetType = {"TabWidget", UiText::Kind::TabButton}; focus.widget = 73;
 	buttonSnapshot = {73, 73, "Tab1", UiText::Surface::Other, {{73, -1, UiText::Kind::TabButton, "Tab1", "", "Dominio del combate"}}};
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Dominio del combate"}, "focused branch tabs are readable through the shared interaction pipeline");
+	InteractionReader::Reset(); ClearSpeech(); progression = {}; tooltip = {}; controllerHelp.clear();
+	focus = {20, 81}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+	cell = {}; equipmentLocation = 1; equipmentPresence = NativeUi::ItemPresence::Empty;
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "empty equipment announces its location and presence on the first poll");
+	ClearSpeech(); focus.widget = 82; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied;
+	Check(Tick() && speech == std::vector<std::string>{"Cuello. Ocupado"}, "rapid slot navigation never waits for a rendered item description");
+	ClearSpeech(); Tooltip("Amuleto\nResistencia al fuego: 10%"); Tick();
+	Check(speech == std::vector<std::string>{"Cuello. Amuleto Resistencia al fuego: 10%"}, "delayed equipped item retains the slot name with its full description");
+	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
+	Check(speech == std::vector<std::string>{"Cuello. Vacío"}, "removing equipment rejects a lingering tooltip even without changing focus");
+	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Occupied; tooltip = {}; Tick();
+	Check(speech == std::vector<std::string>{"Cuello. Ocupado"}, "equipping into the focused empty slot announces the real occupancy change");
+	ClearSpeech(); Tick(); Check(speech.empty(), "stationary occupied slot without a description does not repeat");
+	InteractionReader::Reset(); ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Unknown;
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid}; selection = 0; cell = {0, 0};
+	itemPresence = NativeUi::ItemPresence::Occupied;
+	controllerHelp = "Y: Reparar todo. B: Cerrar menú";
+	Check(Tick() && speech == std::vector<std::string>{controllerHelp}, "merchant actions remain discoverable while the selected item tooltip is still pending");
+	ClearSpeech(); Tick(); Check(speech.empty(), "unchanged merchant actions do not repeat while waiting");
+	Tooltip("Hacha\nDurabilidad: 15 de 28"); Tick();
+	Check(speech == std::vector<std::string>{"Inventario. Hacha Durabilidad: 15 de 28"}, "arrival of the description does not repeat the unchanged action list");
+	Check(InteractionReader::Repeat().ends_with(controllerHelp), "manual repeat includes currently available controller actions");
+	ClearSpeech(); selection = 1; cell = {1, 0}; Tooltip("Espada"); Tick();
+	Check(speech == std::vector<std::string>{"Espada"}, "item-to-item navigation does not repeat unchanged merchant actions");
+	ClearSpeech(); controllerHelp = "X: Actualizar. B: Cerrar menú"; Tick();
+	Check(speech == std::vector<std::string>{controllerHelp}, "a new NPC action is read without repeating the selected item");
+	ClearSpeech(); controllerHelp = "B: Cerrar menú"; Tick();
+	Check(speech == std::vector<std::string>{controllerHelp} && InteractionReader::Repeat().find("Reparar") == std::string::npos, "unavailable services disappear from speech and repeat");
+	ClearSpeech(); conversation = true; Tick();
+	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
+	conversation = false;
 	Passed();
 }

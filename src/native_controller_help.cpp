@@ -2,6 +2,7 @@
 #include "controller_text.h"
 #include "native_memory.h"
 #include "native_widgets.h"
+#include <algorithm>
 
 namespace D2RAccess::NativeControllerHelp {
 namespace {
@@ -11,10 +12,27 @@ constexpr size_t EntriesOffset = 0x88, EntrySize = 0x40;
 constexpr size_t GlyphCountOffset = 8, CaptionOffset = 0x10;
 constexpr uint64_t MaxEntries = 32; // bounded read; scrolling legends display eight at once
 constexpr int MaxChord = 2; // two uint32 glyph slots precede the count at +8
+struct PanelLegends { uintptr_t panel = 0; std::vector<std::string> names; };
+PanelLegends g_content, g_overlay;
 void Append(std::string& text, const std::string& part) {
 	if (part.empty()) return;
 	if (!text.empty()) text += ". ";
 	text += part;
+}
+std::string PanelHelp(uintptr_t panel, PanelLegends& cache) {
+	if (!panel || !NativeUi::Visible(panel)) { cache = {}; return {}; }
+	if (cache.panel != panel) {
+		cache = {panel, {}};
+		for (const auto widget : NativeUi::FindControls(panel, UiText::Kind::Legend)) {
+			const auto name = NativeWidgets::ReadName(widget);
+			if (!name.empty() && std::find(cache.names.begin(), cache.names.end(), name) == cache.names.end()) cache.names.push_back(name);
+		}
+	}
+	// Cache lookup names only: FindChild resolves rebuilt controls on each poll.
+	// Native layouts give their footer legends unique names within the panel.
+	std::string result;
+	for (const auto& name : cache.names) Append(result, Legend(NativeWidgets::FindChild(panel, name)));
+	return result;
 }
 }
 std::string Legend(uintptr_t widget) {
@@ -44,12 +62,11 @@ std::string Legend(uintptr_t widget) {
 std::string ForFocus(NativeUi::Focus focus) {
 	const auto current = NativeUi::CurrentFocus();
 	if (!focus.panel || !focus.widget || current.panel != focus.panel || current.widget != focus.widget) return {};
-	std::string result;
-	for (const auto legend : NativeUi::FindControls(focus.panel, UiText::Kind::Legend)) Append(result, Legend(legend));
+	std::string result = PanelHelp(focus.panel, g_content);
 	// ControllerOverlay owns the shared footer, outside the focused content panel.
 	const auto overlay = NativeWidgets::FindPanel("ControllerOverlay");
-	if (overlay && overlay != focus.panel && NativeUi::Visible(overlay))
-		for (const auto legend : NativeUi::FindControls(overlay, UiText::Kind::Legend)) Append(result, Legend(legend));
+	if (overlay != focus.panel) Append(result, PanelHelp(overlay, g_overlay));
 	return result;
 }
+void Reset() { g_content = {}; g_overlay = {}; }
 }

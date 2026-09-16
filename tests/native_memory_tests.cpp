@@ -47,5 +47,29 @@ int main() {
 	std::array<char, 4> buffer{};
 	Check(!Copy(reinterpret_cast<uintptr_t>(page), buffer.data(), buffer.size()), "no-access memory is never copied");
 	VirtualFree(page, 0, MEM_RELEASE);
+	SYSTEM_INFO system{}; GetSystemInfo(&system);
+	page = VirtualAlloc(nullptr, system.dwPageSize * 2, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	Check(page != nullptr, "scoped read fixture allocates two native pages");
+	const auto address = reinterpret_cast<uintptr_t>(page);
+	DWORD previous = 0;
+	{
+		const ReadScope pass;
+		*static_cast<char*>(page) = 'a';
+		Check(Copy(address, buffer.data(), 1) && buffer[0] == 'a', "first scoped copy reads current contents");
+		*static_cast<char*>(page) = 'b';
+		{ const ReadScope nested; Check(Copy(address, buffer.data(), 1) && buffer[0] == 'b', "nested reads never cache contents"); }
+		VirtualProtect(page, system.dwPageSize, PAGE_NOACCESS, &previous);
+		Check(!Copy(address, buffer.data(), 1), "SEH contains a page permission change within a read pass");
+	}
+	VirtualProtect(page, system.dwPageSize, PAGE_READWRITE, &previous);
+	{ const ReadScope pass; Check(Copy(address, buffer.data(), 1) && buffer[0] == 'b', "a new pass rechecks restored permissions"); }
+	VirtualProtect(reinterpret_cast<void*>(address + system.dwPageSize), system.dwPageSize, PAGE_NOACCESS, &previous);
+	{
+		const ReadScope pass;
+		Check(Copy(address, buffer.data(), 1), "readable first page can be cached");
+		Check(!Copy(address + system.dwPageSize - 1, buffer.data(), 2), "cached permission does not authorize a copy into an unreadable next page");
+	}
+	VirtualFree(page, 0, MEM_RELEASE);
+	{ const ReadScope pass; Check(!Copy(address, buffer.data(), 1), "freed memory is revalidated on the next pass"); }
 	Passed();
 }

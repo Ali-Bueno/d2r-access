@@ -228,6 +228,17 @@ ItemPresence GridItemPresence(uintptr_t widget) {
 	return CallItemAtCell(getter, widget, cell);
 }
 
+ItemPresence EquipmentItemPresence(uintptr_t widget) {
+	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return ItemPresence::Unknown;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
+	// InventorySlotWidget vtable 0x1CF3F20 +0xC8 -> 0x2CA060: reads the
+	// widget owner and location +0x5D8, then 0x3886D0 gets the equipped item.
+	// Unlike the grid getter, this override ignores the cell argument.
+	return CallItemAtCell(getter, widget, {});
+}
+
 std::vector<uintptr_t> Panels() {
 	std::vector<uintptr_t> result;
 	const uintptr_t manager = NativeWidgets::PanelManager();

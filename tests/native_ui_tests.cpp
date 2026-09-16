@@ -7,6 +7,8 @@
 #include <array>
 #include <cstring>
 #include <windows.h>
+#include <chrono>
+#include <memory>
 
 namespace {
 uintptr_t managerAddress = 0;
@@ -225,13 +227,44 @@ int main() {
 	statButton.Put(0x30, statButton.Address());
 	Check(NativeUi::Parent(statButton.Address()) == 0, "self-parent pointers fail closed");
 	slot.Put<int32_t>(0x5D8, 4);
+	slot.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	cellItem = 123;
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Occupied
+		&& queriedWidget == slot.Address(), "equipment query uses its own native owner and getter");
+	cellItem = 0;
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
+	itemQueryFault = true;
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
+	itemQueryFault = false;
+	Check(NativeUi::EquipmentItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup excludes grid widgets");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 4, "equipment slot location uses the reflected body location member");
 	Check(NativeUi::EquipmentLocation(goldButton.Address()) == 0, "button memory is never interpreted as an equipment location");
 	slot.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
+	// Synthetic busy inventory panel: report traversal cost, without a timing
+	// assertion that would fail under debugger or machine load.
+	Widget busy("Widget", "BusyInventory");
+	std::vector<std::unique_ptr<Widget>> labels;
+	constexpr int BenchmarkNodes = 256, BenchmarkPasses = 40;
+	for (int i = 0; i < BenchmarkNodes; ++i) {
+		labels.push_back(std::make_unique<Widget>("TextBoxWidget", "Property", "Durabilidad: 28 de 28"));
+		busy.Add(*labels.back());
+	}
+	Check(NativeUi::Snapshot(busy.Address(), 0).nodes.size() == BenchmarkNodes + 1, "benchmark traverses the complete busy panel");
+	auto benchmark = [&](bool scoped) {
+		const auto start = std::chrono::steady_clock::now();
+		for (int i = 0; i < BenchmarkPasses; ++i) {
+			if (scoped) { const NativeMemory::ReadScope pass; (void)NativeUi::Snapshot(busy.Address(), 0); }
+			else (void)NativeUi::Snapshot(busy.Address(), 0);
+		}
+		return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count() / BenchmarkPasses;
+	};
+	const auto uncached = benchmark(false), scoped = benchmark(true);
+	std::printf("Busy UI snapshot (%d widgets): %.3f ms uncached, %.3f ms scoped\n", BenchmarkNodes + 1, uncached, scoped);
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

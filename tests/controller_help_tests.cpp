@@ -9,10 +9,13 @@ namespace {
 using namespace D2RAccess;
 // ButtonLegendWidget vector and records, as consumed by 0x87B080.
 std::array<unsigned char, 0x98> legend{};
+std::array<unsigned char, 0x98> rebuiltLegend{};
 std::array<unsigned char, 3 * 0x40> records{};
 bool visible = true;
+bool rebuilt = false;
+int discoveries = 0;
 NativeUi::Focus focus{1, 2};
-uintptr_t Address() { return reinterpret_cast<uintptr_t>(legend.data()); }
+uintptr_t Address() { return reinterpret_cast<uintptr_t>(rebuilt ? rebuiltLegend.data() : legend.data()); }
 template<class T> void Put(unsigned char* target, size_t offset, T value) { std::memcpy(target + offset, &value, sizeof(value)); }
 void Entry(size_t index, uint32_t first, uint32_t second, int count, const char* caption) {
 	auto* entry = records.data() + index * 0x40;
@@ -27,11 +30,14 @@ bool Visible(uintptr_t widget) { return widget && visible; }
 Type Classify(uintptr_t widget) { return {"ButtonLegendScrollWidget", widget == Address() ? UiText::Kind::Legend : UiText::Kind::Other}; }
 Focus CurrentFocus() { return focus; }
 std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
+	++discoveries;
 	return panel == 3 && kind == UiText::Kind::Legend ? std::vector<uintptr_t>{Address()} : std::vector<uintptr_t>{};
 }
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "ControllerOverlay" ? 3 : 0; }
+uintptr_t FindChild(uintptr_t panel, std::string_view name) { return panel == 3 && name == "Legend" ? Address() : 0; }
+std::string ReadName(uintptr_t widget) { return widget == Address() ? "Legend" : ""; }
 }
 int main() {
 	using namespace D2RAccess;
@@ -46,6 +52,15 @@ int main() {
 	Entry(0, 0xE011, 0, 1, "Asignar habilidad"); Entry(1, 0xE010, 0, 1, "Cerrar menú");
 	Check(NativeControllerHelp::Legend(Address()) == "X: Asignar habilidad. B: Cerrar menú", "read-only fixture matches Porrazo's live legend");
 	Check(NativeControllerHelp::ForFocus({1, 2}) == "X: Asignar habilidad. B: Cerrar menú", "focused content gets its shared controller footer");
+	const int initialDiscoveries = discoveries;
+	focus.widget = 4;
+	Check(NativeControllerHelp::ForFocus(focus) == "X: Asignar habilidad. B: Cerrar menú"
+		&& discoveries == initialDiscoveries, "moving within a panel refreshes actions without another full tree walk");
+	rebuiltLegend = legend; rebuilt = true;
+	Entry(0, 0xE012, 0, 1, "Reparar todo");
+	Check(NativeControllerHelp::ForFocus(focus) == "Y: Reparar todo. B: Cerrar menú"
+		&& discoveries == initialDiscoveries, "a rebuilt footer is resolved by name and supplies its current action");
+	rebuilt = false; focus.widget = 2;
 	Check(NativeControllerHelp::ForFocus({1, 9}).empty(), "covered or stale focus cannot read another control's actions");
 	Entry(0, 0xE00F, 0, 1, "Mantén pulsado para asignar punto(s) de habilidad");
 	Check(NativeControllerHelp::Legend(Address()).starts_with("A: Mantén pulsado"), "native hold-to-spend wording is retained");
@@ -63,5 +78,8 @@ int main() {
 	Put(legend.data(), 0x90, uint64_t{10000});
 	Check(NativeControllerHelp::Legend(Address()).empty(), "corrupt vector is bounded before reading");
 	Check(NativeControllerHelp::Legend(1).empty(), "non-legend archetypes never read legend offsets");
+	NativeControllerHelp::Reset();
+	Put(legend.data(), 0x90, uint64_t{1}); Entry(0, 0xE011, 0, 1, "Actualizar");
+	Check(NativeControllerHelp::ForFocus(focus) == "X: Actualizar" && discoveries > initialDiscoveries, "session reset rediscovers new NPC controls");
 	Passed();
 }
