@@ -6,6 +6,34 @@ The user reports both cursor stalls and delayed speech when shopping, repairing
 or using the stash, intermittently missing equipment locations/occupancy, and
 an undiscoverable blacksmith repair action.
 
+## Placement orientation follow-up
+
+The user subsequently confirmed improvement and reported that available equipment
+slots are read while holding equipment. They prefer that navigation but initially
+felt lost. The 18:23:59 log changes the native A action from Recoger to Colocar;
+18:24:01 reads Arma derecha, Ocupado. This validates the need to describe the
+placement context, rather than changing the game's focus routing.
+
+`InventoryCursor::HoldingItem` reads the existing SDK inventory service:
+`inventory.h` permits `getLocalPlayer` plus `getCursorItem` on the UI thread.
+Handles are reacquired each poll and are never treated as native pointers.
+Missing services, player failures and transient cursor errors are unknown state;
+they never trigger a false release announcement.
+
+The shared reader announces “Objeto en mano. Elige una casilla o una ranura de
+equipo compatible para colocarlo” when an item becomes held, and “Ya no sujetas
+ningún objeto” when it is no longer held. It does not infer whether that item was
+equipped, stored or dropped. Navigation within the held state stays quiet, while
+manual repeat includes its orientation. An empty cell and a new mode notice are
+combined so the following poll cannot interrupt the notice with coordinates.
+Conversation/session resets clear the mode; reopening inventory while holding
+an item restores the context. No focus, cursor or inventory mutation was added.
+
+The full build and all 31 CTest suites now pass, including 15 SDK cursor checks
+and 14 new interaction regressions. This supersedes the temporary full-build
+failure recorded below. The mode announcement is installed; live NVDA validation
+of this additional notice remains pending.
+
 ## Changes and evidence
 
 - `NativeMemory::Copy` previously called `VirtualQuery` for every small field or

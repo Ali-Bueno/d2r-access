@@ -43,6 +43,8 @@ struct Table {
 	const char* equipment;
 	const char* slotEmpty;
 	const char* slotOccupied;
+	const char* itemInHand;
+	const char* itemReleased;
 	const char* belt;
 	const char* gridCell; // one-based row, column
 	const char* skillOfCount; // one-based skill position within the visible branch
@@ -115,6 +117,8 @@ inline constexpr Table English {
 	.equipment           = "Equipment",
 	.slotEmpty           = "Empty",
 	.slotOccupied        = "Occupied",
+	.itemInHand          = "Item in hand. Choose a space or a compatible equipment slot to place it",
+	.itemReleased        = "You are no longer holding an item",
 	.belt                = "Belt",
 	.gridCell            = "Row %d, column %d",
 	.skillOfCount        = "Skill %d of %d",
@@ -188,6 +192,8 @@ inline constexpr Table Spanish {
 	.equipment           = "Equipo",
 	.slotEmpty           = "Vacío",
 	.slotOccupied        = "Ocupado",
+	.itemInHand          = "Objeto en mano. Elige una casilla o una ranura de equipo compatible para colocarlo",
+	.itemReleased        = "Ya no sujetas ningún objeto",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
 	.skillOfCount        = "Habilidad %d de %d",

@@ -4,13 +4,13 @@
 
 ## Inventory/NPC follow-up — 2026-09-16
 
-Built and installed; live controller/NVDA check pending. User reports both cursor
-stalls and delayed speech. Scoped native reads reduce the synthetic 257-widget
-pass from 3.325 to 0.094 ms. Equipment locations read immediately, with native
-empty/occupied state; controller actions now cover inventory/stash/NPC services,
-including repair when offered. Thirteen UI suites / 458 checks pass. Full build
-encountered incompatible parallel radar tests; plugin and relevant targets pass.
-Details and derived getter evidence: `docs/inventory-npc-followup.md`.
+User confirms improvement and prefers the available-slot navigation while holding
+equipment, but initially felt lost. Added one notice when an item is picked up
+(item in hand; choose a space/compatible slot), and one when no longer held.
+The SDK supplies cursor state; unknown reads stay silent. Installed; new notice
+awaits live NVDA check. Full build and 31 CTest suites pass, including 15 SDK
+cursor checks and 14 new interaction checks. The earlier radar test build failure
+is resolved. Details and derived evidence: `docs/inventory-npc-followup.md`.
 
 ## Active build coordination - 2026-09-16 entity scan phase 2
 
@@ -54,7 +54,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
 | Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
-| Performance | wip — inventory/NPC follow-up installed | Earlier logging fix confirmed; user now reports both cursor and speech delay at vendors/stash. Scoped native reads and immediate capture on selection change pass local tests; live check pending. `docs/inventory-npc-followup.md` |
+| Performance | done — improvement confirmed by user | Scoped native reads and immediate capture on selection change installed; user reports improvement. `docs/inventory-npc-followup.md` |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
 | NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
@@ -71,7 +71,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
-| Inventory actions / equipment slot names | wip — follow-up installed, live check pending | Immediate slot names plus native empty/occupied query (`0x2CA060`, vtable `+0xC8`); inventory/NPC controller footer actions now read and diff-gated. `docs/inventory-npc-followup.md` |
+| Inventory actions / equipment slot names | wip — placement orientation installed | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices; live notice/repair check pending. `docs/inventory-npc-followup.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
@@ -192,9 +192,10 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
-Inventory/NPC: user-led check of cursor/speech responsiveness at vendor/stash,
-head/neck/weapon names and occupancy while equipping, and the blacksmith repair
-action plus other available NPC services. `docs/inventory-npc-followup.md`.
+Inventory/NPC: confirm the new item-in-hand/release notices with NVDA and the
+controller; movement between equipment slots should not repeat them. Blacksmith
+repair and other NPC services still need explicit confirmation.
+`docs/inventory-npc-followup.md`.
 
 Entity scan: confirm the hidden "una fuerza maligna" units no longer appear
 in the camp, then calibrate `metersPerSubtile` by walking to an NPC at a known

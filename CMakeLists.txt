@@ -37,6 +37,7 @@ add_library(d2r-access SHARED
 	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/interaction_reader.cpp
+	src/inventory_cursor.cpp
 	src/plugin.cpp
 	src/localization.cpp
 	src/native_widgets.cpp
@@ -248,6 +249,11 @@ if(BUILD_TESTING)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME interaction-reader COMMAND interaction-reader-tests)
+	add_executable(inventory-cursor-tests tests/inventory_cursor_tests.cpp src/inventory_cursor.cpp)
+	target_link_libraries(inventory-cursor-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(inventory-cursor-tests PRIVATE src)
+	target_compile_features(inventory-cursor-tests PRIVATE cxx_std_20)
+	add_test(NAME inventory-cursor COMMAND inventory-cursor-tests)
 	add_executable(async-log-tests tests/async_log_tests.cpp src/async_log.cpp)
 	target_link_libraries(async-log-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(async-log-tests PRIVATE src)

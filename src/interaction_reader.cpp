@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "interaction_reader.h"
+#include "inventory_cursor.h"
 #include "ground_item_service.h"
 #include "localization.h"
 #include "native_tooltips.h"
@@ -27,6 +28,7 @@ InventoryContext g_inventoryContext;
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
 std::string g_help, g_spokenHelp, g_helpContext;
+std::optional<bool> g_holdingItem;
 
 void Append(std::string& text, const std::string& part) {
 	if (part.empty() || text == part) return;
@@ -67,6 +69,16 @@ UiText::Readout Inventory(NativeUi::Focus focus, const NativeUi::Type& type) {
 		if (location > 0 && static_cast<size_t>(location) < labels.size()) Append(result.option, labels[location]);
 	}
 	return result;
+}
+
+std::string CursorNotice(const D2RL::PluginContext* context, bool inventory) {
+	if (!inventory) { g_holdingItem.reset(); return {}; }
+	const auto holding = InventoryCursor::HoldingItem(context);
+	if (!holding || holding == g_holdingItem) return {};
+	const bool wasHolding = g_holdingItem.value_or(false);
+	g_holdingItem = holding;
+	if (*holding) return Strings::Current().itemInHand;
+	return wasHolding ? Strings::Current().itemReleased : "";
 }
 }
 
@@ -138,12 +150,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	g_inventory = inventory;
 	if (!inventory) g_inventoryContext = {};
+	auto cursorNotice = CursorNotice(context, inventory);
 	if (!tabChange.empty()) {
 		// A tab switch announces only its name. Accept the current cell as the
 		// baseline so its delayed readout cannot immediately interrupt that name.
 		if (readout.Empty()) g_reader.Reset();
 		else (void)g_reader.Update(readout, now, 0);
-		ScreenReader::Speak(tabChange, true);
+		std::string text(tabChange);
+		Append(text, cursorNotice);
+		ScreenReader::Speak(text, true);
 		return true;
 	}
 	// The stock item tooltip can appear ~350 ms after selection. An occupied
@@ -151,9 +166,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// keep their existing quick coordinate feedback.
 	if (type.kind == UiText::Kind::InventoryGrid && !renderedDescription
 		&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied) {
-		if (helpChanged && !help.empty()) {
-			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s actions -> \"%s\"", readout.context.c_str(), help.c_str());
-			ScreenReader::Speak(help, true);
+		if (helpChanged) Append(cursorNotice, help);
+		if (!cursorNotice.empty()) {
+			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s actions -> \"%s\"", readout.context.c_str(), cursorNotice.c_str());
+			ScreenReader::Speak(cursorNotice, true);
 		}
 		g_spokenHelp = help;
 		g_helpContext = helpContext;
@@ -164,7 +180,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	auto announcement = button ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot ? 0 : InventorySettleMs)
+		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty() ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
@@ -176,6 +192,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
 	if (helpChanged) Append(announcement.text, help);
+	if (!cursorNotice.empty()) {
+		Append(cursorNotice, announcement.text);
+		announcement.text = std::move(cursorNotice);
+	}
 	g_spokenHelp = help;
 	g_helpContext = helpContext;
 	if (!announcement.text.empty()) {
@@ -193,12 +213,14 @@ void Reset() {
 	g_help.clear();
 	g_spokenHelp.clear();
 	g_helpContext.clear();
+	g_holdingItem.reset();
 	NativeControllerHelp::Reset();
 	NativeTooltips::Reset();
 }
 
 std::string Repeat() {
-	auto text = g_reader.Repeat();
+	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
+	Append(text, g_reader.Repeat());
 	Append(text, g_help);
 	return text;
 }

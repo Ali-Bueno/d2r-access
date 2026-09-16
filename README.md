@@ -95,6 +95,12 @@ UI memory permission checks are reused within each reading pass to reduce cursor
 stalls. These changes are built and tested; live controller/NVDA validation remains
 pending. See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
 
+The user confirmed improvement and prefers the game's equipment-placement
+navigation. Picking up an inventory item now announces **Item in hand**, with
+a short instruction to choose a space or compatible equipment slot. Leaving
+that mode announces that the item is no longer held. These notices occur on
+state changes, and manual repeat includes the current held-item context.
+
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes directional `tin` (a usable passage opens) / `tock`
 (a nearby structural barrier closes that passage) cues,

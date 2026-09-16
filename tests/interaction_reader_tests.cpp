@@ -1,4 +1,5 @@
 #include "interaction_reader.h"
+#include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
 #include "native_progression.h"
@@ -34,6 +35,7 @@ int equipmentLocation = 0;
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
+std::optional<bool> holdingItem;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -77,6 +79,9 @@ Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
 namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
+}
+namespace D2RAccess::InventoryCursor {
+std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
@@ -279,5 +284,34 @@ int main() {
 	ClearSpeech(); conversation = true; Tick();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
 	conversation = false;
+	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear(); tooltip = {};
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
+	Tick(); Check(speech.empty(), "entering inventory without a held item does not announce a release");
+	holdingItem = true; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().itemInHand}, "picking up an item announces placement mode without waiting for a tooltip");
+	ClearSpeech(); Tick(); Check(speech.empty(), "holding an item does not repeat the placement notice");
+	focus.widget = 81; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; equipmentLocation = 1;
+	cell = {};
+	equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "crossing into empty equipment reads the slot without repeating placement help");
+	Check(InteractionReader::Repeat().starts_with(Strings::Current().itemInHand), "manual repeat retains the current item-in-hand context");
+	ClearSpeech(); holdingItem.reset(); Tick();
+	Check(speech.empty(), "a failed cursor query cannot announce that the item was placed");
+	holdingItem = true; Tick(); Check(speech.empty(), "cursor query recovery does not repeat an unchanged mode");
+	holdingItem = false; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().itemReleased}, "leaving placement mode is announced without guessing whether the item was equipped or dropped");
+	Check(InteractionReader::Repeat().find(Strings::Current().itemInHand) == std::string::npos, "repeat removes stale item-in-hand context");
+	ClearSpeech(); Tick(); Check(speech.empty(), "an empty cursor does not repeatedly announce release");
+	InteractionReader::Reset(); holdingItem = true; Tick();
+	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand), "reopening inventory while holding an item restores orientation");
+	ClearSpeech(); conversation = true; Tick();
+	Check(speech.empty() && InteractionReader::Repeat().empty(), "conversation focus suppresses placement notices and resets orientation");
+	conversation = false; InteractionReader::Reset(); ClearSpeech();
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	cell = {0, 0}; selection = 0; holdingItem = false; itemPresence = NativeUi::ItemPresence::Empty;
+	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Tick();
+	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand) && speech[0].ends_with("Fila 1, columna 2"), "placement mode and its newly selected empty cell are spoken together");
+	ClearSpeech(); Tick(); Check(speech.empty(), "a delayed coordinate read cannot immediately interrupt placement orientation");
 	Passed();
 }
