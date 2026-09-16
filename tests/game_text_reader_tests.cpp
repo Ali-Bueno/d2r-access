@@ -118,7 +118,7 @@ void Speak(std::string_view text, bool interrupt) { speech.push_back({std::strin
 int main() {
 	using namespace D2RAccess;
 	using D2RL::Lifecycle::GameplayEventKind;
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Check(GameTextReader::Register(&context) && listeners.size() == 3, "subscribes to session lifecycle");
 	panels = {Menu()}; focus = {1, 2};
 	Check(!Settle() && speech.empty(), "preloaded in-game UI is silent in front end");

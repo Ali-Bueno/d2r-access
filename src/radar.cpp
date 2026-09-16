@@ -3,26 +3,19 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 
 namespace D2RAccess::Radar {
+namespace {
+double Distance(Position a, Position b) { return std::hypot(a.x-b.x, a.y-b.y); }
+}
 void Engine::Reset() {
 	const uint64_t nextRevision = revision_ + 1;
 	*this = Engine(settings_);
 	revision_ = nextRevision;
 }
-void Engine::Suspend() {
-	// Pauses, a missing sample and discontinuous movement invalidate live
-	// evidence, not the positions of previously announced turns in this area.
-	for (auto& sensor : sensors_) {
-		auto memory = std::move(sensor.openingVisit);
-		memory.Suspend();
-		sensor = {};
-		sensor.openingVisit = std::move(memory);
-	}
-	motion_.clear(); velocity_ = {}; lastMove_ = 0;
-	positioned_ = false;
-	++revision_;
+double Engine::Speed() const { return std::hypot(velocity_.x, velocity_.y); }
+double Engine::CloseDepth(const Settings& settings, int bodyPattern) {
+	return std::max(settings.blockedDepth, settings.openDepth - BodySpan(bodyPattern));
 }
 void Engine::UpdateMotion(Position player, uint64_t now) {
 	if (!motion_.empty() && (player.x != motion_.back().position.x || player.y != motion_.back().position.y)) lastMove_ = now;
@@ -35,27 +28,83 @@ void Engine::UpdateMotion(Position player, uint64_t now) {
 	const double seconds = (now - first.time) / 1000.0;
 	velocity_ = {(player.x - first.position.x) / seconds, (player.y - first.position.y) / seconds};
 	// Use recent motion to describe acceleration and turns without lingering
-	// on the previous direction. Motion does not generate geometry cues.
+	// on the previous direction. Motion never generates geometry cues.
 	const auto recent = std::find_if(motion_.begin(), motion_.end(), [&](const auto& sample) { return now - sample.time <= settings_.recentMotionMs; });
 	if (recent == motion_.end() || recent->time == now) return;
 	const double recentSeconds = (now - recent->time) / 1000.0;
 	const Position delta{player.x - recent->position.x, player.y - recent->position.y};
 	const double distance = std::hypot(delta.x, delta.y);
 	if (distance == 0) return;
-	const double speed = std::max(std::hypot(velocity_.x, velocity_.y), distance / recentSeconds);
+	const double speed = std::max(Speed(), distance / recentSeconds);
 	velocity_ = {delta.x * speed / distance, delta.y * speed / distance};
 }
-Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
+State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const {
+	const auto& passage = sensor.passage;
+	if (!passage.available) {
+		// Coverage loss keeps the confirmed state, stops any confirmation and
+		// holds a waiting cue until the passage can be seen again.
+		sensor.candidate = State::Unknown;
+		return State::Unknown;
+	} else if (sensor.state == State::Unknown) {
+		// Silent baseline: the first verdict after a reset is never a cue.
+		if (passage.observed != State::Unknown) sensor.state = passage.observed;
+	} else if (passage.observed == State::Unknown || passage.observed == sensor.state) {
+		sensor.candidate = State::Unknown;
+	} else if (sensor.candidate != passage.observed) {
+		sensor.candidate = passage.observed;
+		sensor.candidateOrigin = motion;
+		sensor.candidateSince = now;
+	} else {
+		const bool travelled = Distance(motion, sensor.candidateOrigin) >= settings_.confirmDistance;
+		const bool stationary = now - lastMove_ >= settings_.stoppedMs && now - sensor.candidateSince >= settings_.stationaryConfirmMs;
+		if (travelled || stationary) {
+			sensor.state = passage.observed;
+			sensor.candidate = State::Unknown;
+			sensor.deferred = sensor.state; // replaces any older change still waiting
+			sensor.hold = "";
+			if (sensor.state == State::Blocked)
+				sensor.frontier = {true, motion.x*axis.x + motion.y*axis.y + passage.depth, motion};
+		}
+	}
+	return Deliver(sensor, axis, motion, now);
+}
+State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t now) const {
+	if (sensor.deferred == State::Unknown) return State::Unknown;
+	if (sensor.deferred == State::Open && sensor.frontier.known) {
+		// Backing away from an announced wall lengthens the route without
+		// opening anything. Half the hysteresis band absorbs raster steps;
+		// the wall stops gating once the player has left its neighbourhood.
+		const auto& frontier = sensor.frontier;
+		const Position offset{motion.x - frontier.origin.x, motion.y - frontier.origin.y};
+		const double lateral = std::abs(-offset.x*axis.y + offset.y*axis.x);
+		const double reach = motion.x*axis.x + motion.y*axis.y + sensor.passage.depth;
+		const double margin = (sensor.passage.openDepth - sensor.passage.closeDepth) / 2;
+		if (lateral <= settings_.boundaryRange && reach < frontier.projection + margin) {
+			sensor.deferred = State::Unknown;
+			sensor.hold = "retreat";
+			return State::Unknown;
+		}
+	}
+	if (sensor.deferred == State::Open && sensor.lastCueMs && now - sensor.lastCueMs < settings_.cueIntervalMs) {
+		sensor.hold = "interval";
+		return State::Unknown;
+	}
+	sensor.lastCue = sensor.deferred;
+	sensor.lastCueMs = now;
+	sensor.deferred = State::Unknown;
+	sensor.hold = "";
+	return sensor.lastCue;
+}
+Events Engine::Tick(const World& world, uint64_t now) {
 	Events events{};
-	// Preserve subcell movement for the actual-motion readout. The
-	// collision adapter still supplies the native integer footprint origin.
+	// Preserve subcell movement for confirmation and the actual-motion readout.
+	// The collision adapter still supplies the native integer footprint origin.
 	const Position motion{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
-	const double travel = std::hypot(motion.x - previous_.x, motion.y - previous_.y);
+	const double travel = Distance(motion, previous_);
 	const bool rebase = !positioned_ || world.session != session_ || world.level != level_
 		|| now < lastTick_ || now - lastTick_ > settings_.maxGapMs || travel >= settings_.teleportDistance;
 	if (rebase) {
-		if (world.session == session_ && world.level == level_ && now >= lastTick_) Suspend();
-		else Reset();
+		Reset();
 		positioned_ = true;
 		session_ = world.session;
 		level_ = world.level;
@@ -63,77 +112,17 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	previous_ = motion;
 	lastTick_ = now;
 	UpdateMotion(motion, now);
-	if (rebase) audio = {}; // the service cancels old-world audio after this tick
+	const double close = CloseDepth(settings_, world.bodyPattern);
+	const double open = settings_.openDepth;
+	// The passage window stays inside the structural window it reads from.
+	const double span = BodySpan(world.bodyPattern);
+	const double reach = std::min(std::max(open, settings_.reachDepth), StructuralRadius(settings_, world.bodyPattern) - 1 - span);
 	const auto structure = StructuralWorld(world, settings_);
-	const int radius = PassageRadius(settings_, world.bodyPattern);
-	const auto structuralGrid = Navigation::Build(structure, radius);
-	const auto movementGrid = Navigation::Build(world, radius);
+	const auto grid = Navigation::Build(structure, PassageRadius(reach, world.bodyPattern));
 	for (size_t i = 0; i < sensors_.size(); ++i) {
-		auto& sensor = sensors_[i];
-		sensor.probe = Scan(world, Axes[i], settings_);
-		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
-		sensor.structure = Scan(structure, Axes[i], settings_, Layer::Terrain);
-		sensor.passage = ScanPassage(structuralGrid, Axes[i], settings_);
-		sensor.movementPassage = ScanPassage(movementGrid, Axes[i], settings_);
-		// Sideways steps along an angled wall add route length without
-		// extending the useful turn. Keep the direct near-wall warning when
-		// no connected route reaches the opening depth.
-		if (sensor.passage.available && sensor.passage.depth < settings_.openDepth
-			&& sensor.structure.end == State::Blocked && sensor.structure.clearDepth <= sensor.passage.closeDepth)
-			sensor.passage.observed = State::Blocked;
-		// Connected but offset travel can retain an existing opening. A new
-		// opening requires alignment with the direct structural passage.
-		if (sensor.passage.observed == State::Open && sensor.structure.observed != State::Open)
-			sensor.passage.observed = State::Unknown;
-		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_);
-		// A nearby offset route retains the passage state, but the opening
-		// cue waits until the actual named direction is clear for the body.
-		sensor.guidance.openingSafe &= sensor.movementPassage.observed == State::Open;
-		sensor.guidance.warningDepth = sensor.passage.closeDepth;
-		if (sensor.guidance.observed != State::Unknown) sensor.stable = sensor.guidance.observed;
-		else if (!sensor.probe.available) sensor.stable = State::Unknown;
-		sensor.newOpening = sensor.wallMemory.Update(sensor.structure, world.player, Axes[i],
-			sensor.passage.observed == State::Blocked, now, settings_, &structure);
-		sensor.openingVisit.Update(world.player,Axes[i],sensor.structure,sensor.probe,
-			sensor.guidance.openingSafe && sensor.passage.observed == State::Open,world.bodyPattern,now,settings_);
-		const bool revisit = sensor.openingVisit.Ready();
-		// A real wall returning between two visits rearms an announced exit
-		// even when the player stays outside the proximity-warning distance.
-		if (sensor.wallMemory.BarrierConfirmed() || revisit) sensor.passageState.RearmOpening(revisit);
-		const bool opening = revisit || (sensor.newOpening && sensor.guidance.openingSafe
-			&& sensor.probe.clearDepth >= sensor.wallMemory.RequiredDepth());
-		events[i] = sensor.passageState.Observe(sensor.passage, opening, now, settings_.stableMs);
-		if (events[i] == State::Open) {
-			if (revisit) sensor.openingVisit.Reported();
-			else sensor.openingVisit.Remember(world.player,Axes[i],sensor.wallMemory.RequiredDepth(),&structure);
-		}
-		if (events[i] != State::Unknown) sensor.revisitCue = events[i] == State::Open && revisit;
-		if (!sensor.passage.available) {
-			sensor.lastCue = State::Unknown;
-			sensor.revisitCue = false;
-			sensor.retry = false;
-		}
-		sensor.retrying = false;
-		const auto failure = audio.failed[i];
-		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = !failure.submitted;
-		const State lastCue = events[i] != State::Unknown ? events[i] : sensor.lastCue;
-		// A consumed reminder remains valid for queue/retry delivery while its
-		// remembered approach is clear, without rearming another announcement.
-		const bool cueOpening = opening || (sensor.revisitCue && sensor.openingVisit.Valid());
-		sensor.cueState = sensor.passageState.Accepts(lastCue, sensor.passage, cueOpening) ? lastCue : State::Unknown;
-		if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue && lastCue != State::Unknown
-			&& now - sensor.lastEmit >= settings_.retryMs) {
-			events[i] = lastCue;
-			sensor.retrying = true;
-		}
-		if (events[i] != State::Unknown) {
-			sensor.lastEmit = now;
-			sensor.lastCue = events[i];
-			sensor.retry = false;
-		}
+		sensors_[i].passage = ScanPassage(grid, Axes[i], open, close);
+		events[i] = Observe(sensors_[i], Axes[i], motion, now);
 	}
-	for (size_t i = 0; i < sensors_.size(); ++i)
-		sensors_[i].guidance.playbackMs = PlaybackBudget(audio, events, i);
 	return events;
 }
 }

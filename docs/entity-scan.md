@@ -4,7 +4,8 @@ On-demand directional readout of what the player could see: push the right
 thumbstick in a screen direction and the plugin speaks the nearest visible
 entity in that quarter of the plane with its distance; push the same direction
 again to hear the next nearest, wrapping around. It never scans on its own and
-never speaks while moving; every announcement is a response to a push.
+never speaks while moving; every announcement is a response to a push. The
+automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`.
 
 ## Behaviour
 
@@ -45,7 +46,8 @@ never speaks while moving; every announcement is a response to a push.
 |---|---|---|
 | Ground items | `NativeGroundItems::Read` (resident room + neighbours) | done |
 | Monsters / NPCs | `NativeEntities::Read`: unit type 1, MonStats name id / cached composed name, alignment + npc flag, dead modes and flags, player minions skipped | built, live check pending |
-| World objects (chests, shrines, doors, waypoints, portals) | `NativeEntities::Read`: unit type 2, objects.txt key name, per-mode Selectable byte, door captions by mode, shrine name via linked row | built, live check pending |
+| World objects (chests, shrines, doors) | `NativeEntities::Read`: unit type 2, objects.txt key name, per-mode Selectable byte, door captions by mode, shrine name via linked row | built, live check pending |
+| Exits (level warps, portals, waypoints, gateways) | `NativeEntities::Read`: unit type 5 named after the destination level; objects by `SubClass` / `OpenWarp` / level-named key. `Kind::Exit`, also the portal loop. `docs/level-exits.md` | built, live check pending |
 
 ## Code
 

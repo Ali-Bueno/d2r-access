@@ -2,6 +2,92 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Automatic quest announcements installed - 2026-09-16
+
+Enabled by default; `access-quests on|off|status`. UI quest alerts now speak a
+localized update notice even with no journal panel in memory. Stable, identified
+objective changes speak the quest and its current text; SDK PrimaryGoalDone
+events announce the main objective achieved, without assuming reward collection.
+Events are coalesced, navigation stays silent, and dialogue/UI/focus gates defer
+speech. Local-player/session checks and resets prevent stale announcements.
+All 13 locales include the four new phrases. No new native offset or dependency.
+
+Build succeeds and deployed the DLL with the game closed. **37/37 CTest suites /
+9266 checks pass**, including quest-progress (52), quest-service (22), quest-log
+(59) and speech-strings (5724). Build/install DLL SHA-256:
+`BE482497AACA8F070C4372F7DC1B1A1B1DD8CCE3BB524EFE07C904CE139D87A9`.
+Live NVDA confirmation pending. Exact objective/counter coverage when the
+journal is unloaded remains a native-data research task; generic update/goal
+announcements are implemented. `docs/quests.md` documents behavior and tests.
+
+## Build repaired and installed - 2026-09-16
+
+Added the six beacon messages to all 13 locale tables and their completeness /
+format validation. Linked the real quest-log and localization implementations
+into `native-ui-tests`. `./build.ps1` succeeds; **35/35 CTest suites and 9036
+checks pass**, including native-ui (64), speech-strings (5568), quest-log (59)
+and beacon (884). The build deployed the new plugin with the game closed;
+build/install DLL SHA-256 matches:
+`2B5A5EA6047D26D566A7200AD1597473E5C2A897C476FBDB4CF28BC578B332FA`.
+
+This was the preceding build repair; automatic quest announcements were added
+afterwards (above). Whole-level unloaded exit discovery remains unimplemented.
+
+## Initial verification after interrupted work - 2026-09-16 (historical)
+
+**The initial working tree did not build (fixed above).** Codex ran `./build.ps1`, then a
+keep-going MSVC/Ninja build to reveal the remaining errors, with the game closed.
+No implementation fixes were made during this verification.
+
+- Plugin: `src/beacon_service.cpp` references six missing `Strings::Table`
+  fields: `beaconCleared`, `beaconUnavailable`, `beaconNothing`,
+  `beaconFollowing`, `beaconArrived`, `beaconLost` (C2039). The 13 locale
+  headers and phrase visitor do not define these beacon messages yet.
+- Tests: `native-ui-tests` fails with LNK2019/LNK1120 for
+  `Localization::Text`, `QuestLog::ForWidget` and `QuestLog::Title`.
+  Its target at `CMakeLists.txt:213` omits the new dependencies.
+- CTest: **34 of 35 suites passed; `native-ui` could not run** because its
+  executable did not link. New isolated suites pass: `beacon` (884 checks),
+  `quest-log` (59), `speech-strings` (5334). These do not validate the plugin
+  integration or live controller/NVDA behavior.
+- The installed DLL and previous build DLL still match (SHA-256
+  `3988BAA9067B57AF4AD27B9E36F0CEAB800302491760E7AB31F859744D65DD14`,
+  timestamp 2026-09-16 19:12:48 local). No new plugin DLL was deployed.
+- Latest game session began at 19:16:31. Its log records exit detections,
+  including counts 1 and 2, but still uses the old `strCancel` language probe;
+  no quest-watcher or beacon records were found. Exit audibility and specific
+  dungeon transitions still need user confirmation.
+
+Quest log naming is implemented, but **automatic quest progress speech is
+not**: `quest_service.cpp` only records panel text for investigation.
+Beacon guidance is implemented for a previously scanned nearby target; discovering
+exits across an entire unloaded level remains pending (`docs/beacon.md`).
+The earlier build/install notes below describe previous builds.
+
+## Level exit loops (portal sound) - 2026-09-16
+
+Built and installed; live NVDA/controller check pending. The user's `portal.ogg`
+loops at every unit that leads to another area: level warps (unit type 5, named
+after the destination level like the hover label), town/red portals, waypoints,
+gateways, trapdoors, and level-named portals such as Duriel's. Same mixer as the
+item loops, exits always voiced before loot, list refreshed every 500 ms. Ctrl+P,
+`access-items exits-on|exits-off`. The scan now reports them as `Kind::Exit`.
+Offline RE (type-5 layout, SubClass byte, Levels row offsets) with fingerprints
+in `entity_layout.h`; `docs/level-exits.md`, corrections in
+`docs/entity-units-re.md` §10. 32 suites pass (native-entities covers warp,
+portal, waypoint and level-named exits; ground-items and service cover the loop
+priority and the toggle). Live check: hear the loop at the Blood Moor exit and
+at an open town portal; if nothing sounds, see the pending checks in the doc.
+
+## Friendly NPC announcer - 2026-09-16
+
+Built and installed; live controller/NVDA check pending. Periodic (500 ms)
+poll of the scan's unit reader names the nearest friendly NPC once it is within
+15 subtiles, with distance and screen direction (`Kashya, 12 metros, a la
+derecha`), diff-gated with 3-subtile hysteresis; enemies/objects/items never.
+Ctrl+N, `access-npc`, `radar.toml` `[npc]`. 32 suites pass (`npc-proximity`
+34 checks, `native-world` 86 incl. [npc] config). `docs/npc-proximity.md`.
+
 ## Inventory/NPC follow-up — 2026-09-16
 
 User confirms improvement and prefers the available-slot navigation while holding
@@ -19,13 +105,26 @@ is resolved. Details and derived evidence: `docs/inventory-npc-followup.md`.
   plus ground items. User confirmed live in the camp and Blood Moor (Kashya,
   Warriv, Charsi, stash, enemies). Hidden "evil force" helpers now excluded by
   the game's killable nameplate rule; that build is installed.
-- **38 suites / 2446 checks pass** (`entity-radar` 44, `native-entities` 22).
+- **Sonar radar redesign installed** (one confirm-by-travel state machine per
+  direction, replacing the memory/geometry/guidance classifiers; connected-
+  passage scan is the only classifier). Four directions and the original
+  sound design are kept: the review's eight-direction/new-sound-design
+  attempt was tried live and reverted at the user's request after listening.
+  A forensic analysis of the 18:10 live session (377 cues, 207 snapshots,
+  zero code discrepancies) found the imprecision was model-level: narrowed
+  the route search to 1 cell of lateral tolerance (was 3), raised openDepth
+  to 10 (closing 7 for three-cell bodies), and capped clutter removal at
+  5 cells; `[radar]` lines now log the left-stick position. No active owner.
+  Built and installed; live listening of this build pending. `docs/radar-redesign.md`.
+- **32 suites / 3697 checks pass** (radar: `radar-engine` 250, `radar-passage` 957,
+  `radar-structure` 100, `radar-snapshot` 59, `radar-audio` 35, `radar-readout` 38;
+  `native-world` 86 incl. volume config; `entity-radar` 44, `native-entities` 22).
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (entity scan confirmed live; 38 suites / 2446 checks pass). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (automatic quest announcements deployed; 37/37 suites / 9266 checks pass; live validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -47,6 +146,9 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Section / feature | Status | Notes |
 |---|---|---|
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
+| Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon messages and quest announcements implemented; 5724 checks pass. |
+| Quest log / automatic quest tracking | built and installed - live check pending; full objective coverage limited | 27-quest catalog, generic update/primary-goal alerts and identified live objective changes. Missing or stale panels use a generic notice. No guessed completion row/name mapping. `docs/quests.md` |
+| Target beacon guidance | built and installed - live check pending | Scan then right-stick click / Ctrl+B wiring and route tracker present; 884 isolated checks pass. Whole-level unloaded exit discovery remains unimplemented. `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
@@ -62,12 +164,13 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
-| Sonar radar | wip - area-scoped opening memory installed; listening pending | Multiple approach regions, clear-strip grouping and pause/gap retention; fresh physical validation on return. Native movement unchanged. `docs/radar-opening-memory.md`. |
-| Connected navigation research | done locally - runtime integration built | Native body graph now feeds bounded directional passage queries; no backward first route or distant side detour counted as forward. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md`. |
+| Friendly NPC announcer | built - live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
+| Sonar radar | wip — 2026-09-16 redesign installed, incl. 18:10 forensic fix; live listening pending | One confirm-by-travel state machine per direction; connected-passage scan is now the only classifier, with 1-cell lateral tolerance (was 3), openDepth 10/close 7 (was 8/5), clutter removal capped at 5 cells (was up to 20), and `stick=` logged per cue. Four screen-cardinal directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried live and reverted after the user listened. `docs/radar-redesign.md` (current model); `docs/sonar-radar.md` and its follow-ups are superseded history. |
+| Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
-| Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 1662 checks; shared build: 36 suites / 2377 checks. Revisit suite: 261 checks covering captured geometry, old/new approaches, joined/separate openings, pause/gap, stationary fluctuations, occupancy and delivery. |
+| Radar cue delivery log | wip — log format updated for the redesign | `[radar-audio]` still retains ID/origin through queue, submission, completion, cancellation or drop (no retries now); `[radar-direction]`/`[radar-state]` replace the removed opening-hold/wall/guidance/reference lines. Live validation of the new log pending. `docs/radar-redesign.md` (current fields), `docs/radar-event-log.md` (superseded) |
+| Radar / footstep automated tests | done (local) | Six radar suites / 1439 checks against the confirm-by-travel engine (state machine, corridor stability, recorded camp/return grids, snapshot RLE, audio, readout), plus footsteps. Expectations derived from geometry, named constants and captures; timing printed, never asserted. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -75,6 +178,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
+| Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
 | Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -126,6 +230,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Speech cost | PRISM/NVDA `speak` is synchronous: 300-800 ms per call measured on the UI thread → all PRISM calls now run on a dedicated speech thread (`screen_reader.cpp`); Speak() only queues | slow-tick log 2026-09-15 |
 | Widget flags | `widget+0x50` / `+0x51` are bools with vtable setters (+0x48/+0x50); `+0x51` tested as "panel up/active" (D2RCore 0x2C35FC) → likely visible/enabled — candidates for disabled-control detection | Opus RE |
 | Button → panel wiring | `ButtonWidget.fields.onClickMessage = "PanelManager:OpenPanel:SettingsPanel"`, `textString = "@OptionsHD"` (MainMenuButtonRibbonHD.json:43) | extraction |
+| Radar redesign (2026-09-16) | One confirm-by-travel state machine per direction replaces the memory/geometry/guidance classifiers; connected-passage scan (`ScanPassage`) is the only classifier. Four directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried and reverted after user listening. 18:10 forensic analysis (377 cues, 207 snapshots, zero code discrepancies) found the imprecision was model-level: lateral tolerance 3→1 cell, openDepth 8→10 (close 5→7), clutter cap 20→5 cells, `stick=` added to `[radar]`; parameters, log format and removed classes fully listed | `docs/radar-redesign.md` |
 
 ## In-game native UI evidence (2026-09-15)
 
@@ -192,6 +297,19 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
+Validate automatic quest alerts with NVDA while the journal is closed: expect
+one update notice, and a main-objective notice after the related dialogue closes.
+Inspect `[quest] announce` and `watch` to establish whether native objective text
+remains available; check a live Den of Evil counter when possible. See
+`docs/quests.md`. Then validate target guidance with a scanned entity and
+right-stick click / Ctrl+B. Earlier feature-specific checks follow below.
+
+NPC announcer: user-led walk around the Rogue Encampment with the log open.
+Expect one `[npc]` announcement per NPC as each becomes the nearest in range,
+nothing repeated after talking to them, and a re-announcement after walking
+about eighteen metres away and back. If the camp's fences make announcements
+misleading, set `line_of_sight = true` in `[npc]`. `docs/npc-proximity.md`.
+
 Inventory/NPC: confirm the new item-in-hand/release notices with NVDA and the
 controller; movement between equipment slots should not repeat them. Blacksmith
 repair and other NPC services still need explicit confirmation.
@@ -213,7 +331,19 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Next radar step: user-led listening at two different openings in the same direction, returning to the earlier one and repeating after a pause. Check `visits=N` and `revisit=1` against actual movement and collision snapshots. The analyzed 12:45 session has 279 complete maps. Do not mix desktop inputs. Native sliding remains active; no-slide still needs live path verification. Read `docs/radar-opening-memory.md` first.
+Next radar step: user-led listening of the build with the 2026-09-16 18:10
+forensic fix (1-cell lateral tolerance, openDepth 10/close 7, clutter cap
+5 cells) applied on top of the confirm-by-travel redesign (four directions,
+original tin/tock sound design — the eight-direction/new-sound-design attempt
+was already tried and reverted). Run `access-radar test` first to learn the
+8 chirps (4 directions x open/blocked), then walk the camp and Blood Moor
+with the log open, checking `stick=` against the actual push. Check cue rate
+per minute, same-direction open/blocked flips under 1 second, and that
+`[radar-state]` `hold` reasons (`retreat`/`interval`) match what was actually
+heard — `retreat` is the world-anchored wall-memory gate (`Frontier`) that
+replaced the old "repeat" hold. Do not mix desktop inputs with the user's
+controller movement. Read
+`docs/radar-redesign.md` first (validation checklist).
 
 ## Known issues / open questions
 
@@ -228,7 +358,7 @@ Next radar step: user-led listening at two different openings in the same direct
   Equipment speech gives base name and quality, not the complete generated name.
   Only resident room/neighbors are scanned. User-added drop sounds are unused;
   this feature uses the six loop recordings. `docs/ground-items.md`.
-- **Radar prototype:** improved but user still reports inconsistent memory/wall-to-opening sequences. Area-scoped approach regions are installed; listening validation remains pending. Remembered places require current physical clearance. A real corner can become passable one native cell later; logs alone do not establish stick intent. Larger recesses and missing contours retain geometric limits. Native wall sliding remains active. `docs/radar-opening-memory.md`.
+- **Sonar radar:** the 2026-09-16 confirm-by-travel redesign is installed but **not yet live-validated**, including the 18:10 forensic fix (1-cell lateral tolerance, openDepth 10/close 7, 5-cell clutter cap) that corrected the 76%-at-contact wall cues and false "exit" cues a live-session analysis found in the first cut. Direction count (four) and sound design are unchanged from before the review: an eight-direction/new-sound-design attempt was tried live and reverted at the user's request. Native wall sliding remains active and unaffected. `docs/radar-redesign.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

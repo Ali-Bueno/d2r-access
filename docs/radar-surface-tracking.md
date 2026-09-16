@@ -1,5 +1,7 @@
 # Radar surface tracking after the running feedback
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 Investigated 2026-09-16. The user rejected the 07:49 build after hearing repeated
 openings followed by closing on the same side while running. This supersedes the
 interpolated-path approach in [radar-precision.md](radar-precision.md).

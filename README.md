@@ -17,7 +17,7 @@ blind players using a controller; keyboard and mouse are planned.
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
 - Native text in dropdown rows, character rows and confirmation prompts.
-- Everything is spoken in the game's text language (Spanish and English connective phrases so far).
+- Everything is spoken in the game's text language: the plugin's own phrases are translated into all thirteen D2R locales and follow the language selected in the game's options (changing it in Options switches the plugin too).
 
 Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
 lists, full scrolling dialogues, tutorial/automatic hints and area-name banners. The
@@ -164,7 +164,7 @@ footfall may still sound. Native code checks and automated tests pass; the new
 filter awaits live listening validation. See [footstep behavior and limits](docs/footsteps.md).
 
 Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat,
-full-map navigation and destination beacons.
+full-map navigation and complete quest-objective coverage while the journal is unloaded.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.
 
@@ -178,8 +178,27 @@ by about 3.5 dB following the user's listening feedback, including piles of item
 Sounds stop for pickup, dialogue, pause and leaving the game. See
 [item sound categories, controls and validation](docs/ground-items.md).
 The native reader and all six audio assets have initialized in a live game.
-The user confirms that the loops are audible. The quieter level and landing-only
+
+**Level exits:** every way out of the current area (level exits, cave and
+dungeon entrances, town portals, red portals, waypoints, gateways) plays the
+supplied `portal` loop at its position through the same spatial mixer, and the
+entity scan names it after its destination. **Ctrl+P** toggles the exit loops;
+`access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
+The user confirms that the ground-item loops are audible. The quieter level and landing-only
 start await a follow-up listening check.
+
+**Target guidance (built; live validation pending):** scan a nearby entity with
+the right stick, then click the stick or press **Ctrl+B** to follow it with
+directional pings. Repeat to cancel. This also works with a scanned exit, but
+does not discover exits in unloaded areas. See [target guidance](docs/beacon.md).
+
+**Quests (built; live validation pending):** quest buttons have names from the
+game's string tables. Automatic alerts announce journal updates and primary
+quest objectives achieved, without opening the journal. When updated objective
+text is available and identifiable, the reader speaks the quest and objective;
+otherwise it says that the journal was updated. Announcements wait for dialogue
+or menus to close. Console `access-quests on|off|status` controls this feature.
+See [quest-log implementation and remaining work](docs/quests.md).
 
 ## How it works
 

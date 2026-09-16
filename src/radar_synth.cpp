@@ -12,9 +12,9 @@ void CueQueue::Push(const Radar::Events& events, CueSource source) {
 		sources_[i] = source;
 	}
 }
-void CueQueue::Retain(const Radar::Events& observations) {
+void CueQueue::Retain(const Radar::Events& states) {
 	for (size_t i = 0; i < pending_.size(); ++i)
-		if (pending_[i] != observations[i]) pending_[i] = Radar::State::Unknown;
+		if (pending_[i] != states[i]) pending_[i] = Radar::State::Unknown;
 }
 Radar::Events CueQueue::Take(CueSource* source) {
 	Radar::Events result{};
@@ -33,49 +33,37 @@ Radar::Events CueQueue::Take(CueSource* source) {
 bool CueQueue::Empty() const {
 	return std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
 }
-Radar::AudioLoad CueQueue::Playback(const Radar::Events& playing, uint64_t elapsedMs, uint64_t gapMs) const {
-	Radar::AudioLoad result{.pending = pending_, .busy = !Empty() || gapMs > 0, .playing = playing};
-	uint64_t lead = gapMs;
-	for (size_t i = 0; i < playing.size(); ++i) if (playing[i] != Radar::State::Unknown) {
-		result.busy = true;
-		const uint64_t duration = Radar::CueDurationMs + Radar::AudioGuardMs;
-		// If the driver takes longer, keep a scheduling guard instead of
-		// underflowing the elapsed time or pretending the device is idle.
-		result.remainingMs[i] = elapsedMs < duration ? duration - elapsedMs : Radar::AudioGuardMs;
-		lead = result.remainingMs[i] + Radar::CueGapMs;
-	}
-	auto queue = *this;
-	while (!queue.Empty()) {
-		const auto next = queue.Take();
-		for (size_t i = 0; i < next.size(); ++i) if (next[i] != Radar::State::Unknown)
-			result.remainingMs[i] = lead + Radar::CueDurationMs + Radar::AudioGuardMs;
-		lead += Radar::CueSlotMs;
-	}
-	return result;
-}
-std::vector<int16_t> Synthesize(const Radar::Events& events) {
-	// Sound-design values, deliberately separate from collision constants.
+std::vector<int16_t> Synthesize(const Radar::Events& events, double gain) {
+	// The tin/tock the user validated: sound-design values, deliberately
+	// separate from collision constants. Bright register = opening, dull
+	// register = wall; stereo position follows the screen x component; down
+	// is the same tone slightly lower. Volume scales the compiled level.
 	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003, Release = 0.015;
 	constexpr double OpenHz = 1100, BlockedHz = 260, DownPitch = 0.86;
+	constexpr double OpenHarmonic = 2.7, BlockedHarmonic = 1.5, HarmonicLevel = 0.2;
+	constexpr double OpenDecay = 0.045, BlockedDecay = 0.025;
+	constexpr double PanWidth = 0.9; // left/right sit just inside the stereo edges
 	constexpr double Level = 0.15, PcmPeak = 32767;
-	constexpr std::array<double, Radar::DirectionCount> Pan{0, -0.9, 0.9, 0};
 	const size_t frames = static_cast<size_t>(Duration * SampleRate);
+	const double level = Level * std::clamp(gain, 0.0, 1.0);
 	std::vector<int16_t> pcm;
 	for (size_t direction = 0; direction < events.size(); ++direction) {
 		if (events[direction] == Radar::State::Unknown) continue;
 		if (!pcm.empty()) pcm.resize(pcm.size() + SampleRate * Channels * CueGapMs / 1000);
+		const auto screen = Radar::ScreenAxes[direction];
+		const double pan = PanWidth * screen.x;
+		const bool open = events[direction] == Radar::State::Open;
+		const double hz = (open ? OpenHz : BlockedHz) * (screen.y > 0 ? DownPitch : 1);
+		const double harmonic = open ? OpenHarmonic : BlockedHarmonic, decay = open ? OpenDecay : BlockedDecay;
+		const double left = std::sqrt((1 - pan) / 2), right = std::sqrt((1 + pan) / 2);
 		for (size_t frame = 0; frame < frames; ++frame) {
 			const double time = static_cast<double>(frame) / SampleRate;
-			const bool open = events[direction] == Radar::State::Open;
-			const double hz = (open ? OpenHz : BlockedHz) * (direction == static_cast<size_t>(Radar::Direction::Down) ? DownPitch : 1);
 			const double phase = 2 * std::numbers::pi * hz * time;
 			const double envelope = std::min(1.0, time / Attack) * std::min(1.0, (Duration - time) / Release)
-				* std::exp(-time / (open ? 0.045 : 0.025));
-			const double tone = Level * envelope * (std::sin(phase) + 0.2 * std::sin(phase * (open ? 2.7 : 1.5)));
-			const double left = tone * std::sqrt((1 - Pan[direction]) / 2);
-			const double right = tone * std::sqrt((1 + Pan[direction]) / 2);
-			pcm.push_back(static_cast<int16_t>(std::clamp(left, -1.0, 1.0) * PcmPeak));
-			pcm.push_back(static_cast<int16_t>(std::clamp(right, -1.0, 1.0) * PcmPeak));
+				* std::exp(-time / decay);
+			const double tone = level * envelope * (std::sin(phase) + HarmonicLevel * std::sin(phase * harmonic));
+			pcm.push_back(static_cast<int16_t>(std::clamp(tone * left, -1.0, 1.0) * PcmPeak));
+			pcm.push_back(static_cast<int16_t>(std::clamp(tone * right, -1.0, 1.0) * PcmPeak));
 		}
 	}
 	return pcm;

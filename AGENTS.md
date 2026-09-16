@@ -30,10 +30,14 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 38 suites / 2446 checks, including UI navigation.
+  Latest shared-workspace run: 37 suites / 9266 checks, including quest announcements.
   Item volume/landing follow-up: 5 affected suites / 341 checks pass.
-  Radar and footsteps account for 1662 checks, including 261 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
+  Radar suites account for 1439 checks (engine, passage, structure, snapshot, audio, readout) against the 2026-09-16 confirm-by-travel engine.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
+- Quest announcements: enabled by default; `access-quests on|off|status`.
+  Update/primary-goal events speak even if journal text is absent. Identified
+  objective changes speak their current text; dialogue/UI defer speech.
+  `[quest]` logs, `docs/quests.md`; live NVDA check pending.
 - Ground items: Ctrl+I toggles proximity speech; Ctrl+L toggles spatial loops;
   `access-items on|off|sound-on|sound-off|status`. Fixed screen axes, rear pitch
   0.94. Six OGG assets require FFmpeg at build time, no runtime decoder DLL.
@@ -47,36 +51,26 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   `access-scan on|off|status|up|left|right|down|range <subtiles>`; log `[scan]`.
   Sources: monsters/NPCs/objects (`native_entities.cpp`, `docs/entity-units-re.md`)
   and ground items. `docs/entity-scan.md`.
-- Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
-  `access-radar on|off|status|dump|test`. Native map evidence and controller test:
-  `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
-  Current connected passage cues need live validation;
-  `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
-  now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar change: announced approach regions persist within the current
-  session/area. New openings no longer overwrite older ones; pause/missing
-  samples/poll gaps discard live evidence but retain their positions. Re-entry
-  requires fresh native body clearance. Only a clear full-body strip joins
-  approaches into one region, avoiding a second cue at its other edge.
-  Stationary changes are measured from the actual last reported position.
-  Read `docs/radar-opening-memory.md` first. The 12:45 session has 279 complete
-  collision snapshots; two wall/open pairs really pass a corner one native cell
-  apart. This alone does not prove stick intent/sliding. The 261-check revisit
-  suite includes the earlier recorded map plus multiple approaches, region
-  grouping and pause/gap recovery. Built/installed; listening remains user-led.
-  Keep fixed/rear axes, physical guards and 120 ms cues / 50 ms silence.
-  No-slide investigation remains in `docs/radar-sliding.md`; no movement hook
-  is installed and the live type-17 dispatch/vector behavior is not verified.
-- Earlier work improved running cues and collision feedback.
-  Controlled desktop checks found and corrected
-  fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.
-  `docs/computer-use-radar-check.md` records the failing reproduction and installed live checks.
-  Ctrl+T includes `presenceOffset`: infer displacement only from a complete unique native shape;
-  never clear arbitrary adjacent NO_PATH markers or use Path+0x10/+0x12 (targets) as its anchor.
-  Short spaces, geometry cues and edge sliding still need controller validation.
-- Audio queue timing is logged as `playback_ms`; it no longer changes geometry
-  classification. The previous reaction policy in `docs/radar-running-timing.md`
-  is superseded by `docs/radar-precision.md`.
+- Sonar radar (2026-09-16 redesign): enabled by default, Ctrl+R toggle / Ctrl+T
+  status; `access-radar on|off|status|dump|test`. Still the **four** left-stick
+  screen cardinals (up/left/right/down) with the original tin/tock sound
+  design (120 ms cue, ±0.9 pan, 1100/260 Hz, Down 14% lower) — a review
+  attempt at eight directions and a new sound design was tried live and
+  reverted at the user's request after listening. What changed and stayed:
+  one confirm-by-travel state machine per direction, built on the
+  connected-passage/object-filtering scan; no more ray/geometry/memory
+  classifiers or retries. A forensic analysis of an 18:10 live session found
+  the route search's lateral tolerance (was 3 cells) and the clutter filter's
+  removable span (was up to 20 cells) were hiding walls and deleting real
+  obstacles; both are narrowed now (1-cell tolerance, 5-cell clutter cap),
+  and openDepth/close moved to 10/7. Log prefixes: `[radar]`
+  (lifecycle/status/generated cues, now with `stick=<x>,<y>`),
+  `[radar-direction]`/`[radar-collision]` (rate-limited snapshots),
+  `[radar-state]`/`[radar-map]`/`[radar-motion]` (Ctrl+T/dump), `[radar-audio]`
+  (queue lifecycle). Full model, parameters and validation checklist:
+  `docs/radar-redesign.md`. Live listening validation of this build is the
+  current next step; `docs/sonar-radar.md` and its listed follow-ups describe
+  the superseded pre-redesign classifier, retained as history.
 - HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
   events are suppressed; any native fractional movement restores them. Three whole-function
   fingerprints guard the hook. `[footsteps]` logs state changes/counters; `docs/footsteps.md`.
@@ -132,7 +126,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `footsteps.cpp`, `native_footsteps.cpp`, `footstep_service.cpp` | Pure stalled-motion policy, verified HD footfall hook, local identity/position reads, toggle and event-only diagnostics |
 | `ground_items.cpp`, `native_ground_items.cpp`, `ground_item_service.cpp`, `ground_item_text.cpp` | Nearby ground snapshots, diff-gated localized speech, separate toggles and lifecycle/UI handling |
 | `item_audio.cpp`, `item_spatial.cpp`, `item_wave.cpp` | Peak-normalized PCM loops, dedicated XAudio2 worker, X3DAudio stereo positioning and rear pitch |
-| `speech_strings.*`, `localization.cpp` | Plugin phrases (English/Spanish) and the game's own string tables via the SDK |
+| `speech_strings.*`, `strings/<locale>.h`, `localization.cpp` | Plugin phrases in all 13 game locales (one header per locale, picked by probing a game string) and the game's own string tables via the SDK |
 | `tools/` | CASC extraction, layout indexer, catalog generators (`gen_panel_widgets.py`, `gen_panel_titles.py`) → `src/generated/` |
 
 ## Hard-won facts (details and sources in STATUS.md)

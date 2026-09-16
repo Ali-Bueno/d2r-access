@@ -1,6 +1,8 @@
 #include "async_log.h"
 #include "ui_message_monitor.h"
 
+#include "quest_service.h"
+
 #include "generated/panel_titles.h"
 #include "localization.h"
 #include "panel_state.h"
@@ -122,6 +124,11 @@ constexpr const char* SetTextLanguageCommand = "SetTextLanguage";
 
 // Scrolling moves every row of a list, so cached widget rects go stale.
 constexpr const char* ScrollControllerTarget = "ScrollController";
+
+// The quest log announces its own traffic here: SelectQuest, SelectTab,
+// SetQuestAlert, QuestUpdate. None carries text, so the quest watch reads the
+// panel itself once the game has filled it.
+constexpr const char* QuestLogTarget = "QuestLogPanelMessage";
 
 // Messages that flood the trace without carrying UI state (observed per
 // frame). Entries are "target" or "target:command".
@@ -264,6 +271,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		AnnouncePanel(*event);
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
 		FocusTracker::NoteScrollInput();
+	} else if (std::strcmp(event->target, QuestLogTarget) == 0) {
+		QuestService::Note(event->command);
 	} else if (std::strcmp(event->target, FrontEndNavigationTarget) == 0) {
 		AnnounceNavigation(*event);
 		if (std::strcmp(event->command, FrontEndReadyCommand) == 0) {

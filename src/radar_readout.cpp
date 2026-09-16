@@ -9,7 +9,7 @@ int MovementDirection(Radar::Position velocity) {
 	// D2R 0x334DB0: screen X=80*(X-Y), Y=40*(X+Y). Preserve the
 	// 2:1 isometric ratio when describing actual screen movement.
 	const double x = 2 * (velocity.x - velocity.y), y = velocity.x + velocity.y;
-	constexpr int Sectors = 8;
+	constexpr int Sectors = 8; // radarMovementDirections: eight screen sectors clockwise from up
 	const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / Sectors));
 	return static_cast<int>((sector + Sectors) % Sectors);
 }
@@ -25,17 +25,16 @@ std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	}
 	result += std::string(". ") + text.radarStraight;
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
-		const auto& sensor = engine.Sensors()[i];
-		const auto state = sensor.probe.observed;
-		const bool limited = sensor.probe.available && state == Radar::State::Unknown;
-		const bool occupied = state == Radar::State::Blocked && sensor.terrain.clearDepth > sensor.probe.clearDepth;
+		const auto& passage = engine.Sensors()[i].passage;
+		const auto state = passage.available ? passage.observed : Radar::State::Unknown;
+		const bool limited = passage.available && passage.observed == Radar::State::Unknown;
 		result += std::string(". ") + text.radarDirections[i] + ": "
-			+ (occupied ? text.radarOccupied : limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
-		if (state == Radar::State::Unknown && !limited) continue;
-		if (sensor.probe.body == Radar::State::Blocked) result += std::string(", ") + text.radarNearbyObstacle;
+			+ (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
+		if (!passage.available) continue;
+		if (passage.depth < 1) result += std::string(", ") + text.radarNearbyObstacle;
 		else {
 			char depth[80]{};
-			std::snprintf(depth, sizeof(depth), text.radarDepth, std::floor(sensor.probe.clearDepth));
+			std::snprintf(depth, sizeof(depth), text.radarDepth, std::floor(passage.depth));
 			result += std::string(", ") + depth;
 		}
 	}

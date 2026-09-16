@@ -13,7 +13,8 @@
 // wraps around. Pure logic over the collision World the sonar already reads,
 // so it is unit-tested without the game.
 namespace D2RAccess::EntityRadar {
-enum class Kind { Npc, Enemy, Object, Item };
+// Exit: anything that takes the player to another area (level exits, portals, waypoints).
+enum class Kind { Npc, Enemy, Object, Item, Exit };
 struct Entity {
 	uint32_t id = 0;
 	Kind kind = Kind::Item;
@@ -64,4 +65,7 @@ private:
 };
 
 std::string Describe(const Result& result, const Settings& settings, const Strings::Table& strings);
+// "8 metros" / "1 metro" / "aquí mismo" for a distance in subtiles; shared
+// with every feature that speaks an entity distance.
+std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
 }

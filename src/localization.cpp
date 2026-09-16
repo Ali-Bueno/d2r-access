@@ -52,14 +52,19 @@ void DetectSpeechLanguage(const D2RL::PluginContext* context) {
 	if (g_speechLanguageDetected) {
 		return;
 	}
-	const std::string cancel = Text(Strings::CancelProbeKey);
-	if (cancel.empty()) {
+	const std::string probe = Text(Strings::TextLocaleProbe.key);
+	if (probe.empty()) {
 		return; // string tables not loaded yet
 	}
 	g_speechLanguageDetected = true;
-	const bool spanish = cancel == Strings::CancelProbeSpanish;
-	Strings::Select(spanish ? Strings::Language::Spanish : Strings::Language::English);
-	D2RL::LogInfoF(context, "Speech language: %s (probe \"%s\" = \"%s\")", spanish ? "Spanish" : "English", std::string(Strings::CancelProbeKey).c_str(), cancel.c_str());
+	const auto language = Strings::FromProbeValue(probe);
+	Strings::Select(language.value_or(Strings::Language::enUS));
+	const std::string key(Strings::TextLocaleProbe.key);
+	if (language) {
+		D2RL::LogInfoF(context, "Speech language: %s (probe \"%s\" = \"%s\")", std::string(Strings::LocaleCode(*language)).c_str(), key.c_str(), probe.c_str());
+	} else {
+		D2RL::LogWarnF(context, "Speech language: unrecognised probe \"%s\" = \"%s\", falling back to English", key.c_str(), probe.c_str());
+	}
 }
 
 std::string Text(std::string_view key) {

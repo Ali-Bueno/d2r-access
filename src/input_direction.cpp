@@ -45,6 +45,7 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
+	bool rightThumbHeld = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -54,6 +55,8 @@ bool         g_keyUpHeld    = false;
 bool         g_keyDownHeld  = false;
 DpadInput g_dpad;
 WORD g_previousDpad = 0;
+Stick g_leftStick;
+bool g_rightStickClick = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -118,6 +121,7 @@ void Poll() {
 	constexpr WORD DpadMask = XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_DOWN
 		| XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT;
 
+	g_leftStick = {};
 	if (g_xInputGetState != nullptr) {
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
 			PadEdgeState& edges = g_padState[padIndex];
@@ -131,6 +135,11 @@ void Poll() {
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			dpadButtons |= pad.wButtons & DpadMask;
+			if (!g_leftStick.connected) {
+				// XInput's Y axis grows upward; screen y grows downward.
+				g_leftStick = {static_cast<float>(pad.sThumbLX) / kThumbstickMaxMagnitude,
+					-static_cast<float>(pad.sThumbLY) / kThumbstickMaxMagnitude, true};
+			}
 			if (UpdateEdge(edges.dpadLeftHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0)) {
 				RecordEdge(Horizontal::Left);
 			}
@@ -170,6 +179,9 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
+			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
+				g_rightStickClick = true;
+			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
@@ -203,6 +215,12 @@ void Poll() {
 	}
 }
 
+Stick LeftStick() { return g_leftStick; }
+bool TakeRightStickClick() {
+	const bool clicked = g_rightStickClick;
+	g_rightStickClick = false;
+	return clicked;
+}
 StickPush TakeRightStickPush() {
 	const StickPush push = g_rightStickPush;
 	g_rightStickPush    = StickPush::None;

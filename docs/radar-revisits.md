@@ -1,5 +1,7 @@
 # Remembering short return visits
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 The later [opening-region update](radar-opening-memory.md) supersedes the
 single-visit limit and reset behavior described below.
 

@@ -1,4 +1,5 @@
 #include "native_world.h"
+#include "entity_layout.h"
 #include "native_memory.h"
 #include "async_log.h"
 
@@ -26,8 +27,8 @@ constexpr uint32_t FractionMask = std::numeric_limits<uint16_t>::max();
 constexpr double PositionScale = static_cast<double>(FractionMask) + 1;
 constexpr size_t PathFootprintMask = 0x60; // getter 0x341860; setter 0x342670
 constexpr size_t PathMovementMask = 0x64; // movement wrapper 0x3C5610; setter 0x342740
-constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38, RoomExtended = 0x18;
-constexpr size_t ExtendedLevel = 0x90, LevelId = 0x1F8;
+constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38;
+using EntityLayout::RoomExtended, EntityLayout::ExtendedLevel, EntityLayout::LevelId;
 constexpr int MaxCoordinate = std::numeric_limits<uint16_t>::max(); // native movzx word getters
 constexpr int MaxRoomSide = 1024, MaxNeighbors = 64, MaxRooms = 256; // corruption/work bounds
 constexpr size_t MaxCopiedCells = 512 * 1024; // <= 1 MiB per local snapshot

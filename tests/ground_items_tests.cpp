@@ -77,11 +77,27 @@ void Tracking() {
 	Check(batch.voices.size() == 1 && batch.speech == "Poción", "duplicate traversal cannot produce duplicate voices or speech");
 	scene.items = {Make(2, {NAN, 0})};
 	batch = tracker.Tick(scene, 27000, true); Check(batch.voices.empty() && batch.speech.empty(), "corrupt positions stay silent");
+	tracker.Reset(); scene.items = {Make(1)};
+	Item exit = Make(50, {4, 4}, ""); exit.sound = Sound::Portal; scene.landmarks = {exit};
+	batch = tracker.Tick(scene, 28000, true);
+	Check(batch.voices.size() == 2 && batch.voices[0].sound == Sound::Portal && batch.speech == "Poción", "an exit loops with the portal sound and is never spoken");
+	batch = tracker.Tick(scene, 29000, true, false);
+	Check(batch.voices.size() == 1 && batch.voices[0].sound == Sound::Portal, "item loops off keeps the exit loop");
+	scene.landmarks = {exit, exit};
+	Check(tracker.Tick(scene, 30000, true).voices.size() == 2, "duplicate exits share one voice");
+	scene.landmarks = {Make(50, {AudibleRadius, 0}, "")};
+	Check(tracker.Tick(scene, 31000, true).voices.size() == 1, "an exit out of range is silent");
+	scene.items.clear();
+	for (uint32_t i = 0; i < 20; ++i) scene.items.push_back(Make(i, {}, std::to_string(i)));
+	scene.landmarks = {exit};
+	batch = tracker.Tick(scene, 32000, true);
+	Check(batch.voices.size() == MaxVoices && batch.voices[0].sound == Sound::Portal, "a pile never starves the exit loop");
+	scene.landmarks.clear();
 }
 }
 int main() {
 	Classification(); Position(); Tracking();
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");
 	Check(GroundItemText::BaseName("[ms]ligero[fs]ligera") == "ligero", "grammatical variants are not concatenated");
@@ -90,7 +106,7 @@ int main() {
 	Check(GroundItemText::Describe("Oro", 2, 37) == "37 Oro", "gold includes native amount");
 	Check(GroundItemText::Describe("Poción", 2, 0) == "Poción", "ordinary consumables stay concise");
 	Check(GroundItemText::Describe("", 4, 0).empty(), "missing names never become a quality-only announcement");
-	Strings::Select(Strings::Language::English);
+	Strings::Select(Strings::Language::enUS);
 	Check(GroundItemText::Describe("Axe", 4, 0) == "Axe, magic", "English quality is available");
 	Check(MatchesLabel("Hacha\nDaño: 1-5", {"Hacha"}), "nearby tooltip duplicates are recognized");
 	Check(!MatchesLabel("Hachazo", {"Hacha"}) && !MatchesLabel("Charsi", {"Hacha"}), "different names and NPCs keep their speech");

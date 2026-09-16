@@ -1,7 +1,7 @@
 # Decode the user's OGG assets at build time. XAudio2/X3DAudio are Windows APIs;
 # the installed plugin needs no decoder DLL and does no decoding on the UI thread.
 find_program(D2R_FFMPEG ffmpeg REQUIRED)
-set(D2R_ITEM_SOUND_NAMES "gold" "potion" "normal equipment" "magic equipment" "rare equipment" "legendary equipment")
+set(D2R_ITEM_SOUND_NAMES "gold" "potion" "normal equipment" "magic equipment" "rare equipment" "legendary equipment" "portal")
 set(D2R_ITEM_WAV_DIR "${CMAKE_CURRENT_BINARY_DIR}/item-sounds")
 set(D2R_ITEM_WAVS)
 foreach(name IN LISTS D2R_ITEM_SOUND_NAMES)

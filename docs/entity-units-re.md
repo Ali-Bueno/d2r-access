@@ -349,3 +349,22 @@ build/casc-extract/casc_extract.exe extract "<game dir>" <out> monstats.bin obje
 ```
 The column↔offset proof is just: `rows = (filesize-4)/stride`, then for every candidate byte offset
 and bit, compare the bin value against the `.txt` column over all rows and keep the unique match.
+
+## 10. Corrections from the level-exit study (2026-09-16)
+
+Established while adding the exit loops (`docs/level-exits.md`), with the same method:
+
+- **`ObjectsTxt+0x127` is the whole `SubClass` byte**, not a shrine bit: bit0 shrine (92 rows),
+  bit2 town/permanent portal, bit4 Arcane Sanctuary portal / hell gate, bit6 waypoint (16 rows),
+  bit7 suppresses the label (9 rows). The label builder `0xC17E0` branches on bits 2, 6 and 7.
+- **`OpenWarp` (+0x163) is exactly four rows** — Trapdoor, UnfoldingStairLeft/Right, MephistoDoor —
+  so §4.3's "portals/waypoints name themselves via OpenWarp" was wrong: an *opened* OpenWarp object
+  is named by finding the adjacent **type-5 warp unit** and calling `0x9F2A0` on it; portals are
+  named from **`ObjectData+8` = destination level id** (closes §7 item 5), waypoints from the
+  room's own level name.
+- **In-memory Levels row (stride 0x18C) is the bin row shifted by −8**: `LevelName` key at
+  **+0xFD**, `LevelWarp` ("To The ...") key at **+0x125** (closes §7 item 6).
+- **Type-5 warp units** live in the room unit list, use the static path like objects, and carry the
+  LvlWarp `Id` in `Unit+4` (compared as a byte). The destination is on the room, not the unit:
+  `Room+0x18` → RoomEx, `RoomEx+0x78` warp nodes (`+0` destination RoomEx, `+8` next, `+0x10` gate,
+  `+0x20` LvlWarp row), `RoomEx+0x90` → Level, `Level+0x1F8` level id.

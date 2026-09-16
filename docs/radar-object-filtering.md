@@ -1,5 +1,10 @@
 # Structural radar: filtering bypassable objects
 
+> Current as of the 2026-09-16 redesign (docs/radar-redesign.md): this
+> filtering code is unchanged, and it now feeds the radar's only
+> classifier (the connected-passage `ScanPassage` scan) instead of one of
+> several ray/geometry classifiers.
+
 Implemented 2026-09-16 after the user reported that the surface-tracking build
 still sounded the same and requested ignoring furniture as closed space. This
 extends [surface tracking](radar-surface-tracking.md); that revision did not

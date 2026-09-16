@@ -9,9 +9,11 @@ namespace {
 // docs/radar-object-filtering.md. Other movement restrictions stay structural.
 constexpr uint16_t Wall = 0x0001, Blank = 0x0020, Object = 0x0400;
 // Five collision subtiles form one native map tile. This is a conservative
-// size policy for baked clutter sharing WALL, not an object type identifier.
+// size policy for baked clutter (WALL or OBJECT), not an object type
+// identifier. Larger object components stay: live analysis 2026-09-16 found
+// props up to 20 cells wide removed from directly in front of the player.
 constexpr int SubtilesPerTile = 5;
-int ObjectSpan(const Settings& settings) { return std::max(SubtilesPerTile, static_cast<int>(std::ceil(settings.boundaryRange))); }
+int ObjectSpan(const Settings&) { return SubtilesPerTile; }
 struct Bounds { int left, top, right, bottom; };
 
 bool CanBypass(const World& original, Bounds obstacle) {
@@ -103,9 +105,8 @@ World StructuralWorld(const World& world, const Settings& settings) {
 				visited[next] = true; component.push_back(next);
 			}
 		}
-		const int span = restrictions == Object ? objectSpan : SubtilesPerTile;
-		if (!complete || (restrictions & ~(Wall | Object)) || bounds.right-bounds.left+1 > span
-			|| bounds.bottom-bounds.top+1 > span) continue;
+		if (!complete || (restrictions & ~(Wall | Object)) || bounds.right-bounds.left+1 > objectSpan
+			|| bounds.bottom-bounds.top+1 > objectSpan) continue;
 		if (!CanBypass(original, {grid.x+bounds.left, grid.y+bounds.top, grid.x+bounds.right, grid.y+bounds.bottom})) continue;
 		for (const size_t index : component) grid.cells[index] &= ~world.walkingMask;
 	}

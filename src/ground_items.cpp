@@ -48,9 +48,18 @@ bool MatchesLabel(std::string_view label, const std::vector<std::string>& names)
 	}
 	return false;
 }
-Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled) {
+Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
+	std::vector<std::pair<double, const Item*>> exits;
+	std::unordered_set<uint32_t> seenExits;
+	for (const auto& landmark : snapshot.landmarks) {
+		const double distance = std::hypot(landmark.position.x - snapshot.player.x, landmark.position.y - snapshot.player.y);
+		if (std::isfinite(distance) && distance < AudibleRadius && seenExits.insert(landmark.id).second) exits.emplace_back(distance, &landmark);
+	}
+	std::sort(exits.begin(), exits.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+	for (const auto& [distance, landmark] : exits)
+		if (result.voices.size() < MaxVoices) result.voices.push_back(Spatialize(*landmark, snapshot.player));
 	std::vector<std::pair<double, const Item*>> nearby;
 	std::unordered_set<uint32_t> present;
 	for (const auto& item : snapshot.items) {
@@ -67,7 +76,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled)
 	const bool canSpeak = speechEnabled && (!hasSpoken_ || now < lastSpeech_ || now - lastSpeech_ >= SpeechGapMs);
 	size_t names = 0;
 	for (const auto& [distance, item] : nearby) {
-		if (result.voices.size() < MaxVoices && distance < AudibleRadius)
+		if (itemLoops && result.voices.size() < MaxVoices && distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
 		if (!canSpeak || distance > SpeakRadius || item->name.empty() || names >= MaxNamesPerAnnouncement || spoken_.contains(item->id)) continue;
 		if (!result.speech.empty()) result.speech += "; ";

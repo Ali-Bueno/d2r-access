@@ -1,5 +1,15 @@
 # Sonar radar: first prototype and native map evidence
 
+> **2026-09-16 redesign:** the geometry/reaction classifier described below
+> has been replaced by one confirm-by-travel state machine per direction
+> over the connected-passage scan. Directions are still the four fixed
+> screen cardinals and the sound design is unchanged (120 ms tin/tock,
+> ±0.9 pan, 1100/260 Hz) — an eight-direction/new-sound-design attempt was
+> tried and reverted after the user listened to it. See
+> [radar-redesign.md](radar-redesign.md) for the current model. The
+> parameter and behavior sections below describe the **pre-redesign**
+> classifier and are retained as history/native-map evidence.
+
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
 **Current revision (2026-09-16):** live room reads remain confirmed; geometry
 changes now include finite wall recesses/returns, current exits are no longer

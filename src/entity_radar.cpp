@@ -16,7 +16,7 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Positio
 	if (length == 0) return true;
 	const int fromX = Cell(from.x), fromY = Cell(from.y), toX = Cell(to.x), toY = Cell(to.y);
 	// Half-subtile steps visit every cell the ray crosses, including diagonal
-	// corner crossings, the same sampling the sonar's SweepBody relies on.
+	// corner crossings.
 	constexpr double Step = 0.5;
 	for (double depth = Step; depth < length; depth += Step) {
 		const int x = Cell(from.x + dx / length * depth), y = Cell(from.y + dy / length * depth);
@@ -81,16 +81,21 @@ std::string Describe(const Result& result, const Settings& settings, const Strin
 		std::snprintf(buffer, sizeof buffer, strings.scanNothing, direction);
 		return buffer;
 	}
-	std::string text = result.target.entity.name + ", ";
-	const long meters = std::lround(result.target.distance * settings.metersPerSubtile);
-	if (meters < 1) text += strings.scanAdjacent;
-	else if (meters == 1) text += strings.scanMeter;
-	else { std::snprintf(buffer, sizeof buffer, strings.scanMeters, static_cast<int>(meters)); text += buffer; }
+	std::string text = result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
 	if (result.count > 1) {
 		std::snprintf(buffer, sizeof buffer, strings.scanIndexOfCount, static_cast<int>(result.index + 1), static_cast<int>(result.count));
 		text += ", ";
 		text += buffer;
 	}
 	return text;
+}
+
+std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
+	const long meters = std::lround(distance * settings.metersPerSubtile);
+	if (meters < 1) return strings.scanAdjacent;
+	if (meters == 1) return strings.scanMeter;
+	char buffer[64];
+	std::snprintf(buffer, sizeof buffer, strings.scanMeters, static_cast<int>(meters));
+	return buffer;
 }
 }

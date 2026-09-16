@@ -1,5 +1,7 @@
 # Radar state changes and delivery
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 > **2026-09-16 update:** [Native map fidelity](radar-map-fidelity.md) supersedes
 > the opening forecast described here. Current exits are no longer hidden by
 > predicted continued movement; finite wall recesses/returns are audible, and

@@ -66,6 +66,19 @@ enum class StickPush {
 };
 StickPush TakeRightStickPush();
 
+// Right thumbstick CLICK (R3) press edges. The SDK's action service binds
+// keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
+// read here with the rest of the XInput state. Take() returns whether a click
+// happened since the previous Take() and clears it.
+bool TakeRightStickClick();
+
+// Left thumbstick of the first connected pad as sampled by the last Poll(),
+// in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics
+// only: the radar logs it next to each cue so a log can tell where the player
+// was steering when the cue fired. Zero and not connected without a pad.
+struct Stick { float x = 0, y = 0; bool connected = false; };
+Stick LeftStick();
+
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.
 void Shutdown();

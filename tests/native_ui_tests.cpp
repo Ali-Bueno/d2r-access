@@ -88,7 +88,7 @@ std::string ReadText(uintptr_t widget) {
 
 int main() {
 	using namespace D2RAccess;
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Widget manager("Widget", "PanelManager"), focusManager("FocusManager", "FocusManager");
 	Widget panel("NpcDialogPanel", "NpcDialogPanel"), header("TextBoxWidget", "TextTemplate", "Akara");
 	Widget list("ListWidget", "ListTemplate"), row("HoverListItemWidget", "ItemTemplate");

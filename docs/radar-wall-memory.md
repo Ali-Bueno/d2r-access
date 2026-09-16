@@ -1,5 +1,7 @@
 # Remembered wall references
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 The subsequent [contour/sliding correction](radar-sliding.md) follows local
 continuous boundaries and captures collision automatically at sounded events.
 It supersedes this document's test counts and latest-session description.

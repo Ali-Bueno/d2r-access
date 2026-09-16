@@ -1,5 +1,7 @@
 # Current radar analysis
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 > Follow-up: the local graph now drives the installed passage radar. See
 > [connected passage implementation](radar-connected-passages.md). The audit
 > and isolated PoC results below describe the earlier research stage.

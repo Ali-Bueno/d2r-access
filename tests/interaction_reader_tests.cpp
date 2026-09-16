@@ -105,7 +105,7 @@ void Stop() {}
 
 int main() {
 	using namespace D2RAccess;
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Tooltip("Tu alijo personal");
 	Check(!Settle() && speech == std::vector<std::string>{"Tu alijo personal"}, "highlighted stash name reads without controller UI focus");
 	ClearSpeech(); Settle();

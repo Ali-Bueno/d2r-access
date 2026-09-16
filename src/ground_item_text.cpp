@@ -1,17 +1,10 @@
 #include "ground_item_text.h"
 #include "speech_strings.h"
 #include <D2RLPlugin/item.h>
-#include <array>
 #include <algorithm>
 
 namespace D2RAccess::GroundItemText {
 namespace {
-// Plugin connective text lives here; item names always come from localization.
-bool Spanish() { return &Strings::Current() == &Strings::Spanish; }
-constexpr std::array<const char*, 9> QualityEnglish{
-	"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"};
-constexpr std::array<const char*, 9> QualitySpanish{
-	"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"};
 // Grammatical variants in the installed local/lng/strings/item-names.json.
 constexpr std::string_view GenderTags[]{"[fs]", "[ms]", "[fp]", "[mp]", "[ns]", "[pl]", "[nl]"};
 }
@@ -30,16 +23,20 @@ std::string Describe(std::string_view name, uint32_t quality, int goldAmount) {
 	if (name.empty()) return {};
 	if (goldAmount > 0) return std::to_string(goldAmount) + " " + std::string(name);
 	std::string result(name);
-	const auto& labels = Spanish() ? QualitySpanish : QualityEnglish;
+	const auto& labels = Strings::Current().itemQualities;
 	if (quality < labels.size() && *labels[quality]) { result += ", "; result += labels[quality]; }
 	return result;
 }
 const char* Enabled(bool enabled) {
-	return Spanish() ? (enabled ? "Lectura de objetos cercanos activada" : "Lectura de objetos cercanos desactivada")
-		: (enabled ? "Nearby item speech enabled" : "Nearby item speech disabled");
+	const auto& t = Strings::Current();
+	return enabled ? t.itemSpeechEnabled : t.itemSpeechDisabled;
 }
 const char* SoundEnabled(bool enabled) {
-	return Spanish() ? (enabled ? "Sonidos de objetos activados" : "Sonidos de objetos desactivados")
-		: (enabled ? "Item sounds enabled" : "Item sounds disabled");
+	const auto& t = Strings::Current();
+	return enabled ? t.itemSoundsEnabled : t.itemSoundsDisabled;
+}
+const char* ExitSoundEnabled(bool enabled) {
+	const auto& t = Strings::Current();
+	return enabled ? t.exitSoundsEnabled : t.exitSoundsDisabled;
 }
 }

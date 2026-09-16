@@ -1,5 +1,7 @@
 # Kirandur reference and D2R reaction-aware radar
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 > Current behavior: [radar precision](radar-precision.md). The reaction/queue
 > classifier described below is historical; it no longer generates cues.
 

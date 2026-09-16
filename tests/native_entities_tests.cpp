@@ -2,6 +2,7 @@
 #include "entity_layout.h"
 #include "ground_item_layout.h"
 #include "localization.h"
+#include "speech_strings.h"
 #include "test_support.h"
 #include <array>
 #include <cstring>
@@ -20,7 +21,16 @@ std::string Text(uint32_t id) {
 	default: return {};
 	}
 }
-std::string Text(std::string_view key) { return key == "Bank" ? "Alijo" : key == "Casket" ? "Ataúd" : std::string{}; }
+std::string Text(std::string_view key) {
+	if (key == "Bank") return "Alijo";
+	if (key == "Casket") return "Ataúd";
+	if (key == "To The Cold Plains") return "A las Llanuras Frías";
+	if (key == "Cold Plains") return "Llanuras Frías";
+	if (key == "Waypoint") return "Punto de ruta";
+	if (key == "Duriel's Lair") return "Guarida de Duriel";
+	if (key == "Portal") return "Portal";
+	return {};
+}
 }
 namespace {
 template<size_t N> struct Memory {
@@ -31,18 +41,26 @@ template<size_t N> struct Memory {
 };
 constexpr size_t UnitSize = 0x200, PathSize = 0x100, RoomSize = 0xC0;
 struct Fixture {
-	Memory<UnitSize> player, npc, enemy, chest, door, shrine;
+	Memory<UnitSize> player, npc, enemy, chest, door, shrine, warp, walkWarp, portal, waypoint, lair;
 	Memory<PathSize> playerPath, npcPath, enemyPath, chestPath, doorPath, shrinePath, npcData, enemyData, shrineData, shrineRecord;
+	Memory<PathSize> warpPath, walkWarpPath, portalPath, waypointPath, lairPath, portalData;
 	Memory<RoomSize> room, otherRoom;
+	Memory<0x100> roomEx, destRoomEx, destLevel;
+	Memory<0x40> warpNode, walkNode;
+	Memory<0x60 * 2> lvlWarps; // row 0: Id 3 to the Cold Plains; row 1: Id 7, NoInteract (a trapdoor's tile)
+	Memory<LevelStride * 3> levels; // row 1: Cold Plains; row 2: Duriel's Lair
 	Memory<0x1600> tables;
 	Memory<MonStatStride * 2> monsters;
-	Memory<ObjectStride * 3> objects;
+	Memory<ObjectStride * 6> objects;
 	Memory<64> uniqueName;
 	Fixture() {
 		player.At<uint32_t>(GroundItemLayout::UnitId, 42); player.At(GroundItemLayout::UnitPath, playerPath.Address());
 		playerPath.At<uint32_t>(0, 100u << 16); playerPath.At<uint32_t>(4, 100u << 16); playerPath.At(PathRoom, room.Address());
 		tables.At(MonStats, monsters.Address()); tables.At<uint64_t>(MonStatCount, 2);
-		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 3);
+		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 6);
+		tables.At(Levels, levels.Address()); tables.At<uint64_t>(LevelCount, 3);
+		levels.Text(LevelStride + LevelNameKey, "Cold Plains"); levels.Text(LevelStride + LevelWarpKey, "To The Cold Plains");
+		levels.Text(LevelStride * 2 + LevelNameKey, "Duriel's Lair"); levels.Text(LevelStride * 2 + LevelWarpKey, "To Duriel's Lair");
 		// MonStats row 0: Akara (friendly npc/interact); row 1: zombie (hostile, killable).
 		monsters.At<uint16_t>(MonNameId, 2892); monsters.At<uint8_t>(MonAlign, AlignFriendly); monsters.At<uint8_t>(MonFlagsA, FlagNpc | FlagInteract);
 		monsters.At<uint16_t>(MonStatStride + MonNameId, 3013); monsters.At<uint8_t>(MonStatStride + MonAlign, AlignHostile);
@@ -51,8 +69,21 @@ struct Fixture {
 		objects.Text(ObjNameKey, "Bank"); objects.At<uint8_t>(ObjSelectable + ObjectNeutral, 1);
 		objects.Text(ObjectStride + ObjNameKey, "Door"); objects.At<uint8_t>(ObjectStride + ObjIsDoor, 1);
 		objects.At<uint8_t>(ObjectStride + ObjSelectable + ObjectNeutral, 1); objects.At<uint8_t>(ObjectStride + ObjSelectable + ObjectOpened, 1);
-		objects.Text(ObjectStride * 2 + ObjNameKey, "Shrine"); objects.At<uint8_t>(ObjectStride * 2 + ObjIsShrine, 1);
+		objects.Text(ObjectStride * 2 + ObjNameKey, "Shrine"); objects.At<uint8_t>(ObjectStride * 2 + ObjSubClass, SubClassShrine);
 		objects.At<uint8_t>(ObjectStride * 2 + ObjSelectable + ObjectNeutral, 1);
+		// Row 3: town portal (selectable only once opened); row 4: waypoint; row 5: Duriel's portal, named after its level.
+		objects.Text(ObjectStride * 3 + ObjNameKey, "Portal"); objects.At<uint8_t>(ObjectStride * 3 + ObjSubClass, SubClassPortal);
+		objects.At<uint8_t>(ObjectStride * 3 + ObjSelectable + ObjectOpened, 1);
+		objects.Text(ObjectStride * 4 + ObjNameKey, "Waypoint"); objects.At<uint8_t>(ObjectStride * 4 + ObjSubClass, SubClassWaypoint);
+		objects.At<uint8_t>(ObjectStride * 4 + ObjSelectable + ObjectNeutral, 1);
+		objects.Text(ObjectStride * 5 + ObjNameKey, "Duriel's Lair"); objects.At<uint8_t>(ObjectStride * 5 + ObjSelectable + ObjectNeutral, 1);
+		// Warp nodes of the room: Id 3 leads to level 1, Id 7 is a walk-through tile.
+		room.At(RoomExtended, roomEx.Address()); roomEx.At(RoomWarpNodes, warpNode.Address());
+		warpNode.At(WarpNodeDestination, destRoomEx.Address()); warpNode.At(WarpNodeNext, walkNode.Address());
+		warpNode.At<int32_t>(WarpNodeActive, 1); warpNode.At(WarpNodeRow, lvlWarps.Address());
+		walkNode.At(WarpNodeDestination, destRoomEx.Address()); walkNode.At<int32_t>(WarpNodeActive, 1); walkNode.At(WarpNodeRow, lvlWarps.Address() + 0x60);
+		lvlWarps.At<uint32_t>(LvlWarpId, 3); lvlWarps.At<uint32_t>(0x60 + LvlWarpId, 7); lvlWarps.At<uint32_t>(0x60 + LvlWarpNoInteract, 1);
+		destRoomEx.At(ExtendedLevel, destLevel.Address()); destLevel.At<uint32_t>(LevelId, 1);
 		Monster(npc, npcPath, npcData, 0, 7, 103, 100);
 		Monster(enemy, enemyPath, enemyData, 1, 8, 90, 90);
 		Object(chest, chestPath, 0, 9, 100, 104);
@@ -60,6 +91,15 @@ struct Fixture {
 		Object(shrine, shrinePath, 2, 11, 100, 110);
 		shrine.At(GroundItemLayout::UnitData, shrineData.Address());
 		shrineData.At(ObjLinkRecord, shrineRecord.Address()); shrineRecord.At<uint16_t>(ShrineNameId, 0x2A39);
+		Warp(warp, warpPath, 3 | (WarpIdMask + 1), 12, 120, 100); // the game compares the Id as a byte
+		Warp(walkWarp, walkWarpPath, 7, 13, 125, 100);
+		Object(portal, portalPath, 3, 14, 100, 120); portal.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+		portal.At(GroundItemLayout::UnitData, portalData.Address()); portalData.At<uint8_t>(ObjPortalLevel, 1);
+		Object(waypoint, waypointPath, 4, 15, 130, 100);
+		Object(lair, lairPath, 5, 16, 100, 130);
+		shrine.At(GroundItemLayout::UnitNext, warp.Address()); warp.At(GroundItemLayout::UnitNext, walkWarp.Address());
+		walkWarp.At(GroundItemLayout::UnitNext, portal.Address()); portal.At(GroundItemLayout::UnitNext, waypoint.Address());
+		waypoint.At(GroundItemLayout::UnitNext, lair.Address());
 		room.At(GroundItemLayout::RoomFirstUnit, npc.Address());
 		npc.At(GroundItemLayout::UnitNext, enemy.Address()); enemy.At(GroundItemLayout::UnitNext, chest.Address());
 		chest.At(GroundItemLayout::UnitNext, door.Address()); door.At(GroundItemLayout::UnitNext, shrine.Address());
@@ -76,6 +116,11 @@ struct Fixture {
 		unit.At(GroundItemLayout::UnitPath, path.Address());
 		path.At(0, room.Address()); path.At(GroundItemLayout::StaticX, x); path.At(GroundItemLayout::StaticY, y);
 	}
+	void Warp(Memory<UnitSize>& unit, Memory<PathSize>& path, uint32_t classId, uint32_t id, int x, int y) {
+		unit.At<uint32_t>(GroundItemLayout::UnitType, WarpType); unit.At(GroundItemLayout::UnitClass, classId);
+		unit.At(GroundItemLayout::UnitId, id); unit.At(GroundItemLayout::UnitPath, path.Address());
+		path.At(0, room.Address()); path.At(GroundItemLayout::StaticX, x); path.At(GroundItemLayout::StaticY, y);
+	}
 	bool Read(std::vector<EntityRadar::Entity>& result) { return NativeEntities::ReadPlayer(player.Address(), tables.Address(), 42, 7, result); }
 	const EntityRadar::Entity* Find(const std::vector<EntityRadar::Entity>& entities, uint32_t id) {
 		for (const auto& entity : entities) if (entity.id == id) return &entity;
@@ -86,7 +131,27 @@ struct Fixture {
 int main() {
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
-	Check(f.Read(entities) && entities.size() == 5, "npc, enemy and three selectable objects are copied");
+	Check(f.Read(entities) && entities.size() == 9, "npc, enemy, three objects, one exit warp and three exit objects are copied");
+	const auto* warp = f.Find(entities, 12);
+	Check(warp && warp->kind == EntityRadar::Kind::Exit && warp->name == "A las Llanuras Frías", "a level exit is named after its destination like the hover label");
+	Check(warp->position.x == 120 && warp->position.y == 100, "warp position comes from the static path");
+	Check(!f.Find(entities, 13), "walk-through warps the game marks NoInteract are left to their object");
+	const auto* portal = f.Find(entities, 14);
+	Check(portal && portal->kind == EntityRadar::Kind::Exit && portal->name == "Llanuras Frías", "an open town portal is an exit named after its destination level");
+	const auto* waypoint = f.Find(entities, 15);
+	Check(waypoint && waypoint->kind == EntityRadar::Kind::Exit && waypoint->name == "Punto de ruta", "a waypoint is an exit by its SubClass bit");
+	const auto* lair = f.Find(entities, 16);
+	Check(lair && lair->kind == EntityRadar::Kind::Exit && lair->name == "Guarida de Duriel", "an object named after a level is an exit");
+	Check(f.Find(entities, 9)->kind == EntityRadar::Kind::Object, "ordinary objects keep their kind");
+	f.warpNode.At<int32_t>(WarpNodeActive, 0);
+	Check(f.Read(entities) && !f.Find(entities, 12), "a warp the game would not label yet is skipped");
+	f.warpNode.At<int32_t>(WarpNodeActive, 1);
+	f.destLevel.At<uint32_t>(LevelId, 99);
+	Check(f.Read(entities) && f.Find(entities, 12) && f.Find(entities, 12)->name == Strings::Current().exitUnnamed, "an exit without a level name still counts, generically named");
+	f.destLevel.At<uint32_t>(LevelId, 1);
+	f.portal.At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
+	Check(f.Read(entities) && !f.Find(entities, 14), "a portal that is not yet open is not targetable");
+	f.portal.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	const auto* akara = f.Find(entities, 7);
 	Check(akara && akara->kind == EntityRadar::Kind::Npc && akara->name == "Akara", "friendly npc keeps its localized base name");
 	Check(akara->position.x == 103 && akara->position.y == 100, "monster position comes from the dynamic 16.16 path");
@@ -131,7 +196,7 @@ int main() {
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 2);
 	Check(f.Read(entities) && !f.Find(entities, 8), "class beyond the table count is rejected");
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
-	Check(f.Read(entities) && entities.size() == 5, "fixture restored");
+	Check(f.Read(entities) && entities.size() == 9, "fixture restored");
 	Check(!NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 41, 7, entities), "another player id is refused");
 	f.enemy.At(GroundItemLayout::UnitNext, f.enemy.Address());
 	Check(!f.Read(entities), "a unit list cycle fails instead of looping");

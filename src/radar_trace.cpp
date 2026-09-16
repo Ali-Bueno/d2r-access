@@ -6,6 +6,7 @@
 namespace D2RAccess::RadarTrace {
 const char* DirectionName(size_t direction) {
 	constexpr const char* Names[] = {"up", "left", "right", "down"};
+	static_assert(std::size(Names) == Radar::DirectionCount);
 	return direction < Radar::DirectionCount ? Names[direction] : "unknown";
 }
 const char* StateName(Radar::State state) {
@@ -16,10 +17,10 @@ const char* StateName(Radar::State state) {
 	}
 }
 void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, const Radar::Engine& engine, uint64_t now) {
-	// One snapshot per cue-producing tick, after submitting audio. Retain the
-	// raw flags needed to replay footprint/terrain filtering, including unknown
-	// coverage. Run-length encoding avoids dozens of disk flushes per map.
-	const int radius=Radar::StructuralRadius({},world.bodyPattern), side=2*radius+1;
+	// Retain the raw flags needed to replay footprint/terrain filtering,
+	// including unknown coverage. Run-length encoding avoids dozens of disk
+	// flushes per map. The service rate-limits these records.
+	const int radius=Radar::StructuralRadius(engine.Configuration(),world.bodyPattern), side=2*radius+1;
 	const int left=static_cast<int>(world.player.x)-radius, top=static_cast<int>(world.player.y)-radius;
 	struct Chunk { size_t start; std::string data; };
 	std::vector<Chunk> chunks{{0,{}}};
@@ -47,12 +48,10 @@ void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, con
 			world.player.x+world.subtileFraction.x,world.player.y+world.subtileFraction.y,part+1,chunks.size(),chunks[part].start,chunks[part].data.c_str());
 	for (size_t direction=0;direction<Radar::DirectionCount;++direction) {
 		const auto& sensor=engine.Sensors()[direction];
-		const auto point=sensor.wallMemory.Point(), normal=sensor.wallMemory.Normal();
-		const auto visit=sensor.openingVisit.Point(), target=sensor.openingVisit.Target();
-		AsyncLog::InfoF(context,"[radar-reference] event_ms=%llu direction=%zu known=%u point=%.0f,%.0f normal=%.5f,%.5f hit=%.0f,%.0f new_exit=%u required=%.1f visit_known=%u visit=%.0f,%.0f target=%.1f,%.1f departed=%u revisit=%u visits=%zu",
-			static_cast<unsigned long long>(now),direction,sensor.wallMemory.Known()?1u:0u,point.x,point.y,normal.x,normal.y,
-			sensor.structure.hit.x,sensor.structure.hit.y,sensor.newOpening?1u:0u,sensor.wallMemory.RequiredDepth(),
-			sensor.openingVisit.Known()?1u:0u,visit.x,visit.y,target.x,target.y,sensor.openingVisit.Departed()?1u:0u,sensor.revisitCue?1u:0u,sensor.openingVisit.Count());
+		AsyncLog::InfoF(context,"[radar-direction] event_ms=%llu direction=%s state=%s candidate=%s depth=%.1f open=%.1f close=%.1f available=%u deferred=%s last_cue=%s hold=%s frontier=%u,%.1f",
+			static_cast<unsigned long long>(now),DirectionName(direction),StateName(sensor.state),StateName(sensor.candidate),
+			sensor.passage.depth,sensor.passage.openDepth,sensor.passage.closeDepth,sensor.passage.available?1u:0u,
+			StateName(sensor.deferred),StateName(sensor.lastCue),sensor.hold,sensor.frontier.known?1u:0u,sensor.frontier.projection);
 	}
 }
 void Audio(const D2RL::PluginContext* context, size_t direction, Radar::State state,

@@ -41,7 +41,7 @@ std::string ReadName(uintptr_t widget) { return widget == Address() ? "Legend" :
 }
 int main() {
 	using namespace D2RAccess;
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Check(ControllerText::Read("\xEE\x80\x8F") == "A", "live Porrazo binding glyph reads A");
 	Check(ControllerText::Read("\xEE\x80\x8D+\xEE\x80\x91") == "LT + X", "alternate skill bindings preserve the modifier");
 	Check(ControllerText::Read("\xEE\x80\x91" "Asignar habilidad") == "X Asignar habilidad", "adjacent caption keeps its controller button");

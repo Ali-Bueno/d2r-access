@@ -19,7 +19,7 @@ Snapshot Conversation() {
 }
 
 int main() {
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	Check(Clean("  Akara\r\n Bienvenido\tviajero | hola  ") == "Akara Bienvenido viajero hola", "line wrapping is normalized");
 	Check(Clean("\xC3\xBF" "c4Diálogo \xFF" "c0español") == "Diálogo español", "color markup is removed without losing UTF-8");
 	Check(Clean("¿Qué tal? 50% <G>") == "¿Qué tal? 50% <G>", "punctuation and literal control hints survive");

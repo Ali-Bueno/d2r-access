@@ -23,8 +23,8 @@ void WallAndDoorway() {
 	for (int x=25; x<=27; ++x) Put(w,x,16,0);
 	grid = Navigation::Build(w,12);
 	Check(Reached(grid,20,12), "an offset doorway connects the region despite central straight-ray obstruction");
-	Check(Radar::SweepBody(w,w.player,{0,-1},12,2,Radar::Layer::Movement).end == Radar::State::Blocked,
-		"reachability through a side doorway does not change the true straight-ray collision");
+	Check(w.Body(static_cast<int>(w.player.x),16) == Radar::State::Blocked,
+		"reachability through a side doorway does not change the true straight-line collision");
 	Check(grid.At(20,12)->steps > 8, "the detour's destination-step count exceeds the direct displacement");
 	for (int x=25; x<=27; ++x) Put(w,x,16,0x800);
 	Check(!Reached(Navigation::Build(w,12),20,12), "closing the actual door disconnects the region on the next snapshot");

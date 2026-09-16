@@ -1,5 +1,7 @@
 # Radar geometry and cue precision
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 > The user rejected this build's running behavior. The later
 > [surface-tracking correction](radar-surface-tracking.md) replaces interpolated
 > player samples with verified supporting wall lines, coalesces adjacent facets,

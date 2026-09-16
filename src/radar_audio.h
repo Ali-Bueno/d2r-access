@@ -17,13 +17,12 @@ struct CueSource {
 	bool audition = false;
 };
 // Bounded, latest-state queue. The worker plays one direction at a time;
-// observations invalidate queued cues before the player hears stale openings.
+// confirmed states invalidate queued cues before the player hears stale ones.
 class CueQueue {
 public:
 	void Push(const Radar::Events& events, CueSource source = {});
-	void Retain(const Radar::Events& observations);
+	void Retain(const Radar::Events& states);
 	Radar::Events Take(CueSource* source = nullptr);
-	Radar::AudioLoad Playback(const Radar::Events& playing, uint64_t elapsedMs, uint64_t gapMs) const;
 	bool Empty() const;
 	const auto& Pending() const { return pending_; }
 	const CueSource& Source(size_t direction) const { return sources_[direction]; }
@@ -32,12 +31,14 @@ private:
 	std::array<CueSource, Radar::DirectionCount> sources_{};
 	size_t next_ = 0;
 };
-std::vector<int16_t> Synthesize(const Radar::Events& events);
-bool Start(const D2RL::PluginContext* context);
+// gain 0..1 scales the compiled peak level.
+std::vector<int16_t> Synthesize(const Radar::Events& events, double gain = 1);
+bool Start(const D2RL::PluginContext* context, double gain);
 void Play(const Radar::Events& events, CueSource source);
-void Validate(const Radar::Events& observations, const Radar::Events& audible);
+// Drop queued cues that no longer describe the confirmed state of their
+// direction. A cue already sounding is left to finish.
+void Retain(const Radar::Events& states);
 void Silence(const char* reason = "suspended");
 void Stop();
 bool Available();
-Radar::AudioLoad Load();
 }

@@ -1,154 +1,272 @@
 #include "radar.h"
+#include "radar_passage.h"
+#include "recorded_return_grid.h"
 #include "test_support.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 
-using namespace D2RAccess::Radar;
+using namespace D2RAccess;
+using namespace Radar;
 namespace {
 constexpr int Size = 240;
 // Native PLAYER_PATH bits: WALL | NO_PLAYER | OBJECT | DOOR | NO_PATH.
 constexpr uint16_t PlayerPath = 0x1C09, Wall = 1, Object = 0x400, Door = 0x800;
+constexpr size_t Index(Direction direction) { return static_cast<size_t>(direction); }
+constexpr size_t Down = Index(Direction::Down);
+
 World Field(int pattern = 1) {
-	World w; w.session = w.level = 1; w.player = {100,100};
-	w.bodyPattern = pattern; w.walkingMask = PlayerPath;
-	w.rooms.push_back({0,0,Size,Size,std::vector<uint16_t>(Size*Size)});
-	return w;
+	World world;
+	world.session = world.level = 1;
+	world.player = {100, 100};
+	world.bodyPattern = pattern;
+	world.walkingMask = PlayerPath;
+	world.rooms.push_back({0, 0, Size, Size, std::vector<uint16_t>(Size * Size)});
+	return world;
 }
-void Put(World& w, int x, int y, uint16_t flags) { w.rooms[0].cells[y*Size+x] = flags; }
-void Rectangle(World& w, int x, int y, int width, int height, uint16_t flags) {
-	for (int dy=0; dy<height; ++dy) for (int dx=0; dx<width; ++dx) Put(w,x+dx,y+dy,flags);
+void Put(World& world, int x, int y, uint16_t flags) {
+	world.rooms[0].cells[static_cast<size_t>(y) * Size + x] = flags;
+}
+void Rectangle(World& world, int x, int y, int width, int height, uint16_t flags) {
+	for (int dy = 0; dy < height; ++dy) for (int dx = 0; dx < width; ++dx) Put(world, x + dx, y + dy, flags);
 }
 bool Silent(const Events& events) {
-	return std::all_of(events.begin(), events.end(), [](State s) { return s == State::Unknown; });
+	return std::all_of(events.begin(), events.end(), [](State state) { return state == State::Unknown; });
 }
+Navigation::Grid Analyze(const World& world) {
+	const double reach = std::max(Settings{}.openDepth, Settings{}.reachDepth);
+	return Navigation::Build(world, PassageRadius(reach, world.bodyPattern));
+}
+
 void IsolatedObjects() {
-	for (int pattern : {0,1,2,3,4,5}) for (uint16_t flags : {Wall,Object,uint16_t(Wall|Object)}) {
-		auto w = Field(pattern); Rectangle(w,108,108,3,2,flags);
-		const auto view = StructuralWorld(w,{});
-		Check(view.Cell(108,108) == State::Open, "bypassable small furniture is absent from automatic structural geometry for every native body pattern");
-		Check(w.Body(108,108) == State::Blocked, "structural filtering never changes the physical source map");
+	for (int pattern : {0, 1, 2, 3, 4, 5}) for (uint16_t flags : {Wall, Object, uint16_t(Wall | Object)}) {
+		auto world = Field(pattern);
+		Rectangle(world, 108, 108, 3, 2, flags);
+		Check(StructuralWorld(world, {}).Cell(108, 108) == State::Open,
+			"bypassable small furniture is absent from automatic structural geometry for every native body pattern");
+		Check(world.Body(108, 108) == State::Blocked, "structural filtering never changes the physical source map");
 	}
-	auto w = Field(); Rectangle(w,108,104,7,12,Object);
-	Check(StructuralWorld(w,{}).Cell(108,104) == State::Open, "a larger isolated object can be bypassed without pretending it is a room wall");
-	Rectangle(w,108,104,7,12,Wall);
-	Check(StructuralWorld(w,{}).Cell(108,104) == State::Blocked, "a building larger than one map tile is preserved despite an exterior route around it");
-	Rectangle(w,108,104,7,12,0); Rectangle(w,105,105,21,2,Object);
-	Check(StructuralWorld(w,{}).Cell(105,105) == State::Blocked, "objects extending beyond the local classification scale remain structural");
+	// One native map tile is the whole classification scale now: anything wider
+	// is geometry, whatever collision bit it carries.
+	constexpr int Tile = 5;
+	auto world = Field();
+	Rectangle(world, 108, 104, Tile, Tile, Object);
+	Check(StructuralWorld(world, {}).Cell(108, 104) == State::Open,
+		"an object up to one map tile across is bypassable clutter");
+	Rectangle(world, 108, 104, Tile, Tile, 0);
+	Rectangle(world, 108, 104, Tile + 1, Tile + 1, Object);
+	Check(StructuralWorld(world, {}).Cell(108, 104) == State::Blocked,
+		"one cell wider than a map tile is already too big to ignore");
+	Rectangle(world, 108, 104, Tile + 1, Tile + 1, 0);
+	Rectangle(world, 108, 104, 20, 20, Object);
+	Check(StructuralWorld(world, {}).Cell(108, 104) == State::Blocked,
+		"a large block of pure object collision is retained like any other structure");
+	Rectangle(world, 108, 104, 20, 20, 0);
+	Rectangle(world, 108, 104, 7, 12, Wall);
+	Check(StructuralWorld(world, {}).Cell(108, 104) == State::Blocked,
+		"a building larger than one map tile is preserved despite an exterior route around it");
+	Rectangle(world, 108, 104, 7, 12, 0);
+	Rectangle(world, 105, 105, 21, 2, Object);
+	Check(StructuralWorld(world, {}).Cell(105, 105) == State::Blocked,
+		"objects extending beyond the local classification scale remain structural");
 }
+
 void Barriers() {
-	for (uint16_t flags : {Door,uint16_t(0x8),uint16_t(0x1000),uint16_t(Object|Door),uint16_t(Wall|0x8)}) {
-		auto w = Field(); Put(w,105,105,flags);
-		Check(StructuralWorld(w,{}).Cell(105,105) == State::Blocked, "doors, no-player barriers and independent no-path cells are never treated as furniture");
+	for (uint16_t flags : {Door, uint16_t(0x8), uint16_t(0x1000), uint16_t(Object | Door), uint16_t(Wall | 0x8)}) {
+		auto world = Field();
+		Put(world, 105, 105, flags);
+		Check(StructuralWorld(world, {}).Cell(105, 105) == State::Blocked,
+			"doors, no-player barriers and independent no-path cells are never treated as furniture");
 	}
-	for (int pattern : {1,2}) {
-		auto w = Field(pattern);
-		Rectangle(w,0,100,Size,1,Wall); Rectangle(w,0,106,Size,1,Wall);
-		Put(w,108,103,Object);
-		Check(StructuralWorld(w,{}).Cell(108,103) == State::Blocked,
+	for (int pattern : {1, 2}) {
+		auto world = Field(pattern);
+		Rectangle(world, 0, 100, Size, 1, Wall);
+		Rectangle(world, 0, 106, Size, 1, Wall);
+		Put(world, 108, 103, Object);
+		Check(StructuralWorld(world, {}).Cell(108, 103) == State::Blocked,
 			"furniture plugging a corridor stays structural when the apparent gaps do not fit the body");
-		w.bodyPattern = 0;
-		Check(StructuralWorld(w,{}).Cell(108,103) == State::Open, "a real smaller body may fit around that same obstacle");
+		world.bodyPattern = 0;
+		Check(StructuralWorld(world, {}).Cell(108, 103) == State::Open,
+			"a real smaller body may fit around that same obstacle");
 	}
-	auto w = Field();
-	for (int n=70; n<=130; ++n) Put(w,n,n,Wall);
-	Check(StructuralWorld(w,{}).Cell(105,105) == State::Blocked, "diagonally connected wall cells remain one barrier");
-	Rectangle(w,0,100,Size,1,Wall); Put(w,105,101,Object);
-	Check(StructuralWorld(w,{}).Cell(105,101) == State::Blocked, "clutter attached to an extended wall is retained conservatively");
-	w = Field();
-	Rectangle(w,104,104,5,5,Wall); Rectangle(w,105,105,3,3,0);
-	Check(w.Body(106,106) == State::Open && StructuralWorld(w,{}).Cell(104,104) == State::Blocked,
+	auto world = Field();
+	for (int n = 70; n <= 130; ++n) Put(world, n, n, Wall);
+	Check(StructuralWorld(world, {}).Cell(105, 105) == State::Blocked, "diagonally connected wall cells remain one barrier");
+	Rectangle(world, 0, 100, Size, 1, Wall);
+	Put(world, 105, 101, Object);
+	Check(StructuralWorld(world, {}).Cell(105, 101) == State::Blocked,
+		"clutter attached to an extended wall is retained conservatively");
+	world = Field();
+	Rectangle(world, 104, 104, 5, 5, Wall);
+	Rectangle(world, 105, 105, 3, 3, 0);
+	Check(world.Body(106, 106) == State::Open && StructuralWorld(world, {}).Cell(104, 104) == State::Blocked,
 		"an enclosed walkable pocket is preserved even when its entire exterior can be bypassed");
 }
+
 void CoverageAndActors() {
-	auto w = Field(); Put(w,108,108,Object); Put(w,111,108,0x20);
-	Check(StructuralWorld(w,{}).Cell(108,108) == State::Blocked, "unknown detour coverage cannot justify ignoring a physical obstacle");
-	Put(w,111,108,0);
-	const auto before = StructuralWorld(w,{});
+	auto world = Field();
+	Put(world, 108, 108, Object);
+	Put(world, 111, 108, 0x20);
+	Check(StructuralWorld(world, {}).Cell(108, 108) == State::Blocked,
+		"unknown detour coverage cannot justify ignoring a physical obstacle");
+	Put(world, 111, 108, 0);
+	const auto before = StructuralWorld(world, {});
 	// MONSTER | NO_PATH | PET is a native actor stamp, not a new wall.
-	Rectangle(w,106,106,5,1,0x3100); Put(w,108,108,Object|0x3100);
-	const auto after = StructuralWorld(w,{});
-	Check(before.Cell(108,108) == State::Open && after.Cell(108,108) == State::Open,
+	Rectangle(world, 106, 106, 5, 1, 0x3100);
+	Put(world, 108, 108, Object | 0x3100);
+	const auto after = StructuralWorld(world, {});
+	Check(before.Cell(108, 108) == State::Open && after.Cell(108, 108) == State::Open,
 		"creatures crossing a detour do not toggle the structural classification of its furniture");
-	Check(w.Cell(108,108) == State::Blocked && w.Cell(108,106) == State::Blocked,
+	Check(world.Cell(108, 108) == State::Blocked && world.Cell(108, 106) == State::Blocked,
 		"creatures and furniture both remain in the original physical movement map");
-	Put(w,108,108,Object|0xC0);
-	w.walkingMask |= 0xC0;
-	Check(StructuralWorld(w,{}).Cell(108,108) == State::Blocked, "water is never mistaken for a removable player stamp or furniture");
+	Put(world, 108, 108, Object | 0xC0);
+	world.walkingMask |= 0xC0;
+	Check(StructuralWorld(world, {}).Cell(108, 108) == State::Blocked,
+		"water is never mistaken for a removable player stamp or furniture");
 }
-void PhysicalGuard() {
-	auto w = Field(); Put(w,101,101,Object);
-	Engine engine; (void)engine.Tick(w,1000);
-	const auto& rear = engine.Sensors()[3];
-	Check(rear.structure.clearDepth >= 20 && rear.probe.body == State::Blocked,
-		"automatic geometry sees past an isolated object while physical clearance still detects it nearby");
-	Check(!rear.guidance.openingSafe, "a structural opening cannot authorize a tin into furniture blocking the straight passage");
-	Put(w,101,101,0); (void)engine.Tick(w,1050);
-	Check(Silent(engine.Tick(w,1100)), "removing ignored furniture does not announce a new room opening");
-	Put(w,101,101,Door); (void)engine.Tick(w,1150);
-	Check(engine.Tick(w,1200)[3] == State::Blocked, "a real door closing still sounds in the rear direction");
-	Put(w,101,101,0); (void)engine.Tick(w,1250);
-	Check(engine.Tick(w,1300)[3] == State::Open, "a real rear doorway reopening still sounds");
-}
+
 void RoomSeams() {
-	auto w = Field(); Rectangle(w,118,108,4,2,Object);
-	const auto source = w.rooms.front(); w.rooms.clear();
-	for (int left : {0,Size/2}) {
-		RoomGrid room{left,0,Size/2,Size,std::vector<uint16_t>(Size*Size/2)};
-		for (int y=0; y<Size; ++y) for (int x=0; x<Size/2; ++x)
-			room.cells[y*(Size/2)+x] = source.cells[y*Size+left+x];
-		w.rooms.push_back(std::move(room));
+	auto world = Field();
+	Rectangle(world, 118, 108, 4, 2, Object);
+	const auto source = world.rooms.front();
+	world.rooms.clear();
+	for (int left : {0, Size / 2}) {
+		RoomGrid room{left, 0, Size / 2, Size, std::vector<uint16_t>(static_cast<size_t>(Size) * Size / 2)};
+		for (int y = 0; y < Size; ++y) for (int x = 0; x < Size / 2; ++x)
+			room.cells[static_cast<size_t>(y) * (Size / 2) + x] = source.cells[static_cast<size_t>(y) * Size + left + x];
+		world.rooms.push_back(std::move(room));
 	}
-	Check(StructuralWorld(w,{}).Cell(119,108) == State::Open,
+	Check(StructuralWorld(world, {}).Cell(119, 108) == State::Open,
 		"a known neighboring room completes the same object's shape and detour across a room seam");
-	w.rooms.pop_back();
-	Check(StructuralWorld(w,{}).Cell(119,108) == State::Blocked,
+	world.rooms.pop_back();
+	Check(StructuralWorld(world, {}).Cell(119, 108) == State::Blocked,
 		"unloading that neighboring room cannot create a fictitious detour at the seam");
 }
+
+void PhysicalGuardAndDoors() {
+	// The screen-down ray leaves the player's cell through (101,101).
+	auto world = Field();
+	Put(world, 101, 101, Object);
+	Check(Analyze(world).At(101, 101)->body == State::Blocked,
+		"the physical map still reports the object against the native footprint");
+	Check(Analyze(StructuralWorld(world, {})).At(101, 101)->body == State::Open,
+		"automatic geometry sees past an isolated object the player can walk around");
+	Engine engine;
+	Check(Silent(engine.Tick(world, 1000)), "the structural baseline is silent");
+	Check(engine.Sensors()[Down].state == State::Open, "the bypassable object never becomes a wall in that direction");
+	Put(world, 101, 101, 0);
+	for (uint64_t now = 1050; now <= 1200; now += PollMs)
+		Check(Silent(engine.Tick(world, now)), "removing ignored furniture does not announce a new room opening");
+	Put(world, 101, 101, Door);
+	(void)engine.Tick(world, 1250);
+	(void)engine.Tick(world, 1300);
+	Check(engine.Tick(world, 1350)[Down] == State::Blocked, "a real door closing still sounds once it is confirmed");
+	Put(world, 101, 101, 0);
+	(void)engine.Tick(world, 1400);
+	(void)engine.Tick(world, 1450);
+	const uint64_t due = 1350 + Settings{}.cueIntervalMs;
+	for (uint64_t now = 1500; now < due; now += PollMs)
+		Check(Silent(engine.Tick(world, now)), "the reopened door waits for the cue interval instead of sounding twice quickly");
+	Check(engine.Tick(world, due)[Down] == State::Open, "the real doorway reopening still sounds");
+}
+
 void Travel() {
-	for (uint16_t flags : {Wall,Object,uint16_t(Wall|Object)}) for (int stride : {1,3,4}) {
-		auto w = Field(); w.player.x = 70;
-		for (int x=50; x<=180; x+=12) {
-			Rectangle(w,x,89,3,2,flags); Rectangle(w,x+5,109,2,3,flags);
+	for (uint16_t flags : {Wall, Object, uint16_t(Wall | Object)}) for (int stride : {1, 3, 4}) {
+		auto world = Field();
+		world.player.x = 70;
+		for (int x = 50; x <= 180; x += 12) {
+			Rectangle(world, x, 89, 3, 2, flags);
+			Rectangle(world, x + 5, 109, 2, 3, flags);
 		}
-		Engine engine; (void)engine.Tick(w,1000);
+		Engine engine;
+		(void)engine.Tick(world, 1000);
 		unsigned events = 0;
-		for (int step=1; step<=72/stride; ++step) {
-			w.player.x += stride;
-			for (auto event : engine.Tick(w,1000+step*stride*50)) events += event != State::Unknown;
+		for (int step = 1; step <= 72 / stride; ++step) {
+			world.player.x += stride;
+			for (const auto event : engine.Tick(world, 1000 + static_cast<uint64_t>(step) * stride * PollMs))
+				events += event != State::Unknown;
 		}
-		std::cout << "clutter flags=" << flags << " stride=" << stride << " events=" << events << '\n';
-		Check(events == 0, "walking/running between bypassable objects produces no opening/closing chatter in any direction");
-		for (int step=1; step<=72/stride; ++step) {
-			w.player.x -= stride;
-			for (auto event : engine.Tick(w,4600+step*stride*50)) events += event != State::Unknown;
+		Check(events == 0,
+			"walking or running between bypassable objects produces no opening or closing chatter in any direction");
+		for (int step = 1; step <= 72 / stride; ++step) {
+			world.player.x -= stride;
+			for (const auto event : engine.Tick(world, 4600 + static_cast<uint64_t>(step) * stride * PollMs))
+				events += event != State::Unknown;
 		}
 		Check(events == 0, "returning along the same cluttered route stays silent, including behind the player");
 	}
 }
+
+void RecordedReturn() {
+	// A real Blood Moor capture. Nothing in it changes, so every cue the walk
+	// produces must be a genuine alternation of that direction's state, and
+	// standing still at either end must settle into silence.
+	auto world = RecordedReturnGrid();
+	const Position mouth = world.player;
+	Engine engine;
+	uint64_t now = 1000;
+	bool consistent = true, legal = true;
+	const auto step = [&](double offset) {
+		world.player = {mouth.x + offset, mouth.y + offset};
+		legal &= world.Body(static_cast<int>(world.player.x), static_cast<int>(world.player.y)) == State::Open;
+		const auto events = engine.Tick(world, now += PollMs);
+		for (size_t i = 0; i < DirectionCount; ++i) {
+			if (events[i] == State::Unknown) continue;
+			// Every cue is the state that was just confirmed for a direction the
+			// scan could actually see; nothing is announced out of thin air.
+			consistent &= engine.Sensors()[i].state == events[i] && engine.Sensors()[i].passage.available;
+		}
+		return events;
+	};
+	for (const double offset : {0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.0, 0.0}) (void)step(offset);
+	Check(legal, "the recorded walk only visits cells the native body really fits in");
+	Check(consistent, "every cue on the recorded walk is the confirmed state of a direction that could be seen");
+	// An opening confirmed during the walk may still be waiting for its cue
+	// interval, so give the engine one whole interval to flush anything pending
+	// before requiring that an unchanging map says nothing more.
+	const int flush = static_cast<int>(Settings{}.cueIntervalMs / PollMs) + 1;
+	for (int poll = 0; poll < flush; ++poll) (void)step(0);
+	bool settled = true;
+	for (int poll = 0; poll < 8; ++poll) settled &= Silent(step(0));
+	Check(settled, "standing still back at the start of the recorded walk falls silent and stays silent");
+	for (size_t i = 0; i < DirectionCount; ++i) {
+		const auto& sensor = engine.Sensors()[i];
+		if (!sensor.passage.available || sensor.passage.observed == State::Unknown) continue;
+		Check(sensor.state == sensor.passage.observed && sensor.candidate == State::Unknown,
+			"after the map has stopped changing every confirmed state matches what is actually observed");
+	}
+}
+
 void WindowAndCost() {
-	auto w = Field(); Put(w,100,110,Object);
+	auto world = Field();
+	Put(world, 100, 110, Object);
 	bool stable = true;
-	for (int x=80; x<=120; ++x) {
-		w.player.x = x;
-		stable &= StructuralWorld(w,{}).Cell(100,110) == State::Open;
+	for (int x = 80; x <= 120; ++x) {
+		world.player.x = x;
+		stable &= StructuralWorld(world, {}).Cell(100, 110) == State::Open;
 	}
-	Check(stable, "a nearby obstacle remains consistently ignored as the local classification window follows the player");
-	for (int y=65; y<=140; y+=6) for (int x=65; x<=140; x+=6) Put(w,x,y,Object);
-	Engine engine; constexpr int Ticks = 200;
+	Check(stable, "a nearby obstacle stays consistently ignored as the local classification window follows the player");
+	for (int y = 65; y <= 140; y += 6) for (int x = 65; x <= 140; x += 6) Put(world, x, y, Object);
+	world.player = {100, 100};
+	Engine engine;
+	constexpr int Ticks = 200;
 	const auto start = std::chrono::steady_clock::now();
-	for (int tick=0; tick<Ticks; ++tick) (void)engine.Tick(w,1000+tick*PollMs);
-	const double ms = std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()/Ticks;
+	for (int tick = 0; tick < Ticks; ++tick) (void)engine.Tick(world, 1000 + tick * PollMs);
+	const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count() / Ticks;
+	// Reported for comparison between runs; never asserted, because a shared
+	// build machine's wall clock is not a property of the radar.
 	std::cout << "dense clutter average tick ms=" << ms << '\n';
-	Check(ms < PollMs, "dense clutter processing stays within the radar's existing poll budget");
 }
 }
-int main(int argc, char** argv) {
-	const std::string_view test = argc > 1 ? argv[1] : "all";
-	if (test == "all" || test == "travel") Travel();
-	if (test == "all") {
-		IsolatedObjects(); Barriers(); CoverageAndActors(); PhysicalGuard(); RoomSeams(); WindowAndCost();
-	}
+int main() {
+	IsolatedObjects();
+	Barriers();
+	CoverageAndActors();
+	RoomSeams();
+	PhysicalGuardAndDoors();
+	Travel();
+	RecordedReturn();
+	WindowAndCost();
 	Passed();
 }

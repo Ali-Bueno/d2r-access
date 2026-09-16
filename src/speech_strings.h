@@ -1,15 +1,26 @@
 #pragma once
 
-#include <string_view>
 #include <array>
+#include <cstddef>
+#include <optional>
+#include <string_view>
 
-// Every phrase the plugin speaks lives here so wording and translation are
-// changed in one place, never inside the services or the hooks. Game text
-// (labels, tooltips, panel titles) comes from the game's own string tables;
-// these are only the plugin's connective words.
+// Every phrase the plugin speaks lives in one Table per game language, so
+// wording and translation are changed in one place, never inside the services
+// or the hooks. Game text (labels, tooltips, panel titles, item names) comes
+// from the game's own string tables; these are only the plugin's connective
+// words. The per-language tables live in src/strings/<locale>.h.
 namespace D2RAccess::Strings {
 
-enum class Language { English, Spanish };
+// The game's thirteen text locales (the per-locale columns of
+// data/local/lng/strings/*.json), sorted by code. Settings.json stores the
+// locale by its ui.json column index instead: see control_state.cpp.
+enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
+
+inline constexpr std::size_t LanguageCount = 13;
+
+inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
+	"enUS", "deDE", "esES", "esMX", "frFR", "itIT", "jaJP", "koKR", "plPL", "ptBR", "ruRU", "zhCN", "zhTW"};
 
 struct Table {
 	const char* pluginLoaded;
@@ -66,8 +77,7 @@ struct Table {
 	const char* radarDepth; // %.0f = clear depth in collision subtiles
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
-	const char* radarOccupied;
-	std::array<const char*, 4> radarDirections;
+	std::array<const char*, 4> radarDirections; // Radar::Direction order: up, left, right, down
 	std::array<const char*, 3> radarStates;
 	const char* radarMoving; // %s = actual recent screen displacement direction
 	const char* radarStationary;
@@ -83,165 +93,85 @@ struct Table {
 	const char* scanMeters; // %d = whole metres
 	const char* scanAdjacent; // under one metre away
 	const char* scanIndexOfCount; // %d = index (1-based), %d = count
+	const char* npcEnabled; // friendly NPC announcer toggles
+	const char* npcDisabled;
+	const char* exitUnnamed; // a level exit whose destination name is unavailable
+	const char* itemSpeechEnabled; // nearby ground item reading toggles
+	const char* itemSpeechDisabled;
+	const char* itemSoundsEnabled; // ground item loop toggles
+	const char* itemSoundsDisabled;
+	const char* exitSoundsEnabled; // level exit loop toggles
+	const char* exitSoundsDisabled;
+	const char* beaconCleared;
+	const char* beaconUnavailable;
+	const char* beaconNothing;
+	const char* beaconFollowing; // %s = target name
+	const char* beaconArrived; // %s = target name
+	const char* beaconLost; // %s = target name
+	const char* questUpdated;
+	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
+	const char* questAlertsEnabled;
+	const char* questAlertsDisabled;
+	// Item quality suffixes indexed by the game's item quality value
+	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
+	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
+	std::array<const char*, 9> itemQualities;
 };
 
-inline constexpr Table English {
-	.pluginLoaded        = "Diablo 2 accessibility loaded",
-	.screenReaderMissing = "screen reader unavailable",
-	.panelOpened         = "%s",
-	.panelClosed         = "%s closed",
-	.panelToggled        = "%s",
-	.navigation          = "going to %s",
-	.valueChanged        = "%s: %s",
-	.roleButton          = "button",
-	.roleCheckbox        = "checkbox",
-	.roleDropdown        = "dropdown",
-	.roleSlider          = "slider",
-	.roleTextField       = "text field",
-	.roleTabs            = "tabs",
-	.roleList            = "list",
-	.checked             = "checked",
-	.unchecked           = "unchecked",
-	.optionOfCount       = "option %d of %d",
-	.optionIndex         = "option %d",
-	.resolution          = "%u by %u",
-	.characterLevel      = "level %d",
-	.unavailable         = "unavailable",
-	.modalConfirmHint    = "A to confirm, B to cancel",
-	.modalDismissHint    = "A to close",
-	.dialogueMenu        = "Conversation",
-	.gameTextEnabled     = "In-game text reading on",
-	.gameTextDisabled    = "In-game text reading off",
-	.inventory           = "Inventory",
-	.stash               = "Stash",
-	.equipment           = "Equipment",
-	.slotEmpty           = "Empty",
-	.slotOccupied        = "Occupied",
-	.itemInHand          = "Item in hand. Choose a space or a compatible equipment slot to place it",
-	.itemReleased        = "You are no longer holding an item",
-	.belt                = "Belt",
-	.gridCell            = "Row %d, column %d",
-	.skillOfCount        = "Skill %d of %d",
-	.assignedTo          = "Assigned to %s",
-	.controllerButtons   = {"D-pad", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "Menu", "View", "Left stick", "Press left stick", "Right stick", "Press right stick", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
-	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
-		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
-	.radarEnabled = "Radar enabled",
-	.footstepsEnabled = "Stalled footstep filter enabled",
-	.footstepsDisabled = "Stalled footstep filter disabled",
-	.footstepsUnavailable = "Footstep filter unavailable for this game build",
-	.radarDisabled = "Radar disabled",
-	.radarUnavailable = "Radar terrain is not available yet",
-	.radarReaderUnavailable = "Radar terrain reader could not start",
-	.radarWaitingPlayer = "Radar waiting for the character to enter the game",
-	.radarUiStates = {"Radar suspended while the game window is inactive", "Radar cannot read the menu state",
-		"Radar suspended during dialogue", "Radar suspended in the pause menu"},
-	.radarAudioUnavailable = "Radar audio unavailable",
-	.radarTest = "Radar sound test: up, left, right, down; opening then blocked",
-	.radarDepth = "%.0f subtiles clear",
-	.radarNearbyObstacle = "obstacle nearby",
-	.radarLimited = "limited space",
-	.radarOccupied = "occupied passage",
-	.radarDirections = {"Up", "Left", "Right", "Down"},
-	.radarStates = {"unknown", "open", "blocked"},
-	.radarMoving = "Moving %s",
-	.radarStationary = "No recent movement",
-	.radarMotionUnknown = "Movement not yet measured",
-	.radarStraight = "Straight-line passages",
-	.radarMovementDirections = {"up", "up and right", "right", "down and right", "down", "down and left", "left", "up and left"},
-	.scanEnabled = "Scan enabled",
-	.scanDisabled = "Scan disabled",
-	.scanUnavailable = "Scan unavailable",
-	.scanDirections = {"ahead", "to the left", "to the right", "behind"},
-	.scanNothing = "Nothing %s",
-	.scanMeter = "1 meter",
-	.scanMeters = "%d meters",
-	.scanAdjacent = "right here",
-	.scanIndexOfCount = "%d of %d",
-};
+// Visits every phrase of a table, single fields and array entries alike, in
+// declaration order. The one place that enumerates the fields: the completeness
+// guard below and the tests that compare translations against English use it.
+template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) {
+	const char* const singles[] = {
+		t.pluginLoaded, t.screenReaderMissing, t.panelOpened, t.panelClosed, t.panelToggled, t.navigation,
+		t.valueChanged, t.roleButton, t.roleCheckbox, t.roleDropdown, t.roleSlider, t.roleTextField, t.roleTabs,
+		t.roleList, t.checked, t.unchecked, t.optionOfCount, t.optionIndex, t.resolution, t.characterLevel,
+		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
+		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
+		t.itemReleased, t.belt, t.gridCell, t.skillOfCount, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
+		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
+		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
+		t.radarStraight, t.scanEnabled, t.scanDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
+		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
+		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
+		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
+		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
+		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled};
+	for (const char* s : singles) visit(s);
+	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
+	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
+	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities);
+}
 
-inline constexpr Table Spanish {
-	.pluginLoaded        = "Accesibilidad de Diablo 2 cargada",
-	.screenReaderMissing = "lector de pantalla no disponible",
-	.panelOpened         = "%s",
-	.panelClosed         = "%s cerrado",
-	.panelToggled        = "%s",
-	.navigation          = "yendo a %s",
-	.valueChanged        = "%s: %s",
-	.roleButton          = "botón",
-	.roleCheckbox        = "casilla",
-	.roleDropdown        = "desplegable",
-	.roleSlider          = "deslizador",
-	.roleTextField       = "campo de texto",
-	.roleTabs            = "pestañas",
-	.roleList            = "lista",
-	.checked             = "marcado",
-	.unchecked           = "no marcado",
-	.optionOfCount       = "opción %d de %d",
-	.optionIndex         = "opción %d",
-	.resolution          = "%u por %u",
-	.characterLevel      = "nivel %d",
-	.unavailable         = "no disponible",
-	.modalConfirmHint    = "A para confirmar, B para cancelar",
-	.modalDismissHint    = "A para cerrar",
-	.dialogueMenu        = "Conversación",
-	.gameTextEnabled     = "Lectura de textos del juego activada",
-	.gameTextDisabled    = "Lectura de textos del juego desactivada",
-	.inventory           = "Inventario",
-	.stash               = "Alijo",
-	.equipment           = "Equipo",
-	.slotEmpty           = "Vacío",
-	.slotOccupied        = "Ocupado",
-	.itemInHand          = "Objeto en mano. Elige una casilla o una ranura de equipo compatible para colocarlo",
-	.itemReleased        = "Ya no sujetas ningún objeto",
-	.belt                = "Cinturón",
-	.gridCell            = "Fila %d, columna %d",
-	.skillOfCount        = "Habilidad %d de %d",
-	.assignedTo          = "Asignada a %s",
-	.controllerButtons   = {"Cruceta", "Cruceta arriba", "Cruceta abajo", "Cruceta izquierda", "Cruceta derecha", "Menú", "Vista", "Stick izquierdo", "Pulsar stick izquierdo", "Stick derecho", "Pulsar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
-	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
-		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
-	.radarEnabled = "Radar activado",
-	.footstepsEnabled = "Silenciar pasos al quedar bloqueado: activado",
-	.footstepsDisabled = "Silenciar pasos al quedar bloqueado: desactivado",
-	.footstepsUnavailable = "Filtro de pasos no disponible para esta versión del juego",
-	.radarDisabled = "Radar desactivado",
-	.radarUnavailable = "Terreno del radar todavía no disponible",
-	.radarReaderUnavailable = "No se pudo iniciar el lector de terreno del radar",
-	.radarWaitingPlayer = "Radar esperando a que el personaje entre en la partida",
-	.radarUiStates = {"Radar suspendido: la ventana del juego no está activa", "El radar no puede leer el estado de los menús",
-		"Radar suspendido durante el diálogo", "Radar suspendido en el menú de pausa"},
-	.radarAudioUnavailable = "Sonidos del radar no disponibles",
-	.radarTest = "Prueba de radar: arriba, izquierda, derecha, abajo; apertura y después bloqueo",
-	.radarDepth = "%.0f subcasillas libres",
-	.radarNearbyObstacle = "obstáculo cercano",
-	.radarLimited = "espacio limitado",
-	.radarOccupied = "paso ocupado",
-	.radarDirections = {"Arriba", "Izquierda", "Derecha", "Abajo"},
-	.radarStates = {"desconocido", "abierto", "bloqueado"},
-	.radarMoving = "Desplazándote hacia %s",
-	.radarStationary = "Sin desplazamiento reciente",
-	.radarMotionUnknown = "Desplazamiento todavía sin medir",
-	.radarStraight = "Pasos en línea recta",
-	.radarMovementDirections = {"arriba", "arriba y derecha", "derecha", "abajo y derecha", "abajo", "abajo y izquierda", "izquierda", "arriba y izquierda"},
-	.scanEnabled = "Escáner activado",
-	.scanDisabled = "Escáner desactivado",
-	.scanUnavailable = "Escáner no disponible",
-	.scanDirections = {"adelante", "a la izquierda", "a la derecha", "atrás"},
-	.scanNothing = "Nada %s",
-	.scanMeter = "1 metro",
-	.scanMeters = "%d metros",
-	.scanAdjacent = "aquí mismo",
-	.scanIndexOfCount = "%d de %d",
-};
+// Compile-time guard: a language table that leaves a field out of its
+// designated initializer would hand a null format string to the speech layer.
+constexpr bool Complete(const Table& t) {
+	bool complete = true;
+	ForEachPhrase(t, [&](const char* s) { if (s == nullptr) complete = false; });
+	return complete;
+}
 
-// Chosen once at load from the game's own text language (see plugin.cpp).
+// The table of the language chosen from the game's text language (see
+// Localization::DetectSpeechLanguage); English until detection succeeds.
 const Table& Current();
+Language     Selected();
 void         Select(Language language);
+const Table& For(Language language);
 
-// The game's "strCancel" string in each language, used to detect which text
-// locale the game is running (values from data/local/lng/strings/ui.json).
-inline constexpr std::string_view CancelProbeKey     = "strCancel";
-inline constexpr std::string_view CancelProbeSpanish = "CANCELAR";
+std::optional<Language> FromLocale(std::string_view code);
+std::string_view        LocaleCode(Language language);
+
+// The game exposes no locale API, so the text language is recognised by
+// resolving one game string whose translation differs in every locale and
+// matching it against these values (from data/local/lng/strings/ui.json).
+struct LocaleProbe {
+	std::string_view                                key;
+	std::array<std::string_view, LanguageCount>     values; // Language order
+};
+extern const LocaleProbe TextLocaleProbe;
+
+// The language whose probe value matches, if any.
+std::optional<Language> FromProbeValue(std::string_view value);
 
 }

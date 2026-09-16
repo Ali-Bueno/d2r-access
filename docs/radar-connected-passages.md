@@ -1,5 +1,7 @@
 # Connected passage radar
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 > Follow-up: [remembered wall references](radar-wall-memory.md) now prevent
 > retreat from a known wall from sounding like a new exit. The original physical
 > approach must clear the remembered edge as well as the short useful depth.

@@ -112,7 +112,7 @@ void Cycling() {
 }
 
 void Wording() {
-	const auto& es = Strings::Spanish;
+	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
 	Result result;
 	result.direction = Direction::Up;
@@ -134,7 +134,7 @@ void Wording() {
 	settings.metersPerSubtile = 0.5;
 	result.target.distance = 8.2;
 	Check(Describe(result, settings, es) == "Akara, 4 metros", "the spoken unit follows the calibration factor");
-	Check(Describe(result, settings, Strings::English) == "Akara, 4 meters", "english wording");
+	Check(Describe(result, settings, Strings::For(Strings::Language::enUS)) == "Akara, 4 meters", "english wording");
 }
 }
 

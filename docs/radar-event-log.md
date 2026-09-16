@@ -1,5 +1,7 @@
 # Radar cue event log
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 Radar cue delivery is recorded automatically in `d2rloader/logs/d2r-access.log`.
 No console switch or audio recording is required. Records are emitted for cue
 lifecycle changes, not for each 50 ms radar poll. They use the existing bounded

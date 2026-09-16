@@ -46,8 +46,8 @@ void PlayerPresenceTests() {
 	Check(fixture.Read(world) && world.Body(105, 104) == Radar::State::Open,
 		"the local player's own presence marker cannot block its body probe");
 	Check(fixture.cells[44] == 0x1080, "removing self presence modifies only the owned snapshot");
-	for (const Radar::Position axis : std::array<Radar::Position, 4>{{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}})
-		Check(Radar::Scan(world, axis, {}).bodyDepth == 2, "all body probes can leave the occupied player cell");
+	for (const auto [dx, dy] : std::array<std::pair<int, int>, 4>{{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}})
+		Check(world.Body(104 + 2 * dx, 104 + 2 * dy) == Radar::State::Open, "all body destinations can leave the occupied player cell");
 	fixture.cells[44] |= 1;
 	Check(fixture.Read(world) && world.Cell(104, 104) == Radar::State::Blocked, "a real wall sharing the player cell remains blocked");
 	fixture.cells[44] = 0x1880;
@@ -145,6 +145,39 @@ int main() {
 	Check(!RadarConfig::Parse("[radar]\nenabled=false\nenabled=true").valid, "duplicate radar setting is rejected");
 	Check(RadarConfig::Parse("[radar]\r\n enabled = true\r\n").enabled, "Windows newlines and whitespace are accepted");
 	Check(RadarConfig::Parse("").enabled, "missing preference uses the compiled default");
+	Check(RadarConfig::Parse("[radar]\nvolume = 40 # quieter cues\n").volume == 40,
+		"the documented volume percentage is read from the embedded config");
+	Check(RadarConfig::Parse("").volume == RadarConfig::MaxVolume, "a missing volume keeps the compiled cue level");
+	Check(RadarConfig::Parse("[radar]\nvolume=0\n").valid && RadarConfig::Parse("[radar]\nvolume=0\n").volume == 0,
+		"zero percent is a valid silent preference, not an invalid value");
+	Check(RadarConfig::Parse("[radar]\nvolume=100\n").volume == RadarConfig::MaxVolume,
+		"the maximum documented percentage is accepted");
+	Check(!RadarConfig::Parse("[radar]\nvolume=101\n").valid, "a percentage above the maximum is rejected");
+	Check(!RadarConfig::Parse("[radar]\nvolume=-1\n").valid, "a negative percentage is rejected");
+	Check(!RadarConfig::Parse("[radar]\nvolume=50.5\n").valid, "a fractional percentage is rejected");
+	Check(!RadarConfig::Parse("[radar]\nvolume=loud\n").valid, "a non-numeric volume is rejected");
+	Check(!RadarConfig::Parse("[radar]\nvolume=50\nvolume=60\n").valid, "duplicate radar volume is rejected");
+	Check(RadarConfig::Parse("[radar]\nvolume=101\n").volume == RadarConfig::MaxVolume,
+		"an invalid volume leaves the compiled default in place");
+	Check(RadarConfig::Parse("[other]\nvolume=0\n").volume == RadarConfig::MaxVolume,
+		"other features' volume cannot silence the radar");
+	{
+		const auto both = RadarConfig::Parse("[radar]\r\n enabled = false\r\n volume = 25 \r\n");
+		Check(both.valid && !both.enabled && both.volume == 25, "both documented radar keys can be set together");
+	}
+	{
+		const auto npc = RadarConfig::ParseNpc("[radar]\nenabled = false\n[npc]\r\n enabled = false # quiet\r\n range = 22.5\r\n line_of_sight = true\r\n");
+		Check(npc.valid && npc.enabled == false && npc.range == 22.5 && npc.lineOfSight == true, "all documented [npc] keys parse in their own section");
+		const auto absent = RadarConfig::ParseNpc("[radar]\nenabled = false\nrange = 5\n");
+		Check(absent.valid && !absent.enabled && !absent.range && !absent.lineOfSight, "keys outside [npc] leave every announcer setting unset");
+		Check(RadarConfig::ParseNpc("[npc]\nvolume = 3\n").valid, "unknown [npc] keys are ignored");
+		Check(RadarConfig::ParseNpc("[npc]\nrange = 15\n").range == 15, "an integer range is accepted");
+		Check(!RadarConfig::ParseNpc("[npc]\nrange = 0\n").valid && !RadarConfig::ParseNpc("[npc]\nrange = -2\n").valid, "a non-positive range is rejected");
+		Check(!RadarConfig::ParseNpc("[npc]\nrange = far\n").valid && !RadarConfig::ParseNpc("[npc]\nrange\n").valid, "a non-numeric or valueless range is rejected");
+		Check(!RadarConfig::ParseNpc("[npc]\nenabled = yes\n").valid && !RadarConfig::ParseNpc("[npc]\nline_of_sight = 1\n").valid, "non-TOML booleans are rejected");
+		Check(!RadarConfig::ParseNpc("[npc]\nrange = 5\nrange = 6\n").valid && !RadarConfig::ParseNpc("[npc]\nenabled = true\nenabled = true\n").valid, "duplicate [npc] keys are rejected");
+		Check(RadarConfig::Parse("[npc]\nenabled = false\n").enabled, "the announcer switch cannot disable the radar");
+	}
 	Fixture fixture;
 	Radar::World world;
 	Check(fixture.Read(world), "verified-shaped live room snapshot reads successfully");

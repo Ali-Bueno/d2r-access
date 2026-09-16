@@ -1,5 +1,7 @@
 # Keeping announced opening regions
 
+> Superseded by the 2026-09-16 redesign (docs/radar-redesign.md); retained as history.
+
 2026-09-16. The user still reports forgotten openings and a wall followed by an
 opening while moving. This update retains multiple announced approaches in an
 area and groups approaches that demonstrably belong to the same clear space.

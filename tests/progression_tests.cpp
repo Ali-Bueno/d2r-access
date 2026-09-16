@@ -52,7 +52,7 @@ namespace D2RAccess::Localization { std::string Text(std::string_view key) { ret
 
 int main() {
 	using namespace D2RAccess;
-	Strings::Select(Strings::Language::Spanish);
+	Strings::Select(Strings::Language::esES);
 	const NativeUi::Type stat{"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
 	widgets = {
 		{1, {0, "AnyCharacterPanel", "", {}}},

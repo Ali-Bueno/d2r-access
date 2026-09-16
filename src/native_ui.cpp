@@ -1,6 +1,8 @@
 #include "native_ui.h"
+#include "localization.h"
 #include "native_memory.h"
 #include "native_widgets.h"
+#include "quest_log.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -61,7 +63,7 @@ std::vector<uintptr_t> VectorAt(uintptr_t address) {
 void MatchType(Type& result, const std::string& name) {
 	// Classify inheritance, never a runtime panel's name. A future subtype uses
 	// the same archetype automatically; unknown widgets still expose child text.
-	if (name == "NpcDialogPanel") result.surface = Surface::Menu;
+	if (name == "NpcDialogPanel" || name == "QuestLogPanel") result.surface = Surface::Menu;
 	else if (name == "ScrollSpeechPanel" || name == "QuestLogSpeechPanel") result.surface = Surface::Narrative;
 	else if (name == "TutorialTooltip" || name == "DismissibleTooltipPanel") result.surface = Surface::Tip;
 	else if (name == "LevelNamePanel") result.surface = Surface::Area;
@@ -87,6 +89,7 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "TabBarWidget") result.kind = Kind::Tabs;
 	else if (name == "FocusableWidget") result.kind = Kind::Focusable;
 	else if (name == "ScrollingSpeechWidget") result.kind = Kind::ScrollingText;
+	else if (name == "QuestLogButtonWidget") result.kind = Kind::QuestButton;
 }
 
 void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot, std::unordered_set<uintptr_t>& visited) {
@@ -114,6 +117,17 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 		if (node.text.empty()) node.text = hint;
 		else if (!hint.empty() && UiText::Clean(hint) != UiText::Clean(node.text)) node.text += ". " + hint;
 		if (node.text.empty()) (void)NativeMemory::ReadEngineString(widget + ButtonLegendOffset, node.text);
+	}
+	else if (type.kind == Kind::QuestButton) {
+		// A quest button is an icon with no caption, so the reader would land on a
+		// nameless control. Its own strings come first when the game fills them;
+		// otherwise the quest it stands for is named from the game's string table.
+		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+		if (node.text.empty()) node.text = NativeWidgets::ReadText(widget);
+		if (node.text.empty()) {
+			const auto resolve = [](std::string_view key) { return Localization::Text(key); };
+			if (const auto* quest = QuestLog::ForWidget(node.name)) node.text = QuestLog::Title(*quest, resolve);
+		}
 	}
 	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
 	else if (type.kind == Kind::TabButton) node.text = NativeWidgets::ReadText(widget);

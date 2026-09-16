@@ -1,4 +1,16 @@
-# Navigation radar. Restart the game after changing this default.
+# Navigation radar. Restart the game after changing these defaults.
 # Ctrl+R also toggles the radar for the current run.
 [radar]
 enabled = true
+# Cue loudness, 0-100 percent of the compiled level.
+volume = 100
+
+# Friendly NPC announcer: names the nearest town NPC (never enemies, objects or
+# items) once it comes within range, with its distance and screen direction, so
+# the left stick can walk to it. Ctrl+N toggles it for the current run.
+[npc]
+enabled = true
+# Reach in the entity scan's unit (collision subtiles, about one metre each).
+range = 15
+# true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
+line_of_sight = false
