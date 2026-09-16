@@ -11,6 +11,7 @@ constexpr uint16_t Wall = 0x0001, Blank = 0x0020, Object = 0x0400;
 // Five collision subtiles form one native map tile. This is a conservative
 // size policy for baked clutter sharing WALL, not an object type identifier.
 constexpr int SubtilesPerTile = 5;
+int ObjectSpan(const Settings& settings) { return std::max(SubtilesPerTile, static_cast<int>(std::ceil(settings.boundaryRange))); }
 struct Bounds { int left, top, right, bottom; };
 
 bool CanBypass(const World& original, Bounds obstacle) {
@@ -52,6 +53,10 @@ bool CanBypass(const World& original, Bounds obstacle) {
 }
 }
 
+int StructuralRadius(const Settings& settings, int bodyPattern) {
+	const int bodyRadius = bodyPattern == 0 ? 0 : 1;
+	return static_cast<int>(std::ceil(settings.boundaryRange)) + ObjectSpan(settings) + 2*bodyRadius + 1;
+}
 World StructuralWorld(const World& world, const Settings& settings) {
 	World result;
 	result.player = world.player; result.subtileFraction = world.subtileFraction;
@@ -59,9 +64,8 @@ World StructuralWorld(const World& world, const Settings& settings) {
 	result.bodyPattern = world.bodyPattern; result.walkingMask = world.walkingMask;
 	// The halo contains an entire eligible component, its detour and the body
 	// checks beyond that detour, even when the hit is at the radar range edge.
-	const int objectSpan = std::max(SubtilesPerTile, static_cast<int>(std::ceil(settings.boundaryRange)));
-	const int bodyRadius = world.bodyPattern == 0 ? 0 : 1;
-	const int radius = static_cast<int>(std::ceil(settings.boundaryRange)) + objectSpan + 2*bodyRadius + 1;
+	const int objectSpan = ObjectSpan(settings);
+	const int radius = StructuralRadius(settings,world.bodyPattern);
 	const int side = radius*2+1;
 	result.rooms.push_back({static_cast<int>(world.player.x)-radius, static_cast<int>(world.player.y)-radius,
 		side, side, std::vector<uint16_t>(static_cast<size_t>(side)*side)});

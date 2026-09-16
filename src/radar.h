@@ -58,6 +58,7 @@ struct World {
 uint16_t TerrainCollisionFlags(uint16_t flags);
 // A local geometry-only view. Never use it to decide physical passage clearance.
 World StructuralWorld(const World& world, const Settings& settings);
+int StructuralRadius(const Settings& settings, int bodyPattern);
 struct Probe {
 	std::array<double, 3> depths{};
 	double bodyDepth = 0, medianDepth = 0;
@@ -122,9 +123,10 @@ private:
 class WallMemory {
 public:
 	bool Update(const Probe& wall, Position player, Position axis, bool near,
-		uint64_t now, const Settings& settings);
+		uint64_t now, const Settings& settings, const World* structure = nullptr);
 	bool Known() const { return known_; }
 	Position Point() const { return point_; }
+	Position Normal() const { return normal_; }
 	double RequiredDepth() const { return requiredDepth_; }
 	bool BarrierConfirmed() const { return barrierConfirmed_; }
 private:

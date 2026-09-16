@@ -1,5 +1,9 @@
 # Remembered wall references
 
+The subsequent [contour/sliding correction](radar-sliding.md) follows local
+continuous boundaries and captures collision automatically at sounded events.
+It supersedes this document's test counts and latest-session description.
+
 2026-09-16: the user confirms that connected passages improve the radar, but
 reports that walking away from a known left wall announces an opening toward
 that same wall. This correction adds a world-space reference to each direction;

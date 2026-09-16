@@ -12,6 +12,7 @@
 #include "speech_strings.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -259,6 +260,8 @@ void Tick(const D2RL::PluginContext* context) {
 			}
 		}
 		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});
+		if (std::any_of(events.begin(),events.end(),[](auto state) { return state!=Radar::State::Unknown; }))
+			RadarTrace::Snapshot(context,world,g_engine,now);
 	}
 	if (command == Command::Status || command == Command::Dump) {
 		Describe(available, ui);

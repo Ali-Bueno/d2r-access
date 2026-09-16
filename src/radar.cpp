@@ -86,7 +86,7 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		if (sensor.guidance.observed != State::Unknown) sensor.stable = sensor.guidance.observed;
 		else if (!sensor.probe.available) sensor.stable = State::Unknown;
 		sensor.newOpening = sensor.wallMemory.Update(sensor.structure, world.player, Axes[i],
-			sensor.passage.observed == State::Blocked, now, settings_);
+			sensor.passage.observed == State::Blocked, now, settings_, &structure);
 		// A real wall returning between two visits rearms an announced exit
 		// even when the player stays outside the proximity-warning distance.
 		if (sensor.wallMemory.BarrierConfirmed()) sensor.passageState.RearmOpening();
