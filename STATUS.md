@@ -2,20 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination — 2026-09-16 07:49 BRT
+## Active build coordination — 2026-09-16 08:19 BRT
 
-- **build/deploy idle.** Radar edits, normal build and installation are complete.
-  The game/loader were closed during deployment. Recheck processes before building.
-- The installed build includes the UI/controller work and the finished radar
-  correction: **23 suites / 1141 checks pass**, including the formerly failing
-  thin-gap regression. Controller/listening validation remains pending.
-- Installed/build SHA-256: `0D66EFB021BEFDBF617F266750CB62C6B8D85BC7E9BA8B7583480326F57FC157`.
+- **build/deploy idle.** Radar surface tracking is compiled, deployed and checked;
+  game/loader were closed. Read `docs/radar-surface-tracking.md` before changing it.
+- The user rejected the 07:49 radar build's running behavior. The replacement
+  includes the UI/controller work; **24 suites / 1164 checks pass**. New
+  controller/listening validation is pending.
+- Installed/build SHA-256: `5295ECCAFFDB4C964CC6BEEB99BB435B0ED17A5EEEE1DC2554E0A98580B0F40E`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (radar precision correction compiled and installed; 23 suites / 1141 checks pass; controller/listening validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (AHC-inspired radar surface tracking installed after failed running test; 24 suites / 1164 checks pass; new listening validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -51,11 +51,11 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip — precision correction installed | Geometry is the sole cue source; speed/backlog cannot invent exits. Spatial sampling, range hysteresis and finite-depth confirmation suppress oblique-wall/thin-gap chatter. Unusable recesses no longer emit orphan closings. Current body/occupancy checks, retries and 120/50 ms audio retained. `docs/radar-precision.md`; listening validation pending. |
+| Sonar radar | wip — surface tracking installed after failed running test | AHC-style supported wall lines replace interpolated origins; adjacent facets are consumed once. Started chirps never retry. Captured camp post reproduces the latest nine-subtile body hit. Native mask/body checks and four fixed directions retained. `docs/radar-surface-tracking.md`; new listening validation pending. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 706 checks, including 51 new precision regressions. Shared build: 23 suites / 1141 checks. Speed/backlog, duplicate encounters, range quantization, oblique walls, brief/unusable recesses, lost coverage and real return-trip openings covered. |
+| Radar / footstep automated tests | done (local) | 729 checks; shared build: 24 suites / 1164 checks. Includes 23 surface/replay-policy checks, actual camp grid, collision sliding, slopes, finite running recesses/returns, unknown coverage and rear reopening. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -164,6 +164,8 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Precision investigation (2026-09-16):** read-only native trace/body/projection checks plus `0x340E70/0x343920` alternate collision-tested directions explain wall sliding. The 07:05–07:18 log has 879 generated cues, including unchanged-cell closed/open pairs 125 ms apart driven by speed. Removed that classifier; geometry now drives all cues. `docs/radar-precision.md`.
 
+- **Running follow-up (2026-09-16):** latest log has 148 cues, 17 interrupted buffers and six retries. The saved 21:06 camp grid reproduces hit (4466,4628), depth 9 at player (4473,4621): an isolated object hits the side of the native body. AHC C# line tracking informed the replacement; only real observations advance confirmation and submitted cues do not retry. `docs/radar-surface-tracking.md`.
+
 ## Next step
 
 UI: skill descriptions and binding/action hints confirmed by user. On a future
@@ -171,11 +173,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Validate the installed precision correction during ordinary movement and running, pass a real side opening and return. Ctrl+T still reports actual movement and straight clearances. All cue events now use `trigger=boundary`, with `retry=1` for delivery retries. Build/install SHA-256 `0D66EFB021BEFDBF617F266750CB62C6B8D85BC7E9BA8B7583480326F57FC157`; `docs/radar-precision.md`. User leads controller/listening tests; do not mix desktop input. Another agent handles menus; keep commits scoped.
+Validate the installed surface-tracking correction during ordinary running, a side opening and the return trip. Ctrl+T reports actual movement and saves the local grid. The 08:01 test of the earlier build failed; its partial-audio retries and 63 ms opening duplicates are documented in `docs/radar-surface-tracking.md`. User leads controller/listening tests; do not mix desktop input. Other UI work remains separate.
 
 ## Known issues / open questions
 
-- **Radar prototype:** flat geometry behavior adapted from Kirandur, with D2 grid/body/occupancy guards. Query-unit scale, finite-depth confirmation, range hysteresis and synthesized audio are adaptations; semantic doors/portals/heights and original HRTF are absent. Only loaded rooms are queried; actor-over-terrain bit ownership remains ambiguous. Exceptional-speed/controller/combat accuracy needs live validation. `docs/radar-precision.md`.
+- **Radar prototype:** supports the flat geometry cues using AHC-inspired surface tracking and D2 body/occupancy guards. The new running behavior is not yet heard in game. Local query scale, range, facet coalescing and synthesized audio remain adaptations; semantic doors/portals/heights and original HRTF are absent. Only loaded rooms are queried; actor-over-terrain bit ownership remains ambiguous. `docs/radar-surface-tracking.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

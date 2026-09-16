@@ -42,13 +42,14 @@ void DropPending(const char* reason) {
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", reason, now);
 	g_pending = {};
 }
-// Caller holds g_mutex. A cancelled cue was not delivered; let the engine retry
-// it if it becomes valid again. Old events cannot overwrite a newer failure.
-void Failed(const Radar::Events& events, const CueSource& source) {
+// Caller holds g_mutex. Retry only cues that never started. A partially played
+// chirp is already an announcement; repeating it produces audible stuttering.
+// Old events cannot overwrite a newer failure.
+void Failed(const Radar::Events& events, const CueSource& source, bool submitted = false) {
 	if (source.audition) return;
 	for (size_t i = 0; i < events.size(); ++i)
 		if (events[i] != Radar::State::Unknown && source.eventMs > g_failed[i].eventMs)
-			g_failed[i] = {events[i], source.eventMs};
+			g_failed[i] = {events[i], source.eventMs, submitted};
 }
 
 void Worker(const D2RL::PluginContext* context) {
@@ -123,7 +124,7 @@ void Worker(const D2RL::PluginContext* context) {
 		waveOutUnprepareHeader(device, &header, sizeof(header));
 		{
 			std::lock_guard lock(g_mutex);
-			if (interrupted) Failed(events, source);
+			if (interrupted) Failed(events, source, true);
 			g_nextCue = std::chrono::steady_clock::now() + std::chrono::milliseconds(CueGapMs);
 			g_playing = {};
 		}

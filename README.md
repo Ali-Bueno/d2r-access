@@ -98,10 +98,12 @@ movement mask as the final opening check. The radar now follows changes in the
 world hit position: a side wall receding or returning can sound even when both
 old and new clearances count as open. It describes a currently usable opening
 without requiring the player to continue straight past it first. Speed and sound
-queue length no longer create extra wall/open transitions. Following a continuous
-oblique wall stays quiet, and tiny or fleeting recesses do not leave false exit
-or closing cues. Two consecutive scans confirm changes; 120 ms sounds retain
-their 50 ms silent gaps and cancelled valid cues can retry.
+queue length no longer create extra wall/open transitions. Supporting wall lines,
+adapted from A Hero's Call to D2's body collision, distinguish travelling along
+a wall from crossing an edge. Only real player observations advance confirmation;
+adjacent facets within the body's span produce one cue. Two consecutive scans
+confirm changes. Cues last 120 ms with 50 ms silent gaps; a cancelled cue can retry
+only if it never started, avoiding repeated partially played chirps.
 
 **Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
 (including diagonals), then the four straight-line clearances, and saves a local
@@ -112,9 +114,10 @@ baselines silently and pauses during dialogue/offline pause. Existing settings
 are preserved; no external map or sound installation is required.
 
 Live map reads work in the camp and Blood Moor. The latest geometry behavior
-still needs controller/listening validation. See the [radar precision and Kirandur
-translation](docs/radar-precision.md) for findings, deliberate differences from
-the reference and tests; [sonar controls](docs/sonar-radar.md) and
+still needs controller/listening validation after the user reported running spam.
+See the [surface-tracking investigation](docs/radar-surface-tracking.md) for the
+captured camp obstruction, A Hero's Call comparison, deliberate adaptations and
+tests; [sonar controls](docs/sonar-radar.md) and
 [cue delivery](docs/radar-state-delivery.md) document the rest.
 
 An experimental **stalled-footstep filter** suppresses repeated local HD

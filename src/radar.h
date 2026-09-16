@@ -15,7 +15,7 @@ using Events = std::array<State, DirectionCount>; // Unknown means no event.
 inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
 inline constexpr uint64_t PollMs = 50, AudioGuardMs = PollMs;
 inline constexpr uint64_t CueSlotMs = CueDurationMs + CueGapMs + AudioGuardMs;
-struct CueFailure { State state = State::Unknown; uint64_t eventMs = 0; };
+struct CueFailure { State state = State::Unknown; uint64_t eventMs = 0; bool submitted = false; };
 struct AudioLoad {
 	Events pending{};
 	bool busy = false; // playback, its silent gap, or a pending cue the worker may take
@@ -65,6 +65,7 @@ struct Probe {
 	bool available = false;
 	uint16_t endFlags = 0; // raw flags at the first body obstruction, for diagnostics
 	Position hit; // first rejected body centre in collision-grid coordinates
+	Position surfaceNormal; // supporting line fitted to neighboring full-body rays; zero if ambiguous
 };
 struct Boundary {
 	State end = State::Unknown;
@@ -73,7 +74,7 @@ struct Boundary {
 };
 class BoundaryTracker {
 public:
-	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range, bool confirm = true);
+	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range);
 	bool Accepts(Boundary target, State change) const;
 	Boundary Current() const { return current_; }
 	Boundary ChangeOrigin() const { return changeOrigin_; }
@@ -82,6 +83,7 @@ public:
 private:
 	Boundary previous_, current_, candidateOrigin_, changeOrigin_;
 	double lastHit_ = 0, drift_ = 0;
+	Position lastPoint_{}, lastNormal_{};
 	State candidate_ = State::Unknown;
 	uint64_t since_ = 0;
 };
@@ -101,6 +103,7 @@ struct Sensor {
 	bool retry = false, retrying = false;
 	BoundaryTracker boundary;
 	Boundary pendingBoundary, pendingOrigin, emittedBoundary;
+	Position emittedPosition;
 	State boundaryPending = State::Unknown, lastCue = State::Unknown;
 };
 
@@ -117,7 +120,7 @@ private:
 	void UpdateMotion(Position player, uint64_t now);
 	Settings settings_;
 	std::array<Sensor, DirectionCount> sensors_{};
-	Position previous_{}, previousCell_{};
+	Position previous_{};
 	uint64_t session_ = 0, lastTick_ = 0;
 	int level_ = 0;
 	bool positioned_ = false;
@@ -131,6 +134,4 @@ Probe SweepBody(const World& world, Position origin, Position axis, double range
 Probe Scan(const World& world, Position axis, const Settings& settings, Layer layer = Layer::Movement);
 Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrain, const Probe& movement,
 	Position velocity, const Settings& settings, uint64_t playbackMs = CueDurationMs + AudioGuardMs);
-State TrackBoundary(BoundaryTracker& tracker, const World& world, Position previous,
-	const Probe& terrain, Position axis, const Settings& settings, uint64_t now);
 }

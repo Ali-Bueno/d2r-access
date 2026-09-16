@@ -117,9 +117,12 @@ void RecessAtSpeed() {
 				open[i] += events[i] == State::Open; closed[i] += events[i] == State::Blocked;
 			}
 		}
-		for (size_t direction : {size_t{0}, size_t{2}})
+		for (size_t direction : {size_t{0}, size_t{2}}) {
+			if (open[direction] != 2 || closed[direction] != 2)
+				std::cerr << "recess stride=" << stride << " direction=" << direction << " open=" << open[direction] << " closed=" << closed[direction] << '\n';
 			Check(open[direction] == 2 && closed[direction] == 2,
 				"spatial sampling keeps real finite recesses and returns on both rays at every tested speed/poll interval");
+		}
 		Check(open[1] == 0 && closed[1] == 0 && open[3] == 0 && closed[3] == 0,
 			"recesses do not invent changes on the opposite clear side");
 	}

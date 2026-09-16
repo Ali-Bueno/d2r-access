@@ -1,5 +1,10 @@
 # Radar geometry and cue precision
 
+> The user rejected this build's running behavior. The later
+> [surface-tracking correction](radar-surface-tracking.md) replaces interpolated
+> player samples with verified supporting wall lines, coalesces adjacent facets,
+> and stops replaying partially played cues. This investigation is historical.
+
 Implemented 2026-09-16 after the user reported spam during almost any movement
 and requested Kirandur's behavior. This supersedes the speed/queue-driven
 classification in the earlier radar documents. Controller/listening validation

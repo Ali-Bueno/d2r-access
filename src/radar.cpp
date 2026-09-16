@@ -61,8 +61,9 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);
 		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
-		const auto change = TrackBoundary(sensor.boundary, world, rebase ? world.player : previousCell_,
-			sensor.terrain, Axes[i], settings_, now);
+		// Only real player observations advance confirmation. Collision
+		// sliding makes an interpolated path between polls unknowable.
+		const auto change = sensor.boundary.Observe(sensor.terrain, Axes[i], now, settings_.stableMs, settings_.boundaryRange);
 		if (change != State::Unknown) {
 			// A niche/occupied recess that never qualified as an opening must
 			// not announce an orphan closing when its original wall returns.
@@ -76,7 +77,6 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		}
 		candidates[i] = sensor.boundaryPending;
 	}
-	previousCell_ = world.player;
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_, PlaybackBudget(audio, candidates, i));
@@ -88,11 +88,18 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		if (rebase) continue;
 		sensor.retrying = false;
 		const auto failure = audio.failed[i];
-		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = true;
+		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = !failure.submitted;
 		if (sensor.boundaryPending != State::Unknown
 			&& sensor.boundary.Accepts(sensor.pendingBoundary, sensor.boundaryPending)
 			&& (sensor.boundaryPending == State::Blocked || sensor.guidance.openingSafe)) {
 			events[i] = sensor.boundaryPending;
+			// Consume adjacent changes describing the same opening/corner, as
+			// AHC consumes its line after firing. D2's body spans three cells
+			// (one for pattern 0); tiny facets within that span are one encounter.
+			const double bodySpan = world.bodyPattern == 0 ? 1 : 3;
+			if (events[i] == sensor.lastCue
+				&& std::max(std::abs(world.player.x-sensor.emittedPosition.x), std::abs(world.player.y-sensor.emittedPosition.y)) < bodySpan
+				&& sensor.boundary.Accepts(sensor.emittedBoundary, sensor.lastCue)) events[i] = State::Unknown;
 			sensor.emittedBoundary = sensor.pendingBoundary;
 			sensor.boundaryPending = State::Unknown;
 		}
@@ -106,6 +113,7 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		}
 		if (events[i] != State::Unknown) {
 			sensor.lastEmit = now;
+			sensor.emittedPosition = world.player;
 			sensor.lastCue = events[i];
 			sensor.retry = false;
 		}

@@ -97,6 +97,39 @@ Probe Scan(const World& world, Position axis, const Settings& settings, Layer la
 	auto ordered = probe.depths;
 	std::sort(ordered.begin(), ordered.end());
 	probe.medianDepth = ordered[1];
+	if (layer == Layer::Terrain && probe.end == State::Blocked) {
+		// AHC compares the supporting line of consecutive hit points. D2
+		// supplies integer rejected body centres, so fit the line spatially in
+		// this snapshot: it remains usable after sliding or a delayed poll.
+		// One grid cell on each axis is the native footprint's extent.
+		const Position offset{side.x < 0 ? -1.0 : side.x > 0 ? 1.0 : 0,
+			side.y < 0 ? -1.0 : side.y > 0 ? 1.0 : 0};
+		const auto a = SweepBody(world, {world.player.x-offset.x, world.player.y-offset.y}, axis, settings.farRange, settings.nearRange, layer);
+		const auto b = SweepBody(world, {world.player.x+offset.x, world.player.y+offset.y}, axis, settings.farRange, settings.nearRange, layer);
+		const Position tangent{b.hit.x-a.hit.x, b.hit.y-a.hit.y};
+		const double length = std::hypot(tangent.x, tangent.y);
+		if (a.end == State::Blocked && b.end == State::Blocked && length > 0) {
+			const Position normal{-tangent.y/length, tangent.x/length};
+			// Half of a grid cell's diagonal bounds centre quantization. A
+			// corner/gap mixing different surfaces fails this collinearity test.
+			const double gridBand = std::sqrt(0.5);
+			bool surface = std::abs((probe.hit.x-a.hit.x)*normal.x + (probe.hit.y-a.hit.y)*normal.y) <= gridBand;
+			const int steps = static_cast<int>(std::max(std::abs(tangent.x), std::abs(tangent.y)));
+			const int stepX = axis.x < 0 ? -1 : axis.x > 0 ? 1 : 0;
+			const int stepY = axis.y < 0 ? -1 : axis.y > 0 ? 1 : 0;
+			for (int step = 1; surface && step < steps; ++step) {
+				const int x = static_cast<int>(std::round(a.hit.x + tangent.x*step/steps));
+				const int y = static_cast<int>(std::round(a.hit.y + tangent.y*step/steps));
+				// A secant across a jamb can look almost collinear. Every part
+				// of the fitted segment must be a real first-blocking boundary,
+				// not empty space in the gap or the interior of a solid corner.
+				surface = world.Body(x, y, layer) == State::Blocked
+					&& world.Body(x-stepX, y-stepY, layer) == State::Open;
+			}
+			if (surface)
+				probe.surfaceNormal = normal;
+		}
+	}
 	probe.available = probe.end == State::Blocked || probe.clearDepth >= settings.openDepth;
 	if (probe.body == State::Blocked || (probe.end == State::Blocked && probe.clearDepth <= settings.blockedDepth))
 		probe.observed = State::Blocked;
