@@ -161,10 +161,10 @@ Ctrl+T reports `presenceOffset=X,Y`, relative to the integer player cell.
   does. Report the body-clear distance, not a thin ray through an unusable gap.
 - `radar`: fixed **up/left/right/down** screen directions, available immediately
   on entering gameplay. Walking, turning or reversing never remaps the cues.
-  Confirm changes for 100 ms with movement evidence, or 250 ms while stationary
-  (so stopping against a wall or opening a door cannot suppress the cue forever).
-  A 250 ms per-direction cooldown and distance dead band reject chatter.
-  World-boundary comparison filters small changes and retreat from the same wall.
+  Confirm changes on two consecutive observations, normally 50 ms apart, even
+  while stationary. Returning to the same wall announces each open/blocked
+  transition again. Unchanged states and one-poll flicker stay silent. Cancelled
+  cues can retry when valid; only these retries have a 250 ms rate limit.
   Session/level changes, teleports and polling gaps silently rebase and invalidate
   pending audio and measured velocity.
 - `radar_guidance`: measure recent speed/direction, warn of approaching walls
@@ -185,6 +185,8 @@ Ctrl+T reports `presenceOffset=X,Y`, relative to the integer player cell.
   down is centred at 0.86 pitch, distinct from up. **Cues play one at a time,
   with at least 50 ms of silence after each**, including cues from adjacent
   scans. A four-slot round-robin queue retains the latest change per direction.
+  Already scheduled cues use remaining playback and actual queue order in their
+  forecast; cancellation feeds the original event ID back for safe retry.
   Each scan cancels queued cues that no longer satisfy guidance. A started tin
   finishes its short tail while physical clearance remains open, but cancels on
   a current obstruction. There is no long backlog of stale openings. A fresh simultaneous set plays
@@ -282,10 +284,11 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
 
 ## Validation and remaining limits
 
-The latest shared-workspace build passes seventeen CTest suites / **940 checks**,
-including concurrent menu work. Radar/footsteps cover **631 checks**: 299
-radar/audio, 205 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
-13 playback-timing and 37 [stalled-footstep](footsteps.md) checks.
+The latest shared-workspace build passes nineteen CTest suites / **996 checks**,
+including concurrent menu work. Radar/footsteps cover **655 checks**: 300
+radar/audio, 194 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
+13 playback-timing, 34 [state/delivery](radar-state-delivery.md) and 37
+[stalled-footstep](footsteps.md) checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
 beyond the old near sweep, leaving an overlapping obstacle, stationary door

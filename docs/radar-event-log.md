@@ -14,7 +14,7 @@ directions are `up`, `left`, `right`, `down`; states are `open` (tin) and `block
 
 | Stage | Meaning |
 |---|---|
-| `generated` | The navigation engine confirmed an event. `[radar]` includes position, level/session, raw obstruction flags, physical/terrain clearance, velocity, speed and opening/warning thresholds. |
+| `generated` | The navigation engine confirmed a changed state or retried a cancelled, currently valid cue. `[radar]` includes position, level/session, raw obstruction flags, physical/terrain clearance, velocity, speed and opening/warning thresholds. |
 | `queued` | Audio accepted the event into its bounded direction queue. |
 | `submitted` | `waveOutWrite` accepted the PCM buffer. This is the software submission time, not a measurement at the speaker. |
 | `completed` | The worker observed that Windows returned the buffer without needing a cancellation reset. |
@@ -77,6 +77,11 @@ unchanged by this diagnostic addition.
 If no event was generated, use **Ctrl+T at the relevant position** to inspect the
 existing physical/guidance snapshots and local collision grid. An unchanged
 baseline or filtered transition can intentionally remain silent.
+
+The [state/delivery revision](radar-state-delivery.md) feeds cancellations back
+to the engine by original event ID. A later safe retry has a new `event_ms` and
+may repeat the same direction/state after an earlier `dropped`/`interrupted`
+record. Returning through the same passage also creates fresh state transitions.
 
 The existing logger may discard old pending messages if its bounded queue fills,
 or at shutdown. A missing line alone is not proof of missing audio. Software

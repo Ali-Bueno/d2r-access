@@ -76,18 +76,22 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_, PlaybackBudget(audio, candidates, i));
 		const State observed = sensor.guidance.observed;
 		sensor.cueState = observed == State::Open && !sensor.guidance.openingSafe ? State::Unknown : observed;
-		const double boundary = world.player.x * Axes[i].x + world.player.y * Axes[i].y + sensor.terrain.clearDepth;
+		// Keep a confirmed wall through the limited-clearance band. A change
+		// in speed/queue length alone must not truncate its warning sound.
+		if (observed == State::Unknown && sensor.stable == State::Blocked
+			&& sensor.terrain.available && sensor.terrain.end == State::Blocked) sensor.cueState = State::Blocked;
 		if (!sensor.terrain.available) {
 			sensor = Sensor{.probe = sensor.probe};
 			continue;
 		}
 		if (rebase) {
 			sensor.stable = observed;
-			sensor.blockedBoundary = boundary;
 			sensor.hasBoundary = sensor.terrain.end == State::Blocked;
 			continue;
 		}
-		if (observed == State::Unknown || observed == sensor.stable
+		const auto failure = audio.failed[i];
+		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.stable) sensor.retry = true;
+		if (observed == State::Unknown || (observed == sensor.stable && !sensor.retry)
 			|| (observed == State::Open && !sensor.guidance.openingSafe)) {
 			sensor.candidate = State::Unknown;
 			sensor.candidateTravel = 0;
@@ -100,29 +104,16 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		} else sensor.candidateTravel += travel;
 		const uint64_t age = now - sensor.candidateSince;
 		if (age < settings_.stableMs) continue;
-		// Stopping against an obstacle must not suppress its closing cue.
-		// A longer stationary window also confirms doors while rejecting flicker.
-		if (sensor.stable != State::Unknown && sensor.candidateTravel < settings_.minTravel && age < settings_.stationaryMs) continue;
-		if (sensor.lastEmit && now - sensor.lastEmit < settings_.cooldownMs) continue;
-		// Kirandur compares world hit points, not distance from the walking
-		// player. Backing away from the same wall is not a newly discovered exit.
-		const bool openingChanged = !sensor.hasBoundary || sensor.terrain.end != State::Blocked
-			|| boundary - sensor.blockedBoundary >= settings_.boundaryChange;
-		const bool newWarning = !sensor.warned || std::abs(boundary - sensor.warningBoundary) >= settings_.boundaryChange
-			|| std::hypot(world.player.x - sensor.warningPosition.x, world.player.y - sensor.warningPosition.y) >= settings_.openDepth;
+		if (observed == sensor.stable && sensor.retry && now - sensor.lastEmit < settings_.retryMs) continue;
 		// A known wall in the limited-distance band is a real baseline too;
 		// leaving it can reveal an exit without first approaching within 3 cells.
-		if ((sensor.stable != State::Unknown || sensor.hasBoundary) && (observed == State::Open ? openingChanged : newWarning)) {
+		// Each real open/blocked transition must be heard again on a return trip.
+		if (sensor.stable != State::Unknown || sensor.hasBoundary) {
 			events[i] = observed;
 			sensor.lastEmit = now;
-			sensor.warned = observed == State::Blocked;
-			sensor.warningBoundary = boundary;
-			sensor.warningPosition = world.player;
 		}
-		if (observed == State::Blocked) {
-			sensor.blockedBoundary = boundary;
-			sensor.hasBoundary = true;
-		}
+		if (observed == State::Blocked) sensor.hasBoundary = true;
+		sensor.retry = false;
 		sensor.stable = observed;
 		sensor.candidate = State::Unknown;
 	}

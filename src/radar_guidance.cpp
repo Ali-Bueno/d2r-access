@@ -5,6 +5,15 @@
 
 namespace D2RAccess::Radar {
 uint64_t PlaybackBudget(const AudioLoad& load, const Events& candidates, size_t direction) {
+	const auto scheduled = load.pending[direction] != State::Unknown ? load.pending[direction] : load.playing[direction];
+	if (load.remainingMs[direction] && (candidates[direction] == State::Unknown || candidates[direction] == scheduled)) {
+		// Existing cues keep their place and elapsed playback time. Starting a
+		// fresh full-batch forecast each poll could invalidate the second side.
+		uint64_t remaining = load.remainingMs[direction];
+		for (size_t i = 0; i < DirectionCount; ++i)
+			if (i != direction && candidates[i] != State::Unknown && load.pending[i] == State::Unknown) remaining += CueSlotMs;
+		return remaining;
+	}
 	uint64_t result = CueDurationMs + AudioGuardMs;
 	// Reserve a full in-flight cue/gap if the worker is active. Count every
 	// other pending/candidate direction once, regardless of fair-queue order.

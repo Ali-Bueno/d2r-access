@@ -30,15 +30,20 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: eighteen suites / 972 checks, including UI navigation.
-  Radar and footsteps account for 631 checks; footsteps now has 37 policy checks.
+  Latest shared-workspace run: nineteen suites / 996 checks, including UI navigation.
+  Radar and footsteps account for 655 checks, including 34 engine/queue delivery regressions.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
   Speed/reaction forecasts and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest report confirms improvement but requests better running cues and collision feedback.
+- Latest request: both changed sides must sound, state changes must update promptly, and
+  returning to the same wall must announce blocked again. `docs/radar-state-delivery.md`:
+  two-poll confirmation (50 ms), no boundary/opposite-state suppression, scheduled cues use
+  remaining queue time, and failed event IDs rearm safe retries. Installed/tests pass;
+  controller listening validation pending. Keep 120 ms cues and 50 ms silence between them.
+- Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.
   `docs/computer-use-radar-check.md` records the failing reproduction and installed live checks.

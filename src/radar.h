@@ -15,9 +15,13 @@ using Events = std::array<State, DirectionCount>; // Unknown means no event.
 inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
 inline constexpr uint64_t PollMs = 50, AudioGuardMs = PollMs;
 inline constexpr uint64_t CueSlotMs = CueDurationMs + CueGapMs + AudioGuardMs;
+struct CueFailure { State state = State::Unknown; uint64_t eventMs = 0; };
 struct AudioLoad {
 	Events pending{};
 	bool busy = false; // playback, its silent gap, or a pending cue the worker may take
+	Events playing{};
+	std::array<uint64_t, DirectionCount> remainingMs{}; // current queue order, through cue completion
+	std::array<CueFailure, DirectionCount> failed{}; // drained once, matched to the generated event
 };
 uint64_t PlaybackBudget(const AudioLoad& load, const Events& candidates, size_t direction);
 enum class Layer { Movement, Terrain };
@@ -29,14 +33,12 @@ struct Settings {
 	double openDepth = 8;
 	double blockedDepth = 3;
 	double laneSpacing = 1;
-	double minTravel = 0.5;
 	double teleportDistance = 20; // discontinuity between 50 ms observations
-	uint64_t stableMs = 100, cooldownMs = 250, maxGapMs = 250;
-	uint64_t stationaryMs = 250; // confirm a closed/open door even when movement stops
+	uint64_t stableMs = PollMs; // two consecutive observations, including while stationary
+	uint64_t retryMs = 250, maxGapMs = 250; // rate-limit failed delivery, never an opposite state change
 	uint64_t reactionMs = 600; // design allowance after hearing a cue, not a game constant
 	uint64_t motionWindowMs = 250, stoppedMs = 200; // smooth motion without lingering at rest
 	uint64_t recentMotionMs = 100; // detect acceleration before a candidate can be confirmed
-	double boundaryChange = 3; // one full cross-footprint width; ignore sub-cell hit-point jitter
 };
 
 struct RoomGrid {
@@ -77,9 +79,7 @@ struct Sensor {
 	Probe terrain;
 	Guidance guidance;
 	State cueState = State::Unknown; // currently valid sound, separate from manual physical clearance
-	double blockedBoundary = 0, warningBoundary = 0;
-	Position warningPosition{};
-	bool hasBoundary = false, warned = false;
+	bool hasBoundary = false, retry = false;
 };
 
 class Engine {

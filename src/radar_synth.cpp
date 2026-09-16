@@ -33,6 +33,26 @@ Radar::Events CueQueue::Take(CueSource* source) {
 bool CueQueue::Empty() const {
 	return std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
 }
+Radar::AudioLoad CueQueue::Playback(const Radar::Events& playing, uint64_t elapsedMs, uint64_t gapMs) const {
+	Radar::AudioLoad result{.pending = pending_, .busy = !Empty() || gapMs > 0, .playing = playing};
+	uint64_t lead = gapMs;
+	for (size_t i = 0; i < playing.size(); ++i) if (playing[i] != Radar::State::Unknown) {
+		result.busy = true;
+		const uint64_t duration = Radar::CueDurationMs + Radar::AudioGuardMs;
+		// If the driver takes longer, keep a scheduling guard instead of
+		// underflowing the elapsed time or pretending the device is idle.
+		result.remainingMs[i] = elapsedMs < duration ? duration - elapsedMs : Radar::AudioGuardMs;
+		lead = result.remainingMs[i] + Radar::CueGapMs;
+	}
+	auto queue = *this;
+	while (!queue.Empty()) {
+		const auto next = queue.Take();
+		for (size_t i = 0; i < next.size(); ++i) if (next[i] != Radar::State::Unknown)
+			result.remainingMs[i] = lead + Radar::CueDurationMs + Radar::AudioGuardMs;
+		lead += Radar::CueSlotMs;
+	}
+	return result;
+}
 std::vector<int16_t> Synthesize(const Radar::Events& events) {
 	// Sound-design values, deliberately separate from collision constants.
 	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003, Release = 0.015;

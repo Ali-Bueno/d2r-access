@@ -27,6 +27,12 @@ can reveal a running exit previously rejected by the unconditional budget; a
 busy queue can require more time than the old estimate. These are bounded design
 allowances, not a guarantee of operating-system or speaker latency.
 
+The table describes new events. [The delivery revision](radar-state-delivery.md)
+now uses remaining playback and actual queue order for already scheduled cues;
+it does not restart this whole budget on each poll. For example, with one cue
+50 ms into playback and one side queued, their remaining budgets are 120 ms and
+340 ms, respectively, including guards and the intervening silence.
+
 ## Same-poll consistency
 
 The engine copies/scans each direction once. Cheap classification at the minimum
@@ -37,8 +43,9 @@ an ultimately rejected candidate may make a cue conservative, but cannot make
 its estimated delivery earlier than the modeled batch.
 
 Pending audio is revalidated every radar poll using the current snapshot. The
-existing serialization, cancellation, confirmation, boundary filtering and
-600 ms turn-depth checks remain in force. Every intermediate half-subtile in the
+serialization, cancellation and 600 ms turn-depth checks remain in force. The
+latest confirmation is two consecutive observations (50 ms apart); returning to
+the same wall is allowed to announce a real state change. Every intermediate half-subtile in the
 continued-motion forecast must still fit the complete body. Unknown coverage
 and occupied passages cannot become promised openings.
 

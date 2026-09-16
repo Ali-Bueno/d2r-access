@@ -23,6 +23,7 @@ public:
 	void Push(const Radar::Events& events, CueSource source = {});
 	void Retain(const Radar::Events& observations);
 	Radar::Events Take(CueSource* source = nullptr);
+	Radar::AudioLoad Playback(const Radar::Events& playing, uint64_t elapsedMs, uint64_t gapMs) const;
 	bool Empty() const;
 	const auto& Pending() const { return pending_; }
 	const CueSource& Source(size_t direction) const { return sources_[direction]; }

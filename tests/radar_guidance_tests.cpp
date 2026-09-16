@@ -113,10 +113,12 @@ void SpeedAndBoundary() {
 	auto world = Field(); Engine engine;
 	for (int y = 0; y < 400; ++y) if (214-y >= 0 && 214-y < 400) Put(world, 214-y, y, 1);
 	(void)engine.Tick(world, 1000);
+	unsigned retreatOpenings = 0;
 	for (uint64_t tick = 1; tick <= 12; ++tick) {
 		world.player.x -= 1; world.player.y -= 1;
-		Check(engine.Tick(world, 1000 + tick * 100)[3] != State::Open, "retreating from the same world obstacle is not a new exit");
+		retreatOpenings += engine.Tick(world, 1000 + tick * 100)[3] == State::Open;
 	}
+	Check(retreatOpenings == 1, "backing away from the same wall announces the changed usable clearance once");
 	Check(std::hypot(engine.Velocity().x, engine.Velocity().y) > 0, "velocity derives from actual subtile displacement");
 	(void)engine.Tick(world, 2300); (void)engine.Tick(world, 2400);
 	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "velocity settles to zero after stopping");

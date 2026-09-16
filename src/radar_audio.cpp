@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <mmsystem.h>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -21,6 +22,8 @@ CueQueue g_pending;
 Radar::Events g_playing{};
 const D2RL::PluginContext* g_context = nullptr;
 CueSource g_playingSource{};
+uint64_t g_playingStarted = 0;
+std::array<Radar::CueFailure, Radar::DirectionCount> g_failed{};
 std::chrono::steady_clock::time_point g_nextCue{}; // guarded by g_mutex
 
 void Trace(const Radar::Events& events, const CueSource& source, const char* stage,
@@ -39,9 +42,13 @@ void DropPending(const char* reason) {
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", reason, now);
 	g_pending = {};
 }
-void ClearPlaying() {
-	std::lock_guard lock(g_mutex);
-	g_playing = {};
+// Caller holds g_mutex. A cancelled cue was not delivered; let the engine retry
+// it if it becomes valid again. Old events cannot overwrite a newer failure.
+void Failed(const Radar::Events& events, const CueSource& source) {
+	if (source.audition) return;
+	for (size_t i = 0; i < events.size(); ++i)
+		if (events[i] != Radar::State::Unknown && source.eventMs > g_failed[i].eventMs)
+			g_failed[i] = {events[i], source.eventMs};
 }
 
 void Worker(const D2RL::PluginContext* context) {
@@ -76,12 +83,15 @@ void Worker(const D2RL::PluginContext* context) {
 			events = g_pending.Take(&source);
 			g_playing = events;
 			g_playingSource = source;
+			g_playingStarted = GetTickCount64();
 			generation = g_generation;
 		}
 		auto pcm = Synthesize(events);
 		if (!g_running || generation != g_generation) {
 			Trace(events, source, "dropped", "cancelled-before-submit");
-			ClearPlaying();
+			std::lock_guard lock(g_mutex);
+			Failed(events, source);
+			g_playing = {};
 			continue;
 		}
 		WAVEHDR header{};
@@ -113,6 +123,7 @@ void Worker(const D2RL::PluginContext* context) {
 		waveOutUnprepareHeader(device, &header, sizeof(header));
 		{
 			std::lock_guard lock(g_mutex);
+			if (interrupted) Failed(events, source);
 			g_nextCue = std::chrono::steady_clock::now() + std::chrono::milliseconds(CueGapMs);
 			g_playing = {};
 		}
@@ -155,8 +166,11 @@ void Play(const Radar::Events& events, CueSource source) {
 void Validate(const Radar::Events& observations, const Radar::Events& audible) {
 	std::lock_guard lock(g_mutex);
 	for (size_t i = 0; i < observations.size(); ++i)
-		if (g_pending.Pending()[i] != Radar::State::Unknown && g_pending.Pending()[i] != observations[i])
+		if (g_pending.Pending()[i] != Radar::State::Unknown && g_pending.Pending()[i] != observations[i]) {
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", "observation-changed", GetTickCount64());
+			Radar::Events dropped{}; dropped[i] = g_pending.Pending()[i];
+			Failed(dropped, g_pending.Source(i));
+		}
 	g_pending.Retain(observations);
 	for (size_t i = 0; i < g_playing.size(); ++i) {
 		if (g_playing[i] != Radar::State::Unknown && g_playing[i] != audible[i]) {
@@ -184,8 +198,10 @@ void Stop() {
 bool Available() { return g_available; }
 Radar::AudioLoad Load() {
 	std::lock_guard lock(g_mutex);
-	bool busy = !g_pending.Empty() || std::chrono::steady_clock::now() < g_nextCue;
-	for (const auto state : g_playing) busy |= state != Radar::State::Unknown;
-	return {g_pending.Pending(), busy};
+	const auto gap = std::chrono::ceil<std::chrono::milliseconds>(g_nextCue - std::chrono::steady_clock::now()).count();
+	auto result = g_pending.Playback(g_playing, GetTickCount64() - g_playingStarted, static_cast<uint64_t>(std::max<int64_t>(0, gap)));
+	result.failed = g_failed;
+	g_failed = {};
+	return result;
 }
 }

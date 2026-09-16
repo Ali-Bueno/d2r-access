@@ -102,6 +102,10 @@ actor obstruction is described as an occupied passage. The embedded default conf
 preserves existing settings and adds no external sound/map installation step.
 See the [Kirandur comparison and reaction model](docs/kirandur-radar-comparison.md).
 Details and regression checks: [running radar timing](docs/radar-running-timing.md).
+State changes now confirm on two consecutive scans, normally 50 ms apart,
+including returning to the same wall. Each queued side uses its remaining
+playback time, and a cancelled cue can retry when it becomes safe again. The
+50 ms silent gaps remain. See [state changes and delivery](docs/radar-state-delivery.md).
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking

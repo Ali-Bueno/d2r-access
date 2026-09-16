@@ -68,11 +68,11 @@ Level 2 (Blood Moor) was reached at 18:24:56, with terrain still available.
   whichever is larger. Approaching-wall warnings use closing speed times the
   resulting reaction/playback horizon plus confirmation time, with a three-subtile minimum.
   Thus a tock means **obstacle approaching**, possibly before immediate blockage.
-- Compare projected world boundaries when confirming openings. Retreating from
-  the same wall is not a newly discovered exit; changes below three subtiles
-  (one cross-footprint width) do not qualify. A known wall in the limited band
-  can still establish an opening baseline. Repeated warning transitions at the
-  same boundary require meaningful travel or a new opening.
+- The initial world-boundary filter suppressed retreat from the same wall.
+  The user's later requirement supersedes it: [every real state change](radar-state-delivery.md)
+  must be announced on return trips. Confirm two consecutive observations,
+  without a travel requirement or an opposite-state cooldown. A known wall in
+  the limited band can still establish an opening baseline.
 - Unusable openings remain pending instead of being committed as open, avoiding
   an opening/closing pair for a fleeting niche. Stopping at a small usable gap
   can confirm it. Moving actors in an unchanged field cause neither wall nor
@@ -81,7 +81,7 @@ Level 2 (Blood Moor) was reached at 18:24:56, with terrain still available.
   tail while the current physical passage remains open, even if its future
   reaction window has just shortened. A current obstruction still cancels it.
 
-The reaction window and three-subtile threshold are **D2R design settings**, not
+The reaction window and timing thresholds are **D2R design settings**, not
 recovered Kirandur constants. The adaptation does not reproduce its slope/drop
 classification, world units or entire seven-class sound vocabulary.
 
@@ -89,8 +89,8 @@ classification, world units or entire seven-class sound vocabulary.
 
 `radar-guidance-tests` covers native occupancy, preserved terrain/water, short
 versus wide exits, acceleration, turns, stopping, occupied doors, intermediate
-forecast obstructions, unloaded coverage, early wall warnings and world-boundary
-filtering. The actor-oscillation and limited-corridor regressions were observed
+forecast obstructions, unloaded coverage, early wall warnings and reopening when
+retreating from the same wall. The actor-oscillation and limited-corridor regressions were observed
 failing before their fixes. Existing footprint, audio, UI and lifecycle suites
 remain in place.
 
