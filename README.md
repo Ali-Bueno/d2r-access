@@ -97,9 +97,11 @@ markers. It separates creature occupancy from terrain and keeps the original
 movement mask as the final opening check. The radar now follows changes in the
 world hit position: a side wall receding or returning can sound even when both
 old and new clearances count as open. It describes a currently usable opening
-without requiring the player to continue straight past it first. Measured speed
-still advances approaching-wall warnings. Two consecutive scans confirm changes;
-120 ms sounds retain their 50 ms silent gaps and cancelled valid cues can retry.
+without requiring the player to continue straight past it first. Speed and sound
+queue length no longer create extra wall/open transitions. Following a continuous
+oblique wall stays quiet, and tiny or fleeting recesses do not leave false exit
+or closing cues. Two consecutive scans confirm changes; 120 ms sounds retain
+their 50 ms silent gaps and cancelled valid cues can retry.
 
 **Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
 (including diagonals), then the four straight-line clearances, and saves a local
@@ -110,8 +112,8 @@ baselines silently and pauses during dialogue/offline pause. Existing settings
 are preserved; no external map or sound installation is required.
 
 Live map reads work in the camp and Blood Moor. The latest geometry behavior
-still needs controller/listening validation. See the [native map and Kirandur
-translation](docs/radar-map-fidelity.md) for findings, deliberate differences from
+still needs controller/listening validation. See the [radar precision and Kirandur
+translation](docs/radar-precision.md) for findings, deliberate differences from
 the reference and tests; [sonar controls](docs/sonar-radar.md) and
 [cue delivery](docs/radar-state-delivery.md) document the rest.
 

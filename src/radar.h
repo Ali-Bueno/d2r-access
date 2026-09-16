@@ -37,9 +37,8 @@ struct Settings {
 	double teleportDistance = 20; // discontinuity between 50 ms observations
 	uint64_t stableMs = PollMs; // two consecutive observations, including while stationary
 	uint64_t retryMs = 250, maxGapMs = 250; // rate-limit failed delivery, never an opposite state change
-	uint64_t reactionMs = 600; // design allowance after hearing a cue, not a game constant
 	uint64_t motionWindowMs = 250, stoppedMs = 200; // smooth motion without lingering at rest
-	uint64_t recentMotionMs = 100; // detect acceleration before a candidate can be confirmed
+	uint64_t recentMotionMs = 100; // recent direction for the actual-motion readout
 };
 
 struct RoomGrid {
@@ -67,14 +66,22 @@ struct Probe {
 	uint16_t endFlags = 0; // raw flags at the first body obstruction, for diagnostics
 	Position hit; // first rejected body centre in collision-grid coordinates
 };
-struct Boundary { State end = State::Unknown; double along = 0; };
+struct Boundary {
+	State end = State::Unknown;
+	double along = 0; // world projection with smooth wall drift removed
+	double depth = 0; // current body clearance, for confirming a finite recess/return
+};
 class BoundaryTracker {
 public:
-	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range);
+	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range, bool confirm = true);
 	bool Accepts(Boundary target, State change) const;
 	Boundary Current() const { return current_; }
+	Boundary ChangeOrigin() const { return changeOrigin_; }
+	State Candidate() const { return candidate_; }
+	uint64_t CandidateSince() const { return since_; }
 private:
-	Boundary previous_, current_;
+	Boundary previous_, current_, candidateOrigin_, changeOrigin_;
+	double lastHit_ = 0, drift_ = 0;
 	State candidate_ = State::Unknown;
 	uint64_t since_ = 0;
 };
@@ -85,18 +92,16 @@ struct Guidance {
 	uint64_t playbackMs = 0;
 };
 struct Sensor {
-	State stable = State::Unknown, candidate = State::Unknown;
-	uint64_t candidateSince = 0, lastEmit = 0;
-	double candidateTravel = 0;
+	State stable = State::Unknown;
+	uint64_t lastEmit = 0;
 	Probe probe;
 	Probe terrain;
 	Guidance guidance;
 	State cueState = State::Unknown; // currently valid sound, separate from manual physical clearance
-	bool hasBoundary = false, retry = false;
+	bool retry = false, retrying = false;
 	BoundaryTracker boundary;
-	Boundary pendingBoundary, emittedBoundary;
+	Boundary pendingBoundary, pendingOrigin, emittedBoundary;
 	State boundaryPending = State::Unknown, lastCue = State::Unknown;
-	bool boundaryCue = false;
 };
 
 class Engine {
@@ -112,7 +117,7 @@ private:
 	void UpdateMotion(Position player, uint64_t now);
 	Settings settings_;
 	std::array<Sensor, DirectionCount> sensors_{};
-	Position previous_{};
+	Position previous_{}, previousCell_{};
 	uint64_t session_ = 0, lastTick_ = 0;
 	int level_ = 0;
 	bool positioned_ = false;
@@ -126,8 +131,6 @@ Probe SweepBody(const World& world, Position origin, Position axis, double range
 Probe Scan(const World& world, Position axis, const Settings& settings, Layer layer = Layer::Movement);
 Guidance EvaluateGuidance(const World& world, Position axis, const Probe& terrain, const Probe& movement,
 	Position velocity, const Settings& settings, uint64_t playbackMs = CueDurationMs + AudioGuardMs);
-// Classification only; it never promises an opening. Used to reserve all possible
-// same-poll events before the final full-body reaction forecast.
-Guidance ClassifyGuidance(Position axis, const Probe& terrain, Position velocity,
-	const Settings& settings, uint64_t playbackMs);
+State TrackBoundary(BoundaryTracker& tracker, const World& world, Position previous,
+	const Probe& terrain, Position axis, const Settings& settings, uint64_t now);
 }

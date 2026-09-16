@@ -1,5 +1,8 @@
 # Kirandur reference and D2R reaction-aware radar
 
+> Current behavior: [radar precision](radar-precision.md). The reaction/queue
+> classifier described below is historical; it no longer generates cues.
+
 > **2026-09-16 update:** [Native map fidelity](radar-map-fidelity.md) supersedes
 > the opening forecast described here. Current exits are no longer hidden by
 > predicted continued movement; finite wall recesses/returns are audible, and

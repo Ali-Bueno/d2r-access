@@ -24,17 +24,16 @@ uint64_t PlaybackBudget(const AudioLoad& load, const Events& candidates, size_t 
 			result += CueSlotMs;
 	return result;
 }
-Guidance ClassifyGuidance(Position axis, const Probe& terrain, Position velocity,
-	const Settings& settings, uint64_t playbackMs) {
+Guidance EvaluateGuidance(const World&, Position, const Probe& terrain, const Probe& movement,
+	Position, const Settings& settings, uint64_t playbackMs) {
 	Guidance result;
 	result.playbackMs = playbackMs;
-	const double reaction = settings.reactionMs / 1000.0;
-	const double horizon = reaction + playbackMs / 1000.0;
-	const double approach = std::max(0.0, velocity.x * axis.x + velocity.y * axis.y);
-	result.warningDepth = std::max(settings.blockedDepth, approach * (horizon + settings.stableMs / 1000.0));
-	// Describe the passage available now. Running changes warning timing, not
-	// whether an existing side passage counts as an opening.
+	result.warningDepth = settings.blockedDepth;
+	// Physical clearance is for readout and validating openings. Only the
+	// local geometry tracker generates sounds, as in Kirandur. Speed and queue
+	// length must never turn the same wall into a newly open passage.
 	result.openDepth = settings.openDepth;
+	result.openingSafe = movement.clearDepth >= result.openDepth && movement.medianDepth >= result.openDepth;
 	if (!terrain.available) return result;
 	if (terrain.end == State::Blocked && terrain.clearDepth <= result.warningDepth) {
 		result.observed = State::Blocked;
@@ -42,15 +41,6 @@ Guidance ClassifyGuidance(Position axis, const Probe& terrain, Position velocity
 	}
 	if (terrain.clearDepth < result.openDepth || terrain.medianDepth < result.openDepth) return result;
 	result.observed = State::Open;
-	return result;
-}
-Guidance EvaluateGuidance(const World&, Position axis, const Probe& terrain, const Probe& movement,
-	Position velocity, const Settings& settings, uint64_t playbackMs) {
-	auto result = ClassifyGuidance(axis, terrain, velocity, settings, playbackMs);
-	// Kirandur reports current geometry. The old future-straight-line veto
-	// hid usable turns merely because continuing forward would miss them or
-	// hit a wall. Keep the complete native body and current occupancy guard.
-	result.openingSafe = movement.clearDepth >= result.openDepth && movement.medianDepth >= result.openDepth;
 	return result;
 }
 }

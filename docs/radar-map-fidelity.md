@@ -1,5 +1,9 @@
 # Native map, Kirandur geometry and diagonal movement
 
+> The later [precision correction](radar-precision.md) supersedes speed-driven
+> cues and adds grid/range stability and thin-gap guards. This document records
+> the earlier investigation and build.
+
 Investigated and installed 2026-09-16 after the user reported missed exits and
 footsteps while Ctrl+T said up/right were blocked. This supersedes the **opening
 forecast** in the earlier reaction/timing documents. Live listening validation

@@ -31,12 +31,12 @@ void Backtrack() {
 	uint64_t now = 1000;
 	for (unsigned trip = 0; trip < 2; ++trip) {
 		unsigned open = 0, closed = 0;
-		for (unsigned step = 0; step < 12; ++step) {
+		for (unsigned step = 0; step < 18; ++step) {
 			world.player.x -= 1; world.player.y -= 1; now += 100;
 			open += engine.Tick(world, now)[3] == State::Open;
 		}
 		Check(open == 1, "walking away updates the same wall direction to open on every trip");
-		for (unsigned step = 0; step < 12; ++step) {
+		for (unsigned step = 0; step < 18; ++step) {
 			world.player.x += 1; world.player.y += 1; now += 100;
 			closed += engine.Tick(world, now)[3] == State::Blocked;
 		}

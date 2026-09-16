@@ -30,21 +30,23 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 21 suites / 1038 checks, including UI navigation.
-  Radar and footsteps account for 655 checks, including 46 geometry/readout and 40 delivery checks.
+  Latest shared-workspace run: 23 suites / 1141 checks, including UI navigation.
+  Radar and footsteps account for 706 checks, including 51 precision regressions.
+  Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
   Current geometry cues and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest request: improve missed exits toward Kirandur behavior and investigate diagonal
-  movement with up/right blocked. `docs/radar-map-fidelity.md`: native map/body/projection
-  rechecked; finite world-hit recession/return now sounds, future-motion opening veto removed.
-  Running still advances wall warnings. Ctrl+T reports actual recent movement in eight screen
-  sectors before the four straight rays. 21 suites pass; installed; listening validation pending.
-  Query scale, body/open-depth guards and synthesized audio are deliberate D2R differences,
-  not a claim of complete one-to-one Kirandur equivalence. Keep 120 ms cues / 50 ms silence.
+- Latest radar request: match Kirandur and remove spam during almost any movement.
+  `docs/radar-precision.md`: geometry is now the sole cue source; speed/backlog
+  cannot invent openings. Spatial sampling, range hysteresis, finite-depth
+  confirmation and pending-niche handling suppress oblique-wall and thin-gap
+  chatter. Native body/occupancy checks and actual-motion Ctrl+T remain.
+  Normal build installed; 23 suites pass. Controller/listening validation pending.
+  Query scale, grid guards and synthesized audio are deliberate D2R adaptations.
+  Keep 120 ms cues / 50 ms silence.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.
@@ -52,8 +54,9 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Ctrl+T includes `presenceOffset`: infer displacement only from a complete unique native shape;
   never clear arbitrary adjacent NO_PATH markers or use Path+0x10/+0x12 (targets) as its anchor.
   Short spaces, geometry cues and edge sliding still need controller validation.
-- Running cues now budget actual pending and simultaneous sounds instead of always reserving
-  four cues. `playback_ms` is logged with guidance/events; `docs/radar-running-timing.md`.
+- Audio queue timing is logged as `playback_ms`; it no longer changes geometry
+  classification. The previous reaction policy in `docs/radar-running-timing.md`
+  is superseded by `docs/radar-precision.md`.
 - HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
   events are suppressed; any native fractional movement restores them. Three whole-function
   fingerprints guard the hook. `[footsteps]` logs state changes/counters; `docs/footsteps.md`.

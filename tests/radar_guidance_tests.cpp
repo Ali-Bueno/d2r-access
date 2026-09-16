@@ -100,12 +100,8 @@ double FirstWarning(uint64_t interval) {
 		world.player.x += 1; world.player.y += 1;
 		const auto events = engine.Tick(world, 1000 + tick * interval);
 		if (events[3] == State::Blocked) {
-			const auto v = engine.Velocity();
 			const double distance = engine.Sensors()[3].terrain.clearDepth;
-			// Idle audio: one cue + scheduling guard + reaction, allowing one
-			// observation interval of discrete travel before confirmation.
-			const double minimum = (Settings{}.reactionMs + CueDurationMs + AudioGuardMs - interval) / 1000.0;
-			Check(distance / std::hypot(v.x, v.y) >= minimum, "wall warning leaves reaction and actual audio budget before contact");
+			Check(distance > Settings{}.blockedDepth, "a newly encountered wall sounds at local scan range before contact");
 			return distance;
 		}
 	}
@@ -114,20 +110,20 @@ double FirstWarning(uint64_t interval) {
 }
 void SpeedAndBoundary() {
 	const double slow = FirstWarning(150), fast = FirstWarning(50);
-	Check(fast > slow, "running warns farther from the same wall than walking");
+	Check(fast == slow, "walking and running announce the same geometric wall encounter");
 	auto world = Field(); Engine engine;
 	for (int y = 0; y < 400; ++y) if (214-y >= 0 && 214-y < 400) Put(world, 214-y, y, 1);
 	(void)engine.Tick(world, 1000);
 	unsigned retreatOpenings = 0;
-	for (uint64_t tick = 1; tick <= 12; ++tick) {
+	for (uint64_t tick = 1; tick <= 16; ++tick) {
 		world.player.x -= 1; world.player.y -= 1;
 		retreatOpenings += engine.Tick(world, 1000 + tick * 100)[3] == State::Open;
 	}
 	Check(retreatOpenings == 1, "backing away from the same wall announces the changed usable clearance once");
 	Check(std::hypot(engine.Velocity().x, engine.Velocity().y) > 0, "velocity derives from actual subtile displacement");
-	(void)engine.Tick(world, 2300); (void)engine.Tick(world, 2400);
+	(void)engine.Tick(world, 2700); (void)engine.Tick(world, 2800);
 	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "velocity settles to zero after stopping");
-	world.player = {200, 200}; (void)engine.Tick(world, 2450);
+	world.player = {200, 200}; (void)engine.Tick(world, 2850);
 	Check(engine.Velocity().x == 0 && engine.Velocity().y == 0, "teleports never create a fictitious running speed");
 }
 void StopAtOpening() {

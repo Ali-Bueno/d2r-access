@@ -2,7 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-**Last updated:** 2026-09-16 (native-map/Kirandur geometry revision installed; finite recess/return cues and actual-motion Ctrl+T; 21 suites / 1038 checks pass; new-version listening validation pending). Quick guide: `AGENTS.md`.
+## Active build coordination — 2026-09-16 07:49 BRT
+
+- **build/deploy idle.** Radar edits, normal build and installation are complete.
+  The game/loader were closed during deployment. Recheck processes before building.
+- The installed build includes the UI/controller work and the finished radar
+  correction: **23 suites / 1141 checks pass**, including the formerly failing
+  thin-gap regression. Controller/listening validation remains pending.
+- Installed/build SHA-256: `0D66EFB021BEFDBF617F266750CB62C6B8D85BC7E9BA8B7583480326F57FC157`.
+- One agent owns compilation/deployment at a time. Record ownership here before
+  building; other agents pause shared compiled-source edits until handoff.
+
+---
+
+**Last updated:** 2026-09-16 (radar precision correction compiled and installed; 23 suites / 1141 checks pass; controller/listening validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -38,11 +51,11 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip - geometry revision installed | Local world-hit changes detect finite recesses/returns even within open space. Current openings no longer require a continued-motion forecast. Closing-speed warnings, body/occupancy guards, two-poll confirmation, retry identity and 50 ms gaps remain. Ctrl+T prefixes actual recent screen movement. `docs/radar-map-fidelity.md`; live validation pending. |
+| Sonar radar | wip — precision correction installed | Geometry is the sole cue source; speed/backlog cannot invent exits. Spatial sampling, range hysteresis and finite-depth confirmation suppress oblique-wall/thin-gap chatter. Unusable recesses no longer emit orphan closings. Current body/occupancy checks, retries and 120/50 ms audio retained. `docs/radar-precision.md`; listening validation pending. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 141 guidance + 300 radar/audio + 65 native-world/config + 12 radar UI + 14 timing + 40 delivery + 46 geometry/readout + 37 footsteps = 655 checks. Shared build: 21 suites / 1038 checks. Finite-wall regression failed before the fix; recorded slide grid, paired finite opening/closing playback and unchanged/unknown/occupied cases pass. |
+| Radar / footstep automated tests | done (local) | 706 checks, including 51 new precision regressions. Shared build: 23 suites / 1141 checks. Speed/backlog, duplicate encounters, range quantization, oblique walls, brief/unusable recesses, lost coverage and real return-trip openings covered. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -141,13 +154,15 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Room lifetime / orientation:** logical list `Level+0x10 → RoomEx+0x48`, rectangles `RoomEx+0x60..0x6C` (`0x3614C0`); active instance `RoomEx+0x58` set/cleared by `0x361290/0x361260`; unloading frees collision (`0x2F0110 → 0x363A10`). Room metadata does not establish persistent detailed collision. Projection `0x334DB0`: X down/right, Y down/left, fixed stick up/left/right/down = world (-X,-Y)/(-X,+Y)/(+X,-Y)/(+X,+Y). Full evidence: `docs/sonar-radar.md`.
 
-- **Fractional motion:** native `0x382AA0` forms 16.16 cell centers; `0x3818E0` stores packed X/Y at Path+0/+4. Both fingerprinted. Low words now feed speed, turn and confirmation distance; high words still drive collision. Seven new regression checks; live `[radar-motion]` records confirmed after the 20:43:49 load. `docs/sonar-radar.md`.
+- **Fractional motion:** native `0x382AA0` forms 16.16 cell centers; `0x3818E0` stores packed X/Y at Path+0/+4. Both fingerprinted. Low words feed the actual-motion readout; high words still drive collision. Seven new regression checks; live `[radar-motion]` records confirmed after the 20:43:49 load. `docs/sonar-radar.md`.
 
 - **Local presence:** `Path+0x60` footprint mask (`0x341860`); setter/resetter `0x363CF0/0x3636D0` add/remove NO_PATH `0x1000` at the centre (pattern 1) or cross (2); pet patterns 3/4 use `0x2000`. A complete player stamp can be displaced one cell from Path: controlled 20:47 false down block at (4463,4614), stamp (4464,4614), followed by successful down movement. Infer an offset only from one complete overlapping native shape; reject unknown/incomplete/ambiguous or monster/missile-overlapped shapes. Copy-only removal preserves other obstacles. Ctrl+T adds `presenceOffset`; live (0,1) and (-1,0) corrected at 21:04–21:06. Path+0x10/+0x12 are targets (`0x34120B`, `0x380A70`), not an authoritative stamp anchor. `docs/computer-use-radar-check.md`.
 
-- **Creature versus terrain:** `0x341D70` restores footprint `0x100`, `0x341600` changes a monster to corpse footprint `0x8000`; both now fingerprinted. Actor-filtered estimates suppress wall/exit chatter but original movement collision gates every opening. Ctrl+T adds obstruction flags, velocity, forecast and occupied cells. Original Kirandur `0x1403f5de0` compares world hit points; its two-frame counter is classification retention, not unconditional audio. Full evidence: `docs/kirandur-radar-comparison.md`.
+- **Creature versus terrain:** `0x341D70` restores footprint `0x100`, `0x341600` changes a monster to corpse footprint `0x8000`; both now fingerprinted. Actor-filtered estimates suppress wall/exit chatter but original movement collision gates every opening. Ctrl+T adds obstruction flags, velocity and occupied cells. Original Kirandur `0x1403f5de0` compares world hit points; its two-frame counter is classification retention, not unconditional audio. Full evidence: `docs/kirandur-radar-comparison.md`.
 
 - **HD footfall:** dispatcher `0x7D9800` event 1 calls `0x7D9390`; resolver `0x769B50` validates the ECS entity generation and returns its unit. Suppression returns the already-supported null sound handle. Three complete function fingerprints matched live code before hook implementation. Unit mode +0xC, path +0x38, packed 16.16 X/Y at Path+0; only verified native local player and walk/run/town-walk modes qualify. `docs/footsteps.md`.
+
+- **Precision investigation (2026-09-16):** read-only native trace/body/projection checks plus `0x340E70/0x343920` alternate collision-tested directions explain wall sliding. The 07:05–07:18 log has 879 generated cues, including unchanged-cell closed/open pairs 125 ms apart driven by speed. Removed that classifier; geometry now drives all cues. `docs/radar-precision.md`.
 
 ## Next step
 
@@ -156,11 +171,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Validate the installed geometry revision by passing a recessed wall and returning; both sides must announce widening and the returned boundary. Ctrl+T now describes actual recent movement before straight passages. Compare `trigger=boundary|clearance`, world hit points and audio event IDs if a cue is missed. Build/install SHA-256 `76F4FDA5A4D11BE0067558932032B3DE13B5E4C58FE6BDD74CD5C0CE4E7E077A`; `docs/radar-map-fidelity.md`. User runs controller tests; do not mix desktop input. Both reported footstep cases show real sliding; repeated stationary suppression remains unverified. Another agent handles menus; keep commits scoped.
+Validate the installed precision correction during ordinary movement and running, pass a real side opening and return. Ctrl+T still reports actual movement and straight clearances. All cue events now use `trigger=boundary`, with `retry=1` for delivery retries. Build/install SHA-256 `0D66EFB021BEFDBF617F266750CB62C6B8D85BC7E9BA8B7583480326F57FC157`; `docs/radar-precision.md`. User leads controller/listening tests; do not mix desktop input. Another agent handles menus; keep commits scoped.
 
 ## Known issues / open questions
 
-- **Radar prototype:** closer flat-geometry port, not full Kirandur equivalence: query-unit mapping is chosen, eight-subtile body-clear guard remains, no semantic doors/portals/heights or original HRTF. Current openings no longer promise a future reaction window; stale/occupied cues must cancel. Edge sliding differs from four straight rays, now clarified by actual-motion readout. Coincident collision-bit owners remain ambiguous. Full controller/combat accuracy is unverified; only loaded rooms are queried. `docs/radar-map-fidelity.md`.
+- **Radar prototype:** flat geometry behavior adapted from Kirandur, with D2 grid/body/occupancy guards. Query-unit scale, finite-depth confirmation, range hysteresis and synthesized audio are adaptations; semantic doors/portals/heights and original HRTF are absent. Only loaded rooms are queried; actor-over-terrain bit ownership remains ambiguous. Exceptional-speed/controller/combat accuracy needs live validation. `docs/radar-precision.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
