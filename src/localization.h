@@ -15,6 +15,7 @@ void Shutdown();
 // Localized text for a string-table key (without the leading '@'), or an empty
 // string when the key is unknown or the service is unavailable.
 std::string Text(std::string_view key);
+std::string Text(uint32_t id);
 
 // Picks the plugin's own speech language from the game's text language by
 // resolving one known game string. The tables are not loaded when the plugin

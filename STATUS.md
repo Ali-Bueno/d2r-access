@@ -2,21 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 short return visits
+## Active build coordination - 2026-09-16 ground item audio
 
-- **No active build owner.** Codex /root completed remembered turn visits,
-  recorded-map regressions, tests, compilation and deployment.
-- User confirms improvement; a short departure/return sometimes stays silent.
-  Each direction now recalls its last announced turn after a real return and
-  current full-body clearance, even without an intervening wall warning.
-- **32 suites / 2022 checks pass**, including 186 new revisit checks.
-- Installed/build SHA-256: `BE1A3B6293D42AB22E67D3908F37E12039EF9671ED4AB03112792ABA018E82E9`.
+- **Active build owner: Codex /root (radar memory).** Ground item speech/spatial loops and the follow-up
+  volume correction are built and installed. Radar sources were not changed.
+- User reported inaudible item loops in the 12:45 test. Raw assets were very quiet;
+  normalize peaks before spatial attenuation and raise near gain. The 13:03 live
+  load confirms all six corrected loops; listening validation remains pending.
+- **36 suites / 2302 checks pass**, including real asset level regressions.
+- Installed/build SHA-256: `9436409F1F68E241F3CB277E86401E1C5D77244FAB6E2177C382B4B5CEBBD3DD`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (short-return reminders installed; actual captured map reproduces the formerly silent return; 32 suites / 2022 checks pass; live controller validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (ground item speech and normalized spatial loops installed; 36 suites / 2302 checks pass; corrected volume listening pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -64,6 +64,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
+| Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
+| Spatial item loops | wip — low-level defect corrected; listening pending | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User heard silence in first test. Normalization + gain fix installed and loaded at 13:03; actual XAudio2 processing checked locally. 100 audio checks, HRESULT/progress diagnostics. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 
@@ -172,7 +174,18 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Navigation research (2026-09-16):** audited d2mapapi_mod `f61d052`, D2RMH `32d55b8`, MapAssist `6b26303`. Legacy path bytes encode a coarse 5x5 graph with wall-bit seam tests, not exact native body movement. Prefer our existing direct grids; isolated PoC confirms local connectivity. Automap runtime function and full unseen-level coverage remain unproved. `docs/D2RNavigationResearch.md`.
 
+- **Ground item evidence:** `0x2EFD90` / `0x34B4A0` expose the actual room unit chain
+(`Room+0xA8`, `Unit+0x160`); `0x266690` reads static item path X/Y at +0x10/+0x14.
+Items/type tables come from the active native bank; 14 complete function guards
+match the decrypted executable and live runtime. Full table/layout provenance,
+localized name cleanup and source level measurements: `docs/ground-items.md`.
+
 ## Next step
+
+Items: user-led listening check of the normalized loops in the current game.
+Approach gold, equipment, potion and scroll; check left/right, distance and lower
+pitch below the character. Compare `[item-audio] progress` with listening feedback.
+No gameplay input or audio capture during the user's test. `docs/ground-items.md`.
 
 UI: skill descriptions and binding/action hints confirmed by user. On a future
 level-up, verify the native spend-point hint appears; no point spending is needed.
@@ -183,6 +196,11 @@ Next radar step: user-led listening comparison of a short departure/return to an
 
 ## Known issues / open questions
 
+- **Ground items:** the first listening test failed (inaudible loops). The level
+  correction is installed and initialized; actual audibility is not yet confirmed.
+  Equipment speech gives base name and quality, not the complete generated name.
+  Only resident room/neighbors are scanned. User-added drop sounds are unused;
+  this feature uses the six loop recordings. `docs/ground-items.md`.
 - **Radar prototype:** user confirms contour improvement; short-return reminders are installed and await live listening. Four last-announced turn memories are not a complete door catalogue; each new turn replaces that direction's previous visit. Current approach coverage/occupancy still gate reminders. Larger recesses and contours leaving coverage retain geometric limits. The saved map regression is not the exact whole user trajectory. Native wall sliding remains active; see `docs/radar-revisits.md` and `docs/radar-sliding.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 

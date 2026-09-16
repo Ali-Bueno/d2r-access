@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "interaction_reader.h"
+#include "ground_item_service.h"
 #include "localization.h"
 #include "native_tooltips.h"
 #include "native_progression.h"
@@ -112,6 +113,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (!focus.panel && readout.Empty()) {
 		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel("HUDMonsterHealth"), 0);
 		if (target.surface == UiText::Surface::Target) readout = UiText::Describe(target);
+	}
+	if (!focus.panel && GroundItemService::OwnsWorldLabel(readout.body)) {
+		readout = {};
+		renderedDescription = false;
 	}
 	if (inventory != g_inventory) {
 		if (g_inventory) ScreenReader::Stop();

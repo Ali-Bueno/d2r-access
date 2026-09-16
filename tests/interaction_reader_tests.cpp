@@ -9,6 +9,11 @@
 
 #include <vector>
 
+namespace D2RAccess::GroundItemService {
+bool ownsLabel = false;
+bool OwnsWorldLabel(std::string_view label) { return ownsLabel && label.starts_with("Poción"); }
+}
+
 namespace {
 using namespace D2RAccess;
 NativeUi::Focus focus;
@@ -96,6 +101,11 @@ int main() {
 	Check(speech == std::vector<std::string>{"Tu alijo personal"}, "returning to the same highlighted object reads again");
 	ClearSpeech(); Tooltip("\xEE\x80\x93"); Settle();
 	Check(speech.empty(), "a button image is not a world object name");
+	GroundItemService::ownsLabel = true; Tooltip("Poción"); Settle();
+	Check(speech.empty(), "proximity-owned ground item does not also announce through its tooltip");
+	GroundItemService::ownsLabel = false; Settle();
+	Check(speech == std::vector<std::string>{"Poción"}, "tooltip speech remains available when proximity speech is disabled");
+	ClearSpeech();
 	Tooltip("Arqueta"); Settle();
 	Check(speech == std::vector<std::string>{"Arqueta"}, "different object labels use the same reader");
 	ClearSpeech(); conversation = true; Settle();

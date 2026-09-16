@@ -1,0 +1,156 @@
+#include "item_audio.h"
+#include "item_wave.h"
+#include "item_spatial.h"
+#include "async_log.h"
+#include <windows.h>
+#include <xaudio2.h>
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <condition_variable>
+#include <filesystem>
+#include <mutex>
+#include <thread>
+
+namespace D2RAccess::ItemAudio {
+namespace {
+using namespace GroundItems;
+constexpr DWORD UpdateMs = 20; // audio-only updates; never block the game's UI thread
+constexpr float GainSmoothing = 0.25f; // approximately 80 ms fade-in/position changes
+constexpr DWORD PlaybackCheckMs = 250; // one progress record per source, after fade-in
+std::mutex g_mutex;
+std::condition_variable g_wake;
+std::thread g_thread;
+std::atomic<bool> g_running{false}, g_available{false};
+std::vector<Voice> g_pending;
+uint64_t g_updated = 0;
+struct Playing {
+	uint32_t id = 0;
+	Sound sound{};
+	IXAudio2SourceVoice* source = nullptr;
+	float gain = 0;
+	uint64_t started = 0;
+	bool checked = false;
+	void Stop() { if (source) { source->DestroyVoice(); source = nullptr; } gain = 0; }
+};
+void Worker(const D2RL::PluginContext* context) {
+	const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	IXAudio2* engine = nullptr;
+	IXAudio2MasteringVoice* master = nullptr;
+	std::array<std::vector<int16_t>, static_cast<size_t>(Sound::Count)> samples;
+	std::array<Playing, MaxVoices> playing{};
+	try {
+		// Keep all sample memory alive until its source voices have been destroyed.
+		const auto folder = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "sounds" / "item loop sounds";
+		size_t loaded = 0;
+		for (size_t i = 0; i < samples.size(); ++i) {
+			samples[i] = ItemWave::Load(folder / SoundFiles[i]);
+			const float scale = ItemWave::Normalize(samples[i]);
+			if (scale > 0) {
+				++loaded;
+				AsyncLog::InfoF(context, "[item-audio] normalized %s gain_db=%.1f peak=%.2f", SoundFiles[i], 20 * std::log10(scale), ItemWave::LoopPeak);
+			} else {
+				samples[i].clear();
+				AsyncLog::WarnF(context, "[item-audio] Missing/invalid/silent loop: %s", SoundFiles[i]);
+			}
+		}
+		HRESULT output = loaded ? XAudio2Create(&engine) : E_FAIL;
+		if (SUCCEEDED(output)) output = engine->CreateMasteringVoice(&master, 2, ItemWave::SampleRate);
+		if (FAILED(output)) {
+			AsyncLog::WarnF(context, "[item-audio] Spatial output unavailable HRESULT=%08lx; item speech remains enabled.", output);
+		} else {
+			WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, ItemWave::SampleRate, ItemWave::SampleRate * sizeof(int16_t), sizeof(int16_t), 16, 0};
+			g_available = true;
+			AsyncLog::InfoF(context, "[item-audio] %zu loops loaded; X3DAudio screen axes, rear pitch %.2f.", loaded, RearPitch);
+			while (g_running) {
+				std::vector<Voice> targets;
+				{
+					std::unique_lock lock(g_mutex);
+					g_wake.wait_for(lock, std::chrono::milliseconds(UpdateMs));
+					if (g_running && GetTickCount64() - g_updated <= SnapshotExpiryMs) targets = g_pending;
+				}
+				for (auto& active : playing) {
+					if (!active.source) continue;
+					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return active.id == target.id && active.sound == target.sound; });
+					if (found == targets.end()) {
+						AsyncLog::InfoF(context, "[item-audio] stopped id=%u", active.id);
+						active.Stop();
+					}
+				}
+				for (const auto& target : targets) {
+					const auto sound = static_cast<size_t>(target.sound);
+					if (sound >= samples.size() || samples[sound].empty()) continue;
+					auto active = std::find_if(playing.begin(), playing.end(), [&](const Playing& p) { return p.source && p.id == target.id && p.sound == target.sound; });
+					if (active == playing.end()) {
+						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
+						if (active == playing.end()) break;
+						const HRESULT created = engine->CreateSourceVoice(&active->source, &format);
+						if (FAILED(created)) {
+							AsyncLog::WarnF(context, "[item-audio] source failed HRESULT=%08lx", created);
+							g_running = false; break;
+						}
+						active->id = target.id; active->sound = target.sound;
+						active->started = GetTickCount64(); active->checked = false;
+						HRESULT submitted = active->source->SetVolume(0);
+						XAUDIO2_BUFFER buffer{};
+						buffer.AudioBytes = static_cast<UINT32>(samples[sound].size() * sizeof(int16_t));
+						buffer.pAudioData = reinterpret_cast<const BYTE*>(samples[sound].data());
+						buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+						if (SUCCEEDED(submitted)) submitted = active->source->SubmitSourceBuffer(&buffer);
+						if (SUCCEEDED(submitted)) submitted = active->source->Start();
+						if (FAILED(submitted)) {
+							AsyncLog::WarnF(context, "[item-audio] start failed id=%u HRESULT=%08lx", target.id, submitted);
+							g_running = false; break;
+						}
+						AsyncLog::InfoF(context, "[item-audio] started id=%u sound=%s right=%.1f front=%.1f", target.id, SoundFiles[sound], target.right, target.front);
+					}
+					const auto matrix = ItemSpatial::StereoMatrix(target);
+					active->gain += (target.gain - active->gain) * GainSmoothing;
+					HRESULT applied = active->source->SetOutputMatrix(master, 1, 2, matrix.data());
+					if (SUCCEEDED(applied)) applied = active->source->SetFrequencyRatio(target.pitch);
+					if (SUCCEEDED(applied)) applied = active->source->SetVolume(active->gain);
+					if (FAILED(applied)) {
+						AsyncLog::WarnF(context, "[item-audio] spatial update failed id=%u HRESULT=%08lx", target.id, applied);
+						g_running = false; break;
+					}
+					if (!active->checked && GetTickCount64() - active->started >= PlaybackCheckMs) {
+						XAUDIO2_VOICE_STATE state{};
+						active->source->GetState(&state);
+						AsyncLog::InfoF(context, "[item-audio] progress id=%u samples=%llu queued=%u gain=%.3f matrix=%.3f,%.3f pitch=%.3f",
+							target.id, state.SamplesPlayed, state.BuffersQueued, active->gain, matrix[0], matrix[1], target.pitch);
+						active->checked = true;
+					}
+				}
+			}
+		}
+	} catch (...) { AsyncLog::Warn(context, "[item-audio] Worker stopped after an audio initialization/playback error."); }
+	g_available = false;
+	for (auto& voice : playing) voice.Stop();
+	if (master) master->DestroyVoice();
+	if (engine) engine->Release();
+	if (SUCCEEDED(com)) CoUninitialize();
+}
+}
+bool Start(const D2RL::PluginContext* context) {
+	if (!context || g_thread.joinable()) return false;
+	g_running = true;
+	try { g_thread = std::thread(Worker, context); }
+	catch (...) { g_running = false; return false; }
+	return true;
+}
+void Update(std::vector<Voice> voices) {
+	std::lock_guard lock(g_mutex);
+	g_pending = std::move(voices); g_updated = GetTickCount64();
+	g_wake.notify_one();
+}
+void Silence() { Update({}); }
+void Stop() {
+	g_running = false;
+	g_wake.notify_one();
+	if (g_thread.joinable()) g_thread.join();
+	Silence();
+}
+bool Available() { return g_available; }
+}

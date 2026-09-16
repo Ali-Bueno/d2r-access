@@ -9,6 +9,16 @@ namespace {
 const D2RL::LocalizationServiceV1* g_service = nullptr;
 const D2RL::PluginContext*         g_context = nullptr;
 
+template<class Lookup> std::string CopyString(Lookup lookup) {
+	// The SDK's two-call contract includes the terminating null in required.
+	uint32_t required = 0;
+	if (lookup(nullptr, 0, &required) != D2RL::Localization::Result::BufferTooSmall || !required) return {};
+	std::string text(required, '\0');
+	if (lookup(text.data(), required, &required) != D2RL::Localization::Result::Success) return {};
+	while (!text.empty() && text.back() == '\0') text.pop_back();
+	return text;
+}
+
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
@@ -58,20 +68,16 @@ std::string Text(std::string_view key) {
 	}
 	const std::string owned(key);
 
-	// Two-call pattern documented in localization.h: size query, then copy.
-	uint32_t required = 0;
-	if (g_service->getStringByKey(g_context, owned.c_str(), nullptr, 0, &required) != D2RL::Localization::Result::BufferTooSmall || required == 0) {
-		return {};
-	}
-	std::string text(required, '\0');
-	if (g_service->getStringByKey(g_context, owned.c_str(), text.data(), required, &required) != D2RL::Localization::Result::Success) {
-		return {};
-	}
-	// required includes the trailing null byte.
-	while (!text.empty() && text.back() == '\0') {
-		text.pop_back();
-	}
-	return text;
+	return CopyString([&](char* output, uint32_t size, uint32_t* required) {
+		return g_service->getStringByKey(g_context, owned.c_str(), output, size, required);
+	});
+}
+
+std::string Text(uint32_t id) {
+	if (!g_service) return {};
+	return CopyString([&](char* output, uint32_t size, uint32_t* required) {
+		return g_service->getStringById(g_context, id, output, size, required);
+	});
 }
 
 }

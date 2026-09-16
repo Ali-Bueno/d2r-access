@@ -93,6 +93,7 @@ if(MSVC)
 endif()
 
 include(CTest)
+include(cmake/GroundItems.cmake)
 if(BUILD_TESTING)
 	add_executable(radar-revisit-tests tests/radar_revisit_tests.cpp src/radar.cpp src/radar_wall_memory.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-revisit-tests PRIVATE src)

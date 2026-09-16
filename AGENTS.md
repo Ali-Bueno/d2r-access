@@ -30,9 +30,16 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 32 suites / 2022 checks, including UI navigation.
+  Latest shared-workspace run: 36 suites / 2302 checks, including UI navigation.
   Radar and footsteps account for 1587 checks, including 186 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
+- Ground items: Ctrl+I toggles proximity speech; Ctrl+L toggles spatial loops;
+  `access-items on|off|sound-on|sound-off|status`. Fixed screen axes, rear pitch
+  0.94. Six OGG assets require FFmpeg at build time, no runtime decoder DLL.
+  User reported silence in the first live test: raw loops were much too quiet.
+  Peak normalization and higher near gain are installed; the 13:03 load confirms
+  all six corrected loops. User listening remains pending. Read
+  `docs/ground-items.md`; `[item-audio] progress` records actual sample advancement.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
@@ -116,6 +123,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `tab_reader.cpp` | Shared selected-tab state across visible panels, including controller overlay and unfocused stash; inventory consumes the same state |
 | `screen_reader.cpp` | PRISM on a dedicated speech thread; `Speak(text, interrupt)` only queues |
 | `footsteps.cpp`, `native_footsteps.cpp`, `footstep_service.cpp` | Pure stalled-motion policy, verified HD footfall hook, local identity/position reads, toggle and event-only diagnostics |
+| `ground_items.cpp`, `native_ground_items.cpp`, `ground_item_service.cpp`, `ground_item_text.cpp` | Nearby ground snapshots, diff-gated localized speech, separate toggles and lifecycle/UI handling |
+| `item_audio.cpp`, `item_spatial.cpp`, `item_wave.cpp` | Peak-normalized PCM loops, dedicated XAudio2 worker, X3DAudio stereo positioning and rear pitch |
 | `speech_strings.*`, `localization.cpp` | Plugin phrases (English/Spanish) and the game's own string tables via the SDK |
 | `tools/` | CASC extraction, layout indexer, catalog generators (`gen_panel_widgets.py`, `gen_panel_titles.py`) → `src/generated/` |
 

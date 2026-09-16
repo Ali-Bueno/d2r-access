@@ -1,0 +1,141 @@
+# Ground item speech and spatial loops
+
+Implemented 2026-09-16 for the installed D2R 3.3.93787 executable. The user chose
+fixed screen orientation: screen up is ahead and screen down is behind. This
+feature has its own native snapshot, tracker and audio worker; it does not change
+radar geometry or radar playback.
+
+## Behavior and controls
+
+Both features start enabled. **Ctrl+I** toggles proximity speech; **Ctrl+L**
+toggles item loops. Console: `access-items on|off|sound-on|sound-off|status`.
+Preferences last for the current process. Ordinary item speech queues through
+PRISM without interrupting the current announcement.
+
+An item within three collision subtiles reads its localized base name, quality
+when applicable, and the native amount for gold. It reads once per approach;
+moving more than six subtiles away rearms it. Up to four names are grouped per
+announcement, with at least 900 ms between groups. More items remain eligible
+while nearby. There is no speech backlog for items that have already disappeared.
+The shared world-tooltip reader defers matching nearby names to avoid duplicates.
+Inventory descriptions still use the game's complete rendered tooltip.
+
+Names come from the active game's Items table and localization service. The
+`[fs]`, `[ms]`, `[fp]`, `[mp]`, `[ns]`, `[pl]` and `[nl]` grammatical markers in
+`item-names.json` are omitted. Equipment speech currently identifies the **base
+item and quality**, not its complete generated affix/unique display name. It
+does not reveal unidentified affixes.
+
+| Supplied loop | Ground item category |
+|---|---|
+| `gold.ogg` | Gold |
+| `potion.ogg` | All descendants of potion, elixir and scroll item types, plus quest potions/scrolls |
+| `normal equipment.ogg` | Inferior/normal/superior equipment and remaining miscellaneous items |
+| `magic equipment.ogg` | Magic quality |
+| `rare equipment.ogg` | Rare and crafted quality |
+| `legendary equipment.ogg` | Unique and set quality |
+
+Up to eight nearest items have independent continuous XAudio2 voices. X3DAudio
+supplies the stereo speaker matrix. Fixed screen axes derive from native
+projection `0x334DB0`: right = `(dx-dy)/sqrt(2)`, front = `-(dx+dy)/sqrt(2)`.
+Distance attenuates each source to silence at 30 subtiles. Rear sources smoothly
+lower pitch to 94% across the first subtile behind the listener. Voices keep
+their loop position across updates. The summed gain is limited to 0.75 for
+headroom when a pile of objects peaks together. These ranges, gains and timings
+are accessibility tuning, not claims about native pickup range or acoustic units.
+
+Recordings are peak-normalized to 0.9 when loaded, before applying the near-source
+gain of 0.6 and distance attenuation. This preserves their waveform and dynamics
+without modifying the OGG files. A silent recording is rejected. The original
+gold and normal recordings measured -44.6 and -41.0 dBFS RMS; applying the old
+0.22 gain and stereo panning made them effectively inaudible against gameplay.
+Normalization plus the revised gain raises those categories by approximately
+36 and 33 dB respectively, while retaining the bounded pile mix.
+
+Pickup, range exit, lifecycle changes, death, dialogue, pause and losing foreground
+stop the applicable voices. Nonpausing inventory keeps the cues running and
+defers proximity speech. The worker expires a snapshot after 300 ms even if UI
+polling stops. Audio updates occur on its own thread; file loading and playback
+never block a UI callback. Missing/bad audio files leave item speech usable.
+
+## Assets and build
+
+Edit the six OGG files under `sounds/item loop sounds/`, then build with the game
+closed. `cmake/GroundItems.cmake` uses the existing **FFmpeg command line tool**
+to create mono, 48 kHz, PCM16 WAV files in the build directory. FFmpeg is a build
+requirement on `PATH`; there is no decoder DLL or additional runtime library to
+install. Playback uses Windows XAudio2/X3DAudio. Asset-only rebuilds also deploy.
+
+The build installs the WAV files under
+`d2rloader/plugins/d2r-access/sounds/item loop sounds/`. It keeps the user's OGG
+sources unchanged. `item drop sounds/` is not used by this continuous-loop feature.
+Do not commit the generated WAV files or build binaries.
+
+## Native evidence
+
+Source: the existing analyzed `re/ghidra/D2R`, program `D2R_live.exe`, backed by
+the decrypted capture of the installed executable. No old-version offsets were
+copied from an external map tool. The reader verifies complete native function
+spans in `ground_item_layout.h` before using the layouts and copies bounded data
+on the UI thread. It retains no native item/room pointers between polls.
+
+| Fact | Source |
+|---|---|
+| Local player index / lookup | `0x8B2D0`, `0x9A480`; lookup accepts eight local indices |
+| Unit type/class/id/mode and static item path | Item type 4; `0x266690` reads static X/Y at `Unit+0x38 -> +0x10/+0x14` |
+| Player room versus item room | `0x34B440`: dynamic path room `+0x20`, static path room `+0` |
+| Nearby rooms | `0x2EFDE0`: array/count at `Room+0/+0x40` |
+| Room's actual world-unit chain | `0x2EFD90`: head `Room+0xA8`; `0x34B4A0`: next `Unit+0x160`; `0x3B24B0` traverses these for nearby item lookup |
+| Different unrelated chain | `0x2EFB10` / `0x3497F0` expose `+0x30/+0x150`; these are **not** the nearby world-unit traversal |
+| Data bank | `0x34A0E0`: `Unit+0x1BD`; `0x300A90` resolves its active table bank |
+| Items rows | `0x314110`: pointer/count at bank `+0x15A0/+0x15A8`, stride `0x1C0` |
+| Item code / localized name / primary type | `0x1807D0`, `0x9A1B0`, `0x293CC0`: row `+0x80/+0xFC/+0x12E` |
+| Item quality | `0x36CF60`: DWORD at `Unit+0x10 -> +0`; enum from PluginSDK `Items::Quality` |
+| Item type table | `0x293CC0`: bank `+0x1348/+0x1350`, stride `0xE8` |
+| Type ancestry layout | Installed CASC `ItemTypes.bin`: four-byte Code then two uint16 Equiv indices; cross-checked against `itemtypes.txt` |
+| Gold amount | `0x370C90` reads stat 14, matching `ItemStatCost.txt` `gold`; guarded read-only getter `0x2F5020(unit, stat, layer=0)` |
+| Quest scroll/potion exceptions | Installed `misc.txt`: `bks`, `tr1`, `tr2`, `xyz`, `ice` inherit `ques` |
+| Player death modes | Installed `plrmode.txt`: Death row 0, Dead row 17 |
+
+The scan covers the player's resident room and its native neighbors, with finite
+bounds on room/unit counts, table rows and type ancestry. It only accepts ground
+or dropping item modes (3/5) whose static path still refers to the enumerated
+room. These snapshots do not create items, collect items, change targeting, move
+the player or load other rooms. Unreadable/inconsistent chains discard the
+snapshot so stale positions do not persist in audio.
+
+## Validation
+
+Four new test suites cover classification, quest consumables, proximity/reentry,
+duplicate identities, bounded piles, pause/session handling, separate toggles,
+guarded native layouts, corrupt/cyclic memory, real OGG-to-WAV output and actual
+X3DAudio left/right/front/rear matrices. The existing interaction-reader suite
+also checks tooltip suppression and restoration. A separate local check verifies
+all native fingerprints against `re/D2R.rebuilt.exe` and rejects a changed byte.
+The shared build passes **36 suites / 2302 checks**. The audio suite checks
+normalization, negative full-scale samples, silent input and actual per-ear RMS
+after distance/panning for every supplied recording, rather than merely checking
+that a file contains a nonzero sample.
+
+Live log, 2026-09-16: **12:45:21** verified the reader and loaded all six loops;
+**12:45:34** resumed on a ready player; **12:48:41** started the normal-item loop
+for item 24 behind the player; **12:48:55** announced its nearby localized name
+(`Saetas`). That first run exposed the grammatical `[fp]` prefix, now covered by
+the name-cleaning regression. **The user reported no audible item sounds.**
+The measured level defect above was then corrected. A standalone XAudio2 check
+on the actual default endpoint, with its diagnostic master muted, confirmed
+advancing samples and a nonzero signal using the Windows volume-meter effect;
+the endpoint was unmuted at full volume. It issued no gameplay inputs or audio
+capture. Corrected normal-item output at 5.4 subtiles is about -29.4 dBFS per ear
+at the measured maximum RMS, compared with about -62 dBFS before the fix.
+
+The **13:03:06** live load confirms normalization and all six loops initialized.
+Each source now logs one progress record after 250 ms (samples played, queue,
+gain, stereo matrix and pitch); failures include the HRESULT. These are software
+checks, not confirmation of speaker output. Listening validation of the corrected
+volume, direction, distance, rear pitch and remaining categories is pending.
+
+User-led check: approach a potion, scroll, gold and equipment; stop beside each;
+walk away and return; collect one; open dialogue and inventory; leave/rejoin.
+Use `[items]` and `[item-audio]` in the latest plugin log. No per-frame audio
+logging or computer-control inputs are needed for this listening check.

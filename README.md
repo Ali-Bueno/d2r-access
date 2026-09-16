@@ -147,6 +147,17 @@ full-map navigation and destination beacons.
 Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
 See `STATUS.md` for the live ledger.
 
+**Ground items:** approaching loot reads its localized base name and quality
+(gold also reads its amount). Nearby objects use the supplied continuous 3D
+loops, with stereo direction, distance attenuation and slightly lower pitch
+behind you. Orientation follows the screen: up is ahead, down is behind.
+**Ctrl+I** toggles proximity speech and **Ctrl+L** toggles loops independently.
+Sounds stop for pickup, dialogue, pause and leaving the game. See
+[item sound categories, controls and validation](docs/ground-items.md).
+The native reader and all six audio assets have initialized in a live game.
+After a report of inaudible loops, recording levels are now normalized before
+spatial attenuation; listening validation of that correction remains pending.
+
 ## How it works
 
 - The plugin listens to the game's UI message bus through the D2RLoader SDK (`PanelManager`,
@@ -163,7 +174,8 @@ See `STATUS.md` for the live ledger.
 - World labels and item descriptions use one verified native tooltip render
   hook. It copies the primary displayed text before the game frees it each
   frame, then preserves the stock draw call. It requires the supported game
-  build and adds no DLL dependencies. It never reads all nearby loot at once.
+  build and adds no DLL dependencies. A separate native ground-item reader
+  supplies nearby loot snapshots to proximity speech and spatial sound services.
 
 ## Requirements
 
@@ -175,6 +187,10 @@ See `STATUS.md` for the live ledger.
   `third_party/prism/`.
 
 ## Build and install
+
+Build with the game closed. FFmpeg must be on `PATH` to convert the six OGG
+loop sources to WAV. The build also installs these audio assets; FFmpeg is not
+needed to run the installed plugin.
 
 ```powershell
 git clone --recurse-submodules <this repo>
@@ -209,6 +225,9 @@ Footstep commands: `access-footsteps on|off|status`; Ctrl+F toggles the filter
 until the game exits. The log records audible/stalled transitions and grouped
 movement/animation/read-failure diagnostics, so a failed case can be investigated
 without visually identifying whether the character is sliding along a wall.
+
+Ground item commands: `access-items on|off|sound-on|sound-off|status`.
+`on/off` controls proximity speech; `sound-on/sound-off` controls the loops.
 
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
 Test executables are not installed into the game.
