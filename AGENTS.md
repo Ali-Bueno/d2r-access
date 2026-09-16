@@ -30,7 +30,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: seventeen suites / 940 checks, including concurrent UI work.
+  Latest shared-workspace run: eighteen suites / 972 checks, including UI navigation.
   Radar and footsteps account for 631 checks; footsteps now has 37 policy checks.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
@@ -87,6 +87,7 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
 | `ui_message_monitor.cpp` | Listens to the game's UI message bus (`PanelManager:OpenPanel`, `FrontEndNavigation:To*`, `CharacterCreate:Hover`, `OptionsPanelMessage:Set*`, `ScrollController:ManualScrollInput`); announces panels, navigation, class hover + description, modal prompts (native text, 120 ms after open) |
 | `panel_state.cpp` | Open-panel stack (reset on `ToFrontEnd`: preloaded in-game panels like EmoteWheelPanel are invisible) |
 | `focus_tracker.cpp` | Controller focus: polls the game's `FocusManager/FocusIndicator` rect (self-requeued `runOnUiThread` pump), matches it against `generated/panel_widgets.h`, speaks label/role/value/tooltip; dropdown popup rows and character rows from native text |
+| `native_focus.cpp`, `skill_navigation.cpp`, `native_skill_navigation.cpp`, `skill_grid.cpp` | Native catalog identity fixes silent menu actions; D-pad skill gestures select actual cells/positions and suspend cursor travel until release. `access-skill-grid on\|off`; eighteen suites pass, user has not tested the installed follow-up yet. `docs/controller-navigation.md` |
 | `widgets.cpp` | SDK WidgetService wrapper: handles cached for the plugin's lifetime (they are name paths), anchors applied against the 3840x2160 canvas for 0x0 parents, per-poll rect memo |
 | `game_text_reader.cpp`, `ui_text.cpp` | Gameplay text context, lifecycle and testable reading policy; runs before the old focus reader and owns NPC/dialogue/tutorial focus while active |
 | `ui_notifications.cpp` | Visible HUD notification rows and temporary informational prompts; text diffing and noninterrupting speech, without reading chat history |

@@ -6,9 +6,11 @@
 
 ## Identity
 
-**UI update (2026-09-15):** attribute labels/values and skill-grid/branch speech
-implemented and installed. Fourteen isolated / sixteen integrated CTest suites
-pass; corrected controller readout awaits confirmation. `docs/progression.md`.
+**UI update (2026-09-15):** native identity fixes silent main-menu actions; value
+controls retain their value reader. Skills now add discrete D-pad selection
+with free stick movement on release. Installed; eighteen suites / 972 checks pass.
+The user has not tested this build yet. Controller Options intentionally has three tabs;
+keyboard bindings are the fourth. `docs/controller-navigation.md`.
 
 - **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, v1.2.1-beta 2026-09-03, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, API v4).
 - **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
@@ -23,7 +25,7 @@ pass; corrected controller readout awaits confirmation. `docs/progression.md`.
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
-| Controller focus tracking (front end) | done | `focus_tracker.cpp`: `FocusManager/FocusIndicator` rect polled at ≤30 Hz, matched by coverage; labels/roles/tooltips; class selectors left to the game's Hover message (+ class description) |
+| Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
 | Control values | done | Sliders (runtime `Indicator`), toggles/carousels (Settings.json baseline + input direction; text language locale order), dropdowns (popup rows spoken from native slot text; picked index tracked) |
 | Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
 | Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
@@ -44,7 +46,7 @@ pass; corrected controller readout awaits confirmation. `docs/progression.md`.
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
-| Attribute allocation / skill-tree reading | wip — installed, automated checks pass | Attributes read their own name/value/points; value changes are incremental. Native D-pad cells and branch tabs read; skill tooltip lines reordered with name first. User navigation reproduced old failure and supplied live evidence; corrected speech awaits confirmation. `docs/progression.md` |
+| Attribute allocation / skill-tree reading | wip — follow-up awaits live controller check | Attributes read name/value/points. Skill descriptions read name first. User confirmed D-pad and stick both moved the cursor freely; new D-pad gestures select real skills and hold the cursor there until release. Class skills use cell names; general/granted skills use native positions. `docs/controller-navigation.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -69,7 +71,7 @@ pass; corrected controller readout awaits confirmation. `docs/progression.md`.
 | String tables | `data:data\local\lng\strings\ui.json` (2131 records `{id, Key, enUS, esES, …}`, UTF-8 BOM) holds `@str…` and `@OptionsHD`; `ui-controller.json` overrides for controller | extraction |
 | Menu layout names | MainMenuPanelHD, MainMenuButtonRibbonHD, MainMenuLinksHD, TitleScreenPanelHD, LogoMenuPanelHD, CharacterSelectPanelHD, CharacterCreatePanelHD, SettingsPanelHD, Gameplay/Video/Sound/LootFilter/OnlineGameOptionsPanelHD, GammaCalibrationPanelHD, KeyBindingMenuHD, PauseLayoutHD, MiniMenuPanelHD, PlayerInventory{Original,Expansion}LayoutHD, SkillsTreePanelHD, WaypointsPanel{Original,Expansion}HD | extraction |
 | Focus model in layouts | Controller layouts carry `navigation` (678: next/prev/up/down/left/right widget names or `panelBoundary`), `defaultWidget` (97: initial focus per panel), `focusIndicatorFilename` (521), `focusOnMouseOver` (100), `generateFocusLinks` (13). 125/329 layouts use `basedOn` inheritance (indexer merges it). Engine keeps a real focused widget → phase-2 hook target = its setter | tools/layout_index.py 2026-09-14 |
-| Settings tabs | `SettingsPanelHD` `TabBarWidget OptionsTabs`: `textStrings` [Vídeo, Audio, Juego, Controles] ↔ `tabMessages` `SettingsPanelMessage:CheckChanges:{VideoOptionsPanel,SoundOptionsPanel,GameplayOptionsPanel,KeyBindingMenu}` | index |
+| Settings tabs | Layout has four tabs, but native setup `0x147CBC0` only adds Controls outside controller mode (`0x077E10`). Controller options are under Gameplay/Juego; KeyBindingMenu is for keyboard bindings | layouts + `docs/controller-navigation.md` |
 | Main menu (controller) | `MainMenuPanelHD` QuickPlayButton "JUGAR" → `MainMenuHD:Play`; ribbon Opciones→`PanelManager:OpenPanel:SettingsPanel`, Vídeos→`FrontEndNavigation:ToCinematics`, Créditos→`OpenPanel:CreditsModal`, Salir→`FrontEndNavigation:ToExit` | index |
 | D2R.exe code | `.text` is Arxan-encrypted on disk; the plugin dumps the live `.text` once at first `ToFrontEnd` (`src/code_dump.cpp` → `plugins/d2r-access/D2R.text.bin`, 30,076,928 bytes, entropy 6.5 = real code). **Live layout ≠ disk**: live `.text` is 0x1CAF000 (disk 0x15CB6E0) and every later section is at `disk_rva + 0x6E3000` (IAT-call vote 76:1); on-disk `.pdata` is stale for the live code. `re/scripts/rebuild_pe.py` → `re/D2R.rebuilt.exe` (file offset == RVA); Ghidra program `D2R_live` in `re/ghidra`, seeded with 55,944 functions (`SeedFunctions.java`), analysis log `re/ghidra/analysis-live.log`. Notes: `re/notes.md` | Opus RE passes 2026-09-14 |
 | Widget JSON reflection table | Every layout JSON field has a 0x30-byte record in `.data`: `+0x08 memberSize, +0x18 name, +0x20 type (0 int,1 bool,2 float,3 string,4 struct,5 enum,6 msg-hash), +0x28 memberOffset`; 3,904 records (`re/out/schema*.tsv`). Static: SliderWidget `increment +0x5B0`, `onUpdateMessage +0x590`, `isHorizontal +0x588`; Panel `defaultWidget +0x90`; Modal `confirmMessage +0x1A0`/`denyMessage +0x1C0`; widget `name +0x0`, `rect +0x70`. **`isToggled` (rec 0x2400418), `states` (0x2400FE8), `text` (0x2400118), `tooltipString` (0x23FFCC8) get type/offset filled at runtime** → the plugin can read those records live (rec RVA + 0x6E3000 from exeBase) instead of hardcoding. Engine string type = 0x28 bytes | re/notes.md §7 |
@@ -142,9 +144,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-UI: confirm the installed attribute labels/values and skill names, requirements,
-branch tabs and row/column while navigating with the controller. No point spending
-is needed for this check. Independent radar work continues below.
+UI: verify native cursor-hook startup, one real skill selection/readout per D-pad
+press, free stick movement after release, and Options/Videos/Exit after leaving
+a game. No point spending is needed. Independent radar work continues below.
 
 The latest reproduction is analyzed: the held-up case was sustained up-left wall sliding, followed by a fixed position with no new local footfalls. Preserve that movement audio; do not treat a blocked straight ray as total immobility. A future genuinely stationary audible-step report must check animation/read/reset reasons; no such local sequence was captured here. Ctrl+T currently lacks actual movement feedback, which explains the user's directional confusion. Do not ask the blind player to visually distinguish sliding or mix desktop movement with their play. Another agent is working on menus in this checkout; keep commits scoped. Evidence: `docs/footsteps.md`.
 

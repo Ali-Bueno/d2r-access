@@ -10,6 +10,8 @@
 #include "localization.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
+#include "native_skill_navigation.h"
+#include "skill_navigation.h"
 #include "radar_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -39,6 +41,7 @@ constexpr D2RL::PluginInfo PluginInfo {
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
+	D2RAccess::SkillNavigation::Tick(context);
 	if (!D2RAccess::GameTextReader::Tick(context)) D2RAccess::FocusTracker::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
@@ -53,6 +56,15 @@ auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command,
 	else if (args == "off") D2RAccess::GameTextReader::SetEnabled(false);
 	else if (args == "repeat") D2RAccess::GameTextReader::RequestRepeat();
 	else if (args == "dump") D2RAccess::GameTextReader::RequestDump();
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
+auto SkillGridCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (!command || !command->plugin) return D2RL::ConsoleCommandResult::Failed;
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	if (args == "on") D2RAccess::SkillNavigation::SetEnabled(true);
+	else if (args == "off") D2RAccess::SkillNavigation::SetEnabled(false);
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -151,6 +163,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
 	(void)D2RAccess::NativeTooltips::Initialize(context);
+	(void)D2RAccess::NativeSkillNavigation::Initialize(context);
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
 	D2RAccess::FootstepService::Register(context);
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
@@ -165,12 +178,14 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
+	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
 }
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();

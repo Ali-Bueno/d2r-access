@@ -40,7 +40,9 @@ inside a `TabWidget`. Their live names encode the game's selected cell:
 include `SkillButton3 0,0`, `SkillButton3 2,4`, and `SkillButton1 1,2`.
 The controller layout declares six `skillRow` positions and three `skillColumn`
 positions. The reader announces the actual cell with one-based row/column;
-the game's existing D-pad traversal and gaps remain intact.
+the reader initially followed the existing free cursor. The user subsequently
+confirmed that both stick and D-pad still moved the hand freely; discrete D-pad
+navigation is implemented in the [controller follow-up](controller-navigation.md).
 
 `CommonSkillsContainer` and `ItemSkillsContainer` contain granted/general skills
 (`SkillSelectButtonWidget`, also derived from `ButtonWidget`). These use the

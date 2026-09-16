@@ -8,6 +8,7 @@
 #include "input_direction.h"
 #include "localization.h"
 #include "native_widgets.h"
+#include "native_focus.h"
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -765,6 +766,20 @@ void Tick(const D2RL::PluginContext* context) {
 	// When a list scrolls to keep the focused row visible, the indicator can
 	// stay put while the rows move under it, so a scroll forces a re-check.
 	const auto indicator = IndicatorRect();
+	// Native identity is authoritative even when the ribbon moves/resizes or
+	// returning from gameplay changes panel-open order. Keep popup row handling
+	// below: those runtime clones have their own text/value reader.
+	if (PanelState::Active() != DropdownPopupPanel) {
+		const auto native = NativeFocus::Resolve(NativeUi::CurrentFocus(), Generated::PanelCatalog);
+		if (native.widget) {
+			g_forceResolve = false;
+			g_lastIndicator = indicator;
+			g_popupWasActive = false;
+			g_missSince = 0;
+			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}));
+			return;
+		}
+	}
 	// A scroll message is settled either by the indicator moving (the
 	// highlight moved: nothing else changed) or by time (the rows moved).
 	bool rowsMoved = false;

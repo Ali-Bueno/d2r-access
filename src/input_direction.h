@@ -26,6 +26,11 @@ enum class Vertical {
 // allocate, never throws.
 void Poll();
 
+// Cardinal D-pad input only; independent of sticks/keyboard and sampled once
+// per UI tick. Diagonals remain held but do not choose an arbitrary direction.
+struct DpadInput { int x = 0, y = 0; bool pressed = false, held = false; };
+DpadInput Dpad();
+
 // The most recent left/right press edge, if it happened within the last
 // `maxAgeMs` milliseconds (measured via GetTickCount64); Horizontal::None
 // otherwise, or if no edge has been recorded yet.

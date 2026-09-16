@@ -50,6 +50,8 @@ bool         g_keyLeftHeld  = false;
 bool         g_keyRightHeld = false;
 bool         g_keyUpHeld    = false;
 bool         g_keyDownHeld  = false;
+DpadInput g_dpad;
+WORD g_previousDpad = 0;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -109,6 +111,9 @@ void EnsureLibraryLoaded() {
 
 void Poll() {
 	EnsureLibraryLoaded();
+	WORD dpadButtons = 0;
+	constexpr WORD DpadMask = XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_DOWN
+		| XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT;
 
 	if (g_xInputGetState != nullptr) {
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
@@ -122,6 +127,7 @@ void Poll() {
 			}
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
+			dpadButtons |= pad.wButtons & DpadMask;
 			if (UpdateEdge(edges.dpadLeftHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0)) {
 				RecordEdge(Horizontal::Left);
 			}
@@ -162,6 +168,12 @@ void Poll() {
 		}
 	}
 
+	g_dpad = {0, 0, dpadButtons != 0 && dpadButtons != g_previousDpad, dpadButtons != 0};
+	if (dpadButtons == XINPUT_GAMEPAD_DPAD_UP) g_dpad.y = -1;
+	else if (dpadButtons == XINPUT_GAMEPAD_DPAD_DOWN) g_dpad.y = 1;
+	else if (dpadButtons == XINPUT_GAMEPAD_DPAD_LEFT) g_dpad.x = -1;
+	else if (dpadButtons == XINPUT_GAMEPAD_DPAD_RIGHT) g_dpad.x = 1;
+	g_previousDpad = dpadButtons;
 	const bool keyLeft  = (GetAsyncKeyState(VK_LEFT) & kKeyDownFlag) != 0;
 	const bool keyRight = (GetAsyncKeyState(VK_RIGHT) & kKeyDownFlag) != 0;
 	const bool keyUp    = (GetAsyncKeyState(VK_UP) & kKeyDownFlag) != 0;
@@ -228,7 +240,11 @@ Vertical LastVertical(unsigned maxAgeMs) {
 	return g_lastVertical != Vertical::None && WithinAge(g_lastVerticalTickMs, maxAgeMs) ? g_lastVertical : Vertical::None;
 }
 
+DpadInput Dpad() { return g_dpad; }
+
 void Shutdown() {
+	g_dpad = {};
+	g_previousDpad = 0;
 	if (g_library != nullptr) {
 		FreeLibrary(g_library);
 		g_library = nullptr;

@@ -211,6 +211,10 @@ int main() {
 	Check(UiText::Describe(NativeUi::Snapshot(actionButton.Address(), actionButton.Address())).option == caption + ". no disponible", "native action help retains unavailable state");
 	Widget toggle("ToggleButtonWidget", "AnyToggle"); Metadata buttonBase{0, "ButtonWidget", &focusBase}; toggle.metadata.base = &buttonBase;
 	Check(NativeUi::Classify(toggle.Address()).kind == UiText::Kind::Toggle, "toggle archetype is preserved before walking its ButtonWidget base");
+	Widget dropdown("DropdownListWidget", "WindowMode"); dropdown.metadata.base = &buttonBase;
+	Check(NativeUi::Classify(dropdown.Address()).kind == UiText::Kind::ValueControl, "dropdown buttons stay with the value reader");
+	Widget carousel("CarouselWidget", "ItemNameDisplayMode"); carousel.metadata.base = &focusBase;
+	Check(NativeUi::Classify(carousel.Address()).kind == UiText::Kind::ValueControl, "carousels retain value semantics");
 	Widget statButton("CharacterStatLevelUpButtonWidget", "StrengthPointButton", "Gastar punto"); statButton.metadata.base = &buttonBase;
 	Check(NativeUi::Classify(statButton.Address()).kind == UiText::Kind::StatButton, "stat action keeps its role ahead of the button base");
 	Widget skillTab("TabWidget", "Tab0", "Gritos de guerra"); skillTab.metadata.base = &focusBase;

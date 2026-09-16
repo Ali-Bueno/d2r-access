@@ -52,6 +52,10 @@ add_library(d2r-access SHARED
 	src/radar_ui.cpp
 	src/radar_config.cpp
 	src/native_ui.cpp
+	src/native_focus.cpp
+	src/native_skill_navigation.cpp
+	src/skill_grid.cpp
+	src/skill_navigation.cpp
 	src/native_progression.cpp
 	src/progression_text.cpp
 	src/native_tooltips.cpp
@@ -82,6 +86,16 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(skill-navigation-tests tests/skill_navigation_tests.cpp src/skill_grid.cpp src/skill_navigation.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
+	target_link_libraries(skill-navigation-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(skill-navigation-tests PRIVATE src)
+	target_compile_features(skill-navigation-tests PRIVATE cxx_std_20)
+	add_test(NAME skill-navigation COMMAND skill-navigation-tests)
+	add_executable(native-focus-tests tests/native_focus_tests.cpp src/native_focus.cpp)
+	target_link_libraries(native-focus-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(native-focus-tests PRIVATE src)
+	target_compile_features(native-focus-tests PRIVATE cxx_std_20)
+	add_test(NAME native-focus COMMAND native-focus-tests)
 	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(progression-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(progression-tests PRIVATE src)
@@ -161,6 +175,8 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(skill-navigation-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-focus-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(progression-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(footstep-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-timing-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -73,6 +73,8 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
 	else if (name == "ChatListWidget") result.kind = Kind::NotificationList;
 	else if (name == "ToggleButtonWidget") result.kind = Kind::Toggle; // existing value reader retains toggles
+	else if (name == "DropdownListWidget" || name == "CarouselWidget" || name == "SliderWidget"
+		|| name == "SettingsSliderWidget") result.kind = Kind::ValueControl;
 	else if (name == "CharacterStatLevelUpButtonWidget") result.kind = Kind::StatButton;
 	else if (name == "TabWidget") result.kind = Kind::TabButton;
 	else if (name == "ButtonWidget") result.kind = Kind::Button;

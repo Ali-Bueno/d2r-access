@@ -10,6 +10,8 @@ blind players using a controller; keyboard and mouse are planned.
   main menu, character select/create, options tabs, cinematics, calibration, modals).
 - **Controller focus is read on every menu**: the focused button, checkbox, dropdown, carousel,
   slider or text field is spoken with its label, its role and the game's own tooltip text.
+  Catalog controls now resolve from native focus identity first, fixing silent main-menu
+  actions after returning from gameplay when cached rectangles no longer match.
 - Slider values are spoken as a percentage, on focus and while changing them.
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
@@ -54,13 +56,21 @@ see [latency and tab evidence](docs/navigation-latency.md).
 
 Character point-allocation buttons now announce **Strength, Dexterity, Vitality
 or Energy**, their current value, remaining points and help in the game's language.
-Allocating a point reads the changed value and remaining count. Skill trees follow
-the game's **D-pad grid navigation**: branch tabs are named, and each highlighted
+Allocating a point reads the changed value and remaining count. Skill trees now add
+**D-pad grid navigation**: each press selects one visible skill, skips gaps and stops
+at the boundary. Holding a direction does not drag the cursor or repeat selection;
+release restores free stick movement. Branch tabs are named, and each highlighted
 skill reads its name first, followed by its displayed description, requirements,
 level, row/column and remaining points. General/item-granted skills use the same
 description reader. No points are spent by the mod. These additions passed
 automated checks; corrected controller speech awaits live confirmation.
-See [progression evidence](docs/progression.md).
+See [progression evidence](docs/progression.md) and the
+[controller navigation follow-up](docs/controller-navigation.md).
+Use `access-skill-grid off` to restore stock skill navigation.
+
+With a controller, Options has **Video, Audio and Gameplay**. The game only adds
+the fourth **Controls** tab in keyboard mode. Controller cursor speed and
+thumbstick/weapon-swap settings are further down in **Gameplay** (**Juego**).
 
 Inventory icon buttons now use their native label/help or controller legend,
 including **Soltar oro**, and equipment slots announce their body location
