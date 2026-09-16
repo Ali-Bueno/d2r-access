@@ -13,6 +13,8 @@ namespace {
 // FocusableWidget selection contract are derived in docs/controller-navigation.md.
 constexpr uintptr_t CursorUpdateRva = 0x234820, CursorResetRva = 0x2347B0;
 constexpr uintptr_t CursorPositionRva = 0x14F690, SelectRva = 0x876CA0;
+constexpr uintptr_t RefreshHoverRva = 0x8676E0; // stock cursor commit 0x2346C0 calls this after positioning
+constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusRectSlot = 0x80, SelectSlot = 0xA0, OwnerPanelOffset = 0x550;
 constexpr uint8_t UpdatePrefix[] = {0x40, 0x53, 0x57, 0x48, 0x83, 0xEC, 0x48, 0x48, 0x8B, 0xDA, 0x48, 0x8B, 0xF9};
 struct Rect { int x, y, width, height; };
@@ -45,9 +47,15 @@ bool ReadRect(uintptr_t widget, Rect& rect) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 bool SelectNative(uintptr_t widget, const Rect& rect, uint64_t selection) noexcept {
+	uintptr_t manager = 0;
+	const auto panels = NativeWidgets::PanelManager();
+	if (!panels || !NativeMemory::Peek(panels + FocusManagerOffset, manager) || !manager) return false;
 	__try {
 		const Point center{rect.x + rect.width / 2, rect.y + rect.height / 2};
 		reinterpret_cast<void(*)(Point)>(g_base + CursorPositionRva)(center);
+		// Match the stock cursor commit: recompute hover and its notifications,
+		// so tooltips/actions follow this target even while cursor travel is held.
+		reinterpret_cast<void(*)(uintptr_t, bool)>(g_base + RefreshHoverRva)(manager, false);
 		return reinterpret_cast<bool(*)(uintptr_t, uint64_t)>(g_base + SelectRva)(widget, selection);
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
@@ -61,6 +69,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!Verify(base, CursorUpdateRva, 758, 0x86934E582330B085ULL)
 		|| !Verify(base, CursorResetRva, 110, 0xC61EB6D7B85C9703ULL)
 		|| !Verify(base, CursorPositionRva, 142, 0x516E55B8938F9F06ULL)
+		|| !Verify(base, RefreshHoverRva, 2050, 0x3933341E0BAB49A8ULL)
 		|| !Verify(base, SelectRva, 209, 0xDBCE05A4C6AE6ED0ULL)) {
 		AsyncLog::Warn(context, "[skill-grid] Native code mismatch; cursor navigation retained.");
 		return false;

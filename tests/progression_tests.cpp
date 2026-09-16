@@ -1,4 +1,5 @@
 #include "native_progression.h"
+#include "native_controller_help.h"
 #include "native_widgets.h"
 #include "progression_text.h"
 #include "speech_strings.h"
@@ -28,7 +29,13 @@ bool Visible(uintptr_t widget) {
 }
 uintptr_t Parent(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).parent : 0; }
 Type Classify(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).type : Type{}; }
+std::vector<uintptr_t> FindControls(uintptr_t parent, UiText::Kind kind) {
+	std::vector<uintptr_t> result;
+	for (const auto& [id, widget] : widgets) if (widget.parent == parent && widget.type.kind == kind) result.push_back(id);
+	return result;
 }
+}
+namespace D2RAccess::NativeControllerHelp { std::string ForFocus(NativeUi::Focus) { return "X: Asignar habilidad"; } }
 namespace D2RAccess::NativeWidgets {
 std::string ReadName(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).name : ""; }
 std::string ReadText(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).text : ""; }
@@ -86,7 +93,14 @@ int main() {
 	};
 	const auto skill = NativeProgression::Read({10, 13}, button);
 	Check(skill.skill && skill.readout.body == "Habilidades de combate", "plain buttons acquire skill role from their native tab container");
-	Check(skill.readout.option == "Fila 3, columna 2" && skill.points == "1 elección de habilidad restante", "actual generated cell and live skill points are available");
+	Check(skill.readout.option == "Fila 3, columna 2. Habilidad 1 de 1" && skill.points == "1 elección de habilidad restante", "actual generated cell, branch count and live skill points are available");
+	widgets[15] = {13, "HotkeyText", "\xEE\x80\x8F", {}};
+	Check(NativeProgression::Read({10, 13}, button).help == "Asignada a A. X: Asignar habilidad", "current binding and actual actions are both spoken");
+	widgets[15].visible = false;
+	Check(NativeProgression::Read({10, 13}, button).help == "X: Asignar habilidad", "hidden former binding is omitted");
+	widgets[16] = {12, "SkillButton1 0,0", "", button};
+	widgets[17] = {12, "SkillButton1 2,5", "", button, false};
+	Check(NativeProgression::Read({10, 13}, button).readout.option.ends_with("Habilidad 2 de 2"), "position is screen ordered and hidden skills are excluded from count");
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill && NativeProgression::Read({10, 13}, button).readout.option.empty(), "common skills remain readable without invented coordinates");
 	widgets[12].name = "ItemSkillsContainer";
@@ -106,5 +120,6 @@ int main() {
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
 	Check(ProgressionText::SkillDescription("Coste: 2 p.\nNivel actual: 1\n" + font + "2Aullido").starts_with("Aullido. Nivel actual: 1"), "learned skill levels are preserved");
+	Check(ProgressionText::SkillReadout("Porrazo. Descripción larga", "Habilidad 1 de 10", "0 puntos", "Asignada a A. X: Asignar habilidad") == "Porrazo. Habilidad 1 de 10. 0 puntos. Asignada a A. X: Asignar habilidad. Descripción larga", "name and actionable state precede the detailed skill explanation");
 	Passed();
 }

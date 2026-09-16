@@ -61,11 +61,15 @@ Allocating a point reads the changed value and remaining count. Skill trees now 
 at the boundary. Holding or changing direction without fully releasing the D-pad
 does not repeat selection. Releasing cancels any pending native cursor snap and
 restores free stick movement. Branch tabs are named, and each highlighted
-skill reads its name first, followed by its displayed description, requirements,
-level, row/column and remaining points. General/item-granted skills use the same
+skill reads its name first, followed by its row/column, position within the branch,
+remaining points, current controller binding and available action buttons. Hold-to-use
+instructions come from the game's own footer. The full description, requirements
+and levels follow. Cursor selection now also refreshes native hover to prevent
+stale descriptions. General/item-granted skills use the same
 description reader. No points are spent by the mod. These additions passed
-automated checks. The user reported working navigation with apparent double
-movement; the release-snap correction still awaits live controller confirmation.
+automated checks. The user confirmed the description/action-help correction with
+the controller. All thirty skills in the inspected Barbarian
+tree are reachable in the navigation tests. See [skill actions and coverage](docs/skill-actions.md).
 See [progression evidence](docs/progression.md) and the
 [controller navigation follow-up](docs/controller-navigation.md).
 Use `access-skill-grid off` to restore stock skill navigation.

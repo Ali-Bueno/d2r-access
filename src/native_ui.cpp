@@ -76,6 +76,7 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "DropdownListWidget" || name == "CarouselWidget" || name == "SliderWidget"
 		|| name == "SettingsSliderWidget") result.kind = Kind::ValueControl;
 	else if (name == "CharacterStatLevelUpButtonWidget") result.kind = Kind::StatButton;
+	else if (name == "ButtonLegendWidget") result.kind = Kind::Legend;
 	else if (name == "TabWidget") result.kind = Kind::TabButton;
 	else if (name == "ButtonWidget") result.kind = Kind::Button;
 	else if (name == "ListItemWidget" || name == "HoverListItemWidget") result.kind = Kind::ListItem;

@@ -60,6 +60,8 @@ add_library(d2r-access SHARED
 	src/skill_grid.cpp
 	src/skill_navigation.cpp
 	src/native_progression.cpp
+	src/native_controller_help.cpp
+	src/controller_text.cpp
 	src/progression_text.cpp
 	src/native_tooltips.cpp
 	src/panel_state.cpp
@@ -89,6 +91,12 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(controller-help-tests tests/controller_help_tests.cpp src/native_controller_help.cpp src/controller_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(controller-help-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(controller-help-tests PRIVATE src)
+	target_compile_features(controller-help-tests PRIVATE cxx_std_20)
+	target_compile_definitions(controller-help-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME controller-help COMMAND controller-help-tests)
 	add_executable(radar-geometry-tests src/radar_readout.cpp tests/radar_geometry_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-geometry-tests PRIVATE src)
 	target_compile_features(radar-geometry-tests PRIVATE cxx_std_20)
@@ -107,7 +115,7 @@ if(BUILD_TESTING)
 	target_include_directories(native-focus-tests PRIVATE src)
 	target_compile_features(native-focus-tests PRIVATE cxx_std_20)
 	add_test(NAME native-focus COMMAND native-focus-tests)
-	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/controller_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(progression-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(progression-tests PRIVATE src)
 	target_compile_features(progression-tests PRIVATE cxx_std_20)
@@ -191,6 +199,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(controller-help-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-geometry-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-cursor-gesture-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-navigation-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

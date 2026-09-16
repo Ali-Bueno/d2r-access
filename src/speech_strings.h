@@ -43,6 +43,9 @@ struct Table {
 	const char* equipment;
 	const char* belt;
 	const char* gridCell; // one-based row, column
+	const char* skillOfCount; // one-based skill position within the visible branch
+	const char* assignedTo; // %s = native controller binding
+	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
 	// InventorySlotWidget location values, verified against live slots and the stock layout.
 	std::array<const char*, 11> equipmentSlots;
 	const char* radarEnabled;
@@ -101,6 +104,9 @@ inline constexpr Table English {
 	.equipment           = "Equipment",
 	.belt                = "Belt",
 	.gridCell            = "Row %d, column %d",
+	.skillOfCount        = "Skill %d of %d",
+	.assignedTo          = "Assigned to %s",
+	.controllerButtons   = {"D-pad", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "Menu", "View", "Left stick", "Press left stick", "Right stick", "Press right stick", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
 		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },
 	.radarEnabled = "Radar enabled",
@@ -160,6 +166,9 @@ inline constexpr Table Spanish {
 	.equipment           = "Equipo",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
+	.skillOfCount        = "Habilidad %d de %d",
+	.assignedTo          = "Asignada a %s",
+	.controllerButtons   = {"Cruceta", "Cruceta arriba", "Cruceta abajo", "Cruceta izquierda", "Cruceta derecha", "Menú", "Vista", "Stick izquierdo", "Pulsar stick izquierdo", "Stick derecho", "Pulsar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
 		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },
 	.radarEnabled = "Radar activado",

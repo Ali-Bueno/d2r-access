@@ -1,6 +1,7 @@
 # Controller menu and skill navigation follow-up
 
 Target: D2R 3.3.93787, updated 2026-09-16. Native C++ / D2RLoader, existing PRISM sink.
+Latest follow-up: [skill descriptions, controller actions and coverage](skill-actions.md).
 The user reported silent main-menu actions after leaving a game, free cursor
 movement with both the D-pad and left stick in skills, and only three Options tabs.
 

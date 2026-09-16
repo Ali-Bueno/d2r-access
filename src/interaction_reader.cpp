@@ -103,10 +103,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		renderedDescription = !description.empty();
 		if (type.kind == UiText::Kind::InventoryGrid && renderedDescription) readout.option = description;
 		else if (progression.skill) {
-			// Identify the skill before its position and available points.
-			Append(description, readout.option);
-			Append(description, progression.points);
-			readout.option = std::move(description);
+			readout.option = ProgressionText::SkillReadout(description,
+				readout.option, progression.points, progression.help);
 		}
 		else if ((inventory || button) && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }

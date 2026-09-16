@@ -5,6 +5,22 @@
 #include <vector>
 
 namespace D2RAccess::ProgressionText {
+std::string SkillReadout(std::string_view description, std::string_view position,
+	std::string_view points, std::string_view help) {
+	const auto split = description.find(". ");
+	std::string result(description.substr(0, split));
+	const auto append = [&result](std::string_view part) {
+		if (part.empty()) return;
+		if (!result.empty()) result += result.ends_with('.') ? " " : ". ";
+		result += part;
+	};
+	append(position);
+	append(points);
+	append(help);
+	if (split != std::string_view::npos) append(description.substr(split + 2));
+	return result;
+}
+
 NativeUi::Cell SkillCell(std::string_view name) {
 	constexpr std::string_view prefix = "SkillButton"; // live generated names, docs/progression.md
 	if (!name.starts_with(prefix)) return {};

@@ -1,4 +1,5 @@
 #include "skill_grid.h"
+#include <set>
 #include "skill_navigation.h"
 #include "native_skill_navigation.h"
 #include "native_widgets.h"
@@ -48,6 +49,30 @@ std::vector<uintptr_t> FindControls(uintptr_t, UiText::Kind) { return {10, 11, 1
 
 int main() {
 	using namespace D2RAccess;
+	// All three Barbarian branches read from the user's live tree, 2026-09-16.
+	// Learned state must not remove the lower-level-locked skills from navigation.
+	const std::vector<std::vector<std::pair<int, int>>> branches{
+		{{0,0},{2,0},{0,1},{1,1},{2,2},{0,3},{1,4},{2,4},{0,5},{1,5}},
+		{{0,0},{1,0},{2,0},{0,1},{1,1},{2,1},{0,2},{2,3},{0,4},{2,5}},
+		{{1,0},{0,1},{2,1},{1,2},{2,2},{0,3},{1,3},{2,4},{0,5},{1,5}}
+	};
+	constexpr std::pair<int, int> cardinal[]{{1,0},{-1,0},{0,1},{0,-1}};
+	for (const auto& branch : branches) {
+		std::vector<SkillGrid::Node> cells;
+		for (const auto& [x,y] : branch) cells.push_back({cells.size() + 1, x, y});
+		for (const auto& start : cells) {
+			std::set<uintptr_t> visited{start.widget};
+			std::vector<uintptr_t> pending{start.widget};
+			while (!pending.empty()) {
+				const auto from = pending.back(); pending.pop_back();
+				for (const auto& [x,y] : cardinal) {
+					const auto next = SkillGrid::Move(cells, from, x, y);
+					if (visited.insert(next).second) pending.push_back(next);
+				}
+			}
+			Check(visited.size() == cells.size(), "every skill in the recorded branch is reachable from every starting skill");
+		}
+	}
 	const std::vector<SkillGrid::Node> nodes{{4, 2, 5}, {2, 2, 0}, {3, 0, 2}, {1, 0, 0}, {5, 1, 2}};
 	Check(SkillGrid::Move(nodes, 0, 0, 1) == 1, "entry uses on-screen order, not discovery order");
 	Check(SkillGrid::Move(nodes, 1, 1, 0) == 2, "horizontal navigation skips an empty cell");

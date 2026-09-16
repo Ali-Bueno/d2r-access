@@ -229,6 +229,9 @@ int main() {
 	Check(NativeUi::EquipmentLocation(goldButton.Address()) == 0, "button memory is never interpreted as an equipment location");
 	slot.Put<uint8_t>(0x51, 0);
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
+	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
+	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
+	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

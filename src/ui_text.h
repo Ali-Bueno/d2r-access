@@ -8,7 +8,7 @@
 namespace D2RAccess::UiText {
 
 enum class Kind { Other, Text, LinkedText, NotificationList, Button, Toggle, ListItem, List, Focusable, ScrollingText,
-	InventoryGrid, InventorySlot, InventoryItem, Tabs, StatButton, TabButton, ValueControl };
+	InventoryGrid, InventorySlot, InventoryItem, Tabs, StatButton, TabButton, ValueControl, Legend };
 enum class Surface { Other, Menu, Narrative, Tip, Area, Notice, NotificationFeed, Target };
 
 // A value-only snapshot. Native pointers are identities, never dereferenced here.

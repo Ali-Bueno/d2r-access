@@ -6,10 +6,10 @@
 
 ## Identity
 
-**UI update (2026-09-16):** user reports working skill navigation with apparent
-double movement. Corrected pending native cursor snap on release and held
-direction changes; installed, live recheck pending. Thirteen UI suites / 383
-checks pass. Main-menu native identity/value-reader fixes remain in place.
+**UI update (2026-09-16):** user confirmed corrected skill descriptions and
+controller action/binding readout after installation. Stock hover refresh keeps
+descriptions synchronized; skill position/count is spoken. Fourteen UI suites /
+435 checks pass. Main-menu native identity/value-reader fixes remain in place.
 Controller Options intentionally has three tabs; keyboard bindings are the fourth.
 `docs/controller-navigation.md`.
 
@@ -47,7 +47,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
-| Attribute allocation / skill-tree reading | wip — double-movement correction installed | User reports navigation works but D-pad appears to count twice. Clear native held-direction snap plus interpolation, consume release cleanup per cursor, and rearm only after full D-pad release. 39 native gesture + 35 navigation checks pass; live correction pending. Attributes/skill descriptions unchanged. `docs/controller-navigation.md` |
+| Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -151,10 +151,10 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-UI: verify one skill selection/readout per D-pad press with no extra movement on
-release or direction changes while held; confirm the stick resumes after release.
-Main-menu Options/Videos/Exit still need an explicit check. No point spending is
-needed. Independent radar work continues below.
+UI: skill descriptions and binding/action hints confirmed by user. On a future
+level-up, verify the native spend-point hint appears; no point spending is needed.
+Main-menu Options/Videos/Exit still need an explicit check. Independent radar
+work continues below.
 
 Validate the installed geometry revision by passing a recessed wall and returning; both sides must announce widening and the returned boundary. Ctrl+T now describes actual recent movement before straight passages. Compare `trigger=boundary|clearance`, world hit points and audio event IDs if a cue is missed. Build/install SHA-256 `76F4FDA5A4D11BE0067558932032B3DE13B5E4C58FE6BDD74CD5C0CE4E7E077A`; `docs/radar-map-fidelity.md`. User runs controller tests; do not mix desktop input. Both reported footstep cases show real sliding; repeated stationary suppression remains unverified. Another agent handles menus; keep commits scoped.
 

@@ -217,10 +217,11 @@ int main() {
 	InteractionReader::Reset(); ClearSpeech(); progression = {}; tooltip = {};
 	focus = {70, 71}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
 	progression.skill = true; progression.points = "1 punto";
+	progression.help = "X: Asignar habilidad";
 	progression.readout = {"Skills", "Gritos de guerra", "Fila 1, columna 1", "71"};
 	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
 	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
-	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. Sin aprender Huyen aterrorizados. Fila 1, columna 1. 1 punto"}, "skill description is reordered and includes the actual grid cell");
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. Fila 1, columna 1. 1 punto. X: Asignar habilidad. Sin aprender Huyen aterrorizados."}, "skill name, state and controller help precede the full description");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
 	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.option = "Fila 2, columna 1";
 	Check(Tick() && speech.empty(), "moving to another skill rejects the previous tooltip");
