@@ -57,13 +57,15 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	UpdateMotion(motion, now);
 	if (rebase) audio = {}; // the service cancels old-world audio after this tick
 	Events candidates{};
+	const auto structure = StructuralWorld(world, settings_);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);
 		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
+		sensor.structure = Scan(structure, Axes[i], settings_, Layer::Terrain);
 		// Only real player observations advance confirmation. Collision
 		// sliding makes an interpolated path between polls unknowable.
-		const auto change = sensor.boundary.Observe(sensor.terrain, Axes[i], now, settings_.stableMs, settings_.boundaryRange);
+		const auto change = sensor.boundary.Observe(sensor.structure, Axes[i], now, settings_.stableMs, settings_.boundaryRange);
 		if (change != State::Unknown) {
 			// A niche/occupied recess that never qualified as an opening must
 			// not announce an orphan closing when its original wall returns.
@@ -80,8 +82,8 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		auto& sensor = sensors_[i];
 		sensor.guidance = EvaluateGuidance(world, Axes[i], sensor.terrain, sensor.probe, velocity_, settings_, PlaybackBudget(audio, candidates, i));
-		if (!sensor.terrain.available || sensor.boundary.Current().end == State::Unknown) {
-			sensor = Sensor{.probe = sensor.probe, .terrain = sensor.terrain, .guidance = sensor.guidance};
+		if (!sensor.structure.available || sensor.boundary.Current().end == State::Unknown) {
+			sensor = Sensor{.probe = sensor.probe, .terrain = sensor.terrain, .structure = sensor.structure, .guidance = sensor.guidance};
 			continue;
 		}
 		if (sensor.guidance.observed != State::Unknown) sensor.stable = sensor.guidance.observed;

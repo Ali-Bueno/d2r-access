@@ -55,6 +55,9 @@ struct World {
 	State Cell(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 };
+uint16_t TerrainCollisionFlags(uint16_t flags);
+// A local geometry-only view. Never use it to decide physical passage clearance.
+World StructuralWorld(const World& world, const Settings& settings);
 struct Probe {
 	std::array<double, 3> depths{};
 	double bodyDepth = 0, medianDepth = 0;
@@ -98,6 +101,7 @@ struct Sensor {
 	uint64_t lastEmit = 0;
 	Probe probe;
 	Probe terrain;
+	Probe structure;
 	Guidance guidance;
 	State cueState = State::Unknown; // currently valid sound, separate from manual physical clearance
 	bool retry = false, retrying = false;

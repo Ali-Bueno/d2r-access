@@ -86,7 +86,7 @@ scroll-related control reported by the user has not yet been identified live.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes directional `tin` (opening/widening) / `tock`
-(space narrowing or an approaching obstacle) cues,
+(space narrowing or an approaching structural barrier) cues,
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using
@@ -94,7 +94,12 @@ the player's native movement mask. It also recognizes a complete, uniquely
 identifiable player footprint displaced from the reported cell, preventing that
 footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
 markers. It separates creature occupancy from terrain and keeps the original
-movement mask as the final opening check. The radar now follows changes in the
+movement mask as the final opening check. Isolated furniture and small clutter
+are excluded from automatic space changes when a full-body check proves a route
+around them. Walls, doors, enclosed spaces and objects cutting off a corridor
+remain structural barriers. Uncertain cases retain their collision.
+
+The radar follows changes in the
 world hit position: a side wall receding or returning can sound even when both
 old and new clearances count as open. It describes a currently usable opening
 without requiring the player to continue straight past it first. Speed and sound
@@ -113,11 +118,12 @@ recognizable actor obstruction is an occupied passage. It starts enabled,
 baselines silently and pauses during dialogue/offline pause. Existing settings
 are preserved; no external map or sound installation is required.
 
-Live map reads work in the camp and Blood Moor. The latest geometry behavior
-still needs controller/listening validation after the user reported running spam.
-See the [surface-tracking investigation](docs/radar-surface-tracking.md) for the
-captured camp obstruction, A Hero's Call comparison, deliberate adaptations and
-tests; [sonar controls](docs/sonar-radar.md) and
+Live map reads work in the camp and Blood Moor. The object filter still needs
+controller/listening validation after the user rejected the previous running
+behavior. See [object filtering](docs/radar-object-filtering.md) for the captured
+camp obstruction, classification limits and controlled before/after regression;
+[surface tracking](docs/radar-surface-tracking.md) records the A Hero's Call study.
+[Sonar controls](docs/sonar-radar.md) and
 [cue delivery](docs/radar-state-delivery.md) document the rest.
 
 An experimental **stalled-footstep filter** suppresses repeated local HD

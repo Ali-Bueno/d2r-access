@@ -80,10 +80,11 @@ void LogSensors(uint64_t now) {
 			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.boundary.Candidate()),
 			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.boundary.Candidate() == Radar::State::Unknown ? 0 : now - s.boundary.CandidateSince()));
 		const auto velocity = g_engine.Velocity();
-		AsyncLog::InfoF(g_context, "[radar-guidance] direction=%zu terrain=%.1f flags=%04X velocity=%.1f,%.1f openDepth=%.1f warnDepth=%.1f usable=%u cue=%u playback_ms=%llu retry=%u hit=%.0f,%.0f boundary_pending=%u",
+		AsyncLog::InfoF(g_context, "[radar-guidance] direction=%zu terrain=%.1f flags=%04X velocity=%.1f,%.1f openDepth=%.1f warnDepth=%.1f usable=%u cue=%u playback_ms=%llu retry=%u hit=%.0f,%.0f boundary_pending=%u structure=%.1f structure_flags=%04X",
 			i, s.terrain.clearDepth, s.probe.endFlags, velocity.x, velocity.y, s.guidance.openDepth, s.guidance.warningDepth,
 			s.guidance.openingSafe ? 1u : 0u, static_cast<unsigned>(s.cueState), static_cast<unsigned long long>(s.guidance.playbackMs),
-			s.retrying ? 1u : 0u, s.terrain.hit.x, s.terrain.hit.y, static_cast<unsigned>(s.boundaryPending));
+			s.retrying ? 1u : 0u, s.structure.hit.x, s.structure.hit.y, static_cast<unsigned>(s.boundaryPending),
+			s.structure.clearDepth, s.structure.endFlags);
 	}
 }
 void Dump(const Radar::World& world) {
@@ -217,13 +218,13 @@ void Tick(const D2RL::PluginContext* context) {
 			if (events[i] != Radar::State::Unknown) {
 				const auto& sensor = g_engine.Sensors()[i];
 				const auto velocity = g_engine.Velocity();
-				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu trigger=boundary retry=%u hit=%.0f,%.0f",
+				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu trigger=boundary retry=%u hit=%.0f,%.0f structure=%.1f structure_flags=%04X",
 					i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.probe.clearDepth,
 					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth,
 					static_cast<unsigned long long>(now), RadarTrace::DirectionName(i), RadarTrace::StateName(events[i]),
 					static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y, sensor.guidance.openDepth,
 					static_cast<unsigned long long>(sensor.guidance.playbackMs), sensor.retrying ? 1u : 0u,
-					sensor.terrain.hit.x, sensor.terrain.hit.y);
+					sensor.structure.hit.x, sensor.structure.hit.y, sensor.structure.clearDepth, sensor.structure.endFlags);
 			}
 		}
 		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});

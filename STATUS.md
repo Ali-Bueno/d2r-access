@@ -2,20 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination — 2026-09-16 08:19 BRT
+## Active build coordination � 2026-09-16 object filtering
 
-- **build/deploy idle.** Radar surface tracking is compiled, deployed and checked;
-  game/loader were closed. Read `docs/radar-surface-tracking.md` before changing it.
-- The user rejected the 07:49 radar build's running behavior. The replacement
-  includes the UI/controller work; **24 suites / 1164 checks pass**. New
-  controller/listening validation is pending.
-- Installed/build SHA-256: `5295ECCAFFDB4C964CC6BEEB99BB435B0ED17A5EEEE1DC2554E0A98580B0F40E`.
+- **Radar build/deploy complete; ownership released.** Structural object filtering
+  is installed alongside the existing UI/controller work. Game/loader closed.
+- The user rejected the prior surface-tracking build. The new filter preserves
+  full-body corridor barriers and ignores verified bypassable clutter.
+- **25 suites / 1248 checks pass**; controller/listening validation is pending.
+- Installed/build SHA-256: `DF188862EEAC1511A7D4FBA563A27ED682D8D61725DDD0C8E5F634EC69C18C2C`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (AHC-inspired radar surface tracking installed after failed running test; 24 suites / 1164 checks pass; new listening validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (structural object filtering installed after unchanged radar feedback; 25 suites / 1248 checks pass; listening validation pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -51,11 +51,11 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip — surface tracking installed after failed running test | AHC-style supported wall lines replace interpolated origins; adjacent facets are consumed once. Started chirps never retry. Captured camp post reproduces the latest nine-subtile body hit. Native mask/body checks and four fixed directions retained. `docs/radar-surface-tracking.md`; new listening validation pending. |
+| Sonar radar | wip � object filtering installed | Verified full-body detours remove isolated clutter from automatic geometry. Walls, doors, corridor barriers and enclosed pockets remain. Physical clearance/Ctrl+T preserved. Captured camp post filtered; synthetic clutter route 48 events before / 0 after. `docs/radar-object-filtering.md`; listening validation pending. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 729 checks; shared build: 24 suites / 1164 checks. Includes 23 surface/replay-policy checks, actual camp grid, collision sliding, slopes, finite running recesses/returns, unknown coverage and rear reopening. |
+| Radar / footstep automated tests | done (local) | 813 checks; shared build: 25 suites / 1248 checks. Includes 82 structure checks, 25 surface/camp/replay checks, detours, body gaps, unknown room seams, running returns and rear reopening. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -164,7 +164,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Precision investigation (2026-09-16):** read-only native trace/body/projection checks plus `0x340E70/0x343920` alternate collision-tested directions explain wall sliding. The 07:05–07:18 log has 879 generated cues, including unchanged-cell closed/open pairs 125 ms apart driven by speed. Removed that classifier; geometry now drives all cues. `docs/radar-precision.md`.
 
-- **Running follow-up (2026-09-16):** latest log has 148 cues, 17 interrupted buffers and six retries. The saved 21:06 camp grid reproduces hit (4466,4628), depth 9 at player (4473,4621): an isolated object hits the side of the native body. AHC C# line tracking informed the replacement; only real observations advance confirmation and submitted cues do not retry. `docs/radar-surface-tracking.md`.
+- **Running follow-up (2026-09-16):** the 08:00 log has 148 cues, 17 interrupted buffers and six retries. The saved 21:06 camp grid reproduces hit (4466,4628), depth 9 at player (4473,4621): an isolated object hits the side of the native body. AHC C# line tracking informed the replacement; only real observations advance confirmation and submitted cues do not retry. `docs/radar-surface-tracking.md`.
+
+- **Object filtering (2026-09-16):** the 08:26 load generated 87 geometry cues, zero retries; user heard no improvement. A separate structural map now removes bounded wall/object components only after a full-body connectivity proof. Captured camp post is filtered, neighboring wall preserved. Synthetic regression: old engine 48 cues / new engine 0. `docs/radar-object-filtering.md`.
 
 ## Next step
 
@@ -173,11 +175,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Validate the installed surface-tracking correction during ordinary running, a side opening and the return trip. Ctrl+T reports actual movement and saves the local grid. The 08:01 test of the earlier build failed; its partial-audio retries and 63 ms opening duplicates are documented in `docs/radar-surface-tracking.md`. User leads controller/listening tests; do not mix desktop input. Other UI work remains separate.
+Validate the installed object filter while passing furniture, approaching a wall, crossing a side doorway and returning. Ctrl+T keeps physical clearance and records structural distances in the log. The previous surface build failed the user test; no audible success is claimed for this new build yet. User leads controller/listening tests; do not mix desktop input.
 
 ## Known issues / open questions
 
-- **Radar prototype:** supports the flat geometry cues using AHC-inspired surface tracking and D2 body/occupancy guards. The new running behavior is not yet heard in game. Local query scale, range, facet coalescing and synthesized audio remain adaptations; semantic doors/portals/heights and original HRTF are absent. Only loaded rooms are queried; actor-over-terrain bit ownership remains ambiguous. `docs/radar-surface-tracking.md`.
+- **Radar prototype:** structural object filtering is installed but not yet heard in game. Connected/oversized clutter and unknown detours are retained conservatively; semantic object identities are unavailable. Loaded-room coverage and actor-over-terrain bit ownership remain limitations. Full-body opening checks, fixed directions, surface tracking and original audio timing remain. `docs/radar-object-filtering.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

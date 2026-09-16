@@ -13,6 +13,14 @@ int CellCoordinate(double origin, double displacement) {
 	return static_cast<int>(displacement < 0 ? std::ceil(position - HalfCell) : std::floor(position + HalfCell));
 }
 }
+uint16_t TerrainCollisionFlags(uint16_t flags) {
+	// 0x341D70 restores MONSTER; 0x363CF0 stamps NO_PATH/PET alongside
+	// actors. WATER=0xC0 also contains PLAYER: never erase that as an actor.
+	constexpr uint16_t Player = 0x80, Monster = 0x100, Missile = 0x40, NoPath = 0x1000, Pet = 0x2000;
+	const bool actor = (flags & Monster) || ((flags & Player) && !(flags & Missile));
+	if (actor) flags &= ~(Monster | NoPath | Pet | ((flags & Missile) ? 0 : Player));
+	return flags;
+}
 State World::Cell(int x, int y, Layer layer, uint16_t* rawFlags) const {
 	if (rawFlags) *rawFlags = 0;
 	for (const auto& room : rooms) {
@@ -26,12 +34,7 @@ State World::Cell(int x, int y, Layer layer, uint16_t* rawFlags) const {
 		if (room.cells[index] & Blank) return State::Unknown;
 		uint16_t flags = room.cells[index];
 		if (rawFlags) *rawFlags = flags;
-		// 0x341D70 restores MONSTER=0x100; 0x363CF0 stamps NO_PATH/PET
-		// alongside actor footprints. Player=0x80 is observed live. WATER=0xC0
-		// also contains that bit: never mistake it for an actor. See evidence doc.
-		constexpr uint16_t Player = 0x80, Monster = 0x100, Missile = 0x40, NoPath = 0x1000, Pet = 0x2000;
-		const bool actor = (flags & Monster) || ((flags & Player) && !(flags & Missile));
-		if (layer == Layer::Terrain && actor) flags &= ~(Monster | NoPath | Pet | ((flags & Missile) ? 0 : Player));
+		if (layer == Layer::Terrain) flags = TerrainCollisionFlags(flags);
 		// This estimate is only for stable geometry. A tin always requires the
 		// original Movement layer too; coincident NO_PATH ownership is ambiguous.
 		return flags & walkingMask ? State::Blocked : State::Open;

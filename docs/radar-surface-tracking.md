@@ -4,6 +4,11 @@ Investigated 2026-09-16. The user rejected the 07:49 build after hearing repeate
 openings followed by closing on the same side while running. This supersedes the
 interpolated-path approach in [radar-precision.md](radar-precision.md).
 
+**Follow-up:** the user rejected this build's audible result too. The 08:26
+session had no retries but retained geometry chatter. See
+[structural object filtering](radar-object-filtering.md) for the subsequent fix
+and current validation; the results below describe this historical revision.
+
 ## Evidence from the game
 
 The 08:00:57 load session recorded 148 generated cues, 139 submissions, 122

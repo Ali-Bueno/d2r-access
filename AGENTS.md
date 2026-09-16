@@ -30,8 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 24 suites / 1164 checks, including UI navigation.
-  Radar and footsteps account for 729 checks, including 23 surface regressions.
+  Latest shared-workspace run: 25 suites / 1248 checks, including UI navigation.
+  Radar and footsteps account for 813 checks, including 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
@@ -39,16 +39,15 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Current geometry cues and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar request: match Kirandur and remove spam during almost any movement.
-  The user rejected the 07:49 build after repeated openings while running.
-  `docs/radar-surface-tracking.md`: AHC-style supporting lines now replace
-  interpolated player origins; adjacent same-kind facets are consumed once.
-  Started audio never retries after interruption. The captured camp grid
-  reproduces the latest nine-subtile side-footprint hit on an isolated post.
-  Native body/occupancy checks and actual-motion Ctrl+T remain.
-  Normal build installed; 24 suites pass. New controller/listening validation pending.
-  Query scale, grid guards and synthesized audio are deliberate D2R adaptations.
-  Keep 120 ms cues / 50 ms silence.
+- Latest radar request: ignore furniture as space changes after the user rejected
+  the surface-tracking build. `docs/radar-object-filtering.md`: a separate
+  structural map removes bounded isolated clutter only after a full-body detour
+  proof. Doors, corridor blockers, enclosed pockets and unknown coverage remain.
+  Physical movement clearance and Ctrl+T still detect actual furniture collision.
+  Synthetic route: 48 events with the prior engine, zero with this filter.
+  Captured camp post is now ignored structurally; its neighboring wall remains.
+  Normal build installed; 25 suites pass. Controller/listening validation pending.
+  AHC surface tracking, rear ray and 120 ms cues / 50 ms silence remain.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.

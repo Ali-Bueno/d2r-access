@@ -137,6 +137,11 @@ void RecordedCampPost() {
 		"one native cell bypasses the post, but the uncaptured far map remains unknown");
 	Check(world.Body(4466,4628) == State::Blocked && world.Cell(4466,4628) == State::Open,
 		"the real obstacle strikes the player's side footprint even though the central ray cell is empty");
+	const auto structure = StructuralWorld(world, {});
+	Check(structure.Cell(4466,4629) == State::Open,
+		"the captured post has a verified detour and is no longer a structural wall despite its basic wall collision bit");
+	Check(structure.Cell(4463,4628) == State::Blocked && world.Cell(4466,4629) == State::Blocked,
+		"filtering the captured camp post preserves both the neighboring wall and the original physical obstruction");
 }
 }
 int main(int argc, char** argv) {
