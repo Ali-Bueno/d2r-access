@@ -39,12 +39,15 @@ void OccupancyRegression() {
 void FastNarrowOpening() {
 	auto world = Crossroad(30, 50); Engine engine;
 	(void)engine.Tick(world, 1000);
+	unsigned openings = 0, closures = 0;
 	for (uint64_t tick = 1; tick <= 35; ++tick) {
 		world.player.x += 1; world.player.y -= 1;
 		const auto events = engine.Tick(world, 1000 + tick * 50);
-		Check(events[0] == State::Unknown && events[3] == State::Unknown,
-			"a side gap passed before the reaction window produces neither an opening nor its closing partner");
+		openings += events[0] == State::Open;
+		closures += events[0] == State::Blocked;
+		if (events[0] == State::Open) Check(engine.Sensors()[0].probe.observed == State::Open, "a fast exit cue still requires a currently clear body passage");
 	}
+	Check(openings == 1 && closures == 1, "a finite running opening is described once on entry and once on closure");
 }
 void CollisionLayers() {
 	auto world = Field();
@@ -73,17 +76,19 @@ void ReactionWindow() {
 	auto world = Crossroad(30, 50); world.player = {123, 87};
 	Check(Analyze(world, up, {}).openingSafe, "a body-wide passage is usable when standing in it");
 	Check(Analyze(world, up, {2, -2}).openingSafe, "a slow walk leaves enough reaction time in a modest opening");
-	Check(!Analyze(world, up, {20, -20}).openingSafe, "the same opening is too short at running speed");
+	Check(Analyze(world, up, {20, -20}).openingSafe, "running does not hide a currently usable opening");
 	world.player = {118, 92};
 	Check(!Analyze(world, up, {2, -2}).openingSafe, "an exit ahead cannot sound before turning is physically possible");
 	world = Crossroad(30, 130); world.player = {123, 87};
 	Check(Analyze(world, up, {20, -20}).openingSafe, "a wide intersection permits a reaction at running speed");
-	// A thin post inside the forecast cannot be skipped by checking only its endpoints.
+	// A future obstacle outside the current turn must not erase that turn.
 	Put(world, 130, 80, 1);
-	Check(!Analyze(world, up, {20, -20}).openingSafe, "every intermediate footprint in the forecast is checked");
+	Check(Analyze(world, up, {20, -20}).openingSafe, "continuing straight into a future post is not a reason to hide a clear turn now");
+	Put(world, 122, 86, 1);
+	Check(!Analyze(world, up, {20, -20}).openingSafe, "a post inside the actual turn blocks the opening");
 	world = Field();
 	world.rooms[0].width = 120; world.rooms[0].cells.resize(120 * 400);
-	Check(!Analyze(world, up, {20, -20}).openingSafe, "unknown coverage along continued movement rejects an opening promise");
+	Check(Analyze(world, up, {20, -20}).openingSafe, "unloaded coverage elsewhere does not erase the loaded current turn");
 	world = Field(); Put(world, 109, 99, 0x1100);
 	Check(!Analyze(world, up, {}).openingSafe, "a monster occupying an otherwise clear opening never produces a tin");
 }
@@ -128,13 +133,13 @@ void SpeedAndBoundary() {
 void StopAtOpening() {
 	auto world = Crossroad(30, 50); Engine engine;
 	(void)engine.Tick(world, 1000);
+	unsigned openings = 0;
 	for (uint64_t tick = 1; tick <= 13; ++tick) {
 		world.player.x += 1; world.player.y -= 1;
-		Check(engine.Tick(world, 1000 + tick * 50)[0] != State::Open, "fast entry does not promise a fleeting opening");
+		openings += engine.Tick(world, 1000 + tick * 50)[0] == State::Open;
 	}
-	unsigned openings = 0;
 	for (uint64_t tick = 14; tick <= 35; ++tick) openings += engine.Tick(world, 1000 + tick * 50)[0] == State::Open;
-	Check(openings == 1, "stopping at a small usable passage announces it once");
+	Check(openings == 1, "stopping inside an already announced opening does not repeat it");
 }
 void OccupiedDoor() {
 	auto world = Field(); Engine engine;
@@ -167,10 +172,12 @@ void LimitedCorridorOpening() {
 void AccelerationAndTurns() {
 	auto world = Crossroad(30, 50); world.player = {119, 91}; Engine engine;
 	for (uint64_t tick = 0; tick < 6; ++tick) (void)engine.Tick(world, 1000 + tick * 50);
+	unsigned openings = 0;
 	for (uint64_t tick = 6; tick < 15; ++tick) {
 		world.player.x += 1; world.player.y -= 1;
-		Check(engine.Tick(world, 1000 + tick * 50)[0] != State::Open, "accelerating from rest at a narrow doorway cannot promise a fleeting exit");
+		openings += engine.Tick(world, 1000 + tick * 50)[0] == State::Open;
 	}
+	Check(openings == 1, "acceleration does not silently remove an existing doorway");
 	world = Field(); engine.Reset(); (void)engine.Tick(world, 1000);
 	for (uint64_t tick = 1; tick <= 6; ++tick) {
 		world.player.x += 1; world.player.y -= 1;

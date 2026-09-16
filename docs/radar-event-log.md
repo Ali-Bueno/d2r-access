@@ -87,3 +87,13 @@ The existing logger may discard old pending messages if its bounded queue fills,
 or at shutdown. A missing line alone is not proof of missing audio. Software
 submission/completion also cannot establish speaker volume, output routing or
 perceptual clarity; those remain separate checks if needed.
+
+
+## Geometry revision (2026-09-16)
+
+Generated events now include `trigger=boundary|clearance` and `hit=X,Y`. Boundary
+cues can describe a finite wall receding/returning even while both distances are
+physically open; clearance cues include speed-based approach warnings. Ctrl+T's
+`[radar-guidance]` lines add `geometry` and `boundary_pending`. Current passage
+checks replace the former future-motion opening veto. See
+[map fidelity](radar-map-fidelity.md) for the distinction and live limits.

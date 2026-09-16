@@ -72,7 +72,7 @@ Probe SweepBody(const World& world, Position origin, Position axis, double range
 		if (x == CellCoordinate(origin.x, 0) && y == CellCoordinate(origin.y, 0)) continue;
 		probe.end = world.Body(x, y, layer, &probe.endFlags);
 		if (depth <= nearRange) probe.body = probe.end;
-		if (probe.end != State::Open) break;
+		if (probe.end != State::Open) { probe.hit = {static_cast<double>(x), static_cast<double>(y)}; break; }
 		probe.clearDepth = depth;
 		probe.bodyDepth = std::min(depth, nearRange);
 	}

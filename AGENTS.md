@@ -30,26 +30,28 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: nineteen suites / 996 checks, including UI navigation.
-  Radar and footsteps account for 655 checks, including 34 engine/queue delivery regressions.
+  Latest shared-workspace run: 21 suites / 1038 checks, including UI navigation.
+  Radar and footsteps account for 655 checks, including 46 geometry/readout and 40 delivery checks.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
   `docs/sonar-radar.md`. User reports improved fixed-axis radar but excessive cues.
-  Speed/reaction forecasts and actor/terrain separation need live validation;
+  Current geometry cues and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest request: both changed sides must sound, state changes must update promptly, and
-  returning to the same wall must announce blocked again. `docs/radar-state-delivery.md`:
-  two-poll confirmation (50 ms), no boundary/opposite-state suppression, scheduled cues use
-  remaining queue time, and failed event IDs rearm safe retries. Installed/tests pass;
-  controller listening validation pending. Keep 120 ms cues and 50 ms silence between them.
+- Latest request: improve missed exits toward Kirandur behavior and investigate diagonal
+  movement with up/right blocked. `docs/radar-map-fidelity.md`: native map/body/projection
+  rechecked; finite world-hit recession/return now sounds, future-motion opening veto removed.
+  Running still advances wall warnings. Ctrl+T reports actual recent movement in eight screen
+  sectors before the four straight rays. 21 suites pass; installed; listening validation pending.
+  Query scale, body/open-depth guards and synthesized audio are deliberate D2R differences,
+  not a claim of complete one-to-one Kirandur equivalence. Keep 120 ms cues / 50 ms silence.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.
   `docs/computer-use-radar-check.md` records the failing reproduction and installed live checks.
   Ctrl+T includes `presenceOffset`: infer displacement only from a complete unique native shape;
   never clear arbitrary adjacent NO_PATH markers or use Path+0x10/+0x12 (targets) as its anchor.
-  Short spaces, edge sliding and the moving forecast still need controller validation.
+  Short spaces, geometry cues and edge sliding still need controller validation.
 - Running cues now budget actual pending and simultaneous sounds instead of always reserving
   four cues. `playback_ms` is logged with guidance/events; `docs/radar-running-timing.md`.
 - HD local footsteps: Ctrl+F / `access-footsteps on|off|status`. Repeated stationary walking
@@ -58,7 +60,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   The 23:19–23:22 reproduction confirms up-left wall sliding while held-up clearance stays
   blocked: 328 allowed footfalls, no stalled/read-failure/unresolved-foreign events. Footfalls
   stopped being recorded once the final position became fixed. Keep sliding audible; a blocked
-  straight ray does not prove total immobility. Ctrl+T currently omits actual movement feedback.
+  straight ray does not prove total immobility. The later 23:52 case likewise shows real world-X
+  travel with up/right blocked; Ctrl+T now includes actual recent movement feedback.
   Five-second active-event summaries expose mode, movement and reset reasons for any different
   failure. Actual repeated-stall suppression remains unverified. User chose to test while
   playing; do not take control or mix desktop inputs with their movements.

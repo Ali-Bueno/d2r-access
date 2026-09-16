@@ -81,33 +81,35 @@ The user confirmed these additions. The specific
 scroll-related control reported by the user has not yet been identified live.
 
 An experimental **navigation radar** now reads the collision grids of loaded
-game rooms. It synthesizes directional `tin` (opening) / `tock` (blocked) cues,
+game rooms. It synthesizes directional `tin` (opening/widening) / `tock`
+(space narrowing or an approaching obstacle) cues,
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using
 the player's native movement mask. It also recognizes a complete, uniquely
 identifiable player footprint displaced from the reported cell, preventing that
 footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
-markers. It filters brief openings using measured
-movement speed from the game's fractional position and a reaction window, warns earlier when approaching walls
-faster, and separates creature occupancy from terrain changes. Openings must
-still pass the full movement-collision check. It starts enabled, baselines silently without
-walking, and pauses for dialogue and offline pause menus. It uses the game's map
-data directly. Live camp/Blood Moor reads are confirmed; the latest speed and
-noise filtering still needs controller validation. The running forecast now
-accounts for actual pending and simultaneous cues, so an empty sound queue no
-longer reserves four sounds before every turn;
-see [the radar evidence and controller test](docs/sonar-radar.md).
-**Ctrl+R** toggles it; **Ctrl+T** reads current clearance and records a local
-diagnostic snapshot. Short passages are described as limited space; recognizable
-actor obstruction is described as an occupied passage. The embedded default config
-preserves existing settings and adds no external sound/map installation step.
-See the [Kirandur comparison and reaction model](docs/kirandur-radar-comparison.md).
-Details and regression checks: [running radar timing](docs/radar-running-timing.md).
-State changes now confirm on two consecutive scans, normally 50 ms apart,
-including returning to the same wall. Each queued side uses its remaining
-playback time, and a cancelled cue can retry when it becomes safe again. The
-50 ms silent gaps remain. See [state changes and delivery](docs/radar-state-delivery.md).
+markers. It separates creature occupancy from terrain and keeps the original
+movement mask as the final opening check. The radar now follows changes in the
+world hit position: a side wall receding or returning can sound even when both
+old and new clearances count as open. It describes a currently usable opening
+without requiring the player to continue straight past it first. Measured speed
+still advances approaching-wall warnings. Two consecutive scans confirm changes;
+120 ms sounds retain their 50 ms silent gaps and cancelled valid cues can retry.
+
+**Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
+(including diagonals), then the four straight-line clearances, and saves a local
+map snapshot. This distinguishes moving along a wall from being stationary while
+one or two straight rays are blocked. Short passages remain limited space;
+recognizable actor obstruction is an occupied passage. It starts enabled,
+baselines silently and pauses during dialogue/offline pause. Existing settings
+are preserved; no external map or sound installation is required.
+
+Live map reads work in the camp and Blood Moor. The latest geometry behavior
+still needs controller/listening validation. See the [native map and Kirandur
+translation](docs/radar-map-fidelity.md) for findings, deliberate differences from
+the reference and tests; [sonar controls](docs/sonar-radar.md) and
+[cue delivery](docs/radar-state-delivery.md) document the rest.
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking

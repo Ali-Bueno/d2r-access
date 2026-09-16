@@ -62,6 +62,11 @@ struct Table {
 	const char* radarOccupied;
 	std::array<const char*, 4> radarDirections;
 	std::array<const char*, 3> radarStates;
+	const char* radarMoving; // %s = actual recent screen displacement direction
+	const char* radarStationary;
+	const char* radarMotionUnknown;
+	const char* radarStraight;
+	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
 };
 
 inline constexpr Table English {
@@ -116,6 +121,11 @@ inline constexpr Table English {
 	.radarOccupied = "occupied passage",
 	.radarDirections = {"Up", "Left", "Right", "Down"},
 	.radarStates = {"unknown", "open", "blocked"},
+	.radarMoving = "Moving %s",
+	.radarStationary = "No recent movement",
+	.radarMotionUnknown = "Movement not yet measured",
+	.radarStraight = "Straight-line passages",
+	.radarMovementDirections = {"up", "up and right", "right", "down and right", "down", "down and left", "left", "up and left"},
 };
 
 inline constexpr Table Spanish {
@@ -170,6 +180,11 @@ inline constexpr Table Spanish {
 	.radarOccupied = "paso ocupado",
 	.radarDirections = {"Arriba", "Izquierda", "Derecha", "Abajo"},
 	.radarStates = {"desconocido", "abierto", "bloqueado"},
+	.radarMoving = "Desplazándote hacia %s",
+	.radarStationary = "Sin desplazamiento reciente",
+	.radarMotionUnknown = "Desplazamiento todavía sin medir",
+	.radarStraight = "Pasos en línea recta",
+	.radarMovementDirections = {"arriba", "arriba y derecha", "derecha", "abajo y derecha", "abajo", "abajo y izquierda", "izquierda", "arriba y izquierda"},
 };
 
 // Chosen once at load from the game's own text language (see plugin.cpp).

@@ -1,11 +1,11 @@
 # Sonar radar: first prototype and native map evidence
 
 Implemented 2026-09-15 for installed D2R 3.3.93787 / D2RCore 1.2.1-beta.
-**Live camp and Blood Moor snapshots work. The user reports improved fixed-axis
-navigation but excessive cues. Speed/reaction forecasts and occupancy filtering
-are now deployed, pending controller/headphone validation.** See the
-[original Kirandur code comparison](kirandur-radar-comparison.md) for the research,
-reference-document correction, reaction model and new regression coverage.
+**Current revision (2026-09-16):** live room reads remain confirmed; geometry
+changes now include finite wall recesses/returns, current exits are no longer
+vetoed by a continued-motion forecast, and Ctrl+T reports actual recent movement.
+See [native map fidelity](radar-map-fidelity.md). New-version listening validation
+is pending; earlier reaction-model findings below are historical where noted.
 The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the initial state/movement rules came from v2. **The user explicitly replaced
@@ -167,26 +167,25 @@ Ctrl+T reports `presenceOffset=X,Y`, relative to the integer player cell.
   cues can retry when valid; only these retries have a 250 ms rate limit.
   Session/level changes, teleports and polling gaps silently rebase and invalidate
   pending audio and measured velocity.
-- `radar_guidance`: measure recent speed/direction, warn of approaching walls
-  using time to contact, and check that a proposed opening remains physically
-  usable through a 600 ms reaction allowance plus a playback budget derived from
-  pending and possible simultaneous cues (170 ms for one idle-queue cue).
-  See [the running timing revision](radar-running-timing.md). Test the
-  full body at every half-subtile along continued movement, including the turn
-  from each possible reaction point. Narrow fleeting openings remain silent;
-  stopping can make them eligible. Separate the actor-filtered terrain estimate
-  from physical collision, so moving creatures do not alternate walls/exits.
-  Never use filtered terrain alone to announce free passage.
-  Motion uses the native 16.16 position, while collision retains the native
-  integer cell. This avoids false stops and direction
-  changes when X and Y cross their cell boundaries on different polls.
+- `radar_geometry`: compare projected world body-hit centres within a local
+  20-subtile range. A change greater than +/-1.5 query units detects widening or
+  narrowing even between two otherwise open distances. These reference constants
+  use an explicitly chosen one-subtile adapter scale. No cue for unchanged walls,
+  one-poll gaps or lost local coverage. See the fidelity document for the exact
+  Kirandur call flow and the differences retained for D2R.
+- `radar_guidance`: measured closing speed, a 600 ms allowance and remaining
+  playback budget advance wall warnings. Openings require current full-body
+  clearance of eight subtiles, without a future-straight-line veto. Creatures
+  remain separate from terrain; an opening always passes original movement
+  collision. Native 16.16 movement supplies speed/direction while collision uses
+  native integer cells. Motion inside a cell is not mistaken for being stationary.
 - `radar_synth` / `radar_audio`: synthesize 120 ms PCM cues on a separate worker.
   Opening is a high `tin`; blocking is a low `tock`. Left/right use stereo pan;
   down is centred at 0.86 pitch, distinct from up. **Cues play one at a time,
   with at least 50 ms of silence after each**, including cues from adjacent
   scans. A four-slot round-robin queue retains the latest change per direction.
   Already scheduled cues use remaining playback and actual queue order in their
-  forecast; cancellation feeds the original event ID back for safe retry.
+  wall-warning timing; cancellation feeds the original event ID back for safe retry.
   Each scan cancels queued cues that no longer satisfy guidance. A started tin
   finishes its short tail while physical clearance remains open, but cancels on
   a current obstruction. There is no long backlog of stale openings. A fresh simultaneous set plays
@@ -205,11 +204,12 @@ state for uncertain clearance. The intermediate distance band is **limited
 space**; unavailable coverage is **unknown**, without an invented zero distance.
 A near-body obstruction is described as nearby; recognized actor obstruction can
 be **paso ocupado**. Other known distances use the complete movement body sweep
-and round down for speech. Manual clearance does not include the extra forecast
-required for an automatic opening cue.
+and round down for speech. Ctrl+T prefixes actual recent movement in eight screen
+sectors, or no recent movement; the four passage readings are explicitly straight
+lines. Initial single-sample motion remains unmeasured, not stationary.
 
 The minimum tuning values are a two-subtile near-body warning, eight subtiles of
-open passage and three subtiles of blocked depth. Guidance increases distances
+open passage and three subtiles of blocked depth. Guidance advances wall warnings
 according to measured speed; a tock can warn before the manual status says
 blocked. These and the reaction allowance are named design parameters in
 `Radar::Settings`, not recovered engine constants. A cue describes a local
@@ -277,17 +277,17 @@ Inspect the latest session in `d2rloader/logs/d2r-access.log`:
   only on reason changes or explicit `status`/`dump` requests.
 - `[radar] direction=...` records emitted changes (0 up, 1 left, 2 right, 3 down; `axes=screen`), speed, terrain and physical depths, raw blocking flags and warning depth. Emission does not prove completion of audio playback.
 - `[radar-state]` reports body and lane probes on Ctrl+T or an explicit dump.
-  `[radar-guidance]` adds velocity, required opening/warning distances and forecast
-  eligibility. `[radar-map]` saves the local grid with `A` for recognized actor
+  `[radar-guidance]` adds velocity, required opening/warning distances and current-passage
+  eligibility, geometry-cue state and world hit points. `[radar-map]` saves the local grid with `A` for recognized actor
   obstruction and `#` for other blocks on either Ctrl+T or a console dump;
   neither logs every frame.
 
 ## Validation and remaining limits
 
-The latest shared-workspace build passes nineteen CTest suites / **996 checks**,
+The latest shared-workspace build passes 21 CTest suites / **1038 checks**,
 including concurrent menu work. Radar/footsteps cover **655 checks**: 300
-radar/audio, 194 reaction/occupancy guidance, 65 native-world/config, 12 radar UI,
-13 playback-timing, 34 [state/delivery](radar-state-delivery.md) and 37
+radar/audio, 141 current-passage/occupancy guidance, 65 native-world/config, 12 radar UI,
+14 playback-timing, 40 [state/delivery](radar-state-delivery.md), 46 geometry/readout and 37
 [stalled-footstep](footsteps.md) checks.
 Coverage includes all four fixed stick axes at rest and after turns, symmetric
 body and point depths in eight directions, crossroads, narrow shoulder gaps
@@ -300,10 +300,10 @@ cross offsets, a large footprint, ambiguous/incomplete shapes and preservation
 of real obstacles. Live checks activated offsets (0,1) and (-1,0), followed an
 announced opening and preserved the actual camp wall. See the computer-use log.
 Guidance tests cover actor oscillation, preserved walls/water, acceleration,
-turns, early warnings, fleeting versus usable openings, stopping, occupied doors,
-intermediate forecast collisions and unknown terrain. A limited corridor can
+turns, early warnings, currently usable running openings, stopping, occupied doors,
+actual turn collisions and unknown terrain. A limited corridor can
 reveal an exit without first touching its wall. The Kirandur comparison records
-the bounded query timing exercise and the remaining prediction limits.
+the earlier query timing exercise; the fidelity document records the current limits.
 
 The narrow-gap and dynamic-mask regressions failed before their corrections
 and pass afterward. Normal build/deployment succeeded; installed and built DLL

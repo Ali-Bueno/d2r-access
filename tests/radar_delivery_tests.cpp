@@ -86,8 +86,17 @@ void DeliveryRetry() {
 	++world.session;
 	Check(Silent(engine.Tick(world, 1850, failed)), "session rebasing discards old delivery failures");
 }
-void RunningPair(bool vertical) {
+void RunningPair(bool vertical, bool finite = false) {
 	auto world = Crossing(vertical); Engine engine;
+	if (finite) {
+		world.player = {110, 100};
+		// Two finite side walls recede and return while both old and new
+		// distances still exceed the eight-subtile passability threshold.
+		for (int y=0; y<240; ++y) for (int x=0; x<240; ++x) {
+			const int axis = vertical ? x-y-10 : x+y-210;
+			Put(world, x, y, std::abs(axis) == 26 || std::abs(axis) == 16 ? 1 : 0);
+		}
+	}
 	RadarAudio::CueQueue queue;
 	Events playing{};
 	RadarAudio::CueSource source{};
@@ -107,9 +116,17 @@ void RunningPair(bool vertical) {
 		}
 		if ((now - 1000) % PollMs == 0) {
 			const uint64_t elapsed = now - 1000;
-			const double advance = 12.0 * (elapsed <= 3000 ? elapsed : elapsed < 6000 ? 6000-elapsed : 0) / 1000;
-			const double x = 110 + advance, y = vertical ? 110 + advance : 100 - advance;
-			world.player = {std::floor(x), std::floor(y)}; world.subtileFraction = {x-world.player.x, y-world.player.y};
+			if (finite) {
+				const bool recessed = (elapsed >= 500 && elapsed < 1500) || (elapsed >= 2500 && elapsed < 3500);
+				for (int y=0; y<240; ++y) for (int x=0; x<240; ++x) {
+					const int axis = vertical ? x-y-10 : x+y-210;
+					if (std::abs(axis) == 16) Put(world, x, y, recessed ? 0 : 1);
+				}
+			} else {
+				const double advance = 12.0 * (elapsed <= 3000 ? elapsed : elapsed < 6000 ? 6000-elapsed : 0) / 1000;
+				const double x = 110 + advance, y = vertical ? 110 + advance : 100 - advance;
+				world.player = {std::floor(x), std::floor(y)}; world.subtileFraction = {x-world.player.x, y-world.player.y};
+			}
 			auto load = queue.Playback(playing, now - started, nextCue > now ? nextCue - now : 0);
 			load.failed = failed; failed = {};
 			const auto events = engine.Tick(world, now, load);
@@ -134,4 +151,4 @@ void RunningPair(bool vertical) {
 	Check(discarded == 0, "the queued side does not invalidate itself by restarting its audio forecast");
 }
 }
-int main() { Backtrack(); QueueTime(); DeliveryRetry(); RunningPair(false); RunningPair(true); Passed(); }
+int main() { Backtrack(); QueueTime(); DeliveryRetry(); RunningPair(false); RunningPair(true); RunningPair(false, true); RunningPair(true, true); Passed(); }

@@ -5,6 +5,7 @@
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "radar_config.h"
+#include "radar_readout.h"
 #include "radar_trace.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -69,23 +70,7 @@ void Describe(bool available, RadarUi::State ui) {
 	if (!g_ready) { ScreenReader::Speak(text.radarWaitingPlayer, true); return; }
 	if (ui != RadarUi::State::Playing) { ScreenReader::Speak(text.radarUiStates[static_cast<size_t>(ui) - 1], true); return; }
 	if (!available) { ScreenReader::Speak(text.radarUnavailable, true); return; }
-	std::string result;
-	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
-		const auto& sensor = g_engine.Sensors()[i];
-		const auto state = sensor.probe.observed;
-		if (!result.empty()) result += ". ";
-		const bool limited = sensor.probe.available && state == Radar::State::Unknown;
-		const bool occupied = state == Radar::State::Blocked && sensor.terrain.clearDepth > sensor.probe.clearDepth;
-		result += std::string(text.radarDirections[i]) + ": " + (occupied ? text.radarOccupied : limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
-		if (state == Radar::State::Unknown && !limited) continue;
-		if (sensor.probe.body == Radar::State::Blocked) result += std::string(", ") + text.radarNearbyObstacle;
-		else {
-			char depth[80]{};
-			std::snprintf(depth, sizeof(depth), text.radarDepth, std::floor(sensor.probe.clearDepth));
-			result += std::string(", ") + depth;
-		}
-	}
-	ScreenReader::Speak(result, true);
+	ScreenReader::Speak(RadarReadout::Describe(g_engine, text), true);
 }
 void LogSensors(uint64_t now) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
@@ -95,9 +80,10 @@ void LogSensors(uint64_t now) {
 			s.probe.available ? 1u : 0u, static_cast<unsigned>(s.probe.observed), static_cast<unsigned>(s.candidate),
 			static_cast<unsigned>(s.stable), static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince), s.candidateTravel);
 		const auto velocity = g_engine.Velocity();
-		AsyncLog::InfoF(g_context, "[radar-guidance] direction=%zu terrain=%.1f flags=%04X velocity=%.1f,%.1f openDepth=%.1f warnDepth=%.1f usable=%u cue=%u playback_ms=%llu",
+		AsyncLog::InfoF(g_context, "[radar-guidance] direction=%zu terrain=%.1f flags=%04X velocity=%.1f,%.1f openDepth=%.1f warnDepth=%.1f usable=%u cue=%u playback_ms=%llu geometry=%u hit=%.0f,%.0f boundary_pending=%u",
 			i, s.terrain.clearDepth, s.probe.endFlags, velocity.x, velocity.y, s.guidance.openDepth, s.guidance.warningDepth,
-			s.guidance.openingSafe ? 1u : 0u, static_cast<unsigned>(s.cueState), static_cast<unsigned long long>(s.guidance.playbackMs));
+			s.guidance.openingSafe ? 1u : 0u, static_cast<unsigned>(s.cueState), static_cast<unsigned long long>(s.guidance.playbackMs),
+			s.boundaryCue ? 1u : 0u, s.terrain.hit.x, s.terrain.hit.y, static_cast<unsigned>(s.boundaryPending));
 	}
 }
 void Dump(const Radar::World& world) {
@@ -231,12 +217,13 @@ void Tick(const D2RL::PluginContext* context) {
 			if (events[i] != Radar::State::Unknown) {
 				const auto& sensor = g_engine.Sensors()[i];
 				const auto velocity = g_engine.Velocity();
-				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu",
+				AsyncLog::InfoF(context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen passage=%.1f terrain=%.1f flags=%04X speed=%.1f warnDepth=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f openDepth=%.1f playback_ms=%llu trigger=%s hit=%.0f,%.0f",
 					i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.probe.clearDepth,
 					sensor.terrain.clearDepth, sensor.probe.endFlags, std::hypot(velocity.x, velocity.y), sensor.guidance.warningDepth,
 					static_cast<unsigned long long>(now), RadarTrace::DirectionName(i), RadarTrace::StateName(events[i]),
 					static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y, sensor.guidance.openDepth,
-					static_cast<unsigned long long>(sensor.guidance.playbackMs));
+					static_cast<unsigned long long>(sensor.guidance.playbackMs), sensor.boundaryCue ? "boundary" : "clearance",
+					sensor.terrain.hit.x, sensor.terrain.hit.y);
 			}
 		}
 		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});

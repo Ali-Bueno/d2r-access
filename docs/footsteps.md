@@ -127,3 +127,16 @@ long gaps and reset. Build and live verification are recorded in `STATUS.md`.
 The native hook targets the HD sound event; classic graphics/audio coverage is
 not established. It detects stationary walking footfalls, not the identity of
 the obstacle. It does not provide a map landmark or route to a destination.
+
+
+## 2026-09-16: diagonal movement with two straight rays blocked
+
+The latest user report is backed by the 23:52:33/40 Ctrl+T grids: up/right hit
+world Y <= 4546, while the player moved along X at Y about 4548.5. Footstep
+summaries recorded net +11.008728 X and then -9.091965 X in separate five-second
+intervals, with no stalled decisions. This establishes real boundary-parallel
+motion, not repeated stationary footsteps. The exact analog stick angle was not
+recorded. The filter remains unchanged; Ctrl+T now describes actual recent
+screen movement before its straight-ray readings. See [the map analysis and
+replayed regression](radar-map-fidelity.md). Live stationary suppression remains
+unverified.

@@ -1,5 +1,11 @@
 # Running radar: playback-aware reaction forecast
 
+> **2026-09-16 update:** [Native map fidelity](radar-map-fidelity.md) supersedes
+> the opening forecast described here. Current exits are no longer hidden by
+> predicted continued movement; finite wall recesses/returns are audible, and
+> Ctrl+T includes actual motion. Queue timing still advances wall warnings.
+> The investigation and test results below describe the earlier revision.
+
 The user confirmed improved collision precision after the fractional-motion and
 displaced-presence fixes, but still found orientation difficult while running.
 The previous forecast always charged four sounds and gaps (680 ms) before the

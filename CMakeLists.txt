@@ -44,9 +44,11 @@ add_library(d2r-access SHARED
 	src/native_world.cpp
 	src/radar.cpp
 	src/radar_grid.cpp
+	src/radar_geometry.cpp
 	src/radar_guidance.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
+	src/radar_readout.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
 	src/radar_ui.cpp
@@ -87,6 +89,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(radar-geometry-tests src/radar_readout.cpp tests/radar_geometry_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp)
+	target_include_directories(radar-geometry-tests PRIVATE src)
+	target_compile_features(radar-geometry-tests PRIVATE cxx_std_20)
+	add_test(NAME radar-geometry COMMAND radar-geometry-tests)
 	add_executable(native-cursor-gesture-tests tests/native_cursor_gesture_tests.cpp src/native_cursor_gesture.cpp)
 	target_include_directories(native-cursor-gesture-tests PRIVATE src)
 	target_compile_features(native-cursor-gesture-tests PRIVATE cxx_std_20)
@@ -110,16 +116,16 @@ if(BUILD_TESTING)
 	target_include_directories(footstep-tests PRIVATE src)
 	target_compile_features(footstep-tests PRIVATE cxx_std_20)
 	add_test(NAME footsteps COMMAND footstep-tests)
-	add_executable(radar-timing-tests tests/radar_timing_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
+	add_executable(radar-timing-tests tests/radar_timing_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-timing-tests PRIVATE src)
 	target_compile_features(radar-timing-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-timing COMMAND radar-timing-tests)
-	add_executable(radar-delivery-tests tests/radar_delivery_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp src/radar_synth.cpp)
+	add_executable(radar-delivery-tests tests/radar_delivery_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp src/radar_synth.cpp)
 	target_link_libraries(radar-delivery-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-delivery-tests PRIVATE src)
 	target_compile_features(radar-delivery-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-delivery COMMAND radar-delivery-tests)
-	add_executable(radar-guidance-tests tests/radar_guidance_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp)
+	add_executable(radar-guidance-tests tests/radar_guidance_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp)
 	target_include_directories(radar-guidance-tests PRIVATE src)
 	target_compile_features(radar-guidance-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-guidance COMMAND radar-guidance-tests)
@@ -128,7 +134,7 @@ if(BUILD_TESTING)
 	target_include_directories(radar-ui-tests PRIVATE src)
 	target_compile_features(radar-ui-tests PRIVATE cxx_std_20)
 	add_test(NAME radar-ui COMMAND radar-ui-tests)
-	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_guidance.cpp src/radar_synth.cpp)
+	add_executable(radar-tests tests/radar_tests.cpp src/radar.cpp src/radar_grid.cpp src/radar_geometry.cpp src/radar_guidance.cpp src/radar_synth.cpp)
 	target_link_libraries(radar-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(radar-tests PRIVATE src)
 	target_compile_features(radar-tests PRIVATE cxx_std_20)
@@ -185,6 +191,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(radar-geometry-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-cursor-gesture-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-navigation-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-focus-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -38,15 +38,17 @@ void RunningExit() {
 	auto world = Crossing();
 	Events batch{}; batch[0] = batch[3] = State::Open;
 	const auto quietBudget = PlaybackBudget({}, batch, 0);
-	Check(Analyze(world, quietBudget).openingSafe, "running through a modest junction leaves time for two cues and a real turn");
+	Check(Analyze(world, quietBudget).openingSafe, "a modest running junction is currently usable");
 	constexpr uint64_t OldFixedBudget = 4*(CueDurationMs + CueGapMs); // deployed pre-fix policy
-	Check(!Analyze(world, OldFixedBudget).openingSafe, "the same running exit was lost to the old unconditional four-cue forecast");
+	Check(Analyze(world, OldFixedBudget).openingSafe, "audio queue length cannot hide existing geometry");
 	AudioLoad busy; busy.busy = true; busy.pending.fill(State::Blocked);
-	Check(!Analyze(world, PlaybackBudget(busy, batch, 0)).openingSafe, "a genuinely busy queue still rejects an exit that would arrive too late");
+	Check(Analyze(world, PlaybackBudget(busy, batch, 0)).openingSafe, "a busy queue changes delivery timing, not current passage classification");
 	world.rooms[0].cells[80*240+130] = 1;
-	Check(!Analyze(world, quietBudget).openingSafe, "queue-aware timing never skips an intermediate collision");
+	Check(Analyze(world, quietBudget).openingSafe, "a post beyond the current turn does not invalidate that turn");
+	world.rooms[0].cells[86*240+122] = 1;
+	Check(!Analyze(world, quietBudget).openingSafe, "a collision inside the current turn still invalidates an opening");
 	world = Crossing(); world.player = {127, 83};
-	Check(!Analyze(world, quietBudget).openingSafe, "an exit too near its closing edge stays silent at speed");
+	Check(Analyze(world, quietBudget).openingSafe, "an opening near its far edge remains audible while it is physically usable");
 }
 void EngineBatch() {
 	auto world = Crossing(); world.player = {110,100};

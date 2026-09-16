@@ -64,6 +64,12 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		auto& sensor = sensors_[i];
 		sensor.probe = Scan(world, Axes[i], settings_);
 		sensor.terrain = Scan(world, Axes[i], settings_, Layer::Terrain);
+		const auto change = sensor.boundary.Observe(sensor.terrain, Axes[i], now, settings_.stableMs, settings_.boundaryRange);
+		if (change != State::Unknown) {
+			sensor.boundaryPending = change;
+			sensor.pendingBoundary = sensor.boundary.Current();
+		}
+		if (!rebase && sensor.boundaryPending != State::Unknown) candidates[i] = sensor.boundaryPending;
 		// A longer queue can advance a warning or remove an opening. Reserve
 		// either possible transition before deciding this poll's final budget.
 		for (const uint64_t budget : {PlaybackBudget(audio, {}, i), PlaybackBudget(audio, all, i)}) {
@@ -90,32 +96,51 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 			continue;
 		}
 		const auto failure = audio.failed[i];
-		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.stable) sensor.retry = true;
-		if (observed == State::Unknown || (observed == sensor.stable && !sensor.retry)
+		if (sensor.lastEmit && failure.eventMs == sensor.lastEmit && failure.state == sensor.lastCue) sensor.retry = true;
+		if (observed == State::Unknown || (observed == sensor.stable && (!sensor.retry || sensor.boundaryCue))
 			|| (observed == State::Open && !sensor.guidance.openingSafe)) {
 			sensor.candidate = State::Unknown;
 			sensor.candidateTravel = 0;
-			continue;
+		} else {
+			if (observed != sensor.candidate) {
+				sensor.candidate = observed;
+				sensor.candidateSince = now;
+				sensor.candidateTravel = travel;
+			} else sensor.candidateTravel += travel;
+			if (now - sensor.candidateSince >= settings_.stableMs
+				&& (observed != sensor.stable || now - sensor.lastEmit >= settings_.retryMs)) {
+				if (sensor.stable != State::Unknown || sensor.hasBoundary) events[i] = observed;
+				if (observed == State::Blocked) sensor.hasBoundary = true;
+				sensor.stable = observed;
+				sensor.candidate = State::Unknown;
+			}
 		}
-		if (observed != sensor.candidate) {
-			sensor.candidate = observed;
-			sensor.candidateSince = now;
-			sensor.candidateTravel = travel;
-		} else sensor.candidateTravel += travel;
-		const uint64_t age = now - sensor.candidateSince;
-		if (age < settings_.stableMs) continue;
-		if (observed == sensor.stable && sensor.retry && now - sensor.lastEmit < settings_.retryMs) continue;
-		// A known wall in the limited-distance band is a real baseline too;
-		// leaving it can reveal an exit without first approaching within 3 cells.
-		// Each real open/blocked transition must be heard again on a return trip.
-		if (sensor.stable != State::Unknown || sensor.hasBoundary) {
-			events[i] = observed;
+		if (!sensor.boundary.Accepts(sensor.pendingBoundary, sensor.boundaryPending)) sensor.boundaryPending = State::Unknown;
+		if (events[i] != State::Unknown) {
+			// One cue when a geometry change and a clearance change coincide.
+			sensor.boundaryCue = false;
+			sensor.boundaryPending = State::Unknown;
+		} else if (sensor.boundaryPending != State::Unknown
+			&& (sensor.boundaryPending == State::Blocked || sensor.guidance.openingSafe)) {
+			events[i] = sensor.boundaryPending;
+			sensor.boundaryCue = true;
+			sensor.emittedBoundary = sensor.pendingBoundary;
+			sensor.boundaryPending = State::Unknown;
+			if (observed != State::Unknown) sensor.stable = observed;
+			sensor.candidate = State::Unknown;
+		}
+		const State lastCue = events[i] != State::Unknown ? events[i] : sensor.lastCue;
+		if (sensor.boundaryCue) {
+			sensor.cueState = sensor.boundary.Accepts(sensor.emittedBoundary, lastCue)
+				&& (lastCue == State::Blocked || sensor.guidance.openingSafe) ? lastCue : State::Unknown;
+			if (events[i] == State::Unknown && sensor.retry && sensor.cueState == lastCue
+				&& now - sensor.lastEmit >= settings_.retryMs) events[i] = lastCue;
+		}
+		if (events[i] != State::Unknown) {
 			sensor.lastEmit = now;
+			sensor.lastCue = events[i];
+			sensor.retry = false;
 		}
-		if (observed == State::Blocked) sensor.hasBoundary = true;
-		sensor.retry = false;
-		sensor.stable = observed;
-		sensor.candidate = State::Unknown;
 	}
 	return events;
 }

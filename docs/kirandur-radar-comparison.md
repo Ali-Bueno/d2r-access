@@ -1,5 +1,11 @@
 # Kirandur reference and D2R reaction-aware radar
 
+> **2026-09-16 update:** [Native map fidelity](radar-map-fidelity.md) supersedes
+> the opening forecast described here. Current exits are no longer hidden by
+> predicted continued movement; finite wall recesses/returns are audible, and
+> Ctrl+T includes actual motion. Queue timing still advances wall warnings.
+> The investigation and test results below describe the earlier revision.
+
 Investigated 2026-09-15 after the user reported excessive cues and unusably brief
 openings in the camp and Blood Moor. The requested game remains **Diablo II:
 Resurrected**; the user corrected their accidental mention of Diablo IV.

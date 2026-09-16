@@ -29,6 +29,7 @@ enum class Layer { Movement, Terrain };
 // Tuning defaults from D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md, not game offsets.
 struct Settings {
 	double farRange = 150; // 30 map tiles; D2 collision has five subtiles per tile.
+	double boundaryRange = 20; // Kirandur scanner +0x24 default, mapped to D2 collision subtiles
 	double nearRange = 2; // subtile body sweep; avoid rejecting a narrow side doorway.
 	double openDepth = 8;
 	double blockedDepth = 3;
@@ -64,6 +65,18 @@ struct Probe {
 	State observed = State::Unknown;
 	bool available = false;
 	uint16_t endFlags = 0; // raw flags at the first body obstruction, for diagnostics
+	Position hit; // first rejected body centre in collision-grid coordinates
+};
+struct Boundary { State end = State::Unknown; double along = 0; };
+class BoundaryTracker {
+public:
+	State Observe(const Probe& terrain, Position axis, uint64_t now, uint64_t confirmationMs, double range);
+	bool Accepts(Boundary target, State change) const;
+	Boundary Current() const { return current_; }
+private:
+	Boundary previous_, current_;
+	State candidate_ = State::Unknown;
+	uint64_t since_ = 0;
 };
 struct Guidance {
 	State observed = State::Unknown;
@@ -80,6 +93,10 @@ struct Sensor {
 	Guidance guidance;
 	State cueState = State::Unknown; // currently valid sound, separate from manual physical clearance
 	bool hasBoundary = false, retry = false;
+	BoundaryTracker boundary;
+	Boundary pendingBoundary, emittedBoundary;
+	State boundaryPending = State::Unknown, lastCue = State::Unknown;
+	bool boundaryCue = false;
 };
 
 class Engine {
@@ -90,6 +107,7 @@ public:
 	const auto& Sensors() const { return sensors_; }
 	uint64_t Revision() const { return revision_; } // cancel pending audio after a rebase
 	Position Velocity() const { return velocity_; }
+	bool HasMotionSamples() const { return motion_.size() > 1; }
 private:
 	void UpdateMotion(Position player, uint64_t now);
 	Settings settings_;

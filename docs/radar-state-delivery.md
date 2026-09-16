@@ -1,5 +1,11 @@
 # Radar state changes and delivery
 
+> **2026-09-16 update:** [Native map fidelity](radar-map-fidelity.md) supersedes
+> the opening forecast described here. Current exits are no longer hidden by
+> predicted continued movement; finite wall recesses/returns are audible, and
+> Ctrl+T includes actual motion. Queue timing still advances wall warnings.
+> The investigation and test results below describe the earlier revision.
+
 The user reported hearing one cue when both sides opened, and missing the wall
 cue when returning through a previously visited passage. They requested prompt
 state updates, including returning to the same wall.
