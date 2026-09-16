@@ -1,6 +1,6 @@
 # Controller menu and skill navigation follow-up
 
-Target: D2R 3.3.93787, 2026-09-15. Native C++ / D2RLoader, existing PRISM sink.
+Target: D2R 3.3.93787, updated 2026-09-16. Native C++ / D2RLoader, existing PRISM sink.
 The user reported silent main-menu actions after leaving a game, free cursor
 movement with both the D-pad and left stick in skills, and only three Options tabs.
 
@@ -37,10 +37,13 @@ is only added when the game provides class-tree cell names.
 
 The adapter places the real cursor at the native focus rectangle's centre, then
 calls the existing selection method. While that D-pad gesture is held, the
-native cursor-update hook delegates to the stock cursor reset, cancelling its
-old interpolation. This prevents a held D-pad from dragging the cursor away
-from the skill being read. Release, closing/covering the panel, or disabling the
-feature restores stock updates. `access-skill-grid on|off` controls the feature.
+native cursor-update hook delegates to `native_cursor_gesture.cpp`, cancelling
+both interpolation and the latched directional snap before the stock reset.
+Changing direction or rolling through a diagonal without fully releasing the
+D-pad stays in the same gesture. Each native cursor consumes one final cleanup
+update after release before stock stick movement resumes. Closing/covering the
+panel or disabling the feature also releases ownership with that cleanup.
+`access-skill-grid on|off` controls the feature.
 Failed native guards/selection preserve stock input.
 
 | Native operation | Derived evidence |
@@ -48,6 +51,8 @@ Failed native guards/selection preserve stock input.
 | Cursor update `0x234820`, 758 bytes | Caller `0x13E5E0` updates controller cursor objects; update uses free-cursor mode, velocities and snap interpolation |
 | Cursor reset `0x2347B0`, 110 bytes | Copies `0x846150()` cursor coordinates into floats at `+0x18/+0x1C`, clears velocity/direction at `+0x20/+0x24/+0xA0/+0xA4` |
 | Pending interpolation flag `+0x68` | `0x234820` interpolates the previous start/end positions while set; `0x235330` starts it; clear before the stock reset so release cannot resume an old snap |
+| Held-direction flag `+0xB0` | `0x234820` compares current direction activity from `0x234480` with this byte. A held-to-released transition calls `0x235330` using the saved direction at `+0xC0`. Stock reset does not clear it; clear it with interpolation to prevent a second release-triggered move |
+| Native cursor capacity | `0x13E5E0` walks eight cursor objects (`0x1C8 / 0x39` qwords); each needs independent release cleanup |
 | Cursor position `0x14F690`, 142 bytes | Receives packed two-int coordinates, clamps to current controller bounds, updates the native cursor and OS position; used by stock cursor commit `0x2346C0` |
 | FocusableWidget selection `0x876CA0`, 209 bytes | Checks virtual `+0x90`, updates selection at `+0x544`, then sets native panel/widget focus through `0x868230`/`0x868350`; no click/purchase |
 | Focus rectangle virtual `+0x80` | Stock cursor target search `0x2338B0` calls it with the widget's packed selection and compares its integer rectangle against cursor coordinates |
@@ -73,18 +78,34 @@ thumbstick-swap toggle under `Row Controller Options`. These remain under **Jueg
 
 ## Validation
 
-Eighteen CTest suites / 972 checks pass in the deployed build, including the concurrent
-radar/footstep changes. The added suites cover actual catalog ribbon actions,
+The user reported on 2026-09-16 that navigation appeared to work but a D-pad
+press seemed to count twice. The preceding 23:47 controller log records a
+mod selection of `SkillButton3 0,0` at 32.923, Aullido at 33.004, and Burla at
+33.600 without another `[skill-grid] Selected` event. Other moves show the same
+uncommanded second focus change. This supports a pending native cursor move,
+rather than duplicate grid-selection calls. Reinspection of `0x234820` identified
+the separate release-triggered snap described above.
+
+Thirteen UI CTest suites / 383 checks pass, including 39 native gesture checks
+and 35 skill-navigation checks. The regression fixture preserves the stock
+reset's omission of both snap flags and exercises held input, dispatch after
+release sampling, independent native cursors, analog handoff, diagonal/direction
+changes, immediate deliberate subsequent presses, and failed memory access.
+The existing suites cover actual catalog ribbon actions,
 hidden/wrong ancestry, sparse grid movement in four directions, boundaries,
 held/released input, analog handoff, general/item-granted skills, covering/closed menus, disable and failed
 native selection. Existing native UI tests cover dropdown/carousel inheritance.
-Normal `build.ps1` deployed the plugin; built and installed SHA-256 matched:
-`572D1BF8C90B370920B9895ADC092C94947A0FBE36DEC3BDED931DB18A324796`.
+The full shared-workspace run at 00:04 passed 19 of 21 suites; radar-timing and
+radar-guidance failed while the separate radar agent was editing those sources.
+Those changes are outside this fix. Normal `build.ps1` compiled and deployed the
+cursor correction; the subsequent shared build retained it. Built and installed
+SHA-256 matched at verification:
+`D26B2CA80FF1D58EEA26EC06C1E55005B56C2640AC3CA898A39A06BC19DA9E2B`.
 
-The game was closed during development. Controller movement, cursor/focus
-alignment, audible output and the new hook still require live confirmation.
-The user explicitly reported that they have not tried the new build yet.
+The game was closed during development. The adapter installed successfully in
+the preceding live log; the release correction still needs controller validation.
 In the next load, check `[skill-grid] Verified cursor adapter installed`, then
 one `[skill-grid] Selected ...` per cardinal press, followed by the corresponding
-`[interaction]` skill description. Check Options/Videos/Exit after leaving a game.
+`[interaction]` skill description with no second move on release. Check
+Options/Videos/Exit after leaving a game.
 Do not infer real controller behavior from keyboard-only tests.

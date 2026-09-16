@@ -54,6 +54,7 @@ add_library(d2r-access SHARED
 	src/native_ui.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
+	src/native_cursor_gesture.cpp
 	src/skill_grid.cpp
 	src/skill_navigation.cpp
 	src/native_progression.cpp
@@ -86,6 +87,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+	add_executable(native-cursor-gesture-tests tests/native_cursor_gesture_tests.cpp src/native_cursor_gesture.cpp)
+	target_include_directories(native-cursor-gesture-tests PRIVATE src)
+	target_compile_features(native-cursor-gesture-tests PRIVATE cxx_std_20)
+	add_test(NAME native-cursor-gesture COMMAND native-cursor-gesture-tests)
 	add_executable(skill-navigation-tests tests/skill_navigation_tests.cpp src/skill_grid.cpp src/skill_navigation.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(skill-navigation-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(skill-navigation-tests PRIVATE src)
@@ -180,6 +185,7 @@ if(BUILD_TESTING)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
 	if(MSVC)
+		target_compile_options(native-cursor-gesture-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-navigation-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-focus-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(progression-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -1,5 +1,6 @@
 #include "native_skill_navigation.h"
 #include "native_memory.h"
+#include "native_cursor_gesture.h"
 #include "native_widgets.h"
 #include "async_log.h"
 #include <windows.h>
@@ -13,7 +14,6 @@ namespace {
 constexpr uintptr_t CursorUpdateRva = 0x234820, CursorResetRva = 0x2347B0;
 constexpr uintptr_t CursorPositionRva = 0x14F690, SelectRva = 0x876CA0;
 constexpr size_t FocusRectSlot = 0x80, SelectSlot = 0xA0, OwnerPanelOffset = 0x550;
-constexpr size_t CursorInterpolatingOffset = 0x68; // 0x234820 interpolates an old snap until cleared
 constexpr uint8_t UpdatePrefix[] = {0x40, 0x53, 0x57, 0x48, 0x83, 0xEC, 0x48, 0x48, 0x8B, 0xDA, 0x48, 0x8B, 0xF9};
 struct Rect { int x, y, width, height; };
 struct Point { int x, y; };
@@ -30,17 +30,9 @@ bool Verify(uintptr_t base, uintptr_t rva, size_t size, uint64_t expected) {
 	return hash == expected;
 }
 
-bool ResetCursor(uintptr_t cursor) noexcept {
-	__try {
-		// Cancel only the pending cursor interpolation, then use the stock reset
-		// to synchronize its position and velocity with the newly placed cursor.
-		*reinterpret_cast<uint8_t*>(cursor + CursorInterpolatingOffset) = 0;
-		reinterpret_cast<void(*)(uintptr_t)>(g_base + CursorResetRva)(cursor);
-		return true;
-	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
-}
 void UpdateCursor(uintptr_t cursor, uint64_t now) {
-	if (g_hold.load() && ResetCursor(cursor)) return;
+	if (NativeCursorGesture::Intercept(cursor, g_hold.load(),
+		reinterpret_cast<NativeCursorGesture::ResetFn>(g_base + CursorResetRva))) return;
 	if (g_original) reinterpret_cast<void(*)(uintptr_t, uint64_t)>(g_original)(cursor, now);
 }
 bool ReadRect(uintptr_t widget, Rect& rect) noexcept {
@@ -63,6 +55,7 @@ bool SelectNative(uintptr_t widget, const Rect& rect, uint64_t selection) noexce
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	g_hold = false;
+	NativeCursorGesture::ResetTracking();
 	if (!context || !NativeWidgets::SupportsTree()) return false;
 	const auto base = context->exeBase;
 	if (!Verify(base, CursorUpdateRva, 758, 0x86934E582330B085ULL)

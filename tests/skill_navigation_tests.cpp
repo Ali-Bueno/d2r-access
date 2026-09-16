@@ -83,6 +83,14 @@ int main() {
 	input.pressed = false;
 	for (int i = 0; i < 30; ++i) SkillNavigation::Tick(nullptr);
 	Check(selections == 1 && held, "holding the D-pad freezes analog cursor travel without repeating selection");
+	input = {0, 0, true, true};
+	SkillNavigation::Tick(nullptr);
+	input = {0, 1, true, true};
+	SkillNavigation::Tick(nullptr);
+	Check(selections == 1 && focus.widget == 11, "rocking through a diagonal without releasing cannot cause a second selection");
+	input = {-1, 0, true, true};
+	SkillNavigation::Tick(nullptr);
+	Check(selections == 1 && held, "a direction change in the same held gesture does not repeat navigation");
 	input = {};
 	SkillNavigation::Tick(nullptr);
 	Check(!held && selections == 1, "release restores the stock cursor update");
@@ -91,6 +99,7 @@ int main() {
 	input = {0, -1, true, true};
 	SkillNavigation::Tick(nullptr);
 	Check(focus.widget == 10, "D-pad resumes from the skill reached with the analog cursor");
+	Check(selections == 2, "a deliberate new press after full release remains responsive without a debounce timer");
 	input = {}; SkillNavigation::Tick(nullptr);
 	focus.widget = 11; // stock input moved before the sampled edge
 	input = {0, 1, true, true};

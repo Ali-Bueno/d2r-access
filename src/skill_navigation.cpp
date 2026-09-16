@@ -56,7 +56,9 @@ void Tick(const D2RL::PluginContext* context) {
 		if (contains(focus.widget)) g_selected = focus.widget;
 		return;
 	}
-	if (input.pressed) {
+	// A direction/diagonal transition while still held belongs to the same
+	// physical gesture. Only a full release rearms another grid movement.
+	if (input.pressed && !g_gesture) {
 		const auto next = SkillGrid::Move(nodes, g_selected, input.x, input.y);
 		if (next) {
 			NativeSkillNavigation::HoldCursor(true);

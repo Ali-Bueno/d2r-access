@@ -6,11 +6,12 @@
 
 ## Identity
 
-**UI update (2026-09-15):** native identity fixes silent main-menu actions; value
-controls retain their value reader. Skills now add discrete D-pad selection
-with free stick movement on release. Installed; eighteen suites / 972 checks pass.
-The user has not tested this build yet. Controller Options intentionally has three tabs;
-keyboard bindings are the fourth. `docs/controller-navigation.md`.
+**UI update (2026-09-16):** user reports working skill navigation with apparent
+double movement. Corrected pending native cursor snap on release and held
+direction changes; installed, live recheck pending. Thirteen UI suites / 383
+checks pass. Main-menu native identity/value-reader fixes remain in place.
+Controller Options intentionally has three tabs; keyboard bindings are the fourth.
+`docs/controller-navigation.md`.
 
 - **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, v1.2.1-beta 2026-09-03, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, API v4).
 - **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
@@ -46,7 +47,7 @@ keyboard bindings are the fourth. `docs/controller-navigation.md`.
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | done — user confirmed | Button caption/help/controller legend plus focus-matching rendered help; native location identifies ten equipment slots. Reported scroll control still unidentified. `docs/native-tooltips.md` |
-| Attribute allocation / skill-tree reading | wip — follow-up awaits live controller check | Attributes read name/value/points. Skill descriptions read name first. User confirmed D-pad and stick both moved the cursor freely; new D-pad gestures select real skills and hold the cursor there until release. Class skills use cell names; general/granted skills use native positions. `docs/controller-navigation.md` |
+| Attribute allocation / skill-tree reading | wip — double-movement correction installed | User reports navigation works but D-pad appears to count twice. Clear native held-direction snap plus interpolation, consume release cleanup per cursor, and rearm only after full D-pad release. 39 native gesture + 35 navigation checks pass; live correction pending. Attributes/skill descriptions unchanged. `docs/controller-navigation.md` |
 | Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -126,6 +127,12 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
   the existing render hook supplies their text. Sources and validation:
   `docs/progression.md` (22:27–22:34 controller navigation).
 
+- **Skill cursor release:** `0x234820` starts another snap on the `+0xB0`
+  held-to-released transition; stock `0x2347B0` only resets position/velocity.
+  Clear `+0xB0` and interpolation `+0x68`, including one cleanup update per
+  cursor after release. Complete-function fingerprints already guard these fields.
+  `docs/controller-navigation.md` (23:47 log and 2026-09-16 RE).
+
 - `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
 - User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
@@ -144,9 +151,10 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 ## Next step
 
-UI: verify native cursor-hook startup, one real skill selection/readout per D-pad
-press, free stick movement after release, and Options/Videos/Exit after leaving
-a game. No point spending is needed. Independent radar work continues below.
+UI: verify one skill selection/readout per D-pad press with no extra movement on
+release or direction changes while held; confirm the stick resumes after release.
+Main-menu Options/Videos/Exit still need an explicit check. No point spending is
+needed. Independent radar work continues below.
 
 Validate the installed radar by passing a two-sided junction and returning: each changed side should play, then warn when its wall returns. Use event IDs to distinguish valid cancellation from lost delivery; cancelled valid states can retry. Build/install SHA-256 `A36A81179A0169A57C059C078ABF593E65E06712CB3DC09DC414506B69E51B4C`; `docs/radar-state-delivery.md`. User runs the controller tests; do not mix desktop input. The prior held-up reproduction was real wall sliding (`docs/footsteps.md`); repeated stationary footfall suppression remains unverified. Another agent handles menus; keep commits scoped.
 

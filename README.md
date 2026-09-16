@@ -58,12 +58,14 @@ Character point-allocation buttons now announce **Strength, Dexterity, Vitality
 or Energy**, their current value, remaining points and help in the game's language.
 Allocating a point reads the changed value and remaining count. Skill trees now add
 **D-pad grid navigation**: each press selects one visible skill, skips gaps and stops
-at the boundary. Holding a direction does not drag the cursor or repeat selection;
-release restores free stick movement. Branch tabs are named, and each highlighted
+at the boundary. Holding or changing direction without fully releasing the D-pad
+does not repeat selection. Releasing cancels any pending native cursor snap and
+restores free stick movement. Branch tabs are named, and each highlighted
 skill reads its name first, followed by its displayed description, requirements,
 level, row/column and remaining points. General/item-granted skills use the same
 description reader. No points are spent by the mod. These additions passed
-automated checks; corrected controller speech awaits live confirmation.
+automated checks. The user reported working navigation with apparent double
+movement; the release-snap correction still awaits live controller confirmation.
 See [progression evidence](docs/progression.md) and the
 [controller navigation follow-up](docs/controller-navigation.md).
 Use `access-skill-grid off` to restore stock skill navigation.
