@@ -2,20 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination � 2026-09-16 object filtering
+## Active build coordination - 2026-09-16 navigation research
 
-- **Radar build/deploy complete; ownership released.** Structural object filtering
-  is installed alongside the existing UI/controller work. Game/loader closed.
-- The user rejected the prior surface-tracking build. The new filter preserves
-  full-body corridor barriers and ignores verified bypassable clutter.
-- **25 suites / 1248 checks pass**; controller/listening validation is pending.
+- **No active build owner.** Research PoC compiled and checked in isolation;
+  the plugin's installed object-filtering radar is unchanged.
+- User confirms improvement from object filtering, but still finds it cluttered.
+- **26 suites / 1284 checks pass**, including 36 new navigation-grid checks.
 - Installed/build SHA-256: `DF188862EEAC1511A7D4FBA563A27ED682D8D61725DDD0C8E5F634EC69C18C2C`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (structural object filtering installed after unchanged radar feedback; 25 suites / 1248 checks pass; listening validation pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (user confirms partial radar improvement; navigation research and isolated graph PoC complete; 26 suites / 1284 checks pass; installed audio unchanged). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -51,11 +50,12 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip � object filtering installed | Verified full-body detours remove isolated clutter from automatic geometry. Walls, doors, corridor barriers and enclosed pockets remain. Physical clearance/Ctrl+T preserved. Captured camp post filtered; synthetic clutter route 48 events before / 0 after. `docs/radar-object-filtering.md`; listening validation pending. |
+| Sonar radar | wip - user confirms improvement, still cluttered | Object filtering remains installed. Latest 08:47 session: 120 events, no retries; no full snapshots. Ray-hit changes lack persistent passage identity. `docs/CurrentRadarAnalysis.md`. |
+| Connected navigation research | wip - isolated PoC validated | Direct native collision already provides the source. Full-resolution body graph, reachability, route first steps and clearance pass 36 checks. Historical camp: 380 reachable centres, post retained. No runtime/audio integration. `docs/D2RNavigationResearch.md`. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 813 checks; shared build: 25 suites / 1248 checks. Includes 82 structure checks, 25 surface/camp/replay checks, detours, body gaps, unknown room seams, running returns and rear reopening. |
+| Radar / footstep automated tests | done (local) | 849 checks including 36 isolated navigation checks; shared build: 26 suites / 1284 checks. Offset doors, disconnected regions, native footprints, origin overlap, room seams and captured camp covered. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -168,6 +168,8 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 
 - **Object filtering (2026-09-16):** the 08:26 load generated 87 geometry cues, zero retries; user heard no improvement. A separate structural map now removes bounded wall/object components only after a full-body connectivity proof. Captured camp post is filtered, neighboring wall preserved. Synthetic regression: old engine 48 cues / new engine 0. `docs/radar-object-filtering.md`.
 
+- **Navigation research (2026-09-16):** audited d2mapapi_mod `f61d052`, D2RMH `32d55b8`, MapAssist `6b26303`. Legacy path bytes encode a coarse 5x5 graph with wall-bit seam tests, not exact native body movement. Prefer our existing direct grids; isolated PoC confirms local connectivity. Automap runtime function and full unseen-level coverage remain unproved. `docs/D2RNavigationResearch.md`.
+
 ## Next step
 
 UI: skill descriptions and binding/action hints confirmed by user. On a future
@@ -175,11 +177,11 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Validate the installed object filter while passing furniture, approaching a wall, crossing a side doorway and returning. Ctrl+T keeps physical clearance and records structural distances in the log. The previous surface build failed the user test; no audible success is claimed for this new build yet. User leads controller/listening tests; do not mix desktop input.
+Next radar step: evaluate stable passage/entrance grouping and compare with straight physical clearance. The graph PoC alone is not an antispam sound design. Before audio integration, validate fresh native snapshots in camp, Blood Moor, Den of Evil and room/level transitions. User leads live controller tests; do not mix desktop input. Read both navigation research documents first.
 
 ## Known issues / open questions
 
-- **Radar prototype:** structural object filtering is installed but not yet heard in game. Connected/oversized clutter and unknown detours are retained conservatively; semantic object identities are unavailable. Loaded-room coverage and actor-over-terrain bit ownership remain limitations. Full-body opening checks, fixed directions, surface tracking and original audio timing remain. `docs/radar-object-filtering.md`.
+- **Radar prototype:** user confirms structural object filtering helps but remains cluttered. The navigation-grid PoC is test-only and does not generate audio. Connected/oversized clutter and unknown detours are retained conservatively; semantic object identities are unavailable. Loaded-room coverage and actor-over-terrain bit ownership remain limitations. Full-body opening checks, fixed directions, surface tracking and original audio timing remain. `docs/radar-object-filtering.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

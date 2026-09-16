@@ -30,8 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 25 suites / 1248 checks, including UI navigation.
-  Radar and footsteps account for 813 checks, including 82 structure and 25 surface regressions.
+  Latest shared-workspace run: 26 suites / 1284 checks, including UI navigation.
+  Radar and footsteps account for 849 checks, including 36 isolated navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Experimental sonar: enabled by default, Ctrl+R toggle / Ctrl+T status;
   `access-radar on|off|status|dump|test`. Native map evidence and controller test:
@@ -39,15 +39,17 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Current geometry cues and actor/terrain separation need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar request: ignore furniture as space changes after the user rejected
-  the surface-tracking build. `docs/radar-object-filtering.md`: a separate
-  structural map removes bounded isolated clutter only after a full-body detour
-  proof. Doors, corridor blockers, enclosed pockets and unknown coverage remain.
-  Physical movement clearance and Ctrl+T still detect actual furniture collision.
-  Synthetic route: 48 events with the prior engine, zero with this filter.
-  Captured camp post is now ignored structurally; its neighboring wall remains.
-  Normal build installed; 25 suites pass. Controller/listening validation pending.
-  AHC surface tracking, rear ray and 120 ms cues / 50 ms silence remain.
+- Latest radar request: study `../D2R_Navigation_Radar_Research.md` after the user
+  confirms object filtering helps but remains cluttered. Read
+  `docs/CurrentRadarAnalysis.md` and `docs/D2RNavigationResearch.md` first.
+  The real native collision grids are already available; the missing layer is
+  connected passage interpretation and cue grouping. External Legacy graphs use
+  coarse 5x5 cells and are not exact body navigation. `navigation_grid` is an
+  isolated test-only PoC (36 checks), not connected to runtime or audio.
+  Installed object filtering and its physical clearance guards remain unchanged.
+  Historical camp capture is shared in `tests/camp_grid.h`; no original flags.
+  Next: validate live local connectivity and stable entrances before audio.
+  Keep fixed stick directions, rear ray and 120 ms cues / 50 ms silence.
 - Earlier work improved running cues and collision feedback.
   Controlled desktop checks found and corrected
   fractional-motion artifacts and a displaced player stamp causing false NO_PATH walls.

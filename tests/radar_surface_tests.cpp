@@ -1,5 +1,6 @@
 #include "radar.h"
 #include "test_support.h"
+#include "camp_grid.h"
 #include <cmath>
 #include <string_view>
 
@@ -110,22 +111,7 @@ void AdjacentFacets() {
 	Check(engine.Tick(world, 1400)[3] == State::Open, "a confirmed closure rearms the next opening even without leaving the cell");
 }
 void RecordedCampPost() {
-	// Exact Ctrl+T grid, 2026-09-15 21:06:53, centered at (4472,4622).
-	// '#' stores terrain classification, not the unrecoverable original bits.
-	// Nothing beyond this 25x25 capture is inferred to be open.
-	constexpr std::array<std::string_view, 25> rows{
-		"...........##############", "............#############", "............#############",
-		"...............##########", "...............##########", "............#############",
-		"............###.......###", ".............##........##", "........................#",
-		"........................#", "########.................", "########.................",
-		"............@............", ".........................", ".........................",
-		"####.#...................", "####.#...................", "####.....................",
-		"####.....................", "......#..................", ".........................",
-		".........................", ".........................", ".........................",
-		"........................."};
-	auto world = Field(); world.rooms = {{4460,4610,25,25,std::vector<uint16_t>(625)}};
-	for (size_t y=0; y<rows.size(); ++y) for (size_t x=0; x<rows[y].size(); ++x)
-		world.rooms[0].cells[y*25+x] = rows[y][x] == '#' ? 1 : 0;
+	auto world = RecordedCampGrid();
 	const Position left{-std::sqrt(0.5), std::sqrt(0.5)};
 	world.player = {4473,4621}; const auto post = Scan(world, left, {}, Layer::Terrain);
 	Check(post.clearDepth == 9 && post.hit.x == 4466 && post.hit.y == 4628,

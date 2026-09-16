@@ -5,6 +5,11 @@ still sounded the same and requested ignoring furniture as closed space. This
 extends [surface tracking](radar-surface-tracking.md); that revision did not
 resolve the reported navigation experience.
 
+**User follow-up:** object filtering helps, but the radar still feels cluttered.
+The subsequent [navigation research](D2RNavigationResearch.md) and
+[current radar audit](CurrentRadarAnalysis.md) investigate connected passages.
+Their isolated PoC does not replace this installed audio behavior.
+
 ## Evidence
 
 The latest completed game session loaded at 08:26:42.895 and closed at
