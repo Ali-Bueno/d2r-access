@@ -30,8 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 36 suites / 2302 checks, including UI navigation.
-  Radar and footsteps account for 1587 checks, including 186 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
+  Latest shared-workspace run: 36 suites / 2377 checks, including UI navigation.
+  Radar and footsteps account for 1662 checks, including 261 revisit, 277 contour, 49 snapshot, 75 memory-update, 77 wall-memory, 74 passage, 36 navigation, 82 structure and 25 surface regressions.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Ground items: Ctrl+I toggles proximity speech; Ctrl+L toggles spatial loops;
   `access-items on|off|sound-on|sound-off|status`. Fixed screen axes, rear pitch
@@ -46,18 +46,18 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Current connected passage cues need live validation;
   `docs/kirandur-radar-comparison.md` records original-code findings. Ctrl+T
   now saves the local grid; use it at the exact spot of any failed passage.
-- Latest radar change: the user confirms improvement but short departure/return
-  sometimes fails to repeat the opening. `OpeningVisit` remembers the last
-  announced turn per direction and its proved approach; real return plus fresh
-  body clearance can rearm it without a wall transition. Staying/jitter remains
-  silent; actors and missing coverage can block a reminder. `revisit=1` marks
-  these cues; reference logs retain visit/target/departure state.
-  Read `docs/radar-revisits.md` first. The latest log has 302 complete collision
-  snapshots. A new route on recorded Blood Moor geometry reproduces the old
-  missed return; 186 new checks cover rotated maps, timing, occupancy, reset and
-  queue/retry behavior. Built/installed; controller listening remains user-led.
-  Four recent visits are not a persistent door catalogue. Keep native movement,
-  fixed/rear axes, physical body guards and 120 ms cues / 50 ms silence.
+- Latest radar change: announced approach regions persist within the current
+  session/area. New openings no longer overwrite older ones; pause/missing
+  samples/poll gaps discard live evidence but retain their positions. Re-entry
+  requires fresh native body clearance. Only a clear full-body strip joins
+  approaches into one region, avoiding a second cue at its other edge.
+  Stationary changes are measured from the actual last reported position.
+  Read `docs/radar-opening-memory.md` first. The 12:45 session has 279 complete
+  collision snapshots; two wall/open pairs really pass a corner one native cell
+  apart. This alone does not prove stick intent/sliding. The 261-check revisit
+  suite includes the earlier recorded map plus multiple approaches, region
+  grouping and pause/gap recovery. Built/installed; listening remains user-led.
+  Keep fixed/rear axes, physical guards and 120 ms cues / 50 ms silence.
   No-slide investigation remains in `docs/radar-sliding.md`; no movement hook
   is installed and the live type-17 dispatch/vector behavior is not verified.
 - Earlier work improved running cues and collision feedback.

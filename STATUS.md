@@ -2,21 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Active build coordination - 2026-09-16 ground item audio
+## Active build coordination - 2026-09-16 radar opening memory
 
-- **Active build owner: Codex /root (radar memory).** Ground item speech/spatial loops and the follow-up
-  volume correction are built and installed. Radar sources were not changed.
-- User reported inaudible item loops in the 12:45 test. Raw assets were very quiet;
-  normalize peaks before spatial attenuation and raise near gain. The 13:03 live
-  load confirms all six corrected loops; listening validation remains pending.
-- **36 suites / 2302 checks pass**, including real asset level regressions.
-- Installed/build SHA-256: `9436409F1F68E241F3CB277E86401E1C5D77244FAB6E2177C382B4B5CEBBD3DD`.
+- **Active build owner: none.** Radar memory is built, installed and verified;
+  item follow-up may now take shared build ownership. Ground-item changes from
+  `b873b2c` are included; radar source edits are complete.
+- Multiple announced approach regions survive newer openings and temporary
+  suspension within the same area. Current body clearance remains mandatory.
+  A proved clear connecting strip groups both edges of the same opening.
+- **36 suites / 2377 checks pass**, including 261 revisit checks.
+- Installed/build SHA-256: `3B388E34DA911FD63C5677A2B1661495D0CB3D27471D7DD63528FFEEBAE9ABE4`.
 - One agent owns compilation/deployment at a time. Record ownership here before
   building; other agents pause shared compiled-source edits until handoff.
 
 ---
 
-**Last updated:** 2026-09-16 (ground item speech and normalized spatial loops installed; 36 suites / 2302 checks pass; corrected volume listening pending). Quick guide: `AGENTS.md`.
+**Last updated:** 2026-09-16 (radar opening memory installed with ground-item changes; 36 suites / 2377 checks pass; user-led listening pending). Quick guide: `AGENTS.md`.
 
 ## Identity
 
@@ -52,12 +53,12 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Sonar radar | wip - short return reminders installed; live validation pending | Last announced turn per direction can sound once after leaving/returning without a wall transition. Current full-body approach required; silence at rest retained. Original wall/contour detection remains. `docs/radar-revisits.md`. |
+| Sonar radar | wip - area-scoped opening memory installed; listening pending | Multiple approach regions, clear-strip grouping and pause/gap retention; fresh physical validation on return. Native movement unchanged. `docs/radar-opening-memory.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph now feeds bounded directional passage queries; no backward first route or distant side detour counted as forward. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md`. |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |
 | Radar cue delivery log | done — navigation chains verified live | Each generated direction retains ID/origin through queue, submission, completion or cancellation; event-only AsyncLog writes. 20:58 load: eight complete chains, 0–16 ms submission delay, no device failure. Software delivery does not validate audible clarity. `docs/radar-event-log.md`, `docs/computer-use-radar-check.md` |
-| Radar / footstep automated tests | done (local) | 1587 checks; shared build: 32 suites / 2022 checks. New revisit suite: 186 checks using captured Blood Moor geometry, four rotations/poll intervals, repeated short trips, occupied approaches, back-wall/coverage changes and delivery. |
+| Radar / footstep automated tests | done (local) | 1662 checks; shared build: 36 suites / 2377 checks. Revisit suite: 261 checks covering captured geometry, old/new approaches, joined/separate openings, pause/gap, stationary fluctuations, occupancy and delivery. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
@@ -192,7 +193,7 @@ level-up, verify the native spend-point hint appears; no point spending is neede
 Main-menu Options/Videos/Exit still need an explicit check. Independent radar
 work continues below.
 
-Next radar step: user-led listening comparison of a short departure/return to an announced turn, including a repeated trip and a pause at the turn. Compare revisit=1 events with [radar-reference] visit/target state and automatic [radar-collision] snapshots. The last session decoded to 302 complete maps. Do not mix desktop inputs. Optional no-slide movement still requires live native-path verification; no movement hook is installed. Read `docs/radar-revisits.md` first.
+Next radar step: user-led listening at two different openings in the same direction, returning to the earlier one and repeating after a pause. Check `visits=N` and `revisit=1` against actual movement and collision snapshots. The analyzed 12:45 session has 279 complete maps. Do not mix desktop inputs. Native sliding remains active; no-slide still needs live path verification. Read `docs/radar-opening-memory.md` first.
 
 ## Known issues / open questions
 
@@ -201,7 +202,7 @@ Next radar step: user-led listening comparison of a short departure/return to an
   Equipment speech gives base name and quality, not the complete generated name.
   Only resident room/neighbors are scanned. User-added drop sounds are unused;
   this feature uses the six loop recordings. `docs/ground-items.md`.
-- **Radar prototype:** user confirms contour improvement; short-return reminders are installed and await live listening. Four last-announced turn memories are not a complete door catalogue; each new turn replaces that direction's previous visit. Current approach coverage/occupancy still gate reminders. Larger recesses and contours leaving coverage retain geometric limits. The saved map regression is not the exact whole user trajectory. Native wall sliding remains active; see `docs/radar-revisits.md` and `docs/radar-sliding.md`.
+- **Radar prototype:** improved but user still reports inconsistent memory/wall-to-opening sequences. Area-scoped approach regions are installed; listening validation remains pending. Remembered places require current physical clearance. A real corner can become passable one native cell later; logs alone do not establish stick intent. Larger recesses and missing contours retain geometric limits. Native wall sliding remains active. `docs/radar-opening-memory.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

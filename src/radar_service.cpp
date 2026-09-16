@@ -40,11 +40,12 @@ std::string g_lastReason;
 enum class OpeningHold { None, Physical, Reference, Approach, Confirmation };
 std::array<OpeningHold, Radar::DirectionCount> g_openingHolds{};
 
-void Suspend(const char* reason = "suspended") {
+void Suspend(const char* reason = "suspended", bool retainVisits = false) {
 	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence(reason);
 	g_suspended = true;
 	g_testStep = -1;
-	g_engine.Reset();
+	if (retainVisits) g_engine.Suspend();
+	else g_engine.Reset();
 	g_openingHolds = {};
 }
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
@@ -228,7 +229,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_lastReason = reason;
 	}
 	if (!available) {
-		Suspend(reason.c_str());
+		Suspend(reason.c_str(), true);
 	} else {
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern);
 		g_suspended = false;

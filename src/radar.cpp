@@ -18,6 +18,19 @@ void Engine::Reset() {
 	*this = Engine(settings_);
 	revision_ = nextRevision;
 }
+void Engine::Suspend() {
+	// Pauses, a missing sample and discontinuous movement invalidate live
+	// evidence, not the positions of previously announced turns in this area.
+	for (auto& sensor : sensors_) {
+		auto memory = std::move(sensor.openingVisit);
+		memory.Suspend();
+		sensor = {};
+		sensor.openingVisit = std::move(memory);
+	}
+	motion_.clear(); velocity_ = {}; lastMove_ = 0;
+	positioned_ = false;
+	++revision_;
+}
 void Engine::UpdateMotion(Position player, uint64_t now) {
 	if (!motion_.empty() && (player.x != motion_.back().position.x || player.y != motion_.back().position.y)) lastMove_ = now;
 	if (!motion_.empty() && motion_.back().time == now) motion_.back().position = player;
@@ -48,7 +61,8 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 	const bool rebase = !positioned_ || world.session != session_ || world.level != level_
 		|| now < lastTick_ || now - lastTick_ > settings_.maxGapMs || travel >= settings_.teleportDistance;
 	if (rebase) {
-		Reset();
+		if (world.session == session_ && world.level == level_ && now >= lastTick_) Suspend();
+		else Reset();
 		positioned_ = true;
 		session_ = world.session;
 		level_ = world.level;
@@ -98,7 +112,7 @@ Events Engine::Tick(const World& world, uint64_t now, AudioLoad audio) {
 		events[i] = sensor.passageState.Observe(sensor.passage, opening, now, settings_.stableMs);
 		if (events[i] == State::Open) {
 			if (revisit) sensor.openingVisit.Reported();
-			else sensor.openingVisit.Remember(world.player,Axes[i],sensor.wallMemory.RequiredDepth());
+			else sensor.openingVisit.Remember(world.player,Axes[i],sensor.wallMemory.RequiredDepth(),&structure);
 		}
 		if (events[i] != State::Unknown) sensor.revisitCue = events[i] == State::Open && revisit;
 		if (!sensor.passage.available) {

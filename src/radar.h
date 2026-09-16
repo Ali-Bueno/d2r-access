@@ -125,9 +125,11 @@ private:
 class OpeningVisit {
 public:
 	void Remember(Position player, Position axis, double depth);
+	bool Join(Position player, Position axis, double depth, const World& structure);
 	void Update(Position player, Position axis, const Probe& structure, const Probe& movement,
 		bool aligned, int bodyPattern, uint64_t now, const Settings& settings);
-	void Reported() { departed_ = arriving_ = ready_ = false; }
+	void Reported() { reported_ = observed_; departed_ = arriving_ = ready_ = false; }
+	void Suspend() { arriving_ = ready_ = valid_ = false; }
 	bool Known() const { return known_; }
 	bool Ready() const { return ready_; }
 	bool Valid() const { return valid_; }
@@ -135,9 +137,33 @@ public:
 	Position Point() const { return point_; }
 	Position Target() const { return target_; }
 private:
+	struct Approach { Position point, target; size_t parent = 0; };
+	std::vector<Approach> approaches_;
 	Position point_, target_;
+	Position observed_, reported_; // actual position of this visit, separate from region anchors
 	bool known_ = false, departed_ = false, arriving_ = false, ready_ = false, valid_ = false;
 	uint64_t since_ = 0;
+};
+// Announced approaches in this area. A later turn must not erase an earlier
+// one; each visit still needs current geometry before it can sound again.
+class OpeningMemory {
+public:
+	void Remember(Position player, Position axis, double depth, const World* structure = nullptr);
+	void Update(Position player, Position axis, const Probe& structure, const Probe& movement,
+		bool aligned, int bodyPattern, uint64_t now, const Settings& settings);
+	void Reported();
+	void Suspend();
+	bool Known() const { return !visits_.empty(); }
+	bool Ready() const { return ready_ < visits_.size(); }
+	bool Valid() const { return Known() && visits_[announced_].Valid(); }
+	bool Departed() const { return Known() && visits_[announced_].Departed(); }
+	Position Point() const { return Known() ? visits_[announced_].Point() : Position{}; }
+	Position Target() const { return Known() ? visits_[announced_].Target() : Position{}; }
+	size_t Count() const { return visits_.size(); }
+private:
+	std::vector<OpeningVisit> visits_;
+	size_t announced_ = 0, ready_ = static_cast<size_t>(-1);
+	double radius_ = 0; // derived from the native body pattern on Update
 };
 // A world-space wall reference, independent of the player's current clearance.
 // It gates new opening cues; it never overrides physical movement queries.
@@ -172,7 +198,7 @@ struct Sensor {
 	Passage passage, movementPassage;
 	PassageTracker passageState;
 	WallMemory wallMemory;
-	OpeningVisit openingVisit;
+	OpeningMemory openingVisit;
 	bool newOpening = false;
 	bool revisitCue = false;
 	State lastCue = State::Unknown;
@@ -186,6 +212,7 @@ public:
 	explicit Engine(Settings settings = {}) : settings_(settings) {}
 	Events Tick(const World& world, uint64_t now, AudioLoad audio = {});
 	void Reset();
+	void Suspend(); // discard observations/audio, retain area-scoped approaches
 	const auto& Sensors() const { return sensors_; }
 	uint64_t Revision() const { return revision_; } // cancel pending audio after a rebase
 	Position Velocity() const { return velocity_; }

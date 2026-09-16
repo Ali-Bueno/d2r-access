@@ -156,5 +156,95 @@ void RememberedApproach() {
 	visit.Update(point,axis,unknown,unknown,false,1,1800,settings);
 	Check(!visit.Valid() && !visit.Ready(),"remembered geometry cannot replace missing coverage on a return");
 }
+void MultipleApproaches() {
+	const Position first{100,100}, second{112,100}, axis{0,1};
+	Settings settings;
+	Probe clear; clear.available=true; clear.end=State::Blocked; clear.clearDepth=30;
+	for (int pattern : {0,1,2}) {
+		OpeningMemory memory;
+		uint64_t now=1000;
+		const auto at=[&](Position p, bool aligned=true) {
+			memory.Update(p,axis,clear,clear,aligned,pattern,now+=PollMs,settings);
+		};
+		at(first); memory.Remember(first,axis,20);
+		at(second); memory.Remember(second,axis,8);
+		Check(memory.Count()==2,"announcing another turn in the same direction retains both approach witnesses");
+		at(first);
+		Check(!memory.Ready(),"returning to an older opening starts fresh confirmation");
+		at(first);
+		Check(memory.Ready() && !memory.Valid(),"an older return can become ready without validating audio for the newer distant opening");
+		memory.Reported();
+		Check(memory.Point().x==first.x && memory.Valid(),"the return cue uses the older approach rather than the last newly discovered opening");
+		bool quiet=true;
+		for (int i=0;i<5;++i) { at(first); quiet &= !memory.Ready(); }
+		Check(quiet,"multiple remembered approaches do not echo while standing still");
+		at(second,false); at(second,false);
+		Check(!memory.Ready() && !memory.Valid(),"remembered turns still require a currently usable approach");
+		at(second); at(second); memory.Reported();
+		Check(memory.Point().x==second.x && memory.Count()==2,"repeated round trips select the right retained opening");
+		if (pattern) {
+			at({second.x+1,second.y}); memory.Remember({second.x+1,second.y},axis,8);
+			Check(memory.Count()==2 && memory.Point().x==second.x,"a second observation within the footprint cannot drift or duplicate the remembered anchor");
+		}
+		memory.Suspend();
+		Check(memory.Count()==2 && !memory.Ready() && !memory.Valid(),"suspending preserves places but discards all current clearance evidence");
+	}
 }
-int main() { CapturedShortReturns(); JitterAndBaseline(); ReminderDelivery(); TemporaryCoverageLoss(); BackWallDoesNotEraseVisit(); RememberedApproach(); Passed(); }
+void SuspendedReturns() {
+	for (size_t direction=0;direction<DirectionCount;++direction) for (bool pause : {false,true}) {
+		Walk walk(direction); walk.FirstVisit();
+		(void)walk.At({Mouth.x+4,Mouth.y+4});
+		if (pause) walk.engine.Suspend();
+		Check(walk.At(Mouth,500)==State::Unknown,"a return after suspension or a long poll gap must reacquire physical evidence");
+		Check(walk.At(Mouth)==State::Open && walk.engine.Sensors()[direction].revisitCue,
+			"a same-area pause or polling gap cannot erase the already announced turn");
+		walk.engine.Suspend();
+		bool quiet=true;
+		for (int i=0;i<5;++i) quiet &= walk.At(Mouth)==State::Unknown;
+		Check(quiet,"repeated pause and resume at the same visit stays silent");
+		++walk.world.level;
+		(void)walk.At(Mouth);
+		Check(!walk.engine.Sensors()[direction].openingVisit.Known(),"an area change still clears all old approaches");
+	}
+}
+void ConnectedApproachRegions() {
+	World world; world.bodyPattern=1; world.walkingMask=0x1C09;
+	constexpr int Size=96;
+	world.rooms={{0,0,Size,Size,std::vector<uint16_t>(Size*Size)}};
+	const Position axis{0,1}, first{40,40}, second{52,40}, middle{46,40};
+	Probe clear; clear.available=true; clear.end=State::Blocked; clear.clearDepth=30;
+	Settings settings; uint64_t now=1000;
+	const auto at=[&](OpeningMemory& memory,Position point,bool aligned=true) {
+		memory.Update(point,axis,clear,clear,aligned,1,now+=PollMs,settings);
+	};
+	OpeningMemory memory;
+	at(memory,first); memory.Remember(first,axis,8,&world);
+	at(memory,second); memory.Remember(second,axis,8,&world);
+	Check(memory.Count()==1,"two approaches with a fully clear connecting strip describe one opening region");
+	bool quiet=true;
+	for (int x=51;x>=40;--x) { at(memory,{double(x),40}); quiet &= !memory.Ready(); }
+	Check(quiet,"crossing the same wide opening after its other edge sounded cannot generate a second reminder");
+	at(memory,{46,36}); at(memory,middle); at(memory,middle);
+	Check(memory.Ready(),"leaving the whole known opening region and returning between its anchors recalls it once");
+	memory.Reported();
+	at(memory,middle,false); at(memory,middle,false);
+	Check(!memory.Valid() && !memory.Ready(),"a connected remembered region never overrides currently blocked physical clearance");
+	Probe wall=clear; wall.clearDepth=0;
+	memory.Update(middle,axis,wall,wall,false,1,now+=PollMs,settings);
+	at(memory,middle); at(memory,middle);
+	Check(!memory.Ready(),"stationary geometry changes inside a joined region do not count as leaving its last reported visit");
+	for (uint16_t flags : {uint16_t{1},uint16_t{0x20}}) {
+		// The origin-to-origin path remains clear, but the useful forward
+		// approaches are separated by a wall or unknown cells. Global
+		// connectivity around that strip is insufficient to merge doorways.
+		for (int y=43;y<=50;++y) world.rooms[0].cells[y*Size+46]=flags;
+		OpeningMemory separate;
+		at(separate,first); separate.Remember(first,axis,8,&world);
+		at(separate,second); separate.Remember(second,axis,8,&world);
+		Check(separate.Count()==2,"a wall or unknown coverage between approach strips preserves two separate openings");
+		at(separate,first); at(separate,first);
+		Check(separate.Ready(),"returning to an earlier separate opening still recalls it after a newer one was announced");
+	}
+}
+}
+int main() { CapturedShortReturns(); JitterAndBaseline(); ReminderDelivery(); TemporaryCoverageLoss(); BackWallDoesNotEraseVisit(); RememberedApproach(); MultipleApproaches(); SuspendedReturns(); ConnectedApproachRegions(); Passed(); }

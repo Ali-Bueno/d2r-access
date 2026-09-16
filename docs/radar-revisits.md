@@ -1,5 +1,8 @@
 # Remembering short return visits
 
+The later [opening-region update](radar-opening-memory.md) supersedes the
+single-visit limit and reset behavior described below.
+
 2026-09-16. The user confirms improvement but reports that an opening does not
 always sound again after moving a little away and returning. This update adds
 a remembered visit to the existing wall/contour logic.
