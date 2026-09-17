@@ -111,6 +111,26 @@ void Cycling() {
 	Check(result.index == 0 && result.target.entity.id == 2, "a vanished last target restarts from the nearest");
 }
 
+void DistantExits() {
+	auto world = OpenWorld();
+	Entity stairs{42, Kind::Exit, {500, 500}, "A las Catacumbas", 1234};
+	Entity enemy{42, Kind::Enemy, {500, 500}, "Zombi"};
+	Entity portal{43, Kind::Exit, {500, 500}, "Portal"};
+	for (int x = 0; x < Size; ++x) Block(world, x, 25);
+	const auto targets = Scan(world, {stairs, enemy, portal}, Direction::Down, {});
+	Check(targets.size() == 1 && targets[0].entity.levelExitId == 1234, "fixed level exits cross range and visibility limits while other targets keep their range");
+	Check(Scan(world, {stairs}, Direction::Up, {}).empty(), "distant stairs still obey the requested direction");
+	auto respawned = stairs; respawned.id = 900;
+	Check(SameTarget(stairs, respawned), "a level exit survives unit recreation");
+	Check(!SameTarget(stairs, enemy), "a native enemy id cannot alias a level exit");
+	auto second = stairs; second.levelExitId = 4567;
+	Check(!SameTarget(stairs, second), "separate exits with the same warp class keep distinct identities");
+	Cycler cycler;
+	(void)cycler.Push({{stairs, 10}, {second, 20}}, Direction::Down, 100, {});
+	const auto next = cycler.Push({{respawned, 10}, {second, 20}}, Direction::Down, 200, {});
+	Check(next.target.entity.levelExitId == second.levelExitId, "cycling survives a preset becoming a loaded warp unit");
+}
+
 void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
@@ -143,6 +163,7 @@ int main() {
 	Visibility();
 	Scanning();
 	Cycling();
+	DistantExits();
 	Wording();
 	Passed();
 	return 0;

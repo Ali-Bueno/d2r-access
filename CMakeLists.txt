@@ -62,6 +62,7 @@ add_library(d2r-access SHARED
 	src/entity_radar_service.cpp
 	src/npc_proximity.cpp
 	src/native_entities.cpp
+	src/native_level_exits.cpp
 	src/native_ui.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
@@ -180,7 +181,7 @@ if(BUILD_TESTING)
 	target_include_directories(npc-proximity-tests PRIVATE src)
 	target_compile_features(npc-proximity-tests PRIVATE cxx_std_20)
 	add_test(NAME npc-proximity COMMAND npc-proximity-tests)
-	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(native-entities-tests PRIVATE src)
 	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
@@ -203,6 +204,11 @@ if(BUILD_TESTING)
 	target_compile_features(speech-strings-tests PRIVATE cxx_std_20)
 	add_test(NAME speech-strings COMMAND speech-strings-tests)
 	add_executable(ui-text-tests tests/ui_text_tests.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(native-level-exits-tests tests/native_level_exits_tests.cpp src/native_level_exits.cpp src/native_memory.cpp)
+	target_include_directories(native-level-exits-tests PRIVATE src)
+	target_compile_features(native-level-exits-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-level-exits-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-level-exits COMMAND native-level-exits-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -289,6 +295,7 @@ if(BUILD_TESTING)
 		target_compile_options(tab-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-level-exits-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

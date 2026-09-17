@@ -59,7 +59,8 @@ bool Read(uint32_t player, uint64_t session, GroundItems::Snapshot& result) {
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return supported; }
-bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result) {
+bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits) {
+	Check(!distantExits, "proximity loops never request unloaded exit presets");
 	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity"); result = entities; return readable;
 }
 }

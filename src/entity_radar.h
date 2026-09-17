@@ -20,7 +20,9 @@ struct Entity {
 	Kind kind = Kind::Item;
 	Radar::Position position; // collision subtiles, same frame as World::player
 	std::string name; // already localized by the game's own string tables
+	uint64_t levelExitId = 0; // fixed stairs/level passage: coordinate identity, independent of loaded unit id
 };
+bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {
 	// Distances are collision subtiles. The spoken unit assumes one subtile
 	// per game yard (the velocity unit: walk 6, run 9 subtiles per second, and
@@ -46,7 +48,8 @@ struct Result {
 // Unknown cells never block; only positive wall evidence hides an entity.
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine = Radar::Diagonal);
-// Visible entities inside the sector and range, nearest first (ties by id).
+// Ordinary visible entities within range; fixed level exits bypass range/walls.
+// All targets obey the sector and sort nearest first with stable identity ties.
 std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& entities,
 	Radar::Direction direction, const Settings& settings);
 
@@ -61,6 +64,8 @@ private:
 	bool active_ = false;
 	Radar::Direction direction_ = Radar::Direction::Up;
 	uint32_t lastId_ = 0;
+	Kind lastKind_ = Kind::Item;
+	uint64_t lastExitId_ = 0;
 	uint64_t lastPush_ = 0;
 };
 

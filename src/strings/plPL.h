@@ -95,6 +95,7 @@ inline constexpr Table plPL {
 	.questGoalDone = "Główny cel zadania osiągnięty",
 	.questAlertsEnabled = "Powiadomienia o zadaniach włączone",
 	.questAlertsDisabled = "Powiadomienia o zadaniach wyłączone",
+	.questNoObjective = "Brak opisu celu dla tego zadania",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 };
 

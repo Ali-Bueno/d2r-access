@@ -95,6 +95,7 @@ inline constexpr Table enUS {
 	.questGoalDone = "Quest primary objective achieved",
 	.questAlertsEnabled = "Quest announcements enabled",
 	.questAlertsDisabled = "Quest announcements disabled",
+	.questNoObjective = "No objective text available for this quest",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 };
 

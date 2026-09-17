@@ -133,9 +133,9 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 			}
 		return false;
 	}
-	if (!NativeEntities::Read(state.player, state.session, entities)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, g_target.entity.levelExitId != 0)) return false;
 	for (const auto& entity : entities)
-		if (entity.id == g_target.entity.id && entity.kind == g_target.entity.kind) {
+		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity.position = entity.position;
 			g_target.seenMs = now;
 			return true;

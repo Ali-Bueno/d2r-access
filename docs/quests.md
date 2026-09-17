@@ -2,6 +2,28 @@
 
 How the mod names quests and reads objectives, and what is still open.
 
+## Journal detail reading — 2026-09-16 follow-up
+
+The controller session at 21:44 proved `ShortDescription` / `LongDescription`
+are the correct sources: Den of Evil populated `Den of Evil` / `Kill all the
+monsters in the Den.`. Other selected quest icons had empty detail panes both
+on screen and in memory. Activating Den of Evil's speech populated the separate
+`QuestLogSpeechPanel` with Akara's full narrative.
+
+The QuestButton archetype now associates the shared detail pane with the focused
+quest, waits 150 ms for repopulation, and reads title and current objective once.
+A changed counter/objective on the same quest reads only the change. Previously
+the title repeated after the objective, with a possible bare-label announcement
+during repopulation. Mismatched headings wait for the selected quest's text.
+Empty objectives explicitly say no objective text is available, localized in
+all 13 mod languages. Empty text does not prove completion or non-start, so no
+such status is invented. Actual quest text/counters still come from the game.
+
+No counter is fabricated when the journal shows none. Icon reading no longer
+assumes the ordinary ButtonWidget embedded caption offset; the icon tooltip
+or catalog name suffices. Pure UI tests cover selection changes, stale details,
+live numeric progress, completion text, missing objectives and deduplication.
+
 ## Why the quest tab was silent
 
 Two separate causes, both now fixed:
@@ -35,7 +57,7 @@ across acts I–V). Re-run it after a CASC re-extract, like the other generators
 
 ## Where the text comes from
 
-Nothing is translated by us. The game's own string table holds all of it:
+Quest names and objective text come from the game's own string table:
 
 | key | content |
 |---|---|

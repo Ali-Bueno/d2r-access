@@ -105,7 +105,7 @@ bool Direction(InputDirection::StickPush push, Radar::Direction& direction) {
 // Monsters, NPCs and world objects from the verified unit reader, plus the
 // ground items the proximity service already reads.
 bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities) {
-	if (g_units && !NativeEntities::Read(state.player, state.session, entities)) return false;
+	if (g_units && !NativeEntities::Read(state.player, state.session, entities, true)) return false;
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;
 	for (const auto& item : snapshot.items) {

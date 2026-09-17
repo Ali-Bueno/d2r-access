@@ -57,6 +57,12 @@ inline constexpr size_t Levels = 0x1460, LevelCount = 0x1468, LevelStride = 0x18
 inline constexpr size_t MaxNameBytes = 128, MaxKeyBytes = 32, MaxLevelKeyBytes = LevelWarpKey - LevelNameKey;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 inline constexpr Evidence Checks[] = {
+	{0x3614C0, 653, 0x4C93AE47670794F5ULL}, // complete logical room list and tile rectangles
+	{0x361040, 33, 0x83B622B40F1DA499ULL}, // RoomEx+0x98 preset list
+	{0x99650, 486, 0x07521A67587EBD61ULL}, // preset linked-list traversal and native spawn coordinates
+	{0x4926B0, 211, 0x7D2A65464586F174ULL}, // preset class/type and relative X/Y used for spawning
+	{0x326480, 254, 0xE05CACDF11E4D4A7ULL}, // room tile rectangle -> active subtile rectangle
+	{0x334ED0, 17, 0xB98300209E9E7060ULL}, // five subtiles per tile
 	{0x34B9D0, 45, 0xA892FC2D16626027ULL}, // unit type getter (Unit+0), 6 for null
 	{0x349860, 46, 0x27DC60F1541D2802ULL}, // unit class getter (Unit+4)
 	{0x34A330, 46, 0x7626C6CCA52BFF23ULL}, // unit id getter (Unit+8)

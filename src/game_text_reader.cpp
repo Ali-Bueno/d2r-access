@@ -189,7 +189,10 @@ bool Tick(const D2RL::PluginContext* context) {
 	const bool owns = !active.Empty();
 	if (owns) {
 		// Menu creation may precede initial focus. Wait for the actual option.
-		if (active.surface != Surface::Menu || !active.option.empty()) Speak(context, active, g_reader.Update(active, now), true);
+		if (active.surface != Surface::Menu || !active.option.empty()) {
+			const auto announcement = g_reader.Update(active, now);
+			Speak(context, active, announcement, announcement.interrupt);
+		}
 	} else if (g_ownedFocus) {
 		ScreenReader::Stop();
 		g_reader.Reset();

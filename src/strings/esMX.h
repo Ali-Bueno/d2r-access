@@ -95,6 +95,7 @@ inline constexpr Table esMX {
 	.questGoalDone = "Objetivo principal de misión cumplido",
 	.questAlertsEnabled = "Avisos de misiones activados",
 	.questAlertsDisabled = "Avisos de misiones desactivados",
+	.questNoObjective = "Sin texto de objetivo disponible para esta misión",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 };
 

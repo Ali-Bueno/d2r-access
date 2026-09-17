@@ -10,6 +10,11 @@ int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); 
 size_t Index(Radar::Direction direction) { return static_cast<size_t>(direction); }
 }
 
+bool SameTarget(const Entity& a, const Entity& b) {
+	if (a.kind != b.kind || a.levelExitId != b.levelExitId) return false;
+	return a.levelExitId || a.id == b.id;
+}
+
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {
 	const double dx = to.x - from.x, dy = to.y - from.y;
 	const double length = std::hypot(dx, dy);
@@ -39,13 +44,17 @@ std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& e
 	std::vector<Target> targets;
 	for (const auto& entity : entities) {
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
-		if (!std::isfinite(distance) || distance > settings.range) continue;
+		const bool levelExit = entity.kind == Kind::Exit && entity.levelExitId != 0;
+		if (!std::isfinite(distance) || (!levelExit && distance > settings.range)) continue;
 		if (!InSector(world.player, entity.position, direction, settings.sectorCosine)) continue;
-		if (!LineOfSight(world, world.player, entity.position)) continue;
+		if (!levelExit && !LineOfSight(world, world.player, entity.position)) continue;
 		targets.push_back({entity, distance});
 	}
 	std::sort(targets.begin(), targets.end(), [](const Target& a, const Target& b) {
-		return a.distance != b.distance ? a.distance < b.distance : a.entity.id < b.entity.id;
+		if (a.distance != b.distance) return a.distance < b.distance;
+		if (a.entity.kind != b.entity.kind) return a.entity.kind < b.entity.kind;
+		if (a.entity.levelExitId != b.entity.levelExitId) return a.entity.levelExitId < b.entity.levelExitId;
+		return a.entity.id < b.entity.id;
 	});
 	return targets;
 }
@@ -61,7 +70,10 @@ Result Cycler::Push(const std::vector<Target>& targets, Radar::Direction directi
 	size_t index = 0;
 	if (continuing) {
 		const auto previous = std::find_if(targets.begin(), targets.end(),
-			[this](const Target& target) { return target.entity.id == lastId_; });
+			[this](const Target& target) {
+				return target.entity.kind == lastKind_ && target.entity.levelExitId == lastExitId_
+					&& (lastExitId_ || target.entity.id == lastId_);
+			});
 		if (previous != targets.end()) index = (static_cast<size_t>(previous - targets.begin()) + 1) % targets.size();
 	}
 	result.found = true;
@@ -69,6 +81,8 @@ Result Cycler::Push(const std::vector<Target>& targets, Radar::Direction directi
 	result.target = targets[index];
 	active_ = true;
 	lastId_ = result.target.entity.id;
+	lastKind_ = result.target.entity.kind;
+	lastExitId_ = result.target.entity.levelExitId;
 	return result;
 }
 

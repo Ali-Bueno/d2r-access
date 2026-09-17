@@ -9,7 +9,9 @@
 // native name resolver is never called because it allocates.
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext* context);
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output);
+// Distant presets are opt-in for the directional scan/beacon. Proximity speech
+// and spatial loops keep the nearby, live-unit-only snapshot.
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false);
 // Factored for tests over constructed native memory.
-bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output);
+bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false);
 }

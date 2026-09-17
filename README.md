@@ -187,13 +187,17 @@ entity scan names it after its destination. **Ctrl+P** toggles the exit loops;
 The user confirms that the ground-item loops are audible. The quieter level and landing-only
 start await a follow-up listening check.
 
-**Target guidance (built; live validation pending):** scan a nearby entity with
+**Target guidance (built; live validation pending):** scan an entity with
 the right stick, then click the stick or press **Ctrl+B** to follow it with
-directional pings. Repeat to cancel. This also works with a scanned exit, but
-does not discover exits in unloaded areas. See [target guidance](docs/beacon.md).
+directional pings. Repeat to cancel. Fixed stairs and level passages can be
+scanned beyond ordinary range and through walls, including inactive rooms whose
+exit presets the game retains. Never-generated positions remain unknown. See
+[distant exits](docs/distant-exits.md) and [target guidance](docs/beacon.md).
 
 **Quests (built; live validation pending):** quest buttons have names from the
-game's string tables. Automatic alerts announce journal updates and primary
+game's string tables. Selecting a quest reads its current objective; changing
+progress reads only updated text, including counters supplied by the game.
+Empty detail panes are explicitly reported. Automatic alerts announce journal updates and primary
 quest objectives achieved, without opening the journal. When updated objective
 text is available and identifiable, the reader speaks the quest and objective;
 otherwise it says that the journal was updated. Announcements wait for dialogue

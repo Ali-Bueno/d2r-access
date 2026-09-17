@@ -95,6 +95,7 @@ inline constexpr Table frFR {
 	.questGoalDone = "Objectif principal d’une quête atteint",
 	.questAlertsEnabled = "Annonces de quêtes activées",
 	.questAlertsDisabled = "Annonces de quêtes désactivées",
+	.questNoObjective = "Aucun texte d’objectif disponible pour cette quête",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 };
 

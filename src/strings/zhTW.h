@@ -95,6 +95,7 @@ inline constexpr Table zhTW {
 	.questGoalDone = "已達成任務的主要目標",
 	.questAlertsEnabled = "任務通知已啟用",
 	.questAlertsDisabled = "任務通知已停用",
+	.questNoObjective = "此任務暫無目標說明",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 };
 

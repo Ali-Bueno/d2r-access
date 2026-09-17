@@ -95,6 +95,7 @@ inline constexpr Table itIT {
 	.questGoalDone = "Obiettivo principale di una missione raggiunto",
 	.questAlertsEnabled = "Annunci delle missioni attivati",
 	.questAlertsDisabled = "Annunci delle missioni disattivati",
+	.questNoObjective = "Nessun testo dell’obiettivo disponibile per questa missione",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
 };
 

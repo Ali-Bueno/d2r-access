@@ -102,5 +102,34 @@ int main() {
 	reader.Reset();
 	Check(reader.Update(item, 2100, 20).text.empty(), "coordinate-only selection allows one poll for item capture");
 	Check(reader.Update(item, 2119, 20).text.empty() && reader.Update(item, 2120, 20).text == "Inventario. Poción", "short inventory settle has an explicit latency bound");
+	Snapshot journal{30, 31, "QuestLogPanelExpansion", Surface::Menu, {
+		{30, -1, Kind::Other, "Root", "QuestLogPanel", ""},
+		{31, 0, Kind::QuestButton, "Quest0", "QuestLogButtonWidget", "Guarida del mal"},
+		{32, 0, Kind::Text, "ShortDescription", "TextBoxWidget", "Guarida del mal"},
+		{33, 0, Kind::Text, "LongDescription", "TextBoxWidget", "Mata a todos los monstruos."},
+		{34, 0, Kind::QuestButton, "Quest1", "QuestLogButtonWidget", "Cementerio"},
+	}};
+	reader.Reset();
+	readout = Describe(journal);
+	Check(readout.body == "Guarida del mal" && readout.option == "Mata a todos los monstruos.", "quest title and current objective are associated without duplicate titles");
+	Check(reader.Update(readout, 3000).text.empty() && reader.Update(readout, 3149).text.empty(), "journal waits for the dependent detail pane");
+	Check(reader.Update(readout, 3150).text == "Guarida del mal. Mata a todos los monstruos.", "quest description is read with its title once");
+	journal.nodes[3].text = "Monstruos restantes: 3";
+	readout = Describe(journal);
+	(void)reader.Update(readout, 3200);
+	const auto progress = reader.Update(readout, 3350);
+	Check(progress.text == "Monstruos restantes: 3" && !progress.interrupt, "same quest progress reads the live counter without repeating its title or interrupting");
+	Check(reader.Update(readout, 4000).text.empty(), "unchanged quest progress remains quiet");
+	journal.focus = 34;
+	readout = Describe(journal);
+	Check(readout.body == "Cementerio" && readout.option.empty(), "new focus retains ownership but never reads the previous quest objective");
+	journal.nodes[2].text.clear(); journal.nodes[3].text.clear();
+	readout = Describe(journal);
+	(void)reader.Update(readout, 4100);
+	Check(reader.Update(readout, 4250).text == std::string("Cementerio. ") + Strings::Current().questNoObjective, "a blank journal objective is explicitly reported without inventing progress");
+	journal.nodes[2].text = "Cementerio"; journal.nodes[3].text = "Misión completada";
+	readout = Describe(journal);
+	(void)reader.Update(readout, 4300);
+	Check(reader.Update(readout, 4450).text == "Misión completada", "game completion text is read as current progress");
 	Passed();
 }

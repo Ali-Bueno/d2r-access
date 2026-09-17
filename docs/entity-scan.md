@@ -13,13 +13,16 @@ automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`.
   use (`Radar::Axes`): up = screen up = world (-X,-Y), and so on. Each
   direction owns a 90-degree sector centred on its axis; a target exactly on a
   diagonal belongs to both neighbouring sectors.
-- Candidates must be inside `Settings::range` (collision subtiles) and have a
+- Ordinary candidates must be inside `Settings::range` (collision subtiles) and have a
   clear terrain-layer line of sight from the player's cell centre. The ray is
   sampled every half subtile; other actors never block (the sonar's
   `TerrainCollisionFlags` strips them), the target's own collision cell is
   ignored, and unknown cells are transparent. Only positive wall evidence hides
   an entity, so a closed door counts as a wall.
-- Nearest first, ties by unit id. `Cycler` keeps the last spoken unit id: a
+- Fixed stairs/level passages bypass range and line of sight. Existing presets
+  in the current level's inactive rooms can supply their positions/destinations;
+  unknown preset data stays unknown. [Distant exit coverage](distant-exits.md).
+- Nearest first, ties by kind and stable identity. `Cycler` keeps the last target: a
   second push in the same direction within `cycleTimeoutMs` (5 s) rescans and
   continues after that id, wrapping to the first. A push in another direction,
   a timeout or an empty result restarts from the nearest.

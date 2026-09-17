@@ -95,6 +95,7 @@ inline constexpr Table koKR {
 	.questGoalDone = "퀘스트의 주요 목표를 달성했습니다",
 	.questAlertsEnabled = "퀘스트 알림 켜짐",
 	.questAlertsDisabled = "퀘스트 알림 꺼짐",
+	.questNoObjective = "이 퀘스트에는 표시할 목표 내용이 없습니다",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 };
 

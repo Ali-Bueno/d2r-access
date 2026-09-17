@@ -95,6 +95,7 @@ inline constexpr Table jaJP {
 	.questGoalDone = "クエストの主な目標を達成しました",
 	.questAlertsEnabled = "クエスト通知を有効にしました",
 	.questAlertsDisabled = "クエスト通知を無効にしました",
+	.questNoObjective = "このクエストの目標テキストはありません",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 };
 

@@ -29,6 +29,7 @@ struct Snapshot {
 struct Readout {
 	std::string context, body, option, focusKey;
 	Surface surface = Surface::Other;
+	uint64_t contentSettleMs = 0; // dependent detail panes populate after focus moves
 	bool operator==(const Readout&) const = default;
 	bool Empty() const { return body.empty() && option.empty(); }
 };

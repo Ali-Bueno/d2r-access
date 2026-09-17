@@ -2,6 +2,7 @@
 #include "entity_layout.h"
 #include "ground_item_layout.h"
 #include "native_ground_items.h"
+#include "native_level_exits.h"
 #include "native_memory.h"
 #include "localization.h"
 #include "speech_strings.h"
@@ -118,6 +119,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
 	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
+	if (openWarp) entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t data = 0;
 	if (door) entity.name = UiText::Clean(Localization::Text(mode == ObjectOpened ? DoorOpenText : DoorClosedText));
 	if (subClass & SubClassShrine) {
@@ -153,6 +155,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	uint32_t noInteract = 0;
 	if (!row || !Peek(node + WarpNodeActive, active) || !active || !Peek(row + LvlWarpNoInteract, noInteract) || noInteract) return false;
 	entity.kind = EntityRadar::Kind::Exit;
+	entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t destination = 0, level = 0;
 	uint32_t levelId = 0;
 	if (Peek(node + WarpNodeDestination, destination) && destination && Peek(destination + ExtendedLevel, level) && level
@@ -180,7 +183,8 @@ bool Initialize(const D2RL::PluginContext* context) {
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits) {
+	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
 	uintptr_t path = 0, room = 0;
@@ -219,12 +223,22 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (!Peek(unit + UnitNext, unit)) return false;
 		}
 	}
+	// Permanent level transitions may outlive their loaded warp units. Read
+	// the existing presets across this level, then merge by exact position.
+	std::vector<NativeLevelExits::Exit> exits;
+	if (distantExits && NativeLevelExits::Read(room, exits)) for (const auto& exit : exits) {
+		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
+			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position)};
+		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
+			entities.push_back(std::move(entity));
+	}
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits);
 }
 }

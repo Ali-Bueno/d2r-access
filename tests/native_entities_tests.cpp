@@ -1,5 +1,6 @@
 #include "native_entities.h"
 #include "entity_layout.h"
+#include "level_exit_layout.h"
 #include "ground_item_layout.h"
 #include "localization.h"
 #include "speech_strings.h"
@@ -45,7 +46,8 @@ struct Fixture {
 	Memory<PathSize> playerPath, npcPath, enemyPath, chestPath, doorPath, shrinePath, npcData, enemyData, shrineData, shrineRecord;
 	Memory<PathSize> warpPath, walkWarpPath, portalPath, waypointPath, lairPath, portalData;
 	Memory<RoomSize> room, otherRoom;
-	Memory<0x100> roomEx, destRoomEx, destLevel;
+	Memory<0x100> roomEx, destRoomEx;
+	Memory<0x200> destLevel; // includes LevelId at +0x1F8
 	Memory<0x40> warpNode, walkNode;
 	Memory<0x60 * 2> lvlWarps; // row 0: Id 3 to the Cold Plains; row 1: Id 7, NoInteract (a trapdoor's tile)
 	Memory<LevelStride * 3> levels; // row 1: Cold Plains; row 2: Duriel's Lair
@@ -200,6 +202,29 @@ int main() {
 	Check(!NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 41, 7, entities), "another player id is refused");
 	f.enemy.At(GroundItemLayout::UnitNext, f.enemy.Address());
 	Check(!f.Read(entities), "a unit list cycle fails instead of looping");
+	Fixture distant;
+	Memory<0x200> sourceLevel;
+	Memory<0x100> farRoom;
+	Memory<0x30> preset;
+	using namespace LevelExitLayout;
+	sourceLevel.At<uint32_t>(LevelId, 9); sourceLevel.At(LevelFirstRoom, distant.roomEx.Address());
+	distant.roomEx.At(ExtendedLevel, sourceLevel.Address()); distant.roomEx.At(RoomNext, farRoom.Address());
+	farRoom.At(ExtendedLevel, sourceLevel.Address()); farRoom.At(RoomPresets, preset.Address());
+	farRoom.At(RoomWarpNodes, distant.warpNode.Address());
+	for (auto* room : {&distant.roomEx, &farRoom}) {
+		room->At<int>(RoomTileX, 20); room->At<int>(RoomTileY, 20);
+		room->At<int>(RoomTileWidth, 8); room->At<int>(RoomTileHeight, 8);
+	}
+	farRoom.At<int>(RoomTileX, 100); farRoom.At<int>(RoomTileY, 200);
+	preset.At<uint32_t>(PresetType, WarpType); preset.At<uint32_t>(PresetClass, 3);
+	preset.At<int>(PresetX, 20); preset.At<int>(PresetY, 0);
+	Check(distant.Read(entities) && entities.size() == 9, "proximity and loop readers retain only native nearby units");
+	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
+		&& entities.size() == 10 && entities.back().name == "A las Llanuras Frías" && entities.back().levelExitId,
+		"directional scan opts into named distant preset exits");
+	farRoom.At<int>(RoomTileX, 20); farRoom.At<int>(RoomTileY, 20);
+	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
+		&& entities.size() == 9, "loaded warp and same-position preset merge into one target");
 	Passed();
 	return 0;
 }

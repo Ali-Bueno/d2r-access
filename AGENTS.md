@@ -30,11 +30,13 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 37 suites / 9266 checks, including quest announcements.
+  Latest shared-workspace run: 38 suites / 9353 checks, including journal details and distant exits.
   Item volume/landing follow-up: 5 affected suites / 341 checks pass.
   Radar suites account for 1439 checks (engine, passage, structure, snapshot, audio, readout) against the 2026-09-16 confirm-by-travel engine.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
 - Quest announcements: enabled by default; `access-quests on|off|status`.
+  Journal selection reads current objective/progress without a duplicated title;
+  empty detail panes explicitly report missing objective text in all 13 locales.
   Update/primary-goal events speak even if journal text is absent. Identified
   objective changes speak their current text; dialogue/UI defer speech.
   `[quest]` logs, `docs/quests.md`; live NVDA check pending.
@@ -51,6 +53,10 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   `access-scan on|off|status|up|left|right|down|range <subtiles>`; log `[scan]`.
   Sources: monsters/NPCs/objects (`native_entities.cpp`, `docs/entity-units-re.md`)
   and ground items. `docs/entity-scan.md`.
+  Fixed stairs/level passages also use existing logical-room presets and bypass
+  ordinary range/walls; stable identity survives unit unloading. Never-generated
+  positions remain unknown. Only scan/beacon request distant presets, not ambient
+  loops or NPC proximity. `docs/distant-exits.md`.
 - Sonar radar (2026-09-16 redesign): enabled by default, Ctrl+R toggle / Ctrl+T
   status; `access-radar on|off|status|dump|test`. Still the **four** left-stick
   screen cardinals (up/left/right/down) with the original tin/tock sound

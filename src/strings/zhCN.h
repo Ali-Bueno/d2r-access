@@ -95,6 +95,7 @@ inline constexpr Table zhCN {
 	.questGoalDone = "已达成任务的主要目标",
 	.questAlertsEnabled = "任务通知已开启",
 	.questAlertsDisabled = "任务通知已关闭",
+	.questNoObjective = "此任务暂无目标说明",
 	.itemQualities = {"", "劣质", "", "精良", "魔法", "套装", "稀有", "暗金", "合成"},
 };
 

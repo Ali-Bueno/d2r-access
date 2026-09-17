@@ -199,6 +199,16 @@ int main() {
 	Settle();
 	Check(stops > beforeDisable && interactionTicks == disabledTicks, "disabling text stops inventory speech and polling");
 	inventoryOwns = false; GameTextReader::SetEnabled(true); Settle();
+	panels = {{90, 91, "QuestLogPanelExpansion", UiText::Surface::Menu, {
+		{90, -1, UiText::Kind::Other, "Root", "QuestLogPanel", ""},
+		{91, 0, UiText::Kind::QuestButton, "Quest0", "QuestLogButtonWidget", "Den of Evil"},
+		{92, 0, UiText::Kind::Text, "ShortDescription", "TextBoxWidget", "Den of Evil"},
+		{93, 0, UiText::Kind::Text, "LongDescription", "TextBoxWidget", "Monsters left: 3"},
+	}}};
+	focus = {90, 91}; speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Den of Evil. Monsters left: 3", "quest selection speaks complete current details through the normal UI pipeline");
+	panels[0].nodes[3].text = "Monsters left: 2"; speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 2" && !speech.back().interrupt, "journal progress reaches the speech sink without interruption or repeated title");
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

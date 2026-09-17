@@ -95,6 +95,7 @@ inline constexpr Table deDE {
 	.questGoalDone = "Hauptziel einer Quest erreicht",
 	.questAlertsEnabled = "Questansagen aktiviert",
 	.questAlertsDisabled = "Questansagen deaktiviert",
+	.questNoObjective = "Für diese Quest ist kein Zieltext verfügbar",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 };
 

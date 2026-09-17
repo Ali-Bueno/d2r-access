@@ -1,5 +1,10 @@
 # Target beacon (2026-09-16)
 
+Follow-up: the scan also offers distant fixed level exits from existing logical
+room presets, with stable identity across unit unloading. See [distant exits](distant-exits.md)
+for coverage. Older nearby-only limitations below describe the initial scan;
+complete unexplored routing remains unavailable.
+
 Lets a blind player walk to a specific thing instead of only sensing walls
 around them. The directional entity scan (`docs/entity-scan.md`) names
 whatever the right stick points at; a right-stick click, or **Ctrl+B**, locks
@@ -92,26 +97,21 @@ releases it on its own.
 
 ## Limits
 
-- Only what the entity scan can currently see is lockable: the scan reads the
-  player's resident room and its loaded neighbours, about 150 subtiles
-  (`SnapshotRadius` in `native_world.cpp`). Nothing outside the loaded rooms
-  can be offered, so an unexplored exit cannot be locked from across the map.
-- Enumerating exits across a whole, not-yet-loaded level needs the logical
-  room list (`Level+0x10 -> RoomEx+0x48`) and the room rectangles at
-  `RoomEx+0x60..0x6C`. Both are identified by native call site (`0x3614C0`,
-  `docs/sonar-radar.md`) but have no byte-level fingerprint yet, so the
-  beacon does not read them.
+- Ordinary targets come from nearby loaded units. Fixed level exits additionally
+  use the current level's logical-room presets, with no range/visibility cutoff.
+  Their room list, rectangles and presets now have whole-function guards.
+  Rooms with no generated preset data remain unknown; see [coverage](distant-exits.md).
 - The route is only as good as the collision copied into the search box: an
   unloaded or unknown cell is never routed through, so a target behind
   unloaded terrain falls back to heading for the nearest reachable cell.
-- Unit-id reuse after death is unverified: `Refresh` matches purely by id
-  (and kind, for non-items), with no check against a recycled id.
+- Ordinary unit-id reuse after death remains unverified. Fixed level exits use
+  coordinate identity, including when represented by an unloaded-room preset.
 
 ## Next steps
 
 - Live listening pass with a controller and NVDA: lock, route confirmation,
   ping cadence and stereo placement, corner-turning behaviour.
-- Whole-level exit enumeration once the room-list/rectangle fingerprints
-  above exist.
+- Validate distant exit coverage in multiple dungeons, including rooms whose
+  presets have not yet been generated.
 - Optionally, a way to ask for the remaining distance/route length on demand
   instead of only inferring it from ping cadence.

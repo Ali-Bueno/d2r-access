@@ -109,6 +109,27 @@ Readout Describe(const Snapshot& snapshot) {
 		}
 	}
 	if (snapshot.surface == Surface::Other) return result;
+	if (focus >= 0 && snapshot.nodes[static_cast<size_t>(focus)].kind == Kind::QuestButton) {
+		// Quest icons share one detail pane. The game clears/repopulates it after
+		// moving focus; never attach the previous quest's objective to the new icon.
+		std::string title, objective;
+		for (const auto& node : snapshot.nodes) {
+			if (node.kind != Kind::Text) continue;
+			if (node.name == "ShortDescription") title = Clean(node.text);
+			else if (node.name == "LongDescription") objective = Clean(node.text);
+		}
+		if (result.option.empty()) return result;
+		if ((!title.empty() && title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) || (title.empty() && !objective.empty())) {
+			result.body = result.option; // retain ownership while the detail pane catches up
+			result.option.clear();
+			return result;
+		}
+		result.body = result.option;
+		result.option = objective.empty() ? Strings::Current().questNoObjective : std::move(objective);
+		// Live controller navigation takes ~150 ms to settle the shared pane.
+		result.contentSettleMs = 150;
+		return result;
+	}
 	std::vector<std::string> seen;
 	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
 		const Node& node = snapshot.nodes[i];
@@ -132,9 +153,10 @@ Readout Describe(const Snapshot& snapshot) {
 
 Announcement Reader::Update(const Readout& readout, uint64_t now, uint64_t settleMs) {
 	if (readout.Empty()) { pending_ = false; return {}; }
+	settleMs = std::max(settleMs, readout.contentSettleMs);
 	// Existing menu rows already have complete labels. Moving between them
 	// needs no population delay; new contexts and recycled text still settle.
-	if (!spoken_.Empty() && readout.surface == Surface::Menu && readout.context == spoken_.context
+	if (!readout.contentSettleMs && !spoken_.Empty() && readout.surface == Surface::Menu && readout.context == spoken_.context
 		&& readout.body == spoken_.body && !readout.option.empty() && readout.focusKey != spoken_.focusKey) settleMs = 0;
 	if (!pending_ || readout != candidate_) {
 		candidate_ = readout;
@@ -146,8 +168,9 @@ Announcement Reader::Update(const Readout& readout, uint64_t now, uint64_t settl
 	std::string phrase;
 	if (contextChanged) Append(phrase, readout.body);
 	if (contextChanged || readout.option != spoken_.option || readout.focusKey != spoken_.focusKey) Append(phrase, readout.option);
+	const bool interrupt = !readout.contentSettleMs || contextChanged || readout.focusKey != spoken_.focusKey;
 	spoken_ = readout;
-	return { std::move(phrase), true };
+	return { std::move(phrase), interrupt };
 }
 
 void Reader::Reset() {

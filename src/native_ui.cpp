@@ -122,8 +122,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 		// A quest button is an icon with no caption, so the reader would land on a
 		// nameless control. Its own strings come first when the game fills them;
 		// otherwise the quest it stands for is named from the game's string table.
-		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
-		if (node.text.empty()) node.text = NativeWidgets::ReadText(widget);
+		node.text = NativeWidgets::ReadText(widget);
 		if (node.text.empty()) {
 			const auto resolve = [](std::string_view key) { return Localization::Text(key); };
 			if (const auto* quest = QuestLog::ForWidget(node.name)) node.text = QuestLog::Title(*quest, resolve);

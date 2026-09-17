@@ -95,6 +95,7 @@ inline constexpr Table ptBR {
 	.questGoalDone = "Objetivo principal de missão cumprido",
 	.questAlertsEnabled = "Avisos de missões ativados",
 	.questAlertsDisabled = "Avisos de missões desativados",
+	.questNoObjective = "Nenhum texto de objetivo disponível para esta missão",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 };
 

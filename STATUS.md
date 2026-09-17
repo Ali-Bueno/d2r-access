@@ -2,6 +2,33 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Journal details and distant stairs installed — 2026-09-16
+
+Quest selection now reads one title with its current objective, waits for the
+shared detail pane to populate, suppresses stale text from another selection,
+and speaks same-quest progress/counters without repeating the title or interrupting.
+Blank objectives explicitly report missing text in all 13 mod locales. The live
+21:44 controller session confirmed Den of Evil's title/objective and Akara's
+narrative; the other selected quest detail panes were actually empty on screen.
+Current counters come from the game, never inferred from the catalog.
+
+Fixed stairs/level passages bypass the scan's range and walls. A read-only
+logical-room/preset walk adds inactive-room exits with known destinations.
+Coordinate identity preserves cycling/beacon locks across unit recreation.
+Ordinary targets and proximity loops keep their previous range. Six new full
+native-function fingerprints guard the layout. Never-generated preset data is
+still unknown; guidance still uses local collision, not a complete unexplored
+route. `docs/distant-exits.md`, `docs/quests.md`.
+
+Build/deploy succeeds, **38/38 CTest suites / 9353 checks pass**. New native-exit
+suite covers 22 checks; scan, native entity, UI, reader integration and loop
+regressions also pass. No new dependency or game/config modification.
+Build/install SHA-256:
+`02D09EA88FE150C2E889D566DF8B646ADEB9FBB020619020D139EC07D4500007`.
+User-led controller/NVDA check of this build and dungeon exit coverage pending.
+Startup at 22:08:39 confirms `[scan] Verified native monster/object/exit reader`:
+all original and six new native guards pass in the running installed game.
+
 ## Automatic quest announcements installed - 2026-09-16
 
 Enabled by default; `access-quests on|off|status`. UI quest alerts now speak a
@@ -146,9 +173,9 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Section / feature | Status | Notes |
 |---|---|---|
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
-| Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon messages and quest announcements implemented; 5724 checks pass. |
-| Quest log / automatic quest tracking | built and installed - live check pending; full objective coverage limited | 27-quest catalog, generic update/primary-goal alerts and identified live objective changes. Missing or stale panels use a generic notice. No guessed completion row/name mapping. `docs/quests.md` |
-| Target beacon guidance | built and installed - live check pending | Scan then right-stick click / Ctrl+B wiring and route tracker present; 884 isolated checks pass. Whole-level unloaded exit discovery remains unimplemented. `docs/beacon.md` |
+| Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
+| Quest log / automatic quest tracking | built and installed; detail sources confirmed live, new readout pending listening | Current objective/counter attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
+| Target beacon guidance | distant exits built and installed; dungeon validation pending | Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
@@ -296,6 +323,13 @@ match the decrypted executable and live runtime. Full table/layout provenance,
 localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
+
+With the new build, select Den of Evil and confirm one title/objective utterance;
+other blank quests should explicitly report no objective text. A visible counter
+change should read only the counter. Scan known stairs from over 15 subtiles,
+including behind a wall, then click the right stick / Ctrl+B and verify guidance.
+Confirm native `[scan] Verified` startup and check `[scan]` / `[beacon]` logs in
+multi-floor dungeons. No game-control input during the user's test.
 
 Validate automatic quest alerts with NVDA while the journal is closed: expect
 one update notice, and a main-objective notice after the related dialogue closes.
