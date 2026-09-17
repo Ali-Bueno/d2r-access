@@ -11,6 +11,10 @@ void Append(std::string& result, std::string_view part) {
 	result += part;
 }
 
+// The quest panel's own static heading, beside the ShortDescription /
+// LongDescription detail boxes (game-data/index/QuestLogPanel*.json.index.json).
+constexpr std::string_view QuestPanelHeading = "Title";
+
 bool Interactive(Kind kind) {
 	return kind == Kind::Button || kind == Kind::StatButton || kind == Kind::TabButton
 		|| kind == Kind::ListItem || kind == Kind::List || kind == Kind::Focusable
@@ -23,6 +27,18 @@ bool Under(const Snapshot& snapshot, size_t index, int ancestor) {
 		const int parent = snapshot.nodes[static_cast<size_t>(current)].parent;
 		if (parent >= current) break; // malformed snapshot, including cycles
 		current = parent;
+	}
+	return false;
+}
+
+// Text that hangs under a button or list row belongs to that control, never to
+// the surface's own body.
+bool InsideControl(const Snapshot& snapshot, size_t index) {
+	for (int parent = snapshot.nodes[index].parent; parent >= 0 && parent < static_cast<int>(index);) {
+		if (Interactive(snapshot.nodes[static_cast<size_t>(parent)].kind)) return true;
+		const int next = snapshot.nodes[static_cast<size_t>(parent)].parent;
+		if (next >= parent) break; // malformed snapshot, including cycles
+		parent = next;
 	}
 	return false;
 }
@@ -112,11 +128,21 @@ Readout Describe(const Snapshot& snapshot) {
 	if (focus >= 0 && snapshot.nodes[static_cast<size_t>(focus)].kind == Kind::QuestButton) {
 		// Quest icons share one detail pane. The game clears/repopulates it after
 		// moving focus; never attach the previous quest's objective to the new icon.
-		std::string title, objective;
-		for (const auto& node : snapshot.nodes) {
+		std::string title, objective, progress;
+		std::vector<std::string> seenDetail;
+		for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
+			const Node& node = snapshot.nodes[i];
 			if (node.kind != Kind::Text) continue;
-			if (node.name == "ShortDescription") title = Clean(node.text);
-			else if (node.name == "LongDescription") objective = Clean(node.text);
+			if (node.name == "ShortDescription") { title = Clean(node.text); continue; }
+			if (node.name == "LongDescription") { objective = Clean(node.text); continue; }
+			// Whatever else the pane carries, in screen order: a live progress
+			// counter would reach speech through here. The panel's static
+			// heading and the other quest icons' labels stay out.
+			if (node.name == QuestPanelHeading || InsideControl(snapshot, i)) continue;
+			const auto text = Clean(node.text);
+			if (text.empty() || std::find(seenDetail.begin(), seenDetail.end(), text) != seenDetail.end()) continue;
+			seenDetail.push_back(text);
+			Append(progress, text);
 		}
 		if (result.option.empty()) return result;
 		if ((!title.empty() && title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) || (title.empty() && !objective.empty())) {
@@ -126,6 +152,7 @@ Readout Describe(const Snapshot& snapshot) {
 		}
 		result.body = result.option;
 		result.option = objective.empty() ? Strings::Current().questNoObjective : std::move(objective);
+		Append(result.option, progress);
 		// Live controller navigation takes ~150 ms to settle the shared pane.
 		result.contentSettleMs = 150;
 		return result;
@@ -134,14 +161,7 @@ Readout Describe(const Snapshot& snapshot) {
 	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
 		const Node& node = snapshot.nodes[i];
 		if (node.kind != Kind::Text && node.kind != Kind::LinkedText) continue;
-		bool inControl = false;
-		for (int parent = node.parent; parent >= 0 && parent < static_cast<int>(i);) {
-			if (Interactive(snapshot.nodes[static_cast<size_t>(parent)].kind)) { inControl = true; break; }
-			const int next = snapshot.nodes[static_cast<size_t>(parent)].parent;
-			if (next >= parent) break;
-			parent = next;
-		}
-		if (inControl) continue; // never enumerate the menu's unselected options
+		if (InsideControl(snapshot, i)) continue; // never enumerate the menu's unselected options
 		const auto text = Clean(node.text);
 		if (text.empty() || std::find(seen.begin(), seen.end(), text) != seen.end()) continue;
 		seen.push_back(text);

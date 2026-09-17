@@ -40,6 +40,11 @@ Permission caching is scoped to one synchronous read. No pointers survive a scan
 Only the directional scan and a fixed-exit beacon request this broader snapshot;
 NPC proximity and ambient exit loops continue reading nearby native units.
 
+A 2026-09-16 session logged the scan offering a Den of Evil exit thousands of subtiles from the
+player; traced to the ordinary native walk reading a neighbour room owned by a different level, not to
+this preset walk (already level-safe by construction, per the guards above) — fixed in
+`docs/level-exits.md`.
+
 ## Coverage and validation
 
 A never-generated room may have no preset data and remains unknown. This is not

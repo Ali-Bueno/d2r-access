@@ -11,9 +11,12 @@
 
 using namespace D2RAccess;
 using namespace EntityLayout;
+// local/lng/strings/ui.json id of the PlaceholderNameKey ("dummy") entry.
+constexpr uint32_t PlaceholderNameId = 5382;
 namespace D2RAccess::Localization {
 std::string Text(uint32_t id) {
 	switch (id) {
+	case PlaceholderNameId: return "una fuerza maligna";
 	case 2892: return "Akara";
 	case 3013: return "Zombi";
 	case DoorClosedText: return "Puerta cerrada";
@@ -23,6 +26,7 @@ std::string Text(uint32_t id) {
 	}
 }
 std::string Text(std::string_view key) {
+	if (key == PlaceholderNameKey) return "una fuerza maligna";
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "To The Cold Plains") return "A las Llanuras Frías";
@@ -192,6 +196,12 @@ int main() {
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsA, 0);
 	Check(f.Read(entities) && !f.Find(entities, 8), "hostile units without the killable flag (hidden helpers) are skipped");
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsA, FlagKillable);
+	f.monsters.At<uint16_t>(MonStatStride + MonNameId, PlaceholderNameId);
+	Check(f.Read(entities) && !f.Find(entities, 8), "a killable monster named by the shared placeholder is skipped");
+	f.monsters.At<uint16_t>(MonStatStride + MonNameId, 3013);
+	f.monsters.At<uint16_t>(MonNameId, PlaceholderNameId);
+	Check(f.Read(entities) && !f.Find(entities, 7), "a friendly unit named by the shared placeholder is skipped");
+	f.monsters.At<uint16_t>(MonNameId, 2892);
 	f.enemyPath.At(PathRoom, f.otherRoom.Address());
 	Check(f.Read(entities) && !f.Find(entities, 8), "a path that does not belong to the walked room is rejected");
 	f.enemyPath.At(PathRoom, f.room.Address());
@@ -225,6 +235,29 @@ int main() {
 	farRoom.At<int>(RoomTileX, 20); farRoom.At<int>(RoomTileY, 20);
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
 		&& entities.size() == 9, "loaded warp and same-position preset merge into one target");
+	// A level passage puts the far side's room in this room's neighbour list.
+	Fixture across;
+	Memory<0x200> nearLevel, farLevel;
+	Memory<RoomSize> foreignRoom;
+	Memory<0x100> foreignEx;
+	Memory<UnitSize> foreignWarp;
+	Memory<PathSize> foreignWarpPath;
+	std::array<uintptr_t, 1> neighbors{foreignRoom.Address()};
+	across.roomEx.At(ExtendedLevel, nearLevel.Address());
+	foreignRoom.At(RoomExtended, foreignEx.Address());
+	foreignEx.At(ExtendedLevel, farLevel.Address()); foreignEx.At(RoomWarpNodes, across.warpNode.Address());
+	foreignWarp.At<uint32_t>(GroundItemLayout::UnitType, WarpType);
+	foreignWarp.At<uint32_t>(GroundItemLayout::UnitClass, 3 | (WarpIdMask + 1));
+	foreignWarp.At<uint32_t>(GroundItemLayout::UnitId, 77);
+	foreignWarp.At(GroundItemLayout::UnitPath, foreignWarpPath.Address());
+	foreignWarpPath.At(0, foreignRoom.Address());
+	foreignWarpPath.At<int>(GroundItemLayout::StaticX, 900); foreignWarpPath.At<int>(GroundItemLayout::StaticY, 900);
+	foreignRoom.At(GroundItemLayout::RoomFirstUnit, foreignWarp.Address());
+	across.room.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(neighbors.data()));
+	across.room.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	Check(across.Read(entities) && !across.Find(entities, 77), "a neighbour room belonging to another level contributes no entity");
+	foreignEx.At(ExtendedLevel, nearLevel.Address());
+	Check(across.Read(entities) && across.Find(entities, 77), "a neighbour room of this level is still walked");
 	Passed();
 	return 0;
 }

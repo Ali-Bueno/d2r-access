@@ -153,6 +153,16 @@ base name. Superunique names live in `SuperUniques.bin` (66 rows, stride 0x34) a
 id at record+0x02** (ids 0x0B35… consecutive) — that is what ends up in `MonsterData+0x32`
 (*inferred*).
 
+**Placeholder name (fixed 2026-09-16, verified against monstats.txt).** 42 rows carry no name of
+their own and share `NameStr` id 5382, which `local/lng/strings/ui.json` resolves to "an evil force" /
+"una fuerza maligna" — a label the game itself never puts on a nameplate: the camp rogue scouts
+`rogue1`/`rogue3`, the Den's `evilhole1-5` spawners, cow/horse/pig/camel, bat/rat/bird,
+`hellmeteor`, `invisospawner`, `seventombs`, and Act 2/3 town extras. Flags cannot separate them from
+real units — `act2guard1`/`rogue1`/`rogue3` are `npc`+`killable` yet unnamed, while real NPCs (Akara,
+Charsi…) are `npc`+`interact`. `ReadMonster` now resolves the key once via `Localization::Text`
+(`EntityLayout::PlaceholderNameKey` = `"dummy"`) and drops any unit whose resolved display name
+matches it, so one guard covers every announce path.
+
 `MonStats2` row = `0x975B0(bank, classId)` — it reads `monstats[0x4C]` (int16 `MonStatsEx` index)
 and indexes `bank+0xF98` / count `bank+0xFA0`, stride **0x128**. Needed only for the animation-mode
 mask (§3) and display metrics.

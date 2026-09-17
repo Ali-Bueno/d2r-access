@@ -22,6 +22,12 @@ automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`.
 - Fixed stairs/level passages bypass range and line of sight. Existing presets
   in the current level's inactive rooms can supply their positions/destinations;
   unknown preset data stays unknown. [Distant exit coverage](distant-exits.md).
+- Monster/NPC candidates whose resolved name is D2R's own unnamed-unit placeholder
+  (`EntityLayout::PlaceholderNameKey` = `"dummy"`, ui.json id 5382, "una fuerza maligna" — a label the
+  game itself never puts on a nameplate) are dropped before any announce path sees them: scan, beacon,
+  NPC proximity and the portal loops all resolve names through the same `ReadMonster`. Fixed
+  2026-09-16 after 300 spurious "una fuerza maligna" announcements in one session (camp rogue scouts,
+  Den evilhole spawners, cow/horse/pig, town extras — full list in `docs/entity-units-re.md` §4.2).
 - Nearest first, ties by kind and stable identity. `Cycler` keeps the last target: a
   second push in the same direction within `cycleTimeoutMs` (5 s) rescans and
   continues after that id, wrapping to the first. A push in another direction,

@@ -30,6 +30,7 @@ std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
 bool g_interactionFocus = false;
 uint64_t g_lastPoll = 0;
+uintptr_t g_lastQuestDump = 0;
 UiText::Reader g_reader, g_areaReader;
 UiNotifications::Reader g_notices;
 
@@ -81,6 +82,16 @@ int Priority(const UiText::Snapshot& snapshot, const NativeUi::Focus& focus) {
 	const auto it = std::find(open.begin(), open.end(), snapshot.name);
 	if (it != open.end()) score += static_cast<int>(it - open.begin());
 	return score;
+}
+
+// Where the game writes a quest's live progress is the one thing the journal
+// readout cannot settle from the layout, so log the panel's whole tree once per
+// selected quest: a live session then shows every text that pane carries.
+bool QuestSelection(const UiText::Snapshot& snapshot, uintptr_t widget) {
+	if (!widget) return false;
+	for (const auto& node : snapshot.nodes)
+		if (node.id == widget) return node.kind == UiText::Kind::QuestButton;
+	return false;
 }
 
 void Dump(const D2RL::PluginContext* context, const UiText::Snapshot& snapshot) {
@@ -166,6 +177,10 @@ bool Tick(const D2RL::PluginContext* context) {
 		const auto snapshot = NativeUi::Snapshot(panel, panel == focus.panel ? focus.widget : 0);
 		if (snapshot.nodes.empty()) continue;
 		if (dump) Dump(context, snapshot);
+		else if (panel == focus.panel && focus.widget != g_lastQuestDump && QuestSelection(snapshot, focus.widget)) {
+			g_lastQuestDump = focus.widget;
+			Dump(context, snapshot);
+		}
 		if (notification) {
 			const auto messages = UiNotifications::Describe(snapshot);
 			notices.insert(notices.end(), messages.begin(), messages.end());

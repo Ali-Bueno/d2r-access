@@ -76,11 +76,25 @@ const std::unordered_set<std::string>& LevelKeys(uintptr_t levels, uint64_t coun
 	cachedTable = levels; cachedCount = count;
 	return keys;
 }
+// The placeholder label every unnamed MonStats row shares, in the player's
+// language. The game's string tables are not loaded when the plugin starts, so
+// resolve it on first success and keep it.
+const std::string& PlaceholderName() {
+	static std::string cached;
+	if (cached.empty()) cached = UiText::Clean(Localization::Text(PlaceholderNameKey));
+	return cached;
+}
 // Localized Levels text for a level id: its plain name or its "To The ..." warp caption.
 std::string LevelText(const Tables& tables, uint32_t levelId, size_t keyOffset) {
 	if (!tables.levels || levelId >= tables.levelCount) return {};
 	const auto key = CString(tables.levels + levelId * LevelStride + keyOffset, MaxLevelKeyBytes);
 	return key.empty() ? std::string{} : UiText::Clean(Localization::Text(key));
+}
+// The Level a room belongs to (Room1 -> RoomEx -> Level); null when unreadable.
+uintptr_t RoomLevel(uintptr_t room) {
+	uintptr_t extended = 0, level = 0;
+	if (!Peek(room + RoomExtended, extended) || !extended || !Peek(extended + ExtendedLevel, level)) return 0;
+	return level;
 }
 bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
@@ -102,7 +116,11 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));
 	if (entity.name.empty()) entity.name = UiText::Clean(Localization::Text(nameId));
-	return !entity.name.empty();
+	if (entity.name.empty()) return false;
+	// Rows the game leaves unnamed all resolve to the same placeholder label
+	// ("an evil force"): decoration and helper units, never worth announcing.
+	const auto& placeholder = PlaceholderName();
+	return placeholder.empty() || entity.name != placeholder;
 }
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
@@ -205,8 +223,16 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	if (!Peek(room + RoomNeighbors, neighbors) || !Peek(room + RoomNeighborCount, count) || count > MaxRooms) return false;
 	std::array<uintptr_t, MaxRooms> adjacent{};
 	if (count && !NativeMemory::Copy(neighbors, adjacent.data(), count * sizeof(uintptr_t))) return false;
-	for (size_t i = 0; i < count; ++i)
-		if (adjacent[i] && std::find(rooms.begin(), rooms.end(), adjacent[i]) == rooms.end()) rooms.push_back(adjacent[i]);
+	// The far side of a level passage is a neighbour room too, and it belongs to
+	// the other level: its units - that level's own exits above all - would be
+	// offered here, thousands of subtiles away behind solid ground. Without a
+	// readable level the walk stays as it was.
+	const uintptr_t level = RoomLevel(room);
+	for (size_t i = 0; i < count; ++i) {
+		if (!adjacent[i] || std::find(rooms.begin(), rooms.end(), adjacent[i]) != rooms.end()) continue;
+		if (level && RoomLevel(adjacent[i]) != level) continue;
+		rooms.push_back(adjacent[i]);
+	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	for (const auto candidateRoom : rooms) {

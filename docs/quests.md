@@ -24,6 +24,29 @@ assumes the ordinary ButtonWidget embedded caption offset; the icon tooltip
 or catalog name suffices. Pure UI tests cover selection changes, stale details,
 live numeric progress, completion text, missing objectives and deduplication.
 
+## Reaching the kill counter (2026-09-16)
+
+The Den of Evil kill counter is never spoken because the mod never obtains it: the journal readout
+took only the `ShortDescription`/`LongDescription` text boxes and discarded the rest of the panel, and
+`QuestLog::Counter` has no production caller. Across the whole 28 MB live session log the counter
+value never appears anywhere — every `[quest] watch` line for this quest shows only
+`short="Den of Evil" long="Kill all the monsters in the Den."`, and the game's own UI messages seen are
+`QuestLogPanelMessage`/`SelectQuest` (123), `SetQuestAlert` (5), `PlayDialogue` and `DialogueFinished` —
+none carrying a counter.
+
+`src/ui_text.cpp`'s quest-button branch now also reads every other text node of the quest panel in
+screen order (deduplicated, excluding the panel's static "Title" heading and the quest-icon text) and
+appends it after the objective, so a counter rendered anywhere in that pane is spoken.
+`src/game_text_reader.cpp` now logs the quest panel's whole widget tree once per selected quest (the
+existing `[text-tree]` dump, no longer only on demand), so the next live session shows exactly which
+widget, if any, carries the counter.
+
+**Still open:** whether D2R renders the counter in that panel at all is unresolved — no native
+quest-state field or offset has ever been recovered, and the SDK exposes only `QuestCompleted`. If the
+next log's `[text-tree]` dump shows no counter widget, the remaining route is a targeted RE pass seeded
+from the `qstsa1q14` string reference. Counting live monsters or inferring progress from the catalog
+stays forbidden.
+
 ## Why the quest tab was silent
 
 Two separate causes, both now fixed:
@@ -72,7 +95,8 @@ catalog handles and that are easy to trip over:
 - **Live counters** ship as printf lines: `qstsa1q14` = "Monstruos restantes: %d", with the
   last-one-remaining wording as its own key, the counter's key plus a trailing zero
   (`qstsa1q140` = "Falta un monstruo."). `QuestLog::Objectives` leaves counter lines out — speaking
-  a raw `%d` would be worse than silence — and `QuestLog::Counter` fills one in when a value exists.
+  a raw `%d` would be worse than silence — and `QuestLog::Counter` fills one in when a value exists,
+  though it has no production caller yet (see "Reaching the kill counter" below).
 
 `ShortDescription` and `LongDescription` are empty in the layout: the game fills them at runtime
 with the selected quest's objective **already formatted**, counter included. That is why no quest

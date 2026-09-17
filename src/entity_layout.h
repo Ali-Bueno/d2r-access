@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 // D2R 3.3.93787 monster / world-object unit layout, recovered offline from the
 // analyzed live image (unit field getters, the liveness test, the HUD nameplate
@@ -26,6 +27,12 @@ inline constexpr size_t Objects = 0x1528, ObjectCount = 0x1530, ObjectStride = 0
 // MonStats row: localized name id (0 = the game shows no name), alignment and flag bytes (monstats.txt columns).
 inline constexpr size_t MonNameId = 0x36, MonAlign = 0x87, MonFlagsA = 0x3D;
 inline constexpr uint8_t AlignHostile = 0, AlignFriendly = 1;
+// monstats.txt NameStr shared by every row with no name of its own (42 rows:
+// critters, spawners, the evil holes, town extras and the camp rogue scouts).
+// The string table resolves this key to the game's placeholder label
+// (local/lng/strings/ui.json id 5382, enUS "an evil force"), which the game
+// itself never puts on a nameplate.
+inline constexpr std::string_view PlaceholderNameKey = "dummy";
 inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable = 1u << 7; // +0x3D bits
 // MonsterData (*(Unit+0x10)): the game's own composed display name, cached by 0x985A0.
 inline constexpr size_t MonCachedName = 0x40;

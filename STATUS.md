@@ -2,6 +2,40 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Three live bugs fixed — 2026-09-16
+
+From the 22:00-23:08 controller session, all three diagnosed against the live log:
+
+- **Foreign-level exits (walked into a wall).** In D2R the far side of a level
+  passage is a neighbour room of the player's room. The native unit walk read it
+  with no level check, so inside the Den of Evil the scan offered the Blood-Moor
+  side "To The Den of Evil" 2476 subtiles away; the beacon clamped that
+  unreachable goal to the nearest cell in its search box and guided into solid
+  ground. `native_entities.cpp` now keeps only neighbour rooms whose Level
+  (Room1 -> RoomEx -> Level) is the player's. The distant/preset walk was not at
+  fault - it already refuses foreign rooms. `docs/level-exits.md`.
+- **"An evil force" every few steps** (300 times in that session: 221 proximity,
+  79 scan). 42 monstats rows share the placeholder `NameStr` "dummy" - camp rogue
+  scouts, the Den's evilhole spawners, critters, town extras - which the string
+  table resolves to ui.json id 5382, a label the game never shows. `ReadMonster`
+  now drops any unit carrying it; every announce path funnels through there.
+  Flags alone cannot separate them (rogue1/act2guard1 are npc/killable yet
+  unnamed; real NPCs are npc **and** interact). `docs/entity-scan.md`.
+- **Den of Evil kill counter never spoken.** The mod never obtained it: the
+  journal readout kept only `ShortDescription`/`LongDescription` and discarded
+  the rest of the pane, and the counter value appears nowhere in the 28 MB log.
+  The readout now speaks every other text node of the quest panel in screen
+  order (static heading and quest-icon labels excluded), and the panel's widget
+  tree is dumped once per selected quest so the next session shows where - if
+  anywhere - the game renders it. Whether D2R draws that counter in the panel is
+  still unresolved; no native quest-state field has ever been recovered.
+  `docs/quests.md`.
+
+Build/deploy succeeds, **38/38 CTest suites pass**; four new checks (cross-level
+neighbour room, placeholder-named units). Install SHA-256:
+`2A9C029A5FE67AB73FECF82D0AF2C2B62710B9B4820AD5982D9F771BFFC5AD6A`.
+Live re-check of all three pending.
+
 ## Journal details and distant stairs installed — 2026-09-16
 
 Quest selection now reads one title with its current objective, waits for the
@@ -174,8 +208,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 |---|---|---|
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
-| Quest log / automatic quest tracking | built and installed; detail sources confirmed live, new readout pending listening | Current objective/counter attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
-| Target beacon guidance | distant exits built and installed; dungeon validation pending | Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
+| Quest log / automatic quest tracking | built and installed; counter source still unknown | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
+| Target beacon guidance | cross-level exit leak fixed 2026-09-16; dungeon validation pending | Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
@@ -191,7 +225,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
-| Friendly NPC announcer | built - live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
+| Friendly NPC announcer | placeholder units silenced 2026-09-16; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | wip — 2026-09-16 redesign installed, incl. 18:10 forensic fix; live listening pending | One confirm-by-travel state machine per direction; connected-passage scan is now the only classifier, with 1-cell lateral tolerance (was 3), openDepth 10/close 7 (was 8/5), clutter removal capped at 5 cells (was up to 20), and `stick=` logged per cue. Four screen-cardinal directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried live and reverted after the user listened. `docs/radar-redesign.md` (current model); `docs/sonar-radar.md` and its follow-ups are superseded history. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
@@ -323,6 +357,13 @@ match the decrypted executable and live runtime. Full table/layout provenance,
 localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
+
+Re-check the three 2026-09-16 fixes in one run: walk the camp and the Den and
+confirm "una fuerza maligna" is never spoken again; inside the Den scan for exits
+and confirm only the Den's own exits are offered (nothing thousands of subtiles
+away) before locking one with the right stick / Ctrl+B; open the journal on Den of
+Evil after killing some monsters and check the new `[text-tree]` dump of
+`QuestLogPanelExpansion` in the log for any widget holding the counter.
 
 With the new build, select Den of Evil and confirm one title/objective utterance;
 other blank quests should explicitly report no objective text. A visible counter

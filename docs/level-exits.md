@@ -56,6 +56,26 @@ The game's own warp-name path (`0x9F2A0` → `0x3DA9A0`) may generate the
 destination room, so the plugin never calls it; every read above is a guarded
 `Peek`.
 
+## Foreign-level leakage (fixed 2026-09-16)
+
+Live-session evidence: inside the Den of Evil the scan offered "To The Den of Evil" at two points
+thousands of subtiles from the player, and the beacon locked one, clamped the unreachable goal to the
+nearest reachable cell in its search box, and walked the player into a wall, pinging forever. The
+offending unit ids changed between visits (4, 11, 2) — only a live `ReadWarp` unit does that, a
+preset-derived exit keeps a stable id — which places the bug in the ordinary native walk below, not the
+distant/preset feature (that walk is already level-safe; see `docs/distant-exits.md`).
+
+Cause: a room's neighbour list can include the far side of a level passage, which belongs to a
+*different* level. That neighbour room's units — including that other level's own warp units — were
+read with no level check, and exits are exempt from both the range gate and the line-of-sight check, so
+distance never filtered them either. Fix: `src/native_entities.cpp` now resolves each room's owning
+`Level` (`Room1 -> RoomEx +0x18 -> Level +0x90`) and keeps a neighbour room only when it belongs to the
+player's level, leaving the walk unchanged when the level can't be read. This also stops foreign
+monsters/objects leaking into the proximity reader and the exit loop above. No store needed clearing:
+the entity list is rebuilt per read and the beacon already releases its lock on a level change. Covered
+by two new `tests/native_entities_tests.cpp` checks (a neighbour room in another level contributes no
+entity; one in the same level is still walked).
+
 ## Pending live checks
 
 - `WarpNode+0x10` as the "labelled" gate is inferred from `0x3DA910`; if no exit
