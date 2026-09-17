@@ -24,7 +24,7 @@ assumes the ordinary ButtonWidget embedded caption offset; the icon tooltip
 or catalog name suffices. Pure UI tests cover selection changes, stale details,
 live numeric progress, completion text, missing objectives and deduplication.
 
-## Reaching the kill counter (2026-09-16)
+## Reaching the kill counter (2026-09-16, working 2026-09-17)
 
 The Den of Evil kill counter is never spoken because the mod never obtains it: the journal readout
 took only the `ShortDescription`/`LongDescription` text boxes and discarded the rest of the panel, and
@@ -37,15 +37,16 @@ none carrying a counter.
 `src/ui_text.cpp`'s quest-button branch now also reads every other text node of the quest panel in
 screen order (deduplicated, excluding the panel's static "Title" heading and the quest-icon text) and
 appends it after the objective, so a counter rendered anywhere in that pane is spoken.
-`src/game_text_reader.cpp` now logs the quest panel's whole widget tree once per selected quest (the
-existing `[text-tree]` dump, no longer only on demand), so the next live session shows exactly which
-widget, if any, carries the counter.
+**Confirmed live (2026-09-17):** the user hears the remaining monster count for Den of Evil with this
+readout. The game does render it in that pane; reading the pane whole is what reaches it.
 
-**Still open:** whether D2R renders the counter in that panel at all is unresolved — no native
-quest-state field or offset has ever been recovered, and the SDK exposes only `QuestCompleted`. If the
-next log's `[text-tree]` dump shows no counter widget, the remaining route is a targeted RE pass seeded
-from the `qstsa1q14` string reference. Counting live monsters or inferring progress from the catalog
-stays forbidden.
+Which widget carries it is still unpinned. A per-selection `[text-tree]` dump was added to find out and
+then removed: it fires on the first frame the quest icon takes focus, while the shared detail pane is
+still empty, so its 1220 lines in one session showed only the tab and the quest buttons — never the
+populated pane. The on-demand `RequestDump` remains for that question. Pinning the widget is not needed
+for the readout, which takes whatever the pane holds; it would only allow a narrower read. No native
+quest-state field or offset has ever been recovered and the SDK exposes only `QuestCompleted`, so
+counting live monsters or inferring progress from the catalog stays forbidden.
 
 ## Why the quest tab was silent
 

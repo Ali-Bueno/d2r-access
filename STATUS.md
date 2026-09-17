@@ -25,15 +25,15 @@ From the 22:00-23:08 controller session, all three diagnosed against the live lo
   journal readout kept only `ShortDescription`/`LongDescription` and discarded
   the rest of the pane, and the counter value appears nowhere in the 28 MB log.
   The readout now speaks every other text node of the quest panel in screen
-  order (static heading and quest-icon labels excluded), and the panel's widget
-  tree is dumped once per selected quest so the next session shows where - if
-  anywhere - the game renders it. Whether D2R draws that counter in the panel is
-  still unresolved; no native quest-state field has ever been recovered.
-  `docs/quests.md`.
+  order (static heading and quest-icon labels excluded). **User-confirmed live
+  on 2026-09-17: the remaining kill count is spoken.** Which widget carries it
+  is still unpinned - a per-selection tree dump was tried and removed, because
+  it fires while the shared pane is still empty - but the whole pane is read, so
+  the value arrives wherever the game puts it. `docs/quests.md`.
 
 Build/deploy succeeds, **38/38 CTest suites pass**; four new checks (cross-level
 neighbour room, placeholder-named units). Install SHA-256:
-`2A9C029A5FE67AB73FECF82D0AF2C2B62710B9B4820AD5982D9F771BFFC5AD6A`.
+`6942BC59FE38F190A25A5720B3950FB9121180A2EE7EF04A0157A7E9FDCB644C`.
 Live re-check of all three pending.
 
 ## Journal details and distant stairs installed — 2026-09-16
@@ -208,7 +208,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 |---|---|---|
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
-| Quest log / automatic quest tracking | built and installed; counter source still unknown | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
+| Quest log / automatic quest tracking | counter confirmed live 2026-09-17 | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
 | Target beacon guidance | cross-level exit leak fixed 2026-09-16; dungeon validation pending | Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
@@ -358,12 +358,9 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
-Re-check the three 2026-09-16 fixes in one run: walk the camp and the Den and
-confirm "una fuerza maligna" is never spoken again; inside the Den scan for exits
-and confirm only the Den's own exits are offered (nothing thousands of subtiles
-away) before locking one with the right stick / Ctrl+B; open the journal on Den of
-Evil after killing some monsters and check the new `[text-tree]` dump of
-`QuestLogPanelExpansion` in the log for any widget holding the counter.
+The three 2026-09-16 fixes are confirmed working by the user (2026-09-17),
+including the Den of Evil kill count, and are pushed. Next: continue the pending
+live checks already listed below.
 
 With the new build, select Den of Evil and confirm one title/objective utterance;
 other blank quests should explicitly report no objective text. A visible counter
