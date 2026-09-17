@@ -96,6 +96,14 @@ inline constexpr Table jaJP {
 	.questAlertsEnabled = "クエスト通知を有効にしました",
 	.questAlertsDisabled = "クエスト通知を無効にしました",
 	.questNoObjective = "このクエストの目標テキストはありません",
+	.vitalsLife = "ライフ %d パーセント",
+	.vitalsMana = "マナ %d パーセント",
+	.vitalsEnabled = "ライフとマナの読み上げ オン",
+	.vitalsDisabled = "ライフとマナの読み上げ オフ",
+	.vitalsOrbTextMissing = "ライフとマナを聞くには、ゲームプレイオプションで%sと%sをオンにしてください",
+	.equipmentBroken = "破損した装備：%s",
+	.currentOfMaximum = "%s、最大%s",
+	.itemPlacedIn = "%sに置きました",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 };
 

@@ -96,6 +96,14 @@ inline constexpr Table koKR {
 	.questAlertsEnabled = "퀘스트 알림 켜짐",
 	.questAlertsDisabled = "퀘스트 알림 꺼짐",
 	.questNoObjective = "이 퀘스트에는 표시할 목표 내용이 없습니다",
+	.vitalsLife = "생명력 %d퍼센트",
+	.vitalsMana = "마나 %d퍼센트",
+	.vitalsEnabled = "생명력과 마나 알림 켜짐",
+	.vitalsDisabled = "생명력과 마나 알림 꺼짐",
+	.vitalsOrbTextMissing = "생명력과 마나를 들으려면 게임플레이 옵션에서 %s와 %s를 켜세요",
+	.equipmentBroken = "파손된 장비: %s",
+	.currentOfMaximum = "%s, 최대 %s",
+	.itemPlacedIn = "%s에 놓았습니다",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 };
 

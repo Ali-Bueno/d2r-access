@@ -89,8 +89,8 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		if (cell.x >= 0) {
 			char phrase[100]{};
 			std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
-			result.readout.option = phrase;
-			Append(result.readout.option, SkillPosition(container, focus.widget));
+			result.readout.coordinates = phrase;
+			Append(result.readout.coordinates, SkillPosition(container, focus.widget));
 		}
 	} else return result;
 	result.readout.context = NativeWidgets::ReadName(focus.panel);

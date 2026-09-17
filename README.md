@@ -204,6 +204,28 @@ otherwise it says that the journal was updated. Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
 See [quest-log implementation and remaining work](docs/quests.md).
 
+### Character panel
+
+Opening the character sheet says the panel name with the character, class and
+level once, and then each row is read as you move through it: strength,
+dexterity, vitality, energy, defense, stamina, life and mana (as "45 of 120")
+and the four resistances. The mini-menu buttons that open it and the other
+screens are announced by name. See
+[character panel, equipment slots and placing items](docs/character-panel.md).
+
+### Life, mana and broken equipment
+
+Life and mana are announced as they cross their steps: every 25 points while the
+resource is comfortable (75, 50), every 10 below half (40, 30, 20, 10) and point
+by point at the end (5, 4, 3, 2, 1). Crossing a step speaks the real percentage,
+once, in either direction; at or below 10 % it interrupts. The numbers are the
+game's own, read from the HUD orbs' value display, so the *Show life orb text*
+and *Show mana orb text* gameplay options must be on — with them off the game
+writes no number and the mod says so once, naming those options. A worn item
+that reaches zero durability is announced with its equipment slot. Console
+`access-vitals on|off|status`.
+See [life, mana and broken equipment](docs/vitals.md).
+
 ## How it works
 
 - The plugin listens to the game's UI message bus through the D2RLoader SDK (`PanelManager`,

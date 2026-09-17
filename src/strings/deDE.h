@@ -96,6 +96,14 @@ inline constexpr Table deDE {
 	.questAlertsEnabled = "Questansagen aktiviert",
 	.questAlertsDisabled = "Questansagen deaktiviert",
 	.questNoObjective = "Für diese Quest ist kein Zieltext verfügbar",
+	.vitalsLife = "Leben %d Prozent",
+	.vitalsMana = "Mana %d Prozent",
+	.vitalsEnabled = "Lebens- und Mana-Ansagen aktiviert",
+	.vitalsDisabled = "Lebens- und Mana-Ansagen deaktiviert",
+	.vitalsOrbTextMissing = "%s und %s in den Spieloptionen aktivieren, um Leben und Mana zu hören",
+	.equipmentBroken = "Kaputte Ausrüstung: %s",
+	.currentOfMaximum = "%s von %s",
+	.itemPlacedIn = "Abgelegt in %s",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 };
 

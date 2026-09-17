@@ -28,10 +28,13 @@ struct Snapshot {
 };
 struct Readout {
 	std::string context, body, option, focusKey;
+	// Grid position (row/column, branch position). Spoken after everything
+	// else: it is the least relevant part of a cell's announcement.
+	std::string coordinates;
 	Surface surface = Surface::Other;
 	uint64_t contentSettleMs = 0; // dependent detail panes populate after focus moves
 	bool operator==(const Readout&) const = default;
-	bool Empty() const { return body.empty() && option.empty(); }
+	bool Empty() const { return body.empty() && option.empty() && coordinates.empty(); }
 };
 struct Announcement {
 	std::string text;

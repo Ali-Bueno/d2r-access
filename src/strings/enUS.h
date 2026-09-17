@@ -96,6 +96,14 @@ inline constexpr Table enUS {
 	.questAlertsEnabled = "Quest announcements enabled",
 	.questAlertsDisabled = "Quest announcements disabled",
 	.questNoObjective = "No objective text available for this quest",
+	.vitalsLife = "Life %d percent",
+	.vitalsMana = "Mana %d percent",
+	.vitalsEnabled = "Life and mana announcements enabled",
+	.vitalsDisabled = "Life and mana announcements disabled",
+	.vitalsOrbTextMissing = "Turn on %s and %s in the gameplay options to hear life and mana",
+	.equipmentBroken = "Broken equipment: %s",
+	.currentOfMaximum = "%s of %s",
+	.itemPlacedIn = "Placed in %s",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 };
 

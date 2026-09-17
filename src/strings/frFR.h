@@ -96,6 +96,14 @@ inline constexpr Table frFR {
 	.questAlertsEnabled = "Annonces de quêtes activées",
 	.questAlertsDisabled = "Annonces de quêtes désactivées",
 	.questNoObjective = "Aucun texte d’objectif disponible pour cette quête",
+	.vitalsLife = "Vie %d pour cent",
+	.vitalsMana = "Mana %d pour cent",
+	.vitalsEnabled = "Annonces de vie et de mana activées",
+	.vitalsDisabled = "Annonces de vie et de mana désactivées",
+	.vitalsOrbTextMissing = "Activez %s et %s dans les options de jeu pour entendre la vie et le mana",
+	.equipmentBroken = "Équipement cassé : %s",
+	.currentOfMaximum = "%s sur %s",
+	.itemPlacedIn = "Placé dans %s",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 };
 

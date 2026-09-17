@@ -96,6 +96,14 @@ inline constexpr Table esMX {
 	.questAlertsEnabled = "Avisos de misiones activados",
 	.questAlertsDisabled = "Avisos de misiones desactivados",
 	.questNoObjective = "Sin texto de objetivo disponible para esta misión",
+	.vitalsLife = "Vida %d por ciento",
+	.vitalsMana = "Maná %d por ciento",
+	.vitalsEnabled = "Avisos de vida y maná activados",
+	.vitalsDisabled = "Avisos de vida y maná desactivados",
+	.vitalsOrbTextMissing = "Activa %s y %s en las opciones de juego para oír la vida y el maná",
+	.equipmentBroken = "Equipo roto: %s",
+	.currentOfMaximum = "%s de %s",
+	.itemPlacedIn = "Colocado en %s",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 };
 

@@ -19,6 +19,24 @@ void Append(std::string& text, const std::string& part) {
 	if (!text.empty()) text += ". ";
 	text += part;
 }
+// A scrolling legend (ControllerOverlay's "Legend") keeps its captions in the
+// sub-text widgets the layout declares, named after the legend itself:
+// Legend1..Legend8 for that one. They are read when the entry vector this
+// class does not necessarily share with ButtonLegendWidget yields nothing, so
+// the vendor's Buy/Sell/Repair and an item's own actions stay readable.
+std::string SubTextHelp(uintptr_t widget) {
+	const auto name = NativeWidgets::ReadName(widget);
+	if (name.empty()) return {};
+	std::string result;
+	for (uint64_t i = 1; i <= MaxEntries; ++i) {
+		const auto slot = NativeWidgets::FindChild(widget, name + std::to_string(i));
+		if (!slot) break; // the game declares its slots contiguously
+		if (!NativeUi::Visible(slot)) continue;
+		Append(result, ControllerText::Read(NativeWidgets::ReadText(slot)));
+	}
+	return result;
+}
+
 std::string PanelHelp(uintptr_t panel, PanelLegends& cache) {
 	if (!panel || !NativeUi::Visible(panel)) { cache = {}; return {}; }
 	if (cache.panel != panel) {
@@ -34,8 +52,7 @@ std::string PanelHelp(uintptr_t panel, PanelLegends& cache) {
 	for (const auto& name : cache.names) Append(result, Legend(NativeWidgets::FindChild(panel, name)));
 	return result;
 }
-}
-std::string Legend(uintptr_t widget) {
+std::string LegendEntries(uintptr_t widget) {
 	if (!NativeUi::Visible(widget) || NativeUi::Classify(widget).kind != UiText::Kind::Legend) return {};
 	struct { uintptr_t data; uint64_t count; } entries{};
 	if (!NativeMemory::Peek(widget + EntriesOffset, entries) || !entries.data || entries.count > MaxEntries) return {};
@@ -57,6 +74,13 @@ std::string Legend(uintptr_t widget) {
 		}
 		if (!chord.empty()) Append(result, chord + ": " + caption);
 	}
+	return result;
+}
+}
+std::string Legend(uintptr_t widget) {
+	if (!NativeUi::Visible(widget) || NativeUi::Classify(widget).kind != UiText::Kind::Legend) return {};
+	auto result = LegendEntries(widget);
+	if (result.empty()) result = SubTextHelp(widget);
 	return result;
 }
 std::string ForFocus(NativeUi::Focus focus) {

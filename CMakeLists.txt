@@ -73,6 +73,7 @@ add_library(d2r-access SHARED
 	src/native_controller_help.cpp
 	src/controller_text.cpp
 	src/progression_text.cpp
+	src/character_stats.cpp
 	src/native_tooltips.cpp
 	src/panel_state.cpp
 	src/quest_log.cpp
@@ -85,6 +86,8 @@ add_library(d2r-access SHARED
 	src/ui_thread_pump.cpp
 	src/ui_text.cpp
 	src/ui_notifications.cpp
+	src/vitals.cpp
+	src/vitals_service.cpp
 	src/widgets.cpp
 	plugin.rc
 )
@@ -239,6 +242,11 @@ if(BUILD_TESTING)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
+	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(character-stats-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(character-stats-tests PRIVATE src)
+	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
+	add_test(NAME character-stats COMMAND character-stats-tests)
 	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(interaction-reader-tests PRIVATE src)
@@ -266,6 +274,10 @@ if(BUILD_TESTING)
 	target_include_directories(quest-progress-tests PRIVATE src)
 	target_compile_features(quest-progress-tests PRIVATE cxx_std_20)
 	add_test(NAME quest-progress COMMAND quest-progress-tests)
+	add_executable(vitals-tests tests/vitals_tests.cpp src/vitals.cpp)
+	target_include_directories(vitals-tests PRIVATE src)
+	target_compile_features(vitals-tests PRIVATE cxx_std_20)
+	add_test(NAME vitals COMMAND vitals-tests)
 	add_executable(quest-service-tests tests/quest_service_tests.cpp src/quest_service.cpp src/quest_progress.cpp src/quest_log.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(quest-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(quest-service-tests PRIVATE src)
@@ -274,6 +286,8 @@ if(BUILD_TESTING)
 	add_test(NAME quest-service COMMAND quest-service-tests)
 	if(MSVC)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-progress-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-grid-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -99,3 +99,31 @@ and equip an item; confirm the spoken repair action in the blacksmith's shop
 and other services when available. Compare `[pump] slow accessibility tick`
 with the previous session and `[interaction]` action/selection messages with
 what NVDA actually reads. No purchases or quest services were exercised here.
+
+## Scrolling legend fallback — 2026-09-17
+
+The user reported that an item announces only its primary action ("equip") and
+never repair, identify, sell or buy. The layouts explain where those live: on
+controller, `Controller/VendorPanelLayoutHD.json` **drops** the mouse panel's
+`button_buy`/`button_sell`/`button_repair`/`button_repair_all` widgets
+entirely, and every per-item action instead becomes an entry of the global
+`ControllerOverlayHD.json` footer — a `ButtonLegendScrollWidget` named
+`Legend` whose layout declares eight sub-text slots `Legend1`..`Legend8`
+(`dataUpdateTime` 0.2). The mouse path uses `ContextMenu.json`'s `OptionsList`
+(`RecyclingListWidget`) instead; its rows carry no text in the JSON either.
+
+`NativeControllerHelp::Legend` read only the entry vector at `+0x88` whose
+RVAs (`0x874270`/`0x873B00`/`0x87B080`) were established for
+`ButtonLegendWidget`. `ButtonLegendScrollWidget` is a different class and need
+not share that layout, which would leave the overlay footer contributing
+nothing — exactly the reported symptom, since the focused panel's own plain
+legend still supplies the single primary action.
+
+`Legend` now falls back to the widget's declared sub-text slots when the vector
+read yields nothing: children named after the legend itself plus an index
+(`Legend1`, `Legend2`, …), walked until one is missing, read with the existing
+`ReadText` and passed through `ControllerText::Read` for the glyphs. No new
+offset, and the fallback cannot fire while the vector read works.
+
+Still to confirm live: at the blacksmith, whether the spoken help now lists
+Buy/Sell/Repair; the `[interaction]` log line records whatever is read.

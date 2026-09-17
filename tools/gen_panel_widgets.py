@@ -113,6 +113,22 @@ FOCUSABLE_TYPE_KEYWORDS = (
     "Edit", "Row", "Slot", "Grid", "List", "Scroll", "Selector",
 )
 
+# MiniMenuButtonWidget entries (the 7 HUD mini-menu icons in HUDPanelHD.json's
+# "MiniMenu" group) carry no textString/label sibling of their own -- their
+# accessible name lives only in their own "menu" field (e.g. "character"),
+# which must be mapped to the matching string-table key from
+# game-data/local/lng/strings/ui.json (confirmed against each key's enUS
+# value, e.g. "menu": "party" -> minipanelparty -> "Party Screen").
+MINI_MENU_LABEL_KEYS: dict[str, str] = {
+    "character": "minipanelchar",
+    "inventory": "minipanelinv",
+    "skillTree": "minipaneltree",
+    "autoMap": "minipanelautomap",
+    "party": "minipanelparty",
+    "questLog": "minipanelquest",
+    "pauseMenu": "minipanelmenubtn",
+}
+
 
 class AnchorStats:
     """Accumulates anchor-resolution facts across the whole run, for the
@@ -352,7 +368,12 @@ class Walker:
             if is_focusable(fields, wtype):
                 path = child_named_path if real_name else child_named_path + [(display_name, anchor_x, anchor_y)]
                 text_key, text = primary_text(fields, self.string_table)
-                label_key = None if text_key is not None else find_label_key(display_name, node, ancestor_siblings)
+                if text_key is not None:
+                    label_key = None
+                elif wtype == "MiniMenuButtonWidget":
+                    label_key = MINI_MENU_LABEL_KEYS.get(fields.get("menu"))
+                else:
+                    label_key = find_label_key(display_name, node, ancestor_siblings)
                 tooltip_key = compute_tooltip_key(fields, self.profiles)
                 update_target, update_command, update_extra = compute_update_message(fields, wtype)
                 states = compute_states(fields, self.profiles, self.root_fields)

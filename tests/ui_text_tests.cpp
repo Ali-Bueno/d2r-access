@@ -88,7 +88,7 @@ int main() {
 	Check(readout.body == "Gráficos. Pulsa G para cambiar" && readout.option == "Aceptar", "tutorial includes full text and only focused button");
 	(void)reader.Update(readout, 1600);
 	Check(reader.Update(readout, 1680).text == "Gráficos. Pulsa G para cambiar. Aceptar", "tutorial reads as a single utterance");
-	const auto transient = Readout{ "Tip", "half", "", "", Surface::Tip };
+	const auto transient = Readout{ "Tip", "half", "", "", "", Surface::Tip };
 	(void)reader.Update(transient, 1700);
 	(void)reader.Update({}, 1800);
 	Check(reader.Update(transient, 1900).text.empty(), "empty snapshots restart the settling window");
@@ -96,7 +96,7 @@ int main() {
 	Check(Clean("\xEE\x80\x93").empty(), "controller-image tooltip is silent");
 	Check(Clean("\xEE\x80\x93 Recoger. Daño: 2–6") == "Recoger. Daño: 2–6", "controller images do not hide real item text or Unicode punctuation");
 	reader.Reset();
-	const Readout item{"Inventory", "Inventario", "Poción", "0", Surface::Other};
+	const Readout item{"Inventory", "Inventario", "Poción", "0", "", Surface::Other};
 	Check(reader.Update(item, 2000, 0).text == "Inventario. Poción", "already rendered descriptions need no additional settling delay");
 	Check(reader.Update(item, 2001, 0).text.empty(), "immediate descriptions remain deduplicated");
 	reader.Reset();

@@ -113,6 +113,14 @@ struct Table {
 	const char* questAlertsEnabled;
 	const char* questAlertsDisabled;
 	const char* questNoObjective;
+	const char* vitalsLife;          // %d = whole percent of life left
+	const char* vitalsMana;          // %d = whole percent of mana left
+	const char* vitalsEnabled;
+	const char* vitalsDisabled;
+	const char* vitalsOrbTextMissing; // %s, %s = the game's own orb text option labels
+	const char* equipmentBroken;      // %s = equipment slot of the item that broke
+	const char* currentOfMaximum;     // %s = current value, %s = maximum
+	const char* itemPlacedIn;         // %s = where the carried item was just placed
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -138,7 +146,9 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
-		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective};
+		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
+		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
+		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

@@ -96,6 +96,14 @@ inline constexpr Table zhTW {
 	.questAlertsEnabled = "任務通知已啟用",
 	.questAlertsDisabled = "任務通知已停用",
 	.questNoObjective = "此任務暫無目標說明",
+	.vitalsLife = "生命 %d 百分比",
+	.vitalsMana = "法力 %d 百分比",
+	.vitalsEnabled = "生命與法力播報已啟用",
+	.vitalsDisabled = "生命與法力播報已停用",
+	.vitalsOrbTextMissing = "請在遊戲選項中開啟%s和%s，才能聽到生命與法力",
+	.equipmentBroken = "裝備已損壞：%s",
+	.currentOfMaximum = "%s，最大%s",
+	.itemPlacedIn = "已放置於%s",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 };
 

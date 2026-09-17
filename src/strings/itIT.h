@@ -96,6 +96,14 @@ inline constexpr Table itIT {
 	.questAlertsEnabled = "Annunci delle missioni attivati",
 	.questAlertsDisabled = "Annunci delle missioni disattivati",
 	.questNoObjective = "Nessun testo dell’obiettivo disponibile per questa missione",
+	.vitalsLife = "Vita %d per cento",
+	.vitalsMana = "Mana %d per cento",
+	.vitalsEnabled = "Annunci di vita e mana attivati",
+	.vitalsDisabled = "Annunci di vita e mana disattivati",
+	.vitalsOrbTextMissing = "Attiva %s e %s nelle opzioni di gioco per sentire vita e mana",
+	.equipmentBroken = "Equipaggiamento rotto: %s",
+	.currentOfMaximum = "%s di %s",
+	.itemPlacedIn = "Posizionato in %s",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
 };
 

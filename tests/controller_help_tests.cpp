@@ -4,6 +4,8 @@
 #include "test_support.h"
 #include <array>
 #include <cstring>
+#include <iterator>
+#include <string>
 
 namespace {
 using namespace D2RAccess;
@@ -13,6 +15,15 @@ std::array<unsigned char, 0x98> rebuiltLegend{};
 std::array<unsigned char, 3 * 0x40> records{};
 bool visible = true;
 bool rebuilt = false;
+// Sub-text slots a ButtonLegendScrollWidget declares: ControllerOverlayHD.json
+// names them after the legend itself (Legend1..Legend8) and the game fills them
+// with the actions it is displaying.
+const char* slots[3]{};
+int hiddenSlot = -1;
+void Slots(const char* first = nullptr, const char* second = nullptr, const char* third = nullptr) {
+	slots[0] = first; slots[1] = second; slots[2] = third;
+}
+uintptr_t SlotAddress(size_t index) { return 100 + index; }
 int discoveries = 0;
 NativeUi::Focus focus{1, 2};
 uintptr_t Address() { return reinterpret_cast<uintptr_t>(rebuilt ? rebuiltLegend.data() : legend.data()); }
@@ -26,7 +37,11 @@ void Entry(size_t index, uint32_t first, uint32_t second, int count, const char*
 }
 }
 namespace D2RAccess::NativeUi {
-bool Visible(uintptr_t widget) { return widget && visible; }
+bool Visible(uintptr_t widget) {
+	for (size_t i = 0; i < std::size(slots); ++i)
+		if (widget == SlotAddress(i)) return hiddenSlot != static_cast<int>(i);
+	return widget && visible;
+}
 Type Classify(uintptr_t widget) { return {"ButtonLegendScrollWidget", widget == Address() ? UiText::Kind::Legend : UiText::Kind::Other}; }
 Focus CurrentFocus() { return focus; }
 std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
@@ -36,8 +51,19 @@ std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "ControllerOverlay" ? 3 : 0; }
-uintptr_t FindChild(uintptr_t panel, std::string_view name) { return panel == 3 && name == "Legend" ? Address() : 0; }
+uintptr_t FindChild(uintptr_t parent, std::string_view name) {
+	if (parent == 3 && name == "Legend") return Address();
+	if (parent != Address()) return 0;
+	for (size_t i = 0; i < std::size(slots); ++i)
+		if (slots[i] && name == "Legend" + std::to_string(i + 1)) return SlotAddress(i);
+	return 0;
+}
 std::string ReadName(uintptr_t widget) { return widget == Address() ? "Legend" : ""; }
+std::string ReadText(uintptr_t widget) {
+	for (size_t i = 0; i < std::size(slots); ++i)
+		if (widget == SlotAddress(i) && slots[i]) return slots[i];
+	return {};
+}
 }
 int main() {
 	using namespace D2RAccess;
@@ -78,6 +104,23 @@ int main() {
 	Put(legend.data(), 0x90, uint64_t{10000});
 	Check(NativeControllerHelp::Legend(Address()).empty(), "corrupt vector is bounded before reading");
 	Check(NativeControllerHelp::Legend(1).empty(), "non-legend archetypes never read legend offsets");
+	// A ButtonLegendScrollWidget is a different class and need not share
+	// ButtonLegendWidget's entry vector; its captions are then read from the
+	// sub-text slots its layout declares, which is where the vendor's actions live.
+	Slots("\xEE\x80\x8F" "Comprar", "\xEE\x80\x91" "Vender", "\xEE\x80\x92" "Reparar");
+	Check(NativeControllerHelp::Legend(Address()) == "A Comprar. X Vender. Y Reparar",
+		"a scrolling legend with an unreadable entry vector still announces every action it displays");
+	hiddenSlot = 1;
+	Check(NativeControllerHelp::Legend(Address()) == "A Comprar. Y Reparar", "a slot the game hides is not announced");
+	hiddenSlot = -1;
+	Slots("\xEE\x80\x8F" "Comprar", nullptr, "\xEE\x80\x92" "Reparar");
+	Check(NativeControllerHelp::Legend(Address()) == "A Comprar", "the walk stops at the first slot the widget does not declare");
+	visible = false;
+	Check(NativeControllerHelp::Legend(Address()).empty(), "a hidden scrolling legend announces neither entries nor slots");
+	visible = true;
+	Put(legend.data(), 0x90, uint64_t{1}); Entry(0, 0xE010, 0, 1, "Cerrar menú");
+	Check(NativeControllerHelp::Legend(Address()) == "B: Cerrar menú", "the slots stay a fallback: a readable entry vector still wins");
+	Slots();
 	NativeControllerHelp::Reset();
 	Put(legend.data(), 0x90, uint64_t{1}); Entry(0, 0xE011, 0, 1, "Actualizar");
 	Check(NativeControllerHelp::ForFocus(focus) == "X: Actualizar" && discoveries > initialDiscoveries, "session reset rediscovers new NPC controls");

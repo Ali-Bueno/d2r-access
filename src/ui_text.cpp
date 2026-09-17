@@ -7,7 +7,7 @@ namespace D2RAccess::UiText {
 namespace {
 void Append(std::string& result, std::string_view part) {
 	if (part.empty()) return;
-	if (!result.empty()) result += ". ";
+	if (!result.empty()) result += result.ends_with('.') ? " " : ". ";
 	result += part;
 }
 
@@ -188,6 +188,8 @@ Announcement Reader::Update(const Readout& readout, uint64_t now, uint64_t settl
 	std::string phrase;
 	if (contextChanged) Append(phrase, readout.body);
 	if (contextChanged || readout.option != spoken_.option || readout.focusKey != spoken_.focusKey) Append(phrase, readout.option);
+	if (contextChanged || readout.coordinates != spoken_.coordinates || readout.focusKey != spoken_.focusKey)
+		Append(phrase, readout.coordinates);
 	const bool interrupt = !readout.contentSettleMs || contextChanged || readout.focusKey != spoken_.focusKey;
 	spoken_ = readout;
 	return { std::move(phrase), interrupt };
@@ -203,6 +205,7 @@ void Reader::Reset() {
 std::string Reader::Repeat() const {
 	std::string phrase = spoken_.body;
 	Append(phrase, spoken_.option);
+	Append(phrase, spoken_.coordinates);
 	return phrase;
 }
 }

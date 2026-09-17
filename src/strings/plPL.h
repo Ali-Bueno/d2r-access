@@ -96,6 +96,14 @@ inline constexpr Table plPL {
 	.questAlertsEnabled = "Powiadomienia o zadaniach włączone",
 	.questAlertsDisabled = "Powiadomienia o zadaniach wyłączone",
 	.questNoObjective = "Brak opisu celu dla tego zadania",
+	.vitalsLife = "Życie %d procent",
+	.vitalsMana = "Mana %d procent",
+	.vitalsEnabled = "Powiadomienia o życiu i manie włączone",
+	.vitalsDisabled = "Powiadomienia o życiu i manie wyłączone",
+	.vitalsOrbTextMissing = "Włącz %s i %s w opcjach rozgrywki, aby słyszeć życie i manę",
+	.equipmentBroken = "Uszkodzone wyposażenie: %s",
+	.currentOfMaximum = "%s z %s",
+	.itemPlacedIn = "Umieszczono w %s",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 };
 

@@ -34,6 +34,21 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   Item volume/landing follow-up: 5 affected suites / 341 checks pass.
   Radar suites account for 1439 checks (engine, passage, structure, snapshot, audio, readout) against the 2026-09-16 confirm-by-travel engine.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
+- Character panel: every `<name>Title` row of `CharacterStatsPanel` reads its label
+  and value through the focusable `Tooltip` child the controller layout adds; header
+  (panel, character, class, level) once on entry. Mini-menu opener buttons are named
+  from the game's `minipanel*` keys, mapped in `tools/gen_panel_widgets.py`.
+  `docs/character-panel.md`.
+- Equipment slots keep the last location seen under each slot widget name, so a
+  missed native read no longer drops the slot name; releasing a carried item names
+  where it landed. Belt cell index, controller potion binding and the mouse
+  `ContextMenu` rows remain unread.
+- Life, mana and broken equipment: enabled by default; `access-vitals on|off|status`.
+  Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage,
+  interrupting at or below 10%. Values read from the HUD orbs' own `ValueDisplay`
+  text, so the game's "show life/mana orb text" options must be on (the mod says
+  so once). Worn items that reach zero durability are announced with their slot.
+  `[vitals]` logs, `docs/vitals.md`; live NVDA check pending.
 - Quest announcements: enabled by default; `access-quests on|off|status`.
   Journal selection reads current objective/progress without a duplicated title;
   empty detail panes explicitly report missing objective text in all 13 locales.

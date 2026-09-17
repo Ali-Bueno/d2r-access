@@ -2,6 +2,103 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Button hints follow the item they act on — 2026-09-17 (third pass)
+
+User feedback on the second build: the controller hints ("A: pick up, X: drop")
+were heard **before** the item, because an occupied cell speaks as soon as the
+focus moves while the game's own tooltip is still ~350 ms away, and the hints
+went out in that first utterance. They are now held back whenever an occupied
+cell or slot is still waiting for its description, and are appended to the
+utterance that carries it, so the order is always item, then position, then what
+you can do with it. A cell that never renders a description therefore no longer
+speaks its hints at all — the trade the user asked for.
+
+Build/deploy succeeds, **40/40 CTest suites pass**; the two merchant-action
+expectations that encoded the old order were updated. Install SHA-256:
+`442FC7E5694176BB64CA62B39C6C487068AF82DDC02EA118EFEDE975CC855A7A`.
+
+## Character panel, equipment slots and placement — 2026-09-17 (second pass)
+
+From live feedback on the inventory screen:
+
+- **Equipment slots no longer go silent.** `NativeUi::EquipmentLocation`
+  returns 0 for every failure alike, so a missed read during a panel rebuild
+  simply dropped the slot name, and when `EquipmentItemPresence` was `Unknown`
+  in the same poll the whole move was silent. A slot's location never changes
+  and widget names survive rebuilds, so the last location seen under each slot
+  name now stands in for a failed read (logged once per slot), and a slot with
+  nothing else to say announces the generic equipment word instead of nothing.
+- **The character panel reads.** New `CharacterStats`: the controller layout
+  makes each `<name>Title` focusable through a `Tooltip` child, and only the
+  four raisable attributes had a reader. Every row now speaks its label and its
+  value — defence, stamina, life, mana and the four resistances included, with
+  current/maximum joined as "45 of 120". Values resolve generically as the
+  title's stem plus `Stat`/`Text`, so unlisted rows still read; only
+  `ArmorClass`, the three current/maximum pairs and the four resistances need
+  the table. The body carries the panel name plus character, class and level, so
+  entering says the header once and navigation then reads one row at a time —
+  the "header, then navigate" the user asked for.
+- **The mini-menu buttons have names.** `MiniMenuCharacter` and its six
+  siblings carried a null label because the layout gives them only an icon.
+  `tools/gen_panel_widgets.py` now maps a `MiniMenuButtonWidget`'s own `menu`
+  field to the game's matching `minipanel*` key; exactly those seven catalogue
+  entries changed.
+- **Releasing an item says where it went** (`itemPlacedIn`): the slot name for a
+  paperdoll slot, row and column for a grid cell, the belt for the belt —
+  instead of a bare "item released". This also covers using an identify scroll,
+  which on controller is the same carry-and-release mechanic.
+
+Two new phrases in all 13 locales. `./build.ps1` succeeds and deployed the
+plugin; **40/40 CTest suites pass** (new `character-stats` suite). Build/install
+DLL SHA-256 matches:
+`F45144E2BA0B29A162E2B46D48FAD569564824C5195766C1D07D645C1CBFC858`.
+`docs/character-panel.md`.
+
+**Known gaps, not fixed:** the belt is a single `BeltWidget` grid, so which of
+its four cells took a potion is still unknown — placement says only "belt".
+Assigning a potion or the belt to a controller button, and throwable flasks,
+have no reader. The mouse-side `ContextMenu` (`OptionsList`, filled at runtime)
+is unread, so the right-click identify/use rows are not covered.
+
+## Menu fixes, life/mana and broken equipment — 2026-09-17
+
+Four items from the audio demo feedback:
+
+- **Grid position is spoken last.** `UiText::Readout` gained its own
+  `coordinates` field, appended after the body, the option and the description,
+  so "fila X, columna Y" (and a skill's branch position) no longer lead an
+  announcement. It affects equipment slots and the skill tree, where they came
+  first; described inventory cells still omit them entirely, as before.
+  `ProgressionText::SkillReadout` no longer takes a position argument.
+- **Item actions beyond the primary one.** On controller the vendor panel has
+  no Buy/Sell/Repair buttons at all: `Controller/VendorPanelLayoutHD.json`
+  drops them, and every per-item action becomes an entry of the
+  `ControllerOverlay` footer — a `ButtonLegendScrollWidget`, a different class
+  from the `ButtonLegendWidget` whose `+0x88` entry vector the reader knew.
+  `NativeControllerHelp::Legend` now falls back to the sub-text slots the
+  layout declares (`Legend1`..`Legend8`, walked until one is missing) when that
+  vector yields nothing. No new offset. **Live check pending** — this is the
+  likely cause of hearing only "equipar", not a confirmed one.
+- **Life and mana by steps.** New `VitalsService` + pure `Vitals`
+  (`access-vitals on|off|status`, on by default): steps 75/50, 40/30/20/10,
+  5/4/3/2/1; crossing one speaks the real percentage once, in either direction,
+  interrupting at or below 10 %. Values come from the game's own HUD orbs
+  (`HUDPanel/HealthBall/ValueDisplay`), so the *show life/mana orb text*
+  gameplay options must be on; with them off the mod says so once, naming those
+  options with the game's own labels. No stat id, offset or fingerprint added.
+- **Broken equipment.** The loader's inventory service (`getLocalPlayer` +
+  `forEachInventoryItem` filtered to `ItemContainer::Equipment`) is swept once a
+  second; an item whose durability reaches zero from a positive value is
+  announced with its slot. Indestructible items and items worn already broken
+  are silent.
+
+Six new phrases in all 13 locales. `./build.ps1` succeeds and deployed the
+plugin; **39/39 CTest suites pass** (new `vitals` suite, 33 checks; new
+scrolling-legend and coordinate-order cases). Build/install DLL SHA-256 matches:
+`2F99F7AE08F2B99E23C4AC8F3CB813A6CF7AD09A6061EF70C43CB06F0B2CEFAB`.
+Live NVDA/controller confirmation pending for all four.
+`docs/vitals.md`, `docs/inventory-npc-followup.md`.
+
 ## Three live bugs fixed — 2026-09-16
 
 From the 22:00-23:08 controller session, all three diagnosed against the live log:
@@ -234,12 +331,14 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Radar / footstep automated tests | done (local) | Six radar suites / 1439 checks against the confirm-by-travel engine (state machine, corridor stability, recorded camp/return grids, snapshot RLE, audio, readout), plus footsteps. Expectations derived from geometry, named constants and captures; timing printed, never asserted. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
+| Character panel (attributes, life, resistances) | built and installed 2026-09-17 - live check pending | Every `<name>Title` row reads its label and value through its focusable `Tooltip` child; header (panel, character, class, level) spoken once on entry. Mini-menu opener buttons named from the game's `minipanel*` keys via the generator. `character-stats` suite. `docs/character-panel.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
-| Inventory actions / equipment slot names | wip — placement orientation installed | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices; live notice/repair check pending. `docs/inventory-npc-followup.md` |
+| Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
-| Item readout | wip — blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
+| Item readout | wip — coordinates moved last 2026-09-17; blacksmith axes and coordinate suppression confirmed | Full rendered descriptions, stale cell rejection; occupied grids wait for the stock tooltip and read it without row/column. Empty/unknown cells keep coordinates. Full inventory/storage operations remain unverified |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
+| Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |
 | Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
@@ -358,9 +457,29 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
-The three 2026-09-16 fixes are confirmed working by the user (2026-09-17),
-including the Den of Evil kill count, and are pushed. Next: continue the pending
-live checks already listed below.
+Live-check the 2026-09-17 changes, in this order:
+
+0. In the inventory: cross the equipment slots repeatedly — the slot name must
+   never disappear now (if it does, `[interaction] equipment location
+   unreadable` in the log says which slot). Pick an item up and drop it: it
+   should say where it landed. Open the character panel with its mini-menu
+   button (the button itself should now be named) and move through the rows:
+   expect the header once, then one row at a time.
+
+
+1. Turn on *show life orb text* and *show mana orb text* in Gameplay options
+   (with them off the mod says so once). Take damage and spend mana: expect a
+   reading around 75 %, 50 %, then every 10 % and point by point from 5 %, each
+   said once; at 10 % or below it interrupts. `[vitals]` in the log.
+2. Wear an item down to zero durability: expect its slot announced once.
+3. Open the inventory and the skill tree: "fila X, columna Y" must now come at
+   the end of the announcement, never before the item, slot or skill.
+4. At the blacksmith, highlight an item and listen for the full action list
+   (buy/sell/repair), not only the primary action. If it is still only one
+   action, send the `[interaction]` lines: the scrolling-legend fallback is a
+   hypothesis, not a confirmed fix.
+
+Then continue the pending live checks already listed below.
 
 With the new build, select Den of Evil and confirm one title/objective utterance;
 other blank quests should explicitly report no objective text. A visible counter

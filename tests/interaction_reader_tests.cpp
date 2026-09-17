@@ -1,3 +1,4 @@
+#include "character_stats.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
@@ -9,6 +10,7 @@
 #include "test_support.h"
 #include "tab_reader.h"
 
+#include <string>
 #include <vector>
 
 namespace D2RAccess::GroundItemService {
@@ -70,7 +72,11 @@ std::string SelectedTabText(uintptr_t widget) {
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
-std::string ReadName(uintptr_t panel) { return panel == 10 ? "BankExpansionLayout" : "PlayerInventoryExpansionLayout"; }
+std::string ReadName(uintptr_t id) {
+	if (id == 10) return "BankExpansionLayout";
+	if (id == 20) return "PlayerInventoryExpansionLayout";
+	return "widget" + std::to_string(id);
+}
 }
 namespace D2RAccess::NativeTooltips {
 void Track(uintptr_t panel) { tracked = panel; }
@@ -98,6 +104,11 @@ std::string Selected(uintptr_t) {
 }
 }
 namespace D2RAccess::Localization { std::string Text(std::string_view) { ++titleLookups; return {}; } }
+namespace D2RAccess::CharacterStats {
+bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
+UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
+void Reset() {}
+}
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool) { speech.emplace_back(text); }
 void Stop() {}
@@ -192,7 +203,8 @@ int main() {
 	ClearSpeech(); equipmentLocation = 4; focus.widget = 24; Tooltip("Hacha de mano"); Settle();
 	Check(speech == std::vector<std::string>{"Arma derecha. Hacha de mano"}, "equipment location precedes its rendered item description");
 	ClearSpeech(); tooltip = {}; equipmentLocation = 999; focus.widget = 25; Settle();
-	Check(speech.empty(), "unknown equipment locations do not invent a slot name");
+	Check(speech == std::vector<std::string>{Strings::Current().equipment},
+		"an unknown equipment location says only that the focus is on an equipment slot, never a guessed name");
 	equipmentLocation = 0; tooltip = {}; focus.widget = 26; widgetType = {"ButtonWidget", UiText::Kind::Button};
 	buttonSnapshot = {26, 26, "gold_button", UiText::Surface::Other, {{26, -1, UiText::Kind::Button, "gold_button", "ButtonWidget", "Soltar oro"}}};
 	Check(InteractionReader::HandlesFocus(focus), "icon buttons use native focus instead of rectangle matching");
@@ -241,12 +253,13 @@ int main() {
 	focus = {70, 71}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
 	progression.skill = true; progression.points = "1 punto";
 	progression.help = "X: Asignar habilidad";
-	progression.readout = {"Skills", "Gritos de guerra", "Fila 1, columna 1", "71"};
+	progression.readout = {"Skills", "Gritos de guerra", "", "71"};
+	progression.readout.coordinates = "Fila 1, columna 1";
 	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
 	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
-	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. Fila 1, columna 1. 1 punto. X: Asignar habilidad. Sin aprender Huyen aterrorizados."}, "skill name, state and controller help precede the full description");
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. X: Asignar habilidad. Sin aprender Huyen aterrorizados. Fila 1, columna 1"}, "skill name, state and controller help precede the description, and the grid position is spoken last");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
-	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.option = "Fila 2, columna 1";
+	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.coordinates = "Fila 2, columna 1";
 	Check(Tick() && speech.empty(), "moving to another skill rejects the previous tooltip");
 	Tooltip("Registra un cadáver.\nBuscar poción"); Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Buscar poción."), "next native D-pad selection reads its skill without repeating the branch");
@@ -270,10 +283,11 @@ int main() {
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid}; selection = 0; cell = {0, 0};
 	itemPresence = NativeUi::ItemPresence::Occupied;
 	controllerHelp = "Y: Reparar todo. B: Cerrar menú";
-	Check(Tick() && speech == std::vector<std::string>{controllerHelp}, "merchant actions remain discoverable while the selected item tooltip is still pending");
+	Check(Tick() && speech.empty(), "available actions wait for the selected item's description instead of being read ahead of it");
 	ClearSpeech(); Tick(); Check(speech.empty(), "unchanged merchant actions do not repeat while waiting");
 	Tooltip("Hacha\nDurabilidad: 15 de 28"); Tick();
-	Check(speech == std::vector<std::string>{"Inventario. Hacha Durabilidad: 15 de 28"}, "arrival of the description does not repeat the unchanged action list");
+	Check(speech == std::vector<std::string>{"Inventario. Hacha Durabilidad: 15 de 28. Y: Reparar todo. B: Cerrar menú"},
+		"the action list is spoken after the description it applies to, in the same utterance");
 	Check(InteractionReader::Repeat().ends_with(controllerHelp), "manual repeat includes currently available controller actions");
 	ClearSpeech(); selection = 1; cell = {1, 0}; Tooltip("Espada"); Tick();
 	Check(speech == std::vector<std::string>{"Espada"}, "item-to-item navigation does not repeat unchanged merchant actions");
@@ -295,12 +309,23 @@ int main() {
 	cell = {};
 	equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
 	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "crossing into empty equipment reads the slot without repeating placement help");
+	ClearSpeech(); focus.widget = 83; cell = {2, 1}; Tick();
+	Check(speech == std::vector<std::string>{"Cabeza. Vacío. Fila 2, columna 3"}, "an equipment slot speaks its grid position after its name and contents");
+	ClearSpeech(); focus.widget = 84; cell = {}; Tick(); ClearSpeech();
+	equipmentLocation = 0; focus.widget = 83; Tick();
+	Check(speech == std::vector<std::string>{"Cabeza. Vacío"}, "a slot whose location the game briefly stops reporting keeps the name it already had");
+	ClearSpeech(); focus.widget = 90; equipmentPresence = NativeUi::ItemPresence::Unknown; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().equipment},
+		"a slot with neither a known location nor readable contents still says what the focus is on");
+	equipmentPresence = NativeUi::ItemPresence::Empty; equipmentLocation = 1;
+	ClearSpeech(); focus.widget = 81; cell = {}; Tick();
 	Check(InteractionReader::Repeat().starts_with(Strings::Current().itemInHand), "manual repeat retains the current item-in-hand context");
 	ClearSpeech(); holdingItem.reset(); Tick();
 	Check(speech.empty(), "a failed cursor query cannot announce that the item was placed");
 	holdingItem = true; Tick(); Check(speech.empty(), "cursor query recovery does not repeat an unchanged mode");
 	holdingItem = false; Tick();
-	Check(speech == std::vector<std::string>{Strings::Current().itemReleased}, "leaving placement mode is announced without guessing whether the item was equipped or dropped");
+	Check(speech.size() == 1 && speech[0].find("Cabeza") != std::string::npos
+		&& speech[0] != Strings::Current().itemReleased, "releasing a carried item names the equipment slot it went into");
 	Check(InteractionReader::Repeat().find(Strings::Current().itemInHand) == std::string::npos, "repeat removes stale item-in-hand context");
 	ClearSpeech(); Tick(); Check(speech.empty(), "an empty cursor does not repeatedly announce release");
 	InteractionReader::Reset(); holdingItem = true; Tick();
