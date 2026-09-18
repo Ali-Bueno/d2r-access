@@ -24,7 +24,7 @@ namespace {
 using UiText::Surface;
 constexpr uint64_t PollMs = 33; // match the existing 30 Hz controller focus reader
 const D2RL::PluginContext* g_context = nullptr;
-const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
+const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
@@ -100,8 +100,8 @@ void Speak(const D2RL::PluginContext* context, const UiText::Readout& readout, c
 }
 
 bool Register(const D2RL::PluginContext* context) {
-	if (!context || context->QueryService(D2RL::ServiceId::Lifecycle, D2RL::LifecycleServiceV1Version, &g_lifecycle) != D2RL::ServiceQueryResult::Success
-		|| !D2RL::HasLifecycleServiceV1Field(g_lifecycle, D2RL::LifecycleServiceV1RequiredSize)) return false;
+	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
+		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
 	g_context = context;
 	for (auto kind : { D2RL::Lifecycle::GameplayEventKind::GameJoined, D2RL::Lifecycle::GameplayEventKind::GameLeft, D2RL::Lifecycle::GameplayEventKind::LocalPlayerReady }) {
 		const D2RL::Lifecycle::GameplayEventListener listener{

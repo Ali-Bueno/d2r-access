@@ -64,32 +64,32 @@ inline constexpr size_t Levels = 0x1460, LevelCount = 0x1468, LevelStride = 0x18
 inline constexpr size_t MaxNameBytes = 128, MaxKeyBytes = 32, MaxLevelKeyBytes = LevelWarpKey - LevelNameKey;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 inline constexpr Evidence Checks[] = {
-	{0x3614C0, 653, 0x4C93AE47670794F5ULL}, // complete logical room list and tile rectangles
-	{0x361040, 33, 0x83B622B40F1DA499ULL}, // RoomEx+0x98 preset list
-	{0x99650, 486, 0x07521A67587EBD61ULL}, // preset linked-list traversal and native spawn coordinates
-	{0x4926B0, 211, 0x7D2A65464586F174ULL}, // preset class/type and relative X/Y used for spawning
-	{0x326480, 254, 0xE05CACDF11E4D4A7ULL}, // room tile rectangle -> active subtile rectangle
+	{0x3614C0, 653, 0xA85E778CC89FCD70ULL}, // complete logical room list and tile rectangles
+	{0x361040, 33, 0x884F085CB2600C15ULL}, // RoomEx+0x98 preset list
+	{0x99650, 486, 0xBA686BCFA8BC8437ULL}, // preset linked-list traversal and native spawn coordinates
+	{0x4926B0, 211, 0xF12E9167B6E9C9C5ULL}, // preset class/type and relative X/Y used for spawning
+	{0x326480, 254, 0x3CEB6B5F0FFCE2D4ULL}, // room tile rectangle -> active subtile rectangle
 	{0x334ED0, 17, 0xB98300209E9E7060ULL}, // five subtiles per tile
-	{0x34B9D0, 45, 0xA892FC2D16626027ULL}, // unit type getter (Unit+0), 6 for null
-	{0x349860, 46, 0x27DC60F1541D2802ULL}, // unit class getter (Unit+4)
-	{0x34A330, 46, 0x7626C6CCA52BFF23ULL}, // unit id getter (Unit+8)
-	{0x34AB60, 43, 0xBCDE6EC19007BD7AULL}, // unit mode getter (Unit+0xC)
-	{0x34A500, 53, 0x8D3BD69276CB0C27ULL}, // unit data getter (Unit+0x10)
-	{0x34C2C0, 104, 0xBF5FE9280CD1598FULL}, // liveness: flags 0x124/0x128 and monster modes 0/12
-	{0x34FBA0, 52, 0x7BAC2EF8F8795A3DULL}, // player-minion flag getter
-	{0x34AD90, 81, 0x2BADCEB575F7FFEFULL}, // objects.txt record from ObjectData
-	{0x985A0, 521, 0x69116D401817738CULL}, // monster name builder, caches at MonsterData+0x40
-	{0x976E0, 169, 0x262A2516AE7AEA21ULL}, // MonStats row accessor
-	{0x38FD00, 132, 0x8E99DD2AE136F14FULL}, // Objects row accessor
-	{0x324FC0, 384, 0x039D45D0CCA603EEULL}, // unit distance: static X/Y at +0x10/+0x14 for types 2, 4 and 5
-	{0x2EFEE0, 161, 0x1C9ADE3FA99794D0ULL}, // peer warp search: type-5 units in the room unit list, class = LvlWarp Id
-	{0x3DA9A0, 168, 0x17D78C13334EAB7BULL}, // RoomEx+0x78 warp nodes: destination RoomEx, next, LvlWarp row (+0x2C Id)
-	{0x3DA910, 88, 0x2F8B4AA4B2F749D5ULL}, // warp unit -> its node, Id compared as a byte, gated on node+0x10
+	{0x34B9D0, 45, 0x2D424E74A97DA816ULL}, // unit type getter (Unit+0), 6 for null
+	{0x349860, 46, 0xA487037EF27A3BC8ULL}, // unit class getter (Unit+4)
+	{0x34A330, 46, 0x0C4DF37279712714ULL}, // unit id getter (Unit+8)
+	{0x34AB60, 43, 0xF767964C7BC0B888ULL}, // unit mode getter (Unit+0xC)
+	{0x34A500, 53, 0xF1AC90AD0E70B541ULL}, // unit data getter (Unit+0x10)
+	{0x34C2C0, 104, 0xE2BE7F578EF9FF9EULL}, // liveness: flags 0x124/0x128 and monster modes 0/12
+	{0x34FBA0, 52, 0x0E05128D99586BAAULL}, // player-minion flag getter
+	{0x34AD90, 81, 0xD3170B3ACE03F7DCULL}, // objects.txt record from ObjectData
+	{0x985A0, 521, 0x50EC9372B676A70FULL}, // monster name builder, caches at MonsterData+0x40
+	{0x976E0, 169, 0xFF5A28122B22038AULL}, // MonStats row accessor
+	{0x38FD00, 132, 0x61F008DEA3273998ULL}, // Objects row accessor
+	{0x324FC0, 384, 0x8B4A0736454E93DDULL}, // unit distance: static X/Y at +0x10/+0x14 for types 2, 4 and 5
+	{0x2EFEE0, 161, 0xD55AB295152D9B73ULL}, // peer warp search: type-5 units in the room unit list, class = LvlWarp Id
+	{0x3DA9A0, 168, 0x82E26127D267E177ULL}, // RoomEx+0x78 warp nodes: destination RoomEx, next, LvlWarp row (+0x2C Id)
+	{0x3DA910, 88, 0xC5FFEDF233352A59ULL}, // warp unit -> its node, Id compared as a byte, gated on node+0x10
 	{0x192B20, 5, 0x718E401FF86D81A2ULL}, // Room+0x18 -> RoomEx
-	{0x361070, 137, 0x633E273B54EB9ED5ULL}, // destination level id: RoomEx+0x90 -> Level+0x1F8
-	{0x32C4A0, 246, 0x6974DAC5D6D6B9B3ULL}, // Levels row accessor (bank+0x1460 / +0x1468, stride 0x18C)
-	{0x9F2A0, 203, 0xBF0DFAAA7FBA1AE5ULL}, // warp caption: Levels row +0x125 key
-	{0xC17E0, 910, 0x40FCBEE3BD98426EULL}, // object label: SubClass portal / waypoint bits, LevelName +0xFD, ObjectData+8
-	{0x34AD40, 72, 0xFA46CE6C937348C4ULL}, // ObjectData+8 byte getter
+	{0x361070, 137, 0x233046518CE86E42ULL}, // destination level id: RoomEx+0x90 -> Level+0x1F8
+	{0x32C4A0, 246, 0x4AD6286EF6C1F499ULL}, // Levels row accessor (bank+0x1460 / +0x1468, stride 0x18C)
+	{0x9F2A0, 203, 0xC90C7A453EC06F4BULL}, // warp caption: Levels row +0x125 key
+	{0xC17E0, 910, 0x34C1A6F0CFE7D2B9ULL}, // object label: SubClass portal / waypoint bits, LevelName +0xFD, ObjectData+8
+	{0x34AD40, 72, 0xAB8363B4E728C162ULL}, // ObjectData+8 byte getter
 };
 }

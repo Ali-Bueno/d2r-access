@@ -19,7 +19,7 @@ enum class Command { None, On, Off, Toggle, Status };
 std::atomic<Command> g_command{Command::None};
 std::atomic<bool> g_enabled{false};
 const D2RL::PluginContext* g_context = nullptr;
-const D2RL::InputServiceV1* g_input = nullptr;
+const D2RL::InputService* g_input = nullptr;
 D2RL::Input::ActionHandle g_action = D2RL::Input::InvalidHandle;
 std::mutex g_mutex;
 Footsteps::Filter g_filter;
@@ -83,8 +83,8 @@ void Register(const D2RL::PluginContext* context) {
 	g_supported = NativeFootsteps::Initialize(context);
 	g_enabled = g_supported;
 	(void)context->RegisterConsoleCommand("access-footsteps", Console, "Stalled local footsteps: on|off|status.");
-	if (context->QueryService(D2RL::ServiceId::Input, D2RL::InputServiceV1Version, &g_input) == D2RL::ServiceQueryResult::Success
-		&& D2RL::HasInputServiceV1Field(g_input, D2RL::InputServiceV1RequiredSize)) {
+	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
+		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "footsteps-toggle", .displayName = "Toggle stalled footstep filter", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::F, D2RL::Input::Modifier::Control}, .callback = Toggle};

@@ -18,12 +18,12 @@ Result Cursor(const D2RL::PluginContext*, D2RL::PlayerHandle player, D2RL::ItemH
 	*item = cursorHandle;
 	return cursorResult;
 }
-D2RL::InventoryServiceV1 inventory{
-	.serviceSize = D2RL::InventoryServiceV1Size, .serviceVersion = D2RL::InventoryServiceV1Version,
+D2RL::InventoryService inventory{
+	.serviceSize = D2RL::InventoryServiceSize, .serviceVersion = D2RL::InventoryService::AbiVersion,
 	.getLocalPlayer = Player, .getCursorItem = Cursor,
 };
 D2RL::ServiceQueryResult Query(const D2RL::PluginContext*, D2RL::ServiceId id, uint32_t version, const void** service) noexcept {
-	if (!available || id != D2RL::ServiceId::Inventory || version != D2RL::InventoryServiceV1Version)
+	if (!available || id != D2RL::ServiceId::Inventory || version != D2RL::InventoryService::AbiVersion)
 		return D2RL::ServiceQueryResult::Unavailable;
 	*service = &inventory;
 	return D2RL::ServiceQueryResult::Success;
@@ -54,7 +54,7 @@ int main() {
 	Check(!HoldingItem(&context).has_value(), "unavailable inventory service is unknown");
 	available = true; inventory.serviceSize = 0;
 	Check(!HoldingItem(&context).has_value(), "truncated service is rejected before reading callbacks");
-	inventory.serviceSize = D2RL::InventoryServiceV1Size; inventory.getCursorItem = nullptr;
+	inventory.serviceSize = D2RL::InventoryServiceSize; inventory.getCursorItem = nullptr;
 	Check(!HoldingItem(&context).has_value(), "missing cursor callback is rejected");
 	inventory.getCursorItem = Cursor; inventory.getLocalPlayer = nullptr;
 	Check(!HoldingItem(&context).has_value(), "missing player callback is rejected");

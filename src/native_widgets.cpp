@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "native_widgets.h"
+#include "core_slots.h"
 #include "native_memory.h"
 
 #include <windows.h>
@@ -11,13 +12,12 @@ namespace D2RAccess::NativeWidgets {
 
 namespace {
 
-// D2RCore.dll 1.2.1-beta: slots the loader fills at startup with the game's
-// own pointers (offsets from the DLL base; see native_widgets.h).
-constexpr const wchar_t* CoreModuleName        = L"D2RCore.dll";
-constexpr uintptr_t      PanelManagerGlobalSlot = 0x5AA340; // -> address of the game's PanelManager* global
-constexpr uintptr_t      FindPanelSlot          = 0x5AB880; // Panel*  (PanelManager*, const char* name)
-constexpr uintptr_t      FindChildSlot          = 0x5AB610; // Widget* (Widget* parent, const char* name), searches below parent
-constexpr uintptr_t      SetTextSlot            = 0x5ADA48; // void (TextBoxWidget*, const {const char*, size_t}*)
+// The game pointers this reader needs, named by the RVA their D2RCore
+// descriptor carries (core_slots.h).
+constexpr uint64_t PanelManagerGlobalRva = 0x3440170; // the game's PanelManager* global
+constexpr uint64_t FindPanelRva          = 0x89F760;  // Panel*  (PanelManager*, const char* name)
+constexpr uint64_t FindChildRva          = 0x855C90;  // Widget* (Widget* parent, const char* name), searches below parent
+constexpr uint64_t SetTextRva            = 0x86DD50;  // void (TextBoxWidget*, const {const char*, size_t}*)
 
 // Engine string type (0x28 bytes).
 constexpr size_t   EngineStringSize   = 0x28;
@@ -116,7 +116,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (context == nullptr) {
 		return false;
 	}
-	const HMODULE core = GetModuleHandleW(CoreModuleName);
+	const HMODULE core = GetModuleHandleW(CoreSlots::ModuleName);
 	const HMODULE exe  = GetModuleHandleW(nullptr);
 	if (core == nullptr || exe == nullptr) {
 		D2RAccess::AsyncLog::Warn(context, "[native] D2RCore.dll not found; native widget access disabled.");
@@ -127,31 +127,44 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_exeBase       = reinterpret_cast<uintptr_t>(exe);
 	g_exeEnd        = g_exeBase + nt->OptionalHeader.SizeOfImage;
 
+	const char*     build    = CoreSlots::LoaderVersion();
 	const uintptr_t coreBase = reinterpret_cast<uintptr_t>(core);
-	uintptr_t       managerGlobal = 0, findPanel = 0, findChild = 0, setText = 0;
-	if (!Peek(coreBase + PanelManagerGlobalSlot, managerGlobal) || !Peek(coreBase + FindPanelSlot, findPanel) || !Peek(coreBase + FindChildSlot, findChild) || !Peek(coreBase + SetTextSlot, setText)) {
+	CoreSlots::Anchor anchors[]{{PanelManagerGlobalRva}, {FindPanelRva}, {FindChildRva}, {SetTextRva}};
+	CoreSlots::Resolve(coreBase, anchors);
+	if (!CoreSlots::Resolved(anchors)) {
+		D2RAccess::AsyncLog::WarnF(context, "[native] D2RCore (loader %s) carries no single descriptor for the game pointers (matches: manager %u, findPanel %u, findChild %u, setText %u); native widget access disabled.",
+			build != nullptr ? build : "unknown", anchors[0].hits, anchors[1].hits, anchors[2].hits, anchors[3].hits);
+		return false;
+	}
+	uintptr_t managerGlobal = 0, findPanel = 0, findChild = 0, setText = 0;
+	if (!Peek(coreBase + anchors[0].slot, managerGlobal) || !Peek(coreBase + anchors[1].slot, findPanel) || !Peek(coreBase + anchors[2].slot, findChild) || !Peek(coreBase + anchors[3].slot, setText)) {
 		D2RAccess::AsyncLog::Warn(context, "[native] D2RCore slots unreadable; native widget access disabled.");
 		return false;
 	}
-	// Every slot must point into the game executable, or this is not the
-	// D2RCore build these offsets were taken from.
+	// Every slot must point into the game executable. A zero means the loader
+	// had not resolved that descriptor yet; anything else means this D2RCore
+	// resolves these RVAs to something other than the game's own code.
 	if (!InExe(managerGlobal) || !InExe(findPanel) || !InExe(findChild) || !InExe(setText)) {
-		D2RAccess::AsyncLog::WarnF(context, "[native] D2RCore slots do not point into D2R.exe (manager %p, findPanel %p, findChild %p, setText %p); native widget access disabled.",
+		D2RAccess::AsyncLog::WarnF(context, "[native] D2RCore slots (loader %s) do not point into D2R.exe (manager %p, findPanel %p, findChild %p, setText %p); native widget access disabled.",
+			build != nullptr ? build : "unknown",
 			reinterpret_cast<void*>(managerGlobal), reinterpret_cast<void*>(findPanel), reinterpret_cast<void*>(findChild), reinterpret_cast<void*>(setText));
 		return false;
 	}
+	D2RAccess::AsyncLog::InfoF(context, "[native] D2RCore descriptors (loader %s): manager 0x%llX, findPanel 0x%llX, findChild 0x%llX, setText 0x%llX",
+		build != nullptr ? build : "unknown",
+		static_cast<unsigned long long>(anchors[0].slot), static_cast<unsigned long long>(anchors[1].slot),
+		static_cast<unsigned long long>(anchors[2].slot), static_cast<unsigned long long>(anchors[3].slot));
 	g_managerGlobal = reinterpret_cast<void**>(managerGlobal);
 	g_findPanel     = reinterpret_cast<FindPanelFn>(findPanel);
 	g_findChild     = reinterpret_cast<FindChildFn>(findChild);
-	// These resolved RVAs and the child-vector instructions were recovered from
-	// this install's live code (docs/native-ui.md). A different build fails closed
-	// for tree/focus traversal while retaining the existing name-based readers.
-	constexpr uintptr_t VerifiedFindChildRva = 0x855C90;
-	constexpr uintptr_t VerifiedSetTextRva = 0x86DD50;
+	// The child-vector instructions were recovered from this install's live code
+	// (docs/native-ui.md). Requiring the loader to have resolved each descriptor
+	// to the game's own code, undetoured, keeps tree/focus traversal failing
+	// closed on a different build while the name-based readers carry on.
 	constexpr size_t ChildVectorCodeOffset = 0x95;
 	constexpr unsigned char ChildVectorCode[] = { 0x48, 0x8B, 0x5F, 0x58, 0x48, 0x8B, 0x47, 0x60, 0x48, 0x8D, 0x2C, 0xC3 };
 	unsigned char actual[sizeof(ChildVectorCode)]{};
-	g_supportsTree = findChild - g_exeBase == VerifiedFindChildRva && setText - g_exeBase == VerifiedSetTextRva
+	g_supportsTree = findChild - g_exeBase == FindChildRva && setText - g_exeBase == SetTextRva
 		&& NativeMemory::Copy(findChild + ChildVectorCodeOffset, actual, sizeof(actual))
 		&& std::memcmp(actual, ChildVectorCode, sizeof(actual)) == 0;
 	if (!g_supportsTree) D2RAccess::AsyncLog::Warn(context, "[text] Unrecognized native layout; in-game text traversal disabled.");

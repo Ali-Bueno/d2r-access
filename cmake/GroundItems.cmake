@@ -34,7 +34,7 @@ if(BUILD_TESTING)
 	add_executable(ground-item-service-tests tests/ground_item_service_tests.cpp src/ground_item_service.cpp
 		src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	foreach(target ground-item-tests native-ground-item-tests item-audio-tests ground-item-service-tests)
-		target_link_libraries(${target} PRIVATE D2RLPlugin::D2RLPlugin)
+		target_link_libraries(${target} PRIVATE D2RLPlugin::D2RLPlugin version)
 		target_include_directories(${target} PRIVATE src)
 		target_compile_features(${target} PRIVATE cxx_std_20)
 		target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)

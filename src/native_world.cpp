@@ -1,5 +1,7 @@
 #include "native_world.h"
+#include "core_slots.h"
 #include "entity_layout.h"
+#include "layout_check.h"
 #include "native_memory.h"
 #include "async_log.h"
 
@@ -12,10 +14,11 @@
 namespace D2RAccess::NativeWorld {
 namespace {
 using NativeMemory::Peek;
-// Installed D2R 3.3.93787 / D2RCore 1.2.1-beta disassembly, docs/sonar-radar.md.
-// Slots are used by the SDK getLocalPlayer wrapper at Core RVA 0x372C44/4D.
-constexpr uintptr_t PlayerIndexSlot = 0x5A8CF8, PlayerLookupSlot = 0x5A8D10;
-constexpr uintptr_t PlayerLookupRva = 0x9A480;
+// Installed D2R 3.3.93787, docs/sonar-radar.md. The SDK getLocalPlayer wrapper
+// (Core RVA 0x372C44/4D) reaches both through D2RCore descriptors, located by
+// the game RVA they carry rather than by an offset into the loader's own DLL
+// (core_slots.h).
+constexpr uint64_t PlayerIndexRva = 0x8B2D0, PlayerLookupRva = 0x9A480;
 constexpr size_t UnitType = 0, UnitId = 8, UnitPath = 0x38;
 // Collision getters 0x341A20/30 read unsigned words from the high halves of
 // the fixed-point coordinates. Path+8/+C instead holds projected coordinates.
@@ -39,34 +42,26 @@ struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 // FNV-1a of complete recovered accessors/readers. Verify before consuming their
 // layout: a new executable must fail quiet until its structures are rechecked.
 constexpr Evidence Checks[] = {
-	{0x9A480, 165, 0xD7C8BF425C24EF8FULL},
+	{0x9A480, 165, 0x754EA91CD47DAFC1ULL},
 	{0x2EFB30, 5, 0x71FA801FF8C90D42ULL},
 	{0x2EFDE0, 13, 0x0746FEFCB398B135ULL},
 	{0x2F0680, 62, 0xF0ADAC690E656CD0ULL},
 	{0x341A20, 5, 0xCE32643327F7AF15ULL},
 	{0x341A30, 5, 0xCE264C3327EEAEF1ULL},
-	{0x382AA0, 374, 0x91726DCDA3AFD43EULL}, // subtile centre to 16.16 position
-	{0x3818E0, 310, 0x260F7E3A027B8F70ULL}, // packed position setter
-	{0x341870, 17, 0x850E898DB8A253A0ULL},
+	{0x382AA0, 374, 0x2C8D5C56B1B06EFDULL}, // subtile centre to 16.16 position
+	{0x3818E0, 310, 0xFA8CB0816077614AULL}, // packed position setter
+	{0x341870, 17, 0xC3AC9D7FB2DB3171ULL},
 	{0x341860, 14, 0xF2D1DCF8A918C439ULL},
-	{0x341D70, 255, 0xA39B91A111FA8DD3ULL}, // restores live monster footprint 0x100
-	{0x341600, 182, 0x8C1C53B07AF3DF19ULL}, // replaces monster footprint with corpse 0x8000
-	{0x363CF0, 344, 0x652C884296D3F7EDULL},
-	{0x3636D0, 353, 0x07A933B5F15EAE54ULL},
-	{0x3C5610, 54, 0x49DB70EEE3861E43ULL},
+	{0x341D70, 255, 0xE70FCF1F1D9D4E63ULL}, // restores live monster footprint 0x100
+	{0x341600, 182, 0xD99C9018EEE5F63FULL}, // replaces monster footprint with corpse 0x8000
+	{0x363CF0, 344, 0x14BE45D2B79EDDD4ULL},
+	{0x3636D0, 353, 0x8A0808EA56593F60ULL},
+	{0x3C5610, 54, 0x390C63D363E3CFCAULL},
 	{0x342740, 4, 0x139702E42DDC56F6ULL},
-	{0x366250, 148, 0x92BE7DBD292A006FULL},
-	{0x366D40, 895, 0x4A0CFAC2C8F9877CULL},
-	{0x364C70, 197, 0x17506F77209FE3D8ULL},
+	{0x366250, 148, 0xAB830ADD00154C34ULL},
+	{0x366D40, 895, 0x8BAD43A7F5085D50ULL},
+	{0x364C70, 197, 0x9D4A55B851C78757ULL},
 };
-bool Verify(uintptr_t base, Evidence check) {
-	std::vector<uint8_t> bytes(check.size);
-	if (!NativeMemory::Copy(base + check.rva, bytes.data(), bytes.size())) return false;
-	constexpr uint64_t FnvBasis = 14695981039346656037ULL, FnvPrime = 1099511628211ULL;
-	uint64_t hash = FnvBasis;
-	for (auto byte : bytes) hash = (hash ^ byte) * FnvPrime;
-	return hash == check.hash;
-}
 uintptr_t LocalPlayer() noexcept {
 	__try {
 		const unsigned index = reinterpret_cast<unsigned(*)()>(g_indexFunction)();
@@ -153,16 +148,23 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!Peek(base, dos) || dos.e_magic != IMAGE_DOS_SIGNATURE || dos.e_lfanew <= 0
 		|| !Peek(base + dos.e_lfanew, nt) || nt.Signature != IMAGE_NT_SIGNATURE) return false;
 	const uintptr_t end = base + nt.OptionalHeader.SizeOfImage;
-	for (auto check : Checks) {
-		if (!Verify(base, check)) {
-			AsyncLog::WarnF(context, "[radar] Unsupported world layout at RVA %llX; sonar disabled.", static_cast<unsigned long long>(check.rva));
-			return false;
-		}
+	if (!LayoutCheck::Verify(context, base, Checks, "radar", "sonar disabled")) return false;
+	const auto core = reinterpret_cast<uintptr_t>(GetModuleHandleW(CoreSlots::ModuleName));
+	if (core == 0) {
+		AsyncLog::Warn(context, "[radar] D2RCore.dll not found; sonar disabled.");
+		return false;
 	}
-	const auto core = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"D2RCore.dll"));
+	CoreSlots::Anchor anchors[]{{PlayerIndexRva}, {PlayerLookupRva}};
+	CoreSlots::Resolve(core, anchors);
 	uintptr_t index = 0, player = 0;
-	if (!core || !Peek(core + PlayerIndexSlot, index) || !Peek(core + PlayerLookupSlot, player)
-		|| player != base + PlayerLookupRva || !NativeMemory::Executable(index)) return false;
+	if (!CoreSlots::Resolved(anchors) || !Peek(core + anchors[0].slot, index) || !Peek(core + anchors[1].slot, player)
+		|| player != base + PlayerLookupRva || !NativeMemory::Executable(index)) {
+		const char* build = CoreSlots::LoaderVersion();
+		AsyncLog::WarnF(context, "[radar] D2RCore (loader %s) does not resolve the local-player lookup (descriptor matches: index %u, player %u; index %p, player %p); sonar disabled.",
+			build != nullptr ? build : "unknown", anchors[0].hits, anchors[1].hits,
+			reinterpret_cast<void*>(index), reinterpret_cast<void*>(player));
+		return false;
+	}
 	// Loader-resolved index accessor: mov eax,[rip+disp32]; ret. Its target
 	// belongs to this executable; the data address is derived, never guessed.
 	std::array<uint8_t, 7> code{};

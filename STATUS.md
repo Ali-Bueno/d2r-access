@@ -2,6 +2,65 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Loader 1.3.0-beta — issue #1 — 2026-09-17 (live-verified)
+
+A collaborator reported the whole native layer down on **D2RLoader 1.3.0-beta**, the only build
+`d2rloader.net` still distributes (issue #1). It turned out to be **four** independent causes, plus a
+latent field-width bug. All fixed and confirmed on a live 1.3.0-beta run.
+
+- **Localization.** The SDK was pinned at tag v4 while upstream had moved on. `LocalizationService`
+  is the **only** one of the 18 services whose ABI went from 1 to 2 (namespaced strings), so 1.3.0
+  refused a v1 query and panel titles fell back to internal names. Submodule now at `6fbabfc8`; the
+  renames (`XServiceV1` -> `XService`, `QueryService(&svc)` deriving id and ABI from the type,
+  `apiVersion` -> `abiVersion`) applied across the 14 files that query a service.
+- **Namespaced string tables (the regression this first caused).** ABI 2 did more than rename the
+  service: a bare key now searches the namespace named by `PluginInfo.id`, i.e. the plugin's own,
+  which holds nothing. Every key the mod looks up is one of the game's, so `Localization::Text(key)`
+  asks for `d2r:<key>` (SDK `localization.h`: "Use d2r:Key or d2rloader:Key for game or loader
+  text"). Until that landed, *every* key lookup returned empty with no warning at all — the service
+  queried fine — so panel titles, character creation and quest names all fell back to internal names
+  ("quest 0", "quest 1") and the speech-language probe silently defaulted to English. Confirmed
+  fixed live: the probe now resolves (`probe "close" = "close"`). A mechanical rename was not enough;
+  the semantic change shipped in the same commit.
+- **D2RCore slots, all six.** The four widget slots *and* the two the sonar uses were hardcoded
+  offsets into the loader's own DLL, which move with every D2RCore build. They are entries of a
+  table of 0x18-byte descriptors whose `+0x08` carries the **game RVA** the loader resolved the
+  entry from — a fact of the game build, not the loader's. `src/core_slots.h` finds each descriptor
+  by that RVA. Verified against both DLLs offline and live: it reproduces the six offsets that were
+  hardcoded for 1.2.1-beta and yields 0x67DDC0, 0x67DDF0, 0x67F4D0, 0x680AA0, 0x680D28, 0x683810 on
+  1.3.0-beta.
+- **The sonar was failing silently.** `NativeWorld::Initialize` returned false with no log line when
+  its slots did not resolve, so the collaborator's report could not show it — the sonar was down on
+  1.3.0 too, invisibly. It now says so.
+- **The fingerprints were hashing the loader's own patches.** D2RLoader redirects some of the game's
+  calls into code it allocates at run time, in a block **past the image's `SizeOfImage`** — an
+  address that is not part of the game and need not repeat between launches. `LayoutCheck::Hash` now
+  zeroes the 4-byte operand of every `E8`/`E9` before hashing. Under that rule **57 of 59 checks are
+  byte-identical across the two loader builds**; only the two the loader genuinely patched differ.
+  All 60 stored hashes were re-derived (`tools/layout_fingerprints.py`).
+- **Latent bug found on the way: `ObjectData+8` (a portal's destination level) widened from uint8 to
+  uint16** on 1.3.0 — the game's own label builder now consumes it as `ax` (0xC17E0+167 `b6`->`b7`)
+  and 0x34AD40's byte getter is hooked. The offset is unchanged; the field grew into its padding.
+  `native_entities.cpp` read it as `uint8_t`, which truncates any level id above 255. Harmless on
+  vanilla (highest is 137) but wrong, so it is now a `uint16_t`.
+- **0x2F5020 (`UNIT_GetStat`) is fully detoured** (`jmp [rip+...]`). The reader only ever *calls* it,
+  so its body is the loader's, not ours to fingerprint: the entry is marked `mayBeDetoured` and a
+  thunk is accepted and logged instead of re-hashed.
+- **Diagnostics.** The three layout guards each duplicated the FNV-1a loop and named only the
+  **first** mismatching RVA, which is why reproducing the report needed a debugger. `src/layout_check.h`
+  holds one check that names *every* changed or unreadable RVA. The SDK's `buildVersion` is the
+  **game's** build ("3.3.93787") and the API reports nothing about the loader, so `CoreSlots::LoaderVersion()`
+  reads D2RCore's own file-version resource; the first log line is now
+  `d2r-access 0.1.0 on game 3.3.93787, loader 1.3.0-beta (plugin ABI 4)`.
+
+Build succeeds, **42/42 CTest suites pass** (two new `sdk` suites come with the updated SDK).
+Live 18:56 run: descriptors resolved, ground items, monster/object/exit scan, sonar, tooltips,
+skill grid and footfall all verified, no layout warning, localization up. Install SHA-256 recorded
+in the build log. Only remaining warning is the pre-existing transient
+`UI pump: runOnUiThread returned 4; will retry`.
+
+**Next step:** answer issue #1 (not posted yet) and have the collaborator confirm on their install.
+
 ## Button hints follow the item they act on — 2026-09-17 (third pass)
 
 User feedback on the second build: the controller hints ("A: pick up, X: drop")
@@ -293,12 +352,12 @@ descriptions synchronized; skill position/count is spoken. Fourteen UI suites /
 Controller Options intentionally has three tabs; keyboard bindings are the fourth.
 `docs/controller-navigation.md`.
 
-- **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, v1.2.1-beta 2026-09-03, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, API v4).
+- **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, **v1.3.0-beta 2026-09-14**, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, pinned at `6fbabfc8` / SDK 0.2.0, plugin ABI v4).
 - **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
 - **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `prism.dll` into the game. PRISM v0.18.2 vendored in `third_party/prism/`.
 - **Mod install path:** `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\` (global) — D2RLoader zip extracted into the game folder, launch `D2RLoader.exe`.
-  The loader is **three** files in the game root, all dated 2026-09-03: `D2RLoader.exe` (23,581,032), **`D2RCore.dll`** (16,903,512 — resolves the panel-manager slot table the widget reader depends on) and `d2rloader.mpq` (10,820,639). Everything else in the root is the game's. Packaging the mod for someone else needs all three, plus `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/{prism.dll, sounds/item loop sounds/*.wav}` and a `d2rloader/config/d2rloader.toml` with the console enabled. Never ship `D2R.text.bin` (dumped game code, regenerated on first run).
-- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.2.1-beta installed into the game folder (SHA-256 verified). Start NVDA, launch `D2RLoader.exe`. Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
+  The loader is **three** files in the game root, all dated 2026-09-14: `D2RLoader.exe` (23,590,248), **`D2RCore.dll`** (18,345,304 — resolves the game pointers the widget and world readers depend on) and `d2rloader.mpq` (10,816,549). Both builds we have are kept outside the repo in `../loader-backups/` with their hashes and restore notes; **1.2.1-beta can no longer be downloaded**, that copy is the only one. Everything else in the root is the game's. Packaging the mod for someone else needs all three, plus `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/{prism.dll, sounds/item loop sounds/*.wav}` and a `d2rloader/config/d2rloader.toml` with the console enabled. Never ship `D2R.text.bin` (dumped game code, regenerated on first run).
+- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.0-beta installed into the game folder 2026-09-17 (SHA-256 verified). Start NVDA, launch `D2RLoader.exe`. Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
 
 ## Section status
 

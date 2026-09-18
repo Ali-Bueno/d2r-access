@@ -34,7 +34,7 @@ auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamepla
 auto UnregisterListener(const D2RL::PluginContext*, D2RL::Lifecycle::ListenerHandle) noexcept -> D2RL::Lifecycle::Result {
 	++removed; return D2RL::Lifecycle::Result::Success;
 }
-const D2RL::LifecycleServiceV1 lifecycle{.serviceSize = D2RL::LifecycleServiceV1Size, .serviceVersion = D2RL::LifecycleServiceV1Version,
+const D2RL::LifecycleService lifecycle{.serviceSize = D2RL::LifecycleServiceSize, .serviceVersion = D2RL::LifecycleService::AbiVersion,
 	.registerGameplayEventListener = RegisterListener, .unregisterGameplayEventListener = UnregisterListener};
 auto Query(const D2RL::PluginContext*, D2RL::ServiceId id, uint32_t, const void** result) noexcept -> D2RL::ServiceQueryResult {
 	if (!serviceAvailable || id != D2RL::ServiceId::Lifecycle) return D2RL::ServiceQueryResult::Unavailable;

@@ -9,7 +9,7 @@ namespace D2RAccess::UiThreadPump {
 
 namespace {
 
-const D2RL::ThreadServiceV1* g_threads = nullptr;
+const D2RL::ThreadService* g_threads = nullptr;
 TickFn                       g_tick    = nullptr;
 std::atomic<bool>            g_enabled = false; // Start() called, Stop() not yet
 std::atomic<bool>            g_queued  = false; // a tick is waiting in the UI queue
@@ -91,8 +91,8 @@ bool Start(const D2RL::PluginContext* context, TickFn tick) {
 	if (context == nullptr || tick == nullptr || g_enabled.load()) {
 		return false;
 	}
-	const D2RL::ServiceQueryResult query = context->QueryService(D2RL::ServiceId::Thread, D2RL::ThreadServiceV1Version, &g_threads);
-	if (query != D2RL::ServiceQueryResult::Success || !D2RL::HasThreadServiceV1Field(g_threads, D2RL::ThreadServiceV1RequiredSize)) {
+	const D2RL::ServiceQueryResult query = context->QueryService(&g_threads);
+	if (query != D2RL::ServiceQueryResult::Success || !D2RL::HasThreadServiceField(g_threads, D2RL::ThreadServiceRequiredSize)) {
 		D2RAccess::AsyncLog::ErrorF(context, "UI pump: Thread service query failed (%u).", static_cast<unsigned>(query));
 		g_threads = nullptr;
 		return false;

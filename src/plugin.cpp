@@ -3,6 +3,7 @@
 #include <D2RLPlugin/api.h>
 
 #include "code_dump.h"
+#include "core_slots.h"
 #include "focus_tracker.h"
 #include "footstep_service.h"
 #include "game_text_reader.h"
@@ -33,7 +34,7 @@ namespace {
 
 constexpr D2RL::PluginInfo PluginInfo {
 	.infoSize    = D2RL::PluginInfoSize,
-	.apiVersion  = D2RL_PLUGIN_API_VERSION,
+	.abiVersion  = D2RL_PLUGIN_ABI_VERSION,
 	.id          = "d2r-access",
 	.name        = "Diablo II: Resurrected Accessibility",
 	.version     = "0.1.0",
@@ -153,6 +154,15 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	if (!D2RAccess::AsyncLog::Initialize()) return false;
+
+	// The native readers depend on what this loader build resolves, so every log
+	// starts by naming it: a report that opens with the loader is one nobody has
+	// to reconstruct afterwards.
+	const char* build = D2RL::GetBuildVersion(context);
+	const char* name  = D2RL::GetBuildName(context);
+	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
+		build != nullptr ? build : "of unknown build", name != nullptr ? " " : "", name != nullptr ? name : "",
+		D2RAccess::CoreSlots::LoaderVersion(), static_cast<unsigned>(PluginInfo.abiVersion));
 
 	if (!D2RAccess::Localization::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");

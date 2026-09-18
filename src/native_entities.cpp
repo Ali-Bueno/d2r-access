@@ -1,4 +1,5 @@
 #include "native_entities.h"
+#include "layout_check.h"
 #include "entity_layout.h"
 #include "ground_item_layout.h"
 #include "native_ground_items.h"
@@ -147,7 +148,12 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 			entity.name = UiText::Clean(Localization::Text(nameId));
 	}
 	if (subClass & SubClassPortal) { // the game labels a portal with its destination level
-		uint8_t levelId = 0;
+		// Read as 16 bits: D2RLoader 1.3.0-beta widened this field, and the
+		// game's own hover label now consumes it as a word (0xC17E0+167 became
+		// `movzx edx, ax`). The offset is unchanged; the field grew into its
+		// padding, so a byte-sized read would silently truncate any level above
+		// 255 that a future build or a mod introduces.
+		uint16_t levelId = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) entity.name = LevelText(tables, levelId, LevelNameKey);
 	}
 	if (entity.name.empty() && !key.empty()) entity.name = UiText::Clean(Localization::Text(key));
@@ -187,16 +193,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!context) { g_base = 0; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
-	for (const auto& check : Checks) {
-		std::vector<uint8_t> bytes(check.size);
-		if (!NativeMemory::Copy(context->exeBase + check.rva, bytes.data(), bytes.size())) return false;
-		uint64_t hash = 14695981039346656037ULL; // FNV-1a of complete native functions
-		for (const auto byte : bytes) hash = (hash ^ byte) * 1099511628211ULL;
-		if (hash != check.hash) {
-			AsyncLog::WarnF(context, "[scan] Unsupported layout at RVA %llX; monsters, objects and exits disabled.", static_cast<unsigned long long>(check.rva));
-			return false;
-		}
-	}
+	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	return true;

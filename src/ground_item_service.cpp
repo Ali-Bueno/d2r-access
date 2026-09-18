@@ -21,8 +21,8 @@ struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0
 std::mutex g_mutex;
 Lifecycle g_state;
 const D2RL::PluginContext* g_context = nullptr;
-const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
-const D2RL::InputServiceV1* g_input = nullptr;
+const D2RL::LifecycleService* g_lifecycle = nullptr;
+const D2RL::InputService* g_input = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
@@ -86,16 +86,16 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeGroundItems::Initialize(context);
 	g_exitsSupported = g_supported && NativeEntities::Initialize(context);
-	if (context->QueryService(D2RL::ServiceId::Lifecycle, D2RL::LifecycleServiceV1Version, &g_lifecycle) != D2RL::ServiceQueryResult::Success
-		|| !D2RL::HasLifecycleServiceV1Field(g_lifecycle, D2RL::LifecycleServiceV1RequiredSize)) return false;
+	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
+		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged, Kind::PlayerResurrected}) {
 		const D2RL::Lifecycle::GameplayEventListener listener{.structSize = D2RL::Lifecycle::GameplayEventListenerSize, .kind = kind, .callback = OnGameplay};
 		D2RL::Lifecycle::ListenerHandle handle = D2RL::Lifecycle::InvalidHandle;
 		if (g_lifecycle->registerGameplayEventListener(context, &listener, &handle) != D2RL::Lifecycle::Result::Success) { Unregister(); return false; }
 		g_listeners.push_back(handle);
 	}
-	if (context->QueryService(D2RL::ServiceId::Input, D2RL::InputServiceV1Version, &g_input) == D2RL::ServiceQueryResult::Success
-		&& D2RL::HasInputServiceV1Field(g_input, D2RL::InputServiceV1RequiredSize)) {
+	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
+		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		struct Shortcut { const char* id; const char* label; D2RL::Input::Key key; Command command; };
 		for (const auto& shortcut : {Shortcut{"item-speech", "Toggle nearby item speech", D2RL::Input::Key::I, Command::SpeechToggle},
 			Shortcut{"item-sounds", "Toggle spatial item loops", D2RL::Input::Key::L, Command::SoundToggle},

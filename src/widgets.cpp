@@ -23,7 +23,7 @@ constexpr const char* ScreenPanelNames[] = { "FocusManager", "Controller/FocusMa
 // -> indicator y 386.
 constexpr Rect LayoutCanvas { 0, 0, 3840, 2160 };
 
-const D2RL::WidgetServiceV1* g_service = nullptr;
+const D2RL::WidgetService* g_service = nullptr;
 const D2RL::PluginContext*   g_context = nullptr;
 char                         g_lastError[160] {};
 
@@ -147,11 +147,11 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (context == nullptr) {
 		return false;
 	}
-	if (context->QueryService(D2RL::ServiceId::Widget, D2RL::WidgetServiceV1Version, &g_service) != D2RL::ServiceQueryResult::Success) {
+	if (context->QueryService(&g_service) != D2RL::ServiceQueryResult::Success) {
 		g_service = nullptr;
 		return false;
 	}
-	if (!D2RL::HasWidgetServiceV1Field(g_service, D2RL::WidgetServiceV1RequiredSize)) {
+	if (!D2RL::HasWidgetServiceField(g_service, D2RL::WidgetServiceRequiredSize)) {
 		g_service = nullptr;
 		return false;
 	}

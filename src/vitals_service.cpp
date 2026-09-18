@@ -81,10 +81,10 @@ auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo
 }
 
 void SweepDurability(const D2RL::PluginContext* context) {
-	const D2RL::InventoryServiceV1* inventory = nullptr;
-	if (!context || context->QueryService(D2RL::ServiceId::Inventory, D2RL::InventoryServiceV1Version, &inventory)
+	const D2RL::InventoryService* inventory = nullptr;
+	if (!context || context->QueryService(&inventory)
 			!= D2RL::ServiceQueryResult::Success
-		|| !D2RL::HasInventoryServiceV1Field(inventory, D2RL::InventoryServiceV1RequiredSize)
+		|| !D2RL::HasInventoryServiceField(inventory, D2RL::InventoryServiceRequiredSize)
 		|| !inventory->getLocalPlayer || !inventory->forEachInventoryItem) return;
 	// inventory.h permits capturing the player and reading its items on the UI
 	// thread. Reacquire the handle so a new session cannot leave stale state.

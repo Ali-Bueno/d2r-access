@@ -247,8 +247,11 @@ See [life, mana and broken equipment](docs/vitals.md).
 
 ## Requirements
 
-- Diablo II: Resurrected 3.3.x (Steam or Battle.net), **D2RLoader 1.2.1-beta or newer** installed
-  in the game folder.
+- Diablo II: Resurrected 3.3.x (Steam or Battle.net), **D2RLoader 1.3.0-beta** installed in the
+  game folder — the build `d2rloader.net` currently distributes. Older builds are no longer
+  downloadable, so the native readers target this one; a newer loader may work, since they locate
+  the game pointers by what the loader resolved rather than by an offset into it, but only 1.3.0
+  is verified.
 - A screen reader (NVDA, JAWS) or Windows SAPI; PRISM picks the best one available.
 - To build: CMake 3.28+, Ninja, MSVC Build Tools 2022 (x64). The D2RLoader PluginSDK is a git
   submodule (`external/PluginSDK`); PRISM's prebuilt DLL and header are vendored in

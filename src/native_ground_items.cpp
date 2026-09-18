@@ -1,4 +1,5 @@
 #include "native_ground_items.h"
+#include "layout_check.h"
 #include "ground_item_layout.h"
 #include "ground_item_text.h"
 #include "native_memory.h"
@@ -79,16 +80,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	if (!context) return false;
-	for (const auto& check : Checks) {
-		std::vector<uint8_t> bytes(check.size);
-		if (!NativeMemory::Copy(context->exeBase + check.rva, bytes.data(), bytes.size())) return false;
-		uint64_t hash = 14695981039346656037ULL; // FNV-1a of complete native functions
-		for (const auto byte : bytes) hash = (hash ^ byte) * 1099511628211ULL;
-		if (hash != check.hash) {
-			AsyncLog::WarnF(context, "[items] Unsupported layout at RVA %llX; ground items disabled.", static_cast<unsigned long long>(check.rva));
-			return false;
-		}
-	}
+	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "items", "ground items disabled")) return false;
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[items] Verified native ground item reader.");
 	return true;

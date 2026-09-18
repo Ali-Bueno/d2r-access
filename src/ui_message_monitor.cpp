@@ -134,7 +134,7 @@ constexpr const char* QuestLogTarget = "QuestLogPanelMessage";
 // frame). Entries are "target" or "target:command".
 constexpr const char* TraceIgnored[] = { "MonsterHealth", "InputMessage", "CharacterSelect:SelectAct", "MainMenuHD" };
 
-const D2RL::SharedEventServiceV1*  g_events  = nullptr;
+const D2RL::SharedEventService*  g_events  = nullptr;
 const D2RL::PluginContext*         g_context = nullptr;
 D2RL::SharedEvents::ListenerHandle g_handle  = D2RL::SharedEvents::InvalidHandle;
 bool                               g_trace   = true;
@@ -306,10 +306,10 @@ bool Register(const D2RL::PluginContext* context) {
 	if (context == nullptr) {
 		return false;
 	}
-	if (context->QueryService(D2RL::ServiceId::SharedEvent, D2RL::SharedEventServiceV1Version, &g_events) != D2RL::ServiceQueryResult::Success) {
+	if (context->QueryService(&g_events) != D2RL::ServiceQueryResult::Success) {
 		return false;
 	}
-	if (!D2RL::HasSharedEventServiceV1Field(g_events, D2RL::SharedEventServiceV1RequiredSize)) {
+	if (!D2RL::HasSharedEventServiceField(g_events, D2RL::SharedEventServiceRequiredSize)) {
 		return false;
 	}
 

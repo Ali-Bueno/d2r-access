@@ -33,7 +33,7 @@ struct Reading {
 	bool operator==(const Reading&) const = default;
 };
 const D2RL::PluginContext* g_context = nullptr;
-const D2RL::LifecycleServiceV1* g_lifecycle = nullptr;
+const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_ready = false, g_enabled = true, g_seen = false;
@@ -89,8 +89,8 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 
 bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
-	if (!context || context->QueryService(D2RL::ServiceId::Lifecycle, D2RL::LifecycleServiceV1Version, &g_lifecycle) != D2RL::ServiceQueryResult::Success
-		|| !D2RL::HasLifecycleServiceV1Field(g_lifecycle, D2RL::LifecycleServiceV1RequiredSize)) { Unregister(); return false; }
+	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
+		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::QuestCompleted}) {
 		const D2RL::Lifecycle::GameplayEventListener listener{.structSize = D2RL::Lifecycle::GameplayEventListenerSize,
 			.kind = kind, .callback = OnGameplay};

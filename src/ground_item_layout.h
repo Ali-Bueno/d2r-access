@@ -22,21 +22,23 @@ inline constexpr int GoldStat = 14; // ItemStatCost.txt 'gold'; also native 0x37
 inline constexpr uint32_t Death = 0, Dead = 17; // native player modes
 inline constexpr size_t MaxRooms = 64, MaxUnits = 4096, MaxTableRows = 65536, MaxTypeDepth = 16;
 inline constexpr double PositionScale = 65536; // native unsigned 16.16 position
-struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
+// `mayBeDetoured` marks a function the reader only ever calls, never reads for
+// offsets: the loader is free to replace it with a jump to its own version.
+struct Evidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
 inline constexpr Evidence Checks[] = {
 	{0x8B2D0, 7, 0x512D0A09BEF62F41ULL},
-	{0x9A480, 165, 0xD7C8BF425C24EF8FULL},
+	{0x9A480, 165, 0x754EA91CD47DAFC1ULL},
 	{0x2EFD90, 8, 0x92C8BD7E0C6E60FCULL},
-	{0x34B4A0, 59, 0x066D901396954A18ULL},
+	{0x34B4A0, 59, 0x8994082C41829018ULL},
 	{0x2EFDE0, 13, 0x0746FEFCB398B135ULL},
-	{0x34B440, 90, 0xCDDA66B522181150ULL},
-	{0x266690, 249, 0xF8F63F43FFCDF8A8ULL},
-	{0x36CF60, 113, 0x2C1858B9E195D24AULL},
-	{0x314110, 105, 0xB84E3C95C1E6E866ULL},
-	{0x300A90, 67, 0xB8B977E3BE437A28ULL},
-	{0x9A1B0, 651, 0x52805E57958E13F6ULL},
-	{0x293CC0, 2207, 0x6562D97AB98D2192ULL},
-	{0x34A0E0, 47, 0x17D168C4E18BD823ULL},
-	{0x2F5020, 147, 0xB36351CAA5312D64ULL},
+	{0x34B440, 90, 0x5DC0EFDCF368FE6AULL},
+	{0x266690, 249, 0xC4990DA6A749A376ULL},
+	{0x36CF60, 113, 0xE1A2141ED682DC81ULL},
+	{0x314110, 105, 0x6A64666C1906405DULL},
+	{0x300A90, 67, 0xBC5C7D366A355A3BULL},
+	{0x9A1B0, 651, 0x67A9431E258E9F3DULL},
+	{0x293CC0, 2207, 0x605DCE341B5674CBULL},
+	{0x34A0E0, 47, 0x05F93D9EFDC375A1ULL},
+	{0x2F5020, 147, 0xEF955B08A436F777ULL, true}, // UNIT_GetStat: called, and detoured by 1.3.0-beta
 };
 }

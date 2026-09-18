@@ -11,10 +11,18 @@
 
 // Reaches the game's own widget objects, which the SDK never hands out (its
 // handles are plugin-owned name paths). D2RLoader's D2RCore.dll resolves the
-// game's panel-manager global and its lookup functions into a slot table at
-// startup; reading those slots gives the same functions the loader uses
-// (re/notes.md, D2RCore 1.2.1-beta call sites: FindPanel at 0x2AE3C2,
-// FindChildWidget at 0x2A6FB6, TextBoxWidget::SetText at 0x2A7260).
+// game's panel-manager global and its lookup functions into a table of
+// 0x18-byte descriptors at startup; reading a descriptor's resolved address
+// gives the same function the loader itself calls (re/notes.md, D2RCore
+// 1.2.1-beta call sites: FindPanel at 0x2AE3C2, FindChildWidget at 0x2A6FB6,
+// TextBoxWidget::SetText at 0x2A7260).
+//
+// A descriptor's position in that table changes with every D2RCore build, so
+// nothing here stores an offset into the DLL: each descriptor also carries at
+// +0x08 the game RVA it was resolved from, and those RVAs belong to the game
+// build, not the loader's. Finding a descriptor by its RVA therefore survives
+// a loader update, and it reproduces the offsets that were hardcoded for
+// 1.2.1-beta exactly (see native_widgets.cpp).
 //
 // A widget object holds its strings as the engine's 0x28-byte string type
 // {char* data; size_t size; size_t capacityAndFlags; char inline[16]}
