@@ -113,6 +113,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	const bool hostile = align == AlignHostile && !(flagsA & FlagNpc);
 	if (hostile && !(flagsA & FlagKillable)) return false;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
+	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));
@@ -123,6 +124,24 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
 }
+// What the object is for, from the table row the caller has already read.
+// Order matters: a waypoint and a portal are both exits, but a player asking
+// for a waypoint does not want the town portal, so the specific categories
+// are tested before the general one.
+EntityRadar::Category ObjectCategory(uint8_t subClass, bool openWarp, const std::string& key) {
+	if (subClass & SubClassWaypoint) return EntityRadar::Category::Waypoint;
+	if (subClass & (SubClassPortal | SubClassGate)) return EntityRadar::Category::Portal;
+	// Wells and obelisks restore or alter the player the way shrines do, and a
+	// player looking for "a shrine" means any of them.
+	if (subClass & (SubClassShrine | SubClassWell | SubClassObelisk)) return EntityRadar::Category::Shrine;
+	// 132 rows: chests, caskets, urns, sarcophagi -- everything that is opened for loot.
+	if (subClass & SubClassContainer) return EntityRadar::Category::Treasure;
+	if (openWarp) return EntityRadar::Category::Exit;
+	if (key == BankNameKey) return EntityRadar::Category::Stash;
+	// Levers, seals, statues and doors carry no SubClass bit of their own.
+	return EntityRadar::Category::Interactable;
+}
+
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
@@ -138,6 +157,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
 	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
+	entity.category = ObjectCategory(subClass, openWarp != 0, key);
 	if (openWarp) entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t data = 0;
 	if (door) entity.name = UiText::Clean(Localization::Text(mode == ObjectOpened ? DoorOpenText : DoorClosedText));
@@ -179,6 +199,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	uint32_t noInteract = 0;
 	if (!row || !Peek(node + WarpNodeActive, active) || !active || !Peek(row + LvlWarpNoInteract, noInteract) || noInteract) return false;
 	entity.kind = EntityRadar::Kind::Exit;
+	entity.category = EntityRadar::Category::Exit;
 	entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t destination = 0, level = 0;
 	uint32_t levelId = 0;
@@ -251,7 +272,8 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	std::vector<NativeLevelExits::Exit> exits;
 	if (distantExits && NativeLevelExits::Read(room, exits)) for (const auto& exit : exits) {
 		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
-			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position)};
+			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position),
+			EntityRadar::Category::Exit};
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));

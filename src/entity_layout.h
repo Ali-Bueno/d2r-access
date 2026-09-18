@@ -40,13 +40,23 @@ inline constexpr size_t MonCachedName = 0x40;
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // objects.txt SubClass bits the game's label builder (0xC17E0) and 0x34C470 branch on:
 // shrine, town/permanent portal, arcane sanctuary portal / hell gate, waypoint.
-inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassPortal = 1u << 2, SubClassGate = 1u << 4, SubClassWaypoint = 1u << 6;
+// Bit meanings derived from the game's own global/excel/objects.txt (D2R 3.3,
+// 588 rows): bit0 is carried by 92 Shrine rows, bit1 by the two Obelisks, bit2
+// by the two Portals, bit3 by 132 containers (Casket, Urn, chest), bit4 by the
+// two lowercase "portal" gates, bit5 by the five Wells and bit6 by 16
+// Waypoints. Not guessed from the classic objects.txt documentation.
+inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassObelisk = 1u << 1, SubClassPortal = 1u << 2,
+	SubClassContainer = 1u << 3, SubClassGate = 1u << 4, SubClassWell = 1u << 5, SubClassWaypoint = 1u << 6;
 inline constexpr uint8_t SubClassExit = SubClassPortal | SubClassGate | SubClassWaypoint;
 // ObjectData (*(Unit+0x10)): per-class parameter byte (the destination level id of a
 // SubClass portal, 0x34AD40 / 0xC17E0); linked shrines.txt row and its localized name id.
 inline constexpr size_t ObjPortalLevel = 8, ObjLinkRecord = 0x10, ShrineNameId = 0x12;
 // Door captions by mode, string ids used by the door opener path (0x44FAC0).
 inline constexpr uint32_t DoorClosedText = 0xC99, DoorOpenText = 0xC9B;
+// The player's own stash carries no SubClass bit, so it is recognised by the
+// name key in its objects.txt row. Confirmed against the game's string table:
+// local/lng/strings/objects.json maps "bank" to "Your Private Stash".
+inline constexpr const char* BankNameKey = "bank";
 // Level exits are type-5 units in the same room list, positioned by the static path
 // (0x2EFEE0, 0x324FC0). Unit+4 is the LvlWarp Id (compared as a byte, 0x3DA910); the
 // room's RoomEx keeps a warp-node list whose node matches that Id (0x3DA9A0): the

@@ -77,4 +77,15 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 // The nearest `count` of one kind, in Survey order.
 std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar::Kind kind, size_t count);
 
+// Everything of one category, in Survey order (nearest on foot first).
+std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category);
+
+// The categories actually present, in a fixed order that puts what a stranded
+// player most needs -- a way out, then a way onward -- before the scenery.
+std::vector<EntityRadar::Category> Categories(const std::vector<Landmark>& landmarks);
+
+// Step from `category` to the next or previous one that has anything in it,
+// wrapping. Returns the first present category when `category` has none.
+EntityRadar::Category StepCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category, int delta);
+
 }

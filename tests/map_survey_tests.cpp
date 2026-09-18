@@ -160,6 +160,42 @@ void KindFiltering() {
 	Check(OfKind(landmarks, EntityRadar::Kind::Npc, 5).empty(), "an absent kind yields nothing");
 }
 
+void CategoryCycling() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	auto with = [](uint32_t id, double x, double y, EntityRadar::Category category) {
+		EntityRadar::Entity entity = Make(id, x, y);
+		entity.category = category;
+		return entity;
+	};
+	const auto landmarks = Survey(world, grid, {
+		with(1, 22, 22, EntityRadar::Category::Treasure),
+		with(2, 30, 30, EntityRadar::Category::Exit),
+		with(3, 24, 24, EntityRadar::Category::Treasure),
+		with(4, 26, 26, EntityRadar::Category::Shrine),
+	});
+
+	const auto present = Categories(landmarks);
+	Check(present.size() == 3, "only categories that have something in them are offered");
+	Check(present.front() == EntityRadar::Category::Exit, "the way out comes first for a stranded player");
+
+	const auto treasure = OfCategory(landmarks, EntityRadar::Category::Treasure);
+	Check(treasure.size() == 2, "a category returns all of its members");
+	Check(treasure.front().entity.id == 1, "nearest on foot first inside the category");
+	Check(OfCategory(landmarks, EntityRadar::Category::Npc).empty(), "an absent category is empty");
+
+	const auto next = StepCategory(landmarks, EntityRadar::Category::Exit, 1);
+	Check(next == EntityRadar::Category::Treasure, "stepping forward skips categories with nothing in them");
+	Check(StepCategory(landmarks, EntityRadar::Category::Exit, -1) == EntityRadar::Category::Shrine,
+		"stepping back from the first wraps to the last");
+	Check(StepCategory(landmarks, EntityRadar::Category::Shrine, 1) == EntityRadar::Category::Exit,
+		"stepping forward from the last wraps to the first");
+	Check(StepCategory(landmarks, EntityRadar::Category::Npc, 1) == EntityRadar::Category::Exit,
+		"stepping from a category that is not present starts at the first");
+	Check(StepCategory({}, EntityRadar::Category::Exit, 1) == EntityRadar::Category::Unknown,
+		"an empty map offers no category at all");
+}
+
 }
 
 int main() {
@@ -172,6 +208,7 @@ int main() {
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();
+	CategoryCycling();
 	Passed();
 	return 0;
 }

@@ -15,12 +15,25 @@
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
 enum class Kind { Npc, Enemy, Object, Item, Exit };
+
+// What the thing is FOR, which is how a player asks for it ("where is the next
+// shrine", "any chests left"). Kind is too coarse for that: it files every
+// shrine, chest, lever and stash alike as Object. Assigned where the object's
+// table row is already in hand, so the map survey does not re-derive it.
+// Interactable is the deliberate catch-all: levers, seals, statues and doors
+// carry no SubClass bit of their own.
+enum class Category : uint8_t {
+	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item
+};
+
 struct Entity {
 	uint32_t id = 0;
 	Kind kind = Kind::Item;
 	Radar::Position position; // collision subtiles, same frame as World::player
 	std::string name; // already localized by the game's own string tables
 	uint64_t levelExitId = 0; // fixed stairs/level passage: coordinate identity, independent of loaded unit id
+	// Last so the existing positional initialisers keep working untouched.
+	Category category = Category::Unknown;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

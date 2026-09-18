@@ -10,6 +10,23 @@ namespace D2RAccess::MapSurvey {
 
 namespace {
 
+// Cycling order. A stranded player's first question is how to leave, so the
+// ways out come first; then what the level is for, then its scenery. Items sit
+// last because the ground-item reader already covers what is underfoot.
+constexpr EntityRadar::Category CategoryOrder[] = {
+	EntityRadar::Category::Exit,
+	EntityRadar::Category::Portal,
+	EntityRadar::Category::Waypoint,
+	EntityRadar::Category::Npc,
+	EntityRadar::Category::Stash,
+	EntityRadar::Category::Enemy,
+	EntityRadar::Category::Treasure,
+	EntityRadar::Category::Shrine,
+	EntityRadar::Category::Interactable,
+	EntityRadar::Category::Item,
+	EntityRadar::Category::Unknown,
+};
+
 int Round(double value) { return static_cast<int>(std::lround(value)); }
 
 // True when the map currently has an opinion about this cell. An entity whose
@@ -108,6 +125,37 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		return std::tie(a.straightLine, a.entity.id) < std::tie(b.straightLine, b.entity.id);
 	});
 	return result;
+}
+
+std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category) {
+	std::vector<Landmark> result;
+	for (const Landmark& landmark : landmarks) {
+		if (landmark.entity.category == category) result.push_back(landmark);
+	}
+	return result;
+}
+
+std::vector<EntityRadar::Category> Categories(const std::vector<Landmark>& landmarks) {
+	std::vector<EntityRadar::Category> result;
+	for (EntityRadar::Category category : CategoryOrder) {
+		if (std::any_of(landmarks.begin(), landmarks.end(), [category](const Landmark& landmark) {
+				return landmark.entity.category == category;
+			})) {
+			result.push_back(category);
+		}
+	}
+	return result;
+}
+
+EntityRadar::Category StepCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category, int delta) {
+	const std::vector<EntityRadar::Category> present = Categories(landmarks);
+	if (present.empty()) return EntityRadar::Category::Unknown;
+	const auto found = std::find(present.begin(), present.end(), category);
+	if (found == present.end()) return present.front();
+	const auto size  = static_cast<int>(present.size());
+	const auto index = static_cast<int>(found - present.begin());
+	// Wrap in both directions without relying on C++ modulo of a negative.
+	return present[static_cast<size_t>(((index + delta) % size + size) % size)];
 }
 
 std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar::Kind kind, size_t count) {

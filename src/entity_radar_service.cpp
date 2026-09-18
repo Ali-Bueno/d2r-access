@@ -110,7 +110,8 @@ bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities)
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;
 	for (const auto& item : snapshot.items) {
 		if (item.name.empty()) continue;
-		entities.push_back({item.id, EntityRadar::Kind::Item, {item.position.x, item.position.y}, item.name});
+		entities.push_back({item.id, EntityRadar::Kind::Item, {item.position.x, item.position.y}, item.name,
+			0, EntityRadar::Category::Item});
 	}
 	return true;
 }
