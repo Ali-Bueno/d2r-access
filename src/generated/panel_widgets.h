@@ -374,9 +374,9 @@ inline constexpr WidgetEntry Widgets_CharacterCreatePanel[] = {
 	{ "ToGame", "ButtonWidget", "UICreate", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_12, 2 },
 	{ "UpsellButton", "ButtonWidget", "UILearnMore", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_13, 2 },
 	{ "InputText", "InputTextBoxWidget", nullptr, nullptr, "strCharacterName", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_14, 2 },
-	{ "HardcoreCheckbox", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", "TooltipHardcoreCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_15, 2 },
-	{ "LadderToggle", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", "TooltipLadderCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_16, 2 },
-	{ "ClassicToggle", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_17, 2 },
+	{ "HardcoreCheckbox", "ToggleButtonWidget", nullptr, nullptr, "strHardcore", "TooltipHardcoreCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_15, 2 },
+	{ "LadderToggle", "ToggleButtonWidget", nullptr, nullptr, "LobbyLadder", "TooltipLadderCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_16, 2 },
+	{ "ClassicToggle", "ToggleButtonWidget", nullptr, nullptr, "CharacterSelectPanelPreExpansionCharacter", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_17, 2 },
 	{ "CharacterCreateLegend", "ButtonLegendWidget", nullptr, nullptr, "strSelectHeroClass", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_18, 1 },
 };
 

@@ -119,6 +119,24 @@ FOCUSABLE_TYPE_KEYWORDS = (
 # which must be mapped to the matching string-table key from
 # game-data/local/lng/strings/ui.json (confirmed against each key's enUS
 # value, e.g. "menu": "party" -> minipanelparty -> "Party Screen").
+# Controls whose label find_label_key() cannot get right, because they have no
+# label of their own in the layout and no sibling whose name relates to them.
+# In that situation find_label_key() falls back to the first text reference
+# among the siblings, which is a *confidently wrong* name rather than a missing
+# one -- on CharacterCreatePanel the three option toggles sit beside the
+# character-name field, so all three announced themselves as "Character Name"
+# (live log 2026-09-18). Keyed by (panel, widget); values confirmed against
+# each key's enUS value in game-data/local/lng/strings/ui.json, as with
+# MINI_MENU_LABEL_KEYS below.
+WIDGET_LABEL_OVERRIDES: dict[tuple[str, str], str] = {
+    # "Hardcore"; its tooltip TooltipHardcoreCharacter opens with the same word.
+    ("CharacterCreatePanel", "HardcoreCheckbox"): "strHardcore",
+    # "Ladder"; matches the tooltip title in TooltipLadderCharacter.
+    ("CharacterCreatePanel", "LadderToggle"): "LobbyLadder",
+    # "Pre-Expansion"; matches the tooltip title in TooltipPreExpansionCharacter.
+    ("CharacterCreatePanel", "ClassicToggle"): "CharacterSelectPanelPreExpansionCharacter",
+}
+
 MINI_MENU_LABEL_KEYS: dict[str, str] = {
     "character": "minipanelchar",
     "inventory": "minipanelinv",
@@ -515,6 +533,10 @@ def main() -> int:
         entries, root_anchor, unnamed_count = collect_panel_widgets(merged, string_table, profiles, anchor_stats)
         total_unnamed_ancestors += unnamed_count
         if entries:
+            for entry in entries:
+                override = WIDGET_LABEL_OVERRIDES.get((name, entry["name"]))
+                if override is not None and entry["textKey"] is None:
+                    entry["labelKey"] = override
             panel_entries[name] = entries
             panel_root_anchor[name] = root_anchor
 
