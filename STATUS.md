@@ -53,6 +53,13 @@ latent field-width bug. All fixed and confirmed on a live 1.3.0-beta run.
   reads D2RCore's own file-version resource; the first log line is now
   `d2r-access 0.1.0 on game 3.3.93787, loader 1.3.0-beta (plugin ABI 4)`.
 
+- **Missed on the first pass, caught by a collaborator (PR #2, `e83d444`).** `plugin.rc` still used
+  `D2RL_PLUGIN_API_VERSION`, which SDK 0.2.0 renamed, so a **clean** build died at the resource step
+  (`RC2104: undefined keyword or key name: D2RL_PLUGIN_API_VERSIONL` — `D2RL_PLUGIN_RESOURCE_DWORD`
+  pastes `##L` onto the unexpanded name). Incremental builds never recompiled the `.rc`, so none of
+  the verification here could see it: `main` was broken for anyone starting from a fresh clone.
+  **Verify an SDK bump with a deleted build tree, not an incremental build.**
+
 Build succeeds, **42/42 CTest suites pass** (two new `sdk` suites come with the updated SDK).
 Live 18:56 run: descriptors resolved, ground items, monster/object/exit scan, sonar, tooltips,
 skill grid and footfall all verified, no layout warning, localization up. Install SHA-256 recorded
@@ -407,11 +414,11 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 |---|---|---|
 | Required exports | `D2RLoaderGetPluginInfo`, `D2RLoaderLoadPlugin(const PluginContext*)`, `D2RLoaderUnloadPlugin` | lifecycle.h:7-9 |
 | Plugin flags | `PluginFlags::Client | NativeHooks` for the primary tooltip draw hook | lifecycle.h:13-20 |
-| Service lookup | `ctx->QueryService(ServiceId::X, XServiceV1Version, &svc)` | context.h:158 |
+| Service lookup | `ctx->QueryService(&svc)` — the pointer type carries `Service::Id` and `Service::AbiVersion`; every service is ABI 1 except `LocalizationService`, which is 2 | context.h:172 |
 | Threads | UI thread vs game thread; **no per-frame callback** → self-requeue `runOnUiThread` as pump; all widget calls UI-thread only | threads.h:40-41, widgets.h:62 |
 | Widget API (all of it) | `findPanel`, `findWidget(parent,name)`, `getWidgetRect`, `setWidgetVisible`, `setWidgetEnabled`, `dispatchUiAction` — **no tree enum, no text, no focus** | widgets.h:55-60 |
 | Only game-UI event | `UiMessageEvent{targetHash, commandHash, target, command, text}`; stock panels use `PanelManager:TogglePanel/ClosePanel:<name>` | shared_events.h:91-131 |
-| Localization | `getStringById(id 0-65535)`, `getStringByKey("strCancel")` (key without `@`), two-call BufferTooSmall | localization.h:35-40 |
+| Localization | `getStringById(id 0-65535)`, two-call BufferTooSmall. **Keys are namespaced since ABI 2**: a bare key searches the namespace named by `PluginInfo.id` — this plugin's own, which is empty — so the game's strings are `d2r:strCancel` (still without `@`). A bare key returns nothing and warns about nothing | localization.h:29-31 |
 | Input | `registerAction(ActionRegistration{logicalId, displayName, defaultPrimary…})`, one modifier max; **not fired in text edit / pre-game** | input.h:187-229 |
 | Hooks | `ctx->InstallInlineHook(rva, expected, size, fn, &orig)` — RVA only, **no AOB scanner** (write own over `ctx->exeBase`, context.h:132) | hooks.h:10-42, context.h:318-348 |
 | Gameplay events | GameJoined, GameLeft, LocalPlayerReady, ActChanged, LevelChanged, PlayerResurrected, PlayerLevelChanged, QuestCompleted | lifecycle_events.h:32-41 |

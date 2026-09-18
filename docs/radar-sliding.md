@@ -60,7 +60,7 @@ structural window. No extra key press is needed to capture a sounded event.
 
 ## Preventing sliding: investigation, not an installed feature
 
-The SDK's `InputServiceV1` exposes action registration/bindings, not a movement
+The SDK's `InputService` exposes action registration/bindings, not a movement
 solver switch. `InputDirection` reads XInput for accessibility controls; it does
 not filter the game's movement input. The reviewed extracted gameplay settings
 did not expose a wall-sliding option.
