@@ -64,6 +64,7 @@ add_library(d2r-access SHARED
 	src/native_entities.cpp
 	src/native_level_exits.cpp
 	src/native_ui.cpp
+	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
 	src/native_cursor_gesture.cpp

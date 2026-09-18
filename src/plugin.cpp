@@ -23,6 +23,7 @@
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
 #include "vitals_service.h"
+#include "widget_probe.h"
 #include "widgets.h"
 
 #include <cstring>
@@ -50,6 +51,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
+	D2RAccess::WidgetProbe::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech);
@@ -68,6 +70,23 @@ auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command,
 	else if (args == "off") D2RAccess::GameTextReader::SetEnabled(false);
 	else if (args == "repeat") D2RAccess::GameTextReader::RequestRepeat();
 	else if (args == "dump") D2RAccess::GameTextReader::RequestDump();
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
+// Raw bytes of the FOCUSED widget, unlike access-probe above, which logs the
+// strings of a widget named by path. Used to derive an offset the SDK does not
+// expose (a checkbox's checked flag, a dropdown's selected row) by comparing
+// the same control in two states.
+auto BytesCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	if (args == "on") D2RAccess::WidgetProbe::SetEnabled(true);
+	else if (args == "off") D2RAccess::WidgetProbe::SetEnabled(false);
+	else if (args == "once") D2RAccess::WidgetProbe::RequestOnce();
+	else if (args == "again") D2RAccess::WidgetProbe::Rearm();
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -204,6 +223,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
+	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
