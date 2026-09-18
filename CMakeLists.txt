@@ -68,6 +68,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/native_entities.cpp
 	src/native_level_exits.cpp
+	src/map_survey.cpp
 	src/native_ui.cpp
 	src/widget_probe.cpp
 	src/native_focus.cpp
@@ -190,6 +191,10 @@ if(BUILD_TESTING)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
+	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(map-survey-tests PRIVATE src)
+	target_compile_features(map-survey-tests PRIVATE cxx_std_20)
+	add_test(NAME map-survey COMMAND map-survey-tests)
 	add_executable(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(npc-proximity-tests PRIVATE src)
 	target_compile_features(npc-proximity-tests PRIVATE cxx_std_20)
@@ -317,6 +322,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(tab-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(map-survey-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-level-exits-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
