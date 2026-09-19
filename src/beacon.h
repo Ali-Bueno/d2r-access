@@ -17,9 +17,20 @@ using Radar::Position;
 struct Settings {
 	// Distances are collision subtiles, the unit the entity scan speaks as
 	// metres. Navigation policy, not game constants.
-	double searchRadius = 96;   // half-side of the route search box
+	//
+	// The search box is half-sided by searchRadius: as wide as the game keeps
+	// collision around the player (native_world.cpp holds a 152-subtile
+	// window) plus the look-ahead, so anything the level-wide catalogue can
+	// name can also be routed to. The box is still cut to the target's actual
+	// distance, so a near target searches a small one and pays a small cost.
+	double searchRadius = 158;
 	double lookAhead = 8;       // route length that chooses the heading
 	double arrivalDistance = 2; // within this the target counts as reached
+	// How stale a route may get before it is proved again. Both are stretched
+	// in proportion once the target is further off than farDistance: the box
+	// grows with the distance, while a long route changes more slowly, so
+	// without that a level-wide lead would run the widest search several times
+	// a second for a heading that barely moves.
 	double reroute = 3;         // player/target movement that invalidates a route
 	uint64_t routeIntervalMs = 400; // otherwise the route is recomputed this often
 	// Ping cadence, linear in the remaining route length between these bounds.

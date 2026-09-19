@@ -158,9 +158,16 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 	update.distance = Length(straight);
 	update.arrived = update.distance <= settings.arrivalDistance;
 	if (first_) { first_ = false; nextPingMs_ = now + settings.lockDelayMs; } // room for the spoken name
-	const bool moved = Length({world.player.x - routeOrigin_.x, world.player.y - routeOrigin_.y}) >= settings.reroute
-		|| Length({target.x - routeTarget_.x, target.y - routeTarget_.y}) >= settings.reroute;
-	if (!routeMs_ || moved || now < routeMs_ || now - routeMs_ >= settings.routeIntervalMs) {
+	// Work per second stays bounded as the lead gets longer: the search box
+	// grows with the distance, so a level-wide route is recomputed in
+	// proportion less often instead of at the near-target cadence.
+	const double stretch = settings.farDistance > 0
+		? std::max(1.0, update.distance / settings.farDistance) : 1.0;
+	const double rerouteAt = settings.reroute * stretch;
+	const auto intervalMs = static_cast<uint64_t>(std::llround(static_cast<double>(settings.routeIntervalMs) * stretch));
+	const bool moved = Length({world.player.x - routeOrigin_.x, world.player.y - routeOrigin_.y}) >= rerouteAt
+		|| Length({target.x - routeTarget_.x, target.y - routeTarget_.y}) >= rerouteAt;
+	if (!routeMs_ || moved || now < routeMs_ || now - routeMs_ >= intervalMs) {
 		route_ = FindRoute(world, target, settings);
 		routeOrigin_ = world.player;
 		routeTarget_ = target;

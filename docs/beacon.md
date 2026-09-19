@@ -58,6 +58,22 @@ releases it on its own.
   to the target plus `lookAhead`, clamped between a 16-cell minimum
   neighbourhood and `searchRadius`; the world's rooms are blitted into that
   box once (`Field`/`Copy`) instead of re-scanning the room list per cell.
+- `searchRadius` is **158**: the whole 152-subtile collision window the game
+  keeps around the player, plus the look-ahead. That is the real ceiling on
+  how far a beacon can lead — not a policy number to raise, because past it
+  there is no collision to search. It was 96 while the only source of targets
+  was the fifteen-metre scan; the catalogue can name things across the level,
+  so the box now reaches as far as the data does.
+- Both recompute triggers stretch in proportion past `farDistance`: the box
+  grows with the distance while a long route changes slowly, so a level-wide
+  lead is re-proved on roughly the work per second a short one costs instead
+  of running the widest search several times a second. Near targets keep the
+  original 3-cell / 400 ms cadence exactly.
+- A target beyond the box, or in a room that is not loaded, is not abandoned:
+  the search heads for the reachable cell nearest it and re-proves as the
+  player advances, so the box slides along the route until the target falls
+  inside it. That is greedy, and it can still be fooled by a detour longer
+  than the box.
 - Only the **terrain layer** is read (`TerrainCollisionFlags(raw) &
   walkingMask`), the same layer the sonar radar uses: a monster or another
   player standing in a doorway does not make the beacon reroute around them.
