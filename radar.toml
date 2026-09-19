@@ -13,4 +13,42 @@ enabled = true
 # Reach in the entity scan's unit (collision subtiles, about one metre each).
 range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
-line_of_sight = false
+line_of_sight = true
+
+# What the game puts on the monster health plate and the world target label. Its
+# own targeting reaches through walls, so the name of a monster, object or NPC in
+# the next room would otherwise be read out while the entity scan, which needs a
+# line of sight, does not list it at all.
+[target]
+# true = speak a HUD label only when the entity it names is in sight;
+# false = speak every label, as before this gate existed.
+line_of_sight = true
+# How far a bearer of that name may stand and still be the one the label means,
+# in collision subtiles. The game labels only what is on screen, and a legacy
+# 800x600 screen spans about forty of them.
+reach = 40
+
+# Nearest unexplored space. The slash key speaks the way to the closest place
+# you have not walked yet, as pushes of the left stick: "nearest unexplored
+# space, up 6, right 4". Press it again after walking those runs for the next
+# ones.
+[explore]
+enabled = true
+# How far the route may reach, in collision subtiles. The world snapshot the
+# game gives the plugin ends at 152.
+radius = 80
+# How much of the map walking past a place counts as exploring it, in collision
+# subtiles. Larger means fewer, further suggestions; smaller sends you back over
+# ground you have already covered.
+mark_radius = 12
+# How deep inside unexplored ground the destination has to sit, in collision
+# subtiles. Below mark_radius the destination is the rim of the brush above,
+# which retreats as fast as you walk towards it and the readout never counts
+# down. Larger means further but more meaningful destinations.
+probe_radius = 12
+
+# Containers you open for loot — chests, caskets, urns, barrels, corpses — get a
+# looping cue like the items on the floor: louder as you approach, placed in
+# stereo. Opening one silences it. Ctrl+K toggles this for the current run.
+[chests]
+enabled = true

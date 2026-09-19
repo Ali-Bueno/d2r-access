@@ -25,9 +25,12 @@ player was busy killing and looting.
   `Charsi, aquí mismo`. Spoken with `interrupt = false`.
 - Direction = the screen axis closest to the target (same four sectors as the
   scan; a diagonal tie goes to the earlier direction in `Radar::Direction`).
-- `line_of_sight = false` by default: a wall between the player and the NPC
-  does not hide it (the sonar will handle the wall). `true` requires the
-  scan's terrain-layer line of sight before the NPC counts as seen.
+- `line_of_sight = true` by default: the NPC must have the scan's terrain-layer
+  line of sight before it counts as seen. Set it to `false` to hear NPCs walls
+  hide (the sonar then handles the wall). Changed 2026-09-18 on player feedback:
+  a name heard through a wall reads as "he is over there", and the player walks
+  into the wall. [The HUD sight gate](target-sight.md) is the same rule for the
+  labels the game itself puts on screen.
 
 ## Controls and configuration
 

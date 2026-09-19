@@ -178,6 +178,17 @@ int main() {
 		Check(!RadarConfig::ParseNpc("[npc]\nrange = 5\nrange = 6\n").valid && !RadarConfig::ParseNpc("[npc]\nenabled = true\nenabled = true\n").valid, "duplicate [npc] keys are rejected");
 		Check(RadarConfig::Parse("[npc]\nenabled = false\n").enabled, "the announcer switch cannot disable the radar");
 	}
+	{
+		const auto chests = RadarConfig::ParseChests("[radar]\nenabled = true\n[chests]\r\n enabled = false # too noisy\r\n");
+		Check(chests.valid && chests.enabled == false, "the documented [chests] key parses in its own section");
+		Check(RadarConfig::ParseChests("[radar]\nenabled = false\n").valid && !RadarConfig::ParseChests("[radar]\nenabled = false\n").enabled,
+			"a key outside [chests] leaves the container loops unset");
+		Check(RadarConfig::ParseChests("[chests]\nrange = 3\n").valid, "unknown [chests] keys are ignored");
+		Check(!RadarConfig::ParseChests("[chests]\nenabled = yes\n").valid && !RadarConfig::ParseChests("[chests]\nenabled\n").valid,
+			"a non-TOML boolean or a valueless key is rejected");
+		Check(!RadarConfig::ParseChests("[chests]\nenabled = true\nenabled = false\n").valid, "a duplicate [chests] key is rejected");
+		Check(RadarConfig::Parse("[chests]\nenabled = false\n").enabled, "the container switch cannot disable the radar");
+	}
 	Fixture fixture;
 	Radar::World world;
 	Check(fixture.Read(world), "verified-shaped live room snapshot reads successfully");

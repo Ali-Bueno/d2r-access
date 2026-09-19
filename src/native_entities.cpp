@@ -123,6 +123,18 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
 }
+// A world object the player opens for loot. The game's own interaction handler
+// says which ones (objects.txt OperateFn), together with the shape every
+// container shares: the game lets it be clicked while it is shut and not once
+// it is open — which is also why an opened one stops being read at all, two
+// lines below. Handler values, and the proof that each offset here equals its
+// objects.txt column on all 587 rows: tools/objects_containers.py.
+bool IsContainer(uintptr_t row) {
+	uint8_t operate = 0, shut = 0, opened = 0;
+	if (!Peek(row + ObjOperateFn, operate) || !Peek(row + ObjSelectable + ObjectNeutral, shut)
+		|| !Peek(row + ObjSelectable + ObjectOpened, opened) || !shut || opened) return false;
+	return std::find(ContainerOperateFns.begin(), ContainerOperateFns.end(), operate) != ContainerOperateFns.end();
+}
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
@@ -132,6 +144,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)) return false;
+	entity.container = IsContainer(row);
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level

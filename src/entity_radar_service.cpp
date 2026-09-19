@@ -38,9 +38,22 @@ EntityRadar::Settings g_settings;
 EntityRadar::Cycler g_cycler;
 NpcProximity::Settings g_npcSettings;
 NpcProximity::Tracker g_npcTracker;
+TargetSight::Settings g_sightSettings;
 bool g_supported = false, g_units = false, g_enabled = true, g_npcEnabled = true;
 int g_revision = 0;
 uint64_t g_npcNextPoll = 0;
+// One world + unit read serves every label asked about in the same handful of
+// frames. The player moves at most about one subtile in that window, which no
+// line of sight turns on.
+constexpr uint64_t SightCacheMs = 120;
+struct SightCache {
+	uint64_t taken = 0;
+	int revision = -1;
+	bool valid = false;
+	Radar::World world;
+	std::vector<EntityRadar::Entity> entities;
+};
+SightCache g_sight;
 
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -164,6 +177,23 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 }
 }
 
+TargetSight::Sight LabelSight(std::string_view label) {
+	if (!g_sightSettings.enabled || !g_units || label.empty()) return TargetSight::Sight::Unknown;
+	Lifecycle state;
+	{ std::lock_guard lock(g_mutex); state = g_state; }
+	if (!state.ready) return TargetSight::Sight::Unknown;
+	const auto now = GetTickCount64();
+	if (!g_sight.valid || state.revision != g_sight.revision || now - g_sight.taken >= SightCacheMs) {
+		g_sight.taken = now;
+		g_sight.revision = state.revision;
+		g_sight.entities.clear();
+		g_sight.valid = NativeWorld::Read(state.player, state.session, state.level, g_sight.world)
+			&& NativeEntities::Read(state.player, state.session, g_sight.entities);
+	}
+	if (!g_sight.valid) return TargetSight::Sight::Unknown;
+	return TargetSight::Of(g_sight.world, g_sight.entities, label, g_sightSettings);
+}
+
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
@@ -174,6 +204,10 @@ bool Register(const D2RL::PluginContext* context) {
 	g_npcSettings.range = npc.range.value_or(g_npcSettings.range);
 	g_npcSettings.requireLineOfSight = npc.lineOfSight.value_or(g_npcSettings.requireLineOfSight);
 	AsyncLog::InfoF(context, "[npc] enabled=%u range=%.1f lineOfSight=%u units=%u", g_npcEnabled, g_npcSettings.range, g_npcSettings.requireLineOfSight, g_units);
+	const auto target = RadarConfig::ReadTarget(context);
+	g_sightSettings.enabled = target.lineOfSight.value_or(g_sightSettings.enabled);
+	g_sightSettings.reach = target.reach.value_or(g_sightSettings.reach);
+	AsyncLog::InfoF(context, "[target] lineOfSight=%u reach=%.1f", g_sightSettings.enabled, g_sightSettings.reach);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged, Kind::PlayerResurrected}) {
@@ -259,6 +293,6 @@ void Unregister() {
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 	g_supported = g_units = false; g_enabled = g_npcEnabled = true;
 	g_revision = 0; g_command = Command::None; g_npcNextPoll = 0;
-	g_settings = {}; g_npcSettings = {};
+	g_settings = {}; g_npcSettings = {}; g_sightSettings = {}; g_sight = {};
 }
 }

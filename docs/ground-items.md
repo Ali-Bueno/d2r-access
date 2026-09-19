@@ -8,7 +8,9 @@ radar geometry or radar playback.
 ## Behavior and controls
 
 Both features start enabled. **Ctrl+I** toggles proximity speech; **Ctrl+L**
-toggles item loops. Console: `access-items on|off|sound-on|sound-off|status`.
+toggles item loops; **Ctrl+P** level exit loops; **Ctrl+K** container loops
+([below](#container-loops)). Console:
+`access-items on|off|sound-on|sound-off|exits-on|exits-off|chests-on|chests-off|chests-dump|status`.
 Preferences last for the current process. Ordinary item speech queues through
 PRISM without interrupting the current announcement.
 
@@ -34,6 +36,7 @@ does not reveal unidentified affixes.
 | `magic equipment.ogg` | Magic quality |
 | `rare equipment.ogg` | Rare and crafted quality |
 | `legendary equipment.ogg` | Unique and set quality |
+| `chest.ogg` | Containers you open for loot ([below](#container-loops)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
 animation (**Dropping, 5**) is excluded; there is no guessed landing timer.
@@ -60,6 +63,41 @@ stop the applicable voices. Nonpausing inventory keeps the cues running and
 defers proximity speech. The worker expires a snapshot after 300 ms even if UI
 polling stops. Audio updates occur on its own thread; file loading and playback
 never block a UI callback. Missing/bad audio files leave item speech usable.
+
+## Container loops
+
+Requested 2026-09-18: a cue for the things you open for loot — chests, caskets,
+urns, jars, barrels, crates, baskets, corpses, tombs, hidden stashes, hollow
+logs, rock piles. They loop exactly like the items on the floor (distance
+squared into gain, X3DAudio stereo, 30 subtiles of reach) using `chest.ogg`,
+taken from the author's DevilutionX accessibility fork, where the same sound
+marks chests.
+
+**Opening one silences it, with nothing extra in the code.** `NativeEntities::ReadObject`
+already refuses any object the game itself will not let the player click in its
+current animation mode, and a container is selectable while shut and not once
+open, so an opened one leaves the unit list and its voice is stopped on the next
+refresh (up to 500 ms).
+
+**What counts as a container** cannot be the name — that is localized — so it is
+the game's own interaction handler, `objects.txt OperateFn` (`row + 0x15E`):
+handlers 1 (caskets, sarcophagi), 3 (urns, jars, baskets), 4 (chests), 5 and 7
+(barrels), 14 (crates, coffins, corpses, logs), 30 (the exploding chest), 39-41
+and 57-59 (the act-specific special chests) and 68 (the evil urn), combined with
+the shut/open selectable shape above. That selects **165 of the 587 rows, 78
+distinct keys**. Neither the offsets nor the handler numbers are guessed:
+`tools/objects_containers.py` re-derives them from the extracted `objects.bin`
+and `objects.txt` and proves every offset equals its named column on every row.
+Rerun it after a game patch; a changed row count means the predicate needs
+looking at. `access-items chests-dump` logs the verdict for every object the
+player can currently see, to check the same thing against a room whose contents
+are known.
+
+Exits claim voices first, then containers up to `MaxContainerVoices` (3), then
+items: a crypt full of caskets must not silence the loot on the floor or the way
+out. Containers are never spoken — they carry no name into the mixer, exactly
+like level exits. `radar.toml` `[chests] enabled` sets the state the mod starts
+in; **Ctrl+K** toggles it for the current run.
 
 ## Assets and build
 

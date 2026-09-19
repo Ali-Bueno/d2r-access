@@ -2,6 +2,93 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A loop for containers you can open — 2026-09-18
+
+Requested: the chest cue from the author's DevilutionX fork, for D2R. `chest.ogg` copied from there;
+it loops through the existing item mixer (gain by distance, X3DAudio stereo, 30 subtiles), with
+**Ctrl+K**, `access-items chests-on|chests-off|chests-dump` and `[chests]` in `radar.toml`.
+
+- **Opening one silences it for free.** `ReadObject` already drops any object the game will not let
+  the player click in its current mode, and a container is selectable shut and not open. That also
+  closes "opened-chest modes" from the unobserved list — pending the live check below.
+- **What counts as a container was derived, not guessed.** Nothing in the code told a chest from a
+  barrel or a stash, and the name is localized. Built `tools/casc-extract`, extracted `objects.bin`
+  and `objects.txt`, and wrote `tools/objects_containers.py`: it proves every objects.txt offset the
+  plugin reads equals its named column **on all 587 rows**, and groups the rows by `OperateFn`, the
+  interaction-handler index. Containers are handlers {1,3,4,5,7,14,30,39,40,41,57,58,59,68} plus the
+  shut/open selectable shape — **165 rows, 78 keys**, recorded with its row count in
+  `src/entity_layout.h` as the patch tripwire. `PopulateFn` looked promising and is not the signal:
+  one value covers 261 rows including beds and banners.
+- `EntityRadar::Entity` gained a trailing `container` flag rather than a new `Kind`, which would have
+  reordered the entity scan's tie-breaking and its tests for no benefit.
+- Exits claim voices first, then containers up to `MaxContainerVoices` (3), then items, so a crypt
+  full of caskets cannot silence the loot or the stairs. Added the missing
+  `static_assert(std::size(SoundFiles) == Sound::Count)`, which an added enumerator would otherwise
+  have walked past. Build clean, **44/44 CTest suites pass**.
+- The item-audio asset bar now measures the **loudest tenth of a second** instead of the whole-file
+  average: the chest cue is one hit and a decay, so the old measure understated it while its peak is
+  the highest of all the loops. [docs/ground-items.md](docs/ground-items.md#container-loops).
+
+**Next step:** live check — `access-items chests-dump` in the Rogue Encampment, Cold Plains and the
+Crypt to confirm the verdict column against rooms whose contents are known; then open a container and
+watch the loop stop; and judge whether a 0.59 s sample looped continuously is the right texture, or
+wants padding with silence.
+
+## Nearest unexplored space, on slash — 2026-09-18
+
+Ported from the author's DevilutionX fork on request: slash speaks the way to the closest place on
+this level the player has not walked, as runs of left-stick pushes ("nearest unexplored space, up 6,
+right 4"). Press again after walking them for the next runs.
+
+- **D2R has no explored flag to borrow** — it streams collision rooms, so a room left behind reads as
+  unknown again, like one never entered. `Explored::Map` (`src/explored_map.{h,cpp}`) is the mod's own
+  memory instead: a disc of `mark_radius` (12) subtiles painted around the player every 250 ms into
+  sparse 32x32 bitmap chunks, per level and per game.
+- **The route** (`src/unexplored_route.{h,cpp}`) is breadth-first over `Navigation::Build`, the sonar's
+  own grid, restricted to the four screen directions the stick walks (the world diagonals), so the
+  nearest unexplored place is the nearest *in steps*, not in straight line. Runs are spoken with the
+  radar's existing movement words; at most six per press. Reachable only along the world axes → the
+  straight bearing plus "no route, direction only". Five new phrases in all 13 language tables.
+- `src/explore_service.{h,cpp}` holds the lifecycle, the marking poll, the slash action
+  (`explore-route`, rebindable), `access-explore` and `[explore]` in `radar.toml`.
+  Build clean, **44/44 CTest suites pass** (new `unexplored-route`, 29 checks).
+  [docs/unexplored-space.md](docs/unexplored-space.md).
+
+**Corrected the same day, from the player's first dungeon run.** He reported "down 9", two steps down,
+"down 9" again — and sometimes a completely different direction. The log proved it: `position=5772,4577
+target=5781,4586 distance=9`, then `position=5776,4584 target=5785,4593 distance=9`. The destination was
+the first cell the memory did not cover, i.e. the rim of the brush the player carries with him, which
+retreats exactly as fast as he approaches; ties between equidistant rim cells flipped the direction.
+Three changes: a destination must now sit `probe_radius` (12) subtiles deep inside unexplored ground
+(Chebyshev distance transform from the walked cells); it is **kept between presses** until explored or
+unreachable, so the instruction counts down; and among equally short routes the search carries on in
+the direction it is already going, which killed the "up 1, right 1, up 1" staircases. 44/44 suites,
+`unexplored-route` now 36 checks including the walk-and-count-down regression.
+
+**Next step:** live check in a dungeon again — `mark_radius` and `probe_radius` (both 12) want
+calibrating against how much of a room walking through it should count as explored.
+
+## Names only for what the player can see — 2026-09-18
+
+Player feedback on the 1.3.0 build: the mod named a monster or object **behind a wall** while walking,
+and the right-stick scan then denied it, because the scan needs a terrain line of sight and the game's
+own targeting does not. Both automatic announcers now use the scan's rule.
+
+- **HUD sight gate** (`src/target_sight.{h,cpp}`, new): the monster health plate and the world target
+  label are dropped when every entity carrying that name within `reach` (40 subtiles, the on-screen
+  span) is behind a wall. The label is the game's own text, so the entity is found by name, matched on
+  word boundaries like the ground-item labels. Only positive evidence hides: an unknown name, or one
+  whose bearers are out of reach, is still spoken. Ground items and level exits are exempt, and a
+  dropped label is not swallowed — it speaks as soon as it is in sight. `[target]` in `radar.toml`
+  turns it off or retunes the reach. [docs/target-sight.md](docs/target-sight.md).
+- **NPC announcer** now defaults to `line_of_sight = true` (`src/npc_proximity.h`), same reason.
+- `EntityRadarService::LabelSight` answers for the tooltip reader, caching one world + unit read for
+  120 ms so a 30 Hz UI poll costs nothing. Build clean, **43/43 CTest suites pass** (new `target-sight`).
+
+**Next step:** live check with the controller — walk a corridor in the Den and confirm the names of
+monsters in the next room stay silent until the doorway opens, with `[interaction] behind a wall`
+lines in the log. Deployed and started clean on 2026-09-18 18:52.
+
 ## Loader 1.3.0-beta — issue #1 — 2026-09-17 (live-verified)
 
 A collaborator reported the whole native layer down on **D2RLoader 1.3.0-beta**, the only build

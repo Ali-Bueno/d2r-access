@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -38,6 +40,19 @@ inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable
 inline constexpr size_t MonCachedName = 0x40;
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
+// objects.txt OperateFn, the index of the game's interaction handler for the row.
+inline constexpr size_t ObjOperateFn = 0x15E;
+// The handlers whose rows are the containers a player opens for loot, read off
+// the game's own objects.txt rather than guessed (tools/objects_containers.py,
+// which also proves every offset above against its named column on all 587
+// rows): 1 caskets and sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7
+// barrels, 14 crates/coffins/corpses/hollow logs, 30 the exploding chest,
+// 39-41 and 57-59 the act-specific special chests, 68 the evil urn.
+inline constexpr std::array<uint8_t, 14> ContainerOperateFns{1, 3, 4, 5, 7, 14, 30, 39, 40, 41, 57, 58, 59, 68};
+// Together with "selectable while shut, not once open" these select 165 of the
+// 587 rows (78 distinct keys). The count is the tripwire: if a game patch moves
+// it, rerun the tool before trusting the cue.
+inline constexpr size_t ContainerRowCount = 165;
 // objects.txt SubClass bits the game's label builder (0xC17E0) and 0x34C470 branch on:
 // shrine, town/permanent portal, arcane sanctuary portal / hell gate, waypoint.
 inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassPortal = 1u << 2, SubClassGate = 1u << 4, SubClassWaypoint = 1u << 6;

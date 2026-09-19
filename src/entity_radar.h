@@ -21,6 +21,11 @@ struct Entity {
 	Radar::Position position; // collision subtiles, same frame as World::player
 	std::string name; // already localized by the game's own string tables
 	uint64_t levelExitId = 0; // fixed stairs/level passage: coordinate identity, independent of loaded unit id
+	// A world object the player opens for loot: chest, casket, urn, barrel,
+	// corpse. Taken from the objects.txt interaction handler, so it holds in
+	// every language, unlike the localized name. Only the chest loop reads it;
+	// the kind stays Object so nothing else changes behaviour.
+	bool container = false;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

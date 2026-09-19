@@ -104,4 +104,70 @@ Npc ReadNpc(const D2RL::PluginContext* context) {
 	if (!result.valid) AsyncLog::Warn(context, "[npc] Invalid [npc] settings; using compiled defaults.");
 	return result.valid ? result : Npc{};
 }
+
+Target ParseTarget(std::string_view config) {
+	Target result;
+	const bool valid = ForEachKey(config, "[target]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "line_of_sight" && key != "reach") return Line::Ignored;
+		if (!value) return Line::Invalid;
+		if (key == "reach") {
+			double reach = 0;
+			if (result.reach || !ParseNumber(*value, reach) || reach <= 0) return Line::Invalid;
+			result.reach = reach;
+		} else {
+			bool flag = false;
+			if (result.lineOfSight || !ParseBool(*value, flag)) return Line::Invalid;
+			result.lineOfSight = flag;
+		}
+		return Line::Accepted;
+	});
+	return valid ? result : Target{.valid = false};
+}
+Target ReadTarget(const D2RL::PluginContext* context) {
+	const auto result = ParseTarget(Load(context));
+	if (!result.valid) AsyncLog::Warn(context, "[target] Invalid [target] settings; using compiled defaults.");
+	return result.valid ? result : Target{};
+}
+
+Explore ParseExplore(std::string_view config) {
+	Explore result;
+	const bool valid = ForEachKey(config, "[explore]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled" && key != "radius" && key != "mark_radius" && key != "probe_radius") return Line::Ignored;
+		if (!value) return Line::Invalid;
+		if (key == "enabled") {
+			bool flag = false;
+			if (result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
+			result.enabled = flag;
+			return Line::Accepted;
+		}
+		double distance = 0;
+		auto& slot = key == "radius" ? result.radius : key == "mark_radius" ? result.markRadius : result.probeRadius;
+		if (slot || !ParseNumber(*value, distance) || distance <= 0) return Line::Invalid;
+		slot = distance;
+		return Line::Accepted;
+	});
+	return valid ? result : Explore{.valid = false};
+}
+Explore ReadExplore(const D2RL::PluginContext* context) {
+	const auto result = ParseExplore(Load(context));
+	if (!result.valid) AsyncLog::Warn(context, "[explore] Invalid [explore] settings; using compiled defaults.");
+	return result.valid ? result : Explore{};
+}
+
+Chests ParseChests(std::string_view config) {
+	Chests result;
+	const bool valid = ForEachKey(config, "[chests]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled") return Line::Ignored;
+		bool flag = false;
+		if (!value || result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
+		result.enabled = flag;
+		return Line::Accepted;
+	});
+	return valid ? result : Chests{.valid = false};
+}
+Chests ReadChests(const D2RL::PluginContext* context) {
+	const auto result = ParseChests(Load(context));
+	if (!result.valid) AsyncLog::Warn(context, "[chests] Invalid [chests] settings; using compiled defaults.");
+	return result.valid ? result : Chests{};
+}
 }

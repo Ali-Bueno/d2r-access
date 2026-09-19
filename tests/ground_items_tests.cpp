@@ -93,10 +93,56 @@ void Tracking() {
 	batch = tracker.Tick(scene, 32000, true);
 	Check(batch.voices.size() == MaxVoices && batch.voices[0].sound == Sound::Portal, "a pile never starves the exit loop");
 	scene.landmarks.clear();
+	scene.items.clear();
+}
+
+void Containers() {
+	Tracker tracker;
+	Snapshot scene;
+	scene.session = 9;
+	const auto chest = [](uint32_t id, Point at = {2, 2}) {
+		Item container = Make(id, at, "");
+		container.sound = Sound::Chest;
+		return container;
+	};
+	scene.containers = {chest(70)};
+	auto batch = tracker.Tick(scene, 1000, true);
+	Check(batch.voices.size() == 1 && batch.voices[0].sound == Sound::Chest, "a container nearby loops with the chest sound");
+	Check(batch.speech.empty(), "and is never spoken, however close it is");
+	scene.containers = {chest(70), chest(70)};
+	Check(tracker.Tick(scene, 2000, true).voices.size() == 1, "the same container twice is still one voice");
+	scene.containers = {chest(70, {AudibleRadius, 0})};
+	Check(tracker.Tick(scene, 3000, true).voices.empty(), "a container out of range is silent");
+	scene.containers = {chest(70)};
+	Check(tracker.Tick(scene, 4000, true, true, false).voices.empty(), "container loops off silences them");
+	Item exit = Make(50, {4, 4}, "");
+	exit.sound = Sound::Portal;
+	scene.landmarks = {exit};
+	batch = tracker.Tick(scene, 5000, true, false, true);
+	Check(batch.voices.size() == 2 && batch.voices[0].sound == Sound::Portal && batch.voices[1].sound == Sound::Chest,
+		"exits are claimed before containers");
+	// A crypt: more caskets than voices, with loot on the floor.
+	scene.containers.clear();
+	for (uint32_t i = 100; i < 120; ++i) scene.containers.push_back(chest(i, {2, 2}));
+	scene.items.clear();
+	for (uint32_t i = 0; i < 10; ++i) scene.items.push_back(Make(i, {}, std::to_string(i)));
+	tracker.Reset();
+	batch = tracker.Tick(scene, 6000, false);
+	size_t containers = 0, items = 0;
+	for (const auto& voice : batch.voices) {
+		containers += voice.sound == Sound::Chest;
+		items += voice.sound != Sound::Chest && voice.sound != Sound::Portal;
+	}
+	Check(batch.voices.size() == MaxVoices, "the mixer still fills its voices");
+	Check(containers == MaxContainerVoices, "a room full of containers takes no more than its share");
+	Check(items > 0, "so the loot on the floor is still audible");
+	float total = 0;
+	for (const auto& voice : batch.voices) total += voice.gain;
+	Check(total <= MixGainLimit + 0.0001f, "and the gain limit covers exits, containers and items together");
 }
 }
 int main() {
-	Classification(); Position(); Tracking();
+	Classification(); Position(); Tracking(); Containers();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");

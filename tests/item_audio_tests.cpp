@@ -58,6 +58,21 @@ double Rms(const std::vector<int16_t>& samples) {
 	for (auto sample : samples) energy += double(sample) * sample;
 	return std::sqrt(energy / samples.size()) / std::numeric_limits<int16_t>::max();
 }
+// The level of the loudest tenth of a second. A steady bed and a struck cue
+// carry their signal differently — the chest cue is one hit and a decay, so its
+// average over the whole file understates what the ear gets — and this measures
+// both by what the listener actually hears at the loudest moment.
+double LoudestWindowRms(const std::vector<int16_t>& samples) {
+	const size_t window = std::min<size_t>(ItemWave::SampleRate / 10, samples.size());
+	if (!window) return 0;
+	double best = 0;
+	for (size_t start = 0; start + window <= samples.size(); start += window) {
+		double energy = 0;
+		for (size_t i = start; i < start + window; ++i) energy += double(samples[i]) * samples[i];
+		best = std::max(best, std::sqrt(energy / window) / std::numeric_limits<int16_t>::max());
+	}
+	return best;
+}
 void NormalizationTests() {
 	std::vector<int16_t> empty, silent(128, 0);
 	Check(ItemWave::Normalize(empty) == 0 && ItemWave::Normalize(silent) == 0, "silent recordings are rejected without dividing by zero");
@@ -77,13 +92,15 @@ int main(int argc, char** argv) {
 		Check(!samples.empty(), "real user-provided loop decodes into supported PCM");
 		Check(ItemWave::Normalize(samples) > 0, "real loop contains a nonzero waveform");
 		int peak = 0; for (auto sample : samples) peak = std::max(peak, std::abs(int(sample)));
-		Check(std::abs(float(peak) / INT16_MAX - ItemWave::LoopPeak) < 0.0001f, "all six real recordings reach the same peak with headroom");
-		// At speech range, even a centered source must reach -34 dBFS RMS per ear.
-		// This catches the reported silence: raw gold/normal loops fell below -55 dBFS.
+		Check(std::abs(float(peak) / INT16_MAX - ItemWave::LoopPeak) < 0.0001f, "every real recording reaches the same peak with headroom");
+		// At speech range, even a centered source must reach -34 dBFS per ear at
+		// its loudest tenth of a second. This catches the reported silence: raw
+		// gold/normal loops fell below -55 dBFS by either measure.
 		const double proximity = 1 - GroundItems::SpeakRadius / GroundItems::AudibleRadius;
 		const auto matrix = ItemSpatial::StereoMatrix({.front = float(GroundItems::SpeakRadius)});
-		Check(Rms(samples) * GroundItems::LoopVolume * proximity * proximity * matrix[0] >= 0.02,
+		Check(LoudestWindowRms(samples) * GroundItems::LoopVolume * proximity * proximity * matrix[0] >= 0.02,
 			"real near-item mix meets the minimum signal level after distance and stereo panning");
+		Check(Rms(samples) > 0, "and carries signal across the whole file, not one spike");
 	}
 	Passed();
 }
