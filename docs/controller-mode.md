@@ -27,22 +27,27 @@ disables the keyboard scheme, so **nothing contends for those keys** — the mod
 owns the whole keyboard. Do not spend effort picking keys around the stock
 bindings, and do not clear bindings in the `.key` file to make room.
 
-**The developer console is unreachable while the pad is injecting, and so is
-every mod hotkey.** D2RCore registers the console's `Ctrl+`` ` as an *input
-action* -- the string `"Could not register the D2RLoader Console input action."`
-is in the DLL -- and that is the same system `D2RL::Input::RegisterAction`
-uses. Controller mode disables it, so `enable_console = true` makes no
-difference, and `Ctrl+E`, `Ctrl+B`, `Ctrl+R`, `\`, `,` and `.` go with it.
+**The developer console and the mod hotkeys keep working. An earlier version
+of this document claimed they did not; that was wrong.**
 
-That is why `[keyboard]`, `[probe]` and `[dump]` are armed from the plugin's
-own config file, and why the pad's own toggle is read raw.
+Tested by the user, 2026-09-19: the console opens with keyboard control both
+enabled and disabled, and `\`, `,` and `.` never stopped working. The claim
+that controller mode disables D2RLoader's input-action system was inferred
+from one string in `D2RCore.dll` (`"Could not register the D2RLoader Console
+input action."`) plus the note above about the game's own bindings, and it was
+never measured. A string proves a message exists; it says nothing about when
+it fires or what gates it.
 
-**Enter controller mode deliberately, not at startup.** It is one-way, and it
-costs the console and every mod hotkey, so the pad is off by default and the
-player asks for it with Ctrl+Shift+F12. The earlier reasoning here — inject
-from startup so nobody is caught between modes — held only while the pad was
-expected to be on for the whole session. With a toggle the transition is the
-player's own deliberate act, announced when it happens.
+What the game's controller mode does disable is **its own** keyboard scheme --
+`I`, `Q`, `A`, `C`, `T`, `F1`-`F8`, `1`-`4` -- which is the user's direct
+observation recorded at the top of this file. Mod hotkeys are registered by
+the loader and are mod-side; they are unaffected.
+
+**Enter controller mode deliberately, not at startup.** It is one-way and it
+costs the game's own keyboard scheme, so the pad is off by default and the
+player asks for it with Ctrl+Shift+F12, which is announced when it happens.
+The toggle is read raw with `GetAsyncKeyState` rather than registered as an
+input action, so that it cannot depend on anything the pad itself changes.
 
 **Everything the keyboard used to reach must now be reachable as a pad input.**
 The keyboard scheme is gone, so inventory, quest log, character panel and skill
@@ -108,7 +113,28 @@ for the other outcome is not needed. It is recorded here only so nobody
 re-derives it: it would have passed the real pad through whenever it was
 connected *and* being used, reporting keyboard state only while it was at rest.
 
-## The game uses ONE pad, so parity is not available
+## OPEN: movement does not reach the game
+
+Reported by the user, 2026-09-19, with keyboard control enabled: **movement
+does not work, while the rest of the mod commands do.** The mod-side features
+respond to the pad -- the long-range pathfinder toggles on L3 and the
+catalogue cycles on the right stick, both visible in that session's log -- so
+`InputDirection` is reading the synthetic frame. What is not established is
+whether D2R itself is reading it at all.
+
+Do not theorise about this without the poll census. Enabling injection now
+restarts it, so the log reports per-slot counts at +5 s, +15 s and +30 s from
+the toggle:
+
+- a slot the game has **accepted** is polled every frame, so thousands of calls
+  in thirty seconds;
+- a slot it has **not** is polled only on the ~5 s hotplug rescan, so single
+  digits.
+
+That one number separates "the game never took the device" from "the game took
+it but ignores the left stick", and those need completely different fixes.
+
+## Both pads connect, and the game still uses one
 
 Measured, 2026-09-19. With the synthetic pad on slot 1 and a real controller
 on slot 0, the poll counts are identical and both answer connected:
