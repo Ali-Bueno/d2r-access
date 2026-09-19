@@ -63,13 +63,15 @@ std::array<bool, kCandidates.size()> Sample() {
 // Which XInput entry points the loaded module exposes, and whether a physical
 // pad is on any slot.
 //
-// The pad count is DIAGNOSTIC ONLY. Keyboard support fabricates a controller
-// unconditionally and never merges with a physically connected one: merging
-// would make owning a gamepad a prerequisite for using the keyboard, which
-// defeats the feature outright. It is reported here so that a live test stays
-// honest -- with a real pad attached there is no telling whether the game
-// answered it or us -- and must never become an input to an injection
-// decision, because there is no decision to make.
+// Which slots are occupied decides where the synthetic pad goes, and nothing
+// else. Keyboard support fabricates a controller unconditionally -- it never
+// merges with a physically connected one, which would make owning a gamepad a
+// prerequisite for using the keyboard, and never speaks over one, which would
+// cost a controller player their controller. It takes a free slot instead, so
+// occupied slots pass through untouched.
+//
+// Reporting it also keeps a live test honest: with a real pad attached there
+// is no telling whether the game answered it or us.
 void ReportXInput(const D2RL::PluginContext* context) {
 	for (const Candidate& candidate : kCandidates) {
 		const HMODULE module = GetModuleHandleW(candidate.module);
