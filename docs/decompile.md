@@ -153,6 +153,60 @@ same pass. **Do not `-import -overwrite` the existing project** — build the ne
 one beside it so the current decompile stays usable for control flow, which it
 is: the logic is sound, only the names are absent.
 
+## Outcome, 2026-09-19: the re-import was not needed for names
+
+The rebuilt image was scanned offline before committing a night to Ghidra, and
+the scan answered the question on its own. **`re/ghidra-image/` was never
+built.**
+
+Running the *same* scanner over both files makes the delta a control rather
+than a claim:
+
+| | `D2R_decrypted.exe` | `D2R_image.exe` |
+|---|---|---|
+| distinct `lea` targets in `.rdata` | **79** | **39,620** |
+| `lea` targets with no file backing | 16,103 | 3 |
+| `CfgMoveUp` xrefs | **0** | **1** |
+| `Automap` string occurrences | 14, none referenced | 90, **42 referenced** |
+
+Three naming sources follow from the working data references, none of them
+needing an analysis pass:
+
+1. **`.pdata` is intact** — 150,571 `RUNTIME_FUNCTION` entries running to
+   `0x1caf505`, so exact start/end for every function, *including* the ~6 MB
+   of code the on-disk headers never described.
+2. **Profiling-zone descriptors** — `.rdata` holds 32-byte records
+   `{__FUNCSIG__, short name, __FILE__, __LINE__}` and the function being
+   described `lea`s its own record. 505 records → **498 functions named**.
+3. **`__FILE__` strings at assert sites** — the `BC_ASSERT` / `BC_VERIFY`
+   macros `lea` the source path, attributing **5,574 functions** across 955
+   source files to a translation unit.
+
+The workspace tool is `tools/image_xref.py` (never committed here, like
+`rebuild_pe.py`); it runs in about 20 seconds and writes `re/names.txt`,
+6,033 rows of function start / name / source file.
+
+```
+python tools/image_xref.py query CfgMoveUp     # string  -> function
+python tools/image_xref.py func 0x1414d6860    # function -> strings it uses
+```
+
+`re/README.md` in the workspace carries the full record: the descriptor
+layout, the scanner's blind spots, and every address found so far.
+
+**The `Cfg*` result is what closed the hunt this document was written for.**
+`CfgMoveUp` / `CfgMoveDown` / `CfgMoveLeft` / `CfgMoveRight` / `CfgRun` /
+`CfgStandStill` / `CfgAutoMap` are each `lea`'d exactly once, and all of them
+from inside the same 2,512-byte function at `0x1414d6860` — measured on build
+3.3.93787 at image base `0x140000000`. That the function *is* the keybinding
+registrar is an inference from the strings it gathers, not something run
+against the live game; it has had no `LayoutCheck` fingerprint and is a lead,
+not an offset to code against.
+
+The import script stays where it is. Start it only when there is a specific
+question that needs decompiled C, and name the question — "we have no function
+names" is no longer one.
+
 ## A second naming source, independent of all this
 
 `D2RCore.dll` carries a **static** descriptor table at `.data:0x67AA30`,
