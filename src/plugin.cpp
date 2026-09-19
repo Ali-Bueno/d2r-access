@@ -13,6 +13,7 @@
 #include "input_direction.h"
 #include "input_stack.h"
 #include "localization.h"
+#include "modal_reader.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
 #include "native_skill_navigation.h"
@@ -57,6 +58,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
 	D2RAccess::TextField::Tick(context);
+	D2RAccess::ModalReader::Tick(context);
 	D2RAccess::WidgetProbe::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);

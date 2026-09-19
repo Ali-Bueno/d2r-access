@@ -38,6 +38,7 @@ add_library(d2r-access SHARED
 	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/keyboard_pad.cpp
+	src/modal_reader.cpp
 	src/input_stack.cpp
 	src/xinput_hook.cpp
 	src/interaction_reader.cpp

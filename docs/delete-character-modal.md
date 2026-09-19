@@ -55,23 +55,46 @@ not mis-read; it is never read, because nothing ever fires.
 worth recording: the ancestry fix that repaired the options panes
 (`8c2ca60`) cannot help here, because the failure is upstream of matching.
 
-## The fix
+## What the controller layout actually says
 
-Trigger on the panel opening, not on focus.
+`Controller/DeleteCharacterModalHD.json` is based on
+`Controller/ConfirmationModalHD.json`, and that base is the whole answer:
 
-1. **Hook the open message.** `ui_message_monitor` already observes
-   `PanelManager` / `OpenPanel`, which is how the log above exists. A modal in
-   a small table of "panels that open without focus" gets read on that message.
-2. **Read the live legend, not the static string.** `native_controller_help.cpp`
-   already reads a `ButtonLegendWidget`'s active entries in native order and
-   decodes the control glyphs. That is what turns the line into "press and hold
-   A" rather than "press and hold" followed by silence — and it stays correct
-   if the binding changes, which a hardcoded string would not.
-3. **Then the choices.** `YES` and `NO` from `Confirm` and `Dismiss`, so the
-   player knows both what is being asked and what the answers are.
-4. **Interrupt.** A destructive confirmation is a context change, and the
-   playbook's rule is `interrupt=true` for those. Nothing queued behind it
-   should delay it.
+```
+Confirm  -> ButtonLegendWidget ConfirmLegend  presets: { "action": "select" }
+Dismiss  -> ButtonLegendWidget DismissLegend  presets: { "action": "back"   }
+```
+
+So in controller mode this is an **action prompt, not a navigable panel**. The
+two buttons are not options you move between -- they are labels showing which
+*global* action does what: select confirms, back dismisses. The game gives
+nothing focus because nothing is meant to take it.
+
+That also means **do not read them as "yes" and "no"**. The string table does
+carry `strdeletecharok` = YES and `strdeletecharnot` = NO as the button faces,
+but reading those tells the player nothing they can act on. What they need is
+the control: the legend, read live, names the button actually bound.
+
+And it explains the functional failure, not just the silent one: with no focus
+and no announcement, there is nothing to tell the player *which* button to
+hold, so "press and hold" is unactionable even for a sighted player using a pad.
+
+## The fix (implemented)
+
+`src/modal_reader.cpp`. On the active panel changing to one that has **no
+focused widget**, read it from what it shows:
+
+1. Its `TextBoxWidget` prompt -- what is being asked.
+2. Its `ButtonLegendWidget` legends, through the existing
+   `NativeControllerHelp::Legend`, which decodes the U+E000 glyph range into a
+   control name. Read **live**, not from the string table, so it names the
+   button actually bound rather than a hardcoded guess.
+3. Interrupting, because a destructive confirmation is a context change and
+   should not wait behind whatever was being spoken.
+
+**Focus is never moved.** Driving the game's own cursor is what broke the
+controller focus handling before, and it is not needed: the panel is read
+where it stands.
 
 ## Do it as an archetype, not as this modal
 
@@ -93,6 +116,6 @@ instead of surfacing one at a time as they are stumbled over.
 
 ## Status
 
-Not implemented. The cause is confirmed from the live log and the strings and
-widgets it needs are all in place; what is missing is the open-message trigger
-and the archetype reader described above.
+Implemented. Untested in game: the next run should log
+`[modal] DeleteCharacterModal -> "..."` naming the prompt and the bound
+controls.
