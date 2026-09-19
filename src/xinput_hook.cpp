@@ -371,6 +371,17 @@ void SetInjection(const D2RL::PluginContext* context, bool enabled) {
 	g_inject.store(enabled);
 	AsyncLog::InfoF(context, "[pad] keyboard pad %s on slot %lu.", enabled ? "ON" : "off",
 		static_cast<unsigned long>(g_slot.load()));
+	if (!enabled) return;
+	// Turning it on restarts the poll census, so the counts that follow describe
+	// the injecting period and nothing before it. This is the measurement that
+	// says whether the game actually took the device: a slot it has accepted is
+	// polled every frame, an empty one only on its ~5 s hotplug rescan. Do not
+	// reason about whether D2R is reading our pad without these numbers.
+	for (auto& count : g_calls) count.store(0, std::memory_order_relaxed);
+	for (auto& count : g_connected) count.store(0, std::memory_order_relaxed);
+	g_otherSlot.store(0, std::memory_order_relaxed);
+	g_installedAt = GetTickCount64();
+	g_reports = 0;
 }
 
 bool Injecting() { return g_inject.load(); }
