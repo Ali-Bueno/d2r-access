@@ -72,7 +72,15 @@ public:
 	bool Locked() const { return locked_; }
 	// `target` is the target's current position, re-read by the caller; the
 	// player's position comes from the same snapshot as the collision.
-	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings);
+	//
+	// `waypoint`, when supplied, is where the ROUTE leads instead -- a cell
+	// the caller has already proved reachable, typically the way into the
+	// next room of a level-wide room route (room_graph.h), for a target the
+	// collision window cannot reach. Distance, arrival and ping cadence stay
+	// measured against `target`, so the lock itself is unchanged: only the
+	// heading follows the waypoint.
+	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
+		const Position* waypoint = nullptr);
 	const Route& CurrentRoute() const { return route_; }
 private:
 	bool locked_ = false;

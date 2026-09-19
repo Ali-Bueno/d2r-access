@@ -20,6 +20,10 @@ bool IsLocalPlayer(uintptr_t player) noexcept;
 // UI thread only, client rooms only. No retained game pointers across ticks.
 // level == 0 permits bootstrapping from the verified player's native room.
 bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
+// The player's native collision room -- the entry point the level's own
+// logical room list is reached through (native_rooms.h). Zero when the player
+// cannot be resolved. Guarded reads only; nothing is retained.
+uintptr_t PlayerRoom() noexcept;
 // Factored for fault/structure tests. Performs only guarded reads.
 bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
 }

@@ -150,7 +150,8 @@ void Tracker::Lock(uint64_t now) {
 }
 void Tracker::Clear() { *this = {}; }
 
-Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings) {
+Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
+	const Position* waypoint) {
 	Update update;
 	if (!locked_) return update;
 	update.valid = true;
@@ -165,19 +166,23 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 		? std::max(1.0, update.distance / settings.farDistance) : 1.0;
 	const double rerouteAt = settings.reroute * stretch;
 	const auto intervalMs = static_cast<uint64_t>(std::llround(static_cast<double>(settings.routeIntervalMs) * stretch));
+	const Position destination = waypoint != nullptr ? *waypoint : target;
 	const bool moved = Length({world.player.x - routeOrigin_.x, world.player.y - routeOrigin_.y}) >= rerouteAt
-		|| Length({target.x - routeTarget_.x, target.y - routeTarget_.y}) >= rerouteAt;
+		|| Length({destination.x - routeTarget_.x, destination.y - routeTarget_.y}) >= rerouteAt;
 	if (!routeMs_ || moved || now < routeMs_ || now - routeMs_ >= intervalMs) {
-		route_ = FindRoute(world, target, settings);
+		route_ = FindRoute(world, destination, settings);
 		routeOrigin_ = world.player;
-		routeTarget_ = target;
+		routeTarget_ = destination;
 		routeMs_ = std::max<uint64_t>(now, 1);
 	}
 	routed_ = route_.known;
 	update.routed = route_.known;
 	update.heading = route_.known ? route_.heading : Position{};
 	if (!update.routed && update.distance > 0) update.heading = {straight.x / update.distance, straight.y / update.distance};
-	update.remaining = route_.reachable ? route_.length : update.distance;
+	// Reaching a waypoint is not reaching the target, so the cadence keeps
+	// speaking of the whole journey exactly as it does for any target the
+	// collision cannot reach.
+	update.remaining = route_.reachable && waypoint == nullptr ? route_.length : update.distance;
 	if (now >= nextPingMs_) {
 		update.ping = true;
 		nextPingMs_ = now + PingIntervalMs(update.remaining, settings);

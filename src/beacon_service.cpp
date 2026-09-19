@@ -5,7 +5,10 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_rooms.h"
 #include "native_world.h"
+#include "navigation_grid.h"
+#include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -19,6 +22,7 @@
 #include <numbers>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace D2RAccess::BeaconService {
 namespace {
@@ -47,7 +51,36 @@ Target g_offer, g_target;
 bool g_supported = false;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
+// The level's logical rooms are fixed for as long as the level instance is,
+// so the graph is built once per instance rather than on a timer. A new
+// session or a new level id is a new instance.
+RoomGraph::Graph g_graph;
+int g_graphLevel = 0;
+uint64_t g_graphSession = 0;
 
+// The room graph for the level being played, or nothing when the level's
+// rooms cannot be read. Never a stale level's graph.
+const RoomGraph::Graph* Rooms(const Lifecycle& state) {
+	if (g_graphLevel != state.level || g_graphSession != state.session) {
+		std::vector<NativeRooms::Room> rooms;
+		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
+		g_graphLevel = state.level;
+		g_graphSession = state.session;
+	}
+	return g_graph.Empty() ? nullptr : &g_graph;
+}
+// Whether the collision the game currently keeps can actually reach the
+// target. A monster or a chest stands ON a blocked cell, so the cells around
+// it decide, exactly as the level-wide catalogue judges it.
+bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
+	const int x = static_cast<int>(std::lround(position.x)), y = static_cast<int>(std::lround(position.y));
+	for (int dy = -1; dy <= 1; ++dy)
+		for (int dx = -1; dx <= 1; ++dx) {
+			const Navigation::Cell* cell = grid.At(x + dx, y + dy);
+			if (cell != nullptr && cell->steps >= 0) return true;
+		}
+	return false;
+}
 bool Playing() {
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
@@ -147,7 +180,34 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
 	const bool seen = Refresh(state, now);
-	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings);
+	// Beyond the collision window the direct search has nothing to search, so
+	// it degrades to a straight line -- which in a dungeon can point through a
+	// wall into the back of the right room. Lead to the way INTO the next room
+	// of a room-level route instead. Only ever a cell the grid proved
+	// reachable, so this can no more point through a wall than the grid can.
+	Beacon::Position hop{};
+	const Beacon::Position* waypoint = nullptr;
+	size_t hopRoom = NativeRooms::None;
+	bool hopInNextRoom = false;
+	if (const RoomGraph::Graph* graph = Rooms(state)) {
+		const size_t from = NativeRooms::Containing(graph->rooms, world.player);
+		const size_t to = NativeRooms::Containing(graph->rooms, g_target.entity.position);
+		if (from != NativeRooms::None && to != NativeRooms::None && from != to) {
+			const auto grid = Navigation::Build(world, Navigation::MaxRadius);
+			// When the target is already reachable the direct search reaches
+			// it better than any waypoint could; leave that path untouched.
+			if (!ReachableNow(grid, g_target.entity.position)) {
+				const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, RoomGraph::Route(*graph, from, to));
+				if (goal.known) {
+					hop = goal.position;
+					waypoint = &hop;
+					hopRoom = goal.room;
+					hopInNextRoom = goal.inNextRoom;
+				}
+			}
+		}
+	}
+	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings, waypoint);
 	if (!update.valid) return;
 	if (update.arrived) {
 		const auto name = g_target.entity.name;
@@ -164,6 +224,14 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 			world.player.x, world.player.y, g_target.entity.position.x, g_target.entity.position.y, seen ? 1u : 0u,
 			update.distance, update.remaining, update.routed ? 1u : 0u, update.heading.x, update.heading.y,
 			g_tracker.CurrentRoute().path.size(), g_target.entity.name.c_str());
+		if (waypoint != nullptr) {
+			// Room size is the open question the first dungeon answers: the
+			// doorway case needs the next room inside the 152-subtile window.
+			const auto& room = g_graph.rooms[hopRoom];
+			AsyncLog::InfoF(context, "[beacon] hop=%.0f,%.0f in_next_room=%u room=%d,%d %dx%d tiles rooms=%zu",
+				hop.x, hop.y, hopInNextRoom ? 1u : 0u, room.tileX, room.tileY, room.tileWidth, room.tileHeight,
+				g_graph.rooms.size());
+		}
 	}
 }
 }
