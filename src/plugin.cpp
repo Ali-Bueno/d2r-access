@@ -25,6 +25,7 @@
 #include "ui_thread_pump.h"
 #include "vitals_service.h"
 #include "widget_probe.h"
+#include "xinput_hook.h"
 #include "widgets.h"
 
 #include <cstring>
@@ -49,6 +50,7 @@ constexpr D2RL::PluginInfo PluginInfo {
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
+	D2RAccess::XInputHook::Tick(context);
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
@@ -88,6 +90,19 @@ auto BytesCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command
 	else if (args == "off") D2RAccess::WidgetProbe::SetEnabled(false);
 	else if (args == "once") D2RAccess::WidgetProbe::RequestOnce();
 	else if (args == "again") D2RAccess::WidgetProbe::Rearm();
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
+// Console: "access-pad" reports how the game polls each controller slot;
+// "access-pad off" restores XInputGetState. Nothing is injected either way.
+auto PadCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	if (args == "off") D2RAccess::XInputHook::Remove(command->plugin);
+	else if (args.empty() || args == "report") D2RAccess::XInputHook::Report(command->plugin);
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -231,12 +246,15 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
 	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
+	(void)context->RegisterConsoleCommand("access-pad", PadCommand, "Controller-slot poll counts: (no args)|report|off.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
+	(void)D2RAccess::XInputHook::Install(context);
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
 }
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
+	D2RAccess::XInputHook::Remove(nullptr);
 	D2RAccess::UiThreadPump::Stop();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::QuestService::Unregister();

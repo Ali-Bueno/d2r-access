@@ -1,0 +1,200 @@
+#include "xinput_hook.h"
+
+#include "async_log.h"
+
+#include <windows.h>
+
+#include <xinput.h>
+
+#include <array>
+#include <atomic>
+#include <cstring>
+#include <string>
+
+namespace D2RAccess::XInputHook {
+
+namespace {
+
+using GetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
+
+// The game's own module, established live before the mod touched XInput:
+//   [input] input modules at plugin load: xinput9_1_0
+//   [input] xinput9_1_0 exports XInputGetState=yes, ordinal 100=no
+// It does NOT export the undocumented ordinal 100, so the named function is
+// every call the game makes. The mod's own reader loads xinput1_4.dll, a
+// different module: patching this one cannot feed the mod its own input.
+constexpr const wchar_t* kGameModules[] = {L"xinput9_1_0.dll", L"xinput1_4.dll", L"xinput1_3.dll"};
+
+// XInputGetState's first five instructions on the build this was written for.
+// All five are position-independent -- no rip-relative operand, no relative
+// branch -- which is what makes copying them into a trampoline safe. The bytes
+// are verified before anything is written, so a different build is refused
+// rather than corrupted.
+//   48 89 5C 24 08   mov  qword ptr [rsp+8], rbx
+//   57               push rdi
+//   48 83 EC 20      sub  rsp, 0x20
+//   48 8B DA         mov  rbx, rdx
+//   8B F9            mov  edi, ecx
+constexpr uint8_t kPrologue[] = {
+	0x48, 0x89, 0x5C, 0x24, 0x08,
+	0x57,
+	0x48, 0x83, 0xEC, 0x20,
+	0x48, 0x8B, 0xDA,
+	0x8B, 0xF9,
+};
+constexpr size_t kStolen = sizeof(kPrologue); // 15
+
+// `jmp qword ptr [rip+0]` followed by the 8-byte destination: absolute, so the
+// trampoline can live anywhere, and only 14 bytes -- inside the 15 we relocate.
+constexpr uint8_t kAbsoluteJump[] = {0xFF, 0x25, 0x00, 0x00, 0x00, 0x00};
+constexpr size_t  kJumpSize       = sizeof(kAbsoluteJump) + sizeof(void*); // 14
+
+std::array<std::atomic<uint64_t>, XUSER_MAX_COUNT> g_calls {};
+std::array<std::atomic<uint64_t>, XUSER_MAX_COUNT> g_connected {};
+std::atomic<uint64_t>                              g_otherSlot {}; // a slot index outside 0..3
+
+uint8_t*    g_target     = nullptr;          // the patched function
+uint8_t*    g_trampoline = nullptr;          // stolen bytes + jump back
+GetStateFn  g_original   = nullptr;
+uint8_t     g_saved[kStolen] {};
+bool        g_installed  = false;
+unsigned long long g_installedAt = 0;
+unsigned    g_reports    = 0;
+
+void WriteJump(uint8_t* at, const void* destination) {
+	std::memcpy(at, kAbsoluteJump, sizeof(kAbsoluteJump));
+	std::memcpy(at + sizeof(kAbsoluteJump), &destination, sizeof(destination));
+}
+
+DWORD WINAPI Detour(DWORD slot, XINPUT_STATE* state) {
+	if (slot < XUSER_MAX_COUNT) {
+		g_calls[slot].fetch_add(1, std::memory_order_relaxed);
+	} else {
+		g_otherSlot.fetch_add(1, std::memory_order_relaxed);
+	}
+	const DWORD result = g_original != nullptr ? g_original(slot, state) : ERROR_DEVICE_NOT_CONNECTED;
+	if (result == ERROR_SUCCESS && slot < XUSER_MAX_COUNT) {
+		g_connected[slot].fetch_add(1, std::memory_order_relaxed);
+	}
+	return result;
+}
+
+// Resolves the module the game already has loaded. GetModuleHandleW never
+// loads anything, so this cannot pull in a module the game does not use.
+HMODULE GameModule(const wchar_t*& chosen) {
+	for (const wchar_t* name : kGameModules) {
+		if (const HMODULE module = GetModuleHandleW(name); module != nullptr) {
+			chosen = name;
+			return module;
+		}
+	}
+	return nullptr;
+}
+
+}
+
+bool Install(const D2RL::PluginContext* context) {
+	if (g_installed) return true;
+
+	const wchar_t* moduleName = nullptr;
+	const HMODULE  module     = GameModule(moduleName);
+	if (module == nullptr) {
+		AsyncLog::Warn(context, "[pad] no XInput module is loaded; nothing to measure.");
+		return false;
+	}
+	auto* target = reinterpret_cast<uint8_t*>(GetProcAddress(module, "XInputGetState"));
+	if (target == nullptr) {
+		AsyncLog::Warn(context, "[pad] XInputGetState not exported; not hooking.");
+		return false;
+	}
+	if (std::memcmp(target, kPrologue, kStolen) != 0) {
+		// Either a different build or something else got there first. Either
+		// way the stolen bytes would not be the ones this was reasoned about.
+		std::string seen;
+		for (size_t at = 0; at < kStolen; ++at) {
+			char byte[4] {};
+			std::snprintf(byte, sizeof(byte), "%02X", target[at]);
+			seen += byte;
+		}
+		AsyncLog::WarnF(context, "[pad] XInputGetState prologue is not the one this hook was written for (%s); not hooking.", seen.c_str());
+		return false;
+	}
+
+	g_trampoline = static_cast<uint8_t*>(VirtualAlloc(nullptr, kStolen + kJumpSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+	if (g_trampoline == nullptr) {
+		AsyncLog::Warn(context, "[pad] could not allocate a trampoline; not hooking.");
+		return false;
+	}
+	std::memcpy(g_trampoline, target, kStolen);
+	WriteJump(g_trampoline + kStolen, target + kStolen);
+
+	DWORD previous = 0;
+	if (VirtualProtect(target, kJumpSize, PAGE_EXECUTE_READWRITE, &previous) == 0) {
+		VirtualFree(g_trampoline, 0, MEM_RELEASE);
+		g_trampoline = nullptr;
+		AsyncLog::Warn(context, "[pad] could not unprotect XInputGetState; not hooking.");
+		return false;
+	}
+	std::memcpy(g_saved, target, kStolen);
+	WriteJump(target, reinterpret_cast<const void*>(&Detour));
+	// The 15th byte is left as it was: the jump is 14, and the instruction it
+	// belonged to has been relocated whole into the trampoline.
+	VirtualProtect(target, kJumpSize, previous, &previous);
+	FlushInstructionCache(GetCurrentProcess(), target, kJumpSize);
+
+	g_target      = target;
+	g_original    = reinterpret_cast<GetStateFn>(g_trampoline);
+	g_installed   = true;
+	g_installedAt = GetTickCount64();
+	AsyncLog::InfoF(context, "[pad] counting XInputGetState in %ls (pass-through, nothing injected).",
+		moduleName != nullptr ? moduleName : L"?");
+	return true;
+}
+
+void Remove(const D2RL::PluginContext* context) {
+	if (!g_installed || g_target == nullptr) return;
+	DWORD previous = 0;
+	if (VirtualProtect(g_target, kJumpSize, PAGE_EXECUTE_READWRITE, &previous) != 0) {
+		std::memcpy(g_target, g_saved, kStolen);
+		VirtualProtect(g_target, kJumpSize, previous, &previous);
+		FlushInstructionCache(GetCurrentProcess(), g_target, kJumpSize);
+	}
+	g_installed = false;
+	g_original  = nullptr;
+	g_target    = nullptr;
+	AsyncLog::Info(context, "[pad] XInputGetState restored.");
+}
+
+void Report(const D2RL::PluginContext* context) {
+	if (context == nullptr) return;
+	std::string line;
+	for (unsigned slot = 0; slot < XUSER_MAX_COUNT; ++slot) {
+		char text[64] {};
+		std::snprintf(text, sizeof(text), "%s%u: %llu calls/%llu connected", slot == 0 ? "" : ", ", slot,
+			static_cast<unsigned long long>(g_calls[slot].load(std::memory_order_relaxed)),
+			static_cast<unsigned long long>(g_connected[slot].load(std::memory_order_relaxed)));
+		line += text;
+	}
+	const unsigned long long other = g_otherSlot.load(std::memory_order_relaxed);
+	AsyncLog::InfoF(context, "[pad] polls by slot -- %s%s", line.c_str(),
+		other != 0 ? " (plus calls with a slot index outside 0-3)" : "");
+}
+
+void Tick(const D2RL::PluginContext* context) {
+	if (!g_installed || g_reports >= 3) return;
+	// Three reports over the first half minute: the game may poll every slot
+	// once at startup and then settle on one, and a single sample would not
+	// tell those two apart.
+	static constexpr unsigned long long kAt[] = {5000, 15000, 30000};
+	const unsigned long long elapsed = GetTickCount64() - g_installedAt;
+	if (elapsed < kAt[g_reports]) return;
+	++g_reports;
+	Report(context);
+}
+
+SlotStats Stats(unsigned slot) {
+	if (slot >= XUSER_MAX_COUNT) return {};
+	return {g_calls[slot].load(std::memory_order_relaxed), g_connected[slot].load(std::memory_order_relaxed)};
+}
+
+}
