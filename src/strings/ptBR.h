@@ -104,6 +104,8 @@ inline constexpr Table ptBR {
 	.questAlertsEnabled = "Avisos de missões ativados",
 	.questAlertsDisabled = "Avisos de missões desativados",
 	.questNoObjective = "Nenhum texto de objetivo disponível para esta missão",
+	.keyboardPadEnabled = "Controle por teclado ativado",
+	.keyboardPadDisabled = "Controle por teclado desativado",
 	.vitalsLife = "Vida %d por cento",
 	.vitalsMana = "Mana %d por cento",
 	.vitalsEnabled = "Avisos de vida e mana ativados",

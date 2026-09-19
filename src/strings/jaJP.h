@@ -104,6 +104,8 @@ inline constexpr Table jaJP {
 	.questAlertsEnabled = "クエスト通知を有効にしました",
 	.questAlertsDisabled = "クエスト通知を無効にしました",
 	.questNoObjective = "このクエストの目標テキストはありません",
+	.keyboardPadEnabled = "キーボード操作を有効にしました",
+	.keyboardPadDisabled = "キーボード操作を無効にしました",
 	.vitalsLife = "ライフ %d パーセント",
 	.vitalsMana = "マナ %d パーセント",
 	.vitalsEnabled = "ライフとマナの読み上げ オン",

@@ -104,6 +104,8 @@ inline constexpr Table ruRU {
 	.questAlertsEnabled = "Объявления заданий включены",
 	.questAlertsDisabled = "Объявления заданий выключены",
 	.questNoObjective = "Текст цели этого задания недоступен",
+	.keyboardPadEnabled = "Управление с клавиатуры включено",
+	.keyboardPadDisabled = "Управление с клавиатуры выключено",
 	.vitalsLife = "Жизнь %d процентов",
 	.vitalsMana = "Мана %d процентов",
 	.vitalsEnabled = "Оповещения о жизни и мане включены",

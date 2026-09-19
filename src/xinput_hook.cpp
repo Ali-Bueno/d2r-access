@@ -2,6 +2,8 @@
 
 #include "async_log.h"
 #include "keyboard_pad.h"
+#include "screen_reader.h"
+#include "speech_strings.h"
 
 #include <windows.h>
 
@@ -90,6 +92,15 @@ constexpr KeyBinding kLayout[] = {
 	{VK_UP, &KeyboardPad::Keys::dpadUp},   {VK_DOWN, &KeyboardPad::Keys::dpadDown},
 	{VK_LEFT, &KeyboardPad::Keys::dpadLeft}, {VK_RIGHT, &KeyboardPad::Keys::dpadRight},
 };
+
+// Ctrl+Shift+F12 turns the simulated pad on and off mid-session. It is read
+// raw, exactly like the mapping below, because the moment the pad reports
+// anything the game enters controller mode and its own input-action system
+// stops delivering keys -- which is the same reason the developer console's
+// hotkey stops working. A key we read ourselves is the only kind that still
+// arrives once that has happened.
+constexpr int ToggleKey = VK_F12;
+bool g_toggleHeld = false;
 
 // Only while the game has focus: these keys are read raw, so without this the
 // player would be driving the character while typing in another window.
@@ -317,8 +328,27 @@ void Report(const D2RL::PluginContext* context) {
 		other != 0 ? " (plus calls with a slot index outside 0-3)" : "");
 }
 
+// The live toggle, edge-detected so holding the combination flips it once.
+void PollToggle(const D2RL::PluginContext* context) {
+	const bool held = GameHasFocus()
+		&& (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0
+		&& (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
+		&& (GetAsyncKeyState(ToggleKey) & 0x8000) != 0;
+	if (held && !g_toggleHeld) {
+		const bool wanted = !g_inject.load(std::memory_order_relaxed);
+		SetInjection(context, wanted);
+		// Spoken, not just logged: the player who needs this cannot see
+		// whether the press took, and the pad reports nothing until a key is
+		// held, so there is no other feedback that it worked.
+		const auto& strings = Strings::Current();
+		ScreenReader::Speak(Injecting() ? strings.keyboardPadEnabled : strings.keyboardPadDisabled, true);
+	}
+	g_toggleHeld = held;
+}
+
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_installed) return;
+	PollToggle(context);
 	// Before anything else: a controller that appeared after we chose must get
 	// its slot back, whether or not the startup reports are still running.
 	VerifySlot(context);

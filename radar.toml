@@ -20,8 +20,11 @@ line_of_sight = false
 # target the game picks -- so the keyboard drives a synthetic pad rather than
 # reimplementing any of it. The pad answers on the lowest slot no real
 # controller occupies, so a physical pad keeps working untouched.
-# Turning this on puts the game into controller mode, which disables its own
-# keyboard bindings; that is why it is armed at startup and not mid-session.
+# Ctrl+Shift+F12 turns it on and off at any time, and that is the better way in:
+# entering controller mode disables the game's own input actions, which is what
+# the developer console's Ctrl+` hotkey and every mod hotkey are registered as.
+# Leave this false to keep those working, and press the toggle when you want to
+# play from the keyboard.
 # WASD moves, O/K/L/; scan, J/N/U/I are A/B/X/Y, Y/B the shoulders, T/V the
 # triggers, ' is L3 and / is R3, = and - are Start and Back, and the arrow keys
 # are the D-pad.

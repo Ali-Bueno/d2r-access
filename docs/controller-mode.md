@@ -27,17 +27,22 @@ disables the keyboard scheme, so **nothing contends for those keys** — the mod
 owns the whole keyboard. Do not spend effort picking keys around the stock
 bindings, and do not clear bindings in the `.key` file to make room.
 
-**The developer console is unreachable while the pad is injecting.** Its
-hotkey is a keyboard combination, and controller mode has disabled the
-keyboard, so the console cannot be opened no matter what `enable_console` says
-in `d2rloader.toml`. Anything that would otherwise be armed from the console
-has to be armed from the plugin's own config file instead -- which is why
-`[keyboard]`, `[probe]` and `[dump]` all live there.
+**The developer console is unreachable while the pad is injecting, and so is
+every mod hotkey.** D2RCore registers the console's `Ctrl+`` ` as an *input
+action* -- the string `"Could not register the D2RLoader Console input action."`
+is in the DLL -- and that is the same system `D2RL::Input::RegisterAction`
+uses. Controller mode disables it, so `enable_console = true` makes no
+difference, and `Ctrl+E`, `Ctrl+B`, `Ctrl+R`, `\`, `,` and `.` go with it.
 
-**Inject from startup.** Controller mode is entered by the first synthetic
-frame and never left, so the game should be in it from the moment the plugin
-loads rather than switching mid-session — a player must not be left between
-modes with neither input working.
+That is why `[keyboard]`, `[probe]` and `[dump]` are armed from the plugin's
+own config file, and why the pad's own toggle is read raw.
+
+**Enter controller mode deliberately, not at startup.** It is one-way, and it
+costs the console and every mod hotkey, so the pad is off by default and the
+player asks for it with Ctrl+Shift+F12. The earlier reasoning here — inject
+from startup so nobody is caught between modes — held only while the pad was
+expected to be on for the whole session. With a toggle the transition is the
+player's own deliberate act, announced when it happens.
 
 **Everything the keyboard used to reach must now be reachable as a pad input.**
 The keyboard scheme is gone, so inventory, quest log, character panel and skill
@@ -102,6 +107,39 @@ So the free-slot design holds and the last-input-wins fallback that was drafted
 for the other outcome is not needed. It is recorded here only so nobody
 re-derives it: it would have passed the real pad through whenever it was
 connected *and* being used, reporting keyboard state only while it was at rest.
+
+## The game uses ONE pad, so parity is not available
+
+Measured, 2026-09-19. With the synthetic pad on slot 1 and a real controller
+on slot 0, the poll counts are identical and both answer connected:
+
+```
+[pad] polls by slot -- 0: 611 calls/611 connected, 1: 611 calls/611 connected
+```
+
+So nothing was merged and nothing was spoken over -- slot 0 passed through
+untouched, exactly as designed -- and the player's controller still stopped
+working. D2R picks one pad and ignores the other, and it picked ours. Being
+present is enough; reporting an idle state on our slot does not hand control
+back.
+
+That kills the "both at once" design. Neither half of critical rule 3 is
+violated by the code any more, but the outcome the rule exists to prevent
+happens anyway, inside the game. Until D2R's own pad-selection is understood
+the honest answer is a toggle, not parity:
+
+- `[keyboard] enabled` stays **false** by default: controller play is what
+  works out of the box.
+- **Ctrl+Shift+F12** turns the simulated pad on and off at any time.
+
+Why that combination is read raw rather than registered as an input action:
+entering controller mode is what disables the action system, so an action
+bound to it would work exactly once and then never again -- it would be able
+to turn the pad on and never off.
+
+**This is the first thing to revisit once the decompile has names.** D2R's pad
+selection is a function we could read, and if it picks by recency or by slot
+there may be a way to be present without displacing a real device.
 
 ## Choosing the slot is a race, and losing it is the worst outcome
 
