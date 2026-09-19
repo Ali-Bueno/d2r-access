@@ -204,6 +204,7 @@ unsigned long long           g_missSince   = 0;     // first tick the indicator 
 bool                         g_missRetried = false; // the full re-read for this miss already happened
 unsigned                     g_missLogged  = 0;     // misses reported since the last successful match
 uintptr_t                    g_nativeMissWidget = 0; // last widget whose identity lookup was reported
+std::string                  g_nativeMissPanel;      // last panel reported as having no focus at all
 bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
 unsigned long long           g_scrollAt      = 0;     // tick of the last scroll message not yet settled (0: none)
@@ -659,7 +660,19 @@ std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex)
 // widget, with the ancestry the game actually has, rather than silently
 // dropping to a match that cannot work on that page.
 void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
-	if (focus.widget == 0 || focus.widget == g_nativeMissWidget) return;
+	if (focus.widget == 0) {
+		// No focused widget at all, which is not the same fault as one whose
+		// ancestry did not match -- a modal that opens without the game giving
+		// anything focus reads as silence either way, so name it. Once per
+		// panel, because it stays true for as long as that panel is up.
+		std::string active(PanelState::Active());
+		if (active == g_nativeMissPanel) return;
+		g_nativeMissPanel = active;
+		D2RAccess::AsyncLog::InfoF(context, "[focus] no focused widget while \"%s\" is active", active.c_str());
+		return;
+	}
+	g_nativeMissPanel.clear();
+	if (focus.widget == g_nativeMissWidget) return;
 	g_nativeMissWidget = focus.widget;
 	std::string chain;
 	uintptr_t   at = focus.widget;
