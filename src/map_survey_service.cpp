@@ -2,6 +2,7 @@
 #include "input_direction.h"
 
 #include "async_log.h"
+#include "beacon_service.h"
 #include "map_survey.h"
 #include "native_entities.h"
 #include "native_world.h"
@@ -114,12 +115,13 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 
 // Reads the world fresh: the answer must reflect where the player is standing
 // now, not where they were when the registry was last fed.
-bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks) {
+bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	Lifecycle state;
 	{
 		std::lock_guard lock(g_mutex);
 		state = g_state;
 	}
+	level = state.level;
 	if (!g_supported || !Playing(state)) return false;
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
@@ -135,7 +137,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks) {
 void Answer(const D2RL::PluginContext* context, Request request) {
 	const Strings::Table& strings = Strings::Current();
 	std::vector<MapSurvey::Landmark> landmarks;
-	if (!CurrentSurvey(landmarks) || landmarks.empty()) {
+	int level = 0;
+	if (!CurrentSurvey(landmarks, level) || landmarks.empty()) {
 		ScreenReader::Speak(strings.surveyNothing, true);
 		return;
 	}
@@ -160,6 +163,13 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	if (request == Request::NextObject) index = (index + 1) % members.size();
 	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
+	// Hand the selection to the beacon, so the right-stick click leads to what
+	// the catalogue just named rather than to whatever the short-range scan
+	// last found. Every answer re-offers, including a plain repeat, so the
+	// offer is always the thing the player heard most recently. While the
+	// pathfinder is on it owns the right stick, so the scan cannot be
+	// offering something else at the same time.
+	BeaconService::Offer(members[index].entity, level, GetTickCount64());
 
 	// Category and position first when the category changed, so the player
 	// knows where they are in the list before hearing the object itself.

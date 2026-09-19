@@ -6,9 +6,11 @@ for coverage. Older nearby-only limitations below describe the initial scan;
 complete unexplored routing remains unavailable.
 
 Lets a blind player walk to a specific thing instead of only sensing walls
-around them. The directional entity scan (`docs/entity-scan.md`) names
-whatever the right stick points at; a right-stick click, or **Ctrl+B**, locks
-the last thing it named. From then on a ping repeats, faster the closer the
+around them. Two readouts can name the target: the directional entity scan
+(`docs/entity-scan.md`) names whatever the right stick points at, and the
+level-wide catalogue (`src/map_survey.h`, the long-range pathfinder on **L3**)
+names anything on the level by walking distance. A right-stick click, or
+**Ctrl+B**, locks whichever of them spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
 ping just pointing straight through a wall. Clicking again (or `Ctrl+B`,
@@ -26,11 +28,15 @@ releases it on its own.
 
 ## The model
 
-- The entity scan hands the beacon service an *offer* (`BeaconService::Offer`)
-  every time it announces something: entity, level and timestamp. A lock only
+- Both readouts hand the beacon service an *offer* (`BeaconService::Offer`)
+  every time they announce something: entity, level and timestamp. A lock only
   takes the most recent offer, and only while it is still the same level and
   within `OfferWindowMs` of being spoken — never something older than what
   the player just heard.
+- The two cannot race. While the long-range pathfinder is on it owns the right
+  stick, so the scan is not announcing anything; while it is off the catalogue
+  only answers its own keys. Whichever spoke last is what a click follows,
+  which is the whole rule the player has to know.
 - Once locked, the target is re-located every tick by matching its unit id
   (and kind, for non-items) against a fresh native read (`Refresh`); ground
   items are matched the same way against the ground-item snapshot. If the
