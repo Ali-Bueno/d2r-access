@@ -60,6 +60,10 @@ constexpr int NearbyIndicatorHeights = 3;
 // a hundred widgets three times over stalled the game's UI thread for a
 // second (measured 2026-09-15).
 constexpr unsigned long long MissRetryMs = 300;
+// Misses reported per run of misses. The tracker keeps retrying after
+// this; it just stops saying so, so a page it cannot match costs a few
+// lines rather than one per retry until the panel closes.
+constexpr unsigned            MaxMissLogs = 4;
 // A tick longer than this is logged with its cost, to catch such stalls.
 constexpr double SlowTickMs = 30.0;
 
@@ -187,6 +191,9 @@ struct Match {
 	const Generated::PanelWidgets* panel  = nullptr;
 	const Generated::WidgetEntry*  widget = nullptr;
 	double                         score  = 0.0;
+	// How much of the winning panel could be located at all. A miss with
+	// few widgets resolved is a different fault from one with all of them.
+	uint32_t                       resolved = 0, total = 0;
 };
 
 const char*                  g_focusManagerName = nullptr;
@@ -195,6 +202,7 @@ std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // wi
 std::optional<Widgets::Rect> g_lastIndicator;
 unsigned long long           g_missSince   = 0;     // first tick the indicator matched nothing (0: matched)
 bool                         g_missRetried = false; // the full re-read for this miss already happened
+unsigned                     g_missLogged  = 0;     // misses reported since the last successful match
 bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
 unsigned long long           g_scrollAt      = 0;     // tick of the last scroll message not yet settled (0: none)
@@ -361,6 +369,10 @@ Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator
 			D2RAccess::AsyncLog::InfoF(context, "[focus]   %s (root %s, anchor %.1f,%.1f): %u/%u resolved; nearest %s at %d,%d %dx%d; first error: %s", catalog->panel,
 				Describe(Widgets::PanelRect(catalog->panel)).c_str(), catalog->rootAnchorX, catalog->rootAnchorY, resolved, catalog->count,
 				nearest != nullptr ? nearest->name : "-", nearestRect.x, nearestRect.y, nearestRect.width, nearestRect.height, firstError[0] != '\0' ? firstError : "none");
+		}
+		if (best.panel == catalog) {
+			best.resolved = resolved;
+			best.total    = catalog->count;
 		}
 		if (best.score >= MinimumCoverage) {
 			break;
@@ -834,7 +846,18 @@ void Tick(const D2RL::PluginContext* context) {
 		g_rectCache.clear();
 		match = Resolve(context, *indicator, false);
 		if (match.widget == nullptr || match.score < MinimumCoverage) {
-			D2RAccess::AsyncLog::InfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+			// Re-arm rather than latch. A list that scrolls under a standing
+			// focus moves every rect it owns, so one re-read is not enough:
+			// latching here left the tracker silent for the rest of the
+			// panel's life instead of recovering on the next settled frame.
+			// The log is capped instead, so recovering costs a retry and not
+			// a flooded log.
+			g_missSince   = now;
+			g_missRetried = false;
+			if (g_missLogged >= MaxMissLogs) return;
+			++g_missLogged;
+			D2RAccess::AsyncLog::InfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f, %s resolved %u/%u); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+				match.panel != nullptr ? match.panel->panel : "-", match.resolved, match.total,
 				Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
 			if (g_diagnostics) {
 				(void)Resolve(context, *indicator, true); // per-panel diagnostics: expensive, on request only
@@ -842,7 +865,8 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
-	g_missSince = 0;
+	g_missSince  = 0;
+	g_missLogged = 0;
 	Announce(context, match, *indicator);
 }
 
