@@ -16,12 +16,21 @@ int main() {
 	// The four face buttons, the two shoulders and the right stick click.
 	Keys keys;
 	keys.a = keys.b = keys.x = keys.y = true;
-	keys.leftShoulder = keys.rightShoulder = keys.rightThumb = true;
+	keys.leftShoulder = keys.rightShoulder = true;
+	keys.leftThumb = keys.rightThumb = true;
 	const Pad face = Build(keys);
 	Check(Has(face, A) && Has(face, B) && Has(face, X) && Has(face, Y), "j n u i report the four face buttons");
 	Check(Has(face, LeftShoulder) && Has(face, RightShoulder), "y and b report the shoulder buttons");
-	Check(Has(face, RightThumb), "the apostrophe reports the right stick click");
+	// The two stick clicks are distinct actions: L3 toggles the long-range
+	// pathfinder, R3 guides to the target, so one must never imply the other.
+	Check(Has(face, LeftThumb), "the apostrophe reports the left stick click");
+	Check(Has(face, RightThumb), "slash reports the right stick click");
 	Check(!Idle(face), "a held button is not idle");
+
+	keys = {};
+	keys.leftThumb = true;
+	const Pad l3 = Build(keys);
+	Check(Has(l3, LeftThumb) && !Has(l3, RightThumb), "L3 does not imply R3");
 
 	// Triggers are analog on a pad but binary on a keyboard: a held key has to
 	// clear whatever threshold the game uses to tell a pull from a rest.
