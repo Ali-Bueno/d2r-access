@@ -14,3 +14,21 @@ enabled = true
 range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
 line_of_sight = false
+
+# Keyboard as a controller. D2R has controller code for everything keyboard
+# play is missing -- menu focus, movement pathing, and firing a skill at the
+# target the game picks -- so the keyboard drives a synthetic pad rather than
+# reimplementing any of it. The pad answers on the lowest slot no real
+# controller occupies, so a physical pad keeps working untouched.
+# Turning this on puts the game into controller mode, which disables its own
+# keyboard bindings; that is why it is armed at startup and not mid-session.
+# WASD moves, O/K/L/; scan, J/N/U/I are A/B/X/Y, Y/B the shoulders, T/V the
+# triggers, ' is L3 and / is R3, and the arrow keys are the D-pad.
+[keyboard]
+enabled = false
+
+# Focused-widget byte dump, for deriving offsets the SDK does not expose.
+# Armed here because the developer console cannot be opened outside a loaded
+# game, and the screens worth probing are the ones where it cannot.
+[probe]
+enabled = false

@@ -23,4 +23,14 @@ struct Npc {
 };
 Npc ParseNpc(std::string_view config);
 Npc ReadNpc(const D2RL::PluginContext* context);
+
+// Sections whose only documented key is `enabled`: [keyboard], which arms the
+// keyboard-as-controller pad, and [probe], which arms the focused-widget byte
+// dump. Both have to be settable from the file because the developer console
+// cannot be opened outside a loaded game, and both matter most in the
+// character-select and character-create screens, where it cannot.
+// Absent section or absent key returns nothing, so the caller keeps its own
+// default; an unparseable value is reported and also returns nothing.
+std::optional<bool> ParseEnabled(std::string_view config, std::string_view section);
+std::optional<bool> ReadEnabled(const D2RL::PluginContext* context, std::string_view section);
 }

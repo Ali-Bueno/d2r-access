@@ -18,6 +18,7 @@
 #include "native_skill_navigation.h"
 #include "skill_navigation.h"
 #include "quest_service.h"
+#include "radar_config.h"
 #include "radar_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -254,6 +255,18 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-pad", PadCommand, "Keyboard-as-controller: on|off|report|unhook.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
 	(void)D2RAccess::XInputHook::Install(context);
+	// Both are armed from the config file because the developer console cannot
+	// be opened outside a loaded game, and both are wanted in exactly the
+	// screens where it cannot: character select and character create. Injection
+	// also belongs at startup rather than mid-session, since it is what puts
+	// D2R into controller mode.
+	if (D2RAccess::RadarConfig::ReadEnabled(context, "[keyboard]").value_or(false)) {
+		D2RAccess::XInputHook::SetInjection(context, true);
+	}
+	if (D2RAccess::RadarConfig::ReadEnabled(context, "[probe]").value_or(false)) {
+		D2RAccess::WidgetProbe::SetEnabled(true);
+		D2RAccess::AsyncLog::Info(context, "[probe] armed from config.");
+	}
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
 }

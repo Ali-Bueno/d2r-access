@@ -80,6 +80,22 @@ Result Read(const D2RL::PluginContext* context) {
 	return result.valid ? result : Result{};
 }
 
+std::optional<bool> ParseEnabled(std::string_view config, std::string_view section) {
+	std::optional<bool> result;
+	const bool valid = ForEachKey(config, section, [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled") return Line::Ignored;
+		bool flag = false;
+		if (result || !value || !ParseBool(*value, flag)) return Line::Invalid;
+		result = flag;
+		return Line::Accepted;
+	});
+	return valid ? result : std::nullopt;
+}
+
+std::optional<bool> ReadEnabled(const D2RL::PluginContext* context, std::string_view section) {
+	return ParseEnabled(Load(context), section);
+}
+
 Npc ParseNpc(std::string_view config) {
 	Npc result;
 	const bool valid = ForEachKey(config, "[npc]", [&](std::string_view key, std::optional<std::string_view> value) {
