@@ -369,7 +369,7 @@ inline constexpr WidgetEntry Widgets_CharacterCreatePanel[] = {
 	{ "Warlock", "HDCharacterSelectorWidget", nullptr, nullptr, "strSelectHeroClass", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_7, 1 },
 	{ "ToMainMenu", "ButtonWidget", "UIBack", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_8, 2 },
 	{ "ToggleLegacy", "ButtonWidget", "FrontEndToggleLegacyButtonText", nullptr, nullptr, "ToggleRendererHint", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_9, 2 },
-	{ "GameVersionInfoButton", "ButtonWidget", nullptr, nullptr, "GameVersionLabel", "CharacterGameVersionTooltip", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_10, 3 },
+	{ "GameVersionInfoButton", "ButtonWidget", nullptr, nullptr, nullptr, "CharacterGameVersionTooltip", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_10, 3 },
 	{ "GameVersionDropdown", "DropdownListWidget", nullptr, nullptr, "GameVersionLabel", nullptr, "CharacterCreate", "GameVersionSelected", States_CharacterCreatePanel_11, 3, Path_CharacterCreatePanel_11, 3 },
 	{ "ToGame", "ButtonWidget", "UICreate", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_12, 2 },
 	{ "UpsellButton", "ButtonWidget", "UILearnMore", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_13, 2 },

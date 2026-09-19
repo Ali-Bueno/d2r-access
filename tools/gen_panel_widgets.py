@@ -128,6 +128,9 @@ FOCUSABLE_TYPE_KEYWORDS = (
 # (live log 2026-09-18). Keyed by (panel, widget); values confirmed against
 # each key's enUS value in game-data/local/lng/strings/ui.json, as with
 # MINI_MENU_LABEL_KEYS below.
+# An empty value means "this control has no label of its own": clear the
+# borrowed one so Label() falls through to the tooltip, which is what the
+# game itself shows for the control.
 WIDGET_LABEL_OVERRIDES: dict[tuple[str, str], str] = {
     # "Hardcore"; its tooltip TooltipHardcoreCharacter opens with the same word.
     ("CharacterCreatePanel", "HardcoreCheckbox"): "strHardcore",
@@ -135,6 +138,12 @@ WIDGET_LABEL_OVERRIDES: dict[tuple[str, str], str] = {
     ("CharacterCreatePanel", "LadderToggle"): "LobbyLadder",
     # "Pre-Expansion"; matches the tooltip title in TooltipPreExpansionCharacter.
     ("CharacterCreatePanel", "ClassicToggle"): "CharacterSelectPanelPreExpansionCharacter",
+    # Icon-only help button (PANEL\Loot_Filter\Chronicle_Btn_Info) with a
+    # tooltipString and no labelString, so it borrowed the dropdown beside it
+    # and both announced themselves as "Game Version" (live log 2026-09-19).
+    # Every other use of that icon in the layouts is likewise a help button
+    # carrying only a tooltip, so the tooltip is what describes it.
+    ("CharacterCreatePanel", "GameVersionInfoButton"): "",
 }
 
 MINI_MENU_LABEL_KEYS: dict[str, str] = {
@@ -536,7 +545,7 @@ def main() -> int:
             for entry in entries:
                 override = WIDGET_LABEL_OVERRIDES.get((name, entry["name"]))
                 if override is not None and entry["textKey"] is None:
-                    entry["labelKey"] = override
+                    entry["labelKey"] = override or None
             panel_entries[name] = entries
             panel_root_anchor[name] = root_anchor
 
