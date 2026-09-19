@@ -99,10 +99,17 @@ std::string Format(const char* format, auto... args) {
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
-	const char* direction = strings.radarDirections[static_cast<size_t>(landmark.direction)];
-	return landmark.reachable
-		? Format(strings.surveySteps, landmark.entity.name.c_str(), direction, landmark.steps)
-		: Format(strings.surveyNoRoute, landmark.entity.name.c_str(), direction);
+	// The entity scan's own words for a bearing and a distance, so the two
+	// readouts name the same thing the same way: "ahead" rather than "Up",
+	// and metres rather than a unit only this readout uses.
+	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
+	if (!landmark.reachable) return Format(strings.surveyNoRoute, landmark.entity.name.c_str(), direction);
+	// Spoken like the scan's distance, but it is the WALKING distance: the
+	// steps the game's own graph needs to get there, not the straight line the
+	// scan measures. A wall between the two makes the numbers differ, and the
+	// walking one is the one worth acting on.
+	const std::string distance = EntityRadar::DistancePhrase(landmark.steps, EntityRadar::Settings{}, strings);
+	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
