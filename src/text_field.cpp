@@ -61,10 +61,12 @@ void Tick(const D2RL::PluginContext* context) {
 		// tracker's own "<label>, text field", so the order is what the
 		// control is and then what is in it. An empty box adds nothing --
 		// the label already said everything there is to say.
-		if (g_editable && !g_text.empty()) {
-			AsyncLog::InfoF(context, "[field] %s holds \"%s\"", name.c_str(), g_text.c_str());
-			ScreenReader::Speak(g_text, false);
-		}
+		// Logged even when empty and even when not editable: "the box read
+		// nothing" and "the box was never recognised" are different faults, and
+		// silence cannot tell them apart.
+		AsyncLog::InfoF(context, "[field] focus name=\"%s\" type=\"%s\" editable=%d text=\"%s\"",
+			name.c_str(), type.name.c_str(), g_editable ? 1 : 0, g_text.c_str());
+		if (g_editable && !g_text.empty()) ScreenReader::Speak(g_text, false);
 		return;
 	}
 	if (!g_editable) return;
@@ -76,12 +78,12 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool appended = current.size() > g_text.size() && current.compare(0, g_text.size(), g_text) == 0;
 	if (deleted) {
 		// Exactly what the backspace took, which is the one thing the player
-		// has no other way to know. Queued rather than interrupting, so
-		// holding backspace still names every character instead of leaving
-		// only the last one audible.
+		// has no other way to know. Interrupting, not queued: while editing,
+		// what was just deleted matters more than finishing the previous
+		// announcement, and a backlog lags behind the cursor.
 		const std::string removed = g_text.substr(current.size());
 		AsyncLog::InfoF(context, "[field] removed \"%s\"", removed.c_str());
-		ScreenReader::Speak(removed, false);
+		ScreenReader::Speak(removed, true);
 	} else if (!appended) {
 		// Neither a clean insertion nor a clean deletion: the box was replaced
 		// wholesale, so read the result rather than trying to describe an edit.
