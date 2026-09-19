@@ -96,14 +96,17 @@ auto BytesCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command
 	return D2RL::ConsoleCommandResult::Handled;
 }
 
-// Console: "access-pad" reports how the game polls each controller slot;
-// "access-pad off" restores XInputGetState. Nothing is injected either way.
+// Console: "access-pad on|off" drives the game from the keyboard as a
+// synthetic controller, "report" prints the per-slot poll counts, and
+// "unhook" restores XInputGetState outright.
 auto PadCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (command == nullptr || command->plugin == nullptr) {
 		return D2RL::ConsoleCommandResult::Failed;
 	}
 	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
-	if (args == "off") D2RAccess::XInputHook::Remove(command->plugin);
+	if (args == "on") D2RAccess::XInputHook::SetInjection(command->plugin, true);
+	else if (args == "off") D2RAccess::XInputHook::SetInjection(command->plugin, false);
+	else if (args == "unhook") D2RAccess::XInputHook::Remove(command->plugin);
 	else if (args.empty() || args == "report") D2RAccess::XInputHook::Report(command->plugin);
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
@@ -248,7 +251,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
 	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
-	(void)context->RegisterConsoleCommand("access-pad", PadCommand, "Controller-slot poll counts: (no args)|report|off.");
+	(void)context->RegisterConsoleCommand("access-pad", PadCommand, "Keyboard-as-controller: on|off|report|unhook.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
 	(void)D2RAccess::XInputHook::Install(context);
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");

@@ -41,6 +41,13 @@ void Report(const D2RL::PluginContext* context);
 // Drives the automatic report. Cheap; call from the UI tick.
 void Tick(const D2RL::PluginContext* context);
 
+// Starts or stops answering on the chosen free slot. Injection is what puts
+// D2R into controller mode, which disables its own keyboard scheme -- so this
+// belongs at startup rather than mid-session, or the player is left between
+// modes with neither input live.
+void SetInjection(const D2RL::PluginContext* context, bool enabled);
+bool Injecting();
+
 SlotStats Stats(unsigned slot);
 
 }
