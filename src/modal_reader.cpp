@@ -58,31 +58,43 @@ void Tick(const D2RL::PluginContext* context) {
 	const Generated::PanelWidgets* catalog = Catalog(active);
 	if (catalog == nullptr) return;
 
-	// The prompt first -- what is being asked -- then the legends, which name
-	// the control that answers it. The legend text is read live rather than
-	// from the string table, so it carries the button actually bound: a
-	// hardcoded "press and hold" cannot say WHICH button, which is the only
-	// part the player cannot work out for themselves.
+	// A ButtonLegendWidget already carries the bound control IN CONTEXT -- the
+	// glyph sits inside the authored wording. Appending a decoded control to
+	// the prompt instead produces "...delete all versions of this character. A",
+	// a dangling letter with no verb attached, so the legend is preferred
+	// whole and the bare prompt is only the fallback for a panel that has none.
 	std::string prompt;
 	std::string legends;
+	unsigned    legendWidgets = 0;
 	for (uint32_t at = 0; at < catalog->count; ++at) {
 		const Generated::WidgetEntry& widget = catalog->widgets[at];
 		const bool isLegend = std::strcmp(widget.type, LegendType) == 0;
 		const bool isText   = std::strcmp(widget.type, TextType) == 0;
 		if (!isLegend && !isText) continue;
 		const uintptr_t handle = NativeWidgets::Find(active, Steps(widget));
-		if (handle == 0) continue;
+		if (handle == 0) {
+			// Worth naming: a legend the catalogue has and the live tree does not
+			// means the game built the non-controller variant of this panel, which
+			// has no legends and expects a mouse -- and would explain a confirm
+			// that no controller button can trigger.
+			AsyncLog::InfoF(context, "[modal] %s/%s (%s) not present in the live tree", active.c_str(), widget.name, widget.type);
+			continue;
+		}
 		if (isLegend) {
-			Append(legends, NativeControllerHelp::Legend(handle));
+			++legendWidgets;
+			const std::string text = NativeControllerHelp::Legend(handle);
+			AsyncLog::InfoF(context, "[modal] %s/%s legend -> \"%s\"", active.c_str(), widget.name, text.c_str());
+			Append(legends, text);
 		} else {
-			Append(prompt, NativeWidgets::ReadText(handle));
+			const std::string text = NativeWidgets::ReadText(handle);
+			AsyncLog::InfoF(context, "[modal] %s/%s text -> \"%s\"", active.c_str(), widget.name, text.c_str());
+			Append(prompt, text);
 		}
 	}
-	if (prompt.empty() && legends.empty()) return;
+	AsyncLog::InfoF(context, "[modal] %s: %u legend widgets found", active.c_str(), legendWidgets);
 
-	std::string phrase = prompt;
-	Append(phrase, legends);
-	AsyncLog::InfoF(context, "[modal] %s -> \"%s\"", active.c_str(), phrase.c_str());
+	const std::string& phrase = legends.empty() ? prompt : legends;
+	if (phrase.empty()) return;
 	// A confirmation is a context change, and a destructive one should not wait
 	// behind whatever was being said when it appeared.
 	ScreenReader::Speak(phrase, true);
