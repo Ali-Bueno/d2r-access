@@ -49,6 +49,7 @@ cover the pad's full button set, not just the ones gameplay uses.
 | `T` `V` | LT RT | reported as fully pulled; a key has no analog range |
 | `'` | **L3** | long-range pathfinder toggle |
 | `/` | **R3** | guide to target — context sensitive, routes to the selected destination with obstacle avoidance |
+| `=` `-` | Start, Back | |
 
 `Escape` and `Enter` keep working natively and need no mapping.
 
@@ -73,8 +74,14 @@ This replaces the `[` `]` and `,` `.` cycling keys: with the keyboard owning a
 simulated stick there is no need for four more keys, and no room on the pad
 for them either.
 
-**Start and Back have no keys yet.** The pad has sixteen inputs and the mapping
-covers fourteen. Unbound and still free: `X`, `-`, `=`, `[`, `]`, `\`, `,`, `.`.
+**The mapping now covers all sixteen pad inputs.** `=` is Start and `-` is
+Back: in controller mode D2R's own keyboard scheme is gone, so a pad input with
+no key is a game function the player cannot reach at all. `=` duplicates what
+`Escape` already does natively; `-` is the only way to Back.
+
+Still free, and staying that way: `X`, `[`, `]`. `\`, `,` and `.` are taken —
+the map survey registers them as unmodified SDK actions. Every other action the
+mod registers carries `Control`, so none of them contend with a pad key.
 
 ## Still to measure
 

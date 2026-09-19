@@ -31,6 +31,8 @@ Pad Build(const Keys& keys) noexcept {
 	Set(pad.buttons, keys.rightShoulder, RightShoulder);
 	Set(pad.buttons, keys.leftThumb, LeftThumb);
 	Set(pad.buttons, keys.rightThumb, RightThumb);
+	Set(pad.buttons, keys.start, Start);
+	Set(pad.buttons, keys.back, Back);
 	Set(pad.buttons, keys.dpadUp, DpadUp);
 	Set(pad.buttons, keys.dpadDown, DpadDown);
 	Set(pad.buttons, keys.dpadLeft, DpadLeft);

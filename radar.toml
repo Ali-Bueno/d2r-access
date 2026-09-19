@@ -23,7 +23,8 @@ line_of_sight = false
 # Turning this on puts the game into controller mode, which disables its own
 # keyboard bindings; that is why it is armed at startup and not mid-session.
 # WASD moves, O/K/L/; scan, J/N/U/I are A/B/X/Y, Y/B the shoulders, T/V the
-# triggers, ' is L3 and / is R3, and the arrow keys are the D-pad.
+# triggers, ' is L3 and / is R3, = and - are Start and Back, and the arrow keys
+# are the D-pad.
 [keyboard]
 enabled = false
 

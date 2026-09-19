@@ -27,6 +27,15 @@ int main() {
 	Check(Has(face, RightThumb), "slash reports the right stick click");
 	Check(!Idle(face), "a held button is not idle");
 
+	// Controller mode disables D2R's own keyboard scheme outright, so a pad
+	// input with no key is a game function the player cannot reach at all.
+	keys = {};
+	keys.start = true;
+	Check(Has(Build(keys), Start) && !Has(Build(keys), Back), "equals reports Start on its own");
+	keys = {};
+	keys.back = true;
+	Check(Has(Build(keys), Back) && !Has(Build(keys), Start), "minus reports Back on its own");
+
 	keys = {};
 	keys.leftThumb = true;
 	const Pad l3 = Build(keys);

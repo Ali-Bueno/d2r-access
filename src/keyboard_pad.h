@@ -42,6 +42,7 @@ struct Keys {
 	bool leftShoulder = false, rightShoulder = false;                           // y b
 	bool leftTrigger = false, rightTrigger = false;                             // t v
 	bool leftThumb = false, rightThumb = false;                                 // ' and /
+	bool start = false, back = false;                                           // = and -
 	bool moveUp = false, moveLeft = false, moveDown = false, moveRight = false; // w a s d
 	bool lookUp = false, lookLeft = false, lookDown = false, lookRight = false; // o k l ;
 	bool dpadUp = false, dpadDown = false, dpadLeft = false, dpadRight = false; // arrow keys

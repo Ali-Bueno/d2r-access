@@ -80,6 +80,8 @@ constexpr KeyBinding kLayout[] = {
 	{'L', &KeyboardPad::Keys::lookDown},   {VK_OEM_1, &KeyboardPad::Keys::lookRight},   // ;
 	{VK_OEM_7, &KeyboardPad::Keys::leftThumb},  // '  L3, long-range pathfinder
 	{VK_OEM_2, &KeyboardPad::Keys::rightThumb}, // /  R3, guide to target
+	{VK_OEM_PLUS, &KeyboardPad::Keys::start},   // =  Start
+	{VK_OEM_MINUS, &KeyboardPad::Keys::back},   // -  Back
 	{VK_UP, &KeyboardPad::Keys::dpadUp},   {VK_DOWN, &KeyboardPad::Keys::dpadDown},
 	{VK_LEFT, &KeyboardPad::Keys::dpadLeft}, {VK_RIGHT, &KeyboardPad::Keys::dpadRight},
 };
