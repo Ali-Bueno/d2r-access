@@ -11,6 +11,7 @@
 #include "beacon_service.h"
 #include "entity_radar_service.h"
 #include "input_direction.h"
+#include "input_stack.h"
 #include "localization.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
@@ -172,6 +173,10 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		return false;
 	}
 
+	// Before any mod code touches XInput, so the snapshot records what the
+	// GAME loaded rather than what this plugin pulled in.
+	D2RAccess::InputStack::Capture();
+
 	if (!D2RAccess::AsyncLog::Initialize()) return false;
 
 	// The native readers depend on what this loader build resolves, so every log
@@ -182,6 +187,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
 		build != nullptr ? build : "of unknown build", name != nullptr ? " " : "", name != nullptr ? name : "",
 		D2RAccess::CoreSlots::LoaderVersion(), static_cast<unsigned>(PluginInfo.abiVersion));
+
+	D2RAccess::InputStack::Report(context);
 
 	if (!D2RAccess::Localization::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");

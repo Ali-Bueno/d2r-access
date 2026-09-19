@@ -36,6 +36,7 @@ add_library(d2r-access SHARED
 	src/native_footsteps.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
+	src/input_stack.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
 	src/plugin.cpp
