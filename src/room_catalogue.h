@@ -19,9 +19,17 @@
 // "Explored" here means the player has stood in the room during this level
 // instance. That is deliberately less than the automap knows -- the game also
 // reveals rooms the player only walks past -- and it is honest about what it
-// is. Nothing is persisted between games, because D2 regenerates its levels:
-// room 7 of one Cathedral is not room 7 of the next, so a remembered list
-// would be worse than none.
+// is.
+//
+// The record resets when the level id or the loader's sessionGeneration
+// changes, so it survives leaving and re-entering a level within one game (a
+// town portal back in keeps it) and is dropped when the game is. Whether
+// dropping it is CORRECT is OPEN: it assumes a random level is laid out anew
+// for each game rather than fixed per character, and that has not been
+// measured on this build. Numbering is positional, so if the layout does
+// persist then so could this record -- and if it does not, keeping it would
+// name the wrong rooms. Do not change this without the measurement; the
+// experiment is written up in the workspace HANDOFF.md.
 //
 // Pure logic over rooms and a position: no native calls, no SDK, unit-tested
 // without the game.
