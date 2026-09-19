@@ -17,6 +17,9 @@ constexpr EntityRadar::Category CategoryOrder[] = {
 	EntityRadar::Category::Exit,
 	EntityRadar::Category::Portal,
 	EntityRadar::Category::Waypoint,
+	// Where there is left to go, before who and what is there: a player with
+	// no map needs the shape of the level before its contents.
+	EntityRadar::Category::Room,
 	EntityRadar::Category::Npc,
 	EntityRadar::Category::Stash,
 	EntityRadar::Category::Enemy,

@@ -155,6 +155,13 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 // loaded rooms keeps its last known place: that is still where it was.
 bool Refresh(const Lifecycle& state, uint64_t now) {
 	std::vector<EntityRadar::Entity> entities;
+	// A room is not a native unit and never moves: it is exactly where the
+	// catalogue said it was, so there is nothing to re-read and nothing that
+	// could be reported lost on arrival.
+	if (g_target.entity.kind == EntityRadar::Kind::Room) {
+		g_target.seenMs = now;
+		return true;
+	}
 	if (g_target.entity.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
 		if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;

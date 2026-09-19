@@ -70,6 +70,7 @@ add_library(d2r-access SHARED
 	src/native_level_exits.cpp
 	src/native_rooms.cpp
 	src/room_graph.cpp
+	src/room_catalogue.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
 	src/native_ui.cpp
@@ -240,6 +241,11 @@ if(BUILD_TESTING)
 	target_compile_features(room-graph-tests PRIVATE cxx_std_20)
 	target_compile_definitions(room-graph-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-graph COMMAND room-graph-tests)
+	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(room-catalogue-tests PRIVATE src)
+	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
+	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -341,6 +347,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-level-exits-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

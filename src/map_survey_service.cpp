@@ -5,6 +5,8 @@
 #include "beacon_service.h"
 #include "map_survey.h"
 #include "native_entities.h"
+#include "native_rooms.h"
+#include "room_catalogue.h"
 #include "native_world.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -44,6 +46,12 @@ struct Lifecycle {
 std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Registry        g_registry;
+RoomCatalogue::Registry    g_rooms;
+// The level's logical rooms do not change while the level instance lives, so
+// the native walk happens once per instance rather than on every observation.
+std::vector<NativeRooms::Room> g_roomList;
+int                        g_roomLevel = 0;
+uint64_t                   g_roomSession = 0;
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -75,8 +83,8 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 
 const char* CategoryName(EntityRadar::Category category) {
 	const auto& names = Strings::Current().surveyCategories;
-	// MapSurvey::Categories only ever yields the ten real categories, in the
-	// same order the table lists them.
+	// MapSurvey::Categories only ever yields real categories; the table is
+	// indexed by this switch, so a new category appends to the table.
 	switch (category) {
 	case EntityRadar::Category::Exit:         return names[0];
 	case EntityRadar::Category::Portal:       return names[1];
@@ -88,6 +96,7 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Shrine:       return names[7];
 	case EntityRadar::Category::Interactable: return names[8];
 	case EntityRadar::Category::Item:         return names[9];
+	case EntityRadar::Category::Room:         return names[10];
 	default:                                  return names[8];
 	}
 }
@@ -98,13 +107,31 @@ std::string Format(const char* format, auto... args) {
 	return buffer;
 }
 
+// Rooms of the level being played. Empty when they cannot be read, which
+// simply leaves the rooms category out rather than failing the catalogue.
+const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
+	if (g_roomLevel != level || g_roomSession != session) {
+		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
+		g_roomLevel = level;
+		g_roomSession = session;
+	}
+	return g_roomList;
+}
+
 std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
 	// The entity scan's own words for a bearing and a distance, so the two
 	// readouts name the same thing the same way: "ahead" rather than "Up",
 	// and metres rather than a unit only this readout uses.
 	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
-	if (!landmark.reachable) return Format(strings.surveyNoRoute, landmark.entity.name.c_str(), direction);
+	// A room beyond the collision window has no walking distance to quote,
+	// but it is not unreachable either: locking it routes room by room
+	// (room_graph.h). Give the bearing rather than claim there is no way.
+	if (!landmark.reachable) {
+		const char* format = landmark.entity.category == EntityRadar::Category::Room
+			? strings.surveyBearing : strings.surveyNoRoute;
+		return Format(format, landmark.entity.name.c_str(), direction);
+	}
 	// Spoken like the scan's distance, but it is the WALKING distance: the
 	// steps the game's own graph needs to get there, not the straight line the
 	// scan measures. A wall between the two makes the numbers differ, and the
@@ -130,7 +157,12 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (NativeEntities::Read(state.player, state.session, entities, true)) {
 		g_registry.Observe(state.level, entities, grid);
 	}
-	landmarks = MapSurvey::Survey(world, grid, g_registry.Entities());
+	g_rooms.Observe(state.level, state.session, CurrentRooms(state.level, state.session), world.player);
+	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
+	const Strings::Table& strings = Strings::Current();
+	const auto rooms = RoomCatalogue::Entities(g_rooms.Entries(), strings.surveyRoom, strings.surveyRoomUnexplored);
+	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
+	landmarks = MapSurvey::Survey(world, grid, catalogued);
 	return true;
 }
 
@@ -289,6 +321,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		return;
 	}
 	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
+	// Rooms are marked explored by standing in them, so this has to keep up
+	// with the player rather than wait for the next catalogue question.
+	g_rooms.Observe(state.level, state.session, CurrentRooms(state.level, state.session), world.player);
 }
 
 void Shutdown() {

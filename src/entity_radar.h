@@ -14,7 +14,9 @@
 // so it is unit-tested without the game.
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
-enum class Kind { Npc, Enemy, Object, Item, Exit };
+// Room is not a game unit: it is a logical room of the level, catalogued so
+// a player with no map can ask where there is left to go (room_catalogue.h).
+enum class Kind { Npc, Enemy, Object, Item, Exit, Room };
 
 // What the thing is FOR, which is how a player asks for it ("where is the next
 // shrine", "any chests left"). Kind is too coarse for that: it files every
@@ -23,7 +25,7 @@ enum class Kind { Npc, Enemy, Object, Item, Exit };
 // Interactable is the deliberate catch-all: levers, seals, statues and doors
 // carry no SubClass bit of their own.
 enum class Category : uint8_t {
-	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item
+	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room
 };
 
 struct Entity {

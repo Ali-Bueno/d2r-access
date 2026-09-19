@@ -98,10 +98,14 @@ struct Table {
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
 	// Map survey: the level-wide catalogue, cycled by category and by object.
-	// Order matches MapSurvey CategoryOrder.
-	std::array<const char*, 10> surveyCategories;
+	// Indexed by the switch in MapSurveyService::CategoryName, not by
+	// CategoryOrder: a new category appends here and adds a case there.
+	std::array<const char*, 11> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = direction, %d = steps on foot
 	const char* surveyNoRoute;  // %s = name, %s = direction; known but unreachable
+	const char* surveyBearing;  // %s = name, %s = direction; a bearing is all that is known
+	const char* surveyRoom;             // %d = room number
+	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
 	const char* surveyEmpty;    // %s = category
 	const char* surveyCategory; // %s = category, %d = how many are known
 	const char* surveyNothing;  // nothing catalogued on this level yet
