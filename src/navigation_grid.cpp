@@ -77,7 +77,9 @@ Grid Build(const Radar::World& world, int radius) {
 	// Bound this research query by the existing radar's maximum default range.
 	// Native positions are unsigned 16-bit cells, validated by ReadPlayer.
 	constexpr int MaxPosition = std::numeric_limits<uint16_t>::max();
-	if (radius < 1 || radius > Radar::Settings{}.farRange || !std::isfinite(world.player.x)
+	static_assert(MaxRadius == static_cast<int>(Radar::Settings{}.farRange),
+		"the grid window is the radar's far range; move the two together");
+	if (radius < 1 || radius > MaxRadius || !std::isfinite(world.player.x)
 		|| !std::isfinite(world.player.y) || world.player.x < 0 || world.player.y < 0
 		|| world.player.x > MaxPosition || world.player.y > MaxPosition) return grid;
 	grid.playerX = static_cast<int>(world.player.x); grid.playerY = static_cast<int>(world.player.y);

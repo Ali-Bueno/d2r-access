@@ -3,6 +3,14 @@
 #include <string>
 
 namespace D2RAccess::Navigation {
+// The widest radius Build accepts. Past it the game keeps no collision to read
+// -- the native snapshot is a 152-subtile window around the player
+// (native_world.cpp) -- so a wider grid would be empty cells, not more level.
+// Build returns an EMPTY grid for anything larger rather than clamping it, so
+// a caller that asks for more gets nothing at all and every object in it reads
+// as unreachable. Pin the request to this constant, never to a number of your
+// own.
+inline constexpr int MaxRadius = 150;
 // World-grid axes. These bits are not the radar's fixed screen directions.
 enum DirectionBits : uint8_t {
 	MinusX = 1, PlusX = 2, MinusY = 4, PlusY = 8,

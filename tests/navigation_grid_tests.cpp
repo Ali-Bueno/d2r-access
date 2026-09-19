@@ -110,7 +110,13 @@ void Camp(bool dump) {
 }
 void BoundsAndCost() {
 	auto w=Field();
-	Check(Navigation::Build(w,0).cells.empty() && Navigation::Build(w,151).cells.empty(), "invalid analysis radii cannot allocate an unbounded grid");
+	Check(Navigation::Build(w,0).cells.empty() && Navigation::Build(w,Navigation::MaxRadius+1).cells.empty(), "invalid analysis radii cannot allocate an unbounded grid");
+	// A request above the cap returns an EMPTY grid rather than a clamped one,
+	// so the widest accepted request has to still be answered: the map survey
+	// asked for more than this and reported every object as unreachable.
+	const auto widest = Navigation::Build(w,Navigation::MaxRadius);
+	Check(!widest.cells.empty() && widest.originKnown, "the widest accepted radius still builds a graph");
+	Check(widest.At(20,20) && widest.At(20,20)->steps == 0, "the player stands at zero steps in the widest graph");
 	w.player.x=std::numeric_limits<double>::quiet_NaN();
 	Check(Navigation::Build(w,12).cells.empty(), "invalid player coordinates fail without a graph");
 	w=Field(1); constexpr int Iterations=200;

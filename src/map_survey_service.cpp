@@ -25,10 +25,11 @@ namespace {
 
 using Kind = D2RL::Lifecycle::GameplayEventKind;
 
-// Wide enough to cover a level's walkable body from wherever the player is
-// standing. The grid is only built when a key is pressed, so the cost is paid
-// per question, not per update.
-constexpr int SurveyRadius = 200;
+// As wide as the graph can be built, which is as wide as the game keeps
+// collision around the player. Taken from the cap rather than written out: a
+// larger number does not widen the catalogue, it empties it -- Build returns
+// an empty grid above the cap, and every object then reads as "no route".
+constexpr int SurveyRadius = Navigation::MaxRadius;
 // The registry is fed from the ordinary update, which must stay cheap.
 constexpr uint64_t ObserveIntervalMs = 500;
 
