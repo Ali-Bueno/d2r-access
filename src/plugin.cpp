@@ -274,6 +274,16 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (D2RAccess::RadarConfig::ReadEnabled(context, "[keyboard]").value_or(false)) {
 		D2RAccess::XInputHook::SetInjection(context, true);
 	}
+	// Same reason, and one more: arming the image dump from the console is
+	// impossible once the keyboard pad is on, because controller mode disables
+	// the keyboard the console's own hotkey is typed on.
+	if (D2RAccess::RadarConfig::ReadEnabled(context, "[dump]").value_or(false)) {
+		if (D2RAccess::CodeDump::EnsureImageDumped(context)) {
+			D2RAccess::AsyncLog::Info(context, "[dump] whole-image dump present next to the plugin.");
+		} else {
+			D2RAccess::AsyncLog::Warn(context, "[dump] whole-image dump failed; see the error above.");
+		}
+	}
 	if (D2RAccess::RadarConfig::ReadEnabled(context, "[probe]").value_or(false)) {
 		D2RAccess::WidgetProbe::SetEnabled(true);
 		D2RAccess::AsyncLog::Info(context, "[probe] armed from config.");

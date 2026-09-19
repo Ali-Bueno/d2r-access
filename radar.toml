@@ -28,6 +28,15 @@ line_of_sight = false
 [keyboard]
 enabled = false
 
+# One-shot: write the game's whole mapped image next to the plugin at startup,
+# for offline analysis (about 60-70 MB, written once and skipped if it is
+# already there). Armed here rather than from the console because turning the
+# keyboard pad on puts the game in controller mode, which disables the keyboard
+# -- and Ctrl+` is a keyboard combination, so the console cannot be opened at
+# all while that is running.
+[dump]
+enabled = false
+
 # Focused-widget byte dump, for deriving offsets the SDK does not expose.
 # Armed here because the developer console cannot be opened outside a loaded
 # game, and the screens worth probing are the ones where it cannot.
