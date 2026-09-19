@@ -61,9 +61,15 @@ std::array<bool, kCandidates.size()> Sample() {
 }
 
 // Which XInput entry points the loaded module exposes, and whether a physical
-// pad is on any slot. A merge has to know: with no pad connected the original
-// reports ERROR_DEVICE_NOT_CONNECTED and a synthetic pad has to be fabricated
-// whole, rather than layered over a real one.
+// pad is on any slot.
+//
+// The pad count is DIAGNOSTIC ONLY. Keyboard support fabricates a controller
+// unconditionally and never merges with a physically connected one: merging
+// would make owning a gamepad a prerequisite for using the keyboard, which
+// defeats the feature outright. It is reported here so that a live test stays
+// honest -- with a real pad attached there is no telling whether the game
+// answered it or us -- and must never become an input to an injection
+// decision, because there is no decision to make.
 void ReportXInput(const D2RL::PluginContext* context) {
 	for (const Candidate& candidate : kCandidates) {
 		const HMODULE module = GetModuleHandleW(candidate.module);
