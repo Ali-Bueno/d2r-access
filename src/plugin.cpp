@@ -16,6 +16,7 @@
 #include "modal_reader.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
+#include "map_survey_service.h"
 #include "native_skill_navigation.h"
 #include "skill_navigation.h"
 #include "quest_service.h"
@@ -66,6 +67,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::RadarService::Tick(context);
 	D2RAccess::FootstepService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
+	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
@@ -241,6 +243,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
+	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");

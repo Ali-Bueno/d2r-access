@@ -86,6 +86,8 @@ struct Table {
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
 	const char* scanEnabled;
 	const char* scanDisabled;
+	const char* pathfinderEnabled;  // L3 toggles the long-range pathfinder
+	const char* pathfinderDisabled;
 	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
 	const char* scanNothing; // %s = scan direction
@@ -95,6 +97,14 @@ struct Table {
 	const char* scanIndexOfCount; // %d = index (1-based), %d = count
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
+	// Map survey: the level-wide catalogue, cycled by category and by object.
+	// Order matches MapSurvey CategoryOrder.
+	std::array<const char*, 10> surveyCategories;
+	const char* surveySteps;    // %s = name, %s = direction, %d = steps on foot
+	const char* surveyNoRoute;  // %s = name, %s = direction; known but unreachable
+	const char* surveyEmpty;    // %s = category
+	const char* surveyCategory; // %s = category, %d = how many are known
+	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
 	const char* itemSpeechDisabled;
@@ -141,7 +151,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
+		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
 		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,

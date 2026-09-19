@@ -70,6 +70,10 @@ StickPush TakeRightStickPush();
 // keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
 // read here with the rest of the XInput state. Take() returns whether a click
 // happened since the previous Take() and clears it.
+// Left thumbstick CLICK (L3): toggles the long-range pathfinder, which
+// makes the right stick drive the catalogue instead of the entity scan.
+bool TakeLeftStickClick();
+
 bool TakeRightStickClick();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),

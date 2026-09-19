@@ -45,6 +45,7 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
+	bool leftThumbHeld  = false;
 	bool rightThumbHeld = false;
 };
 
@@ -56,6 +57,7 @@ bool         g_keyDownHeld  = false;
 DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
+bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
@@ -179,6 +181,9 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
+			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
+				g_leftStickClick = true;
+			}
 			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
 				g_rightStickClick = true;
 			}
@@ -216,6 +221,11 @@ void Poll() {
 }
 
 Stick LeftStick() { return g_leftStick; }
+bool TakeLeftStickClick() {
+	const bool clicked = g_leftStickClick;
+	g_leftStickClick = false;
+	return clicked;
+}
 bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
