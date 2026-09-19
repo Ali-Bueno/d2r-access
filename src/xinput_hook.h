@@ -1,5 +1,7 @@
 #pragma once
 
+#include "keyboard_pad.h"
+
 #include <cstdint>
 
 namespace D2RL {
@@ -47,6 +49,21 @@ void Tick(const D2RL::PluginContext* context);
 // modes with neither input live.
 void SetInjection(const D2RL::PluginContext* context, bool enabled);
 bool Injecting();
+
+// The synthetic pad as it stands right now, sampled from the keyboard afresh
+// rather than remembered from the game's last poll.
+//
+// The mod's own features read input on its UI tick (input_direction.h), and
+// they read it through a DIFFERENT XInput module than the game does -- the
+// detour above patches the game's, so nothing the keyboard does is visible
+// there. Without this, keyboard play would drive the game while the entity
+// scan, the pathfinder and guidance stayed deaf to it.
+struct Synthetic {
+	bool     active = false; // injecting, on a slot that was free
+	unsigned slot   = 0;     // the slot it answers on, so a reader can skip the real one
+	KeyboardPad::Pad pad;
+};
+Synthetic SyntheticPad();
 
 SlotStats Stats(unsigned slot);
 

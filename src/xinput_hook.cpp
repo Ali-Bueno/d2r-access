@@ -299,6 +299,18 @@ void SetInjection(const D2RL::PluginContext* context, bool enabled) {
 
 bool Injecting() { return g_inject.load(); }
 
+Synthetic SyntheticPad() {
+	Synthetic result;
+	const DWORD slot = g_slot.load(std::memory_order_relaxed);
+	if (!g_inject.load(std::memory_order_relaxed) || slot == NoSlot) return result;
+	result.active = true;
+	result.slot   = static_cast<unsigned>(slot);
+	// Sampled here rather than cached from the detour: the game's poll rate is
+	// its own business, and a reader on the UI tick must not inherit it.
+	result.pad = KeyboardPad::Build(SampleKeyboard());
+	return result;
+}
+
 SlotStats Stats(unsigned slot) {
 	if (slot >= XUSER_MAX_COUNT) return {};
 	return {g_calls[slot].load(std::memory_order_relaxed), g_connected[slot].load(std::memory_order_relaxed)};
