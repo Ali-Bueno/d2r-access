@@ -27,6 +27,13 @@ disables the keyboard scheme, so **nothing contends for those keys** — the mod
 owns the whole keyboard. Do not spend effort picking keys around the stock
 bindings, and do not clear bindings in the `.key` file to make room.
 
+**The developer console is unreachable while the pad is injecting.** Its
+hotkey is a keyboard combination, and controller mode has disabled the
+keyboard, so the console cannot be opened no matter what `enable_console` says
+in `d2rloader.toml`. Anything that would otherwise be armed from the console
+has to be armed from the plugin's own config file instead -- which is why
+`[keyboard]`, `[probe]` and `[dump]` all live there.
+
 **Inject from startup.** Controller mode is entered by the first synthetic
 frame and never left, so the game should be in it from the moment the plugin
 loads rather than switching mid-session — a player must not be left between
@@ -95,6 +102,31 @@ So the free-slot design holds and the last-input-wins fallback that was drafted
 for the other outcome is not needed. It is recorded here only so nobody
 re-derives it: it would have passed the real pad through whenever it was
 connected *and* being used, reporting keyboard state only while it was at rest.
+
+## Choosing the slot is a race, and losing it is the worst outcome
+
+`Install` runs at plugin load, **before the game has finished enumerating
+controllers**. The first version asked XInput once at that moment and latched
+the answer, on the reasoning that asking again later would see our own pad. It
+would not: the original is the trampoline to the real `XInputGetState`, which
+never sees our injection, so it is always the true hardware picture and is safe
+to ask at any time.
+
+The latch was a live bug. Lose the race and slot 0 reads as empty, we take it,
+and from then on the detour answers for the slot the player's physical
+controller is on -- never calling the original for it, so that controller's
+input is discarded entirely. That is precisely what critical rule 3 forbids,
+and it is what happened: keyboard play worked perfectly and the pad stopped
+existing.
+
+How close the race is, from one launch: `[input] xinput9_1_0 pads connected: 0`
+at 12:15:04.948, and 208 ms later `ChooseFreeSlot` found slot 0 occupied and
+picked slot 1. Two hundred milliseconds decided whether the player kept their
+controller.
+
+The choice is now re-checked once a second against the original, and the detour
+refuses a slot that is no longer ours between checks. A controller plugged in
+mid-session, or enumerated after we installed, takes its slot back immediately.
 
 ## The injection point, already settled
 

@@ -60,7 +60,12 @@ std::atomic<uint64_t>                              g_otherSlot {}; // a slot ind
 // every frame and the empty ones about every five seconds -- so a pad that
 // appears on a free slot is found.
 constexpr DWORD NoSlot = 0xFFFFFFFF;
+// How often the choice is re-checked against the hardware. The game's own
+// hotplug rescan is about five seconds; this is well inside it, and each check
+// is four calls to the original, not one per frame.
+constexpr uint64_t SlotRecheckMs = 1000;
 std::atomic<DWORD> g_slot { NoSlot };
+uint64_t g_slotCheckedAt = 0;
 std::atomic<bool>  g_inject { false };
 std::atomic<DWORD> g_packet { 1 };
 XINPUT_GAMEPAD     g_lastPad {};
@@ -126,7 +131,8 @@ DWORD WINAPI Detour(DWORD slot, XINPUT_STATE* state) {
 	// point is that no physical device is there. Every other slot is passed
 	// through untouched, so a real controller is neither merged with nor
 	// spoken over (critical rule 3).
-	if (g_inject.load(std::memory_order_relaxed) && slot == g_slot.load(std::memory_order_relaxed) && state != nullptr) {
+	const DWORD ours = g_slot.load(std::memory_order_relaxed);
+	if (g_inject.load(std::memory_order_relaxed) && ours != NoSlot && slot == ours && state != nullptr) {
 		const KeyboardPad::Pad pad = KeyboardPad::Build(SampleKeyboard());
 		XINPUT_GAMEPAD gamepad {};
 		gamepad.wButtons      = pad.buttons;
@@ -167,16 +173,48 @@ HMODULE GameModule(const wchar_t*& chosen) {
 	return nullptr;
 }
 
-// The lowest slot no physical controller occupies, asked of the ORIGINAL so
-// our own answer cannot influence it. Latched once: after injection starts we
-// would see our own pad as connected and pick a different slot every time.
+// The lowest slot no physical controller occupies, asked of the ORIGINAL.
+//
+// The original is the trampoline to the real XInputGetState, so it never sees
+// our injection -- this is always the true hardware picture, and it is safe to
+// ask it again at any time. An earlier version latched the answer at install
+// time for fear of seeing our own pad; that fear was unfounded and the latch
+// was a bug. Install runs before the game has finished enumerating
+// controllers, so the choice raced the enumeration: lose that race and we take
+// slot 0 and answer for the slot the player's own controller is on, which is
+// the one thing critical rule 3 forbids outright.
 DWORD ChooseFreeSlot() {
-	if (g_original == nullptr) return 0;
+	if (g_original == nullptr) return NoSlot;
 	for (DWORD slot = 0; slot < XUSER_MAX_COUNT; ++slot) {
 		XINPUT_STATE state {};
 		if (g_original(slot, &state) != ERROR_SUCCESS) return slot;
 	}
 	return NoSlot; // four real controllers: leave every one of them alone
+}
+
+// Re-checks the choice against the hardware. A controller plugged in later, or
+// enumerated after we installed, must get its slot back immediately even if we
+// are already answering on it.
+void VerifySlot(const D2RL::PluginContext* context) {
+	if (g_original == nullptr) return;
+	const uint64_t now = GetTickCount64();
+	if (g_slotCheckedAt != 0 && now - g_slotCheckedAt < SlotRecheckMs) return;
+	g_slotCheckedAt = now;
+	const DWORD current = g_slot.load(std::memory_order_relaxed);
+	const DWORD chosen = ChooseFreeSlot();
+	if (chosen == current) return;
+	g_slot.store(chosen, std::memory_order_relaxed);
+	// A fresh slot starts from a clean packet, or the game would read our
+	// previous state as "held since last frame" on a device it has just met.
+	g_lastPad = {};
+	g_packet.fetch_add(1, std::memory_order_relaxed);
+	if (chosen == NoSlot) {
+		AsyncLog::WarnF(context, "[pad] slot %lu now holds a real controller and no slot is free; keyboard input is not injected.",
+			static_cast<unsigned long>(current));
+	} else {
+		AsyncLog::InfoF(context, "[pad] moved the keyboard pad from slot %lu to slot %lu (a real controller appeared).",
+			static_cast<unsigned long>(current), static_cast<unsigned long>(chosen));
+	}
 }
 
 }
@@ -234,13 +272,17 @@ bool Install(const D2RL::PluginContext* context) {
 	g_original    = reinterpret_cast<GetStateFn>(g_trampoline);
 	g_installed   = true;
 	g_installedAt = GetTickCount64();
+	// A first guess only. Install runs before the game has finished
+	// enumerating controllers, so this is re-checked on every tick until the
+	// hardware settles -- see VerifySlot.
 	g_slot.store(ChooseFreeSlot());
+	g_slotCheckedAt = 0;
 	const DWORD chosen = g_slot.load();
 	if (chosen == NoSlot) {
 		AsyncLog::InfoF(context, "[pad] hooked %ls; every slot holds a real controller, so the keyboard pad has nowhere to go.",
 			moduleName != nullptr ? moduleName : L"?");
 	} else {
-		AsyncLog::InfoF(context, "[pad] hooked %ls; keyboard pad will answer on slot %lu.",
+		AsyncLog::InfoF(context, "[pad] hooked %ls; keyboard pad starts on slot %lu, re-checked as controllers enumerate.",
 			moduleName != nullptr ? moduleName : L"?", static_cast<unsigned long>(chosen));
 	}
 	return true;
@@ -276,7 +318,11 @@ void Report(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context) {
-	if (!g_installed || g_reports >= 3) return;
+	if (!g_installed) return;
+	// Before anything else: a controller that appeared after we chose must get
+	// its slot back, whether or not the startup reports are still running.
+	VerifySlot(context);
+	if (g_reports >= 3) return;
 	// Three reports over the first half minute: the game may poll every slot
 	// once at startup and then settle on one, and a single sample would not
 	// tell those two apart.
