@@ -104,6 +104,44 @@ that is what produces names:
   classes and, through them, a large share of the methods.
 - Globals stop being `DAT_...` in empty space.
 
+### Implemented, 2026-09-19
+
+`access-dump-code image` now does the dump (`src/code_dump.cpp`). It walks
+`VirtualQuery` from `context->exeBase`, writes every committed page as one flat
+block based at that address, and records the region map plus the **live**
+`SizeOfImage` in `D2R.image.json`. Gaps stay zero rather than closing up, so a
+byte at file offset N is still the byte the code addresses at base+N.
+
+The bare `access-dump-code` still writes the old `.text`-only dump, because
+`tools/layout_fingerprints.py` reads it.
+
+Two workspace tools carry it the rest of the way:
+
+- `tools/rebuild_pe.py` rewrites the dump's section table so raw == virtual and
+  gives any tail past the last section a `.dumped` section of its own, producing
+  `re/D2R_image.exe`. Run it with no output path first: it prints the header
+  facts, including whether the live `SizeOfImage` is larger than the file's and
+  whether the section table has room for the extra header.
+- `tools/ghidra/import_image.bat` imports that into a **new** project,
+  `re/ghidra-image/D2R_image`, beside the existing one. The current `D2R`
+  project is not touched: its control flow is sound and stays usable as a
+  cross-check.
+
+Importing as a PE rather than as a raw binary is deliberate — it is what lets
+the RTTI analyzer recover type descriptors and vftables, and those are half of
+where the names come from.
+
+Order of operations:
+
+1. In game, open the console and run `access-dump-code image`. Expect a brief
+   hitch: it copies ~60-70 MB and writes it next to the plugin.
+2. Copy `D2R.image.bin` / `D2R.image.json` out of
+   `<game>/d2rloader/plugins/d2r-access/`.
+3. `python tools/rebuild_pe.py D2R.image.bin D2R.image.json` to inspect, then
+   again with `re/D2R_image.exe` to write.
+4. `tools\ghidra\import_image.bat`. Many hours, saves once at the end, no
+   timeout flags.
+
 A cheaper half-measure exists — re-splice with the data sections shifted by
 `+0x5E40A0` — but it only recovers what the on-disk `.rdata`/`.data` already
 hold. It cannot recover the ~6 MB of code in the gap, or anything the
