@@ -165,7 +165,13 @@ auto DumpCodeCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* comm
 	if (command == nullptr || command->plugin == nullptr) {
 		return D2RL::ConsoleCommandResult::Failed;
 	}
-	return D2RAccess::CodeDump::EnsureDumped(command->plugin) ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
+	// "image" writes the whole mapping; bare or "text" keeps the .text-only
+	// dump the fingerprint tooling reads, so neither call site changes size
+	// under the other one's feet.
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	const bool ok = args == "image" ? D2RAccess::CodeDump::EnsureImageDumped(command->plugin)
+		: D2RAccess::CodeDump::EnsureDumped(command->plugin);
+	return ok ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
 }
 
 // Console: "access-trace on|off" toggles logging of every UI message.
@@ -253,7 +259,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
-	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
+	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code next to the plugin: (text)|image.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
 	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
