@@ -24,6 +24,7 @@
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
 #include "vitals_service.h"
+#include "text_field.h"
 #include "widget_probe.h"
 #include "xinput_hook.h"
 #include "widgets.h"
@@ -54,6 +55,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
+	D2RAccess::TextField::Tick(context);
 	D2RAccess::WidgetProbe::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);

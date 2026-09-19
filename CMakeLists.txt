@@ -26,6 +26,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 add_library(d2r-access SHARED
 	src/async_log.cpp
 	src/tab_reader.cpp
+	src/text_field.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
