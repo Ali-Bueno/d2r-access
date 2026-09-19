@@ -203,6 +203,7 @@ std::optional<Widgets::Rect> g_lastIndicator;
 unsigned long long           g_missSince   = 0;     // first tick the indicator matched nothing (0: matched)
 bool                         g_missRetried = false; // the full re-read for this miss already happened
 unsigned                     g_missLogged  = 0;     // misses reported since the last successful match
+uintptr_t                    g_nativeMissWidget = 0; // last widget whose identity lookup was reported
 bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
 unsigned long long           g_scrollAt      = 0;     // tick of the last scroll message not yet settled (0: none)
@@ -651,6 +652,27 @@ std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex)
 	return phrase;
 }
 
+// Identity resolution is the authoritative path, and geometry is only its
+// fallback -- one a scrolled list defeats, because a row moves on screen
+// without moving in the layout the rects are computed from. So when identity
+// misses, the reason matters more than the miss: name it once per focused
+// widget, with the ancestry the game actually has, rather than silently
+// dropping to a match that cannot work on that page.
+void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (focus.widget == 0 || focus.widget == g_nativeMissWidget) return;
+	g_nativeMissWidget = focus.widget;
+	std::string chain;
+	uintptr_t   at = focus.widget;
+	for (int depth = 0; depth < 8 && at != 0; ++depth) {
+		if (!chain.empty()) chain += " < ";
+		chain += NativeWidgets::ReadName(at);
+		at = NativeUi::Parent(at);
+	}
+	D2RAccess::AsyncLog::InfoF(context, "[focus] native identity missed: panel=\"%s\" widget=\"%s\" visible=%d/%d ancestry: %s",
+		NativeWidgets::ReadName(focus.panel).c_str(), NativeWidgets::ReadName(focus.widget).c_str(),
+		NativeUi::Visible(focus.panel) ? 1 : 0, NativeUi::Visible(focus.widget) ? 1 : 0, chain.c_str());
+}
+
 void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator) {
 	const int   characterRow = CharacterRowIndex(match, indicator);
 	std::string id           = std::string(match.panel->panel) + "/" + match.widget->name;
@@ -782,8 +804,11 @@ void Tick(const D2RL::PluginContext* context) {
 	// returning from gameplay changes panel-open order. Keep popup row handling
 	// below: those runtime clones have their own text/value reader.
 	if (PanelState::Active() != DropdownPopupPanel) {
-		const auto native = NativeFocus::Resolve(NativeUi::CurrentFocus(), Generated::PanelCatalog);
+		const NativeUi::Focus focused = NativeUi::CurrentFocus();
+		const auto native = NativeFocus::Resolve(focused, Generated::PanelCatalog);
+		if (native.widget == nullptr) LogNativeMiss(context, focused);
 		if (native.widget) {
+			g_nativeMissWidget = 0;
 			g_forceResolve = false;
 			g_lastIndicator = indicator;
 			g_popupWasActive = false;
