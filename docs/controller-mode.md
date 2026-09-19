@@ -52,6 +52,27 @@ cover the pad's full button set, not just the ones gameplay uses.
 
 `Escape` and `Enter` keep working natively and need no mapping.
 
+### The right stick is modal
+
+With the long-range pathfinder **off**, the right stick is the entity scan.
+With it **on** (L3), the same stick drives the catalogue instead:
+
+| direction | |
+|---|---|
+| left / right | previous / next item within the category |
+| up / down | previous / next category |
+
+**One axis at a time.** A push that is not clearly horizontal or vertical must
+cycle nothing: pick the dominant axis and require it to beat the other by a
+margin, so a slightly diagonal push cannot change the category and the item in
+the same gesture. This matters more here than for the scan, because the two
+axes do different jobs and an accidental category change loses the player's
+place in the list.
+
+This replaces the `[` `]` and `,` `.` cycling keys: with the keyboard owning a
+simulated stick there is no need for four more keys, and no room on the pad
+for them either.
+
 **Start and Back have no keys yet.** The pad has sixteen inputs and the mapping
 covers fourteen. Unbound and still free: `X`, `-`, `=`, `[`, `]`, `\`, `,`, `.`.
 
