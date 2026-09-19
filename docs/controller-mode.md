@@ -83,17 +83,18 @@ Still free, and staying that way: `X`, `[`, `]`. `\`, `,` and `.` are taken —
 the map survey registers them as unmodified SDK actions. Every other action the
 mod registers carries `Control`, so none of them contend with a pad key.
 
-## Still to measure
+## Does D2R read a slot above 0? Measured: yes
 
-Whether D2R reads a pad on a slot above 0. The user has a physical controller
-on slot 0, and critical rule 3 forbids both merging with it and speaking over
-it, so the synthetic pad has to take a free slot. If the game only ever reads
-slot 0, the documented fallback is last-input-wins on slot 0 — pass the real
-pad through untouched whenever it is connected *and* being used, and report
-keyboard state only while it is at rest.
+Critical rule 3 forbids both merging with a physical controller and speaking
+over it, so the synthetic pad has to take a free slot — which only works if
+the game looks at one. The pass-through counter answered it: over thirty
+seconds D2R made **1650 calls on slot 0 and six on each empty slot**, a hotplug
+rescan about every five seconds. A pad that appears on a free slot is found.
 
-This is a measurement, not a guess: hook `XInputGetState` as a pass-through
-that only counts calls per slot, and read the counts.
+So the free-slot design holds and the last-input-wins fallback that was drafted
+for the other outcome is not needed. It is recorded here only so nobody
+re-derives it: it would have passed the real pad through whenever it was
+connected *and* being used, reporting keyboard state only while it was at rest.
 
 ## The injection point, already settled
 
