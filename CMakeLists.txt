@@ -68,6 +68,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/native_entities.cpp
 	src/native_level_exits.cpp
+	src/native_rooms.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
 	src/native_ui.cpp
@@ -228,6 +229,11 @@ if(BUILD_TESTING)
 	target_compile_features(native-level-exits-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-level-exits-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-level-exits COMMAND native-level-exits-tests)
+	add_executable(native-rooms-tests tests/native_rooms_tests.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(native-rooms-tests PRIVATE src)
+	target_compile_features(native-rooms-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-rooms-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-rooms COMMAND native-rooms-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -327,6 +333,7 @@ if(BUILD_TESTING)
 		target_compile_options(quest-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-level-exits-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
