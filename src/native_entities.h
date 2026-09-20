@@ -14,4 +14,8 @@ bool Initialize(const D2RL::PluginContext* context);
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false);
 // Factored for tests over constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false);
+// The patch tripwire: how many objects.txt rows the container predicate selects
+// live, against EntityLayout::ContainerRowCount from the offline derivation.
+bool CountContainerRows(size_t& rows, size_t& total);
+bool CountContainerRowsAt(uintptr_t tables, size_t& rows, size_t& total);
 }

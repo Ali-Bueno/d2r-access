@@ -1,5 +1,6 @@
 #include "ground_item_service.h"
 #include "ground_items.h"
+#include "entity_layout.h"
 #include "item_audio.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -66,6 +67,11 @@ bool Initialize(const D2RL::PluginContext*) { return supported; }
 bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits) {
 	Check(!distantExits, "proximity loops never request unloaded exit presets");
 	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity"); result = entities; return readable;
+}
+bool CountContainerRows(size_t& rows, size_t& total) {
+	rows = EntityLayout::ContainerRowCount;
+	total = EntityLayout::ObjectRowCount;
+	return readable;
 }
 }
 namespace D2RAccess::ItemAudio {

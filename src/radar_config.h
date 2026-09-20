@@ -36,18 +36,6 @@ struct Target {
 Target ParseTarget(std::string_view config);
 Target ReadTarget(const D2RL::PluginContext* context);
 
-// The documented [explore] keys of the nearest-unexplored-space route:
-// enabled, radius (how far the route may reach) and mark_radius (how much of
-// the map walking past a place counts as exploring it). Both distances are
-// collision subtiles; absent keys keep the compiled defaults.
-struct Explore {
-	std::optional<bool> enabled;
-	std::optional<double> radius, markRadius, probeRadius;
-	bool valid = true;
-};
-Explore ParseExplore(std::string_view config);
-Explore ReadExplore(const D2RL::PluginContext* context);
-
 // The documented [chests] key of the container proximity loop. Ctrl+K toggles
 // it for the current run; this is only the state it starts in.
 struct Chests {

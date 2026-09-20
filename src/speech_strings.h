@@ -95,11 +95,6 @@ struct Table {
 	const char* scanIndexOfCount; // %d = index (1-based), %d = count
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
-	const char* exploreNearest;     // heads the route to the nearest unexplored space
-	const char* exploreStep;        // %s = movement direction, %d = pushes of the stick
-	const char* exploreNone;        // everything reachable nearby has been walked
-	const char* exploreUnavailable; // no readable world to route through
-	const char* exploreNoRoute;     // target found, but only as a straight bearing
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
 	const char* itemSpeechDisabled;
@@ -149,8 +144,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
-		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exploreNearest,
-		t.exploreStep, t.exploreNone, t.exploreUnavailable, t.exploreNoRoute, t.exitUnnamed,
+		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,

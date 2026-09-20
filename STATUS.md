@@ -2,92 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## A loop for containers you can open — 2026-09-18
+## Container loops — 2026-09-18
 
-Requested: the chest cue from the author's DevilutionX fork, for D2R. `chest.ogg` copied from there;
-it loops through the existing item mixer (gain by distance, X3DAudio stereo, 30 subtiles), with
-**Ctrl+K**, `access-items chests-on|chests-off|chests-dump` and `[chests]` in `radar.toml`.
+Chests, caskets, urns, barrels and corpses loop through the item mixer. Ctrl+K,
+`access-items chests-on|chests-off|chests-dump`, `[chests]` in `radar.toml`. Opening one silences
+it: the game stops letting it be clicked. Container rows come from the game's own `objects.txt`
+`OperateFn`, and `chests-dump` checks the live row counts against the tripwire in
+`src/entity_layout.h`. `docs/ground-items.md`.
 
-- **Opening one silences it for free.** `ReadObject` already drops any object the game will not let
-  the player click in its current mode, and a container is selectable shut and not open. That also
-  closes "opened-chest modes" from the unobserved list — pending the live check below.
-- **What counts as a container was derived, not guessed.** Nothing in the code told a chest from a
-  barrel or a stash, and the name is localized. Built `tools/casc-extract`, extracted `objects.bin`
-  and `objects.txt`, and wrote `tools/objects_containers.py`: it proves every objects.txt offset the
-  plugin reads equals its named column **on all 587 rows**, and groups the rows by `OperateFn`, the
-  interaction-handler index. Containers are handlers {1,3,4,5,7,14,30,39,40,41,57,58,59,68} plus the
-  shut/open selectable shape — **165 rows, 78 keys**, recorded with its row count in
-  `src/entity_layout.h` as the patch tripwire. `PopulateFn` looked promising and is not the signal:
-  one value covers 261 rows including beds and banners.
-- `EntityRadar::Entity` gained a trailing `container` flag rather than a new `Kind`, which would have
-  reordered the entity scan's tie-breaking and its tests for no benefit.
-- Exits claim voices first, then containers up to `MaxContainerVoices` (3), then items, so a crypt
-  full of caskets cannot silence the loot or the stairs. Added the missing
-  `static_assert(std::size(SoundFiles) == Sound::Count)`, which an added enumerator would otherwise
-  have walked past. Build clean, **44/44 CTest suites pass**.
-- The item-audio asset bar now measures the **loudest tenth of a second** instead of the whole-file
-  average: the chest cue is one hit and a decay, so the old measure understated it while its peak is
-  the highest of all the loops. [docs/ground-items.md](docs/ground-items.md#container-loops).
+**Next step:** `chests-dump` in the Rogue Encampment, Cold Plains and the Crypt, against rooms whose
+contents are known; open one and hear the loop stop; judge the 0.59 s sample's texture.
 
-**Next step:** live check — `access-items chests-dump` in the Rogue Encampment, Cold Plains and the
-Crypt to confirm the verdict column against rooms whose contents are known; then open a container and
-watch the loop stop; and judge whether a 0.59 s sample looped continuously is the right texture, or
-wants padding with silence.
+## HUD labels gated by sight — 2026-09-18
 
-## Nearest unexplored space, on slash — 2026-09-18
+The monster health plate and the world target label are dropped when every entity of that name
+within reach is behind a wall, so they agree with the right-stick scan. The NPC announcer defaults
+to `line_of_sight = true` for the same reason. `[target]` in `radar.toml`. `docs/target-sight.md`.
 
-Ported from the author's DevilutionX fork on request: slash speaks the way to the closest place on
-this level the player has not walked, as runs of left-stick pushes ("nearest unexplored space, up 6,
-right 4"). Press again after walking them for the next runs.
-
-- **D2R has no explored flag to borrow** — it streams collision rooms, so a room left behind reads as
-  unknown again, like one never entered. `Explored::Map` (`src/explored_map.{h,cpp}`) is the mod's own
-  memory instead: a disc of `mark_radius` (12) subtiles painted around the player every 250 ms into
-  sparse 32x32 bitmap chunks, per level and per game.
-- **The route** (`src/unexplored_route.{h,cpp}`) is breadth-first over `Navigation::Build`, the sonar's
-  own grid, restricted to the four screen directions the stick walks (the world diagonals), so the
-  nearest unexplored place is the nearest *in steps*, not in straight line. Runs are spoken with the
-  radar's existing movement words; at most six per press. Reachable only along the world axes → the
-  straight bearing plus "no route, direction only". Five new phrases in all 13 language tables.
-- `src/explore_service.{h,cpp}` holds the lifecycle, the marking poll, the slash action
-  (`explore-route`, rebindable), `access-explore` and `[explore]` in `radar.toml`.
-  Build clean, **44/44 CTest suites pass** (new `unexplored-route`, 29 checks).
-  [docs/unexplored-space.md](docs/unexplored-space.md).
-
-**Corrected the same day, from the player's first dungeon run.** He reported "down 9", two steps down,
-"down 9" again — and sometimes a completely different direction. The log proved it: `position=5772,4577
-target=5781,4586 distance=9`, then `position=5776,4584 target=5785,4593 distance=9`. The destination was
-the first cell the memory did not cover, i.e. the rim of the brush the player carries with him, which
-retreats exactly as fast as he approaches; ties between equidistant rim cells flipped the direction.
-Three changes: a destination must now sit `probe_radius` (12) subtiles deep inside unexplored ground
-(Chebyshev distance transform from the walked cells); it is **kept between presses** until explored or
-unreachable, so the instruction counts down; and among equally short routes the search carries on in
-the direction it is already going, which killed the "up 1, right 1, up 1" staircases. 44/44 suites,
-`unexplored-route` now 36 checks including the walk-and-count-down regression.
-
-**Next step:** live check in a dungeon again — `mark_radius` and `probe_radius` (both 12) want
-calibrating against how much of a room walking through it should count as explored.
-
-## Names only for what the player can see — 2026-09-18
-
-Player feedback on the 1.3.0 build: the mod named a monster or object **behind a wall** while walking,
-and the right-stick scan then denied it, because the scan needs a terrain line of sight and the game's
-own targeting does not. Both automatic announcers now use the scan's rule.
-
-- **HUD sight gate** (`src/target_sight.{h,cpp}`, new): the monster health plate and the world target
-  label are dropped when every entity carrying that name within `reach` (40 subtiles, the on-screen
-  span) is behind a wall. The label is the game's own text, so the entity is found by name, matched on
-  word boundaries like the ground-item labels. Only positive evidence hides: an unknown name, or one
-  whose bearers are out of reach, is still spoken. Ground items and level exits are exempt, and a
-  dropped label is not swallowed — it speaks as soon as it is in sight. `[target]` in `radar.toml`
-  turns it off or retunes the reach. [docs/target-sight.md](docs/target-sight.md).
-- **NPC announcer** now defaults to `line_of_sight = true` (`src/npc_proximity.h`), same reason.
-- `EntityRadarService::LabelSight` answers for the tooltip reader, caching one world + unit read for
-  120 ms so a 30 Hz UI poll costs nothing. Build clean, **43/43 CTest suites pass** (new `target-sight`).
-
-**Next step:** live check with the controller — walk a corridor in the Den and confirm the names of
-monsters in the next room stay silent until the doorway opens, with `[interaction] behind a wall`
-lines in the log. Deployed and started clean on 2026-09-18 18:52.
+**Next step:** controller check in the Den — names in the next room stay silent until the doorway
+opens, `[interaction] behind a wall` in the log. Watch for the opposite failure: our line of sight
+uses terrain walkability, so a see-through fence hides what is behind it until `BLOCK_LOS` is
+verified, and the camp is fenced.
 
 ## Loader 1.3.0-beta — issue #1 — 2026-09-17 (live-verified)
 
@@ -469,7 +404,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
-| Friendly NPC announcer | placeholder units silenced 2026-09-16; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
+| Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | wip — 2026-09-16 redesign installed, incl. 18:10 forensic fix; live listening pending | One confirm-by-travel state machine per direction; connected-passage scan is now the only classifier, with 1-cell lateral tolerance (was 3), openDepth 10/close 7 (was 8/5), clutter removal capped at 5 cells (was up to 20), and `stick=` logged per cue. Four screen-cardinal directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried live and reverted after the user listened. `docs/radar-redesign.md` (current model); `docs/sonar-radar.md` and its follow-ups are superseded history. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
@@ -477,7 +412,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Radar cue delivery log | wip — log format updated for the redesign | `[radar-audio]` still retains ID/origin through queue, submission, completion, cancellation or drop (no retries now); `[radar-direction]`/`[radar-state]` replace the removed opening-hold/wall/guidance/reference lines. Live validation of the new log pending. `docs/radar-redesign.md` (current fields), `docs/radar-event-log.md` (superseded) |
 | Radar / footstep automated tests | done (local) | Six radar suites / 1439 checks against the confirm-by-travel engine (state machine, corridor stability, recorded camp/return grids, snapshot RLE, audio, readout), plus footsteps. Expectations derived from geometry, named constants and captures; timing printed, never asserted. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
-| Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
+| Highlighted NPC/object labels | wip — sight gate built 2026-09-18, live check pending | Shared primary tooltip capture plus visible target-name HUD, now dropped when every entity of that name within reach is behind a wall. `[target]` in `radar.toml`. `docs/native-tooltips.md`, `docs/target-sight.md` |
+| Container loops | built 2026-09-18, live check pending | Chests/caskets/urns/barrels/corpses through the item mixer; opening one silences it. Rows from `objects.txt` `OperateFn`, tripwire checked by `chests-dump`. Ctrl+K, `[chests]` in `radar.toml`. `docs/ground-items.md` |
 | Character panel (attributes, life, resistances) | built and installed 2026-09-17 - live check pending | Every `<name>Title` row reads its label and value through its focusable `Tooltip` child; header (panel, character, class, level) spoken once on entry. Mini-menu opener buttons named from the game's `minipanel*` keys via the generator. `character-stats` suite. `docs/character-panel.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
@@ -486,7 +422,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
 | Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |
-| Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
+| Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Eight supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 

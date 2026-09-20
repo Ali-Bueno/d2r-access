@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -50,9 +49,10 @@ inline constexpr size_t ObjOperateFn = 0x15E;
 // 39-41 and 57-59 the act-specific special chests, 68 the evil urn.
 inline constexpr std::array<uint8_t, 14> ContainerOperateFns{1, 3, 4, 5, 7, 14, 30, 39, 40, 41, 57, 58, 59, 68};
 // Together with "selectable while shut, not once open" these select 165 of the
-// 587 rows (78 distinct keys). The count is the tripwire: if a game patch moves
-// it, rerun the tool before trusting the cue.
-inline constexpr size_t ContainerRowCount = 165;
+// 587 rows (78 distinct keys). Both counts are the tripwire `access-items
+// chests-dump` checks against the live table: if a patch moves either, rerun
+// the tool before trusting the cue.
+inline constexpr size_t ContainerRowCount = 165, ObjectRowCount = 587;
 // objects.txt SubClass bits the game's label builder (0xC17E0) and 0x34C470 branch on:
 // shrine, town/permanent portal, arcane sanctuary portal / hell gate, waypoint.
 inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassPortal = 1u << 2, SubClassGate = 1u << 4, SubClassWaypoint = 1u << 6;

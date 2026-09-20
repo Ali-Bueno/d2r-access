@@ -1,6 +1,7 @@
 #include "ground_item_service.h"
 #include "ground_items.h"
 #include "ground_item_text.h"
+#include "entity_layout.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "item_audio.h"
@@ -180,14 +181,24 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (!g_exitsSupported || !state.ready || !NativeEntities::Read(state.player, state.session, entities))
 			AsyncLog::Info(context, "[items] chests-dump unavailable");
 		else {
-			size_t containers = 0;
+			size_t objects = 0, containers = 0;
 			for (const auto& entity : entities) {
 				if (entity.kind != EntityRadar::Kind::Object) continue;
+				++objects;
 				containers += entity.container;
 				AsyncLog::InfoF(context, "[items] object id=%u at=%.0f,%.0f container=%u name=%s",
 					entity.id, entity.position.x, entity.position.y, entity.container, entity.name.c_str());
 			}
-			AsyncLog::InfoF(context, "[items] chests-dump: %zu objects, %zu containers", entities.size(), containers);
+			AsyncLog::InfoF(context, "[items] chests-dump: %zu objects, %zu containers", objects, containers);
+			// The tripwire the offline derivation left: a patch that renumbers
+			// OperateFn changes this count before it changes any verdict.
+			size_t rows = 0, total = 0;
+			if (!NativeEntities::CountContainerRows(rows, total))
+				AsyncLog::Info(context, "[items] chests-dump: objects.txt unreadable, container rows unchecked");
+			else AsyncLog::InfoF(context, "[items] chests-dump: %zu of %zu objects.txt rows are containers, expected %zu of %zu%s",
+				rows, total, EntityLayout::ContainerRowCount, EntityLayout::ObjectRowCount,
+				rows == EntityLayout::ContainerRowCount && total == EntityLayout::ObjectRowCount
+					? "" : " -- rerun tools/objects_containers.py");
 		}
 	}
 	const uint64_t now = GetTickCount64();

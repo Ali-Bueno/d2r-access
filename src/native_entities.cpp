@@ -277,4 +277,21 @@ bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>&
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	return ReadPlayer(player, tables, playerId, session, output, distantExits);
 }
+
+bool CountContainerRowsAt(uintptr_t tablesAddress, size_t& rows, size_t& total) {
+	uintptr_t objects = 0;
+	uint64_t count = 0;
+	if (!tablesAddress || !Peek(tablesAddress + Objects, objects) || !objects
+		|| !Peek(tablesAddress + ObjectCount, count) || count > MaxTableRows) return false;
+	rows = 0;
+	total = static_cast<size_t>(count);
+	for (size_t row = 0; row < total; ++row) rows += IsContainer(objects + row * ObjectStride);
+	return true;
+}
+
+bool CountContainerRows(size_t& rows, size_t& total) {
+	uintptr_t player = 0, tables = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) return false;
+	return CountContainerRowsAt(tables, rows, total);
+}
 }

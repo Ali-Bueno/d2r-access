@@ -183,7 +183,9 @@ TargetSight::Sight LabelSight(std::string_view label) {
 	{ std::lock_guard lock(g_mutex); state = g_state; }
 	if (!state.ready) return TargetSight::Sight::Unknown;
 	const auto now = GetTickCount64();
-	if (!g_sight.valid || state.revision != g_sight.revision || now - g_sight.taken >= SightCacheMs) {
+	// A failed read is cached like a good one: without that, `valid` being false
+	// bypassed the interval and every UI poll re-copied the collision rooms.
+	if (state.revision != g_sight.revision || now - g_sight.taken >= SightCacheMs) {
 		g_sight.taken = now;
 		g_sight.revision = state.revision;
 		g_sight.entities.clear();

@@ -28,25 +28,6 @@ line_of_sight = true
 # 800x600 screen spans about forty of them.
 reach = 40
 
-# Nearest unexplored space. The slash key speaks the way to the closest place
-# you have not walked yet, as pushes of the left stick: "nearest unexplored
-# space, up 6, right 4". Press it again after walking those runs for the next
-# ones.
-[explore]
-enabled = true
-# How far the route may reach, in collision subtiles. The world snapshot the
-# game gives the plugin ends at 152.
-radius = 80
-# How much of the map walking past a place counts as exploring it, in collision
-# subtiles. Larger means fewer, further suggestions; smaller sends you back over
-# ground you have already covered.
-mark_radius = 12
-# How deep inside unexplored ground the destination has to sit, in collision
-# subtiles. Below mark_radius the destination is the rim of the brush above,
-# which retreats as fast as you walk towards it and the readout never counts
-# down. Larger means further but more meaningful destinations.
-probe_radius = 12
-
 # Containers you open for loot — chests, caskets, urns, barrels, corpses — get a
 # looping cue like the items on the floor: louder as you approach, placed in
 # stereo. Opening one silences it. Ctrl+K toggles this for the current run.

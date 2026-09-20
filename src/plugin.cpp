@@ -10,7 +10,6 @@
 #include "ground_item_service.h"
 #include "beacon_service.h"
 #include "entity_radar_service.h"
-#include "explore_service.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "native_widgets.h"
@@ -58,7 +57,6 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::FootstepService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
-	D2RAccess::ExploreService::Tick(context);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
 }
@@ -191,7 +189,6 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::FootstepService::Register(context);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
-	if (!D2RAccess::ExploreService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[explore] Unexplored-space routing unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
@@ -218,7 +215,6 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::BeaconService::Unregister();
-	D2RAccess::ExploreService::Unregister();
 	D2RAccess::EntityRadarService::Unregister();
 	D2RAccess::GroundItemService::Unregister();
 	D2RAccess::FootstepService::Unregister();

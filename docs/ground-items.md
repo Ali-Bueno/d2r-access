@@ -36,6 +36,7 @@ does not reveal unidentified affixes.
 | `magic equipment.ogg` | Magic quality |
 | `rare equipment.ogg` | Rare and crafted quality |
 | `legendary equipment.ogg` | Unique and set quality |
+| `portal.ogg` | Level exits: warps, portals, waypoints |
 | `chest.ogg` | Containers you open for loot ([below](#container-loops)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
@@ -88,10 +89,15 @@ the shut/open selectable shape above. That selects **165 of the 587 rows, 78
 distinct keys**. Neither the offsets nor the handler numbers are guessed:
 `tools/objects_containers.py` re-derives them from the extracted `objects.bin`
 and `objects.txt` and proves every offset equals its named column on every row.
-Rerun it after a game patch; a changed row count means the predicate needs
-looking at. `access-items chests-dump` logs the verdict for every object the
-player can currently see, to check the same thing against a room whose contents
-are known.
+`PopulateFn` is the obvious candidate and is the wrong one: a single value covers
+261 rows, beds, candles and banners among them.
+
+`access-items chests-dump` logs the verdict for every object the player can
+currently see, to check the predicate against a room whose contents are known.
+It also counts the container rows in the live `objects.txt` and compares both
+counts with `EntityLayout::ContainerRowCount` / `ObjectRowCount` — the patch
+tripwire. If they disagree it says so; rerun `tools/objects_containers.py`
+before trusting the cue.
 
 Exits claim voices first, then containers up to `MaxContainerVoices` (3), then
 items: a crypt full of caskets must not silence the loot on the floor or the way
@@ -101,7 +107,8 @@ in; **Ctrl+K** toggles it for the current run.
 
 ## Assets and build
 
-Edit the six OGG files under `sounds/item loop sounds/`, then build with the game
+Edit the eight OGG files under `sounds/item loop sounds/` (the table above lists
+them; `cmake/GroundItems.cmake` holds the authoritative set), then build with the game
 closed. `cmake/GroundItems.cmake` uses the existing **FFmpeg command line tool**
 to create mono, 48 kHz, PCM16 WAV files in the build directory. FFmpeg is a build
 requirement on `PATH`; there is no decoder DLL or additional runtime library to
