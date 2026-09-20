@@ -207,10 +207,18 @@ bool Tick(const D2RL::PluginContext* context) {
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;
-	const auto tabChange = TabReader::Update(panels, focus, owns);
+	// Only a conversation silences the tab strip. A panel that owns speech --
+	// the quest log and the other menu surfaces, which are exactly the ones
+	// with tabs across the top -- used to silence it too, and then never spoke
+	// the switch itself, because a panel that owns speech never reaches the
+	// interaction reader.
+	const auto tabChange = TabReader::Update(panels, focus, active.surface == Surface::Narrative);
 	if (!tabChange.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
 		g_tabQueuesNext = true;
+		// Same ordering as the interaction reader's: the tab's own name first,
+		// and g_tabQueuesNext keeps the panel's contents behind it.
+		if (owns) ScreenReader::Speak(tabChange, true);
 	}
 	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);

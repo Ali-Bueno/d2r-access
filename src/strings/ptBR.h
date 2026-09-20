@@ -41,6 +41,7 @@ inline constexpr Table ptBR {
 	.belt                = "Cinto",
 	.gridCell            = "Linha %d, coluna %d",
 	.skillOfCount        = "Habilidade %d de %d",
+	.tabOfCount         = "guia %d de %d",
 	.assignedTo          = "Atribuído a %s",
 	.controllerButtons   = {"Direcional", "Direcional para cima", "Direcional para baixo", "Direcional para a esquerda", "Direcional para a direita", "Menu", "Exibir", "Analógico esquerdo", "Pressionar analógico esquerdo", "Analógico direito", "Pressionar analógico direito", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Cabeça", "Pescoço", "Torso", "Arma direita", "Arma esquerda",

@@ -41,6 +41,7 @@ inline constexpr Table koKR {
 	.belt                = "허리띠",
 	.gridCell            = "%d행 %d열",
 	.skillOfCount        = "기술 %d, 전체 %d개",
+	.tabOfCount         = "탭 %d, 전체 %d개",
 	.assignedTo          = "%s에 지정됨",
 	.controllerButtons   = {"방향 패드", "방향 패드 위", "방향 패드 아래", "방향 패드 왼쪽", "방향 패드 오른쪽", "메뉴 버튼", "보기 버튼", "왼쪽 스틱", "왼쪽 스틱 누르기", "오른쪽 스틱", "오른쪽 스틱 누르기", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "머리", "목", "몸통", "오른쪽 무기 칸", "왼쪽 무기 칸",

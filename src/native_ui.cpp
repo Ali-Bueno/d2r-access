@@ -29,6 +29,7 @@ constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to em
 constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
+constexpr int MaxTabs = 8; // Text0..Text7, the bar's fixed set of label children
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
@@ -204,10 +205,28 @@ uint64_t FocusSelection(uintptr_t widget) {
 	return result;
 }
 
+Tab SelectedTab(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
+	int32_t selected = -1;
+	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= MaxTabs) return {};
+	Tab tab;
+	tab.text = NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
+	if (tab.text.empty()) return {};
+	tab.index = selected;
+	// A tab bar carries a fixed set of Text children and hides the ones the
+	// screen does not use, so the count is how many still have a label. Read
+	// only when a caller asks for the position: this walks the bar's children.
+	for (int at = 0; at < MaxTabs; ++at) {
+		if (at == selected) { ++tab.count; continue; }
+		if (!NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(at))).empty()) ++tab.count;
+	}
+	return tab;
+}
+
 std::string SelectedTabText(uintptr_t widget) {
 	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
 	int32_t selected = -1;
-	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return {};
+	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= MaxTabs) return {};
 	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
 }
 

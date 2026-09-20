@@ -10,6 +10,9 @@ std::vector<uintptr_t> panels{10, 20, 30}; // stash, focused inventory, controll
 std::unordered_map<uintptr_t, std::vector<uintptr_t>> controls{{10, {100, 101}}, {20, {}}, {30, {300}}};
 std::unordered_map<uintptr_t, std::string> labels{{100, "Personal"}, {101, "1"}, {300, "Inventario"}};
 std::unordered_set<uintptr_t> hidden{101};
+// Only the controller overlay's bar reports a position; the others stand for
+// bars whose children cannot be counted, which must still announce the name.
+std::unordered_map<uintptr_t, std::pair<int, int>> positions{{300, {2, 4}}};
 int walks = 0;
 std::string Tick(bool suspended = false) { return TabReader::Update(panels, {20, 21}, suspended); }
 }
@@ -23,6 +26,11 @@ std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
 	return controls[panel];
 }
 std::string SelectedTabText(uintptr_t widget) { return Visible(widget) ? labels[widget] : ""; }
+Tab SelectedTab(uintptr_t widget) {
+	const auto it = positions.find(widget);
+	if (!Visible(widget) || it == positions.end()) return {};
+	return {it->second.first, it->second.second, labels[widget]};
+}
 }
 
 int main() {
@@ -33,11 +41,15 @@ int main() {
 	Check(Tick() == "Comp.", "LT/RT changing an unfocused stash tab is announced immediately");
 	Check(Tick().empty(), "unchanged selected tabs stay silent");
 	labels[300] = "Árbol de hab.";
-	Check(Tick() == "Árbol de hab.", "controller overlay tabs outside both inventory panels are announced");
+	Check(Tick() == "Árbol de hab., tab 3 of 4", "a tab bar says where along the strip the highlight landed");
 	labels[300] = "Opciones";
-	Check(Tick() == "Opciones", "consecutive tab changes do not require moving item focus");
+	Check(Tick() == "Opciones, tab 3 of 4", "consecutive tab changes do not require moving item focus");
 	labels[300] = "Inventario";
-	Check(Tick() == "Inventario", "returning to the original tab is announced again");
+	Check(Tick() == "Inventario, tab 3 of 4", "returning to the original tab is announced again");
+	positions[300] = {0, 1};
+	labels[300] = "Solo";
+	Check(Tick() == "Solo", "a bar with a single tab is a label, not a position");
+	positions[300] = {2, 4};
 	hidden.erase(101);
 	Check(Tick() == "1" && TabReader::Selected(10) == "Comp.. 1", "newly visible shared-stash sub-tabs are read without a tree rebuild");
 	Check(walks == 3, "steady navigation never rescans inventory trees");

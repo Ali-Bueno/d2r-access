@@ -41,6 +41,7 @@ inline constexpr Table jaJP {
 	.belt                = "ベルト",
 	.gridCell            = "%d 行 %d 列",
 	.skillOfCount        = "スキル %d、全 %d 件",
+	.tabOfCount         = "タブ %d、全 %d 件",
 	.assignedTo          = "%sに割り当て",
 	.controllerButtons   = {"方向パッド", "方向パッド 上", "方向パッド 下", "方向パッド 左", "方向パッド 右", "メニューボタン", "ビューボタン", "左スティック", "左スティック 押し込み", "右スティック", "右スティック 押し込み", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "頭", "首", "胴体", "右手の武器スロット", "左手の武器スロット",
