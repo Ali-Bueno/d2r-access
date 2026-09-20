@@ -1,4 +1,5 @@
 #include "native_entities.h"
+#include "generated/lootables.h"
 #include "layout_check.h"
 #include "entity_layout.h"
 #include "ground_item_layout.h"
@@ -131,14 +132,22 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 // Order matters: a waypoint and a portal are both exits, but a player asking
 // for a waypoint does not want the town portal, so the specific categories
 // are tested before the general one.
-EntityRadar::Category ObjectCategory(uint8_t subClass, bool openWarp, const std::string& key) {
+EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool openWarp, const std::string& key) {
 	if (subClass & SubClassWaypoint) return EntityRadar::Category::Waypoint;
 	if (subClass & (SubClassPortal | SubClassGate)) return EntityRadar::Category::Portal;
 	// Wells and obelisks restore or alter the player the way shrines do, and a
 	// player looking for "a shrine" means any of them.
 	if (subClass & (SubClassShrine | SubClassWell | SubClassObelisk)) return EntityRadar::Category::Shrine;
-	// 132 rows: chests, caskets, urns, sarcophagi -- everything that is opened for loot.
-	if (subClass & SubClassContainer) return EntityRadar::Category::Treasure;
+	// Everything that gives the player loot, from the game's own objects.txt
+	// by way of src/generated/lootables.h. The SubClass container bit is NOT
+	// that set and never was: every Act 1 rogue corpse has SubClass 0, and so
+	// do Barrel, Urn2, Casket3, Chest4 and Act3DungeonCasket, while Act 2/3
+	// corpses carry it -- so the dead rogue a player loots in the Blood Moor
+	// was filed beside levers and doors, and some chests were not treasure at
+	// all. OperateFn is the real signal; the generated header lists its whole
+	// membership. The bit still counts, so a row the generator has not seen
+	// classifies exactly as it did before.
+	if (Generated::LootableObject(classId) || (subClass & SubClassContainer)) return EntityRadar::Category::Treasure;
 	if (openWarp) return EntityRadar::Category::Exit;
 	if (key == BankNameKey) return EntityRadar::Category::Stash;
 	// Levers, seals, statues and doors carry no SubClass bit of their own.
@@ -160,7 +169,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
 	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
-	entity.category = ObjectCategory(subClass, openWarp != 0, key);
+	entity.category = ObjectCategory(classId, subClass, openWarp != 0, key);
 	if (openWarp) entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t data = 0;
 	if (door) entity.name = UiText::Clean(Localization::Text(mode == ObjectOpened ? DoorOpenText : DoorClosedText));

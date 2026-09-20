@@ -1,0 +1,59 @@
+#include "generated/lootables.h"
+#include "test_support.h"
+
+#include <algorithm>
+
+using namespace D2RAccess;
+
+// Object class ids from the game's own objects.txt (the *ID column), named so
+// a failure says which object stopped being lootable rather than which number.
+namespace {
+struct Object { const char* name; uint32_t id; bool lootable; };
+
+constexpr Object Objects[] = {
+	// The bug this table was built for: a Blood Moor dead rogue is lootable
+	// and carries NO container bit, so the old SubClass rule filed it beside
+	// levers and doors.
+	{"RogueCorpse1",       54,  true},
+	{"RogueStakedCorpse1", 57,  true},
+	// Containers the container bit also misses.
+	{"Barrel",             7,   true},
+	{"Urn2",               9,   true},
+	{"Casket3",            79,  true},
+	{"Chest4",             148, true},
+	// Containers it does catch; they must keep working.
+	{"LargeChestR",        5,   true},
+	{"GuardOnAStick",      178, true},
+	// Furniture that drops, which nothing covered before.
+	{"ArmorStand1",        104, true},
+	{"WeaponRack1",        106, true},
+	// Objects that hand over a fixed quest item.
+	{"HoradricCubeChest",  354, true},
+	{"Malus",              108, true},
+	// Not loot, and must not be swept in: a shrine, a waypoint, a door and
+	// the stash all sit in categories of their own.
+	{"DeerShrine",         2,   false},
+	{"DoorWoodenLeft",     15,  false},
+	{"WaypointOutsideAct1",119, false},
+	{"Bank",               267, false},
+};
+}
+
+int main() {
+	for (const Object& object : Objects) {
+		Check(Generated::LootableObject(object.id) == object.lootable,
+			std::string(object.name) + (object.lootable ? " gives loot" : " gives no loot"));
+	}
+
+	// The lookup is a binary search, so the table has to stay sorted, and a
+	// duplicate id would mean the generator emitted a row twice.
+	const auto& ids = Generated::LootableObjects;
+	Check(std::is_sorted(ids.begin(), ids.end()), "the table is sorted");
+	Check(std::adjacent_find(ids.begin(), ids.end()) == ids.end(), "no id appears twice");
+	Check(!ids.empty(), "the table is not empty");
+	// A class id past the table cannot read off the end.
+	Check(!Generated::LootableObject(0xFFFFFFFFu), "an out-of-range class id is not lootable");
+
+	Passed();
+	return 0;
+}
