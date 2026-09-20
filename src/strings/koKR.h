@@ -110,6 +110,8 @@ inline constexpr Table koKR {
 	.vitalsEnabled = "생명력과 마나 알림 켜짐",
 	.vitalsDisabled = "생명력과 마나 알림 꺼짐",
 	.vitalsOrbTextMissing = "생명력과 마나를 들으려면 게임플레이 옵션에서 %s와 %s를 켜세요",
+	.targetHealth = "%s, %d퍼센트",
+	.targetNone = "대상 없음",
 	.equipmentBroken = "파손된 장비: %s",
 	.currentOfMaximum = "%s, 최대 %s",
 	.itemPlacedIn = "%s에 놓았습니다",

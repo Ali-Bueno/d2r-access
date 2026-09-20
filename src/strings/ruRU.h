@@ -110,6 +110,8 @@ inline constexpr Table ruRU {
 	.vitalsEnabled = "Оповещения о жизни и мане включены",
 	.vitalsDisabled = "Оповещения о жизни и мане выключены",
 	.vitalsOrbTextMissing = "Включите %s и %s в настройках игрового процесса, чтобы слышать жизнь и ману",
+	.targetHealth = "%s, %d процентов",
+	.targetNone = "Нет цели",
 	.equipmentBroken = "Сломанное снаряжение: %s",
 	.currentOfMaximum = "%s из %s",
 	.itemPlacedIn = "Помещено в %s",

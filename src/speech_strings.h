@@ -130,6 +130,8 @@ struct Table {
 	const char* vitalsEnabled;
 	const char* vitalsDisabled;
 	const char* vitalsOrbTextMissing; // %s, %s = the game's own orb text option labels
+	const char* targetHealth;         // %s = target name, %d = whole percent of its health
+	const char* targetNone;           // nothing is targeted, so the bar is not up
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
@@ -161,6 +163,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.keyboardPadEnabled, t.keyboardPadDisabled,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
+		t.targetHealth, t.targetNone,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };

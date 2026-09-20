@@ -110,6 +110,8 @@ inline constexpr Table itIT {
 	.vitalsEnabled = "Annunci di vita e mana attivati",
 	.vitalsDisabled = "Annunci di vita e mana disattivati",
 	.vitalsOrbTextMissing = "Attiva %s e %s nelle opzioni di gioco per sentire vita e mana",
+	.targetHealth = "%s, %d per cento",
+	.targetNone = "Nessun obiettivo",
 	.equipmentBroken = "Equipaggiamento rotto: %s",
 	.currentOfMaximum = "%s di %s",
 	.itemPlacedIn = "Posizionato in %s",

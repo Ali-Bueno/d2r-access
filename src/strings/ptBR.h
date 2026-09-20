@@ -110,6 +110,8 @@ inline constexpr Table ptBR {
 	.vitalsEnabled = "Avisos de vida e mana ativados",
 	.vitalsDisabled = "Avisos de vida e mana desativados",
 	.vitalsOrbTextMissing = "Ative %s e %s nas opções de jogo para ouvir a vida e a mana",
+	.targetHealth = "%s, %d por cento",
+	.targetNone = "Nenhum alvo",
 	.equipmentBroken = "Equipamento quebrado: %s",
 	.currentOfMaximum = "%s de %s",
 	.itemPlacedIn = "Colocado em %s",

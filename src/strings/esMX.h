@@ -110,6 +110,8 @@ inline constexpr Table esMX {
 	.vitalsEnabled = "Avisos de vida y maná activados",
 	.vitalsDisabled = "Avisos de vida y maná desactivados",
 	.vitalsOrbTextMissing = "Activa %s y %s en las opciones de juego para oír la vida y el maná",
+	.targetHealth = "%s, %d por ciento",
+	.targetNone = "Ningún objetivo",
 	.equipmentBroken = "Equipo roto: %s",
 	.currentOfMaximum = "%s de %s",
 	.itemPlacedIn = "Colocado en %s",

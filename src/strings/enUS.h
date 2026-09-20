@@ -110,6 +110,8 @@ inline constexpr Table enUS {
 	.vitalsEnabled = "Life and mana announcements enabled",
 	.vitalsDisabled = "Life and mana announcements disabled",
 	.vitalsOrbTextMissing = "Turn on %s and %s in the gameplay options to hear life and mana",
+	.targetHealth = "%s, %d percent",
+	.targetNone = "No target",
 	.equipmentBroken = "Broken equipment: %s",
 	.currentOfMaximum = "%s of %s",
 	.itemPlacedIn = "Placed in %s",

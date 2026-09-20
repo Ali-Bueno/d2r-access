@@ -110,6 +110,8 @@ inline constexpr Table zhCN {
 	.vitalsEnabled = "生命和法力播报已开启",
 	.vitalsDisabled = "生命和法力播报已关闭",
 	.vitalsOrbTextMissing = "请在游戏选项中开启%s和%s，以听到生命和法力",
+	.targetHealth = "%s，百分之%d",
+	.targetNone = "没有目标",
 	.equipmentBroken = "装备已损坏：%s",
 	.currentOfMaximum = "%s，最大%s",
 	.itemPlacedIn = "已放置在%s",

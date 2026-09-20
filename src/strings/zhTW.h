@@ -110,6 +110,8 @@ inline constexpr Table zhTW {
 	.vitalsEnabled = "生命與法力播報已啟用",
 	.vitalsDisabled = "生命與法力播報已停用",
 	.vitalsOrbTextMissing = "請在遊戲選項中開啟%s和%s，才能聽到生命與法力",
+	.targetHealth = "%s，%d 百分比",
+	.targetNone = "沒有目標",
 	.equipmentBroken = "裝備已損壞：%s",
 	.currentOfMaximum = "%s，最大%s",
 	.itemPlacedIn = "已放置於%s",

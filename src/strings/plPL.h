@@ -110,6 +110,8 @@ inline constexpr Table plPL {
 	.vitalsEnabled = "Powiadomienia o życiu i manie włączone",
 	.vitalsDisabled = "Powiadomienia o życiu i manie wyłączone",
 	.vitalsOrbTextMissing = "Włącz %s i %s w opcjach rozgrywki, aby słyszeć życie i manę",
+	.targetHealth = "%s, %d procent",
+	.targetNone = "Brak celu",
 	.equipmentBroken = "Uszkodzone wyposażenie: %s",
 	.currentOfMaximum = "%s z %s",
 	.itemPlacedIn = "Umieszczono w %s",
