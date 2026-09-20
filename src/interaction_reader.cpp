@@ -32,6 +32,9 @@ InventoryContext g_inventoryContext;
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
 std::string g_help, g_spokenHelp, g_helpContext;
+// The focus the last real readout described, so a hint can tell "nothing new
+// to say here" from "nothing said about here yet".
+std::string g_describedFocus;
 std::optional<bool> g_holdingItem;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
@@ -337,12 +340,25 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
-	if (helpChanged && !awaitingDescription) Append(announcement.text, help);
+	// A control hint follows the thing it acts on and never leads. While the
+	// focus has not been described yet the hint waits for the readout that
+	// will describe it -- that is how "B: Close Menu" arrived before "Belt.
+	// Empty". Once the player has heard where they are, a hint that changes
+	// under them still speaks on its own: the merchant's action list changing
+	// is news, and the item it applies to was named a moment ago.
+	const bool describedNow = !announcement.text.empty();
+	const bool describedHere = readout.focusKey.empty() || readout.focusKey == g_describedFocus;
+	const bool helpFollows = helpChanged && !awaitingDescription && (describedNow || describedHere);
+	if (helpFollows) Append(announcement.text, help);
+	if (describedNow) g_describedFocus = readout.focusKey;
 	if (!cursorNotice.empty()) {
 		Append(cursorNotice, announcement.text);
 		announcement.text = std::move(cursorNotice);
 	}
-	if (!awaitingDescription) {
+	// Only what was actually spoken counts as spoken. An empty hint is
+	// recorded either way, so leaving a panel does not leave the last hint
+	// looking unchanged when the player comes back to it.
+	if (!awaitingDescription && (helpFollows || help.empty())) {
 		g_spokenHelp = help;
 		g_helpContext = helpContext;
 	}
@@ -360,6 +376,7 @@ void Reset() {
 	g_stat = {};
 	g_help.clear();
 	g_spokenHelp.clear();
+	g_describedFocus.clear();
 	g_helpContext.clear();
 	g_holdingItem.reset();
 	g_slotLocations.clear();
