@@ -95,13 +95,9 @@ std::string Describe(const Result& result, const Settings& settings, const Strin
 		std::snprintf(buffer, sizeof buffer, strings.scanNothing, direction);
 		return buffer;
 	}
-	std::string text = result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
-	if (result.count > 1) {
-		std::snprintf(buffer, sizeof buffer, strings.scanIndexOfCount, static_cast<int>(result.index + 1), static_cast<int>(result.count));
-		text += ", ";
-		text += buffer;
-	}
-	return text;
+	// The name and how far, and nothing else. A position in the candidate
+	// list is heard on every single push, and the player did not ask for it.
+	return result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {

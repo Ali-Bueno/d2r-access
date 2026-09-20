@@ -39,7 +39,6 @@ struct Table {
 	const char* roleList;
 	const char* checked;
 	const char* unchecked;
-	const char* optionOfCount;     // %d = index (1-based), %d = count
 	const char* optionIndex;       // %d = index (1-based), count unknown
 	const char* resolution;        // %u = width, %u = height
 	const char* characterLevel;    // %d = level
@@ -58,7 +57,6 @@ struct Table {
 	const char* itemReleased;
 	const char* belt;
 	const char* gridCell; // one-based row, column
-	const char* skillOfCount; // one-based skill position within the visible branch
 	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
 	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
@@ -95,7 +93,6 @@ struct Table {
 	const char* scanMeter; // exactly one metre
 	const char* scanMeters; // %d = whole metres
 	const char* scanAdjacent; // under one metre away
-	const char* scanIndexOfCount; // %d = index (1-based), %d = count
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
 	// Map survey: the level-wide catalogue, cycled by category and by object.
@@ -108,7 +105,6 @@ struct Table {
 	const char* surveyRoom;             // %d = room number
 	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
 	const char* surveyEmpty;    // %s = category
-	const char* surveyCategory; // %s = category, %d = how many are known
 	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
@@ -151,15 +147,15 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const char* const singles[] = {
 		t.pluginLoaded, t.screenReaderMissing, t.panelOpened, t.panelClosed, t.panelToggled, t.navigation,
 		t.valueChanged, t.roleButton, t.roleCheckbox, t.roleDropdown, t.roleSlider, t.roleTextField, t.roleTabs,
-		t.roleList, t.checked, t.unchecked, t.optionOfCount, t.optionIndex, t.resolution, t.characterLevel,
+		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
-		t.itemReleased, t.belt, t.gridCell, t.skillOfCount, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.itemReleased, t.belt, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
-		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
+		t.scanMeters, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,

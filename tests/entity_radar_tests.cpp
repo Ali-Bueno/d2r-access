@@ -144,7 +144,8 @@ void Wording() {
 	result.found = true;
 	result.target = {Make(1, 0, 0, "Akara"), 8.2};
 	result.index = 0; result.count = 3;
-	Check(Describe(result, settings, es) == "Akara, 8 metros, 1 de 3", "name, rounded distance and position in the list");
+	Check(Describe(result, settings, es) == "Akara, 8 metros",
+		"the name and how far, with no position in the candidate list");
 	result.count = 1;
 	Check(Describe(result, settings, es) == "Akara, 8 metros", "a single target skips the count");
 	result.target.distance = 1.2;

@@ -259,11 +259,12 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	// offering something else at the same time.
 	BeaconService::Offer(members[index].entity, level, GetTickCount64());
 
-	// Category and position first when the category changed, so the player
-	// knows where they are in the list before hearing the object itself.
+	// The category name first when the category changed, so the player knows
+	// which list they are in before hearing the object itself. The name only:
+	// how many it holds is a count, and counts are not spoken.
 	std::string text;
 	if (request == Request::PreviousCategory || request == Request::NextCategory) {
-		text = Format(strings.surveyCategory, CategoryName(g_category), static_cast<int>(members.size()));
+		text = CategoryName(g_category);
 		text += ". ";
 	}
 	text += Describe(members[index]);
