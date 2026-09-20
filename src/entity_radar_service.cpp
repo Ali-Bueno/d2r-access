@@ -104,8 +104,15 @@ bool Direction(InputDirection::StickPush push, Radar::Direction& direction) {
 }
 // Monsters, NPCs and world objects from the verified unit reader, plus the
 // ground items the proximity service already reads.
+//
+// Loaded units only. This scan answers "what is near me", and a level-wide
+// transition is not: the user, 2026-09-20, on hearing the Den of Evil sixty-one
+// steps away -- "exits are still showing up on short-range radar. I should not
+// be seeing the den of evil 61 steps away on short range radar." Distant warps
+// and the boundaries with neighbouring areas both live in the level-wide
+// catalogue, which is the reader built for that question.
 bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities) {
-	if (g_units && !NativeEntities::Read(state.player, state.session, entities, true)) return false;
+	if (g_units && !NativeEntities::Read(state.player, state.session, entities)) return false;
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;
 	for (const auto& item : snapshot.items) {
