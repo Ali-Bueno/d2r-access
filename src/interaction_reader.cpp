@@ -46,16 +46,21 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
-// The game's own labels for a weapon's damage and an armour's defense, so the
-// headline can keep them next to the item's name in any language. Resolved
-// once per language: the string tables do not change under a running game.
-const std::vector<std::string>& BaseStatLabels() {
+// The game's own labels for a weapon's damage, an armour's defense and a
+// vendor's price, so the headline can keep them next to the item's name in any
+// language. Each table entry is a printf format, so only the part before its
+// first placeholder can begin a rendered line -- resolving "Defense: %d" and
+// then looking for that whole string never matched anything. Resolved once per
+// language: the string tables do not change under a running game.
+const std::vector<std::string>& HeadlineLabels() {
 	static std::vector<std::string> cached = [] {
 		std::vector<std::string> labels;
 		for (const char* key : TooltipText::BaseStatKeys) {
-			auto text = Localization::Text(key);
+			auto text = TooltipText::LabelPrefix(Localization::Text(key));
 			if (!text.empty()) labels.push_back(std::move(text));
 		}
+		if (auto price = TooltipText::LabelPrefix(Localization::Text(TooltipText::PriceKey)); !price.empty())
+			labels.push_back(std::move(price));
 		return labels;
 	}();
 	return cached;
@@ -235,7 +240,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// name and its base damage or defense are spoken, and the rest is
 			// held for the player to ask for.
 			const auto body = TooltipText::Read(tooltip.body);
-			auto       split = TooltipText::Split(body, BaseStatLabels());
+			auto       split = TooltipText::Split(body, HeadlineLabels());
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line

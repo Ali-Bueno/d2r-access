@@ -116,12 +116,14 @@ bool TakeRightStickPushIf(StickPush wanted) {
 	return true;
 }
 }
-// The damage and defense labels come from the game's own string table; every
-// other key here is the localized inventory title the reader caches.
+// The damage, defense and price labels come from the game's own string table,
+// as printf formats -- the reader keeps only the part before the placeholder.
+// Every other key here is the localized inventory title the reader caches.
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
-	if (key == "ItemStats1l") return "Daño:";
-	if (key == "ItemStats1d") return "Defensa:";
+	if (key == "ItemStats1l") return "Daño: %d a %d";
+	if (key == "ItemStats1h") return "Defensa: %d";
+	if (key == TooltipText::PriceKey) return "Coste: %d";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	++titleLookups;
 	return {};
@@ -274,6 +276,17 @@ int main() {
 	pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone},
 		"and moving to a row with no explanation drops the previous row's");
+
+	// A vendor writes its price where an inventory tooltip has the item name,
+	// so the first line was being read as the item: MEASURED 2026-09-20,
+	// "Cost: 30" for a Minor Healing Potion. Name first, then the price.
+	ClearSpeech(); tooltip = {}; selection = 7; cell = {2, 0};
+	Tooltip("Puntos: 45\nPoción de curación menor\nCoste: 30");
+	Check(Tick() && speech.size() == 1 && speech.back() == "Poción de curación menor. Coste: 30",
+		"a shop item reads its name and then what it costs");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"},
+		"and the rest of it waits to be asked for");
 
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
 	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");

@@ -37,21 +37,41 @@ struct Description {
 	bool Empty() const { return headline.empty() && detail.empty(); }
 };
 
-// `baseStats` are the game's own localized labels that begin a base damage or
-// defense line ("One-Hand Damage: ", "Defense: "). They are passed in rather
-// than resolved here so this stays testable, and an empty set simply leaves
-// the headline as the item's name.
-Description Split(const Body& body, std::span<const std::string> baseStats);
+// `headlineLabels` are the game's own localized labels for the lines that
+// belong beside the item's name: its base damage or defense, and its price in
+// a shop. They are passed in rather than resolved here so this stays testable,
+// and an empty set simply leaves the headline as the item's name.
+//
+// They also decide which line the NAME is: the name is the first line that is
+// not one of them. A vendor tooltip puts its price line where an inventory one
+// has the name, so taking the first line outright read "Cost: 30" as the item.
+Description Split(const Body& body, std::span<const std::string> headlineLabels);
 
-// The string-table keys for those labels. Unknown keys resolve to nothing,
-// which costs only a shorter headline.
+// A table entry is a printf format ("Defense: %d", "One-Hand Damage: %d to
+// %d"), so the part of it that actually begins a rendered line is everything
+// up to its first placeholder. Returns that prefix, trimmed.
+std::string LabelPrefix(std::string_view entry);
+
+// The string-table keys for those labels, VERIFIED against the game's own
+// local/lng/strings/*.json (D2R 3.3, extracted from CASC). The previous list
+// was wrong on every entry -- ItemStats1d is "Durability", 1i is "Quantity"
+// and 1j is the bare word "of" -- so it matched nothing it meant to and could
+// have matched a great deal it did not. Unknown keys resolve to nothing, which
+// costs only a shorter headline.
 inline constexpr const char* BaseStatKeys[] = {
-	"ItemStats1d", // Defense:
-	"ItemStats1h", // One-Hand Damage:
-	"ItemStats1i", // Two-Hand Damage:
-	"ItemStats1j", // Throw Damage:
-	"ItemStats1k", // Smite Damage:
-	"ItemStats1l", // Damage:
+	"ItemStats1g",      // Damage:
+	"ItemStats1h",      // Defense: %d
+	"ItemStats1hRange", // Defense: (%d-%d)
+	"ItemStats1l",      // One-Hand Damage: %d to %d
+	"ItemStats1m",      // Two-Hand Damage: %d to %d
+	"ItemStats1n",      // Throw Damage: %d
+	"ItemStats1o",      // Smite Damage: %d to %d
+	"strItemStatThrowDamageRange", // Throw Damage: %d to %d
 };
+
+// What a vendor charges. Its own key because it is the one headline line that
+// is not a property of the item, and because it is the line that used to be
+// read as the item's name.
+inline constexpr const char* PriceKey = "cost"; // Cost: %d
 
 }

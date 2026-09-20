@@ -47,6 +47,18 @@ void Append(std::string& text, std::string_view part) {
 
 }
 
+std::string LabelPrefix(std::string_view entry) {
+	// Up to the first printf placeholder, and no further than the colon that
+	// ends the label where there is one -- "Defense: %s" once the colour
+	// escapes in the range form are taken into account. Trailing space is
+	// dropped so the prefix matches however the line spaces itself.
+	size_t end = entry.find('%');
+	if (const size_t colon = entry.find(':'); colon != std::string_view::npos && colon + 1 < end) end = colon + 1;
+	if (end == std::string_view::npos) end = entry.size();
+	while (end > 0 && entry[end - 1] == ' ') --end;
+	return std::string(entry.substr(0, end));
+}
+
 Body Read(std::string_view body) {
 	// The engine stores a body bottom-up: its first line is the bottom of the
 	// drawn tooltip and its last is the title. Walk it backwards so the lines
@@ -68,20 +80,29 @@ Body Read(std::string_view body) {
 	return result;
 }
 
-Description Split(const Body& body, std::span<const std::string> baseStats) {
+Description Split(const Body& body, std::span<const std::string> headlineLabels) {
 	Description result;
 	if (body.lines.empty()) return result;
-	// The styled title where there is one, and otherwise the first line --
-	// which, read in screen order, is the tooltip's own top line.
-	const size_t name = body.Marked() ? body.heading : 0;
+	const auto labelled = [&](const std::string& line) {
+		return std::any_of(headlineLabels.begin(), headlineLabels.end(),
+			[&](const std::string& prefix) { return StartsWith(line, prefix); });
+	};
+	// The styled title where there is one. Otherwise the first line that is not
+	// one of the labelled ones: a vendor puts its price where an inventory
+	// tooltip has the name, and a price is not an item. When every line is
+	// labelled there is nothing better than the first.
+	size_t name = body.Marked() ? body.heading : 0;
+	if (!body.Marked()) {
+		for (size_t at = 0; at < body.lines.size(); ++at)
+			if (!labelled(body.lines[at])) { name = at; break; }
+	}
 	result.headline = body.lines[name];
-	// The base damage or defense joins it, wherever it sits. Everything else
-	// keeps the order the screen drew it in and waits to be asked for.
+	// The base damage or defense and the price join it, wherever they sit.
+	// Everything else keeps the order the screen drew it in and waits to be
+	// asked for.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (at == name) continue;
-		const bool base = std::any_of(baseStats.begin(), baseStats.end(),
-			[&](const std::string& prefix) { return StartsWith(body.lines[at], prefix); });
-		Append(base ? result.headline : result.detail, body.lines[at]);
+		Append(labelled(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
 	}
 	return result;
 }
