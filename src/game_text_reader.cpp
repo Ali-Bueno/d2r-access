@@ -194,9 +194,20 @@ bool Tick(const D2RL::PluginContext* context) {
 		if (NeedsFallback(snapshot)) active = UiText::Describe(snapshot);
 	}
 	const bool owns = !active.Empty();
+	// The tab is detected BEFORE the window behind it is read. A tab change is
+	// a context change, so its name has to lead; reading the window first meant
+	// the window started speaking and was cut off mid-word by the name a moment
+	// later, which is the interruption the queueing was supposed to stop.
+	const auto tabChange = TabReader::Update(panels, focus, owns);
+	if (!tabChange.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
+		g_tabQueuesNext = true;
+	}
 	if (owns) {
 		// Menu creation may precede initial focus. Wait for the actual option.
-		if (active.surface != Surface::Menu || !active.option.empty()) {
+		// On the tick a tab changed, say nothing at all: the name is spoken
+		// below, and the window follows it on the next tick, queued behind it.
+		if (tabChange.empty() && (active.surface != Surface::Menu || !active.option.empty())) {
 			const auto announcement = g_reader.Update(active, now);
 			Speak(context, active, announcement, announcement.interrupt && !g_tabQueuesNext);
 			if (!announcement.text.empty()) g_tabQueuesNext = false;
@@ -207,11 +218,6 @@ bool Tick(const D2RL::PluginContext* context) {
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;
-	const auto tabChange = TabReader::Update(panels, focus, owns);
-	if (!tabChange.empty()) {
-		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
-		g_tabQueuesNext = true;
-	}
 	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
 	else g_areaReader.Reset();
