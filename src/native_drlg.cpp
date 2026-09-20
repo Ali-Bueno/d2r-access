@@ -12,6 +12,7 @@ bool g_available = false;
 }
 
 void SetAvailable(bool available) { g_available = available; }
+bool Available() { return g_available; }
 
 uint32_t DerivedInitSeed(uint32_t mapSeed) {
 	return static_cast<uint32_t>(static_cast<uint64_t>(mapSeed) * PrngMultiplier + SeedRandomIncrement);

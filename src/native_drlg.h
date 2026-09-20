@@ -20,6 +20,7 @@ namespace D2RAccess::NativeDrlg {
 // the running image. Until then MapSeed reports nothing: offsets recovered
 // from functions that are no longer there describe some other structure.
 void SetAvailable(bool available);
+bool Available();
 
 // 0 when the seed is unavailable -- no room, a level id that does not match,
 // or a structure that fails its own check. Never throws; `activeRoom` is the

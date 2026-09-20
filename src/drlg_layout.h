@@ -11,6 +11,9 @@
 //                                 drlg[+0x860] = one draw from it
 //   DrlgGetOrAddLevel  0x3267C0   level[+0x1C8] = drlg, level[+0x1F8] = levelId
 //                                 SeedRandom(&level[+0x1E4], drlg[+0x860] + levelId)
+//                                 its lookup walks drlg[+0x868] then level[+0x1B8],
+//                                 comparing level[+0x1F8] -- so those two are the
+//                                 act's list of the levels it has instantiated
 //   SeedRandom         0x367110   p[0] = seed; p[1] = 666
 //
 // The Level structure here is the one `EntityLayout::ExtendedLevel` already
@@ -21,6 +24,8 @@ namespace D2RAccess::DrlgLayout {
 inline constexpr size_t LevelDrlg = 0x1C8;      // Level -> the act's DRLG
 inline constexpr size_t DrlgMapSeed = 0x840;    // the per-character map seed
 inline constexpr size_t DrlgInitSeed = 0x860;   // one PRNG draw from it
+inline constexpr size_t DrlgFirstLevel = 0x868; // head of the act's level list
+inline constexpr size_t LevelNext = 0x1B8;      // the next level in that list
 
 // The game's PRNG: state = state * 0x6AC690C5 + increment, the high half of
 // the 64-bit product becoming the next increment. SeedRandom starts the
