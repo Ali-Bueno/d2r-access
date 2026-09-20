@@ -42,6 +42,6 @@ private:
 	std::map<uint32_t, bool> inRange_; // unit id -> already announced
 };
 
-// "Kashya, 12 metros, a la izquierda"; the direction is dropped under one metre.
+// "Kashya, 12 pasos, a la izquierda"; the direction is dropped under one step.
 std::string Describe(const Announcement& announcement, const EntityRadar::Settings& scan, const Strings::Table& strings);
 }

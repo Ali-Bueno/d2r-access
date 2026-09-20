@@ -101,11 +101,11 @@ std::string Describe(const Result& result, const Settings& settings, const Strin
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
-	const long meters = std::lround(distance * settings.metersPerSubtile);
-	if (meters < 1) return strings.scanAdjacent;
-	if (meters == 1) return strings.scanMeter;
+	const long steps = std::lround(distance * settings.stepsPerSubtile);
+	if (steps < 1) return strings.scanAdjacent;
+	if (steps == 1) return strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, strings.scanMeters, static_cast<int>(meters));
+	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(steps));
 	return buffer;
 }
 }

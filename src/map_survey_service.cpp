@@ -133,7 +133,9 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
 	// The entity scan's own words for a bearing and a distance, so the two
 	// readouts name the same thing the same way: "ahead" rather than "Up",
-	// and metres rather than a unit only this readout uses.
+	// and steps rather than a unit only this readout uses. The number here is
+	// a real step count from the navigation grid, which is what made "metres"
+	// the wrong word for it.
 	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
 	// A room beyond the collision window has no walking distance to quote,
 	// but it is not unreachable either: locking it routes room by room

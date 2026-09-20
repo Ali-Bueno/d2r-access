@@ -14,7 +14,7 @@ bool Initialize(const D2RL::PluginContext* context);
 //
 // `levelBearings` is a second, narrower opt-in: the boundaries with the areas
 // of the act that touch this one (native_level_areas.h). Those are LEVEL-WIDE
-// by nature -- the Blood Moor is 77 metres from the middle of the encampment --
+// by nature -- the Blood Moor is 77 steps from the middle of the encampment --
 // so they belong to the catalogue and to a beacon that has locked one, and not
 // to the short-range directional scan, which answers "what is near me".
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false);

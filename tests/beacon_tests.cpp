@@ -552,7 +552,7 @@ void TrackerReroute() {
 // Past farDistance both the movement threshold and the interval stretch in
 // proportion, because the search box grows with the distance while the route
 // it proves changes more slowly. Without it the widest search would run at the
-// cadence tuned for a target fifteen metres away.
+// cadence tuned for a target fifteen steps away.
 void TrackerFarCadence() {
 	const Beacon::Settings s;
 	const Position far = At(110 + static_cast<int>(s.farDistance) * 3, 110);

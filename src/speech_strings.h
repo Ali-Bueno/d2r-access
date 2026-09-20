@@ -90,9 +90,9 @@ struct Table {
 	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
 	const char* scanNothing; // %s = scan direction
-	const char* scanMeter; // exactly one metre
-	const char* scanMeters; // %d = whole metres
-	const char* scanAdjacent; // under one metre away
+	const char* scanStep; // exactly one step
+	const char* scanSteps; // %d = whole steps
+	const char* scanAdjacent; // under one step away
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
 	// Map survey: the level-wide catalogue, cycled by category and by object.
@@ -154,8 +154,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
-		t.scanMeters, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
+		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
+		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,

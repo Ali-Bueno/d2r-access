@@ -16,7 +16,7 @@ using Radar::Position;
 
 struct Settings {
 	// Distances are collision subtiles, the unit the entity scan speaks as
-	// metres. Navigation policy, not game constants.
+	// steps. Navigation policy, not game constants.
 	//
 	// The search box is half-sided by searchRadius: as wide as the game keeps
 	// collision around the player (native_world.cpp holds a 152-subtile

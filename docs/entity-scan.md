@@ -32,11 +32,14 @@ automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`.
   second push in the same direction within `cycleTimeoutMs` (5 s) rescans and
   continues after that id, wrapping to the first. A push in another direction,
   a timeout or an empty result restarts from the nearest.
-- Wording (`speech_strings.h`, `scan*`): `Akara, 8 metros, 1 de 3`;
-  `Akara, 1 metro`; `Akara, aquí mismo` under one metre; `Nada adelante` /
-  `atrás` / `a la izquierda` / `a la derecha`. Every push interrupts speech.
-- Distance unit: `Settings::metersPerSubtile` (default 1: one collision
-  subtile per game yard, the velocity unit). Provisional until calibrated live;
+- Wording (`speech_strings.h`, `scan*`): `Akara, 8 pasos`; `Akara, 1 paso`;
+  `Akara, aquí mismo` under one step; `Nada adelante` / `atrás` /
+  `a la izquierda` / `a la derecha`. Every push interrupts speech. No position
+  in the candidate list is ever spoken.
+- Distance unit: `Settings::stepsPerSubtile` (default 1: one collision subtile
+  is one step). Steps rather than metres because that is what the number
+  actually is: `Navigation::Grid` reports the shortest count of the game's own
+  neighbouring-destination steps, and the catalogue quotes it directly.
   `access-scan range <subtiles>` adjusts the reach without restarting.
 
 ## Controls

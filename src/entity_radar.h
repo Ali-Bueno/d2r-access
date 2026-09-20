@@ -39,12 +39,13 @@ struct Entity {
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {
-	// Distances are collision subtiles. The spoken unit assumes one subtile
-	// per game yard (the velocity unit: walk 6, run 9 subtiles per second, and
-	// a legacy 800x600 screen spans about forty subtiles). Provisional until
-	// calibrated live against a walked reference; keep both knobs together.
-	double metersPerSubtile = 1;
-	double range = 15; // subtiles; the user asked for roughly fifteen metres
+	// Distances are collision subtiles, and a subtile is spoken as one STEP.
+	// That is the unit the pathfinder already counts in -- Navigation::Grid
+	// reports the shortest count of the game's own neighbouring-destination
+	// steps -- so the catalogue and this scan name the same thing the same
+	// way, and neither has to claim a real-world distance it never measured.
+	double stepsPerSubtile = 1;
+	double range = 15; // subtiles; the user asked for roughly fifteen steps
 	// Each direction owns a quarter of the plane: a 90-degree sector centred
 	// on the fixed screen axis. Diagonal targets belong to both neighbours.
 	double sectorCosine = Radar::Diagonal;
@@ -85,7 +86,7 @@ private:
 };
 
 std::string Describe(const Result& result, const Settings& settings, const Strings::Table& strings);
-// "8 metros" / "1 metro" / "aquí mismo" for a distance in subtiles; shared
+// "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
 }

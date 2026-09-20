@@ -144,18 +144,18 @@ void Wording() {
 	result.found = true;
 	result.target = {Make(1, 0, 0, "Akara"), 8.2};
 	result.index = 0; result.count = 3;
-	Check(Describe(result, settings, es) == "Akara, 8 metros",
+	Check(Describe(result, settings, es) == "Akara, 8 pasos",
 		"the name and how far, with no position in the candidate list");
 	result.count = 1;
-	Check(Describe(result, settings, es) == "Akara, 8 metros", "a single target skips the count");
+	Check(Describe(result, settings, es) == "Akara, 8 pasos", "a single target skips the count");
 	result.target.distance = 1.2;
-	Check(Describe(result, settings, es) == "Akara, 1 metro", "singular metre");
+	Check(Describe(result, settings, es) == "Akara, 1 paso", "the singular step");
 	result.target.distance = 0.4;
 	Check(Describe(result, settings, es) == "Akara, aquí mismo", "adjacent targets have no distance");
-	settings.metersPerSubtile = 0.5;
+	settings.stepsPerSubtile = 0.5;
 	result.target.distance = 8.2;
-	Check(Describe(result, settings, es) == "Akara, 4 metros", "the spoken unit follows the calibration factor");
-	Check(Describe(result, settings, Strings::For(Strings::Language::enUS)) == "Akara, 4 meters", "english wording");
+	Check(Describe(result, settings, es) == "Akara, 4 pasos", "the spoken unit follows the calibration factor");
+	Check(Describe(result, settings, Strings::For(Strings::Language::enUS)) == "Akara, 4 steps", "english wording");
 }
 }
 

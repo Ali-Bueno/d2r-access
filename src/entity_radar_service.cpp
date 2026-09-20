@@ -242,8 +242,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	if (command == Command::Status) {
 		ScreenReader::Speak(g_enabled ? strings.scanEnabled : strings.scanDisabled, true);
-		AsyncLog::InfoF(context, "[scan] status supported=%u units=%u ready=%u enabled=%u level=%d range=%.1f metersPerSubtile=%.2f",
-			g_supported, g_units, state.ready, g_enabled, state.level, g_settings.range, g_settings.metersPerSubtile);
+		AsyncLog::InfoF(context, "[scan] status supported=%u units=%u ready=%u enabled=%u level=%d range=%.1f stepsPerSubtile=%.2f",
+			g_supported, g_units, state.ready, g_enabled, state.level, g_settings.range, g_settings.stepsPerSubtile);
 	}
 	Radar::Direction direction = Radar::Direction::Up;
 	if (g_enabled && (Direction(command, direction) || Direction(push, direction))) Scan(context, state, direction, now);
