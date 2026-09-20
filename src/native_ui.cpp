@@ -29,7 +29,6 @@ constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to em
 constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
-constexpr int MaxTabs = 8; // Text0..Text7, the bar's fixed set of label children
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
@@ -208,7 +207,7 @@ uint64_t FocusSelection(uintptr_t widget) {
 std::string SelectedTabText(uintptr_t widget) {
 	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
 	int32_t selected = -1;
-	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= MaxTabs) return {};
+	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return {};
 	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
 }
 

@@ -38,8 +38,7 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 			const auto text = UiText::Clean(NativeUi::SelectedTabText(tab));
 			if (text.empty() || !next.emplace(tab, text).second) continue;
 			const auto prior = g_selected.find(tab);
-			if (!g_observing || (prior != g_selected.end() && prior->second == text)) continue;
-			Append(changed, text);
+			if (g_observing && (prior == g_selected.end() || prior->second != text)) Append(changed, text);
 		}
 	}
 	g_selected = std::move(next);
