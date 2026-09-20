@@ -61,14 +61,6 @@ const std::vector<std::string>& BaseStatLabels() {
 	return cached;
 }
 
-void OfferDetail(std::string_view owner, std::string detail) {
-	if (owner != g_detailFor) {
-		g_detailFor = owner;
-		g_detail.clear();
-	}
-	if (!detail.empty()) g_detail = std::move(detail);
-}
-
 // A push up on the right stick, claimed only while a panel is open so the
 // entity scan and the pathfinder keep the stick during play.
 bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
@@ -173,6 +165,14 @@ std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, Nat
 	std::snprintf(phrase, sizeof(phrase), Strings::Current().itemPlacedIn, destination.c_str());
 	return phrase;
 }
+}
+
+void OfferDetail(std::string_view owner, std::string detail) {
+	if (owner != g_detailFor) {
+		g_detailFor = owner;
+		g_detail.clear();
+	}
+	if (!detail.empty()) g_detail = std::move(detail);
 }
 
 bool HandlesFocus(NativeUi::Focus focus) {

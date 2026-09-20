@@ -10,6 +10,7 @@
 #include "native_widgets.h"
 #include "native_focus.h"
 #include "panel_state.h"
+#include "interaction_reader.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "widgets.h"
@@ -425,6 +426,12 @@ std::string PercentText(int percent) {
 	return text;
 }
 
+// Every options screen the catalog carries: Gameplay, Video, Sound, Online
+// Game, Loot Filter, Character. No other panel name contains the word.
+bool IsOptionsPanel(const char* panel) {
+	return panel != nullptr && std::string_view(panel).find("Options") != std::string_view::npos;
+}
+
 std::string TextForKey(const char* key) {
 	return key != nullptr ? Localization::Text(key) : std::string {};
 }
@@ -758,10 +765,19 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		}
 	}
 	const std::string tooltip = TextForKey(match.widget->tooltipKey);
+	// An options row explains itself in a paragraph. Spoken on arrival it is
+	// heard on every move down the list, so on an options panel it waits to be
+	// asked for -- right stick up, the gesture an item's properties already
+	// use. Elsewhere a tooltip is short and is the only thing some icon-only
+	// buttons have, so it still follows the name.
+	const bool options = IsOptionsPanel(match.panel->panel);
+	const bool extra = !tooltip.empty() && tooltip != label;
 
-	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\" coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), match.score);
+	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\"%s coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), extra ? (options ? " +detail" : " +tooltip") : "", match.score);
 	ScreenReader::Speak(phrase, true);
-	if (!tooltip.empty() && tooltip != label) {
+	if (options) {
+		InteractionReader::OfferDetail(WidgetId(*match.panel, *match.widget), extra ? tooltip : std::string {});
+	} else if (extra) {
 		ScreenReader::Speak(tooltip, false);
 	}
 }

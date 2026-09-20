@@ -264,6 +264,17 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Coste: 331"}, "right stick up reads the description the move left out");
 	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
+	// An options row offers its explanation to the same gesture instead of
+	// speaking it on arrival; a row with nothing to explain offers nothing.
+	ClearSpeech(); InteractionReader::OfferDetail("GameplayOptionsPanel/ShowClock", "Shows a clock on the HUD.");
+	pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Shows a clock on the HUD."},
+		"an options row explains itself when asked, not on arrival");
+	ClearSpeech(); InteractionReader::OfferDetail("GameplayOptionsPanel/AutoGold", {});
+	pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone},
+		"and moving to a row with no explanation drops the previous row's");
+
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
 	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");
 	pendingPush = InputDirection::StickPush::None;
