@@ -120,6 +120,10 @@ int main() {
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
 	Check(ProgressionText::SkillDescription("Coste: 2 p.\nNivel actual: 1\n" + font + "2Aullido").starts_with("Aullido. Nivel actual: 1"), "learned skill levels are preserved");
-	Check(ProgressionText::SkillReadout("Porrazo. Descripción larga", "0 puntos", "Asignada a A. X: Asignar habilidad") == "Porrazo. 0 puntos. Asignada a A. X: Asignar habilidad. Descripción larga", "name and actionable state precede the detailed skill explanation, without the branch position");
+	const auto spoken = ProgressionText::SkillReadout("Porrazo. Descripción larga", "0 puntos", "Asignada a A. X: Asignar habilidad");
+	Check(spoken.headline == "Porrazo. 0 puntos. Asignada a A. X: Asignar habilidad", "the skill's name and the state the player can act on are what a move reads");
+	Check(spoken.detail == "Descripción larga", "what the skill does waits to be asked for");
+	const auto bare = ProgressionText::SkillReadout("Porrazo", "0 puntos", "");
+	Check(bare.headline == "Porrazo. 0 puntos" && bare.detail.empty(), "a skill with no explanation has nothing held back");
 	Passed();
 }

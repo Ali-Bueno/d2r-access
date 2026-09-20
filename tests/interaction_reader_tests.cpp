@@ -288,10 +288,16 @@ int main() {
 	progression.readout.coordinates = "Fila 1, columna 1";
 	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
 	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
-	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. X: Asignar habilidad. Sin aprender Huyen aterrorizados. Fila 1, columna 1"}, "skill name, state and controller help precede the description, and the grid position is spoken last");
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. X: Asignar habilidad. Fila 1, columna 1"}, "a skill reads its name, its points and its binding, and the grid position last");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
+	pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "right stick up reads what the skill does");
+	ClearSpeech();
 	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.coordinates = "Fila 2, columna 1";
 	Check(Tick() && speech.empty(), "moving to another skill rejects the previous tooltip");
+	pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "and drops what the previous one did");
+	ClearSpeech();
 	Tooltip("Registra un cadáver.\nBuscar poción"); Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Buscar poción."), "next native D-pad selection reads its skill without repeating the branch");
 	ClearSpeech(); progression = {}; widgetType = {"TabWidget", UiText::Kind::TabButton}; focus.widget = 73;

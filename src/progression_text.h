@@ -1,6 +1,7 @@
 #pragma once
 
 #include "native_ui.h"
+#include "tooltip_text.h"
 #include <string>
 #include <string_view>
 
@@ -9,8 +10,10 @@ namespace D2RAccess::ProgressionText {
 NativeUi::Cell SkillCell(std::string_view name);
 // Skill tooltip lines are stored bottom to top; font-size commands are not text.
 std::string SkillDescription(std::string_view body);
-// Put actionable state immediately after the skill name, before long bonuses.
-// Grid position is not part of it: it travels in Readout::coordinates and is
+// The skill's name and the state the player can act on -- its points and its
+// binding -- as the headline, and the explanation of what it does as the
+// detail, which is read on demand rather than every time the highlight moves.
+// Grid position is in neither: it travels in Readout::coordinates and is
 // spoken last.
-std::string SkillReadout(std::string_view description, std::string_view points, std::string_view help);
+TooltipText::Description SkillReadout(std::string_view description, std::string_view points, std::string_view help);
 }

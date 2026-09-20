@@ -201,6 +201,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
 	if (inventory) OfferDetail(readout.focusKey, {});
+	else if (progression.skill) OfferDetail(std::to_string(focus.widget), {});
 	if (button) {
 		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		readout = UiText::Describe(snapshot);
@@ -248,7 +249,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			readout.coordinates.clear(); // a described cell keeps its existing coordinate-free readout
 		}
 		else if (progression.skill) {
-			readout.option = ProgressionText::SkillReadout(description, progression.points, progression.help);
+			auto split = ProgressionText::SkillReadout(description, progression.points, progression.help);
+			readout.option = std::move(split.headline);
+			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
 		}
 		else if ((inventory || button) && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
