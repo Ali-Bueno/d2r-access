@@ -138,7 +138,14 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	result.context = Panel;
 	result.body = Identity(focus.panel);
 	result.option = label;
-	Append(result.option, Value(focus.panel, NativeWidgets::ReadName(title)));
+	// Among the row's own siblings, not anywhere under the panel: the attack
+	// damage and attack rating rows exist twice in the layout, once under
+	// LeftSkillStats and once under RightSkillStats, with identical widget
+	// names, so a whole-panel lookup could only ever find the first of each
+	// pair. Falls back to the panel when the container cannot be read, which
+	// is the lookup this had before and still better than saying nothing.
+	const auto container = NativeUi::Parent(title);
+	Append(result.option, Value(container ? container : focus.panel, NativeWidgets::ReadName(title)));
 	result.focusKey = std::to_string(focus.widget);
 	return result;
 }

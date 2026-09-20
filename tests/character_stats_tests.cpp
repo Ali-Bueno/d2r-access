@@ -187,6 +187,13 @@ int main() {
 	Check(CharacterStats::Lines(Panel).empty(), "a hidden panel enumerates nothing");
 	panelVisible = true;
 
+	// The same pair through the focused-row reader, which searched the whole
+	// panel and so could only ever find the first of the two.
+	Add(74, "Tooltip", "", 72);
+	Add(84, "Tooltip", "", 82);
+	Check(CharacterStats::Read(On(74), {}).option == "Daño. 12 a 30", "a focused attack row reads the value beside it");
+	Check(CharacterStats::Read(On(84), {}).option == "Daño. 5 a 9", "and the identically named row elsewhere reads its own, not the first one's");
+
 	// The cursor the right stick walks: it never leaves the list.
 	using Push = InputDirection::StickPush;
 	Check(CharacterStatsReader::Advance(-1, Push::Down, 8) == 0, "the first push down reads the first line");
