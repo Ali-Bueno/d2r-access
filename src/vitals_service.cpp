@@ -1,9 +1,11 @@
 #include "vitals_service.h"
 #include "async_log.h"
+#include "input_direction.h"
 #include "localization.h"
 #include "native_memory.h"
 #include "native_ui.h"
 #include "native_widgets.h"
+#include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "vitals.h"
@@ -209,10 +211,29 @@ void Reset() {
 	g_nextDurability = 0;
 }
 
+namespace {
+// BACK on the controller, while no menu is up. The user asked for a pad
+// button for this and reports BACK does nothing in play, so it is free. The
+// menu gate is the one c4893cf established: the game opens UISwitcher exactly
+// when the menu tree is up, so RadarUi::Playing means the player is in the
+// world and BACK belongs to us. Nothing is taken from the game -- the button
+// still reaches it exactly as before; this only listens.
+bool BackRequested() {
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	if (RadarUi::Inspect(process == GetCurrentProcessId()) != RadarUi::State::Playing) {
+		// Still claim the press, so one made in a menu cannot be heard later.
+		(void)InputDirection::TakeBackButton();
+		return false;
+	}
+	return InputDirection::TakeBackButton();
+}
+}
+
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
-	if (command == Command::Report) Report(context);
+	if (command == Command::Report || BackRequested()) Report(context);
 	if (command == Command::On || command == Command::Off) {
 		g_enabled = command == Command::On;
 		Reset();

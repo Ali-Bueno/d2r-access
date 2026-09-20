@@ -47,6 +47,7 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
+	bool backHeld       = false;
 	bool leftThumbHeld  = false;
 	bool rightThumbHeld = false;
 };
@@ -61,6 +62,7 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
+bool g_backPressed = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -217,6 +219,9 @@ void Poll() {
 			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
 				g_rightStickClick = true;
 			}
+			if (UpdateEdge(edges.backHeld, (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0)) {
+				g_backPressed = true;
+			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
@@ -263,6 +268,11 @@ bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
 	return clicked;
+}
+bool TakeBackButton() {
+	const bool pressed = g_backPressed;
+	g_backPressed = false;
+	return pressed;
 }
 StickPush TakeRightStickPush(const char* claimant) {
 	const StickPush push = g_rightStickPush;
