@@ -41,6 +41,9 @@ NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 std::optional<bool> holdingItem;
 InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
+// The character panel's stick reader runs ahead of the detail readout, so
+// this stands in for it claiming a tick.
+bool characterStatsClaims = false;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -127,6 +130,14 @@ std::string Text(std::string_view key) {
 namespace D2RAccess::CharacterStats {
 bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
+void Reset() {}
+}
+namespace D2RAccess::CharacterStatsReader {
+bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
+	if (!characterStatsClaims) return false;
+	pendingPush = InputDirection::StickPush::None;
+	return true;
+}
 void Reset() {}
 }
 namespace D2RAccess::ScreenReader {
@@ -254,6 +265,12 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
 	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");
 	pendingPush = InputDirection::StickPush::None;
+	// The character panel claims all four directions, so it must be offered
+	// the push before the detail readout takes up out from under it.
+	ClearSpeech(); characterStatsClaims = true; pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech.empty() && pendingPush == InputDirection::StickPush::None,
+		"the character panel's reader is offered the stick before the item detail readout");
+	characterStatsClaims = false;
 	ClearSpeech(); selection = 1; cell = {1, 0}; Settle();
 	Check(speech.empty(), "moving to another occupied cell waits instead of reading stale item text or coordinates");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;

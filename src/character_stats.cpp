@@ -37,6 +37,11 @@ constexpr Row Rows[] = {
 };
 // Suffixes the layouts use for a row's value widget (StrengthStat, FireText).
 constexpr const char* ValueSuffixes[] = {"Stat", "Text"};
+// Statistics the panel states in a single text box, with no separate label:
+// the experience line and the points left to spend. NativeProgression already
+// speaks the latter next to the attribute buttons, so both are known to carry
+// text that stands on its own.
+constexpr const char* StandaloneLines[] = {"CombinedXP", "CombinedPointsInfo"};
 void Append(std::string& text, std::string_view part) {
 	if (part.empty() || text == part) return;
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
@@ -75,6 +80,34 @@ std::string Value(uintptr_t panel, std::string_view title) {
 	return {};
 }
 
+// Text of the sibling called `name`, i.e. a node with the same parent. Rows
+// resolve their values this way so the two AttackDamageTitle rows, which have
+// the same widget names under LeftSkillStats and RightSkillStats, cannot read
+// each other's numbers.
+std::string SiblingText(const UiText::Snapshot& snapshot, int parent, std::string_view name) {
+	for (const auto& node : snapshot.nodes)
+		if (node.parent == parent && node.name == name) return UiText::Clean(node.text);
+	return {};
+}
+
+// Value of a row, by the same rules as Value() above but scoped to siblings.
+std::string SiblingValue(const UiText::Snapshot& snapshot, int parent, std::string_view title) {
+	for (const auto& row : Rows) {
+		if (title != row.title) continue;
+		const auto current = SiblingText(snapshot, parent, row.current);
+		if (!row.maximum || current.empty()) return current;
+		const auto maximum = SiblingText(snapshot, parent, row.maximum);
+		if (maximum.empty()) return current;
+		char phrase[100]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().currentOfMaximum, current.c_str(), maximum.c_str());
+		return phrase;
+	}
+	const std::string stem(title.substr(0, title.size() - TitleSuffix.size()));
+	for (const char* suffix : ValueSuffixes)
+		if (auto value = SiblingText(snapshot, parent, stem + suffix); !value.empty()) return value;
+	return {};
+}
+
 // Panel name plus who the character is, so entering the panel says both once.
 std::string Identity(uintptr_t panel) {
 	std::string result = Localization::Text("minipanelchar");
@@ -108,6 +141,27 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	Append(result.option, Value(focus.panel, NativeWidgets::ReadName(title)));
 	result.focusKey = std::to_string(focus.widget);
 	return result;
+}
+
+std::vector<std::string> Lines(uintptr_t panel) {
+	std::vector<std::string> lines;
+	if (!panel || !NativeUi::Visible(panel)) return lines;
+	// Snapshot walks the visible tree in declaration order and omits hidden
+	// subtrees, so a row the game is not showing never reaches the list.
+	const auto snapshot = NativeUi::Snapshot(panel, 0);
+	for (const auto& node : snapshot.nodes) {
+		const auto text = UiText::Clean(node.text);
+		if (text.empty()) continue;
+		if (std::string_view(node.name).ends_with(TitleSuffix)) {
+			std::string line = text;
+			Append(line, SiblingValue(snapshot, node.parent, node.name));
+			lines.push_back(std::move(line));
+			continue;
+		}
+		for (const char* standalone : StandaloneLines)
+			if (node.name == standalone) { lines.push_back(text); break; }
+	}
+	return lines;
 }
 
 void Reset() {}

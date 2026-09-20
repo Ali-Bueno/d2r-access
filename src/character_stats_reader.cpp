@@ -1,0 +1,53 @@
+#include "character_stats_reader.h"
+
+#include "async_log.h"
+#include "character_stats.h"
+#include "native_widgets.h"
+#include "screen_reader.h"
+#include "speech_strings.h"
+
+#include <algorithm>
+#include <string>
+#include <string_view>
+
+namespace D2RAccess::CharacterStatsReader {
+namespace {
+constexpr std::string_view Panel = "CharacterStatsPanel";
+
+uintptr_t g_panel = 0; // the panel the cursor belongs to
+int g_cursor = -1;
+}
+
+int Advance(int cursor, InputDirection::StickPush push, int count) {
+	if (count <= 0) return -1;
+	switch (push) {
+	case InputDirection::StickPush::Up:    return std::max(cursor - 1, 0);
+	case InputDirection::StickPush::Down:  return std::min(cursor + 1, count - 1);
+	case InputDirection::StickPush::Left:  return 0;
+	case InputDirection::StickPush::Right: return count - 1;
+	default:                               return cursor;
+	}
+}
+
+bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (!focus.panel || NativeWidgets::ReadName(focus.panel) != Panel) { Reset(); return false; }
+	if (focus.panel != g_panel) { g_panel = focus.panel; g_cursor = -1; }
+	// Read the panel only once a push is pending: the walk costs a tree
+	// traversal, and the stick is idle for all but a few of these ticks.
+	InputDirection::StickPush push = InputDirection::StickPush::None;
+	for (const auto wanted : {InputDirection::StickPush::Up, InputDirection::StickPush::Down,
+	                          InputDirection::StickPush::Left, InputDirection::StickPush::Right}) {
+		if (InputDirection::TakeRightStickPushIf(wanted)) { push = wanted; break; }
+	}
+	if (push == InputDirection::StickPush::None) return false;
+	const auto lines = CharacterStats::Lines(focus.panel);
+	g_cursor = Advance(g_cursor, push, static_cast<int>(lines.size()));
+	const std::string text = g_cursor < 0 ? Strings::Current().detailNone : lines[static_cast<size_t>(g_cursor)];
+	D2RAccess::AsyncLog::InfoF(context, "[stats] %d of %zu -> \"%s\"", g_cursor + 1, lines.size(), text.c_str());
+	ScreenReader::Speak(text, true);
+	return true;
+}
+
+void Reset() { g_panel = 0; g_cursor = -1; }
+
+}

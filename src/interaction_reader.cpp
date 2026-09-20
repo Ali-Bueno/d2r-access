@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "character_stats.h"
+#include "character_stats_reader.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "ground_item_service.h"
@@ -183,6 +184,11 @@ bool HandlesFocus(NativeUi::Focus focus) {
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	if (conversation) { Reset(); return false; }
+	// The character panel's own stick reader goes first: it claims all four
+	// directions, and ReadDetail below would otherwise take up from it. Nothing
+	// is lost by that order -- the character panel holds neither items nor
+	// skills, so there is never a detail for up to read there.
+	if (CharacterStatsReader::Tick(context, focus)) return true;
 	if (ReadDetail(context, focus)) return true;
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
@@ -355,6 +361,7 @@ void Reset() {
 	g_detail.clear();
 	g_detailFor.clear();
 	CharacterStats::Reset();
+	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();
 	NativeTooltips::Reset();
 }

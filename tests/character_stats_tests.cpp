@@ -1,9 +1,11 @@
 #include "character_stats.h"
+#include "character_stats_reader.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
 #include <map>
 #include <string>
+#include <vector>
 
 namespace {
 using namespace D2RAccess;
@@ -15,10 +17,14 @@ struct Widget {
 	uintptr_t parent = 0;
 };
 std::map<uintptr_t, Widget> widgets;
+std::vector<uintptr_t> order; // declaration order, which is the order Snapshot walks
 bool panelVisible = true;
+std::vector<std::string> speech;
+InputDirection::StickPush pending = InputDirection::StickPush::None;
 
 constexpr uintptr_t Panel = 1;
 void Add(uintptr_t id, std::string name, std::string text = {}, uintptr_t parent = Panel) {
+	if (!widgets.count(id)) order.push_back(id);
 	widgets[id] = {std::move(name), std::move(text), parent};
 }
 bool Descends(uintptr_t widget, uintptr_t ancestor) {
@@ -38,6 +44,37 @@ bool Visible(uintptr_t widget) { return widget == Panel ? panelVisible : widgets
 uintptr_t Parent(uintptr_t widget) {
 	const auto found = widgets.find(widget);
 	return found == widgets.end() ? 0 : found->second.parent;
+}
+// The real walk visits the panel and then its subtree in declaration order,
+// carrying each node's parent, name and text. Nothing else here reads a node.
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+	UiText::Snapshot snapshot;
+	if (!Visible(panel)) return snapshot;
+	snapshot.panel = panel;
+	snapshot.name = widgets[panel].name;
+	snapshot.nodes.push_back({panel, -1, UiText::Kind::Other, widgets[panel].name});
+	for (uintptr_t id : order) {
+		const auto& widget = widgets[id];
+		int parent = -1;
+		for (size_t at = 0; at < snapshot.nodes.size(); ++at)
+			if (snapshot.nodes[at].id == widget.parent) parent = static_cast<int>(at);
+		if (parent < 0) continue;
+		snapshot.nodes.push_back({id, parent, UiText::Kind::Text, widget.name, "TextBoxWidget", widget.text});
+	}
+	return snapshot;
+}
+}
+
+namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
+namespace D2RAccess::AsyncLog {
+void Info(const D2RL::PluginContext*, const char*) {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+}
+namespace D2RAccess::InputDirection {
+bool TakeRightStickPushIf(StickPush wanted) {
+	if (pending != wanted) return false;
+	pending = StickPush::None;
+	return true;
 }
 }
 
@@ -125,5 +162,59 @@ int main() {
 		"the original layout's class widget is read when the HD one is absent");
 	widgets.erase(4);
 	Check(CharacterStats::Read(On(11), {}).body == "Personaje. Ulfr. Bárbaro", "a missing identity part is skipped, not guessed");
+
+	// Enumeration: every row of the panel, not just the focused one.
+	widgets[12].text = "30"; // the value the row-level checks above left cleared
+	Add(60, "CombinedXP", "Experiencia 1200");
+	Add(70, "LeftSkillStats");
+	Add(71, "Damage", "", 70);
+	Add(72, "AttackDamageTitle", "Daño", 71);
+	Add(73, "AttackDamageStat", "12 a 30", 71);
+	Add(80, "RightSkillStats");
+	Add(81, "Damage", "", 80);
+	Add(82, "AttackDamageTitle", "Daño", 81);
+	Add(83, "AttackDamageStat", "5 a 9", 81);
+	auto lines = CharacterStats::Lines(Panel);
+	Check(lines.size() == 8, "every rendered row is a line, and nothing else on the panel is");
+	Check(lines[0] == "Fuerza. 30" && lines[1] == "Vida. 45 de 120", "lines keep the order the layout declares");
+	Check(lines[5] == "Experiencia 1200", "a statistic stated in one text box is a line of its own");
+	Check(lines[6] == "Daño. 12 a 30" && lines[7] == "Daño. 5 a 9",
+		"the two identically named attack rows read their own siblings, not each other's");
+	widgets[12].text.clear();
+	Check(CharacterStats::Lines(Panel)[0] == "Fuerza", "a row whose value has not rendered still offers its label");
+	widgets[12].text = "30";
+	panelVisible = false;
+	Check(CharacterStats::Lines(Panel).empty(), "a hidden panel enumerates nothing");
+	panelVisible = true;
+
+	// The cursor the right stick walks: it never leaves the list.
+	using Push = InputDirection::StickPush;
+	Check(CharacterStatsReader::Advance(-1, Push::Down, 8) == 0, "the first push down reads the first line");
+	Check(CharacterStatsReader::Advance(-1, Push::Up, 8) == 0, "a push up before anything was read starts at the first line too");
+	Check(CharacterStatsReader::Advance(7, Push::Down, 8) == 7, "a push down at the last line re-reads it rather than wrapping");
+	Check(CharacterStatsReader::Advance(0, Push::Up, 8) == 0, "a push up at the first line re-reads it rather than wrapping");
+	Check(CharacterStatsReader::Advance(3, Push::Left, 8) == 0 && CharacterStatsReader::Advance(3, Push::Right, 8) == 7,
+		"left and right jump to the ends");
+	Check(CharacterStatsReader::Advance(3, Push::None, 8) == 3, "no push leaves the cursor where it is");
+	Check(CharacterStatsReader::Advance(3, Push::Down, 0) == -1, "a panel with nothing to read has no cursor");
+
+	// The gesture itself, and who it is claimed from.
+	CharacterStatsReader::Reset();
+	Check(!CharacterStatsReader::Tick(nullptr, On(11)), "an idle stick is left for the entity scan and the pathfinder");
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.size() == 1 && speech.back() == "Fuerza. 30",
+		"a push down on the character panel reads the first statistic");
+	pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Daño. 5 a 9", "right reads the last statistic");
+	pending = Push::Up;
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Daño. 12 a 30", "up steps back one statistic");
+	pending = Push::Up;
+	widgets[Panel].name = "PlayerInventoryExpansionLayout";
+	Check(!CharacterStatsReader::Tick(nullptr, On(11)) && pending == Push::Up,
+		"another panel keeps its own use of the stick, push and all");
+	widgets[Panel].name = "CharacterStatsPanel";
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Fuerza. 30",
+		"leaving the panel forgets where the cursor was");
 	Passed();
 }
