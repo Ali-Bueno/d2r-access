@@ -56,18 +56,52 @@ std::array<std::atomic<uint64_t>, XUSER_MAX_COUNT> g_calls {};
 std::array<std::atomic<uint64_t>, XUSER_MAX_COUNT> g_connected {};
 std::atomic<uint64_t>                              g_otherSlot {}; // a slot index outside 0..3
 
-// Which slot the synthetic pad answers on. Critical rule 3: never merged
-// with a physical controller and never reported in place of one, so it takes
-// a slot no real device occupies. Measured live, D2R polls all four -- slot 0
-// every frame and the empty ones about every five seconds -- so a pad that
-// appears on a free slot is found.
-constexpr DWORD NoSlot = 0xFFFFFFFF;
-// How often the choice is re-checked against the hardware. The game's own
-// hotplug rescan is about five seconds; this is well inside it, and each check
-// is four calls to the original, not one per frame.
-constexpr uint64_t SlotRecheckMs = 1000;
-std::atomic<DWORD> g_slot { NoSlot };
-uint64_t g_slotCheckedAt = 0;
+// Slot 0, always, for the whole session. Never chosen, never moved.
+//
+// This replaces picking the lowest FREE slot, which could not work. MEASURED
+// 2026-09-20: with the keyboard pad answering on slot 1 the game polled it
+// every frame -- 240 to 509 calls per fifteen-second window against slot 0's
+// 1488 to 1644 -- and still drove the character from slot 0 alone. Every
+// keyboard control the MOD consumes worked; every one that had to reach the
+// GAME was dead. Reading a slot is not being driven by it.
+//
+// Free-slot selection also had no way back. A controller present at startup
+// put us on slot 1, and rule 3 rightly forbids taking slot 0 from it later, so
+// the choice was permanent -- and D2R does not re-enumerate slots on its own,
+// so nothing we did afterwards could move us. Answering slot 0 from the very
+// first poll means the slot is occupied for the whole session and its
+// occupancy NEVER changes; only its contents do, and contents are re-read
+// every frame. There is no connect or disconnect event for the game to miss.
+//
+// Critical rule 3 is still satisfied, by its own written fallback rather than
+// by hiding on an empty slot: a physical controller's state is passed through
+// untouched whenever it is being used, and the keyboard is reported only while
+// that controller is at rest. Nothing is merged, and nothing a player is
+// actually doing is ever discarded.
+constexpr DWORD OurSlot = 0;
+
+// Which device owns slot 0 right now. Last input wins: whichever was used most
+// recently holds it, and a source that is currently non-neutral keeps it.
+enum class Source { Keyboard, Controller };
+std::atomic<Source> g_source { Source::Keyboard };
+
+// XInput's own resting thresholds. A real stick never reads exactly zero, so
+// "is the player using this controller" has to mean "outside the deadzone",
+// not "not zero" -- otherwise a drifting stick would hold slot 0 forever and
+// the keyboard would never get a turn.
+bool InUse(const XINPUT_GAMEPAD& pad) noexcept {
+	if (pad.wButtons != 0) return true;
+	if (pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) return true;
+	if (pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) return true;
+	const auto outside = [](int16_t x, int16_t y, int dead) {
+		const int dx = x, dy = y;
+		return dx * dx + dy * dy > dead * dead;
+	};
+	if (outside(pad.sThumbLX, pad.sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)) return true;
+	if (outside(pad.sThumbRX, pad.sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)) return true;
+	return false;
+}
+
 std::atomic<bool>  g_inject { false };
 std::atomic<DWORD> g_packet { 1 };
 XINPUT_GAMEPAD     g_lastPad {};
@@ -89,10 +123,16 @@ std::atomic<int32_t>  g_frameLeftX { 0 }, g_frameLeftY { 0 };
 std::atomic<int32_t>  g_frameRightX { 0 }, g_frameRightY { 0 };
 std::atomic<uint32_t> g_framePacket { 0 };
 std::atomic<uint64_t> g_frameSerial { 0 }; // bumped whenever the frame changes
+// Which source the arbitration handed the game, so a log can tell a keyboard
+// frame from a passed-through controller one without guessing.
+std::atomic<bool>     g_frameFromPad { false };
 
 // The layout, as one table so the keys and what they stand for cannot drift
-// apart. Controller mode disables D2R's own keyboard scheme the moment a pad
-// reports input, so none of these contend with a game binding.
+// apart. These DO contend with D2R's own bindings: MEASURED 2026-09-20, W is
+// also the game's weapon-swap bind, and holding it to walk moved the player's
+// weapon and shield onto weapon-swap set II, which read as the equipment
+// vanishing. Controller mode does not disable the game's keyboard scheme --
+// an earlier comment here claimed it did, and that was never measured.
 struct KeyBinding { int vk; bool KeyboardPad::Keys::* field; };
 constexpr KeyBinding kLayout[] = {
 	{'J', &KeyboardPad::Keys::a},          {'N', &KeyboardPad::Keys::b},
@@ -156,23 +196,43 @@ DWORD WINAPI Detour(DWORD slot, XINPUT_STATE* state) {
 	} else {
 		g_otherSlot.fetch_add(1, std::memory_order_relaxed);
 	}
-	// Our slot: answer it whole. Never call the original for it -- the whole
-	// point is that no physical device is there. Every other slot is passed
-	// through untouched, so a real controller is neither merged with nor
-	// spoken over (critical rule 3).
-	const DWORD ours = g_slot.load(std::memory_order_relaxed);
-	if (g_inject.load(std::memory_order_relaxed) && ours != NoSlot && slot == ours && state != nullptr) {
+	// Slot 0 is arbitrated; slots 1-3 are passed through untouched, so a second
+	// real controller is never merged with, spoken over, or reported absent.
+	if (g_inject.load(std::memory_order_relaxed) && slot == OurSlot && state != nullptr) {
+		// Ask the hardware first. g_original is the trampoline to the real
+		// XInputGetState, so this is the true picture and never sees our own
+		// injection.
+		XINPUT_STATE real {};
+		const bool padPresent = g_original != nullptr && g_original(OurSlot, &real) == ERROR_SUCCESS;
 		const KeyboardPad::Pad pad = KeyboardPad::Build(SampleKeyboard());
+		const bool controllerActive = padPresent && InUse(real.Gamepad);
+		const bool keyboardActive   = !KeyboardPad::Idle(pad);
+		// Last input wins. With both at rest the previous owner keeps the slot,
+		// which costs nothing: both would report a neutral frame anyway.
+		if (controllerActive)    g_source.store(Source::Controller, std::memory_order_relaxed);
+		else if (keyboardActive) g_source.store(Source::Keyboard, std::memory_order_relaxed);
+		const bool controllerOwns = padPresent && g_source.load(std::memory_order_relaxed) == Source::Controller;
+
 		XINPUT_GAMEPAD gamepad {};
-		gamepad.wButtons      = pad.buttons;
-		gamepad.bLeftTrigger  = pad.leftTrigger;
-		gamepad.bRightTrigger = pad.rightTrigger;
-		gamepad.sThumbLX      = pad.leftThumbX;
-		gamepad.sThumbLY      = pad.leftThumbY;
-		gamepad.sThumbRX      = pad.rightThumbX;
-		gamepad.sThumbRY      = pad.rightThumbY;
-		// dwPacketNumber only moves when the state does: that is how a game
-		// tells "nothing happened" from "held since last frame".
+		if (controllerOwns) {
+			// The physical pad's own state, byte for byte. Not rebuilt, not
+			// filtered, not combined with anything of ours.
+			gamepad = real.Gamepad;
+		} else {
+			gamepad.wButtons      = pad.buttons;
+			gamepad.bLeftTrigger  = pad.leftTrigger;
+			gamepad.bRightTrigger = pad.rightTrigger;
+			gamepad.sThumbLX      = pad.leftThumbX;
+			gamepad.sThumbLY      = pad.leftThumbY;
+			gamepad.sThumbRX      = pad.rightThumbX;
+			gamepad.sThumbRY      = pad.rightThumbY;
+		}
+		// One monotonic packet number for the slot, bumped whenever what the
+		// game is handed changes -- whichever source produced it. The hardware
+		// has its own numbering and ours has another; handing the game first
+		// one and then the other would make the count jump about, and
+		// dwPacketNumber is exactly how a game tells "nothing happened" from
+		// "held since last frame".
 		if (std::memcmp(&gamepad, &g_lastPad, sizeof(gamepad)) != 0) {
 			g_lastPad = gamepad;
 			g_packet.fetch_add(1, std::memory_order_relaxed);
@@ -186,6 +246,7 @@ DWORD WINAPI Detour(DWORD slot, XINPUT_STATE* state) {
 		g_frameRightY.store(gamepad.sThumbRY, std::memory_order_relaxed);
 		g_framePacket.store(state->dwPacketNumber, std::memory_order_relaxed);
 		g_frameSerial.store(g_packet.load(std::memory_order_relaxed), std::memory_order_relaxed);
+		g_frameFromPad.store(controllerOwns, std::memory_order_relaxed);
 		if (slot < XUSER_MAX_COUNT) g_connected[slot].fetch_add(1, std::memory_order_relaxed);
 		return ERROR_SUCCESS;
 	}
@@ -209,49 +270,6 @@ HMODULE GameModule(const wchar_t*& chosen) {
 	return nullptr;
 }
 
-// The lowest slot no physical controller occupies, asked of the ORIGINAL.
-//
-// The original is the trampoline to the real XInputGetState, so it never sees
-// our injection -- this is always the true hardware picture, and it is safe to
-// ask it again at any time. An earlier version latched the answer at install
-// time for fear of seeing our own pad; that fear was unfounded and the latch
-// was a bug. Install runs before the game has finished enumerating
-// controllers, so the choice raced the enumeration: lose that race and we take
-// slot 0 and answer for the slot the player's own controller is on, which is
-// the one thing critical rule 3 forbids outright.
-DWORD ChooseFreeSlot() {
-	if (g_original == nullptr) return NoSlot;
-	for (DWORD slot = 0; slot < XUSER_MAX_COUNT; ++slot) {
-		XINPUT_STATE state {};
-		if (g_original(slot, &state) != ERROR_SUCCESS) return slot;
-	}
-	return NoSlot; // four real controllers: leave every one of them alone
-}
-
-// Re-checks the choice against the hardware. A controller plugged in later, or
-// enumerated after we installed, must get its slot back immediately even if we
-// are already answering on it.
-void VerifySlot(const D2RL::PluginContext* context) {
-	if (g_original == nullptr) return;
-	const uint64_t now = GetTickCount64();
-	if (g_slotCheckedAt != 0 && now - g_slotCheckedAt < SlotRecheckMs) return;
-	g_slotCheckedAt = now;
-	const DWORD current = g_slot.load(std::memory_order_relaxed);
-	const DWORD chosen = ChooseFreeSlot();
-	if (chosen == current) return;
-	g_slot.store(chosen, std::memory_order_relaxed);
-	// A fresh slot starts from a clean packet, or the game would read our
-	// previous state as "held since last frame" on a device it has just met.
-	g_lastPad = {};
-	g_packet.fetch_add(1, std::memory_order_relaxed);
-	if (chosen == NoSlot) {
-		AsyncLog::WarnF(context, "[pad] slot %lu now holds a real controller and no slot is free; keyboard input is not injected.",
-			static_cast<unsigned long>(current));
-	} else {
-		AsyncLog::InfoF(context, "[pad] moved the keyboard pad from slot %lu to slot %lu (a real controller appeared).",
-			static_cast<unsigned long>(current), static_cast<unsigned long>(chosen));
-	}
-}
 
 }
 
@@ -308,19 +326,12 @@ bool Install(const D2RL::PluginContext* context) {
 	g_original    = reinterpret_cast<GetStateFn>(g_trampoline);
 	g_installed   = true;
 	g_installedAt = GetTickCount64();
-	// A first guess only. Install runs before the game has finished
-	// enumerating controllers, so this is re-checked on every tick until the
-	// hardware settles -- see VerifySlot.
-	g_slot.store(ChooseFreeSlot());
-	g_slotCheckedAt = 0;
-	const DWORD chosen = g_slot.load();
-	if (chosen == NoSlot) {
-		AsyncLog::InfoF(context, "[pad] hooked %ls; every slot holds a real controller, so the keyboard pad has nowhere to go.",
-			moduleName != nullptr ? moduleName : L"?");
-	} else {
-		AsyncLog::InfoF(context, "[pad] hooked %ls; keyboard pad starts on slot %lu, re-checked as controllers enumerate.",
-			moduleName != nullptr ? moduleName : L"?", static_cast<unsigned long>(chosen));
-	}
+	// The source starts as the keyboard: with no controller connected that is
+	// correct, and with one connected the first thing the player actually does
+	// hands the slot over on that same frame.
+	g_source.store(Source::Keyboard);
+	AsyncLog::InfoF(context, "[pad] hooked %ls; the keyboard pad answers slot %lu for the session, handing it to a physical controller whenever one is in use.",
+		moduleName != nullptr ? moduleName : L"?", static_cast<unsigned long>(OurSlot));
 	return true;
 }
 
@@ -380,8 +391,9 @@ void LogFrame(const D2RL::PluginContext* context) {
 	const uint64_t serial = g_frameSerial.load(std::memory_order_relaxed);
 	if (serial == lastSerial) return;
 	lastSerial = serial;
-	AsyncLog::InfoF(context, "[pad] frame slot=%lu packet=%u buttons=0x%04X left=%d,%d right=%d,%d",
-		static_cast<unsigned long>(g_slot.load(std::memory_order_relaxed)),
+	AsyncLog::InfoF(context, "[pad] frame slot=%lu src=%s packet=%u buttons=0x%04X left=%d,%d right=%d,%d",
+		static_cast<unsigned long>(OurSlot),
+		g_frameFromPad.load(std::memory_order_relaxed) ? "controller" : "keyboard",
 		g_framePacket.load(std::memory_order_relaxed),
 		g_frameButtons.load(std::memory_order_relaxed),
 		g_frameLeftX.load(std::memory_order_relaxed), g_frameLeftY.load(std::memory_order_relaxed),
@@ -392,9 +404,6 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_installed) return;
 	PollToggle(context);
 	LogFrame(context);
-	// Before anything else: a controller that appeared after we chose must get
-	// its slot back, whether or not the startup reports are still running.
-	VerifySlot(context);
 	if (g_reports >= 3) return;
 	// Three reports over the first half minute: the game may poll every slot
 	// once at startup and then settle on one, and a single sample would not
@@ -407,13 +416,9 @@ void Tick(const D2RL::PluginContext* context) {
 }
 
 void SetInjection(const D2RL::PluginContext* context, bool enabled) {
-	if (enabled && g_slot.load() == NoSlot) {
-		AsyncLog::Warn(context, "[pad] no free controller slot; keyboard input not injected.");
-		return;
-	}
 	g_inject.store(enabled);
 	AsyncLog::InfoF(context, "[pad] keyboard pad %s on slot %lu.", enabled ? "ON" : "off",
-		static_cast<unsigned long>(g_slot.load()));
+		static_cast<unsigned long>(OurSlot));
 	if (!enabled) return;
 	// Turning it on restarts the poll census, so the counts that follow describe
 	// the injecting period and nothing before it. This is the measurement that
@@ -431,10 +436,9 @@ bool Injecting() { return g_inject.load(); }
 
 Synthetic SyntheticPad() {
 	Synthetic result;
-	const DWORD slot = g_slot.load(std::memory_order_relaxed);
-	if (!g_inject.load(std::memory_order_relaxed) || slot == NoSlot) return result;
+	if (!g_inject.load(std::memory_order_relaxed)) return result;
 	result.active = true;
-	result.slot   = static_cast<unsigned>(slot);
+	result.slot   = static_cast<unsigned>(OurSlot);
 	// Sampled here rather than cached from the detour: the game's poll rate is
 	// its own business, and a reader on the UI tick must not inherit it.
 	result.pad = KeyboardPad::Build(SampleKeyboard());
