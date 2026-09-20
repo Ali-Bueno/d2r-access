@@ -222,7 +222,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -284,12 +284,14 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	// The other half of "which way out", and the only half a town has: the
 	// areas of the act that touch this one. Nothing joins them but the map, so
 	// there is no warp for the walk above to find -- see native_level_areas.h.
+	// Its own opt-in, not distantExits: a boundary is level-wide, so it is for
+	// the catalogue and not for the scan that answers what is nearby.
 	// The level id is the identity, so the same boundary is one landmark
 	// however the player moves along it.
 	std::vector<NativeLevelAreas::Area> areas;
 	const uintptr_t levelStruct = RoomLevel(room);
 	uint32_t here = 0;
-	if (distantExits && NativeDrlg::Available() && levelStruct && Peek(levelStruct + LevelId, here)
+	if (levelBearings && NativeDrlg::Available() && levelStruct && Peek(levelStruct + LevelId, here)
 		&& NativeLevelAreas::Read(room, areas)) {
 		for (const auto& crossing : LevelAreas::Neighbours(areas, here)) {
 			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
@@ -303,9 +305,9 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output, distantExits);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings);
 }
 }

@@ -173,7 +173,10 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 			}
 		return false;
 	}
-	if (!NativeEntities::Read(state.player, state.session, entities, g_target.entity.levelExitId != 0)) return false;
+	// A locked exit may be a warp or a boundary with the next area; read both
+	// so the beacon can still find the one it is leading to.
+	const bool exit = g_target.entity.levelExitId != 0;
+	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity.position = entity.position;

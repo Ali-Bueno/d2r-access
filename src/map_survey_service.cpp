@@ -184,7 +184,7 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 // looks like. Both observation points feed through this, so an item catalogued
 // on demand is not forgotten again by the next background pass.
 bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities) {
-	if (!NativeEntities::Read(state.player, state.session, entities, true)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true)) return false;
 	GroundItems::Snapshot snapshot;
 	if (!g_items || !NativeGroundItems::Read(state.player, state.session, snapshot)) return true;
 	for (const auto& item : snapshot.items) {
