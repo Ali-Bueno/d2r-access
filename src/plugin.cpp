@@ -259,10 +259,27 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
-	(void)D2RAccess::NativeTooltips::Initialize(context);
-	(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+	// Patching the game's own code is the only thing this plugin does that
+	// could change the game rather than describe it -- three inline hooks:
+	// the tooltip draw, the controller cursor update, and the HD footfall,
+	// which is the one place we SKIP a game function rather than add to it.
+	// Nothing has shown them to be harmful, and nothing has shown them to be
+	// harmless either; so they are switchable, and a session with them off is
+	// a session in which they cannot be the cause of anything.
+	//
+	// Default ON, so this changes nothing for anyone who does not set it.
+	// Off costs footsteps, native tooltips and skill-tree grid navigation;
+	// everything read out of memory keeps working, because reading is not
+	// patching.
+	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
+	if (nativeHooks) {
+		(void)D2RAccess::NativeTooltips::Initialize(context);
+		(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+	} else {
+		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor or footfall hook this session.");
+	}
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
-	D2RAccess::FootstepService::Register(context);
+	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
