@@ -122,21 +122,22 @@ int main() {
 	Check(reader.Update(readout, 4000).text.empty(), "unchanged quest progress remains quiet");
 	journal.focus = 34;
 	readout = Describe(journal);
-	Check(readout.Empty(), "a pane still holding the previous quest names nothing, not even the new icon");
+	Check(readout.option == Strings::Current().slotEmpty, "a pane still holding the previous quest names nothing, not even the new icon");
 	(void)reader.Update(readout, 4010);
-	Check(reader.Update(readout, 4060).text.empty(), "and stays silent however long the pane takes");
+	Check(reader.Update(readout, 4060).text.empty(), "and stays silent while the pane is still settling");
 	// A quest the player has not been given leaves the shared pane empty. Naming
 	// the icon from the catalog read out every quest of the act, including ones
 	// the character has never been offered; an empty socket is simply not spoken.
 	journal.nodes[2].text.clear(); journal.nodes[3].text.clear();
 	readout = Describe(journal);
-	Check(readout.Empty(), "an icon the game describes nothing for is never named from the catalog");
+	Check(readout.option == Strings::Current().slotEmpty, "an icon the game describes nothing for is never named from the catalog");
 	(void)reader.Update(readout, 4100);
-	Check(reader.Update(readout, 4250).text.empty(), "an empty quest socket says nothing at all");
+	Check(reader.Update(readout, 4250).text == Strings::Current().slotEmpty,
+		"an empty quest socket says it is empty, rather than leaving the panel title to be read instead");
 	// Only the pane's own heading decides it: other text the panel happens to
 	// hold must not keep an empty socket alive as a quest.
 	journal.nodes.push_back(Node{35, 0, Kind::Text, "Counter", "TextBoxWidget", "Monstruos restantes: 3"});
-	Check(Describe(journal).Empty(), "other panel text does not turn an empty socket into a quest");
+	Check(Describe(journal).option == Strings::Current().slotEmpty, "other panel text does not turn an empty socket into a quest");
 	journal.nodes.pop_back();
 	journal.nodes[2].text = "Cementerio";
 	readout = Describe(journal);

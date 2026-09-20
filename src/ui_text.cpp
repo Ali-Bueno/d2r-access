@@ -162,7 +162,12 @@ Readout Describe(const Snapshot& snapshot) {
 		// whatever else the panel holds, to reach the kill counter, so letting
 		// it vote would let any panel furniture keep a socket alive as a quest.
 		if (title.empty() || title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) {
-			result.option.clear();
+			// Say it is empty rather than nothing: silence left the panel's own
+			// title to be announced instead, so every socket without a quest in it
+			// read as "Quest Log". The 150 ms settle above still covers the other
+			// way in here -- a pane the game has not finished repopulating -- which
+			// is replaced by the real quest before it is ever spoken.
+			result.option = Strings::Current().slotEmpty;
 			return result;
 		}
 		result.body = result.option;
