@@ -72,6 +72,24 @@ std::atomic<bool>  g_inject { false };
 std::atomic<DWORD> g_packet { 1 };
 XINPUT_GAMEPAD     g_lastPad {};
 
+// The last frame the game was actually handed, kept so the UI tick can log it.
+// MEASURED offline (build 3.3.93787): D2R imports exactly XInputGetState and
+// XInputSetState from XINPUT9_1_0.dll and calls each from ONE site --
+// 0x141210ac2 and 0x14120ffde. The poll site does
+//     lea rdx,[rdi+4] / mov ecx,esi / call XInputGetState
+//     test eax,eax / sete al / mov [rdi],al
+// so the game keeps a per-slot record whose first byte is "connected" and
+// whose XINPUT_STATE sits at +4. That is as far as reading the game settles
+// it: our frame reaches that record. Whether the rest of D2R acts on it is
+// not readable from there, and until this log existed our own half was not
+// established either -- nothing recorded what we were reporting when the
+// player pressed W.
+std::atomic<uint32_t> g_frameButtons { 0 };
+std::atomic<int32_t>  g_frameLeftX { 0 }, g_frameLeftY { 0 };
+std::atomic<int32_t>  g_frameRightX { 0 }, g_frameRightY { 0 };
+std::atomic<uint32_t> g_framePacket { 0 };
+std::atomic<uint64_t> g_frameSerial { 0 }; // bumped whenever the frame changes
+
 // The layout, as one table so the keys and what they stand for cannot drift
 // apart. Controller mode disables D2R's own keyboard scheme the moment a pad
 // reports input, so none of these contend with a game binding.
@@ -161,6 +179,13 @@ DWORD WINAPI Detour(DWORD slot, XINPUT_STATE* state) {
 		}
 		state->dwPacketNumber = g_packet.load(std::memory_order_relaxed);
 		state->Gamepad        = gamepad;
+		g_frameButtons.store(gamepad.wButtons, std::memory_order_relaxed);
+		g_frameLeftX.store(gamepad.sThumbLX, std::memory_order_relaxed);
+		g_frameLeftY.store(gamepad.sThumbLY, std::memory_order_relaxed);
+		g_frameRightX.store(gamepad.sThumbRX, std::memory_order_relaxed);
+		g_frameRightY.store(gamepad.sThumbRY, std::memory_order_relaxed);
+		g_framePacket.store(state->dwPacketNumber, std::memory_order_relaxed);
+		g_frameSerial.store(g_packet.load(std::memory_order_relaxed), std::memory_order_relaxed);
 		if (slot < XUSER_MAX_COUNT) g_connected[slot].fetch_add(1, std::memory_order_relaxed);
 		return ERROR_SUCCESS;
 	}
@@ -346,9 +371,27 @@ void PollToggle(const D2RL::PluginContext* context) {
 	g_toggleHeld = held;
 }
 
+// One line per CHANGE of the injected frame, written on the UI tick and never
+// from the detour, which runs on the game's poll. Silent while nothing is
+// held, so it cannot flood: a frame only changes when a key goes down or up.
+void LogFrame(const D2RL::PluginContext* context) {
+	static uint64_t lastSerial = 0;
+	if (!g_inject.load(std::memory_order_relaxed)) { lastSerial = 0; return; }
+	const uint64_t serial = g_frameSerial.load(std::memory_order_relaxed);
+	if (serial == lastSerial) return;
+	lastSerial = serial;
+	AsyncLog::InfoF(context, "[pad] frame slot=%lu packet=%u buttons=0x%04X left=%d,%d right=%d,%d",
+		static_cast<unsigned long>(g_slot.load(std::memory_order_relaxed)),
+		g_framePacket.load(std::memory_order_relaxed),
+		g_frameButtons.load(std::memory_order_relaxed),
+		g_frameLeftX.load(std::memory_order_relaxed), g_frameLeftY.load(std::memory_order_relaxed),
+		g_frameRightX.load(std::memory_order_relaxed), g_frameRightY.load(std::memory_order_relaxed));
+}
+
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_installed) return;
 	PollToggle(context);
+	LogFrame(context);
 	// Before anything else: a controller that appeared after we chose must get
 	// its slot back, whether or not the startup reports are still running.
 	VerifySlot(context);
