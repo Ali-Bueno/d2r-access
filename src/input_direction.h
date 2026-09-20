@@ -66,6 +66,12 @@ enum class StickPush {
 };
 StickPush TakeRightStickPush();
 
+// Claims the pending push only when it is the one asked for, leaving any
+// other direction for the next consumer. The menu readers share the stick
+// with the entity scan and the pathfinder, and must not swallow the pushes
+// that belong to those.
+bool TakeRightStickPushIf(StickPush wanted);
+
 // Right thumbstick CLICK (R3) press edges. The SDK's action service binds
 // keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
 // read here with the rest of the XInput state. Take() returns whether a click

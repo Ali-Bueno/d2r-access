@@ -42,6 +42,7 @@ inline constexpr Table esMX {
 	.gridCell            = "Fila %d, columna %d",
 	.skillOfCount        = "Habilidad %d de %d",
 	.tabOfCount         = "pestaña %d de %d",
+	.detailNone         = "No hay más detalles",
 	.assignedTo          = "Asignada a %s",
 	.controllerButtons   = {"Pad direccional", "Pad direccional arriba", "Pad direccional abajo", "Pad direccional izquierda", "Pad direccional derecha", "Menú", "Vista", "Stick izquierdo", "Presionar stick izquierdo", "Stick derecho", "Presionar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",

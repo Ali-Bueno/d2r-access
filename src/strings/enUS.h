@@ -42,6 +42,7 @@ inline constexpr Table enUS {
 	.gridCell            = "Row %d, column %d",
 	.skillOfCount        = "Skill %d of %d",
 	.tabOfCount         = "tab %d of %d",
+	.detailNone         = "Nothing more to read",
 	.assignedTo          = "Assigned to %s",
 	.controllerButtons   = {"D-pad", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "Menu", "View", "Left stick", "Press left stick", "Right stick", "Press right stick", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",

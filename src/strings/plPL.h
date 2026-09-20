@@ -42,6 +42,7 @@ inline constexpr Table plPL {
 	.gridCell            = "Wiersz %d, kolumna %d",
 	.skillOfCount        = "Umiejętność %d z %d",
 	.tabOfCount         = "zakładka %d z %d",
+	.detailNone         = "Brak dalszych informacji",
 	.assignedTo          = "Przypisano do: %s",
 	.controllerButtons   = {"Pad kierunkowy", "Pad kierunkowy w górę", "Pad kierunkowy w dół", "Pad kierunkowy w lewo", "Pad kierunkowy w prawo", "Menu", "Widok", "Lewy drążek", "Naciśnij lewy drążek", "Prawy drążek", "Naciśnij prawy drążek", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Głowa", "Szyja", "Tors", "Prawa broń", "Lewa broń",

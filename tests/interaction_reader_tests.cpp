@@ -9,6 +9,8 @@
 #include "speech_strings.h"
 #include "test_support.h"
 #include "tab_reader.h"
+#include "tooltip_text.h"
+#include "input_direction.h"
 
 #include <string>
 #include <vector>
@@ -38,6 +40,7 @@ std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 std::optional<bool> holdingItem;
+InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -103,7 +106,24 @@ std::string Selected(uintptr_t) {
 	return result;
 }
 }
-namespace D2RAccess::Localization { std::string Text(std::string_view) { ++titleLookups; return {}; } }
+namespace D2RAccess::InputDirection {
+bool TakeRightStickPushIf(StickPush wanted) {
+	if (wanted == StickPush::None || pendingPush != wanted) return false;
+	pendingPush = StickPush::None;
+	return true;
+}
+}
+// The damage and defense labels come from the game's own string table; every
+// other key here is the localized inventory title the reader caches.
+namespace D2RAccess::Localization {
+std::string Text(std::string_view key) {
+	if (key == "ItemStats1l") return "Daño:";
+	if (key == "ItemStats1d") return "Defensa:";
+	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
+	++titleLookups;
+	return {};
+}
+}
 namespace D2RAccess::CharacterStats {
 bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
@@ -148,14 +168,14 @@ int main() {
 	cell = {0, 0}; selection = 0;
 	inventory = {10, 11, "BankExpansionLayout", UiText::Surface::Other, {{12, -1, UiText::Kind::Tabs, "BankTabs", "TabBarWidget", "Personal"}}};
 	Tooltip("Poción de curación menor\nRecupera 45 de vida"); tooltip.footer = "Usar";
-	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Poción de curación menor Recupera 45 de vida. Usar"}, "stash opens with its selected tab and complete item text, without coordinates");
+	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Poción de curación menor"}, "stash opens with its selected tab and the item name, without its description or coordinates");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "stationary inventory selection stays quiet");
 	Check(inventoryWalks == 0 && titleLookups == 1, "localized title is cached; shared tab tracking owns discovery");
 	cell = {1, 0}; selection = 1; Tick();
 	Tooltip("Poción de curación menor\nRecupera 45 de vida"); tooltip.footer = "Usar";
 	Settle();
-	Check(speech == std::vector<std::string>{"Poción de curación menor Recupera 45 de vida. Usar"}, "identical items in different cells are announced without coordinates or section repetition");
+	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "identical items in different cells are announced without coordinates or section repetition");
 	ClearSpeech(); inventory.nodes[0].text = "Comp."; Settle();
 	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
 	Check(inventoryWalks == 0 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
@@ -166,7 +186,7 @@ int main() {
 	Check(speech == std::vector<std::string>{"Inventario. Pergamino del portal de la ciudad"}, "player inventory reads the item without coordinates");
 	ClearSpeech(); focus.widget = 22; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; cell = {};
 	Tooltip("Hacha de mano\nDaño: 3–6\nDurabilidad: 28 de 28"); Settle();
-	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano Daño: 3–6 Durabilidad: 28 de 28"}, "equipment announces its subsection and every displayed stat");
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano. Daño: 3–6"}, "equipment announces its subsection, the item name and its base damage, and stops there");
 	Check(InteractionReader::Repeat() == speech[0], "manual repeat keeps the current complete item readout");
 	ClearSpeech(); conversation = true; Settle();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "a dialogue overlay stops inventory readout");
@@ -226,9 +246,20 @@ int main() {
 	for (int i = 0; i < 5; ++i) Tick();
 	Check(speech.empty(), "occupied cell stays quiet while the stock tooltip is delayed, without early coordinates");
 	Tooltip("Hacha grande\nDaño: 6-13"); tooltip.footer = "Coste: 331";
-	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande Daño: 6-13. Coste: 331"}, "delayed item reads immediately with all properties and price but no coordinates");
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande. Daño: 6-13"}, "delayed item reads its name and base damage immediately, and holds the price back");
+	// The rest of the description is held for the player to ask for.
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Coste: 331"}, "right stick up reads the description the move left out");
+	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
+	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");
+	pendingPush = InputDirection::StickPush::None;
 	ClearSpeech(); selection = 1; cell = {1, 0}; Settle();
 	Check(speech.empty(), "moving to another occupied cell waits instead of reading stale item text or coordinates");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone},
+		"moving off an item drops its description, so the gesture can never answer about the last one");
+	ClearSpeech();
 	Tooltip("Hacha de mano"); Tick();
 	Check(speech == std::vector<std::string>{"Hacha de mano"}, "next occupied cell announces only the item");
 	Check(InteractionReader::Repeat() == "Inventario. Hacha de mano", "repeat also omits coordinates for a described item");
@@ -273,7 +304,9 @@ int main() {
 	ClearSpeech(); focus.widget = 82; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied;
 	Check(Tick() && speech == std::vector<std::string>{"Cuello. Ocupado"}, "rapid slot navigation never waits for a rendered item description");
 	ClearSpeech(); Tooltip("Amuleto\nResistencia al fuego: 10%"); Tick();
-	Check(speech == std::vector<std::string>{"Cuello. Amuleto Resistencia al fuego: 10%"}, "delayed equipped item retains the slot name with its full description");
+	Check(speech == std::vector<std::string>{"Cuello. Amuleto"}, "delayed equipped item retains the slot name with the item's name");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Resistencia al fuego: 10%"}, "an equipped item's properties are there for the asking");
 	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
 	Check(speech == std::vector<std::string>{"Cuello. Vacío"}, "removing equipment rejects a lingering tooltip even without changing focus");
 	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Occupied; tooltip = {}; Tick();
@@ -286,8 +319,8 @@ int main() {
 	Check(Tick() && speech.empty(), "available actions wait for the selected item's description instead of being read ahead of it");
 	ClearSpeech(); Tick(); Check(speech.empty(), "unchanged merchant actions do not repeat while waiting");
 	Tooltip("Hacha\nDurabilidad: 15 de 28"); Tick();
-	Check(speech == std::vector<std::string>{"Inventario. Hacha Durabilidad: 15 de 28. Y: Reparar todo. B: Cerrar menú"},
-		"the action list is spoken after the description it applies to, in the same utterance");
+	Check(speech == std::vector<std::string>{"Inventario. Hacha. Y: Reparar todo. B: Cerrar menú"},
+		"the action list is spoken after the item it applies to, in the same utterance");
 	Check(InteractionReader::Repeat().ends_with(controllerHelp), "manual repeat includes currently available controller actions");
 	ClearSpeech(); selection = 1; cell = {1, 0}; Tooltip("Espada"); Tick();
 	Check(speech == std::vector<std::string>{"Espada"}, "item-to-item navigation does not repeat unchanged merchant actions");

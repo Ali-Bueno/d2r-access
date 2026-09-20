@@ -42,6 +42,7 @@ inline constexpr Table zhTW {
 	.gridCell            = "第 %d 列，第 %d 欄",
 	.skillOfCount        = "技能 %d，共 %d 個",
 	.tabOfCount         = "分頁 %d，共 %d 個",
+	.detailNone         = "沒有更多內容",
 	.assignedTo          = "已指定至 %s",
 	.controllerButtons   = {"方向鍵", "方向鍵上", "方向鍵下", "方向鍵左", "方向鍵右", "功能表按鈕", "檢視按鈕", "左搖桿", "按下左搖桿", "右搖桿", "按下右搖桿", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "頭部", "頸部", "身體", "右手武器欄", "左手武器欄",

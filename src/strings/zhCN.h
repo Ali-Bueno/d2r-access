@@ -42,6 +42,7 @@ inline constexpr Table zhCN {
 	.gridCell            = "第%d行，第%d列",
 	.skillOfCount        = "第%d个技能，共%d个",
 	.tabOfCount         = "第%d个选项卡，共%d个",
+	.detailNone         = "没有更多内容",
 	.assignedTo          = "已分配到%s",
 	.controllerButtons   = {"方向键", "方向键上", "方向键下", "方向键左", "方向键右", "菜单键", "视图键", "左摇杆", "按下左摇杆", "右摇杆", "按下右摇杆", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "头部", "颈部", "身体", "右手武器栏", "左手武器栏",

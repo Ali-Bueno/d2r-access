@@ -254,6 +254,13 @@ StickPush TakeRightStickPush() {
 	g_rightStickPush    = StickPush::None;
 	return push;
 }
+bool TakeRightStickPushIf(StickPush wanted) {
+	if (wanted == StickPush::None || g_rightStickPush != wanted) {
+		return false;
+	}
+	g_rightStickPush = StickPush::None;
+	return true;
+}
 
 // Direction currently held by any source (None when nothing is held): key
 // repeat keeps firing value messages long after the press edge.

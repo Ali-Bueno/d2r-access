@@ -26,6 +26,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 add_library(d2r-access SHARED
 	src/async_log.cpp
 	src/tab_reader.cpp
+	src/tooltip_text.cpp
 	src/text_field.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
@@ -287,7 +288,7 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -302,6 +303,10 @@ if(BUILD_TESTING)
 	target_include_directories(async-log-tests PRIVATE src)
 	target_compile_features(async-log-tests PRIVATE cxx_std_20)
 	add_test(NAME async-log COMMAND async-log-tests)
+	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(tooltip-text-tests PRIVATE src)
+	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)
+	add_test(NAME tooltip-text COMMAND tooltip-text-tests)
 	add_executable(tab-reader-tests tests/tab_reader_tests.cpp src/tab_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tab-reader-tests PRIVATE src)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
