@@ -16,6 +16,7 @@
 #include <D2RLPlugin/item.h>
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <span>
@@ -49,6 +50,8 @@ bool g_enabled = true, g_hinted = false;
 uint64_t g_nextOrb = 0, g_nextDurability = 0;
 Vitals::Meter g_life, g_mana;
 Vitals::Breakage g_breakage;
+// The last census of what the character is wearing. See LogWorn.
+std::string g_worn;
 
 int ReadPercent(std::span<const std::string> path) {
 	const auto orb = Vitals::ParseOrb(NativeWidgets::TextAt(HudPanel, path));
@@ -122,6 +125,34 @@ auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo
 	return D2RL::Inventory::IterationAction::Continue;
 }
 
+// What the character is wearing, logged only when it changes.
+//
+// The mod cannot write a save: character_saves.cpp opens a .d2s GENERIC_READ
+// and reads its 315-byte header, native_memory.h has no write primitive at
+// all, and every inventory call here is a read -- createItem, editItem,
+// destroyItem and executeLocalPlayerMove appear nowhere in this plugin. None
+// of that is a record, though. When the user's equipment went missing between
+// two loads there was nothing in the log to say when, because nothing had
+// ever logged what was worn. One line per change fixes that: the next time
+// anything changes, the log has the second it happened and everything the mod
+// was doing around it.
+void LogWorn(const D2RL::PluginContext* context, const std::vector<Vitals::Breakage::Item>& worn) {
+	std::vector<std::pair<int, uint32_t>> slots;
+	slots.reserve(worn.size());
+	for (const auto& item : worn) slots.emplace_back(item.bodyLocation, item.id);
+	std::sort(slots.begin(), slots.end());
+	std::string census;
+	for (const auto& [location, id] : slots) {
+		char entry[32]{};
+		std::snprintf(entry, sizeof(entry), "%d:%u ", location, id);
+		census += entry;
+	}
+	if (census == g_worn) return;
+	g_worn = census;
+	AsyncLog::InfoF(context, "[equip] worn %zu -- %s", slots.size(),
+		census.empty() ? "NOTHING EQUIPPED" : census.c_str());
+}
+
 void SweepDurability(const D2RL::PluginContext* context) {
 	const D2RL::InventoryService* inventory = nullptr;
 	if (!context || context->QueryService(&inventory)
@@ -132,15 +163,18 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	// thread. Reacquire the handle so a new session cannot leave stale state.
 	D2RL::PlayerHandle player = D2RL::InvalidPlayerHandle;
 	if (inventory->getLocalPlayer(context, &player) != D2RL::Inventory::Result::Success
-		|| player == D2RL::InvalidPlayerHandle) { g_breakage.Reset(); return; }
+		|| player == D2RL::InvalidPlayerHandle) { g_breakage.Reset(); g_worn.clear(); return; }
 	std::vector<Vitals::Breakage::Item> worn;
 	const D2RL::Inventory::ItemFilter filter{
 		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
 		.flags = 0,
 		.containerMask = D2RL::Items::ContainerBit(D2RL::Items::ItemContainer::Equipment),
 		.reserved = 0};
+	// A failed enumeration must not read as "wearing nothing", so the census
+	// is only taken when the game actually answered.
 	if (inventory->forEachInventoryItem(context, player, &filter, CollectWorn, &worn)
 		!= D2RL::Inventory::Result::Success) return;
+	LogWorn(context, worn);
 	const auto& labels = Strings::Current().equipmentSlots;
 	for (const int location : g_breakage.Sweep(worn)) {
 		const char* slot = location > 0 && static_cast<size_t>(location) < labels.size()
@@ -206,6 +240,7 @@ void Reset() {
 	g_life.Reset();
 	g_mana.Reset();
 	g_breakage.Reset();
+	g_worn.clear();
 	g_hinted = false;
 	g_nextOrb = 0;
 	g_nextDurability = 0;
