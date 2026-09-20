@@ -168,6 +168,11 @@ void Trace(const D2RL::PluginContext* context, const D2RL::SharedEvents::UiMessa
 void Say(const char* format, const std::string& subject, bool interrupt) {
 	char phrase[256] {};
 	std::snprintf(phrase, sizeof(phrase), format, subject.c_str());
+	// The window path's own line, in the words the player actually hears.
+	// [tabs] already records what the tab reader said; without this pair the
+	// log cannot show whether the same name was spoken twice, once by each
+	// path, which is what the "tabs read twice" report needs to settle.
+	D2RAccess::AsyncLog::InfoF(g_context, "[window] \"%s\"%s", phrase, interrupt ? " (interrupts)" : "");
 	ScreenReader::Speak(phrase, interrupt);
 }
 
