@@ -3,6 +3,9 @@
 #include "entity_layout.h"
 #include "ground_item_layout.h"
 #include "native_ground_items.h"
+#include "level_areas.h"
+#include "native_drlg.h"
+#include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "native_memory.h"
 #include "localization.h"
@@ -277,6 +280,25 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
+	}
+	// The other half of "which way out", and the only half a town has: the
+	// areas of the act that touch this one. Nothing joins them but the map, so
+	// there is no warp for the walk above to find -- see native_level_areas.h.
+	// The level id is the identity, so the same boundary is one landmark
+	// however the player moves along it.
+	std::vector<NativeLevelAreas::Area> areas;
+	const uintptr_t levelStruct = RoomLevel(room);
+	uint32_t here = 0;
+	if (distantExits && NativeDrlg::Available() && levelStruct && Peek(levelStruct + LevelId, here)
+		&& NativeLevelAreas::Read(room, areas)) {
+		for (const auto& crossing : LevelAreas::Neighbours(areas, here)) {
+			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
+				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
+				EntityRadar::Category::Exit};
+			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
+				entities.push_back(std::move(entity));
+		}
 	}
 	output = std::move(entities);
 	return true;
