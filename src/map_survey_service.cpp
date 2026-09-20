@@ -199,7 +199,7 @@ bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities)
 	for (const auto& item : snapshot.items) {
 		if (item.name.empty()) continue;
 		entities.push_back({item.id, EntityRadar::Kind::Item, {item.position.x, item.position.y}, item.name,
-			0, EntityRadar::Category::Item});
+			0, false, EntityRadar::Category::Item});
 	}
 	return true;
 }

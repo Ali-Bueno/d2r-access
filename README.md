@@ -184,6 +184,14 @@ dungeon entrances, town portals, red portals, waypoints, gateways) plays the
 supplied `portal` loop at its position through the same spatial mixer, and the
 entity scan names it after its destination. **Ctrl+P** toggles the exit loops;
 `access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
+
+**Containers:** chests, caskets, urns, barrels, crates, corpses and the other
+things you open for loot loop through the same mixer, so you can hear where they
+are; opening one silences it. What counts as a container comes from the game's
+own interaction handler, not from the name, so it holds in every language.
+**Ctrl+K** toggles them; `access-items chests-on|chests-off`, and `chests-dump`
+logs the verdict for everything currently in sight. See
+[container loops](docs/ground-items.md#container-loops).
 The user confirms that the ground-item loops are audible. The quieter level and landing-only
 start await a follow-up listening check.
 

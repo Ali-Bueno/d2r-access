@@ -1,5 +1,6 @@
 #include "ground_item_service.h"
 #include "ground_items.h"
+#include "entity_layout.h"
 #include "item_audio.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -20,7 +21,11 @@ RadarUi::State ui = RadarUi::State::Playing;
 GroundItems::Snapshot snapshot{1, {}, {{.id = 9, .position = {1, 1}, .name = "Poción", .baseName = "Poción"}}};
 std::vector<GroundItems::Voice> voices;
 std::vector<EntityRadar::Entity> entities{{7, EntityRadar::Kind::Npc, {2, 2}, "Kashya"}, {20, EntityRadar::Kind::Exit, {3, 3}, "Salida"}};
+// A casket the predicate flagged, and a shrine it did not.
+const EntityRadar::Entity casket{30, EntityRadar::Kind::Object, {2, 3}, "Ataúd", 0, true};
+const EntityRadar::Entity shrine{31, EntityRadar::Kind::Object, {2, 4}, "Santuario", 0, false};
 size_t Portals() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Portal; return n; }
+size_t Chests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Chest; return n; }
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener); *handle = listeners.size(); return D2RL::Lifecycle::Result::Success;
 }
@@ -64,6 +69,11 @@ bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& r
 	Check(!levelBearings, "nor the boundaries with the neighbouring areas");
 	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity"); result = entities; return readable;
 }
+bool CountContainerRows(size_t& rows, size_t& total) {
+	rows = EntityLayout::ContainerRowCount;
+	total = EntityLayout::ObjectRowCount;
+	return readable;
+}
 }
 namespace D2RAccess::ItemAudio {
 bool Start(const D2RL::PluginContext*) { return true; }
@@ -98,6 +108,28 @@ int main() {
 	Command("sound-on"); Check(voices.size() == 2, "loops can be reenabled");
 	Command("exits-off"); Check(voices.size() == 1 && Portals() == 0, "exit loops toggle independently of item loops");
 	Command("exits-on"); Check(voices.size() == 2 && Portals() == 1, "exit loops can be reenabled");
+	// Containers: the same unit read feeds them, they never speak, and they have
+	// their own switch.
+	entities.push_back(casket); entities.push_back(shrine);
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
+	Check(voices.size() == 3 && Chests() == 1, "a container loops, and the shrine beside it does not");
+	Check(speech.empty(), "containers are never spoken");
+	const int beforeContainers = reads;
+	Command("chests-off");
+	Check(Chests() == 0 && Portals() == 1 && voices.size() == 2, "the container switch leaves items and exits alone");
+	Command("chests-on"); Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Chests() == 1, "container loops can be reenabled");
+	Check(reads > beforeContainers, "and the world is still read");
+	Command("sound-off"); Command("exits-off"); Command("off");
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
+	Check(voices.size() == 1 && Chests() == 1 && speech.empty(), "container loops survive on their own with everything else off");
+	Command("chests-off"); Tick();
+	Check(voices.empty(), "with every cue off the service falls silent");
+	Command("on"); Command("sound-on"); Command("exits-on"); Command("chests-on");
+	entities.pop_back(); entities.pop_back();
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Chests() == 0, "an opened container disappears from the unit read and its loop stops");
+	speech.clear();
 	Command("off"); snapshot.items[0].id = 12; speech.clear(); Tick();
 	Check(voices.size() == 2 && speech.empty(), "loops work with proximity speech disabled");
 	readable = false; Tick(); Check(voices.empty(), "failed native snapshot clears audio"); readable = true;

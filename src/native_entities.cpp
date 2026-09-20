@@ -154,6 +154,18 @@ EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool op
 	return EntityRadar::Category::Interactable;
 }
 
+// A world object the player opens for loot. The game's own interaction handler
+// says which ones (objects.txt OperateFn), together with the shape every
+// container shares: the game lets it be clicked while it is shut and not once
+// it is open — which is also why an opened one stops being read at all, two
+// lines below. Handler values, and the proof that each offset here equals its
+// objects.txt column on all 587 rows: tools/objects_containers.py.
+bool IsContainer(uintptr_t row) {
+	uint8_t operate = 0, shut = 0, opened = 0;
+	if (!Peek(row + ObjOperateFn, operate) || !Peek(row + ObjSelectable + ObjectNeutral, shut)
+		|| !Peek(row + ObjSelectable + ObjectOpened, opened) || !shut || opened) return false;
+	return std::find(ContainerOperateFns.begin(), ContainerOperateFns.end(), operate) != ContainerOperateFns.end();
+}
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
@@ -163,6 +175,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)) return false;
+	entity.container = IsContainer(row);
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
@@ -285,7 +298,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	if (distantExits && NativeLevelExits::Read(room, exits)) for (const auto& exit : exits) {
 		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
 			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position),
-			EntityRadar::Category::Exit};
+			false, EntityRadar::Category::Exit};
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
@@ -305,7 +318,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		for (const auto& crossing : LevelAreas::Neighbours(areas, here)) {
 			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
 				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
-				EntityRadar::Category::Exit};
+				false, EntityRadar::Category::Exit};
 			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 				entities.push_back(std::move(entity));
@@ -318,5 +331,22 @@ bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>&
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings);
+}
+
+bool CountContainerRowsAt(uintptr_t tablesAddress, size_t& rows, size_t& total) {
+	uintptr_t objects = 0;
+	uint64_t count = 0;
+	if (!tablesAddress || !Peek(tablesAddress + Objects, objects) || !objects
+		|| !Peek(tablesAddress + ObjectCount, count) || count > MaxTableRows) return false;
+	rows = 0;
+	total = static_cast<size_t>(count);
+	for (size_t row = 0; row < total; ++row) rows += IsContainer(objects + row * ObjectStride);
+	return true;
+}
+
+bool CountContainerRows(size_t& rows, size_t& total) {
+	uintptr_t player = 0, tables = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) return false;
+	return CountContainerRowsAt(tables, rows, total);
 }
 }

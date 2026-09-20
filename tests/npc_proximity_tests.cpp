@@ -86,14 +86,15 @@ void LineOfSightOption() {
 	auto world = OpenWorld();
 	for (int x = 0; x < Size; ++x) Block(world, x, 34);
 	const std::vector<EntityRadar::Entity> npcs{Make(1, 30, 38, "Akara")};
-	Settings through;
-	through.range = 10;
-	Tracker a;
-	Check(Says(a.Update(world, npcs, through), 1), "by default a wall does not hide an NPC");
-	Settings seen = through;
-	seen.requireLineOfSight = true;
+	Settings seen;
+	seen.range = 10;
 	Tracker b;
-	Check(!b.Update(world, npcs, seen), "with line of sight required the wall hides it");
+	Check(seen.requireLineOfSight, "line of sight is required by default");
+	Check(!b.Update(world, npcs, seen), "by default a wall hides an NPC");
+	Settings through = seen;
+	through.requireLineOfSight = false;
+	Tracker a;
+	Check(Says(a.Update(world, npcs, through), 1), "with the option off the wall does not hide it");
 	world.rooms[0].cells[34 * Size + 30] = 0;
 	Check(Says(b.Update(world, npcs, seen), 1), "a doorway on the ray reveals it");
 }

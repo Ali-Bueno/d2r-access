@@ -48,18 +48,36 @@ bool MatchesLabel(std::string_view label, const std::vector<std::string>& names)
 	}
 	return false;
 }
-Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops) {
+namespace {
+// The nearest sources of one silent kind (exits, containers), de-duplicated by
+// unit id and capped, in the order they should claim voices.
+void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& result) {
+	std::vector<std::pair<double, const Item*>> nearest;
+	std::unordered_set<uint32_t> seen;
+	for (const auto& source : sources) {
+		const double distance = std::hypot(source.position.x - player.x, source.position.y - player.y);
+		if (std::isfinite(distance) && distance < AudibleRadius && seen.insert(source.id).second) nearest.emplace_back(distance, &source);
+	}
+	std::sort(nearest.begin(), nearest.end(), [](const auto& a, const auto& b) {
+		return a.first == b.first ? a.second->id < b.second->id : a.first < b.first;
+	});
+	size_t emitted = 0;
+	for (const auto& [distance, source] : nearest) {
+		if (result.voices.size() >= MaxVoices || emitted >= limit) break;
+		result.voices.push_back(Spatialize(*source, player));
+		++emitted;
+	}
+}
+}
+
+Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
-	std::vector<std::pair<double, const Item*>> exits;
-	std::unordered_set<uint32_t> seenExits;
-	for (const auto& landmark : snapshot.landmarks) {
-		const double distance = std::hypot(landmark.position.x - snapshot.player.x, landmark.position.y - snapshot.player.y);
-		if (std::isfinite(distance) && distance < AudibleRadius && seenExits.insert(landmark.id).second) exits.emplace_back(distance, &landmark);
-	}
-	std::sort(exits.begin(), exits.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-	for (const auto& [distance, landmark] : exits)
-		if (result.voices.size() < MaxVoices) result.voices.push_back(Spatialize(*landmark, snapshot.player));
+	// Exits first and without a cap: losing the way out costs more than any
+	// loot. Containers take at most their share, so a crypt full of caskets
+	// still leaves voices for the items on the floor.
+	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
+	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;
 	std::unordered_set<uint32_t> present;
 	for (const auto& item : snapshot.items) {

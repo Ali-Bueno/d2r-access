@@ -46,8 +46,8 @@ template<size_t N> struct Memory {
 };
 constexpr size_t UnitSize = 0x200, PathSize = 0x100, RoomSize = 0xC0;
 struct Fixture {
-	Memory<UnitSize> player, npc, enemy, chest, door, shrine, warp, walkWarp, portal, waypoint, lair;
-	Memory<PathSize> playerPath, npcPath, enemyPath, chestPath, doorPath, shrinePath, npcData, enemyData, shrineData, shrineRecord;
+	Memory<UnitSize> player, npc, enemy, chest, door, shrine, warp, walkWarp, portal, waypoint, lair, casket;
+	Memory<PathSize> playerPath, npcPath, enemyPath, chestPath, doorPath, shrinePath, casketPath, npcData, enemyData, shrineData, shrineRecord;
 	Memory<PathSize> warpPath, walkWarpPath, portalPath, waypointPath, lairPath, portalData;
 	Memory<RoomSize> room, otherRoom;
 	Memory<0x100> roomEx, destRoomEx;
@@ -57,13 +57,13 @@ struct Fixture {
 	Memory<LevelStride * 3> levels; // row 1: Cold Plains; row 2: Duriel's Lair
 	Memory<0x1600> tables;
 	Memory<MonStatStride * 2> monsters;
-	Memory<ObjectStride * 6> objects;
+	Memory<ObjectStride * 7> objects;
 	Memory<64> uniqueName;
 	Fixture() {
 		player.At<uint32_t>(GroundItemLayout::UnitId, 42); player.At(GroundItemLayout::UnitPath, playerPath.Address());
 		playerPath.At<uint32_t>(0, 100u << 16); playerPath.At<uint32_t>(4, 100u << 16); playerPath.At(PathRoom, room.Address());
 		tables.At(MonStats, monsters.Address()); tables.At<uint64_t>(MonStatCount, 2);
-		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 6);
+		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 7);
 		tables.At(Levels, levels.Address()); tables.At<uint64_t>(LevelCount, 3);
 		levels.Text(LevelStride + LevelNameKey, "Cold Plains"); levels.Text(LevelStride + LevelWarpKey, "To The Cold Plains");
 		levels.Text(LevelStride * 2 + LevelNameKey, "Duriel's Lair"); levels.Text(LevelStride * 2 + LevelWarpKey, "To Duriel's Lair");
@@ -83,6 +83,11 @@ struct Fixture {
 		objects.Text(ObjectStride * 4 + ObjNameKey, "Waypoint"); objects.At<uint8_t>(ObjectStride * 4 + ObjSubClass, SubClassWaypoint);
 		objects.At<uint8_t>(ObjectStride * 4 + ObjSelectable + ObjectNeutral, 1);
 		objects.Text(ObjectStride * 5 + ObjNameKey, "Duriel's Lair"); objects.At<uint8_t>(ObjectStride * 5 + ObjSelectable + ObjectNeutral, 1);
+		// Row 6: a casket — the container shape, clickable while shut and not once
+		// open, on one of the game's own container handlers.
+		objects.Text(ObjectStride * 6 + ObjNameKey, "Casket");
+		objects.At<uint8_t>(ObjectStride * 6 + ObjSelectable + ObjectNeutral, 1);
+		objects.At<uint8_t>(ObjectStride * 6 + ObjOperateFn, ContainerOperateFns.front());
 		// Warp nodes of the room: Id 3 leads to level 1, Id 7 is a walk-through tile.
 		room.At(RoomExtended, roomEx.Address()); roomEx.At(RoomWarpNodes, warpNode.Address());
 		warpNode.At(WarpNodeDestination, destRoomEx.Address()); warpNode.At(WarpNodeNext, walkNode.Address());
@@ -103,6 +108,8 @@ struct Fixture {
 		portal.At(GroundItemLayout::UnitData, portalData.Address()); portalData.At<uint8_t>(ObjPortalLevel, 1);
 		Object(waypoint, waypointPath, 4, 15, 130, 100);
 		Object(lair, lairPath, 5, 16, 100, 130);
+		Object(casket, casketPath, 6, 17, 102, 106);
+		lair.At(GroundItemLayout::UnitNext, casket.Address());
 		shrine.At(GroundItemLayout::UnitNext, warp.Address()); warp.At(GroundItemLayout::UnitNext, walkWarp.Address());
 		walkWarp.At(GroundItemLayout::UnitNext, portal.Address()); portal.At(GroundItemLayout::UnitNext, waypoint.Address());
 		waypoint.At(GroundItemLayout::UnitNext, lair.Address());
@@ -137,7 +144,7 @@ struct Fixture {
 int main() {
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
-	Check(f.Read(entities) && entities.size() == 9, "npc, enemy, three objects, one exit warp and three exit objects are copied");
+	Check(f.Read(entities) && entities.size() == 10, "npc, enemy, four objects, one exit warp and three exit objects are copied");
 	const auto* warp = f.Find(entities, 12);
 	Check(warp && warp->kind == EntityRadar::Kind::Exit && warp->name == "A las Llanuras Frías", "a level exit is named after its destination like the hover label");
 	Check(warp->position.x == 120 && warp->position.y == 100, "warp position comes from the static path");
@@ -174,6 +181,20 @@ int main() {
 	Check(f.Read(entities) && f.Find(entities, 8)->name == "Zombi el Voraz", "the game's cached composed name wins over the base name");
 	f.enemyData.At<uintptr_t>(MonCachedName, 0);
 
+	const auto* casket = f.Find(entities, 17);
+	Check(casket && casket->container && casket->kind == EntityRadar::Kind::Object,
+		"a container is flagged for the chest loop and stays an ordinary object for everything else");
+	for (uint32_t id : {9u, 10u, 11u, 14u, 15u, 16u})
+		Check(f.Find(entities, id) && !f.Find(entities, id)->container,
+			"stashes, doors, shrines, portals, waypoints and level gates are not containers");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && !f.Find(entities, 17), "an opened container is dropped, so its loop stops");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
+	f.objects.At<uint8_t>(ObjectStride * 6 + ObjOperateFn, 2); // the shrine handler
+	Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->container,
+		"the same object on another handler is not a container");
+	f.objects.At<uint8_t>(ObjectStride * 6 + ObjOperateFn, ContainerOperateFns.front());
+
 	f.door.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	Check(f.Read(entities) && f.Find(entities, 10)->name == "Puerta abierta", "opened door changes caption");
 	f.door.At<uint32_t>(GroundItemLayout::UnitMode, 5);
@@ -208,7 +229,7 @@ int main() {
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 2);
 	Check(f.Read(entities) && !f.Find(entities, 8), "class beyond the table count is rejected");
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
-	Check(f.Read(entities) && entities.size() == 9, "fixture restored");
+	Check(f.Read(entities) && entities.size() == 10, "fixture restored");
 	Check(!NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 41, 7, entities), "another player id is refused");
 	f.enemy.At(GroundItemLayout::UnitNext, f.enemy.Address());
 	Check(!f.Read(entities), "a unit list cycle fails instead of looping");
@@ -228,21 +249,21 @@ int main() {
 	farRoom.At<int>(RoomTileX, 100); farRoom.At<int>(RoomTileY, 200);
 	preset.At<uint32_t>(PresetType, WarpType); preset.At<uint32_t>(PresetClass, 3);
 	preset.At<int>(PresetX, 20); preset.At<int>(PresetY, 0);
-	Check(distant.Read(entities) && entities.size() == 9, "proximity and loop readers retain only native nearby units");
+	Check(distant.Read(entities) && entities.size() == 10, "proximity and loop readers retain only native nearby units");
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
-		&& entities.size() == 10 && entities.back().name == "A las Llanuras Frías" && entities.back().levelExitId,
+		&& entities.size() == 11 && entities.back().name == "A las Llanuras Frías" && entities.back().levelExitId,
 		"directional scan opts into named distant preset exits");
 	farRoom.At<int>(RoomTileX, 20); farRoom.At<int>(RoomTileY, 20);
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
-		&& entities.size() == 9, "loaded warp and same-position preset merge into one target");
+		&& entities.size() == 10, "loaded warp and same-position preset merge into one target");
 	// Boundaries with the neighbouring areas are level-wide, so they are a
 	// second opt-in of their own: the short-range scan asks for distant warps
 	// without them. Without a DRLG the reader reports none either way, which
 	// is the fail-closed half of the same rule.
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true, false)
-		&& entities.size() == 9, "distant warps do not bring the level boundaries with them");
+		&& entities.size() == 10, "distant warps do not bring the level boundaries with them");
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true, true)
-		&& entities.size() == 9, "and asking for boundaries adds none when the DRLG cannot be read");
+		&& entities.size() == 10, "and asking for boundaries adds none when the DRLG cannot be read");
 	// A level passage puts the far side's room in this room's neighbour list.
 	Fixture across;
 	Memory<0x200> nearLevel, farLevel;

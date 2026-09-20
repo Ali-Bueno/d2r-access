@@ -112,6 +112,8 @@ struct Table {
 	const char* itemSoundsDisabled;
 	const char* exitSoundsEnabled; // level exit loop toggles
 	const char* exitSoundsDisabled;
+	const char* chestSoundsEnabled; // container loop toggles
+	const char* chestSoundsDisabled;
 	const char* beaconCleared;
 	const char* beaconUnavailable;
 	const char* beaconNothing;
@@ -155,7 +157,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
-		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
+		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
+		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,

@@ -1,6 +1,7 @@
 #include "async_log.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
+#include "entity_radar_service.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "ground_item_service.h"
@@ -36,6 +37,9 @@ std::string g_help, g_spokenHelp, g_helpContext;
 // The focus the last real readout described, so a hint can tell "nothing new
 // to say here" from "nothing said about here yet".
 std::string g_describedFocus;
+// The world label last dropped for being out of sight, so the log records each
+// one once instead of on every UI poll.
+std::string g_hiddenLabel;
 std::optional<bool> g_holdingItem;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
@@ -315,6 +319,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout = {};
 		renderedDescription = false;
 	}
+	// The game targets through walls, so either world label — the monster health
+	// plate and the world target tooltip — can name something in the next room,
+	// which the right-stick scan would never list. Those are dropped and the
+	// reader is left with nothing to say, so the same entity announces itself as
+	// soon as it is really in sight.
+	if (!focus.panel && !readout.Empty()
+		&& EntityRadarService::LabelSight(readout.body) == TargetSight::Sight::Hidden) {
+		if (g_hiddenLabel != readout.body) {
+			g_hiddenLabel = readout.body;
+			AsyncLog::InfoF(context, "[interaction] behind a wall, not spoken -> \"%s\"", readout.body.c_str());
+		}
+		readout = {};
+		renderedDescription = false;
+	} else if (!readout.Empty()) g_hiddenLabel.clear();
 	if (inventory != g_inventory) {
 		if (g_inventory) ScreenReader::Stop();
 		g_reader.Reset();
@@ -396,6 +414,7 @@ void Reset() {
 	g_spokenHelp.clear();
 	g_describedFocus.clear();
 	g_helpContext.clear();
+	g_hiddenLabel.clear();
 	g_holdingItem.reset();
 	g_slotLocations.clear();
 	g_detail.clear();

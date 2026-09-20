@@ -92,6 +92,8 @@ inline constexpr Table zhCN {
 	.itemSoundsDisabled = "物品音效已关闭",
 	.exitSoundsEnabled = "出口音效已开启",
 	.exitSoundsDisabled = "出口音效已关闭",
+	.chestSoundsEnabled = "容器音效已开启",
+	.chestSoundsDisabled = "容器音效已关闭",
 	.beaconCleared = "已取消引导",
 	.beaconUnavailable = "引导不可用",
 	.beaconNothing = "未选择目标。请先扫描目标",

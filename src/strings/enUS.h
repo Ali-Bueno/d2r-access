@@ -92,6 +92,8 @@ inline constexpr Table enUS {
 	.itemSoundsDisabled = "Item sounds disabled",
 	.exitSoundsEnabled = "Exit sounds enabled",
 	.exitSoundsDisabled = "Exit sounds disabled",
+	.chestSoundsEnabled = "Container sounds enabled",
+	.chestSoundsDisabled = "Container sounds disabled",
 	.beaconCleared = "Guidance cancelled",
 	.beaconUnavailable = "Guidance unavailable",
 	.beaconNothing = "No target selected. Scan a target first",

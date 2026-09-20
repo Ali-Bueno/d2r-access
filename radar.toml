@@ -13,7 +13,7 @@ enabled = true
 # Reach in the entity scan's unit (collision subtiles, about one metre each).
 range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
-line_of_sight = false
+line_of_sight = true
 
 # One-shot: write the game's whole mapped image next to the plugin at startup,
 # for offline analysis (about 60-70 MB, written once and skipped if it is
@@ -28,3 +28,22 @@ enabled = false
 # game, and the screens worth probing are the ones where it cannot.
 [probe]
 enabled = false
+
+# What the game puts on the monster health plate and the world target label. Its
+# own targeting reaches through walls, so the name of a monster, object or NPC in
+# the next room would otherwise be read out while the entity scan, which needs a
+# line of sight, does not list it at all.
+[target]
+# true = speak a HUD label only when the entity it names is in sight;
+# false = speak every label, as before this gate existed.
+line_of_sight = true
+# How far a bearer of that name may stand and still be the one the label means,
+# in collision subtiles. The game labels only what is on screen, and a legacy
+# 800x600 screen spans about forty of them.
+reach = 40
+
+# Containers you open for loot — chests, caskets, urns, barrels, corpses — get a
+# looping cue like the items on the floor: louder as you approach, placed in
+# stereo. Opening one silences it. Ctrl+K toggles this for the current run.
+[chests]
+enabled = true

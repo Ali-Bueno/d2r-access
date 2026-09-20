@@ -92,6 +92,8 @@ inline constexpr Table deDE {
 	.itemSoundsDisabled = "Gegenstandsgeräusche deaktiviert",
 	.exitSoundsEnabled = "Ausgangsgeräusche aktiviert",
 	.exitSoundsDisabled = "Ausgangsgeräusche deaktiviert",
+	.chestSoundsEnabled = "Behältergeräusche aktiviert",
+	.chestSoundsDisabled = "Behältergeräusche deaktiviert",
 	.beaconCleared = "Zielführung abgebrochen",
 	.beaconUnavailable = "Zielführung nicht verfügbar",
 	.beaconNothing = "Kein Ziel ausgewählt. Zuerst ein Ziel scannen",

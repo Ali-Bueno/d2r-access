@@ -1,4 +1,5 @@
 #include "character_stats.h"
+#include "entity_radar_service.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
@@ -18,6 +19,13 @@
 namespace D2RAccess::GroundItemService {
 bool ownsLabel = false;
 bool OwnsWorldLabel(std::string_view label) { return ownsLabel && label.starts_with("Poción"); }
+}
+
+namespace D2RAccess::EntityRadarService {
+std::string hiddenLabel;
+TargetSight::Sight LabelSight(std::string_view label) {
+	return !hiddenLabel.empty() && label == hiddenLabel ? TargetSight::Sight::Hidden : TargetSight::Sight::Unknown;
+}
 }
 
 namespace {
@@ -175,10 +183,18 @@ int main() {
 	Check(speech.empty() && tracked == 0 && InteractionReader::Repeat().empty(), "NPC conversations suspend tooltip capture and clear old world labels");
 	conversation = false; Tooltip("Akara"); Settle();
 	Check(speech == std::vector<std::string>{"Akara"}, "NPC name can use the native target tooltip");
+	ClearSpeech();
+	EntityRadarService::hiddenLabel = "Zombi"; Tooltip("Zombi"); Settle();
+	Check(speech.empty(), "a world target the walls hide is not spoken");
+	EntityRadarService::hiddenLabel.clear(); Settle();
+	Check(speech == std::vector<std::string>{"Zombi"}, "the same target speaks once it comes into sight");
 	ClearSpeech(); tooltip = {};
 	target = {40, 0, "HUDMonsterHealth", UiText::Surface::Target, {
 		{41, -1, UiText::Kind::Text, "Name", "TextBoxWidget", "Charsi"},
 	}};
+	EntityRadarService::hiddenLabel = "Charsi"; Settle();
+	Check(speech.empty(), "the monster health plate obeys the same gate");
+	EntityRadarService::hiddenLabel.clear();
 	Settle();
 	Check(speech == std::vector<std::string>{"Charsi"}, "HUD target-name text covers targets without a tooltip");
 	ClearSpeech(); focus = {50, 51}; Settle();

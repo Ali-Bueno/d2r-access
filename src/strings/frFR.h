@@ -92,6 +92,8 @@ inline constexpr Table frFR {
 	.itemSoundsDisabled = "Sons des objets désactivés",
 	.exitSoundsEnabled = "Sons des sorties activés",
 	.exitSoundsDisabled = "Sons des sorties désactivés",
+	.chestSoundsEnabled = "Sons des conteneurs activés",
+	.chestSoundsDisabled = "Sons des conteneurs désactivés",
 	.beaconCleared = "Guidage annulé",
 	.beaconUnavailable = "Guidage indisponible",
 	.beaconNothing = "Aucune cible sélectionnée. Scannez d’abord une cible",

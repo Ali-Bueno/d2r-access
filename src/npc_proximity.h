@@ -22,7 +22,10 @@ struct Settings {
 	// An announced NPC only counts as gone once it is this far beyond range,
 	// so pacing on the boundary never repeats it.
 	double releaseMargin = 3;
-	bool requireLineOfSight = false; // terrain line of sight before an NPC counts as seen
+	// An NPC counts as seen only with a clear terrain line of sight: hearing a
+	// name through a wall reads as "he is over there", and the player then walks
+	// into the wall. Set false to announce NPCs the walls hide.
+	bool requireLineOfSight = true;
 	uint64_t intervalMs = 500; // poll period; announcements are diff-gated, not periodic
 };
 struct Announcement { EntityRadar::Entity entity; double distance = 0; Radar::Direction direction = Radar::Direction::Up; };
