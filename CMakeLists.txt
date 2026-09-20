@@ -41,6 +41,7 @@ add_library(d2r-access SHARED
 	src/keyboard_pad.cpp
 	src/modal_reader.cpp
 	src/input_stack.cpp
+	src/key_claim.cpp
 	src/xinput_hook.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp

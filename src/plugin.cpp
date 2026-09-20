@@ -30,6 +30,7 @@
 #include "vitals_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
+#include "key_claim.h"
 #include "xinput_hook.h"
 #include "widgets.h"
 
@@ -310,6 +311,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (D2RAccess::RadarConfig::ReadEnabled(context, "[keyboard]").value_or(false)) {
 		D2RAccess::XInputHook::SetInjection(context, true);
 	}
+	// After the hook, because the claim only consumes while that pad injects.
+	(void)D2RAccess::KeyClaim::Register(context);
 	// Same reason, and one more: arming the image dump from the console is
 	// impossible once the keyboard pad is on, because controller mode disables
 	// the keyboard the console's own hotkey is typed on.
@@ -331,6 +334,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::XInputHook::Remove(nullptr);
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::KeyClaim::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();
