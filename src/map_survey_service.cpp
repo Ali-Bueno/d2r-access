@@ -7,6 +7,7 @@
 #include "layout_check.h"
 #include "native_drlg.h"
 #include "native_entities.h"
+#include "native_ground_items.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
 #include "room_catalogue.h"
@@ -61,6 +62,8 @@ const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 bool                       g_supported = false;
+// Ground loot is optional: the catalogue is worth having without it.
+bool                       g_items = false;
 uint64_t                   g_nextObserve = 0;
 
 // What the player is currently pointed at. Kept by identity, not index, so a
@@ -143,6 +146,24 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
 }
 
+// Everything the catalogue tracks: the verified unit reader, plus the ground
+// loot the proximity scan already reads. Items are entities like any other
+// here -- the registry remembers one first seen across the level, and drops it
+// once the map can see its place and it has gone, which is what picking it up
+// looks like. Both observation points feed through this, so an item catalogued
+// on demand is not forgotten again by the next background pass.
+bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities) {
+	if (!NativeEntities::Read(state.player, state.session, entities, true)) return false;
+	GroundItems::Snapshot snapshot;
+	if (!g_items || !NativeGroundItems::Read(state.player, state.session, snapshot)) return true;
+	for (const auto& item : snapshot.items) {
+		if (item.name.empty()) continue;
+		entities.push_back({item.id, EntityRadar::Kind::Item, {item.position.x, item.position.y}, item.name,
+			0, EntityRadar::Category::Item});
+	}
+	return true;
+}
+
 // Reads the world fresh: the answer must reflect where the player is standing
 // now, not where they were when the registry was last fed.
 bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
@@ -157,7 +178,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
 	std::vector<EntityRadar::Entity> entities;
-	if (NativeEntities::Read(state.player, state.session, entities, true)) {
+	if (Collect(state, entities)) {
 		g_registry.Observe(state.level, entities, grid);
 	}
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
@@ -263,6 +284,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context   = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
+	g_items = NativeGroundItems::Initialize(context);
 	// The map seed sharpens room memory but nothing depends on it: a failed
 	// check leaves the room rectangles as the only identity, which is still
 	// enough to tell one layout from another.
@@ -326,7 +348,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
-		|| !NativeEntities::Read(state.player, state.session, entities, true)) {
+		|| !Collect(state, entities)) {
 		return;
 	}
 	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
