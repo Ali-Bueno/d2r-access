@@ -54,6 +54,14 @@ std::string Load(const D2RL::PluginContext* context) {
 	if (terminator != std::string::npos) config.resize(terminator);
 	return config;
 }
+// Every section reads the same way: parse it, warn once if the file is
+// malformed, fall back to the compiled defaults.
+template <class Section, class Parser>
+Section ReadSection(const D2RL::PluginContext* context, Parser parse, const char* warning) {
+	const auto result = parse(Load(context));
+	if (!result.valid) AsyncLog::Warn(context, warning);
+	return result.valid ? result : Section{};
+}
 }
 Result Parse(std::string_view config) {
 	Result result;
@@ -75,9 +83,7 @@ Result Parse(std::string_view config) {
 	return valid ? result : Result{.valid = false};
 }
 Result Read(const D2RL::PluginContext* context) {
-	const auto result = Parse(Load(context));
-	if (!result.valid) AsyncLog::Warn(context, "[radar] Invalid [radar] settings; using compiled defaults.");
-	return result.valid ? result : Result{};
+	return ReadSection<Result>(context, Parse, "[radar] Invalid [radar] settings; using compiled defaults.");
 }
 
 Npc ParseNpc(std::string_view config) {
@@ -100,8 +106,43 @@ Npc ParseNpc(std::string_view config) {
 	return valid ? result : Npc{.valid = false};
 }
 Npc ReadNpc(const D2RL::PluginContext* context) {
-	const auto result = ParseNpc(Load(context));
-	if (!result.valid) AsyncLog::Warn(context, "[npc] Invalid [npc] settings; using compiled defaults.");
-	return result.valid ? result : Npc{};
+	return ReadSection<Npc>(context, ParseNpc, "[npc] Invalid [npc] settings; using compiled defaults.");
+}
+
+Target ParseTarget(std::string_view config) {
+	Target result;
+	const bool valid = ForEachKey(config, "[target]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "line_of_sight" && key != "reach") return Line::Ignored;
+		if (!value) return Line::Invalid;
+		if (key == "reach") {
+			double reach = 0;
+			if (result.reach || !ParseNumber(*value, reach) || reach <= 0) return Line::Invalid;
+			result.reach = reach;
+		} else {
+			bool flag = false;
+			if (result.lineOfSight || !ParseBool(*value, flag)) return Line::Invalid;
+			result.lineOfSight = flag;
+		}
+		return Line::Accepted;
+	});
+	return valid ? result : Target{.valid = false};
+}
+Target ReadTarget(const D2RL::PluginContext* context) {
+	return ReadSection<Target>(context, ParseTarget, "[target] Invalid [target] settings; using compiled defaults.");
+}
+
+Chests ParseChests(std::string_view config) {
+	Chests result;
+	const bool valid = ForEachKey(config, "[chests]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled") return Line::Ignored;
+		bool flag = false;
+		if (!value || result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
+		result.enabled = flag;
+		return Line::Accepted;
+	});
+	return valid ? result : Chests{.valid = false};
+}
+Chests ReadChests(const D2RL::PluginContext* context) {
+	return ReadSection<Chests>(context, ParseChests, "[chests] Invalid [chests] settings; using compiled defaults.");
 }
 }

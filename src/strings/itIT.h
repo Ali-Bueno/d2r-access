@@ -85,6 +85,8 @@ inline constexpr Table itIT {
 	.itemSoundsDisabled = "Suoni degli oggetti disattivati",
 	.exitSoundsEnabled = "Suoni delle uscite attivati",
 	.exitSoundsDisabled = "Suoni delle uscite disattivati",
+	.chestSoundsEnabled = "Suoni dei contenitori attivati",
+	.chestSoundsDisabled = "Suoni dei contenitori disattivati",
 	.beaconCleared = "Guida annullata",
 	.beaconUnavailable = "Guida non disponibile",
 	.beaconNothing = "Nessun obiettivo selezionato. Scansiona prima un obiettivo",

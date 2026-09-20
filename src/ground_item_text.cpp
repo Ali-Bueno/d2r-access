@@ -39,4 +39,8 @@ const char* ExitSoundEnabled(bool enabled) {
 	const auto& t = Strings::Current();
 	return enabled ? t.exitSoundsEnabled : t.exitSoundsDisabled;
 }
+const char* ChestSoundEnabled(bool enabled) {
+	const auto& t = Strings::Current();
+	return enabled ? t.chestSoundsEnabled : t.chestSoundsDisabled;
+}
 }

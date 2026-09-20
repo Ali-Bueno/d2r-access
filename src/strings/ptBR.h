@@ -85,6 +85,8 @@ inline constexpr Table ptBR {
 	.itemSoundsDisabled = "Sons de itens desativados",
 	.exitSoundsEnabled = "Sons de saídas ativados",
 	.exitSoundsDisabled = "Sons de saídas desativados",
+	.chestSoundsEnabled = "Sons de recipientes ativados",
+	.chestSoundsDisabled = "Sons de recipientes desativados",
 	.beaconCleared = "Guia cancelada",
 	.beaconUnavailable = "Guia indisponível",
 	.beaconNothing = "Nenhum alvo selecionado. Primeiro encontre um alvo com o scanner",

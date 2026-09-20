@@ -23,4 +23,25 @@ struct Npc {
 };
 Npc ParseNpc(std::string_view config);
 Npc ReadNpc(const D2RL::PluginContext* context);
+
+// The documented [target] keys of the HUD sight gate (TargetSight::Settings):
+// line_of_sight decides whether a label the game puts on something behind a
+// wall is spoken, reach is how far a bearer of that name may stand and still
+// be the one meant, in collision subtiles.
+struct Target {
+	std::optional<bool> lineOfSight;
+	std::optional<double> reach;
+	bool valid = true;
+};
+Target ParseTarget(std::string_view config);
+Target ReadTarget(const D2RL::PluginContext* context);
+
+// The documented [chests] key of the container proximity loop. Ctrl+K toggles
+// it for the current run; this is only the state it starts in.
+struct Chests {
+	std::optional<bool> enabled;
+	bool valid = true;
+};
+Chests ParseChests(std::string_view config);
+Chests ReadChests(const D2RL::PluginContext* context);
 }

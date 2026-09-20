@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Container loops — 2026-09-18
+
+Chests, caskets, urns, barrels and corpses loop through the item mixer. Ctrl+K,
+`access-items chests-on|chests-off|chests-dump`, `[chests]` in `radar.toml`. Opening one silences
+it: the game stops letting it be clicked. Container rows come from the game's own `objects.txt`
+`OperateFn`, and `chests-dump` checks the live row counts against the tripwire in
+`src/entity_layout.h`. `docs/ground-items.md`.
+
+**Next step:** `chests-dump` in the Rogue Encampment, Cold Plains and the Crypt, against rooms whose
+contents are known; open one and hear the loop stop; judge the 0.59 s sample's texture.
+
+## HUD labels gated by sight — 2026-09-18
+
+The monster health plate and the world target label are dropped when every entity of that name
+within reach is behind a wall, so they agree with the right-stick scan. The NPC announcer defaults
+to `line_of_sight = true` for the same reason. `[target]` in `radar.toml`. `docs/target-sight.md`.
+
+**Next step:** controller check in the Den — names in the next room stay silent until the doorway
+opens, `[interaction] behind a wall` in the log. Watch for the opposite failure: our line of sight
+uses terrain walkability, so a see-through fence hides what is behind it until `BLOCK_LOS` is
+verified, and the camp is fenced.
+
 ## Loader 1.3.0-beta — issue #1 — 2026-09-17 (live-verified)
 
 A collaborator reported the whole native layer down on **D2RLoader 1.3.0-beta**, the only build
@@ -389,7 +411,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
-| Friendly NPC announcer | placeholder units silenced 2026-09-16; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
+| Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | wip — 2026-09-16 redesign installed, incl. 18:10 forensic fix; live listening pending | One confirm-by-travel state machine per direction; connected-passage scan is now the only classifier, with 1-cell lateral tolerance (was 3), openDepth 10/close 7 (was 8/5), clutter removal capped at 5 cells (was up to 20), and `stick=` logged per cue. Four screen-cardinal directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried live and reverted after the user listened. `docs/radar-redesign.md` (current model); `docs/sonar-radar.md` and its follow-ups are superseded history. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
@@ -397,7 +419,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Radar cue delivery log | wip — log format updated for the redesign | `[radar-audio]` still retains ID/origin through queue, submission, completion, cancellation or drop (no retries now); `[radar-direction]`/`[radar-state]` replace the removed opening-hold/wall/guidance/reference lines. Live validation of the new log pending. `docs/radar-redesign.md` (current fields), `docs/radar-event-log.md` (superseded) |
 | Radar / footstep automated tests | done (local) | Six radar suites / 1439 checks against the confirm-by-travel engine (state machine, corridor stability, recorded camp/return grids, snapshot RLE, audio, readout), plus footsteps. Expectations derived from geometry, named constants and captures; timing printed, never asserted. |
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
-| Highlighted NPC/object labels | done — stash and Charsi confirmed by user | Shared primary tooltip capture plus visible target-name HUD. `docs/native-tooltips.md` |
+| Highlighted NPC/object labels | wip — sight gate built 2026-09-18, live check pending | Shared primary tooltip capture plus visible target-name HUD, now dropped when every entity of that name within reach is behind a wall. `[target]` in `radar.toml`. `docs/native-tooltips.md`, `docs/target-sight.md` |
+| Container loops | built 2026-09-18, live check pending | Chests/caskets/urns/barrels/corpses through the item mixer; opening one silences it. Rows from `objects.txt` `OperateFn`, tripwire checked by `chests-dump`. Ctrl+K, `[chests]` in `radar.toml`. `docs/ground-items.md` |
 | Character panel (attributes, life, resistances) | built and installed 2026-09-17 - live check pending | Every `<name>Title` row reads its label and value through its focusable `Tooltip` child; header (panel, character, class, level) spoken once on entry. Mini-menu opener buttons named from the game's `minipanel*` keys via the generator. `character-stats` suite. `docs/character-panel.md` |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
@@ -406,7 +429,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
 | Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |
-| Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Six supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
+| Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Eight supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 

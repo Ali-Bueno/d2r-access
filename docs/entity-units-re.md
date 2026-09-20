@@ -198,6 +198,7 @@ return FUN_1405f4a50(id);
 | `+0x12F` bit0 | `Lockable` (59 rows) | byte-exact |
 | `+0x131` / `+0x133` | `Restore` / `Sync` | byte-exact |
 | `+0x15D` / `+0x15E` | `PopulateFn` / `OperateFn` | byte-exact |
+| `+0x15E` values | `OperateFn` is the **index of the interaction handler**. Containers: 1 caskets/sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7 barrels, 14 crates/coffins/corpses/logs, 30 exploding chest, 39-41 and 57-59 act-specific chests, 68 evil urn. With "selectable while shut, not once open" that is **165 rows, 78 distinct keys**. `PopulateFn` is *not* the container signal: value 3 alone covers 261 rows including beds, candles and banners. | grouped the rows of the extracted `objects.txt` by value and read the `Name` keys per group; `tools/objects_containers.py` reproduces it and re-proves every offset in this table against its named column on all 587 rows |
 | `+0x163` bit0 | `OpenWarp` (4 rows) | byte-exact |
 | `+0x164` | uint16 `AutoMap` | exact |
 

@@ -5,7 +5,9 @@ thumbstick in a screen direction and the plugin speaks the nearest visible
 entity in that quarter of the plane with its distance; push the same direction
 again to hear the next nearest, wrapping around. It never scans on its own and
 never speaks while moving; every announcement is a response to a push. The
-automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`.
+automatic counterpart for friendly NPCs only is `docs/npc-proximity.md`; the
+labels the game itself puts on screen obey this scan's line of sight through
+`docs/target-sight.md`.
 
 ## Behaviour
 

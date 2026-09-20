@@ -61,6 +61,7 @@ add_library(d2r-access SHARED
 	src/entity_radar.cpp
 	src/entity_radar_service.cpp
 	src/npc_proximity.cpp
+	src/target_sight.cpp
 	src/native_entities.cpp
 	src/native_level_exits.cpp
 	src/native_ui.cpp
@@ -184,6 +185,10 @@ if(BUILD_TESTING)
 	target_include_directories(npc-proximity-tests PRIVATE src)
 	target_compile_features(npc-proximity-tests PRIVATE cxx_std_20)
 	add_test(NAME npc-proximity COMMAND npc-proximity-tests)
+	add_executable(target-sight-tests tests/target_sight_tests.cpp src/target_sight.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(target-sight-tests PRIVATE src)
+	target_compile_features(target-sight-tests PRIVATE cxx_std_20)
+	add_test(NAME target-sight COMMAND target-sight-tests)
 	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-entities-tests PRIVATE src)
