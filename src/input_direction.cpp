@@ -70,6 +70,18 @@ FaceButton g_lastFaceButton       = FaceButton::None;
 StickPush  g_rightStickPush       = StickPush::None;
 ULONGLONG  g_lastFaceButtonTickMs = 0;
 
+// The last push to be resolved, waiting to be logged. A claimant name means a
+// reader took it; null means a later push arrived while this one was still
+// pending, which is the only way a push is lost outright.
+StickPush   g_resolvedPush     = StickPush::None;
+const char* g_resolvedClaimant = nullptr;
+
+void ResolvePush(StickPush push, const char* claimant) {
+	if (push == StickPush::None) return;
+	g_resolvedPush     = push;
+	g_resolvedClaimant = claimant;
+}
+
 void RecordEdge(Horizontal direction) {
 	g_lastHorizontal       = direction;
 	g_lastHorizontalTickMs = GetTickCount64();
@@ -206,6 +218,9 @@ void Poll() {
 				g_rightStickClick = true;
 			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
+				// A push still pending here is one no reader has wanted, and it
+				// is about to be overwritten. Record that before it goes.
+				ResolvePush(g_rightStickPush, nullptr);
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
 				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
@@ -249,17 +264,34 @@ bool TakeRightStickClick() {
 	g_rightStickClick = false;
 	return clicked;
 }
-StickPush TakeRightStickPush() {
+StickPush TakeRightStickPush(const char* claimant) {
 	const StickPush push = g_rightStickPush;
+	ResolvePush(push, claimant);
 	g_rightStickPush    = StickPush::None;
 	return push;
 }
-bool TakeRightStickPushIf(StickPush wanted) {
+bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
 	if (wanted == StickPush::None || g_rightStickPush != wanted) {
 		return false;
 	}
+	ResolvePush(wanted, claimant);
 	g_rightStickPush = StickPush::None;
 	return true;
+}
+PushRecord TakePushRecord() {
+	const PushRecord record{g_resolvedPush, g_resolvedClaimant};
+	g_resolvedPush     = StickPush::None;
+	g_resolvedClaimant = nullptr;
+	return record;
+}
+const char* PushName(StickPush push) {
+	switch (push) {
+	case StickPush::Up:    return "up";
+	case StickPush::Left:  return "left";
+	case StickPush::Right: return "right";
+	case StickPush::Down:  return "down";
+	default:               return "none";
+	}
 }
 
 // Direction currently held by any source (None when nothing is held): key

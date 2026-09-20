@@ -110,7 +110,7 @@ std::string Selected(uintptr_t) {
 }
 }
 namespace D2RAccess::InputDirection {
-bool TakeRightStickPushIf(StickPush wanted) {
+bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (wanted == StickPush::None || pendingPush != wanted) return false;
 	pendingPush = StickPush::None;
 	return true;

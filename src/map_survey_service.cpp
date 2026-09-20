@@ -306,7 +306,7 @@ void PollPathfinder(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(g_pathfinder ? Strings::Current().pathfinderEnabled : Strings::Current().pathfinderDisabled, true);
 	}
 	if (!g_pathfinder) return;
-	switch (InputDirection::TakeRightStickPush()) {
+	switch (InputDirection::TakeRightStickPush("pathfinder")) {
 	case InputDirection::StickPush::Left:  g_request.store(Request::PreviousObject); break;
 	case InputDirection::StickPush::Right: g_request.store(Request::NextObject); break;
 	case InputDirection::StickPush::Up:    g_request.store(Request::PreviousCategory); break;

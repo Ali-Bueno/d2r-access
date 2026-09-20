@@ -71,7 +71,7 @@ void Info(const D2RL::PluginContext*, const char*) {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) {}
 }
 namespace D2RAccess::InputDirection {
-bool TakeRightStickPushIf(StickPush wanted) {
+bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;
 	pending = StickPush::None;
 	return true;

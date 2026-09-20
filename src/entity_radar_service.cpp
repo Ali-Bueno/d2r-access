@@ -216,7 +216,7 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
-	const auto push = InputDirection::TakeRightStickPush();
+	const auto push = InputDirection::TakeRightStickPush("scan");
 	const auto now = GetTickCount64();
 	const auto& strings = Strings::Current();
 	Lifecycle state;

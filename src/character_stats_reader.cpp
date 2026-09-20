@@ -45,7 +45,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	InputDirection::StickPush push = InputDirection::StickPush::None;
 	for (const auto wanted : {InputDirection::StickPush::Up, InputDirection::StickPush::Down,
 	                          InputDirection::StickPush::Left, InputDirection::StickPush::Right}) {
-		if (InputDirection::TakeRightStickPushIf(wanted)) { push = wanted; break; }
+		if (InputDirection::TakeRightStickPushIf(wanted, "stats")) { push = wanted; break; }
 	}
 	if (push == InputDirection::StickPush::None) return false;
 	const auto lines = CharacterStats::Lines(panel);

@@ -50,6 +50,20 @@ constexpr D2RL::PluginInfo PluginInfo {
 	.flags       = D2RL::PluginFlags::Client | D2RL::PluginFlags::NativeHooks,
 };
 
+// One line per right-stick push, once every reader has had its turn, naming
+// the one that took it. Four readers claim from the same latch in the order
+// below and only one can win, so a push taken by a reader with nothing to say
+// is spent in silence -- and that is what the player hears as a push that did
+// not fire. Nothing recorded which reader won until this line.
+void LogRightStickPush(const D2RL::PluginContext* context) {
+	using D2RAccess::InputDirection::StickPush;
+	const auto record = D2RAccess::InputDirection::TakePushRecord();
+	if (record.push == StickPush::None) return;
+	D2RAccess::AsyncLog::InfoF(context, "[stick] %s -> %s",
+		D2RAccess::InputDirection::PushName(record.push),
+		record.claimant ? record.claimant : "nobody, a later push replaced it");
+}
+
 // One UI update: sample input first so a value message arriving this update
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
@@ -71,6 +85,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
+	LogRightStickPush(context);
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {

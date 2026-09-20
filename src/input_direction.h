@@ -64,13 +64,30 @@ enum class StickPush {
 	Right,
 	Down,
 };
-StickPush TakeRightStickPush();
+// Both takers name the reader doing the taking, so the log can say who got
+// the push. Four readers ask for it in a fixed order on one tick and only one
+// can win, so a push claimed by a reader that then has nothing to say is spent
+// in silence -- which is what "sometimes it needs more than one push" looks
+// like from the player's side. Nothing recorded that until PushRecord below.
+StickPush TakeRightStickPush(const char* claimant);
 
 // Claims the pending push only when it is the one asked for, leaving any
 // other direction for the next consumer. The menu readers share the stick
 // with the entity scan and the pathfinder, and must not swallow the pushes
 // that belong to those.
-bool TakeRightStickPushIf(StickPush wanted);
+bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
+
+// What became of a push, written when it is resolved and not before: claimed
+// by a reader, or replaced by a later push while still pending. A push still
+// waiting for the reader that wants it therefore costs nothing per frame.
+struct PushRecord {
+	StickPush   push     = StickPush::None;  // None when nothing was resolved
+	const char* claimant = nullptr;          // null when a later push replaced it
+};
+PushRecord TakePushRecord();
+
+// The push's name for the log. English only: this is diagnosis, not speech.
+const char* PushName(StickPush push);
 
 // Right thumbstick CLICK (R3) press edges. The SDK's action service binds
 // keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
