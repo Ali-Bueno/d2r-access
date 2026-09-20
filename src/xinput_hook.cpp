@@ -128,11 +128,20 @@ std::atomic<uint64_t> g_frameSerial { 0 }; // bumped whenever the frame changes
 std::atomic<bool>     g_frameFromPad { false };
 
 // The layout, as one table so the keys and what they stand for cannot drift
-// apart. These DO contend with D2R's own bindings: MEASURED 2026-09-20, W is
-// also the game's weapon-swap bind, and holding it to walk moved the player's
-// weapon and shield onto weapon-swap set II, which read as the equipment
-// vanishing. Controller mode does not disable the game's keyboard scheme --
-// an earlier comment here claimed it did, and that was never measured.
+// apart.
+//
+// Whether these contend with D2R's own bindings depends on whether the game is
+// actually being DRIVEN by the pad, and both halves are now measured:
+//   - On slot 1, where the game polled us but drove the character from slot 0,
+//     W reached D2R's weapon-swap bind and moved the player's weapon and shield
+//     onto weapon-swap set II. That read as the equipment vanishing and cost
+//     three sessions.
+//   - On slot 0, with the game genuinely in controller mode, W moves the
+//     character and does NOT swap weapons (MEASURED 2026-09-20, user).
+// So controller mode does suppress the game's own keyboard bindings, but only
+// once a pad is really driving it. NOT established: that this covers menu
+// navigation as well as gameplay binds -- the arrow keys still appear to reach
+// the inventory, which is why the D-pad over-moves there.
 struct KeyBinding { int vk; bool KeyboardPad::Keys::* field; };
 constexpr KeyBinding kLayout[] = {
 	{'J', &KeyboardPad::Keys::a},          {'N', &KeyboardPad::Keys::b},
