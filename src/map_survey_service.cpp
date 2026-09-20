@@ -14,6 +14,7 @@
 #include "drlg_layout.h"
 #include "room_catalogue.h"
 #include "native_world.h"
+#include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 
@@ -299,6 +300,19 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 // slightly diagonal push cannot change the category and the object at once.
 bool Active() { return g_pathfinder; }
 
+// A menu being up, which is a different question from Playing() above -- that
+// one only asks whether the player is in a level. While the menu tree is open
+// the right stick belongs to the menu readers, so the catalogue must not claim
+// a push there. Only an actual menu blocks: a build with no widget tree
+// reports Unavailable and keeps the pathfinder working, which is why this does
+// not simply require State::Playing the way the entity scan does.
+bool MenuIsOpen() {
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	const auto state = RadarUi::Inspect(process == GetCurrentProcessId());
+	return state == RadarUi::State::Dialogue || state == RadarUi::State::Paused;
+}
+
 void PollPathfinder(const D2RL::PluginContext* context) {
 	if (InputDirection::TakeLeftStickClick()) {
 		g_pathfinder = !g_pathfinder;
@@ -306,6 +320,10 @@ void PollPathfinder(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(g_pathfinder ? Strings::Current().pathfinderEnabled : Strings::Current().pathfinderDisabled, true);
 	}
 	if (!g_pathfinder) return;
+	// Peek before the gate: MenuIsOpen walks the panel tree, and the stick is
+	// idle on all but a few of these ticks. A push left unclaimed stays pending
+	// for the reader that does want it.
+	if (InputDirection::PeekRightStickPush() == InputDirection::StickPush::None || MenuIsOpen()) return;
 	switch (InputDirection::TakeRightStickPush("pathfinder")) {
 	case InputDirection::StickPush::Left:  g_request.store(Request::PreviousObject); break;
 	case InputDirection::StickPush::Right: g_request.store(Request::NextObject); break;
