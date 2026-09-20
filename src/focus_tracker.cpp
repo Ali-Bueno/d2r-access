@@ -142,6 +142,10 @@ constexpr LegendAction CharacterRowActions[] = {
 constexpr const char* MessageAnnouncedTypes[] = { "HDCharacterSelectorWidget" };
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
+// A tab bar carries no label of its own in the layouts. What the player is
+// standing on when focus lands there is a tab, so its text is the name --
+// read live, the same way TabReader reads it.
+constexpr const char* TabBarWidgetType    = "TabBarWidget";
 
 // Controls the game disables depending on another control's state. The SDK
 // cannot read the enabled flag, so the dependency observed in the game is
@@ -427,7 +431,7 @@ std::string TextForKey(const char* key) {
 
 // Own text, else the row label next to it, else a literal, else the tooltip
 // (icon-only buttons such as DeleteCharacter carry nothing else), else the name.
-std::string Label(const Generated::WidgetEntry& widget) {
+std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget = 0) {
 	std::string text = TextForKey(widget.textKey);
 	if (text.empty()) {
 		text = TextForKey(widget.labelKey);
@@ -437,6 +441,13 @@ std::string Label(const Generated::WidgetEntry& widget) {
 	}
 	if (text.empty()) {
 		text = TextForKey(widget.tooltipKey);
+	}
+	// The tab strips the game gives no label to -- the menu switcher across the
+	// top above all, but also the lobby's and the settings' -- would otherwise
+	// announce their internal name ("UISwitcherTabs, tabs", measured
+	// 2026-09-19). A strip that does carry a label keeps it.
+	if (text.empty() && nativeWidget != 0 && std::strcmp(widget.type, TabBarWidgetType) == 0) {
+		text = UiText::Clean(NativeUi::SelectedTabText(nativeWidget));
 	}
 	if (text.empty()) {
 		text = widget.name;
@@ -686,7 +697,7 @@ void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		NativeUi::Visible(focus.panel) ? 1 : 0, NativeUi::Visible(focus.widget) ? 1 : 0, chain.c_str());
 }
 
-void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator) {
+void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator, uintptr_t nativeWidget = 0) {
 	const int   characterRow = CharacterRowIndex(match, indicator);
 	std::string id           = std::string(match.panel->panel) + "/" + match.widget->name;
 	if (characterRow >= 0) {
@@ -722,7 +733,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		g_dropdown = { match.panel, match.widget, g_lastAnnounced };
 	}
 
-	const std::string label  = Label(*match.widget);
+	const std::string label  = Label(*match.widget, nativeWidget);
 	std::string       phrase = label;
 	if (const char* role = Role(*match.widget); role != nullptr) {
 		phrase += ", ";
@@ -826,7 +837,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_lastIndicator = indicator;
 			g_popupWasActive = false;
 			g_missSince = 0;
-			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}));
+			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}), focused.widget);
 			return;
 		}
 	}
