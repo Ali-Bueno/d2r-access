@@ -1,9 +1,5 @@
 #include "tab_reader.h"
 
-#include "speech_strings.h"
-
-#include <cstdio>
-
 #include <algorithm>
 #include <unordered_map>
 
@@ -43,18 +39,7 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 			if (text.empty() || !next.emplace(tab, text).second) continue;
 			const auto prior = g_selected.find(tab);
 			if (!g_observing || (prior != g_selected.end() && prior->second == text)) continue;
-			// Say where along the strip the highlight landed, not just its
-			// name: on a tab bar the position is the orientation. The count
-			// walks the bar's label children, so it is only read here, when
-			// something actually moved.
-			std::string phrase = text;
-			if (const auto position = NativeUi::SelectedTab(tab); position.index >= 0 && position.count > 1) {
-				char suffix[80]{};
-				std::snprintf(suffix, sizeof(suffix), Strings::Current().tabOfCount, position.index + 1, position.count);
-				phrase += ", ";
-				phrase += suffix;
-			}
-			Append(changed, phrase);
+			Append(changed, text);
 		}
 	}
 	g_selected = std::move(next);

@@ -205,24 +205,6 @@ uint64_t FocusSelection(uintptr_t widget) {
 	return result;
 }
 
-Tab SelectedTab(uintptr_t widget) {
-	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
-	int32_t selected = -1;
-	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= MaxTabs) return {};
-	Tab tab;
-	tab.text = NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
-	if (tab.text.empty()) return {};
-	tab.index = selected;
-	// A tab bar carries a fixed set of Text children and hides the ones the
-	// screen does not use, so the count is how many still have a label. Read
-	// only when a caller asks for the position: this walks the bar's children.
-	for (int at = 0; at < MaxTabs; ++at) {
-		if (at == selected) { ++tab.count; continue; }
-		if (!NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(at))).empty()) ++tab.count;
-	}
-	return tab;
-}
-
 std::string SelectedTabText(uintptr_t widget) {
 	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
 	int32_t selected = -1;

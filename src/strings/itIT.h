@@ -41,7 +41,6 @@ inline constexpr Table itIT {
 	.belt                = "Cintura",
 	.gridCell            = "Riga %d, colonna %d",
 	.skillOfCount        = "Abilità %d di %d",
-	.tabOfCount         = "scheda %d di %d",
 	.detailNone         = "Nessun altro dettaglio",
 	.assignedTo          = "Assegnato a %s",
 	.controllerButtons   = {"Croce direzionale", "Croce direzionale su", "Croce direzionale giù", "Croce direzionale sinistra", "Croce direzionale destra", "Menu", "Visualizza", "Levetta sinistra", "Premi levetta sinistra", "Levetta destra", "Premi levetta destra", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

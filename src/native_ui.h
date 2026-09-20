@@ -25,10 +25,6 @@ Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
 int EquipmentLocation(uintptr_t widget);
-// The tab bar's highlighted entry: which one it is, how many there are, and
-// its label. `index` is -1 when the widget is not a readable tab bar.
-struct Tab { int index = -1, count = 0; std::string text; };
-Tab SelectedTab(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 // Bounded discovery, including hidden controls. Visibility is rechecked when read.

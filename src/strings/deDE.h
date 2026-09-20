@@ -41,7 +41,6 @@ inline constexpr Table deDE {
 	.belt                = "Gürtel",
 	.gridCell            = "Zeile %d, Spalte %d",
 	.skillOfCount        = "Fertigkeit %d von %d",
-	.tabOfCount         = "Registerkarte %d von %d",
 	.detailNone         = "Keine weiteren Angaben",
 	.assignedTo          = "Zugewiesen zu %s",
 	.controllerButtons   = {"Steuerkreuz", "Steuerkreuz oben", "Steuerkreuz unten", "Steuerkreuz links", "Steuerkreuz rechts", "Menü", "Anzeige", "Linker Stick", "Linken Stick drücken", "Rechter Stick", "Rechten Stick drücken", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

@@ -59,7 +59,6 @@ struct Table {
 	const char* belt;
 	const char* gridCell; // one-based row, column
 	const char* skillOfCount; // one-based skill position within the visible branch
-	const char* tabOfCount;   // one-based tab position across the panel's tab bar
 	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
 	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
@@ -155,7 +154,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roleList, t.checked, t.unchecked, t.optionOfCount, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
-		t.itemReleased, t.belt, t.gridCell, t.skillOfCount, t.tabOfCount, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.itemReleased, t.belt, t.gridCell, t.skillOfCount, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,

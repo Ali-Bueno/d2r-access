@@ -41,7 +41,6 @@ inline constexpr Table esES {
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
 	.skillOfCount        = "Habilidad %d de %d",
-	.tabOfCount         = "pestaña %d de %d",
 	.detailNone         = "No hay más detalles",
 	.assignedTo          = "Asignada a %s",
 	.controllerButtons   = {"Cruceta", "Cruceta arriba", "Cruceta abajo", "Cruceta izquierda", "Cruceta derecha", "Menú", "Vista", "Stick izquierdo", "Pulsar stick izquierdo", "Stick derecho", "Pulsar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
