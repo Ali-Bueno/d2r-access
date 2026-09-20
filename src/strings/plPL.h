@@ -80,7 +80,6 @@ inline constexpr Table plPL {
 	.npcDisabled = "Zapowiadanie postaci wyłączone",
 	.surveyCategories = { "wyjście", "portal", "punkt podróży", "NPC", "skrytka", "wróg", "skarb", "sanktuarium", "mechanizm", "przedmiot", "pokój" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, brak drogi, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "pokój %d",
 	.surveyRoomUnexplored = "niezbadany pokój %d",

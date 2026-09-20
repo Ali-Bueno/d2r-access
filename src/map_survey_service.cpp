@@ -137,19 +137,25 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// a real step count from the navigation grid, which is what made "metres"
 	// the wrong word for it.
 	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
-	// A room beyond the collision window has no walking distance to quote,
-	// but it is not unreachable either: locking it routes room by room
-	// (room_graph.h). Give the bearing rather than claim there is no way.
-	if (!landmark.reachable) {
-		const char* format = landmark.entity.category == EntityRadar::Category::Room
-			? strings.surveyBearing : strings.surveyNoRoute;
-		return Format(format, landmark.entity.name.c_str(), direction);
+	// Nothing here is out of reach. The grid only covers the collision window
+	// the game keeps around the player, so a landmark it cannot route to is
+	// almost always one the catalogue can see and the grid cannot -- the
+	// catalogue is the level-wide reader precisely for that. Quote the
+	// straight line, which MapSurvey::Survey fills in from world positions for
+	// every landmark whether the grid saw it or not.
+	//
+	// Say it plainly: a straight line is not a walk, so this understates a
+	// target on the far side of a wall. That is the trade the readout wants --
+	// a direction and a rough distance can be acted on, "no route" cannot.
+	// Only a landmark standing on the player has no distance to quote at all.
+	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
+	if (!landmark.reachable && landmark.straightLine <= 0) {
+		return Format(strings.surveyBearing, landmark.entity.name.c_str(), direction);
 	}
-	// Spoken like the scan's distance, but it is the WALKING distance: the
-	// steps the game's own graph needs to get there, not the straight line the
-	// scan measures. A wall between the two makes the numbers differ, and the
-	// walking one is the one worth acting on.
-	const std::string distance = EntityRadar::DistancePhrase(landmark.steps, EntityRadar::Settings{}, strings);
+	// Spoken like the scan's distance. For a reachable landmark it is the
+	// WALKING distance -- the steps the game's own graph needs to get there --
+	// and a wall between the two makes the numbers differ.
+	const std::string distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
 	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
 }
 

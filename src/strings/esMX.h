@@ -80,7 +80,6 @@ inline constexpr Table esMX {
 	.npcDisabled = "Aviso de personajes desactivado",
 	.surveyCategories = { "salida", "portal", "punto de viaje", "PNJ", "alijo", "enemigo", "tesoro", "santuario", "mecanismo", "objeto", "sala" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, sin ruta, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "sala %d",
 	.surveyRoomUnexplored = "sala inexplorada %d",

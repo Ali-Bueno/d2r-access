@@ -80,7 +80,6 @@ inline constexpr Table ptBR {
 	.npcDisabled = "Aviso de NPCs desativado",
 	.surveyCategories = { "saída", "portal", "ponto de passagem", "NPC", "baú", "inimigo", "tesouro", "santuário", "mecanismo", "item", "sala" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, sem rota, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "sala %d",
 	.surveyRoomUnexplored = "sala inexplorada %d",

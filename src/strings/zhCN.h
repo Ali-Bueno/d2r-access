@@ -80,7 +80,6 @@ inline constexpr Table zhCN {
 	.npcDisabled = "NPC播报已关闭",
 	.surveyCategories = { "出口", "传送门", "传送点", "NPC", "储藏箱", "敌人", "宝藏", "神殿", "机关", "物品", "房间" },
 	.surveySteps    = "%s，%s，%s",
-	.surveyNoRoute  = "%s，无路可走，%s",
 	.surveyBearing  = "%s，%s",
 	.surveyRoom     = "房间 %d",
 	.surveyRoomUnexplored = "未探索房间 %d",

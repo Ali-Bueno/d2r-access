@@ -80,7 +80,6 @@ inline constexpr Table ruRU {
 	.npcDisabled = "Оповещение о персонажах выключено",
 	.surveyCategories = { "выход", "портал", "точка перехода", "НИП", "тайник", "враг", "сокровище", "святилище", "механизм", "предмет", "комната" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, пути нет, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "комната %d",
 	.surveyRoomUnexplored = "неисследованная комната %d",

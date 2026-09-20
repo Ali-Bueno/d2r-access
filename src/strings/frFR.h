@@ -80,7 +80,6 @@ inline constexpr Table frFR {
 	.npcDisabled = "Annonce des PNJ désactivée",
 	.surveyCategories = { "sortie", "portail", "point de passage", "PNJ", "réserve", "ennemi", "trésor", "sanctuaire", "mécanisme", "objet", "salle" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, aucun chemin, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "salle %d",
 	.surveyRoomUnexplored = "salle inexplorée %d",

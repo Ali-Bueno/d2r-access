@@ -80,7 +80,6 @@ inline constexpr Table itIT {
 	.npcDisabled = "Annunciatore NPC disattivato",
 	.surveyCategories = { "uscita", "portale", "waypoint", "PNG", "deposito", "nemico", "tesoro", "santuario", "meccanismo", "oggetto", "stanza" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, nessun percorso, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "stanza %d",
 	.surveyRoomUnexplored = "stanza inesplorata %d",

@@ -80,7 +80,6 @@ inline constexpr Table zhTW {
 	.npcDisabled = "NPC 提示已停用",
 	.surveyCategories = { "出口", "傳送門", "傳送點", "NPC", "儲藏箱", "敵人", "寶藏", "神殿", "機關", "物品", "房間" },
 	.surveySteps    = "%s，%s，%s",
-	.surveyNoRoute  = "%s，無路可走，%s",
 	.surveyBearing  = "%s，%s",
 	.surveyRoom     = "房間 %d",
 	.surveyRoomUnexplored = "未探索房間 %d",

@@ -80,7 +80,6 @@ inline constexpr Table koKR {
 	.npcDisabled = "NPC 알림 꺼짐",
 	.surveyCategories = { "출구", "차원문", "경유지", "NPC", "보관함", "적", "보물", "제단", "장치", "아이템", "방" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, 경로 없음, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "%d번 방",
 	.surveyRoomUnexplored = "미탐험 %d번 방",

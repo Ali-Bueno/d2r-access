@@ -80,7 +80,6 @@ inline constexpr Table enUS {
 	.npcDisabled = "NPC announcer disabled",
 	.surveyCategories = { "exit", "portal", "waypoint", "NPC", "stash", "enemy", "treasure", "shrine", "object", "item", "room" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, no route, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "room %d",
 	.surveyRoomUnexplored = "unexplored room %d",

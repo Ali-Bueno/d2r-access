@@ -80,7 +80,6 @@ inline constexpr Table deDE {
 	.npcDisabled = "NPC-Ansage deaktiviert",
 	.surveyCategories = { "Ausgang", "Portal", "Wegpunkt", "NSC", "Lager", "Feind", "Schatz", "Schrein", "Mechanismus", "Gegenstand", "Raum" },
 	.surveySteps    = "%s, %s, %s",
-	.surveyNoRoute  = "%s, kein Weg, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "Raum %d",
 	.surveyRoomUnexplored = "unerforschter Raum %d",

@@ -80,7 +80,6 @@ inline constexpr Table jaJP {
 	.npcDisabled = "NPCの読み上げ オフ",
 	.surveyCategories = { "出口", "ポータル", "ウェイポイント", "NPC", "保管庫", "敵", "宝箱", "聖堂", "装置", "アイテム", "部屋" },
 	.surveySteps    = "%s、%s、%s",
-	.surveyNoRoute  = "%s、経路なし、%s",
 	.surveyBearing  = "%s、%s",
 	.surveyRoom     = "部屋 %d",
 	.surveyRoomUnexplored = "未探索の部屋 %d",

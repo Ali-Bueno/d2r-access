@@ -99,9 +99,8 @@ struct Table {
 	// Indexed by the switch in MapSurveyService::CategoryName, not by
 	// CategoryOrder: a new category appends here and adds a case there.
 	std::array<const char*, 11> surveyCategories;
-	const char* surveySteps;    // %s = name, %s = direction, %d = steps on foot
-	const char* surveyNoRoute;  // %s = name, %s = direction; known but unreachable
-	const char* surveyBearing;  // %s = name, %s = direction; a bearing is all that is known
+	const char* surveySteps;    // %s = name, %s = distance, %s = direction
+	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
 	const char* surveyRoom;             // %d = room number
 	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
 	const char* surveyEmpty;    // %s = category
