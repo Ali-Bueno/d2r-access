@@ -6,9 +6,11 @@
 
 using namespace D2RAccess;
 namespace {
-// Font-size commands are U+E07E followed by '1' or '2'; '2' is the title.
+// The renderer's font command is U+E07E followed by one index character,
+// '0' through 'V'; index 2 is the one a title is drawn in.
 constexpr const char* Title = "\xEE\x81\xBE" "2";
 const std::vector<std::string> BaseStats{"One-Hand Damage:", "Defense:"};
+const std::string Font0 = std::string(Title).substr(0, 3) + "0";
 
 std::string TopDown() {
 	return std::string(Title) + "Bloodletter\nShort Sword\nOne-Hand Damage: 7 to 15\n"
@@ -59,6 +61,16 @@ int main() {
 	const auto unlabelled = TooltipText::Split(TooltipText::Read(TopDown()), {});
 	Check(unlabelled.headline == "Bloodletter", "no labels, no base-stat line in the headline");
 	Check(unlabelled.detail.find("One-Hand Damage: 7 to 15") != std::string::npos, "and nothing is lost -- it moves to the detail");
+
+	// The font index is markup, not text. Item tooltips draw with index 0,
+	// which used to survive and be spoken as a stray "0" on every line.
+	const auto indexed = TooltipText::Read(Font0 + "Short Sword");
+	Check(indexed.lines.size() == 1 && indexed.lines[0] == "Short Sword", "the font index is not spoken");
+	Check(!indexed.Marked(), "and index 0 is not the title styling");
+	const auto highest = TooltipText::Read(std::string(Title).substr(0, 3) + "VShort Sword");
+	Check(highest.lines.size() == 1 && highest.lines[0] == "Short Sword", "nor is the highest index the renderer accepts");
+	const auto beyond = TooltipText::Read(std::string(Title).substr(0, 3) + "WShort Sword");
+	Check(beyond.lines.size() == 1 && beyond.lines[0] == "WShort Sword", "a character past that range is text, as the renderer reads it");
 
 	Check(TooltipText::Read("").lines.empty(), "an empty tooltip has no lines");
 	Check(TooltipText::Split(TooltipText::Read(""), BaseStats).Empty(), "and nothing to say");

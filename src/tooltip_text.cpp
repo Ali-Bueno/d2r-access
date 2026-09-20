@@ -8,17 +8,26 @@
 namespace D2RAccess::TooltipText {
 namespace {
 
-// U+E07E followed by 1 or 2 sets font size. Captured from the stock renderer
-// during controller navigation; these are not controller glyphs. Size 2 is
-// the one the title is drawn in.
+// U+E07E introduces the renderer's inline font command, and exactly one
+// character follows it. The renderer accepts that character when `c - '0'` is
+// below 0x27, so the index runs '0' through 'V' -- measured in the 3.3.93787
+// image at 0x140908BD1, 0x14090C225 and 0x14090F660, which range-check it
+// identically. Index 2 is the one a title is drawn in.
+//
+// Only '1' and '2' were accepted here before, so an item tooltip -- drawn with
+// index '0' -- kept that '0' and spoke it at the head of every line.
 constexpr std::string_view Font = "\xEE\x81\xBE";
 constexpr std::string_view Heading = "\xEE\x81\xBE" "2";
+
+bool FontIndex(char c) {
+	return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u;
+}
 
 std::string StripFont(std::string line) {
 	for (size_t at = 0; (at = line.find(Font, at)) != std::string::npos;) {
 		const size_t next = at + Font.size();
-		const bool   size = next < line.size() && (line[next] == '1' || line[next] == '2');
-		line.erase(at, Font.size() + (size ? 1 : 0));
+		const bool   index = next < line.size() && FontIndex(line[next]);
+		line.erase(at, Font.size() + (index ? 1 : 0));
 	}
 	return line;
 }
