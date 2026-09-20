@@ -9,6 +9,7 @@
 #include "vitals.h"
 
 #include <D2RLPlugin/context.h>
+#include <D2RLPlugin/input.h>
 #include <D2RLPlugin/inventory.h>
 #include <D2RLPlugin/item.h>
 
@@ -21,7 +22,7 @@
 
 namespace D2RAccess::VitalsService {
 namespace {
-enum class Command { None, On, Off, Status };
+enum class Command { None, On, Off, Status, Report };
 
 // The game's own HUD widgets: HUDPanelHD.json declares HealthBall and ManaBall
 // as AttributeBallWidgets, each carrying the ValueDisplay text box the game
@@ -39,6 +40,8 @@ constexpr uint64_t OrbSampleMs = 100;         // life can fall within a single b
 constexpr uint64_t DurabilitySampleMs = 1000; // durability only creeps down
 
 const D2RL::PluginContext* g_context = nullptr;
+const D2RL::InputService*  g_input = nullptr;
+std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true, g_hinted = false;
 uint64_t g_nextOrb = 0, g_nextDurability = 0;
@@ -70,6 +73,43 @@ void HintOrbText() {
 	std::snprintf(phrase, sizeof(phrase), Strings::Current().vitalsOrbTextMissing, life.c_str(), mana.c_str());
 	AsyncLog::InfoF(g_context, "[vitals] orb values unreadable; asking for \"%s\" and \"%s\"", life.c_str(), mana.c_str());
 	ScreenReader::Speak(phrase, false);
+}
+
+// Life and mana on demand. The automatic announcements only speak when a
+// step is crossed, so without a key there is no way to ask "where am I now";
+// this reads the same two orbs at the moment the key is pressed.
+void Report(const D2RL::PluginContext* context) {
+	const auto& strings = Strings::Current();
+	const NativeMemory::ReadScope scope;
+	if (!NativeWidgets::IsAvailable() || !NativeWidgets::FindPanel(HudPanel)) {
+		// Outside a game the orbs do not exist at all.
+		AsyncLog::Info(context, "[vitals] report: no HUD");
+		ScreenReader::Speak(strings.unavailable, true);
+		return;
+	}
+	const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
+	AsyncLog::InfoF(context, "[vitals] report life=%d mana=%d", life, mana);
+	if (life < 0 && mana < 0) {
+		// Neither orb carries a number, so the honest answer to the key is
+		// how to make one appear. The hint is otherwise spoken once a
+		// session; the player just asked, so re-arm it.
+		g_hinted = false;
+		HintOrbText();
+		return;
+	}
+	char phrase[100]{};
+	std::string text;
+	if (life >= 0) {
+		std::snprintf(phrase, sizeof(phrase), strings.vitalsLife, life);
+		text = phrase;
+	}
+	if (mana >= 0) {
+		std::snprintf(phrase, sizeof(phrase), strings.vitalsMana, mana);
+		if (!text.empty()) text += ". ";
+		text += phrase;
+	}
+	// Asked for, so it interrupts: the player is waiting for this answer.
+	ScreenReader::Speak(text, true);
 }
 
 auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* item, void* userData) noexcept
@@ -110,12 +150,22 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	}
 }
 
+auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept
+	-> D2RL::Input::ActionResult {
+	if (event == nullptr || event->kind != D2RL::Input::ActionEventKind::Pressed) {
+		return D2RL::Input::ActionResult::Ignored;
+	}
+	g_command = Command::Report;
+	return D2RL::Input::ActionResult::Handled;
+}
+
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
 	if (arg == "on") g_command = Command::On;
 	else if (arg == "off") g_command = Command::Off;
 	else if (arg == "status") g_command = Command::Status;
+	else if (arg == "report") g_command = Command::Report;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -124,12 +174,27 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
-	(void)context->RegisterConsoleCommand("access-vitals", Console, "Life, mana and broken equipment announcements: on|off|status.");
+	(void)context->RegisterConsoleCommand("access-vitals", Console, "Life, mana and broken equipment announcements: on|off|status|report.");
+	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
+		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
+		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
+			.logicalId = "vitals-report", .displayName = "Say life and mana", .category = "Accessibility",
+			.defaultPrimary = {D2RL::Input::Key::R, D2RL::Input::Modifier::None}, .callback = OnAction,
+			.userData = nullptr};
+		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
+		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) {
+			g_actions.push_back(handle);
+		}
+	}
 	AsyncLog::Info(context, "[vitals] Life, mana and equipment announcements registered.");
 	return true;
 }
 
 void Unregister() {
+	if (g_input && g_context)
+		for (auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	g_actions.clear();
+	g_input = nullptr;
 	g_context = nullptr;
 	g_command = Command::None;
 	Reset();
@@ -147,11 +212,14 @@ void Reset() {
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
+	if (command == Command::Report) Report(context);
 	if (command == Command::On || command == Command::Off) {
 		g_enabled = command == Command::On;
 		Reset();
 	}
-	if (command != Command::None)
+	// Report answers with the reading itself, so it must not also say whether
+	// the automatic announcements are on.
+	if (command == Command::On || command == Command::Off || command == Command::Status)
 		ScreenReader::Speak(g_enabled ? Strings::Current().vitalsEnabled : Strings::Current().vitalsDisabled, true);
 	if (!g_enabled || !NativeWidgets::IsAvailable()) return;
 	const uint64_t now = GetTickCount64();
