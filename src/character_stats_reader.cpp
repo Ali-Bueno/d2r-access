@@ -30,8 +30,16 @@ int Advance(int cursor, InputDirection::StickPush push, int count) {
 }
 
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
-	if (!focus.panel || NativeWidgets::ReadName(focus.panel) != Panel) { Reset(); return false; }
-	if (focus.panel != g_panel) { g_panel = focus.panel; g_cursor = -1; }
+	// MEASURED 2026-09-20: the focus manager reports no focused widget at all
+	// while this panel is up -- "[focus] no focused widget while
+	// CharacterStatsPanel is active", with the focus indicator matching no
+	// widget either. Waiting for focus meant the stick fell through to the
+	// entity scan for the whole session. The panel being open and visible is
+	// what says the player is on it.
+	uintptr_t panel = focus.panel && NativeWidgets::ReadName(focus.panel) == Panel
+		? focus.panel : NativeWidgets::FindPanel(Panel);
+	if (!panel || !NativeUi::Visible(panel)) { Reset(); return false; }
+	if (panel != g_panel) { g_panel = panel; g_cursor = -1; }
 	// Read the panel only once a push is pending: the walk costs a tree
 	// traversal, and the stick is idle for all but a few of these ticks.
 	InputDirection::StickPush push = InputDirection::StickPush::None;
@@ -40,7 +48,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		if (InputDirection::TakeRightStickPushIf(wanted)) { push = wanted; break; }
 	}
 	if (push == InputDirection::StickPush::None) return false;
-	const auto lines = CharacterStats::Lines(focus.panel);
+	const auto lines = CharacterStats::Lines(panel);
 	g_cursor = Advance(g_cursor, push, static_cast<int>(lines.size()));
 	const std::string text = g_cursor < 0 ? Strings::Current().detailNone : lines[static_cast<size_t>(g_cursor)];
 	D2RAccess::AsyncLog::InfoF(context, "[stats] %d of %zu -> \"%s\"", g_cursor + 1, lines.size(), text.c_str());

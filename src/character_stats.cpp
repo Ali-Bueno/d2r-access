@@ -37,11 +37,13 @@ constexpr Row Rows[] = {
 };
 // Suffixes the layouts use for a row's value widget (StrengthStat, FireText).
 constexpr const char* ValueSuffixes[] = {"Stat", "Text"};
-// Statistics the panel states in a single text box, with no separate label:
-// the experience line and the points left to spend. NativeProgression already
-// speaks the latter next to the attribute buttons, so both are known to carry
-// text that stands on its own.
-constexpr const char* StandaloneLines[] = {"CombinedXP", "CombinedPointsInfo"};
+// Statistics the panel states in a single text box, with no <name>Title of
+// their own. Where the box does not say what its number is, the game's own
+// word for it is borrowed -- MEASURED 2026-09-20: CombinedXP renders as a
+// bare "0 of 500", which says nothing at all on its own. CombinedPointsInfo
+// reads "0 Stat Points Remaining" and needs no help.
+struct Standalone { const char* widget; const char* labelKey; };
+constexpr Standalone StandaloneLines[] = {{"CombinedXP", "strchrexp"}, {"CombinedPointsInfo", nullptr}};
 void Append(std::string& text, std::string_view part) {
 	if (part.empty() || text == part) return;
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
@@ -165,8 +167,13 @@ std::vector<std::string> Lines(uintptr_t panel) {
 			lines.push_back(std::move(line));
 			continue;
 		}
-		for (const char* standalone : StandaloneLines)
-			if (node.name == standalone) { lines.push_back(text); break; }
+		for (const auto& standalone : StandaloneLines) {
+			if (node.name != standalone.widget) continue;
+			std::string line = standalone.labelKey ? UiText::Clean(Localization::Text(standalone.labelKey)) : std::string{};
+			Append(line, text);
+			lines.push_back(std::move(line));
+			break;
+		}
 	}
 	return lines;
 }

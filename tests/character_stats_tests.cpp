@@ -87,6 +87,12 @@ std::string ReadText(uintptr_t widget) {
 	const auto found = widgets.find(widget);
 	return found == widgets.end() ? std::string{} : found->second.text;
 }
+// The panel the game would hand back for a name, whether or not anything on
+// it has focus -- which on this panel nothing does.
+uintptr_t FindPanel(std::string_view name) {
+	for (const auto& [id, widget] : widgets) if (widget.name == name) return id;
+	return 0;
+}
 // The game's own child lookup searches the whole subtree by name.
 uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 	for (const auto& [id, widget] : widgets)
@@ -99,6 +105,7 @@ namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "minipanelchar") return "Personaje";
 	if (key == "strchrlvl") return "Nivel";
+	if (key == "strchrexp") return "Experiencia";
 	return {};
 }
 }
@@ -165,7 +172,7 @@ int main() {
 
 	// Enumeration: every row of the panel, not just the focused one.
 	widgets[12].text = "30"; // the value the row-level checks above left cleared
-	Add(60, "CombinedXP", "Experiencia 1200");
+	Add(60, "CombinedXP", "0 de 500"); // as the game renders it: a bare pair of numbers
 	Add(70, "LeftSkillStats");
 	Add(71, "Damage", "", 70);
 	Add(72, "AttackDamageTitle", "Daño", 71);
@@ -177,7 +184,8 @@ int main() {
 	auto lines = CharacterStats::Lines(Panel);
 	Check(lines.size() == 8, "every rendered row is a line, and nothing else on the panel is");
 	Check(lines[0] == "Fuerza. 30" && lines[1] == "Vida. 45 de 120", "lines keep the order the layout declares");
-	Check(lines[5] == "Experiencia 1200", "a statistic stated in one text box is a line of its own");
+	Check(lines[5] == "Experiencia. 0 de 500",
+		"a box that states a statistic without naming it borrows the game's own word for it");
 	Check(lines[6] == "Daño. 12 a 30" && lines[7] == "Daño. 5 a 9",
 		"the two identically named attack rows read their own siblings, not each other's");
 	widgets[12].text.clear();
@@ -223,5 +231,18 @@ int main() {
 	pending = Push::Down;
 	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Fuerza. 30",
 		"leaving the panel forgets where the cursor was");
+
+	// MEASURED 2026-09-20: the focus manager reports no focused widget at all
+	// while this panel is up, so waiting for one left the stick to the entity
+	// scan for a whole session. The panel being open is what counts.
+	CharacterStatsReader::Reset();
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Fuerza. 30",
+		"the open panel claims the stick even when nothing on it has focus");
+	pending = Push::Down;
+	panelVisible = false;
+	Check(!CharacterStatsReader::Tick(nullptr, {}) && pending == Push::Down,
+		"and a panel that is not showing leaves the stick alone, push and all");
+	panelVisible = true;
 	Passed();
 }
