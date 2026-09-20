@@ -113,6 +113,7 @@ inline constexpr Table koKR {
 	.equipmentBroken = "파손된 장비: %s",
 	.currentOfMaximum = "%s, 최대 %s",
 	.itemPlacedIn = "%s에 놓았습니다",
+	.goldCarried = "골드 %s",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 };
 

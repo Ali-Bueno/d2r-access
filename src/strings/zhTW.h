@@ -113,6 +113,7 @@ inline constexpr Table zhTW {
 	.equipmentBroken = "裝備已損壞：%s",
 	.currentOfMaximum = "%s，最大%s",
 	.itemPlacedIn = "已放置於%s",
+	.goldCarried = "%s 金幣",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 };
 

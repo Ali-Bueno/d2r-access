@@ -36,6 +36,8 @@ uint64_t now = 1000, selection = UINT64_MAX;
 const D2RL::PluginContext context{};
 int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
+// -1 is the real function's "could not read", so the gold row stays silent.
+int playerGold = -1;
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
@@ -81,6 +83,7 @@ uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30
 std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
+	if (id == 26 || id == 29) return "gold_button";
 	return "widget" + std::to_string(id);
 }
 }
@@ -91,6 +94,9 @@ Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
 namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
+}
+namespace D2RAccess::NativeGroundItems {
+int PlayerGold() noexcept { return playerGold; }
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
@@ -246,6 +252,13 @@ int main() {
 	ClearSpeech(); Check(Tick() && speech == std::vector<std::string>{"Soltar oro"}, "gold action is announced immediately upon leaving equipment");
 	ClearSpeech(); Tooltip("Soltar oro"); Settle();
 	Check(speech.empty(), "matching rendered tooltip does not repeat the button label");
+	// The gold row's widget carries no text, so the amount comes from the player's
+	// stats. -1 is "could not read", and then the button's own label still stands.
+	ClearSpeech(); playerGold = 523; focus.widget = 29;
+	buttonSnapshot = {29, 29, "gold_button", UiText::Surface::Other, {{29, -1, UiText::Kind::Button, "gold_button", "ButtonWidget", "Soltar oro"}}};
+	Check(Tick() && speech == std::vector<std::string>{"523 de oro"},
+		"the gold row speaks how much is carried instead of the action that would drop it");
+	playerGold = -1; ClearSpeech();
 	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
 	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";
 	Check(Tick() && speech == std::vector<std::string>{"Pergamino del portal de la ciudad. Usar"}, "focused action can read its complete rendered help without a native caption");

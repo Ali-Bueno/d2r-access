@@ -113,6 +113,7 @@ inline constexpr Table esMX {
 	.equipmentBroken = "Equipo roto: %s",
 	.currentOfMaximum = "%s de %s",
 	.itemPlacedIn = "Colocado en %s",
+	.goldCarried = "%s de oro",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 };
 

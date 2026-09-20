@@ -8,6 +8,7 @@
 #include "localization.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
+#include "native_ground_items.h"
 #include "native_progression.h"
 #include "progression_text.h"
 #include "native_widgets.h"
@@ -108,6 +109,9 @@ void Append(std::string& text, const std::string& part) {
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
 	text += part;
 }
+
+// The inventory's gold row, named by the game's own widget name.
+constexpr std::string_view GoldButton = "gold_button";
 
 bool IsInventory(UiText::Kind kind) {
 	return kind == UiText::Kind::InventoryGrid || kind == UiText::Kind::InventorySlot || kind == UiText::Kind::InventoryItem;
@@ -225,6 +229,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			readout = progression.readout;
 			if (!progression.skill && !snapshot.nodes.empty() && !snapshot.nodes.front().enabled)
 				Append(readout.option, Strings::Current().unavailable);
+		}
+		// The inventory's gold button carries no text of its own -- MEASURED
+		// 2026-09-20: [field] focus name="gold_button" ... text="" -- so landing
+		// on it said only what the A button would do. The amount is a player
+		// stat, read the same way a gold pile on the ground already is. It
+		// REPLACES the label rather than joining it: "Drop Gold" is already the
+		// A hint below, and a hint never leads the thing it acts on.
+		if (NativeWidgets::ReadName(focus.widget) == GoldButton) {
+			if (const int gold = NativeGroundItems::PlayerGold(); gold >= 0) {
+				char phrase[64]{};
+				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldCarried,
+					std::to_string(gold).c_str());
+				readout.option = phrase;
+			}
 		}
 	}
 	const auto tooltip = NativeTooltips::Latest(now);

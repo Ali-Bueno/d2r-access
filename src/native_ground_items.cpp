@@ -126,4 +126,11 @@ bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output) {
 	if (!g_base || !RuntimeRoots(player, tables)) { output = {}; return false; }
 	return ReadPlayer(player, tables, playerId, session, output);
 }
+int PlayerGold() noexcept {
+	uintptr_t player = 0, tables = 0;
+	if (!RuntimeRoots(player, tables) || !player) return -1;
+	const int gold = GoldAmount(player);
+	return gold < 0 ? -1 : gold;
+}
+
 }

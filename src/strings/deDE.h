@@ -113,6 +113,7 @@ inline constexpr Table deDE {
 	.equipmentBroken = "Kaputte Ausrüstung: %s",
 	.currentOfMaximum = "%s von %s",
 	.itemPlacedIn = "Abgelegt in %s",
+	.goldCarried = "%s Gold",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 };
 

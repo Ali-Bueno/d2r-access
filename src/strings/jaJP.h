@@ -113,6 +113,7 @@ inline constexpr Table jaJP {
 	.equipmentBroken = "破損した装備：%s",
 	.currentOfMaximum = "%s、最大%s",
 	.itemPlacedIn = "%sに置きました",
+	.goldCarried = "%s ゴールド",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 };
 

@@ -113,6 +113,7 @@ inline constexpr Table frFR {
 	.equipmentBroken = "Équipement cassé : %s",
 	.currentOfMaximum = "%s sur %s",
 	.itemPlacedIn = "Placé dans %s",
+	.goldCarried = "%s pièces d'or",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 };
 
