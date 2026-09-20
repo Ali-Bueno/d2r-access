@@ -26,6 +26,7 @@
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
+#include "tab_highlight.h"
 #include "target_health.h"
 #include "vitals_service.h"
 #include "text_field.h"
@@ -73,6 +74,9 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
+	// After the focus tracker, so landing on a strip is its announcement and
+	// only a later move along the strip is this one's.
+	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech);
 	D2RAccess::TextField::Tick(context);
 	D2RAccess::ModalReader::Tick(context);
 	D2RAccess::WidgetProbe::Tick(context);
