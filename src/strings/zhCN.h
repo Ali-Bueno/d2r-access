@@ -103,8 +103,6 @@ inline constexpr Table zhCN {
 	.questAlertsEnabled = "任务通知已开启",
 	.questAlertsDisabled = "任务通知已关闭",
 	.questNoObjective = "此任务暂无目标说明",
-	.keyboardPadEnabled = "键盘控制已开启",
-	.keyboardPadDisabled = "键盘控制已关闭",
 	.vitalsLife = "生命百分之%d",
 	.vitalsMana = "法力百分之%d",
 	.vitalsEnabled = "生命和法力播报已开启",

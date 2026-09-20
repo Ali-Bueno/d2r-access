@@ -11,7 +11,6 @@
 #include "beacon_service.h"
 #include "entity_radar_service.h"
 #include "input_direction.h"
-#include "input_stack.h"
 #include "localization.h"
 #include "modal_reader.h"
 #include "native_widgets.h"
@@ -30,8 +29,6 @@
 #include "vitals_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
-#include "key_claim.h"
-#include "xinput_hook.h"
 #include "widgets.h"
 
 #include <cstring>
@@ -70,7 +67,6 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
-	D2RAccess::XInputHook::Tick(context);
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
@@ -117,22 +113,6 @@ auto BytesCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command
 	else if (args == "off") D2RAccess::WidgetProbe::SetEnabled(false);
 	else if (args == "once") D2RAccess::WidgetProbe::RequestOnce();
 	else if (args == "again") D2RAccess::WidgetProbe::Rearm();
-	else return D2RL::ConsoleCommandResult::InvalidArguments;
-	return D2RL::ConsoleCommandResult::Handled;
-}
-
-// Console: "access-pad on|off" drives the game from the keyboard as a
-// synthetic controller, "report" prints the per-slot poll counts, and
-// "unhook" restores XInputGetState outright.
-auto PadCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
-	if (command == nullptr || command->plugin == nullptr) {
-		return D2RL::ConsoleCommandResult::Failed;
-	}
-	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
-	if (args == "on") D2RAccess::XInputHook::SetInjection(command->plugin, true);
-	else if (args == "off") D2RAccess::XInputHook::SetInjection(command->plugin, false);
-	else if (args == "unhook") D2RAccess::XInputHook::Remove(command->plugin);
-	else if (args.empty() || args == "report") D2RAccess::XInputHook::Report(command->plugin);
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -224,10 +204,6 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		return false;
 	}
 
-	// Before any mod code touches XInput, so the snapshot records what the
-	// GAME loaded rather than what this plugin pulled in.
-	D2RAccess::InputStack::Capture();
-
 	if (!D2RAccess::AsyncLog::Initialize()) return false;
 
 	// The native readers depend on what this loader build resolves, so every log
@@ -238,8 +214,6 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
 		build != nullptr ? build : "of unknown build", name != nullptr ? " " : "", name != nullptr ? name : "",
 		D2RAccess::CoreSlots::LoaderVersion(), static_cast<unsigned>(PluginInfo.abiVersion));
-
-	D2RAccess::InputStack::Report(context);
 
 	if (!D2RAccess::Localization::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");
@@ -300,22 +274,10 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
 	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
-	(void)context->RegisterConsoleCommand("access-pad", PadCommand, "Keyboard-as-controller: on|off|report|unhook.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
-	(void)D2RAccess::XInputHook::Install(context);
-	// Both are armed from the config file because the developer console cannot
-	// be opened outside a loaded game, and both are wanted in exactly the
-	// screens where it cannot: character select and character create. Injection
-	// also belongs at startup rather than mid-session, since it is what puts
-	// D2R into controller mode.
-	if (D2RAccess::RadarConfig::ReadEnabled(context, "[keyboard]").value_or(false)) {
-		D2RAccess::XInputHook::SetInjection(context, true);
-	}
-	// After the hook, because the claim only consumes while that pad injects.
-	(void)D2RAccess::KeyClaim::Register(context);
-	// Same reason, and one more: arming the image dump from the console is
-	// impossible once the keyboard pad is on, because controller mode disables
-	// the keyboard the console's own hotkey is typed on.
+	// Armed from the config file because the developer console cannot be opened
+	// outside a loaded game, and the screens worth dumping are the ones where it
+	// cannot: character select and character create.
 	if (D2RAccess::RadarConfig::ReadEnabled(context, "[dump]").value_or(false)) {
 		if (D2RAccess::CodeDump::EnsureImageDumped(context)) {
 			D2RAccess::AsyncLog::Info(context, "[dump] whole-image dump present next to the plugin.");
@@ -332,9 +294,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 }
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
-	D2RAccess::XInputHook::Remove(nullptr);
 	D2RAccess::UiThreadPump::Stop();
-	D2RAccess::KeyClaim::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();

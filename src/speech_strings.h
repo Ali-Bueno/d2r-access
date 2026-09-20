@@ -123,8 +123,6 @@ struct Table {
 	const char* questAlertsEnabled;
 	const char* questAlertsDisabled;
 	const char* questNoObjective;
-	const char* keyboardPadEnabled;  // the simulated controller, toggled live
-	const char* keyboardPadDisabled;
 	const char* vitalsLife;          // %d = whole percent of life left
 	const char* vitalsMana;          // %d = whole percent of mana left
 	const char* vitalsEnabled;
@@ -160,7 +158,6 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
-		t.keyboardPadEnabled, t.keyboardPadDisabled,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried};
 	for (const char* s : singles) visit(s);

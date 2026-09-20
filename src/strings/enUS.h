@@ -103,8 +103,6 @@ inline constexpr Table enUS {
 	.questAlertsEnabled = "Quest announcements enabled",
 	.questAlertsDisabled = "Quest announcements disabled",
 	.questNoObjective = "No objective text available for this quest",
-	.keyboardPadEnabled = "Keyboard control enabled",
-	.keyboardPadDisabled = "Keyboard control disabled",
 	.vitalsLife = "Life %d percent",
 	.vitalsMana = "Mana %d percent",
 	.vitalsEnabled = "Life and mana announcements enabled",

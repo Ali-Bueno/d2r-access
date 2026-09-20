@@ -96,12 +96,11 @@ PushRecord TakePushRecord();
 // The push's name for the log. English only: this is diagnosis, not speech.
 const char* PushName(StickPush push);
 
-// BACK (Select/View) press edges, from whichever pad reports them -- the real
-// controller as well as the keyboard's synthetic one. Read only: the button
-// still reaches the game exactly as it did, because this samples XInput in a
-// module of the mod's own (critical rule 3 forbids speaking over a real pad,
-// not listening to it). Take() returns whether a press happened since the
-// previous Take() and clears it.
+// BACK (Select/View) press edges, from whichever pad reports them. Read only:
+// the button still reaches the game exactly as it did, because this samples
+// XInput in a module of the mod's own (critical rule 3 forbids speaking over a
+// real pad, not listening to it). Take() returns whether a press happened
+// since the previous Take() and clears it.
 bool TakeBackButton();
 
 // Right thumbstick CLICK (R3) press edges. The SDK's action service binds

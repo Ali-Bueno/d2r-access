@@ -15,28 +15,11 @@ range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
 line_of_sight = false
 
-# Keyboard as a controller. D2R has controller code for everything keyboard
-# play is missing -- menu focus, movement pathing, and firing a skill at the
-# target the game picks -- so the keyboard drives a synthetic pad rather than
-# reimplementing any of it. The pad answers on the lowest slot no real
-# controller occupies, so a physical pad keeps working untouched.
-# Ctrl+Shift+F12 turns it on and off at any time, and that is the better way in:
-# entering controller mode disables the game's own input actions, which is what
-# the developer console's Ctrl+` hotkey and every mod hotkey are registered as.
-# Leave this false to keep those working, and press the toggle when you want to
-# play from the keyboard.
-# WASD moves, O/K/L/; scan, J/N/U/I are A/B/X/Y, Y/B the shoulders, T/V the
-# triggers, ' is L3 and / is R3, = and - are Start and Back, and the arrow keys
-# are the D-pad.
-[keyboard]
-enabled = false
-
 # One-shot: write the game's whole mapped image next to the plugin at startup,
 # for offline analysis (about 60-70 MB, written once and skipped if it is
-# already there). Armed here rather than from the console because turning the
-# keyboard pad on puts the game in controller mode, which disables the keyboard
-# -- and Ctrl+` is a keyboard combination, so the console cannot be opened at
-# all while that is running.
+# already there). Armed here rather than from the console because the console
+# cannot be opened outside a loaded game, and the image is wanted from the very
+# first screen onwards.
 [dump]
 enabled = false
 

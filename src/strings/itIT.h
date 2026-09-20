@@ -103,8 +103,6 @@ inline constexpr Table itIT {
 	.questAlertsEnabled = "Annunci delle missioni attivati",
 	.questAlertsDisabled = "Annunci delle missioni disattivati",
 	.questNoObjective = "Nessun testo dell’obiettivo disponibile per questa missione",
-	.keyboardPadEnabled = "Controllo da tastiera attivato",
-	.keyboardPadDisabled = "Controllo da tastiera disattivato",
 	.vitalsLife = "Vita %d per cento",
 	.vitalsMana = "Mana %d per cento",
 	.vitalsEnabled = "Annunci di vita e mana attivati",

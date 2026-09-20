@@ -103,8 +103,6 @@ inline constexpr Table deDE {
 	.questAlertsEnabled = "Questansagen aktiviert",
 	.questAlertsDisabled = "Questansagen deaktiviert",
 	.questNoObjective = "Für diese Quest ist kein Zieltext verfügbar",
-	.keyboardPadEnabled = "Tastatursteuerung aktiviert",
-	.keyboardPadDisabled = "Tastatursteuerung deaktiviert",
 	.vitalsLife = "Leben %d Prozent",
 	.vitalsMana = "Mana %d Prozent",
 	.vitalsEnabled = "Lebens- und Mana-Ansagen aktiviert",

@@ -103,8 +103,6 @@ inline constexpr Table zhTW {
 	.questAlertsEnabled = "任務通知已啟用",
 	.questAlertsDisabled = "任務通知已停用",
 	.questNoObjective = "此任務暫無目標說明",
-	.keyboardPadEnabled = "鍵盤控制已開啟",
-	.keyboardPadDisabled = "鍵盤控制已關閉",
 	.vitalsLife = "生命 %d 百分比",
 	.vitalsMana = "法力 %d 百分比",
 	.vitalsEnabled = "生命與法力播報已啟用",

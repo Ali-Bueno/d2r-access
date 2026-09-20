@@ -103,8 +103,6 @@ inline constexpr Table frFR {
 	.questAlertsEnabled = "Annonces de quêtes activées",
 	.questAlertsDisabled = "Annonces de quêtes désactivées",
 	.questNoObjective = "Aucun texte d’objectif disponible pour cette quête",
-	.keyboardPadEnabled = "Commande au clavier activée",
-	.keyboardPadDisabled = "Commande au clavier désactivée",
 	.vitalsLife = "Vie %d pour cent",
 	.vitalsMana = "Mana %d pour cent",
 	.vitalsEnabled = "Annonces de vie et de mana activées",

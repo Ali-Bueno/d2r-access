@@ -38,11 +38,7 @@ add_library(d2r-access SHARED
 	src/native_footsteps.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
-	src/keyboard_pad.cpp
 	src/modal_reader.cpp
-	src/input_stack.cpp
-	src/key_claim.cpp
-	src/xinput_hook.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
 	src/plugin.cpp
@@ -175,10 +171,6 @@ if(BUILD_TESTING)
 	target_include_directories(native-cursor-gesture-tests PRIVATE src)
 	target_compile_features(native-cursor-gesture-tests PRIVATE cxx_std_20)
 	add_test(NAME native-cursor-gesture COMMAND native-cursor-gesture-tests)
-	add_executable(keyboard-pad-tests tests/keyboard_pad_tests.cpp src/keyboard_pad.cpp)
-	target_include_directories(keyboard-pad-tests PRIVATE src)
-	target_compile_features(keyboard-pad-tests PRIVATE cxx_std_20)
-	add_test(NAME keyboard-pad COMMAND keyboard-pad-tests)
 	add_executable(skill-navigation-tests tests/skill_navigation_tests.cpp src/skill_grid.cpp src/skill_navigation.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(skill-navigation-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(skill-navigation-tests PRIVATE src)

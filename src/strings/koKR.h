@@ -103,8 +103,6 @@ inline constexpr Table koKR {
 	.questAlertsEnabled = "퀘스트 알림 켜짐",
 	.questAlertsDisabled = "퀘스트 알림 꺼짐",
 	.questNoObjective = "이 퀘스트에는 표시할 목표 내용이 없습니다",
-	.keyboardPadEnabled = "키보드 조작 켬",
-	.keyboardPadDisabled = "키보드 조작 끔",
 	.vitalsLife = "생명력 %d퍼센트",
 	.vitalsMana = "마나 %d퍼센트",
 	.vitalsEnabled = "생명력과 마나 알림 켜짐",

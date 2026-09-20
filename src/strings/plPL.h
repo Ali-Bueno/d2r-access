@@ -103,8 +103,6 @@ inline constexpr Table plPL {
 	.questAlertsEnabled = "Powiadomienia o zadaniach włączone",
 	.questAlertsDisabled = "Powiadomienia o zadaniach wyłączone",
 	.questNoObjective = "Brak opisu celu dla tego zadania",
-	.keyboardPadEnabled = "Sterowanie klawiaturą włączone",
-	.keyboardPadDisabled = "Sterowanie klawiaturą wyłączone",
 	.vitalsLife = "Życie %d procent",
 	.vitalsMana = "Mana %d procent",
 	.vitalsEnabled = "Powiadomienia o życiu i manie włączone",

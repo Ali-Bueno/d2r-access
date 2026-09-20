@@ -1,7 +1,5 @@
 #include "input_direction.h"
 
-#include "xinput_hook.h"
-
 #include <windows.h>
 
 #include <xinput.h>
@@ -140,27 +138,11 @@ void Poll() {
 		| XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT;
 
 	g_leftStick = {};
-	// Keyboard play reports a pad of its own on a free slot, but into the
-	// module the GAME reads -- not this one (xinput_hook.h). Taking it here is
-	// what lets the scan, the pathfinder and guidance answer the keyboard at
-	// all. It is a source beside the real pads, never mixed into one: it holds
-	// a slot no physical controller occupies, so nothing is merged or masked.
-	const XInputHook::Synthetic keyboard = XInputHook::SyntheticPad();
-	if (g_xInputGetState != nullptr || keyboard.active) {
+	if (g_xInputGetState != nullptr) {
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
 			PadEdgeState& edges = g_padState[padIndex];
 			XINPUT_STATE  state {};
-			if (keyboard.active && padIndex == keyboard.slot) {
-				// The synthetic pad IS the device on this slot, exactly as the
-				// game sees it; asking the real XInput would report nothing.
-				state.Gamepad.wButtons      = keyboard.pad.buttons;
-				state.Gamepad.bLeftTrigger  = keyboard.pad.leftTrigger;
-				state.Gamepad.bRightTrigger = keyboard.pad.rightTrigger;
-				state.Gamepad.sThumbLX      = keyboard.pad.leftThumbX;
-				state.Gamepad.sThumbLY      = keyboard.pad.leftThumbY;
-				state.Gamepad.sThumbRX      = keyboard.pad.rightThumbX;
-				state.Gamepad.sThumbRY      = keyboard.pad.rightThumbY;
-			} else if (g_xInputGetState == nullptr || g_xInputGetState(padIndex, &state) != ERROR_SUCCESS) {
+			if (g_xInputGetState(padIndex, &state) != ERROR_SUCCESS) {
 				// Not connected: clear held flags so a later reconnect starts
 				// from a clean edge instead of replaying a stale press.
 				edges = {};
