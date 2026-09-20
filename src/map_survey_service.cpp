@@ -7,6 +7,8 @@
 #include "layout_check.h"
 #include "native_drlg.h"
 #include "native_entities.h"
+#include "level_areas.h"
+#include "native_level_areas.h"
 #include "native_ground_items.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
@@ -65,6 +67,9 @@ bool                       g_supported = false;
 // Ground loot is optional: the catalogue is worth having without it.
 bool                       g_items = false;
 uint64_t                   g_nextObserve = 0;
+// The level the area list was last logged for; diagnostics only.
+int                        g_areaLevel = 0;
+uint64_t                   g_areaSession = 0;
 
 // What the player is currently pointed at. Kept by identity, not index, so a
 // rescan that adds or removes objects does not silently move the selection.
@@ -144,6 +149,32 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// walking one is the one worth acting on.
 	const std::string distance = EntityRadar::DistancePhrase(landmark.steps, EntityRadar::Settings{}, strings);
 	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
+}
+
+// What the act has built around this level, once per level. The exits
+// category is fed from this: a town has no warp of its own, so the only way
+// out it can offer is the area next door. If a neighbour is missing from the
+// list there is nothing to point at, and this line says which of the two
+// happened rather than leaving an empty category to be guessed about.
+void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
+	if (state.level == g_areaLevel && state.session == g_areaSession) return;
+	g_areaLevel = state.level; g_areaSession = state.session;
+	std::vector<NativeLevelAreas::Area> areas;
+	if (!NativeDrlg::Available() || !NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) {
+		AsyncLog::Info(context, "[areas] unavailable");
+		return;
+	}
+	std::string built;
+	for (const auto& area : areas) {
+		char entry[80]{};
+		std::snprintf(entry, sizeof(entry), " %u@%d,%d %dx%d/%zur", area.level,
+			area.tileX, area.tileY, area.tileWidth, area.tileHeight, area.rooms);
+		built += entry;
+	}
+	AsyncLog::InfoF(context, "[areas] level %d, %zu built:%s", state.level, areas.size(), built.c_str());
+	for (const auto& crossing : LevelAreas::Neighbours(areas, static_cast<uint32_t>(state.level)))
+		AsyncLog::InfoF(context, "[areas] crossing to level %u at %.0f,%.0f gap=%d tiles",
+			crossing.level, crossing.position.x, crossing.position.y, crossing.gapTiles);
 }
 
 // Everything the catalogue tracks: the verified unit reader, plus the ground
@@ -351,6 +382,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		|| !Collect(state, entities)) {
 		return;
 	}
+	LogAreas(context, state);
 	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
 	// Rooms are marked explored by standing in them, so this has to keep up
 	// with the player rather than wait for the next catalogue question.
