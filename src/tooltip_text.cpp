@@ -48,18 +48,22 @@ void Append(std::string& text, std::string_view part) {
 }
 
 Body Read(std::string_view body) {
+	// The engine stores a body bottom-up: its first line is the bottom of the
+	// drawn tooltip and its last is the title. Walk it backwards so the lines
+	// come out in the order the screen draws them, the item's name first.
 	Body result;
 	while (!body.empty()) {
-		const auto  newline = body.find('\n');
-		std::string raw(body.substr(0, newline));
-		const bool  heading = !result.Marked() && raw.find(Heading) != std::string::npos;
+		const auto  newline = body.rfind('\n');
+		std::string raw(body.substr(newline == std::string_view::npos ? 0 : newline + 1));
+		const bool  heading = raw.find(Heading) != std::string::npos;
 		std::string line = UiText::Clean(StripFont(std::move(raw)));
 		if (!line.empty()) {
+			// Reading upwards, the last styled line seen is the topmost one.
 			if (heading) result.heading = result.lines.size();
 			result.lines.push_back(std::move(line));
 		}
 		if (newline == std::string_view::npos) break;
-		body = body.substr(newline + 1);
+		body = body.substr(0, newline);
 	}
 	return result;
 }
@@ -67,12 +71,12 @@ Body Read(std::string_view body) {
 Description Split(const Body& body, std::span<const std::string> baseStats) {
 	Description result;
 	if (body.lines.empty()) return result;
-	// The styled title wherever the engine put it; the first line when it
-	// styled nothing. Either way the name leads.
+	// The styled title where there is one, and otherwise the first line --
+	// which, read in screen order, is the tooltip's own top line.
 	const size_t name = body.Marked() ? body.heading : 0;
 	result.headline = body.lines[name];
 	// The base damage or defense joins it, wherever it sits. Everything else
-	// keeps the order it was stored in and waits to be asked for.
+	// keeps the order the screen drew it in and waits to be asked for.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (at == name) continue;
 		const bool base = std::any_of(baseStats.begin(), baseStats.end(),

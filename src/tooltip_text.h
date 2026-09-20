@@ -13,17 +13,18 @@
 // read as the highlight moves. Its requirements, its magic properties, its
 // flavour text and its price are the detail, offered on demand instead.
 //
-// The name is found by the font-size command the renderer marks the heading
-// with, so the split does not depend on which end of the body the engine
-// happens to store the top line at. Where there is no marker the first line
-// stands in, and `Body::heading` says which of the two happened, so a log can
-// show it rather than leaving it assumed.
+// The engine stores a body bottom-up, so `Read` reverses it and `Body::lines`
+// is the tooltip in the order the screen draws it -- the name first. The name
+// is taken from the font command the renderer marks a heading with where there
+// is one, and from that first line where there is not; `Body::heading` says
+// which of the two happened, so a log can show it rather than leaving it
+// assumed.
 //
 // Pure text handling: no native calls, no SDK, unit-tested without the game.
 namespace D2RAccess::TooltipText {
 
 struct Body {
-	std::vector<std::string> lines;  // as stored, cleaned, empties dropped
+	std::vector<std::string> lines;  // as drawn, top first, cleaned, empties dropped
 	size_t heading = static_cast<size_t>(-1); // the line the renderer styled as the title
 	bool Marked() const { return heading != static_cast<size_t>(-1); }
 };

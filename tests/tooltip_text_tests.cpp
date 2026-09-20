@@ -12,20 +12,23 @@ constexpr const char* Title = "\xEE\x81\xBE" "2";
 const std::vector<std::string> BaseStats{"One-Hand Damage:", "Defense:"};
 const std::string Font0 = std::string(Title).substr(0, 3) + "0";
 
-std::string TopDown() {
-	return std::string(Title) + "Bloodletter\nShort Sword\nOne-Hand Damage: 7 to 15\n"
-		"Required Strength: 25\n+15 to Attack Rating\nSell price: 84 gold";
-}
-// The same tooltip if the engine stores its lines the other way up.
-std::string BottomUp() {
+// The engine stores a body bottom-up -- its first line is the bottom of the
+// drawn tooltip and its last is the title. Measured 2026-09-20 from the live
+// readouts of a Short Sword and a Minor Healing Potion.
+std::string Stored() {
 	return std::string("Sell price: 84 gold\n+15 to Attack Rating\nRequired Strength: 25\n"
 		"One-Hand Damage: 7 to 15\nShort Sword\n") + Title + "Bloodletter";
+}
+// The same tooltip the other way up: the title styling finds the name either way.
+std::string Inverted() {
+	return std::string(Title) + "Bloodletter\nShort Sword\nOne-Hand Damage: 7 to 15\n"
+		"Required Strength: 25\n+15 to Attack Rating\nSell price: 84 gold";
 }
 }
 
 int main() {
 	for (const auto& [name, text] : std::vector<std::pair<const char*, std::string>>{
-			 {"stored top down", TopDown()}, {"stored bottom up", BottomUp()}}) {
+			 {"stored bottom up", Stored()}, {"stored the other way up", Inverted()}}) {
 		const auto body = TooltipText::Read(text);
 		Check(body.lines.size() == 6, "every drawn line survives");
 		Check(body.Marked(), "the renderer's title styling is found");
@@ -40,17 +43,17 @@ int main() {
 	}
 
 	// Detail keeps the order it was stored in, so it reads as the screen drew it.
-	const auto ordered = TooltipText::Split(TooltipText::Read(TopDown()), BaseStats);
+	const auto ordered = TooltipText::Split(TooltipText::Read(Stored()), BaseStats);
 	Check(ordered.detail == "Short Sword. Required Strength: 25. +15 to Attack Rating. Sell price: 84 gold",
 		"the detail is the rest of the tooltip in order");
 
 	// Armour reads the same way through its own label.
-	const auto armour = TooltipText::Split(TooltipText::Read("Quilted Armor\nDefense: 43\nRequired Strength: 20"), BaseStats);
+	const auto armour = TooltipText::Split(TooltipText::Read("Required Strength: 20\nDefense: 43\nQuilted Armor"), BaseStats);
 	Check(armour.headline == "Quilted Armor. Defense: 43", "defense is a base stat too");
 	Check(armour.detail == "Required Strength: 20", "and the requirement is not");
 
 	// No styling: the first line stands in, and the split says so.
-	const auto plain = TooltipText::Read("Minor Healing Potion\nRestores Health");
+	const auto plain = TooltipText::Read("Restores Health\nMinor Healing Potion");
 	Check(!plain.Marked(), "an unstyled tooltip reports that it was unstyled");
 	const auto potion = TooltipText::Split(plain, BaseStats);
 	Check(potion.headline == "Minor Healing Potion", "an item with no base damage is just its name");
@@ -58,9 +61,24 @@ int main() {
 
 	// Without the game's labels the headline is the name alone: a shorter
 	// readout, never a wrong one.
-	const auto unlabelled = TooltipText::Split(TooltipText::Read(TopDown()), {});
+	const auto unlabelled = TooltipText::Split(TooltipText::Read(Stored()), {});
 	Check(unlabelled.headline == "Bloodletter", "no labels, no base-stat line in the headline");
 	Check(unlabelled.detail.find("One-Hand Damage: 7 to 15") != std::string::npos, "and nothing is lost -- it moves to the detail");
+
+	// The two bodies the user heard read wrongly on 2026-09-20: unstyled,
+	// stored bottom-up, every line drawn with font index 0. The belt slot spoke
+	// "Points: 45" for the name and held the name back for the right stick.
+	const auto belt = TooltipText::Split(TooltipText::Read(
+		Font0 + "Points: 45\n" + Font0 + "Minor Healing Potion"), BaseStats);
+	Check(belt.headline == "Minor Healing Potion", "an unstyled body names the item from the line drawn on top");
+	Check(belt.detail == "Points: 45", "and the bare number it used to speak is held for the asking");
+	const auto sword = TooltipText::Split(TooltipText::Read(
+		Font0 + "Sword Class - Fast Attack Speed\n" + Font0 + "Max Sockets: 2\n"
+		+ Font0 + "Durability: 24 of 24\n" + Font0 + "One-Hand Damage: 2 to 7\n"
+		+ Font0 + "Short Sword"), BaseStats);
+	Check(sword.headline == "Short Sword. One-Hand Damage: 2 to 7", "equipment leads with its name and base damage");
+	Check(sword.detail == "Durability: 24 of 24. Max Sockets: 2. Sword Class - Fast Attack Speed",
+		"and the rest follows the screen downwards");
 
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.

@@ -237,9 +237,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			const auto body = TooltipText::Read(tooltip.body);
 			auto       split = TooltipText::Split(body, BaseStatLabels());
 			Append(split.detail, UiText::Clean(tooltip.footer));
-			// The line order the engine stores a body in is not something we
-			// have measured, so the split leans on the renderer's own title
-			// styling and says in the log when there was none to lean on.
+			// The engine stores a body bottom-up, so Read gives the lines back
+			// in screen order and the name leads. The log still names the line
+			// the headline came from, and whether the renderer styled it.
 			D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
 				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
 				split.headline.c_str(), split.detail.c_str());
