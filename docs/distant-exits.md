@@ -63,3 +63,51 @@ Build/deploy and 38 CTest suites / 9353 checks pass. The installed game startup
 at 2026-09-16 22:08:39 logs `[scan] Verified native monster/object/exit reader`,
 confirming all six new full-function guards match the live image. Actual distant
 stair selection and guidance in a dungeon still require the controller/NVDA pass.
+
+## Areas that are not joined by a warp at all
+
+Evidence: the game's own `global/excel/Levels.txt`, extracted from the installed
+CASC storage with `tools/casc-extract` (D2R 3.3), read alongside the catalogue's
+own `[survey]` lines from 2026-09-20.
+
+The exits category was empty in the Rogue Encampment. The reason is in the table,
+not in the reader:
+
+| level | `Vis0..7` | `Warp0..7` |
+|---|---|---|
+| 1 Rogue Encampment | all 0 | all -1 |
+| 2 Blood Moor | 8, 8, 8, 8 (Den of Evil) | 0, 1, 2, 3 |
+| 8 Den of Evil | 2 (Blood Moor) | 4 |
+
+**The encampment has no warp of any kind**, and the Blood Moor's four warps all
+lead to the Den of Evil — never back to town. Kurast Docktown, the Pandemonium
+Fortress and Harrogath list none either; Lut Gholein is the only town that does
+(to the sewers). Twenty-four named levels in the game have no warp link at all.
+
+So a warp in D2 is the way into or out of an **enclosed** level: a cave, a crypt,
+a tower, a sewer. Two outdoor areas that run into each other — a town and the
+wilderness beside it, or one wilderness and the next — are joined by nothing but
+the map: they sit next to each other on the act's grid and the player walks
+across the boundary. There is no record for `native_level_exits.cpp` to find, and
+no amount of relaxing its gates will produce one.
+
+`native_level_areas.cpp` answers that half instead. `DrlgGetOrAddLevel`
+(RVA `0x3267C0`, already fingerprinted in `drlg_layout.h`) looks a level up by
+walking `drlg+0x868` and then `level+0x1B8`, so those two are the act's list of
+the levels it has built; each level's rooms carry tile rectangles in the same
+world grid as the player's own, so a level's footprint is the union of them.
+`LevelAreas::Neighbours` keeps the areas within the game's own six-tile "near"
+gap and reports where two of them meet.
+
+**That crossing is a bearing, not a doorway.** The shared edge of two areas is
+mostly solid — a town's palisade, a cliff — and the gap through it is somewhere
+along that edge rather than at its middle. It says which way the Blood Moor lies
+and roughly how far; the collision grid still does the real routing once the way
+through is inside its window.
+
+### The town's rooms are map squares, not buildings
+
+`Levels.txt` gives the Rogue Encampment as 56 x 40 tiles, and the catalogue
+counted 35 rooms there on 2026-09-20. 56/8 x 40/8 = 7 x 5 = 35: the town is one
+preset (`Act1/Town/TownN1.ds1`) divided into a grid of 8x8-tile rooms. A room is
+a ~40-yard square of ground, not a tent or a hut.
