@@ -4,8 +4,11 @@
 #include "async_log.h"
 #include "beacon_service.h"
 #include "map_survey.h"
+#include "layout_check.h"
+#include "native_drlg.h"
 #include "native_entities.h"
 #include "native_rooms.h"
+#include "drlg_layout.h"
 #include "room_catalogue.h"
 #include "native_world.h"
 #include "screen_reader.h"
@@ -157,7 +160,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (NativeEntities::Read(state.player, state.session, entities, true)) {
 		g_registry.Observe(state.level, entities, grid);
 	}
-	g_rooms.Observe(state.level, state.session, CurrentRooms(state.level, state.session), world.player);
+	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
+		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	const Strings::Table& strings = Strings::Current();
 	const auto rooms = RoomCatalogue::Entities(g_rooms.Entries(), strings.surveyRoom, strings.surveyRoomUnexplored);
@@ -259,6 +263,11 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context   = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
+	// The map seed sharpens room memory but nothing depends on it: a failed
+	// check leaves the room rectangles as the only identity, which is still
+	// enough to tell one layout from another.
+	NativeDrlg::SetAvailable(LayoutCheck::Verify(context, context->exeBase, DrlgLayout::Checks, "rooms",
+		"room memory falls back to the room layout alone"));
 
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -323,7 +332,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
 	// Rooms are marked explored by standing in them, so this has to keep up
 	// with the player rather than wait for the next catalogue question.
-	g_rooms.Observe(state.level, state.session, CurrentRooms(state.level, state.session), world.player);
+	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
+		CurrentRooms(state.level, state.session), world.player);
 }
 
 void Shutdown() {

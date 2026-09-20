@@ -1,5 +1,6 @@
 #include "room_catalogue.h"
 
+#include <algorithm>
 #include <cstdio>
 
 namespace D2RAccess::RoomCatalogue {
@@ -11,34 +12,71 @@ Radar::Position Centre(const NativeRooms::Room& room) {
 		static_cast<double>(bounds.minY + bounds.maxY - 1) / 2};
 }
 
+// A digest of the room rectangles, in the order the reader sorts them. Equal
+// digests mean the same rooms in the same places, which is what makes a
+// remembered exploration still apply. FNV-1a over the four tile fields.
+uint64_t Layout(const std::vector<NativeRooms::Room>& rooms) {
+	constexpr uint64_t Prime = 1099511628211ULL;
+	uint64_t           hash = 14695981039346656037ULL;
+	const auto         mix = [&hash](int value) {
+        for (int shift = 0; shift < 32; shift += 8) hash = (hash ^ static_cast<uint8_t>(value >> shift)) * Prime;
+	};
+	for (const NativeRooms::Room& room : rooms) {
+		mix(room.tileX); mix(room.tileY); mix(room.tileWidth); mix(room.tileHeight);
+	}
+	return hash;
 }
 
-void Registry::Observe(int level, uint64_t session, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
-	if (level != m_level || session != m_session) {
-		Clear();
+}
+
+void Registry::Stash() {
+	if (m_entries.empty() || m_key.layout == 0) return;
+	std::vector<bool> explored;
+	explored.reserve(m_entries.size());
+	for (const Entry& entry : m_entries) explored.push_back(entry.explored);
+	std::erase_if(m_remembered, [&](const Record& record) { return record.key == m_key; });
+	if (m_remembered.size() >= MaxRemembered) m_remembered.erase(m_remembered.begin());
+	m_remembered.push_back({m_key, std::move(explored)});
+}
+
+void Registry::Observe(int level, uint32_t mapSeed, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	const Key key{level, mapSeed, rooms.empty() ? 0 : Layout(rooms)};
+	if (key != m_key) {
+		// Put the level being left where it can be found again, then take back
+		// whatever was recorded for the one being entered. A level regenerated
+		// under the same id has a different layout digest, so it gets a clean
+		// record instead of the old one's room numbers.
+		Stash();
+		m_key = key;
 		m_level = level;
-		m_session = session;
-	}
-	// The room list is fixed for a level instance, so it is only laid out
-	// once; later calls carry the exploration forward rather than resetting
-	// it. A list that changes size means a different set of rooms, and the
-	// numbering has to start again or it would name the wrong ones.
-	if (m_entries.size() != rooms.size()) {
+		m_seed = mapSeed;
 		m_entries.clear();
 		m_entries.reserve(rooms.size());
 		for (size_t i = 0; i < rooms.size(); ++i)
 			m_entries.push_back({rooms[i], static_cast<int>(i) + 1, false, Centre(rooms[i])});
+		const auto found = std::find_if(m_remembered.begin(), m_remembered.end(),
+			[&](const Record& record) { return record.key == key; });
+		if (found != m_remembered.end()) {
+			if (found->explored.size() == m_entries.size())
+				for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].explored = found->explored[i];
+			// This level is the live one again; it is stashed afresh when left.
+			m_remembered.erase(found);
+		}
 	} else {
-		for (size_t i = 0; i < rooms.size(); ++i) m_entries[i].room = rooms[i];
+		// Same layout: the rectangles are identical by construction, so this
+		// only refreshes the room handles and carries the exploration forward.
+		for (size_t i = 0; i < rooms.size() && i < m_entries.size(); ++i) m_entries[i].room = rooms[i];
 	}
 	const size_t standing = NativeRooms::Containing(rooms, player);
-	if (standing != NativeRooms::None) m_entries[standing].explored = true;
+	if (standing != NativeRooms::None && standing < m_entries.size()) m_entries[standing].explored = true;
 }
 
 void Registry::Clear() {
 	m_entries.clear();
+	m_remembered.clear();
+	m_key = {};
 	m_level = 0;
-	m_session = 0;
+	m_seed = 0;
 }
 
 std::vector<EntityRadar::Entity> Entities(const std::vector<Entry>& entries,

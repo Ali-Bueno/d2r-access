@@ -68,6 +68,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/native_entities.cpp
 	src/native_level_exits.cpp
+	src/native_drlg.cpp
 	src/native_rooms.cpp
 	src/room_graph.cpp
 	src/room_catalogue.cpp
@@ -241,6 +242,11 @@ if(BUILD_TESTING)
 	target_compile_features(room-graph-tests PRIVATE cxx_std_20)
 	target_compile_definitions(room-graph-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-graph COMMAND room-graph-tests)
+	add_executable(native-drlg-tests tests/native_drlg_tests.cpp src/native_drlg.cpp src/native_memory.cpp)
+	target_include_directories(native-drlg-tests PRIVATE src)
+	target_compile_features(native-drlg-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-drlg-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-drlg COMMAND native-drlg-tests)
 	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(room-catalogue-tests PRIVATE src)
 	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
