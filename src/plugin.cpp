@@ -27,7 +27,6 @@
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
 #include "tab_highlight.h"
-#include "target_health.h"
 #include "vitals_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
@@ -90,7 +89,6 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
-	D2RAccess::TargetHealth::Tick(context);
 	LogRightStickPush(context);
 }
 
@@ -272,7 +270,6 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
-	if (!D2RAccess::TargetHealth::Register(context)) D2RAccess::AsyncLog::Warn(context, "[target] Target health readout unavailable.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
@@ -318,7 +315,6 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::XInputHook::Remove(nullptr);
 	D2RAccess::UiThreadPump::Stop();
 	D2RAccess::VitalsService::Unregister();
-	D2RAccess::TargetHealth::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::BeaconService::Unregister();

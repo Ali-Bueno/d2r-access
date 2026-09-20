@@ -110,8 +110,6 @@ inline constexpr Table deDE {
 	.vitalsEnabled = "Lebens- und Mana-Ansagen aktiviert",
 	.vitalsDisabled = "Lebens- und Mana-Ansagen deaktiviert",
 	.vitalsOrbTextMissing = "%s und %s in den Spieloptionen aktivieren, um Leben und Mana zu hören",
-	.targetHealth = "%s, %d Prozent",
-	.targetNone = "Kein Ziel",
 	.equipmentBroken = "Kaputte Ausrüstung: %s",
 	.currentOfMaximum = "%s von %s",
 	.itemPlacedIn = "Abgelegt in %s",

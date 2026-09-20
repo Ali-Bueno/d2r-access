@@ -99,7 +99,6 @@ add_library(d2r-access SHARED
 	src/settings_file.cpp
 	src/speech_strings.cpp
 	src/tab_highlight.cpp
-	src/target_health.cpp
 	src/ui_message_monitor.cpp
 	src/ui_thread_pump.cpp
 	src/ui_text.cpp

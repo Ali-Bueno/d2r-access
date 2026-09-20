@@ -110,8 +110,6 @@ inline constexpr Table jaJP {
 	.vitalsEnabled = "ライフとマナの読み上げ オン",
 	.vitalsDisabled = "ライフとマナの読み上げ オフ",
 	.vitalsOrbTextMissing = "ライフとマナを聞くには、ゲームプレイオプションで%sと%sをオンにしてください",
-	.targetHealth = "%s、%d パーセント",
-	.targetNone = "目標なし",
 	.equipmentBroken = "破損した装備：%s",
 	.currentOfMaximum = "%s、最大%s",
 	.itemPlacedIn = "%sに置きました",
