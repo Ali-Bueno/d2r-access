@@ -77,6 +77,13 @@ StickPush TakeRightStickPush(const char* claimant);
 // that belong to those.
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
 
+// The pending push WITHOUT claiming it, so a reader whose gate is expensive
+// can ask "is there anything for me?" before paying for the gate, and still
+// leave the push for the next reader when the gate says no. A pending push
+// survives ticks until it is claimed or a later push replaces it, so a reader
+// that declines it costs the player nothing but the next tick.
+StickPush PeekRightStickPush();
+
 // What became of a push, written when it is resolved and not before: claimed
 // by a reader, or replaced by a later push while still pending. A push still
 // waiting for the reader that wants it therefore costs nothing per frame.

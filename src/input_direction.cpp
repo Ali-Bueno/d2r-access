@@ -280,6 +280,7 @@ StickPush TakeRightStickPush(const char* claimant) {
 	g_rightStickPush    = StickPush::None;
 	return push;
 }
+StickPush PeekRightStickPush() { return g_rightStickPush; }
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
 	if (wanted == StickPush::None || g_rightStickPush != wanted) {
 		return false;

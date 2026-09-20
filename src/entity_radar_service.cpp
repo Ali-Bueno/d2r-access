@@ -216,7 +216,6 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
-	const auto push = InputDirection::TakeRightStickPush("scan");
 	const auto now = GetTickCount64();
 	const auto& strings = Strings::Current();
 	Lifecycle state;
@@ -237,6 +236,20 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			g_npcSettings.range, g_npcSettings.requireLineOfSight);
 	}
 	Proximity(context, state, now, uiOwnsSpeech);
+	// The push is claimed only when this reader will actually act on it.
+	// Taking it at the top of the tick meant the scan swallowed every push and
+	// then discarded most of them: Scan() checks Playing() -- c4893cf's menu
+	// gate -- but that runs long after the push is gone, and the scan is on by
+	// default, so a push made while the character panel was open was consumed
+	// here and never reached the panel's own reader. MEASURED 2026-09-20: ten
+	// of eighteen pushes in six seconds went "scan" and spoke nothing, which is
+	// what "it takes five or six pushes to move one line" was. Peek first and
+	// leave it pending when the gate says no; the next reader that wants it
+	// gets it on the following tick.
+	const auto push = InputDirection::PeekRightStickPush() != InputDirection::StickPush::None
+			&& g_enabled && Playing(state)
+		? InputDirection::TakeRightStickPush("scan")
+		: InputDirection::StickPush::None;
 	if (command == Command::None && push == InputDirection::StickPush::None) return;
 	if (command == Command::On || command == Command::Off || command == Command::Toggle) {
 		g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
