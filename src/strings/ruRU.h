@@ -127,6 +127,7 @@ inline constexpr Table ruRU {
 	.roomExits = "Выходы: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "Нет выхода",
+	.roomOpening = "проход",
 	.roomOutside = "Не в комнате подземелья",
 	.roomsEnabled = "Выходы из комнат включены",
 	.roomsDisabled = "Выходы из комнат выключены",

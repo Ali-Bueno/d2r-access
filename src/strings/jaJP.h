@@ -127,6 +127,7 @@ inline constexpr Table jaJP {
 	.roomExits = "出口：%s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "出口なし",
+	.roomOpening = "通路",
 	.roomOutside = "ダンジョンの部屋にいません",
 	.roomsEnabled = "ルーム出口 オン",
 	.roomsDisabled = "ルーム出口 オフ",

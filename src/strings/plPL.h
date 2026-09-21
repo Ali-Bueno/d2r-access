@@ -127,6 +127,7 @@ inline constexpr Table plPL {
 	.roomExits = "Wyjścia: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "Brak wyjścia",
+	.roomOpening = "przejście",
 	.roomOutside = "Nie w komnacie lochu",
 	.roomsEnabled = "Wyjścia pomieszczeń włączone",
 	.roomsDisabled = "Wyjścia pomieszczeń wyłączone",

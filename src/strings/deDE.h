@@ -127,6 +127,7 @@ inline constexpr Table deDE {
 	.roomExits = "Ausgänge: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "Kein Ausgang",
+	.roomOpening = "Durchgang",
 	.roomOutside = "Nicht in einem Dungeonraum",
 	.roomsEnabled = "Raumausgänge aktiviert",
 	.roomsDisabled = "Raumausgänge deaktiviert",

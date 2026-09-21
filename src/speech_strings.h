@@ -153,6 +153,7 @@ struct Table {
 	const char* roomExits;     // %s = the ways out, already joined
 	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
 	const char* roomNoExits;
+	const char* roomOpening;   // a plain gap between two streamed rooms, with no name of its own
 	const char* roomOutside;   // BACK+Y where there is no dungeon room to describe
 	const char* roomsEnabled;
 	const char* roomsDisabled;
@@ -191,7 +192,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable};
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

@@ -127,6 +127,7 @@ inline constexpr Table enUS {
 	.roomExits = "Exits: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "No way out",
+	.roomOpening = "passage",
 	.roomOutside = "Not in a dungeon room",
 	.roomsEnabled = "Room exits on",
 	.roomsDisabled = "Room exits off",

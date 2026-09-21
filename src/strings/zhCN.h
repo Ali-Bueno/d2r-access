@@ -127,6 +127,7 @@ inline constexpr Table zhCN {
 	.roomExits = "出口：%s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "无出口",
+	.roomOpening = "通道",
 	.roomOutside = "不在地下城房间内",
 	.roomsEnabled = "房间出口已开启",
 	.roomsDisabled = "房间出口已关闭",

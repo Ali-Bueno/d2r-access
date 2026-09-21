@@ -127,6 +127,7 @@ inline constexpr Table koKR {
 	.roomExits = "출구: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "출구 없음",
+	.roomOpening = "통로",
 	.roomOutside = "던전 방 안이 아님",
 	.roomsEnabled = "방 출구 켜짐",
 	.roomsDisabled = "방 출구 꺼짐",

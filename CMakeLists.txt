@@ -70,6 +70,7 @@ add_library(d2r-access SHARED
 	src/room_graph.cpp
 	src/rooms.cpp
 	src/room_service.cpp
+	src/exit_review.cpp
 	src/explored_rooms.cpp
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
@@ -137,6 +138,10 @@ if(BUILD_TESTING)
 	target_include_directories(rooms-tests PRIVATE src)
 	target_compile_features(rooms-tests PRIVATE cxx_std_20)
 	add_test(NAME rooms COMMAND rooms-tests)
+	add_executable(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/npc_proximity.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(exit-review-tests PRIVATE src)
+	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
+	add_test(NAME exit-review COMMAND exit-review-tests)
 	add_executable(stick-chord-tests tests/stick_chord_tests.cpp src/stick_chord.cpp)
 	target_include_directories(stick-chord-tests PRIVATE src)
 	target_compile_features(stick-chord-tests PRIVATE cxx_std_20)
@@ -363,6 +368,7 @@ if(BUILD_TESTING)
 	if(MSVC)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(exit-review-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

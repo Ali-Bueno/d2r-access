@@ -127,6 +127,7 @@ inline constexpr Table itIT {
 	.roomExits = "Uscite: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "Nessuna uscita",
+	.roomOpening = "passaggio",
 	.roomOutside = "Non sei in una stanza del dungeon",
 	.roomsEnabled = "Uscite delle stanze attivate",
 	.roomsDisabled = "Uscite delle stanze disattivate",

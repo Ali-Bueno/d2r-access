@@ -127,6 +127,7 @@ inline constexpr Table zhTW {
 	.roomExits = "出口：%s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "無出口",
+	.roomOpening = "通道",
 	.roomOutside = "不在地城房間內",
 	.roomsEnabled = "房間出口已啟用",
 	.roomsDisabled = "房間出口已停用",

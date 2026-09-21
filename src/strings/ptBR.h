@@ -127,6 +127,7 @@ inline constexpr Table ptBR {
 	.roomExits = "Saídas: %s",
 	.roomExitNamed = "%s %s",
 	.roomNoExits = "Nenhuma saída",
+	.roomOpening = "passagem",
 	.roomOutside = "Fora de uma sala de masmorra",
 	.roomsEnabled = "Saídas de ambiente ativadas",
 	.roomsDisabled = "Saídas de ambiente desativadas",
