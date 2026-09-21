@@ -316,30 +316,24 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 // slightly diagonal push cannot change the category and the object at once.
 bool Active() { return g_pathfinder; }
 
-// A menu being up, which is a different question from Playing() above -- that
-// one only asks whether the player is in a level. While the menu tree is open
-// the right stick belongs to the menu readers, so the catalogue must not claim
-// a push there. Only an actual menu blocks: a build with no widget tree
-// reports Unavailable and keeps the pathfinder working, which is why this does
-// not simply require State::Playing the way the entity scan does.
-bool MenuIsOpen() {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	const auto state = RadarUi::Inspect(process == GetCurrentProcessId());
-	return state == RadarUi::State::Dialogue || state == RadarUi::State::Paused;
-}
-
+// The pathfinder's controls are play's alone, by the shared gate: in a menu the
+// stick and its clicks belong to the menu (the user, 2026-09-21: "pathfinder
+// should only work when menu is closed").
 void PollPathfinder(const D2RL::PluginContext* context) {
 	if (InputDirection::TakeLeftStickClick()) {
+		if (!RadarUi::InPlay()) {
+			AsyncLog::Info(context, "[survey] L3 ignored: not in play");
+			return;
+		}
 		g_pathfinder = !g_pathfinder;
 		AsyncLog::InfoF(context, "[survey] long-range pathfinder %s", g_pathfinder ? "on" : "off");
 		ScreenReader::Speak(g_pathfinder ? Strings::Current().pathfinderEnabled : Strings::Current().pathfinderDisabled, true);
 	}
 	if (!g_pathfinder) return;
-	// Peek before the gate: MenuIsOpen walks the panel tree, and the stick is
-	// idle on all but a few of these ticks. A push left unclaimed stays pending
-	// for the reader that does want it.
-	if (InputDirection::PeekRightStickPush() == InputDirection::StickPush::None || MenuIsOpen()) return;
+	// Peek before the gate: it walks the panel tree, and the stick is idle on
+	// all but a few of these ticks. A push left unclaimed stays pending for the
+	// reader that does want it -- in a menu, the menu's own.
+	if (InputDirection::PeekRightStickPush() == InputDirection::StickPush::None || !RadarUi::InPlay()) return;
 	switch (InputDirection::TakeRightStickPush("pathfinder")) {
 	case InputDirection::StickPush::Left:  g_request.store(Request::PreviousObject); break;
 	case InputDirection::StickPush::Right: g_request.store(Request::NextObject); break;
@@ -402,6 +396,11 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	PollPathfinder(context);
 
 	if (const Request request = g_request.exchange(Request::None); request != Request::None && !uiOwnsSpeech) {
+		// The backslash, comma and period keys go through the same gate as the stick.
+		if (!RadarUi::InPlay()) {
+			AsyncLog::Info(context, "[survey] request ignored: not in play");
+			return;
+		}
 		Answer(context, request);
 		return;
 	}
