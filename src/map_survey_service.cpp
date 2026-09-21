@@ -93,6 +93,8 @@ uint64_t g_registrySession = 0;
 
 void ForgetOtherGames(const Lifecycle& state) {
 	if (state.session == g_registrySession) return;
+	AsyncLog::InfoF(g_context, "[survey] game session %llu: catalogue cleared, %zu entries from the last game dropped",
+		static_cast<unsigned long long>(state.session), g_registry.Entities().size());
 	g_registry.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
