@@ -28,6 +28,10 @@ constexpr size_t PathPosition = 0, PathRoom = 0x20, PathPattern = 0x5C;
 constexpr unsigned FractionBits = std::numeric_limits<uint16_t>::digits;
 constexpr uint32_t FractionMask = std::numeric_limits<uint16_t>::max();
 constexpr double PositionScale = static_cast<double>(FractionMask) + 1;
+// 0x364C70 dispatches patterns 0..5. The local player's size is hardcoded to 2,
+// which is the five-cell cross, so a point pattern is a misread of Path+0x5C and
+// never a smaller player: accepting it would prove squeezes the player cannot make.
+constexpr int MinPlayerPattern = 1, MaxPattern = 5;
 constexpr size_t PathFootprintMask = 0x60; // getter 0x341860; setter 0x342670
 constexpr size_t PathMovementMask = 0x64; // movement wrapper 0x3C5610; setter 0x342740
 constexpr size_t RoomNear = 0, RoomNearCount = 0x40, RoomGrid = 0x38;
@@ -132,6 +136,10 @@ void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 			auto& cell = room.cells[static_cast<size_t>(y) * room.width + x];
 			if (!footprint(dx, dy) || !detail.footprintMask || (cell & detail.footprintMask) != detail.footprintMask) continue;
 			const uint16_t remove = static_cast<uint16_t>(detail.footprintMask | (presence(dx, dy) ? marker : 0));
+			// A stamp is atomic. Taking the footprint bit off a cell whose marker
+			// stays would forge a bare barrier out of a unit's centre: that orphan
+			// marker was the false wall of 2026-09-16.
+			if ((cell & marker) && !(remove & marker)) continue;
 			if (cell & marker & remove) ++detail.removedPresenceCells;
 			cell &= static_cast<uint16_t>(~remove);
 		}
@@ -200,7 +208,7 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	x = position.x >> FractionBits;
 	y = position.y >> FractionBits;
 	detail.stage = "footprint";
-	if (!Peek(path + PathPattern, pattern) || pattern < 0 || pattern > 5) return false;
+	if (!Peek(path + PathPattern, pattern) || pattern < MinPlayerPattern || pattern > MaxPattern) return false;
 	detail.stage = "footprint-mask";
 	if (!Peek(path + PathFootprintMask, detail.footprintMask) || detail.footprintMask > std::numeric_limits<uint16_t>::max()) return false;
 	detail.stage = "movement-mask";

@@ -194,6 +194,15 @@ Also new: every `[radar]` generated line ends with `stick=<x>,<y>` (left
 thumbstick, screen convention) so future logs show what the player was
 steering toward.
 
+## Live analysis (2026-09-20)
+
+1. **Clutter must stand alone** (`radar_structure.cpp`): besides the proved detour, a removable
+   component needs no other blocking cell within one body reach (`bodyRadius+1`) of its bounding box —
+   a long way round inside the window is not a bypass. Rogue Encampment alcove walls were erased, so
+   screen-down read `open 33.9` where the game refused three inputs (`tests/recorded_alcove_grid.h`).
+2. **The silent baseline covers the dead band** (`radar.cpp`): it is taken on the first observation
+   after a reset, `Unknown` included, so a wall met from the dead band (up 7.8 -> 0.0) cues normally.
+
 ## Validation checklist (not done yet)
 
 1. `access-radar test` first, to learn the 8 chirps (4 directions × open/blocked).
@@ -207,6 +216,6 @@ steering toward.
 
 ## Tests
 
-Radar test counts: six suites / 1439 checks (`radar-engine` 250, `radar-passage`
-863, `radar-structure` 100, `radar-snapshot` 59, `radar-audio` 35,
-`radar-readout` 38); whole tree 32 suites / 3697 checks.
+Radar test counts: seven suites / 1480 checks (`radar-passage` 962, `radar-engine`
+257, `radar-structure` 117, `radar-snapshot` 59, `radar-readout` 38,
+`radar-audio` 35, `radar-ui` 12); whole tree 45 suites, all green.

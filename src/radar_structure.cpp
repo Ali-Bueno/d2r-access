@@ -16,6 +16,19 @@ constexpr int SubtilesPerTile = 5;
 int ObjectSpan(const Settings&) { return SubtilesPerTile; }
 struct Bounds { int left, top, right, bottom; };
 
+// Clutter must be an island: no other blocking cell within one body reach of
+// its bounding box, so the player can step around it right where it stands. A
+// long way round elsewhere in the window does not make an obstacle bypassable.
+bool StandsAlone(const World& original, Bounds obstacle) {
+	const int margin = (original.bodyPattern == 0 ? 0 : 1) + 1;
+	for (int y = obstacle.top - margin; y <= obstacle.bottom + margin; ++y)
+		for (int x = obstacle.left - margin; x <= obstacle.right + margin; ++x) {
+			if (x >= obstacle.left && x <= obstacle.right && y >= obstacle.top && y <= obstacle.bottom) continue;
+			if (original.Cell(x, y) != State::Open) return false;
+		}
+	return true;
+}
+
 bool CanBypass(const World& original, Bounds obstacle) {
 	// Inspect destination centres one cell beyond the expanded body footprint.
 	// The original map proves the detour: previously removed clutter cannot
@@ -107,7 +120,8 @@ World StructuralWorld(const World& world, const Settings& settings) {
 		}
 		if (!complete || (restrictions & ~(Wall | Object)) || bounds.right-bounds.left+1 > objectSpan
 			|| bounds.bottom-bounds.top+1 > objectSpan) continue;
-		if (!CanBypass(original, {grid.x+bounds.left, grid.y+bounds.top, grid.x+bounds.right, grid.y+bounds.bottom})) continue;
+		const Bounds box{grid.x+bounds.left, grid.y+bounds.top, grid.x+bounds.right, grid.y+bounds.bottom};
+		if (!StandsAlone(original, box) || !CanBypass(original, box)) continue;
 		for (const size_t index : component) grid.cells[index] &= ~world.walkingMask;
 	}
 	return result;

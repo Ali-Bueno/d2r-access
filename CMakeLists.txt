@@ -10,14 +10,8 @@ set(D2R_PLUGINS_DIR "${D2R_GAME_DIR}/d2rloader/plugins")
 
 set(D2RLPLUGIN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(D2RLPLUGIN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-# D2RLoader PluginSDK: the git submodule in external/, or the shared checkout
-# next to this repo when working inside the accessibility playbook tree.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK/CMakeLists.txt")
-	set(D2RL_PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK")
-else()
-	set(D2RL_PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/PluginSDK")
-endif()
-add_subdirectory("${D2RL_PLUGIN_SDK_DIR}" "${CMAKE_BINARY_DIR}/PluginSDK")
+# D2RLoader PluginSDK: git submodule in external/ (`git submodule update --init`).
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK" "${CMAKE_BINARY_DIR}/PluginSDK")
 
 set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 

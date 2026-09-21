@@ -58,10 +58,17 @@ void BodyAndDiagonals() {
 	Check(Reached(Navigation::Build(w,12),20,12), "a point body fits through a one-cell opening");
 	w.bodyPattern=1;
 	Check(!Reached(Navigation::Build(w,12),20,12), "the native cross body cannot pass through the same point-sized hole");
+	// Two walls touching at a corner, with a clear cell behind it: only the body
+	// test on the destination decides the diagonal step, and the cross covers
+	// both wall cells, so it cannot squeeze between them.
 	for (int pattern=0; pattern<=5; ++pattern) {
 		w=Field(pattern); Put(w,21,20); Put(w,20,21);
 		const auto grid=Navigation::Build(w,5);
+		Check(w.Cell(21,21) == Radar::State::Open && w.Cell(21,20) == Radar::State::Blocked
+			&& w.Cell(20,21) == Radar::State::Blocked, "the corner really is two diagonally touching walls with a clear cell behind");
 		Check((grid.At(21,21)->steps == 1) == (pattern == 0), "native diagonal destination rules use the actual body instead of a generic corner-cut rule");
+		Check((grid.At(21,21)->body == Radar::State::Open) == (pattern == 0),
+			"the destination's own body test is what refuses the corner cut");
 	}
 	w=Field(); Put(w,20,20);
 	const auto escape=Navigation::Build(w,5);

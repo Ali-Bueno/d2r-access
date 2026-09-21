@@ -195,6 +195,40 @@ void FullReach() {
 	Check(far.depth > passage.depth, "a longer corridor really does report a longer reach");
 }
 
+void CornerAndFirstStep() {
+	// One wall cell diagonally in front of the player. The five-cell body cannot
+	// enter any of the three cells the screen-down lane may start with, so the
+	// lane is closed at its first step and reports exactly that.
+	const size_t down = Index(Direction::Down);
+	auto world = Field();
+	Put(world, 41, 41, Barrier);
+	const auto closed = Scan(world, Axes[down]);
+	Check(closed.available && closed.observed == State::Blocked && closed.depth == 0,
+		"a lane whose every first step is body-blocked closes at zero depth instead of withdrawing");
+	auto point = Field({40, 40}, 0);
+	Put(point, 41, 41, Barrier);
+	Check(Scan(point, Axes[down], Open, Engine::CloseDepth({}, 0)).observed == State::Open,
+		"the native point footprint walks past that same single wall cell");
+	// Two walls touching at a corner, astride the lane. The body test on the
+	// destination cell is the whole rule: the cross covers both wall cells and
+	// cannot squeeze between them, while a point body may cut the corner.
+	for (int pattern : {0, 1}) {
+		auto corner = Field({39, 39}, pattern);
+		Put(corner, 41, 40, Barrier);
+		Put(corner, 40, 41, Barrier);
+		const auto passage = Scan(corner, Axes[down], Open, Engine::CloseDepth({}, pattern));
+		Check(passage.available && (passage.observed == State::Open) == (pattern == 0),
+			"only a point body cuts the corner between two diagonally touching walls");
+	}
+	// Coverage, not geometry, is what withdraws a verdict: the same first step
+	// made of unmapped cells is unknown instead of blocked.
+	auto unmapped = Field();
+	for (int x = 41; x <= 42; ++x) for (int y = 41; y <= 42; ++y) Put(unmapped, x, y, Blank);
+	const auto withdrawn = Scan(unmapped, Axes[down]);
+	Check(!withdrawn.available && withdrawn.observed == State::Unknown && withdrawn.depth == 0,
+		"unmapped cells in the first step withdraw the verdict instead of closing the lane");
+}
+
 void RecordedCamp() {
 	// Exact Ctrl+T capture: a camp post whose collision hits the side of the
 	// native footprint while the centre cell beside it is empty.
@@ -227,6 +261,7 @@ int main() {
 	OffsetDoorway();
 	ObstacleBesideTheRay();
 	NativeBodies();
+	CornerAndFirstStep();
 	UnknownCoverage();
 	FullReach();
 	RecordedCamp();

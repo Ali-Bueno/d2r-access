@@ -1,5 +1,6 @@
 #include "radar.h"
 #include "radar_passage.h"
+#include "recorded_alcove_grid.h"
 #include "recorded_return_grid.h"
 #include "test_support.h"
 
@@ -13,6 +14,9 @@ namespace {
 constexpr int Size = 240;
 // Native PLAYER_PATH bits: WALL | NO_PLAYER | OBJECT | DOOR | NO_PATH.
 constexpr uint16_t PlayerPath = 0x1C09, Wall = 1, Object = 0x400, Door = 0x800;
+// The rest of the native collision word, named where these tests need it.
+constexpr uint16_t Blank = 0x20, Missile = 0x40, Player = 0x80, Monster = 0x100, NoPath = 0x1000, Pet = 0x2000;
+constexpr uint16_t Water = Missile | Player; // native water marker: two shared bits, not its own
 constexpr size_t Index(Direction direction) { return static_cast<size_t>(direction); }
 constexpr size_t Down = Index(Direction::Down);
 
@@ -124,6 +128,33 @@ void CoverageAndActors() {
 	world.walkingMask |= 0xC0;
 	Check(StructuralWorld(world, {}).Cell(108, 108) == State::Blocked,
 		"water is never mistaken for a removable player stamp or furniture");
+	// A unit's marker belongs to the unit wherever it stands. Sharing water, or a
+	// cell a missile is crossing, must not promote it to terrain - and water's own
+	// bits must survive the strip.
+	world = Field();
+	Put(world, 108, 108, static_cast<uint16_t>(Water | NoPath));
+	Check(world.Cell(108, 108) == State::Blocked && world.Cell(108, 108, Layer::Terrain) == State::Open,
+		"a unit marker standing in water blocks native movement but is not structural terrain");
+	world.walkingMask |= Water;
+	Check(world.Cell(108, 108, Layer::Terrain) == State::Blocked, "stripping that marker leaves the water itself in place");
+	// The two occupancy bits the player's native mask never contains cannot close
+	// a cell on either layer; NO_PATH is the one that does.
+	world = Field();
+	Check(!(world.walkingMask & (Monster | Pet)), "the native movement mask names neither monsters nor pets");
+	for (const uint16_t occupancy : {Monster, Pet, static_cast<uint16_t>(Monster | Pet | NoPath)}) {
+		Put(world, 108, 108, occupancy);
+		Check(world.Cell(108, 108, Layer::Terrain) == State::Open, "no combination of occupancy bits is structural terrain");
+		Check((world.Cell(108, 108) == State::Blocked) == ((occupancy & PlayerPath) != 0),
+			"on the movement layer only the bits the native mask names block the player");
+	}
+	// Blank subtiles and unstreamed ground are unknown on both layers: never a
+	// wall, never an opening, whatever else the invalid word carries.
+	world = Field();
+	Put(world, 108, 108, static_cast<uint16_t>(Blank | Wall));
+	for (const auto layer : {Layer::Movement, Layer::Terrain}) {
+		Check(world.Cell(108, 108, layer) == State::Unknown, "a blank subtile is unknown, not a wall");
+		Check(world.Cell(-1, -1, layer) == State::Unknown, "ground outside every streamed room is unknown too");
+	}
 }
 
 void RoomSeams() {
@@ -238,6 +269,34 @@ void RecordedReturn() {
 	}
 }
 
+void RecordedAlcove() {
+	// The stone alcove of the 2026-09-20 07:56:54 live run. The game refused
+	// three down inputs there while the radar reported an open route 33.9 cells
+	// deep, because the wall pieces hemming the player in had been filtered out
+	// as clutter on the strength of a long way round inside the window.
+	auto world = RecordedAlcoveGrid();
+	const Settings settings;
+	const double close = Engine::CloseDepth(settings, world.bodyPattern);
+	const auto ahead = [&](Position player, Direction direction) {
+		world.player = player;
+		return ScanPassage(Analyze(StructuralWorld(world, settings)), Axes[Index(direction)], settings.openDepth, close);
+	};
+	Check(world.Body(4465, 4625) == State::Blocked && world.Body(4461, 4625) == State::Blocked,
+		"the cells the game refused to walk into really are blocked on the recorded map");
+	const auto down = ahead({4464, 4624}, Direction::Down);
+	Check(down.available && down.observed == State::Blocked && down.depth < close && down.depth == 0,
+		"a wall piece the player cannot step around is never filtered into an opening");
+	const auto left = ahead({4463, 4623}, Direction::Left);
+	Check(left.available && left.observed == State::Blocked && std::abs(left.depth - Diagonal) < 1e-9,
+		"the alcove's left wall stops the route at its own cells, not eight cells further on");
+	// The same filter still ignores a lone prop standing in open ground.
+	auto& room = world.rooms.front();
+	room.cells[static_cast<size_t>(4623 - room.y) * room.width + (4472 - room.x)] = Object;
+	world.player = {4468, 4623};
+	Check(StructuralWorld(world, settings).Cell(4472, 4623) == State::Open,
+		"clutter with a clear body reach all round it is still absent from structural geometry");
+}
+
 void WindowAndCost() {
 	auto world = Field();
 	Put(world, 100, 110, Object);
@@ -267,6 +326,7 @@ int main() {
 	PhysicalGuardAndDoors();
 	Travel();
 	RecordedReturn();
+	RecordedAlcove();
 	WindowAndCost();
 	Passed();
 }

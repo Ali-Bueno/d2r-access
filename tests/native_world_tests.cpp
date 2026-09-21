@@ -128,6 +128,19 @@ void DisplacedPresenceTests() {
 			&& detail.rawPlayerCell == 0x80 && detail.removedPresenceCells == 1,
 			"all four displaced crosses retain the original raw cell and report the selected offset");
 	}
+	// Whenever the reader may not shift its removal, the stamp keeps its own
+	// footprint bit, so the terrain layer still reads a unit there instead of the
+	// orphan NO_PATH barrier that produced the 2026-09-16 false wall cue.
+	for (const uint16_t defeat : std::array<uint16_t, 3>{0x40, 0x100, 0x20}) {
+		fixture.cells.fill(0); stamp(5, 4); fixture.cells[35] |= defeat;
+		Check(fixture.Read(world) && world.Cell(105, 104) == Radar::State::Blocked
+			&& world.Cell(105, 104, Radar::Layer::Terrain) == Radar::State::Open,
+			"a displaced stamp that cannot be shifted keeps its footprint bit and never becomes terrain");
+	}
+	fixture.cells.fill(0); stamp(5, 4); stamp(4, 5);
+	Check(fixture.Read(world) && world.Cell(105, 104, Radar::Layer::Terrain) == Radar::State::Open
+		&& world.Cell(104, 105, Radar::Layer::Terrain) == Radar::State::Open,
+		"two ambiguous stamps stay actors on the terrain layer instead of becoming two walls");
 	fixture.cells.fill(0); fixture.path.At<int>(0x5C, 2);
 	for (int y = 4; y <= 6; ++y) for (int x = 4; x <= 6; ++x)
 		fixture.cells[y * 10 + x] = 0x80 | ((x == 5 || y == 5) ? 0x1000 : 0);
@@ -254,5 +267,9 @@ int main() {
 	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)
 		&& std::string_view(detail.stage) == "footprint" && detail.pattern == 6,
 		"failed footprint validation reports its actual stage and value");
+	fixture.path.At<int>(0x5C, 0);
+	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)
+		&& std::string_view(detail.stage) == "footprint" && detail.pattern == 0,
+		"a point body is rejected for the local player, whose native size is hardcoded to the cross");
 	Passed();
 }

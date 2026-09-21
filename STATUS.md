@@ -2,6 +2,30 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Collision semantics audited against D2MOO — 2026-09-20
+
+Our grid reading is the game's: mask 0x1C09 read live, five-cell cross for the player, 0x27 for no
+room, doors as live bits. Two divergences fixed: a unit's NO_PATH marker survived as terrain on water or
+under a missile (one-cell false wall), and a refused displaced-stamp removal orphaned the player's own
+marker, which is the false "down blocked" of 2026-09-16. A point pattern for the local player is now
+rejected as a misread. The game's own path type for the player (STRAIGHT: ray, wall-follow 73 steps,
+A* only within 18 subtiles, nothing past 100) is documented; it is not called, and our BFS is a
+"where can I go" answer, not the route the game would take. `docs/collision-semantics.md`.
+
+**Two more defects found by an unattended live run the same day and fixed** (`docs/radar-redesign.md`,
+"Live analysis"): (1) a false **open** through wall pieces welded into a stone alcove — the clutter filter
+erased any ≤5-cell component with a way round inside its window; now a component is clutter only if it
+**stands alone** (no other blocking cell within body radius + 1 of its box). Fixture
+`tests/recorded_alcove_grid.h` replays the live snapshot. (2) A wall entered from the dead band (7.8, between
+close 7 and open 10) never cued, because the dead band left the silent baseline unclaimed and the first wall
+was swallowed as baseline; the first available observation now claims it. Second live run: alcove reads
+blocked in all four cardinals with the character immobile; the spawn wall cues once. Zero orphan stamps,
+zero `pattern=0`, 4 cues in 9 moves, no crash.
+
+**Next step:** the user's listening pass. Known limit, by design of the four screen cardinals: in a pocket
+whose only way out runs along a world axis (a screen diagonal), all four read blocked; the scan is the answer
+there, not the radar.
+
 ## Container loops — 2026-09-18
 
 Chests, caskets, urns, barrels and corpses loop through the item mixer. Ctrl+K,
@@ -515,9 +539,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
   cursor after release. Complete-function fingerprints already guard these fields.
   `docs/controller-navigation.md` (23:47 log and 2026-09-16 RE).
 
-- `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
+- `docs/research-roadmap-chatgpt.md` (+ `-extended.md`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
-- User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
+- User-supplied `docs/sonar-radar-implementation-spec.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
 
 - **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, collision X/Y **uint16 `Path+2/+6`** (`0x341A20/30`, used directly by collision caller `0x341A60`), body pattern `+0x5C` (`0x341870`). **Correction:** `Path+8/+0xC` / getters `0x341C10/20` are projected positions, not collision coordinates; the 17:32 log exposed this earlier error. Room collision pointer `+0x38` (`0x2EFB30`); neighbors `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); **runtime movement mask `Path+0x64`**, passed by wrapper `0x3C5610` to `0x364700`; setter `0x342740`. The old `0x1C09` was from a destination query, not this runtime field. Full-act residency not established.
 

@@ -48,6 +48,7 @@ Layer their volumes (ambient bed quietest, events louder, speech interrupts) and
 | **Wall sonification** | [`wall-sonification/`](wall-sonification/) | Unity Mono **and** IL2CPP (BepInEx) | **Our own mods** (Core Keeper, DRG, Megabonk) | Continuous directional wall tones (style 3) + collision/vertical cues + IL2CPP NAudio synth |
 | **Kirandur** | [`kirandur/`](kirandur/sonar-navigation-spec.md) | MonoGame **NativeAOT** (Ghidra, native x64 — no IL) | Native decompile | Continuous **semantic** sonar: a fixed **6-axis probe** (4 cardinals + up/down) with per-cell classification (wall/door/drop/ramp/…) and **elevation sampling** — a richer take blending styles 2+3 |
 | **United Minecraft** | [`united-minecraft/`](united-minecraft/nav-radar-spec.md) | Minecraft Java / Fabric (JVM) | **Real GPL-3.0 source** (no RE) | Reactive radar in a **3D voxel world**: classification by **traversability** (walk/jump/turn) from obstacle *height* vs the player's own step & jump reach, cue **timbre taken from the hit material's own sound**, state keyed by **absolute compass bearing**, and a 3-layer anti-spam + cue-arbitration model |
+| **Grim Dawn** (`grimdark` mod) | [`grim-dawn/`](grim-dawn/navigation-spec.md) | Native C++ ARPG (Detours + PRISM + SQLite) | **Real MIT source** (no RE) | A **named-place layer** on top of the wall bed: rooms segmented offline from the game's Detour navmesh into a shipped SQLite map, exits recomputed live through **the game's own pathfinder**, and a review **ping whose sound answers "straight / around / unreachable"** |
 
 > A Hero's Call is the **primary reference** for the shared subsystems (its code was fully recovered);
 > Swamp **corroborates** the model from native VB6; wall-sonification is **battle-tested in our own
@@ -55,7 +56,8 @@ Layer their volumes (ambient bed quietest, events louder, speech interrupts) and
 > sonar with real elevation detection (ramps/drops), reversed from a NativeAOT binary; **United
 > Minecraft** is the only study read from **published source rather than a decompile**, and is the one
 > to copy when the radar must work in a **3D world with a vertical axis** — it answers *"can I walk
-> there?"* instead of *"is something there?"*.
+> there?"* instead of *"is something there?"*; **Grim Dawn** is the closest match to our own D2R plugin
+> (injected native C++ + PRISM) and the one to copy for **named places and reachability**.
 
 ---
 
