@@ -69,7 +69,8 @@ struct Result {
 // Unknown cells never block; only positive wall evidence hides an entity.
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine = Radar::Diagonal);
-// Ordinary visible entities within range; fixed level exits bypass range/walls.
+// Entities within range; ordinary ones must also be in sight, while fixed level
+// exits are named through walls, since an entrance can stand in wall cells.
 // All targets obey the sector and sort nearest first with stable identity ties.
 std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& entities,
 	Radar::Direction direction, const Settings& settings);

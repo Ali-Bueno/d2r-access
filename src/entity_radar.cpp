@@ -45,7 +45,11 @@ std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& e
 	for (const auto& entity : entities) {
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
 		const bool levelExit = entity.kind == Kind::Exit && entity.levelExitId != 0;
-		if (!std::isfinite(distance) || (!levelExit && distance > settings.range)) continue;
+		// Exits obey the range too. A loaded warp unit in a neighbouring room is
+		// well past it -- MEASURED 2026-09-21, "To The Den of Evil, 52 steps" on
+		// the short-range scan -- and finding a way out across the level is the
+		// long-range catalogue's job.
+		if (!std::isfinite(distance) || distance > settings.range) continue;
 		if (!InSector(world.player, entity.position, direction, settings.sectorCosine)) continue;
 		if (!levelExit && !LineOfSight(world, world.player, entity.position)) continue;
 		targets.push_back({entity, distance});

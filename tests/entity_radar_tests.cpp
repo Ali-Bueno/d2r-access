@@ -113,13 +113,15 @@ void Cycling() {
 
 void DistantExits() {
 	auto world = OpenWorld();
-	Entity stairs{42, Kind::Exit, {500, 500}, "A las Catacumbas", 1234};
-	Entity enemy{42, Kind::Enemy, {500, 500}, "Zombi"};
-	Entity portal{43, Kind::Exit, {500, 500}, "Portal"};
+	Entity stairs{42, Kind::Exit, {28, 28}, "A las Catacumbas", 1234};
+	Entity enemy{42, Kind::Enemy, {28, 28}, "Zombi"};
+	Entity portal{43, Kind::Exit, {28, 28}, "Portal"};
 	for (int x = 0; x < Size; ++x) Block(world, x, 25);
 	const auto targets = Scan(world, {stairs, enemy, portal}, Direction::Down, {});
-	Check(targets.size() == 1 && targets[0].entity.levelExitId == 1234, "fixed level exits cross range and visibility limits while other targets keep their range");
-	Check(Scan(world, {stairs}, Direction::Up, {}).empty(), "distant stairs still obey the requested direction");
+	Check(targets.size() == 1 && targets[0].entity.levelExitId == 1234, "a fixed level exit in range is named through a wall while other targets need sight");
+	auto distant = stairs; distant.position = {500, 500};
+	Check(Scan(world, {distant}, Direction::Down, {}).empty(), "a level exit beyond the range is left to the long-range catalogue");
+	Check(Scan(world, {stairs}, Direction::Up, {}).empty(), "stairs still obey the requested direction");
 	auto respawned = stairs; respawned.id = 900;
 	Check(SameTarget(stairs, respawned), "a level exit survives unit recreation");
 	Check(!SameTarget(stairs, enemy), "a native enemy id cannot alias a level exit");
