@@ -83,6 +83,21 @@ bool                 g_pathfinder = false; // L3: right stick drives the catalog
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
 
+// The game the registry's entries were seen in. The registry clears itself
+// when the level changes, but a town is the same level in every game, and a
+// new game hands every NPC a new unit id -- so the last game's Akara was never
+// matched again, never forgotten either (she stood some 1800 subtiles outside
+// the new map), and was listed beside the real one. MEASURED 2026-09-21:
+// "Akara, 6 steps, to the right" and "Akara, 1835 steps, to the left".
+uint64_t g_registrySession = 0;
+
+void ForgetOtherGames(const Lifecycle& state) {
+	if (state.session == g_registrySession) return;
+	g_registry.Clear();
+	g_registrySession = state.session;
+	g_selected = 0;
+}
+
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);
@@ -214,6 +229,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	}
 	level = state.level;
 	if (!g_supported || !Playing(state)) return false;
+	ForgetOtherGames(state);
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
@@ -403,6 +419,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		state = g_state;
 	}
 	if (!Playing(state)) return;
+	ForgetOtherGames(state);
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
