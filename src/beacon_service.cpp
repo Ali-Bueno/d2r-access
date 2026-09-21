@@ -83,9 +83,7 @@ bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
 	return false;
 }
 bool Playing() {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	return RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	return RadarUi::InPlay();
 }
 // Screen placement of a world direction, the ground-item loops' convention:
 // native projection 0x334DB0 turns the world diagonals into the screen axes.
@@ -286,15 +284,21 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
-	// R3 is guidance's during play, so the game must not also swap weapons on
-	// it. In a menu the click stays the game's, as it always was.
-	PadFilter::ClaimRightThumb(context, state.ready && Playing());
+	// Guidance's controls are play's alone. During play R3 is guidance's, so
+	// the game must not also swap weapons on it; in a menu the click is the
+	// menu's -- the game gets it, and guidance ignores it, as it ignores Ctrl+B
+	// and the console's lock and clear (the user, 2026-09-21: "ignore guidance
+	// while menu is open").
+	const bool inPlay = state.ready && Playing();
+	PadFilter::ClaimRightThumb(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		Release("lifecycle");
 		g_offer = {};
 	}
-	if (command == Command::Clear && g_tracker.Locked()) {
+	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
+		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "R3" : "command");
+	} else if (command == Command::Clear && g_tracker.Locked()) {
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);
