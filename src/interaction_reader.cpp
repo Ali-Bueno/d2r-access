@@ -75,6 +75,18 @@ const std::vector<std::string>& HeadlineLabels() {
 	return cached;
 }
 
+// What a vendor would pay for the player's own item: while selling, the name
+// and this value are the headline.
+const std::vector<std::string>& SellLabels() {
+	static std::vector<std::string> cached = [] {
+		std::vector<std::string> labels;
+		if (auto sell = TooltipText::LabelPrefix(Localization::Text(TooltipText::SellKey)); !sell.empty())
+			labels.push_back(std::move(sell));
+		return labels;
+	}();
+	return cached;
+}
+
 // A push up on the right stick, claimed only while a panel is open so the
 // entity scan and the pathfinder keep the stick during play.
 bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
@@ -268,7 +280,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// name and its base damage or defense are spoken, and the rest is
 			// held for the player to ask for.
 			const auto body = TooltipText::Read(tooltip.body);
-			auto       split = TooltipText::Split(body, HeadlineLabels());
+			auto       split = TooltipText::Split(body, HeadlineLabels(), SellLabels());
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line

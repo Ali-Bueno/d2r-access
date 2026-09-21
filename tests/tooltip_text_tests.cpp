@@ -80,6 +80,24 @@ int main() {
 	Check(sword.detail == "Durability: 24 of 24. Max Sockets: 2. Sword Class - Fast Attack Speed",
 		"and the rest follows the screen downwards");
 
+	// Selling from the inventory: the name and what it fetches on the move,
+	// everything else -- the base damage included -- on the right stick.
+	// MEASURED 2026-09-21 selling a staff: "Sell value" was not a known label,
+	// so it was read as the name.
+	const std::vector<std::string> Priced{"One-Hand Damage:", "Defense:", "Cost:"};
+	const std::vector<std::string> Prices{"Sell value:"};
+	const auto selling = TooltipText::Split(TooltipText::Read(
+		Font0 + "+2 to Life\n" + Font0 + "Durability: 5 of 6\n" + Font0 + "One-Hand Damage: 1 to 3\n"
+		+ Font0 + "Low Quality Eagle Orb\n" + Font0 + "Sell value: 73"), Priced, Prices);
+	Check(selling.headline == "Low Quality Eagle Orb. Sell value: 73", "an item being sold reads its name and what it fetches");
+	Check(selling.detail == "One-Hand Damage: 1 to 3. Durability: 5 of 6. +2 to Life",
+		"and its base damage waits with the rest of the tooltip");
+	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), Priced, Prices);
+	Check(buying.headline == "Cap. Cost: 30. Defense: 8" && buying.detail.empty(),
+		"buying is unchanged: the name, the price and the base defense");
+	Check(TooltipText::Split(TooltipText::Read("Required Strength: 20\nDefense: 43\nQuilted Armor"), Priced, Prices).headline
+		== "Quilted Armor. Defense: 43", "away from a shop the base defense still leads");
+
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.
 	const auto indexed = TooltipText::Read(Font0 + "Short Sword");

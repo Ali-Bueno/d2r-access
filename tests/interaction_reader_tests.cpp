@@ -139,6 +139,7 @@ std::string Text(std::string_view key) {
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::PriceKey) return "Coste: %d";
+	if (key == TooltipText::SellKey) return "Valor de venta: %d";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	++titleLookups;
 	return {};
@@ -327,6 +328,15 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"},
 		"and the rest of it waits to be asked for");
+	// Selling says "Sell value", which was not a known price label, so it was
+	// read as the name and the name went to the detail (MEASURED 2026-09-21).
+	ClearSpeech(); tooltip = {}; selection = 8; cell = {3, 0};
+	Tooltip("Durabilidad: 5 de 6\nDaño: 1 a 3\nOrbe de águila de baja calidad\nValor de venta: 73");
+	Check(Tick() && speech.size() == 1 && speech.back() == "Orbe de águila de baja calidad. Valor de venta: 73",
+		"selling reads the name and what it fetches, not the damage");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"},
+		"and the damage is read with the rest on the right stick");
 
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
 	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");

@@ -80,13 +80,16 @@ Body Read(std::string_view body) {
 	return result;
 }
 
-Description Split(const Body& body, std::span<const std::string> headlineLabels) {
+Description Split(const Body& body, std::span<const std::string> headlineLabels,
+	std::span<const std::string> sellLabels) {
 	Description result;
 	if (body.lines.empty()) return result;
-	const auto labelled = [&](const std::string& line) {
-		return std::any_of(headlineLabels.begin(), headlineLabels.end(),
+	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
+		return std::any_of(labels.begin(), labels.end(),
 			[&](const std::string& prefix) { return StartsWith(line, prefix); });
 	};
+	const auto sell = [&](const std::string& line) { return starts(line, sellLabels); };
+	const auto labelled = [&](const std::string& line) { return starts(line, headlineLabels) || sell(line); };
 	// The styled title where there is one. Otherwise the first line that is not
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
@@ -97,12 +100,14 @@ Description Split(const Body& body, std::span<const std::string> headlineLabels)
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
 	result.headline = body.lines[name];
-	// The base damage or defense and the price join it, wherever they sit.
-	// Everything else keeps the order the screen drew it in and waits to be
-	// asked for.
+	// The base damage or defense and the price join it, wherever they sit --
+	// or while selling, the sell value alone does. Everything else keeps the
+	// order the screen drew it in and waits to be asked for.
+	const bool selling = std::any_of(body.lines.begin(), body.lines.end(), sell);
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (at == name) continue;
-		Append(labelled(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
+		const bool leads = selling ? sell(body.lines[at]) : labelled(body.lines[at]);
+		Append(leads ? result.headline : result.detail, body.lines[at]);
 	}
 	return result;
 }

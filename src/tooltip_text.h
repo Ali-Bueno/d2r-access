@@ -32,20 +32,24 @@ struct Body {
 Body Read(std::string_view body);
 
 struct Description {
-	std::string headline; // the name, and the base damage or defense
-	std::string detail;   // requirements, properties, flavour text, price
+	std::string headline; // the name, and the base damage or defense -- or when selling, the sell value
+	std::string detail;   // requirements, properties, flavour text, and the rest
 	bool Empty() const { return headline.empty() && detail.empty(); }
 };
 
 // `headlineLabels` are the game's own localized labels for the lines that
 // belong beside the item's name: its base damage or defense, and its price in
-// a shop. They are passed in rather than resolved here so this stays testable,
-// and an empty set simply leaves the headline as the item's name.
+// a shop. `sellLabels` are those for what a vendor would pay for the player's
+// own item: while selling, the headline is the name and that value alone, and
+// the base damage or defense waits with the rest. Both are passed in rather
+// than resolved here so this stays testable, and an empty set simply leaves
+// the headline as the item's name.
 //
 // They also decide which line the NAME is: the name is the first line that is
 // not one of them. A vendor tooltip puts its price line where an inventory one
 // has the name, so taking the first line outright read "Cost: 30" as the item.
-Description Split(const Body& body, std::span<const std::string> headlineLabels);
+Description Split(const Body& body, std::span<const std::string> headlineLabels,
+	std::span<const std::string> sellLabels = {});
 
 // A table entry is a printf format ("Defense: %d", "One-Hand Damage: %d to
 // %d"), so the part of it that actually begins a rendered line is everything
@@ -73,5 +77,10 @@ inline constexpr const char* BaseStatKeys[] = {
 // is not a property of the item, and because it is the line that used to be
 // read as the item's name.
 inline constexpr const char* PriceKey = "cost"; // Cost: %d
+
+// What a vendor would pay, shown on the player's own items while selling --
+// VERIFIED against local/lng/strings/ui.json. Unknown to the splitter before,
+// so it was read as the item's name (MEASURED 2026-09-21).
+inline constexpr const char* SellKey = "Sell"; // Sell value: %d
 
 }
