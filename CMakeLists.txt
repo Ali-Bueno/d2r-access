@@ -92,6 +92,7 @@ add_library(d2r-access SHARED
 	src/character_stats.cpp
 	src/character_stats_reader.cpp
 	src/native_tooltips.cpp
+	src/tooltip_delay.cpp
 	src/panel_state.cpp
 	src/quest_log.cpp
 	src/quest_progress.cpp
@@ -309,6 +310,12 @@ if(BUILD_TESTING)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
+	add_executable(tooltip-delay-tests tests/tooltip_delay_tests.cpp src/tooltip_delay.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(tooltip-delay-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(tooltip-delay-tests PRIVATE src)
+	target_compile_features(tooltip-delay-tests PRIVATE cxx_std_20)
+	target_compile_definitions(tooltip-delay-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME tooltip-delay COMMAND tooltip-delay-tests)
 	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/character_stats_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(character-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(character-stats-tests PRIVATE src)
@@ -409,6 +416,7 @@ if(BUILD_TESTING)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-notifications-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-tooltips-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(tooltip-delay-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(interaction-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 	endif()
 endif()

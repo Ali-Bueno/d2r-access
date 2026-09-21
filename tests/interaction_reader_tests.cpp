@@ -107,6 +107,9 @@ void Track(uintptr_t panel) { tracked = panel; }
 void Reset() { tracked = 0; tooltip = {}; }
 Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
+namespace D2RAccess::TooltipDelay {
+void Apply(const D2RL::PluginContext*, uintptr_t) {}
+}
 namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }

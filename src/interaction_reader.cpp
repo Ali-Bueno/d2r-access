@@ -22,6 +22,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "tab_reader.h"
+#include "tooltip_delay.h"
 #include "tooltip_text.h"
 #include "ui_text.h"
 
@@ -245,7 +246,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (CharacterStatsReader::Tick(context, focus)) return true;
 	if (ReadDetail(context, focus)) return true;
 	if (ReadHints(context)) return true;
-	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
+	const uintptr_t tooltips = NativeWidgets::FindPanel("TooltipsPanel");
+	NativeTooltips::Track(tooltips);
+	TooltipDelay::Apply(context, tooltips);
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
 	if (ReadSize(context, focus, inventory)) return true;
