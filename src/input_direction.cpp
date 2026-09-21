@@ -60,7 +60,7 @@ DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
-bool g_rightStickClick = false;
+bool g_rightStickClick = false, g_rightStickHold = false;
 bool g_stickChord = false;
 bool g_backPressed = false;
 
@@ -135,6 +135,7 @@ void EnsureLibraryLoaded() {
 
 void Poll() {
 	EnsureLibraryLoaded();
+	const ULONGLONG nowMs = GetTickCount64();
 	WORD dpadButtons = 0;
 	constexpr WORD DpadMask = XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_DOWN
 		| XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT;
@@ -197,12 +198,13 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			// L3 and R3 are told apart from the two pressed together, so a
-			// single click is reported on its release (stick_chord.h).
+			// L3 and R3 are told apart from the two pressed together, and an R3
+			// click from an R3 hold, all on the release (stick_chord.h).
 			const auto thumbs = edges.thumbs.Update((pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0,
-				(pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
+				(pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0, nowMs);
 			if (thumbs.left) g_leftStickClick = true;
 			if (thumbs.right) g_rightStickClick = true;
+			if (thumbs.rightHold) g_rightStickHold = true;
 			if (thumbs.chord) g_stickChord = true;
 			if (UpdateEdge(edges.backHeld, (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0)) {
 				g_backPressed = true;
@@ -259,6 +261,11 @@ bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
 	return clicked;
+}
+bool TakeRightStickHold() {
+	const bool held = g_rightStickHold;
+	g_rightStickHold = false;
+	return held;
 }
 bool TakeBackButton() {
 	const bool pressed = g_backPressed;
@@ -349,7 +356,7 @@ DpadInput Dpad() { return g_dpad; }
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;
-	g_leftStickClick = g_rightStickClick = g_stickChord = g_backPressed = false;
+	g_leftStickClick = g_rightStickClick = g_rightStickHold = g_stickChord = g_backPressed = false;
 	if (g_library != nullptr) {
 		FreeLibrary(g_library);
 		g_library = nullptr;

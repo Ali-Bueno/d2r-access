@@ -34,8 +34,9 @@ it describes the shape of the ground, the way looking at the map does.
 The controller gesture is the L3+R3 chord, so the beacon's R3 click is not held
 back for a double-click window. Telling the chord from a single stick click costs
 each single click its own length instead: L3 and R3 are reported on release, and
-not at all when the press became part of the chord. That timing lives in
-`src/stick_chord.*` and is unit-tested.
+not at all when the press became part of the chord. The same release also tells
+an R3 click (the beacon) from an R3 hold (the exit review, `docs/rooms.md`).
+That timing lives in `src/stick_chord.*` and is unit-tested.
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 

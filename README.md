@@ -216,7 +216,8 @@ See [quest-log implementation and remaining work](docs/quests.md).
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Ctrl+V** reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
+stairs and portals by their own name. **Holding the right stick in** (R3, about a third of a second), or
+**Ctrl+V**, reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
 getting there (straight, around or no route). A short right-stick click, or **Ctrl+B** right after,
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).

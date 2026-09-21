@@ -7,8 +7,9 @@
 The accessible automap: **Ctrl+O** or the **L3+R3 chord** speaks the level name, the player's place in it
 (screen thirds: `borde izquierdo`, `centro`…) and, per screen direction, the distance to the level's outer
 edge or to an already generated neighbour level, plus where unexplored terrain starts (rooms never streamed
-near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). R3 stays the
-beacon and L3 the survey; the chord is told from either (`src/stick_chord.*`). `src/terrain_overview.*`, `src/explored_rooms.*`,
+near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). A short R3
+click stays the beacon, an R3 hold reviews the ways out, L3 is the survey; the chord is told from any of
+them (`src/stick_chord.*`). `src/terrain_overview.*`, `src/explored_rooms.*`,
 `src/terrain_service.*`, `docs/terrain-overview.md`. 46/46 CTest suites. Why it was needed: in Blood Moor
 the exit review only names Cold Plains once the game generates it (~40 m from the border), by design.
 RE of the act level list and the `Level` rect (`+0x24..0x30`, tiles) in `docs/act-levels-re.md`; the
@@ -38,9 +39,9 @@ shows the derived doorway width.
 
 ## Exit review and room hysteresis — 2026-09-20
 
-The ways out are reviewed one at a time, nearest first: Ctrl+V speaks
-`paso, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a short right-stick
-click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
+The ways out are reviewed one at a time, nearest first: an R3 hold (>= 350 ms, `StickChord::RightHoldMs`)
+or Ctrl+V speaks `paso, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a
+short right-stick click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
 elsewhere, and off-grid, the level's exits. Outdoor boundaries (camp → Blood Moor, no warp unit) now come from the act's
 level areas (`src/native_level_areas.*`, `levelBearings`); upstream's own RoomEx border walk was dropped
 for it when `bladestorm` was merged. Room changes pass grimdark's hysteresis (settle 1000 / dwell 400, dwell only inside the first second
@@ -56,7 +57,7 @@ pathfinder ("path" is inferred), exits never say "blocked", and the hysteresis i
 is verified by the route search. `reference/audio-navigation/grim-dawn/navigation-spec.md`.
 
 **Pending (2026-09-20):** listening check with the controller. In the Den: enter a room (expect its ways out at
-once), Ctrl+V (next way out), click R3 (guide to it). Judge the 1000/400 ms
+once), hold R3 or Ctrl+V (next way out), click R3 (guide to it). Judge the 1000/400 ms
 hysteresis by ear. Known: `[items] exits nearby` counts warp units only, so it says 1 where the review
 says 2.
 
@@ -506,7 +507,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Quest log / automatic quest tracking | counter confirmed live 2026-09-17 | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
-| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`. `docs/rooms.md` |
+| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
 | Target beacon guidance | reach verdict added 2026-09-20; listening check pending | Says recto / rodeando / no se llega when it locks, and nothing beyond the search box. Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |

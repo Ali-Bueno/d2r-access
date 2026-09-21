@@ -115,6 +115,11 @@ bool TakeLeftStickClick();
 
 bool TakeRightStickClick();
 
+// Right thumbstick HOLD (R3 kept down past StickChord::RightHoldMs): reviews
+// the next way out (room_service.h). Reported on the same release the click
+// would have been, so one press is either a click or a hold, never both.
+bool TakeRightStickHold();
+
 // L3 and R3 pressed together: the terrain overview. Fires the moment both are
 // down, once per chord.
 bool TakeStickChord();

@@ -9,7 +9,7 @@ Lets a blind player walk to a specific thing instead of only sensing walls
 around them. Two readouts can name the target: the directional entity scan
 (`docs/entity-scan.md`) names whatever the right stick points at, and the
 level-wide catalogue (`src/map_survey.h`, the long-range pathfinder on **L3**)
-names anything on the level by walking distance. A right-stick click, or
+names anything on the level by walking distance. A short right-stick click, or
 **Ctrl+B**, locks whichever of them spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
@@ -19,13 +19,14 @@ releases it on its own.
 
 ## Controls and console
 
-- Right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
+- Short right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
   lock the last thing the entity scan or the exit review announced, or release
   the current lock if one is active. The click is reported after **release**,
-  and only when L3 was not pressed during it: L3+R3 together is the terrain
-  overview (`docs/terrain-overview.md`), and the chord swallows both releases so
-  the two gestures never both fire (`src/stick_chord.*`). The exit review's
-  "next way out" is Ctrl+V (`docs/rooms.md`).
+  and only when L3 was not pressed during it and the press stayed under
+  `StickChord::RightHoldMs`: L3+R3 together is the terrain overview
+  (`docs/terrain-overview.md`), holding R3 alone is the exit review's "next way
+  out" (`docs/rooms.md`, also Ctrl+V), and the chord swallows both releases, so
+  no press ever fires two gestures (`src/stick_chord.*`).
 - Console `access-beacon lock|clear|status` (`lock` also accepts `toggle`,
   `clear` also accepts `off`); `status` speaks whether something is locked
   and, if so, its name.

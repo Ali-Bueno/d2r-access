@@ -68,7 +68,8 @@ nearest first:
 > *"Escalera a Catacumbas nivel 2, 12 metros, a las 4, rodeando, 1 de 3"*
 
 Label, distance, clock bearing, how you get there, and where you are in the
-list. **Ctrl+V** or `access-rooms next` (R3 stays the beacon). Each request moves to the
+list. **Hold R3** (the right stick in, past `StickChord::RightHoldMs` = 350 ms), **Ctrl+V** or
+`access-rooms next`; a short R3 click stays the beacon's. Each request moves to the
 next one and wraps; the place in the list is kept by the point under review, so
 walking about and asking again continues where you were. Leaving the room or the
 level starts over at the nearest.
@@ -87,7 +88,7 @@ level starts over at the nearest.
 - **How you get there** is the beacon's own verdict on the same collision
   snapshot (`Beacon::ReachWord`: recto / rodeando / no se llega, nothing beyond
   the search box), computed only for the one being spoken.
-- **It is offered to the beacon**, so a right-stick click (or Ctrl+B) right
+- **It is offered to the beacon**, so a short right-stick click (or Ctrl+B) right
   after locks onto it and pings the way there. An opening is not a unit, so the
   beacon takes it as a fixed point (`docs/beacon.md`).
 - **Never re-announced as you walk.** The review is on demand only; grimdark
