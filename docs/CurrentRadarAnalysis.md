@@ -7,7 +7,7 @@
 > and isolated PoC results below describe the earlier research stage.
 
 Audit of commit `a4e54b8`, 2026-09-16, prompted by
-`../D2R_Navigation_Radar_Research.md`. The user confirms object filtering helps,
+`docs/navigation-radar-research.md`. The user confirms object filtering helps,
 but still finds the radar cluttered. This audit precedes the navigation-grid PoC.
 
 ## Finding

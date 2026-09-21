@@ -5,7 +5,7 @@
 > and isolated PoC results below describe the earlier research stage.
 
 Investigated 2026-09-16 against the supplied
-`../D2R_Navigation_Radar_Research.md`. Read together with
+`docs/navigation-radar-research.md`. Read together with
 [CurrentRadarAnalysis](CurrentRadarAnalysis.md). Sources were inspected as source
 code, not executed or incorporated as dependencies.
 

@@ -16,7 +16,7 @@ changes now include finite wall recesses/returns, current exits are no longer
 vetoed by a continued-motion forecast, and Ctrl+T reports actual recent movement.
 See [native map fidelity](radar-map-fidelity.md). New-version listening validation
 is pending; earlier reaction-model findings below are historical where noted.
-The user's `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 is the design source.
+The user's `docs/sonar-radar-implementation-spec.md` v2 is the design source.
 Its referenced `RADAR_ANTISPAM_STABILITY_SPEC.md` was not present in this workspace;
 the initial state/movement rules came from v2. **The user explicitly replaced
 movement-relative directions with fixed screen/left-stick directions on

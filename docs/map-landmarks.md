@@ -42,7 +42,7 @@ Before enabling this, derive a guarded native world adapter for the current
 build: local player position, live NPC/object identities and positions, and
 current level. Validate against two town layouts and a known NPC. Reuse the
 same adapter for the optional destination/beacon layer described in the user's
-root `D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md`; terrain sonar remains separate.
+`docs/sonar-radar-implementation-spec.md`; terrain sonar remains separate.
 
 No fictitious district names, guessed coordinates, automatic walking, or new
 runtime dependency were added. A forge/kitchen/square label would need an
