@@ -192,7 +192,7 @@ void PhysicalGuardAndDoors() {
 	Put(world, 101, 101, Door);
 	(void)engine.Tick(world, 1250);
 	(void)engine.Tick(world, 1300);
-	Check(engine.Tick(world, 1350)[Down] == State::Blocked, "a real door closing still sounds once it is confirmed");
+	Check(engine.Tick(world, 1350)[Down] == State::Door, "a real door closing still sounds once it is confirmed, as a door");
 	Put(world, 101, 101, 0);
 	(void)engine.Tick(world, 1400);
 	(void)engine.Tick(world, 1450);
@@ -279,7 +279,7 @@ void RecordedAlcove() {
 	const double close = Engine::CloseDepth(settings, world.bodyPattern);
 	const auto ahead = [&](Position player, Direction direction) {
 		world.player = player;
-		return ScanPassage(Analyze(StructuralWorld(world, settings)), Axes[Index(direction)], settings.openDepth, close);
+		return ScanPassage(Analyze(StructuralWorld(world, settings)), Axes[Index(direction)], {.openDepth = settings.openDepth, .closeDepth = close});
 	};
 	Check(world.Body(4465, 4625) == State::Blocked && world.Body(4461, 4625) == State::Blocked,
 		"the cells the game refused to walk into really are blocked on the recorded map");

@@ -77,7 +77,7 @@ struct Table {
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
 	std::array<const char*, 4> radarDirections; // Radar::Direction order: up, left, right, down
-	std::array<const char*, 3> radarStates;
+	std::array<const char*, 5> radarStates; // Radar::State order: unknown, open, blocked, exit, door
 	const char* radarMoving; // %s = actual recent screen displacement direction
 	const char* radarStationary;
 	const char* radarMotionUnknown;

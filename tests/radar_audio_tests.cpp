@@ -51,10 +51,10 @@ double Frequency(const std::vector<int16_t>& pcm, size_t channel, size_t fromFra
 }
 
 void Layout() {
-	const auto single = Synthesize(One(Up, Radar::State::Open));
+	const auto single = Synthesize(One(Up, Radar::State::Exit));
 	Check(single.size() == CueSamples, "one cue lasts exactly the compiled cue duration in stereo frames");
 	Radar::Events pair{};
-	pair[Up] = Radar::State::Open;
+	pair[Up] = Radar::State::Exit;
 	pair[Down] = Radar::State::Blocked;
 	const auto both = Synthesize(pair);
 	Check(both.size() == 2 * CueSamples + GapSamples,
@@ -69,10 +69,10 @@ void Layout() {
 }
 
 void StereoPosition() {
-	const auto left = Synthesize(One(Left, Radar::State::Open));
-	const auto right = Synthesize(One(Right, Radar::State::Open));
-	const auto up = Synthesize(One(Up, Radar::State::Open));
-	const auto down = Synthesize(One(Down, Radar::State::Open));
+	const auto left = Synthesize(One(Left, Radar::State::Exit));
+	const auto right = Synthesize(One(Right, Radar::State::Exit));
+	const auto up = Synthesize(One(Up, Radar::State::Exit));
+	const auto down = Synthesize(One(Down, Radar::State::Exit));
 	Check(Rms(left, 0, 0, CueFrames) > Rms(left, 1, 0, CueFrames), "the left cue is louder in the left ear");
 	Check(Rms(right, 1, 0, CueFrames) > Rms(right, 0, 0, CueFrames), "the right cue is louder in the right ear");
 	// Equal-power panning at the compiled width: the quiet side keeps a real,
@@ -97,9 +97,9 @@ void Register() {
 	// Measure over the loud part of the cue, where the decay still leaves a
 	// clean waveform in every register.
 	constexpr size_t Window = CueFrames / 2;
-	const auto openUp = Synthesize(One(Up, Radar::State::Open));
+	const auto openUp = Synthesize(One(Up, Radar::State::Exit));
 	const auto blockedUp = Synthesize(One(Up, Radar::State::Blocked));
-	const auto openDown = Synthesize(One(Down, Radar::State::Open));
+	const auto openDown = Synthesize(One(Down, Radar::State::Exit));
 	const auto blockedDown = Synthesize(One(Down, Radar::State::Blocked));
 	const double open = Frequency(openUp, 0, 0, Window), blocked = Frequency(blockedUp, 0, 0, Window);
 	Check(open > 2 * blocked, "an opening sits in a much brighter register than a wall");
@@ -110,8 +110,8 @@ void Register() {
 	Check(downOpen < open, "down is the same tone a little lower, so it is told apart from up");
 	Check(std::abs(downOpen / open - 0.86) < 0.03, "down is lowered by the compiled fraction of a tone, not an octave");
 	Check(Frequency(blockedDown, 0, 0, Window) < blocked, "the wall cue is lowered for down in the same way");
-	Check(std::abs(Frequency(Synthesize(One(Left, Radar::State::Open)), 0, 0, Window) - open) < 1e-9
-		&& std::abs(Frequency(Synthesize(One(Right, Radar::State::Open)), 1, 0, Window) - open) < 1e-9,
+	Check(std::abs(Frequency(Synthesize(One(Left, Radar::State::Exit)), 0, 0, Window) - open) < 1e-9
+		&& std::abs(Frequency(Synthesize(One(Right, Radar::State::Exit)), 1, 0, Window) - open) < 1e-9,
 		"only down is retuned; the sides keep the opening register");
 	// The wall is a shorter, duller tock: it dies away faster than an opening.
 	const auto decay = [](const std::vector<int16_t>& pcm) {
@@ -120,17 +120,52 @@ void Register() {
 	Check(decay(blockedUp) < decay(openUp), "the wall tock decays faster than the opening tin");
 }
 
+void Readings() {
+	const auto exit = Synthesize(One(Up, Radar::State::Exit)), floor = Synthesize(One(Up, Radar::State::Open));
+	const auto wall = Synthesize(One(Up, Radar::State::Blocked)), door = Synthesize(One(Up, Radar::State::Door));
+	Check(floor.size() == CueSamples && door.size() == CueSamples, "every reading occupies one cue slot");
+	const double breath = Rms(floor, 0, 0, CueFrames) / Rms(exit, 0, 0, CueFrames);
+	Check(breath > 0.35 && breath < 0.8, "floor is a breath under the struck cues, but not buried by the game (2026-09-21 listening)");
+	Check(Peak(floor) < Peak(exit), "the breath never strikes harder than the tin");
+	Check(Rms(floor, 0, CueFrames / 4, 3 * CueFrames / 4) > 2 * Rms(floor, 0, 0, CueFrames / 8),
+		"the breath swells in the middle instead of striking at the start");
+	Check(Frequency(door, 0, 0, CueFrames / 8) < Frequency(wall, 0, 0, CueFrames / 8), "the door knock sits below the wall tock");
+	// Two strikes: loud, a rest, loud again, where a wall's one strike is still dying away.
+	const size_t rest = static_cast<size_t>(0.045 * SampleRate), second = static_cast<size_t>(0.06 * SampleRate);
+	const double first = Rms(door, 0, 0, rest / 2), between = Rms(door, 0, rest, second), again = Rms(door, 0, second, second + rest / 2);
+	Check(between < first / 5 && again > between * 5, "a door is two knocks with a rest between them");
+	Check(Rms(wall, 0, rest, second) > between, "a wall is one strike that has not rested where the door has");
+	Check(Frequency(Synthesize(One(Down, Radar::State::Door)), 0, 0, CueFrames / 8) < Frequency(door, 0, 0, CueFrames / 8),
+		"a door is lowered for down like every other reading");
+	bool mirrored = true;
+	const auto left = Synthesize(One(Left, Radar::State::Open)), right = Synthesize(One(Right, Radar::State::Open));
+	for (size_t frame = 0; frame < CueFrames; ++frame)
+		mirrored &= left[frame * Channels] == right[frame * Channels + 1] && left[frame * Channels + 1] == right[frame * Channels];
+	Check(mirrored, "the breath is panned like the struck cues");
+	CueQueue urgent;
+	Radar::Events mixed{};
+	mixed[Up] = Radar::State::Open;
+	mixed[Left] = Radar::State::Exit;
+	mixed[Right] = Radar::State::Blocked;
+	mixed[Down] = Radar::State::Door;
+	urgent.Push(mixed);
+	Check(urgent.Take()[Right] == Radar::State::Blocked, "a wall warning plays before everything else pending");
+	Check(urgent.Take()[Down] == Radar::State::Door, "a door is a warning too, next in the round robin");
+	Check(urgent.Take()[Left] == Radar::State::Exit, "an exit plays before plain floor");
+	Check(urgent.Take()[Up] == Radar::State::Open && urgent.Empty(), "floor plays last");
+}
+
 void Volume() {
-	const auto full = Synthesize(One(Up, Radar::State::Open), 1);
-	const auto half = Synthesize(One(Up, Radar::State::Open), 0.5);
-	const auto silent = Synthesize(One(Up, Radar::State::Open), 0);
+	const auto full = Synthesize(One(Up, Radar::State::Exit), 1);
+	const auto half = Synthesize(One(Up, Radar::State::Exit), 0.5);
+	const auto silent = Synthesize(One(Up, Radar::State::Exit), 0);
 	Check(silent.size() == full.size(), "a silenced cue still occupies its slot in the stream");
 	Check(std::all_of(silent.begin(), silent.end(), [](int16_t sample) { return sample == 0; }),
 		"volume zero produces silence, not a quiet cue");
 	Check(Peak(full) > 0 && std::abs(static_cast<double>(Peak(half)) / Peak(full) - 0.5) < 0.01,
 		"half volume is half the peak level");
 	Check(Peak(full) < 32767, "the compiled peak level never reaches full scale");
-	Check(Peak(Synthesize(One(Up, Radar::State::Open), 5)) == Peak(full),
+	Check(Peak(Synthesize(One(Up, Radar::State::Exit), 5)) == Peak(full),
 		"a volume beyond the maximum is clamped instead of distorting");
 }
 
@@ -138,38 +173,38 @@ void Queue() {
 	CueQueue queue;
 	Check(queue.Empty(), "a fresh queue has nothing to play");
 	Radar::Events pair{};
-	pair[Left] = Radar::State::Open;
-	pair[Down] = Radar::State::Blocked;
+	pair[Left] = Radar::State::Exit;
+	pair[Down] = Radar::State::Open;
 	queue.Push(pair, {.eventMs = 1000, .level = 3});
 	Check(!queue.Empty(), "pushed events are pending");
 	CueSource source{};
 	auto taken = queue.Take(&source);
-	Check(taken[Left] == Radar::State::Open && taken[Down] == Radar::State::Unknown,
+	Check(taken[Left] == Radar::State::Exit && taken[Down] == Radar::State::Unknown,
 		"the worker is handed one direction at a time");
 	Check(source.eventMs == 1000 && source.level == 3, "a taken cue carries the source it was pushed with");
 	Check(!queue.Empty(), "the second direction stays queued independently");
 	taken = queue.Take();
-	Check(taken[Down] == Radar::State::Blocked && taken[Left] == Radar::State::Unknown && queue.Empty(),
+	Check(taken[Down] == Radar::State::Open && taken[Left] == Radar::State::Unknown && queue.Empty(),
 		"the queue empties one direction per take");
 	CueSource stale{.eventMs = 7};
 	taken = queue.Take(&stale);
 	Check(std::all_of(taken.begin(), taken.end(), [](Radar::State state) { return state == Radar::State::Unknown; })
 		&& stale.eventMs == 0, "taking from an empty queue yields nothing and clears the source");
 	Radar::Events two{};
-	two[Up] = two[Right] = Radar::State::Open;
+	two[Up] = two[Right] = Radar::State::Exit;
 	queue.Push(two);
-	Check(queue.Take()[Up] == Radar::State::Open, "the round robin resumes from the direction after the last one played");
+	Check(queue.Take()[Up] == Radar::State::Exit, "the round robin resumes from the direction after the last one played");
 	Radar::Events again{};
-	again[Up] = Radar::State::Blocked;
+	again[Up] = Radar::State::Exit;
 	queue.Push(again);
-	Check(queue.Take()[Right] == Radar::State::Open,
+	Check(queue.Take()[Right] == Radar::State::Exit,
 		"a direction that just played waits its turn behind one that has been waiting");
-	Check(queue.Take()[Up] == Radar::State::Blocked && queue.Empty(), "the round robin then comes back round");
-	queue.Push(One(Down, Radar::State::Open), {.eventMs = 10});
+	Check(queue.Take()[Up] == Radar::State::Exit && queue.Empty(), "the round robin then comes back round");
+	queue.Push(One(Down, Radar::State::Exit), {.eventMs = 10});
 	queue.Push(One(Down, Radar::State::Blocked), {.eventMs = 20});
 	Check(queue.Pending()[Down] == Radar::State::Blocked && queue.Source(Down).eventMs == 20,
 		"a direction keeps only its latest state, with the source that produced it");
-	queue.Push(One(Left, Radar::State::Open));
+	queue.Push(One(Left, Radar::State::Exit));
 	Radar::Events confirmed{};
 	confirmed[Down] = Radar::State::Blocked;
 	confirmed[Left] = Radar::State::Blocked;
@@ -182,6 +217,7 @@ int main() {
 	Layout();
 	StereoPosition();
 	Register();
+	Readings();
 	Volume();
 	Queue();
 	Passed();

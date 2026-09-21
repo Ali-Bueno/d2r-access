@@ -68,6 +68,7 @@ add_library(d2r-access SHARED
 	src/native_rooms.cpp
 	src/room_graph.cpp
 	src/room_catalogue.cpp
+	src/rooms.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
 	src/native_ui.cpp
@@ -128,9 +129,13 @@ if(BUILD_TESTING)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
+	add_executable(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
+	target_include_directories(rooms-tests PRIVATE src)
+	target_compile_features(rooms-tests PRIVATE cxx_std_20)
+	add_test(NAME rooms COMMAND rooms-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
-	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp)
+	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
 	add_executable(radar-engine-tests tests/radar_engine_tests.cpp ${RADAR_ENGINE_SOURCES})
 	target_include_directories(radar-engine-tests PRIVATE src)
 	target_compile_features(radar-engine-tests PRIVATE cxx_std_20)
@@ -350,6 +355,7 @@ if(BUILD_TESTING)
 	add_test(NAME pad-filter COMMAND pad-filter-tests)
 	if(MSVC)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

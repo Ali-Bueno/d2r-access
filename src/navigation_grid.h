@@ -19,6 +19,8 @@ enum DirectionBits : uint8_t {
 struct Cell {
 	Radar::State body = Radar::State::Unknown;
 	uint16_t flags = 0; // original centre-cell flags, not a semantic object ID
+	uint16_t blocker = 0; // flags of the cell that blocks the body here (the centre when clear)
+	int room = -1; // streamed room index, see LabelRooms
 	uint8_t exits = 0, firstSteps = 0;
 	int steps = -1; // shortest count of native neighboring destination steps
 	int clearance = 0; // Chebyshev distance to blocked/unknown body cells or window limit
@@ -38,4 +40,7 @@ struct Grid {
 // Reads the supplied world without modifying it; no native calls or persistence.
 // Callers choose physical or structural snapshots. Radius is in collision subtiles.
 Grid Build(const Radar::World& world, int radius);
+// Stamps each cell with the index of the room covering it in `rooms`, which
+// may be the physical world behind a structural (single-room) snapshot.
+void LabelRooms(Grid& grid, const Radar::World& rooms);
 }

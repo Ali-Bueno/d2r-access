@@ -6,15 +6,16 @@ namespace D2RAccess::Radar {
 namespace {
 // Native movement trace 0x364700 allows diagonal destination steps.
 constexpr std::array<Position, 8> Steps{{{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{1,-1},{-1,1},{1,1}}};
+const double MaxStep = std::hypot(1.0, 1.0);
 }
 double BodySpan(int bodyPattern) { return bodyPattern == 0 ? 1.0 : 3.0; }
 int PassageRadius(double reachDepth, int bodyPattern) {
 	return static_cast<int>(std::ceil(reachDepth + BodySpan(bodyPattern))) + 1;
 }
-Passage ScanPassage(const Navigation::Grid& grid, Position axis, double openDepth, double closeDepth) {
+Passage ScanPassage(const Navigation::Grid& grid, Position axis, const PassageQuery& query) {
 	Passage result;
-	result.openDepth = openDepth;
-	result.closeDepth = closeDepth;
+	result.openDepth = query.openDepth;
+	result.closeDepth = query.closeDepth;
 	if (!grid.originKnown) return result;
 	const auto projection = [&](Position p) { return p.x*axis.x + p.y*axis.y; };
 	const auto lateral = [&](Position p) { return -p.x*axis.y + p.y*axis.x; };
@@ -25,6 +26,7 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, double openDept
 	// One native cell of lateral tolerance: the staircase of a diagonal line
 	// alternates component steps, each 0.707 off the axis, never further.
 	constexpr double NativeCell = 1;
+	const int home = grid.At(grid.playerX, grid.playerY)->room;
 	std::vector<Position> queue{{}};
 	std::vector<bool> visited(grid.cells.size());
 	visited[index({})] = true;
@@ -42,18 +44,42 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, double openDept
 			if (!cell || cell->body == State::Unknown) {
 				// Unloaded cells may hide the rest of the route; they are never
 				// walls. Beyond the opening depth they only limit the reach.
-				if (projection(next) <= openDepth) unknown = true;
+				if (projection(next) <= query.openDepth) unknown = true;
 				continue;
 			}
-			if (cell->body != State::Open || visited[index(next)]) continue;
+			if (cell->body != State::Open) {
+				// The obstacle the body pushes against within the closing depth
+				// is a closed door when the game's own DOOR bit blocks it.
+				if ((cell->blocker & Collision::Door) && projection(next) <= query.closeDepth + MaxStep) result.door = true;
+				continue;
+			}
+			if (visited[index(next)]) continue;
 			visited[index(next)] = true;
 			result.depth = std::max(result.depth, projection(next));
+			if (home >= 0 && cell->room >= 0 && cell->room != home && (result.crossing < 0 || projection(next) < result.crossing))
+				result.crossing = projection(next);
 			queue.push_back(next);
 		}
 	}
-	if (result.depth >= openDepth) { result.available = true; result.observed = State::Open; return result; }
-	result.available = !unknown;
-	if (result.available && result.depth <= closeDepth) result.observed = State::Blocked;
+	// One threshold each way and no dead band: between them the committed
+	// reading stands, so the first observation after a reset is a verdict too.
+	if (result.depth >= query.openDepth) result.available = true;
+	else result.available = !unknown;
+	if (!result.available) return result;
+	if (result.depth <= query.closeDepth) { result.observed = result.door ? State::Door : State::Blocked; return result; }
+	if (result.depth < query.openDepth && Obstacle(query.committed)) { result.observed = query.committed; return result; }
+	// What the passable route means: it arrives within a doorway of a level
+	// exit, or it enters another chamber and clears its border by a doorway.
+	if (query.exits) for (const auto& exit : *query.exits) {
+		const Position relative{exit.x - grid.playerX, exit.y - grid.playerY};
+		const double ahead = projection(relative), aside = std::abs(lateral(relative));
+		if (ahead > 0 && ahead <= result.depth + query.wayThrough && aside <= query.wayThrough / 2) {
+			result.observed = State::Exit;
+			return result;
+		}
+	}
+	const bool leaves = query.maze && result.crossing >= 0 && result.depth >= result.crossing + query.wayThrough;
+	result.observed = leaves ? State::Exit : State::Open;
 	return result;
 }
 }

@@ -1,7 +1,9 @@
 #include "radar_service.h"
 #include "async_log.h"
+#include "native_entities.h"
 #include "native_world.h"
 #include "native_ui.h"
+#include "generated/level_flags.h"
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "input_direction.h"
@@ -30,6 +32,11 @@ constexpr int DumpRadius = 12; // 25x25 local ASCII diagnostic, not sensor range
 // Collision snapshots are bulky records; one per second keeps AsyncLog's
 // bounded queue for the cue events themselves.
 constexpr uint64_t SnapshotIntervalMs = 1000;
+// Level exits do not move; rooms stream in at walking pace, so a second is enough.
+constexpr uint64_t ExitsRefreshMs = 1000;
+// The audition plays every reading in every direction.
+constexpr Radar::State Audition[] = {Radar::State::Exit, Radar::State::Open, Radar::State::Blocked, Radar::State::Door};
+constexpr int AuditionSteps = static_cast<int>(std::size(Audition) * Radar::DirectionCount);
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
 const D2RL::InputService* g_input = nullptr;
@@ -42,6 +49,29 @@ uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0, g_lastSnapshot = 0;
 int g_level = 0, g_testStep = -1;
 std::string g_lastReason;
+// Levels.txt DrlgType 1: a maze level, built from preset cells, so one
+// streamed room is one chamber and a way into another room is an exit.
+// Upstream asks its room announcer (RoomService::Maze), which this branch
+// does not carry; the answer comes from the same generated level table.
+constexpr int32_t MazeDrlgType = 1;
+bool Maze(int level) {
+	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == MazeDrlgType;
+}
+std::vector<Radar::Position> g_exits;
+uint64_t g_exitsAt = 0;
+int g_exitsLevel = 0;
+
+// The level's exits for the passage scan; a failed read keeps the last list.
+void RefreshExits(const Radar::World& world, uint64_t now) {
+	if (g_exitsLevel == world.level && g_exitsAt && now - g_exitsAt < ExitsRefreshMs) return;
+	std::vector<EntityRadar::Entity> entities;
+	if (!NativeEntities::Read(g_playerId, world.session, entities, true)) return;
+	g_exits.clear();
+	for (const auto& entity : entities)
+		if (entity.kind == EntityRadar::Kind::Exit) g_exits.push_back(entity.position);
+	g_exitsAt = now;
+	g_exitsLevel = world.level;
+}
 
 void Suspend(const char* reason = "suspended") {
 	if (!g_suspended || g_testStep >= 0) RadarAudio::Silence(reason);
@@ -80,7 +110,7 @@ void Describe(bool available, RadarUi::State ui) {
 }
 void LogSensors(uint64_t now) {
 	const auto velocity = g_engine.Velocity();
-	AsyncLog::InfoF(g_context, "[radar-motion] velocity=%.1f,%.1f speed=%.1f", velocity.x, velocity.y, g_engine.Speed());
+	AsyncLog::InfoF(g_context, "[radar-motion] velocity=%.1f,%.1f speed=%.1f way_through=%.1f", velocity.x, velocity.y, g_engine.Speed(), g_engine.CurrentWayThrough());
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& s = g_engine.Sensors()[i];
 		AsyncLog::InfoF(g_context, "[radar-state] direction=%s state=%s candidate=%s candidate_age=%llu depth=%.1f open=%.1f close=%.1f available=%u observed=%s deferred=%s last_cue=%s last_cue_age=%llu hold=%s frontier=%u,%.1f",
@@ -196,10 +226,10 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool blocked = ui != RadarUi::State::Playing;
 	if (g_testStep >= 0 && !blocked) {
 		if (now >= g_testDue) {
-			if (g_testStep == static_cast<int>(Radar::DirectionCount * 2)) { g_testStep = -1; return; }
+			if (g_testStep == AuditionSteps) { g_testStep = -1; return; }
 			Radar::Events events{};
 			const size_t step = static_cast<size_t>(g_testStep++);
-			events[step % Radar::DirectionCount] = step < Radar::DirectionCount ? Radar::State::Open : Radar::State::Blocked;
+			events[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount];
 			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true});
 			g_testDue = now + TestStepMs;
 		}
@@ -221,7 +251,10 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!available) {
 		Suspend(reason);
 	} else {
-		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern);
+		world.maze = Maze(world.level);
+		RefreshExits(world, now);
+		world.exits = g_exits;
+		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.exits.size());
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
 		const auto events = g_engine.Tick(world, now);

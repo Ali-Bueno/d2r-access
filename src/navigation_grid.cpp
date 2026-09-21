@@ -91,7 +91,7 @@ Grid Build(const Radar::World& world, int radius) {
 	for (int y=0; y<grid.height; ++y) for (int x=0; x<grid.width; ++x) {
 		auto& cell = grid.cells[static_cast<size_t>(y)*grid.width+x];
 		(void)world.Cell(grid.x+x, grid.y+y, Radar::Layer::Movement, &cell.flags);
-		cell.body = world.Body(grid.x+x, grid.y+y);
+		cell.body = world.Body(grid.x+x, grid.y+y, Radar::Layer::Movement, &cell.blocker);
 	}
 	const size_t origin = static_cast<size_t>(radius)*grid.width+radius;
 	for (size_t i=0; i<grid.cells.size(); ++i) {
@@ -107,6 +107,10 @@ Grid Build(const Radar::World& world, int radius) {
 	Clearance(grid);
 	Reachability(grid,origin);
 	return grid;
+}
+void LabelRooms(Grid& grid, const Radar::World& rooms) {
+	for (int y=0; y<grid.height; ++y) for (int x=0; x<grid.width; ++x)
+		grid.cells[static_cast<size_t>(y)*grid.width+x].room = rooms.RoomAt(grid.x+x, grid.y+y);
 }
 std::string Grid::Dump() const {
 	std::string result;

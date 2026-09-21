@@ -14,7 +14,7 @@ constexpr int Size = 240;
 // Native PLAYER_PATH walking mask and the collision bits it selects.
 constexpr uint16_t PlayerPath = 0x1C09, Wall = 1, Blank = 0x20;
 constexpr size_t Index(Direction direction) { return static_cast<size_t>(direction); }
-constexpr size_t Down = Index(Direction::Down);
+constexpr size_t Up = Index(Direction::Up), Down = Index(Direction::Down);
 
 World Field() {
 	World world;
@@ -126,9 +126,9 @@ void DeadBandBaseline() {
 	uint64_t now = 1000;
 	Check(Silent(engine.Tick(world, now)), "an observation inside the dead band is a silent baseline like any other");
 	const auto& ahead = engine.Sensors()[Down];
-	Check(ahead.passage.observed == State::Unknown && ahead.passage.available
+	Check(ahead.passage.observed == State::Open && ahead.passage.available
 		&& ahead.passage.depth > ahead.passage.closeDepth && ahead.passage.depth < ahead.passage.openDepth,
-		"that baseline really did land between the closing and the opening depth");
+		"that baseline really did land between the closing and the opening depth, and read as floor");
 	unsigned walls = 0, other = 0;
 	const auto count = [&](const Events& events) {
 		for (size_t i = 0; i < DirectionCount; ++i) {
@@ -394,6 +394,46 @@ void FrontierFollowsTheLatestWall() {
 	Check(run.Ahead().frontier.known, "an opening never erases the wall memory, it only outruns it");
 }
 
+void DoorAhead() {
+	Run run;
+	Barrier(run.world, WallSum, Collision::Door);
+	Check(Silent(run.Begin()), "a distant door is only a silent baseline");
+	const int silent = StepsForward(run.Sum(), SumWhereBlocked());
+	for (int step = 0; step < silent; ++step)
+		Check(Silent(run.Step(1, 1)), "approaching a door is silent until the warning is confirmed");
+	Check(run.Step(1, 1)[Down] == State::Door, "a closed door is announced as a door, at a wall's distance");
+	Check(run.Ahead().frontier.known, "a door is remembered like a wall");
+	for (int back = 1; back <= 3; ++back)
+		Check(Silent(run.Step(-1, -1)) && run.Ahead().state == State::Door, "backing off a door is silent, and it stays a door");
+}
+
+void WayBackTakenAsRead() {
+	// Two chambers of a maze split along world x. Walking screen-down crosses
+	// from the first into the second; the doorway just crossed then reads as
+	// an exit behind the player, and is taken as read instead of sounded.
+	auto world = Field();
+	world.maze = true;
+	world.rooms = {{0, 0, 120, Size, std::vector<uint16_t>(120 * Size)}, {120, 0, 120, Size, std::vector<uint16_t>(120 * Size)}};
+	Engine engine;
+	uint64_t now = 1000;
+	Check(Silent(engine.Tick(world, now)), "the baseline is silent");
+	Check(engine.Sensors()[Down].state == State::Exit, "ahead, the route into the next chamber is an exit from the start");
+	Check(engine.Sensors()[Up].state == State::Open, "behind, the first chamber is only floor");
+	Events heard{};
+	while (world.player.x < 120 + 6) {
+		world.player.x += 1;
+		world.player.y += 1;
+		const auto events = engine.Tick(world, now += PollMs);
+		for (size_t i = 0; i < DirectionCount; ++i) if (events[i] != State::Unknown) heard[i] = events[i];
+	}
+	Check(heard[Up] == State::Unknown, "the doorway just crossed never sounds behind the player");
+	Check(engine.Sensors()[Up].state == State::Exit && engine.Sensors()[Up].lastCue == State::Exit
+		&& std::string_view(engine.Sensors()[Up].hold) == "way-back", "it is confirmed and taken as read");
+	Check(heard[Down] == State::Open, "ahead, the second chamber's floor is announced once the exit is behind");
+	Check(std::abs(engine.CurrentWayThrough() - Settings{}.openDepth) < 1e-9,
+		"a border open along its whole length is clamped to the opening depth as the doorway width");
+}
+
 void RebaseForgetsTheWall() {
 	Run run;
 	Barrier(run.world, WallSum, Wall);
@@ -518,6 +558,8 @@ int main() {
 	LateralEscapeReleasesTheWall();
 	DoorwayPastTheWallSounds();
 	FrontierFollowsTheLatestWall();
+	DoorAhead();
+	WayBackTakenAsRead();
 	RebaseForgetsTheWall();
 	Passed();
 }

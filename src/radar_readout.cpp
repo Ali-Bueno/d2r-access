@@ -27,7 +27,8 @@ std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& passage = engine.Sensors()[i].passage;
 		const auto state = passage.available ? passage.observed : Radar::State::Unknown;
-		const bool limited = passage.available && passage.observed == Radar::State::Unknown;
+		// Inside the hysteresis band the verdict is the one that stands, not a measurement.
+		const bool limited = passage.available && passage.depth > passage.closeDepth && passage.depth < passage.openDepth;
 		result += std::string(". ") + text.radarDirections[i] + ": "
 			+ (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
 		if (!passage.available) continue;

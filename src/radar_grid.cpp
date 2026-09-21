@@ -10,23 +10,28 @@ uint16_t TerrainCollisionFlags(uint16_t flags) {
 	if ((flags & Player) && !(flags & Missile)) flags &= ~Player;
 	return flags;
 }
+int World::RoomAt(int x, int y) const {
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		const auto& room = rooms[i];
+		const int64_t dx = int64_t(x) - room.x, dy = int64_t(y) - room.y;
+		if (dx >= 0 && dy >= 0 && dx < room.width && dy < room.height) return static_cast<int>(i);
+	}
+	return -1;
+}
 State World::Cell(int x, int y, Layer layer, uint16_t* rawFlags) const {
 	if (rawFlags) *rawFlags = 0;
-	for (const auto& room : rooms) {
-		const int64_t dx = int64_t(x) - room.x, dy = int64_t(y) - room.y;
-		if (dx < 0 || dy < 0 || dx >= room.width || dy >= room.height) continue;
-		const auto index = static_cast<size_t>(dy * room.width + dx);
-		if (index >= room.cells.size()) return State::Unknown;
-		// D2R 0x366250 returns 0x27 for an absent room. Blank subtiles (0x20)
-		// are unknown to the radar, not evidence of a real wall.
-		constexpr uint16_t Blank = 0x20;
-		if (room.cells[index] & Blank) return State::Unknown;
-		uint16_t flags = room.cells[index];
-		if (rawFlags) *rawFlags = flags;
-		if (layer == Layer::Terrain) flags = TerrainCollisionFlags(flags);
-		return flags & walkingMask ? State::Blocked : State::Open;
-	}
-	return State::Unknown;
+	const int found = RoomAt(x, y);
+	if (found < 0) return State::Unknown;
+	const auto& room = rooms[static_cast<size_t>(found)];
+	const auto index = static_cast<size_t>((y - room.y) * room.width + (x - room.x));
+	if (index >= room.cells.size()) return State::Unknown;
+	// D2R 0x366250 returns 0x27 for an absent room. Blank subtiles (0x20)
+	// are unknown to the radar, not evidence of a real wall.
+	if (room.cells[index] & Collision::Blank) return State::Unknown;
+	uint16_t flags = room.cells[index];
+	if (rawFlags) *rawFlags = flags;
+	if (layer == Layer::Terrain) flags = TerrainCollisionFlags(flags);
+	return flags & walkingMask ? State::Blocked : State::Open;
 }
 
 State World::Body(int x, int y, Layer layer, uint16_t* flags) const {

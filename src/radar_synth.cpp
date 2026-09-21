@@ -19,49 +19,70 @@ void CueQueue::Retain(const Radar::Events& states) {
 Radar::Events CueQueue::Take(CueSource* source) {
 	Radar::Events result{};
 	if (source) *source = {};
+	// A wall is a warning, an exit is news, floor is background: the most
+	// urgent pending direction plays first, round robin among equals.
+	const auto urgency = [](Radar::State state) { return Radar::Obstacle(state) ? 2 : state == Radar::State::Exit ? 1 : 0; };
+	size_t chosen = pending_.size();
 	for (size_t offset = 0; offset < pending_.size(); ++offset) {
 		const size_t i = (next_ + offset) % pending_.size();
 		if (pending_[i] == Radar::State::Unknown) continue;
-		result[i] = pending_[i];
-		if (source) *source = sources_[i];
-		pending_[i] = Radar::State::Unknown;
-		next_ = (i + 1) % pending_.size();
-		break;
+		if (chosen == pending_.size() || urgency(pending_[i]) > urgency(pending_[chosen])) chosen = i;
 	}
+	if (chosen == pending_.size()) return result;
+	result[chosen] = pending_[chosen];
+	if (source) *source = sources_[chosen];
+	pending_[chosen] = Radar::State::Unknown;
+	next_ = (chosen + 1) % pending_.size();
 	return result;
 }
 bool CueQueue::Empty() const {
 	return std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
 }
 std::vector<int16_t> Synthesize(const Radar::Events& events, double gain) {
-	// The tin/tock the user validated: sound-design values, deliberately
-	// separate from collision constants. Bright register = opening, dull
-	// register = wall; stereo position follows the screen x component; down
-	// is the same tone slightly lower. Volume scales the compiled level.
+	// Sound-design values, deliberately separate from collision constants.
+	// Bright tin = exit, dull tock = wall, a double knock = door, a soft breath
+	// of filtered noise = floor that leads nowhere new; stereo position follows
+	// the screen x component; down is the same sound slightly lower.
 	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003, Release = 0.015;
-	constexpr double OpenHz = 1100, BlockedHz = 260, DownPitch = 0.86;
-	constexpr double OpenHarmonic = 2.7, BlockedHarmonic = 1.5, HarmonicLevel = 0.2;
-	constexpr double OpenDecay = 0.045, BlockedDecay = 0.025;
+	constexpr double ExitHz = 1100, BlockedHz = 260, DoorHz = 180, BreathCutoffHz = 880, DownPitch = 0.86;
+	constexpr double ExitHarmonic = 2.7, BlockedHarmonic = 1.5, DoorHarmonic = 2.0, HarmonicLevel = 0.2;
+	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, KnockDecay = 0.012, KnockGap = 0.06;
+	constexpr double BreathLevel = 1.8; // low-passed noise is quiet; this puts the breath at about half the tin's energy
 	constexpr double PanWidth = 0.9; // left/right sit just inside the stereo edges
 	constexpr double Level = 0.15, PcmPeak = 32767;
 	const size_t frames = static_cast<size_t>(Duration * SampleRate);
 	const double level = Level * std::clamp(gain, 0.0, 1.0);
 	std::vector<int16_t> pcm;
 	for (size_t direction = 0; direction < events.size(); ++direction) {
-		if (events[direction] == Radar::State::Unknown) continue;
+		const auto state = events[direction];
+		if (state == Radar::State::Unknown) continue;
 		if (!pcm.empty()) pcm.resize(pcm.size() + SampleRate * Channels * CueGapMs / 1000);
 		const auto screen = Radar::ScreenAxes[direction];
-		const double pan = PanWidth * screen.x;
-		const bool open = events[direction] == Radar::State::Open;
-		const double hz = (open ? OpenHz : BlockedHz) * (screen.y > 0 ? DownPitch : 1);
-		const double harmonic = open ? OpenHarmonic : BlockedHarmonic, decay = open ? OpenDecay : BlockedDecay;
+		const double pan = PanWidth * screen.x, pitch = screen.y > 0 ? DownPitch : 1;
 		const double left = std::sqrt((1 - pan) / 2), right = std::sqrt((1 + pan) / 2);
+		const double hz = (state == Radar::State::Exit ? ExitHz : state == Radar::State::Door ? DoorHz : BlockedHz) * pitch;
+		const double harmonic = state == Radar::State::Exit ? ExitHarmonic : state == Radar::State::Door ? DoorHarmonic : BlockedHarmonic;
+		const double decay = state == Radar::State::Exit ? ExitDecay : state == Radar::State::Door ? KnockDecay : BlockedDecay;
+		// One-pole low-pass for the breath; the noise is a fixed sequence so a cue is reproducible.
+		const double smoothing = 1 - std::exp(-2 * std::numbers::pi * BreathCutoffHz * pitch / SampleRate);
+		uint32_t seed = 1;
+		double breath = 0;
 		for (size_t frame = 0; frame < frames; ++frame) {
 			const double time = static_cast<double>(frame) / SampleRate;
-			const double phase = 2 * std::numbers::pi * hz * time;
-			const double envelope = std::min(1.0, time / Attack) * std::min(1.0, (Duration - time) / Release)
-				* std::exp(-time / decay);
-			const double tone = level * envelope * (std::sin(phase) + HarmonicLevel * std::sin(phase * harmonic));
+			const double fade = std::min(1.0, (Duration - time) / Release);
+			double tone = 0;
+			if (state == Radar::State::Open) {
+				seed = seed * 1664525u + 1013904223u;
+				breath += smoothing * ((seed >> 8) / 8388608.0 - 1 - breath);
+				const double swell = std::sin(std::numbers::pi * time / Duration);
+				tone = level * BreathLevel * swell * swell * fade * breath;
+			} else {
+				// A door is two strikes of the same knock, the second at KnockGap.
+				const double struck = state == Radar::State::Door && time >= KnockGap ? time - KnockGap : time;
+				const double phase = 2 * std::numbers::pi * hz * time;
+				const double envelope = std::min(1.0, struck / Attack) * fade * std::exp(-struck / decay);
+				tone = level * envelope * (std::sin(phase) + HarmonicLevel * std::sin(phase * harmonic));
+			}
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * left, -1.0, 1.0) * PcmPeak));
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * right, -1.0, 1.0) * PcmPeak));
 		}
