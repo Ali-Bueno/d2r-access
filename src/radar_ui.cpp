@@ -3,6 +3,8 @@
 #include "native_widgets.h"
 #include "panel_state.h"
 
+#include <windows.h>
+
 #include <algorithm>
 #include <string_view>
 
@@ -32,5 +34,11 @@ State Inspect(bool foreground) {
 		if (name.starts_with("PauseLayout") || name == "SettingsPanel") return State::Paused;
 	}
 	return State::Playing;
+}
+
+bool InPlay() {
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	return Inspect(process == GetCurrentProcessId()) == State::Playing;
 }
 }

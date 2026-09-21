@@ -137,9 +137,7 @@ bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities)
 }
 // Only while the local player is in the world with no panel, dialogue or pause open.
 bool Playing(const Lifecycle& state) {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	return g_supported && state.ready && RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	return g_supported && state.ready && RadarUi::InPlay();
 }
 void Scan(const D2RL::PluginContext* context, const Lifecycle& state, Radar::Direction direction, uint64_t now) {
 	const auto& strings = Strings::Current();
