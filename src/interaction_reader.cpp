@@ -225,6 +225,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// own tooltip renders, so a push up can never answer about the last item.
 	if (inventory) OfferDetail(readout.focusKey, {});
 	else if (progression.skill) OfferDetail(std::to_string(focus.widget), {});
+	bool goldAmount = false; // the gold row is saying the amount in place of its label
 	if (button) {
 		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		readout = UiText::Describe(snapshot);
@@ -247,6 +248,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldCarried,
 					std::to_string(gold).c_str());
 				readout.option = phrase;
+				goldAmount = true;
 			}
 		}
 	}
@@ -290,7 +292,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			readout.option = std::move(split.headline);
 			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
 		}
-		else if ((inventory || button) && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
+		// Not onto the gold amount: that row's tooltip is "Drop Gold", the A hint
+		// again, and it renders ~400 ms after the row was read, so joining it
+		// re-read the whole row (MEASURED 2026-09-21: "34 gold. Drop Gold").
+		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {

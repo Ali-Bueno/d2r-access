@@ -283,6 +283,8 @@ int main() {
 	buttonSnapshot = {29, 29, "gold_button", UiText::Surface::Other, {{29, -1, UiText::Kind::Button, "gold_button", "ButtonWidget", "Soltar oro"}}};
 	Check(Tick() && speech == std::vector<std::string>{"523 de oro"},
 		"the gold row speaks how much is carried instead of the action that would drop it");
+	ClearSpeech(); Tooltip("Soltar oro"); Settle();
+	Check(speech.empty(), "the gold row's tooltip, which is its A hint again, does not re-read the row");
 	playerGold = -1; ClearSpeech();
 	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
 	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";
