@@ -273,6 +273,10 @@ int main() {
 	Check(speech == std::vector<std::string>{"Gemas"}, "switching tabs announces only the changed tab name");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "unchanged inventory cell does not interrupt the tab announcement on the next poll");
+	ClearSpeech(); interrupts.clear(); cell = {2, 0}; selection = 2; Settle();
+	Check(speech == std::vector<std::string>{"Fila 1, columna 3"} && !interrupts.back(), "the first readout after a tab change queues behind its title");
+	ClearSpeech(); interrupts.clear(); cell = {3, 0}; selection = 3; Settle();
+	Check(speech == std::vector<std::string>{"Fila 1, columna 4"} && interrupts.back(), "and the next one interrupts as usual");
 	ClearSpeech(); cell = {1, 0}; selection = 1;
 	{
 		// Focus leaving the inventory for another tab lets that tab's title be;

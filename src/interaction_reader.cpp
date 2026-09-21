@@ -66,6 +66,13 @@ std::string g_detail, g_detailFor;
 // not read at all on right stick up").
 std::string g_size, g_sizeFor;
 
+// When a tab last changed. The first readout after it queues behind the title
+// the window announcer is still speaking instead of cutting it off -- the skill
+// tree's first skill arrived about 350 ms into "Skill Tree" and interrupted it
+// (MEASURED 2026-09-21 13:03:30). Later readouts interrupt as usual.
+uint64_t g_tabChangedAt = 0;
+constexpr uint64_t TabTitleMs = 1500;
+
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
 
@@ -475,6 +482,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// The menu switcher's tab is the panel the window announcer has just
 		// named. MEASURED 2026-09-21: "Character" was said twice, the second
 		// time with interrupt, which cut off what was queued behind the first.
+		g_tabChangedAt = now;
 		const bool named = PanelState::TakeAnnounced(tabChange);
 		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
 		std::string text(named ? std::string_view{} : tabChange);
@@ -522,7 +530,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
-		ScreenReader::Speak(announcement.text, true);
+		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs;
+		g_tabChangedAt = 0;
+		ScreenReader::Speak(announcement.text, !behindTitle);
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	return inventory || button || stats;
@@ -538,6 +548,7 @@ void Reset() {
 	g_describedFocus.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
+	g_tabChangedAt = 0;
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
