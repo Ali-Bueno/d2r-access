@@ -71,9 +71,12 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::InfoF(context, "[modal] %s: %zu nodes, none with speakable text", active.c_str(), snapshot.nodes.size());
 		return;
 	}
-	// A confirmation is a context change, and a destructive one should not wait
-	// behind whatever was being said when it appeared.
-	ScreenReader::Speak(phrase, true);
+	// Queued, never interrupting: this is what the panel says AFTER its title.
+	// The window announcer speaks that title the moment the panel opens, with
+	// interrupt, so nothing stale is left ahead of this -- cutting in here only
+	// ever cut the title off. MEASURED 2026-09-21: "Quest Log" was interrupted
+	// 42 ms after it began by this reader speaking the act tabs' "I".
+	ScreenReader::Speak(phrase, false);
 }
 
 }
