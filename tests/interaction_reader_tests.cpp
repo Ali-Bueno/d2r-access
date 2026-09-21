@@ -39,6 +39,7 @@ UiText::Snapshot buttonSnapshot;
 NativeTooltips::Snapshot tooltip;
 NativeProgression::Details progression;
 std::vector<std::string> speech;
+std::vector<bool> interrupts;
 bool conversation = false;
 uintptr_t tracked = 0;
 uint64_t now = 1000, selection = UINT64_MAX;
@@ -63,7 +64,7 @@ void Tooltip(const std::string& text) {
 	tooltip = {};
 	tooltip.body = text; tooltip.panel = focus.panel; tooltip.widget = focus.widget; tooltip.selection = selection;
 }
-void ClearSpeech() { speech.clear(); }
+void ClearSpeech() { speech.clear(); interrupts.clear(); }
 }
 namespace D2RAccess::NativeUi {
 Type Classify(uintptr_t widget) {
@@ -164,7 +165,7 @@ void Reset() {}
 bool autoDetail = false;
 namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } }
 namespace D2RAccess::ScreenReader {
-void Speak(std::string_view text, bool) { speech.emplace_back(text); }
+void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 void Stop() {}
 }
 
@@ -401,6 +402,10 @@ int main() {
 	progression.readout = {"Stats", "Personaje", "Fuerza. 30. Gastar punto", "61"};
 	progression.value = "30"; progression.points = "5 puntos";
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Personaje. Fuerza. 30. Gastar punto"}, "stat selection reads its own label and value immediately");
+	ClearSpeech(); controllerHelp = "A: Asignar un punto"; Tick();
+	Check(speech == std::vector<std::string>{"A: Asignar un punto"} && interrupts == std::vector<bool>{false},
+		"a legend that repopulates after the row was read queues behind it instead of cutting it off");
+	controllerHelp.clear(); Tick();
 	ClearSpeech(); Tooltip("Gastar punto"); Settle();
 	Check(speech.empty(), "rendered stat action does not repeat generic spend instruction");
 	buttonSnapshot.nodes[0].enabled = false; Tick();

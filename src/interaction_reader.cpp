@@ -437,11 +437,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool describedNow = !announcement.text.empty();
 	const bool describedHere = readout.focusKey.empty() || readout.focusKey == g_describedFocus;
 	const bool helpFollows = helpChanged && !awaitingDescription && (describedNow || describedHere);
+	// A hint arriving on its own is the tail of the readout just spoken, not a
+	// new context: the legend repopulates ~60 ms after the focus moves (MEASURED
+	// 2026-09-21, character panel), so it queues instead of cutting the row off.
+	bool interrupt = !(helpFollows && !describedNow);
 	if (helpFollows) Append(announcement.text, help);
 	if (describedNow) g_describedFocus = readout.focusKey;
 	if (!cursorNotice.empty()) {
 		Append(cursorNotice, announcement.text);
 		announcement.text = std::move(cursorNotice);
+		interrupt = true; // picking an item up or putting it down is news
 	}
 	// Only what was actually spoken counts as spoken. An empty hint is
 	// recorded either way, so leaving a panel does not leave the last hint
@@ -452,7 +457,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
-		ScreenReader::Speak(announcement.text, true);
+		ScreenReader::Speak(announcement.text, interrupt);
 	}
 	return inventory || button || stats;
 }
