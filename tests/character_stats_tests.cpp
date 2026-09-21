@@ -185,14 +185,18 @@ int main() {
 	Add(82, "AttackDamageTitle", "Daño", 81);
 	Add(83, "AttackDamageStat", "5 a 9", 81);
 	auto lines = CharacterStats::Lines(Panel);
-	Check(lines.size() == 8, "every rendered row is a line, and nothing else on the panel is");
-	Check(lines[0] == "Fuerza. 30" && lines[1] == "Vida. 45 de 120", "lines keep the order the layout declares");
-	Check(lines[5] == "Experiencia. 0 de 500",
+	Check(lines.size() == 10, "every rendered row is a line, and nothing else on the panel is");
+	Check(lines[0] == "Ulfr" && lines[1] == "Bárbaro", "the character's name leads the list, then its class and level");
+	Check(lines[2] == "Fuerza. 30" && lines[3] == "Vida. 45 de 120", "lines keep the order the layout declares");
+	Check(lines[7] == "Experiencia. 0 de 500",
 		"a box that states a statistic without naming it borrows the game's own word for it");
-	Check(lines[6] == "Daño. 12 a 30" && lines[7] == "Daño. 5 a 9",
+	Check(lines[8] == "Daño. 12 a 30" && lines[9] == "Daño. 5 a 9",
 		"the two identically named attack rows read their own siblings, not each other's");
+	Add(4, "Level", "7");
+	Check(CharacterStats::Lines(Panel)[1] == "Bárbaro. Nivel 7", "the original layout's separate level box joins the class");
+	widgets.erase(4);
 	widgets[12].text.clear();
-	Check(CharacterStats::Lines(Panel)[0] == "Fuerza", "a row whose value has not rendered still offers its label");
+	Check(CharacterStats::Lines(Panel)[2] == "Fuerza", "a row whose value has not rendered still offers its label");
 	widgets[12].text = "30";
 	panelVisible = false;
 	Check(CharacterStats::Lines(Panel).empty(), "a hidden panel enumerates nothing");
@@ -230,8 +234,8 @@ int main() {
 	Check(speech.size() == 1, "and only once while the panel stays open");
 	speech.clear();
 	pending = Push::Down;
-	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.size() == 1 && speech.back() == "Fuerza. 30",
-		"a push down on the character panel reads the first statistic");
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.size() == 1 && speech.back() == "Ulfr",
+		"a push down on the character panel reads the first line, the character's name");
 	pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Daño. 5 a 9", "right reads the last statistic");
 	pending = Push::Up;
@@ -242,7 +246,7 @@ int main() {
 		"another panel keeps its own use of the stick, push and all");
 	widgets[Panel].name = "CharacterStatsPanel";
 	pending = Push::Down;
-	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Fuerza. 30",
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Ulfr",
 		"leaving the panel forgets where the cursor was");
 
 	// MEASURED 2026-09-20: the focus manager reports no focused widget at all
@@ -250,7 +254,7 @@ int main() {
 	// scan for a whole session. The panel being open is what counts.
 	CharacterStatsReader::Reset();
 	pending = Push::Down;
-	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Fuerza. 30",
+	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Ulfr",
 		"the open panel claims the stick even when nothing on it has focus");
 	pending = Push::Down;
 	panelVisible = false;

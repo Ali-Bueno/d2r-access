@@ -22,7 +22,8 @@ bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type& type);
 UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type);
 
 // Every statistic the panel is showing, label and value, in the order the
-// layout declares them -- which is the order they appear down the screen. A
+// layout declares them -- which is the order they appear down the screen --
+// after the character's name and then its level and class. A
 // row whose value has not rendered yet reads as its label alone; a row with
 // no label is skipped, as are rows the game has hidden. Empty when the panel
 // is not visible.

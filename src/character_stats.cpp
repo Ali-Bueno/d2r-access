@@ -110,18 +110,24 @@ std::string SiblingValue(const UiText::Snapshot& snapshot, int parent, std::stri
 	return {};
 }
 
-// Panel name plus who the character is, so entering the panel says both once.
-std::string Identity(uintptr_t panel) {
-	std::string result = Localization::Text("minipanelchar");
-	Append(result, ChildText(panel, "CharacterName"));
-	// The HD layout adds FullClassInfo beside ClassInfo; either one names the class.
-	auto characterClass = ChildText(panel, "FullClassInfo");
-	if (characterClass.empty()) characterClass = ChildText(panel, "ClassInfo");
-	Append(result, characterClass);
+// The character's class and level as the panel states them. The HD layout adds
+// FullClassInfo beside ClassInfo, and says the level in it ("Level 1 Paladin");
+// the original layout keeps the level in a box of its own.
+std::string LevelAndClass(uintptr_t panel) {
+	auto result = ChildText(panel, "FullClassInfo");
+	if (result.empty()) result = ChildText(panel, "ClassInfo");
 	if (const auto level = ChildText(panel, "Level"); !level.empty()) {
 		const auto label = Localization::Text("strchrlvl");
 		Append(result, label.empty() ? level : label + " " + level);
 	}
+	return result;
+}
+
+// Panel name plus who the character is, so entering the panel says both once.
+std::string Identity(uintptr_t panel) {
+	std::string result = Localization::Text("minipanelchar");
+	Append(result, ChildText(panel, "CharacterName"));
+	Append(result, LevelAndClass(panel));
 	return result;
 }
 }
@@ -155,6 +161,9 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 std::vector<std::string> Lines(uintptr_t panel) {
 	std::vector<std::string> lines;
 	if (!panel || !NativeUi::Visible(panel)) return lines;
+	// Who the character is leads the list: the name, then the level and class.
+	if (auto name = Name(panel); !name.empty()) lines.push_back(std::move(name));
+	if (auto level = LevelAndClass(panel); !level.empty()) lines.push_back(std::move(level));
 	// Snapshot walks the visible tree in declaration order and omits hidden
 	// subtrees, so a row the game is not showing never reaches the list.
 	const auto snapshot = NativeUi::Snapshot(panel, 0);
