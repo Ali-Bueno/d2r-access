@@ -42,5 +42,10 @@ int main() {
 	Check(Filter(Back | ButtonA, true, press) == Back, "BACK+A during play keeps A from the game, so no attack fires");
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(ButtonA, true, press) == ButtonA, "A on its own during play is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	constexpr uint16_t ButtonB = 0x2000;
+	Check(Filter(Back | ButtonB, true, press) == Back, "BACK+B during play keeps B from the game");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(ButtonB, true, press) == ButtonB, "B on its own during play is the game's");
 	Passed();
 }

@@ -17,8 +17,8 @@ struct PluginContext;
 // pad through a pointer of its own (input_direction.cpp), so it still sees
 // every click. The replacement calls the original and hands the
 // game exactly what came back, with one exception -- while the mod claims R3,
-// that button's bit is cleared -- and likewise A, X and Y pressed with BACK
-// held, the mod's BACK readouts. The pad is never reported absent, idle or on
+// that button's bit is cleared -- and likewise a face button pressed with
+// BACK held, the mod's BACK readouts. The pad is never reported absent, idle or on
 // another slot, and no slot is ever occupied: every other button, stick and
 // trigger passes through byte for byte (CRITICAL RULE 3). Clearing R3 during
 // play is the user's call, 2026-09-21: "make sure right stick is consumed
@@ -42,11 +42,11 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press rightThumb, a, x, y; };
+struct Presses { Press rightThumb, a, b, x, y; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: R3,
-// guidance's click; and A, X and Y pressed while BACK is held, the BACK+A,
-// BACK+X and BACK+Y readouts (input_direction.h). A press is decided on its first frame
+// guidance's click; and the face buttons pressed while BACK is held, the
+// mod's BACK+A, B, X and Y readouts (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
 // while it is held. BACK itself always passes.

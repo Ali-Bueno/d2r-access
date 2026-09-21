@@ -96,14 +96,14 @@ PushRecord TakePushRecord();
 // The push's name for the log. English only: this is diagnosis, not speech.
 const char* PushName(StickPush push);
 
-// BACK (Select/View) held as a modifier: A, X or Y pressed while it is down
-// (the user, 2026-09-21: "back+X: speak life+mana ... back+y: speak the room
-// layout", and BACK+A toggles the exit finder). BACK alone does nothing
+// BACK (Select/View) held as a modifier: a face button pressed while it is
+// down (the user, 2026-09-21): BACK+X life and mana, BACK+Y the room layout,
+// BACK+A the exit finder, BACK+B the terrain overview. BACK alone does nothing
 // for the mod and still reaches the game, which does nothing with it in play.
-// The A, X or Y press is kept from the game during play by pad_filter.h, so no
-// attack or skill fires with it. Only A, X and Y are reported; Take() returns
-// whether one happened since the previous Take() and clears it, so a caller
-// must take it every tick, in a menu too.
+// The face button's press is kept from the game during play by pad_filter.h,
+// so no attack or skill fires with it. Take() returns whether one happened
+// since the previous Take() and clears it, so a caller must take it every
+// tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
 // Right thumbstick CLICK (R3). The SDK's action service binds keyboard keys

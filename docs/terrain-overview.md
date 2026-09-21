@@ -28,15 +28,13 @@ it describes the shape of the ground, the way looking at the map does.
 | Gesture | Action |
 | --- | --- |
 | **Ctrl+O** | Read the overview |
-| **L3 + R3 together** (press both sticks in) | Read the overview |
+| **BACK + B** (hold BACK, press B), no menu open | Read the overview |
 | `access-terrain` (or `access-terrain read`) | Read the overview from the console |
 
-On the `bladestorm` branch the controller gesture is the L3+R3 chord, not
-upstream's right-stick double click, so the beacon's R3 click is not held back
-for a double-click window. Telling the chord from a single stick click costs
-each single click its own length instead: L3 and R3 are reported on release,
-and not at all when the press became part of the chord. That timing lives in
-`src/stick_chord.*` and is unit-tested.
+On the `bladestorm` branch the controller gesture is BACK+B, not upstream's
+right-stick double click, so the beacon's R3 click is never held back for a
+double-click window. BACK is the branch's modifier (`input_direction.h`); the B
+pressed with it is kept from the game during play (`pad_filter.h`).
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 

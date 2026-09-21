@@ -156,10 +156,10 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-terrain", Console,
-		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or press both sticks in together.");
+		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or BACK+B on the pad.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		// Keyboard equivalent of pressing both sticks in together.
+		// Keyboard equivalent of BACK+B.
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "terrain-overview", .displayName = "Read the terrain overview", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Control}, .callback = Action};
@@ -183,7 +183,7 @@ bool Register(const D2RL::PluginContext* context) {
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	// Both sources are consumed every tick so a latched gesture cannot fire late.
 	const bool asked = g_asked.exchange(false);
-	const bool clicked = InputDirection::TakeStickChord();
+	const bool clicked = InputDirection::TakeBackWith(InputDirection::FaceButton::B);
 	const bool requested = asked || clicked;
 	if (!g_supported) {
 		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
