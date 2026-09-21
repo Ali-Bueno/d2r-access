@@ -28,15 +28,14 @@ it describes the shape of the ground, the way looking at the map does.
 | Gesture | Action |
 | --- | --- |
 | **Ctrl+O** | Read the overview |
-| **Right stick double click** | Read the overview |
+| **L3 + R3 together** (press both sticks in) | Read the overview |
 | `access-terrain` (or `access-terrain read`) | Read the overview from the console |
 
-The right stick's other gestures are unchanged: a single click is the beacon, a
-hold of 350 ms is the exit review, a flick is the entity scan. Telling a double
-click from a single one costs the single click a delay: it is now reported once
-the double-click window (`StickClicks::DoubleClickMs`, 300 ms) has passed
-without a second press, so one press can never fire two features. That timing
-lives in `src/stick_clicks.*` and is unit-tested.
+The controller gesture is the L3+R3 chord, so the beacon's R3 click is not held
+back for a double-click window. Telling the chord from a single stick click costs
+each single click its own length instead: L3 and R3 are reported on release, and
+not at all when the press became part of the chord. That timing lives in
+`src/stick_chord.*` and is unit-tested.
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 
@@ -50,7 +49,7 @@ revealed or written.
 | Level room list, room tile rects | `Level+0x10` → `RoomEx+0x48`, `RoomEx+0x60..0x6C` (`level_exit_layout.h`) |
 | Room streamed right now | `RoomEx+0x58`, set/cleared by `0x361290` / `0x361260` |
 | Level's own tile rect | `Level+0x24..0x30`, the union the DRLG writes (`0x3267C0`, `0x327650` / `0x3EC820`) |
-| Rooms of bordering levels | the near list `RoomEx+0x10/+0x18`, the same test `ReadBorders` uses |
+| Rooms of bordering levels | the near list `RoomEx+0x10/+0x18`, the same test the border walk uses |
 | Level names | the game's own Levels table (`NativeEntities::LevelName`) |
 | Screen directions | `Radar::Axes` — each screen cardinal is a world diagonal (projection `0x334DB0`) |
 

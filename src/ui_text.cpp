@@ -145,16 +145,34 @@ Readout Describe(const Snapshot& snapshot) {
 			Append(progress, text);
 		}
 		if (result.option.empty()) return result;
-		if ((!title.empty() && title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) || (title.empty() && !objective.empty())) {
-			result.body = result.option; // retain ownership while the detail pane catches up
-			result.option.clear();
+		// Live controller navigation takes ~150 ms to settle the shared pane, so
+		// both paths out of here wait for it.
+		result.contentSettleMs = 150;
+		// Speak only while the pane is describing THIS icon. Anything else is
+		// either a pane still holding the icon focus has just left, or a socket
+		// with no quest in it, and this icon's own name is no evidence there is
+		// a quest to name: an empty socket carries a catalog name just as a
+		// real quest does. Naming it anyway is how the act's whole list got
+		// read out icon by icon -- the pane takes about as long to clear as the
+		// settle, so the name escaped before the emptiness was ever visible.
+		// A quest the player has not been given leaves the pane empty on screen
+		// and in memory (docs/quests.md, controller session 2026-09-16).
+		//
+		// Only the pane's own heading decides it. `progress` is a sweep of
+		// whatever else the panel holds, to reach the kill counter, so letting
+		// it vote would let any panel furniture keep a socket alive as a quest.
+		if (title.empty() || title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) {
+			// Say it is empty rather than nothing: silence left the panel's own
+			// title to be announced instead, so every socket without a quest in it
+			// read as "Quest Log". The 150 ms settle above still covers the other
+			// way in here -- a pane the game has not finished repopulating -- which
+			// is replaced by the real quest before it is ever spoken.
+			result.option = Strings::Current().slotEmpty;
 			return result;
 		}
 		result.body = result.option;
 		result.option = objective.empty() ? Strings::Current().questNoObjective : std::move(objective);
 		Append(result.option, progress);
-		// Live controller navigation takes ~150 ms to settle the shared pane.
-		result.contentSettleMs = 150;
 		return result;
 	}
 	std::vector<std::string> seen;

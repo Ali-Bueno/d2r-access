@@ -1,6 +1,5 @@
 #include "explored_rooms.h"
 #include "level_exit_layout.h"
-#include "stick_clicks.h"
 #include "terrain_overview.h"
 #include "test_support.h"
 
@@ -70,16 +69,16 @@ void Spoken() {
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
 	Check(summary.valid && summary.place == 4, "the fixture puts the player in the centre");
 	const std::string text = TerrainOverview::Speak(summary, "Blood Moor", Scan, English);
-	Check(text == "Blood Moor, centre. ahead: edge at 49 meters, explored."
-		" to the left: edge at 42 meters, unexplored from 14 meters."
-		" to the right: edge at 42 meters, unexplored from 14 meters."
-		" behind: Rogue Encampment at 42 meters, unexplored from 14 meters",
+	Check(text == "Blood Moor, centre. ahead: edge at 49 steps, explored."
+		" to the left: edge at 42 steps, unexplored from 14 steps."
+		" to the right: edge at 42 steps, unexplored from 14 steps."
+		" behind: Rogue Encampment at 42 steps, unexplored from 14 steps",
 		"the overview names the level, the place and each direction");
 	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish)
-		== "Blood Moor, centro. adelante: borde a 49 metros, explorado."
-		" a la izquierda: borde a 42 metros, sin explorar desde 14 metros."
-		" a la derecha: borde a 42 metros, sin explorar desde 14 metros."
-		" atrás: Rogue Encampment a 42 metros, sin explorar desde 14 metros",
+		== "Blood Moor, centro. adelante: borde a 49 pasos, explorado."
+		" a la izquierda: borde a 42 pasos, sin explorar desde 14 pasos."
+		" a la derecha: borde a 42 pasos, sin explorar desde 14 pasos."
+		" atrás: Rogue Encampment a 42 pasos, sin explorar desde 14 pasos",
 		"the wording comes from the speech table, not the logic");
 }
 
@@ -112,7 +111,7 @@ void Borders() {
 		"the level beyond the edge is named where the game has generated it");
 	Check(summary.legs[static_cast<size_t>(Radar::Direction::Up)].border.empty(),
 		"the opposite edge names nothing");
-	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 42 meters")
+	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 42 steps")
 		!= std::string::npos, "a named border replaces the plain edge");
 }
 
@@ -128,33 +127,6 @@ void Explored() {
 	Check(!memory.Explored(1, 10, 20) && memory.Count(1) == 0, "a new session starts from an unexplored map");
 }
 
-// R3: a click waits out the double-click window, so one press never fires two
-// gestures and the beacon cannot answer a double click.
-void Clicks() {
-	using StickClicks::DoubleClickMs, StickClicks::HoldMs;
-	StickClicks::Gesture gesture;
-	Check(!gesture.Update(true, 0).click, "pressing alone does nothing");
-	Check(!gesture.Update(false, 100).click, "and neither does releasing at once");
-	Check(!gesture.Update(false, 100 + DoubleClickMs).click, "the click is held back for the whole window");
-	Check(gesture.Update(false, 101 + DoubleClickMs).click, "and fires once the window passes");
-	Check(!gesture.Update(false, 500).click, "a fired click is not repeated");
-
-	StickClicks::Gesture twice;
-	twice.Update(true, 0);
-	twice.Update(false, 100);
-	const auto second = twice.Update(true, 200);
-	Check(second.doubleClick && !second.click, "a second press inside the window is a double click");
-	Check(!twice.Update(false, 250).click, "whose release is part of the same gesture");
-	Check(!twice.Update(false, 1000).click, "and never becomes a single click");
-
-	StickClicks::Gesture held;
-	held.Update(true, 0);
-	Check(!held.Update(true, HoldMs - 1).hold, "a hold needs the whole threshold");
-	Check(held.Update(true, HoldMs).hold, "and then fires once");
-	Check(!held.Update(true, HoldMs + 100).hold, "not again while the button stays down");
-	Check(!held.Update(false, HoldMs + 200).click && !held.Update(false, HoldMs + 2000).click,
-		"the release after a hold is not a click");
-}
 }
 
 int main() {
@@ -164,7 +136,6 @@ int main() {
 	Directions();
 	Borders();
 	Explored();
-	Clicks();
 	Passed();
 	return 0;
 }

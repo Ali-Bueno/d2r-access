@@ -5,17 +5,20 @@
 #include <vector>
 
 namespace D2RAccess::ProgressionText {
-std::string SkillReadout(std::string_view description, std::string_view points, std::string_view help) {
-	const auto split = description.find(". ");
-	std::string result(description.substr(0, split));
-	const auto append = [&result](std::string_view part) {
+TooltipText::Description SkillReadout(std::string_view description, std::string_view points, std::string_view help) {
+	const auto append = [](std::string& text, std::string_view part) {
 		if (part.empty()) return;
-		if (!result.empty()) result += result.ends_with('.') ? " " : ". ";
-		result += part;
+		if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
+		text += part;
 	};
-	append(points);
-	append(help);
-	if (split != std::string_view::npos) append(description.substr(split + 2));
+	// SkillDescription puts the skill's name first and ends it with a full
+	// stop; everything past that is what the skill does and what it costs.
+	const auto split = description.find(". ");
+	TooltipText::Description result;
+	result.headline = std::string(description.substr(0, split));
+	append(result.headline, points);
+	append(result.headline, help);
+	if (split != std::string_view::npos) append(result.detail, description.substr(split + 2));
 	return result;
 }
 

@@ -160,6 +160,68 @@ as it already did for inventory cells. NPC dialogues retain priority. The user's
 specific scroll-related control is still unidentified; synthetic scroll-action
 tests validate the common rendered-help path, not that live control's coverage.
 
+## Tooltip record layout and body markup
+
+Evidence: offline disassembly of the runtime image of build 3.3.93787 (raw ==
+virtual, base `0x140000000`), cross-checked against the item readouts logged
+live on 2026-09-20. Addresses are absolute.
+
+`TooltipsPanel::Draw` at `0x140880578` iterates the record vector at stride
+`0x2E8`; `0x1408DA7E0` renders one record. The per-record cleanup frees exactly
+two strings, at `+0x00` and `+0x28`, and the renderer reads text from those two
+pointers and nowhere else, so **a record holds two strings and no separate name
+field**. The item's name is inside the body string.
+
+| offset | size | field | how it is used |
+|---|---|---|---|
+| `+0x00` | 0x28 | body engine string `{data, size +0x08, capacityAndFlags +0x10, inline +0x18}` | `mov rcx,[rsi]` into the text draw; `cmp qword [rsi+8],0` tests empty |
+| `+0x28` | 0x28 | footer engine string, same shape | `mov rcx,[rsi+0x28]`; `cmp qword [rsi+0x30],0` |
+| `+0x50` | 0x10 | rect A -- x, y, w, h as int32 | background fill `0x140657B90` |
+| `+0x60` | 0x10 | rect B -- the body's text rect | `lea rdx,[rsi+0x60]` -> text draw `0x140902E20` |
+| `+0x70` | 0x10 | rect C -- the footer's text rect | `lea rdi,[rsi+0x70]`, same text draw |
+| `+0x80` | ~0xA0 | text style block, ten 16-byte `movups` to the stack | passed as `r8` to the text draw |
+| `+0xA8` | 4 | a mode inside that block | `cmp dword [rsi+0xa8],1` |
+| `+0x120` | 0x10 | four dwords | args to `0x14090CBD0` on the empty-body path |
+| `+0x151` | 1 | flag: run the per-rect pass `0x1408DAAD0` | called once per text rect |
+| `+0x154` | 4 | fixed-point fraction in 128ths | `imul edi,[rsi+0x68]`, `sar edi,7` -- splits the body rect into two coloured spans |
+| `+0x158` | 0x10 | a colour, four floats | patched into the stack copy of the style block |
+| `+0x168` | ? | block passed as the fill's fifth argument | `lea r14,[rsi+0x168]` |
+| `+0x2D8` | 1 | byte flag | passed on the stack to `0x140657AB0` |
+
+### The body is stored bottom-up
+
+The body is the drawn lines joined by the localized `newline` token, **last
+drawn first**: line 0 is the bottom of the tooltip and the final line is its
+title. Measured from the readouts of two items on 2026-09-20 -- a Short Sword
+stored as `Sword Class - Fast Attack Speed / Max Sockets / Durability /
+One-Hand Damage / Short Sword`, and a Minor Healing Potion stored as
+`Points: 45 / Minor Healing Potion`. `TooltipText::Read` therefore walks the
+body backwards so its lines come out in screen order.
+
+The lines themselves are composed in `D2Client\src\UI\InventoryTooltips.cpp`,
+which the image attributes thirteen functions to, spanning `0x1402BCB1A` ..
+`0x1402C2909`; the two composers are `0x1402BD480` and `0x1402BE560`.
+
+### The inline font command takes one index character
+
+`U+E07E` introduces a font command and **exactly one character follows it**.
+The renderer subtracts `'0'` and accepts the result below `0x27`, so the index
+runs `'0'` through `'V'` -- 39 values. Three parser sites range-check it
+identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. Index 2 is the one
+a title is drawn in.
+
+Item tooltips are drawn with index `'0'`. Stripping only `'1'` and `'2'` left
+that `'0'` in the text, so every spoken line began with a stray "0" and the
+base-stat labels ("One-Hand Damage: ") no longer matched their own lines.
+
+### A trap when disassembling a runtime dump
+
+An image dumped from a running, modded game contains the plugin's own inline
+hooks. At `0x1408DA7E0` the first five bytes are a jump out of the image, over
+`push rsi; sub rsp, 0x110`; disassembly only makes sense from `+9`. The original
+bytes are in `DrawTooltipBytes` in `native_tooltips.cpp`.
+
+
 ## Validation
 
 `native-tooltips` uses synthetic native panel/string records and the SDK hook

@@ -15,6 +15,20 @@ range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
 line_of_sight = true
 
+# One-shot: write the game's whole mapped image next to the plugin at startup,
+# for offline analysis (about 60-70 MB, written once and skipped if it is
+# already there). Armed here rather than from the console because the console
+# cannot be opened outside a loaded game, and the image is wanted from the very
+# first screen onwards.
+[dump]
+enabled = false
+
+# Focused-widget byte dump, for deriving offsets the SDK does not expose.
+# Armed here because the developer console cannot be opened outside a loaded
+# game, and the screens worth probing are the ones where it cannot.
+[probe]
+enabled = false
+
 # What the game puts on the monster health plate and the world target label. Its
 # own targeting reaches through walls, so the name of a monster, object or NPC in
 # the next room would otherwise be read out while the entity scan, which needs a

@@ -1,6 +1,6 @@
 #include "input_direction.h"
 
-#include "stick_clicks.h"
+#include "stick_chord.h"
 
 #include <windows.h>
 
@@ -47,7 +47,8 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
-	StickClicks::Gesture rightThumb; // R3: click, double click and hold
+	bool backHeld       = false;
+	StickChord::Thumbs thumbs; // L3 click, R3 click, and the two together
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -58,7 +59,10 @@ bool         g_keyDownHeld  = false;
 DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
-bool g_rightStickClick = false, g_rightStickDoubleClick = false, g_rightStickHold = false;
+bool g_leftStickClick = false;
+bool g_rightStickClick = false;
+bool g_stickChord = false;
+bool g_backPressed = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -67,6 +71,18 @@ ULONGLONG  g_lastVerticalTickMs   = 0;
 FaceButton g_lastFaceButton       = FaceButton::None;
 StickPush  g_rightStickPush       = StickPush::None;
 ULONGLONG  g_lastFaceButtonTickMs = 0;
+
+// The last push to be resolved, waiting to be logged. A claimant name means a
+// reader took it; null means a later push arrived while this one was still
+// pending, which is the only way a push is lost outright.
+StickPush   g_resolvedPush     = StickPush::None;
+const char* g_resolvedClaimant = nullptr;
+
+void ResolvePush(StickPush push, const char* claimant) {
+	if (push == StickPush::None) return;
+	g_resolvedPush     = push;
+	g_resolvedClaimant = claimant;
+}
 
 void RecordEdge(Horizontal direction) {
 	g_lastHorizontal       = direction;
@@ -181,12 +197,20 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			// R3: click, double click and hold, told apart by StickClicks.
-			const auto fired = edges.rightThumb.Update((pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0, GetTickCount64());
-			g_rightStickClick = g_rightStickClick || fired.click;
-			g_rightStickDoubleClick = g_rightStickDoubleClick || fired.doubleClick;
-			g_rightStickHold = g_rightStickHold || fired.hold;
+			// L3 and R3 are told apart from the two pressed together, so a
+			// single click is reported on its release (stick_chord.h).
+			const auto thumbs = edges.thumbs.Update((pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0,
+				(pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
+			if (thumbs.left) g_leftStickClick = true;
+			if (thumbs.right) g_rightStickClick = true;
+			if (thumbs.chord) g_stickChord = true;
+			if (UpdateEdge(edges.backHeld, (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0)) {
+				g_backPressed = true;
+			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
+				// A push still pending here is one no reader has wanted, and it
+				// is about to be overwritten. Record that before it goes.
+				ResolvePush(g_rightStickPush, nullptr);
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
 				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
@@ -220,25 +244,56 @@ void Poll() {
 }
 
 Stick LeftStick() { return g_leftStick; }
+bool TakeLeftStickClick() {
+	const bool clicked = g_leftStickClick;
+	g_leftStickClick = false;
+	return clicked;
+}
+bool TakeStickChord() {
+	const bool chorded = g_stickChord;
+	g_stickChord = false;
+	return chorded;
+}
+
 bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
 	return clicked;
 }
-bool TakeRightStickDoubleClick() {
-	const bool clicked = g_rightStickDoubleClick;
-	g_rightStickDoubleClick = false;
-	return clicked;
+bool TakeBackButton() {
+	const bool pressed = g_backPressed;
+	g_backPressed = false;
+	return pressed;
 }
-bool TakeRightStickHold() {
-	const bool held = g_rightStickHold;
-	g_rightStickHold = false;
-	return held;
-}
-StickPush TakeRightStickPush() {
+StickPush TakeRightStickPush(const char* claimant) {
 	const StickPush push = g_rightStickPush;
+	ResolvePush(push, claimant);
 	g_rightStickPush    = StickPush::None;
 	return push;
+}
+StickPush PeekRightStickPush() { return g_rightStickPush; }
+bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
+	if (wanted == StickPush::None || g_rightStickPush != wanted) {
+		return false;
+	}
+	ResolvePush(wanted, claimant);
+	g_rightStickPush = StickPush::None;
+	return true;
+}
+PushRecord TakePushRecord() {
+	const PushRecord record{g_resolvedPush, g_resolvedClaimant};
+	g_resolvedPush     = StickPush::None;
+	g_resolvedClaimant = nullptr;
+	return record;
+}
+const char* PushName(StickPush push) {
+	switch (push) {
+	case StickPush::Up:    return "up";
+	case StickPush::Left:  return "left";
+	case StickPush::Right: return "right";
+	case StickPush::Down:  return "down";
+	default:               return "none";
+	}
 }
 
 // Direction currently held by any source (None when nothing is held): key
@@ -294,7 +349,7 @@ DpadInput Dpad() { return g_dpad; }
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;
-	g_rightStickClick = g_rightStickDoubleClick = g_rightStickHold = false;
+	g_leftStickClick = g_rightStickClick = g_stickChord = g_backPressed = false;
 	if (g_library != nullptr) {
 		FreeLibrary(g_library);
 		g_library = nullptr;

@@ -15,6 +15,7 @@ using namespace D2RAccess;
 std::vector<UiText::Snapshot> panels;
 NativeUi::Focus focus;
 std::vector<UiText::Announcement> speech;
+std::string tabChange; // what TabReader reports this tick
 std::vector<D2RL::Lifecycle::GameplayEventListener> listeners;
 std::vector<std::string> openPanels;
 int stops = 0, removed = 0;
@@ -106,7 +107,7 @@ void Reset() {}
 std::string Repeat() { return {}; }
 }
 namespace D2RAccess::TabReader {
-std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return {}; }
+std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return tabChange; }
 void Reset() {}
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
@@ -209,6 +210,15 @@ int main() {
 	Check(Settle() && speech.size() == 1 && speech.back().text == "Den of Evil. Monsters left: 3", "quest selection speaks complete current details through the normal UI pipeline");
 	panels[0].nodes[3].text = "Monsters left: 2"; speech.clear();
 	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 2" && !speech.back().interrupt, "journal progress reaches the speech sink without interruption or repeated title");
+	// A tab switch: the name leads. The window behind it says nothing at all on
+	// that tick -- it used to start speaking and be cut off mid-word by the name
+	// a moment later -- and follows on the next tick, queued behind it.
+	panels[0].nodes[3].text = "Monsters left: 1"; speech.clear(); tabChange = "Quest Log";
+	Settle();
+	Check(speech.empty(), "the window says nothing on the tick its tab changed");
+	tabChange.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 1" && !speech.back().interrupt,
+		"and follows on the next tick without interrupting the name it queues behind");
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

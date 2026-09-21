@@ -15,10 +15,11 @@ using Radar::State;
 using Radar::World;
 
 namespace {
-// One resident room, large enough to hold the widest search box the default
-// settings can ask for (2*searchRadius+1 cells a side, centred on the player),
-// so nothing below is decided by the edge of the fixture instead of by the
-// collision it describes.
+// One resident room, large enough that nothing below is decided by the edge of
+// the fixture instead of by the collision it describes. It does NOT hold the
+// widest box the default settings can ask for -- that box is as wide as the
+// game's own collision window -- so a test about the edge of the search box
+// narrows searchRadius itself rather than growing this.
 constexpr int Size = 240;
 constexpr uint16_t PlayerPath = 0x1C09; // observed native player walking mask
 constexpr uint16_t Wall = 1;            // a walking-mask bit: real collision
@@ -174,11 +175,13 @@ void OpenField() {
 
 	// The search box is bounded: a target beyond it cannot be proved, and the
 	// route stops on the edge of the box that was searched.
+	Beacon::Settings bounded = s;
+	bounded.searchRadius = 96; // a box the fixture holds, so its EDGE is what is tested
 	auto distant = Field({110, 110});
-	const auto capped = Beacon::FindRoute(distant, At(110 + s.searchRadius + 20, 110), s);
+	const auto capped = Beacon::FindRoute(distant, At(110 + bounded.searchRadius + 20, 110), bounded);
 	Check(capped.known && !capped.reachable, "a target past the search box is never claimed reachable");
 	Check(Dot(capped.heading, {1, 0}) > 0.9, "an unproved far target is still walked toward");
-	Check(capped.path.back().x == 110 + s.searchRadius, "the route stops on the edge of the search box");
+	Check(capped.path.back().x == 110 + bounded.searchRadius, "the route stops on the edge of the search box");
 
 	// Degenerate: standing on the target leaves the search nothing to improve.
 	auto here = Field({110, 110});
@@ -508,7 +511,9 @@ void TrackerCadence() {
 void TrackerReroute() {
 	const Beacon::Settings s;
 	auto world = Field({110, 110});
-	const Position target{170, 110};
+	// Inside farDistance, so this measures the base thresholds themselves;
+	// TrackerFarCadence covers what happens to them further out.
+	const Position target{140, 110};
 	Beacon::Tracker tracker;
 	tracker.Lock(0);
 	const uint64_t frozen = 5000; // one instant: only movement can force a new search
@@ -543,6 +548,43 @@ void TrackerReroute() {
 	Column(shut, 130, Wall);
 	(void)still.Tick(shut, target, 1, s); // a clock that went backwards
 	Check(!still.CurrentRoute().reachable, "a clock that jumps backwards forces a fresh search instead of freezing the route");
+}
+
+// Past farDistance both the movement threshold and the interval stretch in
+// proportion, because the search box grows with the distance while the route
+// it proves changes more slowly. Without it the widest search would run at the
+// cadence tuned for a target fifteen steps away.
+void TrackerFarCadence() {
+	const Beacon::Settings s;
+	const Position far = At(110 + static_cast<int>(s.farDistance) * 3, 110);
+
+	auto world = Field({110, 110});
+	Beacon::Tracker tracker;
+	tracker.Lock(0);
+	const uint64_t frozen = 5000; // one instant: only movement can force a new search
+	(void)tracker.Tick(world, far, frozen, s);
+	const Position first = tracker.CurrentRoute().path.front();
+	world.player.x += s.reroute;
+	(void)tracker.Tick(world, far, frozen, s);
+	Check(Same(tracker.CurrentRoute().path.front(), first),
+		"a step that would reroute a near target leaves a distant route alone");
+	world.player.x += s.reroute * 3;
+	(void)tracker.Tick(world, far, frozen, s);
+	Check(!Same(tracker.CurrentRoute().path.front(), first),
+		"a proportionally larger step still proves the distant route afresh");
+
+	auto shut = Field({110, 110});
+	Column(shut, 130, Wall);
+	Beacon::Tracker still;
+	still.Lock(0);
+	const uint64_t start = 1000;
+	(void)still.Tick(shut, far, start, s);
+	Check(!still.CurrentRoute().reachable, "a walled-off distant target is not reachable through the wall");
+	Put(shut, 130, 110, 0);
+	(void)still.Tick(shut, far, start + s.routeIntervalMs, s);
+	Check(!still.CurrentRoute().reachable, "the near-target interval does not re-search a distant route");
+	(void)still.Tick(shut, far, start + s.routeIntervalMs * 3, s);
+	Check(still.CurrentRoute().reachable, "the stretched interval picks the opened door up");
 }
 
 void Cost() {
@@ -663,6 +705,7 @@ int main() {
 	TrackerLifecycle();
 	TrackerCadence();
 	TrackerReroute();
+	TrackerFarCadence();
 	Cost();
 	Passed();
 }

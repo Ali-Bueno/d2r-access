@@ -68,8 +68,7 @@ nearest first:
 > *"Escalera a Catacumbas nivel 2, 12 metros, a las 4, rodeando, 1 de 3"*
 
 Label, distance, clock bearing, how you get there, and where you are in the
-list. **Ctrl+V**, `access-rooms next`, or **holding the right stick down**
-(R3 for 350 ms; a short click still locks the beacon). Each request moves to the
+list. **Ctrl+V** or `access-rooms next` (R3 stays the beacon). Each request moves to the
 next one and wraps; the place in the list is kept by the point under review, so
 walking about and asking again continues where you were. Leaving the room or the
 level starts over at the nearest.

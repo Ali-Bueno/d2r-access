@@ -93,44 +93,6 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 	return true;
 }
 
-namespace {
-// The subtile midpoint of the edge two tile rectangles share; false when they
-// only meet at a corner or not at all.
-bool SharedEdge(const TileRect& a, const TileRect& b, Radar::Position& midpoint) {
-	if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0) return false;
-	const int ax2 = a.x + a.width, ay2 = a.y + a.height, bx2 = b.x + b.width, by2 = b.y + b.height;
-	const int lowX = std::max(a.x, b.x), highX = std::min(ax2, bx2);
-	const int lowY = std::max(a.y, b.y), highY = std::min(ay2, by2);
-	constexpr double Half = SubtilesPerTile / 2.0;
-	if (highY > lowY && (ax2 == b.x || bx2 == a.x)) {
-		midpoint = {static_cast<double>((ax2 == b.x ? ax2 : a.x) * SubtilesPerTile), (lowY + highY) * Half};
-		return true;
-	}
-	if (highX > lowX && (ay2 == b.y || by2 == a.y)) {
-		midpoint = {(lowX + highX) * Half, static_cast<double>((ay2 == b.y ? ay2 : a.y) * SubtilesPerTile)};
-		return true;
-	}
-	return false;
-}
-}
-
-std::vector<BorderExit> Borders(const std::vector<BorderPair>& pairs, Radar::Position player) {
-	std::vector<BorderExit> exits;
-	std::vector<double> distances;
-	for (const auto& pair : pairs) {
-		Radar::Position midpoint;
-		if (!pair.destination || !SharedEdge(pair.room, pair.neighbour, midpoint)) continue;
-		const double distance = std::hypot(midpoint.x - player.x, midpoint.y - player.y);
-		const auto found = std::find_if(exits.begin(), exits.end(),
-			[&](const BorderExit& exit) { return exit.destination == pair.destination; });
-		if (found == exits.end()) { exits.push_back({pair.destination, midpoint}); distances.push_back(distance); continue; }
-		// Several of this level's rooms can touch the same neighbour: keep the nearest crossing.
-		double& best = distances[static_cast<size_t>(found - exits.begin())];
-		if (distance < best) { found->position = midpoint; best = distance; }
-	}
-	return exits;
-}
-
 bool ReadLayout(uintptr_t activeRoom, bool neighbours, Layout& output) {
 	const NativeMemory::ReadScope scope;
 	output = {};
@@ -168,43 +130,6 @@ bool ReadLayout(uintptr_t activeRoom, bool neighbours, Layout& output) {
 	}
 	if (layout.rooms.empty()) return false;
 	output = std::move(layout);
-	return true;
-}
-
-bool ReadBorders(uintptr_t activeRoom, Radar::Position player, std::vector<BorderExit>& output) {
-	const NativeMemory::ReadScope scope;
-	output.clear();
-	uintptr_t room = 0, level = 0;
-	uint32_t currentLevel = 0;
-	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
-		|| !Peek(room + ExtendedLevel, level) || !level || !Peek(level + LevelId, currentLevel)
-		|| Generated::FindLevelFlags(static_cast<int32_t>(currentLevel)).drlgType == MazeDrlgType
-		|| !Peek(level + LevelFirstRoom, room)) return false;
-	std::vector<BorderPair> pairs;
-	std::unordered_set<uintptr_t> rooms;
-	while (room) {
-		if (rooms.size() >= MaxRooms || !rooms.insert(room).second) return false;
-		uintptr_t owner = 0, list = 0;
-		uint64_t count = 0;
-		TileRect rect;
-		if (!Peek(room + ExtendedLevel, owner) || owner != level || !ReadRect(room, rect)
-			|| !Peek(room + RoomNearCount, count) || count > MaxRooms) return false;
-		// 0x3614C0 allocates before the first store, so a count without a list is corrupt.
-		if (count && (!Peek(room + RoomNear, list) || !list)) return false;
-		for (uint64_t i = 0; i < count; ++i) {
-			uintptr_t neighbour = 0, neighbourLevel = 0;
-			uint32_t destination = 0;
-			TileRect across;
-			if (!Peek(list + i * sizeof(uintptr_t), neighbour) || !neighbour) return false;
-			// A near room owned by another level is the far side of an open border.
-			if (!Peek(neighbour + ExtendedLevel, neighbourLevel) || !neighbourLevel || neighbourLevel == level
-				|| !Peek(neighbourLevel + LevelId, destination) || destination == currentLevel
-				|| !ReadRect(neighbour, across)) continue;
-			pairs.push_back({rect, across, destination});
-		}
-		if (!Peek(room + RoomNext, room)) return false;
-	}
-	output = Borders(pairs, player);
 	return true;
 }
 }

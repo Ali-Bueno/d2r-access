@@ -10,6 +10,7 @@ namespace {
 
 // Open panels, oldest first; the last element is the active one.
 std::vector<std::string> g_open;
+std::string              g_announced;
 
 auto Find(std::string_view panel) {
 	return std::find(g_open.begin(), g_open.end(), panel);
@@ -43,8 +44,21 @@ const std::vector<std::string>& OpenPanels() {
 	return g_open;
 }
 
+void Announced(std::string_view title) {
+	g_announced = title;
+}
+
+bool TakeAnnounced(std::string_view tab) {
+	if (tab.empty() || tab != g_announced) {
+		return false;
+	}
+	g_announced.clear();
+	return true;
+}
+
 void Reset() {
 	g_open.clear();
+	g_announced.clear();
 }
 
 }

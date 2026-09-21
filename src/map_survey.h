@@ -1,0 +1,91 @@
+#pragma once
+
+#include "entity_radar.h"
+#include "navigation_grid.h"
+#include "radar.h"
+
+#include <cstdint>
+#include <vector>
+
+// A level-wide catalogue of what is on the map, with the WALKING distance to
+// each thing rather than its straight line.
+//
+// The directional scan (entity_radar.h) answers "what is to my left, within
+// fifteen subtiles, that I can see". That leaves the player stranded whenever
+// nothing is in range or everything in range is behind a wall: the scan is
+// silent and there is no way to learn where to go. This answers the other
+// question -- "what is on this level at all, and how do I get to it" -- so
+// there is always somewhere to head for.
+//
+// Distance comes from Navigation::Grid::steps, which counts steps along the
+// game's own neighbouring-destination graph. That graph is what the game walks
+// the player along when a tile is clicked, so the count already goes around
+// obstacles instead of through them, and an unreachable object is reported as
+// unreachable rather than as a straight line through a wall.
+//
+// Pure logic over a World and a Grid: no native calls, no SDK, unit-tested
+// without the game.
+namespace D2RAccess::MapSurvey {
+
+// One catalogued object, placed relative to the player.
+struct Landmark {
+	EntityRadar::Entity entity;
+	int                 steps        = -1; // -1 when no walkable route is known
+	double              straightLine = 0;  // subtiles; ordering fallback and reporting
+	Radar::Direction    direction    = Radar::Direction::Up;
+	bool                reachable    = false;
+};
+
+struct Settings {
+	// An object is only dropped once the map has had this many chances to show
+	// it again, so a monster stepping behind a corner does not erase it.
+	int missesBeforeForgetting = 3;
+};
+
+// What has been seen on the current level. Entities come and go as the world
+// window moves, so this accumulates them instead of trusting one frame, and
+// drops one only when the map can currently see its last known place and it is
+// no longer there. Changing level clears everything.
+class Registry {
+public:
+	// `visible` is what the world reports right now; `grid` says which cells
+	// the map currently knows, so absence can be told from ignorance.
+	void Observe(int level, const std::vector<EntityRadar::Entity>& visible,
+		const Navigation::Grid& grid, const Settings& settings = {});
+
+	void Clear();
+
+	int                                     Level() const { return m_level; }
+	const std::vector<EntityRadar::Entity>& Entities() const { return m_entities; }
+
+private:
+	struct Tracked {
+		EntityRadar::Entity entity;
+		int                 misses = 0;
+	};
+	int                  m_level = 0;
+	std::vector<Tracked> m_tracked;
+	// Rebuilt with m_tracked so callers get a plain list.
+	std::vector<EntityRadar::Entity> m_entities;
+};
+
+// Walking distance and direction for everything known, nearest first;
+// unreachable objects sort after reachable ones, by straight line.
+std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
+	const std::vector<EntityRadar::Entity>& entities);
+
+// The nearest `count` of one kind, in Survey order.
+std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar::Kind kind, size_t count);
+
+// Everything of one category, in Survey order (nearest on foot first).
+std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category);
+
+// The categories actually present, in a fixed order that puts what a stranded
+// player most needs -- a way out, then a way onward -- before the scenery.
+std::vector<EntityRadar::Category> Categories(const std::vector<Landmark>& landmarks);
+
+// Step from `category` to the next or previous one that has anything in it,
+// wrapping. Returns the first present category when `category` has none.
+EntityRadar::Category StepCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category, int delta);
+
+}

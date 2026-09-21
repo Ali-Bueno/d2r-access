@@ -256,6 +256,14 @@ int main() {
 	farRoom.At<int>(RoomTileX, 20); farRoom.At<int>(RoomTileY, 20);
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
 		&& entities.size() == 10, "loaded warp and same-position preset merge into one target");
+	// Boundaries with the neighbouring areas are level-wide, so they are a
+	// second opt-in of their own: the short-range scan asks for distant warps
+	// without them. Without a DRLG the reader reports none either way, which
+	// is the fail-closed half of the same rule.
+	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true, false)
+		&& entities.size() == 10, "distant warps do not bring the level boundaries with them");
+	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true, true)
+		&& entities.size() == 10, "and asking for boundaries adds none when the DRLG cannot be read");
 	// A level passage puts the far side's room in this room's neighbour list.
 	Fixture across;
 	Memory<0x200> nearLevel, farLevel;

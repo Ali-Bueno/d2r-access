@@ -19,7 +19,10 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
 	src/async_log.cpp
+	src/auto_detail.cpp
 	src/tab_reader.cpp
+	src/tooltip_text.cpp
+	src/text_field.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
@@ -30,6 +33,8 @@ add_library(d2r-access SHARED
 	src/native_footsteps.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
+	src/stick_chord.cpp
+	src/modal_reader.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
 	src/plugin.cpp
@@ -51,7 +56,6 @@ add_library(d2r-access SHARED
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
 	src/explored_rooms.cpp
-	src/stick_clicks.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
@@ -65,7 +69,21 @@ add_library(d2r-access SHARED
 	src/target_sight.cpp
 	src/native_entities.cpp
 	src/native_level_exits.cpp
+	src/native_level_areas.cpp
+	src/level_areas.cpp
+	src/native_drlg.cpp
+	src/native_rooms.cpp
+	src/room_graph.cpp
+	src/room_catalogue.cpp
+	src/rooms.cpp
+	src/explored_rooms.cpp
+	src/terrain_overview.cpp
+	src/terrain_service.cpp
+	src/map_survey.cpp
+	src/map_survey_service.cpp
 	src/native_ui.cpp
+	src/pad_filter.cpp
+	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
 	src/native_cursor_gesture.cpp
@@ -76,6 +94,7 @@ add_library(d2r-access SHARED
 	src/controller_text.cpp
 	src/progression_text.cpp
 	src/character_stats.cpp
+	src/character_stats_reader.cpp
 	src/native_tooltips.cpp
 	src/panel_state.cpp
 	src/quest_log.cpp
@@ -84,6 +103,7 @@ add_library(d2r-access SHARED
 	src/screen_reader.cpp
 	src/settings_file.cpp
 	src/speech_strings.cpp
+	src/tab_highlight.cpp
 	src/ui_message_monitor.cpp
 	src/ui_thread_pump.cpp
 	src/ui_text.cpp
@@ -125,8 +145,8 @@ if(BUILD_TESTING)
 	target_include_directories(exit-review-tests PRIVATE src)
 	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
 	add_test(NAME exit-review COMMAND exit-review-tests)
-	# The terrain overview: the level's extent, what is explored, and the R3 gestures.
-	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/stick_clicks.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	# The terrain overview: the level's extent and what is explored.
+	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(terrain-overview-tests PRIVATE src)
 	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
 	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
@@ -134,6 +154,10 @@ if(BUILD_TESTING)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
+	add_executable(stick-chord-tests tests/stick_chord_tests.cpp src/stick_chord.cpp)
+	target_include_directories(stick-chord-tests PRIVATE src)
+	target_compile_features(stick-chord-tests PRIVATE cxx_std_20)
+	add_test(NAME stick-chord COMMAND stick-chord-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
 	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
@@ -184,7 +208,7 @@ if(BUILD_TESTING)
 	target_include_directories(native-focus-tests PRIVATE src)
 	target_compile_features(native-focus-tests PRIVATE cxx_std_20)
 	add_test(NAME native-focus COMMAND native-focus-tests)
-	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/controller_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(progression-tests tests/progression_tests.cpp src/native_progression.cpp src/progression_text.cpp src/tooltip_text.cpp src/controller_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(progression-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(progression-tests PRIVATE src)
 	target_compile_features(progression-tests PRIVATE cxx_std_20)
@@ -197,6 +221,10 @@ if(BUILD_TESTING)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
+	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(map-survey-tests PRIVATE src)
+	target_compile_features(map-survey-tests PRIVATE cxx_std_20)
+	add_test(NAME map-survey COMMAND map-survey-tests)
 	add_executable(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(npc-proximity-tests PRIVATE src)
 	target_compile_features(npc-proximity-tests PRIVATE cxx_std_20)
@@ -205,7 +233,7 @@ if(BUILD_TESTING)
 	target_include_directories(target-sight-tests PRIVATE src)
 	target_compile_features(target-sight-tests PRIVATE cxx_std_20)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-entities-tests PRIVATE src)
 	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
@@ -227,12 +255,42 @@ if(BUILD_TESTING)
 	target_include_directories(speech-strings-tests PRIVATE src)
 	target_compile_features(speech-strings-tests PRIVATE cxx_std_20)
 	add_test(NAME speech-strings COMMAND speech-strings-tests)
+
+	add_executable(lootables-tests tests/lootables_tests.cpp)
+	target_include_directories(lootables-tests PRIVATE src)
+	target_compile_features(lootables-tests PRIVATE cxx_std_20)
+	add_test(NAME lootables COMMAND lootables-tests)
 	add_executable(ui-text-tests tests/ui_text_tests.cpp src/ui_text.cpp src/speech_strings.cpp)
 	add_executable(native-level-exits-tests tests/native_level_exits_tests.cpp src/native_level_exits.cpp src/native_memory.cpp)
 	target_include_directories(native-level-exits-tests PRIVATE src)
 	target_compile_features(native-level-exits-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-level-exits-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-level-exits COMMAND native-level-exits-tests)
+	add_executable(native-level-areas-tests tests/native_level_areas_tests.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	target_include_directories(native-level-areas-tests PRIVATE src)
+	target_compile_features(native-level-areas-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-level-areas-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-level-areas COMMAND native-level-areas-tests)
+	add_executable(native-rooms-tests tests/native_rooms_tests.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(native-rooms-tests PRIVATE src)
+	target_compile_features(native-rooms-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-rooms-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-rooms COMMAND native-rooms-tests)
+	add_executable(room-graph-tests tests/room_graph_tests.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	target_include_directories(room-graph-tests PRIVATE src)
+	target_compile_features(room-graph-tests PRIVATE cxx_std_20)
+	target_compile_definitions(room-graph-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME room-graph COMMAND room-graph-tests)
+	add_executable(native-drlg-tests tests/native_drlg_tests.cpp src/native_drlg.cpp src/native_memory.cpp)
+	target_include_directories(native-drlg-tests PRIVATE src)
+	target_compile_features(native-drlg-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-drlg-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-drlg COMMAND native-drlg-tests)
+	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(room-catalogue-tests PRIVATE src)
+	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
+	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -263,12 +321,12 @@ if(BUILD_TESTING)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
-	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/character_stats_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(character-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/progression_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -283,6 +341,10 @@ if(BUILD_TESTING)
 	target_include_directories(async-log-tests PRIVATE src)
 	target_compile_features(async-log-tests PRIVATE cxx_std_20)
 	add_test(NAME async-log COMMAND async-log-tests)
+	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(tooltip-text-tests PRIVATE src)
+	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)
+	add_test(NAME tooltip-text COMMAND tooltip-text-tests)
 	add_executable(tab-reader-tests tests/tab_reader_tests.cpp src/tab_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tab-reader-tests PRIVATE src)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
@@ -305,7 +367,23 @@ if(BUILD_TESTING)
 	target_compile_features(quest-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(quest-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME quest-service COMMAND quest-service-tests)
+	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp)
+	target_link_libraries(modal-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(modal-reader-tests PRIVATE src)
+	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)
+	add_test(NAME modal-reader COMMAND modal-reader-tests)
+	add_executable(pad-filter-tests tests/pad_filter_tests.cpp src/pad_filter.cpp)
+	target_link_libraries(pad-filter-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(pad-filter-tests PRIVATE src)
+	target_compile_features(pad-filter-tests PRIVATE cxx_std_20)
+	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME pad-filter COMMAND pad-filter-tests)
 	if(MSVC)
+		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
@@ -331,10 +409,16 @@ if(BUILD_TESTING)
 		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(tab-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(map-survey-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-text-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-level-exits-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-level-areas-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

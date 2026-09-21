@@ -253,6 +253,13 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 	return true;
 }
 
+uintptr_t PlayerRoom() noexcept {
+	if (!g_indexFunction || !g_playerFunction) return 0;
+	const NativeMemory::ReadScope scope;
+	uintptr_t player = LocalPlayer(), path = 0, room = 0;
+	if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room)) return 0;
+	return room;
+}
 bool IsLocalPlayer(uintptr_t player) noexcept {
 	return player && g_indexFunction && g_playerFunction && player == LocalPlayer();
 }

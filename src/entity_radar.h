@@ -14,7 +14,20 @@
 // so it is unit-tested without the game.
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
-enum class Kind { Npc, Enemy, Object, Item, Exit };
+// Room is not a game unit: it is a logical room of the level, catalogued so
+// a player with no map can ask where there is left to go (room_catalogue.h).
+enum class Kind { Npc, Enemy, Object, Item, Exit, Room };
+
+// What the thing is FOR, which is how a player asks for it ("where is the next
+// shrine", "any chests left"). Kind is too coarse for that: it files every
+// shrine, chest, lever and stash alike as Object. Assigned where the object's
+// table row is already in hand, so the map survey does not re-derive it.
+// Interactable is the deliberate catch-all: levers, seals, statues and doors
+// carry no SubClass bit of their own.
+enum class Category : uint8_t {
+	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room
+};
+
 struct Entity {
 	uint32_t id = 0;
 	Kind kind = Kind::Item;
@@ -26,15 +39,18 @@ struct Entity {
 	// every language, unlike the localized name. Only the chest loop reads it;
 	// the kind stays Object so nothing else changes behaviour.
 	bool container = false;
+	// Last so the existing positional initialisers keep working untouched.
+	Category category = Category::Unknown;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {
-	// Distances are collision subtiles. The spoken unit assumes one subtile
-	// per game yard (the velocity unit: walk 6, run 9 subtiles per second, and
-	// a legacy 800x600 screen spans about forty subtiles). Provisional until
-	// calibrated live against a walked reference; keep both knobs together.
-	double metersPerSubtile = 1;
-	double range = 15; // subtiles; the user asked for roughly fifteen metres
+	// Distances are collision subtiles, and a subtile is spoken as one STEP.
+	// That is the unit the pathfinder already counts in -- Navigation::Grid
+	// reports the shortest count of the game's own neighbouring-destination
+	// steps -- so the catalogue and this scan name the same thing the same
+	// way, and neither has to claim a real-world distance it never measured.
+	double stepsPerSubtile = 1;
+	double range = 15; // subtiles; the user asked for roughly fifteen steps
 	// Each direction owns a quarter of the plane: a 90-degree sector centred
 	// on the fixed screen axis. Diagonal targets belong to both neighbours.
 	double sectorCosine = Radar::Diagonal;
@@ -53,7 +69,8 @@ struct Result {
 // Unknown cells never block; only positive wall evidence hides an entity.
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine = Radar::Diagonal);
-// Ordinary visible entities within range; fixed level exits bypass range/walls.
+// Entities within range; ordinary ones must also be in sight, while fixed level
+// exits are named through walls, since an entrance can stand in wall cells.
 // All targets obey the sector and sort nearest first with stable identity ties.
 std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& entities,
 	Radar::Direction direction, const Settings& settings);
@@ -75,7 +92,7 @@ private:
 };
 
 std::string Describe(const Result& result, const Settings& settings, const Strings::Table& strings);
-// "8 metros" / "1 metro" / "aquí mismo" for a distance in subtiles; shared
+// "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
 }

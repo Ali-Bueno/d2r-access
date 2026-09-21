@@ -1,8 +1,12 @@
 #include "native_entities.h"
+#include "generated/lootables.h"
 #include "layout_check.h"
 #include "entity_layout.h"
 #include "ground_item_layout.h"
 #include "native_ground_items.h"
+#include "level_areas.h"
+#include "native_drlg.h"
+#include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "native_memory.h"
 #include "localization.h"
@@ -113,6 +117,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	const bool hostile = align == AlignHostile && !(flagsA & FlagNpc);
 	if (hostile && !(flagsA & FlagKillable)) return false;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
+	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));
@@ -123,6 +128,32 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
 }
+// What the object is for, from the table row the caller has already read.
+// Order matters: a waypoint and a portal are both exits, but a player asking
+// for a waypoint does not want the town portal, so the specific categories
+// are tested before the general one.
+EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool openWarp, const std::string& key) {
+	if (subClass & SubClassWaypoint) return EntityRadar::Category::Waypoint;
+	if (subClass & (SubClassPortal | SubClassGate)) return EntityRadar::Category::Portal;
+	// Wells and obelisks restore or alter the player the way shrines do, and a
+	// player looking for "a shrine" means any of them.
+	if (subClass & (SubClassShrine | SubClassWell | SubClassObelisk)) return EntityRadar::Category::Shrine;
+	// Everything that gives the player loot, from the game's own objects.txt
+	// by way of src/generated/lootables.h. The SubClass container bit is NOT
+	// that set and never was: every Act 1 rogue corpse has SubClass 0, and so
+	// do Barrel, Urn2, Casket3, Chest4 and Act3DungeonCasket, while Act 2/3
+	// corpses carry it -- so the dead rogue a player loots in the Blood Moor
+	// was filed beside levers and doors, and some chests were not treasure at
+	// all. OperateFn is the real signal; the generated header lists its whole
+	// membership. The bit still counts, so a row the generator has not seen
+	// classifies exactly as it did before.
+	if (Generated::LootableObject(classId) || (subClass & SubClassContainer)) return EntityRadar::Category::Treasure;
+	if (openWarp) return EntityRadar::Category::Exit;
+	if (key == BankNameKey) return EntityRadar::Category::Stash;
+	// Levers, seals, statues and doors carry no SubClass bit of their own.
+	return EntityRadar::Category::Interactable;
+}
+
 // A world object the player opens for loot. The game's own interaction handler
 // says which ones (objects.txt OperateFn), together with the shape every
 // container shares: the game lets it be clicked while it is shut and not once
@@ -151,6 +182,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
 	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
+	entity.category = ObjectCategory(classId, subClass, openWarp != 0, key);
 	if (openWarp) entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t data = 0;
 	if (door) entity.name = UiText::Clean(Localization::Text(mode == ObjectOpened ? DoorOpenText : DoorClosedText));
@@ -192,6 +224,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	uint32_t noInteract = 0;
 	if (!row || !Peek(node + WarpNodeActive, active) || !active || !Peek(row + LvlWarpNoInteract, noInteract) || noInteract) return false;
 	entity.kind = EntityRadar::Kind::Exit;
+	entity.category = EntityRadar::Category::Exit;
 	entity.levelExitId = NativeLevelExits::Identity(entity.position);
 	uintptr_t destination = 0, level = 0;
 	uint32_t levelId = 0;
@@ -211,7 +244,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -264,30 +297,40 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	std::vector<NativeLevelExits::Exit> exits;
 	if (distantExits && NativeLevelExits::Read(room, exits)) for (const auto& exit : exits) {
 		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
-			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position)};
+			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position),
+			false, EntityRadar::Category::Exit};
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
 	}
-	// An open overland border is a way out with no warp unit behind it: name the
-	// level across it, at the crossing, the way the automap marks it.
-	std::vector<NativeLevelExits::BorderExit> borders;
-	Radar::Position here;
-	if (distantExits && DynamicPosition(player, room, here) && NativeLevelExits::ReadBorders(room, here, borders))
-		for (const auto& border : borders) {
-			EntityRadar::Entity entity{border.destination, EntityRadar::Kind::Exit, border.position,
-				LevelText(tables, border.destination, LevelNameKey), NativeLevelExits::Identity(border.position)};
+	// The other half of "which way out", and the only half a town has: the
+	// areas of the act that touch this one. Nothing joins them but the map, so
+	// there is no warp for the walk above to find -- see native_level_areas.h.
+	// Its own opt-in, not distantExits: a boundary is level-wide, so it is for
+	// the catalogue and not for the scan that answers what is nearby.
+	// The level id is the identity, so the same boundary is one landmark
+	// however the player moves along it.
+	std::vector<NativeLevelAreas::Area> areas;
+	const uintptr_t levelStruct = RoomLevel(room);
+	uint32_t here = 0;
+	if (levelBearings && NativeDrlg::Available() && levelStruct && Peek(levelStruct + LevelId, here)
+		&& NativeLevelAreas::Read(room, areas)) {
+		for (const auto& crossing : LevelAreas::Neighbours(areas, here)) {
+			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
+				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
+				false, EntityRadar::Category::Exit};
 			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 				entities.push_back(std::move(entity));
 		}
+	}
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output, distantExits);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

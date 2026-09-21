@@ -104,13 +104,13 @@ void Wording() {
 	const auto& strings = Strings::Current();
 	EntityRadar::Settings scan;
 	Announcement kashya{Make(1, 42, 30, "Kashya"), 12, Direction::Right};
-	Check(Describe(kashya, scan, strings) == "Kashya, 12 metros, a la derecha", "name, distance and direction");
+	Check(Describe(kashya, scan, strings) == "Kashya, 12 pasos, a la derecha", "name, distance and direction");
 	Announcement akara{Make(2, 30, 29, "Akara"), 1, Direction::Up};
-	Check(Describe(akara, scan, strings) == "Akara, 1 metro, adelante", "singular metre keeps the direction");
+	Check(Describe(akara, scan, strings) == "Akara, 1 paso, adelante", "the singular step keeps the direction");
 	Announcement close{Make(3, 30, 30.2, "Charsi"), 0.2, Direction::Down};
-	Check(Describe(close, scan, strings) == "Charsi, aquí mismo", "under one metre drops the direction");
+	Check(Describe(close, scan, strings) == "Charsi, aquí mismo", "under one step drops the direction");
 	Strings::Select(Strings::Language::enUS);
-	Check(Describe(kashya, scan, Strings::Current()) == "Kashya, 12 meters, to the right", "English wording");
+	Check(Describe(kashya, scan, Strings::Current()) == "Kashya, 12 steps, to the right", "English wording");
 }
 }
 

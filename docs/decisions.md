@@ -6,7 +6,7 @@ the *how* lives in the linked docs, this page only records the *why* and what wa
 ## 2026-09-21 — Terrain overview instead of level announcements
 
 Do not announce undiscovered levels — it breaks immersion. Approved instead: an accessible
-automap-equivalent "terrain overview" (Ctrl+O / R3 double-click). See `docs/terrain-overview.md`.
+automap-equivalent "terrain overview" (Ctrl+O / L3+R3). See `docs/terrain-overview.md`.
 
 ## 2026-09-20 — Navigation must be organic, not routed
 

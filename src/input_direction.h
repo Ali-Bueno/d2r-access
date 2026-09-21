@@ -64,24 +64,60 @@ enum class StickPush {
 	Right,
 	Down,
 };
-StickPush TakeRightStickPush();
+// Both takers name the reader doing the taking, so the log can say who got
+// the push. Four readers ask for it in a fixed order on one tick and only one
+// can win, so a push claimed by a reader that then has nothing to say is spent
+// in silence -- which is what "sometimes it needs more than one push" looks
+// like from the player's side. Nothing recorded that until PushRecord below.
+StickPush TakeRightStickPush(const char* claimant);
 
-// Right thumbstick CLICK (R3), reported once the release has outlasted the
-// double-click window (StickClicks::DoubleClickMs) without a second press, so
-// a double click never also fires a single one. The SDK's action service binds
-// keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
-// read here with the rest of the XInput state. Take() returns whether a click
-// happened since the previous Take() and clears it.
+// Claims the pending push only when it is the one asked for, leaving any
+// other direction for the next consumer. The menu readers share the stick
+// with the entity scan and the pathfinder, and must not swallow the pushes
+// that belong to those.
+bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
+
+// The pending push WITHOUT claiming it, so a reader whose gate is expensive
+// can ask "is there anything for me?" before paying for the gate, and still
+// leave the push for the next reader when the gate says no. A pending push
+// survives ticks until it is claimed or a later push replaces it, so a reader
+// that declines it costs the player nothing but the next tick.
+StickPush PeekRightStickPush();
+
+// What became of a push, written when it is resolved and not before: claimed
+// by a reader, or replaced by a later push while still pending. A push still
+// waiting for the reader that wants it therefore costs nothing per frame.
+struct PushRecord {
+	StickPush   push     = StickPush::None;  // None when nothing was resolved
+	const char* claimant = nullptr;          // null when a later push replaced it
+};
+PushRecord TakePushRecord();
+
+// The push's name for the log. English only: this is diagnosis, not speech.
+const char* PushName(StickPush push);
+
+// BACK (Select/View) press edges, from whichever pad reports them. Read only:
+// the button still reaches the game exactly as it did, because this samples
+// XInput in a module of the mod's own (critical rule 3 forbids speaking over a
+// real pad, not listening to it). Take() returns whether a press happened
+// since the previous Take() and clears it.
+bool TakeBackButton();
+
+// Right thumbstick CLICK (R3). The SDK's action service binds keyboard keys
+// only (D2RLPlugin/input.h Key/Modifier), so the pad button is read here with
+// the rest of the XInput state. Take() returns whether a click happened since
+// the previous Take() and clears it.
+// Left thumbstick CLICK (L3): toggles the long-range pathfinder, which
+// makes the right stick drive the catalogue instead of the entity scan.
+// Both are reported on RELEASE, and not at all when the press became part of
+// an L3+R3 chord (stick_chord.h), so one press never fires two gestures.
+bool TakeLeftStickClick();
+
 bool TakeRightStickClick();
 
-// Right thumbstick DOUBLE CLICK (two clicks inside that window), taken the
-// same way. Fires on the second press, before its release.
-bool TakeRightStickDoubleClick();
-
-// Right thumbstick HOLD (R3 kept down past the click threshold). Fires once
-// per press, on reaching the threshold, and the release that follows is not
-// reported as a click, so the two gestures never both fire.
-bool TakeRightStickHold();
+// L3 and R3 pressed together: the terrain overview. Fires the moment both are
+// down, once per chord.
+bool TakeStickChord();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics

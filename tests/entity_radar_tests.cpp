@@ -113,13 +113,15 @@ void Cycling() {
 
 void DistantExits() {
 	auto world = OpenWorld();
-	Entity stairs{42, Kind::Exit, {500, 500}, "A las Catacumbas", 1234};
-	Entity enemy{42, Kind::Enemy, {500, 500}, "Zombi"};
-	Entity portal{43, Kind::Exit, {500, 500}, "Portal"};
+	Entity stairs{42, Kind::Exit, {28, 28}, "A las Catacumbas", 1234};
+	Entity enemy{42, Kind::Enemy, {28, 28}, "Zombi"};
+	Entity portal{43, Kind::Exit, {28, 28}, "Portal"};
 	for (int x = 0; x < Size; ++x) Block(world, x, 25);
 	const auto targets = Scan(world, {stairs, enemy, portal}, Direction::Down, {});
-	Check(targets.size() == 1 && targets[0].entity.levelExitId == 1234, "fixed level exits cross range and visibility limits while other targets keep their range");
-	Check(Scan(world, {stairs}, Direction::Up, {}).empty(), "distant stairs still obey the requested direction");
+	Check(targets.size() == 1 && targets[0].entity.levelExitId == 1234, "a fixed level exit in range is named through a wall while other targets need sight");
+	auto distant = stairs; distant.position = {500, 500};
+	Check(Scan(world, {distant}, Direction::Down, {}).empty(), "a level exit beyond the range is left to the long-range catalogue");
+	Check(Scan(world, {stairs}, Direction::Up, {}).empty(), "stairs still obey the requested direction");
 	auto respawned = stairs; respawned.id = 900;
 	Check(SameTarget(stairs, respawned), "a level exit survives unit recreation");
 	Check(!SameTarget(stairs, enemy), "a native enemy id cannot alias a level exit");
@@ -144,17 +146,18 @@ void Wording() {
 	result.found = true;
 	result.target = {Make(1, 0, 0, "Akara"), 8.2};
 	result.index = 0; result.count = 3;
-	Check(Describe(result, settings, es) == "Akara, 8 metros, 1 de 3", "name, rounded distance and position in the list");
+	Check(Describe(result, settings, es) == "Akara, 8 pasos",
+		"the name and how far, with no position in the candidate list");
 	result.count = 1;
-	Check(Describe(result, settings, es) == "Akara, 8 metros", "a single target skips the count");
+	Check(Describe(result, settings, es) == "Akara, 8 pasos", "a single target skips the count");
 	result.target.distance = 1.2;
-	Check(Describe(result, settings, es) == "Akara, 1 metro", "singular metre");
+	Check(Describe(result, settings, es) == "Akara, 1 paso", "the singular step");
 	result.target.distance = 0.4;
 	Check(Describe(result, settings, es) == "Akara, aquí mismo", "adjacent targets have no distance");
-	settings.metersPerSubtile = 0.5;
+	settings.stepsPerSubtile = 0.5;
 	result.target.distance = 8.2;
-	Check(Describe(result, settings, es) == "Akara, 4 metros", "the spoken unit follows the calibration factor");
-	Check(Describe(result, settings, Strings::For(Strings::Language::enUS)) == "Akara, 4 meters", "english wording");
+	Check(Describe(result, settings, es) == "Akara, 4 pasos", "the spoken unit follows the calibration factor");
+	Check(Describe(result, settings, Strings::For(Strings::Language::enUS)) == "Akara, 4 steps", "english wording");
 }
 }
 

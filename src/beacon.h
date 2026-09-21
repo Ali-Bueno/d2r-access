@@ -17,10 +17,21 @@ using Radar::Position;
 
 struct Settings {
 	// Distances are collision subtiles, the unit the entity scan speaks as
-	// metres. Navigation policy, not game constants.
-	double searchRadius = 96;   // half-side of the route search box
+	// steps. Navigation policy, not game constants.
+	//
+	// The search box is half-sided by searchRadius: as wide as the game keeps
+	// collision around the player (native_world.cpp holds a 152-subtile
+	// window) plus the look-ahead, so anything the level-wide catalogue can
+	// name can also be routed to. The box is still cut to the target's actual
+	// distance, so a near target searches a small one and pays a small cost.
+	double searchRadius = 158;
 	double lookAhead = 8;       // route length that chooses the heading
 	double arrivalDistance = 2; // within this the target counts as reached
+	// How stale a route may get before it is proved again. Both are stretched
+	// in proportion once the target is further off than farDistance: the box
+	// grows with the distance, while a long route changes more slowly, so
+	// without that a level-wide lead would run the widest search several times
+	// a second for a heading that barely moves.
 	double reroute = 3;         // player/target movement that invalidates a route
 	uint64_t routeIntervalMs = 400; // otherwise the route is recomputed this often
 	// Ping cadence, linear in the remaining route length between these bounds.
@@ -73,7 +84,15 @@ public:
 	bool Locked() const { return locked_; }
 	// `target` is the target's current position, re-read by the caller; the
 	// player's position comes from the same snapshot as the collision.
-	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings);
+	//
+	// `waypoint`, when supplied, is where the ROUTE leads instead -- a cell
+	// the caller has already proved reachable, typically the way into the
+	// next room of a level-wide room route (room_graph.h), for a target the
+	// collision window cannot reach. Distance, arrival and ping cadence stay
+	// measured against `target`, so the lock itself is unchanged: only the
+	// heading follows the waypoint.
+	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
+		const Position* waypoint = nullptr);
 	const Route& CurrentRoute() const { return route_; }
 private:
 	bool locked_ = false;

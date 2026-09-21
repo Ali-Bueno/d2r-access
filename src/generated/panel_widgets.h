@@ -369,14 +369,14 @@ inline constexpr WidgetEntry Widgets_CharacterCreatePanel[] = {
 	{ "Warlock", "HDCharacterSelectorWidget", nullptr, nullptr, "strSelectHeroClass", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_7, 1 },
 	{ "ToMainMenu", "ButtonWidget", "UIBack", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_8, 2 },
 	{ "ToggleLegacy", "ButtonWidget", "FrontEndToggleLegacyButtonText", nullptr, nullptr, "ToggleRendererHint", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_9, 2 },
-	{ "GameVersionInfoButton", "ButtonWidget", nullptr, nullptr, "GameVersionLabel", "CharacterGameVersionTooltip", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_10, 3 },
+	{ "GameVersionInfoButton", "ButtonWidget", nullptr, nullptr, nullptr, "CharacterGameVersionTooltip", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_10, 3 },
 	{ "GameVersionDropdown", "DropdownListWidget", nullptr, nullptr, "GameVersionLabel", nullptr, "CharacterCreate", "GameVersionSelected", States_CharacterCreatePanel_11, 3, Path_CharacterCreatePanel_11, 3 },
 	{ "ToGame", "ButtonWidget", "UICreate", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_12, 2 },
 	{ "UpsellButton", "ButtonWidget", "UILearnMore", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_13, 2 },
 	{ "InputText", "InputTextBoxWidget", nullptr, nullptr, "strCharacterName", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_14, 2 },
-	{ "HardcoreCheckbox", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", "TooltipHardcoreCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_15, 2 },
-	{ "LadderToggle", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", "TooltipLadderCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_16, 2 },
-	{ "ClassicToggle", "ToggleButtonWidget", nullptr, nullptr, "strCharacterName", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_17, 2 },
+	{ "HardcoreCheckbox", "ToggleButtonWidget", nullptr, nullptr, "strHardcore", "TooltipHardcoreCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_15, 2 },
+	{ "LadderToggle", "ToggleButtonWidget", nullptr, nullptr, "LobbyLadder", "TooltipLadderCharacter", nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_16, 2 },
+	{ "ClassicToggle", "ToggleButtonWidget", nullptr, nullptr, "CharacterSelectPanelPreExpansionCharacter", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_17, 2 },
 	{ "CharacterCreateLegend", "ButtonLegendWidget", nullptr, nullptr, "strSelectHeroClass", nullptr, nullptr, nullptr, nullptr, 0, Path_CharacterCreatePanel_18, 1 },
 };
 

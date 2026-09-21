@@ -42,7 +42,6 @@ struct Table {
 	const char* roleList;
 	const char* checked;
 	const char* unchecked;
-	const char* optionOfCount;     // %d = index (1-based), %d = count
 	const char* optionIndex;       // %d = index (1-based), count unknown
 	const char* resolution;        // %u = width, %u = height
 	const char* characterLevel;    // %d = level
@@ -61,7 +60,7 @@ struct Table {
 	const char* itemReleased;
 	const char* belt;
 	const char* gridCell; // one-based row, column
-	const char* skillOfCount; // one-based skill position within the visible branch
+	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
 	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
 	// InventorySlotWidget location values, verified against live slots and the stock layout.
@@ -89,15 +88,26 @@ struct Table {
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
 	const char* scanEnabled;
 	const char* scanDisabled;
+	const char* pathfinderEnabled;  // L3 toggles the long-range pathfinder
+	const char* pathfinderDisabled;
 	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
 	const char* scanNothing; // %s = scan direction
-	const char* scanMeter; // exactly one metre
-	const char* scanMeters; // %d = whole metres
-	const char* scanAdjacent; // under one metre away
-	const char* scanIndexOfCount; // %d = index (1-based), %d = count
+	const char* scanStep; // exactly one step
+	const char* scanSteps; // %d = whole steps
+	const char* scanAdjacent; // under one step away
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
+	// Map survey: the level-wide catalogue, cycled by category and by object.
+	// Indexed by the switch in MapSurveyService::CategoryName, not by
+	// CategoryOrder: a new category appends here and adds a case there.
+	std::array<const char*, 11> surveyCategories;
+	const char* surveySteps;    // %s = name, %s = distance, %s = direction
+	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
+	const char* surveyRoom;             // %d = room number
+	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
+	const char* surveyEmpty;    // %s = category
+	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
 	const char* itemSpeechDisabled;
@@ -117,7 +127,6 @@ struct Table {
 	const char* beaconReachNoRoute; // no route to it at all
 	const char* beaconArrived; // %s = target name
 	const char* beaconLost; // %s = target name
-	const char* listSeparator; // joins the items of a spoken list
 	const char* roomExits; // %s = the ways out, already joined
 	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
 	const char* roomNoExits;
@@ -130,19 +139,6 @@ struct Table {
 	const char* roomsEnabled;
 	const char* roomsDisabled;
 	const char* roomsUnavailable;
-	// Terrain overview: how far the level reaches around the player and how
-	// much of it is still unwalked. `docs/terrain-overview.md`
-	const char* terrainOverview;       // %s = level name, %s = where in it, %s = the four directions
-	const char* terrainSeparator;      // joins the four direction phrases
-	const char* terrainDirection;      // %s = direction, %s = how far it reaches, %s = "" or the separator plus the state
-	const char* terrainEdge;           // %s = distance to the level's outer edge
-	const char* terrainBorder;         // %s = the level across the edge, %s = distance to it
-	const char* terrainExplored;
-	const char* terrainUnexplored;
-	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
-	// Screen thirds, behind row first: behind-left, behind, behind-right,
-	// left, centre, right, ahead-left, ahead, ahead-right.
-	std::array<const char*, TerrainPlaceCount> terrainPlaces;
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -156,10 +152,28 @@ struct Table {
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
+	const char* goldCarried;          // %s = how much gold the player is carrying
+	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
+	const char* autoDetailDisabled;
+	const char* listSeparator; // joins the items of a spoken list
+	// Terrain overview: how far the level reaches around the player and how
+	// much of it is still unwalked. `docs/terrain-overview.md`
+	const char* terrainOverview;       // %s = level name, %s = where in it, %s = the four directions
+	const char* terrainSeparator;      // joins the four direction phrases
+	const char* terrainDirection;      // %s = direction, %s = how far it reaches, %s = "" or the separator plus the state
+	const char* terrainEdge;           // %s = distance to the level's outer edge
+	const char* terrainBorder;         // %s = the level across the edge, %s = distance to it
+	const char* terrainExplored;
+	const char* terrainUnexplored;
+	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
+	const char* terrainUnavailable;    // the level's layout could not be read
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
 	std::array<const char*, 9> itemQualities;
+	// Screen thirds, behind row first: behind-left, behind, behind-right,
+	// left, centre, right, ahead-left, ahead, ahead-right.
+	std::array<const char*, TerrainPlaceCount> terrainPlaces;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -169,27 +183,27 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const char* const singles[] = {
 		t.pluginLoaded, t.screenReaderMissing, t.panelOpened, t.panelClosed, t.panelToggled, t.navigation,
 		t.valueChanged, t.roleButton, t.roleCheckbox, t.roleDropdown, t.roleSlider, t.roleTextField, t.roleTabs,
-		t.roleList, t.checked, t.unchecked, t.optionOfCount, t.optionIndex, t.resolution, t.characterLevel,
+		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
-		t.itemReleased, t.belt, t.gridCell, t.skillOfCount, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.itemReleased, t.belt, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.scanUnavailable, t.scanNothing, t.scanMeter,
-		t.scanMeters, t.scanAdjacent, t.scanIndexOfCount, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
+		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
+		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
-		t.listSeparator, t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.exitReview,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
-		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
-		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn};
+		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

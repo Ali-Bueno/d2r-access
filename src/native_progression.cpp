@@ -26,23 +26,6 @@ std::string ChildText(uintptr_t widget, std::string_view child) {
 	return Text(NativeWidgets::FindChild(widget, child));
 }
 
-std::string SkillPosition(uintptr_t container, uintptr_t selected) {
-	struct Entry { uintptr_t widget; NativeUi::Cell cell; };
-	std::vector<Entry> entries;
-	for (auto widget : NativeUi::FindControls(container, UiText::Kind::Button)) {
-		const auto cell = ProgressionText::SkillCell(NativeWidgets::ReadName(widget));
-		if (NativeUi::Visible(widget) && cell.x >= 0) entries.push_back({widget, cell});
-	}
-	std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
-		return std::tie(a.cell.y, a.cell.x) < std::tie(b.cell.y, b.cell.x);
-	});
-	for (size_t i = 0; i < entries.size(); ++i) if (entries[i].widget == selected) {
-		char phrase[100]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().skillOfCount, static_cast<int>(i + 1), static_cast<int>(entries.size()));
-		return phrase;
-	}
-	return {};
-}
 }
 
 Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
@@ -90,7 +73,6 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 			char phrase[100]{};
 			std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
 			result.readout.coordinates = phrase;
-			Append(result.readout.coordinates, SkillPosition(container, focus.widget));
 		}
 	} else return result;
 	result.readout.context = NativeWidgets::ReadName(focus.panel);

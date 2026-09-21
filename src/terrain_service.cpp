@@ -67,9 +67,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	}
 }
 bool Playing() {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	return RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	return RadarUi::InPlay();
 }
 std::string LevelName(uint32_t level, const Strings::Table& strings) {
 	auto name = NativeEntities::LevelName(level);
@@ -93,7 +91,7 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 	NativeLevelExits::Layout native;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
 		|| !NativeEntities::ReadLayout(state.player, true, native)) {
-		ScreenReader::Speak(strings.roomsUnavailable, true);
+		ScreenReader::Speak(strings.terrainUnavailable, true);
 		AsyncLog::InfoF(context, "[terrain] layout unavailable level=%d", state.level);
 		return;
 	}
@@ -105,7 +103,7 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 		layout.neighbours.push_back({neighbour.rect, LevelName(neighbour.level, strings)});
 	const auto summary = TerrainOverview::Describe(layout, world.player);
 	if (!summary.valid) {
-		ScreenReader::Speak(strings.roomsUnavailable, true);
+		ScreenReader::Speak(strings.terrainUnavailable, true);
 		AsyncLog::InfoF(context, "[terrain] off the room grid at=%.0f,%.0f level=%u rooms=%zu",
 			world.player.x, world.player.y, native.level, native.rooms.size());
 		return;
@@ -158,10 +156,10 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-terrain", Console,
-		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or double-click the right stick.");
+		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or press both sticks in together.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		// Keyboard equivalent of double-clicking the right stick.
+		// Keyboard equivalent of pressing both sticks in together.
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "terrain-overview", .displayName = "Read the terrain overview", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Control}, .callback = Action};
@@ -185,10 +183,10 @@ bool Register(const D2RL::PluginContext* context) {
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	// Both sources are consumed every tick so a latched gesture cannot fire late.
 	const bool asked = g_asked.exchange(false);
-	const bool clicked = InputDirection::TakeRightStickDoubleClick();
+	const bool clicked = InputDirection::TakeStickChord();
 	const bool requested = asked || clicked;
 	if (!g_supported) {
-		if (requested) ScreenReader::Speak(Strings::Current().roomsUnavailable, true);
+		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
 		return;
 	}
 	const uint64_t now = GetTickCount64();

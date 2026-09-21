@@ -4,19 +4,19 @@
 
 ## Terrain overview — 2026-09-21
 
-The accessible automap: **Ctrl+O** or an R3 double click speaks the level name, the player's place in it
+The accessible automap: **Ctrl+O** or the **L3+R3 chord** speaks the level name, the player's place in it
 (screen thirds: `borde izquierdo`, `centro`…) and, per screen direction, the distance to the level's outer
 edge or to an already generated neighbour level, plus where unexplored terrain starts (rooms never streamed
-near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). The R3 single
-click (beacon) now waits the 300 ms double-click window. `src/terrain_overview.*`, `src/explored_rooms.*`,
+near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). R3 stays the
+beacon and L3 the survey; the chord is told from either (`src/stick_chord.*`). `src/terrain_overview.*`, `src/explored_rooms.*`,
 `src/terrain_service.*`, `docs/terrain-overview.md`. 46/46 CTest suites. Why it was needed: in Blood Moor
 the exit review only names Cold Plains once the game generates it (~40 m from the border), by design.
 RE of the act level list and the `Level` rect (`+0x24..0x30`, tiles) in `docs/act-levels-re.md`; the
 overview uses the RoomEx union and only cross-checks the rect (`[terrain] … differs` warning).
 
-**Next step:** listening check in Blood Moor with the controller: R3 double click right after entering
+**Next step:** listening check in Blood Moor with the controller: L3+R3 right after entering
 (expect `Blood Moor, borde izquierdo. adelante: …`), walk toward an unexplored direction, repeat; confirm
-the exit review names Cold Plains once ~40 m from its border. Judge the 300 ms beacon delay and the wording.
+the exit review names Cold Plains once ~40 m from its border. Judge the chord and the wording.
 
 ## Four radar readings, ported from the Among Us sonar — 2026-09-21
 
@@ -38,26 +38,25 @@ shows the derived doorway width.
 
 ## Exit review and room hysteresis — 2026-09-20
 
-The ways out are reviewed one at a time, nearest first: Ctrl+V or holding the right stick 350 ms speaks
+The ways out are reviewed one at a time, nearest first: Ctrl+V speaks
 `paso, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a short right-stick
 click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
-elsewhere, and off-grid, the level's exits. Outdoor **border exits** (camp → Blood Moor, no warp unit)
-now exist: the RoomEx near-room list (`RoomEx+0x10/+0x18`, derived from the repo's Ghidra project) gives
-the neighbouring level's rooms, and the shared tile edge's midpoint is the exit, named with the level's own
-name. Room changes pass grimdark's hysteresis (settle 1000 / dwell 400, dwell only inside the first second
+elsewhere, and off-grid, the level's exits. Outdoor boundaries (camp → Blood Moor, no warp unit) now come from the act's
+level areas (`src/native_level_areas.*`, `levelBearings`); upstream's own RoomEx border walk was dropped
+for it when `bladestorm` was merged. Room changes pass grimdark's hysteresis (settle 1000 / dwell 400, dwell only inside the first second
 after a change), so a room is spoken on entering, not a second later. `src/exit_review.*`,
 `docs/rooms.md`, `docs/beacon.md`, `docs/distant-exits.md`. 45/45 CTest suites.
 
 **Live-verified 2026-09-20 (unattended, camp):** `Waypoint, 38 meters, 4 o'clock, around, 1 of 2` then
 `Blood Moor, 136 meters, 4 o'clock, 2 of 2` (beyond the 96-cell route box, so no reach word); Ctrl+B locks
-either with the same `reach=`. Hysteresis and the R3 hold still need the user (maze level, controller).
+either with the same `reach=`. Hysteresis still needs the user (maze level, controller).
 
 Ported from `grimdark` after a code-level pass that corrected our reference: its ping never calls the
 pathfinder ("path" is inferred), exits never say "blocked", and the hysteresis is inverted. Our "around"
 is verified by the route search. `reference/audio-navigation/grim-dawn/navigation-spec.md`.
 
 **Pending (2026-09-20):** listening check with the controller. In the Den: enter a room (expect its ways out at
-once), hold R3 (next way out), short-click R3 (guide to it). Judge the 350 ms hold and the 1000/400 ms
+once), Ctrl+V (next way out), click R3 (guide to it). Judge the 1000/400 ms
 hysteresis by ear. Known: `[items] exits nearby` counts warp units only, so it says 1 where the review
 says 2.
 

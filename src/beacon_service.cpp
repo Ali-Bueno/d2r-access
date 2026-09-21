@@ -6,7 +6,11 @@
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_exits.h"
+#include "native_rooms.h"
 #include "native_world.h"
+#include "navigation_grid.h"
+#include "pad_filter.h"
+#include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -20,6 +24,7 @@
 #include <numbers>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace D2RAccess::BeaconService {
 namespace {
@@ -50,11 +55,38 @@ Target g_offer, g_target;
 bool g_supported = false;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
+// The level's logical rooms are fixed for as long as the level instance is,
+// so the graph is built once per instance rather than on a timer. A new
+// session or a new level id is a new instance.
+RoomGraph::Graph g_graph;
+int g_graphLevel = 0;
+uint64_t g_graphSession = 0;
 
+// The room graph for the level being played, or nothing when the level's
+// rooms cannot be read. Never a stale level's graph.
+const RoomGraph::Graph* Rooms(const Lifecycle& state) {
+	if (g_graphLevel != state.level || g_graphSession != state.session) {
+		std::vector<NativeRooms::Room> rooms;
+		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
+		g_graphLevel = state.level;
+		g_graphSession = state.session;
+	}
+	return g_graph.Empty() ? nullptr : &g_graph;
+}
+// Whether the collision the game currently keeps can actually reach the
+// target. A monster or a chest stands ON a blocked cell, so the cells around
+// it decide, exactly as the level-wide catalogue judges it.
+bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
+	const int x = static_cast<int>(std::lround(position.x)), y = static_cast<int>(std::lround(position.y));
+	for (int dy = -1; dy <= 1; ++dy)
+		for (int dx = -1; dx <= 1; ++dx) {
+			const Navigation::Cell* cell = grid.At(x + dx, y + dy);
+			if (cell != nullptr && cell->steps >= 0) return true;
+		}
+	return false;
+}
 bool Playing() {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	return RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	return RadarUi::InPlay();
 }
 // Screen placement of a world direction, the ground-item loops' convention:
 // native projection 0x334DB0 turns the world diagonals into the screen axes.
@@ -137,6 +169,13 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 bool Refresh(const Lifecycle& state, uint64_t now) {
 	if (g_target.point) { g_target.seenMs = now; return true; } // a passage does not move
 	std::vector<EntityRadar::Entity> entities;
+	// A room is not a native unit and never moves: it is exactly where the
+	// catalogue said it was, so there is nothing to re-read and nothing that
+	// could be reported lost on arrival.
+	if (g_target.entity.kind == EntityRadar::Kind::Room) {
+		g_target.seenMs = now;
+		return true;
+	}
 	if (g_target.entity.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
 		if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;
@@ -148,7 +187,10 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 			}
 		return false;
 	}
-	if (!NativeEntities::Read(state.player, state.session, entities, g_target.entity.levelExitId != 0)) return false;
+	// A locked exit may be a warp or a boundary with the next area; read both
+	// so the beacon can still find the one it is leading to.
+	const bool exit = g_target.entity.levelExitId != 0;
+	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity.position = entity.position;
@@ -162,7 +204,34 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
 	const bool seen = Refresh(state, now);
-	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings);
+	// Beyond the collision window the direct search has nothing to search, so
+	// it degrades to a straight line -- which in a dungeon can point through a
+	// wall into the back of the right room. Lead to the way INTO the next room
+	// of a room-level route instead. Only ever a cell the grid proved
+	// reachable, so this can no more point through a wall than the grid can.
+	Beacon::Position hop{};
+	const Beacon::Position* waypoint = nullptr;
+	size_t hopRoom = NativeRooms::None;
+	bool hopInNextRoom = false;
+	if (const RoomGraph::Graph* graph = Rooms(state)) {
+		const size_t from = NativeRooms::Containing(graph->rooms, world.player);
+		const size_t to = NativeRooms::Containing(graph->rooms, g_target.entity.position);
+		if (from != NativeRooms::None && to != NativeRooms::None && from != to) {
+			const auto grid = Navigation::Build(world, Navigation::MaxRadius);
+			// When the target is already reachable the direct search reaches
+			// it better than any waypoint could; leave that path untouched.
+			if (!ReachableNow(grid, g_target.entity.position)) {
+				const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, RoomGraph::Route(*graph, from, to));
+				if (goal.known) {
+					hop = goal.position;
+					waypoint = &hop;
+					hopRoom = goal.room;
+					hopInNextRoom = goal.inNextRoom;
+				}
+			}
+		}
+	}
+	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings, waypoint);
 	if (!update.valid) return;
 	if (update.arrived) {
 		const auto name = g_target.entity.name;
@@ -179,6 +248,14 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 			world.player.x, world.player.y, g_target.entity.position.x, g_target.entity.position.y, seen ? 1u : 0u,
 			update.distance, update.remaining, update.routed ? 1u : 0u, update.heading.x, update.heading.y,
 			g_tracker.CurrentRoute().path.size(), g_target.entity.name.c_str());
+		if (waypoint != nullptr) {
+			// Room size is the open question the first dungeon answers: the
+			// doorway case needs the next room inside the 152-subtile window.
+			const auto& room = g_graph.rooms[hopRoom];
+			AsyncLog::InfoF(context, "[beacon] hop=%.0f,%.0f in_next_room=%u room=%d,%d %dx%d tiles rooms=%zu",
+				hop.x, hop.y, hopInNextRoom ? 1u : 0u, room.tileX, room.tileY, room.tileWidth, room.tileHeight,
+				g_graph.rooms.size());
+		}
 	}
 }
 }
@@ -229,12 +306,21 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
+	// Guidance's controls are play's alone. During play R3 is guidance's, so
+	// the game must not also swap weapons on it; in a menu the click is the
+	// menu's -- the game gets it, and guidance ignores it, as it ignores Ctrl+B
+	// and the console's lock and clear (the user, 2026-09-21: "ignore guidance
+	// while menu is open").
+	const bool inPlay = state.ready && Playing();
+	PadFilter::ClaimRightThumb(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		Release("lifecycle");
 		g_offer = {};
 	}
-	if (command == Command::Clear && g_tracker.Locked()) {
+	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
+		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "R3" : "command");
+	} else if (command == Command::Clear && g_tracker.Locked()) {
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);

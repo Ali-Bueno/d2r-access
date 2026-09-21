@@ -3,6 +3,9 @@
 #include "native_ui.h"
 #include "ui_text.h"
 
+#include <string>
+#include <vector>
+
 // The character panel (CharacterStatsPanel): its attribute, defence, life,
 // mana, stamina and resistance rows. The four attributes that can be raised
 // are focusable buttons and belong to NativeProgression; every other row is a
@@ -17,6 +20,23 @@ bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type& type);
 // identity as the body so both are spoken once on entering the panel. Empty
 // when the focus is not a readable row.
 UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type);
+
+// Every statistic the panel is showing, label and value, in the order the
+// layout declares them -- which is the order they appear down the screen --
+// after the character's name and then its level and class. A
+// row whose value has not rendered yet reads as its label alone; a row with
+// no label is skipped, as are rows the game has hidden. Empty when the panel
+// is not visible.
+//
+// Each row's value is looked up among that row's own siblings rather than
+// anywhere under the panel, because the attack damage and attack rating rows
+// exist twice -- once under LeftSkillStats and once under RightSkillStats --
+// with identical widget names.
+std::vector<std::string> Lines(uintptr_t panel);
+
+// The character's name as the panel shows it, empty until the game has
+// rendered it.
+std::string Name(uintptr_t panel);
 
 void Reset();
 

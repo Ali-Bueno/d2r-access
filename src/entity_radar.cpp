@@ -45,7 +45,11 @@ std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& e
 	for (const auto& entity : entities) {
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
 		const bool levelExit = entity.kind == Kind::Exit && entity.levelExitId != 0;
-		if (!std::isfinite(distance) || (!levelExit && distance > settings.range)) continue;
+		// Exits obey the range too. A loaded warp unit in a neighbouring room is
+		// well past it -- MEASURED 2026-09-21, "To The Den of Evil, 52 steps" on
+		// the short-range scan -- and finding a way out across the level is the
+		// long-range catalogue's job.
+		if (!std::isfinite(distance) || distance > settings.range) continue;
 		if (!InSector(world.player, entity.position, direction, settings.sectorCosine)) continue;
 		if (!levelExit && !LineOfSight(world, world.player, entity.position)) continue;
 		targets.push_back({entity, distance});
@@ -95,21 +99,17 @@ std::string Describe(const Result& result, const Settings& settings, const Strin
 		std::snprintf(buffer, sizeof buffer, strings.scanNothing, direction);
 		return buffer;
 	}
-	std::string text = result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
-	if (result.count > 1) {
-		std::snprintf(buffer, sizeof buffer, strings.scanIndexOfCount, static_cast<int>(result.index + 1), static_cast<int>(result.count));
-		text += ", ";
-		text += buffer;
-	}
-	return text;
+	// The name and how far, and nothing else. A position in the candidate
+	// list is heard on every single push, and the player did not ask for it.
+	return result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
-	const long meters = std::lround(distance * settings.metersPerSubtile);
-	if (meters < 1) return strings.scanAdjacent;
-	if (meters == 1) return strings.scanMeter;
+	const long steps = std::lround(distance * settings.stepsPerSubtile);
+	if (steps < 1) return strings.scanAdjacent;
+	if (steps == 1) return strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, strings.scanMeters, static_cast<int>(meters));
+	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(steps));
 	return buffer;
 }
 }

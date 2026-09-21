@@ -1,4 +1,5 @@
 #include "async_log.h"
+#include "auto_detail.h"
 // D2RLoader entry points. Wiring only: every behaviour lives in a service.
 #include <D2RLPlugin/api.h>
 
@@ -12,19 +13,26 @@
 #include "entity_radar_service.h"
 #include "input_direction.h"
 #include "localization.h"
+#include "modal_reader.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
+#include "map_survey_service.h"
 #include "native_skill_navigation.h"
+#include "pad_filter.h"
 #include "skill_navigation.h"
 #include "quest_service.h"
+#include "radar_config.h"
 #include "room_service.h"
-#include "terrain_service.h"
 #include "radar_service.h"
+#include "terrain_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
+#include "tab_highlight.h"
 #include "vitals_service.h"
+#include "text_field.h"
+#include "widget_probe.h"
 #include "widgets.h"
 
 #include <cstring>
@@ -45,6 +53,20 @@ constexpr D2RL::PluginInfo PluginInfo {
 	.flags       = D2RL::PluginFlags::Client | D2RL::PluginFlags::NativeHooks,
 };
 
+// One line per right-stick push, once every reader has had its turn, naming
+// the one that took it. Four readers claim from the same latch in the order
+// below and only one can win, so a push taken by a reader with nothing to say
+// is spent in silence -- and that is what the player hears as a push that did
+// not fire. Nothing recorded which reader won until this line.
+void LogRightStickPush(const D2RL::PluginContext* context) {
+	using D2RAccess::InputDirection::StickPush;
+	const auto record = D2RAccess::InputDirection::TakePushRecord();
+	if (record.push == StickPush::None) return;
+	D2RAccess::AsyncLog::InfoF(context, "[stick] %s -> %s",
+		D2RAccess::InputDirection::PushName(record.push),
+		record.claimant ? record.claimant : "nobody, a later push replaced it");
+}
+
 // One UI update: sample input first so a value message arriving this update
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
@@ -52,6 +74,13 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
+	// After the focus tracker, so landing on a strip is its announcement and
+	// only a later move along the strip is this one's.
+	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech);
+	D2RAccess::TextField::Tick(context);
+	D2RAccess::AutoDetail::Tick(context);
+	D2RAccess::ModalReader::Tick(context);
+	D2RAccess::WidgetProbe::Tick(context);
 	D2RAccess::UiMessageMonitor::Tick(context);
 	D2RAccess::NativeWidgets::Tick(context);
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech);
@@ -60,9 +89,11 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech);
 	D2RAccess::FootstepService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
+	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
+	LogRightStickPush(context);
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -72,6 +103,23 @@ auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command,
 	else if (args == "off") D2RAccess::GameTextReader::SetEnabled(false);
 	else if (args == "repeat") D2RAccess::GameTextReader::RequestRepeat();
 	else if (args == "dump") D2RAccess::GameTextReader::RequestDump();
+	else return D2RL::ConsoleCommandResult::InvalidArguments;
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
+// Raw bytes of the FOCUSED widget, unlike access-probe above, which logs the
+// strings of a widget named by path. Used to derive an offset the SDK does not
+// expose (a checkbox's checked flag, a dropdown's selected row) by comparing
+// the same control in two states.
+auto BytesCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	if (args == "on") D2RAccess::WidgetProbe::SetEnabled(true);
+	else if (args == "off") D2RAccess::WidgetProbe::SetEnabled(false);
+	else if (args == "once") D2RAccess::WidgetProbe::RequestOnce();
+	else if (args == "again") D2RAccess::WidgetProbe::Rearm();
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -124,7 +172,13 @@ auto DumpCodeCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* comm
 	if (command == nullptr || command->plugin == nullptr) {
 		return D2RL::ConsoleCommandResult::Failed;
 	}
-	return D2RAccess::CodeDump::EnsureDumped(command->plugin) ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
+	// "image" writes the whole mapping; bare or "text" keeps the .text-only
+	// dump the fingerprint tooling reads, so neither call site changes size
+	// under the other one's feet.
+	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
+	const bool ok = args == "image" ? D2RAccess::CodeDump::EnsureImageDumped(command->plugin)
+		: D2RAccess::CodeDump::EnsureDumped(command->plugin);
+	return ok ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
 }
 
 // Console: "access-trace on|off" toggles logging of every UI message.
@@ -187,10 +241,30 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
-	(void)D2RAccess::NativeTooltips::Initialize(context);
-	(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+	// Patching the game's own code is the only thing this plugin does that
+	// could change the game rather than describe it -- three inline hooks:
+	// the tooltip draw, the controller cursor update, and the HD footfall,
+	// which is the one place we SKIP a game function rather than add to it.
+	// Nothing has shown them to be harmful, and nothing has shown them to be
+	// harmless either; so they are switchable, and a session with them off is
+	// a session in which they cannot be the cause of anything.
+	//
+	// Default ON, so this changes nothing for anyone who does not set it.
+	// Off costs footsteps, native tooltips and skill-tree grid navigation;
+	// everything read out of memory keeps working, because reading is not
+	// patching.
+	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
+	if (nativeHooks) {
+		(void)D2RAccess::NativeTooltips::Initialize(context);
+		(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+		// Not an inline hook, but it changes what the game reads, so it goes
+		// with them: R3 kept from the game while guidance owns it.
+		(void)D2RAccess::PadFilter::Install(context);
+	} else {
+		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor or footfall hook this session.");
+	}
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
-	D2RAccess::FootstepService::Register(context);
+	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
@@ -198,7 +272,9 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
+	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
+	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
@@ -207,17 +283,34 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
-	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code section next to the plugin.");
+	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code next to the plugin: (text)|image.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
+	(void)context->RegisterConsoleCommand("access-bytes", BytesCommand, "Focused-widget byte dump: on|off|once|again.");
 	(void)context->RegisterConsoleCommand("access-skill-grid", SkillGridCommand, "D-pad skill grid: on|off.");
+	// Armed from the config file because the developer console cannot be opened
+	// outside a loaded game, and the screens worth dumping are the ones where it
+	// cannot: character select and character create.
+	if (D2RAccess::RadarConfig::ReadEnabled(context, "[dump]").value_or(false)) {
+		if (D2RAccess::CodeDump::EnsureImageDumped(context)) {
+			D2RAccess::AsyncLog::Info(context, "[dump] whole-image dump present next to the plugin.");
+		} else {
+			D2RAccess::AsyncLog::Warn(context, "[dump] whole-image dump failed; see the error above.");
+		}
+	}
+	if (D2RAccess::RadarConfig::ReadEnabled(context, "[probe]").value_or(false)) {
+		D2RAccess::WidgetProbe::SetEnabled(true);
+		D2RAccess::AsyncLog::Info(context, "[probe] armed from config.");
+	}
 	D2RAccess::AsyncLog::Info(context, "d2r-access loaded.");
 	return true;
 }
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::PadFilter::Remove();
 	D2RAccess::VitalsService::Unregister();
+	D2RAccess::AutoDetail::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::TerrainService::Unregister();

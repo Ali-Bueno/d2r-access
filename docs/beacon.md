@@ -6,9 +6,11 @@ for coverage. Older nearby-only limitations below describe the initial scan;
 complete unexplored routing remains unavailable.
 
 Lets a blind player walk to a specific thing instead of only sensing walls
-around them. The directional entity scan (`docs/entity-scan.md`) names
-whatever the right stick points at; a right-stick click, or **Ctrl+B**, locks
-the last thing it named. From then on a ping repeats, faster the closer the
+around them. Two readouts can name the target: the directional entity scan
+(`docs/entity-scan.md`) names whatever the right stick points at, and the
+level-wide catalogue (`src/map_survey.h`, the long-range pathfinder on **L3**)
+names anything on the level by walking distance. A right-stick click, or
+**Ctrl+B**, locks whichever of them spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
 ping just pointing straight through a wall. Clicking again (or `Ctrl+B`,
@@ -20,22 +22,25 @@ releases it on its own.
 - Right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
   lock the last thing the entity scan or the exit review announced, or release
   the current lock if one is active. The click is reported after **release**,
-  and only when the press stayed under 350 ms: holding the stick down past that
-  is the exit review's "next way out" instead (`docs/rooms.md`), and it swallows
-  its own release so the two gestures never both fire. Since a double click is
-  the terrain overview (`docs/terrain-overview.md`), the single click waits out
-  the 300 ms double-click window before it fires.
+  and only when L3 was not pressed during it: L3+R3 together is the terrain
+  overview (`docs/terrain-overview.md`), and the chord swallows both releases so
+  the two gestures never both fire (`src/stick_chord.*`). The exit review's
+  "next way out" is Ctrl+V (`docs/rooms.md`).
 - Console `access-beacon lock|clear|status` (`lock` also accepts `toggle`,
   `clear` also accepts `off`); `status` speaks whether something is locked
   and, if so, its name.
 
 ## The model
 
-- The entity scan hands the beacon service an *offer* (`BeaconService::Offer`)
-  every time it announces something: entity, level and timestamp. A lock only
+- Both readouts hand the beacon service an *offer* (`BeaconService::Offer`)
+  every time they announce something: entity, level and timestamp. A lock only
   takes the most recent offer, and only while it is still the same level and
   within `OfferWindowMs` of being spoken — never something older than what
   the player just heard.
+- The two cannot race. While the long-range pathfinder is on it owns the right
+  stick, so the scan is not announcing anything; while it is off the catalogue
+  only answers its own keys. Whichever spoke last is what a click follows,
+  which is the whole rule the player has to know.
 - Once locked, the target is re-located every tick by matching its unit id
   (and kind, for non-items) against a fresh native read (`Refresh`); ground
   items are matched the same way against the ground-item snapshot. If the
@@ -66,6 +71,22 @@ about the lock changes.
   to the target plus `lookAhead`, clamped between a 16-cell minimum
   neighbourhood and `searchRadius`; the world's rooms are blitted into that
   box once (`Field`/`Copy`) instead of re-scanning the room list per cell.
+- `searchRadius` is **158**: the whole 152-subtile collision window the game
+  keeps around the player, plus the look-ahead. That is the real ceiling on
+  how far a beacon can lead — not a policy number to raise, because past it
+  there is no collision to search. It was 96 while the only source of targets
+  was the fifteen-metre scan; the catalogue can name things across the level,
+  so the box now reaches as far as the data does.
+- Both recompute triggers stretch in proportion past `farDistance`: the box
+  grows with the distance while a long route changes slowly, so a level-wide
+  lead is re-proved on roughly the work per second a short one costs instead
+  of running the widest search several times a second. Near targets keep the
+  original 3-cell / 400 ms cadence exactly.
+- A target beyond the box, or in a room that is not loaded, is not abandoned:
+  the search heads for the reachable cell nearest it and re-proves as the
+  player advances, so the box slides along the route until the target falls
+  inside it. That is greedy, and it can still be fooled by a detour longer
+  than the box.
 - Only the **terrain layer** is read (`TerrainCollisionFlags(raw) &
   walkingMask`), the same layer the sonar radar uses: a monster or another
   player standing in a doorway does not make the beacon reroute around them.

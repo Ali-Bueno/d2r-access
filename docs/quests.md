@@ -2,6 +2,52 @@
 
 How the mod names quests and reads objectives, and what is still open.
 
+## Only the quests the player actually has — 2026-09-19
+
+Navigating the journal read out the **whole act**, icon by icon: on an Act 1
+starter the player heard "Tools of the Trade", "Sisters' Burial Grounds" and
+"The Forgotten Tower", quests that character has never been offered. The cause
+is the catalog fallback below — a quest button is a nameless icon, so the mod
+names it from the string table, and it did that for every socket in the tab
+whether or not the game had put a quest in it.
+
+**A first attempt tested the availability byte (`+0x50`) and did not work:** the
+quest buttons report available whether or not the player has the quest, so the
+guard withheld nothing. Do not try that offset again.
+
+What does distinguish them is the shared detail pane. A quest the player has
+populates `ShortDescription`/`LongDescription` when its icon is selected; one
+they have not been given leaves the pane empty, on screen and in memory — the
+2026-09-16 controller session recorded exactly that ("other selected quest
+icons had empty detail panes"). So `UiText::Describe` now applies one rule:
+
+> speak only while the pane's heading names the focused icon. Anything else —
+> a pane still holding the icon focus has just left, or a socket with no quest
+> in it — says nothing at all.
+
+That one condition replaced two. The old code announced the new icon's name on
+its own while the pane caught up ("retain ownership"), and *that* announcement
+is the bug rather than a symptom of it: an empty socket carries a catalog name
+just as a real quest does, and the pane takes about as long to clear as the
+150 ms settle, so the name escaped before the emptiness was ever visible.
+Fixing only the empty-pane case would have left the act reading out icon by
+icon exactly as before. A quest is now announced once, whole, when the pane
+resolves, and both paths out of the branch carry the settle.
+
+Only the pane's own heading decides it. The readout also sweeps up whatever
+else the panel holds, to reach the counter (below), but that sweep gets no vote
+here: any furniture the panel happens to render would otherwise keep every
+empty socket alive as a quest.
+
+Nothing is spoken for an empty socket — the user's call, 2026-09-19: there is
+no quest there to report. Moving onto one still stops the previous quest's
+speech, because an empty readout makes `game_text_reader` release focus.
+
+The cost of the rule: a quest whose pane heading never matches its icon name
+would go silent rather than read out under a name. That comparison has held
+live (Den of Evil populated `Den of Evil`), and `questNoObjective` still covers
+the case where the pane names the quest but carries no objective line.
+
 ## Journal detail reading — 2026-09-16 follow-up
 
 The controller session at 21:44 proved `ShortDescription` / `LongDescription`

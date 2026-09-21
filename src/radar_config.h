@@ -24,6 +24,18 @@ struct Npc {
 Npc ParseNpc(std::string_view config);
 Npc ReadNpc(const D2RL::PluginContext* context);
 
+// Sections whose only documented key is `enabled`: [dump], which arms the
+// whole-image dump, [probe], which arms the focused-widget byte dump, and
+// [native], which arms the three inline hooks into the game's own code. The
+// first two have to be settable from the file because the developer console
+// cannot be opened outside a loaded game, and both matter most in the
+// character-select and character-create screens, where it cannot. [native] has
+// to be settable there because a hook is installed at load and cannot be
+// withdrawn from a console afterwards.
+// Absent section or absent key returns nothing, so the caller keeps its own
+// default; an unparseable value is reported and also returns nothing.
+std::optional<bool> ParseEnabled(std::string_view config, std::string_view section);
+std::optional<bool> ReadEnabled(const D2RL::PluginContext* context, std::string_view section);
 // The documented [target] keys of the HUD sight gate (TargetSight::Settings):
 // line_of_sight decides whether a label the game puts on something behind a
 // wall is spoken, reach is how far a bearer of that name may stand and still

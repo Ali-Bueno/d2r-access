@@ -1,4 +1,5 @@
 #include "async_log.h"
+#include "auto_detail.h"
 #include "focus_tracker.h"
 
 #include "generated/panel_widgets.h"
@@ -10,6 +11,7 @@
 #include "native_widgets.h"
 #include "native_focus.h"
 #include "panel_state.h"
+#include "interaction_reader.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "widgets.h"
@@ -60,6 +62,10 @@ constexpr int NearbyIndicatorHeights = 3;
 // a hundred widgets three times over stalled the game's UI thread for a
 // second (measured 2026-09-15).
 constexpr unsigned long long MissRetryMs = 300;
+// Misses reported per run of misses. The tracker keeps retrying after
+// this; it just stops saying so, so a page it cannot match costs a few
+// lines rather than one per retry until the panel closes.
+constexpr unsigned            MaxMissLogs = 4;
 // A tick longer than this is logged with its cost, to catch such stalls.
 constexpr double SlowTickMs = 30.0;
 
@@ -138,6 +144,10 @@ constexpr LegendAction CharacterRowActions[] = {
 constexpr const char* MessageAnnouncedTypes[] = { "HDCharacterSelectorWidget" };
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
+// A tab bar carries no label of its own in the layouts. What the player is
+// standing on when focus lands there is a tab, so its text is the name --
+// read live, the same way TabReader reads it.
+constexpr const char* TabBarWidgetType    = "TabBarWidget";
 
 // Controls the game disables depending on another control's state. The SDK
 // cannot read the enabled flag, so the dependency observed in the game is
@@ -187,6 +197,9 @@ struct Match {
 	const Generated::PanelWidgets* panel  = nullptr;
 	const Generated::WidgetEntry*  widget = nullptr;
 	double                         score  = 0.0;
+	// How much of the winning panel could be located at all. A miss with
+	// few widgets resolved is a different fault from one with all of them.
+	uint32_t                       resolved = 0, total = 0;
 };
 
 const char*                  g_focusManagerName = nullptr;
@@ -195,6 +208,9 @@ std::unordered_map<std::string, std::optional<Widgets::Rect>> g_rectCache; // wi
 std::optional<Widgets::Rect> g_lastIndicator;
 unsigned long long           g_missSince   = 0;     // first tick the indicator matched nothing (0: matched)
 bool                         g_missRetried = false; // the full re-read for this miss already happened
+unsigned                     g_missLogged  = 0;     // misses reported since the last successful match
+uintptr_t                    g_nativeMissWidget = 0; // last widget whose identity lookup was reported
+std::string                  g_nativeMissPanel;      // last panel reported as having no focus at all
 bool                         g_diagnostics = false; // see SetDiagnosticsEnabled
 bool                         g_forceResolve = false; // content moved under a still indicator (scroll, panel change)
 unsigned long long           g_scrollAt      = 0;     // tick of the last scroll message not yet settled (0: none)
@@ -362,6 +378,10 @@ Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator
 				Describe(Widgets::PanelRect(catalog->panel)).c_str(), catalog->rootAnchorX, catalog->rootAnchorY, resolved, catalog->count,
 				nearest != nullptr ? nearest->name : "-", nearestRect.x, nearestRect.y, nearestRect.width, nearestRect.height, firstError[0] != '\0' ? firstError : "none");
 		}
+		if (best.panel == catalog) {
+			best.resolved = resolved;
+			best.total    = catalog->count;
+		}
 		if (best.score >= MinimumCoverage) {
 			break;
 		}
@@ -407,13 +427,19 @@ std::string PercentText(int percent) {
 	return text;
 }
 
+// Every options screen the catalog carries: Gameplay, Video, Sound, Online
+// Game, Loot Filter, Character. No other panel name contains the word.
+bool IsOptionsPanel(const char* panel) {
+	return panel != nullptr && std::string_view(panel).find("Options") != std::string_view::npos;
+}
+
 std::string TextForKey(const char* key) {
 	return key != nullptr ? Localization::Text(key) : std::string {};
 }
 
 // Own text, else the row label next to it, else a literal, else the tooltip
 // (icon-only buttons such as DeleteCharacter carry nothing else), else the name.
-std::string Label(const Generated::WidgetEntry& widget) {
+std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget = 0) {
 	std::string text = TextForKey(widget.textKey);
 	if (text.empty()) {
 		text = TextForKey(widget.labelKey);
@@ -423,6 +449,13 @@ std::string Label(const Generated::WidgetEntry& widget) {
 	}
 	if (text.empty()) {
 		text = TextForKey(widget.tooltipKey);
+	}
+	// The tab strips the game gives no label to -- the menu switcher across the
+	// top above all, but also the lobby's and the settings' -- would otherwise
+	// announce their internal name ("UISwitcherTabs, tabs", measured
+	// 2026-09-19). A strip that does carry a label keeps it.
+	if (text.empty() && nativeWidget != 0 && std::strcmp(widget.type, TabBarWidgetType) == 0) {
+		text = UiText::Clean(NativeUi::SelectedTabText(nativeWidget));
 	}
 	if (text.empty()) {
 		text = widget.name;
@@ -639,7 +672,40 @@ std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex)
 	return phrase;
 }
 
-void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator) {
+// Identity resolution is the authoritative path, and geometry is only its
+// fallback -- one a scrolled list defeats, because a row moves on screen
+// without moving in the layout the rects are computed from. So when identity
+// misses, the reason matters more than the miss: name it once per focused
+// widget, with the ancestry the game actually has, rather than silently
+// dropping to a match that cannot work on that page.
+void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (focus.widget == 0) {
+		// No focused widget at all, which is not the same fault as one whose
+		// ancestry did not match -- a modal that opens without the game giving
+		// anything focus reads as silence either way, so name it. Once per
+		// panel, because it stays true for as long as that panel is up.
+		std::string active(PanelState::Active());
+		if (active == g_nativeMissPanel) return;
+		g_nativeMissPanel = active;
+		D2RAccess::AsyncLog::InfoF(context, "[focus] no focused widget while \"%s\" is active", active.c_str());
+		return;
+	}
+	g_nativeMissPanel.clear();
+	if (focus.widget == g_nativeMissWidget) return;
+	g_nativeMissWidget = focus.widget;
+	std::string chain;
+	uintptr_t   at = focus.widget;
+	for (int depth = 0; depth < 8 && at != 0; ++depth) {
+		if (!chain.empty()) chain += " < ";
+		chain += NativeWidgets::ReadName(at);
+		at = NativeUi::Parent(at);
+	}
+	D2RAccess::AsyncLog::InfoF(context, "[focus] native identity missed: panel=\"%s\" widget=\"%s\" visible=%d/%d ancestry: %s",
+		NativeWidgets::ReadName(focus.panel).c_str(), NativeWidgets::ReadName(focus.widget).c_str(),
+		NativeUi::Visible(focus.panel) ? 1 : 0, NativeUi::Visible(focus.widget) ? 1 : 0, chain.c_str());
+}
+
+void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator, uintptr_t nativeWidget = 0) {
 	const int   characterRow = CharacterRowIndex(match, indicator);
 	std::string id           = std::string(match.panel->panel) + "/" + match.widget->name;
 	if (characterRow >= 0) {
@@ -675,7 +741,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		g_dropdown = { match.panel, match.widget, g_lastAnnounced };
 	}
 
-	const std::string label  = Label(*match.widget);
+	const std::string label  = Label(*match.widget, nativeWidget);
 	std::string       phrase = label;
 	if (const char* role = Role(*match.widget); role != nullptr) {
 		phrase += ", ";
@@ -700,10 +766,20 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		}
 	}
 	const std::string tooltip = TextForKey(match.widget->tooltipKey);
+	// An options row explains itself in a paragraph. Spoken on arrival it is
+	// heard on every move down the list, so on an options panel it waits to be
+	// asked for -- right stick up, the gesture an item's properties already
+	// use. Elsewhere a tooltip is short and is the only thing some icon-only
+	// buttons have, so it still follows the name.
+	const bool options = IsOptionsPanel(match.panel->panel);
+	const bool extra = !tooltip.empty() && tooltip != label;
 
-	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\" coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), match.score);
+	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\"%s coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), extra ? (options ? " +detail" : " +tooltip") : "", match.score);
 	ScreenReader::Speak(phrase, true);
-	if (!tooltip.empty() && tooltip != label) {
+	if (options) {
+		InteractionReader::OfferDetail(WidgetId(*match.panel, *match.widget), extra ? tooltip : std::string {});
+		if (extra && AutoDetail::Enabled()) ScreenReader::Speak(tooltip, false);
+	} else if (extra) {
 		ScreenReader::Speak(tooltip, false);
 	}
 }
@@ -770,13 +846,16 @@ void Tick(const D2RL::PluginContext* context) {
 	// returning from gameplay changes panel-open order. Keep popup row handling
 	// below: those runtime clones have their own text/value reader.
 	if (PanelState::Active() != DropdownPopupPanel) {
-		const auto native = NativeFocus::Resolve(NativeUi::CurrentFocus(), Generated::PanelCatalog);
+		const NativeUi::Focus focused = NativeUi::CurrentFocus();
+		const auto native = NativeFocus::Resolve(focused, Generated::PanelCatalog);
+		if (native.widget == nullptr) LogNativeMiss(context, focused);
 		if (native.widget) {
+			g_nativeMissWidget = 0;
 			g_forceResolve = false;
 			g_lastIndicator = indicator;
 			g_popupWasActive = false;
 			g_missSince = 0;
-			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}));
+			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}), focused.widget);
 			return;
 		}
 	}
@@ -834,7 +913,18 @@ void Tick(const D2RL::PluginContext* context) {
 		g_rectCache.clear();
 		match = Resolve(context, *indicator, false);
 		if (match.widget == nullptr || match.score < MinimumCoverage) {
-			D2RAccess::AsyncLog::InfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+			// Re-arm rather than latch. A list that scrolls under a standing
+			// focus moves every rect it owns, so one re-read is not enough:
+			// latching here left the tracker silent for the rest of the
+			// panel's life instead of recovering on the next settled frame.
+			// The log is capped instead, so recovering costs a retry and not
+			// a flooded log.
+			g_missSince   = now;
+			g_missRetried = false;
+			if (g_missLogged >= MaxMissLogs) return;
+			++g_missLogged;
+			D2RAccess::AsyncLog::InfoF(context, "[focus] indicator at %d,%d %dx%d matched nothing (best %.2f, %s resolved %u/%u); screen root %s", indicator->x, indicator->y, indicator->width, indicator->height, match.score,
+				match.panel != nullptr ? match.panel->panel : "-", match.resolved, match.total,
 				Describe(Widgets::PanelRect(g_focusManagerName != nullptr ? g_focusManagerName : FocusManagerPanelNames[0])).c_str());
 			if (g_diagnostics) {
 				(void)Resolve(context, *indicator, true); // per-panel diagnostics: expensive, on request only
@@ -842,7 +932,8 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
-	g_missSince = 0;
+	g_missSince  = 0;
+	g_missLogged = 0;
 	Announce(context, match, *indicator);
 }
 

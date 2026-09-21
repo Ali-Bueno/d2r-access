@@ -5,7 +5,6 @@
 #include "entity_radar.h"
 #include "exit_review.h"
 #include "generated/level_flags.h"
-#include "input_direction.h"
 #include "native_entities.h"
 #include "native_world.h"
 #include "npc_proximity.h"
@@ -197,7 +196,7 @@ bool Register(const D2RL::PluginContext* context) {
 			{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = "rooms-toggle", .displayName = "Toggle room exit announcements", .category = "Accessibility",
 				.defaultPrimary = {D2RL::Input::Key::M, D2RL::Input::Modifier::Control}, .callback = Toggle},
-			// Keyboard equivalent of holding the right stick down.
+			// The right stick is the scan and the beacon; the review has a key of its own.
 			{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = "rooms-next-exit", .displayName = "Review the next way out", .category = "Accessibility",
 				.defaultPrimary = {D2RL::Input::Key::V, D2RL::Input::Modifier::Control}, .callback = Next}};
@@ -222,10 +221,7 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
-	// Both sources are consumed every tick so a latched gesture cannot fire late.
-	const bool asked = g_review.exchange(false);
-	const bool held = InputDirection::TakeRightStickHold();
-	const bool requested = asked || held;
+	const bool requested = g_review.exchange(false);
 	if (command != Command::None) {
 		if (command != Command::Status) {
 			g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
