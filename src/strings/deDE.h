@@ -114,6 +114,8 @@ inline constexpr Table deDE {
 	.currentOfMaximum = "%s von %s",
 	.itemPlacedIn = "Abgelegt in %s",
 	.goldCarried = "%s Gold",
+	.autoDetailEnabled = "Automatische Details an",
+	.autoDetailDisabled = "Automatische Details aus",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 };
 

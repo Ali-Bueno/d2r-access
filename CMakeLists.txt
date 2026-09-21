@@ -19,6 +19,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
 	src/async_log.cpp
+	src/auto_detail.cpp
 	src/tab_reader.cpp
 	src/tooltip_text.cpp
 	src/text_field.cpp

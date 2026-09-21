@@ -1,4 +1,5 @@
 #include "async_log.h"
+#include "auto_detail.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
@@ -288,6 +289,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
 				split.headline.c_str(), split.detail.c_str());
 			description = std::move(split.headline);
+			if (AutoDetail::Enabled()) Append(description, split.detail);
 			OfferDetail(readout.focusKey, std::move(split.detail));
 		} else {
 			description = UiText::Clean(tooltip.body);
@@ -301,6 +303,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if (progression.skill) {
 			auto split = ProgressionText::SkillReadout(description, progression.points, progression.help);
 			readout.option = std::move(split.headline);
+			if (AutoDetail::Enabled()) Append(readout.option, split.detail);
 			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
 		}
 		// Not onto the gold amount: that row's tooltip is "Drop Gold", the A hint

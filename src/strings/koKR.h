@@ -114,6 +114,8 @@ inline constexpr Table koKR {
 	.currentOfMaximum = "%s, 최대 %s",
 	.itemPlacedIn = "%s에 놓았습니다",
 	.goldCarried = "골드 %s",
+	.autoDetailEnabled = "자동 상세 정보 켜짐",
+	.autoDetailDisabled = "자동 상세 정보 꺼짐",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 };
 

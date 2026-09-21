@@ -114,6 +114,8 @@ inline constexpr Table jaJP {
 	.currentOfMaximum = "%s、最大%s",
 	.itemPlacedIn = "%sに置きました",
 	.goldCarried = "%s ゴールド",
+	.autoDetailEnabled = "自動詳細オン",
+	.autoDetailDisabled = "自動詳細オフ",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 };
 

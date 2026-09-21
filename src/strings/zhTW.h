@@ -114,6 +114,8 @@ inline constexpr Table zhTW {
 	.currentOfMaximum = "%s，最大%s",
 	.itemPlacedIn = "已放置於%s",
 	.goldCarried = "%s 金幣",
+	.autoDetailEnabled = "自動詳情已啟用",
+	.autoDetailDisabled = "自動詳情已停用",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 };
 

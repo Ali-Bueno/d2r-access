@@ -114,6 +114,8 @@ inline constexpr Table zhCN {
 	.currentOfMaximum = "%s，最大%s",
 	.itemPlacedIn = "已放置在%s",
 	.goldCarried = "%s 金币",
+	.autoDetailEnabled = "自动详情已启用",
+	.autoDetailDisabled = "自动详情已禁用",
 	.itemQualities = {"", "劣质", "", "精良", "魔法", "套装", "稀有", "暗金", "合成"},
 };
 

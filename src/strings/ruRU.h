@@ -114,6 +114,8 @@ inline constexpr Table ruRU {
 	.currentOfMaximum = "%s из %s",
 	.itemPlacedIn = "Помещено в %s",
 	.goldCarried = "%s золота",
+	.autoDetailEnabled = "Автоподробности включены",
+	.autoDetailDisabled = "Автоподробности выключены",
 	.itemQualities = {"", "низкое качество", "", "высокое качество", "магический предмет", "предмет из комплекта", "редкий предмет", "уникальный предмет", "изготовленный предмет"},
 };
 

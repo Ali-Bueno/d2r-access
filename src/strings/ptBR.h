@@ -114,6 +114,8 @@ inline constexpr Table ptBR {
 	.currentOfMaximum = "%s de %s",
 	.itemPlacedIn = "Colocado em %s",
 	.goldCarried = "%s de ouro",
+	.autoDetailEnabled = "Detalhes automáticos ativados",
+	.autoDetailDisabled = "Detalhes automáticos desativados",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 };
 

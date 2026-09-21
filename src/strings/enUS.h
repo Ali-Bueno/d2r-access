@@ -114,6 +114,8 @@ inline constexpr Table enUS {
 	.currentOfMaximum = "%s of %s",
 	.itemPlacedIn = "Placed in %s",
 	.goldCarried = "%s gold",
+	.autoDetailEnabled = "Auto detail on",
+	.autoDetailDisabled = "Auto detail off",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 };
 

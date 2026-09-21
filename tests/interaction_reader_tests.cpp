@@ -158,6 +158,8 @@ bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
 }
 void Reset() {}
 }
+bool autoDetail = false;
+namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool) { speech.emplace_back(text); }
 void Stop() {}
@@ -337,6 +339,15 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"},
 		"and the damage is read with the rest on the right stick");
+	// Ctrl+D: the whole description with the name, and the gesture still works.
+	autoDetail = true;
+	ClearSpeech(); tooltip = {}; selection = 9; cell = {4, 0};
+	Tooltip("Durabilidad: 5 de 6\nDaño: 1 a 3\nBastón corto\nValor de venta: 40");
+	Check(Tick() && speech.size() == 1 && speech.back() == "Bastón corto. Valor de venta: 40. Daño: 1 a 3. Durabilidad: 5 de 6",
+		"with autodetail on, a highlight reads the whole description");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"}, "and right stick up still reads the detail");
+	autoDetail = false;
 
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
 	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");

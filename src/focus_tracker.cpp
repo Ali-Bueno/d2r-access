@@ -1,4 +1,5 @@
 #include "async_log.h"
+#include "auto_detail.h"
 #include "focus_tracker.h"
 
 #include "generated/panel_widgets.h"
@@ -777,6 +778,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	ScreenReader::Speak(phrase, true);
 	if (options) {
 		InteractionReader::OfferDetail(WidgetId(*match.panel, *match.widget), extra ? tooltip : std::string {});
+		if (extra && AutoDetail::Enabled()) ScreenReader::Speak(tooltip, false);
 	} else if (extra) {
 		ScreenReader::Speak(tooltip, false);
 	}
