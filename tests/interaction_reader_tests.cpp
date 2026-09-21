@@ -476,7 +476,7 @@ int main() {
 	cell = {}; equipmentLocation = 1; equipmentPresence = NativeUi::ItemPresence::Empty;
 	Check(Tick() && speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "empty equipment announces its location and presence on the first poll");
 	ClearSpeech(); focus.widget = 82; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied;
-	Check(Tick() && speech == std::vector<std::string>{"Cuello. Ocupado"}, "rapid slot navigation never waits for a rendered item description");
+	Check(Tick() && speech.empty(), "an occupied slot waits for its item's name instead of saying it is occupied");
 	ClearSpeech(); Tooltip("Resistencia al fuego: 10%\nAmuleto"); Tick();
 	Check(speech == std::vector<std::string>{"Cuello. Amuleto"}, "delayed equipped item retains the slot name with the item's name");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
@@ -484,8 +484,10 @@ int main() {
 	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
 	Check(speech == std::vector<std::string>{"Cuello. Vacío"}, "removing equipment rejects a lingering tooltip even without changing focus");
 	ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Occupied; tooltip = {}; Tick();
-	Check(speech == std::vector<std::string>{"Cuello. Ocupado"}, "equipping into the focused empty slot announces the real occupancy change");
+	Check(speech.empty(), "equipping into the focused slot waits for the item's name too");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary occupied slot without a description does not repeat");
+	Tooltip("Resistencia al fuego: 10%\nAmuleto"); Tick();
+	Check(speech == std::vector<std::string>{"Cuello. Amuleto"}, "and the slot is then read once, with its item");
 	InteractionReader::Reset(); ClearSpeech(); equipmentPresence = NativeUi::ItemPresence::Unknown;
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid}; selection = 0; cell = {0, 0};
 	itemPresence = NativeUi::ItemPresence::Occupied;

@@ -403,8 +403,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
 		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
-		else if (equipmentPresence == NativeUi::ItemPresence::Occupied)
-			Append(readout.option, heldOver.empty() ? Strings::Current().slotOccupied : heldOver);
+		// An occupied slot is read with its item or not at all. "Occupied" first
+		// meant hearing the slot twice, the second time with the item (the user,
+		// 2026-09-21), so it waits for the game's tooltip -- or, while an item is
+		// held and there is none, is named from the slot.
+		else if (equipmentPresence == NativeUi::ItemPresence::Occupied) Append(readout.option, heldOver);
 		// Neither a known slot nor readable contents: say what the focus is on
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
@@ -471,10 +474,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (!text.empty()) ScreenReader::Speak(text, !named);
 		return true;
 	}
-	// The stock item tooltip can appear ~350 ms after selection. An occupied
-	// grid cell waits for it without speaking coordinates first; other cells
-	// keep their existing quick coordinate feedback.
-	if (type.kind == UiText::Kind::InventoryGrid && occupied && !renderedDescription)
+	// An occupied grid cell or equipment slot waits for the game's tooltip to
+	// name its item, without speaking its position or its slot alone first;
+	// other cells keep their quick coordinate feedback.
+	if ((type.kind == UiText::Kind::InventoryGrid || type.kind == UiText::Kind::InventorySlot)
+		&& occupied && !renderedDescription && heldOver.empty())
 		return true; // the hints stay pending until the description arrives
 	if (progression.skill && !renderedDescription) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
