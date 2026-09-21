@@ -215,7 +215,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-rooms",
-		Console, "Room ways out: on|off|status, layout to hear the room you are in, next to review them one at a time. Ctrl+M, Ctrl+V; BACK+Y on the pad.");
+		Console, "Room ways out: on|off|status, layout to hear the room you are in, next to review them one at a time. Ctrl+M, Ctrl+V; BACK+Y and BACK+A on the pad.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		const D2RL::Input::ActionRegistration actions[]{
@@ -249,7 +249,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	// Both sources are taken every tick, in a menu too, so a press made there
 	// cannot be answered later.
 	const bool asked = InputDirection::TakeBackWith(InputDirection::FaceButton::Y) || g_asked.exchange(false);
-	const bool review = g_review.exchange(false);
+	const bool review = InputDirection::TakeBackWith(InputDirection::FaceButton::A) || g_review.exchange(false);
 	if (command != Command::None) {
 		if (command != Command::Status) {
 			g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);

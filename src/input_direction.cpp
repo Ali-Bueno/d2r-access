@@ -61,7 +61,7 @@ Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 bool g_stickChord = false;
-bool g_backWithX = false, g_backWithY = false;
+bool g_backWithA = false, g_backWithX = false, g_backWithY = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -182,15 +182,16 @@ void Poll() {
 			if (UpdateEdge(edges.stickDownHeld, pad.sThumbLY <= -kThumbstickDirectionThreshold)) {
 				RecordEdge(Vertical::Down);
 			}
+			// BACK is a modifier: A, X or Y pressed while it is held (pad_filter.h
+			// keeps that press from the game during play).
+			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
 				RecordEdge(FaceButton::A);
+				if (backDown) g_backWithA = true;
 			}
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
 			}
-			// BACK is a modifier: X or Y pressed while it is held (pad_filter.h
-			// keeps that press from the game during play).
-			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.xHeld, (pad.wButtons & XINPUT_GAMEPAD_X) != 0)) {
 				RecordEdge(FaceButton::X);
 				if (backDown) g_backWithX = true;
@@ -262,10 +263,11 @@ bool TakeRightStickClick() {
 	return clicked;
 }
 bool TakeBackWith(FaceButton button) {
-	bool& pressed = button == FaceButton::X ? g_backWithX : g_backWithY;
-	if (button != FaceButton::X && button != FaceButton::Y) return false;
-	const bool result = pressed;
-	pressed = false;
+	bool* pressed = button == FaceButton::A ? &g_backWithA : button == FaceButton::X ? &g_backWithX
+		: button == FaceButton::Y ? &g_backWithY : nullptr;
+	if (pressed == nullptr) return false;
+	const bool result = *pressed;
+	*pressed = false;
 	return result;
 }
 StickPush TakeRightStickPush(const char* claimant) {

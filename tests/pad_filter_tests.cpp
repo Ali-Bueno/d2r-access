@@ -37,5 +37,10 @@ int main() {
 	Check(Filter(Back | Y, true, press) == Back, "BACK+Y during play keeps Y from the game");
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(Back | Y, false, press) == (Back | Y), "in a menu BACK+Y is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	constexpr uint16_t ButtonA = 0x1000;
+	Check(Filter(Back | ButtonA, true, press) == Back, "BACK+A during play keeps A from the game, so no attack fires");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(ButtonA, true, press) == ButtonA, "A on its own during play is the game's");
 	Passed();
 }

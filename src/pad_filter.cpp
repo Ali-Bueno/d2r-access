@@ -113,7 +113,7 @@ bool TryInstall(const D2RL::PluginContext* context, bool last) {
 			g_retries = 0;
 			return false;
 		}
-		AsyncLog::InfoF(context, "[pad] filter on %zu game slot(s) for %ls XInputGetState: R3, and X/Y with BACK, kept during play; everything else passes through.",
+		AsyncLog::InfoF(context, "[pad] filter on %zu game slot(s) for %ls XInputGetState: R3, and A/X/Y with BACK, kept during play; everything else passes through.",
 			g_slots.size(), name);
 		g_retries = 0;
 		return true;
@@ -136,6 +136,7 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses) {
 	const bool back = (buttons & Back) != 0;
 	buttons = Keep(buttons, RightThumb, claimed, presses.rightThumb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
 	return buttons;
@@ -162,8 +163,9 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		(void)TryInstall(context, --g_retries == 0);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game during play:%s%s%s", (kept & RightThumb) ? " R3 (guidance)" : "",
-			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
+		AsyncLog::InfoF(context, "[pad] kept from the game during play:%s%s%s%s", (kept & RightThumb) ? " R3 (guidance)" : "",
+			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "",
+			(kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
 	}
 }
 
