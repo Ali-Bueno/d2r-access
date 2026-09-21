@@ -59,6 +59,12 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
+// The cells the highlighted item takes up, read on its own with a push right
+// on the right stick, apart from the detail like the button hints (the user,
+// 2026-09-21: "put size to be read separately on right stick right. it should
+// not read at all on right stick up").
+std::string g_size, g_sizeFor;
+
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
 
@@ -114,6 +120,22 @@ bool ReadHints(const D2RL::PluginContext* context) {
 	D2RAccess::AsyncLog::InfoF(context, "[hints] asked -> \"%s\"", text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;
+}
+
+// A push right on the right stick while an inventory item has focus. Only
+// there: in play the stick belongs to the scan, the pathfinder and the exit
+// finder, and the character panel's own reader has claimed it before this.
+bool ReadSize(const D2RL::PluginContext* context, NativeUi::Focus focus, bool inventory) {
+	if (!focus.panel || !inventory || !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Right, "size")) return false;
+	const std::string& text = g_size.empty() ? Strings::Current().detailNone : g_size;
+	D2RAccess::AsyncLog::InfoF(context, "[size] %s -> \"%s\"", g_sizeFor.c_str(), text.c_str());
+	ScreenReader::Speak(text, true);
+	return true;
+}
+
+void OfferSize(std::string_view owner, std::string size) {
+	g_sizeFor = owner;
+	g_size = std::move(size);
 }
 
 int SlotLocation(const D2RL::PluginContext* context, uintptr_t widget) {
@@ -226,6 +248,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	if (ReadSize(context, focus, inventory)) return true;
 	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
@@ -292,6 +315,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// The item under the cursor, for its size and, while an item is held, its name.
 	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
 		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : 0;
+	const auto size = inventory ? SizePhrase(focusItem) : std::string{};
+	if (inventory) OfferSize(readout.focusKey, size);
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
 	// Discard the previous focus/cell's last rendered description while the new
@@ -316,18 +341,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
 				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
 				split.headline.c_str(), split.detail.c_str());
-			// The cells the item takes up lead its detail, so with autodetail
-			// they come right after the name, ahead of any price.
-			const auto size = SizePhrase(focusItem);
+			// With autodetail the cells the item takes up come right after the
+			// name, ahead of any price; otherwise they wait for right stick right.
 			if (AutoDetail::Enabled()) {
 				description = std::move(split.name);
 				Append(description, size);
 				Append(description, split.price);
 				Append(description, split.detail);
 			} else description = std::move(split.headline);
-			std::string detail = size;
-			Append(detail, split.detail);
-			OfferDetail(readout.focusKey, std::move(detail));
+			OfferDetail(readout.focusKey, std::move(split.detail));
 		} else {
 			description = UiText::Clean(tooltip.body);
 			Append(description, UiText::Clean(tooltip.footer));
@@ -369,9 +391,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		&& InventoryCursor::HoldingItem(context).value_or(false)) {
 		heldOver = NativeGroundItems::ItemBaseName(focusItem);
 		if (heldOver.empty()) heldOver = Strings::Current().slotOccupied;
-		const auto size = SizePhrase(focusItem);
 		if (AutoDetail::Enabled()) Append(heldOver, size);
-		OfferDetail(readout.focusKey, size);
 	}
 	if (type.kind == UiText::Kind::InventoryGrid && !heldOver.empty()) {
 		readout.option = heldOver;
@@ -507,6 +527,8 @@ void Reset() {
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
+	g_size.clear();
+	g_sizeFor.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();

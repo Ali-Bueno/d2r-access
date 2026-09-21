@@ -558,15 +558,18 @@ int main() {
 	gridItem = 77; cell = {4, 0}; selection = 4; Settle();
 	Check(speech.empty(), "with nothing held an occupied cell still waits for the game's own tooltip");
 	gridItem = 0; equipmentItem = 0; equipmentPresence = NativeUi::ItemPresence::Unknown; equipmentLocation = 0;
-	// An item's size, the cells it takes up: on the right stick with autodetail
-	// off, right after the name with it on. Each cell the item covers names it.
+	// An item's size, the cells it takes up: on its own on right stick right,
+	// never in the detail on right stick up (the user, 2026-09-21), and right
+	// after the name with autodetail on. Each cell the item covers names it.
 	InteractionReader::Reset(); ClearSpeech(); holdingItem = false; tooltip = {};
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	itemPresence = NativeUi::ItemPresence::Occupied; gridItem = 55; cell = {7, 0}; selection = 7;
 	Tooltip("Daño: 2 a 7\nEspada corta"); Settle();
 	Check(speech == std::vector<std::string>{"Inventario. Espada corta"}, "with autodetail off an item reads its name alone");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"1 columna por 3 filas. Daño: 2 a 7"}, "and the cells it takes up lead its detail");
+	Check(Tick() && speech == std::vector<std::string>{"Daño: 2 a 7"}, "right stick up reads the detail without the size");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Right;
+	Check(Tick() && speech == std::vector<std::string>{"1 columna por 3 filas"}, "right stick right reads the cells it takes up");
 	ClearSpeech(); tooltip = {}; cell = {7, 1}; selection = (uint64_t{1} << 32) | 7; Settle();
 	Tooltip("Daño: 2 a 7\nEspada corta"); Settle();
 	Check(speech == std::vector<std::string>{"Espada corta"}, "the next cell the item covers names it again");
@@ -576,11 +579,16 @@ int main() {
 		"with autodetail on the size comes right after the name, ahead of the price");
 	ClearSpeech(); tooltip = {}; holdingItem = true; gridItem = 77; cell = {0, 3}; selection = uint64_t{3} << 32; Settle();
 	Check(speech == std::vector<std::string>{"Poción de curación menor. 1 columna por 1 fila"}, "an item under a held one gives its size too");
-	autoDetail = false; ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"1 columna por 1 fila"}, "which is its detail when autodetail is off");
+	autoDetail = false; ClearSpeech(); pendingPush = InputDirection::StickPush::Right;
+	Check(Tick() && speech == std::vector<std::string>{"1 columna por 1 fila"}, "which right stick right reads when autodetail is off");
 	ClearSpeech(); holdingItem = false; gridItem = 56; cell = {1, 3}; selection = (uint64_t{3} << 32) | 1;
-	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Up; ClearSpeech();
+	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Right; ClearSpeech();
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
 	gridItem = 0; tooltip = {};
+	ClearSpeech(); focus.widget = 28; widgetType = {"ButtonWidget", UiText::Kind::Button};
+	buttonSnapshot = {28, 28, "OtherAction", UiText::Surface::Other, {{28, -1, UiText::Kind::Button, "OtherAction", "ButtonWidget", "Identificar"}}};
+	Settle(); ClearSpeech(); pendingPush = InputDirection::StickPush::Right; Tick();
+	Check(pendingPush == InputDirection::StickPush::Right, "right stick right is claimed only on the inventory");
+	pendingPush = InputDirection::StickPush::None;
 	Passed();
 }
