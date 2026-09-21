@@ -289,6 +289,18 @@ int main() {
 		inPlay = true; focus = {}; widgetType = {}; Tick(); inPlay = false;
 		Check(stops == before + 1, "leaving the inventory for play still silences it");
 		focus = kept; widgetType = keptType; Settle(); ClearSpeech();
+		// A tab change that brings focus to another panel reads that panel's
+		// first highlight after the title, queued, without the title again.
+		const auto keptTabs = inventory; inventory = {};
+		focus = {50, 51}; widgetType = {}; Settle(); ClearSpeech(); interrupts.clear();
+		focus = {20, 21}; widgetType = keptType; cell = {0, 0}; selection = 0;
+		itemPresence = NativeUi::ItemPresence::Occupied; Tooltip("Pergamino");
+		now += 33; InteractionReader::Tick(&context, now, focus, false, "Inventario");
+		Settle();
+		Check(speech == std::vector<std::string>{"Inventario", "Pergamino"} && !interrupts.back(),
+			"a tab title is followed by the new panel's first highlight, queued and without the title twice");
+		inventory = keptTabs;
+		focus = kept; widgetType = keptType; tooltip = {}; itemPresence = NativeUi::ItemPresence::Empty; Settle(); ClearSpeech();
 	}
 	focus = {50, 51}; widgetType = {}; cell = {};
 	Check(InteractionReader::Tick(&context, now + 100, focus, false, "Árbol de hab.")

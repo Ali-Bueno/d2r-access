@@ -75,6 +75,12 @@ uintptr_t g_asideWidget = 0;
 // (MEASURED 2026-09-21 13:03:30). Later readouts interrupt as usual.
 uint64_t g_tabChangedAt = 0;
 constexpr uint64_t TabTitleMs = 1500;
+// The title that tab change spoke, so the readout queued behind it does not
+// begin by saying it again ("Inventory", then "Inventory. Belt...").
+std::string g_tabTitle;
+// The panel the last readout was about, to tell a tab change that moved focus
+// to another panel from one that left it where it was.
+uintptr_t g_readPanel = 0;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -250,6 +256,9 @@ bool HandlesFocus(NativeUi::Focus focus) {
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	if (conversation) { Reset(); return false; }
+	// Focus that has been anywhere else since, even back in the same panel
+	// after another tab, counts as moved when the next tab change comes.
+	if (focus.panel != g_readPanel) g_readPanel = 0;
 	// The character panel's own stick reader goes first: it claims all four
 	// directions, and ReadDetail below would otherwise take up from it. Nothing
 	// is lost by that order -- the character panel holds neither items nor
@@ -484,10 +493,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	g_inventory = inventory;
 	if (!inventory) g_inventoryContext = {};
 	if (!tabChange.empty()) {
-		// A tab switch announces only its name. Accept the current cell as the
-		// baseline so its delayed readout cannot immediately interrupt that name.
-		if (readout.Empty()) g_reader.Reset();
+		// A tab switch announces its name, and the new panel's first highlight
+		// follows it, queued (the user, 2026-09-21: "tab header spoken in full,
+		// then the initially highlighted choice"). Focus that stayed where it
+		// was -- a stash tab changed with LT/RT while the cursor is in the
+		// player's inventory -- is taken as the baseline and not read again.
+		if (readout.Empty() || focus.panel != g_readPanel) g_reader.Reset();
 		else (void)g_reader.Update(readout, now, 0);
+		g_tabTitle = UiText::Clean(tabChange);
 		// The menu switcher's tab is the panel the window announcer has just
 		// named. MEASURED 2026-09-21: "Character" was said twice, the second
 		// time with interrupt, which cut off what was queued behind the first.
@@ -540,7 +553,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs;
+		if (behindTitle && announcement.text.starts_with(g_tabTitle + ". "))
+			announcement.text.erase(0, g_tabTitle.size() + 2);
 		g_tabChangedAt = 0;
+		g_readPanel = focus.panel;
 		ScreenReader::Speak(announcement.text, !behindTitle);
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
@@ -558,6 +574,8 @@ void Reset() {
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
 	g_tabChangedAt = 0;
+	g_tabTitle.clear();
+	g_readPanel = 0;
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
