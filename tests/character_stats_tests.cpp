@@ -20,6 +20,7 @@ std::map<uintptr_t, Widget> widgets;
 std::vector<uintptr_t> order; // declaration order, which is the order Snapshot walks
 bool panelVisible = true;
 std::vector<std::string> speech;
+std::vector<bool> interrupts;
 InputDirection::StickPush pending = InputDirection::StickPush::None;
 
 constexpr uintptr_t Panel = 1;
@@ -65,7 +66,9 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 }
 }
 
-namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
+namespace D2RAccess::ScreenReader {
+void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
+}
 namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) {}
@@ -214,8 +217,18 @@ int main() {
 	Check(CharacterStatsReader::Advance(3, Push::Down, 0) == -1, "a panel with nothing to read has no cursor");
 
 	// The gesture itself, and who it is claimed from.
+	// Opening the panel names the character once, behind the panel's title.
+	widgets[2].text.clear();
 	CharacterStatsReader::Reset();
 	Check(!CharacterStatsReader::Tick(nullptr, On(11)), "an idle stick is left for the entity scan and the pathfinder");
+	Check(speech.empty(), "a name the game has not rendered yet is not spoken");
+	widgets[2].text = "Ulfr";
+	CharacterStatsReader::Tick(nullptr, On(11));
+	Check(speech == std::vector<std::string>{"Ulfr"} && !interrupts.back(),
+		"the name is spoken once it renders, queued behind the title instead of cutting it off");
+	CharacterStatsReader::Tick(nullptr, On(11));
+	Check(speech.size() == 1, "and only once while the panel stays open");
+	speech.clear();
 	pending = Push::Down;
 	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.size() == 1 && speech.back() == "Fuerza. 30",
 		"a push down on the character panel reads the first statistic");

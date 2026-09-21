@@ -178,6 +178,8 @@ std::vector<std::string> Lines(uintptr_t panel) {
 	return lines;
 }
 
+std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
+
 void Reset() {}
 
 }

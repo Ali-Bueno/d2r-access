@@ -33,6 +33,10 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type);
 // with identical widget names.
 std::vector<std::string> Lines(uintptr_t panel);
 
+// The character's name as the panel shows it, empty until the game has
+// rendered it.
+std::string Name(uintptr_t panel);
+
 void Reset();
 
 }

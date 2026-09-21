@@ -1,3 +1,4 @@
+#include "character_stats_reader.h"
 #include "modal_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -27,6 +28,7 @@ Focus CurrentFocus() { return {}; } // these panels open with nothing focused
 UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return tree; }
 }
 namespace D2RAccess::NativeWidgets { uintptr_t FindPanel(std::string_view) { return Panel; } }
+namespace D2RAccess::CharacterStatsReader { bool Owns(std::string_view panel) { return panel == "CharacterStatsPanel"; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); } }
 namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
 
@@ -64,5 +66,8 @@ int main() {
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2 && speech.back().text == "Delete this character?",
 		"only what sits under a tab bar is skipped, however deep, and the rest of the panel still reads");
+	active = "CharacterStatsPanel";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 2, "the character panel is left to its own reader");
 	Passed();
 }

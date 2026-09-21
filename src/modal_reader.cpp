@@ -1,6 +1,7 @@
 #include "modal_reader.h"
 
 #include "async_log.h"
+#include "character_stats_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -58,6 +59,15 @@ void Tick(const D2RL::PluginContext* context) {
 	if (active == g_lastPanel) return;
 	g_lastPanel = active;
 	if (active.empty()) return;
+
+	// The character panel has its own reader, which names the character behind
+	// the title and keeps every statistic on the right stick. Read from here it
+	// was thirty-odd bare labels and numbers in one breath (MEASURED
+	// 2026-09-21), cut off in turn by the tab reader.
+	if (CharacterStatsReader::Owns(active)) {
+		AsyncLog::InfoF(context, "[modal] %s is read by its own reader", active.c_str());
+		return;
+	}
 
 	// A panel the player can navigate is the focus reader's job; this is only
 	// for the ones the game opens without giving anything focus.

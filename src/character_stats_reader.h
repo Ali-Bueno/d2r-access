@@ -26,8 +26,12 @@ namespace D2RAccess::CharacterStatsReader {
 int Advance(int cursor, InputDirection::StickPush push, int count);
 
 // True when the gesture was claimed, so the callers further down the tick
-// leave the stick alone.
+// leave the stick alone. Also says the character's name once per opening of
+// the panel, queued behind the panel's title.
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
+
+// True for the panel this reader speaks for, so the generic readers leave it.
+bool Owns(std::string_view panel);
 
 void Reset();
 
