@@ -2,6 +2,65 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Terrain overview — 2026-09-21
+
+The accessible automap: **Ctrl+O** or the **L3+R3 chord** speaks the level name, the player's place in it
+(screen thirds: `borde izquierdo`, `centro`…) and, per screen direction, the distance to the level's outer
+edge or to an already generated neighbour level, plus where unexplored terrain starts (rooms never streamed
+near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). A short R3
+click stays the beacon, an R3 hold reviews the ways out, L3 is the survey; the chord is told from any of
+them (`src/stick_chord.*`). `src/terrain_overview.*`, `src/explored_rooms.*`,
+`src/terrain_service.*`, `docs/terrain-overview.md`. 46/46 CTest suites. Why it was needed: in Blood Moor
+the exit review only names Cold Plains once the game generates it (~40 m from the border), by design.
+RE of the act level list and the `Level` rect (`+0x24..0x30`, tiles) in `docs/act-levels-re.md`; the
+overview uses the RoomEx union and only cross-checks the rect (`[terrain] … differs` warning).
+
+**Next step:** listening check in Blood Moor with the controller: L3+R3 right after entering
+(expect `Blood Moor, borde izquierdo. adelante: …`), walk toward an unexplored direction, repeat; confirm
+the exit review names Cold Plains once ~40 m from its border. Judge the chord and the wording.
+
+## Four radar readings, ported from the Among Us sonar — 2026-09-21
+
+The radar now says what a route *means*, not only whether it is free: **exit** (tin: into another chamber
+of a maze level, or to a level exit), **floor** (a soft breath: walkable, leads nowhere new), **wall**
+(tock) and **door** (two knocks, the game's own DOOR bit). No dead band any more: one threshold each way
+and the committed reading stands in between, so the first observation is always a verdict. The doorway
+width is the level's own (median opening width of the streamed rooms, clamped to the two-tile opening
+depth); the wall distance stays at the validated two tiles. The doorway just walked through is taken as
+read instead of sounded behind the player; the cue queue plays walls and doors first, then exits, then
+floor. `access-radar test` auditions all four. `docs/radar-readings.md`,
+`reference/audio-navigation/among-us/passability-sonar.md`. 46/46 CTest suites.
+
+**Next step:** listening pass. In the Den: walk a corridor towards a room (expect tin only once the
+route really enters it, breath before), face a closed door (knocks, not tock), enter a room and check
+the doorway behind stays silent. In the camp: tin only towards the Blood Moor edge or a waypoint,
+breath elsewhere. Judge the breath's level under the game's ambience. `way_through=` in `[radar-motion]`
+shows the derived doorway width.
+
+## Exit review and room hysteresis — 2026-09-20
+
+The ways out are reviewed one at a time, nearest first: an R3 hold (>= 350 ms, `StickChord::RightHoldMs`)
+or Ctrl+V speaks `abertura, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a
+short right-stick click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
+elsewhere, and off-grid, the level's exits. Outdoor boundaries (camp → Blood Moor, no warp unit) now come from the act's
+level areas (`src/native_level_areas.*`, `levelBearings`); upstream's own RoomEx border walk was dropped
+for it when `bladestorm` was merged. Room changes pass grimdark's hysteresis (settle 1000 / dwell 400, dwell only inside the first second
+after a change), so a room is spoken on entering, not a second later. `src/exit_review.*`,
+`docs/rooms.md`, `docs/beacon.md`, `docs/distant-exits.md`. 45/45 CTest suites.
+
+**Live-verified 2026-09-20 (unattended, camp):** `Waypoint, 38 meters, 4 o'clock, around, 1 of 2` then
+`Blood Moor, 136 meters, 4 o'clock, 2 of 2` (beyond the 96-cell route box, so no reach word); Ctrl+B locks
+either with the same `reach=`. Hysteresis still needs the user (maze level, controller).
+
+Ported from `grimdark` after a code-level pass that corrected our reference: its ping never calls the
+pathfinder ("path" is inferred), exits never say "blocked", and the hysteresis is inverted. Our "around"
+is verified by the route search. `reference/audio-navigation/grim-dawn/navigation-spec.md`.
+
+**Pending (2026-09-20):** listening check with the controller. In the Den: enter a room (expect its ways out at
+once), hold R3 or Ctrl+V (next way out), click R3 (guide to it). Judge the 1000/400 ms
+hysteresis by ear. Known: `[items] exits nearby` counts warp units only, so it says 1 where the review
+says 2.
+
 ## Collision semantics audited against D2MOO — 2026-09-20
 
 Our grid reading is the game's: mask 0x1C09 read live, five-cell cross for the player, 0x27 for no
@@ -23,8 +82,37 @@ blocked in all four cardinals with the character immobile; the spawn wall cues o
 zero `pattern=0`, 4 cues in 9 moves, no crash.
 
 **Next step:** the user's listening pass. Known limit, by design of the four screen cardinals: in a pocket
-whose only way out runs along a world axis (a screen diagonal), all four read blocked; the scan is the answer
-there, not the radar.
+whose only way out runs along a world axis (a screen diagonal), all four read blocked; the exit review or
+the scan is the answer there, not the radar.
+
+## Room exits, in maze levels — 2026-09-20
+
+Walking into a dungeon room speaks its ways out: screen directions for the plain openings, the
+game's own destination name for a stairway or portal inside it. No segmentation algorithm — a maze
+level (`Levels.txt DrlgType = 1`) is built from `LvlPrest` cells and one streamed room is one cell,
+so D2 has already done it. Excluded elsewhere: in towns and the open acts the room partition cuts
+across open floor and means nothing. Ctrl+M, `access-rooms`. `docs/rooms.md`.
+
+An opening is only spoken when the cell across the border belongs to another **streamed** room:
+inactive rooms have no collision grid at all (`Room1+0x38`, freed on unload), so a doorway into
+ground D2 has not loaded yet stays unspoken rather than guessed.
+
+**Next step:** listening check in the Den of Evil and the Crypt. Expect one line per room, about a
+second after entering, never twice for the same room, and silence in the camp and the Blood Moor.
+`[room] entered` in the log carries the rectangle and the opening count.
+
+## Beacon says how you get there — 2026-09-20
+
+Locking a target now ends with one word: straight, around, or no route. Three states out of data the
+route search already computed and threw away (`Route.reachable`), plus a body-aware straight-line
+test over the same field, so the two answers cannot disagree. Beyond the search box it says nothing
+rather than claim no route. No new sounds, no new key. `docs/beacon.md`.
+
+Ported from the Grim Dawn mod `grimdark`, whose review ping answers exactly this and nothing else:
+`reference/audio-navigation/grim-dawn/navigation-spec.md` §6.
+
+**Next step:** listening check. Scan a target and click the right stick in the camp (expect recto),
+then through a wall (rodeando), then a sealed or far target. Check `reach=` in `[beacon] locked`.
 
 ## Container loops — 2026-09-18
 
@@ -419,7 +507,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Quest log / automatic quest tracking | counter confirmed live 2026-09-17 | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
-| Target beacon guidance | cross-level exit leak fixed 2026-09-16; dungeon validation pending | Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
+| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
+| Target beacon guidance | reach verdict added 2026-09-20; listening check pending | Says recto / rodeando / no se llega when it locks, and nothing beyond the search box. Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |

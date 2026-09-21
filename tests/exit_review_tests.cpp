@@ -96,7 +96,7 @@ void Spoken() {
 	const auto items = ExitReview::Collect(player, {{{94, 94}, 3}}, {Exit(7, {103, 103}, "Escalera")}, Spanish);
 	Check(items.size() == 2 && items[0].named && !items[1].named, "the nearer way out is the named one here");
 	Check(ExitReview::Describe(items[0], Scan, Spanish) == "Escalera, 4 pasos", "a named exit reads its name and distance");
-	Check(ExitReview::Describe(items[1], Scan, Spanish) == "paso, 8 pasos", "an opening reads as a passage");
+	Check(ExitReview::Describe(items[1], Scan, Spanish) == "abertura, 8 pasos", "an opening reads as an opening");
 	const auto english = ExitReview::Collect(player, {{{94, 94}, 3}}, {}, English);
 	const auto line = ExitReview::Describe(english[0], Scan, English);
 	Check(line == "passage, 8 steps", "English reads the same line");
