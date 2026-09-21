@@ -27,10 +27,10 @@ int Advance(int cursor, InputDirection::StickPush push, int count);
 
 // True when the gesture was claimed, so the callers further down the tick
 // leave the stick alone. Also says the character's name once per opening of
-// the panel, queued behind the panel's title; reads the points left on BACK
-// (kept from the game here, whose use of it is View Advanced Stats); and
-// leaves the stick to the point readout while a point button has focus -- up
-// for the stat's explanation, down for its controls.
+// the panel, queued behind the panel's title. While a point button has focus
+// the stick is the point readout's -- up for the stat's explanation, down for
+// its controls -- except right, which reads the points left to spend; with
+// nothing focused, right jumps to the last statistic, which is that same line.
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
 
 // True for the panel this reader speaks for, so the generic readers leave it.

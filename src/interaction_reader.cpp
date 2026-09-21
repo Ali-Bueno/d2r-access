@@ -3,7 +3,6 @@
 #include "control_hints.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
-#include "controller_text.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
@@ -145,9 +144,6 @@ void Append(std::string& text, const std::string& part) {
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
 	text += part;
 }
-
-// BACK among ControllerText's buttons: glyph U+E006, "View" in English.
-constexpr size_t BackGlyph = 6;
 
 // The inventory's gold row, named by the game's own widget name.
 constexpr std::string_view GoldButton = "gold_button";
@@ -374,13 +370,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// stick down, and spoken unasked only last and only with autodetail and
 	// control tooltips on -- MEASURED 2026-09-21, a change of hints spoken on
 	// its own interrupted the gold amount it followed.
-	// On the character panel BACK reads the points left and is kept from the
-	// game (character_stats_reader.h), so its "View" entry is left out there.
 	const auto help = !(inventory || button || stats) ? std::string{}
-		: progression.skill ? progression.controls
-		: type.kind == UiText::Kind::StatButton
-			? ControllerText::WithoutControl(NativeControllerHelp::ForFocus(focus), Strings::Current().controllerButtons[BackGlyph])
-			: NativeControllerHelp::ForFocus(focus);
+		: progression.skill ? progression.controls : NativeControllerHelp::ForFocus(focus);
 	if (inventory || button || stats) ControlHints::Offer(help);
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. An occupied cell or slot
@@ -457,7 +448,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
 		if (g_stat.widget == focus.widget) {
-			// The new value alone: the points left are BACK's to say here.
+			// The new value alone: right stick right says the points left.
 			if (g_stat.value != progression.value) Append(changed, progression.value);
 		}
 		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);

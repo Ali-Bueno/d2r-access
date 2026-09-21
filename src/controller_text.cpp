@@ -28,19 +28,4 @@ std::string Read(std::string_view text) {
 	}
 	return UiText::Clean(result);
 }
-std::string WithoutControl(std::string_view hints, std::string_view button) {
-	const std::string prefix = std::string(button) + ": ";
-	std::string result;
-	for (size_t at = 0; at <= hints.size();) {
-		const size_t end = hints.find(". ", at);
-		const auto entry = hints.substr(at, end == std::string_view::npos ? std::string_view::npos : end - at);
-		if (!entry.starts_with(prefix) && !entry.empty()) {
-			if (!result.empty()) result += ". ";
-			result += entry;
-		}
-		if (end == std::string_view::npos) break;
-		at = end + 2;
-	}
-	return result;
-}
 }

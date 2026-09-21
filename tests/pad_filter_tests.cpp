@@ -48,8 +48,6 @@ int main() {
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(ButtonB, true, press) == ButtonB, "B on its own during play is the game's");
 	Check(Filter(0, true, press) == 0, "release");
-	Check(Filter(Back, false, press, true) == 0, "on the character panel BACK is the mod's, for the points left");
-	Check(Filter(0, false, press, true) == 0, "release");
-	Check(Filter(Back, false, press, false) == Back, "anywhere else it is the game's");
+	Check(Filter(Back, false, press) == Back, "in a menu BACK is the game's (the character panel's View Advanced Stats)");
 	Passed();
 }

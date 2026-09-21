@@ -415,8 +415,8 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Aumenta el daño."}, "right stick up reads what the stat does");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down;
-	Check(Tick() && speech == std::vector<std::string>{"A: Asignar un punto. B: Cerrar menú"},
-		"right stick down reads the controls to spend a point, without BACK's, which is the mod's there");
+	Check(Tick() && speech == std::vector<std::string>{controllerHelp},
+		"right stick down reads the controls to spend a point, BACK's View Advanced Stats included");
 	controllerHelp.clear();
 	ClearSpeech(); Tooltip("Gastar punto"); Settle();
 	Check(speech.empty(), "rendered stat action does not repeat generic spend instruction");
@@ -424,7 +424,7 @@ int main() {
 	Check(speech.size() == 1 && speech[0].ends_with("no disponible"), "enriched stat readout preserves disabled state");
 	ClearSpeech(); progression.value = "31"; progression.points = "4 puntos";
 	progression.readout.option = "Fuerza. 31"; Tick();
-	Check(speech == std::vector<std::string>{"31"}, "spending a stat point reads only the new value: the points left are BACK's");
+	Check(speech == std::vector<std::string>{"31"}, "spending a stat point reads only the new value: right stick right has the points left");
 	autoDetail = true; ClearSpeech(); focus.widget = 62; progression.readout.focusKey = "62";
 	buttonSnapshot = {62, 62, "DexPointButton", UiText::Surface::Other, {{62, -1, UiText::Kind::StatButton, "DexPointButton", "", "Gastar punto"}}};
 	progression.readout.option = "Destreza. 20"; progression.value = "20"; progression.description = "Aumenta la precisión."; Tick();

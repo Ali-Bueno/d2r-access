@@ -3,7 +3,6 @@
 #include "async_log.h"
 #include "character_stats.h"
 #include "native_widgets.h"
-#include "pad_filter.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 
@@ -14,10 +13,6 @@
 namespace D2RAccess::CharacterStatsReader {
 namespace {
 constexpr std::string_view Panel = "CharacterStatsPanel";
-
-// A BACK press counts only this fresh: an older one was made elsewhere, as the
-// modifier of a BACK readout in play, and is not a request for the points.
-constexpr unsigned BackPressMs = 250;
 
 uintptr_t g_panel = 0; // the panel the cursor belongs to
 int g_cursor = -1;
@@ -45,15 +40,6 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	uintptr_t panel = focus.panel && NativeWidgets::ReadName(focus.panel) == Panel
 		? focus.panel : NativeWidgets::FindPanel(Panel);
 	if (!panel || !NativeUi::Visible(panel)) { Reset(); return false; }
-	// BACK reads the points left to spend, here and only here (the user,
-	// 2026-09-21: "back button when on that specific screen should announce
-	// points remaining"). It is kept from the game while this panel is up.
-	PadFilter::ClaimBack(true);
-	if (InputDirection::TakeBackPress(BackPressMs)) {
-		const auto points = CharacterStats::Points(panel);
-		D2RAccess::AsyncLog::InfoF(context, "[stats] BACK -> \"%s\"", points.c_str());
-		ScreenReader::Speak(points.empty() ? Strings::Current().detailNone : points, true);
-	}
 	if (panel != g_panel) { g_panel = panel; g_cursor = -1; }
 	// The window announcer has already said the panel's title; the name
 	// queues behind it. It is read until the game has rendered it -- MEASURED
@@ -66,9 +52,18 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 			ScreenReader::Speak(name, false);
 		}
 	}
-	// While a point button has focus the stick belongs to the point readout:
-	// up for the stat's explanation, down for its controls.
-	if (focus.widget && NativeUi::Classify(focus.widget).kind == UiText::Kind::StatButton) return false;
+	// While a point button has focus the stick belongs to the point readout --
+	// up for the stat's explanation, down for its controls -- except right,
+	// which reads the points left to spend (the user, 2026-09-21: "right stick
+	// right can be used to read remaining stat points"). BACK stays the game's
+	// View Advanced Stats.
+	if (focus.widget && NativeUi::Classify(focus.widget).kind == UiText::Kind::StatButton) {
+		if (!InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Right, "stats")) return false;
+		const auto points = CharacterStats::Points(panel);
+		D2RAccess::AsyncLog::InfoF(context, "[stats] points -> \"%s\"", points.c_str());
+		ScreenReader::Speak(points.empty() ? Strings::Current().detailNone : points, true);
+		return true;
+	}
 	// Read the panel only once a push is pending: the walk costs a tree
 	// traversal, and the stick is idle for all but a few of these ticks.
 	InputDirection::StickPush push = InputDirection::StickPush::None;
@@ -87,6 +82,6 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 
 bool Owns(std::string_view panel) { return panel == Panel; }
 
-void Reset() { g_panel = 0; g_cursor = -1; g_named = false; PadFilter::ClaimBack(false); }
+void Reset() { g_panel = 0; g_cursor = -1; g_named = false; }
 
 }

@@ -47,7 +47,6 @@ struct PadEdgeState {
 	bool rightStickHeld = false;
 	bool leftThumbHeld  = false;
 	bool rightThumbHeld = false;
-	bool backHeld       = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -61,7 +60,6 @@ Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
-ULONGLONG g_backPressedAt = 0; // the last BACK press, for the character panel's points
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -185,7 +183,6 @@ void Poll() {
 			// BACK is a modifier: a face button pressed while it is held (pad_filter.h
 			// keeps that press from the game during play).
 			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
-			if (UpdateEdge(edges.backHeld, backDown)) g_backPressedAt = GetTickCount64();
 			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
 				RecordEdge(FaceButton::A);
 				if (backDown) g_backWithA = true;
@@ -257,12 +254,6 @@ bool TakeRightStickClick() {
 	g_rightStickClick = false;
 	return clicked;
 }
-bool TakeBackPress(unsigned maxAgeMs) {
-	const ULONGLONG at = g_backPressedAt;
-	g_backPressedAt = 0;
-	return at != 0 && GetTickCount64() - at <= maxAgeMs;
-}
-
 bool TakeBackWith(FaceButton button) {
 	bool* pressed = button == FaceButton::A ? &g_backWithA : button == FaceButton::B ? &g_backWithB
 		: button == FaceButton::X ? &g_backWithX

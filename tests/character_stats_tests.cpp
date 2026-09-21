@@ -19,8 +19,6 @@ struct Widget {
 std::map<uintptr_t, Widget> widgets;
 std::vector<uintptr_t> order; // declaration order, which is the order Snapshot walks
 bool panelVisible = true;
-bool backPressed = false;
-bool backClaimed = false;
 uintptr_t statButton = 0; // the widget that classifies as a point button
 std::vector<std::string> speech;
 std::vector<bool> interrupts;
@@ -72,10 +70,6 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 }
 }
 
-namespace D2RAccess::InputDirection {
-bool TakeBackPress(unsigned) { const bool pressed = backPressed; backPressed = false; return pressed; }
-}
-namespace D2RAccess::PadFilter { void ClaimBack(bool claimed) { backClaimed = claimed; } }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 }
@@ -270,22 +264,22 @@ int main() {
 	panelVisible = false;
 	Check(!CharacterStatsReader::Tick(nullptr, {}) && pending == Push::Down,
 		"and a panel that is not showing leaves the stick alone, push and all");
-	Check(!backClaimed, "nor claims BACK");
 	panelVisible = true;
 
-	// BACK on this panel reads the points left, and is the mod's while it is up.
-	Add(90, "CombinedPointsInfo", "5 puntos de estadísticas restantes");
-	pending = Push::None;
-	speech.clear(); backPressed = true;
-	CharacterStatsReader::Tick(nullptr, {});
-	Check(backClaimed && !speech.empty() && speech.front() == "5 puntos de estadísticas restantes", "BACK reads the points left to spend");
-
 	// A point button with focus has the stick: up describes the stat, down
-	// reads its controls (interaction_reader.cpp).
+	// reads its controls (interaction_reader.cpp), right says the points left.
+	Add(90, "CombinedPointsInfo", "5 puntos de estadísticas restantes");
 	Add(91, "StrengthPointButton", "", Panel);
 	statButton = 91;
 	pending = Push::Up;
 	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::Up,
-		"while a point button has focus the stick is left to the point readout");
+		"while a point button has focus up is left to the point readout");
+	pending = Push::Right; speech.clear();
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && !speech.empty()
+		&& speech.back() == "5 puntos de estadísticas restantes", "right says the points left to spend");
+	// With nothing focused, right jumps to the last statistic -- the same line.
+	statButton = 0; pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "5 puntos de estadísticas restantes",
+		"and with nothing focused the last statistic is the points left");
 	Passed();
 }

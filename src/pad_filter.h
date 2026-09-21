@@ -36,24 +36,20 @@ void Remove();
 // from the UI tick. Also logs, once per press, what was kept from the game.
 void Claim(const D2RL::PluginContext* context, bool claimed);
 
-// Whether BACK itself is the mod's right now: on the character panel, where it
-// reads the points left instead of the game's View Advanced Stats.
-void ClaimBack(bool claimed);
-
 // One button's press as the filter has seen it.
 struct Press {
 	bool down = false;
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press rightThumb, a, b, x, y, back; };
+struct Presses { Press rightThumb, a, b, x, y; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: R3,
 // guidance's click; and the face buttons pressed while BACK is held, the
 // mod's BACK+A, B, X and Y readouts (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
-// while it is held. BACK itself passes, except while `claimedBack`.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool claimedBack = false);
+// while it is held. BACK itself always passes.
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses);
 
 }
