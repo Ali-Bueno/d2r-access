@@ -60,11 +60,14 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
-// The cells the highlighted item takes up, read on its own with a push right
-// on the right stick, apart from the detail like the button hints (the user,
-// 2026-09-21: "put size to be read separately on right stick right. it should
-// not read at all on right stick up").
-std::string g_size, g_sizeFor;
+// What a push right on the right stick reads for the highlighted thing, apart
+// from its detail like the button hints: an item's size (the user, 2026-09-21:
+// "put size to be read separately on right stick right. it should not read at
+// all on right stick up") and a skill's choices left, the way the character
+// panel gives its stat points there. Offered only while an item or a skill has
+// focus; g_asideWidget is 0 otherwise, and right stick right is left alone.
+std::string g_aside;
+uintptr_t g_asideWidget = 0;
 
 // When a tab last changed. The first readout after it queues behind the title
 // the window announcer is still speaking instead of cutting it off -- the skill
@@ -130,20 +133,21 @@ bool ReadHints(const D2RL::PluginContext* context) {
 	return true;
 }
 
-// A push right on the right stick while an inventory item has focus. Only
-// there: in play the stick belongs to the scan, the pathfinder and the exit
+// A push right on the right stick while an item or a skill has focus. Only
+// then: in play the stick belongs to the scan, the pathfinder and the exit
 // finder, and the character panel's own reader has claimed it before this.
-bool ReadSize(const D2RL::PluginContext* context, NativeUi::Focus focus, bool inventory) {
-	if (!focus.panel || !inventory || !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Right, "size")) return false;
-	const std::string& text = g_size.empty() ? Strings::Current().detailNone : g_size;
-	D2RAccess::AsyncLog::InfoF(context, "[size] %s -> \"%s\"", g_sizeFor.c_str(), text.c_str());
+bool ReadAside(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (!focus.panel || !g_asideWidget || focus.widget != g_asideWidget
+		|| !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Right, "aside")) return false;
+	const std::string& text = g_aside.empty() ? Strings::Current().detailNone : g_aside;
+	D2RAccess::AsyncLog::InfoF(context, "[aside] -> \"%s\"", text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;
 }
 
-void OfferSize(std::string_view owner, std::string size) {
-	g_sizeFor = owner;
-	g_size = std::move(size);
+void OfferAside(uintptr_t widget, std::string text) {
+	g_asideWidget = widget;
+	g_aside = std::move(text);
 }
 
 int SlotLocation(const D2RL::PluginContext* context, uintptr_t widget) {
@@ -253,12 +257,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (CharacterStatsReader::Tick(context, focus)) return true;
 	if (ReadDetail(context, focus)) return true;
 	if (ReadHints(context)) return true;
+	if (ReadAside(context, focus)) return true;
 	const uintptr_t tooltips = NativeWidgets::FindPanel("TooltipsPanel");
 	NativeTooltips::Track(tooltips);
 	TooltipDelay::Apply(context, tooltips);
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
-	if (ReadSize(context, focus, inventory)) return true;
 	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
@@ -326,7 +330,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
 		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : 0;
 	const auto size = inventory ? SizePhrase(focusItem) : std::string{};
-	if (inventory) OfferSize(readout.focusKey, size);
+	if (inventory) OfferAside(focus.widget, size);
+	else if (progression.skill) OfferAside(focus.widget, progression.points);
+	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
 	// Discard the previous focus/cell's last rendered description while the new
@@ -370,7 +376,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			readout.coordinates.clear(); // a described cell keeps its existing coordinate-free readout
 		}
 		else if (progression.skill) {
-			auto split = ProgressionText::SkillReadout(description, progression.points, progression.help);
+			// The choices left are right stick right's, and join the readout only
+			// with autodetail (the user, 2026-09-21: heard on every highlight).
+			auto split = ProgressionText::SkillReadout(description,
+				AutoDetail::Enabled() ? progression.points : std::string{}, progression.help);
 			readout.option = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(readout.option, split.detail);
 			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
@@ -552,8 +561,8 @@ void Reset() {
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
-	g_size.clear();
-	g_sizeFor.clear();
+	g_aside.clear();
+	g_asideWidget = 0;
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();

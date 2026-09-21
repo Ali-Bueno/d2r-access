@@ -472,7 +472,9 @@ int main() {
 	progression.readout.coordinates = "Fila 1, columna 1";
 	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
 	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
-	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. Asignada a A. Fila 1, columna 1"}, "a skill reads its name, its points and its binding, and the grid position last");
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. Asignada a A. Fila 1, columna 1"}, "a skill reads its name and its binding, and the grid position last");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Right;
+	Check(Tick() && speech == std::vector<std::string>{"1 punto"}, "the choices left are read on right stick right, as the character panel's points are");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down;
 	Check(Tick() && speech == std::vector<std::string>{"X: Asignar habilidad"}, "what the buttons do waits for right stick down");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
