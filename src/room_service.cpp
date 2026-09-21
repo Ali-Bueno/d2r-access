@@ -77,9 +77,6 @@ bool Playing() {
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
 	return RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
 }
-bool Maze(int level) {
-	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == MazeDrlgType;
-}
 const char* Where(Radar::Position player, Radar::Position target) {
 	return Strings::Current().scanDirections[static_cast<size_t>(NpcProximity::DirectionOf(player, target))];
 }
@@ -183,6 +180,9 @@ void Review(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		index + 1, items.size(), item.point.x, item.point.y, item.hour, item.named ? 1u : 0u,
 		reach ? reach : "unknown", text.c_str());
 }
+}
+bool Maze(int level) {
+	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == MazeDrlgType;
 }
 
 bool Register(const D2RL::PluginContext* context) {

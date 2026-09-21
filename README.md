@@ -102,8 +102,10 @@ that mode announces that the item is no longer held. These notices occur on
 state changes, and manual repeat includes the current held-item context.
 
 An experimental **navigation radar** now reads the collision grids of loaded
-game rooms. It synthesizes directional `tin` (a usable passage opens) / `tock`
-(a nearby structural barrier closes that passage) cues,
+game rooms. It synthesizes four directional cues: a bright `tin` when a passage
+leads somewhere (another chamber of a dungeon, or a level exit), a soft breath
+for floor that leads nowhere new, a dull `tock` for a nearby wall and two
+knocks for a closed door ([readings](docs/radar-readings.md)),
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
 silence between them**. The radar checks the full body along each passage using

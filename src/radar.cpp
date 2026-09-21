@@ -1,5 +1,6 @@
 #include "radar.h"
 #include "radar_passage.h"
+#include "rooms.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,6 +17,13 @@ void Engine::Reset() {
 double Engine::Speed() const { return std::hypot(velocity_.x, velocity_.y); }
 double Engine::CloseDepth(const Settings& settings, int bodyPattern) {
 	return std::max(settings.blockedDepth, settings.openDepth - BodySpan(bodyPattern));
+}
+double Engine::WayThrough(const World& world, const Settings& settings) {
+	// Wider than the opening depth would ask for more proof than the sensor
+	// itself calls an opening; narrower than the body could not be walked.
+	const int typical = world.maze ? Rooms::TypicalOpeningWidth(world) : 0;
+	if (typical <= 0) return settings.openDepth;
+	return std::clamp(static_cast<double>(typical), BodySpan(world.bodyPattern), settings.openDepth);
 }
 void Engine::UpdateMotion(Position player, uint64_t now) {
 	if (!motion_.empty() && (player.x != motion_.back().position.x || player.y != motion_.back().position.y)) lastMove_ = now;
@@ -38,6 +46,24 @@ void Engine::UpdateMotion(Position player, uint64_t now) {
 	const double speed = std::max(Speed(), distance / recentSeconds);
 	velocity_ = {delta.x * speed / distance, delta.y * speed / distance};
 }
+void Engine::TrackRoom(const World& world, Position travel) {
+	const int index = world.RoomAt(static_cast<int>(world.player.x), static_cast<int>(world.player.y));
+	if (index < 0) return; // off-grid is not a room change
+	const auto& room = world.rooms[static_cast<size_t>(index)];
+	const bool changed = roomKnown_ && (room.x != roomX_ || room.y != roomY_);
+	roomX_ = room.x; roomY_ = room.y; roomKnown_ = true;
+	if (!changed || !world.maze) return;
+	// The doorway just crossed lies behind the player: the direction most
+	// against the step that crossed it will read it as an exit, and has.
+	for (auto& sensor : sensors_) sensor.wayBack = false;
+	size_t back = 0;
+	double best = 0;
+	for (size_t i = 0; i < sensors_.size(); ++i) {
+		const double along = travel.x*Axes[i].x + travel.y*Axes[i].y;
+		if (along < best) { best = along; back = i; }
+	}
+	if (best < 0) sensors_[back].wayBack = true;
+}
 State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const {
 	const auto& passage = sensor.passage;
 	if (!passage.available) {
@@ -46,12 +72,10 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		sensor.candidate = State::Unknown;
 		return State::Unknown;
 	} else if (!sensor.baseline) {
-		// Silent baseline: the first observation after a reset never sounds,
-		// the hysteresis dead band included. A wall met from that dead band is
-		// then a real change, so it is cued like any other.
+		// Silent baseline: the first observation after a reset never sounds.
 		sensor.baseline = true;
 		sensor.state = passage.observed;
-	} else if (passage.observed == State::Unknown || passage.observed == sensor.state) {
+	} else if (passage.observed == sensor.state) {
 		sensor.candidate = State::Unknown;
 	} else if (sensor.candidate != passage.observed) {
 		sensor.candidate = passage.observed;
@@ -65,15 +89,16 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 			sensor.candidate = State::Unknown;
 			sensor.deferred = sensor.state; // replaces any older change still waiting
 			sensor.hold = "";
-			if (sensor.state == State::Blocked)
+			if (Obstacle(sensor.state))
 				sensor.frontier = {true, motion.x*axis.x + motion.y*axis.y + passage.depth, motion};
+			if (sensor.state != State::Exit) sensor.wayBack = false;
 		}
 	}
 	return Deliver(sensor, axis, motion, now);
 }
 State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t now) const {
 	if (sensor.deferred == State::Unknown) return State::Unknown;
-	if (sensor.deferred == State::Open && sensor.frontier.known) {
+	if (Passable(sensor.deferred) && sensor.frontier.known) {
 		// Backing away from an announced wall lengthens the route without
 		// opening anything. Half the hysteresis band absorbs raster steps;
 		// the wall stops gating once the player has left its neighbourhood.
@@ -88,7 +113,16 @@ State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t n
 			return State::Unknown;
 		}
 	}
-	if (sensor.deferred == State::Open && sensor.lastCueMs && now - sensor.lastCueMs < settings_.cueIntervalMs) {
+	if (sensor.deferred == State::Exit && sensor.wayBack) {
+		// The doorway the player just walked through: known, so taken as read.
+		sensor.wayBack = false;
+		sensor.lastCue = State::Exit;
+		sensor.lastCueMs = now;
+		sensor.deferred = State::Unknown;
+		sensor.hold = "way-back";
+		return State::Unknown;
+	}
+	if (Passable(sensor.deferred) && sensor.lastCueMs && now - sensor.lastCueMs < settings_.cueIntervalMs) {
 		sensor.hold = "interval";
 		return State::Unknown;
 	}
@@ -112,18 +146,27 @@ Events Engine::Tick(const World& world, uint64_t now) {
 		session_ = world.session;
 		level_ = world.level;
 	}
+	const Position step = rebase ? Position{} : Position{motion.x - previous_.x, motion.y - previous_.y};
 	previous_ = motion;
 	lastTick_ = now;
 	UpdateMotion(motion, now);
+	TrackRoom(world, step);
+	if (rebase || world.rooms.size() != wayThroughRooms_) {
+		wayThrough_ = WayThrough(world, settings_);
+		wayThroughRooms_ = world.rooms.size();
+	}
 	const double close = CloseDepth(settings_, world.bodyPattern);
 	const double open = settings_.openDepth;
 	// The passage window stays inside the structural window it reads from.
 	const double span = BodySpan(world.bodyPattern);
 	const double reach = std::min(std::max(open, settings_.reachDepth), StructuralRadius(settings_, world.bodyPattern) - 1 - span);
 	const auto structure = StructuralWorld(world, settings_);
-	const auto grid = Navigation::Build(structure, PassageRadius(reach, world.bodyPattern));
+	auto grid = Navigation::Build(structure, PassageRadius(reach, world.bodyPattern));
+	Navigation::LabelRooms(grid, world); // the structural snapshot is one room; membership comes from the real one
+	PassageQuery query{.openDepth = open, .closeDepth = close, .maze = world.maze, .wayThrough = wayThrough_, .exits = &world.exits};
 	for (size_t i = 0; i < sensors_.size(); ++i) {
-		sensors_[i].passage = ScanPassage(grid, Axes[i], open, close);
+		query.committed = sensors_[i].state;
+		sensors_[i].passage = ScanPassage(grid, Axes[i], query);
 		events[i] = Observe(sensors_[i], Axes[i], motion, now);
 	}
 	return events;

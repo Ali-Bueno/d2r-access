@@ -19,6 +19,9 @@ enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR
 
 inline constexpr std::size_t LanguageCount = 13;
 
+// Where in the level the player stands: three screen thirds per axis.
+inline constexpr std::size_t TerrainPlaceCount = 9;
+
 inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 	"enUS", "deDE", "esES", "esMX", "frFR", "itIT", "jaJP", "koKR", "plPL", "ptBR", "ruRU", "zhCN", "zhTW"};
 
@@ -78,7 +81,7 @@ struct Table {
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
 	std::array<const char*, 4> radarDirections; // Radar::Direction order: up, left, right, down
-	std::array<const char*, 3> radarStates;
+	std::array<const char*, 5> radarStates; // Radar::State order: unknown, open, blocked, exit, door
 	const char* radarMoving; // %s = actual recent screen displacement direction
 	const char* radarStationary;
 	const char* radarMotionUnknown;
@@ -127,6 +130,19 @@ struct Table {
 	const char* roomsEnabled;
 	const char* roomsDisabled;
 	const char* roomsUnavailable;
+	// Terrain overview: how far the level reaches around the player and how
+	// much of it is still unwalked. `docs/terrain-overview.md`
+	const char* terrainOverview;       // %s = level name, %s = where in it, %s = the four directions
+	const char* terrainSeparator;      // joins the four direction phrases
+	const char* terrainDirection;      // %s = direction, %s = how far it reaches, %s = "" or the separator plus the state
+	const char* terrainEdge;           // %s = distance to the level's outer edge
+	const char* terrainBorder;         // %s = the level across the edge, %s = distance to it
+	const char* terrainExplored;
+	const char* terrainUnexplored;
+	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
+	// Screen thirds, behind row first: behind-left, behind, behind-right,
+	// left, centre, right, ahead-left, ahead, ahead-right.
+	std::array<const char*, TerrainPlaceCount> terrainPlaces;
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -169,6 +185,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
 		t.listSeparator, t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
+		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn};
@@ -176,7 +194,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities);
-	each(t.clockHours);
+	each(t.clockHours); each(t.terrainPlaces);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

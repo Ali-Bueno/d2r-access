@@ -136,7 +136,7 @@ if(BUILD_TESTING)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
-	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp)
+	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
 	add_executable(radar-engine-tests tests/radar_engine_tests.cpp ${RADAR_ENGINE_SOURCES})
 	target_include_directories(radar-engine-tests PRIVATE src)
 	target_compile_features(radar-engine-tests PRIVATE cxx_std_20)

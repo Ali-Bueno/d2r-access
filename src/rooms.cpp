@@ -1,5 +1,6 @@
 #include "rooms.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace D2RAccess::Rooms {
@@ -26,6 +27,14 @@ void Side(const Radar::World& world, int fromX, int fromY, int length,
 		}
 		run = 0;
 	}
+}
+void Openings(const Radar::World& world, const Radar::RoomGrid& room, std::vector<Opening>& out) {
+	const int passable = PassableWidth(world.bodyPattern);
+	const int right = room.x + room.width - 1, bottom = room.y + room.height - 1;
+	Side(world, room.x, room.y, room.width, 1, 0, 0, -1, passable, out);   // top
+	Side(world, room.x, bottom, room.width, 1, 0, 0, 1, passable, out);    // bottom
+	Side(world, room.x, room.y, room.height, 0, 1, -1, 0, passable, out);  // left
+	Side(world, right, room.y, room.height, 0, 1, 1, 0, passable, out);    // right
 }
 }
 
@@ -64,20 +73,27 @@ bool Hysteresis::Observe(RoomKey observed, long long nowMs) {
 }
 
 bool Describe(const Radar::World& world, Position position, Room& out) {
-	const Radar::RoomGrid* found = nullptr;
-	for (const auto& room : world.rooms) {
-		// A room covering a point owns it, exactly as World::Cell decides.
-		const int px = static_cast<int>(std::floor(position.x)), py = static_cast<int>(std::floor(position.y));
-		if (px >= room.x && py >= room.y && px < room.x + room.width && py < room.y + room.height) { found = &room; break; }
-	}
-	if (!found) return false;
-	out = {found->x, found->y, found->width, found->height, {}};
-	const int passable = PassableWidth(world.bodyPattern);
-	const int right = out.x + out.width - 1, bottom = out.y + out.height - 1;
-	Side(world, out.x, out.y, out.width, 1, 0, 0, -1, passable, out.openings);   // top
-	Side(world, out.x, bottom, out.width, 1, 0, 0, 1, passable, out.openings);   // bottom
-	Side(world, out.x, out.y, out.height, 0, 1, -1, 0, passable, out.openings);  // left
-	Side(world, right, out.y, out.height, 0, 1, 1, 0, passable, out.openings);   // right
+	// A room covering a point owns it, exactly as World::Cell decides.
+	const int index = world.RoomAt(static_cast<int>(std::floor(position.x)), static_cast<int>(std::floor(position.y)));
+	if (index < 0) return false;
+	const auto& found = world.rooms[static_cast<size_t>(index)];
+	out = {found.x, found.y, found.width, found.height, {}};
+	Openings(world, found, out.openings);
 	return true;
+}
+
+int TypicalOpeningWidth(const Radar::World& world) {
+	// Every opening is seen from both of its rooms; a median does not mind.
+	std::vector<int> widths;
+	std::vector<Opening> openings;
+	for (const auto& room : world.rooms) {
+		openings.clear();
+		Openings(world, room, openings);
+		for (const auto& opening : openings) widths.push_back(opening.width);
+	}
+	if (widths.empty()) return 0;
+	const auto middle = widths.begin() + static_cast<long long>((widths.size() - 1) / 2); // lower median
+	std::nth_element(widths.begin(), middle, widths.end());
+	return *middle;
 }
 }

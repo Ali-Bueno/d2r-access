@@ -8,7 +8,14 @@
 
 namespace D2RAccess::Radar {
 struct Position { double x = 0, y = 0; };
-enum class State { Unknown, Open, Blocked };
+// A cell is Open or Blocked. A sensor reading adds what the route means:
+// Open is floor that leads nowhere new, Exit a route into another chamber or
+// to a level exit, Blocked a wall, Door a closed door. `docs/radar-readings.md`
+enum class State { Unknown, Open, Blocked, Exit, Door };
+inline constexpr bool Passable(State state) { return state == State::Open || state == State::Exit; }
+inline constexpr bool Obstacle(State state) { return state == State::Blocked || state == State::Door; }
+// D2 collision bits, corroborated by the native reader (docs/collision-semantics.md).
+namespace Collision { inline constexpr uint16_t Wall = 0x0001, Blank = 0x0020, Object = 0x0400, Door = 0x0800; }
 // The four left-stick cardinals (fixed screen axes; the user's choice: four
 // sounds are enough information). Native projection 0x334DB0: screen
 // X = 80*(X-Y), screen Y = 40*(X+Y), so each screen cardinal is a world
@@ -49,6 +56,15 @@ struct Settings {
 	// away from a wall can still be proved to lead past that wall.
 	double reachDepth = 20;
 };
+// The room partition of a maze level (Levels.txt DrlgType 1) is one chamber
+// per streamed room; elsewhere it cuts across open floor and means nothing.
+struct PassageQuery {
+	double openDepth = 0, closeDepth = 0;
+	State committed = State::Unknown; // the sensor's verdict: inside the hysteresis band it stands
+	bool maze = false;
+	double wayThrough = 0; // a doorway's width: how far past a border, or how near an exit, a route must reach
+	const std::vector<Position>* exits = nullptr; // level exits, in world cells
+};
 
 struct RoomGrid {
 	int x = 0, y = 0, width = 0, height = 0;
@@ -61,6 +77,9 @@ struct World {
 	int level = 0, bodyPattern = 0;
 	uint16_t walkingMask = 0;
 	std::vector<RoomGrid> rooms;
+	bool maze = false; // one streamed room is one chamber (Levels.txt DrlgType 1)
+	std::vector<Position> exits; // the level's exits: warps, stairs, portals, border exits
+	int RoomAt(int x, int y) const; // index into rooms, or -1
 	State Cell(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 };
@@ -72,8 +91,10 @@ int StructuralRadius(const Settings& settings, int bodyPattern);
 struct Passage {
 	double depth = 0; // proved connected route along the axis, in cells (up to the scan window)
 	double openDepth = 0, closeDepth = 0; // thresholds used for this observation
-	State observed = State::Unknown; // Unknown: hysteresis dead band or insufficient coverage
+	State observed = State::Unknown; // Unknown only while coverage is insufficient
 	bool available = false; // false means coverage within openDepth is insufficient, not a dead end
+	double crossing = -1; // depth at which the route enters another streamed room, if it does
+	bool door = false; // a closed door stands on the route within the closing depth
 };
 // A wall the player has been warned about stays where it is. Backing away
 // from it makes the route ahead longer again, but nothing opened: an opening
@@ -94,6 +115,7 @@ struct Sensor {
 	State lastCue = State::Unknown;
 	uint64_t lastCueMs = 0;
 	Frontier frontier;
+	bool wayBack = false; // the doorway just crossed: its next exit reading is taken as read
 	const char* hold = ""; // why the last confirmed change did not sound (diagnostics)
 };
 
@@ -111,7 +133,12 @@ public:
 	// Fixed thresholds: the user asked for the same verdicts whether walking
 	// or running. Closing sits one body span under opening (hysteresis band).
 	static double CloseDepth(const Settings& settings, int bodyPattern);
+	// The level's own doorway width, from its streamed rooms; the opening depth
+	// when the partition means nothing or no opening is loaded yet.
+	static double WayThrough(const World& world, const Settings& settings);
+	double CurrentWayThrough() const { return wayThrough_; }
 private:
+	void TrackRoom(const World& world, Position travel);
 	void UpdateMotion(Position player, uint64_t now);
 	State Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const;
 	State Deliver(Sensor& sensor, Position axis, Position motion, uint64_t now) const;
@@ -126,5 +153,9 @@ private:
 	std::deque<MotionSample> motion_;
 	Position velocity_{};
 	uint64_t lastMove_ = 0;
+	double wayThrough_ = 0;
+	size_t wayThroughRooms_ = 0; // rooms counted when wayThrough_ was derived
+	int roomX_ = 0, roomY_ = 0; // origin of the streamed room the player stands in
+	bool roomKnown_ = false;
 };
 }

@@ -13,6 +13,8 @@ const char* StateName(Radar::State state) {
 	switch (state) {
 	case Radar::State::Open: return "open";
 	case Radar::State::Blocked: return "blocked";
+	case Radar::State::Exit: return "exit";
+	case Radar::State::Door: return "door";
 	default: return "unknown";
 	}
 }

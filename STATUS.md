@@ -18,6 +18,24 @@ overview uses the RoomEx union and only cross-checks the rect (`[terrain] … di
 (expect `Blood Moor, borde izquierdo. adelante: …`), walk toward an unexplored direction, repeat; confirm
 the exit review names Cold Plains once ~40 m from its border. Judge the 300 ms beacon delay and the wording.
 
+## Four radar readings, ported from the Among Us sonar — 2026-09-21
+
+The radar now says what a route *means*, not only whether it is free: **exit** (tin: into another chamber
+of a maze level, or to a level exit), **floor** (a soft breath: walkable, leads nowhere new), **wall**
+(tock) and **door** (two knocks, the game's own DOOR bit). No dead band any more: one threshold each way
+and the committed reading stands in between, so the first observation is always a verdict. The doorway
+width is the level's own (median opening width of the streamed rooms, clamped to the two-tile opening
+depth); the wall distance stays at the validated two tiles. The doorway just walked through is taken as
+read instead of sounded behind the player; the cue queue plays walls and doors first, then exits, then
+floor. `access-radar test` auditions all four. `docs/radar-readings.md`,
+`reference/audio-navigation/among-us/passability-sonar.md`. 46/46 CTest suites.
+
+**Next step:** listening pass. In the Den: walk a corridor towards a room (expect tin only once the
+route really enters it, breath before), face a closed door (knocks, not tock), enter a room and check
+the doorway behind stays silent. In the camp: tin only towards the Blood Moor edge or a waypoint,
+breath elsewhere. Judge the breath's level under the game's ambience. `way_through=` in `[radar-motion]`
+shows the derived doorway width.
+
 ## Exit review and room hysteresis — 2026-09-20
 
 The ways out are reviewed one at a time, nearest first: Ctrl+V or holding the right stick 350 ms speaks

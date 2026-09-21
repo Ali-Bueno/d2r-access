@@ -54,4 +54,7 @@ struct Hysteresis {
 // The streamed room covering `position` and every passable gap on its border.
 // False when no resident room covers the point.
 bool Describe(const Radar::World& world, Position position, Room& out);
+// The level's own doorway width: the median width of every opening of every
+// streamed room, in cells. Zero when no room has an opening loaded.
+int TypicalOpeningWidth(const Radar::World& world);
 }

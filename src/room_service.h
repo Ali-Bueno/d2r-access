@@ -8,4 +8,6 @@ namespace D2RAccess::RoomService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Unregister();
+// Levels.txt DrlgType 1: one streamed room is one chamber.
+bool Maze(int level);
 }

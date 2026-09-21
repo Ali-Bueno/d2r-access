@@ -5,9 +5,9 @@
 
 namespace D2RAccess::Radar {
 namespace {
-// D2 collision definitions, corroborated by the native reader; see
+// Only WALL and OBJECT components are clutter candidates; see
 // docs/radar-object-filtering.md. Other movement restrictions stay structural.
-constexpr uint16_t Wall = 0x0001, Blank = 0x0020, Object = 0x0400;
+using Collision::Wall; using Collision::Blank; using Collision::Object;
 // Five collision subtiles form one native map tile. This is a conservative
 // size policy for baked clutter (WALL or OBJECT), not an object type
 // identifier. Larger object components stay: live analysis 2026-09-16 found

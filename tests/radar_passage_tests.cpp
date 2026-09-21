@@ -33,8 +33,13 @@ World Field(Position player = {40, 40}, int pattern = 1) {
 void Put(World& world, int x, int y, uint16_t flags) {
 	world.rooms[0].cells[static_cast<size_t>(y) * Size + x] = flags;
 }
-Passage Scan(const World& world, Position axis, double open = Open, double close = Close) {
-	return ScanPassage(Navigation::Build(world, PassageRadius(std::max(Reach, open), world.bodyPattern)), axis, open, close);
+// The tests' doorway width is the opening depth, the engine's fallback for it.
+Passage Scan(const World& world, Position axis, double open = Open, double close = Close,
+	State committed = State::Unknown, double wayThrough = Open) {
+	auto grid = Navigation::Build(world, PassageRadius(std::max(Reach, open), world.bodyPattern));
+	Navigation::LabelRooms(grid, world);
+	return ScanPassage(grid, axis, {.openDepth = open, .closeDepth = close, .committed = committed,
+		.maze = world.maze, .wayThrough = wayThrough, .exits = &world.exits});
 }
 void Corridor(World& world) {
 	for (int x = 0; x < Size; ++x) {
@@ -229,6 +234,81 @@ void CornerAndFirstStep() {
 		"unmapped cells in the first step withdraw the verdict instead of closing the lane");
 }
 
+void DoorReading() {
+	// A closed door is a wall the game marks with its own DOOR bit: the sound
+	// says which, the distance and the hysteresis are the wall's.
+	auto world = Field();
+	for (int y = 0; y < Size; ++y) Put(world, 44, y, Collision::Door);
+	const auto door = Scan(world, {1, 0});
+	auto walled = Field();
+	for (int y = 0; y < Size; ++y) Put(walled, 44, y, Barrier);
+	const auto wall = Scan(walled, {1, 0});
+	Check(door.available && door.observed == State::Door && door.door, "a closed door across the route is read as a door");
+	Check(wall.available && wall.observed == State::Blocked && !wall.door, "a wall in the same place is read as a wall");
+	Check(door.depth == wall.depth, "a door stops the body exactly where a wall would");
+	auto far = Field();
+	for (int y = 0; y < Size; ++y) Put(far, 40 + static_cast<int>(Open) + 5, y, Collision::Door);
+	const auto ahead = Scan(far, {1, 0});
+	Check(ahead.observed == State::Open && !ahead.door,
+		"a door beyond the opening depth leaves the route open and is not yet what stops the player");
+}
+
+void NoDeadBand() {
+	// One threshold each way. Between them the committed reading stands, and
+	// with nothing committed the band reads as floor: a first observation is
+	// always a verdict, never a silence a later wall could hide behind.
+	auto world = Field();
+	for (int y = 0; y < Size; ++y) Put(world, 40 + static_cast<int>(Close) + 3, y, Barrier);
+	const auto fresh = Scan(world, {1, 0});
+	Check(fresh.available && fresh.depth > Close && fresh.depth < Open, "the route really ends inside the band");
+	Check(fresh.observed == State::Open, "with nothing committed the band reads as open floor");
+	Check(Scan(world, {1, 0}, Open, Close, State::Open).observed == State::Open, "committed floor stands inside the band");
+	Check(Scan(world, {1, 0}, Open, Close, State::Blocked).observed == State::Blocked, "a committed wall stands inside the band");
+	Check(Scan(world, {1, 0}, Open, Close, State::Door).observed == State::Door,
+		"a committed door stands inside the band as a door, never demoted to a wall");
+	Check(Scan(world, {1, 0}, Open, Close, State::Exit).observed == State::Open,
+		"a committed exit is read again inside the band: only obstacles are protected by it");
+}
+
+void ChamberExit() {
+	// Two streamed rooms side by side. On a maze level a route that crosses
+	// into the next chamber and clears its border by a doorway's width leads
+	// somewhere; on any other level the partition means nothing.
+	auto world = Field();
+	world.rooms = {{20, 20, 25, 40, std::vector<uint16_t>(25 * 40)}, {45, 20, 25, 40, std::vector<uint16_t>(25 * 40)}};
+	const auto floor = Scan(world, {1, 0});
+	Check(floor.available && floor.observed == State::Open && floor.crossing == 5,
+		"outside a maze the crossing is measured but the route is only floor");
+	world.maze = true;
+	const auto exit = Scan(world, {1, 0});
+	Check(exit.observed == State::Exit && exit.depth >= exit.crossing + Open, "in a maze the route into the next chamber is an exit");
+	Check(Scan(world, {-1, 0}).observed == State::Open, "the way deeper into the same chamber is only floor");
+	Check(Scan(world, {1, 0}, Open, Close, State::Unknown, exit.depth - exit.crossing + 1).observed == State::Open,
+		"a doorway wider than the route clears past the border is not proved");
+	// A wall on the far side: the border is crossed but not cleared.
+	auto shallow = world;
+	for (int y = 0; y < 40; ++y) shallow.rooms[1].cells[static_cast<size_t>(y) * 25 + (54 - 45)] = Barrier;
+	const auto crossed = Scan(shallow, {1, 0});
+	Check(crossed.observed == State::Open && crossed.depth >= Open && crossed.crossing == 5,
+		"crossing the border without a doorway's width beyond it is floor, not an exit");
+}
+
+void LevelExit() {
+	// A level exit on the route: reached within a doorway of it, on the route's
+	// own width. Exits are what a route on any level can lead to.
+	auto world = Field();
+	world.exits = {{54, 40}};
+	Check(Scan(world, {1, 0}).observed == State::Exit, "a route arriving at a level exit leads somewhere");
+	Check(Scan(world, {-1, 0}).observed == State::Open, "the same exit behind the player does not colour the route away from it");
+	world.exits = {{54, 40 + static_cast<int>(Open)}};
+	Check(Scan(world, {1, 0}).observed == State::Open, "an exit a doorway's width beside the route is not on it");
+	world.exits = {{90, 40}};
+	Check(Scan(world, {1, 0}).observed == State::Open, "an exit the route cannot be proved to reach is not announced");
+	world.exits = {{54, 40}};
+	for (int y = 0; y < Size; ++y) Put(world, 44, y, Barrier);
+	Check(Scan(world, {1, 0}).observed == State::Blocked, "a wall before the exit is still a wall");
+}
+
 void RecordedCamp() {
 	// Exact Ctrl+T capture: a camp post whose collision hits the side of the
 	// native footprint while the centre cell beside it is empty.
@@ -237,7 +317,7 @@ void RecordedCamp() {
 	const auto grid = Navigation::Build(world, PassageRadius(Reach, world.bodyPattern));
 	Check(grid.At(4466, 4628)->body == State::Blocked && world.Cell(4466, 4628) == State::Open,
 		"the captured post blocks the native body while its own centre cell is clear");
-	const auto left = ScanPassage(grid, Axes[Index(Direction::Left)], Open, Close);
+	const auto left = ScanPassage(grid, Axes[Index(Direction::Left)], {.openDepth = Open, .closeDepth = Close});
 	Check(left.available && left.observed == State::Open && left.depth >= Open,
 		"the real capture proves the usable travel past the post without inventing the unseen map");
 	Check(StructuralWorld(world, {}).Cell(4466, 4629) == State::Open,
@@ -264,6 +344,10 @@ int main() {
 	CornerAndFirstStep();
 	UnknownCoverage();
 	FullReach();
+	DoorReading();
+	NoDeadBand();
+	ChamberExit();
+	LevelExit();
 	RecordedCamp();
 	Passed();
 }

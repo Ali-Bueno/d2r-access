@@ -170,6 +170,16 @@ void Settling() {
 	Check(threshold.Observe(a, 3000), "so the same room is announced again on arriving in it");
 }
 
+void TypicalWidth() {
+	// The level's doorway width is the median opening: three cells here, seen
+	// from both of its rooms, and a wider gap elsewhere does not move it.
+	auto left = Cell(0, 0, 12), middle = Cell(12, 0, 12), right = Cell(24, 0, 12);
+	for (int y = 5; y <= 7; ++y) { Carve(left, 11, y); Carve(middle, 12, y); }
+	for (int y = 2; y <= 8; ++y) { Carve(middle, 23, y); Carve(right, 24, y); }
+	Check(Rooms::TypicalOpeningWidth(Level({left, middle, right}, {5, 6})) == 3, "the median of a three and a seven, each counted twice, is three");
+	Check(Rooms::TypicalOpeningWidth(Level({Cell(0, 0, 12)}, {5, 6})) == 0, "a level with no opening loaded has no typical width yet");
+}
+
 void Geometry() {
 	Rooms::Room room{4, 8, 12, 12, {}};
 	Check(room.Contains({4, 8}) && room.Contains({15.9, 19.9}), "the rectangle includes its own first and last cell");
@@ -186,6 +196,7 @@ int main() {
 	Junction();
 	Outside();
 	Settling();
+	TypicalWidth();
 	Geometry();
 	Passed();
 }
