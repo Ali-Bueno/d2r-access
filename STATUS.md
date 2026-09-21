@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The inventory names its item at once — 2026-09-21
+
+Grid cells, equipment slots and the belt all name the item from the unit under the highlight
+(`NativeUi::FocusedItem`, one getter for the three archetypes), with its quality, instead of waiting for
+the controller tooltip. The wait was the layout's: `Controller/TooltipsPanelHD.json` sets
+`showDelayMilliseconds` to 400, measured as 460-550 ms from highlight to name (the belt already read its
+unit: ~60 ms). A slot says `Ocupado` only when its unit cannot be named, and the tooltip that follows
+never interrupts — it queues only what it adds, or the name only the game knows (magic, rare, unique).
+`[item]` is logged once per item instead of on every UI poll (it was 93% of the lines in a 10 s inventory
+window). 57/57 CTest suites. `docs/native-tooltips.md`.
+
+**Next step:** listening check with the controller. Walk the grid, the equipment slots and the belt: the
+name must land with the highlight, nothing may be cut off mid-word, and a magic/rare item must correct
+itself without saying its name twice.
+
 ## Terrain overview — 2026-09-21
 
 The accessible automap: **Ctrl+O** or the **L3+R3 chord** speaks the level name, the player's place in it

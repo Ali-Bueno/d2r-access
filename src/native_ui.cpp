@@ -32,6 +32,7 @@ constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x87
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
+constexpr int BeltSlots = 16; // the slot range BeltWidget's getter accepts, 0x227440
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusPanelOffset = 0x188, FocusWidgetOffset = 0x190; // 0x868230 / 0x876CA0
 constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindPanel 0x89F760
@@ -45,18 +46,27 @@ uintptr_t CallType(uintptr_t function, uintptr_t widget) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
 
-ItemPresence CallItemAtCell(uintptr_t function, uintptr_t widget, Cell cell) noexcept {
-	__try {
-		const auto item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
-		return item ? ItemPresence::Occupied : ItemPresence::Empty;
-	} __except (EXCEPTION_EXECUTE_HANDLER) { return ItemPresence::Unknown; }
-}
-
 bool CallItemPointer(uintptr_t function, uintptr_t widget, Cell cell, uintptr_t& item) noexcept {
 	__try {
 		item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
+
+// The cell each archetype's +0xC8 getter takes; false when the widget has no
+// item to read. InventoryGridWidget 0x2C49F0 queries the widget's owner/page
+// and the selected cell (0x386A00 reads the grid). InventorySlotWidget's
+// override, vtable 0x1CF3F20 -> 0x2CA060, ignores the cell and uses location
+// +0x5D8 (0x3886D0). BeltWidget's, vtable 0x1CE2FA0 -> 0x227440, takes the
+// cell's x alone as the slot -- READ 2026-09-21 in the 3.3.93787 image, not yet
+// measured live. None of them moves an item.
+bool ItemCell(uintptr_t widget, const Type& type, Cell& cell) {
+	if (type.kind == Kind::InventorySlot) return true;
+	if (type.kind == Kind::InventoryGrid) return (cell = GridCell(widget)).x >= 0;
+	if (type.name != "BeltWidget") return false;
+	const uint64_t selection = FocusSelection(widget);
+	cell = {static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
+	return cell.x >= 0 && cell.x < BeltSlots;
 }
 
 std::vector<uintptr_t> VectorAt(uintptr_t address) {
@@ -237,41 +247,13 @@ int EquipmentLocation(uintptr_t widget) {
 	return location; // caller maps only the verified body locations
 }
 
-ItemPresence GridItemPresence(uintptr_t widget) {
-	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return ItemPresence::Unknown;
-	const auto cell = GridCell(widget);
-	uintptr_t vtable = 0, getter = 0;
-	if (cell.x < 0 || !Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
-		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
-	// InventoryGridWidget 0x2C49F0 queries the widget's owner/page and cell;
-	// its 0x386A00 lookup reads the inventory grid, without moving any item.
-	return CallItemAtCell(getter, widget, cell);
-}
-
-ItemPresence EquipmentItemPresence(uintptr_t widget) {
-	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return ItemPresence::Unknown;
-	uintptr_t vtable = 0, getter = 0;
-	if (!Peek(widget, vtable) || !Peek(vtable + ItemAtCellSlot, getter)
-		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
-	// InventorySlotWidget vtable 0x1CF3F20 +0xC8 -> 0x2CA060: reads the
-	// widget owner and location +0x5D8, then 0x3886D0 gets the equipped item.
-	// Unlike the grid getter, this override ignores the cell argument.
-	return CallItemAtCell(getter, widget, {});
-}
-
-BeltSlot BeltItem(uintptr_t widget) {
-	BeltSlot result;
-	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return result;
-	const uint64_t selection = FocusSelection(widget);
-	const Cell cell{static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
-	if (cell.x < 0 || cell.x >= 16) return result;
+ItemSlot FocusedItem(uintptr_t widget) {
+	ItemSlot result;
+	Cell cell;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || !ItemCell(widget, Classify(widget), cell)) return result;
 	uintptr_t vtable = 0, getter = 0;
 	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
 		|| !NativeMemory::Executable(getter)) return result;
-	// READ 2026-09-21 in the 3.3.93787 image, not yet measured live: BeltWidget
-	// vtable 0x1CE2FA0 +0xC8 -> 0x227440 takes the cell's x alone as the belt
-	// slot, 0 to 15, and returns the item there or null. The same getter slot
-	// and calling convention the grid and equipment reads above already use.
 	result.slot = cell.x;
 	result.known = CallItemPointer(getter, widget, cell, result.item);
 	return result;

@@ -48,7 +48,11 @@ int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
 int playerGold = -1;
-NativeUi::BeltSlot beltSlot;
+NativeUi::ItemSlot beltSlot;
+// The unit a cell holds. A presence set without one stands for an item the item
+// table cannot name, which is how a cell still waits for its tooltip.
+constexpr uintptr_t UnnamedUnit = 5;
+uintptr_t itemUnit = 0;
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
@@ -74,11 +78,17 @@ Type Classify(uintptr_t widget) {
 	return {};
 }
 Cell GridCell(uintptr_t) { return cell; }
-ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
-ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
-BeltSlot BeltItem(uintptr_t) { return beltSlot; }
+ItemSlot FocusedItem(uintptr_t) {
+	const auto held = [](ItemPresence presence) {
+		return presence == ItemPresence::Unknown ? ItemSlot{}
+			: ItemSlot{true, 0, presence == ItemPresence::Occupied ? (itemUnit ? itemUnit : UnnamedUnit) : 0};
+	};
+	if (widgetType.kind == UiText::Kind::InventorySlot) return held(equipmentPresence);
+	if (widgetType.kind == UiText::Kind::InventoryGrid) return held(itemPresence);
+	return widgetType.name == "BeltWidget" ? beltSlot : ItemSlot{};
+}
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
 	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
@@ -109,7 +119,13 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
-std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
+// The item table's name for a unit, with its quality where the quality is named.
+std::string ItemUnitName(uintptr_t unit) {
+	if (unit == 77) return "Poción de curación menor";
+	if (unit == 78) return "Amuleto, mágico";
+	if (unit == 79) return "Hacha grande";
+	return {};
+}
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
@@ -396,6 +412,33 @@ int main() {
 	Settle();
 	Check(speech.empty(), "a slot that cannot be read waits for the tooltip, as before");
 	beltSlot = {};
+	// The grid and the equipment slots name their item the same way the belt
+	// does, from the unit, without the 400 ms wait for the controller tooltip.
+	InteractionReader::Reset(); ClearSpeech(); tooltip = {};
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	cell = {0, 0}; selection = 0; itemPresence = NativeUi::ItemPresence::Occupied; itemUnit = 79;
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande"},
+		"a grid cell names its item on the first poll, before any tooltip");
+	ClearSpeech(); Tooltip("Daño: 6-13\nHacha grande"); Tick();
+	Check(speech.empty(), "and its own tooltip neither repeats that name nor interrupts it");
+	ClearSpeech(); selection = 1; cell = {1, 0}; tooltip = {}; Tick();
+	Check(speech == std::vector<std::string>{"Hacha grande"}, "the next cell names its item at once as well");
+	ClearSpeech(); Tooltip("Puntos: 45\nHacha grande\nCoste: 30"); Tick();
+	Check(speech == std::vector<std::string>{"Coste: 30"} && interrupts == std::vector<bool>{false},
+		"a shop tooltip queues only the price it adds to the name");
+	ClearSpeech(); selection = 2; cell = {2, 0}; tooltip = {}; itemUnit = 78; Tick();
+	Check(speech == std::vector<std::string>{"Amuleto, mágico"}, "an item's quality is part of the name the unit gives");
+	ClearSpeech(); Tooltip("Resistencia al fuego: 10%\nCollar del terror"); Tick();
+	Check(speech == std::vector<std::string>{"Collar del terror"} && interrupts == std::vector<bool>{false},
+		"a name only the game knows corrects the unit's, queued behind it");
+	ClearSpeech(); focus.widget = 85; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+	cell = {}; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied;
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Amuleto, mágico"},
+		"an equipment slot names what is in it on the first poll, instead of saying it is occupied");
+	ClearSpeech(); Tooltip("Resistencia al fuego: 10%\nAmuleto"); Tick();
+	Check(speech.empty(), "and a tooltip that knows the item only by its base name adds nothing");
+	itemUnit = 0; equipmentLocation = 0; tooltip = {};
+	itemPresence = NativeUi::ItemPresence::Unknown; equipmentPresence = NativeUi::ItemPresence::Unknown;
 	conversation = false; InteractionReader::Reset(); ClearSpeech();
 	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
 	buttonSnapshot = {61, 61, "StrengthPointButton", UiText::Surface::Other, {{61, -1, UiText::Kind::StatButton, "StrengthPointButton", "", "Gastar punto"}}};

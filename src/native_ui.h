@@ -22,15 +22,18 @@ Focus CurrentFocus();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
-ItemPresence GridItemPresence(uintptr_t widget);
-ItemPresence EquipmentItemPresence(uintptr_t widget);
-// The belt slot the controller is on and the item in it, read straight from
-// the belt rather than waiting for the game's tooltip, which the controller
-// layout shows 400 ms late (Controller/TooltipsPanelHD.json
-// showDelayMilliseconds). `known` is false when the slot could not be read;
-// `item` is 0 for an empty slot. The unit is only named, never kept.
-struct BeltSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
-BeltSlot BeltItem(uintptr_t widget);
+// The item under the controller's selection, read straight from the widget
+// rather than waiting for the game's tooltip, which the controller layout shows
+// 400 ms late (Controller/TooltipsPanelHD.json showDelayMilliseconds).
+// BeltWidget, InventoryGridWidget and InventorySlotWidget share one getter and
+// differ only in the cell it takes. `known` is false when the cell could not be
+// read; `item` is 0 for an empty one; `slot` is the column a belt slot is
+// numbered by. The unit is only named, never kept.
+struct ItemSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
+ItemSlot FocusedItem(uintptr_t widget);
+constexpr ItemPresence Presence(const ItemSlot& slot) {
+	return !slot.known ? ItemPresence::Unknown : slot.item ? ItemPresence::Occupied : ItemPresence::Empty;
+}
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();

@@ -56,8 +56,11 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
-// The belt slot last logged, so [belt] is written once per move, not per poll.
-int g_beltSlot = -2;
+// The cell whose item was named, and the cell and headline its tooltip was
+// logged under, so [item] is written once per item instead of on every UI poll
+// while a tooltip is on screen (each line is an open, write and flush --
+// async_log.cpp).
+std::string g_namedFocus, g_loggedTooltip;
 
 // The game's own labels for a weapon's damage and an armour's defense, so the
 // split can tell them from the item's name in any language. Each table entry is a printf format, so only the part before its
@@ -128,6 +131,21 @@ void Append(std::string& text, const std::string& part) {
 	if (part.empty() || text == part) return;
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
 	text += part;
+}
+
+// What an item's tooltip has to add to the name already read from its unit:
+// nothing when the two agree, the rest of its own headline when it starts with
+// that name, and the whole of it when the game calls the item something the
+// item table cannot know (magic, rare, unique) -- `corrects` then says the
+// addition replaces the name instead of following it.
+struct TooltipMerge { std::string addition; bool corrects = false; };
+TooltipMerge MergeTooltip(const std::string& name, std::string description) {
+	if (name.empty()) return {std::move(description), true};
+	if (description.empty() || name.starts_with(description)) return {};
+	if (!description.starts_with(name)) return {std::move(description), true};
+	description.erase(0, name.size());
+	description.erase(0, description.find_first_not_of(". "));
+	return {std::move(description), false};
 }
 
 // The inventory's gold row, named by the game's own widget name.
@@ -226,8 +244,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
-	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
-		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;
 	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton;
 	// The character panel's non-button rows: a label the controller stops on
 	// through its focusable Tooltip child, with its value in a sibling widget.
@@ -236,22 +252,24 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(context, focus, type)
 		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
-	// The belt names its slot's item straight away instead of waiting for the
-	// game's tooltip, which the controller layout shows 400 ms late -- the lag
-	// the user heard walking the belt on 2026-09-21. A slot that cannot be read
+	// The belt, the grid and the equipment slots all name their item straight
+	// from the unit under the highlight instead of waiting for the game's
+	// tooltip, which the controller layout shows 400 ms late -- the lag the user
+	// heard walking the inventory on 2026-09-21. A cell that cannot be read
 	// falls back to the tooltip, as before.
-	bool beltNamed = false;
-	if (type.name == "BeltWidget") {
-		const auto belt = NativeUi::BeltItem(focus.widget);
-		std::string name = belt.known && belt.item ? NativeGroundItems::ItemBaseName(belt.item) : std::string{};
-		if (belt.known && !belt.item) name = Strings::Current().slotEmpty;
-		if (belt.slot != g_beltSlot) {
-			g_beltSlot = belt.slot;
-			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p -> \"%s\"", belt.slot, belt.known ? 1 : 0,
-				reinterpret_cast<void*>(belt.item), name.c_str());
-		}
-		if (!name.empty()) { readout.option = std::move(name); beltNamed = true; }
-	} else g_beltSlot = -2;
+	const auto itemSlot = inventory ? NativeUi::FocusedItem(focus.widget) : NativeUi::ItemSlot{};
+	const auto presence = NativeUi::Presence(itemSlot);
+	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot ? presence : NativeUi::ItemPresence::Unknown;
+	std::string itemName;
+	if (itemSlot.item) itemName = NativeGroundItems::ItemUnitName(itemSlot.item);
+	// An empty grid cell is told by its coordinates; a slot has none to say.
+	else if (itemSlot.known && type.kind != UiText::Kind::InventoryGrid) itemName = Strings::Current().slotEmpty;
+	if (!inventory) g_namedFocus.clear();
+	else if (readout.focusKey != g_namedFocus) {
+		g_namedFocus = readout.focusKey;
+		AsyncLog::InfoF(context, "[item] cell %s slot=%d known=%d unit=%p -> \"%s\"", readout.focusKey.c_str(),
+			itemSlot.slot, itemSlot.known ? 1 : 0, reinterpret_cast<void*>(itemSlot.item), itemName.c_str());
+	}
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
 	if (inventory) OfferDetail(readout.focusKey, {});
@@ -284,7 +302,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 	}
 	const auto tooltip = NativeTooltips::Latest(now);
-	bool renderedDescription = false;
+	bool renderedDescription = false, nameInOption = false;
+	// What the tooltip adds to a name already spoken, kept so only that part is
+	// announced when it arrives behind the name.
+	std::string tooltipAddition;
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -304,9 +325,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
 			// the headline came from, and whether the renderer styled it.
-			D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
-				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
-				split.headline.c_str(), split.detail.c_str());
+			if (auto seen = readout.focusKey + "|" + split.headline; seen != g_loggedTooltip) {
+				g_loggedTooltip = std::move(seen);
+				D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
+					body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
+					split.headline.c_str(), split.detail.c_str());
+			}
 			description = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(description, split.detail);
 			OfferDetail(readout.focusKey, std::move(split.detail));
@@ -315,11 +339,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			Append(description, UiText::Clean(tooltip.footer));
 		}
 		renderedDescription = !description.empty();
-		if (type.kind == UiText::Kind::InventoryGrid && renderedDescription) {
-			readout.option = description;
-			readout.coordinates.clear(); // a described cell keeps its existing coordinate-free readout
-		}
-		else if (progression.skill) {
+		if (progression.skill) {
 			auto split = ProgressionText::SkillReadout(description, progression.points, progression.help);
 			readout.option = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(readout.option, split.detail);
@@ -329,33 +349,36 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// again, and it renders ~400 ms after the row was read, so joining it
 		// re-read the whole row (MEASURED 2026-09-21: "34 gold. Drop Gold").
 		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
-			// The belt said the name from the slot already; its tooltip adds
-			// only what follows the name.
-			if (beltNamed && description.starts_with(readout.option)) {
-				description.erase(0, readout.option.size());
-				description.erase(0, description.find_first_not_of(". "));
-			}
-			Append(readout.option, description);
+			// The unit named the item already; the tooltip only adds to that
+			// name, or replaces one the item table cannot know.
+			auto merge = MergeTooltip(itemName, std::move(description));
+			if (!merge.corrects) Append(readout.option, itemName);
+			Append(readout.option, merge.addition);
+			tooltipAddition = std::move(merge.addition);
+			nameInOption = true;
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
-	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
-		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
-		else if (equipmentPresence == NativeUi::ItemPresence::Occupied) Append(readout.option, Strings::Current().slotOccupied);
+	if (!nameInOption) Append(readout.option, itemName);
+	// A named cell says what is in it, not where it is.
+	if (type.kind == UiText::Kind::InventoryGrid && !readout.option.empty()) readout.coordinates.clear();
+	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription && itemName.empty()) {
+		// The unit could not be named: say what is known of the slot and let the
+		// tooltip refine it.
+		if (equipmentPresence == NativeUi::ItemPresence::Occupied) Append(readout.option, Strings::Current().slotOccupied);
 		// Neither a known slot nor readable contents: say what the focus is on
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
 	}
 	const auto help = (inventory || button || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
 	const auto helpContext = readout.context + ":" + readout.body;
-	// Button hints belong after the thing they act on. An occupied cell or slot
-	// is still waiting for the game's own tooltip (~350 ms), so the hints wait
-	// with it instead of arriving first in an utterance of their own.
-	const bool occupied = type.kind == UiText::Kind::InventorySlot
-		? equipmentPresence == NativeUi::ItemPresence::Occupied
-		: type.kind == UiText::Kind::InventoryGrid
-			&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied;
-	const bool awaitingDescription = inventory && !renderedDescription && occupied;
+	// Button hints belong after the thing they act on. A cell or slot holding an
+	// item the unit could not name is still waiting for the game's own tooltip
+	// (~350 ms), so the hints wait with it instead of arriving first in an
+	// utterance of their own.
+	const bool occupied = (type.kind == UiText::Kind::InventorySlot || type.kind == UiText::Kind::InventoryGrid)
+		&& presence == NativeUi::ItemPresence::Occupied;
+	const bool awaitingDescription = inventory && !renderedDescription && occupied && itemName.empty();
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
 	if (!focus.panel && readout.Empty()) {
@@ -402,10 +425,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (!text.empty()) ScreenReader::Speak(text, !named);
 		return true;
 	}
-	// The stock item tooltip can appear ~350 ms after selection. An occupied
-	// grid cell waits for it without speaking coordinates first; other cells
-	// keep their existing quick coordinate feedback.
-	if (type.kind == UiText::Kind::InventoryGrid && occupied && !renderedDescription) {
+	// The stock item tooltip can appear ~350 ms after selection. A grid cell
+	// whose item the unit could not name waits for it without speaking
+	// coordinates first; other cells keep their quick coordinate feedback.
+	if (type.kind == UiText::Kind::InventoryGrid && awaitingDescription) {
 		if (!cursorNotice.empty()) {
 			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s placement -> \"%s\"", readout.context.c_str(), cursorNotice.c_str());
 			ScreenReader::Speak(cursorNotice, true);
@@ -414,10 +437,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (progression.skill && !renderedDescription) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
-	// A rendered, focus-matching item description is already complete. Cells
-	// without one wait a single poll for capture, rather than the dialogue delay.
+	// A name read from the unit, a rendered focus-matching description and an
+	// equipment slot are complete already. Cells without one wait a single poll
+	// for capture, rather than the dialogue delay.
+	const bool complete = renderedDescription || !itemName.empty()
+		|| type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty();
 	auto announcement = button ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty() ? 0 : InventorySettleMs)
+		: inventory ? g_reader.Update(readout, now, complete ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
@@ -441,6 +467,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// new context: the legend repopulates ~60 ms after the focus moves (MEASURED
 	// 2026-09-21, character panel), so it queues instead of cutting the row off.
 	bool interrupt = !(helpFollows && !describedNow);
+	// The tooltip arriving 400 ms behind a name already spoken for this focus is
+	// the tail of that utterance, or a correction to it. Either way only what it
+	// adds is said, and it queues instead of cutting the name off mid-word.
+	if (!itemName.empty() && renderedDescription && describedHere) {
+		interrupt = false;
+		if (describedNow && !tooltipAddition.empty()) announcement.text = tooltipAddition;
+	}
 	if (helpFollows) Append(announcement.text, help);
 	if (describedNow) g_describedFocus = readout.focusKey;
 	if (!cursorNotice.empty()) {
@@ -472,6 +505,8 @@ void Reset() {
 	g_describedFocus.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
+	g_namedFocus.clear();
+	g_loggedTooltip.clear();
 	g_holdingItem.reset();
 	g_slotLocations.clear();
 	g_detail.clear();

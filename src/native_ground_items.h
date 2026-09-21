@@ -15,10 +15,10 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept;
 // ground already uses.
 int PlayerGold() noexcept;
 
-// An item unit's base name from the game's item table, as a ground item is
-// named -- enough for a belt's potions and scrolls, which have no quality
-// prefix. Empty when the unit is not an item or cannot be read.
-std::string ItemBaseName(uintptr_t unit);
+// An item unit's name from the game's item table and its quality, exactly as a
+// ground item is named ("Leather Gloves, superior"). Empty when the unit is not
+// an item or cannot be read.
+std::string ItemUnitName(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

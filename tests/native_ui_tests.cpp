@@ -164,22 +164,22 @@ int main() {
 	auto cell = NativeUi::GridCell(grid.Address());
 	Check(cell.x == 2 && cell.y == 3, "inventory coordinates use actual native selection and dimensions");
 	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Empty, "grid lookup distinguishes a confirmed empty cell");
+	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Empty, "grid lookup distinguishes a confirmed empty cell");
 	cellItem = 123;
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Occupied
-		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup passes the native owner widget and selected coordinates");
+	auto focused = NativeUi::FocusedItem(grid.Address());
+	Check(focused.item == cellItem && Presence(focused) == NativeUi::ItemPresence::Occupied
+		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup returns the unit, passing the native owner widget and selected coordinates");
 	itemQueryFault = true;
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
+	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
 	itemQueryFault = false; grid.vtable[25] = 0;
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "missing item getter is not called");
+	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "missing item getter is not called");
 	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
 	grid.Put<uint8_t>(0x51, 0);
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "hidden inventory is not queried");
+	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "hidden inventory is not queried");
 	grid.Put<uint8_t>(0x51, 1);
-	Check(NativeUi::GridItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment does not use the grid item getter");
 	grid.Put<int32_t>(0x544, 10);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "out-of-range grid selection is ignored");
-	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "out-of-range selection never reaches the item getter");
+	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "out-of-range selection never reaches the item getter");
 	grid.Put<int32_t>(0x628, 10000);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "corrupt inventory dimensions are bounded");
 	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");
@@ -229,19 +229,31 @@ int main() {
 	slot.Put<int32_t>(0x5D8, 4);
 	slot.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
 	cellItem = 123;
-	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Occupied
-		&& queriedWidget == slot.Address(), "equipment query uses its own native owner and getter");
+	focused = NativeUi::FocusedItem(slot.Address());
+	Check(focused.item == cellItem && queriedWidget == slot.Address() && queriedCell.x == -1,
+		"equipment query uses its own native owner and getter, and passes no cell");
 	cellItem = 0;
-	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
+	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
 	itemQueryFault = true;
-	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
+	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
 	itemQueryFault = false;
-	Check(NativeUi::EquipmentItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup excludes grid widgets");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 4, "equipment slot location uses the reflected body location member");
 	Check(NativeUi::EquipmentLocation(goldButton.Address()) == 0, "button memory is never interpreted as an equipment location");
 	slot.Put<uint8_t>(0x51, 0);
-	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
+	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
+	// The belt shares that getter, numbering its slots by the selection's x.
+	Widget belt("BeltWidget", "belt");
+	belt.metadata.base = &itemBase;
+	belt.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	belt.Put<uint64_t>(0x544, 3);
+	cellItem = 123;
+	focused = NativeUi::FocusedItem(belt.Address());
+	Check(focused.known && focused.item == cellItem && focused.slot == 3
+		&& queriedWidget == belt.Address() && queriedCell.x == 3, "a belt slot returns the unit in the selected slot");
+	belt.Put<uint64_t>(0x544, 16);
+	Check(!NativeUi::FocusedItem(belt.Address()).known, "a selection past the last belt slot is never queried");
+	Check(!NativeUi::FocusedItem(goldButton.Address()).known, "a widget with no item cell is never queried");
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
