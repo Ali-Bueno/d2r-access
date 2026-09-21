@@ -13,6 +13,7 @@
 #include "native_progression.h"
 #include "progression_text.h"
 #include "native_widgets.h"
+#include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "tab_reader.h"
@@ -345,9 +346,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// baseline so its delayed readout cannot immediately interrupt that name.
 		if (readout.Empty()) g_reader.Reset();
 		else (void)g_reader.Update(readout, now, 0);
-		std::string text(tabChange);
+		// The menu switcher's tab is the panel the window announcer has just
+		// named. MEASURED 2026-09-21: "Character" was said twice, the second
+		// time with interrupt, which cut off what was queued behind the first.
+		const bool named = PanelState::TakeAnnounced(tabChange);
+		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
+		std::string text(named ? std::string_view{} : tabChange);
 		Append(text, cursorNotice);
-		ScreenReader::Speak(text, true);
+		if (!text.empty()) ScreenReader::Speak(text, !named);
 		return true;
 	}
 	// The stock item tooltip can appear ~350 ms after selection. An occupied

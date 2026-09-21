@@ -22,6 +22,15 @@ std::string_view Active();
 // Every open panel, oldest first (the active one is last).
 const std::vector<std::string>& OpenPanels();
 
+// The title the window announcer has just spoken for a panel it opened. The
+// controller's menu switcher then reports the same panel as a tab change, and
+// saying that name a second time -- with interrupt -- cut off whatever had
+// been queued behind the first.
+void Announced(std::string_view title);
+
+// True, once, when a tab change names exactly the title just announced.
+bool TakeAnnounced(std::string_view tab);
+
 void Reset();
 
 }

@@ -12,6 +12,7 @@
 #include "focus_tracker.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
+#include "ui_text.h"
 #include "ui_thread_pump.h"
 
 #include <windows.h>
@@ -206,6 +207,9 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		RequestTextProbes(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
+			// Cleaned as the tab reader cleans a tab's text, so the switcher's
+			// report of this same panel compares equal.
+			PanelState::Announced(UiText::Clean(spoken));
 			if (panel == ConfirmationModalPanel || panel == DismissableModalPanel) {
 				g_modalRead = { panel, GetTickCount64() + ModalTextDelayMs };
 			}

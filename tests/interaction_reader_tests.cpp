@@ -6,6 +6,7 @@
 #include "native_controller_help.h"
 #include "native_progression.h"
 #include "native_widgets.h"
+#include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "test_support.h"
@@ -248,6 +249,14 @@ int main() {
 	focus = {50, 51}; widgetType = {}; cell = {};
 	Check(InteractionReader::Tick(&context, now + 100, focus, false, "Árbol de hab.")
 		&& speech == std::vector<std::string>{"Árbol de hab."}, "leaving inventory for another tab still reads the new tab");
+	ClearSpeech();
+	// The window announcer has just said "Personaje" for the panel it opened; the
+	// menu switcher then reports that same panel as a tab change.
+	PanelState::Announced("Personaje");
+	Check(InteractionReader::Tick(&context, now + 150, focus, false, "Personaje") && speech.empty(),
+		"a tab naming the panel the window has just announced is not said a second time");
+	Check(InteractionReader::Tick(&context, now + 160, focus, false, "Personaje")
+		&& speech == std::vector<std::string>{"Personaje"}, "only once: a later change to that tab still reads");
 	ClearSpeech();
 	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Opciones") && speech.empty(), "dialogue priority also suppresses tab speech");
 	conversation = false; InteractionReader::Reset(); inventory = {}; tooltip = {}; ClearSpeech();
