@@ -55,33 +55,32 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
-// The game's own labels for a weapon's damage, an armour's defense and a
-// vendor's price, so the headline can keep them next to the item's name in any
-// language. Each table entry is a printf format, so only the part before its
+// The game's own labels for a weapon's damage and an armour's defense, so the
+// split can tell them from the item's name in any language. Each table entry is a printf format, so only the part before its
 // first placeholder can begin a rendered line -- resolving "Defense: %d" and
 // then looking for that whole string never matched anything. Resolved once per
 // language: the string tables do not change under a running game.
-const std::vector<std::string>& HeadlineLabels() {
+const std::vector<std::string>& StatLabels() {
 	static std::vector<std::string> cached = [] {
 		std::vector<std::string> labels;
 		for (const char* key : TooltipText::BaseStatKeys) {
 			auto text = TooltipText::LabelPrefix(Localization::Text(key));
 			if (!text.empty()) labels.push_back(std::move(text));
 		}
-		if (auto price = TooltipText::LabelPrefix(Localization::Text(TooltipText::PriceKey)); !price.empty())
-			labels.push_back(std::move(price));
 		return labels;
 	}();
 	return cached;
 }
 
-// What a vendor would pay for the player's own item: while selling, the name
-// and this value are the headline.
-const std::vector<std::string>& SellLabels() {
+// What a vendor charges, and what it would pay for the player's own item: in a
+// shop the name and this are the headline.
+const std::vector<std::string>& PriceLabels() {
 	static std::vector<std::string> cached = [] {
 		std::vector<std::string> labels;
-		if (auto sell = TooltipText::LabelPrefix(Localization::Text(TooltipText::SellKey)); !sell.empty())
-			labels.push_back(std::move(sell));
+		for (const char* key : {TooltipText::PriceKey, TooltipText::SellKey}) {
+			auto text = TooltipText::LabelPrefix(Localization::Text(key));
+			if (!text.empty()) labels.push_back(std::move(text));
+		}
 		return labels;
 	}();
 	return cached;
@@ -277,10 +276,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			Append(description, UiText::Clean(tooltip.footer));
 		} else if (inventory) {
 			// An item's own tooltip, in the order the screen draws it: the
-			// name and its base damage or defense are spoken, and the rest is
-			// held for the player to ask for.
+			// name is spoken, with its price in a shop, and the rest is held
+			// for the player to ask for.
 			const auto body = TooltipText::Read(tooltip.body);
-			auto       split = TooltipText::Split(body, HeadlineLabels(), SellLabels());
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels());
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line

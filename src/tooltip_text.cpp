@@ -80,16 +80,16 @@ Body Read(std::string_view body) {
 	return result;
 }
 
-Description Split(const Body& body, std::span<const std::string> headlineLabels,
-	std::span<const std::string> sellLabels) {
+Description Split(const Body& body, std::span<const std::string> statLabels,
+	std::span<const std::string> priceLabels) {
 	Description result;
 	if (body.lines.empty()) return result;
 	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
 		return std::any_of(labels.begin(), labels.end(),
 			[&](const std::string& prefix) { return StartsWith(line, prefix); });
 	};
-	const auto sell = [&](const std::string& line) { return starts(line, sellLabels); };
-	const auto labelled = [&](const std::string& line) { return starts(line, headlineLabels) || sell(line); };
+	const auto price = [&](const std::string& line) { return starts(line, priceLabels); };
+	const auto labelled = [&](const std::string& line) { return starts(line, statLabels) || price(line); };
 	// The styled title where there is one. Otherwise the first line that is not
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
@@ -100,14 +100,12 @@ Description Split(const Body& body, std::span<const std::string> headlineLabels,
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
 	result.headline = body.lines[name];
-	// The base damage or defense and the price join it, wherever they sit --
-	// or while selling, the sell value alone does. Everything else keeps the
-	// order the screen drew it in and waits to be asked for.
-	const bool selling = std::any_of(body.lines.begin(), body.lines.end(), sell);
+	// A price joins it, wherever it sits. Everything else, the base damage or
+	// defense included, keeps the order the screen drew it in and waits to be
+	// asked for.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (at == name) continue;
-		const bool leads = selling ? sell(body.lines[at]) : labelled(body.lines[at]);
-		Append(leads ? result.headline : result.detail, body.lines[at]);
+		Append(price(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
 	}
 	return result;
 }

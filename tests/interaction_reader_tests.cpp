@@ -225,7 +225,7 @@ int main() {
 	Check(speech == std::vector<std::string>{"Inventario. Pergamino del portal de la ciudad"}, "player inventory reads the item without coordinates");
 	ClearSpeech(); focus.widget = 22; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; cell = {};
 	Tooltip("Durabilidad: 28 de 28\nDaño: 3–6\nHacha de mano"); Settle();
-	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano. Daño: 3–6"}, "equipment announces its subsection, the item name and its base damage, and stops there");
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano"}, "equipment announces its subsection and the item name, and stops there");
 	Check(InteractionReader::Repeat() == speech[0], "manual repeat keeps the current complete item readout");
 	ClearSpeech(); conversation = true; Settle();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "a dialogue overlay stops inventory readout");
@@ -302,10 +302,10 @@ int main() {
 	for (int i = 0; i < 5; ++i) Tick();
 	Check(speech.empty(), "occupied cell stays quiet while the stock tooltip is delayed, without early coordinates");
 	Tooltip("Daño: 6-13\nHacha grande"); tooltip.footer = "Coste: 331";
-	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande. Daño: 6-13"}, "delayed item reads its name and base damage immediately, and holds the price back");
+	Check(Tick() && speech == std::vector<std::string>{"Inventario. Hacha grande"}, "delayed item reads its name immediately, and holds the rest back");
 	// The rest of the description is held for the player to ask for.
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Coste: 331"}, "right stick up reads the description the move left out");
+	Check(Tick() && speech == std::vector<std::string>{"Daño: 6-13. Coste: 331"}, "right stick up reads the description the move left out, base damage first");
 	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
 	// An options row offers its explanation to the same gesture instead of
 	// speaking it on arrival; a row with nothing to explain offers nothing.

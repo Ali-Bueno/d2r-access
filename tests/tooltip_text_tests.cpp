@@ -33,24 +33,23 @@ int main() {
 		Check(body.lines.size() == 6, "every drawn line survives");
 		Check(body.Marked(), "the renderer's title styling is found");
 		const auto split = TooltipText::Split(body, BaseStats);
-		Check(split.headline == "Bloodletter. One-Hand Damage: 7 to 15",
-			std::string("the name leads and the base damage follows it, ") + name);
+		Check(split.headline == "Bloodletter", std::string("the name is the headline, ") + name);
+		Check(split.detail.find("One-Hand Damage: 7 to 15") != std::string::npos, "the base damage is detail");
 		Check(split.detail.find("Required Strength: 25") != std::string::npos, "requirements are detail");
 		Check(split.detail.find("+15 to Attack Rating") != std::string::npos, "properties are detail");
 		Check(split.detail.find("Sell price: 84 gold") != std::string::npos, "the price is detail");
 		Check(split.detail.find("Bloodletter") == std::string::npos, "the name is not repeated in the detail");
-		Check(split.detail.find("One-Hand Damage") == std::string::npos, "nor is the base damage");
 	}
 
 	// Detail keeps the order it was stored in, so it reads as the screen drew it.
 	const auto ordered = TooltipText::Split(TooltipText::Read(Stored()), BaseStats);
-	Check(ordered.detail == "Short Sword. Required Strength: 25. +15 to Attack Rating. Sell price: 84 gold",
+	Check(ordered.detail == "Short Sword. One-Hand Damage: 7 to 15. Required Strength: 25. +15 to Attack Rating. Sell price: 84 gold",
 		"the detail is the rest of the tooltip in order");
 
 	// Armour reads the same way through its own label.
 	const auto armour = TooltipText::Split(TooltipText::Read("Required Strength: 20\nDefense: 43\nQuilted Armor"), BaseStats);
-	Check(armour.headline == "Quilted Armor. Defense: 43", "defense is a base stat too");
-	Check(armour.detail == "Required Strength: 20", "and the requirement is not");
+	Check(armour.headline == "Quilted Armor", "armour is named alone too");
+	Check(armour.detail == "Defense: 43. Required Strength: 20", "and its defense leads the detail, where the screen draws it");
 
 	// No styling: the first line stands in, and the split says so.
 	const auto plain = TooltipText::Read("Restores Health\nMinor Healing Potion");
@@ -59,8 +58,7 @@ int main() {
 	Check(potion.headline == "Minor Healing Potion", "an item with no base damage is just its name");
 	Check(potion.detail == "Restores Health", "the rest is still offered");
 
-	// Without the game's labels the headline is the name alone: a shorter
-	// readout, never a wrong one.
+	// Without the game's labels the headline is still the name alone.
 	const auto unlabelled = TooltipText::Split(TooltipText::Read(Stored()), {});
 	Check(unlabelled.headline == "Bloodletter", "no labels, no base-stat line in the headline");
 	Check(unlabelled.detail.find("One-Hand Damage: 7 to 15") != std::string::npos, "and nothing is lost -- it moves to the detail");
@@ -76,27 +74,22 @@ int main() {
 		Font0 + "Sword Class - Fast Attack Speed\n" + Font0 + "Max Sockets: 2\n"
 		+ Font0 + "Durability: 24 of 24\n" + Font0 + "One-Hand Damage: 2 to 7\n"
 		+ Font0 + "Short Sword"), BaseStats);
-	Check(sword.headline == "Short Sword. One-Hand Damage: 2 to 7", "equipment leads with its name and base damage");
-	Check(sword.detail == "Durability: 24 of 24. Max Sockets: 2. Sword Class - Fast Attack Speed",
-		"and the rest follows the screen downwards");
+	Check(sword.headline == "Short Sword", "equipment is named alone");
+	Check(sword.detail == "One-Hand Damage: 2 to 7. Durability: 24 of 24. Max Sockets: 2. Sword Class - Fast Attack Speed",
+		"and the rest, base damage first, follows the screen downwards");
 
-	// Selling from the inventory: the name and what it fetches on the move,
-	// everything else -- the base damage included -- on the right stick.
-	// MEASURED 2026-09-21 selling a staff: "Sell value" was not a known label,
-	// so it was read as the name.
-	const std::vector<std::string> Priced{"One-Hand Damage:", "Defense:", "Cost:"};
-	const std::vector<std::string> Prices{"Sell value:"};
+	// In a shop: the name and the price on the move, everything else on the
+	// right stick. MEASURED 2026-09-21 selling a staff: "Sell value" was not a
+	// known label, so it was read as the name.
+	const std::vector<std::string> Prices{"Cost:", "Sell value:"};
 	const auto selling = TooltipText::Split(TooltipText::Read(
 		Font0 + "+2 to Life\n" + Font0 + "Durability: 5 of 6\n" + Font0 + "One-Hand Damage: 1 to 3\n"
-		+ Font0 + "Low Quality Eagle Orb\n" + Font0 + "Sell value: 73"), Priced, Prices);
+		+ Font0 + "Low Quality Eagle Orb\n" + Font0 + "Sell value: 73"), BaseStats, Prices);
 	Check(selling.headline == "Low Quality Eagle Orb. Sell value: 73", "an item being sold reads its name and what it fetches");
 	Check(selling.detail == "One-Hand Damage: 1 to 3. Durability: 5 of 6. +2 to Life",
 		"and its base damage waits with the rest of the tooltip");
-	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), Priced, Prices);
-	Check(buying.headline == "Cap. Cost: 30. Defense: 8" && buying.detail.empty(),
-		"buying is unchanged: the name, the price and the base defense");
-	Check(TooltipText::Split(TooltipText::Read("Required Strength: 20\nDefense: 43\nQuilted Armor"), Priced, Prices).headline
-		== "Quilted Armor. Defense: 43", "away from a shop the base defense still leads");
+	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), BaseStats, Prices);
+	Check(buying.headline == "Cap. Cost: 30" && buying.detail == "Defense: 8", "buying reads the name and the price the same way");
 
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.
