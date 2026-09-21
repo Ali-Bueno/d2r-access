@@ -17,6 +17,7 @@
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
+#include "pad_filter.h"
 #include "skill_navigation.h"
 #include "quest_service.h"
 #include "radar_config.h"
@@ -250,6 +251,9 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (nativeHooks) {
 		(void)D2RAccess::NativeTooltips::Initialize(context);
 		(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+		// Not an inline hook, but it changes what the game reads, so it goes
+		// with them: R3 kept from the game while guidance owns it.
+		(void)D2RAccess::PadFilter::Install(context);
 	} else {
 		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor or footfall hook this session.");
 	}
@@ -295,6 +299,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::PadFilter::Remove();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();

@@ -70,6 +70,7 @@ add_library(d2r-access SHARED
 	src/map_survey.cpp
 	src/map_survey_service.cpp
 	src/native_ui.cpp
+	src/pad_filter.cpp
 	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
@@ -340,8 +341,15 @@ if(BUILD_TESTING)
 	target_include_directories(modal-reader-tests PRIVATE src)
 	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME modal-reader COMMAND modal-reader-tests)
+	add_executable(pad-filter-tests tests/pad_filter_tests.cpp src/pad_filter.cpp)
+	target_link_libraries(pad-filter-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(pad-filter-tests PRIVATE src)
+	target_compile_features(pad-filter-tests PRIVATE cxx_std_20)
+	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME pad-filter COMMAND pad-filter-tests)
 	if(MSVC)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

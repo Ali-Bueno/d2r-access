@@ -8,6 +8,7 @@
 #include "native_rooms.h"
 #include "native_world.h"
 #include "navigation_grid.h"
+#include "pad_filter.h"
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -285,6 +286,9 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
+	// R3 is guidance's during play, so the game must not also swap weapons on
+	// it. In a menu the click stays the game's, as it always was.
+	PadFilter::ClaimRightThumb(context, state.ready && Playing());
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		Release("lifecycle");
