@@ -36,6 +36,7 @@ add_library(d2r-access SHARED
 	src/input_direction.cpp
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
+	src/inventory_census.cpp
 	src/inventory_cursor.cpp
 	src/plugin.cpp
 	src/localization.cpp

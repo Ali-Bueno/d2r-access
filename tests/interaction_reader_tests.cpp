@@ -113,6 +113,9 @@ namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
 std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
 }
+namespace D2RAccess::InventoryCensus {
+void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
+}
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
 }

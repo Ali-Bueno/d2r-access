@@ -5,6 +5,7 @@
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
+#include "inventory_census.h"
 #include "inventory_cursor.h"
 #include "ground_item_service.h"
 #include "input_direction.h"
@@ -209,6 +210,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
 		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;

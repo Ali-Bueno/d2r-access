@@ -170,6 +170,9 @@ int main() {
 		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup passes the native owner widget and selected coordinates");
 	Check(NativeUi::GridItem(grid.Address()) == 123, "the grid names the item on the selected cell");
 	Check(NativeUi::EquipmentItem(grid.Address()) == 0, "and a grid is not an equipment slot");
+	Check(NativeUi::GridSize(grid.Address()).x == 10 && NativeUi::GridSize(grid.Address()).y == 4, "the grid reports its size in cells");
+	Check(NativeUi::GridItemAt(grid.Address(), {9, 0}).known && queriedCell.x == 9 && queriedCell.y == 0, "any cell of the grid can be looked up for the census");
+	Check(!NativeUi::GridItemAt(grid.Address(), {10, 0}).known, "a cell outside the grid never reaches the item getter");
 	itemQueryFault = true;
 	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
 	itemQueryFault = false; grid.vtable[25] = 0;

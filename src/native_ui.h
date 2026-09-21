@@ -28,6 +28,12 @@ ItemPresence GridItemPresence(uintptr_t widget);
 // could not be read. The unit is only named, never kept.
 uintptr_t GridItem(uintptr_t widget);
 uintptr_t EquipmentItem(uintptr_t widget);
+// Any cell of an inventory grid, and the grid's size in cells (x = width,
+// y = height; -1 when unreadable), for the inventory census log. `known` is
+// false when the cell could not be read.
+struct GridSlot { bool known = false; uintptr_t item = 0; };
+GridSlot GridItemAt(uintptr_t widget, Cell cell);
+Cell GridSize(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
 // The belt slot the controller is on and the item in it, read straight from
 // the belt rather than waiting for the game's tooltip, which the controller

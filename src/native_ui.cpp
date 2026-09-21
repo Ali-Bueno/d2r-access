@@ -249,12 +249,25 @@ ItemPresence GridItemPresence(uintptr_t widget) {
 }
 
 uintptr_t GridItem(uintptr_t widget) {
-	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return 0;
-	const auto cell = GridCell(widget);
-	uintptr_t vtable = 0, getter = 0, item = 0;
-	if (cell.x < 0 || !Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
-		|| !NativeMemory::Executable(getter) || !CallItemPointer(getter, widget, cell, item)) return 0;
-	return item;
+	return GridItemAt(widget, GridCell(widget)).item;
+}
+
+Cell GridSize(uintptr_t widget) {
+	struct { int32_t width, height; } dimensions{};
+	if (Classify(widget).kind != Kind::InventoryGrid || !Peek(widget + GridDimensionsOffset, dimensions)
+		|| dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 64 || dimensions.height > 64) return {};
+	return {dimensions.width, dimensions.height};
+}
+
+GridSlot GridItemAt(uintptr_t widget, Cell cell) {
+	GridSlot result;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return result;
+	const auto size = GridSize(widget);
+	uintptr_t vtable = 0, getter = 0;
+	if (cell.x < 0 || cell.y < 0 || cell.x >= size.x || cell.y >= size.y || !Peek(widget, vtable) || !vtable
+		|| !Peek(vtable + ItemAtCellSlot, getter) || !NativeMemory::Executable(getter)) return result;
+	result.known = CallItemPointer(getter, widget, cell, result.item);
+	return result;
 }
 
 uintptr_t EquipmentItem(uintptr_t widget) {
