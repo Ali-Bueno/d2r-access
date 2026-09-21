@@ -42,5 +42,27 @@ int main() {
 		"and queues it behind the title the window announcer already spoke, instead of cutting that title off");
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 1, "the same panel is read once, not on every tick");
+
+	// The quest log opens with nothing focused too, and the only text on it is
+	// the act tab bar's captions (QuestLogPanelExpansionHD.json: textStrings
+	// "I" to "V"), built as the bar's Text<N> children.
+	active = "QuestLogPanelExpansion";
+	tree = {};
+	Node(-1, Kind::Other, "QuestLogPanelExpansion");
+	Node(0, Kind::Tabs, "Tabs", "I");
+	Node(1, Kind::Text, "Text0", "I");
+	Node(1, Kind::Text, "Text1", "II");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1, "tab captions are left to the tab reader instead of being read as a list");
+	active = "DeleteCharacterModal";
+	tree = {};
+	Node(-1, Kind::Other, "DeleteCharacterModal");
+	Node(0, Kind::Tabs, "Tabs", "I");
+	Node(1, Kind::Other, "Tab0");
+	Node(2, Kind::Text, "Text0", "I");
+	Node(0, Kind::Text, "Prompt", "Delete this character?");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 2 && speech.back().text == "Delete this character?",
+		"only what sits under a tab bar is skipped, however deep, and the rest of the panel still reads");
 	Passed();
 }

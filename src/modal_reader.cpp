@@ -30,6 +30,19 @@ bool Speakable(const UiText::Node& node) {
 	}
 }
 
+// A tab bar's captions belong to the tab reader, which names the selected one
+// as the player moves along the bar. Read here they are every caption at once
+// with no selection -- the quest log's act tabs came out as "I, II, III, IV,
+// V". They are the bar's own Text<N> children, the same boxes
+// NativeUi::SelectedTabText reads.
+bool UnderTabBar(const UiText::Snapshot& snapshot, int parent) {
+	for (int at = parent; at >= 0 && static_cast<size_t>(at) < snapshot.nodes.size();
+	     at = snapshot.nodes[static_cast<size_t>(at)].parent) {
+		if (snapshot.nodes[static_cast<size_t>(at)].kind == UiText::Kind::Tabs) return true;
+	}
+	return false;
+}
+
 void Append(std::string& phrase, const std::string& part) {
 	if (part.empty()) return;
 	if (!phrase.empty()) phrase += ", ";
@@ -63,7 +76,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const UiText::Snapshot snapshot = NativeUi::Snapshot(panel, 0);
 	std::string            phrase;
 	for (const UiText::Node& node : snapshot.nodes) {
-		if (!Speakable(node)) continue;
+		if (!Speakable(node) || UnderTabBar(snapshot, node.parent)) continue;
 		AsyncLog::InfoF(context, "[modal] %s/%s (%s) -> \"%s\"", active.c_str(), node.name.c_str(), node.type.c_str(), node.text.c_str());
 		Append(phrase, node.text);
 	}
