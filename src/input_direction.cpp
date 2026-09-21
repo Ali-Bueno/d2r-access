@@ -1,5 +1,7 @@
 #include "input_direction.h"
 
+#include "stick_chord.h"
+
 #include <windows.h>
 
 #include <xinput.h>
@@ -46,8 +48,7 @@ struct PadEdgeState {
 	bool yHeld          = false;
 	bool rightStickHeld = false;
 	bool backHeld       = false;
-	bool leftThumbHeld  = false;
-	bool rightThumbHeld = false;
+	StickChord::Thumbs thumbs; // L3 click, R3 click, and the two together
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -60,6 +61,7 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
+bool g_stickChord = false;
 bool g_backPressed = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
@@ -195,12 +197,13 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
-				g_leftStickClick = true;
-			}
-			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
-				g_rightStickClick = true;
-			}
+			// L3 and R3 are told apart from the two pressed together, so a
+			// single click is reported on its release (stick_chord.h).
+			const auto thumbs = edges.thumbs.Update((pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0,
+				(pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
+			if (thumbs.left) g_leftStickClick = true;
+			if (thumbs.right) g_rightStickClick = true;
+			if (thumbs.chord) g_stickChord = true;
 			if (UpdateEdge(edges.backHeld, (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0)) {
 				g_backPressed = true;
 			}
@@ -246,6 +249,12 @@ bool TakeLeftStickClick() {
 	g_leftStickClick = false;
 	return clicked;
 }
+bool TakeStickChord() {
+	const bool chorded = g_stickChord;
+	g_stickChord = false;
+	return chorded;
+}
+
 bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;

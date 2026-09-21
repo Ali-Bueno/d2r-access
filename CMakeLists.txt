@@ -33,6 +33,7 @@ add_library(d2r-access SHARED
 	src/native_footsteps.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
+	src/stick_chord.cpp
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
@@ -133,6 +134,10 @@ if(BUILD_TESTING)
 	target_include_directories(rooms-tests PRIVATE src)
 	target_compile_features(rooms-tests PRIVATE cxx_std_20)
 	add_test(NAME rooms COMMAND rooms-tests)
+	add_executable(stick-chord-tests tests/stick_chord_tests.cpp src/stick_chord.cpp)
+	target_include_directories(stick-chord-tests PRIVATE src)
+	target_compile_features(stick-chord-tests PRIVATE cxx_std_20)
+	add_test(NAME stick-chord COMMAND stick-chord-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
 	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
@@ -356,6 +361,7 @@ if(BUILD_TESTING)
 	if(MSVC)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
