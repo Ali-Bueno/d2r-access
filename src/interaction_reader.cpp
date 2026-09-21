@@ -455,7 +455,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		renderedDescription = false;
 	} else if (!readout.Empty()) g_hiddenLabel.clear();
 	if (inventory != g_inventory) {
-		if (g_inventory) ScreenReader::Stop();
+		// Leaving the inventory for play silences what it was saying; leaving it
+		// for another tab does not, because that tab's title is already being
+		// spoken by the time focus reaches it. INFERRED from the 13:03:28 log of
+		// 2026-09-21: "Character" began at .350 and the character's name was
+		// queued at .397, in the same poll as the first focus off the inventory,
+		// and the user heard both cut to silence. The title interrupts an item
+		// readout on its own.
+		if (g_inventory && RadarUi::InPlay()) ScreenReader::Stop();
 		g_reader.Reset();
 	}
 	g_inventory = inventory;

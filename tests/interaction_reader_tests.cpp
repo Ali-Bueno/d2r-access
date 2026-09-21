@@ -181,9 +181,10 @@ bool inPlay = false;
 namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return controlTooltips; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return inPlay; } }
 std::vector<bool> interrupts;
+int stops = 0;
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
-void Stop() {}
+void Stop() { ++stops; }
 }
 
 int main() {
@@ -272,6 +273,19 @@ int main() {
 	Check(speech == std::vector<std::string>{"Gemas"}, "switching tabs announces only the changed tab name");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "unchanged inventory cell does not interrupt the tab announcement on the next poll");
+	ClearSpeech(); cell = {1, 0}; selection = 1;
+	{
+		// Focus leaving the inventory for another tab lets that tab's title be;
+		// leaving it for play silences the item readout.
+		const auto before = stops;
+		const auto kept = focus; const auto keptType = widgetType;
+		focus = {50, 51}; widgetType = {}; Tick();
+		Check(stops == before, "moving from the inventory to another tab does not stop the speech already under way");
+		focus = kept; widgetType = keptType; Settle(); ClearSpeech();
+		inPlay = true; focus = {}; widgetType = {}; Tick(); inPlay = false;
+		Check(stops == before + 1, "leaving the inventory for play still silences it");
+		focus = kept; widgetType = keptType; Settle(); ClearSpeech();
+	}
 	focus = {50, 51}; widgetType = {}; cell = {};
 	Check(InteractionReader::Tick(&context, now + 100, focus, false, "Árbol de hab.")
 		&& speech == std::vector<std::string>{"Árbol de hab."}, "leaving inventory for another tab still reads the new tab");
