@@ -47,7 +47,6 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
-	bool backHeld       = false;
 	StickChord::Thumbs thumbs; // L3 click, R3 click, and the two together
 };
 
@@ -62,7 +61,7 @@ Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 bool g_stickChord = false;
-bool g_backPressed = false;
+bool g_backWithX = false, g_backWithY = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -189,11 +188,16 @@ void Poll() {
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
 			}
+			// BACK is a modifier: X or Y pressed while it is held (pad_filter.h
+			// keeps that press from the game during play).
+			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.xHeld, (pad.wButtons & XINPUT_GAMEPAD_X) != 0)) {
 				RecordEdge(FaceButton::X);
+				if (backDown) g_backWithX = true;
 			}
 			if (UpdateEdge(edges.yHeld, (pad.wButtons & XINPUT_GAMEPAD_Y) != 0)) {
 				RecordEdge(FaceButton::Y);
+				if (backDown) g_backWithY = true;
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
@@ -204,9 +208,6 @@ void Poll() {
 			if (thumbs.left) g_leftStickClick = true;
 			if (thumbs.right) g_rightStickClick = true;
 			if (thumbs.chord) g_stickChord = true;
-			if (UpdateEdge(edges.backHeld, (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0)) {
-				g_backPressed = true;
-			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
@@ -260,10 +261,12 @@ bool TakeRightStickClick() {
 	g_rightStickClick = false;
 	return clicked;
 }
-bool TakeBackButton() {
-	const bool pressed = g_backPressed;
-	g_backPressed = false;
-	return pressed;
+bool TakeBackWith(FaceButton button) {
+	bool& pressed = button == FaceButton::X ? g_backWithX : g_backWithY;
+	if (button != FaceButton::X && button != FaceButton::Y) return false;
+	const bool result = pressed;
+	pressed = false;
+	return result;
 }
 StickPush TakeRightStickPush(const char* claimant) {
 	const StickPush push = g_rightStickPush;

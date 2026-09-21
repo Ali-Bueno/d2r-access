@@ -290,7 +290,7 @@ void Tick(const D2RL::PluginContext* context) {
 	// and the console's lock and clear (the user, 2026-09-21: "ignore guidance
 	// while menu is open").
 	const bool inPlay = state.ready && Playing();
-	PadFilter::ClaimRightThumb(context, inPlay);
+	PadFilter::Claim(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		Release("lifecycle");

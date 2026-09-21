@@ -96,12 +96,14 @@ PushRecord TakePushRecord();
 // The push's name for the log. English only: this is diagnosis, not speech.
 const char* PushName(StickPush push);
 
-// BACK (Select/View) press edges, from whichever pad reports them. Read only:
-// the button still reaches the game exactly as it did, because this samples
-// XInput in a module of the mod's own (critical rule 3 forbids speaking over a
-// real pad, not listening to it). Take() returns whether a press happened
-// since the previous Take() and clears it.
-bool TakeBackButton();
+// BACK (Select/View) held as a modifier: X or Y pressed while it is down
+// (the user, 2026-09-21: "back+X: speak life+mana ... back+y: speak the room
+// layout"). BACK alone does nothing for the mod and still reaches the game,
+// which does nothing with it in play. The X or Y press is kept from the game
+// during play by pad_filter.h, so no skill fires with it. Only X and Y are
+// reported; Take() returns whether one happened since the previous Take() and
+// clears it, so a caller must take it every tick, in a menu too.
+bool TakeBackWith(FaceButton button);
 
 // Right thumbstick CLICK (R3). The SDK's action service binds keyboard keys
 // only (D2RLPlugin/input.h Key/Modifier), so the pad button is read here with
