@@ -229,6 +229,8 @@ int main() {
 	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
 	Check(inventoryWalks == 0 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
 	ClearSpeech(); cell = {2, 0}; selection = 2; Settle();
+	Check(speech.empty(), "a cell that cannot be read is not given the position that says it is empty");
+	itemPresence = NativeUi::ItemPresence::Empty; Settle();
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "old tooltip is discarded when selection moves to a cell without a rendered description");
 	ClearSpeech(); focus = {20, 21}; inventory = {}; cell = {0, 1}; selection = uint64_t{1} << 32;
 	Tooltip("Pergamino del portal de la ciudad"); Settle();
@@ -247,7 +249,7 @@ int main() {
 	ClearSpeech(); Tooltip("Poción");
 	Check(Tick() && speech.size() == 1 && speech[0].find("Poción") != std::string::npos, "rendered item speech is emitted on the first inventory poll");
 	Check(inventoryWalks == priorWalks, "reopening inventory reuses shared tab discovery");
-	ClearSpeech(); tooltip = {}; cell = {1, 0}; selection = 1;
+	ClearSpeech(); tooltip = {}; cell = {1, 0}; selection = 1; itemPresence = NativeUi::ItemPresence::Empty;
 	Tick();
 	Check(speech.empty(), "new cell permits a brief wait for the renderer");
 	now += 33; InteractionReader::Tick(&context, now, focus, false);

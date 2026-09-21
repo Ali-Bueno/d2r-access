@@ -343,11 +343,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. An occupied cell or slot
 	// is still waiting for the game's own tooltip (~350 ms), so the hints wait
-	// with it instead of arriving first.
+	// with it instead of arriving first. A grid cell that could not be read
+	// waits too: its position alone says "empty", and only a cell known to be
+	// empty may say that (the user, 2026-09-21).
 	const bool occupied = type.kind == UiText::Kind::InventorySlot
 		? equipmentPresence == NativeUi::ItemPresence::Occupied
 		: type.kind == UiText::Kind::InventoryGrid
-			&& NativeUi::GridItemPresence(focus.widget) == NativeUi::ItemPresence::Occupied;
+			&& NativeUi::GridItemPresence(focus.widget) != NativeUi::ItemPresence::Empty;
 	const bool awaitingDescription = inventory && !renderedDescription && occupied;
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
