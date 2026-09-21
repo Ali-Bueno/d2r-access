@@ -48,6 +48,10 @@ add_library(d2r-access SHARED
 	src/exit_review.cpp
 	src/rooms.cpp
 	src/room_service.cpp
+	src/terrain_overview.cpp
+	src/terrain_service.cpp
+	src/explored_rooms.cpp
+	src/stick_clicks.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
@@ -121,6 +125,11 @@ if(BUILD_TESTING)
 	target_include_directories(exit-review-tests PRIVATE src)
 	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
 	add_test(NAME exit-review COMMAND exit-review-tests)
+	# The terrain overview: the level's extent, what is explored, and the R3 gestures.
+	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/stick_clicks.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(terrain-overview-tests PRIVATE src)
+	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
+	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	add_executable(navigation-grid-tests tests/navigation_grid_tests.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
@@ -304,6 +313,7 @@ if(BUILD_TESTING)
 		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(exit-review-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-grid-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-engine-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-passage-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

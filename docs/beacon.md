@@ -19,10 +19,12 @@ releases it on its own.
 
 - Right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
   lock the last thing the entity scan or the exit review announced, or release
-  the current lock if one is active. The click is reported on **release**, and
-  only when the press stayed under 350 ms: holding the stick down past that is
-  the exit review's "next way out" instead (`docs/rooms.md`), and it swallows
-  its own release so the two gestures never both fire.
+  the current lock if one is active. The click is reported after **release**,
+  and only when the press stayed under 350 ms: holding the stick down past that
+  is the exit review's "next way out" instead (`docs/rooms.md`), and it swallows
+  its own release so the two gestures never both fire. Since a double click is
+  the terrain overview (`docs/terrain-overview.md`), the single click waits out
+  the 300 ms double-click window before it fires.
 - Console `access-beacon lock|clear|status` (`lock` also accepts `toggle`,
   `clear` also accepts `off`); `status` speaks whether something is locked
   and, if so, its name.

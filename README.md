@@ -220,6 +220,12 @@ getting there (straight, around or no route). A short right-stick click, or **Ct
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).
 
+**Terrain overview (built; live validation pending):** the accessible automap. **Ctrl+O**, or a
+right-stick double click, speaks the level name, where you stand in it (`left edge`, `centre`…) and,
+for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
+a neighbouring level you have already reached. It never names undiscovered levels and never routes.
+See [terrain overview](docs/terrain-overview.md).
+
 ### Character panel
 
 Opening the character sheet says the panel name with the character, class and
@@ -353,6 +359,8 @@ python tools\gen_panel_widgets.py
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor, layout indexer/generators and local computer-use tools.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.
+  `docs/decisions.md` — dated design-decision log (what was rejected and why).
+  `docs/testing.md` — target player profile and how to test/validate the mod.
 
 ## License
 

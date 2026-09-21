@@ -131,6 +131,46 @@ std::vector<BorderExit> Borders(const std::vector<BorderPair>& pairs, Radar::Pos
 	return exits;
 }
 
+bool ReadLayout(uintptr_t activeRoom, bool neighbours, Layout& output) {
+	const NativeMemory::ReadScope scope;
+	output = {};
+	uintptr_t room = 0, level = 0;
+	Layout layout;
+	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
+		|| !Peek(room + ExtendedLevel, level) || !level || !Peek(level + LevelId, layout.level)
+		|| !Peek(level + LevelTileX, layout.rect.x) || !Peek(level + LevelTileY, layout.rect.y)
+		|| !Peek(level + LevelTileWidth, layout.rect.width) || !Peek(level + LevelTileHeight, layout.rect.height)
+		|| !Peek(level + LevelFirstRoom, room)) return false;
+	std::unordered_set<uintptr_t> rooms;
+	while (room) {
+		if (rooms.size() >= MaxRooms || !rooms.insert(room).second) return false;
+		uintptr_t owner = 0, active = 0;
+		TileRect rect;
+		if (!Peek(room + ExtendedLevel, owner) || owner != level || !ReadRect(room, rect)
+			|| !Peek(room + RoomActive, active)) return false;
+		layout.rooms.push_back({rect, active != 0});
+		if (neighbours) {
+			uintptr_t list = 0;
+			uint64_t count = 0;
+			if (!Peek(room + RoomNearCount, count) || count > MaxRooms) return false;
+			if (count && (!Peek(room + RoomNear, list) || !list)) return false;
+			for (uint64_t i = 0; i < count; ++i) {
+				uintptr_t nearRoom = 0, nearLevel = 0;
+				NeighbourRoom neighbour;
+				if (!Peek(list + i * sizeof(uintptr_t), nearRoom) || !nearRoom) return false;
+				if (!Peek(nearRoom + ExtendedLevel, nearLevel) || !nearLevel || nearLevel == level
+					|| !Peek(nearLevel + LevelId, neighbour.level) || neighbour.level == layout.level
+					|| !ReadRect(nearRoom, neighbour.rect)) continue;
+				layout.neighbours.push_back(neighbour);
+			}
+		}
+		if (!Peek(room + RoomNext, room)) return false;
+	}
+	if (layout.rooms.empty()) return false;
+	output = std::move(layout);
+	return true;
+}
+
 bool ReadBorders(uintptr_t activeRoom, Radar::Position player, std::vector<BorderExit>& output) {
 	const NativeMemory::ReadScope scope;
 	output.clear();

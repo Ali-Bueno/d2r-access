@@ -2,6 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Terrain overview — 2026-09-21
+
+The accessible automap: **Ctrl+O** or an R3 double click speaks the level name, the player's place in it
+(screen thirds: `borde izquierdo`, `centro`…) and, per screen direction, the distance to the level's outer
+edge or to an already generated neighbour level, plus where unexplored terrain starts (rooms never streamed
+near the player this session). No undiscovered level names, no routes (`docs/decisions.md`). The R3 single
+click (beacon) now waits the 300 ms double-click window. `src/terrain_overview.*`, `src/explored_rooms.*`,
+`src/terrain_service.*`, `docs/terrain-overview.md`. 46/46 CTest suites. Why it was needed: in Blood Moor
+the exit review only names Cold Plains once the game generates it (~40 m from the border), by design.
+RE of the act level list and the `Level` rect (`+0x24..0x30`, tiles) in `docs/act-levels-re.md`; the
+overview uses the RoomEx union and only cross-checks the rect (`[terrain] … differs` warning).
+
+**Next step:** listening check in Blood Moor with the controller: R3 double click right after entering
+(expect `Blood Moor, borde izquierdo. adelante: …`), walk toward an unexplored direction, repeat; confirm
+the exit review names Cold Plains once ~40 m from its border. Judge the 300 ms beacon delay and the wording.
+
 ## Exit review and room hysteresis — 2026-09-20
 
 The ways out are reviewed one at a time, nearest first: Ctrl+V or holding the right stick 350 ms speaks
@@ -22,7 +38,7 @@ Ported from `grimdark` after a code-level pass that corrected our reference: its
 pathfinder ("path" is inferred), exits never say "blocked", and the hysteresis is inverted. Our "around"
 is verified by the route search. `reference/audio-navigation/grim-dawn/navigation-spec.md`.
 
-**Next step:** listening check with the controller. In the Den: enter a room (expect its ways out at
+**Pending (2026-09-20):** listening check with the controller. In the Den: enter a room (expect its ways out at
 once), hold R3 (next way out), short-click R3 (guide to it). Judge the 350 ms hold and the 1000/400 ms
 hysteresis by ear. Known: `[items] exits nearby` counts warp units only, so it says 1 where the review
 says 2.

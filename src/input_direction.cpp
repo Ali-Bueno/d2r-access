@@ -1,5 +1,7 @@
 #include "input_direction.h"
 
+#include "stick_clicks.h"
+
 #include <windows.h>
 
 #include <xinput.h>
@@ -23,11 +25,6 @@ constexpr SHORT kThumbstickMaxMagnitude = std::numeric_limits<SHORT>::max();
 constexpr float kThumbstickDirectionDeadzoneFraction = 0.5f;
 constexpr SHORT kThumbstickDirectionThreshold         = static_cast<SHORT>(kThumbstickMaxMagnitude * kThumbstickDirectionDeadzoneFraction);
 
-// A deliberate click of the right stick lasts roughly 100-150 ms, so holding it
-// past this is unambiguously a hold and not a slow click, while still firing
-// soon enough that waiting for it does not feel slow.
-constexpr ULONGLONG kRightStickHoldMs = 350;
-
 // Per GetAsyncKeyState's documented contract: the high bit of the return
 // value is set when the key is currently down.
 constexpr SHORT kKeyDownFlag = static_cast<SHORT>(0x8000);
@@ -50,9 +47,7 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
-	bool rightThumbHeld = false;
-	ULONGLONG rightThumbSinceMs = 0;
-	bool rightThumbConsumed = false; // the hold already fired, so the release is not a click
+	StickClicks::Gesture rightThumb; // R3: click, double click and hold
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -63,7 +58,7 @@ bool         g_keyDownHeld  = false;
 DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
-bool g_rightStickClick = false, g_rightStickHold = false;
+bool g_rightStickClick = false, g_rightStickDoubleClick = false, g_rightStickHold = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -186,21 +181,11 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			// R3: a short press and release is a click, holding it past the
-			// threshold is a hold that fires once and swallows its own release.
-			const bool thumbDown = (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
-			const bool thumbWasDown = edges.rightThumbHeld;
-			if (UpdateEdge(edges.rightThumbHeld, thumbDown)) {
-				edges.rightThumbSinceMs = GetTickCount64();
-				edges.rightThumbConsumed = false;
-			} else if (thumbDown) {
-				if (!edges.rightThumbConsumed && GetTickCount64() - edges.rightThumbSinceMs >= kRightStickHoldMs) {
-					edges.rightThumbConsumed = true;
-					g_rightStickHold = true;
-				}
-			} else if (thumbWasDown && !edges.rightThumbConsumed) {
-				g_rightStickClick = true;
-			}
+			// R3: click, double click and hold, told apart by StickClicks.
+			const auto fired = edges.rightThumb.Update((pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0, GetTickCount64());
+			g_rightStickClick = g_rightStickClick || fired.click;
+			g_rightStickDoubleClick = g_rightStickDoubleClick || fired.doubleClick;
+			g_rightStickHold = g_rightStickHold || fired.hold;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
@@ -238,6 +223,11 @@ Stick LeftStick() { return g_leftStick; }
 bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
+	return clicked;
+}
+bool TakeRightStickDoubleClick() {
+	const bool clicked = g_rightStickDoubleClick;
+	g_rightStickDoubleClick = false;
 	return clicked;
 }
 bool TakeRightStickHold() {
@@ -304,7 +294,7 @@ DpadInput Dpad() { return g_dpad; }
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;
-	g_rightStickClick = g_rightStickHold = false;
+	g_rightStickClick = g_rightStickDoubleClick = g_rightStickHold = false;
 	if (g_library != nullptr) {
 		FreeLibrary(g_library);
 		g_library = nullptr;
