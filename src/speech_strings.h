@@ -149,6 +149,14 @@ struct Table {
 	const char* terrainUnexplored;
 	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
 	const char* terrainUnavailable;    // the level's layout could not be read
+	// Room announcer: the ways out of a dungeon room. `room_service.h`
+	const char* roomExits;     // %s = the ways out, already joined
+	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
+	const char* roomNoExits;
+	const char* roomOutside;   // BACK+Y where there is no dungeon room to describe
+	const char* roomsEnabled;
+	const char* roomsDisabled;
+	const char* roomsUnavailable;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -182,7 +190,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
-		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable};
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

@@ -3,7 +3,7 @@
 #include "native_entities.h"
 #include "native_world.h"
 #include "native_ui.h"
-#include "generated/level_flags.h"
+#include "room_service.h"
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "input_direction.h"
@@ -49,14 +49,6 @@ uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0, g_lastSnapshot = 0;
 int g_level = 0, g_testStep = -1;
 std::string g_lastReason;
-// Levels.txt DrlgType 1: a maze level, built from preset cells, so one
-// streamed room is one chamber and a way into another room is an exit.
-// Upstream asks its room announcer (RoomService::Maze), which this branch
-// does not carry; the answer comes from the same generated level table.
-constexpr int32_t MazeDrlgType = 1;
-bool Maze(int level) {
-	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == MazeDrlgType;
-}
 std::vector<Radar::Position> g_exits;
 uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
@@ -251,7 +243,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!available) {
 		Suspend(reason);
 	} else {
-		world.maze = Maze(world.level);
+		world.maze = RoomService::Maze(world.level);
 		RefreshExits(world, now);
 		world.exits = g_exits;
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.exits.size());

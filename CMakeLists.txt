@@ -69,6 +69,7 @@ add_library(d2r-access SHARED
 	src/native_rooms.cpp
 	src/room_graph.cpp
 	src/rooms.cpp
+	src/room_service.cpp
 	src/explored_rooms.cpp
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
