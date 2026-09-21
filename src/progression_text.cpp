@@ -41,7 +41,7 @@ NativeUi::Cell SkillCell(std::string_view name) {
 	return cell;
 }
 
-std::string SkillDescription(std::string_view body) {
+std::vector<std::string> SkillLines(std::string_view body) {
 	// U+E07E followed by 1 or 2 sets font size. Captured from the stock skill
 	// renderer during controller navigation; these are not controller glyphs.
 	constexpr std::string_view font = "\xEE\x81\xBE";
@@ -65,10 +65,15 @@ std::string SkillDescription(std::string_view body) {
 		if (newline == std::string_view::npos) break;
 		body = body.substr(0, newline);
 	}
-	if (lines.empty()) return {};
 	// The learned/unlearned state is drawn above the styled name. Speak the
 	// name first, then preserve the rest of the screen's top-to-bottom order.
 	if (title != std::string::npos) std::rotate(lines.begin(), lines.begin() + title, lines.begin() + title + 1);
+	return lines;
+}
+
+std::string SkillDescription(std::string_view body) {
+	const auto lines = SkillLines(body);
+	if (lines.empty()) return {};
 	std::string result = lines.front();
 	if (lines.size() > 1) result += ".";
 	for (size_t i = 1; i < lines.size(); ++i) result += " " + lines[i];

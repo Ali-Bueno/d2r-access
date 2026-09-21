@@ -52,6 +52,12 @@ enum class FaceButton {
 };
 FaceButton LastFaceButton(unsigned maxAgeMs);
 
+// Whether that face button was pressed since the previous Take() for it, then
+// cleared: for a reader that acts on the press itself (the skill line reader
+// closes on B). A caller should take it once before it starts listening, so an
+// old press is not mistaken for a new one. Only B is recorded so far.
+bool TakeFacePress(FaceButton button);
+
 // Right thumbstick push edges for the entity scan: a push is recorded once
 // when the stick leaves its dead zone (same threshold as the left stick), in
 // the dominant axis at that moment. Releasing below the threshold re-arms it,

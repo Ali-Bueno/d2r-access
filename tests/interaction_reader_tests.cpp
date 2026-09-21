@@ -128,6 +128,11 @@ uint32_t ItemTableCode(uintptr_t unit) {
 namespace D2RAccess::InventoryCensus {
 void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
 }
+namespace D2RAccess::PadFilter {
+int holds = 0;
+void HoldB(uint64_t) { ++holds; }
+void ReleaseB() { holds = 0; }
+}
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
 }
@@ -152,6 +157,8 @@ bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	return true;
 }
 StickPush PeekRightStickPush() { return pendingPush; }
+bool pressB = false;
+bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButton::B && pressB; if (button == FaceButton::B) pressB = false; return pressed; }
 }
 // The damage, defense and price labels come from the game's own string table,
 // as printf formats -- the reader keeps only the part before the placeholder.
@@ -497,6 +504,25 @@ int main() {
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
 	pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "right stick up reads what the skill does");
+	// Right stick left opens the skill line by line; up and down move, and
+	// right stick left or B closes it and reads the skill again.
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Left;
+	Check(Tick() && speech == std::vector<std::string>{"Aullido"} && PadFilter::holds > 0, "right stick left opens the skill's lines at its name, holding B from the game");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
+	pendingPush = InputDirection::StickPush::Down; Tick();
+	Check(speech == std::vector<std::string>{"Sin aprender", "Huyen aterrorizados."}, "down reads each following line, with no number");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
+	Check(speech == std::vector<std::string>{"Huyen aterrorizados."}, "past the last line the last is read again");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Sin aprender"}, "up goes back");
+	ClearSpeech(); InputDirection::pressB = true; Tick();
+	Check(speech.size() == 1 && speech[0].starts_with("Gritos de guerra. Aullido") && PadFilter::holds == 0, "B closes it, lets B go, and reads the skill again");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "closed, up is the detail again");
+	ClearSpeech(); InputDirection::pressB = true; pendingPush = InputDirection::StickPush::Left; Tick();
+	Check(speech == std::vector<std::string>{"Aullido"}, "reopening ignores a B pressed before it opened");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Left; Tick();
+	Check(speech.size() == 1 && speech[0].starts_with("Gritos de guerra. Aullido"), "right stick left closes it too");
 	ClearSpeech();
 	focus.widget = 72; progression.readout.focusKey = "72"; progression.readout.coordinates = "Fila 2, columna 1";
 	Check(Tick() && speech.empty(), "moving to another skill rejects the previous tooltip");

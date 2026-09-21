@@ -18,6 +18,7 @@
 #include "progression_text.h"
 #include "radar_ui.h"
 #include "native_widgets.h"
+#include "pad_filter.h"
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -83,6 +84,17 @@ std::string g_tabTitle;
 uintptr_t g_readPanel = 0;
 // The tab bar highlight last logged, so [tabs] bar is written once per move.
 std::string g_tabBarLogged;
+
+// Right stick left on a skill opens its description one line at a time (the
+// user, 2026-09-21): up and down move through the lines, and right stick left
+// again or B closes it, after which the skill is read again. B is kept from the
+// game meanwhile (PadFilter::HoldB), so closing does not close the skill tree;
+// moving the cursor to another skill closes it too. No line is given a number.
+struct LineReader { uintptr_t widget = 0; std::vector<std::string> lines; size_t at = 0; };
+LineReader g_lineReader;
+// The focused skill's lines, offered as its tooltip renders.
+std::vector<std::string> g_skillLines;
+uintptr_t g_skillLinesWidget = 0;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -156,6 +168,49 @@ bool ReadAside(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 void OfferAside(uintptr_t widget, std::string text) {
 	g_asideWidget = widget;
 	g_aside = std::move(text);
+}
+
+bool ReadSkillLines(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_t now) {
+	using InputDirection::StickPush;
+	if (g_lineReader.widget) {
+		if (focus.widget != g_lineReader.widget) {
+			g_lineReader = {};
+			PadFilter::ReleaseB();
+			AsyncLog::Info(context, "[lines] closed: the cursor moved");
+			return false;
+		}
+		PadFilter::HoldB(now);
+		if (InputDirection::TakeFacePress(InputDirection::FaceButton::B)
+			|| InputDirection::TakeRightStickPushIf(StickPush::Left, "lines")) {
+			g_lineReader = {};
+			PadFilter::ReleaseB();
+			AsyncLog::Info(context, "[lines] closed");
+			if (const auto again = Repeat(); !again.empty()) ScreenReader::Speak(again, true);
+			return true;
+		}
+		const bool up = InputDirection::TakeRightStickPushIf(StickPush::Up, "lines");
+		const bool down = !up && InputDirection::TakeRightStickPushIf(StickPush::Down, "lines");
+		// Right has nothing to do here, and is not left pending for after.
+		(void)InputDirection::TakeRightStickPushIf(StickPush::Right, "lines");
+		// At either end the push reads the same line again rather than nothing.
+		if (up && g_lineReader.at > 0) --g_lineReader.at;
+		if (down && g_lineReader.at + 1 < g_lineReader.lines.size()) ++g_lineReader.at;
+		if (up || down) {
+			const auto& line = g_lineReader.lines[g_lineReader.at];
+			AsyncLog::InfoF(context, "[lines] %zu -> \"%s\"", g_lineReader.at, line.c_str());
+			ScreenReader::Speak(line, true);
+		}
+		return true;
+	}
+	if (!focus.panel || !g_skillLinesWidget || focus.widget != g_skillLinesWidget
+		|| !InputDirection::TakeRightStickPushIf(StickPush::Left, "lines")) return false;
+	if (g_skillLines.empty()) { ScreenReader::Speak(Strings::Current().detailNone, true); return true; }
+	g_lineReader = {focus.widget, g_skillLines, 0};
+	(void)InputDirection::TakeFacePress(InputDirection::FaceButton::B); // an old press is not a new one
+	PadFilter::HoldB(now);
+	AsyncLog::InfoF(context, "[lines] open, %zu lines -> \"%s\"", g_skillLines.size(), g_skillLines.front().c_str());
+	ScreenReader::Speak(g_skillLines.front(), true);
+	return true;
 }
 
 int SlotLocation(const D2RL::PluginContext* context, uintptr_t widget) {
@@ -266,6 +321,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// is lost by that order -- the character panel holds neither items nor
 	// skills, so there is never a detail for up to read there.
 	if (CharacterStatsReader::Tick(context, focus)) return true;
+	if (ReadSkillLines(context, focus, now)) return true;
 	if (ReadDetail(context, focus)) return true;
 	if (ReadHints(context)) return true;
 	if (ReadAside(context, focus)) return true;
@@ -371,6 +427,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		std::string description;
 		if (progression.skill) {
 			description = ProgressionText::SkillDescription(tooltip.body);
+			g_skillLines = ProgressionText::SkillLines(tooltip.body);
+			g_skillLinesWidget = focus.widget;
 			Append(description, UiText::Clean(tooltip.footer));
 		} else if (inventory) {
 			// An item's own tooltip, in the order the screen draws it: the
@@ -426,6 +484,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
 	// While an item is held the game draws no tooltip for what the cursor is
 	// over -- MEASURED 2026-09-21, none in five seconds of moving a held item
 	// across others -- so an occupied cell said nothing and a slot only
@@ -594,6 +653,10 @@ void Reset() {
 	g_hiddenLabel.clear();
 	g_tabChangedAt = 0;
 	g_tabTitle.clear();
+	if (g_lineReader.widget) PadFilter::ReleaseB();
+	g_lineReader = {};
+	g_skillLines.clear();
+	g_skillLinesWidget = 0;
 	g_readPanel = 0;
 	g_slotLocations.clear();
 	g_detail.clear();

@@ -50,6 +50,19 @@ struct Presses { Press rightThumb, a, b, x, y; };
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
 // while it is held. BACK itself always passes.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses);
+//
+// `holdB` keeps a B press from the game in a menu too, while a mod reader that
+// closes on B is open (HoldB below), decided on the press's first frame like
+// the rest.
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false);
+
+// Keeps B from the game while the skill line reader is open, so closing it
+// with B does not also close the skill tree (the user, 2026-09-21: "right
+// stick left should close the buffer, or the b button"). Call on every tick
+// the reader is open; the hold lapses by itself HoldBMs after the last call,
+// so a reader that stops ticking can never leave B held.
+inline constexpr uint64_t HoldBMs = 500;
+void HoldB(uint64_t now);
+void ReleaseB();
 
 }

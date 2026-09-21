@@ -60,6 +60,7 @@ Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
+bool g_pressedB = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -189,6 +190,7 @@ void Poll() {
 			}
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
+				g_pressedB = true;
 				if (backDown) g_backWithB = true;
 			}
 			if (UpdateEdge(edges.xHeld, (pad.wButtons & XINPUT_GAMEPAD_X) != 0)) {
@@ -261,6 +263,12 @@ bool TakeBackWith(FaceButton button) {
 	if (pressed == nullptr) return false;
 	const bool result = *pressed;
 	*pressed = false;
+	return result;
+}
+bool TakeFacePress(FaceButton button) {
+	if (button != FaceButton::B) return false; // only B has a reader so far
+	const bool result = g_pressedB;
+	g_pressedB = false;
 	return result;
 }
 StickPush TakeRightStickPush(const char* claimant) {

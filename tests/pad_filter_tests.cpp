@@ -49,5 +49,13 @@ int main() {
 	Check(Filter(ButtonB, true, press) == ButtonB, "B on its own during play is the game's");
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(Back, false, press) == Back, "in a menu BACK is the game's (the character panel's View Advanced Stats)");
+	// While the skill line reader is open, B closes it and not the menu.
+	Presses reader;
+	Check(Filter(ButtonB, false, reader, true) == 0, "B in a menu is kept from the game while the line reader holds it");
+	Check(Filter(ButtonB, false, reader, false) == 0, "and stays kept to its release, even once the hold lapses");
+	Check(Filter(0, false, reader, false) == 0, "release");
+	Check(Filter(ButtonB, false, reader, false) == ButtonB, "with no hold, B in a menu is the game's again");
+	Check(Filter(0, false, reader, false) == 0, "release");
+	Check(Filter(ButtonA | Up, false, reader, true) == (ButtonA | Up), "the hold takes B and nothing else");
 	Passed();
 }
