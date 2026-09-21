@@ -92,6 +92,11 @@ std::string SelectedTabText(uintptr_t widget) {
 	for (const auto& node : inventory.nodes) if (node.id == widget) return node.text;
 	return {};
 }
+std::string FocusedTabText(uintptr_t) {
+	constexpr const char* labels[] = {"Grupo", "Reg. de búsquedas", "Personaje", "Inventario", "Árbol de hab.", "Mercenario", "Opciones"};
+	const auto x = static_cast<int32_t>(selection);
+	return x >= 0 && x < 7 ? labels[x] : "";
+}
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
@@ -622,6 +627,14 @@ int main() {
 	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Right; ClearSpeech();
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
 	gridItem = 0; tooltip = {};
+	// The tab bar across the top of the menus reads the tab its highlight is on.
+	ClearSpeech(); focus = {20, 95}; widgetType = {"TabBarWidget", UiText::Kind::Tabs}; selection = 6;
+	buttonSnapshot = {95, 95, "UISwitcherTabs", UiText::Surface::Other, {{95, -1, UiText::Kind::Tabs, "UISwitcherTabs", "TabBarWidget", "Inventario"}}};
+	Check(InteractionReader::HandlesFocus(focus), "the tab bar is read by the interaction reader");
+	Settle();
+	Check(speech == std::vector<std::string>{"Opciones"}, "the highlighted tab is read, not the open one");
+	ClearSpeech(); selection = 5; Settle();
+	Check(speech == std::vector<std::string>{"Mercenario"}, "moving along the bar reads each tab");
 	ClearSpeech(); focus.widget = 28; widgetType = {"ButtonWidget", UiText::Kind::Button};
 	buttonSnapshot = {28, 28, "OtherAction", UiText::Surface::Other, {{28, -1, UiText::Kind::Button, "OtherAction", "ButtonWidget", "Identificar"}}};
 	Settle(); ClearSpeech(); pendingPush = InputDirection::StickPush::Right; Tick();

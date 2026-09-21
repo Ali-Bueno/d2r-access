@@ -193,6 +193,10 @@ int main() {
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
 	tabs.Put<int32_t>(0x544, 0);
 	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "tab activation index differs from the FocusableWidget hover index");
+	Check(NativeUi::FocusedTabText(tabs.Address()) == "Personal", "the highlighted tab is read from the hover index");
+	tabs.Put<int32_t>(0x544, 7);
+	Check(NativeUi::FocusedTabText(tabs.Address()).empty(), "a hover index with no label reads nothing");
+	tabs.Put<int32_t>(0x544, 0);
 	Widget tabPanel("AnyPanel", "TabPanel"), container("Widget", "InitiallyHidden");
 	tabPanel.Add(container); container.Add(tabs); container.Put<uint8_t>(0x51, 0);
 	Check(NativeUi::FindControls(tabPanel.Address(), UiText::Kind::Tabs) == std::vector<uintptr_t>{tabs.Address()}, "discovery includes tabs whose ancestors start hidden");

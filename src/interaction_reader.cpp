@@ -81,6 +81,8 @@ std::string g_tabTitle;
 // The panel the last readout was about, to tell a tab change that moved focus
 // to another panel from one that left it where it was.
 uintptr_t g_readPanel = 0;
+// The tab bar highlight last logged, so [tabs] bar is written once per move.
+std::string g_tabBarLogged;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -251,7 +253,7 @@ bool HandlesFocus(NativeUi::Focus focus) {
 	const auto type = NativeUi::Classify(focus.widget);
 	const auto kind = type.kind;
 	return IsInventory(kind) || kind == UiText::Kind::Button || kind == UiText::Kind::StatButton
-		|| kind == UiText::Kind::TabButton || CharacterStats::HandlesFocus(focus, type);
+		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::Tabs || CharacterStats::HandlesFocus(focus, type);
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
@@ -276,7 +278,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
 		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;
-	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton;
+	const bool tabBar = type.kind == UiText::Kind::Tabs;
+	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton
+		|| tabBar;
 	// The character panel's non-button rows: a label the controller stops on
 	// through its focusable Tooltip child, with its value in a sibling widget.
 	const bool stats = !inventory && !button && CharacterStats::HandlesFocus(focus, type);
@@ -325,6 +329,21 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// stat, read the same way a gold pile on the ground already is. It
 		// REPLACES the label rather than joining it: "Drop Gold" is already the
 		// A hint below, and a hint never leads the thing it acts on.
+		// The tab bar across the top of the menus: moving along it highlights a
+		// tab without opening it, so the highlighted label is read, not the open
+		// tab the bar's own text gives (the user, 2026-09-21: the list of tabs at
+		// the top "is still not reading"). INFERRED, not measured: the highlight
+		// is the hover index, which a live read found at 2 while the open tab was
+		// 3 (docs/navigation-latency.md). The log line settles it.
+		if (tabBar) {
+			readout.option = UiText::Clean(NativeUi::FocusedTabText(focus.widget));
+			readout.focusKey = std::to_string(focus.widget) + ":" + std::to_string(selection);
+			if (readout.focusKey != g_tabBarLogged) {
+				g_tabBarLogged = readout.focusKey;
+				AsyncLog::InfoF(context, "[tabs] bar highlight x=%d -> \"%s\" (open: \"%s\")", static_cast<int32_t>(selection),
+					readout.option.c_str(), UiText::Clean(NativeUi::SelectedTabText(focus.widget)).c_str());
+			}
+		} else g_tabBarLogged.clear();
 		if (NativeWidgets::ReadName(focus.widget) == GoldButton) {
 			if (const int gold = NativeGroundItems::PlayerGold(); gold >= 0) {
 				char phrase[64]{};

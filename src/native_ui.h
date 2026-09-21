@@ -44,6 +44,10 @@ struct BeltSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
 BeltSlot BeltItem(uintptr_t widget);
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
+// The tab a controller highlight is on in a tab bar, which moving along the bar
+// changes without opening it: the label at the FocusableWidget hover index
+// (+0x544), not the open tab's (+0x16C4). Empty when there is none.
+std::string FocusedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 // Bounded discovery, including hidden controls. Visibility is rechecked when read.
 std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind);

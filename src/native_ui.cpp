@@ -218,6 +218,13 @@ std::string SelectedTabText(uintptr_t widget) {
 	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
 }
 
+std::string FocusedTabText(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
+	const auto x = static_cast<int32_t>(FocusSelection(widget));
+	if (x < 0 || x >= 8) return {};
+	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(x)));
+}
+
 Cell GridCell(uintptr_t widget) {
 	Cell cell;
 	if (Classify(widget).kind != Kind::InventoryGrid) return cell;
