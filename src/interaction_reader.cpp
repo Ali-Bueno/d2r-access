@@ -56,6 +56,9 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 
+// The belt slot last logged, so [belt] is written once per move, not per poll.
+int g_beltSlot = -2;
+
 // The game's own labels for a weapon's damage and an armour's defense, so the
 // split can tell them from the item's name in any language. Each table entry is a printf format, so only the part before its
 // first placeholder can begin a rendered line -- resolving "Defense: %d" and
@@ -233,6 +236,22 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(context, focus, type)
 		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
+	// The belt names its slot's item straight away instead of waiting for the
+	// game's tooltip, which the controller layout shows 400 ms late -- the lag
+	// the user heard walking the belt on 2026-09-21. A slot that cannot be read
+	// falls back to the tooltip, as before.
+	bool beltNamed = false;
+	if (type.name == "BeltWidget") {
+		const auto belt = NativeUi::BeltItem(focus.widget);
+		std::string name = belt.known && belt.item ? NativeGroundItems::ItemBaseName(belt.item) : std::string{};
+		if (belt.known && !belt.item) name = Strings::Current().slotEmpty;
+		if (belt.slot != g_beltSlot) {
+			g_beltSlot = belt.slot;
+			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p -> \"%s\"", belt.slot, belt.known ? 1 : 0,
+				reinterpret_cast<void*>(belt.item), name.c_str());
+		}
+		if (!name.empty()) { readout.option = std::move(name); beltNamed = true; }
+	} else g_beltSlot = -2;
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
 	if (inventory) OfferDetail(readout.focusKey, {});
@@ -309,7 +328,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// Not onto the gold amount: that row's tooltip is "Drop Gold", the A hint
 		// again, and it renders ~400 ms after the row was read, so joining it
 		// re-read the whole row (MEASURED 2026-09-21: "34 gold. Drop Gold").
-		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) Append(readout.option, description);
+		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
+			// The belt said the name from the slot already; its tooltip adds
+			// only what follows the name.
+			if (beltNamed && description.starts_with(readout.option)) {
+				description.erase(0, readout.option.size());
+				description.erase(0, description.find_first_not_of(". "));
+			}
+			Append(readout.option, description);
+		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {

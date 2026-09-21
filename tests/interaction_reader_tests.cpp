@@ -47,6 +47,7 @@ int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
 int playerGold = -1;
+NativeUi::BeltSlot beltSlot;
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
@@ -76,6 +77,7 @@ ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
+BeltSlot BeltItem(uintptr_t) { return beltSlot; }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
 	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
@@ -106,6 +108,7 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
+std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
@@ -371,6 +374,27 @@ int main() {
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "confirmed empty cell retains quick coordinate feedback after an occupied cell");
 	ClearSpeech(); itemPresence = NativeUi::ItemPresence::Occupied; Tooltip("Poción"); Tick();
 	Check(speech == std::vector<std::string>{"Poción"}, "an item appearing in the same cell replaces its coordinate readout");
+	// The belt names its slot's item straight from the slot, without waiting
+	// for the tooltip the controller layout shows 400 ms late.
+	ClearSpeech(); tooltip = {}; cell = {}; focus = {20, 23}; widgetType = {"BeltWidget", UiText::Kind::InventoryItem};
+	selection = 0; beltSlot = {true, 0, 77};
+	Settle();
+	Check(!speech.empty() && speech.back().find("Poción de curación menor") != std::string::npos,
+		"a belt slot reads its item before any tooltip has rendered");
+	ClearSpeech(); selection = 1; beltSlot = {true, 1, 0};
+	Settle();
+	Check(speech == std::vector<std::string>{Strings::Current().slotEmpty}, "an empty belt slot says so instead of nothing");
+	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77};
+	Settle();
+	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "the next slot reads its item at once");
+	ClearSpeech(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
+	Check(speech.empty(), "and the tooltip arriving later does not read the name again");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"}, "while its detail still reaches the right stick");
+	ClearSpeech(); selection = 3; beltSlot = {}; tooltip = {};
+	Settle();
+	Check(speech.empty(), "a slot that cannot be read waits for the tooltip, as before");
+	beltSlot = {};
 	conversation = false; InteractionReader::Reset(); ClearSpeech();
 	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
 	buttonSnapshot = {61, 61, "StrengthPointButton", UiText::Surface::Other, {{61, -1, UiText::Kind::StatButton, "StrengthPointButton", "", "Gastar punto"}}};

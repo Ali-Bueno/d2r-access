@@ -24,6 +24,13 @@ uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
+// The belt slot the controller is on and the item in it, read straight from
+// the belt rather than waiting for the game's tooltip, which the controller
+// layout shows 400 ms late (Controller/TooltipsPanelHD.json
+// showDelayMilliseconds). `known` is false when the slot could not be read;
+// `item` is 0 for an empty slot. The unit is only named, never kept.
+struct BeltSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
+BeltSlot BeltItem(uintptr_t widget);
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();

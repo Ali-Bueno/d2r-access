@@ -52,6 +52,13 @@ ItemPresence CallItemAtCell(uintptr_t function, uintptr_t widget, Cell cell) noe
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return ItemPresence::Unknown; }
 }
 
+bool CallItemPointer(uintptr_t function, uintptr_t widget, Cell cell, uintptr_t& item) noexcept {
+	__try {
+		item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
+
 std::vector<uintptr_t> VectorAt(uintptr_t address) {
 	struct { uintptr_t data; uint64_t count; } vector{};
 	if (!Peek(address, vector) || vector.count > MaxNodes || (vector.count && !vector.data)) return {};
@@ -250,6 +257,24 @@ ItemPresence EquipmentItemPresence(uintptr_t widget) {
 	// widget owner and location +0x5D8, then 0x3886D0 gets the equipped item.
 	// Unlike the grid getter, this override ignores the cell argument.
 	return CallItemAtCell(getter, widget, {});
+}
+
+BeltSlot BeltItem(uintptr_t widget) {
+	BeltSlot result;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return result;
+	const uint64_t selection = FocusSelection(widget);
+	const Cell cell{static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
+	if (cell.x < 0 || cell.x >= 16) return result;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return result;
+	// READ 2026-09-21 in the 3.3.93787 image, not yet measured live: BeltWidget
+	// vtable 0x1CE2FA0 +0xC8 -> 0x227440 takes the cell's x alone as the belt
+	// slot, 0 to 15, and returns the item there or null. The same getter slot
+	// and calling convention the grid and equipment reads above already use.
+	result.slot = cell.x;
+	result.known = CallItemPointer(getter, widget, cell, result.item);
+	return result;
 }
 
 std::vector<uintptr_t> Panels() {

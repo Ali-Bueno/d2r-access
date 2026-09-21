@@ -77,6 +77,17 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	return true;
 }
 }
+std::string ItemBaseName(uintptr_t unit) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
+	uint32_t type = 0, classId = 0;
+	uint16_t nameId = 0;
+	if (!g_base || !unit || !RuntimeRoots(player, tables)
+		|| !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
+		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
+		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
+	return GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
+}
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	if (!context) return false;
