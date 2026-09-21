@@ -2,6 +2,84 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Exit review and room hysteresis — 2026-09-20
+
+The ways out are reviewed one at a time, nearest first: Ctrl+V or holding the right stick 350 ms speaks
+`paso, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a short right-stick
+click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
+elsewhere, and off-grid, the level's exits. Outdoor **border exits** (camp → Blood Moor, no warp unit)
+now exist: the RoomEx near-room list (`RoomEx+0x10/+0x18`, derived from the repo's Ghidra project) gives
+the neighbouring level's rooms, and the shared tile edge's midpoint is the exit, named with the level's own
+name. Room changes pass grimdark's hysteresis (settle 1000 / dwell 400, dwell only inside the first second
+after a change), so a room is spoken on entering, not a second later. `src/exit_review.*`,
+`docs/rooms.md`, `docs/beacon.md`, `docs/distant-exits.md`. 45/45 CTest suites.
+
+**Live-verified 2026-09-20 (unattended, camp):** `Waypoint, 38 meters, 4 o'clock, around, 1 of 2` then
+`Blood Moor, 136 meters, 4 o'clock, 2 of 2` (beyond the 96-cell route box, so no reach word); Ctrl+B locks
+either with the same `reach=`. Hysteresis and the R3 hold still need the user (maze level, controller).
+
+Ported from `grimdark` after a code-level pass that corrected our reference: its ping never calls the
+pathfinder ("path" is inferred), exits never say "blocked", and the hysteresis is inverted. Our "around"
+is verified by the route search. `reference/audio-navigation/grim-dawn/navigation-spec.md`.
+
+**Next step:** listening check with the controller. In the Den: enter a room (expect its ways out at
+once), hold R3 (next way out), short-click R3 (guide to it). Judge the 350 ms hold and the 1000/400 ms
+hysteresis by ear. Known: `[items] exits nearby` counts warp units only, so it says 1 where the review
+says 2.
+
+## Collision semantics audited against D2MOO — 2026-09-20
+
+Our grid reading is the game's: mask 0x1C09 read live, five-cell cross for the player, 0x27 for no
+room, doors as live bits. Two divergences fixed: a unit's NO_PATH marker survived as terrain on water or
+under a missile (one-cell false wall), and a refused displaced-stamp removal orphaned the player's own
+marker, which is the false "down blocked" of 2026-09-16. A point pattern for the local player is now
+rejected as a misread. The game's own path type for the player (STRAIGHT: ray, wall-follow 73 steps,
+A* only within 18 subtiles, nothing past 100) is documented; it is not called, and our BFS is a
+"where can I go" answer, not the route the game would take. `docs/collision-semantics.md`.
+
+**Two more defects found by an unattended live run the same day and fixed** (`docs/radar-redesign.md`,
+"Live analysis"): (1) a false **open** through wall pieces welded into a stone alcove — the clutter filter
+erased any ≤5-cell component with a way round inside its window; now a component is clutter only if it
+**stands alone** (no other blocking cell within body radius + 1 of its box). Fixture
+`tests/recorded_alcove_grid.h` replays the live snapshot. (2) A wall entered from the dead band (7.8, between
+close 7 and open 10) never cued, because the dead band left the silent baseline unclaimed and the first wall
+was swallowed as baseline; the first available observation now claims it. Second live run: alcove reads
+blocked in all four cardinals with the character immobile; the spawn wall cues once. Zero orphan stamps,
+zero `pattern=0`, 4 cues in 9 moves, no crash.
+
+**Next step:** the user's listening pass. Known limit, by design of the four screen cardinals: in a pocket
+whose only way out runs along a world axis (a screen diagonal), all four read blocked; the exit review or
+the scan is the answer there, not the radar.
+
+## Room exits, in maze levels — 2026-09-20
+
+Walking into a dungeon room speaks its ways out: screen directions for the plain openings, the
+game's own destination name for a stairway or portal inside it. No segmentation algorithm — a maze
+level (`Levels.txt DrlgType = 1`) is built from `LvlPrest` cells and one streamed room is one cell,
+so D2 has already done it. Excluded elsewhere: in towns and the open acts the room partition cuts
+across open floor and means nothing. Ctrl+M, `access-rooms`. `docs/rooms.md`.
+
+An opening is only spoken when the cell across the border belongs to another **streamed** room:
+inactive rooms have no collision grid at all (`Room1+0x38`, freed on unload), so a doorway into
+ground D2 has not loaded yet stays unspoken rather than guessed.
+
+**Next step:** listening check in the Den of Evil and the Crypt. Expect one line per room, about a
+second after entering, never twice for the same room, and silence in the camp and the Blood Moor.
+`[room] entered` in the log carries the rectangle and the opening count.
+
+## Beacon says how you get there — 2026-09-20
+
+Locking a target now ends with one word: straight, around, or no route. Three states out of data the
+route search already computed and threw away (`Route.reachable`), plus a body-aware straight-line
+test over the same field, so the two answers cannot disagree. Beyond the search box it says nothing
+rather than claim no route. No new sounds, no new key. `docs/beacon.md`.
+
+Ported from the Grim Dawn mod `grimdark`, whose review ping answers exactly this and nothing else:
+`reference/audio-navigation/grim-dawn/navigation-spec.md` §6.
+
+**Next step:** listening check. Scan a target and click the right stick in the camp (expect recto),
+then through a wall (rodeando), then a sealed or far target. Check `reach=` in `[beacon] locked`.
+
 ## Container loops — 2026-09-18
 
 Chests, caskets, urns, barrels and corpses loop through the item mixer. Ctrl+K,
@@ -395,7 +473,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Quest log / automatic quest tracking | counter confirmed live 2026-09-17 | Whole detail pane read in screen order (2026-09-16 fix), so a counter rendered anywhere in it is spoken; panel tree dumped once per selected quest to find where the game writes it. Current objective attached to selection, no duplicate title; explicit missing-objective text. Generic update/primary-goal alerts remain. Unloaded journal coverage limited. `docs/quests.md` |
-| Target beacon guidance | cross-level exit leak fixed 2026-09-16; dungeon validation pending | Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
+| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`. `docs/rooms.md` |
+| Target beacon guidance | reach verdict added 2026-09-20; listening check pending | Says recto / rodeando / no se llega when it locks, and nothing beyond the search box. Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
@@ -515,9 +594,9 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
   cursor after release. Complete-function fingerprints already guard these fields.
   `docs/controller-navigation.md` (23:47 log and 2026-09-16 RE).
 
-- `docs/research-roadmap-chatgpt.md` (+ `-extended.md`/`.docx`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
+- `docs/research-roadmap-chatgpt.md` (+ `-extended.md`, 744 lines) — user-supplied research roadmap (ChatGPT, 2026-09-14). No offsets/RVAs anywhere; focus tracking is its declared biggest unknown (extended §4.5, line ~171): experiment list + external repos to mine for later phases (MapAssist / D2RMH for unit tables & map data, diablo-access, D2RL-Plugins). Its C#-companion-via-IPC idea is superseded: PRISM speaks in-process.
 
-- User-supplied `../D2R_SONAR_RADAR_IMPLEMENTATION_SPEC.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
+- User-supplied `docs/sonar-radar-implementation-spec.md` v2 drove the first radar prototype. Native map evidence, parameters, controls, limits and controller test: `docs/sonar-radar.md`.
 
 - **World source:** Core `0x372C44/4D` calls slots `0x5A8CF8/0x5A8D10` (index/player lookup). D2R lookup `0x9A480`; path `+0x38`, collision X/Y **uint16 `Path+2/+6`** (`0x341A20/30`, used directly by collision caller `0x341A60`), body pattern `+0x5C` (`0x341870`). **Correction:** `Path+8/+0xC` / getters `0x341C10/20` are projected positions, not collision coordinates; the 17:32 log exposed this earlier error. Room collision pointer `+0x38` (`0x2EFB30`); neighbors `+0/+0x40` (`0x2EFDE0`). Grid origin/dimensions `+0/+4/+8/+0xC`, uint16 cells `+0x20` (`0x366250`); **runtime movement mask `Path+0x64`**, passed by wrapper `0x3C5610` to `0x364700`; setter `0x342740`. The old `0x1C09` was from a destination query, not this runtime field. Full-act residency not established.
 

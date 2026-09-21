@@ -5,6 +5,7 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_level_exits.h"
 #include "native_world.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -42,7 +43,9 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 Beacon::Settings g_settings;
 Beacon::Tracker g_tracker;
-struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; };
+// `point` marks a way out that is not a unit (a passage between two streamed
+// rooms): a fixed place, so the per-tick refresh must not look for it.
+struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; bool point = false; };
 Target g_offer, g_target;
 bool g_supported = false;
 int g_revision = 0;
@@ -95,6 +98,12 @@ void Announce(const char* format, const std::string& name) {
 	std::snprintf(text, sizeof text, format, name.c_str());
 	ScreenReader::Speak(text, true);
 }
+// The word for how the player gets there, on this snapshot of the collision.
+const char* ReachWord(const Lifecycle& state, Radar::Position target) {
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return nullptr;
+	return Beacon::ReachWord(world, target, g_settings, Strings::Current());
+}
 void Toggle(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	if (g_tracker.Locked()) {
@@ -104,7 +113,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		return;
 	}
 	if (!BeaconAudio::Available()) { ScreenReader::Speak(strings.beaconUnavailable, true); return; }
-	if (!g_offer.entity.id || g_offer.level != state.level || now - g_offer.offeredMs > OfferWindowMs) {
+	if ((!g_offer.entity.id && !g_offer.point) || g_offer.level != state.level || now - g_offer.offeredMs > OfferWindowMs) {
 		ScreenReader::Speak(strings.beaconNothing, true);
 		return;
 	}
@@ -113,14 +122,20 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	g_tracker.Lock(now);
 	g_nextUpdate = now;
 	BeaconAudio::Play(BeaconAudio::Sound::Locked, {});
-	Announce(strings.beaconFollowing, g_target.entity.name);
-	AsyncLog::InfoF(g_context, "[beacon] locked id=%u kind=%u at=%.0f,%.0f level=%d name=%s", g_target.entity.id,
+	const char* reach = ReachWord(state, g_target.entity.position);
+	if (reach) {
+		char text[256]{};
+		std::snprintf(text, sizeof text, strings.beaconFollowingReach, g_target.entity.name.c_str(), reach);
+		ScreenReader::Speak(text, true);
+	} else Announce(strings.beaconFollowing, g_target.entity.name);
+	AsyncLog::InfoF(g_context, "[beacon] locked id=%u kind=%u at=%.0f,%.0f level=%d reach=%s name=%s", g_target.entity.id,
 		static_cast<unsigned>(g_target.entity.kind), g_target.entity.position.x, g_target.entity.position.y,
-		g_target.level, g_target.entity.name.c_str());
+		g_target.level, reach ? reach : "unknown", g_target.entity.name.c_str());
 }
 // Re-reads the locked target's current position. A target that is out of the
 // loaded rooms keeps its last known place: that is still where it was.
 bool Refresh(const Lifecycle& state, uint64_t now) {
+	if (g_target.point) { g_target.seenMs = now; return true; } // a passage does not move
 	std::vector<EntityRadar::Entity> entities;
 	if (g_target.entity.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
@@ -171,6 +186,13 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
 	if (!entity.id) return;
 	g_offer = {entity, level, now, now};
+}
+
+void OfferPoint(Radar::Position point, const std::string& label, int level, uint64_t now) {
+	if (label.empty()) return;
+	// Coordinate identity, the one the fixed level exits already use, instead of
+	// inventing a unit id for something the game has no unit for.
+	g_offer = {{0, EntityRadar::Kind::Exit, point, label, NativeLevelExits::Identity(point)}, level, now, now, true};
 }
 
 bool Register(const D2RL::PluginContext* context) {

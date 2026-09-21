@@ -85,7 +85,8 @@ struct Frontier {
 };
 struct Sensor {
 	Passage passage;
-	State state = State::Unknown; // confirmed; the first known observation is a silent baseline
+	State state = State::Unknown; // confirmed verdict, Unknown until the baseline
+	bool baseline = false; // the first observation after a reset is silent, dead band included
 	State candidate = State::Unknown;
 	Position candidateOrigin; // motion position where the candidate first appeared
 	uint64_t candidateSince = 0;

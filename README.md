@@ -212,6 +212,14 @@ otherwise it says that the journal was updated. Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
 See [quest-log implementation and remaining work](docs/quests.md).
 
+**Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
+Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
+stairs and portals by their own name. **Ctrl+V**, or holding the right stick down for 350 ms,
+reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
+getting there (straight, around or no route). A short right-stick click, or **Ctrl+B** right after,
+guides to the one just reviewed. **Ctrl+M** toggles the feature.
+See [room exits](docs/rooms.md).
+
 ### Character panel
 
 Opening the character sheet says the panel name with the character, class and

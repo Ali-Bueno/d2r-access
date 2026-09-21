@@ -45,9 +45,12 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		// holds a waiting cue until the passage can be seen again.
 		sensor.candidate = State::Unknown;
 		return State::Unknown;
-	} else if (sensor.state == State::Unknown) {
-		// Silent baseline: the first verdict after a reset is never a cue.
-		if (passage.observed != State::Unknown) sensor.state = passage.observed;
+	} else if (!sensor.baseline) {
+		// Silent baseline: the first observation after a reset never sounds,
+		// the hysteresis dead band included. A wall met from that dead band is
+		// then a real change, so it is cued like any other.
+		sensor.baseline = true;
+		sensor.state = passage.observed;
 	} else if (passage.observed == State::Unknown || passage.observed == sensor.state) {
 		sensor.candidate = State::Unknown;
 	} else if (sensor.candidate != passage.observed) {

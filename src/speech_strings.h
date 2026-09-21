@@ -108,8 +108,25 @@ struct Table {
 	const char* beaconUnavailable;
 	const char* beaconNothing;
 	const char* beaconFollowing; // %s = target name
+	const char* beaconFollowingReach; // %s = target name, %s = one of the three below
+	const char* beaconReachStraight; // the line to it is walkable
+	const char* beaconReachAround; // reachable, but not in a straight line
+	const char* beaconReachNoRoute; // no route to it at all
 	const char* beaconArrived; // %s = target name
 	const char* beaconLost; // %s = target name
+	const char* listSeparator; // joins the items of a spoken list
+	const char* roomExits; // %s = the ways out, already joined
+	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
+	const char* roomNoExits;
+	const char* roomOpening; // a plain gap between two streamed rooms, with no name of its own
+	// One reviewed way out: %s = label, %s = distance, %s = clock bearing phrase,
+	// %s = "" or the separator plus a reach word, %d = index (1-based), %d = count.
+	const char* exitReview;
+	// The clock bearing's whole phrase, index 0 = 1 o'clock .. index 11 = 12 o'clock.
+	std::array<const char*, 12> clockHours;
+	const char* roomsEnabled;
+	const char* roomsDisabled;
+	const char* roomsUnavailable;
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -148,7 +165,10 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
-		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
+		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
+		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
+		t.listSeparator, t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.exitReview,
+		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn};
@@ -156,6 +176,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities);
+	each(t.clockHours);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

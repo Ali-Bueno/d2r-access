@@ -10,14 +10,8 @@ set(D2R_PLUGINS_DIR "${D2R_GAME_DIR}/d2rloader/plugins")
 
 set(D2RLPLUGIN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(D2RLPLUGIN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-# D2RLoader PluginSDK: the git submodule in external/, or the shared checkout
-# next to this repo when working inside the accessibility playbook tree.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK/CMakeLists.txt")
-	set(D2RL_PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK")
-else()
-	set(D2RL_PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/PluginSDK")
-endif()
-add_subdirectory("${D2RL_PLUGIN_SDK_DIR}" "${CMAKE_BINARY_DIR}/PluginSDK")
+# D2RLoader PluginSDK: git submodule in external/ (`git submodule update --init`).
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/PluginSDK" "${CMAKE_BINARY_DIR}/PluginSDK")
 
 set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 
@@ -51,6 +45,9 @@ add_library(d2r-access SHARED
 	src/radar_passage.cpp
 	src/radar_structure.cpp
 	src/radar_grid.cpp
+	src/exit_review.cpp
+	src/rooms.cpp
+	src/room_service.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
@@ -110,10 +107,20 @@ include(CTest)
 include(cmake/GroundItems.cmake)
 if(BUILD_TESTING)
 	# Full-resolution native body connectivity, shared with the reactive radar.
-	add_executable(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
+	add_executable(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(beacon-tests PRIVATE src)
 	target_compile_features(beacon-tests PRIVATE cxx_std_20)
 	add_test(NAME beacon COMMAND beacon-tests)
+	# The native room the player stands in and the ways out of it.
+	add_executable(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
+	target_include_directories(rooms-tests PRIVATE src)
+	target_compile_features(rooms-tests PRIVATE cxx_std_20)
+	add_test(NAME rooms COMMAND rooms-tests)
+	# The ways out reviewed one at a time: labels, clock bearings and the cycle.
+	add_executable(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(exit-review-tests PRIVATE src)
+	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
+	add_test(NAME exit-review COMMAND exit-review-tests)
 	add_executable(navigation-grid-tests tests/navigation_grid_tests.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
@@ -295,6 +302,8 @@ if(BUILD_TESTING)
 		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-progress-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(exit-review-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-grid-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-engine-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-passage-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

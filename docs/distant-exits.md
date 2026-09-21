@@ -18,6 +18,11 @@ this identity so another entity with the same numeric unit ID cannot take over
 the lock. Guidance still routes through available local collision; a distant
 destination does not provide a complete route through unexplored collision.
 
+Outdoor and town levels are also left by walking across a shared border with no
+warp on it. There (`Levels.txt DrlgType` other than 1) each logical room's near
+rooms contribute one exit per bordering level, named with that level's own name
+at the subtile midpoint of the shared tile edge, where the automap draws it.
+
 ## Evidence for D2R 3.3.93787
 
 Recovered from local `re/ghidra/D2R` / `D2R_live.exe` using `D2RDecomp.java`.
@@ -30,6 +35,7 @@ offset is used as a current-build authority.
 | `0x361040`, 33 bytes; wrapper `0x2EFD20` | RoomEx `+0x98` -> presets. The getter changes flags; our reader copies the pointer without calling it. |
 | `0x99650`, 486 bytes; `0x48F190`, 837 bytes | Preset next `+0x10`, class `+4`, X `+8`, type `+0x20`, Y `+0x24` |
 | `0x4926B0`, 211 bytes | Spawns preset type/class at active-room subtile origin plus preset X/Y |
+| `0x3614C0` (writer); readers `0x360610`, 287 bytes / `0x360770`, 45 bytes | RoomEx near rooms: array `+0x10`, count `+0x18`, a `size_t` the getter narrows to 32 bits |
 | `0x326480`, 254 bytes; `0x334ED0`, 17 bytes | Converts RoomEx tile coordinates/dimensions to subtiles by multiplying by five |
 | `0x361750`, 473 bytes; existing `0x3DA9A0` / `0x3DA910` guards | Warp node: destination RoomEx `+0`, next `+8`, enabled `+0x10`, LvlWarp row `+0x20`, row Id `+0x2C` |
 
@@ -49,7 +55,8 @@ this preset walk (already level-safe by construction, per the guards above) — 
 
 A never-generated room may have no preset data and remains unknown. This is not
 full-map generation or full-map pathfinding. Unloaded OpenWarp objects without
-a verified preset destination and open overland borders have no inferred location.
+a verified preset destination have no inferred location; whether a border is
+walkable is unknown, so the reach verdict answers around / no route / nothing.
 
 `native-level-exits-tests` covers inactive distant rooms, destination matching,
 coordinates, missing data, foreign levels and corrupt/cyclic lists. Radar tests

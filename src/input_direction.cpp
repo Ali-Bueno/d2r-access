@@ -23,6 +23,11 @@ constexpr SHORT kThumbstickMaxMagnitude = std::numeric_limits<SHORT>::max();
 constexpr float kThumbstickDirectionDeadzoneFraction = 0.5f;
 constexpr SHORT kThumbstickDirectionThreshold         = static_cast<SHORT>(kThumbstickMaxMagnitude * kThumbstickDirectionDeadzoneFraction);
 
+// A deliberate click of the right stick lasts roughly 100-150 ms, so holding it
+// past this is unambiguously a hold and not a slow click, while still firing
+// soon enough that waiting for it does not feel slow.
+constexpr ULONGLONG kRightStickHoldMs = 350;
+
 // Per GetAsyncKeyState's documented contract: the high bit of the return
 // value is set when the key is currently down.
 constexpr SHORT kKeyDownFlag = static_cast<SHORT>(0x8000);
@@ -46,6 +51,8 @@ struct PadEdgeState {
 	bool yHeld          = false;
 	bool rightStickHeld = false;
 	bool rightThumbHeld = false;
+	ULONGLONG rightThumbSinceMs = 0;
+	bool rightThumbConsumed = false; // the hold already fired, so the release is not a click
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -56,7 +63,7 @@ bool         g_keyDownHeld  = false;
 DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
-bool g_rightStickClick = false;
+bool g_rightStickClick = false, g_rightStickHold = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -179,7 +186,19 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
+			// R3: a short press and release is a click, holding it past the
+			// threshold is a hold that fires once and swallows its own release.
+			const bool thumbDown = (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
+			const bool thumbWasDown = edges.rightThumbHeld;
+			if (UpdateEdge(edges.rightThumbHeld, thumbDown)) {
+				edges.rightThumbSinceMs = GetTickCount64();
+				edges.rightThumbConsumed = false;
+			} else if (thumbDown) {
+				if (!edges.rightThumbConsumed && GetTickCount64() - edges.rightThumbSinceMs >= kRightStickHoldMs) {
+					edges.rightThumbConsumed = true;
+					g_rightStickHold = true;
+				}
+			} else if (thumbWasDown && !edges.rightThumbConsumed) {
 				g_rightStickClick = true;
 			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
@@ -220,6 +239,11 @@ bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
 	return clicked;
+}
+bool TakeRightStickHold() {
+	const bool held = g_rightStickHold;
+	g_rightStickHold = false;
+	return held;
 }
 StickPush TakeRightStickPush() {
 	const StickPush push = g_rightStickPush;
@@ -280,6 +304,7 @@ DpadInput Dpad() { return g_dpad; }
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;
+	g_rightStickClick = g_rightStickHold = false;
 	if (g_library != nullptr) {
 		FreeLibrary(g_library);
 		g_library = nullptr;

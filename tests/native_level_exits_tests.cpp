@@ -91,5 +91,57 @@ int main() {
 	f.nearRoom.At<int>(RoomTileWidth, 8);
 	Check(f.Read(exits) && exits.size() == 1, "fixture restores to the distant exit");
 	Check(!NativeLevelExits::Read(0, exits) && exits.empty(), "missing player room clears previous exits");
+
+	// Walk-through level borders: pure geometry over tile rectangles.
+	using NativeLevelExits::TileRect, NativeLevelExits::BorderPair;
+	constexpr TileRect town{100, 100, 8, 8}, east{108, 102, 8, 4}, south{100, 108, 8, 8};
+	auto borders = NativeLevelExits::Borders({{town, east, 2}}, {0, 0});
+	Check(borders.size() == 1 && borders[0].destination == 2, "a room touching another level is one way out");
+	Check(borders[0].position.x == 540 && borders[0].position.y == 520, "the way out sits at the subtile midpoint of the shared edge");
+	borders = NativeLevelExits::Borders({{town, south, 3}}, {0, 0});
+	Check(borders.size() == 1 && borders[0].position.x == 520 && borders[0].position.y == 540, "a border along a row is read the same way");
+	Check(NativeLevelExits::Borders({{town, {108, 108, 4, 4}, 2}}, {0, 0}).empty(), "rooms meeting at a corner share no edge");
+	Check(NativeLevelExits::Borders({{town, {200, 200, 8, 8}, 2}}, {0, 0}).empty(), "rooms that do not touch are not a border");
+	Check(NativeLevelExits::Borders({{town, east, 0}}, {0, 0}).empty(), "a neighbour with no level id is not announced");
+	const std::vector<BorderPair> twice{{town, east, 2}, {south, {108, 108, 8, 8}, 2}};
+	borders = NativeLevelExits::Borders(twice, {540, 600});
+	Check(borders.size() == 1 && borders[0].position.y == 560, "one way out per level, at the crossing nearest the player");
+	Check(NativeLevelExits::Borders(twice, {540, 480})[0].position.y == 520, "the nearest crossing follows the player");
+	borders = NativeLevelExits::Borders({{town, east, 2}, {town, south, 3}}, {0, 0});
+	Check(borders.size() == 2 && borders[0].destination == 2 && borders[1].destination == 3, "each bordering level gets its own way out");
+
+	// The same borders read off the native logical rooms.
+	Fixture b;
+	Memory<0x200> beyond;
+	Memory<0xC0> overRoom;
+	std::array<uintptr_t, 1> nearList{overRoom.Address()};
+	b.level.At<uint32_t>(LevelId, 1); // Act 1 - Town: DrlgType 2, not a maze
+	b.nearRoom.At(RoomNear, reinterpret_cast<uintptr_t>(nearList.data()));
+	b.nearRoom.At<uint64_t>(RoomNearCount, nearList.size());
+	overRoom.At(ExtendedLevel, beyond.Address()); beyond.At<uint32_t>(LevelId, 2);
+	overRoom.At<int>(RoomTileX, 108); overRoom.At<int>(RoomTileY, 100);
+	overRoom.At<int>(RoomTileWidth, 8); overRoom.At<int>(RoomTileHeight, 8);
+	Check(NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.size() == 1
+		&& borders[0].destination == 2, "a near room owned by another level becomes that level's way out");
+	Check(borders[0].position.x == 540 && borders[0].position.y == 520, "the native border keeps the shared-edge midpoint");
+	Check(NativeLevelExits::Identity(borders[0].position) != 0, "a border exit has a stable coordinate identity");
+	b.level.At<uint32_t>(LevelId, 9); // Act 1 - Cave 2: DrlgType 1
+	Check(!NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.empty(), "maze levels keep their warp-only exits");
+	b.level.At<uint32_t>(LevelId, 1);
+	overRoom.At(ExtendedLevel, b.level.Address());
+	Check(NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.empty(), "a near room of this level is not a way out");
+	overRoom.At(ExtendedLevel, beyond.Address());
+	beyond.At<uint32_t>(LevelId, 1);
+	Check(NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.empty(), "another level object with this level's id is not a way out");
+	beyond.At<uint32_t>(LevelId, 2);
+	b.nearRoom.At<uintptr_t>(RoomNear, 0);
+	Check(!NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.empty(), "a counted but absent near list fails closed");
+	b.nearRoom.At(RoomNear, reinterpret_cast<uintptr_t>(nearList.data()));
+	b.nearRoom.At<uint64_t>(RoomNearCount, MaxRooms + 1);
+	Check(!NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders), "a corrupt near count is bounded");
+	b.nearRoom.At<uint64_t>(RoomNearCount, nearList.size());
+	overRoom.At<int>(RoomTileWidth, 0);
+	Check(NativeLevelExits::ReadBorders(b.active.Address(), {0, 0}, borders) && borders.empty(), "a neighbour with no rectangle is skipped, not guessed");
+	Check(!NativeLevelExits::ReadBorders(0, {0, 0}, borders) && borders.empty(), "missing player room clears previous borders");
 	Passed();
 }

@@ -66,11 +66,17 @@ enum class StickPush {
 };
 StickPush TakeRightStickPush();
 
-// Right thumbstick CLICK (R3) press edges. The SDK's action service binds
+// Right thumbstick CLICK (R3), reported on RELEASE when the press stayed
+// shorter than the hold threshold below. The SDK's action service binds
 // keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
 // read here with the rest of the XInput state. Take() returns whether a click
 // happened since the previous Take() and clears it.
 bool TakeRightStickClick();
+
+// Right thumbstick HOLD (R3 kept down past the click threshold). Fires once
+// per press, on reaching the threshold, and the release that follows is not
+// reported as a click, so the two gestures never both fire.
+bool TakeRightStickHold();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics

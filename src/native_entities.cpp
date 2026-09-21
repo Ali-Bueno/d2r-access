@@ -269,6 +269,18 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
 	}
+	// An open overland border is a way out with no warp unit behind it: name the
+	// level across it, at the crossing, the way the automap marks it.
+	std::vector<NativeLevelExits::BorderExit> borders;
+	Radar::Position here;
+	if (distantExits && DynamicPosition(player, room, here) && NativeLevelExits::ReadBorders(room, here, borders))
+		for (const auto& border : borders) {
+			EntityRadar::Entity entity{border.destination, EntityRadar::Kind::Exit, border.position,
+				LevelText(tables, border.destination, LevelNameKey), NativeLevelExits::Identity(border.position)};
+			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
+				entities.push_back(std::move(entity));
+		}
 	output = std::move(entities);
 	return true;
 }

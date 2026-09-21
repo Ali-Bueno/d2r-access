@@ -2,11 +2,12 @@
 
 namespace D2RAccess::Radar {
 uint16_t TerrainCollisionFlags(uint16_t flags) {
-	// 0x341D70 restores MONSTER; 0x363CF0 stamps NO_PATH/PET alongside
-	// actors. WATER=0xC0 also contains PLAYER: never erase that as an actor.
+	// 0x341D70 restores MONSTER; 0x363CF0 stamps NO_PATH/PET alongside actors.
+	// Only a live unit writes those three, so any cell with a unit bit loses them
+	// all. WATER=0xC0 shares PLAYER, so PLAYER survives wherever MISSILE is set.
 	constexpr uint16_t Player = 0x80, Monster = 0x100, Missile = 0x40, NoPath = 0x1000, Pet = 0x2000;
-	const bool actor = (flags & Monster) || ((flags & Player) && !(flags & Missile));
-	if (actor) flags &= ~(Monster | NoPath | Pet | ((flags & Missile) ? 0 : Player));
+	if (flags & (Monster | Player | Pet)) flags &= ~(Monster | NoPath | Pet);
+	if ((flags & Player) && !(flags & Missile)) flags &= ~Player;
 	return flags;
 }
 State World::Cell(int x, int y, Layer layer, uint16_t* rawFlags) const {

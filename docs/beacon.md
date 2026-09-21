@@ -18,8 +18,11 @@ releases it on its own.
 ## Controls and console
 
 - Right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
-  lock the entity scan's last announcement, or release the current lock if
-  one is active.
+  lock the last thing the entity scan or the exit review announced, or release
+  the current lock if one is active. The click is reported on **release**, and
+  only when the press stayed under 350 ms: holding the stick down past that is
+  the exit review's "next way out" instead (`docs/rooms.md`), and it swallows
+  its own release so the two gestures never both fire.
 - Console `access-beacon lock|clear|status` (`lock` also accepts `toggle`,
   `clear` also accepts `off`); `status` speaks whether something is locked
   and, if so, its name.
@@ -43,6 +46,15 @@ releases it on its own.
 - It stays completely silent, but keeps its lock, while dialogue or a pausing
   menu is open or the game window is not focused (`Playing()` gate); it
   resumes on its own once play resumes.
+
+## Point targets
+
+A way out offered by the exit review (`docs/rooms.md`) can be a plain opening
+between two streamed rooms, which the game has no unit for. `OfferPoint` locks
+that place itself: identity is the coordinate identity the fixed level exits
+already use, the per-tick `Refresh` skips it because a passage does not move,
+and arrival is the same `arrivalDistance` as everything else. Nothing else
+about the lock changes.
 
 ## Route search
 
@@ -68,6 +80,39 @@ releases it on its own.
 - The route is recomputed at most every `routeIntervalMs`, or sooner if the
   player or the target has moved more than `reroute` cells since the route
   was last computed.
+
+## How you get there
+
+Locking a target ends the announcement with one word, from `Beacon::Reach`:
+
+| Word (es) | Word (en) | When |
+|---|---|---|
+| recto | straight | The line to the target admits the body the whole way |
+| rodeando | around | Not in a line, but the search reached the target |
+| no se llega | no route | Neither, and the target is inside the search box |
+| *(nothing)* | *(nothing)* | The target is farther than `searchRadius` |
+
+Three points about it, each of which was the wrong way round in the obvious
+version:
+
+- **The straight test runs over the route's own `Field`, not over
+  `EntityRadar::LineOfSight`.** That sight ray has no thickness and the player
+  has a body; the `Field` already has the native footprint dilated into it, so
+  testing the line there is both correct and guaranteed consistent with what
+  the route says.
+- **Straight is checked before reachable.** A chest, a post or a level exit
+  stands on its own blocked cell, which the search can never enter, so by
+  `reachable` alone a chest in an open field reads "no route". The line test
+  skips both end cells, exactly as the scan's sight test does, and calling
+  that a straight walk is what actually happens.
+- **Beyond the box it says nothing.** `searchRadius` is 96 subtiles; claiming
+  "no route" for something merely far away would be a lie, so the plain
+  "Guiando hacia X" is used instead.
+
+Ported from the Grim Dawn accessibility mod `grimdark`, whose one navigation
+aid is a ping that answers this and nothing else —
+`reference/audio-navigation/grim-dawn/navigation-spec.md` §6. It uses three
+sounds where this uses a word.
 
 ## Parameters
 

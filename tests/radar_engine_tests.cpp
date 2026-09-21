@@ -116,6 +116,55 @@ void SilentBaseline() {
 	Check(engine.Revision() == 1, "standing still never rebases again");
 }
 
+void DeadBandBaseline() {
+	// 2026-09-20 live run: up opened the session at depth 7.8, between the
+	// closing and opening depths, so the wall the player then walked into was
+	// swallowed as that direction's silent baseline and never sounded.
+	auto world = Field();
+	Barrier(world, 223, Wall); // eleven cells of route: the recorded 7.8 of depth
+	Engine engine;
+	uint64_t now = 1000;
+	Check(Silent(engine.Tick(world, now)), "an observation inside the dead band is a silent baseline like any other");
+	const auto& ahead = engine.Sensors()[Down];
+	Check(ahead.passage.observed == State::Unknown && ahead.passage.available
+		&& ahead.passage.depth > ahead.passage.closeDepth && ahead.passage.depth < ahead.passage.openDepth,
+		"that baseline really did land between the closing and the opening depth");
+	unsigned walls = 0, other = 0;
+	const auto count = [&](const Events& events) {
+		for (size_t i = 0; i < DirectionCount; ++i) {
+			if (events[i] == State::Unknown) continue;
+			if (i == Down && events[i] == State::Blocked) ++walls; else ++other;
+		}
+	};
+	for (int step = 0; step < 5; ++step) {
+		world.player.x += 1;
+		world.player.y += 1;
+		count(engine.Tick(world, now += PollMs));
+	}
+	world.player.x += 1; // the last cell the body fits in: no route left at all
+	count(engine.Tick(world, now += PollMs));
+	Check(ahead.state == State::Blocked && ahead.passage.depth == 0, "the player really did walk up to the wall");
+	Check(walls == 1 && other == 0, "a wall reached from the dead band sounds exactly once, and nothing else does");
+	// The other way round: a blocked baseline still lets the opening sound.
+	world = Field();
+	Barrier(world, 212, Wall);
+	Engine opening;
+	now = 1000;
+	Check(Silent(opening.Tick(world, now)), "the blocked baseline is silent");
+	Check(opening.Sensors()[Down].state == State::Blocked, "the baseline recorded the wall it saw");
+	Barrier(world, 212, 0);
+	unsigned openings = 0;
+	other = 0;
+	for (int poll = 0; poll < 10; ++poll) {
+		const auto events = opening.Tick(world, now += PollMs);
+		for (size_t i = 0; i < DirectionCount; ++i) {
+			if (events[i] == State::Unknown) continue;
+			if (i == Down && events[i] == State::Open) ++openings; else ++other;
+		}
+	}
+	Check(openings == 1 && other == 0, "the first opening after a blocked baseline sounds exactly once");
+}
+
 void TravelConfirmation() {
 	// The player walks one world cell per poll along +X, so he is never
 	// stopped: the barrier ahead of the screen-down axis can only be confirmed
@@ -459,6 +508,7 @@ int main() {
 	AxisProjection();
 	Thresholds();
 	SilentBaseline();
+	DeadBandBaseline();
 	TravelConfirmation();
 	StationaryConfirmation();
 	IntervalHold();
