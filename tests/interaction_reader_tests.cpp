@@ -407,16 +407,29 @@ int main() {
 	conversation = false; InteractionReader::Reset(); ClearSpeech();
 	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
 	buttonSnapshot = {61, 61, "StrengthPointButton", UiText::Surface::Other, {{61, -1, UiText::Kind::StatButton, "StrengthPointButton", "", "Gastar punto"}}};
-	progression.readout = {"Stats", "Personaje", "Fuerza. 30. Gastar punto", "61"};
-	progression.value = "30"; progression.points = "5 puntos";
-	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Personaje. Fuerza. 30. Gastar punto"}, "stat selection reads its own label and value immediately");
+	progression.readout = {"Stats", "", "Fuerza. 30", "61"};
+	progression.value = "30"; progression.points = "5 puntos"; progression.description = "Aumenta el daño.";
+	controllerHelp = "A: Asignar un punto. Vista: Ver estadísticas avanzadas. B: Cerrar menú";
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Fuerza. 30"},
+		"with autodetail off a stat reads its label and value, and nothing else");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Aumenta el daño."}, "right stick up reads what the stat does");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down;
+	Check(Tick() && speech == std::vector<std::string>{"A: Asignar un punto. B: Cerrar menú"},
+		"right stick down reads the controls to spend a point, without BACK's, which is the mod's there");
+	controllerHelp.clear();
 	ClearSpeech(); Tooltip("Gastar punto"); Settle();
 	Check(speech.empty(), "rendered stat action does not repeat generic spend instruction");
 	buttonSnapshot.nodes[0].enabled = false; Tick();
 	Check(speech.size() == 1 && speech[0].ends_with("no disponible"), "enriched stat readout preserves disabled state");
 	ClearSpeech(); progression.value = "31"; progression.points = "4 puntos";
-	progression.readout.option = "Fuerza. 31. 4 puntos. Gastar punto"; Tick();
-	Check(speech == std::vector<std::string>{"31. 4 puntos"}, "spending a stat point reads only the changed value and remaining points");
+	progression.readout.option = "Fuerza. 31"; Tick();
+	Check(speech == std::vector<std::string>{"31"}, "spending a stat point reads only the new value: the points left are BACK's");
+	autoDetail = true; ClearSpeech(); focus.widget = 62; progression.readout.focusKey = "62";
+	buttonSnapshot = {62, 62, "DexPointButton", UiText::Surface::Other, {{62, -1, UiText::Kind::StatButton, "DexPointButton", "", "Gastar punto"}}};
+	progression.readout.option = "Destreza. 20"; progression.value = "20"; progression.description = "Aumenta la precisión."; Tick();
+	Check(speech == std::vector<std::string>{"Destreza. 20. Aumenta la precisión."}, "with autodetail on a stat reads its value and what it does");
+	autoDetail = false;
 	InteractionReader::Reset(); ClearSpeech(); progression = {}; tooltip = {};
 	focus = {70, 71}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
 	progression.skill = true; progression.points = "1 punto";

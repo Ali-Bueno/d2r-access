@@ -9,6 +9,7 @@ struct Details {
 	std::string points, value;
 	std::string help;     // part of the readout: the skill's current binding
 	std::string controls; // what the buttons do here -- a control hint (control_hints.h)
+	std::string description; // a stat's own explanation, for right stick up or autodetail
 };
 // Add companion labels/values to stat actions and identify skill button grids.
 // Uses widget archetypes and their native containers, not a panel-name whitelist.

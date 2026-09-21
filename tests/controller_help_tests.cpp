@@ -124,5 +124,9 @@ int main() {
 	NativeControllerHelp::Reset();
 	Put(legend.data(), 0x90, uint64_t{1}); Entry(0, 0xE011, 0, 1, "Actualizar");
 	Check(NativeControllerHelp::ForFocus(focus) == "X: Actualizar" && discoveries > initialDiscoveries, "session reset rediscovers new NPC controls");
+	Check(ControllerText::WithoutControl("A: Hold to Assign One Stat Point. View: View Advanced Stats. B: Close Menu", "View")
+		== "A: Hold to Assign One Stat Point. B: Close Menu", "the entry for a button the mod has taken is left out");
+	Check(ControllerText::WithoutControl("View: View Advanced Stats", "View").empty(), "and a list of that entry alone is empty");
+	Check(ControllerText::WithoutControl("A: Select. B: Close Menu", "View") == "A: Select. B: Close Menu", "other lists pass unchanged");
 	Passed();
 }

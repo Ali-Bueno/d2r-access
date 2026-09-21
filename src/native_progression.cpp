@@ -43,11 +43,13 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		if (result.readout.option.empty()) return result;
 		result.value = ChildText(focus.panel, stem + "Stat");
 		result.points = ChildText(focus.panel, "CombinedPointsInfo");
+		// The stat and its value, and nothing else on the move (the user,
+		// 2026-09-21: "only the statistic highlighted should be read with
+		// autodetail off"). Its explanation waits for right stick up or
+		// autodetail, the points left for BACK, and the button's own "Spend
+		// Stat Point" is what its controls already say.
 		Append(result.readout.option, result.value);
-		Append(result.readout.option, result.points);
-		Append(result.readout.option, ChildText(title, "Tooltip"));
-		Append(result.readout.option, Text(focus.widget));
-		result.readout.body = Localization::Text("minipanelchar");
+		result.description = ChildText(title, "Tooltip");
 	} else if (type.kind == UiText::Kind::Button) {
 		// Skill-tree class buttons are plain ButtonWidget instances. Their
 		// owning containers (including granted/common skills) supply the role.

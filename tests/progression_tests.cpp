@@ -64,18 +64,21 @@ int main() {
 		{7, {1, "CombinedPointsInfo", "5 puntos de estadísticas restantes", {}}},
 	};
 	const auto strength = NativeProgression::Read({1, 3}, stat);
-	Check(strength.readout.body == "Personaje", "stat action has its localized context");
-	Check(strength.readout.option == "Fuerza. 30. 5 puntos de estadísticas restantes. Aumenta el daño. Gastar punto de estadística", "stat label, live value, remaining points and help precede its generic action");
+	Check(strength.readout.body.empty(), "the panel's name is the window's to say, not every stat's");
+	Check(strength.readout.option == "Fuerza. 30", "a stat reads its label and live value, and nothing else");
+	Check(strength.description == "Aumenta el daño." && strength.points == "5 puntos de estadísticas restantes",
+		"its explanation and the points left are held apart, for right stick up and BACK");
 	Check(strength.readout.focusKey == "3" && !strength.skill, "stat focus identity is kept without classifying it as a skill");
 	for (const auto& pair : {std::pair{"Dex", "Destreza"}, {"Vitality", "Vitalidad"}, {"Energy", "Energía"}}) {
 		widgets[3].name = std::string(pair.first) + "PointButton";
 		widgets[4].name = std::string(pair.first) + "Title"; widgets[4].text = pair.second;
 		widgets[5].name = std::string(pair.first) + "Stat";
-		Check(NativeProgression::Read({1, 3}, stat).readout.option.starts_with(std::string(pair.second) + ". 30."), "every stat resolves its own companion label");
+		Check(NativeProgression::Read({1, 3}, stat).readout.option == std::string(pair.second) + ". 30", "every stat resolves its own companion label");
 	}
 	widgets[5].text = "31"; widgets[7].text = "4 puntos de estadísticas restantes";
-	const auto increased = NativeProgression::Read({1, 3}, stat).readout;
-	Check(increased.option.find("31. 4 puntos") != std::string::npos, "spending a point refreshes both live values");
+	const auto increased = NativeProgression::Read({1, 3}, stat);
+	Check(increased.readout.option.ends_with("31") && increased.points == "4 puntos de estadísticas restantes",
+		"spending a point refreshes both live values");
 	widgets[5].visible = false;
 	Check(NativeProgression::Read({1, 3}, stat).readout.option.find("31") == std::string::npos, "hidden stat values are not guessed");
 	widgets[4].visible = false;

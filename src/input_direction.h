@@ -106,6 +106,10 @@ const char* PushName(StickPush push);
 // tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
+// BACK pressed on its own, within the last `maxAgeMs`: the character panel's
+// points readout. Taking it clears it, fresh or stale.
+bool TakeBackPress(unsigned maxAgeMs);
+
 // Right thumbstick CLICK (R3) press edges. The SDK's action service binds
 // keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
 // read here with the rest of the XInput state. Take() returns whether a click

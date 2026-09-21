@@ -189,6 +189,8 @@ std::vector<std::string> Lines(uintptr_t panel) {
 
 std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
+std::string Points(uintptr_t panel) { return ChildText(panel, "CombinedPointsInfo"); }
+
 void Reset() {}
 
 }

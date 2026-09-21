@@ -38,6 +38,10 @@ std::vector<std::string> Lines(uintptr_t panel);
 // rendered it.
 std::string Name(uintptr_t panel);
 
+// The stat points left to spend, as the panel says it ("5 Stat Points
+// Remaining"); empty when it cannot be read.
+std::string Points(uintptr_t panel);
+
 void Reset();
 
 }

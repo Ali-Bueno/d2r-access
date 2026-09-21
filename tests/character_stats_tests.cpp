@@ -19,6 +19,9 @@ struct Widget {
 std::map<uintptr_t, Widget> widgets;
 std::vector<uintptr_t> order; // declaration order, which is the order Snapshot walks
 bool panelVisible = true;
+bool backPressed = false;
+bool backClaimed = false;
+uintptr_t statButton = 0; // the widget that classifies as a point button
 std::vector<std::string> speech;
 std::vector<bool> interrupts;
 InputDirection::StickPush pending = InputDirection::StickPush::None;
@@ -41,6 +44,9 @@ NativeUi::Focus On(uintptr_t widget) { return {Panel, widget}; }
 }
 
 namespace D2RAccess::NativeUi {
+Type Classify(uintptr_t widget) {
+	return widget != 0 && widget == statButton ? Type{"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton} : Type{};
+}
 bool Visible(uintptr_t widget) { return widget == Panel ? panelVisible : widgets.count(widget) != 0; }
 uintptr_t Parent(uintptr_t widget) {
 	const auto found = widgets.find(widget);
@@ -66,6 +72,10 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 }
 }
 
+namespace D2RAccess::InputDirection {
+bool TakeBackPress(unsigned) { const bool pressed = backPressed; backPressed = false; return pressed; }
+}
+namespace D2RAccess::PadFilter { void ClaimBack(bool claimed) { backClaimed = claimed; } }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 }
@@ -260,6 +270,22 @@ int main() {
 	panelVisible = false;
 	Check(!CharacterStatsReader::Tick(nullptr, {}) && pending == Push::Down,
 		"and a panel that is not showing leaves the stick alone, push and all");
+	Check(!backClaimed, "nor claims BACK");
 	panelVisible = true;
+
+	// BACK on this panel reads the points left, and is the mod's while it is up.
+	Add(90, "CombinedPointsInfo", "5 puntos de estadísticas restantes");
+	pending = Push::None;
+	speech.clear(); backPressed = true;
+	CharacterStatsReader::Tick(nullptr, {});
+	Check(backClaimed && !speech.empty() && speech.front() == "5 puntos de estadísticas restantes", "BACK reads the points left to spend");
+
+	// A point button with focus has the stick: up describes the stat, down
+	// reads its controls (interaction_reader.cpp).
+	Add(91, "StrengthPointButton", "", Panel);
+	statButton = 91;
+	pending = Push::Up;
+	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::Up,
+		"while a point button has focus the stick is left to the point readout");
 	Passed();
 }

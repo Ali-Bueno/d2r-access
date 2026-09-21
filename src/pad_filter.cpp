@@ -37,6 +37,7 @@ constexpr int      Retries = 15;
 GetStateFn                         g_original = nullptr;
 std::vector<void**>                g_slots;               // the game's slots now pointing at Filtered
 std::atomic<bool>                  g_claimed { false };
+std::atomic<bool>                  g_claimedBack { false };
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
 int                                g_retries = 0;
 uint64_t                           g_nextTry = 0;
@@ -49,7 +50,8 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	const DWORD result = g_original(user, state);
 	if (result != ERROR_SUCCESS || state == nullptr || user >= XUSER_MAX_COUNT) return result;
 	const WORD before = state->Gamepad.wButtons;
-	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user]);
+	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user],
+		g_claimedBack.load(std::memory_order_relaxed));
 	const uint16_t kept = static_cast<uint16_t>(before & ~state->Gamepad.wButtons);
 	if (const uint16_t fresh = static_cast<uint16_t>(kept & ~g_keptLast[user]))
 		g_keptPresses.fetch_or(fresh, std::memory_order_relaxed);
@@ -133,8 +135,9 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 }
 }
 
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses) {
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool claimedBack) {
 	const bool back = (buttons & Back) != 0;
+	buttons = Keep(buttons, Back, claimedBack, presses.back);
 	buttons = Keep(buttons, RightThumb, claimed, presses.rightThumb);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, claimed && back, presses.b);
@@ -157,6 +160,10 @@ void Remove() {
 	g_retries = 0;
 }
 
+void ClaimBack(bool claimed) {
+	g_claimedBack.store(claimed, std::memory_order_relaxed);
+}
+
 void Claim(const D2RL::PluginContext* context, bool claimed) {
 	g_claimed.store(claimed, std::memory_order_relaxed);
 	if (g_retries > 0 && context != nullptr && GetTickCount64() >= g_nextTry) {
@@ -164,7 +171,8 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		(void)TryInstall(context, --g_retries == 0);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game during play:%s%s%s%s%s", (kept & RightThumb) ? " R3 (guidance)" : "",
+		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s", (kept & RightThumb) ? " R3 (guidance)" : "",
+			(kept & Back) ? " BACK (points)" : "",
 			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_B) ? " B (with BACK)" : "",
 			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
 	}
