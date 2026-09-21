@@ -132,6 +132,8 @@ inline constexpr Table koKR {
 	.roomsEnabled = "방 출구 켜짐",
 	.roomsDisabled = "방 출구 꺼짐",
 	.roomsUnavailable = "방 출구를 사용할 수 없습니다",
+	.finderEnabled = "출구 찾기 켜짐",
+	.finderDisabled = "출구 찾기 꺼짐",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 	.terrainPlaces = {"뒤쪽 왼쪽 모서리", "뒤쪽 가장자리", "뒤쪽 오른쪽 모서리", "왼쪽 가장자리", "중앙",
 		"오른쪽 가장자리", "앞쪽 왼쪽 모서리", "앞쪽 가장자리", "앞쪽 오른쪽 모서리"},

@@ -132,6 +132,8 @@ inline constexpr Table plPL {
 	.roomsEnabled = "Wyjścia pomieszczeń włączone",
 	.roomsDisabled = "Wyjścia pomieszczeń wyłączone",
 	.roomsUnavailable = "Wyjścia pomieszczeń niedostępne",
+	.finderEnabled = "Wyszukiwanie wyjść włączone",
+	.finderDisabled = "Wyszukiwanie wyjść wyłączone",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 	.terrainPlaces = {"tylny lewy róg", "tylna krawędź", "tylny prawy róg", "lewa krawędź", "środek",
 		"prawa krawędź", "przedni lewy róg", "przednia krawędź", "przedni prawy róg"},

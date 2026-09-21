@@ -69,20 +69,39 @@ void Cycling() {
 	Check(cycle.Next(items) == 0, "and the next real list starts at the nearest");
 }
 
-// This branch's words: name, steps, screen direction -- the catalogue's line --
-// and never a count.
+// One side at a time: the scan's quarter of the plane. Screen up is world
+// (-X,-Y), so each screen side is a world diagonal.
+void Sides() {
+	const Position player{100, 100};
+	const std::vector<Rooms::Opening> openings{{{94, 94}, 3}, {{90, 90}, 3}, {{106, 106}, 3}, {{94, 106}, 3}};
+	const auto items = ExitReview::Collect(player, openings, {Exit(7, {104, 96}, "Stairs")}, English);
+	const auto ahead = ExitReview::Toward(items, player, Radar::Direction::Up);
+	Check(ahead.size() == 2 && ahead[0].point.x == 94 && ahead[1].point.x == 90,
+		"pushing up names only what is ahead, nearest first");
+	Check(ExitReview::Toward(items, player, Radar::Direction::Down).size() == 1, "behind has its own");
+	Check(ExitReview::Toward(items, player, Radar::Direction::Left).size() == 1, "and so has the left");
+	const auto right = ExitReview::Toward(items, player, Radar::Direction::Right);
+	Check(right.size() == 1 && right[0].named && right[0].label == "Stairs", "a level exit is found on its side by name");
+
+	// "1 push is the nearest exit, subsequent push is second nearest", and
+	// round again, with no timer.
+	ExitReview::Cycle cycle;
+	Check(cycle.Next(ahead) == 0 && cycle.Next(ahead) == 1 && cycle.Next(ahead) == 0,
+		"two ways out on one side alternate, nearest first");
+}
+
+// Spoken as the scan speaks: the name and the distance, never a count.
 void Spoken() {
 	const Position player{100, 100};
 	const auto items = ExitReview::Collect(player, {{{94, 94}, 3}}, {Exit(7, {103, 103}, "Escalera")}, Spanish);
 	Check(items.size() == 2 && items[0].named && !items[1].named, "the nearer way out is the named one here");
-	Check(ExitReview::Describe(items[0], Scan, Spanish) == "Escalera, 4 pasos, atrás",
-		"a named exit reads its name, its distance and its direction");
-	Check(ExitReview::Describe(items[1], Scan, Spanish) == "paso, 8 pasos, adelante",
-		"an opening reads as a passage");
+	Check(ExitReview::Describe(items[0], Scan, Spanish) == "Escalera, 4 pasos", "a named exit reads its name and distance");
+	Check(ExitReview::Describe(items[1], Scan, Spanish) == "paso, 8 pasos", "an opening reads as a passage");
 	const auto english = ExitReview::Collect(player, {{{94, 94}, 3}}, {}, English);
 	const auto line = ExitReview::Describe(english[0], Scan, English);
-	Check(line == "passage, 8 steps, ahead", "English reads the same line");
+	Check(line == "passage, 8 steps", "English reads the same line");
 	Check(line.find(" of ") == std::string::npos, "no position in the list is ever spoken");
+	Check(ExitReview::Nothing(Radar::Direction::Left, English) == "Nothing to the left", "an empty side says so as the scan does");
 }
 }
 
@@ -90,6 +109,7 @@ int main() {
 	Labels();
 	NearestFirst();
 	Cycling();
+	Sides();
 	Spoken();
 	Passed();
 }

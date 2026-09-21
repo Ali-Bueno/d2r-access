@@ -132,6 +132,8 @@ inline constexpr Table frFR {
 	.roomsEnabled = "Sorties des salles activées",
 	.roomsDisabled = "Sorties des salles désactivées",
 	.roomsUnavailable = "Sorties des salles indisponibles",
+	.finderEnabled = "Recherche des sorties activée",
+	.finderDisabled = "Recherche des sorties désactivée",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 	.terrainPlaces = {"coin arrière gauche", "bord arrière", "coin arrière droit", "bord gauche", "centre",
 		"bord droit", "coin avant gauche", "bord avant", "coin avant droit"},

@@ -132,6 +132,8 @@ inline constexpr Table itIT {
 	.roomsEnabled = "Uscite delle stanze attivate",
 	.roomsDisabled = "Uscite delle stanze disattivate",
 	.roomsUnavailable = "Uscite delle stanze non disponibili",
+	.finderEnabled = "Ricerca uscite attivata",
+	.finderDisabled = "Ricerca uscite disattivata",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
 	.terrainPlaces = {"angolo posteriore sinistro", "bordo posteriore", "angolo posteriore destro",
 		"bordo sinistro", "centro", "bordo destro", "angolo anteriore sinistro", "bordo anteriore",

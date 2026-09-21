@@ -132,6 +132,8 @@ inline constexpr Table deDE {
 	.roomsEnabled = "Raumausgänge aktiviert",
 	.roomsDisabled = "Raumausgänge deaktiviert",
 	.roomsUnavailable = "Raumausgänge nicht verfügbar",
+	.finderEnabled = "Ausgangssuche an",
+	.finderDisabled = "Ausgangssuche aus",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
 		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},

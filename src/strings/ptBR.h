@@ -132,6 +132,8 @@ inline constexpr Table ptBR {
 	.roomsEnabled = "Saídas de ambiente ativadas",
 	.roomsDisabled = "Saídas de ambiente desativadas",
 	.roomsUnavailable = "Saídas de ambiente indisponíveis",
+	.finderEnabled = "Localizador de saídas ativado",
+	.finderDisabled = "Localizador de saídas desativado",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 	.terrainPlaces = {"canto traseiro esquerdo", "borda traseira", "canto traseiro direito",
 		"borda esquerda", "centro", "borda direita", "canto frontal esquerdo", "borda frontal",

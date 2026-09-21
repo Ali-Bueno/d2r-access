@@ -98,7 +98,7 @@ const char* PushName(StickPush push);
 
 // BACK (Select/View) held as a modifier: A, X or Y pressed while it is down
 // (the user, 2026-09-21: "back+X: speak life+mana ... back+y: speak the room
-// layout", and the exit review "can go on back+A"). BACK alone does nothing
+// layout", and BACK+A toggles the exit finder). BACK alone does nothing
 // for the mod and still reaches the game, which does nothing with it in play.
 // The A, X or Y press is kept from the game during play by pad_filter.h, so no
 // attack or skill fires with it. Only A, X and Y are reported; Take() returns

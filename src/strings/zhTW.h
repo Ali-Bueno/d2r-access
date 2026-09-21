@@ -132,6 +132,8 @@ inline constexpr Table zhTW {
 	.roomsEnabled = "房間出口已啟用",
 	.roomsDisabled = "房間出口已停用",
 	.roomsUnavailable = "房間出口無法使用",
+	.finderEnabled = "出口搜尋已啟用",
+	.finderDisabled = "出口搜尋已停用",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 	.terrainPlaces = {"左後方角落", "後方邊緣", "右後方角落", "左方邊緣", "中央",
 		"右方邊緣", "左前方角落", "前方邊緣", "右前方角落"},

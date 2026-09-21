@@ -132,6 +132,8 @@ inline constexpr Table enUS {
 	.roomsEnabled = "Room exits on",
 	.roomsDisabled = "Room exits off",
 	.roomsUnavailable = "Room exits unavailable",
+	.finderEnabled = "Exit finder on",
+	.finderDisabled = "Exit finder off",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 	.terrainPlaces = {"back left corner", "back edge", "back right corner", "left edge", "centre",
 		"right edge", "front left corner", "front edge", "front right corner"},

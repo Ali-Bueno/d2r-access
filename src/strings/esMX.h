@@ -132,6 +132,8 @@ inline constexpr Table esMX {
 	.roomsEnabled = "Salidas de sala activadas",
 	.roomsDisabled = "Salidas de sala desactivadas",
 	.roomsUnavailable = "Salidas de sala no disponibles",
+	.finderEnabled = "Buscador de salidas activado",
+	.finderDisabled = "Buscador de salidas desactivado",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
 		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",

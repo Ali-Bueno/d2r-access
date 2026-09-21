@@ -132,6 +132,8 @@ inline constexpr Table jaJP {
 	.roomsEnabled = "ルーム出口 オン",
 	.roomsDisabled = "ルーム出口 オフ",
 	.roomsUnavailable = "ルーム出口を利用できません",
+	.finderEnabled = "出口検索 オン",
+	.finderDisabled = "出口検索 オフ",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 	.terrainPlaces = {"後方左の角", "後方の端", "後方右の角", "左の端", "中央",
 		"右の端", "前方左の角", "前方の端", "前方右の角"},

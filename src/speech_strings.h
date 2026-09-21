@@ -158,6 +158,8 @@ struct Table {
 	const char* roomsEnabled;
 	const char* roomsDisabled;
 	const char* roomsUnavailable;
+	const char* finderEnabled;  // the exit finder, BACK+A: ways out by side on the right stick
+	const char* finderDisabled;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -192,7 +194,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable};
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

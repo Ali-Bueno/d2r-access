@@ -1,7 +1,5 @@
 #include "exit_review.h"
 
-#include "npc_proximity.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -19,13 +17,20 @@ std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& op
 	items.reserve(openings.size() + exits.size());
 	const auto add = [&](std::string label, Position point, const EntityRadar::Entity* entity) {
 		items.push_back({std::move(label), point, std::hypot(point.x - player.x, point.y - player.y),
-			NpcProximity::DirectionOf(player, point), entity != nullptr, entity ? *entity : EntityRadar::Entity{}});
+			entity != nullptr, entity ? *entity : EntityRadar::Entity{}});
 	};
 	for (const auto& opening : openings) add(strings.roomOpening, opening.centre, nullptr);
 	for (const auto& exit : exits) add(exit.name, exit.position, &exit);
 	std::stable_sort(items.begin(), items.end(),
 		[](const Item& a, const Item& b) { return a.distance < b.distance; });
 	return items;
+}
+
+std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction) {
+	std::vector<Item> result;
+	for (const auto& item : items)
+		if (EntityRadar::InSector(player, item.point, direction)) result.push_back(item);
+	return result;
 }
 
 size_t Cycle::Next(const std::vector<Item>& items) {
@@ -49,10 +54,12 @@ void Cycle::Reset() {
 }
 
 std::string Describe(const Item& item, const EntityRadar::Settings& scan, const Strings::Table& strings) {
-	char text[320]{};
-	std::snprintf(text, sizeof text, strings.surveySteps, item.label.c_str(),
-		EntityRadar::DistancePhrase(item.distance, scan, strings).c_str(),
-		strings.scanDirections[static_cast<size_t>(item.direction)]);
+	return item.label + ", " + EntityRadar::DistancePhrase(item.distance, scan, strings);
+}
+
+std::string Nothing(Radar::Direction direction, const Strings::Table& strings) {
+	char text[128]{};
+	std::snprintf(text, sizeof text, strings.scanNothing, strings.scanDirections[static_cast<size_t>(direction)]);
 	return text;
 }
 }
