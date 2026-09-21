@@ -51,6 +51,7 @@ NativeUi::BeltSlot beltSlot;
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
+uintptr_t gridItem = 0, equipmentItem = 0;
 std::optional<bool> holdingItem;
 InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 // The character panel's stick reader runs ahead of the detail readout, so
@@ -74,6 +75,8 @@ Type Classify(uintptr_t widget) {
 }
 Cell GridCell(uintptr_t) { return cell; }
 ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
+uintptr_t GridItem(uintptr_t) { return gridItem; }
+uintptr_t EquipmentItem(uintptr_t) { return equipmentItem; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
@@ -532,5 +535,21 @@ int main() {
 	cell = {0, 0}; selection = 0; holdingItem = false; itemPresence = NativeUi::ItemPresence::Empty;
 	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Settle();
 	Check(speech == std::vector<std::string>{"Fila 1, columna 2"}, "with an item held, an empty cell reads its position as always");
+	// With an item held the game draws no tooltip (MEASURED 2026-09-21), so the
+	// item under the cursor is named from the grid or the slot instead.
+	ClearSpeech(); itemPresence = NativeUi::ItemPresence::Occupied; gridItem = 77; cell = {2, 0}; selection = 2; Settle();
+	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "a held item over another names the one beneath it");
+	ClearSpeech(); cell = {2, 1}; selection = (uint64_t{1} << 32) | 2; Settle();
+	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "on every cell that item covers");
+	ClearSpeech(); gridItem = 55; cell = {3, 0}; selection = 3; Settle();
+	Check(speech == std::vector<std::string>{Strings::Current().slotOccupied}, "an item it cannot name is still said to be there");
+	ClearSpeech(); focus.widget = 81; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; cell = {};
+	equipmentLocation = 4; equipmentPresence = NativeUi::ItemPresence::Occupied; equipmentItem = 77; Settle();
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Arma derecha. Poción de curación menor"},
+		"an equipment slot names what it holds instead of only that it is occupied");
+	ClearSpeech(); holdingItem = false; focus.widget = 21; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	gridItem = 77; cell = {4, 0}; selection = 4; Settle();
+	Check(speech.empty(), "with nothing held an occupied cell still waits for the game's own tooltip");
+	gridItem = 0; equipmentItem = 0; equipmentPresence = NativeUi::ItemPresence::Unknown; equipmentLocation = 0;
 	Passed();
 }

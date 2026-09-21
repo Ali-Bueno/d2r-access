@@ -248,6 +248,23 @@ ItemPresence GridItemPresence(uintptr_t widget) {
 	return CallItemAtCell(getter, widget, cell);
 }
 
+uintptr_t GridItem(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return 0;
+	const auto cell = GridCell(widget);
+	uintptr_t vtable = 0, getter = 0, item = 0;
+	if (cell.x < 0 || !Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter) || !CallItemPointer(getter, widget, cell, item)) return 0;
+	return item;
+}
+
+uintptr_t EquipmentItem(uintptr_t widget) {
+	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return 0;
+	uintptr_t vtable = 0, getter = 0, item = 0;
+	if (!Peek(widget, vtable) || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter) || !CallItemPointer(getter, widget, {}, item)) return 0;
+	return item;
+}
+
 ItemPresence EquipmentItemPresence(uintptr_t widget) {
 	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return ItemPresence::Unknown;
 	uintptr_t vtable = 0, getter = 0;

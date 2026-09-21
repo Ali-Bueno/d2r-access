@@ -168,6 +168,8 @@ int main() {
 	cellItem = 123;
 	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Occupied
 		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup passes the native owner widget and selected coordinates");
+	Check(NativeUi::GridItem(grid.Address()) == 123, "the grid names the item on the selected cell");
+	Check(NativeUi::EquipmentItem(grid.Address()) == 0, "and a grid is not an equipment slot");
 	itemQueryFault = true;
 	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
 	itemQueryFault = false; grid.vtable[25] = 0;
@@ -231,10 +233,12 @@ int main() {
 	cellItem = 123;
 	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Occupied
 		&& queriedWidget == slot.Address(), "equipment query uses its own native owner and getter");
+	Check(NativeUi::EquipmentItem(slot.Address()) == 123, "an equipment slot names the item it holds");
 	cellItem = 0;
 	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
 	itemQueryFault = true;
 	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
+	Check(NativeUi::EquipmentItem(slot.Address()) == 0, "and names no item");
 	itemQueryFault = false;
 	Check(NativeUi::EquipmentItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup excludes grid widgets");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 4, "equipment slot location uses the reflected body location member");

@@ -5,6 +5,7 @@
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
+#include "inventory_cursor.h"
 #include "ground_item_service.h"
 #include "input_direction.h"
 #include "localization.h"
@@ -326,9 +327,29 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	// While an item is held the game draws no tooltip for what the cursor is
+	// over -- MEASURED 2026-09-21, none in five seconds of moving a held item
+	// across others -- so an occupied cell said nothing and a slot only
+	// "Occupied". The item there, the one a press would swap into the hand, is
+	// named from the grid or the slot. Whether an item is held is asked of the
+	// game each time, never remembered.
+	std::string heldOver;
+	if (!renderedDescription && (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied)
+		&& InventoryCursor::HoldingItem(context).value_or(false)) {
+		const uintptr_t item = type.kind == UiText::Kind::InventoryGrid
+			? NativeUi::GridItem(focus.widget) : NativeUi::EquipmentItem(focus.widget);
+		if (item) heldOver = NativeGroundItems::ItemBaseName(item);
+		if (item && heldOver.empty()) heldOver = Strings::Current().slotOccupied;
+	}
+	if (type.kind == UiText::Kind::InventoryGrid && !heldOver.empty()) {
+		readout.option = heldOver;
+		readout.coordinates.clear();
+		renderedDescription = true;
+	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
 		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
-		else if (equipmentPresence == NativeUi::ItemPresence::Occupied) Append(readout.option, Strings::Current().slotOccupied);
+		else if (equipmentPresence == NativeUi::ItemPresence::Occupied)
+			Append(readout.option, heldOver.empty() ? Strings::Current().slotOccupied : heldOver);
 		// Neither a known slot nor readable contents: say what the focus is on
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);

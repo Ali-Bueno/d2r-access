@@ -23,6 +23,11 @@ Focus CurrentFocus();
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
+// The item on the grid cell the controller is on, or in the equipment slot,
+// from the same getters as the presence reads; 0 when there is none or it
+// could not be read. The unit is only named, never kept.
+uintptr_t GridItem(uintptr_t widget);
+uintptr_t EquipmentItem(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
 // The belt slot the controller is on and the item in it, read straight from
 // the belt rather than waiting for the game's tooltip, which the controller
