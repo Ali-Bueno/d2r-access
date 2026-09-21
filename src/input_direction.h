@@ -106,21 +106,15 @@ const char* PushName(StickPush push);
 // tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
-// Right thumbstick CLICK (R3). The SDK's action service binds keyboard keys
-// only (D2RLPlugin/input.h Key/Modifier), so the pad button is read here with
-// the rest of the XInput state. Take() returns whether a click happened since
-// the previous Take() and clears it.
+// Right thumbstick CLICK (R3) press edges. The SDK's action service binds
+// keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
+// read here with the rest of the XInput state. Take() returns whether a click
+// happened since the previous Take() and clears it.
 // Left thumbstick CLICK (L3): toggles the long-range pathfinder, which
 // makes the right stick drive the catalogue instead of the entity scan.
-// Both are reported on RELEASE, and not at all when the press became part of
-// an L3+R3 chord (stick_chord.h), so one press never fires two gestures.
 bool TakeLeftStickClick();
 
 bool TakeRightStickClick();
-
-// L3 and R3 pressed together: the terrain overview. Fires the moment both are
-// down, once per chord.
-bool TakeStickChord();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics

@@ -1,7 +1,5 @@
 #include "input_direction.h"
 
-#include "stick_chord.h"
-
 #include <windows.h>
 
 #include <xinput.h>
@@ -47,7 +45,8 @@ struct PadEdgeState {
 	bool xHeld          = false;
 	bool yHeld          = false;
 	bool rightStickHeld = false;
-	StickChord::Thumbs thumbs; // L3 click, R3 click, and the two together
+	bool leftThumbHeld  = false;
+	bool rightThumbHeld = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -60,7 +59,6 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_rightStickClick = false;
-bool g_stickChord = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
@@ -203,13 +201,12 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			// L3 and R3 are told apart from the two pressed together, so a
-			// single click is reported on its release (stick_chord.h).
-			const auto thumbs = edges.thumbs.Update((pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0,
-				(pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
-			if (thumbs.left) g_leftStickClick = true;
-			if (thumbs.right) g_rightStickClick = true;
-			if (thumbs.chord) g_stickChord = true;
+			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
+				g_leftStickClick = true;
+			}
+			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
+				g_rightStickClick = true;
+			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
@@ -252,12 +249,6 @@ bool TakeLeftStickClick() {
 	g_leftStickClick = false;
 	return clicked;
 }
-bool TakeStickChord() {
-	const bool chorded = g_stickChord;
-	g_stickChord = false;
-	return chorded;
-}
-
 bool TakeRightStickClick() {
 	const bool clicked = g_rightStickClick;
 	g_rightStickClick = false;
