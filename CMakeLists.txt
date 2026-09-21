@@ -70,6 +70,9 @@ add_library(d2r-access SHARED
 	src/room_graph.cpp
 	src/room_catalogue.cpp
 	src/rooms.cpp
+	src/explored_rooms.cpp
+	src/terrain_overview.cpp
+	src/terrain_service.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
 	src/native_ui.cpp
@@ -138,6 +141,10 @@ if(BUILD_TESTING)
 	target_include_directories(stick-chord-tests PRIVATE src)
 	target_compile_features(stick-chord-tests PRIVATE cxx_std_20)
 	add_test(NAME stick-chord COMMAND stick-chord-tests)
+	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(terrain-overview-tests PRIVATE src)
+	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
+	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
 	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
@@ -362,6 +369,7 @@ if(BUILD_TESTING)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

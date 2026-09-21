@@ -1,7 +1,9 @@
 #pragma once
 #include "entity_radar.h"
+#include "native_level_exits.h"
 #include <D2RLPlugin/api.h>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 // Live monsters / NPCs / world objects in the local player's room and its
@@ -20,6 +22,11 @@ bool Initialize(const D2RL::PluginContext* context);
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false);
 // Factored for tests over constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false);
+// The current level's room layout around the verified local player, for the
+// terrain overview; `neighbours` also reads the bordering rooms of other levels.
+bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);
+// The game's own localized name of a level id; empty when the table is unreadable.
+std::string LevelName(uint32_t levelId);
 // The patch tripwire: how many objects.txt rows the container predicate selects
 // live, against EntityLayout::ContainerRowCount from the offline derivation.
 bool CountContainerRows(size_t& rows, size_t& total);

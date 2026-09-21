@@ -116,7 +116,19 @@ inline constexpr Table frFR {
 	.goldCarried = "%s pièces d'or",
 	.autoDetailEnabled = "Détails automatiques activés",
 	.autoDetailDisabled = "Détails automatiques désactivés",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s : %s%s",
+	.terrainEdge = "bord à %s",
+	.terrainBorder = "%s à %s",
+	.terrainExplored = "exploré",
+	.terrainUnexplored = "inexploré",
+	.terrainUnexploredFrom = "inexploré à partir de %s",
+	.terrainUnavailable = "Aperçu du terrain indisponible",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
+	.terrainPlaces = {"coin arrière gauche", "bord arrière", "coin arrière droit", "bord gauche", "centre",
+		"bord droit", "coin avant gauche", "bord avant", "coin avant droit"},
 };
 
 }

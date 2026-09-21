@@ -116,7 +116,19 @@ inline constexpr Table deDE {
 	.goldCarried = "%s Gold",
 	.autoDetailEnabled = "Automatische Details an",
 	.autoDetailDisabled = "Automatische Details aus",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "Rand bei %s",
+	.terrainBorder = "%s bei %s",
+	.terrainExplored = "erkundet",
+	.terrainUnexplored = "unerforscht",
+	.terrainUnexploredFrom = "unerforscht ab %s",
+	.terrainUnavailable = "Geländeübersicht nicht verfügbar",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
+	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
+		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},
 };
 
 }

@@ -116,7 +116,19 @@ inline constexpr Table jaJP {
 	.goldCarried = "%s ゴールド",
 	.autoDetailEnabled = "自動詳細オン",
 	.autoDetailDisabled = "自動詳細オフ",
+	.listSeparator = "、",
+	.terrainOverview = "%s、%s%s",
+	.terrainSeparator = "。",
+	.terrainDirection = "%s：%s%s",
+	.terrainEdge = "%s地点の端",
+	.terrainBorder = "%s、%s地点",
+	.terrainExplored = "探索済み",
+	.terrainUnexplored = "未探索",
+	.terrainUnexploredFrom = "%s地点から未探索",
+	.terrainUnavailable = "地形の概要は利用できません",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
+	.terrainPlaces = {"後方左の角", "後方の端", "後方右の角", "左の端", "中央",
+		"右の端", "前方左の角", "前方の端", "前方右の角"},
 };
 
 }

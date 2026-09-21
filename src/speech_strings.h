@@ -22,6 +22,9 @@ inline constexpr std::size_t LanguageCount = 13;
 inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 	"enUS", "deDE", "esES", "esMX", "frFR", "itIT", "jaJP", "koKR", "plPL", "ptBR", "ruRU", "zhCN", "zhTW"};
 
+// Where in the level the player stands: three screen thirds per axis.
+inline constexpr std::size_t TerrainPlaceCount = 9;
+
 struct Table {
 	const char* pluginLoaded;
 	const char* screenReaderMissing;
@@ -136,10 +139,25 @@ struct Table {
 	const char* goldCarried;          // %s = how much gold the player is carrying
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
+	const char* listSeparator; // joins the items of a spoken list
+	// Terrain overview: how far the level reaches around the player and how
+	// much of it is still unwalked. `docs/terrain-overview.md`
+	const char* terrainOverview;       // %s = level name, %s = where in it, %s = the four directions
+	const char* terrainSeparator;      // joins the four direction phrases
+	const char* terrainDirection;      // %s = direction, %s = how far it reaches, %s = "" or the separator plus the state
+	const char* terrainEdge;           // %s = distance to the level's outer edge
+	const char* terrainBorder;         // %s = the level across the edge, %s = distance to it
+	const char* terrainExplored;
+	const char* terrainUnexplored;
+	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
+	const char* terrainUnavailable;    // the level's layout could not be read
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
 	std::array<const char*, 9> itemQualities;
+	// Screen thirds, behind row first: behind-left, behind, behind-right,
+	// left, centre, right, ahead-left, ahead, ahead-right.
+	std::array<const char*, TerrainPlaceCount> terrainPlaces;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -164,11 +182,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled};
+		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
-	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities);
+	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

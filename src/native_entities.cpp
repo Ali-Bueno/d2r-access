@@ -333,6 +333,28 @@ bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>&
 	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings);
 }
 
+bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {
+	const NativeMemory::ReadScope scope;
+	layout = {};
+	uintptr_t player = 0, tables = 0, path = 0, room = 0;
+	uint32_t type = 0, id = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables) || !player
+		|| !Peek(player + UnitType, type) || type != GroundItemLayout::PlayerType
+		|| !Peek(player + UnitId, id) || id != playerId
+		|| !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room) || !room) return false;
+	return NativeLevelExits::ReadLayout(room, neighbours, layout);
+}
+
+std::string LevelName(uint32_t levelId) {
+	const NativeMemory::ReadScope scope;
+	uintptr_t player = 0, tablesAddress = 0;
+	Tables tables;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tablesAddress) || !tablesAddress
+		|| !Peek(tablesAddress + Levels, tables.levels) || !tables.levels
+		|| !Peek(tablesAddress + LevelCount, tables.levelCount) || tables.levelCount > MaxTableRows) return {};
+	return LevelText(tables, levelId, LevelNameKey);
+}
+
 bool CountContainerRowsAt(uintptr_t tablesAddress, size_t& rows, size_t& total) {
 	uintptr_t objects = 0;
 	uint64_t count = 0;

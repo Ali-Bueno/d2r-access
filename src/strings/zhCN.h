@@ -116,7 +116,19 @@ inline constexpr Table zhCN {
 	.goldCarried = "%s 金币",
 	.autoDetailEnabled = "自动详情已启用",
 	.autoDetailDisabled = "自动详情已禁用",
+	.listSeparator = "、",
+	.terrainOverview = "%s，%s%s",
+	.terrainSeparator = "。",
+	.terrainDirection = "%s：%s%s",
+	.terrainEdge = "距%s处为边界",
+	.terrainBorder = "%s，距%s",
+	.terrainExplored = "已探索",
+	.terrainUnexplored = "未探索",
+	.terrainUnexploredFrom = "距%s起未探索",
+	.terrainUnavailable = "地形概览不可用",
 	.itemQualities = {"", "劣质", "", "精良", "魔法", "套装", "稀有", "暗金", "合成"},
+	.terrainPlaces = {"左后方角落", "后方边缘", "右后方角落", "左侧边缘", "中央",
+		"右侧边缘", "左前方角落", "前方边缘", "右前方角落"},
 };
 
 }

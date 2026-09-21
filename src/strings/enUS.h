@@ -116,7 +116,19 @@ inline constexpr Table enUS {
 	.goldCarried = "%s gold",
 	.autoDetailEnabled = "Auto detail on",
 	.autoDetailDisabled = "Auto detail off",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "edge at %s",
+	.terrainBorder = "%s at %s",
+	.terrainExplored = "explored",
+	.terrainUnexplored = "unexplored",
+	.terrainUnexploredFrom = "unexplored from %s",
+	.terrainUnavailable = "Terrain overview unavailable",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
+	.terrainPlaces = {"back left corner", "back edge", "back right corner", "left edge", "centre",
+		"right edge", "front left corner", "front edge", "front right corner"},
 };
 
 }

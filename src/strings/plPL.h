@@ -116,7 +116,19 @@ inline constexpr Table plPL {
 	.goldCarried = "%s złota",
 	.autoDetailEnabled = "Automatyczne szczegóły włączone",
 	.autoDetailDisabled = "Automatyczne szczegóły wyłączone",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "krawędź na %s",
+	.terrainBorder = "%s na %s",
+	.terrainExplored = "zbadane",
+	.terrainUnexplored = "niezbadane",
+	.terrainUnexploredFrom = "niezbadane od %s",
+	.terrainUnavailable = "Przegląd terenu niedostępny",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
+	.terrainPlaces = {"tylny lewy róg", "tylna krawędź", "tylny prawy róg", "lewa krawędź", "środek",
+		"prawa krawędź", "przedni lewy róg", "przednia krawędź", "przedni prawy róg"},
 };
 
 }

@@ -116,7 +116,20 @@ inline constexpr Table esMX {
 	.goldCarried = "%s de oro",
 	.autoDetailEnabled = "Detalle automático activado",
 	.autoDetailDisabled = "Detalle automático desactivado",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "borde a %s",
+	.terrainBorder = "%s a %s",
+	.terrainExplored = "explorado",
+	.terrainUnexplored = "sin explorar",
+	.terrainUnexploredFrom = "sin explorar desde %s",
+	.terrainUnavailable = "Vista del terreno no disponible",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
+	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
+		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",
+		"borde delantero", "esquina delantera derecha"},
 };
 
 }

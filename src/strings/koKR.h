@@ -116,7 +116,19 @@ inline constexpr Table koKR {
 	.goldCarried = "골드 %s",
 	.autoDetailEnabled = "자동 상세 정보 켜짐",
 	.autoDetailDisabled = "자동 상세 정보 꺼짐",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "%s 지점의 경계",
+	.terrainBorder = "%s, %s 지점",
+	.terrainExplored = "탐사됨",
+	.terrainUnexplored = "미탐사",
+	.terrainUnexploredFrom = "%s 지점부터 미탐사",
+	.terrainUnavailable = "지형 개요를 사용할 수 없음",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
+	.terrainPlaces = {"뒤쪽 왼쪽 모서리", "뒤쪽 가장자리", "뒤쪽 오른쪽 모서리", "왼쪽 가장자리", "중앙",
+		"오른쪽 가장자리", "앞쪽 왼쪽 모서리", "앞쪽 가장자리", "앞쪽 오른쪽 모서리"},
 };
 
 }

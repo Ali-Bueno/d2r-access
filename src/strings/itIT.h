@@ -116,7 +116,20 @@ inline constexpr Table itIT {
 	.goldCarried = "%s oro",
 	.autoDetailEnabled = "Dettagli automatici attivati",
 	.autoDetailDisabled = "Dettagli automatici disattivati",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "bordo a %s",
+	.terrainBorder = "%s a %s",
+	.terrainExplored = "esplorato",
+	.terrainUnexplored = "non esplorato",
+	.terrainUnexploredFrom = "non esplorato da %s",
+	.terrainUnavailable = "Panoramica del terreno non disponibile",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
+	.terrainPlaces = {"angolo posteriore sinistro", "bordo posteriore", "angolo posteriore destro",
+		"bordo sinistro", "centro", "bordo destro", "angolo anteriore sinistro", "bordo anteriore",
+		"angolo anteriore destro"},
 };
 
 }

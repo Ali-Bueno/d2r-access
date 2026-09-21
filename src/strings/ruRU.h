@@ -116,7 +116,19 @@ inline constexpr Table ruRU {
 	.goldCarried = "%s золота",
 	.autoDetailEnabled = "Автоподробности включены",
 	.autoDetailDisabled = "Автоподробности выключены",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "край на %s",
+	.terrainBorder = "%s на %s",
+	.terrainExplored = "исследовано",
+	.terrainUnexplored = "не исследовано",
+	.terrainUnexploredFrom = "не исследовано с %s",
+	.terrainUnavailable = "Обзор местности недоступен",
 	.itemQualities = {"", "низкое качество", "", "высокое качество", "магический предмет", "предмет из комплекта", "редкий предмет", "уникальный предмет", "изготовленный предмет"},
+	.terrainPlaces = {"задний левый угол", "задний край", "задний правый угол", "левый край", "центр",
+		"правый край", "передний левый угол", "передний край", "передний правый угол"},
 };
 
 }

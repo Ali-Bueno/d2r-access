@@ -116,7 +116,19 @@ inline constexpr Table zhTW {
 	.goldCarried = "%s 金幣",
 	.autoDetailEnabled = "自動詳情已啟用",
 	.autoDetailDisabled = "自動詳情已停用",
+	.listSeparator = "、",
+	.terrainOverview = "%s，%s%s",
+	.terrainSeparator = "。",
+	.terrainDirection = "%s：%s%s",
+	.terrainEdge = "距%s處為邊界",
+	.terrainBorder = "%s，距%s",
+	.terrainExplored = "已探索",
+	.terrainUnexplored = "未探索",
+	.terrainUnexploredFrom = "距%s起未探索",
+	.terrainUnavailable = "地形概覽無法使用",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
+	.terrainPlaces = {"左後方角落", "後方邊緣", "右後方角落", "左方邊緣", "中央",
+		"右方邊緣", "左前方角落", "前方邊緣", "右前方角落"},
 };
 
 }

@@ -116,7 +116,20 @@ inline constexpr Table ptBR {
 	.goldCarried = "%s de ouro",
 	.autoDetailEnabled = "Detalhes automáticos ativados",
 	.autoDetailDisabled = "Detalhes automáticos desativados",
+	.listSeparator = ", ",
+	.terrainOverview = "%s, %s%s",
+	.terrainSeparator = ". ",
+	.terrainDirection = "%s: %s%s",
+	.terrainEdge = "borda a %s",
+	.terrainBorder = "%s a %s",
+	.terrainExplored = "explorado",
+	.terrainUnexplored = "não explorado",
+	.terrainUnexploredFrom = "não explorado a partir de %s",
+	.terrainUnavailable = "Visão geral do terreno indisponível",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
+	.terrainPlaces = {"canto traseiro esquerdo", "borda traseira", "canto traseiro direito",
+		"borda esquerda", "centro", "borda direita", "canto frontal esquerdo", "borda frontal",
+		"canto frontal direito"},
 };
 
 }
