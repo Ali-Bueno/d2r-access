@@ -499,17 +499,19 @@ int main() {
 	ClearSpeech(); conversation = true; Tick();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
 	conversation = false;
+	// Picking an item up or putting it down is the game's business: nothing is
+	// announced for either, in any section of the inventory (the user,
+	// 2026-09-21: the notice came back on every move to the belt, the
+	// equipment or a shop, and "it needs to go completely").
 	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear(); tooltip = {};
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
-	Tick(); Check(speech.empty(), "entering inventory without a held item does not announce a release");
-	holdingItem = true; Tick();
-	Check(speech == std::vector<std::string>{Strings::Current().itemInHand}, "picking up an item announces placement mode without waiting for a tooltip");
-	ClearSpeech(); Tick(); Check(speech.empty(), "holding an item does not repeat the placement notice");
+	Tick(); holdingItem = true; Tick();
+	Check(speech.empty(), "picking up an item announces nothing");
 	focus.widget = 81; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; equipmentLocation = 1;
 	cell = {};
 	equipmentPresence = NativeUi::ItemPresence::Empty; Tick();
-	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "crossing into empty equipment reads the slot without repeating placement help");
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"}, "crossing into equipment with an item held reads only the slot");
 	ClearSpeech(); focus.widget = 83; cell = {2, 1}; Tick();
 	Check(speech == std::vector<std::string>{"Cabeza. Vacío. Fila 2, columna 3"}, "an equipment slot speaks its grid position after its name and contents");
 	ClearSpeech(); focus.widget = 84; cell = {}; Tick(); ClearSpeech();
@@ -520,24 +522,13 @@ int main() {
 		"a slot with neither a known location nor readable contents still says what the focus is on");
 	equipmentPresence = NativeUi::ItemPresence::Empty; equipmentLocation = 1;
 	ClearSpeech(); focus.widget = 81; cell = {}; Tick();
-	Check(InteractionReader::Repeat().starts_with(Strings::Current().itemInHand), "manual repeat retains the current item-in-hand context");
-	ClearSpeech(); holdingItem.reset(); Tick();
-	Check(speech.empty(), "a failed cursor query cannot announce that the item was placed");
-	holdingItem = true; Tick(); Check(speech.empty(), "cursor query recovery does not repeat an unchanged mode");
-	holdingItem = false; Tick();
-	Check(speech.size() == 1 && speech[0].find("Cabeza") != std::string::npos
-		&& speech[0] != Strings::Current().itemReleased, "releasing a carried item names the equipment slot it went into");
-	Check(InteractionReader::Repeat().find(Strings::Current().itemInHand) == std::string::npos, "repeat removes stale item-in-hand context");
-	ClearSpeech(); Tick(); Check(speech.empty(), "an empty cursor does not repeatedly announce release");
-	InteractionReader::Reset(); holdingItem = true; Tick();
-	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand), "reopening inventory while holding an item restores orientation");
-	ClearSpeech(); conversation = true; Tick();
-	Check(speech.empty() && InteractionReader::Repeat().empty(), "conversation focus suppresses placement notices and resets orientation");
-	conversation = false; InteractionReader::Reset(); ClearSpeech();
+	Check(InteractionReader::Repeat() == "Inventario. Equipo. Cabeza. Vacío", "manual repeat is the readout alone");
+	ClearSpeech(); holdingItem = false; Tick();
+	Check(speech.empty(), "putting an item down announces nothing either");
+	InteractionReader::Reset(); ClearSpeech();
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	cell = {0, 0}; selection = 0; holdingItem = false; itemPresence = NativeUi::ItemPresence::Empty;
-	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Tick();
-	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand) && speech[0].ends_with("Fila 1, columna 2"), "placement mode and its newly selected empty cell are spoken together");
-	ClearSpeech(); Tick(); Check(speech.empty(), "a delayed coordinate read cannot immediately interrupt placement orientation");
+	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Settle();
+	Check(speech == std::vector<std::string>{"Fila 1, columna 2"}, "with an item held, an empty cell reads its position as always");
 	Passed();
 }

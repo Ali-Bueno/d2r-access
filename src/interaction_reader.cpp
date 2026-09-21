@@ -5,7 +5,6 @@
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
-#include "inventory_cursor.h"
 #include "ground_item_service.h"
 #include "input_direction.h"
 #include "localization.h"
@@ -44,7 +43,6 @@ std::string g_describedFocus;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
 std::string g_hiddenLabel;
-std::optional<bool> g_holdingItem;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
 // Widget names are stable across those rebuilds, so the last value seen under
@@ -180,37 +178,6 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	if (type.kind == UiText::Kind::InventorySlot)
 		if (const char* slot = SlotName(SlotLocation(context, focus.widget))) Append(result.option, slot);
 	return result;
-}
-
-// Where a carried item was just put down, so releasing it is not only "item
-// released". Equipment slots and grid cells are exact; the belt is one widget,
-// so only the section is known.
-std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type) {
-	if (type.kind == UiText::Kind::InventorySlot) {
-		const char* slot = SlotName(SlotLocation(context, focus.widget));
-		return slot ? slot : Strings::Current().equipment;
-	}
-	if (type.name == "BeltWidget") return Strings::Current().belt;
-	const auto cell = NativeUi::GridCell(focus.widget);
-	if (cell.x < 0) return {};
-	char phrase[100]{};
-	std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
-	return phrase;
-}
-
-std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type) {
-	if (!inventory) { g_holdingItem.reset(); return {}; }
-	const auto holding = InventoryCursor::HoldingItem(context);
-	if (!holding || holding == g_holdingItem) return {};
-	const bool wasHolding = g_holdingItem.value_or(false);
-	g_holdingItem = holding;
-	if (*holding) return Strings::Current().itemInHand;
-	if (!wasHolding) return {};
-	const auto destination = Destination(context, focus, type);
-	if (destination.empty()) return Strings::Current().itemReleased;
-	char phrase[200]{};
-	std::snprintf(phrase, sizeof(phrase), Strings::Current().itemPlacedIn, destination.c_str());
-	return phrase;
 }
 }
 
@@ -412,7 +379,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	g_inventory = inventory;
 	if (!inventory) g_inventoryContext = {};
-	auto cursorNotice = CursorNotice(context, inventory, focus, type);
 	if (!tabChange.empty()) {
 		// A tab switch announces only its name. Accept the current cell as the
 		// baseline so its delayed readout cannot immediately interrupt that name.
@@ -424,26 +390,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		const bool named = PanelState::TakeAnnounced(tabChange);
 		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
 		std::string text(named ? std::string_view{} : tabChange);
-		Append(text, cursorNotice);
 		if (!text.empty()) ScreenReader::Speak(text, !named);
 		return true;
 	}
 	// The stock item tooltip can appear ~350 ms after selection. An occupied
 	// grid cell waits for it without speaking coordinates first; other cells
 	// keep their existing quick coordinate feedback.
-	if (type.kind == UiText::Kind::InventoryGrid && occupied && !renderedDescription) {
-		if (!cursorNotice.empty()) {
-			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s placement -> \"%s\"", readout.context.c_str(), cursorNotice.c_str());
-			ScreenReader::Speak(cursorNotice, true);
-		}
+	if (type.kind == UiText::Kind::InventoryGrid && occupied && !renderedDescription)
 		return true; // the hints stay pending until the description arrives
-	}
 	if (progression.skill && !renderedDescription) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	auto announcement = button ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty() ? 0 : InventorySettleMs)
+		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
@@ -464,10 +424,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool describedHere = readout.focusKey.empty() || readout.focusKey == g_describedFocus;
 	const bool helpFollows = helpChanged && !awaitingDescription && (describedNow || describedHere);
 	if (describedNow) g_describedFocus = readout.focusKey;
-	if (!cursorNotice.empty()) {
-		Append(cursorNotice, announcement.text);
-		announcement.text = std::move(cursorNotice);
-	}
 	// Only what was actually spoken counts as spoken. An empty hint is
 	// recorded either way, so leaving a panel does not leave the last hint
 	// looking unchanged when the player comes back to it.
@@ -493,7 +449,6 @@ void Reset() {
 	g_describedFocus.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
-	g_holdingItem.reset();
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
@@ -505,8 +460,7 @@ void Reset() {
 }
 
 std::string Repeat() {
-	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
-	Append(text, g_reader.Repeat());
+	std::string text = g_reader.Repeat();
 	if (ControlHints::Automatic()) Append(text, g_help);
 	return text;
 }
