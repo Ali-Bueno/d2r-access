@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "auto_detail.h"
+#include "control_hints.h"
 #include "focus_tracker.h"
 
 #include "generated/panel_widgets.h"
@@ -716,6 +717,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	}
 	g_lastAnnounced = std::move(id);
 	g_lastMatchedPanel = match.panel;
+	ControlHints::Offer({}); // a new focus: the last one's controls no longer apply
 	for (const char* type : MessageAnnouncedTypes) {
 		if (std::strcmp(match.widget->type, type) == 0) {
 			return;
@@ -732,9 +734,8 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 				legend += std::string(action.button) + ": " + text;
 			}
 		}
-		if (!legend.empty()) {
-			ScreenReader::Speak(legend, false);
-		}
+		ControlHints::Offer(legend);
+		ControlHints::SpeakAfter(context, legend);
 		return;
 	}
 	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {

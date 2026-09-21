@@ -114,6 +114,8 @@ inline constexpr Table jaJP {
 	.goldCarried = "%s ゴールド",
 	.autoDetailEnabled = "自動詳細オン",
 	.autoDetailDisabled = "自動詳細オフ",
+	.controlTooltipsEnabled = "操作ヒント オン",
+	.controlTooltipsDisabled = "操作ヒント オフ",
 	.listSeparator = "、",
 	.terrainOverview = "%s、%s%s",
 	.terrainSeparator = "。",

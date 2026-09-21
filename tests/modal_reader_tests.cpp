@@ -1,4 +1,5 @@
 #include "character_stats_reader.h"
+#include "control_hints.h"
 #include "modal_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -31,6 +32,8 @@ namespace D2RAccess::NativeWidgets { uintptr_t FindPanel(std::string_view) { ret
 namespace D2RAccess::CharacterStatsReader { bool Owns(std::string_view panel) { return panel == "CharacterStatsPanel"; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); } }
 namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+bool autoDetail = false;
+namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return true; } }
 
 int main() {
 	using UiText::Kind;
@@ -69,5 +72,21 @@ int main() {
 	active = "CharacterStatsPanel";
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2, "the character panel is left to its own reader");
+
+	// Button legends are control hints: held for right stick down, and spoken
+	// unasked only last, with autodetail and control tooltips on.
+	active = "ConfirmationModal";
+	tree = {};
+	Node(-1, Kind::Other, "ConfirmationModal");
+	Node(0, Kind::Text, "Prompt", "Leave the game?");
+	Node(0, Kind::Legend, "ConfirmLegend", "A: Confirm");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 3 && speech.back().text == "Leave the game?", "with autodetail off the prompt is read without its buttons");
+	Check(ControlHints::Current() == "A: Confirm", "and the buttons wait for right stick down");
+	autoDetail = true;
+	active = "DeleteCharacterModal";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 5 && speech[3].text == "Leave the game?" && speech[4].text == "A: Confirm" && !speech[4].interrupt,
+		"with autodetail and control tooltips on the buttons follow the prompt, last and queued");
 	Passed();
 }

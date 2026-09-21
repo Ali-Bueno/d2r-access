@@ -6,7 +6,9 @@ namespace D2RAccess::NativeProgression {
 struct Details {
 	UiText::Readout readout;
 	bool skill = false;
-	std::string points, value, help;
+	std::string points, value;
+	std::string help;     // part of the readout: the skill's current binding
+	std::string controls; // what the buttons do here -- a control hint (control_hints.h)
 };
 // Add companion labels/values to stat actions and identify skill button grids.
 // Uses widget archetypes and their native containers, not a panel-name whitelist.

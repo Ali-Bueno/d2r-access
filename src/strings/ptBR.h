@@ -114,6 +114,8 @@ inline constexpr Table ptBR {
 	.goldCarried = "%s de ouro",
 	.autoDetailEnabled = "Detalhes automáticos ativados",
 	.autoDetailDisabled = "Detalhes automáticos desativados",
+	.controlTooltipsEnabled = "Dicas de controle ativadas",
+	.controlTooltipsDisabled = "Dicas de controle desativadas",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

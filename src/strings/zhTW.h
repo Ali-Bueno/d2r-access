@@ -114,6 +114,8 @@ inline constexpr Table zhTW {
 	.goldCarried = "%s 金幣",
 	.autoDetailEnabled = "自動詳情已啟用",
 	.autoDetailDisabled = "自動詳情已停用",
+	.controlTooltipsEnabled = "操作提示已啟用",
+	.controlTooltipsDisabled = "操作提示已停用",
 	.listSeparator = "、",
 	.terrainOverview = "%s，%s%s",
 	.terrainSeparator = "。",

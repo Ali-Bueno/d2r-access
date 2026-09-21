@@ -114,6 +114,8 @@ inline constexpr Table plPL {
 	.goldCarried = "%s złota",
 	.autoDetailEnabled = "Automatyczne szczegóły włączone",
 	.autoDetailDisabled = "Automatyczne szczegóły wyłączone",
+	.controlTooltipsEnabled = "Podpowiedzi sterowania włączone",
+	.controlTooltipsDisabled = "Podpowiedzi sterowania wyłączone",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

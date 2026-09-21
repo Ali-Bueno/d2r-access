@@ -114,6 +114,8 @@ inline constexpr Table koKR {
 	.goldCarried = "골드 %s",
 	.autoDetailEnabled = "자동 상세 정보 켜짐",
 	.autoDetailDisabled = "자동 상세 정보 꺼짐",
+	.controlTooltipsEnabled = "조작 안내 켜짐",
+	.controlTooltipsDisabled = "조작 안내 꺼짐",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

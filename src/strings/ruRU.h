@@ -114,6 +114,8 @@ inline constexpr Table ruRU {
 	.goldCarried = "%s золота",
 	.autoDetailEnabled = "Автоподробности включены",
 	.autoDetailDisabled = "Автоподробности выключены",
+	.controlTooltipsEnabled = "Подсказки управления включены",
+	.controlTooltipsDisabled = "Подсказки управления выключены",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

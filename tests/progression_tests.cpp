@@ -96,9 +96,12 @@ int main() {
 	Check(skill.readout.coordinates == "Fila 3, columna 2" && skill.points == "1 elección de habilidad restante",
 		"the generated cell and live skill points are available, with no position in the branch");
 	widgets[15] = {13, "HotkeyText", "\xEE\x80\x8F", {}};
-	Check(NativeProgression::Read({10, 13}, button).help == "Asignada a A. X: Asignar habilidad", "current binding and actual actions are both spoken");
+	const auto bound = NativeProgression::Read({10, 13}, button);
+	Check(bound.help == "Asignada a A" && bound.controls == "X: Asignar habilidad",
+		"the current binding is part of the readout, and the actions are a control hint of their own");
 	widgets[15].visible = false;
-	Check(NativeProgression::Read({10, 13}, button).help == "X: Asignar habilidad", "hidden former binding is omitted");
+	const auto unbound = NativeProgression::Read({10, 13}, button);
+	Check(unbound.help.empty() && unbound.controls == "X: Asignar habilidad", "hidden former binding is omitted");
 	widgets[16] = {12, "SkillButton1 0,0", "", button};
 	widgets[17] = {12, "SkillButton1 2,5", "", button, false};
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";

@@ -67,7 +67,7 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 			std::snprintf(phrase, sizeof(phrase), Strings::Current().assignedTo, binding.c_str());
 			result.help = phrase;
 		}
-		Append(result.help, NativeControllerHelp::ForFocus(focus));
+		result.controls = NativeControllerHelp::ForFocus(focus);
 		const auto cell = ProgressionText::SkillCell(name);
 		if (cell.x >= 0) {
 			char phrase[100]{};

@@ -20,6 +20,7 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 add_library(d2r-access SHARED
 	src/async_log.cpp
 	src/auto_detail.cpp
+	src/control_hints.cpp
 	src/tab_reader.cpp
 	src/tooltip_text.cpp
 	src/text_field.cpp
@@ -308,7 +309,7 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -349,7 +350,7 @@ if(BUILD_TESTING)
 	target_compile_features(quest-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(quest-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME quest-service COMMAND quest-service-tests)
-	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp)
+	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp src/control_hints.cpp)
 	target_link_libraries(modal-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(modal-reader-tests PRIVATE src)
 	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)

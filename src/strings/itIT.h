@@ -114,6 +114,8 @@ inline constexpr Table itIT {
 	.goldCarried = "%s oro",
 	.autoDetailEnabled = "Dettagli automatici attivati",
 	.autoDetailDisabled = "Dettagli automatici disattivati",
+	.controlTooltipsEnabled = "Suggerimenti comandi attivati",
+	.controlTooltipsDisabled = "Suggerimenti comandi disattivati",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

@@ -8,6 +8,7 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "code_dump.h"
+#include "control_hints.h"
 #include "control_state.h"
 #include "focus_tracker.h"
 #include "native_widgets.h"
@@ -355,7 +356,12 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!prompt.empty()) {
 		ScreenReader::Speak(prompt, false);
 	}
-	ScreenReader::Speak(panel == ConfirmationModalPanel ? Strings::Current().modalConfirmHint : Strings::Current().modalDismissHint, false);
+	// Which button confirms is a control hint like any other: held for right
+	// stick down, and spoken unasked only last, with autodetail and control
+	// tooltips on.
+	const char* hint = panel == ConfirmationModalPanel ? Strings::Current().modalConfirmHint : Strings::Current().modalDismissHint;
+	ControlHints::Offer(hint);
+	ControlHints::SpeakAfter(context, hint);
 }
 
 void SetTraceEnabled(bool enabled) {

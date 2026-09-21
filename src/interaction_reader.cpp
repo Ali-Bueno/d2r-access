@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "auto_detail.h"
+#include "control_hints.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
@@ -13,6 +14,7 @@
 #include "native_ground_items.h"
 #include "native_progression.h"
 #include "progression_text.h"
+#include "radar_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -96,6 +98,19 @@ bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (!focus.panel || !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) return false;
 	const std::string& text = g_detail.empty() ? Strings::Current().detailNone : g_detail;
 	D2RAccess::AsyncLog::InfoF(context, "[detail] %s -> \"%s\"", g_detailFor.c_str(), text.c_str());
+	ScreenReader::Speak(text, true);
+	return true;
+}
+
+// A push down on the right stick while a menu is up: the controls the
+// highlighted thing offers, which are only spoken unasked with autodetail and
+// control tooltips both on (control_hints.h). In play the stick belongs to the
+// scan, the pathfinder and the exit finder.
+bool ReadHints(const D2RL::PluginContext* context) {
+	if (InputDirection::PeekRightStickPush() != InputDirection::StickPush::Down || RadarUi::InPlay()) return false;
+	(void)InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Down, "hints");
+	const std::string& text = ControlHints::Current().empty() ? Strings::Current().detailNone : ControlHints::Current();
+	D2RAccess::AsyncLog::InfoF(context, "[hints] asked -> \"%s\"", text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;
 }
@@ -222,6 +237,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// skills, so there is never a detail for up to read there.
 	if (CharacterStatsReader::Tick(context, focus)) return true;
 	if (ReadDetail(context, focus)) return true;
+	if (ReadHints(context)) return true;
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
@@ -346,11 +362,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
 	}
-	const auto help = (inventory || button || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
+	// The controls the focus offers. Never part of a readout: held for right
+	// stick down, and spoken unasked only last and only with autodetail and
+	// control tooltips on -- MEASURED 2026-09-21, a change of hints spoken on
+	// its own interrupted the gold amount it followed.
+	const auto help = !(inventory || button || stats) ? std::string{}
+		: progression.skill ? progression.controls : NativeControllerHelp::ForFocus(focus);
+	if (inventory || button || stats) ControlHints::Offer(help);
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. An occupied cell or slot
 	// is still waiting for the game's own tooltip (~350 ms), so the hints wait
-	// with it instead of arriving first in an utterance of their own.
+	// with it instead of arriving first.
 	const bool occupied = type.kind == UiText::Kind::InventorySlot
 		? equipmentPresence == NativeUi::ItemPresence::Occupied
 		: type.kind == UiText::Kind::InventoryGrid
@@ -432,12 +454,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// focus has not been described yet the hint waits for the readout that
 	// will describe it -- that is how "B: Close Menu" arrived before "Belt.
 	// Empty". Once the player has heard where they are, a hint that changes
-	// under them still speaks on its own: the merchant's action list changing
-	// is news, and the item it applies to was named a moment ago.
+	// under them is news too (the merchant's action list), so it is offered
+	// again -- queued, never interrupting.
 	const bool describedNow = !announcement.text.empty();
 	const bool describedHere = readout.focusKey.empty() || readout.focusKey == g_describedFocus;
 	const bool helpFollows = helpChanged && !awaitingDescription && (describedNow || describedHere);
-	if (helpFollows) Append(announcement.text, help);
 	if (describedNow) g_describedFocus = readout.focusKey;
 	if (!cursorNotice.empty()) {
 		Append(cursorNotice, announcement.text);
@@ -454,6 +475,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, true);
 	}
+	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	return inventory || button || stats;
 }
 
@@ -475,12 +497,13 @@ void Reset() {
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();
 	NativeTooltips::Reset();
+	ControlHints::Offer({});
 }
 
 std::string Repeat() {
 	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
 	Append(text, g_reader.Repeat());
-	Append(text, g_help);
+	if (ControlHints::Automatic()) Append(text, g_help);
 	return text;
 }
 }

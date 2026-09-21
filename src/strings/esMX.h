@@ -114,6 +114,8 @@ inline constexpr Table esMX {
 	.goldCarried = "%s de oro",
 	.autoDetailEnabled = "Detalle automático activado",
 	.autoDetailDisabled = "Detalle automático desactivado",
+	.controlTooltipsEnabled = "Ayuda de controles activada",
+	.controlTooltipsDisabled = "Ayuda de controles desactivada",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

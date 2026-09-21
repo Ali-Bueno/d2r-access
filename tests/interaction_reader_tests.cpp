@@ -133,6 +133,7 @@ bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	pendingPush = StickPush::None;
 	return true;
 }
+StickPush PeekRightStickPush() { return pendingPush; }
 }
 // The damage, defense and price labels come from the game's own string table,
 // as printf formats -- the reader keeps only the part before the placeholder.
@@ -162,9 +163,13 @@ bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
 void Reset() {}
 }
 bool autoDetail = false;
-namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } }
+bool controlTooltips = true;
+bool inPlay = false;
+namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return controlTooltips; } }
+namespace D2RAccess::RadarUi { bool InPlay() { return inPlay; } }
+std::vector<bool> interrupts;
 namespace D2RAccess::ScreenReader {
-void Speak(std::string_view text, bool) { speech.emplace_back(text); }
+void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 void Stop() {}
 }
 
@@ -352,8 +357,12 @@ int main() {
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"}, "and right stick up still reads the detail");
 	autoDetail = false;
 
-	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
-	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");
+	// In play, a push down belongs to the scan and the pathfinder; in a menu it
+	// asks for the controls.
+	ClearSpeech(); inPlay = true; pendingPush = InputDirection::StickPush::Down; Tick();
+	Check(pendingPush == InputDirection::StickPush::Down, "in play a push down is left for the scan and the pathfinder");
+	inPlay = false; ClearSpeech(); Tick();
+	Check(pendingPush == InputDirection::StickPush::None && speech.size() == 1, "in a menu it is claimed, for the controls");
 	pendingPush = InputDirection::StickPush::None;
 	// The character panel claims all four directions, so it must be offered
 	// the push before the detail readout takes up out from under it.
@@ -411,12 +420,15 @@ int main() {
 	InteractionReader::Reset(); ClearSpeech(); progression = {}; tooltip = {};
 	focus = {70, 71}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
 	progression.skill = true; progression.points = "1 punto";
-	progression.help = "X: Asignar habilidad";
+	progression.help = "Asignada a A";
+	progression.controls = "X: Asignar habilidad";
 	progression.readout = {"Skills", "Gritos de guerra", "", "71"};
 	progression.readout.coordinates = "Fila 1, columna 1";
 	Check(Tick() && speech.empty(), "skill awaits its matching rendered description without speaking a blank button or coordinates");
 	Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
-	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. X: Asignar habilidad. Fila 1, columna 1"}, "a skill reads its name, its points and its binding, and the grid position last");
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. Asignada a A. Fila 1, columna 1"}, "a skill reads its name, its points and its binding, and the grid position last");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down;
+	Check(Tick() && speech == std::vector<std::string>{"X: Asignar habilidad"}, "what the buttons do waits for right stick down");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
 	pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "right stick up reads what the skill does");
@@ -453,15 +465,24 @@ int main() {
 	Check(Tick() && speech.empty(), "available actions wait for the selected item's description instead of being read ahead of it");
 	ClearSpeech(); Tick(); Check(speech.empty(), "unchanged merchant actions do not repeat while waiting");
 	Tooltip("Durabilidad: 15 de 28\nHacha"); Tick();
-	Check(speech == std::vector<std::string>{"Inventario. Hacha. Y: Reparar todo. B: Cerrar menú"},
-		"the action list is spoken after the item it applies to, in the same utterance");
-	Check(InteractionReader::Repeat().ends_with(controllerHelp), "manual repeat includes currently available controller actions");
+	Check(speech == std::vector<std::string>{"Inventario. Hacha"},
+		"with autodetail off the item is read alone: the buttons are never spoken unasked");
+	Check(InteractionReader::Repeat().find("Reparar") == std::string::npos, "nor repeated unasked");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down;
+	Check(Tick() && speech == std::vector<std::string>{controllerHelp}, "right stick down reads them");
+	// With autodetail and control tooltips on they follow the item, last and
+	// queued -- never interrupting what they follow, as they cut off the gold
+	// amount (MEASURED 2026-09-21).
+	autoDetail = true;
 	ClearSpeech(); selection = 1; cell = {1, 0}; Tooltip("Espada"); Tick();
 	Check(speech == std::vector<std::string>{"Espada"}, "item-to-item navigation does not repeat unchanged merchant actions");
 	ClearSpeech(); controllerHelp = "X: Actualizar. B: Cerrar menú"; Tick();
 	Check(speech == std::vector<std::string>{controllerHelp}, "a new NPC action is read without repeating the selected item");
+	Check(InteractionReader::Repeat().ends_with(controllerHelp), "and with autodetail on, repeat includes the controls");
+	controlTooltips = false;
 	ClearSpeech(); controllerHelp = "B: Cerrar menú"; Tick();
-	Check(speech == std::vector<std::string>{controllerHelp} && InteractionReader::Repeat().find("Reparar") == std::string::npos, "unavailable services disappear from speech and repeat");
+	Check(speech.empty(), "with control tooltips off, autodetail leaves the buttons to right stick down");
+	controlTooltips = true; autoDetail = false;
 	ClearSpeech(); conversation = true; Tick();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
 	conversation = false;

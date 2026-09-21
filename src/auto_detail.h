@@ -18,6 +18,12 @@ void Unregister();
 
 bool Enabled();
 
+// Ctrl+H, autodetail's subtoggle: whether the controls the highlighted thing
+// offers ("A: Pick Up") are among what autodetail reads, always last
+// (control_hints.h). On by default. Off, or with autodetail off, they wait for
+// right stick down.
+bool ControlTooltips();
+
 // Says the new state after a toggle. UI thread.
 void Tick(const D2RL::PluginContext* context);
 

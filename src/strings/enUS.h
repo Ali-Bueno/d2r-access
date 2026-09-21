@@ -114,6 +114,8 @@ inline constexpr Table enUS {
 	.goldCarried = "%s gold",
 	.autoDetailEnabled = "Auto detail on",
 	.autoDetailDisabled = "Auto detail off",
+	.controlTooltipsEnabled = "Control tooltips on",
+	.controlTooltipsDisabled = "Control tooltips off",
 	.listSeparator = ", ",
 	.terrainOverview = "%s, %s%s",
 	.terrainSeparator = ". ",

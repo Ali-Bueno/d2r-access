@@ -114,6 +114,8 @@ inline constexpr Table zhCN {
 	.goldCarried = "%s 金币",
 	.autoDetailEnabled = "自动详情已启用",
 	.autoDetailDisabled = "自动详情已禁用",
+	.controlTooltipsEnabled = "操作提示已启用",
+	.controlTooltipsDisabled = "操作提示已禁用",
 	.listSeparator = "、",
 	.terrainOverview = "%s，%s%s",
 	.terrainSeparator = "。",

@@ -137,6 +137,8 @@ struct Table {
 	const char* goldCarried;          // %s = how much gold the player is carrying
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
+	const char* controlTooltipsEnabled;  // Ctrl+H: the controls among what autodetail reads
+	const char* controlTooltipsDisabled;
 	const char* listSeparator; // joins the items of a spoken list
 	// Terrain overview: how far the level reaches around the player and how
 	// much of it is still unwalked. `docs/terrain-overview.md`
@@ -191,7 +193,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
