@@ -10,9 +10,7 @@
 #include "level_areas.h"
 #include "native_level_areas.h"
 #include "native_ground_items.h"
-#include "native_rooms.h"
 #include "drlg_layout.h"
-#include "room_catalogue.h"
 #include "native_world.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -53,12 +51,6 @@ struct Lifecycle {
 std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Registry        g_registry;
-RoomCatalogue::Registry    g_rooms;
-// The level's logical rooms do not change while the level instance lives, so
-// the native walk happens once per instance rather than on every observation.
-std::vector<NativeRooms::Room> g_roomList;
-int                        g_roomLevel = 0;
-uint64_t                   g_roomSession = 0;
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -125,7 +117,6 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Shrine:       return names[7];
 	case EntityRadar::Category::Interactable: return names[8];
 	case EntityRadar::Category::Item:         return names[9];
-	case EntityRadar::Category::Room:         return names[10];
 	default:                                  return names[8];
 	}
 }
@@ -134,17 +125,6 @@ std::string Format(const char* format, auto... args) {
 	char buffer[256]{};
 	std::snprintf(buffer, sizeof(buffer), format, args...);
 	return buffer;
-}
-
-// Rooms of the level being played. Empty when they cannot be read, which
-// simply leaves the rooms category out rather than failing the catalogue.
-const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
-	if (g_roomLevel != level || g_roomSession != session) {
-		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
-		g_roomLevel = level;
-		g_roomSession = session;
-	}
-	return g_roomList;
 }
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
@@ -239,13 +219,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (Collect(state, entities)) {
 		g_registry.Observe(state.level, entities, grid);
 	}
-	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
-		CurrentRooms(state.level, state.session), world.player);
-	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
-	const Strings::Table& strings = Strings::Current();
-	const auto rooms = RoomCatalogue::Entities(g_rooms.Entries(), strings.surveyRoom, strings.surveyRoomUnexplored);
-	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
-	landmarks = MapSurvey::Survey(world, grid, catalogued);
+	landmarks = MapSurvey::Survey(world, grid, g_registry.Entities());
 	return true;
 }
 
@@ -355,11 +329,10 @@ bool Register(const D2RL::PluginContext* context) {
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
 	g_items = NativeGroundItems::Initialize(context);
-	// The map seed sharpens room memory but nothing depends on it: a failed
-	// check leaves the room rectangles as the only identity, which is still
-	// enough to tell one layout from another.
+	// The level-area reader and the scan's level bearings walk the act's DRLG
+	// structures; a failed check leaves both switched off, nothing else.
 	NativeDrlg::SetAvailable(LayoutCheck::Verify(context, context->exeBase, DrlgLayout::Checks, "rooms",
-		"room memory falls back to the room layout alone"));
+		"level areas and level bearings are off"));
 
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -429,10 +402,6 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	LogAreas(context, state);
 	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
-	// Rooms are marked explored by standing in them, so this has to keep up
-	// with the player rather than wait for the next catalogue question.
-	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
-		CurrentRooms(state.level, state.session), world.player);
 }
 
 void Shutdown() {
