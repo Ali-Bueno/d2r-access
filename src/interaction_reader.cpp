@@ -4,6 +4,7 @@
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
+#include "generated/item_sizes.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
@@ -145,6 +146,21 @@ void Append(std::string& text, const std::string& part) {
 	text += part;
 }
 
+// The cells an item takes up -- "1 column by 3 rows" -- which decide where it
+// can go: the game will not take an item no free block of its shape can hold,
+// however many single cells are free (the user, 2026-09-21, on hearing a short
+// sword named on three cells: "that is important information to have").
+// Empty for an item the tables do not know.
+std::string SizePhrase(uintptr_t item) {
+	if (!item) return {};
+	const auto size = Generated::ItemSizeFor(NativeGroundItems::ItemTableCode(item));
+	if (!size.width || !size.height) return {};
+	const char* format = Strings::Current().itemSize[(size.width > 1 ? 2 : 0) + (size.height > 1 ? 1 : 0)];
+	char phrase[100]{};
+	std::snprintf(phrase, sizeof(phrase), format, size.width, size.height);
+	return phrase;
+}
+
 // The inventory's gold row, named by the game's own widget name.
 constexpr std::string_view GoldButton = "gold_button";
 
@@ -273,6 +289,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			}
 		}
 	}
+	// The item under the cursor, for its size and, while an item is held, its name.
+	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
+		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : 0;
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
 	// Discard the previous focus/cell's last rendered description while the new
@@ -297,9 +316,18 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
 				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
 				split.headline.c_str(), split.detail.c_str());
-			description = std::move(split.headline);
-			if (AutoDetail::Enabled()) Append(description, split.detail);
-			OfferDetail(readout.focusKey, std::move(split.detail));
+			// The cells the item takes up lead its detail, so with autodetail
+			// they come right after the name, ahead of any price.
+			const auto size = SizePhrase(focusItem);
+			if (AutoDetail::Enabled()) {
+				description = std::move(split.name);
+				Append(description, size);
+				Append(description, split.price);
+				Append(description, split.detail);
+			} else description = std::move(split.headline);
+			std::string detail = size;
+			Append(detail, split.detail);
+			OfferDetail(readout.focusKey, std::move(detail));
 		} else {
 			description = UiText::Clean(tooltip.body);
 			Append(description, UiText::Clean(tooltip.footer));
@@ -336,12 +364,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// named from the grid or the slot. Whether an item is held is asked of the
 	// game each time, never remembered.
 	std::string heldOver;
-	if (!renderedDescription && (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied)
+	if (!renderedDescription && focusItem
+		&& (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied)
 		&& InventoryCursor::HoldingItem(context).value_or(false)) {
-		const uintptr_t item = type.kind == UiText::Kind::InventoryGrid
-			? NativeUi::GridItem(focus.widget) : NativeUi::EquipmentItem(focus.widget);
-		if (item) heldOver = NativeGroundItems::ItemBaseName(item);
-		if (item && heldOver.empty()) heldOver = Strings::Current().slotOccupied;
+		heldOver = NativeGroundItems::ItemBaseName(focusItem);
+		if (heldOver.empty()) heldOver = Strings::Current().slotOccupied;
+		const auto size = SizePhrase(focusItem);
+		if (AutoDetail::Enabled()) Append(heldOver, size);
+		OfferDetail(readout.focusKey, size);
 	}
 	if (type.kind == UiText::Kind::InventoryGrid && !heldOver.empty()) {
 		readout.option = heldOver;

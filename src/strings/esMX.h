@@ -37,6 +37,7 @@ inline constexpr Table esMX {
 	.slotOccupied        = "Ocupado",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
+	.itemSize            = {"%d columna por %d fila", "%d columna por %d filas", "%d columnas por %d fila", "%d columnas por %d filas"},
 	.detailNone         = "No hay más detalles",
 	.assignedTo          = "Asignada a %s",
 	.controllerButtons   = {"Pad direccional", "Pad direccional arriba", "Pad direccional abajo", "Pad direccional izquierda", "Pad direccional derecha", "Menú", "Vista", "Stick izquierdo", "Presionar stick izquierdo", "Stick derecho", "Presionar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

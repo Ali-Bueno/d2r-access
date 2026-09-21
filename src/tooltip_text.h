@@ -34,6 +34,8 @@ Body Read(std::string_view body);
 
 struct Description {
 	std::string headline; // the name, and in a shop the price
+	// The name and the price apart, so something can be read between them.
+	std::string name, price;
 	std::string detail;   // base damage or defense, requirements, properties, flavour text
 	bool Empty() const { return headline.empty() && detail.empty(); }
 };

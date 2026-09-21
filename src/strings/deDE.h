@@ -37,6 +37,7 @@ inline constexpr Table deDE {
 	.slotOccupied        = "Belegt",
 	.belt                = "Gürtel",
 	.gridCell            = "Zeile %d, Spalte %d",
+	.itemSize            = {"%d Spalte mal %d Zeile", "%d Spalte mal %d Zeilen", "%d Spalten mal %d Zeile", "%d Spalten mal %d Zeilen"},
 	.detailNone         = "Keine weiteren Angaben",
 	.assignedTo          = "Zugewiesen zu %s",
 	.controllerButtons   = {"Steuerkreuz", "Steuerkreuz oben", "Steuerkreuz unten", "Steuerkreuz links", "Steuerkreuz rechts", "Menü", "Anzeige", "Linker Stick", "Linken Stick drücken", "Rechter Stick", "Rechten Stick drücken", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

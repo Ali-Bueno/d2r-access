@@ -37,6 +37,7 @@ inline constexpr Table jaJP {
 	.slotOccupied        = "アイテムあり",
 	.belt                = "ベルト",
 	.gridCell            = "%d 行 %d 列",
+	.itemSize            = {"幅 %d 列、高さ %d 行", "幅 %d 列、高さ %d 行", "幅 %d 列、高さ %d 行", "幅 %d 列、高さ %d 行"},
 	.detailNone         = "これ以上の情報はありません",
 	.assignedTo          = "%sに割り当て",
 	.controllerButtons   = {"方向パッド", "方向パッド 上", "方向パッド 下", "方向パッド 左", "方向パッド 右", "メニューボタン", "ビューボタン", "左スティック", "左スティック 押し込み", "右スティック", "右スティック 押し込み", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

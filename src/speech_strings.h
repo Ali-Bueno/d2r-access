@@ -58,6 +58,12 @@ struct Table {
 	const char* slotOccupied;
 	const char* belt;
 	const char* gridCell; // one-based row, column
+	// The cells an item takes up, %d = columns then %d = rows, by shape: one by
+	// one, one column by several rows, several columns by one row, several by
+	// several. "Several" is only ever 2 to 4 -- no item is wider than 2 or
+	// taller than 4 (src/generated/item_sizes.h) -- which is what lets the
+	// Polish and Russian tables use a single plural.
+	std::array<const char*, 4> itemSize;
 	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
 	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
@@ -196,7 +202,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
-	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
+	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces);
 }
 

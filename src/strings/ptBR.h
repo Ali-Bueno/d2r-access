@@ -37,6 +37,7 @@ inline constexpr Table ptBR {
 	.slotOccupied        = "Ocupado",
 	.belt                = "Cinto",
 	.gridCell            = "Linha %d, coluna %d",
+	.itemSize            = {"%d coluna por %d linha", "%d coluna por %d linhas", "%d colunas por %d linha", "%d colunas por %d linhas"},
 	.detailNone         = "Sem mais detalhes",
 	.assignedTo          = "Atribuído a %s",
 	.controllerButtons   = {"Direcional", "Direcional para cima", "Direcional para baixo", "Direcional para a esquerda", "Direcional para a direita", "Menu", "Exibir", "Analógico esquerdo", "Pressionar analógico esquerdo", "Analógico direito", "Pressionar analógico direito", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

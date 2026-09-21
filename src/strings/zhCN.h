@@ -37,6 +37,7 @@ inline constexpr Table zhCN {
 	.slotOccupied        = "已占用",
 	.belt                = "腰带",
 	.gridCell            = "第%d行，第%d列",
+	.itemSize            = {"宽%d列，高%d行", "宽%d列，高%d行", "宽%d列，高%d行", "宽%d列，高%d行"},
 	.detailNone         = "没有更多内容",
 	.assignedTo          = "已分配到%s",
 	.controllerButtons   = {"方向键", "方向键上", "方向键下", "方向键左", "方向键右", "菜单键", "视图键", "左摇杆", "按下左摇杆", "右摇杆", "按下右摇杆", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

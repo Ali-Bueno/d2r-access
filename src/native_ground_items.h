@@ -19,6 +19,10 @@ int PlayerGold() noexcept;
 // named -- enough for a belt's potions and scrolls, which have no quality
 // prefix. Empty when the unit is not an item or cannot be read.
 std::string ItemBaseName(uintptr_t unit);
+// The four-byte code in an item unit's items table row -- the one the ground
+// item reader classifies by -- or 0 when the unit is not an item or cannot be
+// read. What src/generated/item_sizes.h is keyed by.
+uint32_t ItemTableCode(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

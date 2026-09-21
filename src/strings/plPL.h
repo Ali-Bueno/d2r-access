@@ -37,6 +37,7 @@ inline constexpr Table plPL {
 	.slotOccupied        = "Zajęte",
 	.belt                = "Pas",
 	.gridCell            = "Wiersz %d, kolumna %d",
+	.itemSize            = {"%d kolumna na %d wiersz", "%d kolumna na %d wiersze", "%d kolumny na %d wiersz", "%d kolumny na %d wiersze"},
 	.detailNone         = "Brak dalszych informacji",
 	.assignedTo          = "Przypisano do: %s",
 	.controllerButtons   = {"Pad kierunkowy", "Pad kierunkowy w górę", "Pad kierunkowy w dół", "Pad kierunkowy w lewo", "Pad kierunkowy w prawo", "Menu", "Widok", "Lewy drążek", "Naciśnij lewy drążek", "Prawy drążek", "Naciśnij prawy drążek", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

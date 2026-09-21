@@ -99,12 +99,13 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 		for (size_t at = 0; at < body.lines.size(); ++at)
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
-	result.headline = body.lines[name];
+	result.name = result.headline = body.lines[name];
 	// A price joins it, wherever it sits. Everything else, the base damage or
 	// defense included, keeps the order the screen drew it in and waits to be
 	// asked for.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (at == name) continue;
+		if (price(body.lines[at])) Append(result.price, body.lines[at]);
 		Append(price(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
 	}
 	return result;

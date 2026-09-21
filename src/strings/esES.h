@@ -37,6 +37,7 @@ inline constexpr Table esES {
 	.slotOccupied        = "Ocupado",
 	.belt                = "Cinturón",
 	.gridCell            = "Fila %d, columna %d",
+	.itemSize            = {"%d columna por %d fila", "%d columna por %d filas", "%d columnas por %d fila", "%d columnas por %d filas"},
 	.detailNone         = "No hay más detalles",
 	.assignedTo          = "Asignada a %s",
 	.controllerButtons   = {"Cruceta", "Cruceta arriba", "Cruceta abajo", "Cruceta izquierda", "Cruceta derecha", "Menú", "Vista", "Stick izquierdo", "Pulsar stick izquierdo", "Stick derecho", "Pulsar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},

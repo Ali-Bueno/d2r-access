@@ -1,5 +1,6 @@
 #include "character_stats.h"
 #include "entity_radar_service.h"
+#include "generated/item_sizes.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
@@ -112,6 +113,9 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
 std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
+uint32_t ItemTableCode(uintptr_t unit) {
+	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
+}
 }
 namespace D2RAccess::InventoryCensus {
 void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
@@ -554,5 +558,29 @@ int main() {
 	gridItem = 77; cell = {4, 0}; selection = 4; Settle();
 	Check(speech.empty(), "with nothing held an occupied cell still waits for the game's own tooltip");
 	gridItem = 0; equipmentItem = 0; equipmentPresence = NativeUi::ItemPresence::Unknown; equipmentLocation = 0;
+	// An item's size, the cells it takes up: on the right stick with autodetail
+	// off, right after the name with it on. Each cell the item covers names it.
+	InteractionReader::Reset(); ClearSpeech(); holdingItem = false; tooltip = {};
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	itemPresence = NativeUi::ItemPresence::Occupied; gridItem = 55; cell = {7, 0}; selection = 7;
+	Tooltip("Daño: 2 a 7\nEspada corta"); Settle();
+	Check(speech == std::vector<std::string>{"Inventario. Espada corta"}, "with autodetail off an item reads its name alone");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"1 columna por 3 filas. Daño: 2 a 7"}, "and the cells it takes up lead its detail");
+	ClearSpeech(); tooltip = {}; cell = {7, 1}; selection = (uint64_t{1} << 32) | 7; Settle();
+	Tooltip("Daño: 2 a 7\nEspada corta"); Settle();
+	Check(speech == std::vector<std::string>{"Espada corta"}, "the next cell the item covers names it again");
+	autoDetail = true; ClearSpeech(); tooltip = {}; cell = {7, 2}; selection = (uint64_t{2} << 32) | 7; Settle();
+	Tooltip("Daño: 2 a 7\nEspada corta\nValor de venta: 71"); Settle();
+	Check(speech == std::vector<std::string>{"Espada corta. 1 columna por 3 filas. Valor de venta: 71. Daño: 2 a 7"},
+		"with autodetail on the size comes right after the name, ahead of the price");
+	ClearSpeech(); tooltip = {}; holdingItem = true; gridItem = 77; cell = {0, 3}; selection = uint64_t{3} << 32; Settle();
+	Check(speech == std::vector<std::string>{"Poción de curación menor. 1 columna por 1 fila"}, "an item under a held one gives its size too");
+	autoDetail = false; ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"1 columna por 1 fila"}, "which is its detail when autodetail is off");
+	ClearSpeech(); holdingItem = false; gridItem = 56; cell = {1, 3}; selection = (uint64_t{3} << 32) | 1;
+	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Up; ClearSpeech();
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
+	gridItem = 0; tooltip = {};
 	Passed();
 }
