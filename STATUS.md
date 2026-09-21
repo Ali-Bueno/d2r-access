@@ -40,7 +40,7 @@ shows the derived doorway width.
 ## Exit review and room hysteresis — 2026-09-20
 
 The ways out are reviewed one at a time, nearest first: an R3 hold (>= 350 ms, `StickChord::RightHoldMs`)
-or Ctrl+V speaks `paso, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a
+or Ctrl+V speaks `abertura, 8 metros, a las 12, recto, 1 de 3` (a room opening) or the exit's own name; a
 short right-stick click or Ctrl+B then guides to it. On maze levels the list is the room's openings plus the exits in it;
 elsewhere, and off-grid, the level's exits. Outdoor boundaries (camp → Blood Moor, no warp unit) now come from the act's
 level areas (`src/native_level_areas.*`, `levelBearings`); upstream's own RoomEx border walk was dropped

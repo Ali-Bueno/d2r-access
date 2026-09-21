@@ -96,7 +96,7 @@ void Spoken() {
 	const auto around = ExitReview::Describe(items[0], 0, 2, Spanish.beaconReachAround, Scan, Spanish);
 	Check(around == "Escalera, 4 pasos, a las 6, rodeando, 1 de 2", "Spanish reads the whole line naturally");
 	const auto silent = ExitReview::Describe(items[1], 1, 2, nullptr, Scan, Spanish);
-	Check(silent == "paso, 8 pasos, a las 12, 2 de 2", "an unproved route leaves the verdict out entirely");
+	Check(silent == "abertura, 8 pasos, a las 12, 2 de 2", "an unproved route leaves the verdict out entirely");
 
 	const auto english = ExitReview::Collect(player, {{{94, 94}, 3}}, {}, English);
 	Check(ExitReview::Describe(english[0], 0, 1, English.beaconReachStraight, Scan, English)
@@ -105,7 +105,7 @@ void Spoken() {
 	// Hour one is grammatically singular in Spanish ("a la 1"), unlike every other hour.
 	const auto hourOne = ExitReview::Collect(Position{100, 100}, {{{99, 96}, 3}}, {}, Spanish);
 	Check(hourOne[0].hour == 1, "the fixture actually lands on hour one");
-	Check(ExitReview::Describe(hourOne[0], 0, 1, nullptr, Scan, Spanish) == "paso, 4 pasos, a la 1, 1 de 1",
+	Check(ExitReview::Describe(hourOne[0], 0, 1, nullptr, Scan, Spanish) == "abertura, 4 pasos, a la 1, 1 de 1",
 		"Spanish hour one reads singular");
 }
 }
