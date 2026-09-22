@@ -14,4 +14,9 @@ void OfferDetail(std::string_view owner, std::string detail);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange = {});
 void Reset();
 std::string Repeat();
+// Whether each item tooltip is written to the log ([item]). Off by default --
+// logged on every poll it filled a session's log to 12 MB (the user,
+// 2026-09-22) -- and once per change when on. Console: access-itemlog on|off.
+void SetItemLogging(bool enabled);
+bool ItemLogging();
 }

@@ -12,6 +12,7 @@
 #include "beacon_service.h"
 #include "entity_radar_service.h"
 #include "input_direction.h"
+#include "interaction_reader.h"
 #include "localization.h"
 #include "modal_reader.h"
 #include "native_widgets.h"
@@ -181,6 +182,25 @@ auto DumpCodeCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* comm
 	return ok ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
 }
 
+// Console: "access-itemlog on|off" writes each item tooltip to the log, once
+// per item. Off by default: it is diagnosis, and logged per poll it once filled
+// a session's log to 12 MB.
+auto ItemLogCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	const char* args = command->args != nullptr ? command->args : "";
+	if (std::strcmp(args, "on") == 0) {
+		D2RAccess::InteractionReader::SetItemLogging(true);
+	} else if (std::strcmp(args, "off") == 0) {
+		D2RAccess::InteractionReader::SetItemLogging(false);
+	} else {
+		return D2RL::ConsoleCommandResult::InvalidArguments;
+	}
+	command->plugin->WriteConsoleMessage(D2RAccess::InteractionReader::ItemLogging() ? "Item tooltip log on" : "Item tooltip log off");
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
 // Console: "access-trace on|off" toggles logging of every UI message.
 auto TraceCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (command == nullptr || command->plugin == nullptr) {
@@ -283,6 +303,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
+	(void)context->RegisterConsoleCommand("access-itemlog", ItemLogCommand, "Log each item tooltip once per item (on|off, off by default).");
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code next to the plugin: (text)|image.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");

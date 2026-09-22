@@ -28,6 +28,7 @@
 #include "tooltip_text.h"
 #include "ui_text.h"
 
+#include <atomic>
 #include <cstdio>
 
 namespace D2RAccess::InteractionReader {
@@ -96,6 +97,10 @@ LineReader g_lineReader;
 // The focused skill's lines, offered as its tooltip renders.
 std::vector<std::string> g_skillLines;
 uintptr_t g_skillLinesWidget = 0;
+
+// Item tooltips in the log: off unless asked for, and each only once.
+std::atomic<bool> g_logItems{false};
+std::string g_itemLogged;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -447,9 +452,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
 			// the headline came from, and whether the renderer styled it.
-			D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
-				body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
-				split.headline.c_str(), split.detail.c_str());
+			if (g_logItems.load(std::memory_order_relaxed)) {
+				const std::string line = std::to_string(body.lines.size()) + " lines, title line "
+					+ (body.Marked() ? std::to_string(body.heading) : std::string("unstyled"))
+					+ " -> \"" + split.headline + "\" | " + split.detail;
+				if (line != g_itemLogged) {
+					g_itemLogged = line;
+					D2RAccess::AsyncLog::InfoF(context, "[item] %s", line.c_str());
+				}
+			}
 			// With autodetail the cells the item takes up come right after the
 			// name, ahead of any price; otherwise they wait for right stick right.
 			if (AutoDetail::Enabled()) {
@@ -664,12 +675,16 @@ void Reset() {
 	g_detailFor.clear();
 	g_aside.clear();
 	g_asideWidget = 0;
+	g_itemLogged.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();
 	NativeTooltips::Reset();
 	ControlHints::Offer({});
 }
+
+void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
+bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }
 
 std::string Repeat() {
 	std::string text = g_reader.Repeat();

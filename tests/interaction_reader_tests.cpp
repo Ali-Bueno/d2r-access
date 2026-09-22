@@ -656,6 +656,7 @@ int main() {
 	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Right; ClearSpeech();
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
 	gridItem = 0; tooltip = {};
+	Check(!InteractionReader::ItemLogging(), "item tooltips are not logged unless asked for");
 	// The tab bar across the top of the menus reads the tab its highlight is on.
 	ClearSpeech(); focus = {20, 95}; widgetType = {"TabBarWidget", UiText::Kind::Tabs}; selection = 6;
 	buttonSnapshot = {95, 95, "UISwitcherTabs", UiText::Surface::Other, {{95, -1, UiText::Kind::Tabs, "UISwitcherTabs", "TabBarWidget", "Inventario"}}};
