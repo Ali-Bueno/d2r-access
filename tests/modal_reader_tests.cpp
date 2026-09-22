@@ -69,5 +69,24 @@ int main() {
 	active = "CharacterStatsPanel";
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2, "the character panel is left to its own reader");
+	for (const auto kind : {Kind::InventoryGrid, Kind::InventorySlot, Kind::InventoryItem}) {
+		ModalReader::Reset(); active = "UncataloguedInventoryPanel"; tree = {};
+		Node(-1, Kind::Other, active);
+		Node(0, kind, "Items");
+		Node(0, Kind::Text, "text_i_left", "I");
+		Node(0, Kind::Text, "gold_amount", "5470");
+		Node(0, Kind::Button, "gold_button", "Drop Gold");
+		Node(0, Kind::Text, "HotkeyLabel0", "\xEE\x80\x83");
+		ModalReader::Tick(nullptr);
+		Check(speech.size() == 2, "a transient focusless inventory never narrates its unrelated labels or actions");
+	}
+	active = "DeleteCharacterModal"; tree = {};
+	Node(-1, Kind::Other, active);
+	Node(0, Kind::Text, "Prompt", "Delete this character?");
+	Node(0, Kind::Legend, "GlyphOnly", "\xEE\x80\x83");
+	Node(0, Kind::Legend, "Confirm", "\xEE\x80\x81 Confirm");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 3 && speech.back().text == "Delete this character?, Confirm",
+		"modal prompts retain their words while controller font glyphs are stripped");
 	Passed();
 }

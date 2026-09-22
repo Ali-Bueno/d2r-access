@@ -22,19 +22,77 @@ That draw function walks a contiguous vector:
 | Single-record renderer | `0x8DA7E0`, `void(record*)` | called after delay/visibility filtering |
 
 Every frame destroys both strings and clears the count after rendering. A UI
-poll can miss the entire lifetime. `native_tooltips.cpp` therefore installs one
-SDK-owned inline hook on the single-record renderer, verifies its first 16
-bytes, copies only a currently rendered primary record, and calls the stock
-trampoline. It does not change the strings or the original draw logic.
+poll can miss the entire lifetime. `native_tooltips.cpp` hooks the single-record
+renderer after verifying its first 16 bytes. The verified panel-draw wrapper
+collects the records actually rendered and publishes them together when drawing
+finishes. It does not change the strings or the game's comparison selection.
 
 The UI thread re-resolves the tooltip panel. The hook checks that the incoming
-record matches its current first entry, bounds the vector, and copies strings
-through guarded memory access. It copies at most every 40 ms, remembers the
-last render time, and expires an unseen description after 180 ms. Controller
+record belongs to the bounded vector and copies strings through guarded memory
+access. Without the panel wrapper, primary-only capture retains its 40 ms copy
+interval. Descriptions expire after 180 ms without rendering. Controller
 focus and its selection are copied alongside the text so an old cell's tooltip
 cannot be attached to a newly selected cell. Copies are protected by a short
 mutex; speech remains on the existing PRISM thread. Gameplay lifecycle,
 `access-text off`, and conversation overlays suspend capture.
+
+## Compared items and menu regressions (2026-09-22)
+
+The panel draw filters comparison records before calling the single-record
+renderer. At `0x880B23..0x880B44`, panel bytes `+0xA39/+0xA38` determine which
+nonzero index is drawn; index zero is always eligible. At `0x880B86..0x880B93`,
+the record's `+0x1C4` flag participates in the delay check. The call is at
+`0x880BC7`, inside the loop advancing by `0x2E8`. These offsets are evidence,
+not new fields read by the plugin: actual renderer callbacks are authoritative.
+Copying the entire vector would expose comparisons the player has not selected.
+
+Successful draw frames publish a primary record plus meaningful subsequent
+bodies. `TooltipText::Read` rejects glyph-only decorators, including the observed
+stash U+E013 record. The reader uses game string `currentEquip` (`ui.json`, ID
+22964) to separate the selected item's full visible description from equipped
+item descriptions, retaining native order. A changed comparison speaks once,
+even with automatic detail disabled. Right-stick up and manual repeat retain it
+while visible; closing comparison removes it without another announcement. Focus/selection,
+conversation and lifecycle guards also apply to comparison text.
+
+The user's unidentified Leather Armor log at 13:48:42 contains defense 17,
+durability 24/24, maximum sockets 2 and required strength 15, with the stock
+unidentified marker. Those are rendered game text; no hidden item-affix query is
+used for item detail or comparison.
+
+The Mercenary-tab spam at 13:48 came from `ModalReader` enumerating the unfocused
+`PlayerInventoryExpansionLayout`: weapon-set labels, gold, Drop Gold and glyphs.
+The shared inventory-widget archetype now excludes this whole-panel modal path;
+actual modal prompts also pass through normal text cleaning. Hireling stat rows
+reuse the character reader (`HPStat` and nested `DamageStat` come from
+`Controller/HirelingInventoryPanelHD.json`). The optional stat cursor only claims
+the right stick when no widget has focus, preserving equipment detail gestures.
+The log contains no focused hireling equipment slot; only player equipment was
+visited, so a live check with an available hireling remains necessary.
+
+Character selection's recorded native chain was `ListItem0 < Container < View <
+CharacterList < Background < CharacterSelectPanel`. Numeric runtime clones now
+resolve to the authored `CharacterTemplate` through that ancestry, carrying the
+actual row address. Names and `Level&Class` come from that row; deduplication uses
+its address and current text, so movement and recycled rows update speech.
+
+Live keyboard Down/Up revealed that native focus can remain on `ListItem0` even
+as character selection changes. The authoritative `CharacterList/View/Selection`
+image moves: Joline selected gave local bounds `(0,184,612,184)`, matching
+`ListItem1`; Up at 14:15:02 moved it to `(0,0,612,184)`, matching yarkey's
+`ListItem0`. Both rows and the selector stayed visible. The reader therefore
+matches that selector against the actual Container children, normalizing row
+coordinates by the Container offset. It requires one exact, visible match and
+otherwise retains native focus. Widget local rect `+0x70` and the bounded child
+vector use the existing guarded native layout; no character-count guess or
+input-direction inference is involved.
+
+The installed build's live check then announced `joline, Level 2 Sorceress` at
+14:20:32.805 after Down (the screenshot showed Joline selected), and
+`yarkey, Level 9 Barbarian` on returning with Up. This verifies the live selection
+and speech-dispatch path with keyboard input; controller listening, comparison
+audio and hireling equipment remain user checks. The final deployed DLL matches
+the build: SHA-256 `C0FAFD80447EE0FCE9F7BA148726CB674771D442DDC719736884C8535A696C3D`.
 
 ## Inventory and target archetypes
 
@@ -272,8 +330,9 @@ bytes are in `DrawTooltipBytes` in `native_tooltips.cpp`.
 ## Validation
 
 `native-tooltips` uses synthetic native panel/string records and the SDK hook
-registration interface. It covers primary-only capture, full text, focus/cell
-association, expiry, reset, invalid memory/counts and rejected installation.
+registration interface. It covers coherent comparison frames, primary-only
+fallback, full text, focus/cell association, expiry, reset, invalid memory/counts
+and rejected installation.
 `interaction-reader` covers target return, duplicate suppression, overlays,
 storage tabs, coordinates, identical items, stale text rejection and equipment.
 Grid-query tests cover occupied/empty/unknown, invalid cells, hidden widgets and

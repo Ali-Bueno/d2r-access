@@ -3,11 +3,16 @@
 #include <D2RLPlugin/api.h>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace D2RAccess::NativeTooltips {
 using DrawPanelFn = void(*)(uintptr_t);
+struct Record {
+	std::string body, footer;
+};
 struct Snapshot {
 	std::string body, footer;
+	std::vector<Record> comparisons;
 	uintptr_t panel = 0, widget = 0;
 	uint64_t selection = UINT64_MAX;
 	uint64_t seenAt = 0;

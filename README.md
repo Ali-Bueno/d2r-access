@@ -16,7 +16,9 @@ blind players using a controller; keyboard and mouse are planned.
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
-- Native text in dropdown rows, character rows and confirmation prompts.
+- Native text in dropdown rows, character rows and confirmation prompts. Character
+  selection reads the name and level/class from the selected runtime row, even
+  when the game's focus remains on the first row.
 - Everything is spoken in the game's text language: the plugin's own phrases are translated into all thirteen D2R locales and follow the language selected in the game's options (changing it in Options switches the plugin too).
 
 Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
@@ -40,8 +42,19 @@ announce one name and its quality, such as `Crimson Spear. magic`, or
 full tooltip name. The stock 400 ms controller delay is removed while the inventory
 reader is active; ordinary items still read directly from the highlighted item.
 Prices and properties are available with right-stick up, or automatically with
-Ctrl+D. Empty grid cells retain coordinate feedback. See
+Ctrl+D. Activating the game's **Compare** action reads the selected item's full
+visible description followed by **Currently Equipped** and the displayed equipment
+statistics. Right-stick up repeats the comparison while it is visible; closing
+the comparison restores ordinary item detail. Unidentified items expose only the text
+the game renders: basic damage/defense and requirements, with magic properties
+remaining hidden until identification. Empty grid cells retain coordinate feedback. See
 [native tooltip evidence](docs/native-tooltips.md).
+
+The mercenary panel uses the shared stat-row reader. When the controller leaves
+that panel without a focused widget, the right stick reads its visible statistics
+one row at a time, as on the character panel. Equipment focus retains item detail.
+Focusless inventory transitions no longer read every label, gold amount or
+controller-font symbol as a modal message.
 
 Existing NPC menu rows read
 without a population delay; inventory coordinates settle for one poll and
@@ -278,10 +291,10 @@ See [life, mana and broken equipment](docs/vitals.md).
   children, class ancestry and runtime strings. It polls on the UI thread after the
   local player is ready; all speech stays on the dedicated PRISM thread. Details and
   verified build checks: [native UI evidence](docs/native-ui.md).
-- World labels and item descriptions use one verified native tooltip render
-  hook. It copies the primary displayed text before the game frees it each
-  frame, then preserves the stock draw call. It requires the supported game
-  build and adds no DLL dependencies. A separate native ground-item reader
+- World labels and item descriptions use verified native tooltip render hooks.
+  They copy the primary and displayed comparison text before the game frees it
+  each frame, while preserving the stock comparison selection. They require the
+  supported game build and add no DLL dependencies. A separate native ground-item reader
   supplies nearby loot snapshots to proximity speech and spatial sound services.
 
 ## Requirements

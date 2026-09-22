@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Menu and item-comparison fixes — 2026-09-22
+
+Built and installed; **61/61 CTest suites pass**. Character selection
+reads the selected runtime row, even when native focus stays on the first.
+Focusless inventories no longer narrate all labels
+and controller glyphs. Mercenary stat rows share the character-stat reader.
+Comparison capture follows the records the game actually draws; activating it
+reads selected and equipped item statistics, with right-stick-up repeat.
+Live startup loaded both verified tooltip hooks. Keyboard selection now announces
+Joline after yarkey (14:20:32 log), matching the on-screen selection; controller
+listening is still pending.
+**Next step:** controller listening on these three paths, including mercenary
+equipment with an available hireling. Evidence: `docs/native-tooltips.md`.
+
 ## Concise item announcements — 2026-09-22
 
 Items use one name plus quality (`Crimson Spear. magic`) or unidentified status
@@ -9,7 +23,8 @@ Items use one name plus quality (`Crimson Spear. magic`) or unidentified status
 properties remain in detail. User reported the stock 400 ms wait was noticeably sluggish;
 it is now bypassed during active inventory reads. Built and installed; **61/61 suites pass**.
 Live startup confirmed the verified delay hook loads; clean exit succeeded.
-**Next step:** controller/NVDA listening in inventory and shops; remaining audible latency is unmeasured.
+The user confirmed on 2026-09-22 that the faster reading works very well.
+**Next step:** preserve this responsiveness while fixing menu and comparison coverage.
 `docs/native-tooltips.md`.
 
 ## Directional wall sliding — 2026-09-22
@@ -560,7 +575,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Controller focus tracking (front end) | wip — return-to-menu fix awaits live check | Native focused object + full parent path resolves catalog controls first; rectangle coverage remains fallback. Fixes silent ribbon actions after gameplay. Value-control subclasses retain their reader. `docs/controller-navigation.md` |
 | Control values | done | Sliders (runtime `Indicator`), toggles/carousels (Settings.json baseline + input direction; text language locale order), dropdowns (popup rows spoken from native slot text; picked index tracked) |
 | Dropdown popups / scrolling lists | done | Popup slots `Items/ListItemN/TextBox` read natively (resolutions spoken "W por H"); scroll refresh only near the indicator after a settled scroll |
-| Main menu / character select | done | Character rows from native `Name` + `Level&Class` (save-file fallback), legend "A: Jugar, X: Borrar", delete modal prompt read natively; version dropdown states Clásico/Expansión/Reign of the Warlock |
+| Main menu / character select | selection fix installed 2026-09-22; listening pending | Native selector bounds resolve the selected runtime row when focus stays on the first; `Name` + `Level&Class` determine speech. |
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
 | Performance | done — improvement confirmed by user | Scoped native reads and immediate capture on selection change installed; user reports improvement. `docs/inventory-npc-followup.md` |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
@@ -580,11 +595,11 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | wip — sight gate built 2026-09-18, live check pending | Shared primary tooltip capture plus visible target-name HUD, now dropped when every entity of that name within reach is behind a wall. `[target]` in `radar.toml`. `docs/native-tooltips.md`, `docs/target-sight.md` |
 | Container loops | built 2026-09-18, live check pending | Chests/caskets/urns/barrels/corpses through the item mixer; opening one silences it. Rows from `objects.txt` `OperateFn`, tripwire checked by `chests-dump`. Ctrl+K, `[chests]` in `radar.toml`. `docs/ground-items.md` |
-| Character panel (attributes, life, resistances) | built and installed 2026-09-17 - live check pending | Every `<name>Title` row reads its label and value through its focusable `Tooltip` child; header (panel, character, class, level) spoken once on entry. Mini-menu opener buttons named from the game's `minipanel*` keys via the generator. `character-stats` suite. `docs/character-panel.md` |
+| Character and mercenary statistics | mercenary extension installed 2026-09-22; listening pending | Shared title/value rows; mercenary no-focus stick cursor yields to real equipment focus. `character-stats` suite; `docs/character-panel.md`. |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
-| Item readout | built and installed 2026-09-22 — listening pending | One full name plus quality or unidentified status; controller tooltip delay bypassed. Prices/properties on demand. 61/61 suites pass; hook load verified live. `docs/native-tooltips.md` |
+| Item readout and comparison | concise reading/speed confirmed; comparison installed 2026-09-22 | Full visible selected/equipped stats on Compare; repeat while displayed; stale/glyph-only records excluded. 61/61 suites pass. `docs/native-tooltips.md` |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
 | Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |
@@ -650,7 +665,7 @@ Full derivation: `docs/native-ui.md` (existing live Ghidra program + prior runti
 - **Actual controller focus**: PanelManager `+0xD0` → focused panel `+0x188`, focused widget `+0x190`; source `0x846020`, `0x868230`, `0x876CA0`. This is separate from the ECS/game-world focus research above.
 - **Button label**: embedded TextBoxWidget `+0x818`, displayed text `+0x8A0`; stock modal code `0x8496CA–0x8496D6` calls SetText on it. Used by the new in-game native reader; front-end modal-label integration remains unchanged.
 - Extended traversal requires the recorded FindChild/SetText RVAs and verified child-vector machine code. New builds fail closed. The tree reader needs no hooks; transient target/item descriptions use one verified draw hook, without additional DLLs or gameplay changes.
-- **Primary tooltip**: `TooltipsPanel +0x168/+0x170` is a contiguous vector, stride `0x2E8`, body/footer strings `+0/+0x28`. Draw `0x880550` destroys/clears it every frame; single-record draw `0x8DA7E0` is hooked after byte verification. Live record zero was `Tu alijo personal`; record one only U+E013. `docs/native-tooltips.md`.
+- **Tooltip frames**: `TooltipsPanel +0x168/+0x170` is a contiguous vector, stride `0x2E8`, body/footer `+0/+0x28`. Verified panel draw `0x880550` brackets actual `0x8DA7E0` callbacks, publishing primary + visible comparison records together. Glyph-only entries are excluded. `docs/native-tooltips.md`.
 - **Inventory selection**: controller x/y `+0x544/+0x548` (`0x2A89C0`); grid width/height `+0x628/+0x62C` (`0x2C5FA0`); TabBar selected index `+0x16C4` (`0x878D30`), runtime `TextN` label children.
 - **Icon button help**: FocusableWidget registration `0x875CB0`, live reflection records `0x2535D90`/`0x2535E20`: tooltipString `+0x88`, buttonLegendString `+0x310`. Both contained `Soltar oro` on live gold_button while its embedded caption was empty. Applied only to known button classes; toggles retain the value reader.
 - **Equipment location**: InventorySlotWidget registration `0x2CA5F0`, live record `0x236C530`: int32 `location +0x5D8`. Ten live slots match stock layout values 1–10 (head, neck, torso, right/left weapon, right/left ring, belt, feet, gloves). Full mapping in `docs/native-tooltips.md`.
@@ -705,6 +720,10 @@ match the decrypted executable and live runtime. Full table/layout provenance,
 localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
+
+First validate the 2026-09-22 menu fixes: move between existing characters, read
+mercenary statistics/equipment with an available hireling, and toggle/cycle item
+comparison. The user has confirmed the concise item reading and reduced delay.
 
 Live-check the 2026-09-17 changes, in this order:
 

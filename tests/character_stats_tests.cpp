@@ -107,6 +107,7 @@ uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "minipanelchar") return "Personaje";
+	if (key == "MiniPanelHireinv") return "Mercenario";
 	if (key == "strchrlvl") return "Nivel";
 	if (key == "strchrexp") return "Experiencia";
 	return {};
@@ -261,5 +262,55 @@ int main() {
 	Check(!CharacterStatsReader::Tick(nullptr, {}) && pending == Push::Down,
 		"and a panel that is not showing leaves the stick alone, push and all");
 	panelVisible = true;
+
+	// The hireling panel reuses the same title/value row archetype. Its life
+	// value is HPStat, and the controller can leave the panel with no focused
+	// widget, so its stats remain available through the same stick reader.
+	widgets.clear();
+	order.clear();
+	widgets[Panel] = {"HirelingInventoryPanel", "", 0};
+	Add(2, "CharacterName", "Emilio");
+	Add(3, "HireTypeText", "Nivel 12 Lancero");
+	Add(10, "HPTitle", "Vida");
+	Add(11, "HPStat", "93");
+	Add(20, "StrengthTitle", "Fuerza");
+	Add(21, "StrengthStat", "41");
+	Add(30, "DamageTitle", "Daño");
+	Add(31, "Damage");
+	Add(32, "DamageStat", "9 a 17", 31);
+	Check(CharacterStats::HandlesFocus(On(10), {}), "a hireling stat title uses the shared row reader");
+	const auto hirelingLife = CharacterStats::Read(On(10), {});
+	Check(hirelingLife.option == "Vida. 93", "hireling life uses the value name from its layout");
+	Check(hirelingLife.body == "Mercenario. Emilio. Nivel 12 Lancero",
+		"a hireling stat carries the mercenary identity and type");
+	const auto hirelingLines = CharacterStats::Lines(Panel);
+	Check(hirelingLines == std::vector<std::string>{"Emilio", "Nivel 12 Lancero", "Vida. 93", "Fuerza. 41", "Daño. 9 a 17"},
+		"the hireling's visible stats are read one row at a time in layout order");
+	CharacterStatsReader::Reset();
+	speech.clear();
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Emilio",
+		"the hireling's observed no-focus controller state still exposes its stat cursor");
+	pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Daño. 9 a 17",
+		"the hireling stat cursor reaches the final visible row");
+	pending = Push::Down;
+	Check(!CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Down,
+		"a focused hireling widget keeps normal controller navigation and item-detail gestures");
+	Add(100, "PlayerInventoryExpansionLayout", "", 0);
+	Add(101, "grid", "", 100);
+	pending = Push::Down;
+	Check(!CharacterStatsReader::Tick(nullptr, {100, 101}) && pending == Push::Down,
+		"focus in another visible panel is never stolen by the hireling fallback");
+
+	// Moving directly to another supported panel resets both the row cursor and
+	// the one-time name announcement, even while the previous panel still exists.
+	Add(110, "CharacterStatsPanel", "", 0);
+	Add(111, "CharacterName", "Kara", 110);
+	Add(112, "StrengthTitle", "Fuerza", 110);
+	speech.clear();
+	pending = Push::None;
+	Check(!CharacterStatsReader::Tick(nullptr, {110, 112}) && speech == std::vector<std::string>{"Kara"},
+		"changing stats-panel instances announces the new identity once");
 	Passed();
 }

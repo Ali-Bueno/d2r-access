@@ -12,11 +12,17 @@
 
 namespace D2RAccess::CharacterStatsReader {
 namespace {
-constexpr std::string_view Panel = "CharacterStatsPanel";
+constexpr std::string_view CharacterPanel = "CharacterStatsPanel";
+constexpr std::string_view HirelingPanel = "HirelingInventoryPanel";
 
 uintptr_t g_panel = 0; // the panel the cursor belongs to
 int g_cursor = -1;
-bool g_named = false;  // the character's name has been said for this opening
+bool g_named = false;  // the subject's name has been said for this opening
+
+uintptr_t VisiblePanel(std::string_view name) {
+	const auto panel = NativeWidgets::FindPanel(name);
+	return panel && NativeUi::Visible(panel) ? panel : 0;
+}
 }
 
 int Advance(int cursor, InputDirection::StickPush push, int count) {
@@ -37,10 +43,19 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	// widget either. Waiting for focus meant the stick fell through to the
 	// entity scan for the whole session. The panel being open and visible is
 	// what says the player is on it.
-	uintptr_t panel = focus.panel && NativeWidgets::ReadName(focus.panel) == Panel
-		? focus.panel : NativeWidgets::FindPanel(Panel);
+	const auto focusedPanelName = NativeWidgets::ReadName(focus.panel);
+	uintptr_t panel = 0;
+	if (focusedPanelName == CharacterPanel || focusedPanelName == HirelingPanel) panel = focus.panel;
+	else if (!focus.widget) {
+		panel = VisiblePanel(CharacterPanel);
+		if (!panel) panel = VisiblePanel(HirelingPanel);
+	}
 	if (!panel || !NativeUi::Visible(panel)) { Reset(); return false; }
-	if (panel != g_panel) { g_panel = panel; g_cursor = -1; }
+	// A focused hireling equipment slot keeps the stick's normal item-detail
+	// and navigation behavior. The stat cursor is for the observed no-focus
+	// controller state of this panel.
+	if (NativeWidgets::ReadName(panel) == HirelingPanel && focus.panel == panel && focus.widget) return false;
+	if (panel != g_panel) { g_panel = panel; g_cursor = -1; g_named = false; }
 	// The window announcer has already said the panel's title; the name
 	// queues behind it. It is read until the game has rendered it -- MEASURED
 	// 2026-09-21, the first opening of a session shows the labels a moment
@@ -68,7 +83,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	return true;
 }
 
-bool Owns(std::string_view panel) { return panel == Panel; }
+bool Owns(std::string_view panel) { return panel == CharacterPanel || panel == HirelingPanel; }
 
 void Reset() { g_panel = 0; g_cursor = -1; g_named = false; }
 

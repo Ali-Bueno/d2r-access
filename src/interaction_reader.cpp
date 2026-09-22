@@ -56,6 +56,7 @@ std::vector<KnownSlot> g_slotLocations;
 // the highlight is on now, and read on demand with a push up on the right
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
+std::string g_comparison, g_comparisonFor;
 
 // The cell whose item was named, and the cell and headline its tooltip was
 // logged under, so [item] is written once per item instead of on every UI poll
@@ -133,6 +134,30 @@ void Append(std::string& text, const std::string& part) {
 	text += part;
 }
 
+// Comparison records contain the equipped items the game actually drew, in
+// its own order (including its selected weapon/ring when cycling comparisons).
+std::string ComparisonText(const NativeTooltips::Snapshot& tooltip,
+	const TooltipText::Description& selected) {
+	if (tooltip.comparisons.empty()) return {};
+	std::string equipped;
+	const auto heading = UiText::Clean(Localization::Text("currentEquip"));
+	for (const auto& record : tooltip.comparisons) {
+		const auto body = TooltipText::Read(record.body);
+		std::string text;
+		for (const auto& line : body.lines) if (line != heading) Append(text, line);
+		if (text.empty()) continue; // decorative controller glyphs are not items
+		Append(equipped, heading);
+		Append(equipped, text);
+		for (const auto& line : TooltipText::Read(record.footer).lines)
+			if (line != heading) Append(equipped, line);
+	}
+	if (equipped.empty()) return {};
+	std::string result = selected.headline;
+	Append(result, selected.detail);
+	Append(result, equipped);
+	return result;
+}
+
 // Keep only the tooltip text that has not already been announced.
 struct TooltipMerge { std::string addition; bool corrects = false; };
 TooltipMerge MergeTooltip(const std::string& name, std::string description) {
@@ -153,7 +178,8 @@ bool IsInventory(UiText::Kind kind) {
 
 std::string Title(uintptr_t panel) {
 	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
-	const auto localized = Localization::Text(stash ? "stash" : "minipanelinv");
+	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
+	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
 	return localized.empty() ? (stash ? Strings::Current().stash : Strings::Current().inventory) : localized;
 }
 
@@ -235,7 +261,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// is lost by that order -- the character panel holds neither items nor
 	// skills, so there is never a detail for up to read there.
 	if (CharacterStatsReader::Tick(context, focus)) return true;
-	if (ReadDetail(context, focus)) return true;
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
@@ -305,7 +330,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	bool renderedDescription = false, nameInOption = false;
 	// What the tooltip adds to a name already spoken, kept so only that part is
 	// announced when it arrives behind the name.
-	std::string tooltipAddition;
+	std::string tooltipAddition, comparison;
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -326,6 +351,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				else Append(split.headline, quality);
 			}
 			Append(split.detail, UiText::Clean(tooltip.footer));
+			comparison = ComparisonText(tooltip, split);
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
 			// the headline came from, and whether the renderer styled it.
@@ -337,7 +363,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			}
 			description = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(description, split.detail);
-			OfferDetail(readout.focusKey, std::move(split.detail));
+			// An empty detail replaces the old one too, including when comparison
+			// closes on an item with no further properties.
+			g_detail = comparison.empty() ? std::move(split.detail) : comparison;
 		} else {
 			description = UiText::Clean(tooltip.body);
 			Append(description, UiText::Clean(tooltip.footer));
@@ -363,6 +391,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	const bool comparisonChanged = !comparison.empty()
+		&& (comparison != g_comparison || readout.focusKey != g_comparisonFor);
+	if (comparison.empty() && !g_comparison.empty() && !renderedDescription
+		&& g_detailFor == g_comparisonFor) g_detail.clear();
+	g_comparison = std::move(comparison);
+	g_comparisonFor = g_comparison.empty() ? std::string{} : readout.focusKey;
+	// Refresh the detail before consuming the gesture so comparison release or
+	// a focus change cannot repeat a description belonging to the previous state.
+	if (ReadDetail(context, focus)) return true;
 	if (!nameInOption) Append(readout.option, itemName);
 	// A named cell says what is in it, not where it is.
 	if (type.kind == UiText::Kind::InventoryGrid && !readout.option.empty()) readout.coordinates.clear();
@@ -457,6 +494,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
+	if (comparisonChanged) announcement.text = g_comparison;
 	// A control hint follows the thing it acts on and never leads. While the
 	// focus has not been described yet the hint waits for the readout that
 	// will describe it -- that is how "B: Close Menu" arrived before "Belt.
@@ -473,7 +511,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// The tooltip arriving 400 ms behind a name already spoken for this focus is
 	// the tail of that utterance, or a correction to it. Either way only what it
 	// adds is said, and it queues instead of cutting the name off mid-word.
-	if (!itemName.empty() && renderedDescription && describedHere) {
+	if (!comparisonChanged && !itemName.empty() && renderedDescription && describedHere) {
 		interrupt = false;
 		if (describedNow && !tooltipAddition.empty()) announcement.text = tooltipAddition;
 	}
@@ -514,6 +552,8 @@ void Reset() {
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();
+	g_comparison.clear();
+	g_comparisonFor.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();
@@ -522,7 +562,7 @@ void Reset() {
 
 std::string Repeat() {
 	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
-	Append(text, g_reader.Repeat());
+	Append(text, g_comparison.empty() ? g_reader.Repeat() : g_comparison);
 	Append(text, g_help);
 	return text;
 }

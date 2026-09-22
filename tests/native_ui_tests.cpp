@@ -108,6 +108,15 @@ int main() {
 	focusManager.Put(0x190, row.Address());
 	const auto focus = NativeUi::CurrentFocus();
 	Check(focus.panel == panel.Address() && focus.widget == row.Address(), "controller focus resolves panel and actual row");
+	row.Put<NativeUi::Rect>(0x70, {7, 11, 120, 40});
+	Check(NativeUi::LocalRect(row.Address()) == std::optional<NativeUi::Rect>{{7, 11, 120, 40}}, "native widget rect uses the reflected local bounds");
+	Check(NativeUi::Children(list.Address()) == std::vector<uintptr_t>{row.Address()}, "direct children use the bounded native vector");
+	row.Put<NativeUi::Rect>(0x70, {7, 11, -1, 40});
+	Check(!NativeUi::LocalRect(row.Address()), "a negative native rect fails closed");
+	Check(!NativeUi::LocalRect(1), "an unreadable native rect fails closed");
+	row.Put<NativeUi::Rect>(0x70, {7, 11, 120, 40}); supported = false;
+	Check(!NativeUi::LocalRect(row.Address()) && NativeUi::Children(list.Address()).empty(), "native layout access is disabled on an unsupported build");
+	supported = true;
 	Check(NativeUi::Panels() == std::vector<uintptr_t>{panel.Address()}, "manager children enumerate panels");
 	auto snapshot = NativeUi::Snapshot(panel.Address(), focus.widget);
 	Check(snapshot.surface == UiText::Surface::Menu, "runtime class selects menu archetype");

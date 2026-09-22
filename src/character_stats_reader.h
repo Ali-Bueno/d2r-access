@@ -5,7 +5,9 @@
 
 #include <D2RLPlugin/api.h>
 
-// The character panel's statistics, on the right stick. The panel shows
+// Character and hireling panel statistics, on the right stick. The hireling
+// reader is active during its observed no-focus controller state and yields
+// whenever the game reports a real focused widget. The character panel shows
 // sixteen rows at once and the controller only ever stands on one of them, so
 // reading it row by row means walking the focus across the whole screen. The
 // stick walks the rows instead, without moving the game's own focus:

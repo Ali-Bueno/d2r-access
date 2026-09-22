@@ -9,7 +9,8 @@
 
 namespace {
 std::array<unsigned char, 0xB00> panel{};
-std::array<unsigned char, 0x5D0> records{};
+constexpr size_t RecordSize = 0x2E8;
+std::array<unsigned char, RecordSize * 4> records{};
 bool supported = true, installAllowed = true;
 int draws = 0, installs = 0;
 void (*hook)(uintptr_t) = nullptr;
@@ -23,10 +24,30 @@ void StringAt(size_t offset, const std::string& text) {
 	Put<uint64_t>(records.data(), offset + 16, (uint64_t{1} << 63) | text.size());
 }
 void Draw(uintptr_t) { ++draws; }
+void DrawPrimary(uintptr_t) { hook(reinterpret_cast<uintptr_t>(records.data())); }
+void DrawPrimaryAndTwoComparisons(uintptr_t) {
+	hook(reinterpret_cast<uintptr_t>(records.data()));
+	hook(reinterpret_cast<uintptr_t>(records.data() + RecordSize));
+	hook(reinterpret_cast<uintptr_t>(records.data() + RecordSize * 2));
+}
+void DrawPrimaryAndThird(uintptr_t) {
+	hook(reinterpret_cast<uintptr_t>(records.data()));
+	hook(reinterpret_cast<uintptr_t>(records.data() + RecordSize * 2));
+}
+void FaultAfterPrimary(uintptr_t) {
+	hook(reinterpret_cast<uintptr_t>(records.data()));
+	RaiseException(0xE0421002, 0, 0, nullptr);
+}
 void FaultingDraw(uintptr_t) { ++draws; RaiseException(0xE0421001, 0, 0, nullptr); }
 bool DrawFaultPropagates(uintptr_t value) {
 	__try {
 		D2RAccess::NativeTooltips::DrawPanel(value, FaultingDraw);
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return true; }
+	return false;
+}
+bool PartialFrameFaultPropagates(uintptr_t value) {
+	__try {
+		D2RAccess::NativeTooltips::DrawPanel(value, FaultAfterPrimary);
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return true; }
 	return false;
 }
@@ -89,7 +110,63 @@ int main() {
 	focus.widget = 201; text = "Casco"; StringAt(0, text); hook(first);
 	snapshot = NativeTooltips::Latest(GetTickCount64());
 	Check(snapshot.body == "Casco" && snapshot.widget == 201, "equipment focus changes bypass the previous slot's capture throttle");
+	// The panel wrapper defines a frame: only record callbacks the stock draw
+	// actually makes belong to the published comparison set.
+	focus.widget = 200; selection = 7;
+	Put<uint64_t>(panel.data(), 0x170, 3);
+	std::string primary = "Daño: 3-6\nHacha de mano", comparedOne = "Daño: 2-5\nHacha equipada";
+	std::string comparedTwo = "Daño: 1-4\nHacha secundaria", empty;
+	StringAt(0, primary); StringAt(0x28, empty);
+	StringAt(RecordSize, comparedOne); StringAt(RecordSize + 0x28, empty);
+	StringAt(RecordSize * 2, comparedTwo); StringAt(RecordSize * 2 + 0x28, empty);
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndTwoComparisons);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.body == primary && snapshot.comparisons.size() == 2
+		&& snapshot.comparisons[0].body == comparedOne && snapshot.comparisons[1].body == comparedTwo,
+		"a completed frame publishes its primary and drawn comparisons in record order");
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.comparisons.size() == 1 && snapshot.comparisons[0].body == comparedTwo,
+		"a comparison skipped by the stock cycle filter is absent from the coherent frame");
+	const auto coherent = snapshot;
+	std::string partial = "This partial frame must not publish";
+	StringAt(0, partial);
+	Check(PartialFrameFaultPropagates(root), "an original fault still propagates after a partial capture");
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.body == coherent.body && snapshot.comparisons.size() == coherent.comparisons.size(),
+		"a faulting draw discards its partial staged frame");
+	StringAt(0, primary);
+	std::string glyph = "\xEE\x80\x93";
+	StringAt(RecordSize * 2, glyph);
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	Check(NativeTooltips::Latest(GetTickCount64()).comparisons.empty(),
+		"a drawn controller-glyph decorator is not a comparison");
+	StringAt(RecordSize * 2, comparedTwo);
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	NativeTooltips::DrawPanel(root, Draw);
+	Check(NativeTooltips::Latest(GetTickCount64()).comparisons.empty(),
+		"a successful frame with no rendered records clears the prior comparison set");
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	Put<uintptr_t>(records.data(), 0, 1);
+	NativeTooltips::DrawPanel(root, DrawPrimary);
+	Check(NativeTooltips::Latest(GetTickCount64()).comparisons.empty(),
+		"an unreadable primary in a completed frame cannot leave stale comparisons");
+	StringAt(0, primary);
+	NativeTooltips::DrawPanel(root, DrawPrimary);
+	Check(NativeTooltips::Latest(GetTickCount64()).comparisons.empty(),
+		"the next primary-only frame clears comparisons when Compare is released");
+	StringAt(RecordSize * 2, comparedTwo);
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	focus.widget = 201; selection = 8;
+	NativeTooltips::DrawPanel(root, DrawPrimary);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.widget == 201 && snapshot.selection == 8 && snapshot.comparisons.empty(),
+		"a new focus publishes only records drawn with its frame metadata");
+	focus.widget = 200; selection = 9;
+	NativeTooltips::DrawPanel(root, DrawPrimaryAndThird);
+	Check(!NativeTooltips::Latest(GetTickCount64()).comparisons.empty(), "comparison fixture is active before reset");
 	NativeTooltips::Reset(); NativeTooltips::Track(root);
+	Check(NativeTooltips::Latest(GetTickCount64()).comparisons.empty(), "track reset clears comparison data and staging");
 	Put<uint64_t>(panel.data(), 0x170, 99999); hook(first);
 	Check(NativeTooltips::Latest(GetTickCount64()).body.empty(), "corrupt tooltip vector is rejected");
 	Put<uint64_t>(panel.data(), 0x170, 0); hook(first);

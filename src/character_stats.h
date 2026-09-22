@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-// The character panel (CharacterStatsPanel): its attribute, defence, life,
-// mana, stamina and resistance rows. The four attributes that can be raised
+// Character and hireling stat panels: their attribute, defence, life,
+// mana, stamina and resistance rows. The four character attributes that can be raised
 // are focusable buttons and belong to NativeProgression; every other row is a
 // plain label whose controller layout adds a focusable "Tooltip" child, so the
 // game stops on it and nothing spoke it until now.

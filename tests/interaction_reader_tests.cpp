@@ -106,6 +106,7 @@ uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30
 std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
+	if (id == 50) return "HirelingInventoryPanel";
 	if (id == 26 || id == 29) return "gold_button";
 	return "widget" + std::to_string(id);
 }
@@ -161,6 +162,8 @@ std::string Text(std::string_view key) {
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::PriceKey) return "Coste: %d";
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
+	if (key == "currentEquip") return "Equipo actual";
+	if (key == "MiniPanelHireinv") return "Mercenario";
 	if (key == TooltipText::UnidentifiedKey)
 		return Strings::Selected() == Strings::Language::enUS ? "Unidentified" : "Sin identificar";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
@@ -334,6 +337,9 @@ int main() {
 	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
 	// An options row offers its explanation to the same gesture instead of
 	// speaking it on arrival; a row with nothing to explain offers nothing.
+	const auto itemFocus = focus;
+	const auto itemType = widgetType;
+	focus = {60, 61}; widgetType = {"CheckBoxWidget", UiText::Kind::Other};
 	ClearSpeech(); InteractionReader::OfferDetail("GameplayOptionsPanel/ShowClock", "Shows a clock on the HUD.");
 	pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Shows a clock on the HUD."},
@@ -342,6 +348,7 @@ int main() {
 	pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone},
 		"and moving to a row with no explanation drops the previous row's");
+	focus = itemFocus; widgetType = itemType;
 
 	// A vendor writes its price where an inventory tooltip has the item name,
 	// so the first line was being read as the item: MEASURED 2026-09-20,
@@ -582,5 +589,55 @@ int main() {
 	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Tick();
 	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand) && speech[0].ends_with("Fila 1, columna 2"), "placement mode and its newly selected empty cell are spoken together");
 	ClearSpeech(); Tick(); Check(speech.empty(), "a delayed coordinate read cannot immediately interrupt placement orientation");
+	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear();
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	cell = {0, 0}; selection = 0; holdingItem = false; itemUnit = 0;
+	itemPresence = NativeUi::ItemPresence::Occupied; autoDetail = false;
+	Tooltip("Daño: 6-13\nLanza carmesí"); Tick(); ClearSpeech();
+	tooltip.comparisons = {{"Daño: 2-5\nLanza corta", ""}};
+	Tick();
+	const std::string comparison = "Lanza carmesí. Daño: 6-13. Equipo actual. Lanza corta. Daño: 2-5";
+	Check(speech == std::vector<std::string>{comparison} && interrupts.back(),
+		"activating comparison reads both names and full visible stats even with autodetail off");
+	Check(InteractionReader::Repeat() == comparison, "repeat retains the active comparison");
+	ClearSpeech(); Tick(); Check(speech.empty(), "a held comparison does not repeat every poll");
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{comparison}, "right stick up repeats both compared items");
+	ClearSpeech(); tooltip.comparisons.push_back({"Daño: 1-4\nDaga", ""}); Tick();
+	Check(speech == std::vector<std::string>{comparison + ". Equipo actual. Daga. Daño: 1-4"},
+		"two equipped items retain the game's comparison order");
+	ClearSpeech(); tooltip.comparisons.erase(tooltip.comparisons.begin()); Tick();
+	Check(speech == std::vector<std::string>{"Lanza carmesí. Daño: 6-13. Equipo actual. Daga. Daño: 1-4"},
+		"cycling comparison reads the newly displayed equipped item");
+	ClearSpeech(); tooltip.comparisons.clear(); Tick();
+	Check(speech.empty() && InteractionReader::Repeat().find("Equipo actual") == std::string::npos,
+		"releasing comparison silently returns to the ordinary item readout");
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Daño: 6-13"}, "detail drops the comparison immediately on release");
+	ClearSpeech(); tooltip.comparisons = {{"\xEE\x80\x93", "\xEE\x80\x96"}}; Tick();
+	Check(speech.empty(), "glyph-only supplementary records never announce a comparison");
+	tooltip.comparisons = {{"Daño: 2-5\nLanza corta\nEquipo actual", "Equipo actual"}}; Tick();
+	Check(speech == std::vector<std::string>{comparison}, "the game's own equipped heading is not duplicated");
+	ClearSpeech(); ++selection; pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().detailNone},
+		"moving with compare held rejects the previous item's comparison before the detail gesture");
+	ClearSpeech(); Tooltip("Daño: 1-3\nEspada"); Tick(); ClearSpeech();
+	tooltip.comparisons = {{"Daño: 2-5\nLanza corta", ""}}; Tick();
+	Check(speech == std::vector<std::string>{"Espada. Daño: 1-3. Equipo actual. Lanza corta. Daño: 2-5"},
+		"comparison follows the newly focused item");
+	ClearSpeech(); Tooltip("Sin identificar\nDefensa: 17\nArmadura de cuero");
+	tooltip.comparisons = {{"Defensa: 12\nArmadura acolchada", ""}}; Tick();
+	Check(speech == std::vector<std::string>{"Armadura de cuero. Sin identificar. Defensa: 17. Equipo actual. Armadura acolchada. Defensa: 12"},
+		"unidentified comparison reads only the base stats supplied by the game's rendered tooltip");
+	ClearSpeech(); conversation = true; Tick();
+	Check(speech.empty() && InteractionReader::Repeat().empty(), "conversation clears comparison state");
+	conversation = false; InteractionReader::Reset(); ClearSpeech();
+	focus = {50, 51}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+	cell = {}; equipmentLocation = 4; equipmentPresence = NativeUi::ItemPresence::Occupied;
+	Tooltip("Daño: 6-13\nLanza"); Tick();
+	Check(speech.size() == 1 && speech[0].starts_with("Mercenario. Equipo.") && speech[0].ends_with("Lanza"),
+		"focused mercenary equipment uses the same tooltip path with its own localized panel title");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Daño: 6-13"}, "mercenary equipment exposes its rendered stats on demand");
 	Passed();
 }
