@@ -9,6 +9,7 @@
 #include "screen_reader.h"
 #include "ui_text.h"
 
+#include <algorithm>
 #include <string>
 
 namespace D2RAccess::ModalReader {
@@ -30,6 +31,13 @@ bool Speakable(const UiText::Node& node) {
 	default:
 		return false;
 	}
+}
+
+bool HasInventory(const UiText::Snapshot& snapshot) {
+	return std::any_of(snapshot.nodes.begin(), snapshot.nodes.end(), [](const auto& node) {
+		return node.kind == UiText::Kind::InventoryGrid || node.kind == UiText::Kind::InventorySlot
+			|| node.kind == UiText::Kind::InventoryItem;
+	});
 }
 
 // A tab bar's captions belong to the tab reader, which names the selected one
@@ -85,13 +93,18 @@ void Tick(const D2RL::PluginContext* context) {
 	// was taught to look for, which is why this panel stayed silent while
 	// reporting that it had found both of its legends.
 	const UiText::Snapshot snapshot = NativeUi::Snapshot(panel, 0);
+	// Inventory panels briefly lose focus when tabs change; their labels are
+	// not a modal message. The shared item reader will announce the next focus.
+	if (HasInventory(snapshot)) return;
 	std::string            phrase, legends;
 	for (const UiText::Node& node : snapshot.nodes) {
 		if (!Speakable(node) || UnderTabBar(snapshot, node.parent)) continue;
-		AsyncLog::InfoF(context, "[modal] %s/%s (%s) -> \"%s\"", active.c_str(), node.name.c_str(), node.type.c_str(), node.text.c_str());
+		const auto text = UiText::Clean(node.text);
+		if (text.empty()) continue;
+		AsyncLog::InfoF(context, "[modal] %s/%s (%s) -> \"%s\"", active.c_str(), node.name.c_str(), node.type.c_str(), text.c_str());
 		// A button legend is a control hint: held for right stick down, and
 		// spoken unasked only last, with autodetail and control tooltips on.
-		Append(node.kind == UiText::Kind::Legend ? legends : phrase, node.text);
+		Append(node.kind == UiText::Kind::Legend ? legends : phrase, text);
 	}
 	ControlHints::Offer(legends);
 	if (phrase.empty() && legends.empty()) {

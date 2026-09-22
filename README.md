@@ -16,7 +16,9 @@ blind players using a controller; keyboard and mouse are planned.
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
-- Native text in dropdown rows, character rows and confirmation prompts.
+- Native text in dropdown rows, character rows and confirmation prompts. Character
+  selection reads the name and level/class from the selected runtime row, even
+  when the game's focus remains on the first row.
 - Everything is spoken in the game's text language: the plugin's own phrases are translated into all thirteen D2R locales and follow the language selected in the game's options (changing it in Options switches the plugin too).
 
 Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
@@ -34,12 +36,25 @@ uses its native embedded textbox.
 
 The user confirmed the stash and Charsi target labels, basic inventory
 selection, smooth inventory navigation, and axe descriptions in the blacksmith's shop. The reader
-also exposes inventory coordinates and selected stash tabs. It follows item grids and
-equipment; it reads complete rendered descriptions and suppresses stationary
-repeats. Described grid items now read without row/column prefixes. An occupied
-cell waits for the game's tooltip without announcing coordinates first; empty
-cells retain coordinate feedback. The user confirmed this behavior. See
+also exposes inventory coordinates and selected stash tabs. Item grids and equipment
+announce one name and its quality, such as `Crimson Spear. magic`, or
+`Spear. Unidentified`. Magic, set, rare, unique and crafted items use the game's
+full tooltip name. The stock 400 ms controller delay is removed while the inventory
+reader is active; ordinary items still read directly from the highlighted item.
+Prices and properties are available with right-stick up, or automatically with
+Ctrl+D. Activating the game's **Compare** action reads the selected item's full
+visible description followed by **Currently Equipped** and the displayed equipment
+statistics. Right-stick up repeats the comparison while it is visible; closing
+the comparison restores ordinary item detail. Unidentified items expose only the text
+the game renders: basic damage/defense and requirements, with magic properties
+remaining hidden until identification. Empty grid cells retain coordinate feedback. See
 [native tooltip evidence](docs/native-tooltips.md).
+
+The mercenary panel uses the shared stat-row reader. When the controller leaves
+that panel without a focused widget, the right stick reads its visible statistics
+one row at a time, as on the character panel. Equipment focus retains item detail.
+Focusless inventory transitions no longer read every label, gold amount or
+controller-font symbol as a modal message.
 
 Existing NPC menu rows read
 without a population delay; inventory coordinates settle for one poll and
@@ -227,6 +242,20 @@ otherwise it says that the journal was updated. Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
 See [quest-log implementation and remaining work](docs/quests.md).
 
+**Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
+Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
+stairs and portals by their own name. **Holding the right stick in** (R3, about a third of a second), or
+**Ctrl+V**, reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
+getting there (straight, around or no route). A short right-stick click, or **Ctrl+B** right after,
+guides to the one just reviewed. **Ctrl+M** toggles the feature.
+See [room exits](docs/rooms.md).
+
+**Terrain overview (built; live validation pending):** the accessible automap. **Ctrl+O**, or the
+L3+R3 chord (both sticks pressed in), speaks the level name, where you stand in it (`left edge`, `centre`…) and,
+for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
+a neighbouring level you have already reached. It never names undiscovered levels and never routes.
+See [terrain overview](docs/terrain-overview.md).
+
 ### Character panel
 
 Opening the character sheet says the panel name with the character, class and
@@ -262,10 +291,10 @@ See [life, mana and broken equipment](docs/vitals.md).
   children, class ancestry and runtime strings. It polls on the UI thread after the
   local player is ready; all speech stays on the dedicated PRISM thread. Details and
   verified build checks: [native UI evidence](docs/native-ui.md).
-- World labels and item descriptions use one verified native tooltip render
-  hook. It copies the primary displayed text before the game frees it each
-  frame, then preserves the stock draw call. It requires the supported game
-  build and adds no DLL dependencies. A separate native ground-item reader
+- World labels and item descriptions use verified native tooltip render hooks.
+  They copy the primary and displayed comparison text before the game frees it
+  each frame, while preserving the stock comparison selection. They require the
+  supported game build and add no DLL dependencies. A separate native ground-item reader
   supplies nearby loot snapshots to proximity speech and spatial sound services.
 
 ## Requirements
@@ -360,6 +389,8 @@ python tools\gen_panel_widgets.py
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor, layout indexer/generators and local computer-use tools.
 - `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.
+  `docs/decisions.md` — dated design-decision log (what was rejected and why).
+  `docs/testing.md` — target player profile and how to test/validate the mod.
 
 ## License
 

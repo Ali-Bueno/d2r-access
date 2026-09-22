@@ -82,3 +82,17 @@ cell or slot is waiting for its description and appended to the utterance that
 finally carries it, so the order heard is always item, then grid position, then
 what you can do with it. The cost is deliberate: a cell whose description never
 renders no longer announces its hints.
+
+## Mercenary statistics (2026-09-22)
+
+`HirelingInventoryPanel` shares the title/value-row reader. Its controller layout
+uses `HPTitle`/`HPStat`, `HireTypeText`, and a nested `DamageStat`. The visible
+tree supplies row order; identity uses `MiniPanelHireinv` plus the rendered name
+and type/level. In the observed no-focus state, the existing right-stick cursor
+can read these rows. Any actual focused widget in equipment or another panel
+keeps the stick's usual gestures. Switching panels resets both row position and
+the identity announcement.
+
+The Mercenary-tab log only reaches player inventory slots, never a hireling slot;
+equipment navigation still needs a live check with an available mercenary. See
+[the tooltip/menu evidence](native-tooltips.md#compared-items-and-menu-regressions-2026-09-22).

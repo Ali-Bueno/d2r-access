@@ -309,7 +309,8 @@ bool IsInventory(UiText::Kind kind) {
 
 std::string Title(uintptr_t panel) {
 	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
-	const auto localized = Localization::Text(stash ? "stash" : "minipanelinv");
+	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
+	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
 	return localized.empty() ? (stash ? Strings::Current().stash : Strings::Current().inventory) : localized;
 }
 

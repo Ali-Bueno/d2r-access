@@ -88,5 +88,24 @@ int main() {
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 5 && speech[3].text == "Leave the game?" && speech[4].text == "A: Confirm" && !speech[4].interrupt,
 		"with autodetail and control tooltips on the buttons follow the prompt, last and queued");
+	for (const auto kind : {Kind::InventoryGrid, Kind::InventorySlot, Kind::InventoryItem}) {
+		ModalReader::Reset(); active = "UncataloguedInventoryPanel"; tree = {};
+		Node(-1, Kind::Other, active);
+		Node(0, kind, "Items");
+		Node(0, Kind::Text, "text_i_left", "I");
+		Node(0, Kind::Text, "gold_amount", "5470");
+		Node(0, Kind::Button, "gold_button", "Drop Gold");
+		Node(0, Kind::Text, "HotkeyLabel0", "\xEE\x80\x83");
+		ModalReader::Tick(nullptr);
+		Check(speech.size() == 5, "a transient focusless inventory never narrates its unrelated labels or actions");
+	}
+	active = "DeleteCharacterModal"; tree = {};
+	Node(-1, Kind::Other, active);
+	Node(0, Kind::Text, "Prompt", "Delete this character?");
+	Node(0, Kind::Legend, "GlyphOnly", "\xEE\x80\x83");
+	Node(0, Kind::Legend, "Confirm", "\xEE\x80\x81 Confirm");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 7 && speech[5].text == "Delete this character?" && speech[6].text == "Confirm"
+		&& ControlHints::Current() == "Confirm", "modal prompts retain their words while controller font glyphs are stripped");
 	Passed();
 }

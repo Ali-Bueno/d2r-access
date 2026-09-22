@@ -20,6 +20,7 @@ using UiText::Surface;
 constexpr size_t ParentOffset = 0x30;
 constexpr size_t EnabledOffset = 0x50;
 constexpr size_t VisibleOffset = 0x51;
+constexpr size_t RectOffset = 0x70; // widget rect reflection record; docs/native-ui.md
 constexpr size_t ChildrenOffset = 0x58; // FindChildWidget 0x855C90
 constexpr size_t GetTypeSlot = 0x58;    // vtable, distinct from the instance member
 constexpr size_t TypeNameOffset = 0x8, BaseTypeOffset = 0x10; // 0x851030
@@ -192,6 +193,17 @@ uintptr_t Parent(uintptr_t widget) {
 	uintptr_t parent = 0;
 	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + ParentOffset, parent) || parent == widget) return 0;
 	return parent;
+}
+
+std::optional<Rect> LocalRect(uintptr_t widget) {
+	Rect result;
+	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + RectOffset, result)
+		|| result.width < 0 || result.height < 0) return std::nullopt;
+	return result;
+}
+
+std::vector<uintptr_t> Children(uintptr_t widget) {
+	return NativeWidgets::SupportsTree() && widget ? VectorAt(widget + ChildrenOffset) : std::vector<uintptr_t>{};
 }
 
 Focus CurrentFocus() {

@@ -11,7 +11,8 @@ namespace D2RAccess::CharacterStats {
 namespace {
 // The panel is named the same in every variant (CharacterStatsPanel.json,
 // CharacterStatsPanelHD.json and Controller/CharacterStatsPanelHD.json).
-constexpr std::string_view Panel = "CharacterStatsPanel";
+constexpr std::string_view CharacterPanel = "CharacterStatsPanel";
+constexpr std::string_view HirelingPanel = "HirelingInventoryPanel";
 // Every row is a <name>Title label; the controller layout gives each one a
 // focusable child called Tooltip, which is where the controller stops.
 constexpr std::string_view TitleSuffix = "Title";
@@ -65,7 +66,10 @@ uintptr_t TitleOf(NativeUi::Focus focus) {
 	return NativeWidgets::ReadName(parent).ends_with(TitleSuffix) ? parent : 0;
 }
 
-std::string Value(uintptr_t panel, std::string_view title) {
+std::string Value(uintptr_t panel, std::string_view title, std::string_view panelName) {
+	// The hireling layout uses HPStat, while the character panel splits life
+	// into CurrentHP and MaxHP. Its other rows use the shared naming rules.
+	if (panelName == HirelingPanel && title == "HPTitle") return ChildText(panel, "HPStat");
 	for (const auto& row : Rows) {
 		if (title != row.title) continue;
 		const auto current = ChildText(panel, row.current);
@@ -125,15 +129,18 @@ std::string LevelAndClass(uintptr_t panel) {
 
 // Panel name plus who the character is, so entering the panel says both once.
 std::string Identity(uintptr_t panel) {
-	std::string result = Localization::Text("minipanelchar");
+	const auto panelName = NativeWidgets::ReadName(panel);
+	std::string result = Localization::Text(panelName == HirelingPanel ? "MiniPanelHireinv" : "minipanelchar");
 	Append(result, ChildText(panel, "CharacterName"));
-	Append(result, LevelAndClass(panel));
+	Append(result, panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel));
 	return result;
 }
+
+bool SupportedPanel(std::string_view name) { return name == CharacterPanel || name == HirelingPanel; }
 }
 
 bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type&) {
-	if (!focus.panel || !focus.widget || NativeWidgets::ReadName(focus.panel) != Panel) return false;
+	if (!focus.panel || !focus.widget || !SupportedPanel(NativeWidgets::ReadName(focus.panel))) return false;
 	return TitleOf(focus) != 0;
 }
 
@@ -143,7 +150,7 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	const auto title = TitleOf(focus);
 	const auto label = Text(title);
 	if (label.empty()) return result; // the row has not rendered its label yet
-	result.context = Panel;
+	result.context = NativeWidgets::ReadName(focus.panel);
 	result.body = Identity(focus.panel);
 	result.option = label;
 	// Among the row's own siblings, not anywhere under the panel: the attack
@@ -153,7 +160,7 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	// pair. Falls back to the panel when the container cannot be read, which
 	// is the lookup this had before and still better than saying nothing.
 	const auto container = NativeUi::Parent(title);
-	Append(result.option, Value(container ? container : focus.panel, NativeWidgets::ReadName(title)));
+	Append(result.option, Value(container ? container : focus.panel, NativeWidgets::ReadName(title), result.context));
 	result.focusKey = std::to_string(focus.widget);
 	return result;
 }
@@ -163,7 +170,9 @@ std::vector<std::string> Lines(uintptr_t panel) {
 	if (!panel || !NativeUi::Visible(panel)) return lines;
 	// Who the character is leads the list: the name, then the level and class.
 	if (auto name = Name(panel); !name.empty()) lines.push_back(std::move(name));
-	if (auto level = LevelAndClass(panel); !level.empty()) lines.push_back(std::move(level));
+	const auto panelName = NativeWidgets::ReadName(panel);
+	if (auto level = panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel); !level.empty())
+		lines.push_back(std::move(level));
 	// Snapshot walks the visible tree in declaration order and omits hidden
 	// subtrees, so a row the game is not showing never reaches the list.
 	const auto snapshot = NativeUi::Snapshot(panel, 0);
@@ -172,7 +181,10 @@ std::vector<std::string> Lines(uintptr_t panel) {
 		if (text.empty()) continue;
 		if (std::string_view(node.name).ends_with(TitleSuffix)) {
 			std::string line = text;
-			Append(line, SiblingValue(snapshot, node.parent, node.name));
+			const auto value = panelName == HirelingPanel
+				? Value(panel, node.name, panelName)
+				: SiblingValue(snapshot, node.parent, node.name);
+			Append(line, value);
 			lines.push_back(std::move(line));
 			continue;
 		}

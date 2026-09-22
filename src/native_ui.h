@@ -1,12 +1,17 @@
 #pragma once
 
 #include "ui_text.h"
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace D2RAccess::NativeUi {
 struct Focus { uintptr_t panel = 0, widget = 0; };
 struct Cell { int x = -1, y = -1; };
+struct Rect {
+	int x = 0, y = 0, width = 0, height = 0;
+	bool operator==(const Rect&) const = default;
+};
 enum class ItemPresence { Unknown, Empty, Occupied };
 struct Type {
 	std::string name;
@@ -18,6 +23,8 @@ struct Type {
 Type Classify(uintptr_t widget);
 bool Visible(uintptr_t widget);
 uintptr_t Parent(uintptr_t widget);
+std::optional<Rect> LocalRect(uintptr_t widget);
+std::vector<uintptr_t> Children(uintptr_t widget);
 Focus CurrentFocus();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);

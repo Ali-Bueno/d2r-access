@@ -120,9 +120,8 @@ constexpr const char* CharacterRowName       = "Name";
 constexpr const char* CharacterRowDetail     = "Level&Class";
 
 // CharacterSelectPanelHD.json: the character list's rows are clones of one
-// ListItemWidget template whose texts (name, class and level) are set at
-// runtime, so the row under the indicator is spoken from the save files
-// (character_saves.h), most recently played first like the list.
+// ListItemWidget template whose texts are set at runtime. Native focus supplies
+// the actual clone; geometry and save order are the fallback.
 constexpr const char* CharacterSelectPanelName = "CharacterSelectPanel";
 constexpr const char* CharacterRowWidget       = "CharacterTemplate";
 // The controller legend under the list (filled at runtime, unreadable) shows
@@ -640,9 +639,20 @@ int CharacterRowIndex(const Match& match, const Widgets::Rect& indicator) {
 	return std::max(0, static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height))));
 }
 
-// The row's own text ("yarkey, Bárbaro de niv. 1"), else "name, class,
-// level N" from the save files.
-std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex) {
+std::string CharacterRowText(uintptr_t row) {
+	if (row == 0) return {};
+	std::string name = NativeWidgets::ReadText(NativeWidgets::FindChild(row, CharacterRowName));
+	if (name.empty()) return {};
+	if (const std::string detail = NativeWidgets::ReadText(NativeWidgets::FindChild(row, CharacterRowDetail)); !detail.empty()) {
+		name += ", " + detail;
+	}
+	return name;
+}
+
+// The actual focused clone owns the current runtime text. The indexed path is
+// retained for the geometry fallback, where no native row object is available.
+std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex, uintptr_t nativeRow) {
+	if (std::string text = CharacterRowText(nativeRow); !text.empty()) return text;
 	char slot[32] {};
 	std::snprintf(slot, sizeof(slot), PopupSlotFormat, rowIndex);
 	const std::string namePath[]   = { CharacterListWidget, slot, CharacterRowName };
@@ -709,8 +719,14 @@ void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator, uintptr_t nativeWidget = 0) {
 	const int   characterRow = CharacterRowIndex(match, indicator);
 	std::string id           = std::string(match.panel->panel) + "/" + match.widget->name;
+	std::string characterPhrase;
 	if (characterRow >= 0) {
-		id += "#" + std::to_string(characterRow);
+		nativeWidget = NativeFocus::SelectedCharacterRow(nativeWidget);
+		characterPhrase = CharacterRowPhrase(context, characterRow, nativeWidget);
+		// Runtime rows are clones with one authored name. Their live text is the
+		// stable identity that changes as controller focus moves or a slot recycles.
+		if (nativeWidget != 0) id += "@" + std::to_string(nativeWidget);
+		id += "#" + (characterPhrase.empty() ? std::to_string(characterRow) : characterPhrase);
 	}
 	if (id == g_lastAnnounced) {
 		return;
@@ -724,9 +740,8 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		}
 	}
 	if (characterRow >= 0) {
-		const std::string phrase = CharacterRowPhrase(context, characterRow);
-		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, phrase.c_str());
-		ScreenReader::Speak(phrase, true);
+		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, characterPhrase.c_str());
+		ScreenReader::Speak(characterPhrase, true);
 		std::string legend;
 		for (const LegendAction& action : CharacterRowActions) {
 			if (const std::string text = TextForKey(action.textKey); !text.empty()) {
@@ -856,7 +871,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_lastIndicator = indicator;
 			g_popupWasActive = false;
 			g_missSince = 0;
-			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}), focused.widget);
+			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}), native.nativeWidget);
 			return;
 		}
 	}
