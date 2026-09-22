@@ -112,6 +112,10 @@ void Track(uintptr_t panel) { tracked = panel; }
 void Reset() { tracked = 0; tooltip = {}; }
 Snapshot Latest(uint64_t) { return tracked ? tooltip : Snapshot{}; }
 }
+namespace D2RAccess::HireStats {
+bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus) { return false; }
+void Reset() {}
+}
 namespace D2RAccess::TooltipDelay {
 void Apply(const D2RL::PluginContext*, uintptr_t) {}
 }

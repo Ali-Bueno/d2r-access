@@ -4,6 +4,7 @@
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
+#include "hire_stats.h"
 #include "generated/item_sizes.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
@@ -312,7 +313,14 @@ bool HandlesFocus(NativeUi::Focus focus) {
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
-	if (conversation) { Reset(); return false; }
+	if (conversation) {
+		// The hire list's stats exist only in the game's tooltip, and a menu
+		// suspends this reader and its capture; HireStats keeps capture on there
+		// and takes the right stick.
+		if (HireStats::Tick(context, now, focus)) return false;
+		Reset();
+		return false;
+	}
 	// Focus that has been anywhere else since, even back in the same panel
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;

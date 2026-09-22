@@ -36,6 +36,7 @@ add_library(d2r-access SHARED
 	src/input_direction.cpp
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
+	src/hire_stats.cpp
 	src/inventory_census.cpp
 	src/inventory_cursor.cpp
 	src/plugin.cpp
@@ -321,6 +322,11 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
+	add_executable(hire-stats-tests tests/hire_stats_tests.cpp src/hire_stats.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
+	target_link_libraries(hire-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(hire-stats-tests PRIVATE src)
+	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
+	add_test(NAME hire-stats COMMAND hire-stats-tests)
 	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
@@ -383,6 +389,7 @@ if(BUILD_TESTING)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(hire-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-progress-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-grid-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
