@@ -56,6 +56,17 @@ std::string Push(InputDirection::StickPush push) {
 
 namespace D2RAccess::NativeUi {
 Type Classify(uintptr_t) { return {}; }
+// A ListWidget's rows are children of its own row container, which the tree
+// walk never reaches (MEASURED on the Advanced Stats panel).
+std::map<uintptr_t, uintptr_t> rowContainers;
+std::vector<uintptr_t> ListRows(uintptr_t list) {
+	std::vector<uintptr_t> rows;
+	const auto container = rowContainers.find(list);
+	if (container == rowContainers.end()) return rows;
+	for (uintptr_t id : order)
+		if (widgets[id].parent == container->second && !hidden.count(id)) rows.push_back(id);
+	return rows;
+}
 bool Visible(uintptr_t widget) {
 	for (auto at = widget; at != 0;) {
 		const auto found = widgets.find(at);
@@ -214,10 +225,17 @@ int main() {
 	Add(7, "OptionTemplate", "", 6);
 	Add(8, "StatText", "Template", 7);
 	hidden.insert(7);
-	Add(10, "Stats Entry 0", "", 6);
+	// The rows sit in the list's container, outside the panel's walkable tree.
+	Add(9, "Container", "", 0);
+	NativeUi::rowContainers[6] = 9;
+	Add(10, "ListItem0", "", 9);
 	Add(11, "StatText", "Faster Hit Recovery: 0%", 10);
-	Add(12, "Stats Entry 1", "", 6);
+	Add(12, "ListItem1", "", 9);
 	Add(13, "StatText", "Magic Find: 0%", 12);
+	Add(14, "ListItem2", "", 9);
+	Add(15, "StatText", "Stale row", 14);
+	hidden.insert(14);
+	Check(NativeUi::Snapshot(Advanced, 0).nodes.size() == 6, "the rows are not in the panel's walk, as measured");
 
 	Check(AdvancedStatsReader::Mercenary() == Mercenary, "the open mercenary panel is the source");
 	auto lines = AdvancedStatsReader::Lines(Advanced, Mercenary);

@@ -326,6 +326,22 @@ std::vector<uintptr_t> Panels() {
 	return result;
 }
 
+std::vector<uintptr_t> ListRows(uintptr_t list) {
+	// READ, 3.3.93787: a ListWidget (a ScrollViewWidget) creates an internal
+	// "Container" widget and keeps it at +0xD8 (0x140885C38); a panel fills row
+	// i as child i of that container (AdvancedStatsPanel, 0x1414ED7C0).
+	constexpr size_t ListContainerOffset = 0xD8;
+	std::vector<uintptr_t> rows;
+	if (Classify(list).kind != Kind::List) return rows;
+	uintptr_t container = 0;
+	if (!Peek(list + ListContainerOffset, container) || !container) return rows;
+	for (uintptr_t row : VectorAt(container + ChildrenOffset)) {
+		uint8_t visible = 0;
+		if (row && Peek(row + VisibleOffset, visible) && visible == 1) rows.push_back(row);
+	}
+	return rows;
+}
+
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;

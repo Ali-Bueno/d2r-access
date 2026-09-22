@@ -51,6 +51,11 @@ std::string FocusedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 // Bounded discovery, including hidden controls. Visibility is rechecked when read.
 std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind);
+// The rows of a ListWidget the game is showing, in order: the children of the
+// list's own row container, where the game writes them. MEASURED 2026-09-22:
+// the Advanced Stats rows never reach Snapshot. Empty when `list` is not a
+// ListWidget.
+std::vector<uintptr_t> ListRows(uintptr_t list);
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
 void Reset();
 }

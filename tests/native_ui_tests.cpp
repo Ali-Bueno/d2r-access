@@ -276,6 +276,13 @@ int main() {
 	};
 	const auto uncached = benchmark(false), scoped = benchmark(true);
 	std::printf("Busy UI snapshot (%d widgets): %.3f ms uncached, %.3f ms scoped\n", BenchmarkNodes + 1, uncached, scoped);
+	Widget rowList("ListWidget", "ListContainer"), rowContainer("Widget", "Container");
+	Widget shownRow("ListItemWidget", "ListItem0"), hiddenRow("ListItemWidget", "ListItem1");
+	rowContainer.Add(shownRow); rowContainer.Add(hiddenRow); hiddenRow.Put<uint8_t>(0x51, 0);
+	rowList.Put(0xD8, rowContainer.Address());
+	Check(NativeUi::ListRows(rowList.Address()) == std::vector<uintptr_t>{shownRow.Address()},
+		"a list's rows are its container's children the game is showing");
+	Check(NativeUi::ListRows(rowContainer.Address()).empty(), "a widget that is not a list has no rows");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();
