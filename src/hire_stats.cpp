@@ -5,6 +5,7 @@
 #include "input_direction.h"
 #include "native_tooltips.h"
 #include "native_widgets.h"
+#include "pad_filter.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "tooltip_text.h"
@@ -18,9 +19,8 @@ namespace {
 constexpr std::string_view Panel = "HireMenuPanel";
 
 uintptr_t g_row = 0;             // the list row the lines belong to
-std::vector<std::string> g_lines; // its tooltip, in the order the screen draws it
+std::vector<std::string> g_lines; // every tooltip drawn for it, in the order the screen draws them
 int g_cursor = -1;               // -1: nothing read yet for this row
-std::string g_comparison;        // the current mercenary, drawn beside it while Y is held
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
@@ -30,14 +30,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		return false;
 	}
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
+	PadFilter::ArmLeftStickWithY(now);
 	if (focus.widget != g_row) {
 		g_row = focus.widget;
 		g_lines.clear();
 		g_cursor = -1;
-		g_comparison.clear();
 	}
+	// MEASURED 2026-09-22: the hire list draws no tooltip for a highlighted
+	// row; holding Y draws the mercenary's skills (ui-controller.json "Show
+	// Mercenary Skills"), one tooltip per skill -- Exploding Arrow first, then
+	// Fire Arrow and Inner Sight. All of them are the lines.
 	if (const auto tooltip = NativeTooltips::Latest(now); tooltip.panel == focus.panel && tooltip.widget == focus.widget) {
 		auto lines = TooltipText::Read(tooltip.body).lines;
+		for (const auto& extra : tooltip.extras)
+			for (auto& line : TooltipText::Read(extra).lines) lines.push_back(std::move(line));
 		if (lines != g_lines) {
 			std::string joined;
 			for (const auto& line : lines) joined += (joined.empty() ? "" : " | ") + line;
@@ -45,34 +51,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			g_lines = std::move(lines);
 			g_cursor = -1;
 		}
-		// Holding the compare button draws the current mercenary beside it.
-		auto comparison = TooltipText::Comparison(tooltip.extras);
-		if (comparison != g_comparison && !comparison.empty())
-			AsyncLog::InfoF(context, "[hire] compare drawn -> \"%s\"", comparison.c_str());
-		g_comparison = std::move(comparison);
 	}
-	// Compare mode while Y is held, as in the inventory: left reads the
-	// highlighted mercenary in full, right the current one. Up and down still
-	// walk the lines.
-	if (InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y)) {
-		const auto push = InputDirection::PeekRightStickPush();
-		if (push == InputDirection::StickPush::Left || push == InputDirection::StickPush::Right) {
-			(void)InputDirection::TakeRightStickPushIf(push, "hire compare");
-			std::string text;
-			if (push == InputDirection::StickPush::Left)
-				for (const auto& line : g_lines) text += (text.empty() ? "" : ". ") + line;
-			else text = g_comparison;
-			if (text.empty()) text = Strings::Current().detailNone;
-			AsyncLog::InfoF(context, "[hire] compare %s -> \"%s\"",
-				push == InputDirection::StickPush::Left ? "highlighted" : "current", text.c_str());
-			ScreenReader::Speak(text, true);
-			return true;
-		}
-	}
+	// The right stick walks them; while Y is held the left stick does the same,
+	// since Y and the right stick share the right thumb (the user, 2026-09-22).
 	InputDirection::StickPush push = InputDirection::StickPush::None;
 	for (const auto wanted : {InputDirection::StickPush::Up, InputDirection::StickPush::Down,
 	                          InputDirection::StickPush::Left, InputDirection::StickPush::Right}) {
-		if (InputDirection::TakeRightStickPushIf(wanted, "hire")) { push = wanted; break; }
+		if (InputDirection::TakeRightStickPushIf(wanted, "hire") || InputDirection::TakeLeftStickPushIf(wanted, "hire")) {
+			push = wanted;
+			break;
+		}
 	}
 	if (push == InputDirection::StickPush::None) return true;
 	g_cursor = CharacterStatsReader::Advance(g_cursor, push, static_cast<int>(g_lines.size()));
@@ -86,7 +74,6 @@ void Reset() {
 	g_row = 0;
 	g_lines.clear();
 	g_cursor = -1;
-	g_comparison.clear();
 }
 
 }

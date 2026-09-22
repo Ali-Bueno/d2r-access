@@ -6,13 +6,12 @@
 
 namespace D2RL { struct PluginContext; }
 
-// A mercenary's stats in the hire list, on the right stick the way the
-// character panel's are (the user, 2026-09-22: "the right stick should act as a
-// buffer as on the character panel so that mercenary stats can be read"). The
-// list row gives the name, level and cost, which the menu reader already says;
-// the rest is only in the game's tooltip for the highlighted row (ui.json has
-// its "Hold Shift to Compare" and the controller's "Show Mercenary Skills"),
-// so the tooltip's lines are what the stick walks:
+// What the hire list shows of a mercenary beyond its row, on the right stick
+// the way the character panel's stats are (the user, 2026-09-22). The row gives
+// the name, level and cost, which the menu reader already says, and three skill
+// icons; the layout has no life, damage or defense. The skills' tooltips are
+// drawn only while Y is held (MEASURED 2026-09-22), and their lines are what
+// the stick walks -- the right stick, or while Y is held the left one:
 //
 //   up    previous line     left   first line
 //   down  next line         right  last line

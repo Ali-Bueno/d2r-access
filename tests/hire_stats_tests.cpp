@@ -3,6 +3,7 @@
 #include "input_direction.h"
 #include "native_tooltips.h"
 #include "native_widgets.h"
+#include "pad_filter.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "test_support.h"
@@ -38,6 +39,12 @@ Snapshot Latest(uint64_t) { return tooltip; }
 namespace D2RAccess::InputDirection {
 StickPush PeekRightStickPush() { return pending; }
 bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }
+StickPush pendingLeft = StickPush::None;
+bool TakeLeftStickPushIf(StickPush wanted, const char*) {
+	if (wanted == StickPush::None || pendingLeft != wanted) return false;
+	pendingLeft = StickPush::None;
+	return true;
+}
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (wanted != pending) return false;
 	pending = StickPush::None;
@@ -56,6 +63,10 @@ int Advance(int cursor, InputDirection::StickPush push, int count) {
 	default:                               return cursor;
 	}
 }
+}
+namespace D2RAccess::PadFilter {
+int arms = 0;
+void ArmLeftStickWithY(uint64_t) { ++arms; }
 }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool) { speech.emplace_back(text); }
@@ -85,14 +96,15 @@ int main() {
 	tooltip = {"Life: 210\nGaile", "", 10, 12};
 	Tick(next);
 	Check(Push(next, StickPush::Down) && speech == std::vector<std::string>{"Gaile"}, "the next mercenary's lines, from the top");
-	// Compare mode: holding Y reads nothing by itself; left reads the
-	// highlighted mercenary, right the current one.
-	speech.clear(); tooltip.extras = {"Life: 150\nFlavie"}; holdingY = true; Tick(next);
-	Check(speech.empty(), "holding compare reads nothing by itself");
-	Check(Push(next, StickPush::Right) && speech == std::vector<std::string>{"Flavie. Life: 150"}, "right reads the current mercenary");
-	Check(Push(next, StickPush::Left) && speech == std::vector<std::string>{"Gaile. Life: 210"}, "left reads the highlighted one in full");
-	holdingY = false;
-	Check(Push(next, StickPush::Left) && speech == std::vector<std::string>{"Gaile"}, "without Y, left is the first line again");
+	// Holding Y draws one tooltip per skill; all of them are the lines, and
+	// the left stick walks them while Y is held, as the right stick does.
+	tooltip.extras = {"Mana Cost: 3\nFire Arrow", "Inner Sight"}; Tick(next);
+	Check(Push(next, StickPush::Right) && speech == std::vector<std::string>{"Inner Sight"}, "every skill drawn is in the lines, the last one last");
+	speech.clear(); InputDirection::pendingLeft = StickPush::Left; Tick(next);
+	Check(speech == std::vector<std::string>{"Gaile"}, "the left stick walks them too, left to the first line");
+	speech.clear(); InputDirection::pendingLeft = StickPush::Down; Tick(next);
+	Check(speech == std::vector<std::string>{"Life: 210"}, "and down to the next");
+	Check(PadFilter::arms > 0, "the hire list arms the left stick for a held Y");
 	pending = StickPush::None;
 	Check(!Tick({20, 21}), "leaving the hire list lets the stick go");
 	Passed();
