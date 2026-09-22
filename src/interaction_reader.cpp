@@ -57,6 +57,7 @@ std::vector<KnownSlot> g_slotLocations;
 // stick while a panel is open.
 std::string g_detail, g_detailFor;
 std::string g_comparison, g_comparisonFor;
+std::string g_rowDetail, g_rowDetailFor;
 
 // The cell whose item was named, and the cell and headline its tooltip was
 // logged under, so [item] is written once per item instead of on every UI poll
@@ -158,6 +159,17 @@ std::string ComparisonText(const NativeTooltips::Snapshot& tooltip,
 	return result;
 }
 
+std::string RowTooltip(const NativeTooltips::Snapshot& tooltip) {
+	std::string result;
+	const auto appendRecord = [&](const auto& record) {
+		for (const auto& line : TooltipText::Read(record.body).lines) Append(result, line);
+		for (const auto& line : TooltipText::Read(record.footer).lines) Append(result, line);
+	};
+	appendRecord(tooltip);
+	for (const auto& record : tooltip.comparisons) appendRecord(record);
+	return result;
+}
+
 // Keep only the tooltip text that has not already been announced.
 struct TooltipMerge { std::string addition; bool corrects = false; };
 TooltipMerge MergeTooltip(const std::string& name, std::string description) {
@@ -251,7 +263,7 @@ bool HandlesFocus(NativeUi::Focus focus) {
 	const auto type = NativeUi::Classify(focus.widget);
 	const auto kind = type.kind;
 	return IsInventory(kind) || kind == UiText::Kind::Button || kind == UiText::Kind::StatButton
-		|| kind == UiText::Kind::TabButton || CharacterStats::HandlesFocus(focus, type);
+		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::ListItem || CharacterStats::HandlesFocus(focus, type);
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
@@ -264,8 +276,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	const bool list = type.kind == UiText::Kind::ListItem;
+	if (!list && !g_rowDetailFor.empty() && g_detailFor == g_rowDetailFor) {
+		g_detail.clear();
+		g_detailFor.clear();
+	}
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const bool button = type.kind == UiText::Kind::Button || type.kind == UiText::Kind::StatButton || type.kind == UiText::Kind::TabButton;
+	const bool action = button || list;
 	// The character panel's non-button rows: a label the controller stops on
 	// through its focusable Tooltip child, with its value in a sibling widget.
 	const bool stats = !inventory && !button && CharacterStats::HandlesFocus(focus, type);
@@ -300,11 +318,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (inventory) OfferDetail(readout.focusKey, {});
 	else if (progression.skill) OfferDetail(std::to_string(focus.widget), {});
 	bool goldAmount = false; // the gold row is saying the amount in place of its label
-	if (button) {
+	if (action) {
 		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		readout = UiText::Describe(snapshot);
 		readout.context = NativeWidgets::ReadName(focus.panel);
 		readout.focusKey = std::to_string(focus.widget);
+		if (list) {
+			readout.focusKey += ":" + std::to_string(selection);
+			OfferDetail(readout.focusKey, {});
+		}
 		if (!progression.readout.Empty() || progression.skill) {
 			readout = progression.readout;
 			if (!progression.skill && !snapshot.nodes.empty() && !snapshot.nodes.front().enabled)
@@ -330,11 +352,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	bool renderedDescription = false, nameInOption = false;
 	// What the tooltip adds to a name already spoken, kept so only that part is
 	// announced when it arrives behind the name.
-	std::string tooltipAddition, comparison;
+	std::string tooltipAddition, comparison, rowDetail;
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
-		&& (!inventory || tooltip.selection == selection)
+		&& (!(inventory || list) || tooltip.selection == selection)
 		&& equipmentPresence != NativeUi::ItemPresence::Empty) {
 		std::string description;
 		if (progression.skill) {
@@ -366,6 +388,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// An empty detail replaces the old one too, including when comparison
 			// closes on an item with no further properties.
 			g_detail = comparison.empty() ? std::move(split.detail) : comparison;
+		} else if (list) {
+			rowDetail = RowTooltip(tooltip);
+			description = rowDetail;
+			g_detail = rowDetail;
 		} else {
 			description = UiText::Clean(tooltip.body);
 			Append(description, UiText::Clean(tooltip.footer));
@@ -391,6 +417,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	if (list && rowDetail.empty()) g_detail.clear();
+	const bool rowDetailChanged = !rowDetail.empty()
+		&& (rowDetail != g_rowDetail || readout.focusKey != g_rowDetailFor);
+	g_rowDetail = std::move(rowDetail);
+	g_rowDetailFor = g_rowDetail.empty() ? std::string{} : readout.focusKey;
 	const bool comparisonChanged = !comparison.empty()
 		&& (comparison != g_comparison || readout.focusKey != g_comparisonFor);
 	if (comparison.empty() && !g_comparison.empty() && !renderedDescription
@@ -411,7 +442,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
 	}
-	const auto help = (inventory || button || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
+	const auto help = (inventory || action || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. A cell or slot holding an
 	// item the unit could not name is still waiting for the game's own tooltip
@@ -476,13 +507,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		return true; // the hints stay pending until the description arrives
 	}
 	if (progression.skill && !renderedDescription) return true;
-	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
+	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || action || stats; }
 	// A name read from the unit, a rendered focus-matching description and an
 	// equipment slot are complete already. Cells without one wait a single poll
 	// for capture, rather than the dialogue delay.
 	const bool complete = renderedDescription || !itemName.empty()
 		|| type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty();
-	auto announcement = button ? g_reader.Update(readout, now, 0)
+	auto announcement = action ? g_reader.Update(readout, now, 0)
 		: inventory ? g_reader.Update(readout, now, complete ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
@@ -495,6 +526,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
 	if (comparisonChanged) announcement.text = g_comparison;
+	if (rowDetailChanged) Append(announcement.text, g_rowDetail);
 	// A control hint follows the thing it acts on and never leads. While the
 	// focus has not been described yet the hint waits for the readout that
 	// will describe it -- that is how "B: Close Menu" arrived before "Belt.
@@ -533,7 +565,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		ScreenReader::Speak(announcement.text, interrupt);
 	}
-	return inventory || button || stats;
+	return inventory || action || stats;
 }
 
 void Reset() {
@@ -554,6 +586,8 @@ void Reset() {
 	g_detailFor.clear();
 	g_comparison.clear();
 	g_comparisonFor.clear();
+	g_rowDetail.clear();
+	g_rowDetailFor.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();
@@ -563,6 +597,7 @@ void Reset() {
 std::string Repeat() {
 	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
 	Append(text, g_comparison.empty() ? g_reader.Repeat() : g_comparison);
+	Append(text, g_rowDetail);
 	Append(text, g_help);
 	return text;
 }

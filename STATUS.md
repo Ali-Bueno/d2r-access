@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Hiring-row tooltips and actions — 2026-09-22
+
+The user confirms that hiring candidates already read, and asks whether they
+also expose tooltips. HD layouts show name, level, cost and up to three skill
+icons; controller strings include `ShowMercSkills`. Runtime list rows now share
+the interaction reader, preserving tooltip capture and native action hints.
+Built and installed; **5/5 related CTest suites pass**, including stale-detail
+checks after leaving a row. Live inspection was blocked by Windows foreground
+restrictions; the owned title-screen process was closed without input.
+**Next step:** controller listening for Show Mercenary Skills and mercenary
+equipment. Evidence and limits: `docs/character-panel.md#hiring-rows-2026-09-22`.
+
 ## Menu and item-comparison fixes — 2026-09-22
 
 Built and installed; **61/61 CTest suites pass**. Character selection

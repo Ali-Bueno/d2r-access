@@ -96,3 +96,31 @@ the identity announcement.
 The Mercenary-tab log only reaches player inventory slots, never a hireling slot;
 equipment navigation still needs a live check with an available mercenary. See
 [the tooltip/menu evidence](native-tooltips.md#compared-items-and-menu-regressions-2026-09-22).
+
+## Hiring rows (2026-09-22)
+
+The user confirms that the hiring list already reads. The extracted HD layout
+`game-data/global/ui/Layouts/HireMenuPanelHD.json` defines `HireName`, `HireLevel`,
+`HireCost` and three `HirelingSkillIconWidget` children. Its controller variant
+uses a single `ListItemWidget` candidate without separate authored focus targets
+for those icons. `game-data/local/lng/strings/ui-controller.json` contains
+`ShowMercSkills` (ID 27022, "Show Mercenary Skills"). The widget types and string
+establish a skill-display action, but do not establish which tooltip records it
+draws or its live controller binding.
+
+Previously, a generic list row was owned by `GameTextReader`, which suppressed
+`InteractionReader` as though a conversation were active. That reset native
+tooltip capture and omitted controller action hints. Runtime `ListItem` controls
+now share the interaction path with other controls, while actual dialogue/menu
+surfaces retain priority. Candidate text reads immediately; any matching rendered
+tooltip records follow in screen order without equipment-comparison labels or
+font glyphs. Only changed details announce automatically. Right-stick up repeats
+the currently visible descriptions; ordinary repeat also retains the candidate
+and action hints. Changed selection, leaving the row or closing its descriptions
+discards the old detail. No skill properties or bindings are synthesized.
+
+Automated coverage checks routing, native hint order, multiple rendered records,
+repeat/silence behavior, stale selection and transitions to unrelated controls.
+Live inspection stopped at the title screen because Windows refused foreground
+focus to the guarded desktop helper; the owned process was closed without input.
+The action and mercenary equipment still need controller listening validation.

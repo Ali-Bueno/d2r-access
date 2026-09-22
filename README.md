@@ -56,6 +56,12 @@ one row at a time, as on the character panel. Equipment focus retains item detai
 Focusless inventory transitions no longer read every label, gold amount or
 controller-font symbol as a modal message.
 
+Hiring rows retain their candidate text and read the game's current controller
+actions. When the game renders skill descriptions for a row, those descriptions
+are announced and can be repeated with right-stick up. Closing them or changing
+focus clears the detail. The controller's **Show Mercenary Skills** action still
+needs live listening validation; see [hiring evidence](docs/character-panel.md#hiring-rows-2026-09-22).
+
 Existing NPC menu rows read
 without a population delay; inventory coordinates settle for one poll and
 already rendered item descriptions read immediately. Inventory section controls

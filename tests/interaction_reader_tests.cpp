@@ -92,7 +92,8 @@ ItemSlot FocusedItem(uintptr_t) {
 }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
-	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
+	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton
+		|| widgetType.kind == UiText::Kind::TabButton || widgetType.kind == UiText::Kind::ListItem)) return buttonSnapshot;
 	++inventoryWalks;
 	return inventory;
 }
@@ -639,5 +640,57 @@ int main() {
 		"focused mercenary equipment uses the same tooltip path with its own localized panel title");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
 	Check(speech == std::vector<std::string>{"Daño: 6-13"}, "mercenary equipment exposes its rendered stats on demand");
+
+	InteractionReader::Reset(); ClearSpeech();
+	focus = {60, 61}; widgetType = {"ListItemWidget", UiText::Kind::ListItem};
+	selection = 0; tooltip = {};
+	buttonSnapshot = {61, 61, "ListItem0", UiText::Surface::Other, {
+		{61, -1, UiText::Kind::ListItem, "ListItem0", "ListItemWidget", ""},
+		{62, 0, UiText::Kind::Text, "HireName", "TextBoxWidget", "Klaudia"},
+		{63, 0, UiText::Kind::Text, "HireLevel", "TextBoxWidget", "Nivel 9"},
+		{64, 0, UiText::Kind::Text, "HireCost", "TextBoxWidget", "370"},
+	}};
+	// The hint's button comes from the native legend, not a binding assumed here.
+	controllerHelp = "X: Mostrar habilidades del mercenario";
+	Check(InteractionReader::HandlesFocus(focus), "runtime list rows retain native tooltip capture through the interaction reader");
+	Tick();
+	Check(speech.size() == 1 && speech[0].find("Klaudia") != std::string::npos
+		&& speech[0].find("Nivel 9") != std::string::npos && speech[0].find("370") != std::string::npos
+		&& speech[0].ends_with(controllerHelp), "hiring candidate text is followed by the game's current action hint");
+	ClearSpeech(); Tooltip("Daño de fuego: 6-10\n\xEE\x81\xBE" "2Flecha de fuego"); Tick();
+	Check(speech == std::vector<std::string>{"Flecha de fuego. Daño de fuego: 6-10"},
+		"a displayed row tooltip reads in screen order without repeating the candidate");
+	ClearSpeech(); Tick(); Check(speech.empty(), "an unchanged row tooltip and actions stay silent");
+	tooltip.comparisons = {{"Daño de frío: 4-8\nFlecha de frío", ""}, {"\xEE\x80\x93", ""}}; Tick();
+	const std::string skills = "Flecha de fuego. Daño de fuego: 6-10. Flecha de frío. Daño de frío: 4-8";
+	Check(speech == std::vector<std::string>{skills}, "all rendered skill records are read without equipment-comparison labels or glyphs");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{skills} && InteractionReader::Repeat().ends_with(controllerHelp),
+		"the detail gesture repeats visible skill information while manual repeat retains candidate and actions");
+	Check(InteractionReader::Repeat().find(skills) != std::string::npos, "manual repeat includes the row's visible tooltip");
+	ClearSpeech(); tooltip = {}; Tick();
+	Check(speech.empty(), "closing skill information does not repeat the candidate");
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().detailNone}, "closed skill details cannot be repeated as current");
+	Tooltip("Daño de fuego: 6-10\nFlecha de fuego"); Tick(); ClearSpeech();
+	selection = 1; pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().detailNone}, "a changed row selection rejects the preceding tooltip immediately");
+	const auto hiringSnapshot = buttonSnapshot;
+	for (const auto nextKind : {UiText::Kind::Button, UiText::Kind::Other}) {
+		focus.widget = 61; widgetType = {"ListItemWidget", UiText::Kind::ListItem};
+		buttonSnapshot = hiringSnapshot;
+		Tooltip("Daño de fuego: 6-10\nFlecha de fuego"); Tick(); ClearSpeech();
+		focus.widget = 65; widgetType = {"NextControl", nextKind}; tooltip = {};
+		buttonSnapshot = {65, 65, "Close", UiText::Surface::Other, {
+			{65, -1, nextKind, "Close", "NextControl", "Cerrar"},
+		}};
+		pendingPush = InputDirection::StickPush::Up; Tick();
+		Check(speech == std::vector<std::string>{Strings::Current().detailNone},
+			"leaving a list for a button or unhandled control discards the previous candidate's skills");
+	}
+	focus.widget = 61; widgetType = {"ListItemWidget", UiText::Kind::ListItem};
+	buttonSnapshot = hiringSnapshot; Tooltip("Flecha de fuego");
+	ClearSpeech(); conversation = true; Tick();
+	Check(tracked == 0 && speech.empty(), "a real dialogue still suppresses list-row tooltip capture");
 	Passed();
 }
