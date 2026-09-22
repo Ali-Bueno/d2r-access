@@ -656,7 +656,21 @@ int main() {
 	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Right; ClearSpeech();
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
 	gridItem = 0; tooltip = {};
+	// Holding the compare button (Y) adds the equipped item after the tooltip;
+	// it is read once as it appears, after the item, and again on the next hold.
 	Check(!InteractionReader::ItemLogging(), "item tooltips are not logged unless asked for");
+	ClearSpeech(); interrupts.clear(); holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
+	cell = {2, 3}; selection = (uint64_t{3} << 32) | 2;
+	Tooltip("Defensa: 2\nGuantes"); Settle();
+	Check(speech == std::vector<std::string>{"Guantes"}, "the item reads as usual");
+	ClearSpeech(); interrupts.clear(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"} && interrupts.back(),
+		"holding compare reads the equipped item");
+	ClearSpeech(); Settle();
+	Check(speech.empty(), "once, however long it is held");
+	tooltip.extras.clear(); Settle(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "and again on the next hold");
+	tooltip = {}; itemPresence = NativeUi::ItemPresence::Empty;
 	// The tab bar across the top of the menus reads the tab its highlight is on.
 	ClearSpeech(); focus = {20, 95}; widgetType = {"TabBarWidget", UiText::Kind::Tabs}; selection = 6;
 	buttonSnapshot = {95, 95, "UISwitcherTabs", UiText::Surface::Other, {{95, -1, UiText::Kind::Tabs, "UISwitcherTabs", "TabBarWidget", "Inventario"}}};

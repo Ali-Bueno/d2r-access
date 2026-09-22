@@ -80,6 +80,13 @@ Body Read(std::string_view body) {
 	return result;
 }
 
+std::string Comparison(std::span<const std::string> extras) {
+	std::string result;
+	for (const auto& extra : extras)
+		for (const auto& line : Read(extra).lines) Append(result, line);
+	return result;
+}
+
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels) {
 	Description result;

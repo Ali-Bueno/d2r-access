@@ -91,6 +91,10 @@ int main() {
 	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), BaseStats, Prices);
 	Check(buying.headline == "Cap. Cost: 30" && buying.detail == "Defense: 8", "buying reads the name and the price the same way");
 	Check(buying.name == "Cap" && buying.price == "Cost: 30", "the name and the price are also kept apart, so an item's size can go between them");
+	// Holding the compare button adds the equipped item as another record.
+	const std::vector<std::string> extras{"Defense: 2\nLeather Gloves\nCurrently Equipped", "\xEE\x80\x93"};
+	Check(TooltipText::Comparison(extras) == "Currently Equipped. Leather Gloves. Defense: 2", "a comparison reads as the screen draws it, and a button image adds nothing");
+	Check(TooltipText::Comparison({}).empty(), "no extra record, no comparison");
 
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.

@@ -82,6 +82,10 @@ int main() {
 	tooltip = {"Life: 210\nGaile", "", 10, 12};
 	Tick(next);
 	Check(Push(next, StickPush::Down) && speech == std::vector<std::string>{"Gaile"}, "the next mercenary's lines, from the top");
+	speech.clear(); tooltip.extras = {"Life: 150\nFlavie"}; Tick(next);
+	Check(speech == std::vector<std::string>{"Flavie. Life: 150"}, "holding compare reads the current mercenary");
+	speech.clear(); Tick(next);
+	Check(speech.empty(), "once per hold");
 	pending = StickPush::None;
 	Check(!Tick({20, 21}), "leaving the hire list lets the stick go");
 	Passed();

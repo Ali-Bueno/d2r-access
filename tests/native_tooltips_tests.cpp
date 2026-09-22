@@ -68,6 +68,11 @@ int main() {
 	focus.widget = 201; text = "Casco"; StringAt(0, text); hook(first);
 	snapshot = NativeTooltips::Latest(GetTickCount64());
 	Check(snapshot.body == "Casco" && snapshot.widget == 201, "equipment focus changes bypass the previous slot's capture throttle");
+	std::string equipped = "Casco\nCurrently Equipped";
+	StringAt(0x2E8, equipped); focus.widget = 202; hook(first);
+	snapshot = NativeTooltips::Latest(GetTickCount64());
+	Check(snapshot.body == "Casco" && snapshot.extras == std::vector<std::string>{equipped}, "the records drawn after the primary, a comparison among them, are copied beside it");
+	std::string none; StringAt(0x2E8, none);
 	NativeTooltips::Reset(); NativeTooltips::Track(root);
 	Put<uint64_t>(panel.data(), 0x170, 99999); hook(first);
 	Check(NativeTooltips::Latest(GetTickCount64()).body.empty(), "corrupt tooltip vector is rejected");

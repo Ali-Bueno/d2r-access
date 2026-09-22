@@ -102,6 +102,12 @@ uintptr_t g_skillLinesWidget = 0;
 std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
 
+// The comparison last read and the focus it was read on. Holding the compare
+// button (Y) adds the equipped item's tooltip, "Currently Equipped", after the
+// highlighted one; it is read once as it appears, and again for another cell
+// or the next hold.
+std::string g_comparison, g_comparisonFor;
+
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
 
@@ -431,6 +437,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
+	std::string comparisonNow; // a comparison that has just appeared, read after the readout
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -461,6 +468,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 					D2RAccess::AsyncLog::InfoF(context, "[item] %s", line.c_str());
 				}
 			}
+			const auto comparison = TooltipText::Comparison(tooltip.extras);
+			if (comparison.empty() || readout.focusKey != g_comparisonFor) {
+				g_comparison.clear();
+				g_comparisonFor = readout.focusKey;
+			}
+			if (!comparison.empty() && comparison != g_comparison) comparisonNow = comparison;
 			// With autodetail the cells the item takes up come right after the
 			// name, ahead of any price; otherwise they wait for right stick right.
 			if (AutoDetail::Enabled()) {
@@ -649,6 +662,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_readPanel = focus.panel;
 		ScreenReader::Speak(announcement.text, !behindTitle);
 	}
+	// The comparison follows whatever this tick said about the item itself,
+	// queued behind it rather than cut off by it.
+	if (!comparisonNow.empty()) {
+		g_comparison = comparisonNow;
+		D2RAccess::AsyncLog::InfoF(context, "[compare] -> \"%s\"", comparisonNow.c_str());
+		ScreenReader::Speak(comparisonNow, announcement.text.empty());
+	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	return inventory || button || stats;
 }
@@ -676,6 +696,8 @@ void Reset() {
 	g_aside.clear();
 	g_asideWidget = 0;
 	g_itemLogged.clear();
+	g_comparison.clear();
+	g_comparisonFor.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();

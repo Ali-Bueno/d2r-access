@@ -18,7 +18,7 @@ constexpr uint8_t DrawTooltipBytes[] = {
 	0x40, 0x56, 0x48, 0x81, 0xEC, 0x10, 0x01, 0x00, 0x00,
 	0x48, 0x8B, 0x05, 0xD8, 0x0A, 0x0F, 0x02,
 };
-constexpr size_t RecordsOffset = 0x168, FooterOffset = 0x28;
+constexpr size_t RecordsOffset = 0x168, FooterOffset = 0x28, RecordStride = 0x2E8;
 constexpr uint64_t MaxRecords = 32; // corruption guard
 constexpr uint64_t CaptureMs = 40, ExpiryMs = 180;
 std::atomic<uintptr_t> g_panel{0};
@@ -72,6 +72,11 @@ void Capture(uintptr_t tooltip) noexcept {
 		Snapshot next;
 		if (!NativeMemory::ReadEngineString(tooltip, next.body)) return;
 		(void)NativeMemory::ReadEngineString(tooltip + FooterOffset, next.footer);
+		for (uint64_t index = 1; index < records.count; ++index) {
+			std::string extra;
+			if (NativeMemory::ReadEngineString(tooltip + index * RecordStride, extra) && !extra.empty())
+				next.extras.push_back(std::move(extra));
+		}
 		next.panel = focus.panel;
 		next.widget = focus.widget;
 		next.selection = selection;

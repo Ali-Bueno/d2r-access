@@ -20,6 +20,7 @@ constexpr std::string_view Panel = "HireMenuPanel";
 uintptr_t g_row = 0;             // the list row the lines belong to
 std::vector<std::string> g_lines; // its tooltip, in the order the screen draws it
 int g_cursor = -1;               // -1: nothing read yet for this row
+std::string g_comparison;        // the comparison last read for this row
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
@@ -33,6 +34,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_row = focus.widget;
 		g_lines.clear();
 		g_cursor = -1;
+		g_comparison.clear();
 	}
 	if (const auto tooltip = NativeTooltips::Latest(now); tooltip.panel == focus.panel && tooltip.widget == focus.widget) {
 		auto lines = TooltipText::Read(tooltip.body).lines;
@@ -42,6 +44,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			AsyncLog::InfoF(context, "[hire] %zu lines: %s", lines.size(), joined.c_str());
 			g_lines = std::move(lines);
 			g_cursor = -1;
+		}
+		// Holding the compare button adds the current mercenary's tooltip; it
+		// is read once as it appears, and again on the next hold.
+		const auto comparison = TooltipText::Comparison(tooltip.extras);
+		if (comparison.empty()) g_comparison.clear();
+		else if (comparison != g_comparison) {
+			g_comparison = comparison;
+			AsyncLog::InfoF(context, "[hire] compare -> \"%s\"", comparison.c_str());
+			ScreenReader::Speak(comparison, true);
 		}
 	}
 	InputDirection::StickPush push = InputDirection::StickPush::None;
@@ -61,6 +72,7 @@ void Reset() {
 	g_row = 0;
 	g_lines.clear();
 	g_cursor = -1;
+	g_comparison.clear();
 }
 
 }

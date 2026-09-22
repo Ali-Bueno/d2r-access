@@ -52,6 +52,12 @@ struct Description {
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {});
 
+// What a held compare button adds, as the screen draws it: each extra record's
+// lines ("Currently Equipped", then the equipped item), joined for speech.
+// Button-image records clean to nothing and are left out; empty when there is
+// no comparison.
+std::string Comparison(std::span<const std::string> extras);
+
 // A table entry is a printf format ("Defense: %d", "One-Hand Damage: %d to
 // %d"), so the part of it that actually begins a rendered line is everything
 // up to its first placeholder. Returns that prefix, trimmed.
