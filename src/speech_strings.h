@@ -69,6 +69,9 @@ struct Table {
 	const char* footstepsEnabled;
 	const char* footstepsDisabled;
 	const char* footstepsUnavailable;
+	const char* movementEnabled;
+	const char* movementDisabled;
+	const char* movementUnavailable;
 	const char* radarDisabled;
 	const char* radarUnavailable;
 	const char* radarReaderUnavailable;
@@ -188,7 +191,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
 		t.itemReleased, t.belt, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
-		t.footstepsDisabled, t.footstepsUnavailable, t.radarDisabled, t.radarUnavailable,
+		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
+		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,

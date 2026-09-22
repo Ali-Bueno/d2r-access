@@ -158,6 +158,13 @@ built and installed; controller/listening validation is pending. See
 [Sonar controls](docs/sonar-radar.md) and
 [cue delivery](docs/radar-state-delivery.md) document the rest.
 
+**Movement without wall sliding** stops direct directional movement when the
+game would otherwise choose another direction around a blocked target. Enabled
+by default; `access-movement on|off|status` controls it for the current session.
+Mouse routes retain their normal pathfinding. The hook is restricted to the
+local player's directional path and checks the game code before installation.
+Controller validation is pending; see [behavior and evidence](docs/wall-sliding.md).
+
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking
 or running. Any fractional movement restores footsteps, including sliding along
