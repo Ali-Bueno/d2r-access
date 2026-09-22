@@ -236,11 +236,13 @@ std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focu
 }
 
 std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type) {
-	if (!inventory) { g_holdingItem.reset(); return {}; }
+	// Focus may pass through another control while the same item remains held.
+	if (!inventory && !g_holdingItem.value_or(false)) return {};
 	const auto holding = InventoryCursor::HoldingItem(context);
 	if (!holding || holding == g_holdingItem) return {};
 	const bool wasHolding = g_holdingItem.value_or(false);
 	g_holdingItem = holding;
+	if (!inventory) return {};
 	if (*holding) return Strings::Current().itemInHand;
 	if (!wasHolding) return {};
 	const auto destination = Destination(context, focus, type);
@@ -442,6 +444,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
 	}
+	auto cursorNotice = CursorNotice(context, inventory, focus, type);
 	const auto help = (inventory || action || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. A cell or slot holding an
@@ -449,7 +452,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// (~350 ms), so the hints wait with it instead of arriving first in an
 	// utterance of their own.
 	const bool occupied = presence == NativeUi::ItemPresence::Occupied;
-	const bool awaitingDescription = inventory && !renderedDescription && occupied && itemName.empty();
+	const bool choosingSlot = type.kind == UiText::Kind::InventorySlot && g_holdingItem.value_or(false);
+	const bool awaitingDescription = inventory && !choosingSlot && !renderedDescription && occupied && itemName.empty();
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
 	if (!focus.panel && readout.Empty()) {
@@ -480,7 +484,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	g_inventory = inventory;
 	if (!inventory) g_inventoryContext = {};
-	auto cursorNotice = CursorNotice(context, inventory, focus, type);
 	if (!tabChange.empty()) {
 		// A tab switch announces only its name. Accept the current cell as the
 		// baseline so its delayed readout cannot immediately interrupt that name.
@@ -595,7 +598,7 @@ void Reset() {
 }
 
 std::string Repeat() {
-	std::string text = g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
+	std::string text = g_inventory && g_holdingItem.value_or(false) ? Strings::Current().itemInHand : "";
 	Append(text, g_comparison.empty() ? g_reader.Repeat() : g_comparison);
 	Append(text, g_rowDetail);
 	Append(text, g_help);

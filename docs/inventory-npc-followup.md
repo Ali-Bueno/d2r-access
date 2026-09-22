@@ -8,6 +8,30 @@ an undiscoverable blacksmith repair action.
 
 ## Placement orientation follow-up
 
+### Repeated instruction while choosing equipment (2026-09-22)
+
+The user reports repeated "Choose a space or a compatible equipment slot" before
+the destination is read. This phrase is the mod's `itemInHand` string. The retained
+log contains only the latest title-screen probe, so no live repetition trace is
+available. Code inspection found `CursorNotice` reset its held state on every
+non-inventory focus; returning from a transient empty focus or another control
+then treated the same carried item as a new pickup.
+
+Held state now follows the SDK cursor result across focus changes. While an item
+is held, non-inventory polls can clear a confirmed release silently; unknown reads
+preserve the previous state. Conversation/session resets still clear it. Manual
+repeat adds placement context only while inventory focus owns the reader.
+Equipment destinations also bypass the wait for a generated item name while
+carrying an item: slot and known occupancy read immediately, and a rendered item
+description can follow. Ordinary item browsing retains its concise name behavior.
+
+Four related CTest suites pass, covering pickup once, empty focus, unrelated
+controls, cursor-read failures, occupied magic destinations without tooltips,
+release outside inventory and a subsequent pickup. Controller listening remains
+pending. The changes do not alter game input or item placement.
+
+### Initial implementation (2026-09-16)
+
 The user subsequently confirmed improvement and reported that available equipment
 slots are read while holding equipment. They prefer that navigation but initially
 felt lost. The 18:23:59 log changes the native A action from Recoger to Colocar;

@@ -590,6 +590,34 @@ int main() {
 	Settle(); ClearSpeech(); holdingItem = true; cell = {1, 0}; selection = 1; Tick();
 	Check(speech.size() == 1 && speech[0].starts_with(Strings::Current().itemInHand) && speech[0].ends_with("Fila 1, columna 2"), "placement mode and its newly selected empty cell are spoken together");
 	ClearSpeech(); Tick(); Check(speech.empty(), "a delayed coordinate read cannot immediately interrupt placement orientation");
+	InteractionReader::Reset(); ClearSpeech(); tooltip = {}; controllerHelp.clear();
+	focus = {20, 81}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+	cell = {}; equipmentLocation = 1; equipmentPresence = NativeUi::ItemPresence::Empty;
+	holdingItem = false; Tick(); ClearSpeech();
+	holdingItem = true; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().itemInHand}, "a new pickup announces placement once");
+	for (const auto gap : {NativeUi::Focus{20, 25}, NativeUi::Focus{20, 0}, NativeUi::Focus{}}) {
+		focus = gap; widgetType = {"ButtonWidget", gap.widget ? UiText::Kind::Button : UiText::Kind::Other};
+		buttonSnapshot = {}; tooltip = {}; Tick();
+		Check(InteractionReader::Repeat().find(Strings::Current().itemInHand) == std::string::npos,
+			"held-item context is not attached to unrelated controls or world focus");
+		ClearSpeech(); focus = {20, 82}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+		equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied; itemUnit = 78;
+		Tick();
+		Check(speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Ocupado"},
+			"after a focus gap, a held item's destination reads immediately without another placement prompt or waiting for its magic tooltip");
+		ClearSpeech(); Tick(); Check(speech.empty(), "an unchanged occupied destination stays silent");
+	}
+	focus = {}; widgetType = {}; holdingItem.reset(); Tick(); ClearSpeech();
+	focus = {20, 81}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
+	equipmentLocation = 1; equipmentPresence = NativeUi::ItemPresence::Empty; holdingItem = true; Tick();
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cabeza. Vacío"},
+		"an unreadable cursor during a focus gap does not rearm the pickup instruction");
+	ClearSpeech(); focus = {}; widgetType = {}; holdingItem = false; Tick();
+	Check(speech.empty(), "a release outside inventory clears held state without inventing a destination");
+	focus = {20, 81}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; Tick(); ClearSpeech();
+	holdingItem = true; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().itemInHand}, "an actual new pickup still announces after a release outside inventory");
 	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear();
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	cell = {0, 0}; selection = 0; holdingItem = false; itemUnit = 0;

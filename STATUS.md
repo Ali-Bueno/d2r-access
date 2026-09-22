@@ -2,6 +2,14 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Equipment placement speech — 2026-09-22
+
+Built and installed; **4/4 related CTest suites pass**. Temporary focus gaps no
+longer rearm the pickup instruction. While carrying an item, occupied equipment
+destinations read without waiting for an item tooltip. Confirmed releases outside
+inventory clear held state silently. **Next step:** controller listening while
+dragging equipment. Evidence: `docs/inventory-npc-followup.md`.
+
 ## Hiring-row tooltips and actions — 2026-09-22
 
 The user confirms that hiring candidates already read, and asks whether they

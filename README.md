@@ -119,8 +119,11 @@ pending. See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
 The user confirmed improvement and prefers the game's equipment-placement
 navigation. Picking up an inventory item now announces **Item in hand**, with
 a short instruction to choose a space or compatible equipment slot. Leaving
-that mode announces that the item is no longer held. These notices occur on
-state changes, and manual repeat includes the current held-item context.
+that mode announces the placement destination when known. Brief focus gaps or
+crossing another control do not repeat the pickup instruction. While carrying
+an item, equipment destinations read immediately, including occupied slots
+whose item tooltip is still pending. Manual repeat includes the held-item
+context while in the inventory.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
