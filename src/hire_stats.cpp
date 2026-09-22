@@ -52,12 +52,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			g_cursor = -1;
 		}
 	}
-	// The right stick walks them; while Y is held the left stick does the same,
-	// since Y and the right stick share the right thumb (the user, 2026-09-22).
+	// The left stick walks them while Y is held -- Y and the right stick share
+	// the right thumb. The right stick is not used here: without Y there is
+	// nothing past the row, which the menu reader already says (the user,
+	// 2026-09-22: "take the buffer out of mercenaries ... the skills reader is
+	// very necessary though").
 	InputDirection::StickPush push = InputDirection::StickPush::None;
 	for (const auto wanted : {InputDirection::StickPush::Up, InputDirection::StickPush::Down,
 	                          InputDirection::StickPush::Left, InputDirection::StickPush::Right}) {
-		if (InputDirection::TakeRightStickPushIf(wanted, "hire") || InputDirection::TakeLeftStickPushIf(wanted, "hire")) {
+		if (InputDirection::TakeLeftStickPushIf(wanted, "hire skills")) {
 			push = wanted;
 			break;
 		}

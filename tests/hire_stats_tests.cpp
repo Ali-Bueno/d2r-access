@@ -17,12 +17,14 @@ using namespace D2RAccess;
 namespace {
 uintptr_t trackedPanel = 0;
 NativeTooltips::Snapshot tooltip;
-InputDirection::StickPush pending = InputDirection::StickPush::None;
+InputDirection::StickPush pending = InputDirection::StickPush::None;     // the right stick
+InputDirection::StickPush pendingLeft = InputDirection::StickPush::None; // the left stick, under Y
 bool holdingY = false;
 std::vector<std::string> speech;
 const D2RL::PluginContext context{};
 bool Tick(NativeUi::Focus focus) { return HireStats::Tick(&context, 1000, focus); }
-bool Push(NativeUi::Focus focus, InputDirection::StickPush push) { pending = push; speech.clear(); return Tick(focus); }
+// A push on the left stick, the reader's while Y is held.
+bool Push(NativeUi::Focus focus, InputDirection::StickPush push) { pendingLeft = push; speech.clear(); return Tick(focus); }
 }
 
 namespace D2RAccess::NativeWidgets {
@@ -39,7 +41,6 @@ Snapshot Latest(uint64_t) { return tooltip; }
 namespace D2RAccess::InputDirection {
 StickPush PeekRightStickPush() { return pending; }
 bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }
-StickPush pendingLeft = StickPush::None;
 bool TakeLeftStickPushIf(StickPush wanted, const char*) {
 	if (wanted == StickPush::None || pendingLeft != wanted) return false;
 	pendingLeft = StickPush::None;
@@ -100,11 +101,15 @@ int main() {
 	// the left stick walks them while Y is held, as the right stick does.
 	tooltip.extras = {"Mana Cost: 3\nFire Arrow", "Inner Sight"}; Tick(next);
 	Check(Push(next, StickPush::Right) && speech == std::vector<std::string>{"Inner Sight"}, "every skill drawn is in the lines, the last one last");
-	speech.clear(); InputDirection::pendingLeft = StickPush::Left; Tick(next);
+	speech.clear(); pendingLeft = StickPush::Left; Tick(next);
 	Check(speech == std::vector<std::string>{"Gaile"}, "the left stick walks them too, left to the first line");
-	speech.clear(); InputDirection::pendingLeft = StickPush::Down; Tick(next);
+	speech.clear(); pendingLeft = StickPush::Down; Tick(next);
 	Check(speech == std::vector<std::string>{"Life: 210"}, "and down to the next");
 	Check(PadFilter::arms > 0, "the hire list arms the left stick for a held Y");
+	// The right stick is not the hire list's: without Y there is nothing past
+	// the row, which the menu reader already says.
+	speech.clear(); pending = StickPush::Down; Tick(next);
+	Check(pending == StickPush::Down && speech.empty(), "the right stick is left alone in the hire list");
 	pending = StickPush::None;
 	Check(!Tick({20, 21}), "leaving the hire list lets the stick go");
 	Passed();
