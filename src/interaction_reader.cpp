@@ -352,21 +352,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(context, focus, type)
 		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
-	// The belt names its slot's item straight away instead of waiting for the
-	// game's tooltip, which the controller layout shows 400 ms late -- the lag
-	// the user heard walking the belt on 2026-09-21. A slot that cannot be read
-	// falls back to the tooltip, as before.
-	bool beltNamed = false;
+	// A belt slot's item is named by the game's tooltip like any other, drawn
+	// at once now the controller layout's delay is gone (TooltipDelay; the
+	// user, 2026-09-22, on naming it early from the slot: "the belt fix is now
+	// unnecessary"). An empty slot has no tooltip at all, so it says so itself.
+	uintptr_t beltItem = 0;
 	if (type.name == "BeltWidget") {
 		const auto belt = NativeUi::BeltItem(focus.widget);
-		std::string name = belt.known && belt.item ? NativeGroundItems::ItemBaseName(belt.item) : std::string{};
-		if (belt.known && !belt.item) name = Strings::Current().slotEmpty;
 		if (belt.slot != g_beltSlot) {
 			g_beltSlot = belt.slot;
-			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p -> \"%s\"", belt.slot, belt.known ? 1 : 0,
-				reinterpret_cast<void*>(belt.item), name.c_str());
+			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.slot, belt.known ? 1 : 0,
+				reinterpret_cast<void*>(belt.item));
 		}
-		if (!name.empty()) { readout.option = std::move(name); beltNamed = true; }
+		if (belt.known && !belt.item) readout.option = Strings::Current().slotEmpty;
+		if (belt.known) beltItem = belt.item;
 	} else g_beltSlot = -2;
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
@@ -420,7 +419,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	// The item under the cursor, for its size and, while an item is held, its name.
 	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
-		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : 0;
+		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : beltItem;
 	const auto size = inventory ? SizePhrase(focusItem) : std::string{};
 	if (inventory) OfferAside(focus.widget, size);
 	else if (progression.skill) OfferAside(focus.widget, progression.points);
@@ -482,12 +481,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// again, and it renders ~400 ms after the row was read, so joining it
 		// re-read the whole row (MEASURED 2026-09-21: "34 gold. Drop Gold").
 		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
-			// The belt said the name from the slot already; its tooltip adds
-			// only what follows the name.
-			if (beltNamed && description.starts_with(readout.option)) {
-				description.erase(0, readout.option.size());
-				description.erase(0, description.find_first_not_of(". "));
-			}
 			Append(readout.option, description);
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
@@ -501,13 +494,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// game each time, never remembered.
 	std::string heldOver;
 	if (!renderedDescription && focusItem
-		&& (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied)
+		&& (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied || beltItem)
 		&& InventoryCursor::HoldingItem(context).value_or(false)) {
 		heldOver = NativeGroundItems::ItemBaseName(focusItem);
 		if (heldOver.empty()) heldOver = Strings::Current().slotOccupied;
 		if (AutoDetail::Enabled()) Append(heldOver, size);
 	}
-	if (type.kind == UiText::Kind::InventoryGrid && !heldOver.empty()) {
+	if ((type.kind == UiText::Kind::InventoryGrid || beltItem) && !heldOver.empty()) {
 		readout.option = heldOver;
 		readout.coordinates.clear();
 		renderedDescription = true;
@@ -539,7 +532,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool occupied = type.kind == UiText::Kind::InventorySlot
 		? equipmentPresence == NativeUi::ItemPresence::Occupied
 		: type.kind == UiText::Kind::InventoryGrid
-			&& NativeUi::GridItemPresence(focus.widget) != NativeUi::ItemPresence::Empty;
+			? NativeUi::GridItemPresence(focus.widget) != NativeUi::ItemPresence::Empty
+			: beltItem != 0;
 	const bool awaitingDescription = inventory && !renderedDescription && occupied;
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
@@ -600,8 +594,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// An occupied grid cell or equipment slot waits for the game's tooltip to
 	// name its item, without speaking its position or its slot alone first;
 	// other cells keep their quick coordinate feedback.
-	if ((type.kind == UiText::Kind::InventoryGrid || type.kind == UiText::Kind::InventorySlot)
-		&& occupied && !renderedDescription && heldOver.empty())
+	if (occupied && !renderedDescription && heldOver.empty())
 		return true; // the hints stay pending until the description arrives
 	if (progression.skill && !renderedDescription) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
