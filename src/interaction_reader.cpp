@@ -1,3 +1,4 @@
+#include "advanced_stats_reader.h"
 #include "async_log.h"
 #include "auto_detail.h"
 #include "control_hints.h"
@@ -353,6 +354,10 @@ bool HandlesFocus(NativeUi::Focus focus) {
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
+	// The Advanced Stats list has nothing the controller can focus, and a menu
+	// reader may or may not own its scroll bar, so its stick reader runs either
+	// way -- and before the character panel's, whose panel stays open behind it.
+	if (AdvancedStatsReader::Tick(context, focus)) return !conversation;
 	if (conversation) {
 		// The hire list's stats exist only in the game's tooltip, and a menu
 		// suspends this reader and its capture; HireStats keeps capture on there

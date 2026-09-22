@@ -92,6 +92,8 @@ add_library(d2r-access SHARED
 	src/progression_text.cpp
 	src/character_stats.cpp
 	src/character_stats_reader.cpp
+	src/mercenary_stats.cpp
+	src/advanced_stats_reader.cpp
 	src/native_tooltips.cpp
 	src/tooltip_delay.cpp
 	src/panel_state.cpp
@@ -322,6 +324,11 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
+	add_executable(advanced-stats-tests tests/advanced_stats_tests.cpp src/advanced_stats_reader.cpp src/mercenary_stats.cpp src/character_stats.cpp src/character_stats_reader.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(advanced-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(advanced-stats-tests PRIVATE src)
+	target_compile_features(advanced-stats-tests PRIVATE cxx_std_20)
+	add_test(NAME advanced-stats COMMAND advanced-stats-tests)
 	add_executable(hire-stats-tests tests/hire_stats_tests.cpp src/hire_stats.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(hire-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(hire-stats-tests PRIVATE src)
