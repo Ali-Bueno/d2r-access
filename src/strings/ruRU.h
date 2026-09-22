@@ -83,6 +83,7 @@ inline constexpr Table ruRU {
 	.surveyEmpty    = "здесь нет: %s",
 	.surveyNothing  = "здесь ничего нет",
 	.exitUnnamed = "Выход",
+	.containerUnnamed = "Контейнер",
 	.itemSpeechEnabled = "Чтение предметов рядом включено",
 	.itemSpeechDisabled = "Чтение предметов рядом выключено",
 	.itemSoundsEnabled = "Звуки предметов включены",

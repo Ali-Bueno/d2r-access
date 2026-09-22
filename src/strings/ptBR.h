@@ -83,6 +83,7 @@ inline constexpr Table ptBR {
 	.surveyEmpty    = "nenhum %s aqui",
 	.surveyNothing  = "nada aqui",
 	.exitUnnamed = "Saída",
+	.containerUnnamed = "Recipiente",
 	.itemSpeechEnabled = "Leitura de itens próximos ativada",
 	.itemSpeechDisabled = "Leitura de itens próximos desativada",
 	.itemSoundsEnabled = "Sons de itens ativados",

@@ -83,6 +83,7 @@ inline constexpr Table zhCN {
 	.surveyEmpty    = "这里没有%s",
 	.surveyNothing  = "这里什么都没有",
 	.exitUnnamed = "出口",
+	.containerUnnamed = "容器",
 	.itemSpeechEnabled = "附近物品播报已开启",
 	.itemSpeechDisabled = "附近物品播报已关闭",
 	.itemSoundsEnabled = "物品音效已开启",

@@ -52,6 +52,7 @@ Target g_offer, g_target;
 bool g_supported = false;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
+bool g_wasPlaying = false;
 // The level's logical rooms are fixed for as long as the level instance is,
 // so the graph is built once per instance rather than on a timer. A new
 // session or a new level id is a new instance.
@@ -289,7 +290,10 @@ void Tick(const D2RL::PluginContext* context) {
 	// menu's -- the game gets it, and guidance ignores it, as it ignores Ctrl+B
 	// and the console's lock and clear (the user, 2026-09-21: "ignore guidance
 	// while menu is open").
-	const bool inPlay = state.ready && Playing();
+	const bool playing = Playing();
+	const bool inPlay = state.ready && playing;
+	if (g_wasPlaying && !playing) BeaconAudio::Silence("ui-blocked");
+	g_wasPlaying = playing;
 	PadFilter::Claim(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
@@ -330,6 +334,7 @@ void Unregister() {
 	g_supported = false;
 	g_revision = 0;
 	g_nextUpdate = g_lastLog = 0;
+	g_wasPlaying = false;
 	g_command = Command::None;
 }
 }

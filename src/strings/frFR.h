@@ -83,6 +83,7 @@ inline constexpr Table frFR {
 	.surveyEmpty    = "aucun %s ici",
 	.surveyNothing  = "rien ici",
 	.exitUnnamed = "Sortie",
+	.containerUnnamed = "Conteneur",
 	.itemSpeechEnabled = "Lecture des objets proches activée",
 	.itemSpeechDisabled = "Lecture des objets proches désactivée",
 	.itemSoundsEnabled = "Sons des objets activés",

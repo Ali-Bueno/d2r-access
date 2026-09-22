@@ -202,6 +202,10 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) entity.name = LevelText(tables, levelId, LevelNameKey);
 	}
 	if (entity.name.empty() && !key.empty()) entity.name = UiText::Clean(Localization::Text(key));
+	// Spatial cues are derived from the object row, not its translated label.
+	// Keep those cues alive while string tables are unavailable or reloading.
+	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
+	if (entity.name.empty() && entity.container) entity.name = Strings::Current().containerUnnamed;
 	return !entity.name.empty();
 }
 // A level exit: the warp unit's node in its room, named after the destination level

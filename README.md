@@ -181,6 +181,12 @@ Sounds stop for pickup, dialogue, pause and leaving the game. See
 [item sound categories, controls and validation](docs/ground-items.md).
 The native reader and all six audio assets have initialized in a live game.
 
+Navigation and loot cues use game state and bundled or synthesized sounds,
+independently of the text and voice language. If a container or exit name cannot
+be read, its cue remains available with a generic localized label. Beacon audio
+is cancelled when guidance is suspended by dialogue, menus or loss of focus.
+See [audio language verification and limits](docs/audio-language-audit.md).
+
 **Level exits:** every way out of the current area (level exits, cave and
 dungeon entrances, town portals, red portals, waypoints, gateways) plays the
 supplied `portal` loop at its position through the same spatial mixer, and the

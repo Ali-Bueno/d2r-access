@@ -83,6 +83,7 @@ inline constexpr Table zhTW {
 	.surveyEmpty    = "這裡沒有%s",
 	.surveyNothing  = "這裡什麼都沒有",
 	.exitUnnamed = "出口",
+	.containerUnnamed = "容器",
 	.itemSpeechEnabled = "附近物品朗讀已啟用",
 	.itemSpeechDisabled = "附近物品朗讀已停用",
 	.itemSoundsEnabled = "物品音效已啟用",

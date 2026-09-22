@@ -83,6 +83,7 @@ inline constexpr Table esMX {
 	.surveyEmpty    = "aquí no hay %s",
 	.surveyNothing  = "aquí no hay nada",
 	.exitUnnamed = "Salida",
+	.containerUnnamed = "Contenedor",
 	.itemSpeechEnabled = "Lectura de objetos cercanos activada",
 	.itemSpeechDisabled = "Lectura de objetos cercanos desactivada",
 	.itemSoundsEnabled = "Sonidos de objetos activados",
