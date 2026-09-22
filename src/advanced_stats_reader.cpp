@@ -19,6 +19,7 @@ constexpr std::string_view Panel = "AdvancedStatsPanel";
 // Each row of the list is a copy of the layout's OptionTemplate, and its text
 // is the StatText inside it (Controller/AdvancedStatsPanelHD.json).
 constexpr std::string_view List = "ListContainer";
+constexpr std::string_view Template = "OptionTemplate";
 constexpr std::string_view RowText = "StatText";
 
 uintptr_t g_panel = 0;  // the opening the cursor belongs to
@@ -28,7 +29,8 @@ std::string g_loggedLines;  // the lines last written to the log, so a change is
 
 struct Census {
 	std::vector<MercenaryStats::Skill> skills;
-	size_t listRows = 0;
+	uintptr_t list = 0;
+	size_t listRows = 0, searchRows = 0;
 };
 
 std::string ChildText(uintptr_t panel, std::string_view name) {
@@ -76,16 +78,26 @@ std::vector<std::string> Build(uintptr_t panel, uintptr_t mercenary, Census* cen
 			for (auto& line : TooltipText::Read(skill.text).lines) Push(lines, std::move(line));
 		if (census) census->skills = std::move(skills);
 	}
-	// The rows where the game writes them (NativeUi::ListRows): MEASURED
-	// 2026-09-22, not one StatText reached Snapshot, on either panel. The walk
-	// is kept only for a list whose rows it does reach; it omits hidden
-	// subtrees, so the row template never reads.
-	const auto rows = NativeUi::ListRows(NativeWidgets::FindChild(panel, List));
-	if (census) census->listRows = rows.size();
+	// The rows where the game writes them (NativeUi::ListRows). MEASURED
+	// 2026-09-22: not one StatText reached Snapshot, on either panel, and the
+	// container read found no rows either (10:21 log), though the game's code
+	// reads as if both should. So when the container gives nothing, every
+	// StatText below the panel, shown or not, except the row template's.
+	const uintptr_t list = NativeWidgets::FindChild(panel, List);
+	const auto rows = NativeUi::ListRows(list);
 	for (const uintptr_t row : rows) Push(lines, ChildText(row, RowText));
+	size_t found = 0;
 	if (rows.empty())
-		for (const auto& node : NativeUi::Snapshot(panel, 0).nodes)
-			if (node.name == RowText) Push(lines, UiText::Clean(node.text));
+		for (const uintptr_t text : NativeUi::FindControls(panel, UiText::Kind::Text)) {
+			if (NativeWidgets::ReadName(text) != RowText || NativeWidgets::ReadName(NativeUi::Parent(text)) == Template) continue;
+			++found;
+			Push(lines, UiText::Clean(NativeWidgets::ReadText(text)));
+		}
+	if (census) {
+		census->list = list;
+		census->listRows = rows.size();
+		census->searchRows = found;
+	}
 	return lines;
 }
 
@@ -98,8 +110,9 @@ void Log(const D2RL::PluginContext* context, uintptr_t mercenary, const Census& 
 	if (g_logged && joined == g_loggedLines) return;
 	g_logged = true;
 	g_loggedLines = std::move(joined);
-	AsyncLog::InfoF(context, "[advanced] source=%s, %zu lines, %zu skill icons, %zu list rows",
-		mercenary ? "mercenary" : "character", lines.size(), census.skills.size(), census.listRows);
+	AsyncLog::InfoF(context, "[advanced] source=%s, %zu lines, %zu skill icons, %zu list rows, %zu found by search",
+		mercenary ? "mercenary" : "character", lines.size(), census.skills.size(), census.listRows, census.searchRows);
+	AsyncLog::InfoF(context, "[advanced] %s", NativeUi::DescribeList(census.list).c_str());
 	for (const auto& skill : census.skills)
 		AsyncLog::InfoF(context, "[advanced] skill id=%d level=%d text=%zu bytes", skill.id, skill.level, skill.text.size());
 	for (size_t at = 0; at < lines.size(); ++at)

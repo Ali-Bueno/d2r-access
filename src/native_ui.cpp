@@ -6,6 +6,7 @@
 
 #include <windows.h>
 #include <algorithm>
+#include <cstdio>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -326,20 +327,41 @@ std::vector<uintptr_t> Panels() {
 	return result;
 }
 
-std::vector<uintptr_t> ListRows(uintptr_t list) {
+namespace {
+uintptr_t ListContainer(uintptr_t list) {
 	// READ, 3.3.93787: a ListWidget (a ScrollViewWidget) creates an internal
-	// "Container" widget and keeps it at +0xD8 (0x140885C38); a panel fills row
-	// i as child i of that container (AdvancedStatsPanel, 0x1414ED7C0).
+	// widget named "Container" (0x140885C26) and keeps it at +0xD8
+	// (0x140885C38); AddItem clones the row template into it (0x140885150) and
+	// a panel fills row i as child i (AdvancedStatsPanel, 0x1414ED7C0). The
+	// name is the check that `list` really has one.
 	constexpr size_t ListContainerOffset = 0xD8;
-	std::vector<uintptr_t> rows;
-	if (Classify(list).kind != Kind::List) return rows;
 	uintptr_t container = 0;
-	if (!Peek(list + ListContainerOffset, container) || !container) return rows;
-	for (uintptr_t row : VectorAt(container + ChildrenOffset)) {
-		uint8_t visible = 0;
-		if (row && Peek(row + VisibleOffset, visible) && visible == 1) rows.push_back(row);
-	}
+	if (!NativeWidgets::SupportsTree() || !list || !Peek(list + ListContainerOffset, container) || !container
+		|| NativeWidgets::ReadName(container) != "Container") return 0;
+	return container;
+}
+}
+
+std::vector<uintptr_t> ListRows(uintptr_t list) {
+	// No visibility filter: every child is a live row. The panel clears the list
+	// before refilling it (0x140886250, from 0x1414EDBBD) and the list keeps the
+	// hidden template outside the container, at +0xD0 (0x140885B15).
+	std::vector<uintptr_t> rows;
+	if (const uintptr_t container = ListContainer(list))
+		for (uintptr_t row : VectorAt(container + ChildrenOffset)) if (row) rows.push_back(row);
 	return rows;
+}
+
+std::string DescribeList(uintptr_t list) {
+	const uintptr_t container = ListContainer(list);
+	const auto rows = ListRows(list);
+	uint8_t visible = 0xFF;
+	if (!rows.empty()) (void)Peek(rows.front() + VisibleOffset, visible);
+	char line[256];
+	std::snprintf(line, sizeof(line), "list %llX type \"%s\", container %llX, %zu children, first \"%s\" visible=%d",
+		static_cast<unsigned long long>(list), Classify(list).name.c_str(), static_cast<unsigned long long>(container),
+		rows.size(), rows.empty() ? "" : NativeWidgets::ReadName(rows.front()).c_str(), visible);
+	return line;
 }
 
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {

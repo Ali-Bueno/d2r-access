@@ -280,9 +280,15 @@ int main() {
 	Widget shownRow("ListItemWidget", "ListItem0"), hiddenRow("ListItemWidget", "ListItem1");
 	rowContainer.Add(shownRow); rowContainer.Add(hiddenRow); hiddenRow.Put<uint8_t>(0x51, 0);
 	rowList.Put(0xD8, rowContainer.Address());
-	Check(NativeUi::ListRows(rowList.Address()) == std::vector<uintptr_t>{shownRow.Address()},
-		"a list's rows are its container's children the game is showing");
-	Check(NativeUi::ListRows(rowContainer.Address()).empty(), "a widget that is not a list has no rows");
+	Check(NativeUi::ListRows(rowList.Address()) == std::vector<uintptr_t>{shownRow.Address(), hiddenRow.Address()},
+		"a list's rows are all of its container's children, shown or not");
+	Check(NativeUi::ListRows(rowContainer.Address()).empty(), "a widget with no row container has no rows");
+	Widget otherList("ListWidget", "ListContainer"), notContainer("Widget", "View");
+	notContainer.Add(shownRow);
+	otherList.Put(0xD8, notContainer.Address());
+	Check(NativeUi::ListRows(otherList.Address()).empty(), "only a widget the list named Container is read as its rows");
+	Check(NativeUi::DescribeList(rowList.Address()).find("2 children, first \"ListItem0\" visible=1") != std::string::npos,
+		"the log line names the container's children");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

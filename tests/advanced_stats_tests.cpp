@@ -56,16 +56,23 @@ std::string Push(InputDirection::StickPush push) {
 
 namespace D2RAccess::NativeUi {
 Type Classify(uintptr_t) { return {}; }
-// A ListWidget's rows are children of its own row container, which the tree
-// walk never reaches (MEASURED on the Advanced Stats panel).
+// A ListWidget's rows are every child of its own row container, shown or not.
 std::map<uintptr_t, uintptr_t> rowContainers;
 std::vector<uintptr_t> ListRows(uintptr_t list) {
 	std::vector<uintptr_t> rows;
 	const auto container = rowContainers.find(list);
 	if (container == rowContainers.end()) return rows;
 	for (uintptr_t id : order)
-		if (widgets[id].parent == container->second && !hidden.count(id)) rows.push_back(id);
+		if (widgets[id].parent == container->second) rows.push_back(id);
 	return rows;
+}
+std::string DescribeList(uintptr_t) { return {}; }
+// Discovery reaches hidden widgets too; every widget in the fixture below the
+// panel stands in for a text box, and the reader keeps the ones it names.
+std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind) {
+	std::vector<uintptr_t> found;
+	for (uintptr_t id : order) if (Descends(id, panel)) found.push_back(id);
+	return found;
 }
 bool Visible(uintptr_t widget) {
 	for (auto at = widget; at != 0;) {
@@ -225,17 +232,21 @@ int main() {
 	Add(7, "OptionTemplate", "", 6);
 	Add(8, "StatText", "Template", 7);
 	hidden.insert(7);
-	// The rows sit in the list's container, outside the panel's walkable tree.
-	Add(9, "Container", "", 0);
+	// The rows sit in the list's container, under the list's View (READ,
+	// 0x140892F80 / 0x140885C38). Hidden here because the walk never reached
+	// one live (MEASURED); the reader must not depend on that flag.
+	Add(16, "View", "", 6);
+	Add(9, "Container", "", 16);
 	NativeUi::rowContainers[6] = 9;
 	Add(10, "ListItem0", "", 9);
 	Add(11, "StatText", "Faster Hit Recovery: 0%", 10);
 	Add(12, "ListItem1", "", 9);
 	Add(13, "StatText", "Magic Find: 0%", 12);
-	Add(14, "ListItem2", "", 9);
-	Add(15, "StatText", "Stale row", 14);
-	hidden.insert(14);
-	Check(NativeUi::Snapshot(Advanced, 0).nodes.size() == 6, "the rows are not in the panel's walk, as measured");
+	hidden.insert(10);
+	hidden.insert(12);
+	bool walked = false;
+	for (const auto& node : NativeUi::Snapshot(Advanced, 0).nodes) walked = walked || node.name == "StatText";
+	Check(!walked, "the rows are not in the panel's walk, as measured");
 
 	Check(AdvancedStatsReader::Mercenary() == Mercenary, "the open mercenary panel is the source");
 	auto lines = AdvancedStatsReader::Lines(Advanced, Mercenary);
@@ -246,6 +257,10 @@ int main() {
 		"Faster Hit Recovery: 0%", "Magic Find: 0%",
 	};
 	Check(lines == expected, "header, the mercenary's statistics, its skills top first, then the advanced list");
+	NativeUi::rowContainers.clear();
+	Check(AdvancedStatsReader::Lines(Advanced, Mercenary) == expected,
+		"with no row container the rows are found by searching the panel, and the template is left out");
+	NativeUi::rowContainers[6] = 9;
 
 	widgets[3].text.clear();
 	widgets[4].text.clear();
