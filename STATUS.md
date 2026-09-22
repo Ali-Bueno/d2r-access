@@ -7,20 +7,19 @@
 Built and installed; **4/4 related CTest suites pass**. Temporary focus gaps no
 longer rearm the pickup instruction. While carrying an item, occupied equipment
 destinations read without waiting for an item tooltip. Confirmed releases outside
-inventory clear held state silently. **Next step:** controller listening while
-dragging equipment. Evidence: `docs/inventory-npc-followup.md`.
+inventory clear held state silently. The user reports that placement works well
+on 2026-09-22. **Next step:** listen to the corrected mercenary skill announcement.
+Evidence: `docs/inventory-npc-followup.md`.
 
 ## Hiring-row tooltips and actions — 2026-09-22
 
-The user confirms that hiring candidates already read, and asks whether they
-also expose tooltips. HD layouts show name, level, cost and up to three skill
-icons; controller strings include `ShowMercSkills`. Runtime list rows now share
-the interaction reader, preserving tooltip capture and native action hints.
-Built and installed; **5/5 related CTest suites pass**, including stale-detail
-checks after leaving a row. Live inspection was blocked by Windows foreground
-restrictions; the owned title-screen process was closed without input.
-**Next step:** controller listening for Show Mercenary Skills and mercenary
-equipment. Evidence and limits: `docs/character-panel.md#hiring-rows-2026-09-22`.
+Live hiring logs confirm three rendered skills per Act I candidate, with correct
+fire/cold variants. Removing secondary tooltip records then caused an automatic
+first-skill repeat that interrupted the complete description. Removal-only changes
+are now silent; new or changed records still announce. Built and installed;
+**3/3 related CTest suites pass**. **Next step:** controller listening to the full
+skill description; mercenary equipment remains pending.
+Evidence: `docs/character-panel.md#hiring-rows-2026-09-22`.
 
 ## Menu and item-comparison fixes — 2026-09-22
 

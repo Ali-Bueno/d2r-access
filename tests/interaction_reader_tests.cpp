@@ -696,6 +696,24 @@ int main() {
 	Check(speech == std::vector<std::string>{skills} && InteractionReader::Repeat().ends_with(controllerHelp),
 		"the detail gesture repeats visible skill information while manual repeat retains candidate and actions");
 	Check(InteractionReader::Repeat().find(skills) != std::string::npos, "manual repeat includes the row's visible tooltip");
+	ClearSpeech(); Tooltip("Flecha explosiva");
+	tooltip.comparisons = {{"Flecha de fuego", ""}, {"Vista interior", ""}}; Tick();
+	Check(speech == std::vector<std::string>{"Flecha explosiva. Flecha de fuego. Vista interior"},
+		"the rendered three-skill set is announced together");
+	ClearSpeech(); tooltip.comparisons.clear(); Tick();
+	Check(speech.empty() && interrupts.empty(),
+		"shrinking to the first skill cannot interrupt the complete skill announcement with a repeated fragment");
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Flecha explosiva"}, "explicit detail follows the current rendered records after removal");
+	ClearSpeech(); tooltip.comparisons = {{"Flecha de fuego", ""}, {"Vista interior", ""}}; Tick();
+	Check(speech == std::vector<std::string>{"Flecha explosiva. Flecha de fuego. Vista interior"},
+		"revealing all skills again on the same candidate still announces the complete set");
+	ClearSpeech(); Tooltip("Flecha glacial"); Tick();
+	Check(speech == std::vector<std::string>{"Flecha glacial"}, "a genuinely different skill on the same focus still announces");
+	ClearSpeech(); Tooltip("Flecha glacial mejorada"); Tick();
+	Check(speech == std::vector<std::string>{"Flecha glacial mejorada"}, "record changes are not suppressed by matching text prefixes");
+	ClearSpeech(); Tooltip("Flecha glacial"); Tick();
+	Check(speech == std::vector<std::string>{"Flecha glacial"}, "a shorter changed skill record is still new information");
 	ClearSpeech(); tooltip = {}; Tick();
 	Check(speech.empty(), "closing skill information does not repeat the candidate");
 	pendingPush = InputDirection::StickPush::Up; Tick();

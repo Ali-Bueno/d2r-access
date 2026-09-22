@@ -22,6 +22,7 @@
 #include "ui_text.h"
 
 #include <D2RLPlugin/item.h>
+#include <algorithm>
 #include <cstdio>
 
 namespace D2RAccess::InteractionReader {
@@ -58,6 +59,7 @@ std::vector<KnownSlot> g_slotLocations;
 std::string g_detail, g_detailFor;
 std::string g_comparison, g_comparisonFor;
 std::string g_rowDetail, g_rowDetailFor;
+std::vector<std::string> g_rowTooltips;
 
 // The cell whose item was named, and the cell and headline its tooltip was
 // logged under, so [item] is written once per item instead of on every UI poll
@@ -159,11 +161,13 @@ std::string ComparisonText(const NativeTooltips::Snapshot& tooltip,
 	return result;
 }
 
-std::string RowTooltip(const NativeTooltips::Snapshot& tooltip) {
-	std::string result;
+std::vector<std::string> RowTooltips(const NativeTooltips::Snapshot& tooltip) {
+	std::vector<std::string> result;
 	const auto appendRecord = [&](const auto& record) {
-		for (const auto& line : TooltipText::Read(record.body).lines) Append(result, line);
-		for (const auto& line : TooltipText::Read(record.footer).lines) Append(result, line);
+		std::string text;
+		for (const auto& line : TooltipText::Read(record.body).lines) Append(text, line);
+		for (const auto& line : TooltipText::Read(record.footer).lines) Append(text, line);
+		if (!text.empty()) result.push_back(std::move(text));
 	};
 	appendRecord(tooltip);
 	for (const auto& record : tooltip.comparisons) appendRecord(record);
@@ -355,6 +359,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// What the tooltip adds to a name already spoken, kept so only that part is
 	// announced when it arrives behind the name.
 	std::string tooltipAddition, comparison, rowDetail;
+	std::vector<std::string> rowTooltips;
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -391,7 +396,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// closes on an item with no further properties.
 			g_detail = comparison.empty() ? std::move(split.detail) : comparison;
 		} else if (list) {
-			rowDetail = RowTooltip(tooltip);
+			rowTooltips = RowTooltips(tooltip);
+			for (const auto& text : rowTooltips) Append(rowDetail, text);
 			description = rowDetail;
 			g_detail = rowDetail;
 		} else {
@@ -420,10 +426,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (list && rowDetail.empty()) g_detail.clear();
+	// Disappearing records must not interrupt a full description with its remaining fragment.
 	const bool rowDetailChanged = !rowDetail.empty()
-		&& (rowDetail != g_rowDetail || readout.focusKey != g_rowDetailFor);
+		&& (readout.focusKey != g_rowDetailFor || std::any_of(rowTooltips.begin(), rowTooltips.end(), [](const auto& text) {
+			return std::find(g_rowTooltips.begin(), g_rowTooltips.end(), text) == g_rowTooltips.end();
+		}));
 	g_rowDetail = std::move(rowDetail);
 	g_rowDetailFor = g_rowDetail.empty() ? std::string{} : readout.focusKey;
+	g_rowTooltips = std::move(rowTooltips);
 	const bool comparisonChanged = !comparison.empty()
 		&& (comparison != g_comparison || readout.focusKey != g_comparisonFor);
 	if (comparison.empty() && !g_comparison.empty() && !renderedDescription
@@ -591,6 +601,7 @@ void Reset() {
 	g_comparisonFor.clear();
 	g_rowDetail.clear();
 	g_rowDetailFor.clear();
+	g_rowTooltips.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();

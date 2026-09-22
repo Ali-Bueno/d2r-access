@@ -123,4 +123,22 @@ Automated coverage checks routing, native hint order, multiple rendered records,
 repeat/silence behavior, stale selection and transitions to unrelated controls.
 Live inspection stopped at the title screen because Windows refused foreground
 focus to the guarded desktop helper; the owned process was closed without input.
-The action and mercenary equipment still need controller listening validation.
+That initial probe is superseded for hiring by the user's later gameplay log.
+Mercenary equipment still needs controller listening validation.
+
+### Full skill description interrupted by its first record
+
+The later log shows Kyoko's full Freezing Arrow, Cold Arrow and Inner Sight
+descriptions at 20:50:53.815, then an automatic Freezing Arrow-only repeat at
+20:50:54.268. Kundri similarly reads Exploding Arrow, Fire Arrow and Inner Sight
+at 20:50:59.053, then only Exploding Arrow at 20:50:59.365. These are `[interaction]`
+outputs, not requested `[detail]` reads. Candidate changes correctly switch the
+fire/cold sets. The first-only update interrupted the longer utterance, explaining
+the user's impression that each candidate had just one skill.
+
+The shared row reader now compares cleaned tooltip records individually. A new
+or changed record, or a new candidate, announces; removing records alone stays
+silent. Manual detail still follows the current snapshot, and closing the tooltip
+clears it. Reopening the full skill display announces again. This avoids preserving
+hidden skill data or relying on text-prefix heuristics. Three related CTest suites
+pass, including the full-set-to-first-record regression; listening is pending.
