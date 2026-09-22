@@ -86,6 +86,7 @@ inline constexpr Table deDE {
 	.surveyEmpty    = "hier gibt es kein %s",
 	.surveyNothing  = "hier ist nichts",
 	.exitUnnamed = "Ausgang",
+	.containerUnnamed = "Behälter",
 	.itemSpeechEnabled = "Vorlesen naher Gegenstände aktiviert",
 	.itemSpeechDisabled = "Vorlesen naher Gegenstände deaktiviert",
 	.itemSoundsEnabled = "Gegenstandsgeräusche aktiviert",

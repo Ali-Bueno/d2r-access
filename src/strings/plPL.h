@@ -86,6 +86,7 @@ inline constexpr Table plPL {
 	.surveyEmpty    = "brak %s w tym miejscu",
 	.surveyNothing  = "nic tu nie ma",
 	.exitUnnamed = "Wyjście",
+	.containerUnnamed = "Pojemnik",
 	.itemSpeechEnabled = "Odczytywanie pobliskich przedmiotów włączone",
 	.itemSpeechDisabled = "Odczytywanie pobliskich przedmiotów wyłączone",
 	.itemSoundsEnabled = "Dźwięki przedmiotów włączone",

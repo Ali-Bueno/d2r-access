@@ -86,6 +86,7 @@ inline constexpr Table itIT {
 	.surveyEmpty    = "nessun %s qui",
 	.surveyNothing  = "qui non c'è nulla",
 	.exitUnnamed = "Uscita",
+	.containerUnnamed = "Contenitore",
 	.itemSpeechEnabled = "Lettura degli oggetti vicini attivata",
 	.itemSpeechDisabled = "Lettura degli oggetti vicini disattivata",
 	.itemSoundsEnabled = "Suoni degli oggetti attivati",

@@ -109,6 +109,7 @@ struct Table {
 	const char* surveyEmpty;    // %s = category
 	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
+	const char* containerUnnamed; // a loot container whose localized name is unavailable
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
 	const char* itemSpeechDisabled;
 	const char* itemSoundsEnabled; // ground item loop toggles
@@ -191,7 +192,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
-		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed,
+		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed, t.containerUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,

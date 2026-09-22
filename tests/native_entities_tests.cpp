@@ -14,7 +14,9 @@ using namespace EntityLayout;
 // local/lng/strings/ui.json id of the PlaceholderNameKey ("dummy") entry.
 constexpr uint32_t PlaceholderNameId = 5382;
 namespace D2RAccess::Localization {
+bool available = true;
 std::string Text(uint32_t id) {
+	if (!available) return {};
 	switch (id) {
 	case PlaceholderNameId: return "una fuerza maligna";
 	case 2892: return "Akara";
@@ -26,6 +28,7 @@ std::string Text(uint32_t id) {
 	}
 }
 std::string Text(std::string_view key) {
+	if (!available) return {};
 	if (key == PlaceholderNameKey) return "una fuerza maligna";
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
@@ -230,6 +233,22 @@ int main() {
 	Check(f.Read(entities) && !f.Find(entities, 8), "class beyond the table count is rejected");
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
 	Check(f.Read(entities) && entities.size() == 10, "fixture restored");
+	Localization::available = false;
+	for (size_t i = 0; i < Strings::LanguageCount; ++i) {
+		Strings::Select(static_cast<Strings::Language>(i));
+		Check(f.Read(entities), "entities remain readable while localization is unavailable");
+		for (uint32_t id : {12u, 14u, 15u, 16u}) {
+			const auto* exit = f.Find(entities, id);
+			Check(exit && exit->kind == EntityRadar::Kind::Exit && exit->name == Strings::Current().exitUnnamed,
+				"classified exits use the selected language's generic name without game localization");
+		}
+		const auto* silentContainer = f.Find(entities, 17);
+		Check(silentContainer && silentContainer->container && silentContainer->name == Strings::Current().containerUnnamed,
+			"a classified container uses the selected language's generic name without game localization");
+		Check(!f.Find(entities, 9), "an ordinary unnamed object remains filtered");
+	}
+	Localization::available = true;
+	Strings::Select(Strings::Language::enUS);
 	Check(!NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 41, 7, entities), "another player id is refused");
 	f.enemy.At(GroundItemLayout::UnitNext, f.enemy.Address());
 	Check(!f.Read(entities), "a unit list cycle fails instead of looping");

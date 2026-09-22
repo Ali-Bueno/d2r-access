@@ -86,6 +86,7 @@ inline constexpr Table enUS {
 	.surveyEmpty    = "no %s here",
 	.surveyNothing  = "nothing found here",
 	.exitUnnamed = "Exit",
+	.containerUnnamed = "Container",
 	.itemSpeechEnabled = "Nearby item speech enabled",
 	.itemSpeechDisabled = "Nearby item speech disabled",
 	.itemSoundsEnabled = "Item sounds enabled",
