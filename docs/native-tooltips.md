@@ -45,10 +45,11 @@ mutex; speech remains on the existing PRISM thread. Gameplay lifecycle,
   `NativeUi::FocusedItem` calls the widget's own vtable `+0xC8` getter (grid,
   equipment slot and belt differ only in the cell it takes). Ordinary items read
   immediately; magic, set, rare, unique and crafted items wait for the rendered
-  full name, avoiding a preliminary base-name announcement. The delay is the layout's:
+  full name, avoiding a preliminary base-name announcement. The stock delay is the layout's:
   `game-data/global/ui/Layouts/Controller/TooltipsPanelHD.json` sets
   `showDelayMilliseconds` to 400, MEASURED 2026-09-21 as 460-550 ms from highlight to name
   on grid and equipment, against ~60 ms on the belt, which already read its unit.
+  The inventory reader now bypasses that delay during the panel's draw, as below.
 - The short readout is `Crimson Spear. magic`, or `Spear. Unidentified` when the
   tooltip contains the localized `ItemStats1b` line (verified in
   `game-data/local/lng/strings/item-modifiers.json`, all 13 locales). Unidentified
@@ -95,6 +96,38 @@ was moved to its own worker (2026-09-15). Tab announcements remain unconfirmed.
 The user confirmed axe descriptions at the blacksmith on 2026-09-15. Full equipment
 and storage operations still need live item tests. Cells with no rendered text
 are not declared empty solely because a tooltip is absent.
+
+## Immediate inventory tooltips (2026-09-22)
+
+The user found the stock delay noticeably sluggish when generated item names
+waited for their tooltip. A second native hook wraps `TooltipsPanel::Draw` and
+temporarily uses **0 ms**, the value in the stock mouse `TooltipsPanelHD.json`.
+It applies only to the tracked panel while an inventory grid, equipment slot or
+belt owns focus. The original field is restored after drawing, including on
+unwind; disabling text capture restores normal behavior without retaining an
+object pointer. World labels and other tooltip types keep their stock delay.
+
+Verified in `re/D2R.rebuilt.exe` and the installed loader's cached `D2R.text.bin`
+(build 3.3.93787):
+
+| Evidence | Meaning |
+|---|---|
+| Reflection record `0x2400340` | `showDelayMilliseconds`, signed integer, member `+0xA44`, size 4 |
+| `0x88069C`, `0x8806A3` | Read that member and multiply milliseconds by 1,000,000 |
+| `0x8806B2`, `0x880B90` | Compare elapsed time since `+0xA48` against the delay |
+| `0x880BC7` | Call the existing record renderer after the delay check |
+| `0x880550..0x880CE6` | Complete draw function, 1943 bytes; `LayoutCheck::Hash` = `B3C9FE1D88CB4C5C` in both images |
+
+The new hook requires that whole-function fingerprint before changing the field.
+If verification or installation fails, the original capture hook remains usable
+with the stock delay. No stock layout files or loader configuration are replaced.
+The 30 Hz UI poll and speech backend still determine the remaining audible latency.
+
+Validation: all 61 CTest suites pass, including delay restoration on normal return
+and exception, all three inventory kinds, disabled/noninventory paths and failed
+writes. A live 2026-09-22 startup logged both verified tooltip hooks and exited
+cleanly from the title screen. Controller navigation latency and NVDA listening
+remain user-led checks; startup is not evidence of their timing.
 
 ## Item speech without grid coordinates
 

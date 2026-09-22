@@ -6,9 +6,10 @@
 
 Items use one name plus quality (`Crimson Spear. magic`) or unidentified status
 (`Spear. Unidentified`). Generated names wait for the stock tooltip; prices and
-properties remain in detail. Built and installed; **61/61 CTest suites pass**,
-including exact English/Spanish names, unidentified state, stale tooltips and hints.
-**Next step:** controller/NVDA listening in inventory and shops (stock tooltip delay remains).
+properties remain in detail. User reported the stock 400 ms wait was noticeably sluggish;
+it is now bypassed during active inventory reads. Built and installed; **61/61 suites pass**.
+Live startup confirmed the verified delay hook loads; clean exit succeeded.
+**Next step:** controller/NVDA listening in inventory and shops; remaining audible latency is unmeasured.
 `docs/native-tooltips.md`.
 
 ## Directional wall sliding — 2026-09-22
@@ -583,7 +584,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
-| Item readout | built and installed 2026-09-22 — listening pending | One full name plus quality or unidentified status. Prices/properties on demand; ordinary items still read immediately. 61/61 suites pass. `docs/native-tooltips.md` |
+| Item readout | built and installed 2026-09-22 — listening pending | One full name plus quality or unidentified status; controller tooltip delay bypassed. Prices/properties on demand. 61/61 suites pass; hook load verified live. `docs/native-tooltips.md` |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops (portal) | prior build installed - live detections logged; listening check pending | Type-5 warps + portal/waypoint/gateway objects as `Kind::Exit`, `portal.ogg` through the item mixer, Ctrl+P. Latest 19:16 session records nearby exits; audible placement and dungeon transitions remain unconfirmed. `docs/level-exits.md` |
 | Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |

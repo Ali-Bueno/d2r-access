@@ -36,8 +36,9 @@ The user confirmed the stash and Charsi target labels, basic inventory
 selection, smooth inventory navigation, and axe descriptions in the blacksmith's shop. The reader
 also exposes inventory coordinates and selected stash tabs. Item grids and equipment
 announce one name and its quality, such as `Crimson Spear. magic`, or
-`Spear. Unidentified`. Magic, set, rare, unique and crafted items wait for the game's
-tooltip (about 400 ms) for their full name; ordinary items read immediately.
+`Spear. Unidentified`. Magic, set, rare, unique and crafted items use the game's
+full tooltip name. The stock 400 ms controller delay is removed while the inventory
+reader is active; ordinary items still read directly from the highlighted item.
 Prices and properties are available with right-stick up, or automatically with
 Ctrl+D. Empty grid cells retain coordinate feedback. See
 [native tooltip evidence](docs/native-tooltips.md).
