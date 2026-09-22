@@ -87,6 +87,14 @@ StickPush TakeRightStickPush(const char* claimant);
 // that belong to those.
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
 
+// Left thumbstick push edges, recorded only while Y is held: the reader for a
+// held Y (compare in the inventory, skills in the hire list) lives on the left
+// stick because Y and the right stick are both under the right thumb (the
+// user, 2026-09-22). A pending push is dropped when Y is released, so no push
+// made while walking is ever read later. Same claim rules as the right stick.
+StickPush PeekLeftStickPush();
+bool TakeLeftStickPushIf(StickPush wanted, const char* claimant);
+
 // The pending push WITHOUT claiming it, so a reader whose gate is expensive
 // can ask "is there anything for me?" before paying for the gate, and still
 // leave the push for the next reader when the gate says no. A pending push

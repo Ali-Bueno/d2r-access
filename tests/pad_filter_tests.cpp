@@ -57,5 +57,10 @@ int main() {
 	Check(Filter(ButtonB, false, reader, false) == ButtonB, "with no hold, B in a menu is the game's again");
 	Check(Filter(0, false, reader, false) == 0, "release");
 	Check(Filter(ButtonA | Up, false, reader, true) == (ButtonA | Up), "the hold takes B and nothing else");
+	// Where a held Y has a reader, the left stick is kept from the game only in
+	// a frame where Y is down.
+	Check(KeepsLeftStick(Y, true), "armed, a held Y keeps the left stick from the game");
+	Check(!KeepsLeftStick(0, true), "armed, without Y the left stick is the game's");
+	Check(!KeepsLeftStick(Y, false), "unarmed, Y leaves the left stick alone");
 	Passed();
 }

@@ -136,6 +136,8 @@ namespace D2RAccess::PadFilter {
 int holds = 0;
 void HoldB(uint64_t) { ++holds; }
 void ReleaseB() { holds = 0; }
+int leftStickArms = 0;
+void ArmLeftStickWithY(uint64_t) { ++leftStickArms; }
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
@@ -164,6 +166,13 @@ StickPush PeekRightStickPush() { return pendingPush; }
 bool pressB = false;
 bool holdingY = false;
 bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }
+StickPush pendingLeft = StickPush::None;
+StickPush PeekLeftStickPush() { return pendingLeft; }
+bool TakeLeftStickPushIf(StickPush wanted, const char*) {
+	if (wanted == StickPush::None || pendingLeft != wanted) return false;
+	pendingLeft = StickPush::None;
+	return true;
+}
 bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButton::B && pressB; if (button == FaceButton::B) pressB = false; return pressed; }
 }
 // The damage, defense and price labels come from the game's own string table,
@@ -658,24 +667,28 @@ int main() {
 	Tooltip("Objeto desconocido"); Settle(); pendingPush = InputDirection::StickPush::Right; ClearSpeech();
 	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "an item the tables do not know gives no size");
 	gridItem = 0; tooltip = {};
-	// Compare mode, while Y is held: right stick left reads the highlighted item,
-	// right stick right the equipped one the game draws beside it. Holding Y
-	// alone reads nothing.
+	// Compare mode, while Y is held: the left stick reads -- left the highlighted
+	// item, right the equipped one the game draws beside it, up the detail and
+	// down the controls -- and the right stick is unchanged.
 	Check(!InteractionReader::ItemLogging(), "item tooltips are not logged unless asked for");
 	ClearSpeech(); holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
 	cell = {2, 3}; selection = (uint64_t{3} << 32) | 2;
 	Tooltip("Defensa: 2\nGuantes"); Settle();
 	Check(speech == std::vector<std::string>{"Guantes"}, "the item reads as usual");
+	Check(PadFilter::leftStickArms > 0, "an inventory item arms the left stick for a held Y");
 	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; InputDirection::holdingY = true; Settle();
 	Check(speech.empty(), "holding compare reads nothing by itself");
+	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Right;
+	Check(Tick() && speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "left stick right reads the equipped item");
+	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Left;
+	Check(Tick() && speech == std::vector<std::string>{"Guantes. Defensa: 2"}, "left stick left reads the highlighted item in full");
+	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Defensa: 2"}, "left stick up reads the detail, as the right stick would");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Right;
-	Check(Tick() && speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "right reads the equipped item");
-	ClearSpeech(); pendingPush = InputDirection::StickPush::Left;
-	Check(Tick() && speech == std::vector<std::string>{"Guantes. Defensa: 2"}, "left reads the highlighted item in full");
-	ClearSpeech(); tooltip.extras.clear(); pendingPush = InputDirection::StickPush::Right;
-	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "with nothing equipped to compare, right says so");
-	InputDirection::holdingY = false; ClearSpeech(); pendingPush = InputDirection::StickPush::Right;
-	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "without Y, right is the item's size again");
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "the right stick is unchanged while Y is held: right is the size");
+	ClearSpeech(); tooltip.extras.clear(); InputDirection::pendingLeft = InputDirection::StickPush::Right;
+	Check(Tick() && speech == std::vector<std::string>{Strings::Current().detailNone}, "with nothing equipped to compare, it says so");
+	InputDirection::holdingY = false;
 	tooltip = {}; itemPresence = NativeUi::ItemPresence::Empty;
 	// The tab bar across the top of the menus reads the tab its highlight is on.
 	ClearSpeech(); focus = {20, 95}; widgetType = {"TabBarWidget", UiText::Kind::Tabs}; selection = 6;

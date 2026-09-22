@@ -61,6 +61,7 @@ bool g_leftStickClick = false;
 bool g_rightStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
 bool g_pressedB = false;
+StickPush g_leftStickPush = StickPush::None; // only while Y is held
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -164,9 +165,11 @@ void Poll() {
 			}
 			if (UpdateEdge(edges.stickLeftHeld, pad.sThumbLX <= -kThumbstickDirectionThreshold)) {
 				RecordEdge(Horizontal::Left);
+				if (edges.yHeld) g_leftStickPush = StickPush::Left;
 			}
 			if (UpdateEdge(edges.stickRightHeld, pad.sThumbLX >= kThumbstickDirectionThreshold)) {
 				RecordEdge(Horizontal::Right);
+				if (edges.yHeld) g_leftStickPush = StickPush::Right;
 			}
 			// XInput's Y axis grows upward.
 			if (UpdateEdge(edges.dpadUpHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0)) {
@@ -177,9 +180,11 @@ void Poll() {
 			}
 			if (UpdateEdge(edges.stickUpHeld, pad.sThumbLY >= kThumbstickDirectionThreshold)) {
 				RecordEdge(Vertical::Up);
+				if (edges.yHeld) g_leftStickPush = StickPush::Up;
 			}
 			if (UpdateEdge(edges.stickDownHeld, pad.sThumbLY <= -kThumbstickDirectionThreshold)) {
 				RecordEdge(Vertical::Down);
+				if (edges.yHeld) g_leftStickPush = StickPush::Down;
 			}
 			// BACK is a modifier: a face button pressed while it is held (pad_filter.h
 			// keeps that press from the game during play).
@@ -221,6 +226,7 @@ void Poll() {
 		}
 	}
 
+	if (!FaceButtonHeld(FaceButton::Y)) g_leftStickPush = StickPush::None;
 	g_dpad = {0, 0, dpadButtons != 0 && dpadButtons != g_previousDpad, dpadButtons != 0};
 	if (dpadButtons == XINPUT_GAMEPAD_DPAD_UP) g_dpad.y = -1;
 	else if (dpadButtons == XINPUT_GAMEPAD_DPAD_DOWN) g_dpad.y = 1;
@@ -271,6 +277,12 @@ bool FaceButtonHeld(FaceButton button) {
 			|| (button == FaceButton::X && pad.xHeld) || (button == FaceButton::Y && pad.yHeld)) return true;
 	}
 	return false;
+}
+StickPush PeekLeftStickPush() { return g_leftStickPush; }
+bool TakeLeftStickPushIf(StickPush wanted, const char*) {
+	if (wanted == StickPush::None || g_leftStickPush != wanted) return false;
+	g_leftStickPush = StickPush::None;
+	return true;
 }
 bool TakeFacePress(FaceButton button) {
 	if (button != FaceButton::B) return false; // only B has a reader so far

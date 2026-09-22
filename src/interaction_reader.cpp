@@ -227,25 +227,29 @@ bool ReadSkillLines(const D2RL::PluginContext* context, NativeUi::Focus focus, u
 bool IsInventory(UiText::Kind kind);
 
 // Compare mode, while Y is held on an inventory item (the user, 2026-09-22):
-// right stick left reads the highlighted item's tooltip and right stick right
-// the equipped one the game draws beside it ("Currently Equipped"), each in
-// full. Holding Y reads nothing by itself. Up and down keep their meaning.
+// the left stick reads, since Y and the right stick share the right thumb.
+// Left reads the highlighted item's tooltip in full, right the equipped one the
+// game draws beside it ("Currently Equipped"), up the detail and down the
+// controls, as the right stick would. The left stick is kept from the game
+// meanwhile (PadFilter::ArmLeftStickWithY) so it does not move the cursor off
+// the item. Holding Y reads nothing by itself; the right stick is unchanged.
 bool ReadCompare(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_t now) {
 	using InputDirection::StickPush;
-	const auto push = InputDirection::PeekRightStickPush();
-	if (!focus.panel || (push != StickPush::Left && push != StickPush::Right)
-		|| !InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y)
-		|| !IsInventory(NativeUi::Classify(focus.widget).kind)) return false;
-	(void)InputDirection::TakeRightStickPushIf(push, "compare");
+	if (!focus.panel || !IsInventory(NativeUi::Classify(focus.widget).kind)) return false;
+	PadFilter::ArmLeftStickWithY(now);
+	const auto push = InputDirection::PeekLeftStickPush();
+	if (push == StickPush::None || !InputDirection::TakeLeftStickPushIf(push, "compare")) return false;
 	const auto tooltip = NativeTooltips::Latest(now);
+	const bool current = tooltip.panel == focus.panel && tooltip.widget == focus.widget
+		&& tooltip.selection == NativeUi::FocusSelection(focus.widget);
 	std::string text;
-	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
-		&& tooltip.selection == NativeUi::FocusSelection(focus.widget)) {
-		text = push == StickPush::Left ? TooltipText::Comparison(std::span(&tooltip.body, 1))
-			: TooltipText::Comparison(tooltip.extras);
-	}
+	const char* what = "detail";
+	if (push == StickPush::Up) text = g_detail;
+	else if (push == StickPush::Down) { text = ControlHints::Current(); what = "controls"; }
+	else if (current && push == StickPush::Left) { text = TooltipText::Comparison(std::span(&tooltip.body, 1)); what = "highlighted"; }
+	else if (current) { text = TooltipText::Comparison(tooltip.extras); what = "equipped"; }
 	if (text.empty()) text = Strings::Current().detailNone;
-	D2RAccess::AsyncLog::InfoF(context, "[compare] %s -> \"%s\"", push == StickPush::Left ? "highlighted" : "equipped", text.c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[compare] %s -> \"%s\"", what, text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;
 }

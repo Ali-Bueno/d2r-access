@@ -38,6 +38,7 @@ GetStateFn                         g_original = nullptr;
 std::vector<void**>                g_slots;               // the game's slots now pointing at Filtered
 std::atomic<bool>                  g_claimed { false };
 std::atomic<uint64_t>              g_holdBUntil { 0 };    // GetTickCount64 before which B is held
+std::atomic<uint64_t>              g_leftStickUntil { 0 }; // before which a held Y takes the left stick
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
 int                                g_retries = 0;
 uint64_t                           g_nextTry = 0;
@@ -52,6 +53,10 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	const WORD before = state->Gamepad.wButtons;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
 	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB);
+	if (KeepsLeftStick(before, GetTickCount64() < g_leftStickUntil.load(std::memory_order_relaxed))) {
+		state->Gamepad.sThumbLX = 0;
+		state->Gamepad.sThumbLY = 0;
+	}
 	const uint16_t kept = static_cast<uint16_t>(before & ~state->Gamepad.wButtons);
 	if (const uint16_t fresh = static_cast<uint16_t>(kept & ~g_keptLast[user]))
 		g_keptPresses.fetch_or(fresh, std::memory_order_relaxed);
@@ -147,6 +152,14 @@ uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB) {
 
 void HoldB(uint64_t now) {
 	g_holdBUntil.store(now + HoldBMs, std::memory_order_relaxed);
+}
+
+void ArmLeftStickWithY(uint64_t now) {
+	g_leftStickUntil.store(now + HoldBMs, std::memory_order_relaxed);
+}
+
+bool KeepsLeftStick(uint16_t buttons, bool armed) {
+	return armed && (buttons & XINPUT_GAMEPAD_Y) != 0;
 }
 
 void ReleaseB() {

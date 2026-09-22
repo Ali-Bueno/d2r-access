@@ -65,4 +65,14 @@ inline constexpr uint64_t HoldBMs = 500;
 void HoldB(uint64_t now);
 void ReleaseB();
 
+// Keeps the left stick from the game while Y is held on a screen whose held-Y
+// reader it drives (an inventory item, the hire list), so moving it reads
+// rather than moving the cursor off the thing being read. Y itself still
+// reaches the game, which needs it to draw what is read. Call on every tick
+// such a screen has focus; it lapses HoldBMs after the last call, and while
+// armed it takes the stick only in a frame where Y is down.
+void ArmLeftStickWithY(uint64_t now);
+// Pure: whether a frame's left stick is kept from the game.
+bool KeepsLeftStick(uint16_t buttons, bool armed);
+
 }
