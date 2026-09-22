@@ -78,18 +78,31 @@ int main() {
 	Check(sword.detail == "One-Hand Damage: 2 to 7. Durability: 24 of 24. Max Sockets: 2. Sword Class - Fast Attack Speed",
 		"and the rest, base damage first, follows the screen downwards");
 
-	// In a shop: the name and the price on the move, everything else on the
-	// right stick. MEASURED 2026-09-21 selling a staff: "Sell value" was not a
-	// known label, so it was read as the name.
+	// In a shop the price is detail too: moving focus says only what the item is.
 	const std::vector<std::string> Prices{"Cost:", "Sell value:"};
 	const auto selling = TooltipText::Split(TooltipText::Read(
 		Font0 + "+2 to Life\n" + Font0 + "Durability: 5 of 6\n" + Font0 + "One-Hand Damage: 1 to 3\n"
 		+ Font0 + "Low Quality Eagle Orb\n" + Font0 + "Sell value: 73"), BaseStats, Prices);
-	Check(selling.headline == "Low Quality Eagle Orb. Sell value: 73", "an item being sold reads its name and what it fetches");
-	Check(selling.detail == "One-Hand Damage: 1 to 3. Durability: 5 of 6. +2 to Life",
-		"and its base damage waits with the rest of the tooltip");
+	Check(selling.headline == "Low Quality Eagle Orb", "an item being sold reads only its name");
+	Check(selling.detail == "Sell value: 73. One-Hand Damage: 1 to 3. Durability: 5 of 6. +2 to Life",
+		"and its price waits with the rest of the tooltip");
 	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), BaseStats, Prices);
-	Check(buying.headline == "Cap. Cost: 30" && buying.detail == "Defense: 8", "buying reads the name and the price the same way");
+	Check(buying.headline == "Cap" && buying.detail == "Cost: 30. Defense: 8", "buying keeps the price in detail too");
+
+	const auto unidentified = TooltipText::Split(
+		TooltipText::Read("Unidentified\nSpear"), BaseStats, Prices, "Unidentified");
+	Check(unidentified.headline == "Spear. Unidentified", "an unidentified item says its base name and state");
+	Check(unidentified.detail.empty(), "the unidentified marker is not repeated in detail");
+	Check(unidentified.unidentified, "the split exposes unidentified state to the interaction policy");
+	const auto spanish = TooltipText::Split(
+		TooltipText::Read("Sin identificar\nLanza"), BaseStats, Prices, "Sin identificar");
+	Check(spanish.headline == "Lanza. Sin identificar" && spanish.unidentified,
+		"the game's localized unidentified marker is preserved exactly once");
+	const auto duplicateMarker = TooltipText::Split(
+		TooltipText::Read("Sin identificar\nLanza\nSin identificar"), BaseStats, Prices, "Sin identificar");
+	Check(duplicateMarker.headline == "Lanza. Sin identificar"
+		&& duplicateMarker.detail.find("Sin identificar") == std::string::npos,
+		"duplicate unidentified lines still produce one state marker");
 
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.

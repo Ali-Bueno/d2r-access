@@ -21,6 +21,7 @@
 #include "tooltip_text.h"
 #include "ui_text.h"
 
+#include <D2RLPlugin/item.h>
 #include <cstdio>
 
 namespace D2RAccess::InteractionReader {
@@ -79,8 +80,7 @@ const std::vector<std::string>& StatLabels() {
 	return cached;
 }
 
-// What a vendor charges, and what it would pay for the player's own item: in a
-// shop the name and this are the headline.
+// Price labels distinguish the item's name from a shop tooltip's first line.
 const std::vector<std::string>& PriceLabels() {
 	static std::vector<std::string> cached = [] {
 		std::vector<std::string> labels;
@@ -133,11 +133,7 @@ void Append(std::string& text, const std::string& part) {
 	text += part;
 }
 
-// What an item's tooltip has to add to the name already read from its unit:
-// nothing when the two agree, the rest of its own headline when it starts with
-// that name, and the whole of it when the game calls the item something the
-// item table cannot know (magic, rare, unique) -- `corrects` then says the
-// addition replaces the name instead of following it.
+// Keep only the tooltip text that has not already been announced.
 struct TooltipMerge { std::string addition; bool corrects = false; };
 TooltipMerge MergeTooltip(const std::string& name, std::string description) {
 	if (name.empty()) return {std::move(description), true};
@@ -252,18 +248,22 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(context, focus, type)
 		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
-	// The belt, the grid and the equipment slots all name their item straight
-	// from the unit under the highlight instead of waiting for the game's
-	// tooltip, which the controller layout shows 400 ms late -- the lag the user
-	// heard walking the inventory on 2026-09-21. A cell that cannot be read
-	// falls back to the tooltip, as before.
+	// Ordinary items can be named immediately; generated names await the tooltip
+	// so the base name is never spoken as a preliminary, redundant announcement.
 	const auto itemSlot = inventory ? NativeUi::FocusedItem(focus.widget) : NativeUi::ItemSlot{};
 	const auto presence = NativeUi::Presence(itemSlot);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot ? presence : NativeUi::ItemPresence::Unknown;
+	const auto item = itemSlot.item ? NativeGroundItems::ItemUnitLabel(itemSlot.item) : NativeGroundItems::UnitLabel{};
+	const bool generatedName = item.quality >= static_cast<uint32_t>(D2RL::Items::Quality::Magic);
+	const auto& qualities = Strings::Current().itemQualities;
+	const std::string quality = item.quality < qualities.size() ? qualities[item.quality] : "";
 	std::string itemName;
-	if (itemSlot.item) itemName = NativeGroundItems::ItemUnitName(itemSlot.item);
+	if (!generatedName && !item.baseName.empty()) {
+		itemName = item.baseName;
+		Append(itemName, quality);
+	}
 	// An empty grid cell is told by its coordinates; a slot has none to say.
-	else if (itemSlot.known && type.kind != UiText::Kind::InventoryGrid) itemName = Strings::Current().slotEmpty;
+	else if (itemSlot.known && !itemSlot.item && type.kind != UiText::Kind::InventoryGrid) itemName = Strings::Current().slotEmpty;
 	if (!inventory) g_namedFocus.clear();
 	else if (readout.focusKey != g_namedFocus) {
 		g_namedFocus = readout.focusKey;
@@ -316,11 +316,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			description = ProgressionText::SkillDescription(tooltip.body);
 			Append(description, UiText::Clean(tooltip.footer));
 		} else if (inventory) {
-			// An item's own tooltip, in the order the screen draws it: the
-			// name is spoken, with its price in a shop, and the rest is held
-			// for the player to ask for.
+			// The tooltip supplies the generated name and identification status;
+			// prices and properties remain available through the detail gesture.
 			const auto body = TooltipText::Read(tooltip.body);
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels());
+			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
+			auto split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified);
+			if (!split.headline.empty() && !split.unidentified) {
+				if (!generatedName && !itemName.empty()) split.headline = itemName;
+				else Append(split.headline, quality);
+			}
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
@@ -376,8 +380,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// item the unit could not name is still waiting for the game's own tooltip
 	// (~350 ms), so the hints wait with it instead of arriving first in an
 	// utterance of their own.
-	const bool occupied = (type.kind == UiText::Kind::InventorySlot || type.kind == UiText::Kind::InventoryGrid)
-		&& presence == NativeUi::ItemPresence::Occupied;
+	const bool occupied = presence == NativeUi::ItemPresence::Occupied;
 	const bool awaitingDescription = inventory && !renderedDescription && occupied && itemName.empty();
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
@@ -428,7 +431,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// The stock item tooltip can appear ~350 ms after selection. A grid cell
 	// whose item the unit could not name waits for it without speaking
 	// coordinates first; other cells keep their quick coordinate feedback.
-	if (type.kind == UiText::Kind::InventoryGrid && awaitingDescription) {
+	if ((type.kind == UiText::Kind::InventoryGrid || generatedName) && awaitingDescription) {
 		if (!cursorNotice.empty()) {
 			D2RAccess::AsyncLog::InfoF(context, "[interaction] %s placement -> \"%s\"", readout.context.c_str(), cursorNotice.c_str());
 			ScreenReader::Speak(cursorNotice, true);

@@ -6,22 +6,8 @@
 #include <string_view>
 #include <vector>
 
-// The stock tooltip body, separated into what a player wants on every move and
-// what they want only when they ask.
-//
-// An item's name is the headline, read as the highlight moves -- with its
-// price beside it in a shop. Everything else, its base damage or defense
-// included, is the detail, offered on demand instead (the user, 2026-09-21:
-// "even base stat should go on description reader in all cases").
-//
-// The engine stores a body bottom-up, so `Read` reverses it and `Body::lines`
-// is the tooltip in the order the screen draws it -- the name first. The name
-// is taken from the font command the renderer marks a heading with where there
-// is one, and from that first line where there is not; `Body::heading` says
-// which of the two happened, so a log can show it rather than leaving it
-// assumed.
-//
-// Pure text handling: no native calls, no SDK, unit-tested without the game.
+// Split stock tooltips into name/status and on-demand detail in screen order.
+// Body storage and heading markup are documented in docs/native-tooltips.md.
 namespace D2RAccess::TooltipText {
 
 struct Body {
@@ -33,14 +19,15 @@ struct Body {
 Body Read(std::string_view body);
 
 struct Description {
-	std::string headline; // the name, and in a shop the price
-	std::string detail;   // base damage or defense, requirements, properties, flavour text
+	std::string headline; // the name and unidentified status
+	std::string detail;   // price, base stats, requirements, properties, flavour text
+	bool unidentified = false;
 	bool Empty() const { return headline.empty() && detail.empty(); }
 };
 
 // `statLabels` are the game's own localized labels for an item's base damage
-// or defense, and `priceLabels` those for what a vendor charges or pays. A
-// price joins the name in the headline; a base stat is detail like the rest.
+// or defense, and `priceLabels` those for what a vendor charges or pays.
+// Prices and base stats remain in the detail.
 // They are passed in rather than resolved here so this stays testable, and an
 // empty set simply leaves the headline as the item's name.
 //
@@ -48,7 +35,7 @@ struct Description {
 // none of them. A vendor tooltip puts its price line where an inventory one has
 // the name, so taking the first line outright read "Cost: 30" as the item.
 Description Split(const Body& body, std::span<const std::string> statLabels,
-	std::span<const std::string> priceLabels = {});
+	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {});
 
 // A table entry is a printf format ("Defense: %d", "One-Hand Damage: %d to
 // %d"), so the part of it that actually begins a rendered line is everything
@@ -81,5 +68,8 @@ inline constexpr const char* PriceKey = "cost"; // Cost: %d
 // VERIFIED against local/lng/strings/ui.json. Unknown to the splitter before,
 // so it was read as the item's name (MEASURED 2026-09-21).
 inline constexpr const char* SellKey = "Sell"; // Sell value: %d
+
+// Verified in local/lng/strings/item-modifiers.json for all game locales.
+inline constexpr const char* UnidentifiedKey = "ItemStats1b";
 
 }

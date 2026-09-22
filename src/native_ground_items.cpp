@@ -77,7 +77,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	return true;
 }
 }
-std::string ItemUnitName(uintptr_t unit) {
+UnitLabel ItemUnitLabel(uintptr_t unit) {
 	uintptr_t player = 0, tables = 0, items = 0, data = 0;
 	uint64_t count = 0;
 	uint32_t type = 0, classId = 0, quality = 0;
@@ -87,8 +87,7 @@ std::string ItemUnitName(uintptr_t unit) {
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)
 		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
-	// Named the way a ground item is: base name plus its quality.
-	return GroundItemText::Describe(GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality, 0);
+	return {GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality};
 }
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;

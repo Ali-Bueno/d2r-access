@@ -34,11 +34,12 @@ uses its native embedded textbox.
 
 The user confirmed the stash and Charsi target labels, basic inventory
 selection, smooth inventory navigation, and axe descriptions in the blacksmith's shop. The reader
-also exposes inventory coordinates and selected stash tabs. It follows item grids and
-equipment; it reads complete rendered descriptions and suppresses stationary
-repeats. Described grid items now read without row/column prefixes. An occupied
-cell waits for the game's tooltip without announcing coordinates first; empty
-cells retain coordinate feedback. The user confirmed this behavior. See
+also exposes inventory coordinates and selected stash tabs. Item grids and equipment
+announce one name and its quality, such as `Crimson Spear. magic`, or
+`Spear. Unidentified`. Magic, set, rare, unique and crafted items wait for the game's
+tooltip (about 400 ms) for their full name; ordinary items read immediately.
+Prices and properties are available with right-stick up, or automatically with
+Ctrl+D. Empty grid cells retain coordinate feedback. See
 [native tooltip evidence](docs/native-tooltips.md).
 
 Existing NPC menu rows read

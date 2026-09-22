@@ -4,6 +4,7 @@
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
+#include "native_ground_items.h"
 #include "native_progression.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -119,11 +120,11 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
-// The item table's name for a unit, with its quality where the quality is named.
-std::string ItemUnitName(uintptr_t unit) {
-	if (unit == 77) return "Poción de curación menor";
-	if (unit == 78) return "Amuleto, mágico";
-	if (unit == 79) return "Hacha grande";
+UnitLabel ItemUnitLabel(uintptr_t unit) {
+	if (unit == 77) return {"Poción de curación menor", 2};
+	if (unit == 78) return {"Amuleto", 4};
+	if (unit == 79) return {"Hacha grande", 2};
+	if (unit == 80) return {"Lanza", 4};
 	return {};
 }
 }
@@ -160,6 +161,8 @@ std::string Text(std::string_view key) {
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::PriceKey) return "Coste: %d";
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
+	if (key == TooltipText::UnidentifiedKey)
+		return Strings::Selected() == Strings::Language::enUS ? "Unidentified" : "Sin identificar";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	++titleLookups;
 	return {};
@@ -345,20 +348,20 @@ int main() {
 	// "Cost: 30" for a Minor Healing Potion. Name first, then the price.
 	ClearSpeech(); tooltip = {}; selection = 7; cell = {2, 0};
 	Tooltip("Puntos: 45\nPoción de curación menor\nCoste: 30");
-	Check(Tick() && speech.size() == 1 && speech.back() == "Poción de curación menor. Coste: 30",
-		"a shop item reads its name and then what it costs");
+	Check(Tick() && speech.size() == 1 && speech.back() == "Poción de curación menor",
+		"a shop item reads only its name on arrival");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"},
-		"and the rest of it waits to be asked for");
+	Check(Tick() && speech == std::vector<std::string>{"Coste: 30. Puntos: 45"},
+		"and its stats and price wait to be asked for");
 	// Selling says "Sell value", which was not a known price label, so it was
 	// read as the name and the name went to the detail (MEASURED 2026-09-21).
 	ClearSpeech(); tooltip = {}; selection = 8; cell = {3, 0};
 	Tooltip("Durabilidad: 5 de 6\nDaño: 1 a 3\nOrbe de águila de baja calidad\nValor de venta: 73");
-	Check(Tick() && speech.size() == 1 && speech.back() == "Orbe de águila de baja calidad. Valor de venta: 73",
-		"selling reads the name and what it fetches, not the damage");
+	Check(Tick() && speech.size() == 1 && speech.back() == "Orbe de águila de baja calidad",
+		"selling reads only the item name on arrival");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"},
-		"and the damage is read with the rest on the right stick");
+	Check(Tick() && speech == std::vector<std::string>{"Valor de venta: 73. Daño: 1 a 3. Durabilidad: 5 de 6"},
+		"and the damage and sale price are read on the right stick");
 	// Ctrl+D: the whole description with the name, and the gesture still works.
 	autoDetail = true;
 	ClearSpeech(); tooltip = {}; selection = 9; cell = {4, 0};
@@ -366,7 +369,7 @@ int main() {
 	Check(Tick() && speech.size() == 1 && speech.back() == "Bastón corto. Valor de venta: 40. Daño: 1 a 3. Durabilidad: 5 de 6",
 		"with autodetail on, a highlight reads the whole description");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"}, "and right stick up still reads the detail");
+	Check(Tick() && speech == std::vector<std::string>{"Valor de venta: 40. Daño: 1 a 3. Durabilidad: 5 de 6"}, "and right stick up still reads the detail");
 	autoDetail = false;
 
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
@@ -424,19 +427,45 @@ int main() {
 	ClearSpeech(); selection = 1; cell = {1, 0}; tooltip = {}; Tick();
 	Check(speech == std::vector<std::string>{"Hacha grande"}, "the next cell names its item at once as well");
 	ClearSpeech(); Tooltip("Puntos: 45\nHacha grande\nCoste: 30"); Tick();
-	Check(speech == std::vector<std::string>{"Coste: 30"} && interrupts == std::vector<bool>{false},
-		"a shop tooltip queues only the price it adds to the name");
-	ClearSpeech(); selection = 2; cell = {2, 0}; tooltip = {}; itemUnit = 78; Tick();
-	Check(speech == std::vector<std::string>{"Amuleto, mágico"}, "an item's quality is part of the name the unit gives");
-	ClearSpeech(); Tooltip("Resistencia al fuego: 10%\nCollar del terror"); Tick();
-	Check(speech == std::vector<std::string>{"Collar del terror"} && interrupts == std::vector<bool>{false},
-		"a name only the game knows corrects the unit's, queued behind it");
+	Check(speech.empty(), "a delayed shop price does not speak on arrival");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Coste: 30. Puntos: 45"}, "the shop price remains available as detail");
+	ClearSpeech(); selection = 2; cell = {2, 0}; tooltip = {}; itemUnit = 80; Tick();
+	Check(speech.empty(), "a magic item waits for the stock tooltip's generated name");
+	ClearSpeech(); Tooltip("Daño: 6-13\nLanza carmesí"); Tick();
+	Check(speech == std::vector<std::string>{"Lanza carmesí. mágico"},
+		"the generated name and localized quality are spoken together once");
+	ClearSpeech(); Tick();
+	Check(speech.empty(), "a stationary generated item does not repeat");
+	ClearSpeech(); selection = 4; cell = {4, 0}; tooltip = {}; Strings::Select(Strings::Language::enUS); Tick();
+	Check(speech.empty(), "the English magic item also waits for its composed name");
+	Tooltip("Damage: 6-13\nCrimson Spear"); Tick();
+	Check(speech == std::vector<std::string>{"Crimson Spear. magic"},
+		"the requested English generated-name phrasing is emitted as one utterance");
+	ClearSpeech(); Tooltip("Unidentified\nSpear"); Tick();
+	Check(speech == std::vector<std::string>{"Spear. Unidentified"},
+		"identification changing on the same English focus replaces quality with localized state");
+	Strings::Select(Strings::Language::esES);
+	ClearSpeech(); selection = 2; cell = {2, 0}; tooltip = {}; Tick();
+	Tooltip("Daño: 6-13\nLanza carmesí"); Tick();
+	ClearSpeech();
+	// Identification can change while focus stays on the same cell. The game
+	// supplies the localized marker and the magic prefix remains hidden.
+	Tooltip("Sin identificar\nLanza"); Tick();
+	Check(speech == std::vector<std::string>{"Lanza. Sin identificar"},
+		"the same focused item announces its authoritative unidentified state");
+	ClearSpeech(); selection = 3; cell = {3, 0}; Tick();
+	Check(speech.empty(), "moving away never reuses the previous cell's unidentified tooltip");
 	ClearSpeech(); focus.widget = 85; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
-	cell = {}; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied;
-	Check(Tick() && speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Amuleto, mágico"},
-		"an equipment slot names what is in it on the first poll, instead of saying it is occupied");
-	ClearSpeech(); Tooltip("Resistencia al fuego: 10%\nAmuleto"); Tick();
-	Check(speech.empty(), "and a tooltip that knows the item only by its base name adds nothing");
+	cell = {}; equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied; itemUnit = 78; tooltip = {};
+	Check(Tick() && speech.empty(),
+		"an equipment slot waits so its location and magic item name arrive together");
+	ClearSpeech(); controllerHelp = "A: Equipar. B: Cerrar menú"; Tick();
+	Check(speech.empty(), "equipment actions wait behind the delayed magic item name");
+	Tooltip("Resistencia al fuego: 10%\nCollar del terror"); Tick();
+	Check(speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Collar del terror. mágico. A: Equipar. B: Cerrar menú"},
+		"the generated equipment name precedes its quality and action hints");
+	controllerHelp.clear();
 	itemUnit = 0; equipmentLocation = 0; tooltip = {};
 	itemPresence = NativeUi::ItemPresence::Unknown; equipmentPresence = NativeUi::ItemPresence::Unknown;
 	conversation = false; InteractionReader::Reset(); ClearSpeech();

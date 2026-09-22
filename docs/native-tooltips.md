@@ -41,17 +41,20 @@ mutex; speech remains on the existing PRISM thread. Gameplay lifecycle,
 - `InventoryGridWidget`, `InventorySlotWidget`, and subclasses of
   `InventoryItemWidget` use one interaction reader. Item descriptions come
   from the stock tooltip body/footer. Other cells are never enumerated.
-- All three name the item from the unit under the highlight instead of waiting for that
-  tooltip: `NativeUi::FocusedItem` calls the widget's own vtable `+0xC8` getter (grid,
-  equipment slot and belt differ only in the cell it takes) and the unit is named from the
-  item table, quality included. The wait was the controller layout's, not the game's --
+- All three read the base name and quality from the unit under the highlight:
+  `NativeUi::FocusedItem` calls the widget's own vtable `+0xC8` getter (grid,
+  equipment slot and belt differ only in the cell it takes). Ordinary items read
+  immediately; magic, set, rare, unique and crafted items wait for the rendered
+  full name, avoiding a preliminary base-name announcement. The delay is the layout's:
   `game-data/global/ui/Layouts/Controller/TooltipsPanelHD.json` sets
   `showDelayMilliseconds` to 400, MEASURED 2026-09-21 as 460-550 ms from highlight to name
   on grid and equipment, against ~60 ms on the belt, which already read its unit.
-- The tooltip that arrives afterwards never interrupts that name: it queues only what
-  follows it, or replaces it when the game names the item something the item table cannot
-  know (magic, rare, unique). An equipment slot says "occupied" only when its unit could
-  not be named at all.
+- The short readout is `Crimson Spear. magic`, or `Spear. Unidentified` when the
+  tooltip contains the localized `ItemStats1b` line (verified in
+  `game-data/local/lng/strings/item-modifiers.json`, all 13 locales). Unidentified
+  status replaces quality. Prices and properties remain in right-stick-up detail;
+  automatic detail still includes them. Delayed tooltips for ordinary items do
+  not repeat the name. Controller hints follow the completed item announcement.
 - Controller selection is the `FocusableWidget` pair of signed integers at
   `+0x544`/`+0x548`; `InventoryItemWidget` function `0x2A89C0` reads this pair
   and uses it to look up the selected item. Grid width/height at `+0x628` and

@@ -81,15 +81,17 @@ Body Read(std::string_view body) {
 }
 
 Description Split(const Body& body, std::span<const std::string> statLabels,
-	std::span<const std::string> priceLabels) {
+	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel) {
 	Description result;
 	if (body.lines.empty()) return result;
 	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
 		return std::any_of(labels.begin(), labels.end(),
 			[&](const std::string& prefix) { return StartsWith(line, prefix); });
 	};
-	const auto price = [&](const std::string& line) { return starts(line, priceLabels); };
-	const auto labelled = [&](const std::string& line) { return starts(line, statLabels) || price(line); };
+	const auto unidentified = [&](const std::string& line) { return !unidentifiedLabel.empty() && line == unidentifiedLabel; };
+	const auto labelled = [&](const std::string& line) {
+		return starts(line, statLabels) || starts(line, priceLabels) || unidentified(line);
+	};
 	// The styled title where there is one. Otherwise the first line that is not
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
@@ -100,13 +102,13 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
 	result.headline = body.lines[name];
-	// A price joins it, wherever it sits. Everything else, the base damage or
-	// defense included, keeps the order the screen drew it in and waits to be
-	// asked for.
+	// Status follows the name once; prices and properties keep their screen order in detail.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
+		if (unidentified(body.lines[at])) { result.unidentified = true; continue; }
 		if (at == name) continue;
-		Append(price(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
+		Append(result.detail, body.lines[at]);
 	}
+	if (result.unidentified && result.headline != unidentifiedLabel) Append(result.headline, unidentifiedLabel);
 	return result;
 }
 

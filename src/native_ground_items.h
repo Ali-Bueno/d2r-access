@@ -15,10 +15,9 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept;
 // ground already uses.
 int PlayerGold() noexcept;
 
-// An item unit's name from the game's item table and its quality, exactly as a
-// ground item is named ("Leather Gloves, superior"). Empty when the unit is not
-// an item or cannot be read.
-std::string ItemUnitName(uintptr_t unit);
+struct UnitLabel { std::string baseName; uint32_t quality = 0; };
+// Table name and quality of a focused item; generated names come from its tooltip.
+UnitLabel ItemUnitLabel(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
