@@ -21,14 +21,16 @@
 // character panel and the mercenary panel, and the game copies the header
 // (name, class or type and level, experience) from whichever it came from.
 //
-// Opened from the mercenary panel it is also the only place that mercenary's
-// own statistics and skills can be read, since the controller cannot reach
-// them there (MercenaryStats). The lines are then:
+// Opened from the character panel: the advanced list only. The character
+// panel's own statistics stay in its own reader, which is not used while this
+// panel is open.
+//
+// Opened from the mercenary panel it is the only place that mercenary's
+// statistics and skills can be read, since its own panel shares the screen
+// with the inventory (MercenaryStats). The lines are then everything:
 //
 //   header, the mercenary panel's statistics, each skill's description,
 //   then the advanced list.
-//
-// Opened from the character panel: header, then the advanced list.
 namespace D2RAccess::AdvancedStatsReader {
 
 // The mercenary panel the open Advanced Stats panel belongs to, or 0 when it

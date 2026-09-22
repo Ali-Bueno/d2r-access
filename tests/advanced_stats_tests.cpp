@@ -262,8 +262,8 @@ int main() {
 	widgets[4].text = "Level 7 Barbarian";
 	widgets[5].text = "900 of 1500";
 	lines = AdvancedStatsReader::Lines(Advanced, AdvancedStatsReader::Mercenary());
-	Check(lines == std::vector<std::string>{"Ulfr", "Level 7 Barbarian", "Experience. 900 of 1500",
-		"Faster Hit Recovery: 0%", "Magic Find: 0%"}, "the character's own panel reads its header and the advanced list");
+	Check(lines == std::vector<std::string>{"Faster Hit Recovery: 0%", "Magic Find: 0%"},
+		"from the character panel only the advanced list is read; the header is the character panel's own");
 
 	Passed();
 	return 0;

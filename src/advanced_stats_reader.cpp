@@ -44,22 +44,25 @@ void Push(std::vector<std::string>& lines, std::string line) {
 std::vector<std::string> Build(uintptr_t panel, uintptr_t mercenary, std::vector<MercenaryStats::Skill>* skillsOut) {
 	std::vector<std::string> lines;
 	if (!panel || !NativeUi::Visible(panel)) return lines;
-	// The header the game copied from the panel behind. READ, 0x1414EA9BD: for
-	// the character it copies CharacterName, FullClassInfo and CombinedXP; for
-	// a mercenary CharacterName and HireTypeText, and CombinedXP appears to be
-	// blanked -- so each part falls back to the mercenary panel itself.
-	auto name = ChildText(panel, "CharacterName");
-	auto level = ChildText(panel, "FullClassInfo");
-	auto experience = ChildText(panel, "CombinedXP");
+	// For the character, the advanced list alone: the header above it is a
+	// copy of the character panel's, which has its own reader (the user,
+	// 2026-09-22: the character panel's buffer when advanced stats are not
+	// active, "and advanced stats when it is active"). For a mercenary this is
+	// the only place any of its statistics can be read -- its own panel shares
+	// the screen with the inventory -- so everything comes first.
 	if (mercenary) {
+		// READ, 0x1414EA9BD: the game copies CharacterName and HireTypeText into
+		// the header, and CombinedXP appears to be blanked -- so each part falls
+		// back to the mercenary panel itself.
+		auto name = ChildText(panel, "CharacterName");
+		auto level = ChildText(panel, "FullClassInfo");
+		auto experience = ChildText(panel, "CombinedXP");
 		if (name.empty()) name = MercenaryStats::Name(mercenary);
 		if (level.empty()) level = MercenaryStats::LevelAndType(mercenary);
 		if (experience.empty()) experience = MercenaryStats::Experience(mercenary);
-	}
-	Push(lines, std::move(name));
-	Push(lines, std::move(level));
-	Push(lines, Experience(std::move(experience)));
-	if (mercenary) {
+		Push(lines, std::move(name));
+		Push(lines, std::move(level));
+		Push(lines, Experience(std::move(experience)));
 		for (auto& line : MercenaryStats::Lines(mercenary)) Push(lines, std::move(line));
 		auto skills = MercenaryStats::Skills(mercenary);
 		for (const auto& skill : skills)
