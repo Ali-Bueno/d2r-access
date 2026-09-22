@@ -265,6 +265,13 @@ bool TakeBackWith(FaceButton button) {
 	*pressed = false;
 	return result;
 }
+bool FaceButtonHeld(FaceButton button) {
+	for (const PadEdgeState& pad : g_padState) {
+		if ((button == FaceButton::A && pad.aHeld) || (button == FaceButton::B && pad.bHeld)
+			|| (button == FaceButton::X && pad.xHeld) || (button == FaceButton::Y && pad.yHeld)) return true;
+	}
+	return false;
+}
 bool TakeFacePress(FaceButton button) {
 	if (button != FaceButton::B) return false; // only B has a reader so far
 	const bool result = g_pressedB;

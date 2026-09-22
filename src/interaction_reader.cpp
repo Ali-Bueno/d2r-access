@@ -102,11 +102,10 @@ uintptr_t g_skillLinesWidget = 0;
 std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
 
-// The comparison last read and the focus it was read on. Holding the compare
-// button (Y) adds the equipped item's tooltip, "Currently Equipped", after the
-// highlighted one; it is read once as it appears, and again for another cell
-// or the next hold.
-std::string g_comparison, g_comparisonFor;
+// The equipped-item records last logged, so [compare] is written once per
+// change. Diagnosis only: what the game draws beside a held compare is not
+// yet measured.
+std::string g_compareLogged;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -222,6 +221,32 @@ bool ReadSkillLines(const D2RL::PluginContext* context, NativeUi::Focus focus, u
 	PadFilter::HoldB(now);
 	AsyncLog::InfoF(context, "[lines] open, %zu lines -> \"%s\"", g_skillLines.size(), g_skillLines.front().c_str());
 	ScreenReader::Speak(g_skillLines.front(), true);
+	return true;
+}
+
+bool IsInventory(UiText::Kind kind);
+
+// Compare mode, while Y is held on an inventory item (the user, 2026-09-22):
+// right stick left reads the highlighted item's tooltip and right stick right
+// the equipped one the game draws beside it ("Currently Equipped"), each in
+// full. Holding Y reads nothing by itself. Up and down keep their meaning.
+bool ReadCompare(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_t now) {
+	using InputDirection::StickPush;
+	const auto push = InputDirection::PeekRightStickPush();
+	if (!focus.panel || (push != StickPush::Left && push != StickPush::Right)
+		|| !InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y)
+		|| !IsInventory(NativeUi::Classify(focus.widget).kind)) return false;
+	(void)InputDirection::TakeRightStickPushIf(push, "compare");
+	const auto tooltip = NativeTooltips::Latest(now);
+	std::string text;
+	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
+		&& tooltip.selection == NativeUi::FocusSelection(focus.widget)) {
+		text = push == StickPush::Left ? TooltipText::Comparison(std::span(&tooltip.body, 1))
+			: TooltipText::Comparison(tooltip.extras);
+	}
+	if (text.empty()) text = Strings::Current().detailNone;
+	D2RAccess::AsyncLog::InfoF(context, "[compare] %s -> \"%s\"", push == StickPush::Left ? "highlighted" : "equipped", text.c_str());
+	ScreenReader::Speak(text, true);
 	return true;
 }
 
@@ -343,6 +368,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (ReadSkillLines(context, focus, now)) return true;
 	if (ReadDetail(context, focus)) return true;
 	if (ReadHints(context)) return true;
+	if (ReadCompare(context, focus, now)) return true;
 	if (ReadAside(context, focus)) return true;
 	const uintptr_t tooltips = NativeWidgets::FindPanel("TooltipsPanel");
 	NativeTooltips::Track(tooltips);
@@ -437,7 +463,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
-	std::string comparisonNow; // a comparison that has just appeared, read after the readout
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -468,12 +493,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 					D2RAccess::AsyncLog::InfoF(context, "[item] %s", line.c_str());
 				}
 			}
-			const auto comparison = TooltipText::Comparison(tooltip.extras);
-			if (comparison.empty() || readout.focusKey != g_comparisonFor) {
-				g_comparison.clear();
-				g_comparisonFor = readout.focusKey;
+			if (const auto comparison = TooltipText::Comparison(tooltip.extras); comparison != g_compareLogged) {
+				g_compareLogged = comparison;
+				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
 			}
-			if (!comparison.empty() && comparison != g_comparison) comparisonNow = comparison;
 			// With autodetail the cells the item takes up come right after the
 			// name, ahead of any price; otherwise they wait for right stick right.
 			if (AutoDetail::Enabled()) {
@@ -662,13 +685,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_readPanel = focus.panel;
 		ScreenReader::Speak(announcement.text, !behindTitle);
 	}
-	// The comparison follows whatever this tick said about the item itself,
-	// queued behind it rather than cut off by it.
-	if (!comparisonNow.empty()) {
-		g_comparison = comparisonNow;
-		D2RAccess::AsyncLog::InfoF(context, "[compare] -> \"%s\"", comparisonNow.c_str());
-		ScreenReader::Speak(comparisonNow, announcement.text.empty());
-	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	return inventory || button || stats;
 }
@@ -696,8 +712,7 @@ void Reset() {
 	g_aside.clear();
 	g_asideWidget = 0;
 	g_itemLogged.clear();
-	g_comparison.clear();
-	g_comparisonFor.clear();
+	g_compareLogged.clear();
 	CharacterStats::Reset();
 	CharacterStatsReader::Reset();
 	NativeControllerHelp::Reset();

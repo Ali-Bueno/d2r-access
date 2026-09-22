@@ -17,6 +17,7 @@ namespace {
 uintptr_t trackedPanel = 0;
 NativeTooltips::Snapshot tooltip;
 InputDirection::StickPush pending = InputDirection::StickPush::None;
+bool holdingY = false;
 std::vector<std::string> speech;
 const D2RL::PluginContext context{};
 bool Tick(NativeUi::Focus focus) { return HireStats::Tick(&context, 1000, focus); }
@@ -35,6 +36,8 @@ void Track(uintptr_t panel) { trackedPanel = panel; }
 Snapshot Latest(uint64_t) { return tooltip; }
 }
 namespace D2RAccess::InputDirection {
+StickPush PeekRightStickPush() { return pending; }
+bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (wanted != pending) return false;
 	pending = StickPush::None;
@@ -82,10 +85,14 @@ int main() {
 	tooltip = {"Life: 210\nGaile", "", 10, 12};
 	Tick(next);
 	Check(Push(next, StickPush::Down) && speech == std::vector<std::string>{"Gaile"}, "the next mercenary's lines, from the top");
-	speech.clear(); tooltip.extras = {"Life: 150\nFlavie"}; Tick(next);
-	Check(speech == std::vector<std::string>{"Flavie. Life: 150"}, "holding compare reads the current mercenary");
-	speech.clear(); Tick(next);
-	Check(speech.empty(), "once per hold");
+	// Compare mode: holding Y reads nothing by itself; left reads the
+	// highlighted mercenary, right the current one.
+	speech.clear(); tooltip.extras = {"Life: 150\nFlavie"}; holdingY = true; Tick(next);
+	Check(speech.empty(), "holding compare reads nothing by itself");
+	Check(Push(next, StickPush::Right) && speech == std::vector<std::string>{"Flavie. Life: 150"}, "right reads the current mercenary");
+	Check(Push(next, StickPush::Left) && speech == std::vector<std::string>{"Gaile. Life: 210"}, "left reads the highlighted one in full");
+	holdingY = false;
+	Check(Push(next, StickPush::Left) && speech == std::vector<std::string>{"Gaile"}, "without Y, left is the first line again");
 	pending = StickPush::None;
 	Check(!Tick({20, 21}), "leaving the hire list lets the stick go");
 	Passed();

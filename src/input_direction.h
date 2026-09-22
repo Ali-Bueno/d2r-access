@@ -58,6 +58,10 @@ FaceButton LastFaceButton(unsigned maxAgeMs);
 // old press is not mistaken for a new one. Only B is recorded so far.
 bool TakeFacePress(FaceButton button);
 
+// Whether that face button is down on any pad, as of the last Poll(): for a
+// mode that lasts while it is held (compare, on Y).
+bool FaceButtonHeld(FaceButton button);
+
 // Right thumbstick push edges for the entity scan: a push is recorded once
 // when the stick leaves its dead zone (same threshold as the left stick), in
 // the dominant axis at that moment. Releasing below the threshold re-arms it,

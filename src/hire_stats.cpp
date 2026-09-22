@@ -20,7 +20,7 @@ constexpr std::string_view Panel = "HireMenuPanel";
 uintptr_t g_row = 0;             // the list row the lines belong to
 std::vector<std::string> g_lines; // its tooltip, in the order the screen draws it
 int g_cursor = -1;               // -1: nothing read yet for this row
-std::string g_comparison;        // the comparison last read for this row
+std::string g_comparison;        // the current mercenary, drawn beside it while Y is held
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
@@ -45,14 +45,28 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			g_lines = std::move(lines);
 			g_cursor = -1;
 		}
-		// Holding the compare button adds the current mercenary's tooltip; it
-		// is read once as it appears, and again on the next hold.
-		const auto comparison = TooltipText::Comparison(tooltip.extras);
-		if (comparison.empty()) g_comparison.clear();
-		else if (comparison != g_comparison) {
-			g_comparison = comparison;
-			AsyncLog::InfoF(context, "[hire] compare -> \"%s\"", comparison.c_str());
-			ScreenReader::Speak(comparison, true);
+		// Holding the compare button draws the current mercenary beside it.
+		auto comparison = TooltipText::Comparison(tooltip.extras);
+		if (comparison != g_comparison && !comparison.empty())
+			AsyncLog::InfoF(context, "[hire] compare drawn -> \"%s\"", comparison.c_str());
+		g_comparison = std::move(comparison);
+	}
+	// Compare mode while Y is held, as in the inventory: left reads the
+	// highlighted mercenary in full, right the current one. Up and down still
+	// walk the lines.
+	if (InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y)) {
+		const auto push = InputDirection::PeekRightStickPush();
+		if (push == InputDirection::StickPush::Left || push == InputDirection::StickPush::Right) {
+			(void)InputDirection::TakeRightStickPushIf(push, "hire compare");
+			std::string text;
+			if (push == InputDirection::StickPush::Left)
+				for (const auto& line : g_lines) text += (text.empty() ? "" : ". ") + line;
+			else text = g_comparison;
+			if (text.empty()) text = Strings::Current().detailNone;
+			AsyncLog::InfoF(context, "[hire] compare %s -> \"%s\"",
+				push == InputDirection::StickPush::Left ? "highlighted" : "current", text.c_str());
+			ScreenReader::Speak(text, true);
+			return true;
 		}
 	}
 	InputDirection::StickPush push = InputDirection::StickPush::None;
