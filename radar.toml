@@ -47,3 +47,10 @@ reach = 40
 # stereo. Opening one silences it. Ctrl+K toggles this for the current run.
 [chests]
 enabled = true
+
+# Direct movement stops when its intended direction is blocked, instead of
+# choosing another direction along the wall. Mouse routes retain stock behavior.
+# Off by default on this branch. access-movement on|off changes this for the
+# current session.
+[movement]
+enabled = false

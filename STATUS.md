@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Directional wall sliding — 2026-09-22
+
+Built and installed local directional fallback prevention: the original direction
+retains its native probe; two 45-degree retries and the eight-way fallback receive
+zero travel. Default on; `access-movement on|off|status`. All **61/61 suites pass**,
+including 50 new movement checks; installed DLL hash matches the build.
+**Next step:** user-led controller wall/doorway test, including sustained blocked
+input and moving away. The earlier inert prototype is replaced. `docs/wall-sliding.md`.
+
 ## Audio and language verification — 2026-09-22
 
 Cue classification/playback is independent of text/voice locale. Fixed missing
@@ -529,6 +538,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 
 | Section / feature | Status | Notes |
 |---|---|---|
+| Directional wall sliding | wip — built/deployed; controller check pending | Local type-17 fallback probes use zero travel. 50 new checks pass. `access-movement on\|off\|status`; `docs/wall-sliding.md` |
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Audio cues across locales | fixes built and installed; listening pending | Numeric cue classification, generic container/exit fallback in all 13 locales, beacon UI cancellation. 59/59 suites pass in the shared workspace; `docs/audio-language-audit.md`. |
@@ -778,7 +788,7 @@ controller movement. Read
   Equipment speech gives base name and quality, not the complete generated name.
   Only resident room/neighbors are scanned. User-added drop sounds are unused;
   this feature uses the six loop recordings. `docs/ground-items.md`.
-- **Sonar radar:** the 2026-09-16 confirm-by-travel redesign is installed but **not yet live-validated**, including the 18:10 forensic fix (1-cell lateral tolerance, openDepth 10/close 7, 5-cell clutter cap) that corrected the 76%-at-contact wall cues and false "exit" cues a live-session analysis found in the first cut. Direction count (four) and sound design are unchanged from before the review: an eight-direction/new-sound-design attempt was tried live and reverted at the user's request. Native wall sliding remains active and unaffected. `docs/radar-redesign.md`.
+- **Sonar radar:** the 2026-09-16 confirm-by-travel redesign is installed but **not yet live-validated**, including the 18:10 forensic fix (1-cell lateral tolerance, openDepth 10/close 7, 5-cell clutter cap) that corrected the 76%-at-contact wall cues and false "exit" cues a live-session analysis found in the first cut. Direction count (four) and sound design are unchanged from before the review: an eight-direction/new-sound-design attempt was tried live and reverted at the user's request. Directional wall-sliding prevention is now installed; controller validation is pending (`docs/wall-sliding.md`). `docs/radar-redesign.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.

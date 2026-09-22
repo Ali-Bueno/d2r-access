@@ -7,6 +7,7 @@
 #include "core_slots.h"
 #include "focus_tracker.h"
 #include "footstep_service.h"
+#include "wall_slide_service.h"
 #include "game_text_reader.h"
 #include "ground_item_service.h"
 #include "beacon_service.h"
@@ -89,6 +90,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::RoomService::Tick(context, uiOwnsSpeech);
 	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech);
 	D2RAccess::FootstepService::Tick();
+	D2RAccess::WallSlideService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
 	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
@@ -261,18 +263,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
-	// Patching the game's own code is the only thing this plugin does that
-	// could change the game rather than describe it -- three inline hooks:
-	// the tooltip draw, the controller cursor update, and the HD footfall,
-	// which is the one place we SKIP a game function rather than add to it.
-	// Nothing has shown them to be harmful, and nothing has shown them to be
-	// harmless either; so they are switchable, and a session with them off is
-	// a session in which they cannot be the cause of anything.
-	//
-	// Default ON, so this changes nothing for anyone who does not set it.
-	// Off costs footsteps, native tooltips and skill-tree grid navigation;
-	// everything read out of memory keeps working, because reading is not
-	// patching.
+	// The native switch disables code hooks and input filtering together;
+	// readers that only inspect memory remain available.
 	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
 	if (nativeHooks) {
 		(void)D2RAccess::NativeTooltips::Initialize(context);
@@ -281,10 +273,11 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		// with them: R3 kept from the game while guidance owns it.
 		(void)D2RAccess::PadFilter::Install(context);
 	} else {
-		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor or footfall hook this session.");
+		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor, footfall or movement hook this session.");
 	}
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
 	if (nativeHooks) D2RAccess::FootstepService::Register(context);
+	D2RAccess::WallSlideService::Register(context, nativeHooks);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
@@ -340,6 +333,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::EntityRadarService::Unregister();
 	D2RAccess::GroundItemService::Unregister();
 	D2RAccess::FootstepService::Unregister();
+	D2RAccess::WallSlideService::Unregister();
 	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();
 	D2RAccess::InputDirection::Shutdown();

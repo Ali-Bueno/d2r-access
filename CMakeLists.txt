@@ -32,6 +32,8 @@ add_library(d2r-access SHARED
 	src/footsteps.cpp
 	src/footstep_service.cpp
 	src/native_footsteps.cpp
+	src/wall_slide_service.cpp
+	src/native_wall_slide.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/modal_reader.cpp
@@ -217,6 +219,18 @@ if(BUILD_TESTING)
 	target_include_directories(footstep-tests PRIVATE src)
 	target_compile_features(footstep-tests PRIVATE cxx_std_20)
 	add_test(NAME footsteps COMMAND footstep-tests)
+	add_executable(native-wall-slide-tests tests/native_wall_slide_tests.cpp src/native_wall_slide.cpp src/native_memory.cpp)
+	target_include_directories(native-wall-slide-tests PRIVATE src)
+	target_link_libraries(native-wall-slide-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_compile_features(native-wall-slide-tests PRIVATE cxx_std_20)
+	target_compile_definitions(native-wall-slide-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME native-wall-slide COMMAND native-wall-slide-tests)
+	add_executable(wall-slide-service-tests tests/wall_slide_service_tests.cpp src/wall_slide_service.cpp src/speech_strings.cpp)
+	target_include_directories(wall-slide-service-tests PRIVATE src)
+	target_link_libraries(wall-slide-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_compile_features(wall-slide-service-tests PRIVATE cxx_std_20)
+	target_compile_definitions(wall-slide-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME wall-slide-service COMMAND wall-slide-service-tests)
 	add_executable(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
@@ -420,6 +434,8 @@ if(BUILD_TESTING)
 		target_compile_options(native-focus-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(progression-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(footstep-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(native-wall-slide-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(wall-slide-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-world-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(async-log-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
