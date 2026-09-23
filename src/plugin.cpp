@@ -12,6 +12,7 @@
 #include "ground_item_service.h"
 #include "beacon_service.h"
 #include "entity_radar_service.h"
+#include "entity_cue_service.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "modal_reader.h"
@@ -93,6 +94,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
 	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
+	D2RAccess::EntityCueService::Tick(context);
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
 	LogRightStickPush(context);
@@ -260,6 +262,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::WallSlideService::Register(context, nativeHooks);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
+	if (!D2RAccess::EntityCueService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[entity-cues] Entity cue lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
@@ -310,6 +313,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();
 	D2RAccess::EntityRadarService::Unregister();
+	D2RAccess::EntityCueService::Unregister();
 	D2RAccess::GroundItemService::Unregister();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::WallSlideService::Unregister();

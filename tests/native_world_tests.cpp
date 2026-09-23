@@ -271,5 +271,20 @@ int main() {
 	Check(!NativeWorld::ReadPlayer(fixture.unit.Address(), 42, 7, 1, world, &detail)
 		&& std::string_view(detail.stage) == "footprint" && detail.pattern == 0,
 		"a point body is rejected for the local player, whose native size is hardcoded to the cross");
+	{
+		const auto cues = RadarConfig::ParseEntityCues("[npc]\nenabled = false\n[entity_cues]\nenabled = true\nnpcs = false\nenemies = true\nranged = false\nrange = 22.5\nvolume = 40\n");
+		Check(cues.valid && cues.enabled == true && cues.npcs == false && cues.enemies == true
+			&& cues.ranged == false && cues.range == 22.5 && cues.volume == 40u, "all entity-cue settings parse independently of NPC speech");
+		const auto absent = RadarConfig::ParseEntityCues("[npc]\nenabled = false\nrange = 1\n");
+		Check(absent.valid && !absent.enabled && !absent.range && !absent.volume && !absent.ranged,
+			"absent entity section keeps compiled defaults");
+		Check(RadarConfig::ParseEntityCues("[entity_cues]\nvolume = 0\n").volume == 0u, "entity cues accept explicit silence");
+		for (const auto invalid : {"range = nan", "range = inf", "range = 0", "range = -1", "range = 101",
+			"volume = -1", "volume = 101", "volume = 1.5", "enabled = yes", "npcs = 1", "ranged", "enemies = false\nenemies = true",
+			"volume = 0\nvolume = 1", "range = 15\nrange = 15"}) {
+			const auto parsed = RadarConfig::ParseEntityCues(std::string("[entity_cues]\n") + invalid + "\n");
+			Check(!parsed.valid && !parsed.enabled && !parsed.range && !parsed.volume, "invalid entity settings discard the entire section");
+		}
+	}
 	Passed();
 }

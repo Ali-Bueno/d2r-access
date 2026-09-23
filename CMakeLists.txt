@@ -73,6 +73,10 @@ add_library(d2r-access SHARED
 	src/radar_config.cpp
 	src/entity_radar.cpp
 	src/entity_radar_service.cpp
+	src/entity_cues.cpp
+	src/entity_cue_audio.cpp
+	src/entity_cue_synth.cpp
+	src/entity_cue_service.cpp
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
@@ -265,6 +269,21 @@ if(BUILD_TESTING)
 	target_compile_features(wall-slide-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(wall-slide-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME wall-slide-service COMMAND wall-slide-service-tests)
+	add_executable(entity-cues-tests tests/entity_cues_tests.cpp src/entity_cues.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(entity-cues-tests PRIVATE src)
+	target_compile_features(entity-cues-tests PRIVATE cxx_std_20)
+	add_test(NAME entity-cues COMMAND entity-cues-tests)
+	add_executable(entity-cue-audio-tests tests/entity_cue_audio_tests.cpp src/entity_cue_synth.cpp)
+	target_include_directories(entity-cue-audio-tests PRIVATE src)
+	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_compile_features(entity-cue-audio-tests PRIVATE cxx_std_20)
+	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
+	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/entity_cues.cpp src/speech_strings.cpp src/async_log.cpp)
+	target_include_directories(entity-cue-service-tests PRIVATE src)
+	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_compile_features(entity-cue-service-tests PRIVATE cxx_std_20)
+	target_compile_definitions(entity-cue-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME entity-cue-service COMMAND entity-cue-service-tests)
 	add_executable(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
@@ -427,6 +446,9 @@ if(BUILD_TESTING)
 	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME pad-filter COMMAND pad-filter-tests)
 	if(MSVC)
+		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -101,6 +101,16 @@ struct Table {
 	const char* scanAdjacent; // under one step away
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
+	const char* entityCuesEnabled;
+	const char* entityCuesDisabled;
+	const char* entityCueNpcsEnabled;
+	const char* entityCueNpcsDisabled;
+	const char* entityCueEnemiesEnabled;
+	const char* entityCueEnemiesDisabled;
+	const char* entityCueRangedEnabled;
+	const char* entityCueRangedDisabled;
+	const char* entityCueAudioUnavailable;
+	const char* entityCueReaderUnavailable;
 	// Map survey: the level-wide catalogue, cycled by category and by object.
 	// Indexed by the switch in MapSurveyService::CategoryName, not by
 	// CategoryOrder: a new category appends here and adds a case there.
@@ -198,7 +208,11 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
-		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled, t.exitUnnamed, t.containerUnnamed,
+		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
+		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
+		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
+		t.entityCueRangedDisabled, t.entityCueAudioUnavailable, t.entityCueReaderUnavailable,
+		t.exitUnnamed, t.containerUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,

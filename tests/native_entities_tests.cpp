@@ -59,13 +59,13 @@ struct Fixture {
 	Memory<0x60 * 2> lvlWarps; // row 0: Id 3 to the Cold Plains; row 1: Id 7, NoInteract (a trapdoor's tile)
 	Memory<LevelStride * 3> levels; // row 1: Cold Plains; row 2: Duriel's Lair
 	Memory<0x1600> tables;
-	Memory<MonStatStride * 2> monsters;
+	Memory<MonStatStride * 60> monsters;
 	Memory<ObjectStride * 7> objects;
 	Memory<64> uniqueName;
 	Fixture() {
 		player.At<uint32_t>(GroundItemLayout::UnitId, 42); player.At(GroundItemLayout::UnitPath, playerPath.Address());
 		playerPath.At<uint32_t>(0, 100u << 16); playerPath.At<uint32_t>(4, 100u << 16); playerPath.At(PathRoom, room.Address());
-		tables.At(MonStats, monsters.Address()); tables.At<uint64_t>(MonStatCount, 2);
+		tables.At(MonStats, monsters.Address()); tables.At<uint64_t>(MonStatCount, 60);
 		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 7);
 		tables.At(Levels, levels.Address()); tables.At<uint64_t>(LevelCount, 3);
 		levels.Text(LevelStride + LevelNameKey, "Cold Plains"); levels.Text(LevelStride + LevelWarpKey, "To The Cold Plains");
@@ -173,6 +173,34 @@ int main() {
 	Check(akara->position.x == 103 && akara->position.y == 100, "monster position comes from the dynamic 16.16 path");
 	const auto* zombie = f.Find(entities, 8);
 	Check(zombie && zombie->kind == EntityRadar::Kind::Enemy && zombie->name == "Zombi", "hostile killable monster is an enemy");
+	Check(zombie && !zombie->enemy.important && !zombie->enemy.resurrector && !zombie->enemy.ranged,
+		"an ordinary melee enemy has no cue traits");
+	f.monsters.At<uint8_t>(MonStatStride + MonFlagsBoss, FlagBoss);
+	f.monsters.At<uint8_t>(MonStatStride + MonFlagsRanged, FlagRanged);
+	Check(f.Read(entities) && f.Find(entities, 8)->enemy.important && f.Find(entities, 8)->enemy.ranged,
+		"class boss and ranged bits classify without localized names");
+	f.monsters.At<uint8_t>(MonStatStride + MonFlagsBoss, FlagPrimeEvil);
+	Check(f.Read(entities) && f.Find(entities, 8)->enemy.important, "prime evil bit also marks an important enemy");
+	f.monsters.At<uint8_t>(MonStatStride + MonFlagsBoss, 0);
+	f.monsters.At<uint8_t>(MonStatStride + MonFlagsRanged, 0);
+	for (uint16_t rarity : {1u, 2u, 4u, 8u}) {
+		f.enemyData.At<uint16_t>(MonRarityFlags, rarity);
+		Check(f.Read(entities) && f.Find(entities, 8)->enemy.important,
+			"each native special-monster rarity bit marks an elite");
+	}
+	f.enemyData.At<uint16_t>(MonRarityFlags, 0x10);
+	Check(f.Read(entities) && !f.Find(entities, 8)->enemy.important,
+		"a flag outside the native elite mask does not mark an elite");
+	f.enemyData.At<uint16_t>(MonRarityFlags, 0);
+	f.monsters.At<uint16_t>(MonStatStride * 58 + MonNameId, 3013);
+	f.monsters.At<uint8_t>(MonStatStride * 58 + MonAlign, AlignHostile);
+	f.monsters.At<uint8_t>(MonStatStride * 58 + MonFlagsA, FlagKillable);
+	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 58);
+	Check(f.Read(entities) && f.Find(entities, 8)->enemy.resurrector,
+		"FallenShaman AI class is a resurrector independent of its displayed name");
+	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
+	Check(f.Read(entities) && !f.Find(entities, 7)->enemy.important && !f.Find(entities, 7)->enemy.ranged,
+		"a friendly NPC has no enemy cue traits");
 	const auto* chest = f.Find(entities, 9);
 	Check(chest && chest->kind == EntityRadar::Kind::Object && chest->name == "Alijo", "object name resolves through its objects.txt key");
 	Check(chest->position.x == 100 && chest->position.y == 104, "object position comes from the static path");
@@ -229,7 +257,7 @@ int main() {
 	f.enemyPath.At(PathRoom, f.otherRoom.Address());
 	Check(f.Read(entities) && !f.Find(entities, 8), "a path that does not belong to the walked room is rejected");
 	f.enemyPath.At(PathRoom, f.room.Address());
-	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 2);
+	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 60);
 	Check(f.Read(entities) && !f.Find(entities, 8), "class beyond the table count is rejected");
 	f.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
 	Check(f.Read(entities) && entities.size() == 10, "fixture restored");

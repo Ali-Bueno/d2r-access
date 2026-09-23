@@ -20,6 +20,19 @@ range = 15
 # true = only NPCs with a clear terrain line of sight; false = walls do not hide them.
 line_of_sight = true
 
+# Synthesized proximity pulses, using the radar's fixed screen directions.
+# Separate from NPC speech. Faster nearby; nearest NPC and up to two priority
+# enemy classes only. Restart after editing; access-entity-cues toggles live.
+[entity_cues]
+enabled = true
+npcs = true
+enemies = true
+# Ordinary ranged enemies join bosses/elites and resurrectors when enabled.
+ranged = true
+range = 15
+# 0-100 percent of the soft synthesized level, independent of radar volume.
+volume = 100
+
 # One-shot: write the game's whole mapped image next to the plugin at startup,
 # for offline analysis (about 60-70 MB, written once and skipped if it is
 # already there). Armed here rather than from the console because the console
