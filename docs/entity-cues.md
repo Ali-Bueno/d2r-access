@@ -8,9 +8,9 @@ runtime dependencies are needed.
 | Target | Sound | Selection |
 |---|---|---|
 | Friendly NPC | Light wooden tap | Nearest visible NPC |
-| Boss or elite | Deep metallic whoosh | Highest enemy priority |
-| Resurrecting shaman | Mid-register metallic whoosh | Next enemy priority |
-| Ordinary ranged enemy | Brighter metallic whoosh | Lowest enemy priority; optional |
+| Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
+| Resurrecting shaman | Mid-register resonant swoop | Next enemy priority |
+| Ordinary ranged enemy | Brighter resonant swoop | Lowest enemy priority; optional |
 
 There is one representative per class, with at most two enemy classes plus the
 NPC. A crowd of archers therefore makes one stream, not one per archer. Regular
@@ -24,20 +24,23 @@ entity scan: walk-blocking fences may hide a target. An ordinary target in
 another room behind a wall does not get a cue. These are direct bearings, not
 routes around obstacles.
 
-Pulse intervals shorten continuously from 1.45 seconds at the range edge to
-0.45 seconds at contact. The scheduler leaves at least 160 ms between starts,
-with an 84 ms NPC tap or 120 ms enemy whoosh. Due targets take turns, so the nearest boss
-cannot starve the shaman or NPC. The 100 ms snapshot cadence rounds these times
-to the next update. These are tunable sound-design defaults, not game constants.
+Pulse intervals shorten continuously from 450 ms at the range edge to 150 ms
+at contact. The scheduler leaves 100 ms between starts, with an 84 ms NPC tap
+or 90 ms enemy swoop. Due targets take turns, so the nearest boss cannot starve
+the shaman or NPC. The 100 ms snapshot cadence gives one isolated target about
+one pulse every 200 ms nearby or 500 ms at the range edge. Three nearby classes
+each sound about every 300 ms, alternating. These are sound-design defaults,
+not game constants.
 Changing the nearest representative keeps that class's cadence to prevent
 rapid alternating cues; the next pulse uses the newly selected target's position.
 
-The user liked the initial cues on 2026-09-22 and requested slightly faster,
-less melodic sounds, then specifically changed enemies to a metallic whoosh.
-Waits remain about 20% shorter. NPCs retain their quickly damped wooden strike.
-Enemies use filtered noise that sweeps down in brightness, swelling and fading
-smoothly; subtle inharmonic modulation adds metallic texture without a sustained
-note. Enemy classes keep different sweep ranges, and rear placement lowers them.
+The user found the first enemy whoosh too similar to the radar's floor breath
+and requested much faster NPC/enemy repetition. The latest design uses a voiced,
+low descending resonance with inharmonic phase modulation and only a little air
+texture, instead of a noise-dominated swell. Enemy classes keep different sweep
+ranges, and rear placement lowers them. NPCs retain the quickly damped wooden
+tap. Nominal waits are roughly one third of the previous 450–1450 ms, and the
+shorter spacing also accelerates mixed groups.
 
 Dialogue, menu/focus gating, lifecycle changes, unavailable audio and failed
 native reads silence playback and clear timing. Dead/unloaded targets disappear
@@ -70,13 +73,13 @@ Malformed or duplicate recognized keys discard this section and retain defaults.
 
 ## Validation
 
-Build and deployment succeeded on 2026-09-22; **67/67 CTest suites passed**, with
-6/6 affected suites passing again after a test-only warning correction. The
-installed DLL's SHA-256 matched the build. The subsequent sound/cadence tuning
-passed all 3 affected suites, with no compiler warnings and a matching installed
-DLL. The enemy-whoosh follow-up also passed those 3 suites, including checks for
-its swell/fade, descending sweep and lower rear placement. The user approved the
-original sounds; listening to this latest tuning is pending.
+The original feature passed 67/67 CTest suites. The latest distinct-swoop/faster
+cadence revision passed **4/4 affected suites** (including radar audio), with no
+compiler warnings and matching build/installed DLL hashes. New checks compare
+the enemy's lower resonant band against the actual radar floor synthesis, require
+each cue to fit the faster spacing, and simulate repetition at the service's
+100 ms cadence. This measures signal differences, not perceptual acceptance;
+listening to the latest revision remains pending.
 
 Automated coverage checks native classification, selection priorities, dead and
 friendly exclusions, occlusion, fixed screen directions, changing distance,

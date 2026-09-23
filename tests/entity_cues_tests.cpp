@@ -77,13 +77,13 @@ void CadenceAndLifecycle() {
 	const auto far = Make(1, Kind::Npc, 45, 30), near = Make(1, Kind::Npc, 30, 30);
 	Tracker tracker;
 	Check(Is(tracker.Update(world, {far}, 0, {}), 1), "new target starts immediately at time zero");
-	Check(!tracker.Update(world, {far}, 1000, {}), "distant pulse has a long rest");
-	Check(Is(tracker.Update(world, {near}, 1000, {}), 1), "approaching recalculates cadence without waiting for old far deadline");
-	Check(!tracker.Update(world, {near}, 1449, {}), "near pulse respects the minimum interval");
-	Check(Is(tracker.Update(world, {near}, 1450, {}), 1), "near pulse repeats at the shorter interval");
-	Check(!tracker.Update(world, {Make(2, Kind::Npc, 30, 30)}, 1750, {}), "nearest target changes do not burst pulses");
-	Check(!tracker.Update(world, {}, 2100, {}), "vanished or dead targets cannot repeat from memory");
-	Check(Is(tracker.Update(world, {near}, 2100, {}), 1), "a new visible target starts once after disappearance");
+	Check(!tracker.Update(world, {far}, 300, {}), "distant target waits longer than a near target");
+	Check(Is(tracker.Update(world, {near}, 300, {}), 1), "approaching recalculates cadence without waiting for old far deadline");
+	Check(!tracker.Update(world, {near}, 449, {}), "near pulse respects the minimum interval");
+	Check(Is(tracker.Update(world, {near}, 450, {}), 1), "near pulse repeats at the shorter interval");
+	Check(!tracker.Update(world, {Make(2, Kind::Npc, 30, 30)}, 550, {}), "nearest target changes do not burst pulses");
+	Check(!tracker.Update(world, {}, 600, {}), "vanished or dead targets cannot repeat from memory");
+	Check(Is(tracker.Update(world, {near}, 600, {}), 1), "a new visible target starts once after disappearance");
 	tracker.Reset();
 	Check(Is(tracker.Update(world, {far}, 2150, {}), 1), "lifecycle reset discards previous timers");
 	Check(Is(tracker.Update(world, {far}, 10, {}), 1), "a backwards clock resets instead of underflowing");
@@ -101,15 +101,30 @@ void FairScheduling() {
 		Check(first || now - previous >= Settings{}.gapMs, "different categories leave an audible gap");
 		++counts[cue->id]; previous = now; first = false;
 	}
-	Check(counts.size() == 3 && counts[1] >= 9 && counts[2] >= 9 && counts[3] >= 9,
-		"repeated boss cues never starve the shaman or NPC");
+	Check(counts.size() == 3 && counts[1] >= 18 && counts[2] >= 18 && counts[3] >= 18,
+		"even three simultaneous classes each repeat quickly without starvation");
 	tracker.Reset();
 	Check(Is(tracker.Update(world, entities, 0, {}), 1), "first cue prefers important enemies");
-	Check(!tracker.Update(world, entities, 159, {}), "simultaneously discovered targets are staggered");
-	Check(Is(tracker.Update(world, entities, 160, {}), 2), "shaman follows the important enemy");
+	Check(!tracker.Update(world, entities, 99, {}), "simultaneously discovered targets are staggered");
+	Check(Is(tracker.Update(world, entities, 100, {}), 2), "shaman follows the important enemy");
+}
+void FastRepeatsAtRuntimeCadence() {
+	const auto world = World();
+	for (const auto kind : {Kind::Npc, Kind::Important, Kind::Resurrector, Kind::Ranged}) {
+		Tracker near, far;
+		unsigned nearCount = 0, farCount = 0;
+		// The service reads a fresh snapshot every 100 ms; measure audible starts
+		// at that cadence, including the rounding of the configured intervals.
+		for (uint64_t now = 0; now < 3000; now += 100) {
+			if (near.Update(world, {Make(1, kind, 30, 30)}, now, {})) ++nearCount;
+			if (far.Update(world, {Make(1, kind, 45, 30)}, now, {})) ++farCount;
+		}
+		Check(nearCount >= 14 && farCount >= 6 && nearCount > farCount,
+			"NPC and every enemy class repeat much faster at the real polling cadence");
+	}
 }
 }
 int main() {
-	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling();
+	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); FastRepeatsAtRuntimeCadence();
 	Passed();
 }

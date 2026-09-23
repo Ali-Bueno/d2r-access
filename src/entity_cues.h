@@ -10,8 +10,8 @@ enum class Kind { Npc, Important, Resurrector, Ranged };
 struct Settings {
 	bool npcs = true, enemies = true, ranged = true;
 	double range = EntityRadar::Settings{}.range;
-	// Listening feedback, 2026-09-22: roughly 20% shorter waits, still faster nearby.
-	uint64_t nearIntervalMs = 450, farIntervalMs = 1450, gapMs = 160;
+	// Listening feedback, 2026-09-22: much faster repeats, including mixed groups.
+	uint64_t nearIntervalMs = 150, farIntervalMs = 450, gapMs = 100;
 };
 struct Cue {
 	uint32_t id = 0;
