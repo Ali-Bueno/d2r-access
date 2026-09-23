@@ -3,16 +3,20 @@
 > Since 2026-09-21 the place is followed by the share of the level's rooms seen
 > (`explorado 22 por ciento`), and the seen/visited memory persists on disk: `docs/exploration.md`.
 
-The accessible equivalent of glancing at the automap: one spoken line that says
+One spoken line based on the generated level layout that says
 where in the level the player stands, how far the terrain reaches along each of
 the four screen directions, and where the part they have not walked yet begins.
+
+This is not restricted to the revealed automap. Generated room geometry and
+neighbour data can describe places not yet discovered; the streamed-room history
+is not verified native visibility. See [automap discovery research](automap-discovery-research.md).
 
 > Blood Moor, centre. ahead: edge at 49 meters, explored. to the left: edge at
 > 42 meters, unexplored from 14 meters. to the right: edge at 42 meters,
 > unexplored. behind: Rogue Encampment at 42 meters, unexplored from 14 meters
 
-It never names a level the game has not generated yet and never gives a route:
-it describes the shape of the ground, the way looking at the map does.
+It never gives a route. Its shape and neighbour descriptions use available native
+layout data, which is not proof that the player has discovered that terrain.
 
 - The place word is the player's position in the level's bounding box, in
   screen thirds per axis: centre, left edge, back right corner, and so on.
@@ -21,8 +25,8 @@ it describes the shape of the ground, the way looking at the map does.
   within two map tiles of the player is simply "unexplored"; one walked all the
   way out is "explored".
 - When the tile past the edge belongs to a room of another **already generated**
-  level, that level is named instead of "edge" — the same rule the exit review
-  follows, so no undiscovered name is ever spoken.
+  level, that level is named instead of "edge". This is a data-availability rule,
+  not a discovered-level filter.
 - Distances are the collision subtiles the rest of the mod speaks as metres
   (`EntityRadar::DistancePhrase`), rounded the same way.
 
