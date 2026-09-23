@@ -33,6 +33,7 @@ struct Readout {
 	std::string coordinates;
 	Surface surface = Surface::Other;
 	uint64_t contentSettleMs = 0; // dependent detail panes populate after focus moves
+	std::string help; // the game's action footer: a control hint, never part of the spoken phrase
 	bool operator==(const Readout&) const = default;
 	bool Empty() const { return body.empty() && option.empty() && coordinates.empty(); }
 };

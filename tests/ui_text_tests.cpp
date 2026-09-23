@@ -18,8 +18,41 @@ Snapshot Conversation() {
 	} };
 }
 
+void JournalDetails() {
+	Snapshot journal{40, 41, "QuestLogPanelExpansion", Surface::Menu, {
+		{40, -1, Kind::Other, "Root", "QuestLogPanel", ""},
+		{41, 0, Kind::QuestButton, "Quest3", "QuestLogButtonWidget", "The Search for Cain"},
+		{42, 0, Kind::Text, "ShortDescription", "TextBoxWidget", "The Search for Cain"},
+		{43, 0, Kind::Text, "LongDescription", "TextBoxWidget", "Go to the Stony Field."},
+		{44, 0, Kind::Tabs, "Tabs", "TabBarWidget", "I"},
+		{45, 4, Kind::Text, "TabLabel", "TextBoxWidget", "I"},
+		{46, 0, Kind::Text, "Title", "TextBoxWidget", "Quest Log"},
+		{47, 0, Kind::Button, "Speech", "ButtonWidget", "Play Quest Dialogue"},
+		{48, 0, Kind::Text, "ObjectiveCopy", "TextBoxWidget", "Go to the Stony Field."},
+		{49, 0, Kind::LinkedText, "Progress", "TextBoxWithLinksWidget", "Find the Cairn Stones."},
+		{50, 0, Kind::Text, "ProgressCopy", "TextBoxWidget", "Find the Cairn Stones."},
+	}};
+	auto readout = Describe(journal);
+	Check(readout.body == "The Search for Cain" && readout.option == "Go to the Stony Field. Find the Cairn Stones.",
+		"journal keeps all current detail text, without tab labels or repeated objective lines");
+	Check(readout.help == "Play Quest Dialogue", "journal includes its visible speech action caption");
+	Reader reader;
+	reader.Update(readout, 0);
+	Check(reader.Update(readout, 150).text == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones.",
+		"the quest action is a control hint, never part of the spoken details");
+	Check(reader.Repeat() == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones.",
+		"and a manual repeat reads the details alone");
+	journal.nodes[7].enabled = false;
+	Check(Describe(journal).help.empty(), "an unavailable speech button does not promise an action");
+	journal.nodes[2].text = "Tools of the Trade";
+	readout = Describe(journal);
+	Check(readout.body.empty() && readout.option == Strings::Current().slotEmpty && readout.help.empty(),
+		"a stale pane supplies neither another quest's objective nor its actions");
+}
+
 int main() {
 	Strings::Select(Strings::Language::esES);
+	JournalDetails();
 	Check(Clean("  Akara\r\n Bienvenido\tviajero | hola  ") == "Akara Bienvenido viajero hola", "line wrapping is normalized");
 	Check(Clean("\xC3\xBF" "c4Diálogo \xFF" "c0español") == "Diálogo español", "color markup is removed without losing UTF-8");
 	Check(Clean("¿Qué tal? 50% <G>") == "¿Qué tal? 50% <G>", "punctuation and literal control hints survive");

@@ -1,8 +1,10 @@
 #include "async_log.h"
 #include "game_text_reader.h"
 
+#include "control_hints.h"
 #include "focus_tracker.h"
 #include "interaction_reader.h"
+#include "native_controller_help.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
 #include "native_memory.h"
@@ -35,6 +37,8 @@ bool g_interactionFocus = false;
 // set and cut the tab's own name off mid-word. One shot: the next
 // announcement after a tab switch queues behind that name instead.
 bool g_tabQueuesNext = false;
+// The quest footer last offered, so a changed one is spoken once (ControlHints).
+std::string g_spokenHelp;
 uint64_t g_lastPoll = 0;
 UiText::Reader g_reader, g_areaReader;
 UiNotifications::Reader g_notices;
@@ -49,6 +53,7 @@ void Reset() {
 	g_interactionFocus = false;
 	g_ownedFocus = false;
 	g_tabQueuesNext = false;
+	g_spokenHelp.clear();
 	g_lastPoll = 0;
 	g_repeat.store(false);
 	FocusTracker::Reset();
@@ -181,8 +186,17 @@ bool Tick(const D2RL::PluginContext* context) {
 			continue;
 		}
 		if (snapshot.surface == Surface::Other) continue;
-		const auto readout = UiText::Describe(snapshot);
+		auto readout = UiText::Describe(snapshot);
 		if (readout.Empty()) continue;
+		if (!readout.body.empty() && panel == focus.panel && focus.widget) {
+			const auto selected = std::find_if(snapshot.nodes.begin(), snapshot.nodes.end(), [&](const UiText::Node& node) {
+				return node.id == focus.widget && node.kind == UiText::Kind::QuestButton;
+			});
+			if (selected != snapshot.nodes.end()) {
+				auto help = NativeControllerHelp::ForFocus(focus);
+				if (!help.empty()) readout.help = help;
+			}
+		}
 		if (snapshot.surface == Surface::Area) { area = readout; continue; }
 		const int priority = Priority(snapshot, focus);
 		if (priority > best) { best = priority; active = readout; }
@@ -211,10 +225,17 @@ bool Tick(const D2RL::PluginContext* context) {
 			const auto announcement = g_reader.Update(active, now);
 			Speak(context, active, announcement, announcement.interrupt && !g_tabQueuesNext);
 			if (!announcement.text.empty()) g_tabQueuesNext = false;
+			// The selected quest's footer ("Y: Play Quest Dialogue") is a control
+			// hint: spoken unasked only last, with autodetail and control tooltips on.
+			if (active.help != g_spokenHelp) {
+				g_spokenHelp = active.help;
+				ControlHints::SpeakAfter(context, active.help);
+			}
 		}
 	} else if (g_ownedFocus) {
 		ScreenReader::Stop();
 		g_reader.Reset();
+		g_spokenHelp.clear();
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;

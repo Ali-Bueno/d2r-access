@@ -14,6 +14,7 @@ void Append(std::string& result, std::string_view part) {
 // The quest panel's own static heading, beside the ShortDescription /
 // LongDescription detail boxes (game-data/index/QuestLogPanel*.json.index.json).
 constexpr std::string_view QuestPanelHeading = "Title";
+constexpr std::string_view QuestSpeechButton = "Speech";
 
 bool Interactive(Kind kind) {
 	return kind == Kind::Button || kind == Kind::StatButton || kind == Kind::TabButton
@@ -33,9 +34,10 @@ bool Under(const Snapshot& snapshot, size_t index, int ancestor) {
 
 // Text that hangs under a button or list row belongs to that control, never to
 // the surface's own body.
-bool InsideControl(const Snapshot& snapshot, size_t index) {
+bool InsideControl(const Snapshot& snapshot, size_t index, bool includeTabs = false) {
 	for (int parent = snapshot.nodes[index].parent; parent >= 0 && parent < static_cast<int>(index);) {
-		if (Interactive(snapshot.nodes[static_cast<size_t>(parent)].kind)) return true;
+		const auto kind = snapshot.nodes[static_cast<size_t>(parent)].kind;
+		if (Interactive(kind) || (includeTabs && kind == Kind::Tabs)) return true;
 		const int next = snapshot.nodes[static_cast<size_t>(parent)].parent;
 		if (next >= parent) break; // malformed snapshot, including cycles
 		parent = next;
@@ -128,51 +130,37 @@ Readout Describe(const Snapshot& snapshot) {
 	if (focus >= 0 && snapshot.nodes[static_cast<size_t>(focus)].kind == Kind::QuestButton) {
 		// Quest icons share one detail pane. The game clears/repopulates it after
 		// moving focus; never attach the previous quest's objective to the new icon.
-		std::string title, objective, progress;
-		std::vector<std::string> seenDetail;
-		for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
-			const Node& node = snapshot.nodes[i];
+		std::string title, objective;
+		for (const auto& node : snapshot.nodes) {
 			if (node.kind != Kind::Text) continue;
-			if (node.name == "ShortDescription") { title = Clean(node.text); continue; }
-			if (node.name == "LongDescription") { objective = Clean(node.text); continue; }
-			// Whatever else the pane carries, in screen order: a live progress
-			// counter would reach speech through here. The panel's static
-			// heading and the other quest icons' labels stay out.
-			if (node.name == QuestPanelHeading || InsideControl(snapshot, i)) continue;
-			const auto text = Clean(node.text);
-			if (text.empty() || std::find(seenDetail.begin(), seenDetail.end(), text) != seenDetail.end()) continue;
-			seenDetail.push_back(text);
-			Append(progress, text);
+			if (node.name == "ShortDescription") title = Clean(node.text);
+			if (node.name == "LongDescription") objective = Clean(node.text);
 		}
 		if (result.option.empty()) return result;
-		// Live controller navigation takes ~150 ms to settle the shared pane, so
-		// both paths out of here wait for it.
+		// Live controller navigation takes ~150 ms to repopulate the shared pane.
 		result.contentSettleMs = 150;
-		// Speak only while the pane is describing THIS icon. Anything else is
-		// either a pane still holding the icon focus has just left, or a socket
-		// with no quest in it, and this icon's own name is no evidence there is
-		// a quest to name: an empty socket carries a catalog name just as a
-		// real quest does. Naming it anyway is how the act's whole list got
-		// read out icon by icon -- the pane takes about as long to clear as the
-		// settle, so the name escaped before the emptiness was ever visible.
-		// A quest the player has not been given leaves the pane empty on screen
-		// and in memory (docs/quests.md, controller session 2026-09-16).
-		//
-		// Only the pane's own heading decides it. `progress` is a sweep of
-		// whatever else the panel holds, to reach the kill counter, so letting
-		// it vote would let any panel furniture keep a socket alive as a quest.
+		// Catalog names also exist for empty sockets. Only the matching live
+		// heading establishes that this quest has details (docs/quests.md).
 		if (title.empty() || title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) {
-			// Say it is empty rather than nothing: silence left the panel's own
-			// title to be announced instead, so every socket without a quest in it
-			// read as "Quest Log". The 150 ms settle above still covers the other
-			// way in here -- a pane the game has not finished repopulating -- which
-			// is replaced by the real quest before it is ever spoken.
 			result.option = Strings::Current().slotEmpty;
 			return result;
 		}
 		result.body = result.option;
-		result.option = objective.empty() ? Strings::Current().questNoObjective : std::move(objective);
-		Append(result.option, progress);
+		result.option = objective.empty() ? Strings::Current().questNoObjective : objective;
+		std::vector<std::string> seenDetail{title, objective};
+		for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
+			const auto& node = snapshot.nodes[i];
+			if (node.kind == Kind::Button && node.name == QuestSpeechButton && node.enabled) {
+				result.help = TextUnder(snapshot, static_cast<int>(i));
+				continue;
+			}
+			if (node.kind != Kind::Text && node.kind != Kind::LinkedText) continue;
+			if (node.name == QuestPanelHeading || InsideControl(snapshot, i, true)) continue;
+			const auto text = Clean(node.text);
+			if (text.empty() || std::find(seenDetail.begin(), seenDetail.end(), text) != seenDetail.end()) continue;
+			seenDetail.push_back(text);
+			Append(result.option, text);
+		}
 		return result;
 	}
 	std::vector<std::string> seen;
