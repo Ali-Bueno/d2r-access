@@ -7,8 +7,11 @@
 #include "character_saves.h"
 #include "control_state.h"
 #include "display_modes.h"
+#include "frontend_native_fallback.h"
 #include "input_direction.h"
 #include "localization.h"
+#include "native_memory.h"
+#include "native_ui.h"
 #include "native_widgets.h"
 #include "native_focus.h"
 #include "panel_state.h"
@@ -47,6 +50,7 @@ constexpr double MinimumCoverage = 0.5;
 // The indicator is polled at most this often: resolving it costs four loader
 // calls, and menus do not move faster than this.
 constexpr unsigned long long PollIntervalMs = 33;
+constexpr unsigned long long NativeFallbackPollMs = 100;
 // After a scroll message the game either moves the highlight (the indicator
 // moves: cached rects stay valid) or, at the edge of the window, scrolls the
 // rows under a still indicator. The rows have settled after this long; only
@@ -218,6 +222,13 @@ std::optional<Widgets::Rect> g_indicatorAtScroll;      // where the indicator wa
 int                          g_scrollInputs = 0;     // ManualScrollInput messages since the last popup read
 unsigned long long           g_lastPollTick = 0;
 std::string                  g_lastAnnounced;
+std::string                  g_lastNativeFallbackContext;
+uintptr_t                    g_lastNativeToggleFocus = 0;
+std::optional<bool>          g_lastNativeToggleState;
+uintptr_t                    g_lastNativeValueFocus = 0;
+std::string                  g_lastNativeValue;
+uintptr_t                    g_lastNativeFallbackFocus = 0;
+unsigned long long           g_lastNativeFallbackPoll = 0;
 PendingValue                 g_pendingValue; // read on the next UI tick, after the layout updated
 
 std::string WidgetId(const Generated::PanelWidgets& catalog, const Generated::WidgetEntry& widget) {
@@ -864,8 +875,14 @@ void Tick(const D2RL::PluginContext* context) {
 	if (PanelState::Active() != DropdownPopupPanel) {
 		const NativeUi::Focus focused = NativeUi::CurrentFocus();
 		const auto native = NativeFocus::Resolve(focused, Generated::PanelCatalog);
-		if (native.widget == nullptr) LogNativeMiss(context, focused);
 		if (native.widget) {
+			g_lastNativeFallbackContext.clear();
+			g_lastNativeFallbackFocus = 0;
+			g_lastNativeFallbackPoll = 0;
+			g_lastNativeToggleFocus = 0;
+			g_lastNativeToggleState.reset();
+			g_lastNativeValueFocus = 0;
+			g_lastNativeValue.clear();
 			g_nativeMissWidget = 0;
 			g_forceResolve = false;
 			g_lastIndicator = indicator;
@@ -874,6 +891,57 @@ void Tick(const D2RL::PluginContext* context) {
 			Announce(context, {native.panel, native.widget, 1.0}, indicator.value_or(Widgets::Rect{}), native.nativeWidget);
 			return;
 		}
+		if (focused.panel && focused.widget && NativeWidgets::SupportsTree()
+			&& NativeUi::Visible(focused.panel) && NativeUi::Visible(focused.widget)) {
+			if (focused.widget == g_lastNativeFallbackFocus && now - g_lastNativeFallbackPoll < NativeFallbackPollMs) return;
+			g_lastNativeFallbackFocus = focused.widget;
+			g_lastNativeFallbackPoll = now;
+			const NativeMemory::ReadScope scope;
+			const UiText::Snapshot snapshot = NativeUi::Snapshot(focused.panel, focused.widget);
+			const auto readout = FrontendNativeFallback::Describe(snapshot);
+			if (!readout.text.empty()) {
+				const bool contextChanged = g_lastNativeFallbackContext != readout.context;
+				const bool toggleChanged = !contextChanged && readout.toggled
+					&& g_lastNativeToggleFocus == focused.widget && g_lastNativeToggleState
+					&& *g_lastNativeToggleState != *readout.toggled;
+				const bool valueChanged = !contextChanged && !readout.value.empty()
+					&& g_lastNativeValueFocus == focused.widget && g_lastNativeValue != readout.value;
+				g_lastNativeFallbackContext = readout.context;
+				g_lastNativeToggleFocus = readout.toggled ? focused.widget : 0;
+				g_lastNativeToggleState = readout.toggled;
+				g_lastNativeValueFocus = readout.value.empty() ? 0 : focused.widget;
+				g_lastNativeValue = readout.value;
+				g_forceResolve = false;
+				g_lastIndicator = indicator;
+				g_missSince = 0;
+				const char* state = readout.toggled ? (*readout.toggled ? Strings::Current().checked : Strings::Current().unchecked) : nullptr;
+				std::string phrase;
+				if (contextChanged && Catalog(snapshot.name) == nullptr && !readout.heading.empty()) phrase = readout.heading + ", ";
+				const auto localizedLabel = Localization::Text(readout.labelKey);
+				phrase += localizedLabel.empty() ? readout.text : localizedLabel;
+				const char* role = nullptr;
+				switch (readout.kind) {
+				case UiText::Kind::Button: role = Strings::Current().roleButton; break;
+				case UiText::Kind::Toggle: role = Strings::Current().roleCheckbox; break;
+				case UiText::Kind::TextInput: role = Strings::Current().roleTextField; break;
+				case UiText::Kind::ValueControl: if (!readout.value.empty()) role = Strings::Current().roleDropdown; break;
+				default: break;
+				}
+				if (role) phrase += ", " + std::string(role);
+				if (state) phrase += ", " + std::string(state);
+				if (!readout.enabled) phrase += ", " + std::string(Strings::Current().unavailable);
+				const std::string id = "native/" + readout.identity;
+				if (g_lastAnnounced != id) {
+					g_lastAnnounced = id;
+					D2RAccess::AsyncLog::InfoF(context, "[focus] native fallback %s/%s (%s) -> \"%s\"",
+						snapshot.name.c_str(), NativeWidgets::ReadName(focused.widget).c_str(), NativeUi::Classify(focused.widget).name.c_str(), phrase.c_str());
+					const bool incremental = toggleChanged || valueChanged;
+					ScreenReader::Speak(toggleChanged ? std::string(state) : valueChanged ? readout.value : phrase, !incremental);
+				}
+				return;
+			}
+		}
+		LogNativeMiss(context, focused);
 	}
 	// A scroll message is settled either by the indicator moving (the
 	// highlight moved: nothing else changed) or by time (the rows moved).
@@ -1012,6 +1080,13 @@ void Reset() {
 	g_scrollAt     = 0;
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
+	g_lastNativeFallbackContext.clear();
+	g_lastNativeToggleFocus = 0;
+	g_lastNativeToggleState.reset();
+	g_lastNativeValueFocus = 0;
+	g_lastNativeValue.clear();
+	g_lastNativeFallbackFocus = 0;
+	g_lastNativeFallbackPoll = 0;
 	g_lastMatchedPanel = nullptr;
 	InvalidateRects();
 }

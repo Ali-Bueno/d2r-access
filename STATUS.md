@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Multiplayer accessibility — 2026-09-23
+
+Built and installed: native host/browser/direct-join speech, checkbox states,
+input labels, status changes and one-control-per-press D-pad navigation.
+**71/71 suites passed**, then 6/6 affected suites after focus-retention and
+icon-label fixes; installed DLL hash verified. User confirmed navigation,
+activation, retained checkbox focus and state speech on 2026-09-23. Live logs
+also verified direct-join controls. Normal is enabled; Nightmare/Hell are locked
+for the selected character, as reported by the native game state.
+**Next step:** play with the friend; public list selection and a two-player
+internet session remain unverified.
+Local hosting reports Issues (automatic port setup unavailable). No network
+settings changed. Setup and native evidence: `docs/multiplayer.md`.
+
 ## Automap discovery investigation — 2026-09-23
 
 Research only; existing navigation retained. No verified native reveal-state
@@ -685,6 +699,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 
 | Section / feature | Status | Notes |
 |---|---|---|
+| D2RLoader multiplayer | done — controller confirmed 2026-09-23 | Native form speech, D-pad navigation and retained checkbox focus; 71 suites pass. Internet session unverified. `docs/multiplayer.md` |
 | NPC / priority enemy sounds | faster resonant revision installed; listening pending | Wooden NPC tap; voiced enemy swoop. 150–450 ms intervals; 4 suites pass. `docs/entity-cues.md` |
 | Exploration sound assets | built/deployed — listening pending | One nearest room loop; arrival once per new room; zone loops at real crossings. 64 suites pass. `docs/exploration.md` |
 | Directional wall sliding | wip — built/deployed; controller check pending | Local type-17 fallback probes use zero travel. 50 new checks pass. `access-movement on\|off\|status`; `docs/wall-sliding.md` |

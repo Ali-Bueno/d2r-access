@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -8,7 +9,7 @@
 namespace D2RAccess::UiText {
 
 enum class Kind { Other, Text, LinkedText, NotificationList, Button, Toggle, ListItem, List, Focusable, ScrollingText,
-	InventoryGrid, InventorySlot, InventoryItem, Tabs, StatButton, TabButton, ValueControl, Legend, QuestButton };
+	InventoryGrid, InventorySlot, InventoryItem, Tabs, StatButton, TabButton, ValueControl, Legend, QuestButton, TextInput };
 enum class Surface { Other, Menu, Narrative, Tip, Area, Notice, NotificationFeed, Target };
 
 // A value-only snapshot. Native pointers are identities, never dereferenced here.
@@ -19,6 +20,8 @@ struct Node {
 	std::string name, type, text;
 	bool enabled = true;
 	uintptr_t contentId = 0; // optional native notification delivery, not a widget address
+	std::optional<bool> toggled;
+	std::string hint; // optional native tooltip, separate from a value control's caption
 };
 struct Snapshot {
 	uintptr_t panel = 0, focus = 0;

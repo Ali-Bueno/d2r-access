@@ -278,7 +278,10 @@ int main() {
 	Check(Push(StickPush::Down) == "Magic Find: 0%", "down at the bottom re-reads the last line");
 	Check(Push(StickPush::Left) == "Kyoko", "left jumps to the first line");
 	pending = StickPush::None;
-	Check(!AdvancedStatsReader::Tick(nullptr, {Advanced, 0}), "without a push the stick is left to the other readers");
+	speech.clear();
+	Check(AdvancedStatsReader::Tick(nullptr, {Advanced, 0}) && speech.empty(),
+		"without a push the focused panel holds the tick and says nothing");
+	Check(!AdvancedStatsReader::Tick(nullptr, {}), "with focus elsewhere an idle tick is left to the other readers");
 	Push(StickPush::Right);
 	hidden.insert(Advanced);
 	Check(!AdvancedStatsReader::Tick(nullptr, {Advanced, 0}), "a closed panel claims nothing");

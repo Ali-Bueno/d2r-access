@@ -2,6 +2,7 @@
 #include "ui_message_monitor.h"
 
 #include "quest_service.h"
+#include "menu_navigation.h"
 
 #include "generated/panel_titles.h"
 #include "localization.h"
@@ -270,6 +271,7 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 	}
 
 	// UI messages arrive on the UI thread: a safe place to (re)arm the focus pump.
+	MenuNavigation::NoteAction(event->target, event->command);
 	UiThreadPump::Kick(context);
 
 	if (g_trace && !IsTraceNoise(event->target, event->command)) {

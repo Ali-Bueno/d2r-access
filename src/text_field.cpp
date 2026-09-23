@@ -16,7 +16,7 @@ namespace {
 
 // The editable archetypes. `ConsoleInput` is the loader's own console, which
 // is classified the same way and must not be read back to the player.
-constexpr const char* EditableTypes[]  = {"InputTextBoxWidget"};
+constexpr const char* EditableTypes[]  = {"InputTextBoxWidget", "NumericInputTextBoxWidget"};
 constexpr const char* IgnoredNames[]   = {"ConsoleInput"};
 
 uintptr_t   g_widget   = 0;
@@ -32,7 +32,7 @@ bool Matches(const std::string& value, const char* const* list, size_t count) {
 
 std::string Read(uintptr_t widget) {
 	const NativeMemory::ReadScope scope;
-	return NativeWidgets::ReadText(widget);
+	return NativeUi::InputText(widget);
 }
 
 }

@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <cstdio>
+#include <array>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -25,6 +26,14 @@ constexpr size_t ChildrenOffset = 0x58; // FindChildWidget 0x855C90
 constexpr size_t GetTypeSlot = 0x58;    // vtable, distinct from the instance member
 constexpr size_t TypeNameOffset = 0x8, BaseTypeOffset = 0x10; // 0x851030
 constexpr size_t ButtonTextOffset = 0x818; // 0x8496CA calls SetText on embedded TextBoxWidget
+constexpr size_t ToggleStateOffset = 0xB88; // isToggled reflection and RVA 0x882D40 getter, D2R 3.3.93787
+constexpr size_t ToggleGetterSlot = 0x8;
+constexpr size_t ToggleGetterStateInstruction = 6;
+constexpr std::array<uint8_t, 7> ToggleGetterBytes { 0x0F, 0xB6, 0x91, 0x88, 0x0B, 0x00, 0x00 };
+constexpr size_t InputTextOffset = 0x558; // InputTextBoxWidget getter RVA 0x889EC0, D2R 3.3.93787
+constexpr size_t InputTextGetterSlot = 0x70;
+constexpr size_t InputTextGetterInstruction = 6;
+constexpr std::array<uint8_t, 7> InputTextGetterBytes { 0x48, 0x8B, 0x81, 0x58, 0x05, 0x00, 0x00 };
 constexpr size_t ButtonLegendOffset = 0x310; // FocusableWidget registration 0x875CB0; live gold_button
 constexpr size_t EquipmentLocationOffset = 0x5D8; // InventorySlotWidget location, live metadata 0x236C530
 constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to embedded TextBoxWidget
@@ -69,6 +78,17 @@ std::vector<uintptr_t> VectorAt(uintptr_t address) {
 	return items;
 }
 
+std::optional<bool> ToggleState(uintptr_t widget) {
+	uintptr_t vtable = 0, getter = 0;
+	std::array<uint8_t, ToggleGetterBytes.size()> instruction{};
+	uint8_t state = 0;
+	if (!Peek(widget, vtable) || !Peek(vtable + ToggleGetterSlot, getter)
+		|| !NativeMemory::Executable(getter)
+		|| !NativeMemory::Copy(getter + ToggleGetterStateInstruction, instruction.data(), instruction.size())
+		|| instruction != ToggleGetterBytes || !Peek(widget + ToggleStateOffset, state) || state > 1) return std::nullopt;
+	return state != 0;
+}
+
 void MatchType(Type& result, const std::string& name) {
 	// Classify inheritance, never a runtime panel's name. A future subtype uses
 	// the same archetype automatically; unknown widgets still expose child text.
@@ -81,6 +101,8 @@ void MatchType(Type& result, const std::string& name) {
 	else if (name == "MonsterHealthPanel") result.surface = Surface::Target;
 	if (result.kind != Kind::Other) return;
 	if (name == "TextBoxWidget") result.kind = Kind::Text;
+	else if (name == "InputTextBoxWidget" || name == "MaskedInputTextBoxWidget"
+		|| name == "NumericInputTextBoxWidget") result.kind = Kind::TextInput;
 	else if (name == "TextBoxWithLinksWidget") result.kind = Kind::LinkedText;
 	else if (name == "ChatListWidget") result.kind = Kind::NotificationList;
 	else if (name == "ToggleButtonWidget") result.kind = Kind::Toggle; // existing value reader retains toggles
@@ -116,8 +138,14 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 	const Type type = Classify(widget);
 	node.type = type.name;
 	node.kind = type.kind;
+	if (type.name == "ToggleButtonWidget") node.toggled = ToggleState(widget);
 	if (type.kind == Kind::Text) node.text = NativeWidgets::ReadText(widget);
+	else if (type.kind == Kind::TextInput) node.text = InputText(widget);
 	else if (type.kind == Kind::LinkedText) node.text = NativeWidgets::ReadText(widget + LinkedTextOffset);
+	else if (type.name == "DropdownListWidget") {
+		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
+		node.hint = NativeWidgets::ReadText(widget);
+	}
 	else if (type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::StatButton) {
 		node.text = NativeWidgets::ReadText(widget + ButtonTextOffset);
 		// A button's +0x88 string is FocusableWidget::tooltipString, not its
@@ -193,6 +221,20 @@ uintptr_t Parent(uintptr_t widget) {
 	uintptr_t parent = 0;
 	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + ParentOffset, parent) || parent == widget) return 0;
 	return parent;
+}
+
+std::string InputText(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !widget) return {};
+	const auto type = Classify(widget).name;
+	if (type != "InputTextBoxWidget" && type != "NumericInputTextBoxWidget") return {};
+	uintptr_t vtable = 0, getter = 0;
+	std::array<uint8_t, InputTextGetterBytes.size()> instruction{};
+	if (!Peek(widget, vtable) || !Peek(vtable + InputTextGetterSlot, getter)
+		|| !NativeMemory::Executable(getter)
+		|| !NativeMemory::Copy(getter + InputTextGetterInstruction, instruction.data(), instruction.size())
+		|| instruction != InputTextGetterBytes) return {};
+	std::string text;
+	return NativeMemory::ReadEngineString(widget + InputTextOffset, text) ? text : std::string{};
 }
 
 std::optional<Rect> LocalRect(uintptr_t widget) {

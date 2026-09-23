@@ -19,7 +19,7 @@ constexpr std::string_view QuestSpeechButton = "Speech";
 bool Interactive(Kind kind) {
 	return kind == Kind::Button || kind == Kind::StatButton || kind == Kind::TabButton
 		|| kind == Kind::ListItem || kind == Kind::List || kind == Kind::Focusable
-		|| kind == Kind::QuestButton;
+		|| kind == Kind::QuestButton || kind == Kind::TextInput;
 }
 
 bool Under(const Snapshot& snapshot, size_t index, int ancestor) {

@@ -145,7 +145,9 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	                          InputDirection::StickPush::Left, InputDirection::StickPush::Right}) {
 		if (InputDirection::TakeRightStickPushIf(wanted, "advanced stats")) { push = wanted; break; }
 	}
-	if (push == InputDirection::StickPush::None) return false;
+	// The panel's only focus is its scroll bar, which no layout catalogue names:
+	// holding the idle tick keeps the generic focus fallback from speaking it.
+	if (push == InputDirection::StickPush::None) return focus.panel == panel;
 	const uintptr_t mercenary = Mercenary();
 	Census census;
 	const auto lines = Build(panel, mercenary, &census);

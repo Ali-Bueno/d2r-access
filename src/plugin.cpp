@@ -17,6 +17,8 @@
 #include "interaction_reader.h"
 #include "localization.h"
 #include "modal_reader.h"
+#include "multiplayer_reader.h"
+#include "menu_navigation.h"
 #include "native_widgets.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
@@ -74,9 +76,10 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
-	D2RAccess::SkillNavigation::Tick(context);
+	if (!D2RAccess::MenuNavigation::Tick(context)) D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
+	D2RAccess::MultiplayerReader::Tick(context);
 	// After the focus tracker, so landing on a strip is its announcement and
 	// only a later move along the strip is this one's.
 	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech);
@@ -265,6 +268,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
+	D2RAccess::MultiplayerReader::Initialize(context);
+	D2RAccess::MenuNavigation::Initialize(context);
 	// The native switch disables code hooks and input filtering together;
 	// readers that only inspect memory remain available.
 	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
@@ -330,6 +335,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::AutoDetail::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::SkillNavigation::Reset();
+	D2RAccess::MenuNavigation::Reset();
 	D2RAccess::TerrainService::Unregister();
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();
@@ -340,6 +346,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::WallSlideService::Unregister();
 	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();
+	D2RAccess::MultiplayerReader::Reset();
 	D2RAccess::InputDirection::Shutdown();
 	D2RAccess::UiMessageMonitor::Unregister();
 	D2RAccess::Widgets::Shutdown();

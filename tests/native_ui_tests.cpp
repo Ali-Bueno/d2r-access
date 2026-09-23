@@ -265,6 +265,54 @@ int main() {
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
+	// These executable fixtures contain only the verified member-load bytes;
+	// production reads the member but never calls the getter.
+	auto* getterCode = static_cast<unsigned char*>(VirtualAlloc(nullptr, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+	Check(getterCode != nullptr, "executable getter fixture allocated");
+	const unsigned char inputGetter[] = {0x40, 0x53, 0x48, 0x83, 0xEC, 0x30, 0x48, 0x8B, 0x81, 0x58, 0x05, 0x00, 0x00};
+	const unsigned char toggleGetter[] = {0x40, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x0F, 0xB6, 0x91, 0x88, 0x0B, 0x00, 0x00};
+	std::memcpy(getterCode, inputGetter, sizeof(inputGetter));
+	std::memcpy(getterCode + 32, toggleGetter, sizeof(toggleGetter));
+	Widget input("InputTextBoxWidget", "SearchInput", "wrong offset");
+	std::string entered = "Partida de Ana";
+	input.StringAt(0x558, entered);
+	input.vtable[0x70 / sizeof(uintptr_t)] = reinterpret_cast<uintptr_t>(getterCode);
+	Check(NativeUi::InputText(input.Address()) == entered, "native input reads current text at verified +0x558");
+	Check(NativeUi::Snapshot(input.Address(), input.Address()).nodes.front().text == entered,
+		"input snapshot uses current contents rather than the +0x88 tooltip field");
+	getterCode[12] = 0x01;
+	Check(NativeUi::InputText(input.Address()).empty(), "changed getter fingerprint blocks input offset read");
+	getterCode[12] = 0x00;
+	Widget numeric("NumericInputTextBoxWidget", "MaxPlayersInput");
+	std::string playerCount = "4";
+	numeric.StringAt(0x558, playerCount);
+	numeric.vtable[0x70 / sizeof(uintptr_t)] = reinterpret_cast<uintptr_t>(getterCode);
+	Check(NativeUi::InputText(numeric.Address()) == playerCount, "numeric input shares the guarded text getter");
+	Widget masked("MaskedInputTextBoxWidget", "PasswordInput");
+	std::string password = "secret";
+	masked.StringAt(0x558, password);
+	masked.vtable[0x70 / sizeof(uintptr_t)] = reinterpret_cast<uintptr_t>(getterCode);
+	Check(NativeUi::InputText(masked.Address()).empty()
+		&& NativeUi::Snapshot(masked.Address(), masked.Address()).nodes.front().text.empty(),
+		"masked input is never read into speech snapshots");
+	Widget multiplayerToggle("ToggleButtonWidget", "UnlistedCheckbox");
+	multiplayerToggle.vtable[0x8 / sizeof(uintptr_t)] = reinterpret_cast<uintptr_t>(getterCode + 32);
+	multiplayerToggle.Put<uint8_t>(0xB88, 1);
+	Check(NativeUi::Snapshot(multiplayerToggle.Address(), multiplayerToggle.Address()).nodes.front().toggled == true,
+		"toggle uses verified isToggled byte");
+	multiplayerToggle.Put<uint8_t>(0xB88, 0);
+	Check(NativeUi::Snapshot(multiplayerToggle.Address(), multiplayerToggle.Address()).nodes.front().toggled == false,
+		"toggle reports its current unchecked state");
+	getterCode[32 + 12] = 0x01;
+	Check(!NativeUi::Snapshot(multiplayerToggle.Address(), multiplayerToggle.Address()).nodes.front().toggled,
+		"changed toggle getter fingerprint blocks state read");
+	Widget difficulty("DropdownListWidget", "BrowseDifficultyFilterDropdown", "Filter by difficulty");
+	std::string selectedDifficulty = "Normal";
+	difficulty.StringAt(0x8A0, selectedDifficulty);
+	const auto difficultyNode = NativeUi::Snapshot(difficulty.Address(), difficulty.Address()).nodes.front();
+	Check(difficultyNode.text == "Normal" && difficultyNode.hint == "Filter by difficulty",
+		"native dropdown keeps selected caption separate from its tooltip");
+	VirtualFree(getterCode, 0, MEM_RELEASE);
 	// Synthetic busy inventory panel: report traversal cost, without a timing
 	// assertion that would fail under debugger or machine load.
 	Widget busy("Widget", "BusyInventory");

@@ -20,6 +20,7 @@ constexpr uint8_t UpdatePrefix[] = {0x40, 0x53, 0x57, 0x48, 0x83, 0xEC, 0x48, 0x
 struct Rect { int x, y, width, height; };
 struct Point { int x, y; };
 uintptr_t g_base = 0;
+uintptr_t g_activeInput = 0;
 void* g_original = nullptr;
 std::atomic<bool> g_hold{false};
 
@@ -62,6 +63,7 @@ bool SelectNative(uintptr_t widget, const Rect& rect, uint64_t selection) noexce
 }
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
+	g_activeInput = 0;
 	g_hold = false;
 	NativeCursorGesture::ResetTracking();
 	if (!context || !NativeWidgets::SupportsTree()) return false;
@@ -75,6 +77,14 @@ bool Initialize(const D2RL::PluginContext* context) {
 		return false;
 	}
 	g_base = base;
+	// InputTextBoxWidget's edit callback reads the active editor through this
+	// RIP-relative load. Evidence and full-function fingerprint: docs/multiplayer.md.
+	constexpr uintptr_t EditCallbackRva = 0x88C7C0;
+	constexpr size_t EditLoadEnd = 18, EditDisplacement = 14;
+	int32_t displacement = 0;
+	if (Verify(base, EditCallbackRva, 70, 0xE6E4FE9DF7F4CE48ULL)
+		&& NativeMemory::Peek(base + EditCallbackRva + EditDisplacement, displacement))
+		g_activeInput = base + EditCallbackRva + EditLoadEnd + displacement;
 	if (!context->InstallInlineHook(CursorUpdateRva, UpdatePrefix, sizeof(UpdatePrefix), reinterpret_cast<void*>(&UpdateCursor), &g_original)) {
 		g_base = 0;
 		AsyncLog::Warn(context, "[skill-grid] Cursor hook unavailable; cursor navigation retained.");
@@ -89,6 +99,19 @@ NativeUi::Cell Position(uintptr_t widget) {
 	Rect rect{};
 	if (!Available() || !NativeUi::Visible(widget) || !ReadRect(widget, rect)) return {};
 	return {rect.x + rect.width / 2, rect.y + rect.height / 2};
+}
+std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
+	uintptr_t vtable = 0, select = 0;
+	Rect rect{};
+	if (!Available() || !NativeUi::Visible(widget)
+		|| !NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + SelectSlot, select)
+		|| select != g_base + SelectRva || !ReadRect(widget, rect)) return std::nullopt;
+	return NativeUi::Rect{rect.x, rect.y, rect.width, rect.height};
+}
+std::optional<bool> TextEditing() {
+	uintptr_t editor = 0;
+	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor)) return std::nullopt;
+	return editor != 0;
 }
 bool Select(NativeUi::Focus focus) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;

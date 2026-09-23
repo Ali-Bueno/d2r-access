@@ -19,6 +19,11 @@ blind players using a controller; keyboard and mouse are planned.
 - Native text in dropdown rows, character rows and confirmation prompts. Character
   selection reads the name and level/class from the selected runtime row, even
   when the game's focus remains on the first row.
+- D2RLoader multiplayer controls use native focus for host, browser and direct-join
+  fields, buttons, checkboxes and overlay context. Short D-pad presses move between
+  the form controls. Hosting status and empty browser
+  results are announced when they change. See [playing with a friend](docs/multiplayer.md)
+  for setup and the current validation limits.
 - Everything is spoken in the game's text language: the plugin's own phrases are translated into all thirteen D2R locales and follow the language selected in the game's options (changing it in Options switches the plugin too).
 
 Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
