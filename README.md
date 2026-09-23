@@ -221,9 +221,9 @@ be read, its cue remains available with a generic localized label. Beacon audio
 is cancelled when guidance is suspended by dialogue, menus or loss of focus.
 See [audio language verification and limits](docs/audio-language-audit.md).
 
-**Level exits:** stairs, cave entrances and walkable outdoor area crossings play
-the supplied `zone transition` loop. Outdoor crossings use openings in the loaded
-collision map. Portals and waypoints keep the `portal` loop. The entity scan
+**Level exits:** entrances that require interaction, including dungeon stairs,
+cave entrances, portals and waypoints, play the `portal` loop. Only crossings
+traversed by walking use `zone transition`, at openings in the loaded collision map. The entity scan
 names exits after their destination. **Ctrl+P** toggles the exit loops;
 `access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
 

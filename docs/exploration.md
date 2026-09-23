@@ -14,7 +14,7 @@ at build time and deployed with the existing sound assets:
 |---|---|
 | `unexplored room` | One spatial loop for the nearest active, unvisited maze room within the existing 30-subtile audio radius. The current room is excluded. |
 | `inside unexplored room` | A centered, finite cue when the player first enters an unvisited maze room. Persistent visited memory prevents standing, returning or reloading from replaying it. |
-| `zone transition` | Spatial loops at nearby fixed area exits and loaded outdoor crossings. Portals and waypoints retain their existing portal sound. |
+| `zone transition` | Spatial loops only at loaded crossings traversed by walking. Entrances requiring interaction, including dungeon stairs, cave entrances, portals and waypoints, use the portal sound. |
 
 `ExplorationCues::Select` uses the nearest point inside each native room's
 rectangle, with coordinate-based tie breaking. Only `Levels.txt DrlgType = 1`
@@ -29,6 +29,10 @@ Outdoor transition sounds use `ZoneTransitions::Find`: openings with loaded
 walkable collision on both sides of a native room border, mapped to the actual
 neighbouring level. Rectangle midpoints used for distant bearings do not qualify
 as sound locations. Unloaded crossings remain silent until collision is available.
+Interactive entrances come from the loaded entity reader and use `portal`, even
+when their category is the generic `Exit`. The native reader skips `NoInteract`
+warp units and only includes selectable exit objects. If an interactive warp
+coincides with a detected crossing, it keeps one portal cue without a zone duplicate.
 The existing exit loop toggle, Ctrl+P or `access-items exits-on|exits-off`, also
 controls transition sounds. `[exploration] enabled = false` disables both room
 sounds on restart, independently of the radar and exit loops.
@@ -145,6 +149,12 @@ needs independently. The mod never modifies the game's automap or character save
   `SubWaypoint`/`SubShrine`.
 
 ## Verification
+
+The 2026-09-23 portal restoration passed all four affected suites: ground items,
+ground-item service, native entities and zone transitions. The installed DLL hash
+matches the build. Tests distinguish interactive stairs from walking crossings,
+cover coincident-exit deduplication and verify the shared exit toggle. Listening
+at a dungeon entrance and a walking area boundary is pending.
 
 - `exploration` suite: both histories, snapshots, layout isolation, queued updates,
   legacy migration including malformed rows, failed writes and retry, archive
