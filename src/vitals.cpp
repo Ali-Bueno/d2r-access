@@ -46,12 +46,62 @@ std::optional<Orb> ParseOrb(std::string_view text) {
 int Meter::Update(int percent) {
 	const int step = Step(percent);
 	const bool baseline = step_ < 0;
+	previous_ = percent;
 	if (step == step_) return -1;
 	step_ = step;
 	return baseline ? -1 : percent;
 }
 
-void Meter::Reset() { step_ = -1; }
+void Meter::Reset() { step_ = previous_ = -1; }
+
+Alert Alerts::Update(int life, int mana) {
+	Alert alert;
+	if (life >= 0) {
+		const int previous = life_.Previous();
+		alert.life = life_.Update(life);
+		alert.interrupt = alert.life >= 0 && life <= CriticalPercent && previous > life;
+	}
+	if (mana >= 0) {
+		const int previous = mana_.Previous();
+		alert.mana = mana_.Update(mana);
+		alert.interrupt = alert.interrupt
+			|| (alert.mana >= 0 && mana <= CriticalPercent && previous > mana);
+	}
+	return alert;
+}
+
+void Alerts::Reset() { life_.Reset(); mana_.Reset(); }
+
+unsigned OrbAvailability::Update(bool lifeReadable, bool manaReadable) {
+	const bool readable[] = {lifeReadable, manaReadable};
+	unsigned missing = 0;
+	for (int index = 0; index < 2; ++index) {
+		missing_[index] = readable[index] ? 0
+			: std::min(missing_[index] + 1, MissingConfirmationSamples);
+		if (missing_[index] == MissingConfirmationSamples) missing |= 1U << index;
+	}
+	return missing;
+}
+
+void OrbAvailability::Reset() { missing_[0] = missing_[1] = 0; }
+
+std::optional<bool> Condition::Update(std::optional<bool> active) {
+	if (!active) return std::nullopt;
+	const auto previous = previous_;
+	previous_ = active;
+	if (previous && *previous != *active) return active;
+	return std::nullopt;
+}
+
+void Condition::Reset() { previous_.reset(); }
+
+int MercenaryMeter::Update(std::optional<uint32_t> id, int percent) {
+	if (!id || percent < 0) return -1;
+	if (id_ != id) { id_ = id; life_.Reset(); }
+	return life_.Update(percent);
+}
+
+void MercenaryMeter::Reset() { id_.reset(); life_.Reset(); }
 
 std::vector<int> Breakage::Sweep(const std::vector<Item>& worn) {
 	std::vector<int> broke;

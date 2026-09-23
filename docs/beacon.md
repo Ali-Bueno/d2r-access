@@ -68,6 +68,9 @@ about the lock changes.
 
 `Beacon::FindRoute` (`src/beacon.cpp`) runs per tick, not per frame:
 
+- An empty cached room graph is retried on the next service tick, even when
+  the player has not moved. A transient native read failure cannot leave
+  guidance using an empty graph indefinitely.
 - A square box is cut around the player, sized to the straight-line distance
   to the target plus `lookAhead`, clamped between a 16-cell minimum
   neighbourhood and `searchRadius`; the world's rooms are blitted into that

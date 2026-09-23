@@ -79,6 +79,7 @@ namespace D2RAccess::NativeUi { bool Visible(uintptr_t) { return visible; } }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return panels; } }
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) { const auto found = strings.find(key); return found == strings.end() ? std::string() : found->second; }
+std::string Text(uint32_t id) { return id == 3714 ? "El Cubil del Mal" : std::string(); }
 }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
 namespace D2RAccess::ScreenReader {
@@ -87,6 +88,7 @@ void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); i
 namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+void Warn(const D2RL::PluginContext*, const char*) {}
 }
 
 int main() {

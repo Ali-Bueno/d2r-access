@@ -1,8 +1,8 @@
 # Life, mana and broken equipment
 
 What the mod says about the player's own condition: life and mana as they cross
-announcement steps, and a worn item that breaks. Console command
-`access-vitals on|off|status`; enabled by default.
+announcement steps, mercenary life, poison state changes, and a worn item that breaks. Console command
+`access-vitals on|off|status|report`; enabled by default.
 
 ## Where the numbers come from
 
@@ -16,10 +16,11 @@ exactly the ones on screen.
 
 The two options are `ShowLifeOrbText` and `ShowManaOrbText` in the Gameplay
 panel (`src/generated/panel_widgets.h`, label keys
-`OptionsMenuShowLifeOrbText` / `OptionsMenuShowManaOrbText`). **With both off
-the game writes no number anywhere**, so there is nothing to read; the mod then
-says once, in the player's language and using the game's own label text, that
-those options need turning on.
+`OptionsMenuShowLifeOrbText` / `OptionsMenuShowManaOrbText`). If either display
+stays unreadable for ten 100 ms samples, the mod names exactly the corresponding
+game option. A single unreadable sample does not imply that the option is off.
+An explicit `report` reads whichever value is available and identifies any
+unavailable display immediately.
 
 **Durability: the loader's inventory service.** `getLocalPlayer` +
 `forEachInventoryItem` filtered to `ItemContainer::Equipment` return an
@@ -41,15 +42,30 @@ permits both on the UI thread, which is where the plugin's tick runs.
   safer number.
 - A step is announced **once**, in either direction; recovering across steps is
   announced the same way. The first reading of a character is only a baseline.
-- At or below `Vitals::CriticalPercent` (10 %) the announcement **interrupts**;
-  above it, it waits its turn.
+- Life and mana crossing steps in the same sample form one utterance, with life
+  first. A downward crossing at or below `Vitals::CriticalPercent` (10 %)
+  interrupts; recovery and other readings wait their turn. This keeps a
+  critical mana reading from erasing a simultaneous critical life reading.
 - Leaving the game (no `HUDPanel`) drops the baseline, so the next character
   starts fresh.
 
 Sampling: orbs every 100 ms (life can fall within one blow), durability every
 second (it only creeps down).
 
+**Poison:** the health orb's own native color branch checks player state id 2.
+The mod calls that same verified checker and announces entering and leaving
+poison once. An unreadable or dead player does not count as poison ending;
+the on-demand vitals report includes poison while it is active. See
+`docs/combat-status-evidence.md` for the native call path and its build guard.
+
+**Mercenary:** the hireling panel's native relation identifies its unit, from
+which the same current and maximum life stats yield a percentage. It shares
+the player's step schedule, takes a new baseline for each unit id, and queues
+its alerts after player speech. An unloaded unit is unknown, not a death.
+The report key includes current mercenary life when available.
+
 **Breaking**: an item whose durability reaches zero from a positive value is
 announced with its equipment slot. An item with no maximum durability never
 breaks, an item worn already broken is not a break, and an item that stays
 broken is announced once. Repairing and breaking again is announced again.
+Breakage speech queues so it cannot erase a critical life alert from the same tick.

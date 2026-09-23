@@ -204,6 +204,16 @@ uintptr_t Parent(uintptr_t widget) {
 	return parent;
 }
 
+ItemSlot QueryItem(uintptr_t widget, Cell cell) {
+	ItemSlot result;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return result;
+	result.slot = cell.x;
+	result.known = CallItemPointer(getter, widget, cell, result.item);
+	return result;
+}
+
 std::optional<Rect> LocalRect(uintptr_t widget) {
 	Rect result;
 	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + RectOffset, result)
@@ -260,15 +270,15 @@ int EquipmentLocation(uintptr_t widget) {
 }
 
 ItemSlot FocusedItem(uintptr_t widget) {
-	ItemSlot result;
 	Cell cell;
-	if (!NativeWidgets::SupportsTree() || !Visible(widget) || !ItemCell(widget, Classify(widget), cell)) return result;
-	uintptr_t vtable = 0, getter = 0;
-	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
-		|| !NativeMemory::Executable(getter)) return result;
-	result.slot = cell.x;
-	result.known = CallItemPointer(getter, widget, cell, result.item);
-	return result;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || !ItemCell(widget, Classify(widget), cell)) return {};
+	return QueryItem(widget, cell);
+}
+
+ItemSlot BeltItem(uintptr_t widget, int slot) {
+	if (slot < 0 || slot >= BeltSlots || !NativeWidgets::SupportsTree()
+		|| !Visible(widget) || Classify(widget).name != "BeltWidget") return {};
+	return QueryItem(widget, {slot, 0});
 }
 
 std::vector<uintptr_t> Panels() {

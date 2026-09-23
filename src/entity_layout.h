@@ -13,6 +13,15 @@
 namespace D2RAccess::EntityLayout {
 // Unit+0 type values; 6 is stamped into freed units (0x349250) and returned for null.
 inline constexpr uint32_t MonsterType = 1, ObjectType = 2, WarpType = 5;
+// D2Client UI 0xCE8F0 uses mode 17 for a player corpse. D2Game corpse pickup
+// 0x4B2C8A checks a type-0 unit's inventory link ID against the player ID.
+inline constexpr uint32_t PlayerCorpseMode = 17;
+inline constexpr std::string_view PlayerCorpseNameKey = "DeadPlayerCorpseName";
+// Unit inventory getter 0x34A360: +0x90 normally, or +0x98 while the +0xA0
+// owner reference is live. Inventory link-ID getter 0x388BA0 validates magic.
+inline constexpr size_t UnitInventory = 0x90, UnitOwnedInventory = 0x98, UnitInventoryRef = 0xA0;
+inline constexpr size_t InventoryRefCount = 8, InventoryLinkId = 0x48;
+inline constexpr uint32_t InventoryMagic = 0x01020304;
 inline constexpr size_t UnitFlags1 = 0x124, UnitFlags2 = 0x128;
 inline constexpr uint32_t ForcedDead = 1u << 16; // Unit+0x124, liveness test 0x34C2C0
 inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0 (inferred: set on player-owned spawns)
@@ -119,5 +128,11 @@ inline constexpr Evidence Checks[] = {
 	{0x9F2A0, 203, 0xC90C7A453EC06F4BULL}, // warp caption: Levels row +0x125 key
 	{0xC17E0, 910, 0x34C1A6F0CFE7D2B9ULL}, // object label: SubClass portal / waypoint bits, LevelName +0xFD, ObjectData+8
 	{0x34AD40, 72, 0xAB8363B4E728C162ULL}, // ObjectData+8 byte getter
+};
+inline constexpr Evidence CorpseChecks[] = {
+	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper
+	{0x388BA0, 100, 0xB5FBC7641E1D7F3AULL}, // inventory magic and link ID
+	{0xCE8F0, 344, 0xFBF8C68D0D6D122AULL}, // corpse mode and displayed name
+	{0x4B2C8A, 1679, 0x5F479D4462F948A0ULL}, // pickup compares link ID with player ID
 };
 }

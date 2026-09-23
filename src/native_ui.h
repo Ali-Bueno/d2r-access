@@ -38,6 +38,8 @@ Cell GridCell(uintptr_t widget);
 // numbered by. The unit is only named, never kept.
 struct ItemSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
 ItemSlot FocusedItem(uintptr_t widget);
+// Same read-only getter, for a known belt cell rather than the selected one.
+ItemSlot BeltItem(uintptr_t widget, int slot);
 constexpr ItemPresence Presence(const ItemSlot& slot) {
 	return !slot.known ? ItemPresence::Unknown : slot.item ? ItemPresence::Occupied : ItemPresence::Empty;
 }

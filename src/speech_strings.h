@@ -59,6 +59,9 @@ struct Table {
 	const char* itemInHand;
 	const char* itemReleased;
 	const char* belt;
+	const char* beltRow; // %d = one-based row
+	const char* beltColumnCount; // %d = physical items across all rows of this column
+	const char* beltAutomatic;
 	const char* gridCell; // one-based row, column
 	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
@@ -164,6 +167,10 @@ struct Table {
 	const char* vitalsEnabled;
 	const char* vitalsDisabled;
 	const char* vitalsOrbTextMissing; // %s, %s = the game's own orb text option labels
+	const char* vitalsOrbTextMissingOne; // %s = missing orb option label
+	const char* playerPoisoned;
+	const char* playerPoisonCleared;
+	const char* mercenaryLife; // %d = current hireling life percentage
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
@@ -202,7 +209,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied, t.itemInHand,
-		t.itemReleased, t.belt, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.itemReleased, t.belt, t.beltRow, t.beltColumnCount, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
@@ -222,7 +229,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable};
 	for (const char* s : singles) visit(s);

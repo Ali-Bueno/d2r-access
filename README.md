@@ -127,6 +127,13 @@ an item, equipment destinations read immediately, including occupied slots
 whose item tooltip is still pending. Manual repeat includes the held-item
 context while in the inventory.
 
+The **belt** now names the D-pad direction and row of each focused cell, its
+potion, and the total items in that column. The bottom row is used first;
+higher rows are reserves for the same button. Placement names the destination
+button and row too. If the game displays an automatic potion from the inventory
+in an empty bottom cell, the reader identifies it separately from physical belt
+reserves. No new controller binding is added. See [potion assignments](docs/belt.md).
+
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
 leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
@@ -250,6 +257,13 @@ scanned beyond ordinary range and through walls, including inactive rooms whose
 exit presets the game retains. Never-generated positions remain unknown. See
 [distant exits](docs/distant-exits.md) and [target guidance](docs/beacon.md).
 
+Your **recoverable corpse** is also a scan and beacon target when its room is
+loaded. The reader checks the game's ownership link, so another player's body
+is excluded. Picking it up removes the target. Scenery corpses retain their
+ordinary container behavior. See [corpse detection and limits](docs/player-corpse-re.md).
+The beacon retries a failed room-graph read instead of keeping an empty graph
+for the entire level.
+
 **Quests (built; live validation pending):** quest buttons have names from the
 game's string tables. Selecting a quest reads its current objective; changing
 progress reads only updated text, including counters supplied by the game.
@@ -259,8 +273,12 @@ these hints; progress updates do not repeat them. Classic-layout quest identitie
 cover the differently ordered icons in Acts I and III. Empty detail panes are
 explicitly reported. Automatic alerts announce journal updates and primary
 quest objectives achieved, without opening the journal. When updated objective
-text is available and identifiable, the reader speaks the quest and objective;
-otherwise it says that the journal was updated. Announcements wait for dialogue
+text is available and identifiable, the reader speaks the quest and objective.
+A verified native capture also reads the text the game generates when a quest
+packet updates its state, including actual counters, even if the journal panel
+is unloaded. It observes the normal update without opening the journal or
+changing quest state. Unmatched or ambiguous updates retain the generic alert.
+Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
 See [quest-log implementation and remaining work](docs/quests.md).
 
@@ -318,13 +336,26 @@ screens are announced by name. See
 Life and mana are announced as they cross their steps: every 25 points while the
 resource is comfortable (75, 50), every 10 below half (40, 30, 20, 10) and point
 by point at the end (5, 4, 3, 2, 1). Crossing a step speaks the real percentage,
-once, in either direction; at or below 10 % it interrupts. The numbers are the
+once, in either direction; a downward crossing at or below 10 % interrupts.
+Simultaneous changes use one announcement, life first, so a mana warning cannot
+erase the life warning from the same sample. The numbers are the
 game's own, read from the HUD orbs' value display, so the *Show life orb text*
 and *Show mana orb text* gameplay options must be on — with them off the game
-writes no number and the mod says so once, naming those options. A worn item
+writes no number and the mod identifies whichever option is missing, including
+when the other orb works. Automatic hints wait for a persistent missing reading.
+A worn item
 that reaches zero durability is announced with its equipment slot. Console
 `access-vitals on|off|status`.
 See [life, mana and broken equipment](docs/vitals.md).
+
+Player poison is read from the same native state check that colors the health
+orb. Entering and leaving poison are announced once, and the vitals report
+includes poison while active. These notices share the vitals toggle. Further
+condition coverage is tracked in [combat status evidence](docs/combat-status-evidence.md).
+
+The current mercenary's life also announces percentage-band changes and is
+included in the vitals report. These messages and broken-equipment notices
+queue behind the player's alerts. Missing mercenary data is not treated as death.
 
 ## How it works
 

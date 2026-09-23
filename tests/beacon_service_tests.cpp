@@ -21,6 +21,8 @@ namespace {
 std::vector<D2RL::Lifecycle::GameplayEventListener> listeners;
 D2RL::ConsoleCommandCallback console = nullptr;
 bool playing = true;
+bool worldReadable = false;
+int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
 
@@ -68,12 +70,20 @@ namespace D2RAccess::InputDirection { bool TakeRightStickClick() { return false;
 namespace D2RAccess::PadFilter { void ClaimRightThumb(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig { Result Read(const D2RL::PluginContext*) { return {}; } }
 namespace D2RAccess::NativeWorld {
-bool Read(uint32_t, uint64_t, int, Radar::World&, Diagnostics*) { return false; }
+bool Read(uint32_t, uint64_t, int, Radar::World& world, Diagnostics*) {
+	if (!worldReadable) return false;
+	world.player = {100, 100};
+	return true;
+}
 uintptr_t PlayerRoom() noexcept { return 0; }
 }
 namespace D2RAccess::NativeRooms {
 Bounds Subtiles(const Room&) { return {}; }
-bool Read(uintptr_t, std::vector<Room>&) { return false; }
+bool Read(uintptr_t, std::vector<Room>& rooms) {
+	if (++roomReads == 1) return false;
+	rooms = {{0, 0, 50, 50}};
+	return true;
+}
 size_t Containing(const std::vector<Room>&, Radar::Position) { return None; }
 }
 namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
@@ -115,6 +125,19 @@ int main() {
 	BeaconService::Tick(&context);
 	Check(!speech.empty() && speech.back().find("exit") != std::string::npos,
 		"resume retains the lock and status still names its target");
+	Command("clear");
+	BeaconService::Tick(&context);
+	worldReadable = true;
+	BeaconService::OfferPoint({120, 100}, "far exit", 0, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(roomReads == 1, "first room-graph read can fail while world data remains available");
+	Sleep(160); // the service's 150 ms target refresh cadence
+	BeaconService::Tick(&context);
+	Check(roomReads == 2, "a failed room-graph read is retried in the same level instance");
+	Sleep(160);
+	BeaconService::Tick(&context);
+	Check(roomReads == 2, "a successfully built room graph is cached");
 
 	BeaconService::Unregister();
 	Passed();

@@ -1,6 +1,8 @@
 #include "character_stats.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
+#include "belt_reader.h"
+#include "native_belt.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
@@ -50,6 +52,9 @@ int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
 int playerGold = -1;
 NativeUi::ItemSlot beltSlot;
+std::array<uintptr_t, BeltReader::Columns * BeltReader::Rows> beltItems{};
+uintptr_t automaticPotion = 0;
+int unreadableBeltSlot = -1;
 // The unit a cell holds. A presence set without one stands for an item the item
 // table cannot name, which is how a cell still waits for its tooltip.
 constexpr uintptr_t UnnamedUnit = 5;
@@ -89,6 +94,10 @@ ItemSlot FocusedItem(uintptr_t) {
 	if (widgetType.kind == UiText::Kind::InventorySlot) return held(equipmentPresence);
 	if (widgetType.kind == UiText::Kind::InventoryGrid) return held(itemPresence);
 	return widgetType.name == "BeltWidget" ? beltSlot : ItemSlot{};
+}
+ItemSlot BeltItem(uintptr_t, int slot) {
+	if (slot == unreadableBeltSlot) return {};
+	return slot >= 0 && slot < static_cast<int>(beltItems.size()) ? ItemSlot{true, slot, beltItems[slot]} : ItemSlot{};
 }
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
@@ -130,6 +139,9 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 	return {};
 }
 }
+namespace D2RAccess::NativeBelt {
+std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return automaticPotion; }
+}
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
 }
@@ -159,6 +171,10 @@ bool TakeRightStickPushIf(StickPush wanted, const char*) {
 // Every other key here is the localized inventory title the reader caches.
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
+	if (key == "ControllerHelpBelt1") return "Casilla de cinturón 1 \uE003";
+	if (key == "ControllerHelpBelt2") return "Casilla de cinturón 2 \uE001";
+	if (key == "ControllerHelpBelt3") return "Casilla de cinturón 3 \uE002";
+	if (key == "ControllerHelpBelt4") return "Casilla de cinturón 4 \uE004";
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::PriceKey) return "Coste: %d";
@@ -411,10 +427,12 @@ int main() {
 		"a belt slot reads its item before any tooltip has rendered");
 	ClearSpeech(); selection = 1; beltSlot = {true, 1, 0};
 	Settle();
-	Check(speech == std::vector<std::string>{Strings::Current().slotEmpty}, "an empty belt slot says so instead of nothing");
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 2 Cruceta arriba. Fila 1. Vacío. 0 en esta columna"},
+		"an empty belt slot names its native D-pad direction and confirms its empty column");
 	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77};
 	Settle();
-	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "the next slot reads its item at once");
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 3 Cruceta abajo. Fila 1. Poción de curación menor. 1 en esta columna"},
+		"the next slot reads its item and correct D-pad direction at once");
 	ClearSpeech(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
 	Check(speech.empty(), "and the tooltip arriving later does not read the name again");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
@@ -422,6 +440,27 @@ int main() {
 	ClearSpeech(); selection = 3; beltSlot = {}; tooltip = {};
 	Settle();
 	Check(speech.empty(), "a slot that cannot be read waits for the tooltip, as before");
+	ClearSpeech(); selection = 7; beltSlot = {true, 7, 77}; beltItems[3] = 77; beltItems[11] = 77;
+	Settle();
+	Check(speech.size() == 1 && speech[0].find("Cruceta derecha. Fila 2") != std::string::npos
+		&& speech[0].find("3 en esta columna") != std::string::npos,
+		"reserve rows retain the column's real button and count only that column");
+	unreadableBeltSlot = 11;
+	Check(BeltReader::Read(&context, focus.widget).summary.empty(),
+		"one unreadable reserve suppresses a misleading partial column count");
+	unreadableBeltSlot = -1;
+	Check(BeltReader::Location(-1).empty() && BeltReader::Location(16).empty(),
+		"unknown selection cannot claim a controller assignment");
+	ClearSpeech(); holdingItem = true; Tick(); ClearSpeech(); holdingItem = false; Tick();
+	Check(speech.size() == 1 && speech[0].find("Colocado en Casilla de cinturón 4 Cruceta derecha. Fila 2") != std::string::npos,
+		"placing a potion names its button and row");
+	ClearSpeech(); selection = 0; beltSlot = {true, 0, 0}; automaticPotion = 77;
+	Settle();
+	Check(speech.size() == 1 && speech[0].find("Poción de curación menor") != std::string::npos
+		&& speech[0].find("Poción automática del inventario") != std::string::npos
+		&& speech[0].find("0 en esta columna") != std::string::npos,
+		"a native automatic potion is named without counting inventory as physical belt reserves");
+	automaticPotion = 0; beltItems = {}; holdingItem.reset();
 	beltSlot = {};
 	// The grid and the equipment slots name their item the same way the belt
 	// does, from the unit, without the 400 ms wait for the controller tooltip.

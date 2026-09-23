@@ -4,6 +4,7 @@
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
 #include "interaction_reader.h"
+#include "belt_reader.h"
 #include "inventory_cursor.h"
 #include "ground_item_service.h"
 #include "input_direction.h"
@@ -231,7 +232,11 @@ std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focu
 		const char* slot = SlotName(SlotLocation(context, focus.widget));
 		return slot ? slot : Strings::Current().equipment;
 	}
-	if (type.name == "BeltWidget") return Strings::Current().belt;
+	if (type.name == "BeltWidget") {
+		const auto slot = NativeUi::FocusedItem(focus.widget);
+		const auto location = slot.known ? BeltReader::Location(slot.slot) : std::string{};
+		return location.empty() ? Strings::Current().belt : location;
+	}
 	const auto cell = NativeUi::GridCell(focus.widget);
 	if (cell.x < 0) return {};
 	char phrase[100]{};
@@ -299,7 +304,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
 	// Ordinary items can be named immediately; generated names await the tooltip
 	// so the base name is never spoken as a preliminary, redundant announcement.
-	const auto itemSlot = inventory ? NativeUi::FocusedItem(focus.widget) : NativeUi::ItemSlot{};
+	const auto belt = type.name == "BeltWidget" ? BeltReader::Read(context, focus.widget) : BeltReader::Readout{};
+	const auto itemSlot = type.name == "BeltWidget" ? belt.item
+		: inventory ? NativeUi::FocusedItem(focus.widget) : NativeUi::ItemSlot{};
+	Append(readout.option, belt.location);
 	const auto presence = NativeUi::Presence(itemSlot);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot ? presence : NativeUi::ItemPresence::Unknown;
 	const auto item = itemSlot.item ? NativeGroundItems::ItemUnitLabel(itemSlot.item) : NativeGroundItems::UnitLabel{};
@@ -444,6 +452,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// a focus change cannot repeat a description belonging to the previous state.
 	if (ReadDetail(context, focus)) return true;
 	if (!nameInOption) Append(readout.option, itemName);
+	Append(readout.option, belt.summary);
 	// A named cell says what is in it, not where it is.
 	if (type.kind == UiText::Kind::InventoryGrid && !readout.option.empty()) readout.coordinates.clear();
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription && itemName.empty()) {

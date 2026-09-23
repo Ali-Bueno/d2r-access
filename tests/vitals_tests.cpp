@@ -51,6 +51,68 @@ void Announcements() {
 	Check(meter.Update(20) == -1, "a new character starts from its own baseline");
 }
 
+void SimultaneousAlerts() {
+	Vitals::Alerts alerts;
+	Check(!alerts.Update(100, 100).Any(), "first HUD sample sets both baselines");
+	auto alert = alerts.Update(9, 9);
+	Check(alert.life == 9 && alert.mana == 9 && alert.interrupt,
+		"simultaneous critical losses form one interrupting announcement with life first");
+	alert = alerts.Update(9, 10);
+	Check(alert.life < 0 && alert.mana == 10 && !alert.interrupt,
+		"recovering critical mana does not interrupt a preceding health warning");
+	alert = alerts.Update(4, 20);
+	Check(alert.life == 4 && alert.mana == 20 && alert.interrupt,
+		"critical life loss keeps priority when mana recovers on the same sample");
+	alert = alerts.Update(-1, 20);
+	Check(!alert.Any(), "a transiently unreadable orb does not change its baseline");
+	alert = alerts.Update(3, 9);
+	Check(alert.life == 3 && alert.mana == 9 && alert.interrupt,
+		"readings resume against the last known baseline");
+	alerts.Reset();
+	Check(!alerts.Update(2, 2).Any(), "a new game takes fresh critical baselines");
+}
+
+void MissingOrbs() {
+	Vitals::OrbAvailability availability;
+	for (int sample = 1; sample < Vitals::MissingConfirmationSamples; ++sample)
+		Check(availability.Update(false, true) == 0,
+			"a brief missing life display does not claim the gameplay option is off");
+	Check(availability.Update(true, true) == 0, "a good life display clears the transient streak");
+	for (int sample = 1; sample < Vitals::MissingConfirmationSamples; ++sample)
+		availability.Update(true, false);
+	Check(availability.Update(true, false) == 2, "a persistently missing mana display is identified alone");
+	for (int sample = 1; sample < Vitals::MissingConfirmationSamples; ++sample)
+		availability.Update(false, false);
+	Check(availability.Update(false, false) == 3, "both persistently missing displays are identified together");
+	Check(availability.Update(true, false) == 2, "a recovered life display is no longer marked missing");
+	availability.Reset();
+	Check(availability.Update(false, false) == 0, "session reset clears missing-orb confirmation");
+}
+
+void Conditions() {
+	Vitals::Condition condition;
+	Check(!condition.Update(false), "healthy first sample is only a baseline");
+	Check(!condition.Update(false), "unchanged condition stays silent");
+	Check(condition.Update(true) == true, "entering poison reports once");
+	Check(!condition.Update(std::nullopt), "unreadable player state cannot clear poison");
+	Check(!condition.Update(true), "a restored poison read does not repeat");
+	Check(condition.Update(false) == false, "leaving poison reports once");
+	condition.Reset();
+	Check(!condition.Update(true), "new game takes its own silent condition baseline");
+}
+
+void MercenaryCondition() {
+	Vitals::MercenaryMeter meter;
+	Check(meter.Update(11U, 100) == -1, "first observed mercenary takes a baseline");
+	Check(meter.Update(11U, 9) == 9, "the same mercenary crosses life steps");
+	Check(meter.Update(std::nullopt, -1) == -1, "an unloaded mercenary is unknown, not dead");
+	Check(meter.Update(11U, 9) == -1, "returning unit retains its previous step");
+	Check(meter.Update(12U, 4) == -1, "a new hireling starts from its own baseline");
+	Check(meter.Update(12U, 0) == 0, "a confirmed death mode reports zero life");
+	meter.Reset();
+	Check(meter.Update(12U, 100) == -1, "session reset forgets the previous hireling");
+}
+
 void Breaking() {
 	Vitals::Breakage breakage;
 	const std::vector<Vitals::Breakage::Item> worn{{1, 28, 28, 1}, {2, 1, 40, 4}, {3, 0, 0, 3}};
@@ -75,6 +137,6 @@ void Breaking() {
 }
 
 int main() {
-	Steps(); Percentages(); OrbText(); Announcements(); Breaking();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking();
 	Passed();
 }

@@ -3,6 +3,7 @@
 #include "input_direction.h"
 #include "localization.h"
 #include "native_memory.h"
+#include "native_status.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "radar_ui.h"
@@ -46,9 +47,14 @@ const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
-bool g_enabled = true, g_hinted = false;
+bool g_enabled = true;
+bool g_statusSupported = false;
+unsigned g_hintedMask = 0;
 uint64_t g_nextOrb = 0, g_nextDurability = 0;
-Vitals::Meter g_life, g_mana;
+Vitals::Alerts g_alerts;
+Vitals::OrbAvailability g_orbAvailability;
+Vitals::Condition g_poison;
+Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
@@ -58,25 +64,39 @@ int ReadPercent(std::span<const std::string> path) {
 	return orb ? Vitals::Percent(orb->current, orb->maximum) : -1;
 }
 
-void Announce(const char* format, int percent) {
+std::string FormattedPercent(const char* format, int percent) {
 	char phrase[100]{};
 	std::snprintf(phrase, sizeof(phrase), format, percent);
-	// Only a resource that is already critical takes speech away from the
-	// player; an ordinary step waits its turn.
-	ScreenReader::Speak(phrase, percent <= Vitals::CriticalPercent);
+	return phrase;
 }
 
-// Says once how to make the orb values readable. Without those two options the
-// game writes no number anywhere, so there is nothing for the mod to read.
-void HintOrbText() {
-	if (g_hinted) return;
+void Announce(const Vitals::Alert& alert) {
+	if (!alert.Any()) return;
+	const auto& strings = Strings::Current();
+	std::string text;
+	if (alert.life >= 0) text = FormattedPercent(strings.vitalsLife, alert.life);
+	if (alert.mana >= 0) {
+		if (!text.empty()) text += ". ";
+		text += FormattedPercent(strings.vitalsMana, alert.mana);
+	}
+	ScreenReader::Speak(text, alert.interrupt);
+}
+
+// Says which displayed orb value is unavailable, after persistent absence or
+// an explicit report request. The labels come from the game's current locale.
+void HintOrbText(unsigned missing, bool force = false) {
+	if (!missing || (!force && missing == g_hintedMask)) return;
 	const auto life = Localization::Text(LifeOrbTextOption);
 	const auto mana = Localization::Text(ManaOrbTextOption);
-	if (life.empty() || mana.empty()) return; // the game's labels are not loaded yet; try again later
-	g_hinted = true;
+	if (((missing & 1U) && life.empty()) || ((missing & 2U) && mana.empty())) return;
+	g_hintedMask = missing;
 	char phrase[300]{};
-	std::snprintf(phrase, sizeof(phrase), Strings::Current().vitalsOrbTextMissing, life.c_str(), mana.c_str());
-	AsyncLog::InfoF(g_context, "[vitals] orb values unreadable; asking for \"%s\" and \"%s\"", life.c_str(), mana.c_str());
+	if (missing == 3U)
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().vitalsOrbTextMissing, life.c_str(), mana.c_str());
+	else
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().vitalsOrbTextMissingOne,
+			(missing & 1U) ? life.c_str() : mana.c_str());
+	AsyncLog::InfoF(g_context, "[vitals] orb values unreadable mask=%u", missing);
 	ScreenReader::Speak(phrase, false);
 }
 
@@ -94,27 +114,30 @@ void Report(const D2RL::PluginContext* context) {
 	}
 	const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
 	AsyncLog::InfoF(context, "[vitals] report life=%d mana=%d", life, mana);
-	if (life < 0 && mana < 0) {
-		// Neither orb carries a number, so the honest answer to the key is
-		// how to make one appear. The hint is otherwise spoken once a
-		// session; the player just asked, so re-arm it.
-		g_hinted = false;
-		HintOrbText();
-		return;
-	}
-	char phrase[100]{};
+	const unsigned missing = (life < 0 ? 1U : 0U) | (mana < 0 ? 2U : 0U);
 	std::string text;
-	if (life >= 0) {
-		std::snprintf(phrase, sizeof(phrase), strings.vitalsLife, life);
-		text = phrase;
-	}
+	if (life >= 0) text = FormattedPercent(strings.vitalsLife, life);
 	if (mana >= 0) {
-		std::snprintf(phrase, sizeof(phrase), strings.vitalsMana, mana);
 		if (!text.empty()) text += ". ";
-		text += phrase;
+		text += FormattedPercent(strings.vitalsMana, mana);
+	}
+	if (g_statusSupported && NativeStatus::PlayerPoisoned() == true) {
+		if (!text.empty()) text += ". ";
+		text += strings.playerPoisoned;
+	}
+	if (g_statusSupported) {
+		const auto mercenary = NativeStatus::MercenaryLife();
+		if (mercenary) {
+			const int percent = Vitals::Percent(mercenary->currentLife, mercenary->maximumLife);
+			if (percent >= 0) {
+				if (!text.empty()) text += ". ";
+				text += FormattedPercent(strings.mercenaryLife, percent);
+			}
+		}
 	}
 	// Asked for, so it interrupts: the player is waiting for this answer.
-	ScreenReader::Speak(text, true);
+	if (!text.empty()) ScreenReader::Speak(text, true);
+	HintOrbText(missing, true);
 }
 
 auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* item, void* userData) noexcept
@@ -182,7 +205,7 @@ void SweepDurability(const D2RL::PluginContext* context) {
 		char phrase[200]{};
 		std::snprintf(phrase, sizeof(phrase), Strings::Current().equipmentBroken, slot);
 		AsyncLog::InfoF(context, "[vitals] worn item broken at body location %d", location);
-		ScreenReader::Speak(phrase, true);
+		ScreenReader::Speak(phrase, false);
 	}
 }
 
@@ -210,6 +233,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
+	g_statusSupported = NativeStatus::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-vitals", Console, "Life, mana and broken equipment announcements: on|off|status|report.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
@@ -232,16 +256,19 @@ void Unregister() {
 	g_actions.clear();
 	g_input = nullptr;
 	g_context = nullptr;
+	g_statusSupported = false;
 	g_command = Command::None;
 	Reset();
 }
 
 void Reset() {
-	g_life.Reset();
-	g_mana.Reset();
+	g_alerts.Reset();
+	g_orbAvailability.Reset();
+	g_poison.Reset();
+	g_mercenary.Reset();
 	g_breakage.Reset();
 	g_worn.clear();
-	g_hinted = false;
+	g_hintedMask = 0;
 	g_nextOrb = 0;
 	g_nextDurability = 0;
 }
@@ -285,15 +312,27 @@ void Tick(const D2RL::PluginContext* context) {
 		if (!NativeWidgets::FindPanel(HudPanel)) {
 			// Outside a game the orbs do not exist: take a fresh baseline on
 			// the next character instead of comparing against the last one.
-			g_life.Reset();
-			g_mana.Reset();
+			g_alerts.Reset();
+			g_orbAvailability.Reset();
+			g_poison.Reset();
+			g_mercenary.Reset();
+			g_hintedMask = 0;
 		} else {
 			const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
-			if (life < 0 && mana < 0) HintOrbText();
-			if (const int announce = life < 0 ? -1 : g_life.Update(life); announce >= 0)
-				Announce(Strings::Current().vitalsLife, announce);
-			if (const int announce = mana < 0 ? -1 : g_mana.Update(mana); announce >= 0)
-				Announce(Strings::Current().vitalsMana, announce);
+			Announce(g_alerts.Update(life, mana));
+			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));
+			if (g_statusSupported) {
+				const auto changed = g_poison.Update(NativeStatus::PlayerPoisoned());
+				if (changed) ScreenReader::Speak(*changed ? Strings::Current().playerPoisoned
+					: Strings::Current().playerPoisonCleared, false);
+				const auto mercenary = NativeStatus::MercenaryLife();
+				const int percent = mercenary
+					? Vitals::Percent(mercenary->currentLife, mercenary->maximumLife) : -1;
+				const int announced = g_mercenary.Update(
+					mercenary ? std::optional<uint32_t>(mercenary->id) : std::nullopt, percent);
+				if (announced >= 0) ScreenReader::Speak(
+					FormattedPercent(Strings::Current().mercenaryLife, announced), false);
+			}
 		}
 	}
 	if (now >= g_nextDurability) {

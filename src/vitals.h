@@ -40,10 +40,58 @@ public:
 	// The percentage to announce, or -1 when there is nothing to say. The
 	// first reading only takes a baseline: entering a game is not a change.
 	int Update(int percent);
+	int Previous() const { return previous_; }
 	void Reset();
 
 private:
 	int step_ = -1; // no baseline taken yet
+	int previous_ = -1;
+};
+
+struct Alert {
+	int life = -1, mana = -1;
+	bool interrupt = false;
+	bool Any() const { return life >= 0 || mana >= 0; }
+};
+
+// Produces at most one announcement per HUD sample. A critical value interrupts
+// only when it has fallen, so mana recovery cannot erase a life warning.
+class Alerts {
+public:
+	Alert Update(int life, int mana);
+	void Reset();
+private:
+	Meter life_, mana_;
+};
+
+inline constexpr int MissingConfirmationSamples = 10;
+class OrbAvailability {
+public:
+	// Bit 0 is life; bit 1 is mana. A missing reading must persist across
+	// consecutive samples before it is treated as an option needing attention.
+	unsigned Update(bool lifeReadable, bool manaReadable);
+	void Reset();
+private:
+	int missing_[2]{};
+};
+
+// Diff-gates a verified player condition. Missing reads preserve the last
+// state; entering a game takes a silent baseline.
+class Condition {
+public:
+	std::optional<bool> Update(std::optional<bool> active);
+	void Reset();
+private:
+	std::optional<bool> previous_;
+};
+
+class MercenaryMeter {
+public:
+	int Update(std::optional<uint32_t> id, int percent);
+	void Reset();
+private:
+	std::optional<uint32_t> id_;
+	Meter life_;
 };
 
 // Equipment durability. An item that reaches zero from a positive value has

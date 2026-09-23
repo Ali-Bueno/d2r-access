@@ -66,7 +66,7 @@ uint64_t g_graphSession = 0;
 // The room graph for the level being played, or nothing when the level's
 // rooms cannot be read. Never a stale level's graph.
 const RoomGraph::Graph* Rooms(const Lifecycle& state) {
-	if (g_graphLevel != state.level || g_graphSession != state.session) {
+	if (g_graphLevel != state.level || g_graphSession != state.session || g_graph.Empty()) {
 		std::vector<NativeRooms::Room> rooms;
 		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
 		g_graphLevel = state.level;

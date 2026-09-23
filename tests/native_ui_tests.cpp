@@ -263,6 +263,15 @@ int main() {
 	belt.Put<uint64_t>(0x544, 16);
 	Check(!NativeUi::FocusedItem(belt.Address()).known, "a selection past the last belt slot is never queried");
 	Check(!NativeUi::FocusedItem(goldButton.Address()).known, "a widget with no item cell is never queried");
+	focused = NativeUi::BeltItem(belt.Address(), 11);
+	Check(focused.known && focused.slot == 11 && focused.item == cellItem && queriedCell.x == 11
+		&& NativeUi::FocusSelection(belt.Address()) == 16,
+		"reading a reserve cell leaves the native belt selection untouched");
+	Check(!NativeUi::BeltItem(belt.Address(), -1).known && !NativeUi::BeltItem(belt.Address(), 16).known
+		&& !NativeUi::BeltItem(grid.Address(), 0).known, "belt queries reject invalid slots and other widget types");
+	itemQueryFault = true;
+	Check(!NativeUi::BeltItem(belt.Address(), 4).known, "a failed belt reserve read remains unknown rather than empty");
+	itemQueryFault = false;
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
