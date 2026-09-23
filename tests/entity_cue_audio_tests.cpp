@@ -14,13 +14,14 @@ int Peak(const std::vector<int16_t>& pcm) {
 	return peak;
 }
 
-double Rms(const std::vector<int16_t>& pcm, size_t channel) {
+double Rms(const std::vector<int16_t>& pcm, size_t channel, size_t beginFrame = 0, size_t endFrame = 0) {
+	if (!endFrame) endFrame = pcm.size() / Channels;
 	double sum = 0;
-	for (size_t frame = 0; frame < pcm.size() / Channels; ++frame) {
+	for (size_t frame = beginFrame; frame < endFrame; ++frame) {
 		const double sample = pcm[frame * Channels + channel];
 		sum += sample * sample;
 	}
-	return std::sqrt(sum / static_cast<double>(pcm.size() / Channels));
+	return std::sqrt(sum / static_cast<double>(endFrame - beginFrame));
 }
 
 int Crossings(const std::vector<int16_t>& pcm, size_t fromFrame, size_t toFrame) {
@@ -41,6 +42,9 @@ void DurationAndLevels() {
 		Check(pcm.size() / Channels <= SampleRate * 120 / 1000, "every cue is at most 120 ms");
 		Check(Peak(pcm) > 1500 && Peak(pcm) < 14000, "cue is audible with headroom");
 		Check(pcm.front() == 0 && pcm.back() == 0, "cue starts and ends smoothly at silence");
+		const size_t frames = pcm.size() / Channels;
+		Check(Rms(pcm, 0, frames * 2 / 3, frames) < 0.25 * Rms(pcm, 0, 0, frames / 3),
+			"a soft percussive strike decays quickly without a second sustained note");
 	}
 }
 
@@ -59,9 +63,9 @@ void Spatial() {
 		equalChannels &= centered[i] == centered[i + 1];
 	Check(equalChannels, "front center plays equally in both ears");
 	const auto rear = Synthesize(Sound::Npc, {0, -1});
-	constexpr size_t FirstNoteFrames = 46 * SampleRate / 1000;
-	Check(Crossings(rear, 100, FirstNoteFrames - 100) < Crossings(centered, 100, FirstNoteFrames - 100),
-		"rear placement lowers the first note by a meaningful interval");
+	constexpr size_t BodyFrames = 32 * SampleRate / 1000;
+	Check(Crossings(rear, 100, BodyFrames) < Crossings(centered, 100, BodyFrames),
+		"rear placement lowers the tap's resonance by a meaningful interval");
 }
 
 void Timbres() {
@@ -72,12 +76,9 @@ void Timbres() {
 	Check(npc != important, "friendly and enemy signatures differ");
 	Check(important != resurrector && important != ranged && resurrector != ranged,
 		"important, resurrector and ranged signatures differ");
-	constexpr size_t FirstNoteFrames = 46 * SampleRate / 1000;
-	constexpr size_t SecondNoteBegin = 54 * SampleRate / 1000;
-	Check(Crossings(npc, SecondNoteBegin + 100, SecondNoteBegin + FirstNoteFrames - 100)
-		> Crossings(npc, 100, FirstNoteFrames - 100), "NPC cue rises to a second note");
-	Check(Crossings(important, 100, FirstNoteFrames - 100) < Crossings(npc, 100, FirstNoteFrames - 100),
-		"enemy cue uses a lower register than the NPC cue");
+	constexpr size_t BodyFrames = 32 * SampleRate / 1000;
+	Check(Crossings(important, 100, BodyFrames) < Crossings(npc, 100, BodyFrames),
+		"important enemy thud has a lower resonance than the NPC tap");
 }
 
 void InvalidInputsAndGain() {
