@@ -122,6 +122,8 @@ add_library(d2r-access SHARED
 	src/ui_notifications.cpp
 	src/vitals.cpp
 	src/vitals_service.cpp
+	src/native_belt.cpp
+	src/native_status.cpp
 	src/widgets.cpp
 	plugin.rc
 )

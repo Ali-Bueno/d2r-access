@@ -29,6 +29,7 @@ using GroundItemLayout::UnitType, GroundItemLayout::UnitClass, GroundItemLayout:
 	GroundItemLayout::MaxTableRows, GroundItemLayout::PositionScale;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
+bool g_corpsesSupported = false;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -139,6 +140,28 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// ("an evil force"): decoration and helper units, never worth announcing.
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
+}
+bool ReadPlayerCorpse(uintptr_t unit, uintptr_t room, uint32_t playerId, EntityRadar::Entity& entity) {
+	uint32_t mode = 0, owner = 0, magic = 0;
+	uintptr_t inventory = 0, ownerRef = 0;
+	if (!Peek(unit + UnitMode, mode) || mode != PlayerCorpseMode
+		|| !Peek(unit + UnitId, entity.id) || !entity.id || entity.id == playerId
+		|| !Peek(unit + UnitInventoryRef, ownerRef)
+		|| !Peek(unit + UnitInventory, inventory)) return false;
+	if (ownerRef) {
+		uint32_t references = 0;
+		uintptr_t owned = 0;
+		if (!Peek(ownerRef + InventoryRefCount, references)) return false;
+		if (references && (!Peek(unit + UnitOwnedInventory, owned))) return false;
+		if (references && owned) inventory = owned;
+	}
+	if (!inventory || !Peek(inventory, magic) || magic != InventoryMagic
+		|| !Peek(inventory + InventoryLinkId, owner) || owner != playerId
+		|| !DynamicPosition(unit, room, entity.position)) return false;
+	entity.kind = EntityRadar::Kind::Corpse;
+	entity.category = EntityRadar::Category::Interactable;
+	entity.name = UiText::Clean(Localization::Text(PlayerCorpseNameKey));
+	return !entity.name.empty();
 }
 // What the object is for, from the table row the caller has already read.
 // Order matters: a waypoint and a portal are both exits, but a player asking
@@ -258,15 +281,18 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = false; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
+	g_corpsesSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
+	g_corpsesSupported = LayoutCheck::Verify(context, context->exeBase, CorpseChecks, "corpse", "player corpse target disabled");
+	if (g_corpsesSupported) AsyncLog::Info(context, "[scan] Verified local player corpse ownership reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -308,7 +334,8 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			uint32_t unitType = 0;
 			if (!Peek(unit + UnitType, unitType)) return false;
 			EntityRadar::Entity entity;
-			if ((unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
+			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, entity))
+				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) entities.push_back(std::move(entity));
 			if (!Peek(unit + UnitNext, unit)) return false;
@@ -352,7 +379,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

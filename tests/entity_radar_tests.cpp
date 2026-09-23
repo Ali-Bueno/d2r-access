@@ -133,6 +133,22 @@ void DistantExits() {
 	Check(next.target.entity.levelExitId == second.levelExitId, "cycling survives a preset becoming a loaded warp unit");
 }
 
+void CorpseIdentity() {
+	auto world = OpenWorld();
+	Entity corpse{50, Kind::Corpse, {17, 17}, "Cadáver"};
+	Entity casket{50, Kind::Object, {14, 14}, "Ataúd"};
+	const auto targets = Scan(world, {corpse, casket}, Direction::Up, {});
+	Check(targets.size() == 2 && targets[0].entity.kind == Kind::Corpse
+		&& targets[1].entity.kind == Kind::Object,
+		"scan keeps a player corpse distinct from a world object with the same numeric ID");
+	Check(!SameTarget(corpse, casket), "beacon matching cannot follow the same-ID world object in place of the corpse");
+	Cycler cycler;
+	const auto first = cycler.Push(targets, Direction::Up, 1000, {});
+	const auto second = cycler.Push(targets, Direction::Up, 1100, {});
+	Check(first.target.entity.kind == Kind::Corpse && second.target.entity.kind == Kind::Object,
+		"scan cycling advances from the corpse to the same-ID object");
+}
+
 void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
@@ -167,6 +183,7 @@ int main() {
 	Scanning();
 	Cycling();
 	DistantExits();
+	CorpseIdentity();
 	Wording();
 	Passed();
 	return 0;

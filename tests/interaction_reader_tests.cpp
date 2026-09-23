@@ -14,6 +14,7 @@
 #include "tab_reader.h"
 #include "tooltip_text.h"
 #include "input_direction.h"
+#include "native_belt.h"
 
 #include <string>
 #include <vector>
@@ -124,6 +125,9 @@ void Apply(const D2RL::PluginContext*, uintptr_t) {}
 }
 namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
+}
+namespace D2RAccess::NativeBelt {
+std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return std::nullopt; }
 }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }

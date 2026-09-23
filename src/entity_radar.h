@@ -14,9 +14,10 @@
 // so it is unit-tested without the game.
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
+// Corpse is a dead player unit, separate from Object even when numeric IDs overlap.
 // Room is not a game unit: a fixed place in the level's rooms, such as a
 // doorway, that guidance can lead to and never needs to re-read.
-enum class Kind { Npc, Enemy, Object, Item, Exit, Room };
+enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse };
 
 // What the thing is FOR, which is how a player asks for it ("where is the next
 // shrine", "any chests left"). Kind is too coarse for that: it files every
@@ -41,9 +42,9 @@ struct Entity {
 	std::string name; // already localized by the game's own string tables
 	uint64_t levelExitId = 0; // fixed stairs/level passage: coordinate identity, independent of loaded unit id
 	// A world object the player opens for loot: chest, casket, urn, barrel,
-	// corpse. Taken from the objects.txt interaction handler, so it holds in
-	// every language, unlike the localized name. Only the chest loop reads it;
-	// the kind stays Object so nothing else changes behaviour.
+	// scenery corpse. Taken from the objects.txt interaction handler, so it holds
+	// in every language, unlike the localized name. Only the chest loop reads it;
+	// player corpses use Kind::Corpse and never set this flag.
 	bool container = false;
 	// Last so the existing positional initialisers keep working untouched.
 	Category category = Category::Unknown;

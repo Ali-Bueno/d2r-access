@@ -57,6 +57,7 @@ struct Table {
 	const char* slotEmpty;
 	const char* slotOccupied;
 	const char* belt;
+	const char* beltAutomatic;
 	const char* gridCell; // one-based row, column
 	// The cells an item takes up, %d = columns then %d = rows, by shape: one by
 	// one, one column by several rows, several columns by one row, several by
@@ -149,6 +150,10 @@ struct Table {
 	const char* vitalsEnabled;
 	const char* vitalsDisabled;
 	const char* vitalsOrbTextMissing; // %s, %s = the game's own orb text option labels
+	const char* vitalsOrbTextMissingOne; // %s = missing orb option label
+	const char* playerPoisoned;
+	const char* playerPoisonCleared;
+	const char* mercenaryLife; // %d = current hireling life percentage
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* goldCarried;          // %s = how much gold the player is carrying
@@ -200,7 +205,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied,
-		t.belt, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.belt, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
@@ -217,7 +222,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};

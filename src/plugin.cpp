@@ -287,7 +287,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
-	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
+	if (!D2RAccess::QuestService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");

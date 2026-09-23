@@ -5,6 +5,7 @@
 #include "localization.h"
 #include "speech_strings.h"
 #include "test_support.h"
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <string>
@@ -37,6 +38,7 @@ std::string Text(std::string_view key) {
 	if (key == "Waypoint") return "Punto de ruta";
 	if (key == "Duriel's Lair") return "Guarida de Duriel";
 	if (key == "Portal") return "Portal";
+	if (key == PlayerCorpseNameKey) return "Cadáver";
 	return {};
 }
 }
@@ -143,8 +145,67 @@ struct Fixture {
 		return nullptr;
 	}
 };
+
+void PlayerCorpseOwnership() {
+	Fixture f;
+	Memory<UnitSize> body;
+	Memory<PathSize> path, inventory, ownedInventory, ownerRef;
+	body.At<uint32_t>(GroundItemLayout::UnitType, GroundItemLayout::PlayerType);
+	body.At<uint32_t>(GroundItemLayout::UnitMode, PlayerCorpseMode);
+	body.At<uint32_t>(GroundItemLayout::UnitId, 50);
+	body.At(GroundItemLayout::UnitPath, path.Address());
+	body.At(UnitInventory, inventory.Address());
+	path.At<uint32_t>(0, 105u << 16); path.At<uint32_t>(4, 110u << 16);
+	path.At(PathRoom, f.room.Address());
+	inventory.At<uint32_t>(0, InventoryMagic);
+	inventory.At<uint32_t>(InventoryLinkId, 42);
+	f.casket.At(GroundItemLayout::UnitNext, body.Address());
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities), "native scan reads a room containing the player's corpse");
+	const auto* own = f.Find(entities, 50);
+	Check(own && own->kind == EntityRadar::Kind::Corpse && own->category == EntityRadar::Category::Interactable
+		&& own->name == "Cadáver" && !own->container && own->position.x == 105 && own->position.y == 110,
+		"only the linked player's body becomes a localized, positioned scan and beacon target without container audio");
+	Check(f.Find(entities, 17) && f.Find(entities, 17)->container,
+		"the scenery casket remains an ordinary container, never a player corpse");
+	const auto corpse = *own;
+	f.casket.At<uint32_t>(GroundItemLayout::UnitId, 50);
+	Check(f.Read(entities) && std::count_if(entities.begin(), entities.end(), [](const auto& entity) { return entity.id == 50; }) == 2,
+		"a player corpse and scenery object with the same numeric unit ID both remain in the scan");
+	const auto sameIdObject = std::find_if(entities.begin(), entities.end(), [](const auto& entity) {
+		return entity.id == 50 && entity.kind == EntityRadar::Kind::Object;
+	});
+	Check(sameIdObject != entities.end() && !EntityRadar::SameTarget(corpse, *sameIdObject),
+		"the corpse cannot alias a world object in beacon target matching");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitId, 17);
+	Check(NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, false)
+		&& !f.Find(entities, 50) && f.Find(entities, 7) && f.Find(entities, 17),
+		"disabling only corpse recognition preserves NPC and ordinary object scanning");
+	inventory.At<uint32_t>(InventoryLinkId, 43);
+	Check(f.Read(entities) && !f.Find(entities, 50), "another player's corpse is excluded by inventory owner ID");
+	inventory.At<uint32_t>(InventoryLinkId, 42);
+	body.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+	Check(f.Read(entities) && !f.Find(entities, 50), "a living player with the same inventory link is excluded");
+	body.At<uint32_t>(GroundItemLayout::UnitMode, PlayerCorpseMode);
+	inventory.At<uint32_t>(0, 0);
+	Check(f.Read(entities) && !f.Find(entities, 50), "an invalid corpse inventory is excluded");
+	inventory.At<uint32_t>(0, InventoryMagic);
+	body.At(UnitInventoryRef, ownerRef.Address());
+	body.At(UnitOwnedInventory, ownedInventory.Address());
+	ownerRef.At<uint32_t>(InventoryRefCount, 1);
+	ownedInventory.At<uint32_t>(0, InventoryMagic);
+	ownedInventory.At<uint32_t>(InventoryLinkId, 43);
+	Check(f.Read(entities) && !f.Find(entities, 50), "a live inventory wrapper takes precedence over the base inventory");
+	ownedInventory.At<uint32_t>(InventoryLinkId, 42);
+	Check(f.Read(entities) && f.Find(entities, 50), "an owned wrapper can identify the player's corpse");
+	ownerRef.At<uint32_t>(InventoryRefCount, 0);
+	Check(f.Read(entities) && f.Find(entities, 50), "a retired wrapper falls back to the base inventory");
+	f.casket.At<uintptr_t>(GroundItemLayout::UnitNext, 0);
+	Check(f.Read(entities) && !f.Find(entities, 50), "corpse pickup or unloading removes the target from a new snapshot");
+}
 }
 int main() {
+	PlayerCorpseOwnership();
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
 	Check(f.Read(entities) && entities.size() == 10, "npc, enemy, four objects, one exit warp and three exit objects are copied");

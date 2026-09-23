@@ -56,6 +56,38 @@ Reading Identify(std::string_view title, std::string_view shortText,
 	return result;
 }
 
+void PacketMatcher::Capture(NativePacket packet) {
+	if (packet.titleId == 0 || packet.objective.empty()) return;
+	packets_.push_back({std::move(packet), ++serial_});
+	constexpr size_t MaxPackets = 16;
+	if (packets_.size() > MaxPackets) packets_.erase(packets_.begin());
+}
+
+void PacketMatcher::Alert(uint64_t now) {
+	alertAt_ = now;
+	pending_ = true;
+}
+
+std::optional<NativePacket> PacketMatcher::Take(uint64_t now) {
+	if (!pending_ || now < alertAt_ || now - alertAt_ < PacketWindowMs) return {};
+	std::optional<NativePacket> matched;
+	bool ambiguous = false;
+	uint64_t lastSerial = consumed_;
+	for (auto it = packets_.rbegin(); it != packets_.rend(); ++it) {
+		if (it->serial <= consumed_ || it->packet.time > alertAt_ + PacketWindowMs) continue;
+		if (it->packet.time < alertAt_ && alertAt_ - it->packet.time > PacketWindowMs) continue;
+		lastSerial = (std::max)(lastSerial, it->serial);
+		if (!matched) matched = it->packet;
+		else if (matched->row != it->packet.row || matched->titleId != it->packet.titleId) ambiguous = true;
+	}
+	if (!matched) return {};
+	consumed_ = lastSerial;
+	pending_ = false;
+	return ambiguous ? std::nullopt : matched;
+}
+
+void PacketMatcher::Reset() { *this = {}; }
+
 void Reader::Schedule(uint64_t now) {
 	if (!updated_ && !completed_) due_ = now + AlertDelayMs;
 }
@@ -80,6 +112,12 @@ void Reader::Navigate() {
 	// delayed navigation writes cannot be attached to an earlier quest alert.
 	sampled_ = baselined_ = false;
 	detail_ = {};
+	eventDetail_ = {};
+}
+
+void Reader::Correlate(Reading reading) {
+	if (updated_ && !reading.open && !reading.quest.empty() && !reading.objective.empty())
+		eventDetail_ = std::move(reading);
 }
 
 Announcement Reader::Update(const Reading& reading, uint64_t now, bool canSpeak) {
@@ -102,16 +140,23 @@ Announcement Reader::Update(const Reading& reading, uint64_t now, bool canSpeak)
 	if (!canSpeak) return {};
 	if (completed_ && now >= due_) {
 		completed_ = updated_ = false;
+		eventDetail_ = {};
 		return {Kind::GoalDone, {}, {}};
 	}
 	if (settled && !detail_.quest.empty() && detail_ == candidate_) {
 		const auto result = Announcement{Kind::Objective, detail_.quest, detail_.objective};
 		detail_ = {};
+		eventDetail_ = {};
 		updated_ = false;
 		return result;
 	}
 	if (updated_ && now >= due_) {
 		updated_ = false;
+		if (!eventDetail_.quest.empty()) {
+			const auto result = Announcement{Kind::Objective, eventDetail_.quest, eventDetail_.objective};
+			eventDetail_ = {};
+			return result;
+		}
 		return {Kind::Updated, {}, {}};
 	}
 	return {};

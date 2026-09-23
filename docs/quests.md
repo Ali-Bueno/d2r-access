@@ -188,10 +188,20 @@ Recorded so it is not re-investigated:
   the mod cannot widen it.
 - The SDK has no quest API and no `Quests` data table, and D2 never shipped a `quests.txt` — quest
   logic is hardcoded in the game.
-- The RE dumps in `re/` contain the quest strings (`SetQuestAlert`, `questRecords`,
-  `D2Client\src\Quest\Quests.cpp`) but with zero usable cross-references, so no quest state struct
-  or offset has been recovered. A fresh targeted Ghidra pass is the expensive last resort, not the
-  starting point.
+- The SDK's completion event identifies a quest-state row but carries no
+  objective text or counter. Classic D2 quest flags alone cannot select the
+  exact current journal sentence or its live number. The older
+  `re/D2R.rebuilt.exe` has stale or misplaced data sections (`docs/decompile.md`),
+  so missing string references there said nothing about the live quest path.
+  The full mapped image exposed the stock builder and packet path described
+  below; its captured text still needs live validation.
+  The 2026-09-22 live log shows Cain's real objective with
+  `QuestLogPanelExpansion closed` and `identified=1` at 23:03:12, but `no panel`
+  and `identified=0` at 23:27:07: closing the panel is already supported;
+  unloading it is the remaining gap.
+- The older RE dumps in `re/` contain quest strings but do not place all data
+  where the running code expects it. Their zero-reference results were not
+  evidence that the stock quest builder lacked a readable call path.
 - `QuestFlag`/`QuestFlagEx` are `Levels.txt` column headers and `questflag A/B/C` an item-table
   column — neither is player quest state.
 
@@ -211,7 +221,10 @@ independently of journal navigation. No need to open the journal for an alert.
   line matches that quest's own strings (including actual numeric counters).
   A stable change to the same quest while the journal stays closed is spoken
   as quest name plus current objective. Text settles for 150 ms first.
-- If the panel is missing, stale, ambiguous or not identifiable, the event
+- If the panel is missing, the guarded native quest-packet capture can provide
+  the exact title and objective the game's own quest-text builder just produced,
+  including its formatted counter. The title and objective must both match a
+  unique localized catalog quest. Missing, ambiguous or unidentifiable text
   still says **"Diario de misiones actualizado"** (localized in all 13 locales).
   It never fills in an objective from the quest catalog without a live value.
 - SDK `QuestCompleted` says **"Objetivo principal de misión cumplido"**. This
@@ -224,8 +237,33 @@ independently of journal navigation. No need to open the journal for an alert.
   deferred coalesce to the latest reading. Journal selection/tab/close events,
   initial text and changes of quest identity establish silent baselines.
 - Leaving/joining a game, disabling alerts or changing text locale discards
-  pending speech. Native memory reads remain on the UI thread; no extra hook,
-  unverified offset or new dependency was introduced.
+  pending speech. Native memory reads remain on the UI thread.
+
+### Native packet text capture (2026-09-23; live quest update pending)
+
+In D2R 3.3.93787, quest-packet handler RVA `0x16C570` updates quest flags and
+calls the game's text builder at `0x16D3EB` (`0x16BD20`, return `0x16D3F0`).
+The builder's output holds the title string ID at `+0` and a bounded UTF-8
+objective at `+2`; the game's formatter supplies live numbers in that text.
+The plugin observes only this packet-handler call after the original returns.
+It never invokes the builder itself: the builder also changes the game's
+prior-step marker. The hook checks complete-function fingerprints, compares
+the output title ID with the quest-record table (`0x1CDA7A0`, 41 records,
+`0x18` bytes each), and rejects captures from another session. An update
+alert accepts a recent, unique quest-row capture; different rows in one alert
+window fall back to the generic message. Journal rendering calls are excluded
+by the native return address, so visiting other quests cannot change the alert.
+
+This identifies the source and establishes a safe capture path; it does not yet
+prove that every quest update in live play takes that packet path. The previous
+closed-panel reader still handles retained journal text and the generic alert
+remains available. Confirm with NVDA and `[quest] packet objective` logs after
+an update while the journal is unloaded.
+
+The 2026-09-23 build passed all 67 CTest suites, including packet correlation,
+late competing rows, session reset and toggle regressions. Live startup on
+3.3.93787 verified and installed the hook; objective delivery still needs the
+in-game update check above.
 
 `quest_progress.cpp` contains the text recognition and announcement policy;
 `quest_service.cpp` adapts UI messages, lifecycle, native reads and speech.
@@ -244,5 +282,6 @@ Trigger a quest update with NVDA active and the journal closed; inspect the
 verify that the goal announcement waits until the dialogue closes. If the
 journal remains reachable, check the Den of Evil counter for changed objective
 speech. Automatic generic alerts are implemented regardless of that result;
-full objective/counter coverage while the journal is unloaded still requires
-recovering the native quest-state reader. No live confirmation is recorded yet.
+the new packet capture's unloaded-journal objective/counter coverage still
+requires live confirmation. Quest changes that bypass the guarded packet call
+continue to use the generic alert.

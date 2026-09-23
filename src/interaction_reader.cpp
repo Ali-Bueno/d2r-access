@@ -10,6 +10,7 @@
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
+#include "native_belt.h"
 #include "ground_item_service.h"
 #include "input_direction.h"
 #include "localization.h"
@@ -412,6 +413,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				reinterpret_cast<void*>(belt.item));
 		}
 		if (belt.known && !belt.item) readout.option = Strings::Current().slotEmpty;
+		// An empty bottom cell shows, see-through, the inventory potion its
+		// D-pad button would drink (docs/belt.md): name it instead of "Empty".
+		if (belt.known && !belt.item && belt.slot >= 0 && belt.slot < 4) {
+			if (const auto automatic = NativeBelt::AutomaticItem(context, focus.widget, belt.slot); automatic && *automatic) {
+				readout.option = NativeGroundItems::ItemBaseName(*automatic);
+				Append(readout.option, Strings::Current().beltAutomatic);
+			}
+		}
 		if (belt.known) beltItem = belt.item;
 	} else g_beltSlot = -2;
 	// Moving to another cell drops the previous item's detail even before its

@@ -1,6 +1,7 @@
 #include "quest_service.h"
 #include "async_log.h"
 #include "localization.h"
+#include "layout_check.h"
 #include "native_memory.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -13,6 +14,10 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <array>
+#include <cstring>
+#include <intrin.h>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -26,6 +31,19 @@ const std::string TitlePath[] = {"Title"};
 const std::string ShortPath[] = {"ShortDescription"};
 const std::string LongPath[] = {"LongDescription"};
 constexpr uint64_t WatchMs = 500; // Background objective/counter sampling cadence.
+// D2R 3.3.93787: the packet handler at 0x16C570 calls the stock quest-text
+// builder after updating quest flags. Capture only that call's completed text.
+constexpr uintptr_t BuilderRva = 0x16BD20, PacketHandlerRva = 0x16C570;
+constexpr uintptr_t PacketBuilderReturnRva = 0x16D3F0, QuestRecordsRva = 0x1CDA7A0;
+constexpr size_t QuestRecordCount = 41, QuestRecordSize = 0x18, QuestRecordTextOffset = 8;
+constexpr size_t NativeTextLength = 300, NativeTextOffset = 2;
+constexpr uint8_t BuilderPrefix[] = {0x48, 0x89, 0x54, 0x24, 0x10, 0x89, 0x4C, 0x24, 0x08,
+	0x55, 0x48, 0x8D, 0x6C, 0x24, 0xA9};
+struct CodeCheck { uintptr_t rva; size_t size; uint64_t hash; };
+constexpr CodeCheck NativeChecks[] {
+	{BuilderRva, 1807, 0xE2BE64710FBA0735ULL},
+	{PacketHandlerRva, 4108, 0xCA5D9ABF4A4675EULL},
+};
 
 struct Reading {
 	std::string panel, title, shortText, longText;
@@ -43,6 +61,58 @@ Strings::Language g_language = Strings::Language::enUS;
 Reading g_last;
 QuestProgress::Reading g_sample;
 QuestProgress::Reader g_reader;
+QuestProgress::PacketMatcher g_packets;
+std::mutex g_packetMutex;
+std::atomic<uintptr_t> g_nativeBase{0};
+std::atomic<uint64_t> g_captureEpoch{0};
+std::atomic<bool> g_nativeReady{false};
+void* g_originalBuilder = nullptr;
+
+uintptr_t NativeBuilder(uint32_t row, void* output) noexcept {
+	const uintptr_t caller = reinterpret_cast<uintptr_t>(_ReturnAddress());
+	const uint64_t epoch = g_captureEpoch.load(std::memory_order_acquire);
+	const bool ready = g_nativeReady.load(std::memory_order_acquire);
+	const uintptr_t result = reinterpret_cast<uintptr_t(*)(uint32_t, void*)>(g_originalBuilder)(row, output);
+	const uintptr_t base = g_nativeBase.load(std::memory_order_acquire);
+	if (!ready || !base || caller != base + PacketBuilderReturnRva || row >= QuestRecordCount || !output) return result;
+	std::array<uint8_t, NativeTextOffset + NativeTextLength> bytes{};
+	uintptr_t keys = 0;
+	uint16_t titleId = 0, recordTitleId = 0;
+	if (!NativeMemory::Copy(reinterpret_cast<uintptr_t>(output), bytes.data(), bytes.size())
+		|| !NativeMemory::Peek(base + QuestRecordsRva + row * QuestRecordSize + QuestRecordTextOffset, keys)
+		|| !keys || !NativeMemory::Peek(keys, recordTitleId)) return result;
+	std::memcpy(&titleId, bytes.data(), sizeof(titleId));
+	const char* objective = reinterpret_cast<const char*>(bytes.data() + NativeTextOffset);
+	const void* end = std::memchr(objective, 0, NativeTextLength);
+	if (titleId != recordTitleId || !end || objective[0] == 0) return result;
+	try {
+		std::lock_guard lock(g_packetMutex);
+		if (ready && g_nativeReady.load(std::memory_order_relaxed)
+			&& epoch == g_captureEpoch.load(std::memory_order_relaxed))
+			g_packets.Capture({row, titleId, std::string(objective), GetTickCount64()});
+	} catch (...) { /* The stock quest update must not depend on our capture. */ }
+	return result;
+}
+
+void InstallNative(const D2RL::PluginContext* context) {
+	if (!context || !context->exeBase) return;
+	for (const auto& check : NativeChecks) {
+		std::vector<uint8_t> bytes(check.size);
+		if (!NativeMemory::Copy(context->exeBase + check.rva, bytes.data(), bytes.size())
+			|| LayoutCheck::Hash(bytes) != check.hash) {
+			AsyncLog::Warn(context, "[quest] Native packet text unavailable: game code mismatch.");
+			return;
+		}
+	}
+	g_nativeBase.store(context->exeBase, std::memory_order_release);
+	if (!context->InstallInlineHook(BuilderRva, BuilderPrefix, sizeof(BuilderPrefix),
+		reinterpret_cast<void*>(&NativeBuilder), &g_originalBuilder)) {
+		g_nativeBase.store(0, std::memory_order_release);
+		AsyncLog::Warn(context, "[quest] Native packet text hook unavailable; journal and generic alerts retained.");
+		return;
+	}
+	AsyncLog::Info(context, "[quest] Verified native quest packet text capture installed.");
+}
 
 Reading Read() {
 	Reading result;
@@ -70,10 +140,12 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 		AsyncLog::InfoF(context, "[quest] primary goal done: row=%u difficulty=%u", event->questRecordId, event->difficulty);
 		return;
 	}
+	g_ready = false;
 	Reset();
 	g_session = event->sessionGeneration;
 	g_player = event->playerId;
 	g_ready = event->kind == Kind::LocalPlayerReady;
+	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);
 }
 
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -87,7 +159,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 }
 }
 
-bool Register(const D2RL::PluginContext* context) {
+bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
@@ -99,11 +171,13 @@ bool Register(const D2RL::PluginContext* context) {
 		g_listeners.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-quests", Console, "Automatic quest announcements: on|off|status.");
+	if (nativeHooks) InstallNative(context);
 	AsyncLog::Info(context, "[quest] Automatic announcements registered.");
 	return true;
 }
 
 void Unregister() {
+	g_nativeBase.store(0, std::memory_order_release);
 	if (g_context && g_lifecycle) for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	g_listeners.clear();
 	g_context = nullptr;
@@ -119,9 +193,11 @@ void Note(const char* command) {
 	const uint64_t now = GetTickCount64();
 	if (name == "SetQuestAlert" || name == "QuestUpdate") {
 		g_reader.Alert(now);
+		{ std::lock_guard lock(g_packetMutex); g_packets.Alert(now); }
 		AsyncLog::InfoF(g_context, "[quest] update event: %s", command);
 	} else if (name == "SelectQuest" || name == "SelectTab" || name == "Close") {
 		g_reader.Navigate();
+		{ std::lock_guard lock(g_packetMutex); g_packets.Reset(); }
 		g_sample = {};
 		g_seen = false;
 	}
@@ -154,6 +230,19 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			g_seen = true;
 		}
 	}
+	if (!g_sample.open) {
+		std::optional<QuestProgress::NativePacket> packet;
+		{ std::lock_guard lock(g_packetMutex); packet = g_packets.Take(now); }
+		if (packet) {
+			const auto resolve = [](std::string_view key) { return Localization::Text(key); };
+			const auto title = Localization::Text(packet->titleId);
+			auto native = QuestProgress::Identify(title, title, packet->objective, resolve);
+			if (!native.quest.empty()) {
+				g_reader.Correlate(std::move(native));
+				AsyncLog::InfoF(context, "[quest] packet objective: row=%u title-id=%u", packet->row, packet->titleId);
+			}
+		}
+	}
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
 	const bool canSpeak = !uiOwnsSpeech && RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
@@ -169,12 +258,18 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 }
 
 void Reset() {
+	g_nativeReady.store(false, std::memory_order_release);
 	g_reader.Reset();
+	{ std::lock_guard lock(g_packetMutex);
+		g_captureEpoch.fetch_add(1, std::memory_order_release);
+		g_packets.Reset();
+	}
 	g_last = {};
 	g_sample = {};
 	g_seen = false;
 	g_nextWatch = 0;
 	g_language = Strings::Selected();
+	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);
 }
 
 }

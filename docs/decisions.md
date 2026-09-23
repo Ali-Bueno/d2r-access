@@ -3,6 +3,13 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-23 — Potion assignments in inventory; View reserved for settings
+
+The user chose belt consultation through inventory focus, including the assigned
+D-pad direction. Do not add a View/Back hold for potion review. The user plans a
+future mod settings menu on View/Back and wants to move keyboard shortcuts there.
+This task does not implement that menu or remove existing bindings. `docs/belt.md`.
+
 ## 2026-09-21 — Unexplored as a qualifier on the radar, not a new sound or a guide
 
 The user asked for a sound-first way to find unexplored ground without spam. Chosen: a short tail

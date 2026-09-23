@@ -30,7 +30,8 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   per-panel focus diagnostics), `access-probe Panel/Child/Child` (log the strings inside a native
   widget), `access-dump-code`, `access-text on|off|repeat|dump`.
 - Automated tests: `ctest --test-dir build --output-on-failure --timeout 20`.
-  Latest shared-workspace run: 38 suites / 9353 checks, including journal details and distant exits.
+  Latest full run: 67/67 suites pass (2026-09-23), including belt assignments,
+  corpse ownership, quest-packet correlation and combat status policy.
   Item volume/landing follow-up: 5 affected suites / 341 checks pass.
   Radar suites account for 1439 checks (engine, passage, structure, snapshot, audio, readout) against the 2026-09-16 confirm-by-travel engine.
   Read the build coordination block in `STATUS.md` before compiling shared sources.
@@ -41,13 +42,17 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   `docs/character-panel.md`.
 - Equipment slots keep the last location seen under each slot widget name, so a
   missed native read no longer drops the slot name; releasing a carried item names
-  where it landed. Belt cell index, controller potion binding and the mouse
-  `ContextMenu` rows remain unread.
+  where it landed. Belt cells now name the native D-pad binding, row, potion
+  and physical column count; automatic inventory potions are identified separately.
+  The mouse `ContextMenu` rows remain unread. `docs/belt.md`.
 - Life, mana and broken equipment: enabled by default; `access-vitals on|off|status`.
   Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage,
-  interrupting at or below 10%. Values read from the HUD orbs' own `ValueDisplay`
+  interrupting on downward crossings at or below 10%. Simultaneous changes
+  combine with life first. Values read from the HUD orbs' own `ValueDisplay`
   text, so the game's "show life/mana orb text" options must be on (the mod says
-  so once). Worn items that reach zero durability are announced with their slot.
+  so once, identifying either missing orb). Worn items that reach zero durability
+  are announced with their slot. Verified native readers add poison transitions
+  and mercenary life; these and broken equipment queue behind player alerts.
   `[vitals]` logs, `docs/vitals.md`; live NVDA check pending.
 - Quest announcements: enabled by default; `access-quests on|off|status`.
   Journal selection reads current objective/progress without a duplicated title;

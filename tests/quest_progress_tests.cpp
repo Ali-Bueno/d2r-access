@@ -91,6 +91,40 @@ void Alerts() {
 	Check(reader.Update({}, AlertDelayMs * 3, true).kind == Kind::GoalDone, "difficulty is part of completion identity");
 	reader.Reset(); reader.Completed(1, 0, 0);
 	Check(reader.Update({}, AlertDelayMs, true).kind == Kind::GoalDone, "another session can report that quest again");
+	reader.Reset(); reader.Alert(1000); reader.Correlate(second);
+	Check(reader.Update({}, 1000 + AlertDelayMs, true).objective == second.objective,
+		"a correlated native packet supplies its real objective when the journal is unloaded");
+	reader.Reset(); reader.Correlate(second);
+	Check(reader.Update({}, AlertDelayMs, true).kind == Kind::None,
+		"a packet without a quest update event cannot speak");
+}
+
+void NativePackets() {
+	PacketMatcher packets;
+	packets.Capture({1, 3714, first.objective, 1000});
+	Check(!packets.Take(1000), "native packet text does not speak without an alert");
+	packets.Alert(1100);
+	Check(!packets.Take(1100 + SettleMs), "the packet window stays open for competing quest rows");
+	const auto matched = packets.Take(1100 + PacketWindowMs);
+	Check(matched && matched->row == 1 && matched->objective == first.objective,
+		"the recent packet is paired with the actual quest alert");
+	Check(!packets.Take(1650), "one packet cannot answer two polls");
+	packets.Alert(1700);
+	Check(!packets.Take(1700 + PacketWindowMs), "an old packet cannot answer a later alert");
+	packets.Alert(2400);
+	packets.Capture({4, 3717, "Busca a Caín.", 2420});
+	Check(!packets.Take(2400 + SettleMs), "an early poll cannot commit the first quest row");
+	packets.Capture({1, 3714, second.objective, 2600});
+	Check(!packets.Take(2400 + PacketWindowMs),
+		"different quest rows in one alert window are ambiguous, not a specific objective");
+	packets.Alert(3200); packets.Capture({1, 3714, first.objective, 3210});
+	packets.Capture({1, 3714, second.objective, 3220});
+	Check(packets.Take(3200 + PacketWindowMs)->objective == second.objective,
+		"repeated packets for one quest coalesce to the newest objective");
+	packets.Reset(); packets.Alert(4000);
+	Check(!packets.Take(4000 + PacketWindowMs), "session reset discards captured quest state");
+	packets.Capture({1, 3714, first.objective, 1000}); packets.Alert(5000);
+	Check(!packets.Take(5000 + PacketWindowMs), "a stale packet cannot be attached to a new alert");
 }
 
 void DeferredSpeech() {
@@ -110,6 +144,6 @@ void DeferredSpeech() {
 }
 
 int main() {
-	Identification(); TextChanges(); Alerts(); DeferredSpeech();
+	Identification(); TextChanges(); Alerts(); NativePackets(); DeferredSpeech();
 	Passed();
 }
