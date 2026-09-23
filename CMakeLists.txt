@@ -28,6 +28,11 @@ add_library(d2r-access SHARED
 	src/control_state.cpp
 	src/display_modes.cpp
 	src/focus_tracker.cpp
+	src/frontend_native_fallback.cpp
+	src/multiplayer_reader.cpp
+	src/multiplayer_status.cpp
+	src/menu_navigation.cpp
+	src/menu_navigation_policy.cpp
 	src/footsteps.cpp
 	src/footstep_service.cpp
 	src/native_footsteps.cpp
@@ -247,6 +252,23 @@ if(BUILD_TESTING)
 	target_compile_features(skill-navigation-tests PRIVATE cxx_std_20)
 	add_test(NAME skill-navigation COMMAND skill-navigation-tests)
 	add_executable(native-focus-tests tests/native_focus_tests.cpp src/native_focus.cpp)
+	add_executable(frontend-native-fallback-tests tests/frontend_native_fallback_tests.cpp src/frontend_native_fallback.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_include_directories(frontend-native-fallback-tests PRIVATE src tests)
+	target_compile_features(frontend-native-fallback-tests PRIVATE cxx_std_20)
+	add_test(NAME frontend-native-fallback-tests COMMAND frontend-native-fallback-tests)
+	add_executable(multiplayer-status-tests tests/multiplayer_status_tests.cpp src/multiplayer_status.cpp)
+	target_include_directories(multiplayer-status-tests PRIVATE src tests)
+	target_compile_features(multiplayer-status-tests PRIVATE cxx_std_20)
+	add_test(NAME multiplayer-status COMMAND multiplayer-status-tests)
+	add_executable(menu-navigation-policy-tests tests/menu_navigation_policy_tests.cpp src/menu_navigation_policy.cpp)
+	target_include_directories(menu-navigation-policy-tests PRIVATE src tests)
+	target_compile_features(menu-navigation-policy-tests PRIVATE cxx_std_20)
+	add_test(NAME menu-navigation-policy COMMAND menu-navigation-policy-tests)
+	add_executable(menu-navigation-tests tests/menu_navigation_tests.cpp src/menu_navigation.cpp src/menu_navigation_policy.cpp)
+	target_link_libraries(menu-navigation-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(menu-navigation-tests PRIVATE src tests)
+	target_compile_features(menu-navigation-tests PRIVATE cxx_std_20)
+	add_test(NAME menu-navigation COMMAND menu-navigation-tests)
 	target_link_libraries(native-focus-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-focus-tests PRIVATE src)
 	target_compile_features(native-focus-tests PRIVATE cxx_std_20)

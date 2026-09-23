@@ -71,3 +71,11 @@ enabled = true
 # access-movement on|off changes this for the current session.
 [movement]
 enabled = true
+
+# Read hosting readiness and browser status changes in D2RLoader multiplayer.
+[multiplayer]
+enabled = true
+
+# Move between D2RLoader form controls once per D-pad press.
+[menu_navigation]
+enabled = true

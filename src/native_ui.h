@@ -21,6 +21,8 @@ struct Type {
 
 // UI thread only. All object addresses are re-resolved every poll.
 Type Classify(uintptr_t widget);
+// Current text in a non-masked native input; empty when unavailable.
+std::string InputText(uintptr_t widget);
 bool Visible(uintptr_t widget);
 uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);
