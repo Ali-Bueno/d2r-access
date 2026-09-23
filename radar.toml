@@ -5,6 +5,11 @@ enabled = true
 # Cue loudness, 0-100 percent of the compiled level.
 volume = 100
 
+# Nearest unvisited dungeon room loop and a single cue on first entry.
+# Area-transition loops use the existing Ctrl+P exit-sound toggle.
+[exploration]
+enabled = true
+
 # Friendly NPC announcer: names the nearest town NPC (never enemies, objects or
 # items) once it comes within range, with its distance and screen direction, so
 # the left stick can walk to it. Ctrl+N toggles it for the current run.

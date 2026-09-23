@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "entity_radar.h"
 #include "explored_rooms.h"
+#include "exploration_cue_service.h"
 #include "explored_store.h"
 #include "frontier.h"
 #include "input_direction.h"
@@ -11,6 +12,7 @@
 #include "native_level_exits.h"
 #include "native_world.h"
 #include "radar.h"
+#include "radar_config.h"
 #include "radar_ui.h"
 #include "room_service.h"
 #include "screen_reader.h"
@@ -58,7 +60,7 @@ uint64_t g_nextPoll = 0, g_nextSave = 0;
 uint32_t g_loggedLevel = 0;
 size_t g_loggedRooms = 0;
 uint32_t g_warnedLevel = 0;
-bool g_supported = false;
+bool g_supported = false, g_roomSounds = true;
 // The store worker owns archive I/O; gameplay only submits room snapshots.
 std::filesystem::path g_directory;
 ExploredStore::Store g_store;
@@ -99,6 +101,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);
 	// A new session is a new map: what was walked in the old one is on disk.
+	ExplorationCueService::Silence();
 	const bool newSession = event->sessionGeneration != g_state.session
 		|| event->kind == Kind::GameJoined || event->kind == Kind::GameLeft;
 	g_state.session = event->sessionGeneration;
@@ -189,12 +192,20 @@ std::vector<NativeRooms::Bounds> Unseen(const NativeLevelExits::Layout& native) 
 // the player stood in, and on open ground the frontier quadrants are current.
 void Track(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	NativeLevelExits::Layout native;
-	if (!NativeEntities::ReadLayout(state.player, false, native)) return;
+	if (!NativeEntities::ReadLayout(state.player, false, native)) {
+		ExplorationCueService::Silence();
+		return;
+	}
 	LoadLevel(context, native);
 	for (const auto& room : native.rooms)
 		if (room.active) g_explored.Mark(native.level, room.rect.x, room.rect.y);
 	Radar::World world;
-	const bool located = NativeWorld::Read(state.player, state.session, state.level, world);
+	const bool located = NativeWorld::Read(state.player, state.session, state.level, world)
+		&& static_cast<uint32_t>(world.level) == native.level;
+	// Stored visits must be loaded before a room can be called unexplored.
+	if (located && g_roomSounds && (g_loadedLevel == native.level || g_directory.empty()))
+		ExplorationCueService::Update(context, native, world.player, g_explored, RoomService::Maze(native.level));
+	else ExplorationCueService::Silence();
 	if (located) {
 		const int tileX = static_cast<int>(std::floor(world.player.x / LevelExitLayout::SubtilesPerTile));
 		const int tileY = static_cast<int>(std::floor(world.player.y / LevelExitLayout::SubtilesPerTile));
@@ -256,6 +267,7 @@ bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
+	g_roomSounds = RadarConfig::ReadEnabled(context, "[exploration]").value_or(true);
 	// Next to the plugin, like the code dump and the sounds: `d2r-access\explored`.
 	if (context->pluginDirectory != nullptr) {
 		g_directory = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "explored";
@@ -282,30 +294,37 @@ bool Register(const D2RL::PluginContext* context) {
 			!= D2RL::Lifecycle::Result::Success) { Unregister(); return false; }
 		g_listeners.push_back(handle);
 	}
-	AsyncLog::InfoF(context, "[terrain] supported=%u store=%s", g_supported ? 1u : 0u, g_directory.string().c_str());
+	AsyncLog::InfoF(context, "[terrain] supported=%u room_sounds=%u store=%s", g_supported ? 1u : 0u,
+		g_roomSounds ? 1u : 0u, g_directory.string().c_str());
 	return g_supported;
 }
 
-void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
+void Tick(const D2RL::PluginContext* context, bool) {
 	// Both sources are consumed every tick so a latched gesture cannot fire late.
 	const bool asked = g_asked.exchange(false);
 	const bool clicked = InputDirection::TakeBackWith(InputDirection::FaceButton::B);
 	const bool requested = asked || clicked;
 	if (!g_supported) {
+		ExplorationCueService::Silence();
 		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
 		return;
 	}
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
+	const bool playing = state.ready && Playing();
 	// An asked-for readout answers even while the UI reader is talking.
-	if (requested && state.ready && Playing()) {
+	if (requested && playing) {
 		std::lock_guard lock(g_mutex);
 		Overview(context, state);
 	}
-	if (uiOwnsSpeech || now - g_nextPoll < PollMs) return;
+	if (!playing) {
+		std::lock_guard lock(g_mutex);
+		ExplorationCueService::Silence();
+		return;
+	}
+	if (now - g_nextPoll < PollMs) return;
 	g_nextPoll = now;
-	if (!state.ready || !Playing()) return;
 	std::lock_guard lock(g_mutex);
 	Track(context, state, now);
 }
@@ -351,6 +370,7 @@ void Unregister() {
 	g_actions.clear();
 	{
 		std::lock_guard lock(g_mutex);
+		ExplorationCueService::Silence();
 		SaveAll(g_context);
 	}
 	g_store.Stop(); // final worker write before the plugin context goes away
@@ -361,6 +381,7 @@ void Unregister() {
 	g_state = {};
 	g_asked = false;
 	g_supported = false;
+	g_roomSounds = true;
 	g_nextPoll = 0;
 	g_nextSave = 0;
 	g_loadedLevel = 0;

@@ -4,9 +4,11 @@
 #include "item_audio.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_world.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "test_support.h"
+#include "zone_transitions.h"
 #include <windows.h>
 #include <vector>
 
@@ -20,11 +22,15 @@ int removed = 0, reads = 0;
 RadarUi::State ui = RadarUi::State::Playing;
 GroundItems::Snapshot snapshot{1, {}, {{.id = 9, .position = {1, 1}, .name = "Poción", .baseName = "Poción"}}};
 std::vector<GroundItems::Voice> voices;
-std::vector<EntityRadar::Entity> entities{{7, EntityRadar::Kind::Npc, {2, 2}, "Kashya"}, {20, EntityRadar::Kind::Exit, {3, 3}, "Salida"}};
+std::vector<EntityRadar::Entity> entities{{7, EntityRadar::Kind::Npc, {2, 2}, "Kashya"},
+	{20, EntityRadar::Kind::Exit, {3, 3}, "Portal", 0, false, EntityRadar::Category::Portal}};
+bool includeBoundaries = false;
+const std::vector<Radar::LevelExit> boundaries{{{4, 4}, 2}, {{80, 80}, 3}};
 // A casket the predicate flagged, and a shrine it did not.
 const EntityRadar::Entity casket{30, EntityRadar::Kind::Object, {2, 3}, "Ataúd", 0, true};
 const EntityRadar::Entity shrine{31, EntityRadar::Kind::Object, {2, 4}, "Santuario", 0, false};
 size_t Portals() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Portal; return n; }
+size_t Zones() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::ZoneTransition; return n; }
 size_t Chests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Chest; return n; }
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener); *handle = listeners.size(); return D2RL::Lifecycle::Result::Success;
@@ -66,13 +72,36 @@ namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return supported; }
 bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits, bool levelBearings) {
 	Check(!distantExits, "proximity loops never request unloaded exit presets");
-	Check(!levelBearings, "nor the boundaries with the neighbouring areas");
-	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity"); result = entities; return readable;
+	Check(!levelBearings, "proximity loops do not use approximate area bearings");
+	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity");
+	result = entities;
+	return readable;
+}
+bool ReadLayout(uint32_t player, bool neighbours, NativeLevelExits::Layout& layout) {
+	Check(player == 42 && neighbours, "boundary reader requests neighbouring level rooms");
+	layout.level = 1;
+	return readable;
 }
 bool CountContainerRows(size_t& rows, size_t& total) {
 	rows = EntityLayout::ContainerRowCount;
 	total = EntityLayout::ObjectRowCount;
 	return readable;
+}
+}
+namespace D2RAccess::NativeWorld {
+bool Initialize(const D2RL::PluginContext*) { return true; }
+bool Read(uint32_t player, uint64_t session, int level, Radar::World& result, Diagnostics*) {
+	Check(player == 42 && session == snapshot.session && level == 0,
+		"boundary reader uses active player and bootstraps the native level");
+	result.level = 1;
+	result.player = {snapshot.player.x, snapshot.player.y};
+	return readable;
+}
+}
+namespace D2RAccess::ZoneTransitions {
+std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout) {
+	Check(world.level == static_cast<int>(layout.level), "boundary finder receives matching world and layout");
+	return includeBoundaries ? boundaries : std::vector<Radar::LevelExit>{};
 }
 }
 namespace D2RAccess::ItemAudio {
@@ -129,6 +158,29 @@ int main() {
 	entities.pop_back(); entities.pop_back();
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Check(Chests() == 0, "an opened container disappears from the unit read and its loop stops");
+	entities.push_back({21, EntityRadar::Kind::Exit, {4, 3}, "Waypoint", 0, false, EntityRadar::Category::Waypoint});
+	entities.push_back({22, EntityRadar::Kind::Exit, {5, 4}, "Stairs", 701, false, EntityRadar::Category::Exit});
+	includeBoundaries = true;
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(voices.size() == 5 && Portals() == 2 && Zones() == 2,
+		"fixed stairs and the walkable Blood Moor crossing use the zone loop; portals and waypoints retain theirs");
+	entities.push_back({26, EntityRadar::Kind::Exit, {4, 4}, "Blood Moor warp", 702,
+		false, EntityRadar::Category::Exit, 2});
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(voices.size() == 5 && Zones() == 2,
+		"a fixed warp on the same crossing replaces its synthetic boundary cue without doubling it");
+	entities.pop_back();
+	Command("exits-off");
+	Check(voices.size() == 1 && Portals() == 0 && Zones() == 0, "the exit switch silences zone and portal loops together");
+	Command("exits-on");
+	Check(voices.size() == 5 && Portals() == 2 && Zones() == 2, "the exit switch restores both loop categories");
+	snapshot.player = {79, 79}; Tick();
+	Check(voices.size() == 1 && Zones() == 1, "a distant border is silent until the player comes within the loop radius");
+	snapshot.player = {0, 0};
+	includeBoundaries = false;
+	entities.pop_back(); entities.pop_back();
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(voices.size() == 2 && Zones() == 0 && Portals() == 1, "leaving the boundary removes its zone loop on refresh");
 	speech.clear();
 	Command("off"); snapshot.items[0].id = 12; speech.clear(); Tick();
 	Check(voices.size() == 2 && speech.empty(), "loops work with proximity speech disabled");
