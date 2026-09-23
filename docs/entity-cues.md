@@ -7,10 +7,10 @@ runtime dependencies are needed.
 
 | Target | Sound | Selection |
 |---|---|---|
-| Friendly NPC | Soft rising pair of notes | Nearest visible NPC |
-| Boss or elite | Low textured strike | Highest enemy priority |
-| Resurrecting shaman | Slightly higher, fluttering strike | Next enemy priority |
-| Ordinary ranged enemy | Higher textured pulse | Lowest enemy priority; optional |
+| Friendly NPC | Light wooden tap | Nearest visible NPC |
+| Boss or elite | Low, rounded thud | Highest enemy priority |
+| Resurrecting shaman | Grainier soft knock | Next enemy priority |
+| Ordinary ranged enemy | Higher, dry tick | Lowest enemy priority; optional |
 
 There is one representative per class, with at most two enemy classes plus the
 NPC. A crowd of archers therefore makes one stream, not one per archer. Regular
@@ -24,13 +24,18 @@ entity scan: walk-blocking fences may hide a target. An ordinary target in
 another room behind a wall does not get a cue. These are direct bearings, not
 routes around obstacles.
 
-Pulse intervals shorten continuously from 1.8 seconds at the range edge to
-0.55 seconds at contact. The scheduler leaves at least 160 ms between starts,
-and each sound is 104 ms long. Due targets take turns, so the nearest boss
+Pulse intervals shorten continuously from 1.45 seconds at the range edge to
+0.45 seconds at contact. The scheduler leaves at least 160 ms between starts,
+and each sound is 84 ms long. Due targets take turns, so the nearest boss
 cannot starve the shaman or NPC. The 100 ms snapshot cadence rounds these times
 to the next update. These are tunable sound-design defaults, not game constants.
 Changing the nearest representative keeps that class's cadence to prevent
 rapid alternating cues; the next pulse uses the newly selected target's position.
+
+The user liked the initial cues on 2026-09-22 and requested a slightly faster,
+less melodic, softer percussive sound for NPCs and enemies. The tuning shortens
+waits by about 20% and uses one quickly damped strike, with inharmonic resonances
+and low-pass-filtered texture. A smooth attack/release avoids sharp clicks.
 
 Dialogue, menu/focus gating, lifecycle changes, unavailable audio and failed
 native reads silence playback and clear timing. Dead/unloaded targets disappear
@@ -65,7 +70,9 @@ Malformed or duplicate recognized keys discard this section and retain defaults.
 
 Build and deployment succeeded on 2026-09-22; **67/67 CTest suites passed**, with
 6/6 affected suites passing again after a test-only warning correction. The
-installed DLL's SHA-256 matched the build. No live listening was performed.
+installed DLL's SHA-256 matched the build. The subsequent sound/cadence tuning
+passed all 3 affected suites, with no compiler warnings and a matching installed
+DLL. The user approved the original sounds; listening to this tuning is pending.
 
 Automated coverage checks native classification, selection priorities, dead and
 friendly exclusions, occlusion, fixed screen directions, changing distance,

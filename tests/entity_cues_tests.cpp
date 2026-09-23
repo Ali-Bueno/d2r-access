@@ -79,8 +79,8 @@ void CadenceAndLifecycle() {
 	Check(Is(tracker.Update(world, {far}, 0, {}), 1), "new target starts immediately at time zero");
 	Check(!tracker.Update(world, {far}, 1000, {}), "distant pulse has a long rest");
 	Check(Is(tracker.Update(world, {near}, 1000, {}), 1), "approaching recalculates cadence without waiting for old far deadline");
-	Check(!tracker.Update(world, {near}, 1549, {}), "near pulse respects the minimum interval");
-	Check(Is(tracker.Update(world, {near}, 1550, {}), 1), "near pulse repeats at the shorter interval");
+	Check(!tracker.Update(world, {near}, 1449, {}), "near pulse respects the minimum interval");
+	Check(Is(tracker.Update(world, {near}, 1450, {}), 1), "near pulse repeats at the shorter interval");
 	Check(!tracker.Update(world, {Make(2, Kind::Npc, 30, 30)}, 1750, {}), "nearest target changes do not burst pulses");
 	Check(!tracker.Update(world, {}, 2100, {}), "vanished or dead targets cannot repeat from memory");
 	Check(Is(tracker.Update(world, {near}, 2100, {}), 1), "a new visible target starts once after disappearance");

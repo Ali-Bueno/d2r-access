@@ -10,8 +10,8 @@ enum class Kind { Npc, Important, Resurrector, Ranged };
 struct Settings {
 	bool npcs = true, enemies = true, ranged = true;
 	double range = EntityRadar::Settings{}.range;
-	// Sound-design defaults: an unhurried distant pulse, faster near contact.
-	uint64_t nearIntervalMs = 550, farIntervalMs = 1800, gapMs = 160;
+	// Listening feedback, 2026-09-22: roughly 20% shorter waits, still faster nearby.
+	uint64_t nearIntervalMs = 450, farIntervalMs = 1450, gapMs = 160;
 };
 struct Cue {
 	uint32_t id = 0;
