@@ -16,6 +16,18 @@ internet session remain unverified.
 Local hosting reports Issues (automatic port setup unavailable). No network
 settings changed. Setup and native evidence: `docs/multiplayer.md`.
 
+## Complete tester ZIP — 2026-09-23
+
+Updated copy: `../d2r-access-completo-2026-09-23-actualizado.zip`
+(37 files, 56,499,484 bytes), with the confirmed multiplayer plugin, two new
+configuration sections and Spanish multiplayer instructions. Loader 1.3.0-beta,
+PRISM, 11 WAVs, four x64 VC runtime DLLs and licenses retained.
+Verified decompression and SHA-256 for every entry; DLL matches the installed
+build. **71/71 suites passed, then 6/6 affected suites** after final UI fixes.
+Original ZIP retained after overwrite was blocked by automatic review.
+**Next step:** send the updated ZIP; recipient installs beside `D2R.exe` and
+starts `D2RLoader.exe`. Two-client audio/connectivity still needs live testing.
+
 ## Automap discovery investigation — 2026-09-23
 
 Research only; existing navigation retained. No verified native reveal-state
@@ -700,6 +712,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Section / feature | Status | Notes |
 |---|---|---|
 | D2RLoader multiplayer | done — controller confirmed 2026-09-23 | Native form speech, D-pad navigation and retained checkbox focus; 71 suites pass. Internet session unverified. `docs/multiplayer.md` |
+| Complete tester ZIP | updated — 2026-09-23 | Use `-actualizado.zip`: multiplayer fixes and instructions, 37 entries verified; recipient startup pending. |
 | NPC / priority enemy sounds | faster resonant revision installed; listening pending | Wooden NPC tap; voiced enemy swoop. 150–450 ms intervals; 4 suites pass. `docs/entity-cues.md` |
 | Exploration sound assets | built/deployed — listening pending | One nearest room loop; arrival once per new room; zone loops at real crossings. 64 suites pass. `docs/exploration.md` |
 | Directional wall sliding | wip — built/deployed; controller check pending | Local type-17 fallback probes use zero travel. 50 new checks pass. `access-movement on\|off\|status`; `docs/wall-sliding.md` |

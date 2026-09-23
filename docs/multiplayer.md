@@ -23,6 +23,15 @@ Some loader captions are English even with Spanish game text; the reader uses
 the actual displayed captions. Unlisted games do not appear in the public list.
 TCP/IP uses local characters, rather than Battle.net characters.
 
+The mod's speech and audio play locally; no accessibility audio is sent to the
+other client. Navigation uses the local-player position and identity. Vitals
+read this client's HUD and local character; mercenary/corpse readers check
+ownership, and footstep handling compares the entity to the local player.
+Nearby shared items, portals and quest changes can still produce each player's
+own announcements. Quest completion checks player/session identity; packet text
+is correlated with this client's quest alerts. This code audit does not replace
+a live two-client audio check.
+
 If the multiplayer button is absent, enable **Show TCP/IP Button** under
 **D2RLoader settings → General**. Vanilla already shows it automatically.
 
