@@ -58,6 +58,9 @@ add_library(d2r-access SHARED
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
 	src/explored_rooms.cpp
+	src/exploration_cues.cpp
+	src/exploration_cue_service.cpp
+	src/zone_transitions.cpp
 	src/explored_store.cpp
 	src/explored_store_worker.cpp
 	src/frontier.cpp
@@ -168,6 +171,21 @@ if(BUILD_TESTING)
 	target_compile_features(exploration-tests PRIVATE cxx_std_20)
 	target_compile_definitions(exploration-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME exploration COMMAND exploration-tests)
+	add_executable(exploration-cues-tests tests/exploration_cues_tests.cpp src/exploration_cues.cpp src/explored_rooms.cpp)
+	target_include_directories(exploration-cues-tests PRIVATE src)
+	target_compile_features(exploration-cues-tests PRIVATE cxx_std_20)
+	add_test(NAME exploration-cues COMMAND exploration-cues-tests)
+	add_executable(exploration-cue-service-tests tests/exploration_cue_service_tests.cpp src/exploration_cue_service.cpp
+		src/exploration_cues.cpp src/explored_rooms.cpp src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp)
+	target_include_directories(exploration-cue-service-tests PRIVATE src)
+	target_compile_features(exploration-cue-service-tests PRIVATE cxx_std_20)
+	target_compile_definitions(exploration-cue-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	target_link_libraries(exploration-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	add_test(NAME exploration-cue-service COMMAND exploration-cue-service-tests)
+	add_executable(zone-transitions-tests tests/zone_transitions_tests.cpp src/zone_transitions.cpp src/rooms.cpp src/radar_grid.cpp)
+	target_include_directories(zone-transitions-tests PRIVATE src)
+	target_compile_features(zone-transitions-tests PRIVATE cxx_std_20)
+	add_test(NAME zone-transitions COMMAND zone-transitions-tests)
 	add_executable(navigation-grid-tests tests/navigation_grid_tests.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)

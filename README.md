@@ -221,11 +221,17 @@ be read, its cue remains available with a generic localized label. Beacon audio
 is cancelled when guidance is suspended by dialogue, menus or loss of focus.
 See [audio language verification and limits](docs/audio-language-audit.md).
 
-**Level exits:** every way out of the current area (level exits, cave and
-dungeon entrances, town portals, red portals, waypoints, gateways) plays the
-supplied `portal` loop at its position through the same spatial mixer, and the
-entity scan names it after its destination. **Ctrl+P** toggles the exit loops;
+**Level exits:** stairs, cave entrances and walkable outdoor area crossings play
+the supplied `zone transition` loop. Outdoor crossings use openings in the loaded
+collision map. Portals and waypoints keep the `portal` loop. The entity scan
+names exits after their destination. **Ctrl+P** toggles the exit loops;
 `access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
+
+**Unexplored rooms:** only the nearest unvisited dungeon room within audio range
+plays `unexplored room` in a loop. Entering a new room plays `inside unexplored
+room` once; revisiting it stays silent, including after reloading the saved map.
+The two room sounds can be disabled with `[exploration] enabled = false` in the
+plugin config. See [exploration](docs/exploration.md).
 
 **Containers:** chests, caskets, urns, barrels, crates, corpses and the other
 things you open for loot loop through the same mixer, so you can hear where they

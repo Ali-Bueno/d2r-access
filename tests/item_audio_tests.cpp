@@ -1,4 +1,5 @@
 #include "item_wave.h"
+#include "item_audio.h"
 #include "item_spatial.h"
 #include "test_support.h"
 #include <windows.h>
@@ -86,20 +87,27 @@ void NormalizationTests() {
 }
 int main(int argc, char** argv) {
 	WaveTests(); MatrixTests(); NormalizationTests();
-	Check(argc == 2, "converted sample directory supplied by CTest");
-	for (const auto* name : GroundItems::SoundFiles) {
-		auto samples = ItemWave::Load(std::filesystem::path(argv[1]) / name);
-		Check(!samples.empty(), "real user-provided loop decodes into supported PCM");
+	Check(ItemAudio::IsOneShot(GroundItems::Sound::InsideUnexploredRoom), "room arrival uses a finite XAudio2 buffer");
+	Check(!ItemAudio::IsOneShot(GroundItems::Sound::UnexploredRoom)
+		&& !ItemAudio::IsOneShot(GroundItems::Sound::ZoneTransition), "approach and zone cues loop");
+	Check(argc == 3, "converted sample directories supplied by CTest");
+	for (size_t sound = 0; sound < std::size(GroundItems::SoundFiles); ++sound) {
+		const auto* name = GroundItems::SoundFiles[sound];
+		const auto* folder = sound < GroundItems::ItemSoundCount ? argv[1] : argv[2];
+		auto samples = ItemWave::Load(std::filesystem::path(folder) / name);
+		Check(!samples.empty(), "real user-provided cue decodes into supported PCM");
 		Check(ItemWave::Normalize(samples) > 0, "real loop contains a nonzero waveform");
 		int peak = 0; for (auto sample : samples) peak = std::max(peak, std::abs(int(sample)));
 		Check(std::abs(float(peak) / INT16_MAX - ItemWave::LoopPeak) < 0.0001f, "every real recording reaches the same peak with headroom");
 		// At speech range, even a centered source must reach -34 dBFS per ear at
 		// its loudest tenth of a second. This catches the reported silence: raw
 		// gold/normal loops fell below -55 dBFS by either measure.
-		const double proximity = 1 - GroundItems::SpeakRadius / GroundItems::AudibleRadius;
-		const auto matrix = ItemSpatial::StereoMatrix({.front = float(GroundItems::SpeakRadius)});
-		Check(LoudestWindowRms(samples) * GroundItems::LoopVolume * proximity * proximity * matrix[0] >= 0.02,
-			"real near-item mix meets the minimum signal level after distance and stereo panning");
+		if (sound < GroundItems::ItemSoundCount) {
+			const double proximity = 1 - GroundItems::SpeakRadius / GroundItems::AudibleRadius;
+			const auto matrix = ItemSpatial::StereoMatrix({.front = float(GroundItems::SpeakRadius)});
+			Check(LoudestWindowRms(samples) * GroundItems::LoopVolume * proximity * proximity * matrix[0] >= 0.02,
+				"real near-item mix meets the minimum signal level after distance and stereo panning");
+		}
 		Check(Rms(samples) > 0, "and carries signal across the whole file, not one spike");
 	}
 	Passed();

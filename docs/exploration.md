@@ -5,6 +5,42 @@ taken, where the ground the game has never streamed begins, how much of the leve
 Design conversation of 2026-09-21; the user's rule for the radar still holds (four cardinals, the
 original cues, only changes sound).
 
+## Supplied exploration sounds (2026-09-22)
+
+`sounds/exploration cues` supplies three OGG recordings, converted to mono PCM
+at build time and deployed with the existing sound assets:
+
+| Recording | Playback |
+|---|---|
+| `unexplored room` | One spatial loop for the nearest active, unvisited maze room within the existing 30-subtile audio radius. The current room is excluded. |
+| `inside unexplored room` | A centered, finite cue when the player first enters an unvisited maze room. Persistent visited memory prevents standing, returning or reloading from replaying it. |
+| `zone transition` | Spatial loops at nearby fixed area exits and loaded outdoor crossings. Portals and waypoints retain their existing portal sound. |
+
+`ExplorationCues::Select` uses the nearest point inside each native room's
+rectangle, with coordinate-based tie breaking. Only `Levels.txt DrlgType = 1`
+has meaningful chamber partitions; open terrain and towns do not emit room cues.
+The terrain service checks exploration before marking the occupied room visited,
+and waits for stored memory before enabling room sounds. Its 250 ms poll feeds
+an independent mixer channel, so loot updates cannot overwrite the room loop or
+restart the arrival recording. Dialogue, blocked UI, focus loss, world-read
+failure and lifecycle transitions silence this channel.
+
+Outdoor transition sounds use `ZoneTransitions::Find`: openings with loaded
+walkable collision on both sides of a native room border, mapped to the actual
+neighbouring level. Rectangle midpoints used for distant bearings do not qualify
+as sound locations. Unloaded crossings remain silent until collision is available.
+The existing exit loop toggle, Ctrl+P or `access-items exits-on|exits-off`, also
+controls transition sounds. `[exploration] enabled = false` disables both room
+sounds on restart, independently of the radar and exit loops.
+
+Validation: automated selection, memory, service and audio-asset checks; live
+listening remains pending. Approach two new dungeon rooms and hear only the
+nearer one, enter one and hear a single arrival, then return and reload to check
+silence. At the camp's Blood Moor gate, approach the actual gap and compare it
+with the palisade. Open dialogue and move focus away to verify silence.
+`[exploration-audio]` logs target changes and first entries; `[item-audio]` logs
+source start/progress/completion without logging every frame.
+
 ## The two memories
 
 `ExploredRooms::Memory` (`src/explored_rooms.*`) keeps two rings per level, keyed by the logical

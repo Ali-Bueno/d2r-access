@@ -7,7 +7,8 @@
 #include <vector>
 
 namespace D2RAccess::GroundItems {
-enum class Sound { Gold, Potion, Normal, Magic, Rare, Legendary, Portal, Chest, Count };
+enum class Sound { Gold, Potion, Normal, Magic, Rare, Legendary, Portal, Chest,
+	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Count };
 struct Point { double x = 0, y = 0; };
 struct Item {
 	uint32_t id = 0, code = 0, quality = 0;
@@ -35,7 +36,9 @@ inline constexpr uint64_t ExitRefreshMs = 500;
 inline constexpr float LoopVolume = 0.4f, RearPitch = 0.94f;
 inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops peak together
 inline constexpr const char* SoundFiles[] = {"gold.wav", "potion.wav", "normal equipment.wav",
-	"magic equipment.wav", "rare equipment.wav", "legendary equipment.wav", "portal.wav", "chest.wav"};
+	"magic equipment.wav", "rare equipment.wav", "legendary equipment.wav", "portal.wav", "chest.wav",
+	"unexplored room.wav", "zone transition.wav", "inside unexplored room.wav"};
+inline constexpr size_t ItemSoundCount = static_cast<size_t>(Sound::UnexploredRoom);
 // The file list is indexed by Sound; a missing entry would be read past the end.
 static_assert(std::size(SoundFiles) == static_cast<size_t>(Sound::Count));
 

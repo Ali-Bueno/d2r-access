@@ -4,16 +4,21 @@
 #include "entity_layout.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_world.h"
 #include "item_audio.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "async_log.h"
+#include "zone_transitions.h"
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <limits>
 #include <mutex>
 #include <string_view>
+#include <unordered_set>
 
 namespace D2RAccess::GroundItemService {
 namespace {
@@ -30,10 +35,11 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 GroundItems::Tracker g_tracker;
-bool g_supported = false, g_exitsSupported = false, g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_suspended = true;
+bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = false;
+bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_suspended = true;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
-// Exits and containers near the player. Neither moves, so one unit read every
-// ExitRefreshMs feeds both lists while only the listener position is polled fast.
+// Exits and containers stay fixed. One read every ExitRefreshMs feeds both
+// lists; the tracker limits audible sources as the listener moves.
 std::vector<GroundItems::Item> g_landmarks, g_containers;
 std::vector<std::string> g_nearbyLabels;
 uint64_t g_labelsUpdated = 0;
@@ -73,13 +79,40 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 // Level exits, portals and waypoints as loop-only landmarks for the item mixer.
 std::vector<GroundItems::Item> Landmarks(const std::vector<EntityRadar::Entity>& entities) {
 	std::vector<GroundItems::Item> result;
+	std::unordered_set<uint64_t> fixedExits;
+	std::unordered_set<uint32_t> unitExits;
 	for (const auto& entity : entities) {
 		if (entity.kind != EntityRadar::Kind::Exit) continue;
+		if (entity.levelExitId) {
+			if (!fixedExits.insert(entity.levelExitId).second) continue;
+		} else if (!unitExits.insert(entity.id).second) continue;
 		GroundItems::Item landmark;
-		landmark.id = entity.id; landmark.position = {entity.position.x, entity.position.y}; landmark.sound = GroundItems::Sound::Portal;
+		landmark.id = entity.id; landmark.position = {entity.position.x, entity.position.y};
+		landmark.sound = entity.category == EntityRadar::Category::Portal || entity.category == EntityRadar::Category::Waypoint
+			? GroundItems::Sound::Portal : GroundItems::Sound::ZoneTransition;
 		result.push_back(std::move(landmark));
 	}
 	return result;
+}
+void AddTransitions(std::vector<GroundItems::Item>& landmarks, const std::vector<EntityRadar::Entity>& entities,
+	const std::vector<Radar::LevelExit>& transitions) {
+	std::unordered_set<uint32_t> used;
+	for (const auto& landmark : landmarks) used.insert(landmark.id);
+	for (const auto& transition : transitions) {
+		const bool knownWarp = std::any_of(entities.begin(), entities.end(), [&](const auto& entity) {
+			return entity.kind == EntityRadar::Kind::Exit && entity.category == EntityRadar::Category::Exit
+				&& entity.destinationLevel == transition.level
+				&& entity.position.x == transition.position.x && entity.position.y == transition.position.y;
+		});
+		if (knownWarp) continue;
+		uint32_t id = std::numeric_limits<uint32_t>::max() - transition.level;
+		while (!used.insert(id).second) --id;
+		GroundItems::Item landmark;
+		landmark.id = id;
+		landmark.position = {transition.position.x, transition.position.y};
+		landmark.sound = GroundItems::Sound::ZoneTransition;
+		landmarks.push_back(std::move(landmark));
+	}
 }
 // Chests, caskets, urns, barrels and corpses as loop-only sources. The unit
 // reader has already dropped every one the game no longer lets the player
@@ -107,6 +140,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeGroundItems::Initialize(context);
 	g_exitsSupported = g_supported && NativeEntities::Initialize(context);
+	g_boundariesSupported = g_exitsSupported && NativeWorld::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged, Kind::PlayerResurrected}) {
@@ -221,6 +255,13 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
 		auto landmarks = read && g_exits ? Landmarks(entities) : std::vector<GroundItems::Item>{};
+		if (g_exits && g_boundariesSupported) {
+			Radar::World world;
+			NativeLevelExits::Layout layout;
+			if (NativeWorld::Read(state.player, state.session, 0, world)
+				&& NativeEntities::ReadLayout(state.player, true, layout))
+				AddTransitions(landmarks, entities, ZoneTransitions::Find(world, layout));
+		}
 		if (landmarks.size() != g_landmarks.size()) AsyncLog::InfoF(context, "[items] exits nearby: %zu", landmarks.size());
 		g_landmarks = std::move(landmarks);
 		auto containers = read && g_chests ? Containers(entities) : std::vector<GroundItems::Item>{};
@@ -249,7 +290,8 @@ void Unregister() {
 	g_tracker.Reset();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
-	g_supported = g_exitsSupported = false; g_speech = g_sound = g_exits = g_chests = true; g_suspended = true;
+	g_supported = g_exitsSupported = g_boundariesSupported = false;
+	g_speech = g_sound = g_exits = g_chests = true; g_suspended = true;
 	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear();
 	g_nearbyLabels.clear(); g_labelsUpdated = 0;
 }
