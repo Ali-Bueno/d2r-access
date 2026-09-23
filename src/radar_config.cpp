@@ -2,6 +2,7 @@
 #include "async_log.h"
 
 #include <charconv>
+#include <cmath>
 #include <string>
 
 namespace D2RAccess::RadarConfig {
@@ -160,5 +161,36 @@ Chests ParseChests(std::string_view config) {
 }
 Chests ReadChests(const D2RL::PluginContext* context) {
 	return ReadSection<Chests>(context, ParseChests, "[chests] Invalid [chests] settings; using compiled defaults.");
+}
+
+EntityCueSettings ParseEntityCues(std::string_view config) {
+	EntityCueSettings result;
+	const bool valid = ForEachKey(config, "[entity_cues]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key == "range") {
+			double range = 0;
+			if (!value || result.range || !ParseNumber(*value, range) || !std::isfinite(range)
+				|| range <= 0 || range > MaxEntityCueRange) return Line::Invalid;
+			result.range = range;
+		} else if (key == "volume") {
+			unsigned volume = 0;
+			if (!value || result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
+			result.volume = volume;
+		} else {
+			std::optional<bool>* slot = nullptr;
+			if (key == "enabled") slot = &result.enabled;
+			else if (key == "npcs") slot = &result.npcs;
+			else if (key == "enemies") slot = &result.enemies;
+			else if (key == "ranged") slot = &result.ranged;
+			else return Line::Ignored;
+			bool flag = false;
+			if (!value || slot->has_value() || !ParseBool(*value, flag)) return Line::Invalid;
+			*slot = flag;
+		}
+		return Line::Accepted;
+	});
+	return valid ? result : EntityCueSettings{.valid = false};
+}
+EntityCueSettings ReadEntityCues(const D2RL::PluginContext* context) {
+	return ReadSection<EntityCueSettings>(context, ParseEntityCues, "[entity-cues] Invalid [entity_cues] settings; using compiled defaults.");
 }
 }

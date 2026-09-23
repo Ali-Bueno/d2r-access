@@ -56,4 +56,15 @@ struct Chests {
 };
 Chests ParseChests(std::string_view config);
 Chests ReadChests(const D2RL::PluginContext* context);
+
+struct EntityCueSettings {
+	std::optional<bool> enabled, npcs, enemies, ranged;
+	std::optional<double> range;
+	std::optional<unsigned> volume;
+	bool valid = true;
+};
+// Local proximity only; bound configured scans to avoid long terrain rays.
+inline constexpr double MaxEntityCueRange = 100;
+EntityCueSettings ParseEntityCues(std::string_view config);
+EntityCueSettings ReadEntityCues(const D2RL::PluginContext* context);
 }

@@ -28,6 +28,12 @@ enum class Category : uint8_t {
 	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item
 };
 
+struct EnemyTraits {
+	bool important = false;
+	bool resurrector = false;
+	bool ranged = false;
+};
+
 struct Entity {
 	uint32_t id = 0;
 	Kind kind = Kind::Item;
@@ -42,6 +48,7 @@ struct Entity {
 	// Last so the existing positional initialisers keep working untouched.
 	Category category = Category::Unknown;
 	uint32_t destinationLevel = 0; // Kind::Exit: the level it leads to, 0 when unknown
+	EnemyTraits enemy;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

@@ -26,7 +26,8 @@ inline constexpr uint32_t ObjectModeCount = 8, ObjectNeutral = 0, ObjectOpened =
 inline constexpr size_t MonStats = 0xF58, MonStatCount = 0xF60, MonStatStride = 0x1FC;
 inline constexpr size_t Objects = 0x1528, ObjectCount = 0x1530, ObjectStride = 0x168;
 // MonStats row: localized name id (0 = the game shows no name), alignment and flag bytes (monstats.txt columns).
-inline constexpr size_t MonNameId = 0x36, MonAlign = 0x87, MonFlagsA = 0x3D;
+inline constexpr size_t MonNameId = 0x36, MonAlign = 0x87, MonFlagsA = 0x3D, MonFlagsBoss = 0x3C, MonFlagsRanged = 0x3F;
+inline constexpr uint8_t FlagBoss = 1u << 6, FlagPrimeEvil = 1u << 7, FlagRanged = 1u << 4;
 inline constexpr uint8_t AlignHostile = 0, AlignFriendly = 1;
 // monstats.txt NameStr shared by every row with no name of its own (42 rows:
 // critters, spawners, the evil holes, town extras and the camp rogue scouts).
@@ -37,6 +38,8 @@ inline constexpr std::string_view PlaceholderNameKey = "dummy";
 inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable = 1u << 7; // +0x3D bits
 // MonsterData (*(Unit+0x10)): the game's own composed display name, cached by 0x985A0.
 inline constexpr size_t MonCachedName = 0x40;
+inline constexpr size_t MonRarityFlags = 0x1A;
+inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // objects.txt OperateFn, the index of the game's interaction handler for the row.

@@ -118,6 +118,18 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	if (hostile && !(flagsA & FlagKillable)) return false;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
 	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
+	if (hostile) {
+		uint8_t bossFlags = 0, rangedFlags = 0;
+		if (Peek(row + MonFlagsBoss, bossFlags)) entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
+		// *hcIdx values of the FallenShaman and FetishShaman AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 16> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+			645, 646, 647, 662, 663, 664};
+		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
+		uint16_t rarity = 0;
+		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity))
+			entity.enemy.important |= (rarity & MonEliteMask) != 0;
+	}
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));

@@ -285,6 +285,20 @@ in one compact archive, limited to 4 MiB, with separate records per map seed and
 Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
 test` auditions the marked cues. See [exploration](docs/exploration.md).
 
+### NPC and priority enemy sounds
+
+Soft synthesized pulses locate the nearest NPC and up to two priority enemy
+types: bosses/elites, resurrecting shamans, then ordinary ranged enemies.
+NPCs use a rising pair of notes; enemies use lower textured pulses. Sounds follow
+the radar's fixed screen directions and repeat faster as you approach. Ordinary
+melee crowds remain silent. Dialogue and menu/focus gating suspend the sounds.
+
+Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
+`enemy-off` and `ranged-off` switches (and matching `*-on`). Persistent range,
+volume and switches live under `[entity_cues]` in the plugin TOML. This is
+independent of the existing NPC speech toggle. Listening validation is pending;
+see [entity cue behavior and controls](docs/entity-cues.md).
+
 ### Character panel
 
 Opening the character sheet says the panel name with the character, class and

@@ -236,6 +236,34 @@ akara, kashya, rat, rogue1, …), `2` → 4 rows (cow, camel, horse, pig). Byte-
 
 Also verified: `+0x36` NameStr id, `+0x4C` int16 MonStatsEx index, `+0xFC` Level.
 
+### Enemy cue traits (2026-09-22)
+
+`ReadMonster` attaches traits only after its hostile, alive, killable, non-minion filter.
+The class-level `boss` and `primeevil` bits (`MonStats+0x3C`, bits 6 and 7) mark
+important enemies, while `rangedtype` (`MonStats+0x3F`, bit 4) marks ranged enemies.
+These offsets/bit positions match every row of the extracted
+`game-data/global/excel/monstats.txt`; for example, `cr_archer1` and
+`sk_archer1` carry `rangedtype=1`. Neither trait uses translated names.
+
+The same game's `AI` column identifies the resurrecting `FallenShaman` and
+`FetishShaman` families. Their `*hcIdx` class IDs are 58–62, 645–647 and
+278–282, 662–664 respectively. These are class IDs, not source row numbers:
+rows after the inserted entry at source row 645 have a one-row offset.
+
+Per-instance elite status follows the game's own special-monster predicate.
+The live-image Ghidra function `0x38E0E0` reads the `uint16` at
+`MonsterData+0x1A` and returns true for its low nibble (`flags & 0x000F`).
+The native monster health-plate builder `0xCEA50` calls that predicate with
+argument `0` to select special-monster decoration. An optional `0x0010` bit
+is included only when the predicate's second argument is nonzero; it is
+therefore excluded here, as in the health plate. Other native consumers
+`0x1A5C10` and `0x1A5CD0` test bits `0x0004` and `0x0008` individually for
+plate styling. This is a verified native classification, independent of names
+and locale. The exact game label for each low-nibble bit is not yet mapped;
+a live comparison with champion, unique and superunique units remains useful
+for refining their individual cue timbres, but is not needed for the shared
+elite cue.
+
 **The game's own rule for "show the monster health plate".** `0xC0420` (hover-name renderer) picks
 between `0xCEA50` (the plate *with* a health bar, which reads `0x2F5020` stats) and the plain
 `0x9A1B0` hover name:
@@ -295,9 +323,10 @@ extracted `.bin` files (`4 + rows*stride == filesize`), which names them:
    `MonStats.enabled` (`+0x3F` bit1) disables a row entirely, but no per-instance visibility bit was
    identified. Live check: for each monster in the room, log `Unit+0x124` and `Unit+0x128` next to
    its name and mode, in a zone with known off-screen/ambush monsters, and diff the words.
-3. **`MonsterData` beyond `+0x32…+0x40`** — the champion/unique bit flags and `wUniqueNo` were not
-   located; nothing in the dumps writes those fields. Live check: log the first 0x60 bytes of
-   `*(void**)(Unit+0x10)` for a normal, a champion, a unique and a superunique monster.
+3. **Individual labels of `MonsterData+0x1A` low-nibble rarity bits** are not
+   yet mapped; `0x38E0E0(unit, 0)` establishes their aggregate special-monster
+   predicate. Live check: compare this field for a normal, champion, unique and
+   superunique monster before giving each a distinct cue.
 4. **Which of `MonsterData+0x32/0x34/0x36/0x38` carries which affix** for a champion (the pattern
    semantics of `0x3ADCA0`). Live check: log the four int16 ids plus
    `Localization::Text(id)` for each, and `MonsterData+0x40`, for one champion and one unique.
