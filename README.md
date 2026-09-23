@@ -289,7 +289,7 @@ test` auditions the marked cues. See [exploration](docs/exploration.md).
 
 Soft synthesized pulses locate the nearest NPC and up to two priority enemy
 types: bosses/elites, resurrecting shamans, then ordinary ranged enemies.
-NPCs use a light wooden tap; enemies use lower, soft percussive strikes. Sounds
+NPCs use a light wooden tap; enemies use short, soft metallic whooshes. Sounds
 follow the radar's fixed screen directions and repeat faster as you approach. Ordinary
 melee crowds remain silent. Dialogue and menu/focus gating suspend the sounds.
 

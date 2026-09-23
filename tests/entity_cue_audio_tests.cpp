@@ -43,8 +43,14 @@ void DurationAndLevels() {
 		Check(Peak(pcm) > 1500 && Peak(pcm) < 14000, "cue is audible with headroom");
 		Check(pcm.front() == 0 && pcm.back() == 0, "cue starts and ends smoothly at silence");
 		const size_t frames = pcm.size() / Channels;
-		Check(Rms(pcm, 0, frames * 2 / 3, frames) < 0.25 * Rms(pcm, 0, 0, frames / 3),
-			"a soft percussive strike decays quickly without a second sustained note");
+		if (sound == Sound::Npc) {
+			Check(Rms(pcm, 0, frames * 2 / 3, frames) < 0.25 * Rms(pcm, 0, 0, frames / 3),
+				"the NPC retains its quickly decaying wooden tap");
+		} else {
+			const double middle = Rms(pcm, 0, frames / 3, frames * 2 / 3);
+			Check(middle > 2 * Rms(pcm, 0, 0, frames / 3) && middle > 2 * Rms(pcm, 0, frames * 2 / 3, frames),
+				"enemy air swells and fades instead of striking sharply");
+		}
 	}
 }
 
@@ -76,9 +82,15 @@ void Timbres() {
 	Check(npc != important, "friendly and enemy signatures differ");
 	Check(important != resurrector && important != ranged && resurrector != ranged,
 		"important, resurrector and ranged signatures differ");
-	constexpr size_t BodyFrames = 32 * SampleRate / 1000;
-	Check(Crossings(important, 100, BodyFrames) < Crossings(npc, 100, BodyFrames),
-		"important enemy thud has a lower resonance than the NPC tap");
+	for (Sound sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+		const auto sweep = Synthesize(sound, {});
+		const size_t frames = sweep.size() / Channels;
+		Check(Crossings(sweep, frames / 6, frames / 3) > Crossings(sweep, frames * 2 / 3, frames * 5 / 6),
+			"enemy whoosh sweeps down in brightness");
+		const auto rear = Synthesize(sound, {0, -1});
+		Check(Crossings(rear, frames / 3, frames * 2 / 3) < Crossings(sweep, frames / 3, frames * 2 / 3),
+			"rear whoosh remains audibly lower than front");
+	}
 }
 
 void InvalidInputsAndGain() {

@@ -7,24 +7,44 @@
 
 namespace D2RAccess::EntityCueAudio {
 namespace {
-// Listening feedback, 2026-09-22: one soft, dry strike instead of melodic notes.
-// Short inharmonic resonances and filtered texture keep the categories distinct.
-constexpr unsigned CueMs = 84;
+// Listening feedback, 2026-09-22: wooden NPC tap, airy metallic enemy whoosh.
+constexpr unsigned NpcCueMs = 84, WhooshMs = 120;
 constexpr double RearPitch = 0.80; // a major-third drop makes rear audible without changing the cue identity
 constexpr double AttackSeconds = 0.0035, ReleaseSeconds = 0.012;
 constexpr double Level = 0.32, PcmPeak = 32767, TextureCutoffHz = 1800;
 constexpr double BodyLevel = 0.75, UpperLevel = 0.30, TopLevel = 0.14;
 constexpr double UpperRatio = 1.57, TopRatio = 2.31;
-constexpr size_t CueFrames = CueMs * SampleRate / 1000;
+constexpr double NpcHz = 850, NpcDecaySeconds = 0.013, NpcTexture = 0.38;
+constexpr double WhooshLevel = 0.55, WhooshShimmer = 0.25;
+constexpr double WideBandRatio = 2.4, LowBandRatio = 0.45;
 
-struct Timbre { double hz, decaySeconds, texture; };
-Timbre Voice(Sound sound) {
+struct WhooshTimbre { double startHz, endHz, shimmerRatio; };
+WhooshTimbre Voice(Sound sound) {
 	switch (sound) {
-	case Sound::Npc: return {850, 0.013, 0.38}; // light wooden tap
-	case Sound::Resurrector: return {430, 0.018, 0.60}; // grainier knock
-	case Sound::Ranged: return {550, 0.012, 0.50}; // tight, dry tick
-	default: return {330, 0.021, 0.28}; // important enemy: low, rounded thud
+	case Sound::Resurrector: return {1900, 650, 1.83};
+	case Sound::Ranged: return {2300, 800, 2.79};
+	default: return {1500, 480, 2.41}; // important enemies have the deepest sweep
 	}
+}
+
+struct WhooshState {
+	double wide = 0, low = 0, phase = 0;
+	uint32_t noise = 0x6D2B79F5u; // fixed nonzero seed keeps synthesized texture reproducible
+};
+double Whoosh(WhooshState& state, WhooshTimbre timbre, double progress, double pitch) {
+	state.noise ^= state.noise << 13;
+	state.noise ^= state.noise >> 17;
+	state.noise ^= state.noise << 5;
+	const double air = static_cast<double>(state.noise) / UINT32_MAX * 2 - 1;
+	const double hz = (timbre.startHz + (timbre.endHz - timbre.startHz) * progress) * pitch;
+	const double angularStep = 2 * std::numbers::pi * hz / SampleRate;
+	state.wide += (1 - std::exp(-angularStep * WideBandRatio)) * (air - state.wide);
+	state.low += (1 - std::exp(-angularStep * LowBandRatio)) * (air - state.low);
+	state.phase += angularStep;
+	// Modulated noise adds metallic movement without a sustained musical note.
+	const double shimmer = 1 + WhooshShimmer * std::sin(state.phase) * std::sin(state.phase * timbre.shimmerRatio);
+	const double swell = std::sin(std::numbers::pi * progress);
+	return WhooshLevel * swell * swell * (state.wide - state.low) * shimmer;
 }
 
 double SafeAxis(double value, double fallback) {
@@ -51,19 +71,27 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	const double left = std::sqrt((1 - pan) / 2);
 	const double right = std::sqrt((1 + pan) / 2);
 	const auto timbre = Voice(sound);
+	const bool npc = sound == Sound::Npc;
+	const size_t frames = (npc ? NpcCueMs : WhooshMs) * SampleRate / 1000;
 	const double textureBlend = 1 - std::exp(-2 * std::numbers::pi * TextureCutoffHz * pitch / SampleRate);
 	double texture = 0;
-	std::vector<int16_t> pcm(CueFrames * Channels);
+	WhooshState whoosh;
+	std::vector<int16_t> pcm(frames * Channels);
 
-	for (size_t frame = 0; frame < CueFrames; ++frame) {
+	for (size_t frame = 0; frame < frames; ++frame) {
 		const double seconds = static_cast<double>(frame) / SampleRate;
-		texture += textureBlend * (Noise(frame) - texture);
-		const double phase = 2 * std::numbers::pi * timbre.hz * pitch * seconds;
-		const double body = BodyLevel * std::sin(phase) + UpperLevel * std::sin(UpperRatio * phase)
-			+ TopLevel * std::sin(TopRatio * phase);
-		const double envelope = Envelope(seconds, static_cast<double>(CueMs) / 1000)
-			* std::exp(-seconds / timbre.decaySeconds);
-		const double sample = Level * envelope * (body + timbre.texture * texture);
+		double sample = 0;
+		if (npc) {
+			texture += textureBlend * (Noise(frame) - texture);
+			const double phase = 2 * std::numbers::pi * NpcHz * pitch * seconds;
+			const double body = BodyLevel * std::sin(phase) + UpperLevel * std::sin(UpperRatio * phase)
+				+ TopLevel * std::sin(TopRatio * phase);
+			const double envelope = Envelope(seconds, static_cast<double>(NpcCueMs) / 1000)
+				* std::exp(-seconds / NpcDecaySeconds);
+			sample = Level * envelope * (body + NpcTexture * texture);
+		} else {
+			sample = Whoosh(whoosh, timbre, static_cast<double>(frame) / static_cast<double>(frames - 1), pitch);
+		}
 		const double scaled = sample * safeGain * PcmPeak;
 		pcm[frame * Channels] = static_cast<int16_t>(std::clamp(scaled * left, -PcmPeak, PcmPeak));
 		pcm[frame * Channels + 1] = static_cast<int16_t>(std::clamp(scaled * right, -PcmPeak, PcmPeak));

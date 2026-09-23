@@ -5,11 +5,11 @@
 ## NPC and priority enemy cues — 2026-09-22
 
 The user liked the initial NPC/enemy sounds and confirmed fixed screen directions.
-Installed follow-up: one soft percussive strike per cue, with about 20% shorter
-waits (450–1450 ms). Nearest NPC plus at most two priority enemy classes remains.
+Latest request installed: soft metallic enemy whooshes; NPC keeps its wooden tap.
+Shorter waits (450–1450 ms) and the limit of two enemy classes plus one NPC remain.
 **3/3 affected suites pass**; no build warnings, installed DLL hash verified.
-Initial feature passed 67/67 suites. **Next step:** listen to the faster wooden
-NPC tap and lower enemy strikes alongside combat/radar audio. `docs/entity-cues.md`.
+Initial feature passed 67/67 suites. **Next step:** listen to the enemy whooshes
+alongside combat/radar audio. `docs/entity-cues.md`.
 
 ## Supplied exploration cues — 2026-09-22
 
@@ -640,7 +640,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 
 | Section / feature | Status | Notes |
 |---|---|---|
-| NPC / priority enemy sounds | original liked; percussive tuning installed | Faster, soft strikes; bosses/elites, shamans, optional ranged. 3 affected suites pass. `docs/entity-cues.md` |
+| NPC / priority enemy sounds | original liked; enemy whooshes installed | Wooden NPC tap; metallic enemy sweeps. 3 affected suites pass. `docs/entity-cues.md` |
 | Exploration sound assets | built/deployed — listening pending | One nearest room loop; arrival once per new room; zone loops at real crossings. 64 suites pass. `docs/exploration.md` |
 | Directional wall sliding | wip — built/deployed; controller check pending | Local type-17 fallback probes use zero travel. 50 new checks pass. `access-movement on\|off\|status`; `docs/wall-sliding.md` |
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
@@ -800,8 +800,8 @@ localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
 
-Listen to the tuned NPC and priority enemy cues: shorter waits and soft,
-percussive strikes. Compare their balance alongside the radar and combat.
+Listen to the new metallic enemy whooshes alongside the radar and combat.
+The NPC wooden tap and faster cadence remain as previously installed.
 `docs/entity-cues.md`.
 
 Also validate the 2026-09-22 menu fixes: move between existing characters, read
