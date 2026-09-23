@@ -162,18 +162,18 @@ int main() {
 	entities.push_back({22, EntityRadar::Kind::Exit, {5, 4}, "Stairs", 701, false, EntityRadar::Category::Exit});
 	includeBoundaries = true;
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
-	Check(voices.size() == 5 && Portals() == 2 && Zones() == 2,
-		"fixed stairs and the walkable Blood Moor crossing use the zone loop; portals and waypoints retain theirs");
+	Check(voices.size() == 5 && Portals() == 3 && Zones() == 1,
+		"interactive dungeon stairs, portals and waypoints use portal audio; only the walkable crossing uses zone audio");
 	entities.push_back({26, EntityRadar::Kind::Exit, {4, 4}, "Blood Moor warp", 702,
 		false, EntityRadar::Category::Exit, 2});
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
-	Check(voices.size() == 5 && Zones() == 2,
-		"a fixed warp on the same crossing replaces its synthetic boundary cue without doubling it");
+	Check(voices.size() == 5 && Portals() == 4 && Zones() == 0,
+		"an interactive warp replaces the coincident synthetic boundary with one portal cue");
 	entities.pop_back();
 	Command("exits-off");
 	Check(voices.size() == 1 && Portals() == 0 && Zones() == 0, "the exit switch silences zone and portal loops together");
 	Command("exits-on");
-	Check(voices.size() == 5 && Portals() == 2 && Zones() == 2, "the exit switch restores both loop categories");
+	Check(voices.size() == 5 && Portals() == 3 && Zones() == 1, "the exit switch restores portal and walking-transition loops");
 	snapshot.player = {79, 79}; Tick();
 	Check(voices.size() == 1 && Zones() == 1, "a distant border is silent until the player comes within the loop radius");
 	snapshot.player = {0, 0};

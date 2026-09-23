@@ -5,6 +5,12 @@ takes the player to another area plays the user's `portal.ogg` loop at its world
 position, through the same spatial mixer as the ground item loops: fixed screen
 axes, distance attenuation to silence at 30 subtiles, rear pitch 0.94.
 
+Restored on 2026-09-23: all entrances requiring interaction, including dungeon
+stairs and cave entrances, use `portal`. Only actual crossings between loaded
+areas that the player walks across use `zone transition`; see
+[exploration sounds](exploration.md). The generic `Exit` category does not imply
+that a transition is walkable.
+
 ## What counts as an exit
 
 | Unit | Game rule used | Spoken name in the entity scan |

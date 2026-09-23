@@ -2,6 +2,14 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Interactive exit sound restored — 2026-09-23
+
+Built and installed: dungeon stairs, cave entrances and other interactive exits
+use `portal` again; only walking crossings use `zone transition`. Coincident
+warp/boundary cues stay deduplicated. **4/4 affected suites pass**, no compiler
+warnings, installed DLL hash verified. **Next step:** listen at a dungeon
+entrance and a walking zone border. `docs/level-exits.md`, `docs/exploration.md`.
+
 ## Quest journal identity and controller actions — 2026-09-22
 
 Cain's populated journal pane was announced as empty because HD icon numbers
@@ -25,7 +33,8 @@ no build warnings, installed DLL hash verified. Original feature passed 67/67.
 ## Supplied exploration cues — 2026-09-22
 
 Built and installed the nearest-unvisited-room loop, finite first-entry cue,
-and transition loops at fixed exits and loaded outdoor openings. Persistent
+and exit loops (interactive exits restored to portal on 2026-09-23; zone audio
+only at walking crossings). Persistent
 visited memory suppresses return visits. **64/64 CTest suites pass**, plus 9/9
 affected suites after the final duplicate-exit fix; DLL and three WAV hashes
 verified. **Next step:** listen in a dungeon and at the camp's Blood Moor gate.
@@ -691,7 +700,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout and comparison | concise reading/speed confirmed; comparison installed 2026-09-22 | Full visible selected/equipped stats on Compare; repeat while displayed; stale/glyph-only records excluded. 61/61 suites pass. `docs/native-tooltips.md` |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
-| Level exit loops | built/deployed 2026-09-22 — listening pending | Fixed exits and loaded outdoor crossings use `zone transition`; portals/waypoints retain `portal`. Ctrl+P. `docs/exploration.md` |
+| Level exit loops | portal restoration deployed 2026-09-23 — listening pending | Interactive entrances use `portal`; walking crossings use `zone transition`. 4 suites pass. Ctrl+P. `docs/exploration.md` |
 | Life, mana and broken equipment | built and installed 2026-09-17 - live check pending | `access-vitals on/off/status`, on by default. Steps 75/50, 40/30/20/10, 5/4/3/2/1; crossing one speaks the real percentage once, interrupting at or below 10%. Numbers read from the HUD orbs' own `ValueDisplay`, so the game's show-orb-text options must be on (the mod says so once, using the game's labels). Worn items reaching zero durability announce their slot, via the loader's inventory service. No new offset or stat id. `vitals` suite, 33 checks. `docs/vitals.md` |
 | Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Eight supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
@@ -810,6 +819,9 @@ match the decrypted executable and live runtime. Full table/layout provenance,
 localized name cleanup and source level measurements: `docs/ground-items.md`.
 
 ## Next step
+
+Check that a dungeon entrance uses the portal loop and a walking zone border
+uses the zone-transition loop. `docs/level-exits.md`.
 
 Compare the new voiced enemy swoop against the radar's floor breath and check
 the much faster repetition for both NPCs and enemies during play.
