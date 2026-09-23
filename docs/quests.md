@@ -2,6 +2,37 @@
 
 How the mod names quests and reads objectives, and what is still open.
 
+## Missing Cain quest and controller actions — 2026-09-22
+
+The latest live session repeatedly focused `Quest3` while `ShortDescription`
+held `The Search for Cain` and `LongDescription` held its full current objective.
+The journal reader said `Empty`: its catalog named that same button `Tools of
+the Trade`, so the stale-pane guard rejected the valid details. The quest update
+event and background text identification both worked; the quest was present.
+
+HD `QuestIcons` filenames number the displayed icon positions. They do **not**
+always use the quest string-table numbering. The classic `MENU` filenames do:
+both classic layouts associate `Quest3` with `MENU/a1q4`, matching the live Cain
+title `qstsa1q4`. The generator now uses those classic layout indices. This
+corrects Act I `Quest2`/`Quest3`/`Quest4` and Act III `Quest12`–`Quest15`; the other
+20 mappings agree. The guard still excludes empty sockets and stale details.
+
+Quest selections now include the game's current controller footer, with the
+button and its action caption together. When that footer is unavailable, the
+visible, enabled `Speech` button supplies its own caption (`playQuestDialogue`);
+its layout action is `QuestLogPanelMessage:PlayDialogue`. No controller binding
+is guessed. Action help is separate from progress, so a counter update does not
+repeat it; manual repeat includes it. The detail sweep also excludes tab labels
+(the stray `I` in live journal utterances) and duplicate title/objective text,
+while retaining additional text and linked-text progress nodes.
+
+Sources: `game-data/index/QuestLogPanel{Original,Expansion}.json.index.json`,
+their HD counterparts, `game-data/global/ui/Layouts/QuestLogPanelOriginalHD.json`
+(`Speech`), and the 2026-09-22 session in `d2r-access.log` (quest update at 22:44:35).
+Validation: build/install succeeded; 67/67 CTest suites pass, including `quest-log`,
+`ui-text`, and `game-text-reader`; installed DLL hash matches. Live NVDA/controller
+confirmation remains pending.
+
 ## Only the quests the player actually has — 2026-09-19
 
 Navigating the journal read out the **whole act**, icon by icon: on an Act 1
@@ -23,7 +54,7 @@ icons had empty detail panes"). So `UiText::Describe` now applies one rule:
 
 > speak only while the pane's heading names the focused icon. Anything else —
 > a pane still holding the icon focus has just left, or a socket with no quest
-> in it — says nothing at all.
+> in it — is reported as empty after the pane settles.
 
 That one condition replaced two. The old code announced the new icon's name on
 its own while the pane caught up ("retain ownership"), and *that* announcement
@@ -39,14 +70,12 @@ else the panel holds, to reach the counter (below), but that sweep gets no vote
 here: any furniture the panel happens to render would otherwise keep every
 empty socket alive as a quest.
 
-Nothing is spoken for an empty socket — the user's call, 2026-09-19: there is
-no quest there to report. Moving onto one still stops the previous quest's
-speech, because an empty readout makes `game_text_reader` release focus.
+Empty sockets are reported as empty. Earlier silence released focus and let the
+fallback reader say the panel title again, so the reader retains ownership.
 
-The cost of the rule: a quest whose pane heading never matches its icon name
-would go silent rather than read out under a name. That comparison has held
-live (Den of Evil populated `Den of Evil`), and `questNoObjective` still covers
-the case where the pane names the quest but carries no objective line.
+The rule depends on the correct catalog identity. The Cain report exposed the
+HD-icon numbering mistake fixed above. `questNoObjective` still covers a pane
+that names the selected quest but carries no objective line.
 
 ## Journal detail reading — 2026-09-16 follow-up
 
@@ -116,11 +145,12 @@ the quest code uses. Do not "fix" `widgets.cpp` for this.
 
 ## Which quest a button stands for
 
-Every quest button carries its icon filename, and that filename **is** the act/quest pair:
-`Quest0` → `QuestIcons\a1q1`, `Quest5` → `QuestIcons\a1q6`. That is the whole mapping, and it is
-read from the game's layout rather than counted, because **the button indices are not in quest
-order**: `Quest2` is act 1 quest **5** (The Forgotten Tower), and act 3 is scrambled outright
-(`Quest15` is quest 1, `Quest12` is quest 4). Counting positions would name the wrong quest.
+The **classic** quest button's `MENU` filename supplies the string-table act/quest
+pair: `Quest3` → `MENU/a1q4` → `qstsa1q4` (The Search for Cain), `Quest2` →
+`MENU/a1q3` (Tools of the Trade), and `Quest4` → `MENU/a1q5` (The Forgotten Tower).
+Act III `Quest15` maps to quest 4 (The Golden Bird), and `Quest12` to quest 1
+(Lam Esen's Tome). HD icon numbers instead follow display positions; using those
+produced the missing-quest bug above. Do not derive string keys from HD icons.
 
 `tools/gen_quest_catalog.py` turns that into `src/generated/quest_catalog.h` (27 quests: 6/6/6/3/6
 across acts I–V). Re-run it after a CASC re-extract, like the other generators.

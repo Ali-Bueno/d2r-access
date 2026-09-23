@@ -24,6 +24,8 @@ int interactionTicks = 0;
 int inventorySnapshots = 0;
 int rowSnapshots = 0;
 bool interactionSuppressed = false;
+std::string questHelp;
+int questHelpReads = 0;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener);
@@ -119,6 +121,12 @@ std::string Repeat() { return {}; }
 namespace D2RAccess::TabReader {
 std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return tabChange; }
 void Reset() {}
+}
+namespace D2RAccess::NativeControllerHelp {
+std::string ForFocus(NativeUi::Focus current) {
+	++questHelpReads;
+	return current.panel == 90 && current.widget == 91 ? questHelp : std::string{};
+}
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::ScreenReader {
@@ -226,10 +234,20 @@ int main() {
 		{92, 0, UiText::Kind::Text, "ShortDescription", "TextBoxWidget", "Den of Evil"},
 		{93, 0, UiText::Kind::Text, "LongDescription", "TextBoxWidget", "Monsters left: 3"},
 	}}};
-	focus = {90, 91}; speech.clear();
-	Check(Settle() && speech.size() == 1 && speech.back().text == "Den of Evil. Monsters left: 3", "quest selection speaks complete current details through the normal UI pipeline");
+	focus = {90, 91}; speech.clear(); questHelp = "Y: Play Quest Dialogue";
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Den of Evil. Monsters left: 3. Y: Play Quest Dialogue",
+		"quest selection includes the game's current controller action after its details");
+	GameTextReader::RequestRepeat(); speech.clear(); Settle();
+	Check(speech.size() == 1 && speech.back().text == "Den of Evil. Monsters left: 3. Y: Play Quest Dialogue",
+		"repeat includes the same complete quest action hint");
 	panels[0].nodes[3].text = "Monsters left: 2"; speech.clear();
-	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 2" && !speech.back().interrupt, "journal progress reaches the speech sink without interruption or repeated title");
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 2" && !speech.back().interrupt,
+		"journal counter updates do not repeat the title or unchanged action hint");
+	questHelp.clear(); speech.clear();
+	Check(Settle() && speech.empty(), "a footer disappearing does not interrupt the quest objective");
+	questHelp = "Y: Play Quest Dialogue"; speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Y: Play Quest Dialogue", "a newly available action hint is announced once");
+	Check(questHelpReads > 0, "controller help is consulted for a populated quest selection");
 	// A tab switch: the name leads. The window behind it says nothing at all on
 	// that tick -- it used to start speaking and be cut off mid-word by the name
 	// a moment later -- and follows on the next tick, queued behind it.
@@ -239,6 +257,9 @@ int main() {
 	tabChange.clear();
 	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 1" && !speech.back().interrupt,
 		"and follows on the next tick without interrupting the name it queues behind");
+	const int populatedQuestHelpReads = questHelpReads;
+	panels[0].nodes[2].text.clear(); speech.clear(); Settle();
+	Check(questHelpReads == populatedQuestHelpReads, "an unpopulated quest detail pane does not acquire controller actions");
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

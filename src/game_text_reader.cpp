@@ -3,6 +3,7 @@
 
 #include "focus_tracker.h"
 #include "interaction_reader.h"
+#include "native_controller_help.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
 #include "native_memory.h"
@@ -181,8 +182,17 @@ bool Tick(const D2RL::PluginContext* context) {
 			continue;
 		}
 		if (snapshot.surface == Surface::Other) continue;
-		const auto readout = UiText::Describe(snapshot);
+		auto readout = UiText::Describe(snapshot);
 		if (readout.Empty()) continue;
+		if (!readout.body.empty() && panel == focus.panel && focus.widget) {
+			const auto selected = std::find_if(snapshot.nodes.begin(), snapshot.nodes.end(), [&](const UiText::Node& node) {
+				return node.id == focus.widget && node.kind == UiText::Kind::QuestButton;
+			});
+			if (selected != snapshot.nodes.end()) {
+				auto help = NativeControllerHelp::ForFocus(focus);
+				if (!help.empty()) readout.help = help;
+			}
+		}
 		if (snapshot.surface == Surface::Area) { area = readout; continue; }
 		const int priority = Priority(snapshot, focus);
 		if (priority > best) { best = priority; active = readout; }

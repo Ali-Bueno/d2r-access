@@ -253,7 +253,11 @@ exit presets the game retains. Never-generated positions remain unknown. See
 **Quests (built; live validation pending):** quest buttons have names from the
 game's string tables. Selecting a quest reads its current objective; changing
 progress reads only updated text, including counters supplied by the game.
-Empty detail panes are explicitly reported. Automatic alerts announce journal updates and primary
+The current controller button and action are read with the quest, with the
+visible dialogue-action caption as a fallback. Repeating the quest includes
+these hints; progress updates do not repeat them. Classic-layout quest identities
+cover the differently ordered icons in Acts I and III. Empty detail panes are
+explicitly reported. Automatic alerts announce journal updates and primary
 quest objectives achieved, without opening the journal. When updated objective
 text is available and identifiable, the reader speaks the quest and objective;
 otherwise it says that the journal was updated. Announcements wait for dialogue

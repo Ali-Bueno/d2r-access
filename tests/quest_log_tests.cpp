@@ -27,14 +27,21 @@ const Generated::Quest& Quest(std::string_view widget) {
 }
 
 int main() {
-	// The button names are not in quest order: the catalog reads each button's
-	// icon, so getting this wrong would name the wrong quest to the player.
+	// The button names are not in quest order. Classic MENU icons identify
+	// quests; HD QuestIcons identify visual positions and differ on these rows.
 	const auto& den = Quest("Quest0");
 	Check(den.act == 1 && den.number == 1, "Quest0 is act 1 quest 1");
-	const auto& tower = Quest("Quest2");
-	Check(tower.act == 1 && tower.number == 5, "Quest2 is act 1 quest 5, not quest 3");
-	const auto& lamEsen = Quest("Quest15");
-	Check(lamEsen.act == 3 && lamEsen.number == 1, "act 3 buttons are numbered out of order");
+	const auto& tools = Quest("Quest2");
+	Check(tools.act == 1 && tools.number == 3, "Quest2 is Tools of the Trade");
+	const auto& cain = Quest("Quest3");
+	Check(cain.act == 1 && cain.number == 4 && std::string(cain.titleKey) == "qstsa1q4",
+		"Quest3 is The Search for Cain, as the live detail pane shows");
+	const auto& tower = Quest("Quest4");
+	Check(tower.act == 1 && tower.number == 5, "Quest4 is The Forgotten Tower");
+	Check(Quest("Quest15").act == 3 && Quest("Quest15").number == 4,
+		"Quest15 is The Golden Bird in the classic layout");
+	Check(Quest("Quest12").act == 3 && Quest("Quest12").number == 1,
+		"Quest12 is Lam Esen's Tome in the classic layout");
 	Check(QuestLog::ForWidget("Quest27") == nullptr, "unknown widgets are not quests");
 	Check(QuestLog::ForWidget("") == nullptr, "an unnamed widget is not a quest");
 	Check(QuestLog::ForWidget("Cancel") == nullptr, "other panel controls are not quests");
