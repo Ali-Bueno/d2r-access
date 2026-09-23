@@ -257,6 +257,11 @@ scanned beyond ordinary range and through walls, including inactive rooms whose
 exit presets the game retains. Never-generated positions remain unknown. See
 [distant exits](docs/distant-exits.md) and [target guidance](docs/beacon.md).
 
+Navigation is not limited to the revealed automap: the level catalogue and room
+graph can use generated rooms and exits you have not discovered. The existing
+guidance remains available; a strict discovery filter has not been verified.
+See [automap discovery research](docs/automap-discovery-research.md).
+
 Your **recoverable corpse** is also a scan and beacon target when its room is
 loaded. The reader checks the game's ownership link, so another player's body
 is excluded. Picking it up removes the target. Scenery corpses retain their
@@ -290,10 +295,11 @@ getting there (straight, around or no route). A short right-stick click, or **Ct
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).
 
-**Terrain overview (built; live validation pending):** the accessible automap. **Ctrl+O**, or the
+**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O**, or the
 L3+R3 chord (both sticks pressed in), speaks the level name, where you stand in it (`left edge`, `centre`…) and,
 for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
-a neighbouring level you have already reached. It never names undiscovered levels and never routes.
+a neighbouring level from available native layout data. It can describe undiscovered terrain;
+it does not calculate a route.
 See [terrain overview](docs/terrain-overview.md).
 
 **Unexplored mark (built; listening pass pending):** the radar's exit and floor cues end in two short

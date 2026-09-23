@@ -1,7 +1,9 @@
 # Exploration: the unexplored mark, the two memories and their disk form
 
-What a sighted player gets from the automap, in sound and in a word: which way out has not been
-taken, where the ground the game has never streamed begins, how much of the level is filled in.
+The mod's exploration history, in sound and in a word: which way out has not been
+taken, where the ground the game has never streamed begins, how much has streamed.
+This is not a verified reading of native automap discovery; see the
+[2026-09-23 investigation](automap-discovery-research.md).
 Design conversation of 2026-09-21; the user's rule for the radar still holds (four cardinals, the
 original cues, only changes sound).
 
@@ -55,9 +57,11 @@ room's tile-rect origin (`RoomEx+0x60/0x64`):
 | seen | the game streamed the room at least once (`RoomEx+0x58` set) | every 250 ms, `TerrainService::Track` | terrain overview, frontier, level-exit rule, percent |
 | visited | the player stood in the room | same poll, the rect under the player's tile | chamber rule, exit review tags, room entry line |
 
-Seen is what the automap draws: D2 reveals a room when it activates, and rooms activate within six
-tiles of the player, so a sighted player's map fills in with rooms only walked past. Visited is a
-subset. Both only grow inside a game.
+Seen means streamed, not verified automap revelation. The earlier claim that
+activation exactly matches what the automap draws was not established. The native
+near-room test compares room rectangles with a six-tile gap threshold; it is not
+a verified reveal radius around the player. Visited records physical entry.
+Both histories only grow inside a game.
 
 ## The unexplored qualifier on the radar
 
@@ -127,7 +131,9 @@ Files with malformed rows remain intact; valid matching-level rows can still be
 imported. Unreadable files are retained for a later retry.
 
 The native automap is not a verified replacement: its persistent reveal structures
-and `.ma0` format have not been decoded for this build (`docs/D2RNavigationResearch.md`).
+remain unknown. A later [read-only investigation](automap-discovery-research.md)
+identified the container structure of two `.ma0` files, but not a real-time room
+discovery mask or a verified native parser.
 The known room-active pointer clears when a room unloads. Automap visibility also
 does not establish that the player physically entered a room, which this feature
 needs independently. The mod never modifies the game's automap or character save.
@@ -144,7 +150,8 @@ needs independently. The mod never modifies the game's automap or character save
 - `CompletionTotalRoomsOverride` is not in the `LevelDef`; it lives in the `0x18C` LevelsTxt row,
   set for one level only (Halls of Vaught, 70), most likely a denominator for the terror-zone
   completion ratio. No per-level explored-rooms counter exists in the game; no achievement either.
-- `.ma0` format: undocumented; not read.
+- `.ma0` format: initial container structure inspected on 2026-09-23; semantics
+  remain unverified, and the plugin does not read it.
 - Correction recorded in `docs/act-levels-re.md`: `LevelDef+0x08` is `Layer`, `+0x40/+0x44` are
   `SubWaypoint`/`SubShrine`.
 
