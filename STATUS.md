@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Radar sounds, outdoor exits and compact exploration storage — 2026-09-22
+
+Lowered the floor breath's filter from 880 to 700 Hz, with level compensation.
+The radar now includes outdoor area-border exits in its local passage scan.
+The unexplored tail uses two short pips to distinguish it from the beacon.
+Exploration uses one archive capped at 4 MiB, with disk I/O on a worker.
+Built and installed; **61/61 CTest suites pass**, installed DLL hash verified.
+Migrated 9 text files to one 2,846-byte archive; all 286 seen and 176 visited
+room records match the originals. **Next step:** compare the three sounds and
+approach the camp's Blood Moor exit. `docs/radar-readings.md`, `docs/exploration.md`.
+
 ## Equipment placement speech — 2026-09-22
 
 Built and installed; **4/4 related CTest suites pass**. Temporary focus gaps no
@@ -64,6 +75,35 @@ Build/deploy succeeded; **59/59 CTest suites pass** in the current shared worksp
 Installed plugin/PRISM/eight WAVs verified. Loader remains `enUS` for text/voice.
 **Next step:** live listening after a locale change and during beacon dialogue/pause.
 Evidence and limits: `docs/audio-language-audit.md`.
+
+## Unexplored mark, two memories, disk persistence — 2026-09-21
+
+The radar's exit and floor cues carry an **unexplored tail** (now two short pips; updated 2026-09-22) when
+the way leads to ground never covered: into a chamber never stood in (maze levels), to a level never
+seen (any level exit), or towards the frontier of the streamed ground (outdoor, `src/frontier.*`).
+A qualifier on the reading, never a new state; a qualifier-only change confirms like a state change.
+`ExploredRooms::Memory` keeps **seen** and **visited** rings, originally in per-level text files
+(replaced by the compact archive described above; `src/explored_store.*`), loaded when the
+seed is readable, saved on lifecycle events and every 30 s. Exit review and room line tag each way
+out never taken and list those first; Ctrl+O says `explorado N por ciento`; Ctrl+T says `sin
+explorar`; `access-radar test` plays the marked exit and floor. 58/58 CTest suites.
+`docs/exploration.md`. RE of the same day (in that doc): `WarpDist` is monster-pack placement, not
+level generation; outdoor level rects are fixed at act creation; no explored-rooms counter in the game.
+
+**Live-verified 2026-09-21 (unattended, camp, enUS locale):** store file created and filled (35 rooms,
+4 visited after ten steps), `[terrain] visited room=` per new room, no grid-origin warning, Ctrl+O
+`Rogue Encampment, centre, 100 percent explored…`, clean exit and reload. Not exercised: the audition
+(console command, the harness cannot type `` ` `` or `-`), any `unexplored=1` cue (town floor is never
+marked and Blood Moor is out of radar reach from the camp), the Spanish wording. Found on the way and
+fixed: the exit review had lost the camp → Blood Moor border since the `bladestorm` merge (level-border
+bearings became a separate opt-in that `RoomService::Exits` never passed); it asks for them again.
+
+**Next step:** listening pass. Den of Evil: enter, expect the entry line to tag the openings not yet
+taken; face one, expect tin + tail; walk through and back out, expect the same opening plain. Camp:
+face the Blood Moor exit before ever going there, expect tin + tail; after visiting, plain. Blood Moor:
+walk into fresh ground, expect breath + tail ahead and to the sides, plain behind; watch
+`[terrain] … frontier_ms=` (should stay under a few ms) and the grid-origin warning (must not appear).
+Quit and relaunch: `[terrain] level=… loaded … seen=N visited=M` must show the previous counts.
 
 ## The inventory names its item at once — 2026-09-21
 
@@ -605,7 +645,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
-| Sonar radar | wip — 2026-09-16 redesign installed, incl. 18:10 forensic fix; live listening pending | One confirm-by-travel state machine per direction; connected-passage scan is now the only classifier, with 1-cell lateral tolerance (was 3), openDepth 10/close 7 (was 8/5), clutter removal capped at 5 cells (was up to 20), and `stick=` logged per cue. Four screen-cardinal directions and the original tin/tock sound design are kept — an eight-direction/new-sound-design attempt was tried live and reverted after the user listened. `docs/radar-redesign.md` (current model); `docs/sonar-radar.md` and its follow-ups are superseded history. |
+| Sonar radar | built 2026-09-22; live listening pending | Darker floor breath, double-pip unexplored tail, outdoor exit candidates and compact storage. 61/61 suites pass; existing progress migrated. `docs/radar-readings.md`, `docs/exploration.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |

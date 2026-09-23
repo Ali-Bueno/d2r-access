@@ -208,9 +208,56 @@ void Queue() {
 	Radar::Events confirmed{};
 	confirmed[Down] = Radar::State::Blocked;
 	confirmed[Left] = Radar::State::Blocked;
-	queue.Retain(confirmed);
+	queue.Retain(confirmed, {});
 	Check(queue.Pending()[Down] == Radar::State::Blocked && queue.Pending()[Left] == Radar::State::Unknown,
 		"a queued cue that no longer describes the confirmed state of its direction is dropped");
+	// The unexplored mark is part of what a cue says: a mark that no longer holds drops the cue too.
+	Radar::Marks marked{};
+	marked[Up] = true;
+	queue.Push(One(Up, Radar::State::Exit), {.eventMs = 30}, marked);
+	Check(queue.Source(Up).unexplored, "a pushed cue carries its mark in its source");
+	Radar::Events exitUp{};
+	exitUp[Up] = Radar::State::Exit;
+	queue.Retain(exitUp, marked);
+	Check(queue.Pending()[Up] == Radar::State::Exit, "the same state with the same mark is kept");
+	queue.Retain(exitUp, {});
+	Check(queue.Pending()[Up] == Radar::State::Unknown, "the same state without the mark is dropped");
+}
+
+// The unexplored tail: the base cue is untouched and two short pips follow it
+// after a short gap, on exits and on floor alike, never on walls or doors.
+void UnexploredTail() {
+	constexpr size_t TailFrames = (Radar::UnexploredMarkGapMs + Radar::UnexploredMarkMs) * SampleRate / 1000;
+	constexpr size_t GapFrames = Radar::UnexploredMarkGapMs * SampleRate / 1000;
+	constexpr size_t PipFrames = Radar::UnexploredPipMs * SampleRate / 1000;
+	constexpr size_t PipGapFrames = Radar::UnexploredPipGapMs * SampleRate / 1000;
+	Radar::Marks marked{};
+	marked[Up] = true;
+	const auto plain = Synthesize(One(Up, Radar::State::Exit));
+	const auto tagged = Synthesize(One(Up, Radar::State::Exit), marked);
+	Check(tagged.size() == CueSamples + TailFrames * Channels, "a marked exit is the cue plus the tail");
+	Check(std::equal(plain.begin(), plain.end(), tagged.begin()), "the base cue is untouched by the mark");
+	Check(Rms(tagged, 0, CueFrames, CueFrames + GapFrames / 2) == 0, "a short silence separates the tail");
+	const size_t start = CueFrames + GapFrames;
+	const size_t second = start + PipFrames + PipGapFrames;
+	Check(Rms(tagged, 0, start, start + PipFrames) > 0 && Rms(tagged, 0, second, second + PipFrames) > 0,
+		"unexplored sounds two distinct pips");
+	Check(Rms(tagged, 0, start + PipFrames, second) == 0, "silence separates the two pips");
+	Check(std::equal(tagged.begin() + start * Channels, tagged.begin() + (start + PipFrames) * Channels,
+		tagged.begin() + second * Channels), "both pips have the same pitch and loudness, unlike a beacon note ladder");
+	const double tail = Frequency(tagged, 0, start, start + PipFrames);
+	Check(tail < Frequency(plain, 0, 0, CueFrames / 8), "and it sits below the tin");
+	const auto floor = Synthesize(One(Up, Radar::State::Open), marked);
+	Check(floor.size() == tagged.size(), "floor takes the same tail");
+	Check(std::equal(floor.begin() + static_cast<long long>(CueSamples), floor.end(), tagged.begin() + static_cast<long long>(CueSamples)),
+		"one tail for both, so it is one thing to learn");
+	Check(Synthesize(One(Up, Radar::State::Blocked), marked).size() == CueSamples
+		&& Synthesize(One(Up, Radar::State::Door), marked).size() == CueSamples, "walls and doors never carry it");
+	Radar::Marks markedDown{};
+	markedDown[Down] = true;
+	const auto down = Synthesize(One(Down, Radar::State::Exit), markedDown);
+	Check(Frequency(down, 0, start, start + PipFrames) < tail
+		&& Frequency(down, 0, second, second + PipFrames) < tail, "down lowers both pips like the cue");
 }
 }
 int main() {
@@ -220,5 +267,6 @@ int main() {
 	Readings();
 	Volume();
 	Queue();
+	UnexploredTail();
 	Passed();
 }

@@ -49,6 +49,27 @@ void Labels() {
 	Check(items[0].distance == 4 && items[1].distance == 10, "the distance is the straight line in subtiles");
 }
 
+// A way out never taken is listed before the ones already taken, nearest first
+// within each, and spoken with the unexplored tag.
+void UnexploredFirst() {
+	const Position player{0, 0};
+	std::vector<Rooms::Opening> openings{{{2, 2}, 3}, {{30, 30}, 3}};
+	openings[1].unexplored = true;
+	const auto unseen = [](const EntityRadar::Entity& exit) { return exit.id == 2; };
+	const auto items = ExitReview::Collect(player, openings, {Exit(1, {4, 4}, "Seen"), Exit(2, {40, 40}, "Unseen")}, English, unseen);
+	Check(items.size() == 4 && items[0].unexplored && items[1].unexplored && !items[2].unexplored && !items[3].unexplored,
+		"the unexplored ways out come first");
+	Check(items[0].point.x == 30 && items[1].label == "Unseen" && items[2].point.x == 2 && items[3].label == "Seen",
+		"nearest first within each half");
+	const auto line = ExitReview::Describe(items[0], 0, items.size(), nullptr, Scan, English);
+	Check(line.rfind("passage, unexplored, ", 0) == 0, "the tag follows the label: " + line);
+	const auto plain = ExitReview::Describe(items[2], 2, items.size(), nullptr, Scan, English);
+	Check(plain.rfind("passage, ", 0) == 0 && plain.find("unexplored") == std::string::npos, "a way already taken is spoken plain");
+	Check(ExitReview::Describe(items[1], 1, items.size(), nullptr, Scan, Spanish).rfind("Unseen, sin explorar, ", 0) == 0,
+		"the tag comes from the speech table");
+	Check(!ExitReview::Collect(player, openings, {Exit(1, {4, 4}, "Seen")}, English)[1].unexplored, "no predicate means no exit is tagged");
+}
+
 // Nearest first, whatever order they were found in.
 void NearestFirst() {
 	const Position player{0, 0};
@@ -114,6 +135,7 @@ int main() {
 	Cardinals();
 	Diagonals();
 	Labels();
+	UnexploredFirst();
 	NearestFirst();
 	Cycling();
 	Spoken();

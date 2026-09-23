@@ -3,6 +3,17 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-21 — Unexplored as a qualifier on the radar, not a new sound or a guide
+
+The user asked for a sound-first way to find unexplored ground without spam. Chosen: a short tail
+on the existing exit/floor cues when the way leads somewhere never covered, so no new event is ever
+added; the meaning is per level type (chamber never stood in, level never seen, frontier of the
+streamed ground on open levels). Plus tags in the exit review and room line, a percent in the
+terrain overview, and the two memories (seen/visited) persisted per map seed like the game's
+`.ma0`. Rejected: a continuous tone or bed (the radar already sounds every step), an automatic
+beacon to the nearest frontier (too close to the routed navigation turned down on 09-20), a
+sonified four-direction sweep (repeats what Ctrl+O says). `docs/exploration.md`.
+
 ## 2026-09-21 — Terrain overview instead of level announcements
 
 Do not announce undiscovered levels — it breaks immersion. Approved instead: an accessible

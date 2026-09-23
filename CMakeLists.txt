@@ -58,6 +58,9 @@ add_library(d2r-access SHARED
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
 	src/explored_rooms.cpp
+	src/explored_store.cpp
+	src/explored_store_worker.cpp
+	src/frontier.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
@@ -159,6 +162,12 @@ if(BUILD_TESTING)
 	target_include_directories(terrain-overview-tests PRIVATE src)
 	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
 	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
+	# The exploration memory (seen/visited rooms), its disk form and the open-ground frontier.
+	add_executable(exploration-tests tests/exploration_tests.cpp src/explored_rooms.cpp src/explored_store.cpp src/explored_store_worker.cpp src/frontier.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(exploration-tests PRIVATE src)
+	target_compile_features(exploration-tests PRIVATE cxx_std_20)
+	target_compile_definitions(exploration-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME exploration COMMAND exploration-tests)
 	add_executable(navigation-grid-tests tests/navigation_grid_tests.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)

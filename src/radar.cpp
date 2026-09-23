@@ -75,10 +75,12 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		// Silent baseline: the first observation after a reset never sounds.
 		sensor.baseline = true;
 		sensor.state = passage.observed;
-	} else if (passage.observed == sensor.state) {
+		sensor.unexplored = passage.unexplored;
+	} else if (passage.observed == sensor.state && passage.unexplored == sensor.unexplored) {
 		sensor.candidate = State::Unknown;
-	} else if (sensor.candidate != passage.observed) {
+	} else if (sensor.candidate != passage.observed || sensor.candidateUnexplored != passage.unexplored) {
 		sensor.candidate = passage.observed;
+		sensor.candidateUnexplored = passage.unexplored;
 		sensor.candidateOrigin = motion;
 		sensor.candidateSince = now;
 	} else {
@@ -86,8 +88,10 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		const bool stationary = now - lastMove_ >= settings_.stoppedMs && now - sensor.candidateSince >= settings_.stationaryConfirmMs;
 		if (travelled || stationary) {
 			sensor.state = passage.observed;
+			sensor.unexplored = passage.unexplored;
 			sensor.candidate = State::Unknown;
 			sensor.deferred = sensor.state; // replaces any older change still waiting
+			sensor.deferredUnexplored = sensor.unexplored;
 			sensor.hold = "";
 			if (Obstacle(sensor.state))
 				sensor.frontier = {true, motion.x*axis.x + motion.y*axis.y + passage.depth, motion};
@@ -127,13 +131,31 @@ State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t n
 		return State::Unknown;
 	}
 	sensor.lastCue = sensor.deferred;
+	sensor.lastCueUnexplored = sensor.deferredUnexplored;
 	sensor.lastCueMs = now;
 	sensor.deferred = State::Unknown;
 	sensor.hold = "";
 	return sensor.lastCue;
 }
-Events Engine::Tick(const World& world, uint64_t now) {
+Marks Engine::Unexplored() const {
+	Marks marks{};
+	for (size_t i = 0; i < sensors_.size(); ++i) marks[i] = sensors_[i].unexplored;
+	return marks;
+}
+bool Engine::Qualify(const Passage& passage, const World& world, size_t direction) {
+	if (!passage.available || !Passable(passage.observed)) return false;
+	if (passage.observed == State::Exit) {
+		if (passage.exit >= 0 && static_cast<size_t>(passage.exit) < world.exits.size())
+			return world.exits[static_cast<size_t>(passage.exit)].unexplored;
+		if (passage.crossingRoom >= 0 && static_cast<size_t>(passage.crossingRoom) < world.rooms.size())
+			return !world.rooms[static_cast<size_t>(passage.crossingRoom)].visited;
+		return false;
+	}
+	return direction < world.frontier.size() && world.frontier[direction];
+}
+Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
 	Events events{};
+	if (marks) *marks = {};
 	// Preserve subcell movement for confirmation and the actual-motion readout.
 	// The collision adapter still supplies the native integer footprint origin.
 	const Position motion{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
@@ -167,7 +189,9 @@ Events Engine::Tick(const World& world, uint64_t now) {
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		query.committed = sensors_[i].state;
 		sensors_[i].passage = ScanPassage(grid, Axes[i], query);
+		sensors_[i].passage.unexplored = Qualify(sensors_[i].passage, world, i);
 		events[i] = Observe(sensors_[i], Axes[i], motion, now);
+		if (marks && events[i] != State::Unknown) (*marks)[i] = sensors_[i].lastCueUnexplored;
 	}
 	return events;
 }

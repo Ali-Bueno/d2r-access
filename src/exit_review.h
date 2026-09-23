@@ -25,16 +25,21 @@ struct Item {
 	int hour = 12;                // clock bearing on screen; 12 is screen up
 	bool named = false;           // a real unit the beacon can re-locate by itself
 	EntityRadar::Entity entity{}; // set when `named`
+	bool unexplored = false;      // never taken: spoken with the unexplored tag, listed first
 };
+// Whether a level exit leads somewhere never seen; the caller owns the memory.
+using UnexploredExit = bool (*)(const EntityRadar::Entity&);
 
 // Clock bearing of `target` seen from `player`, in the screen frame: 12 is
 // screen up, 3 screen right. Over the same isometric projection as the rest.
 int ClockHour(Position player, Position target);
 
-// Every way out as one list, nearest first: the room's plain openings under
-// the passage word, the level exits under their own names.
+// Every way out as one list, the unexplored ones first and nearest first
+// within each half: the room's plain openings under the passage word, the
+// level exits under their own names.
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
-	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings);
+	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings,
+	UnexploredExit unexploredExit = nullptr);
 
 // Cycles the list nearest-first, continuing from the item last reviewed.
 class Cycle {

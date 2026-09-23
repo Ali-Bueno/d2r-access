@@ -32,6 +32,7 @@ std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 		result += std::string(". ") + text.radarDirections[i] + ": "
 			+ (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
 		if (!passage.available) continue;
+		if (passage.unexplored) result += std::string(", ") + text.terrainUnexplored;
 		if (passage.depth < 1) result += std::string(", ") + text.radarNearbyObstacle;
 		else {
 			char depth[80]{};

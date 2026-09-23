@@ -1,5 +1,8 @@
 # Radar readings: exit, floor, wall, door (2026-09-21)
 
+> Since 2026-09-21 an exit or floor reading may carry the **unexplored** qualifier: the same cue
+> with a short lower tail. Rules, sound and memory in `docs/exploration.md`.
+
 The reactive radar used to know two words per direction, open and blocked. It
 now speaks four, ported from the passability sonar of our Among Us mod
 (`reference/audio-navigation/among-us/passability-sonar.md`), whose central
@@ -15,6 +18,20 @@ that way" and "that way leads somewhere" are different facts.
 
 Down is the same sound lowered by the compiled fraction; left and right are
 panned. The `test` audition of `access-radar` plays all four in every direction.
+
+## Cue separation and outdoor exits (2026-09-22)
+
+The user requested a slightly darker floor breath to distinguish it from the
+upward exit cue. Its low-pass cutoff is now 700 Hz instead of 880 Hz, with gain
+2.0 instead of 1.8 to keep approximately the same signal level. Cue duration,
+stereo placement and the other readings retain their existing sound. Listening
+under the game's ambience remains the final check.
+
+The radar now requests area-border bearings as well as distant warp presets.
+This restores outdoor transitions such as Rogue Encampment to Blood Moor to
+its exit candidates. These bearings describe the meeting of level rectangles;
+the local passage scan still checks the approach depth and width, so including
+a distant bearing alone does not produce an exit cue.
 
 ## What decides an exit
 

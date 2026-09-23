@@ -4,6 +4,7 @@
 #include "native_world.h"
 #include "native_ui.h"
 #include "room_service.h"
+#include "terrain_service.h"
 #include "native_widgets.h"
 #include "radar_audio.h"
 #include "input_direction.h"
@@ -34,8 +35,11 @@ constexpr int DumpRadius = 12; // 25x25 local ASCII diagnostic, not sensor range
 constexpr uint64_t SnapshotIntervalMs = 1000;
 // Level exits do not move; rooms stream in at walking pace, so a second is enough.
 constexpr uint64_t ExitsRefreshMs = 1000;
-// The audition plays every reading in every direction.
-constexpr Radar::State Audition[] = {Radar::State::Exit, Radar::State::Open, Radar::State::Blocked, Radar::State::Door};
+// The audition plays every reading in every direction, the marked exit and
+// floor (unexplored tail) right after their plain form.
+struct AuditionStep { Radar::State state; bool unexplored; };
+constexpr AuditionStep Audition[] = {{Radar::State::Exit, false}, {Radar::State::Exit, true}, {Radar::State::Open, false},
+	{Radar::State::Open, true}, {Radar::State::Blocked, false}, {Radar::State::Door, false}};
 constexpr int AuditionSteps = static_cast<int>(std::size(Audition) * Radar::DirectionCount);
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -49,7 +53,7 @@ uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0, g_lastSnapshot = 0;
 int g_level = 0, g_testStep = -1;
 std::string g_lastReason;
-std::vector<Radar::Position> g_exits;
+std::vector<Radar::LevelExit> g_exits;
 uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
 
@@ -57,10 +61,11 @@ int g_exitsLevel = 0;
 void RefreshExits(const Radar::World& world, uint64_t now) {
 	if (g_exitsLevel == world.level && g_exitsAt && now - g_exitsAt < ExitsRefreshMs) return;
 	std::vector<EntityRadar::Entity> entities;
-	if (!NativeEntities::Read(g_playerId, world.session, entities, true)) return;
+	// Include area borders; the passage scan still requires local walkable reach.
+	if (!NativeEntities::Read(g_playerId, world.session, entities, true, true)) return;
 	g_exits.clear();
 	for (const auto& entity : entities)
-		if (entity.kind == EntityRadar::Kind::Exit) g_exits.push_back(entity.position);
+		if (entity.kind == EntityRadar::Kind::Exit) g_exits.push_back({entity.position, entity.destinationLevel});
 	g_exitsAt = now;
 	g_exitsLevel = world.level;
 }
@@ -105,8 +110,8 @@ void LogSensors(uint64_t now) {
 	AsyncLog::InfoF(g_context, "[radar-motion] velocity=%.1f,%.1f speed=%.1f way_through=%.1f", velocity.x, velocity.y, g_engine.Speed(), g_engine.CurrentWayThrough());
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& s = g_engine.Sensors()[i];
-		AsyncLog::InfoF(g_context, "[radar-state] direction=%s state=%s candidate=%s candidate_age=%llu depth=%.1f open=%.1f close=%.1f available=%u observed=%s deferred=%s last_cue=%s last_cue_age=%llu hold=%s frontier=%u,%.1f",
-			RadarTrace::DirectionName(i), RadarTrace::StateName(s.state), RadarTrace::StateName(s.candidate),
+		AsyncLog::InfoF(g_context, "[radar-state] direction=%s state=%s unexplored=%u candidate=%s candidate_age=%llu depth=%.1f open=%.1f close=%.1f available=%u observed=%s deferred=%s last_cue=%s last_cue_age=%llu hold=%s frontier=%u,%.1f",
+			RadarTrace::DirectionName(i), RadarTrace::StateName(s.state), s.unexplored ? 1u : 0u, RadarTrace::StateName(s.candidate),
 			static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince),
 			s.passage.depth, s.passage.openDepth, s.passage.closeDepth, s.passage.available ? 1u : 0u, RadarTrace::StateName(s.passage.observed),
 			RadarTrace::StateName(s.deferred), RadarTrace::StateName(s.lastCue),
@@ -147,14 +152,14 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
 	return D2RL::Input::ActionResult::Handled;
 }
-void LogGenerated(const Radar::World& world, const Radar::Events& events, uint64_t now) {
+void LogGenerated(const Radar::World& world, const Radar::Events& events, const Radar::Marks& marks, uint64_t now) {
 	for (size_t i = 0; i < events.size(); ++i) {
 		if (events[i] == Radar::State::Unknown) continue;
 		const auto& sensor = g_engine.Sensors()[i];
 		const auto velocity = g_engine.Velocity();
 		const auto stick = InputDirection::LeftStick();
-		AsyncLog::InfoF(g_context, "[radar] direction=%zu state=%u position=%.0f,%.0f axes=screen depth=%.1f open=%.1f close=%.1f speed=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f stick=%.2f,%.2f trigger=passage",
-			i, static_cast<unsigned>(events[i]), world.player.x, world.player.y, sensor.passage.depth, sensor.passage.openDepth,
+		AsyncLog::InfoF(g_context, "[radar] direction=%zu state=%u unexplored=%u position=%.0f,%.0f axes=screen depth=%.1f open=%.1f close=%.1f speed=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f stick=%.2f,%.2f trigger=passage",
+			i, static_cast<unsigned>(events[i]), marks[i] ? 1u : 0u, world.player.x, world.player.y, sensor.passage.depth, sensor.passage.openDepth,
 			sensor.passage.closeDepth, g_engine.Speed(), static_cast<unsigned long long>(now), RadarTrace::DirectionName(i),
 			RadarTrace::StateName(events[i]), static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y,
 			stick.connected ? stick.x : 0.0f, stick.connected ? stick.y : 0.0f);
@@ -220,9 +225,11 @@ void Tick(const D2RL::PluginContext* context) {
 		if (now >= g_testDue) {
 			if (g_testStep == AuditionSteps) { g_testStep = -1; return; }
 			Radar::Events events{};
+			Radar::Marks marks{};
 			const size_t step = static_cast<size_t>(g_testStep++);
-			events[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount];
-			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true});
+			events[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].state;
+			marks[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].unexplored;
+			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true}, marks);
 			g_testDue = now + TestStepMs;
 		}
 		return;
@@ -246,16 +253,18 @@ void Tick(const D2RL::PluginContext* context) {
 		world.maze = RoomService::Maze(world.level);
 		RefreshExits(world, now);
 		world.exits = g_exits;
+		TerrainService::Qualify(world);
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.exits.size());
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
-		const auto events = g_engine.Tick(world, now);
+		Radar::Marks marks{};
+		const auto events = g_engine.Tick(world, now, &marks);
 		if (revision != g_engine.Revision()) RadarAudio::Silence("world-rebased");
 		Radar::Events states{};
 		for (size_t i = 0; i < states.size(); ++i) states[i] = g_engine.Sensors()[i].state;
-		RadarAudio::Retain(states);
-		LogGenerated(world, events, now);
-		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player});
+		RadarAudio::Retain(states, g_engine.Unexplored());
+		LogGenerated(world, events, marks, now);
+		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player}, marks);
 		const bool generated = std::any_of(events.begin(), events.end(), [](auto state) { return state != Radar::State::Unknown; });
 		if (generated && (!g_lastSnapshot || now - g_lastSnapshot >= SnapshotIntervalMs)) {
 			RadarTrace::Snapshot(context, world, g_engine, now);

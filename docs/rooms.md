@@ -1,5 +1,8 @@
 # Room exits (2026-09-20)
 
+> Since 2026-09-21 each way out never taken is tagged `sin explorar` in the entry line and listed
+> first in the review: `docs/exploration.md`.
+
 Walking into a room in a dungeon speaks the ways out of it:
 
 > *"Salidas: adelante, a la derecha, Escalera a Catacumbas nivel 2 atrás"*

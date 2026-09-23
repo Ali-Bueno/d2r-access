@@ -6,6 +6,7 @@
 #include "exit_review.h"
 #include "generated/level_flags.h"
 #include "input_direction.h"
+#include "level_exit_layout.h"
 #include "native_entities.h"
 #include "native_world.h"
 #include "npc_proximity.h"
@@ -13,6 +14,7 @@
 #include "rooms.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "terrain_service.h"
 
 #include <windows.h>
 #include <atomic>
@@ -30,7 +32,7 @@ enum class Command { None, On, Off, Toggle, Status };
 // Levels.txt DrlgType: 1 is a maze assembled from LvlPrest cells, so one
 // streamed room is one chamber. Types 2 and 3 subdivide a hand-built or open
 // level, where a room boundary means nothing on the ground.
-constexpr int32_t MazeDrlgType = 1;
+constexpr int32_t MazeDrlgType = 1, OutdoorDrlgType = 3;
 // Walking into a room is slow; nothing here needs the 50 ms UI poll.
 constexpr uint64_t PollMs = 250;
 
@@ -80,6 +82,26 @@ bool Playing() {
 const char* Where(Radar::Position player, Radar::Position target) {
 	return Strings::Current().scanDirections[static_cast<size_t>(NpcProximity::DirectionOf(player, target))];
 }
+// A way out never taken is tagged: an opening into a chamber never stood in,
+// an exit into a level with no room seen yet. `docs/exploration.md`
+std::string Tagged(const std::string& label, bool unexplored) {
+	if (!unexplored) return label;
+	char text[256]{};
+	std::snprintf(text, sizeof text, Strings::Current().wayUnexplored, label.c_str());
+	return text;
+}
+bool UnexploredExit(const EntityRadar::Entity& exit) {
+	return exit.destinationLevel != 0 && !TerrainService::Known(static_cast<int>(exit.destinationLevel));
+}
+void TagOpenings(const Radar::World& world, int level, Rooms::Room& room) {
+	for (auto& opening : room.openings) {
+		const int index = world.RoomAt(static_cast<int>(opening.across.x), static_cast<int>(opening.across.y));
+		if (index < 0) continue;
+		const auto& across = world.rooms[static_cast<size_t>(index)];
+		opening.unexplored = !TerrainService::Visited(level,
+			across.x / LevelExitLayout::SubtilesPerTile, across.y / LevelExitLayout::SubtilesPerTile);
+	}
+}
 // The level exits standing inside this room keep their own names; every other
 // way out is spoken as a direction alone.
 void AppendWarps(const Lifecycle& state, const Rooms::Room& room, Radar::Position player, std::string& line) {
@@ -89,7 +111,7 @@ void AppendWarps(const Lifecycle& state, const Rooms::Room& room, Radar::Positio
 	for (const auto& entity : entities) {
 		if (entity.kind != EntityRadar::Kind::Exit || !room.Contains(entity.position)) continue;
 		char text[192]{};
-		std::snprintf(text, sizeof text, strings.roomExitNamed, entity.name.c_str(), Where(player, entity.position));
+		std::snprintf(text, sizeof text, strings.roomExitNamed, Tagged(entity.name, UnexploredExit(entity)).c_str(), Where(player, entity.position));
 		if (!line.empty()) line += strings.listSeparator;
 		line += text;
 	}
@@ -99,7 +121,7 @@ void Announce(const Lifecycle& state, const Radar::World& world, const Rooms::Ro
 	std::string line;
 	for (const auto& opening : room.openings) {
 		if (!line.empty()) line += strings.listSeparator;
-		line += Where(world.player, opening.centre);
+		line += Tagged(Where(world.player, opening.centre), opening.unexplored);
 	}
 	AppendWarps(state, room, world.player, line);
 	char text[512]{};
@@ -137,7 +159,10 @@ auto Next(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, voi
 // room at all, which falls back to the same full list.
 std::vector<EntityRadar::Entity> Exits(const Lifecycle& state, bool maze, bool inRoom, const Rooms::Room& room) {
 	std::vector<EntityRadar::Entity> entities, exits;
-	if (!NativeEntities::Read(state.player, state.session, entities, true)) return exits;
+	// Level-border bearings too (camp -> Blood Moor has no warp): the review lists
+	// the ways out of the level, which the 2026-09-20 run verified and the
+	// `bladestorm` merge silently dropped when bearings became their own opt-in.
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true)) return exits;
 	for (auto& entity : entities)
 		if (entity.kind == EntityRadar::Kind::Exit && (!maze || !inRoom || room.Contains(entity.position)))
 			exits.push_back(std::move(entity));
@@ -155,6 +180,7 @@ void Review(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	const bool maze = Maze(state.level);
 	Rooms::Room room;
 	const bool inRoom = maze && Rooms::Describe(world, world.player, room);
+	if (inRoom) TagOpenings(world, state.level, room);
 	const Rooms::RoomKey key = inRoom ? Rooms::RoomKey{room.x, room.y, true} : Rooms::RoomKey{};
 	if (!(key == g_reviewKey) || state.level != g_reviewLevel) {
 		g_cycle.Reset();
@@ -162,7 +188,7 @@ void Review(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		g_reviewLevel = state.level;
 	}
 	const std::vector<Rooms::Opening> openings = inRoom ? room.openings : std::vector<Rooms::Opening>{};
-	const auto items = ExitReview::Collect(world.player, openings, Exits(state, maze, inRoom, room), strings);
+	const auto items = ExitReview::Collect(world.player, openings, Exits(state, maze, inRoom, room), strings, UnexploredExit);
 	const size_t index = g_cycle.Next(items);
 	if (index == ExitReview::NoItem) {
 		ScreenReader::Speak(strings.roomNoExits, true);
@@ -176,13 +202,16 @@ void Review(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	ScreenReader::Speak(text, true);
 	if (item.named) BeaconService::Offer(item.entity, state.level, now);
 	else BeaconService::OfferPoint(item.point, item.label, state.level, now);
-	AsyncLog::InfoF(context, "[room] review %zu of %zu at=%.0f,%.0f hour=%d named=%u reach=%s -> %s",
-		index + 1, items.size(), item.point.x, item.point.y, item.hour, item.named ? 1u : 0u,
+	AsyncLog::InfoF(context, "[room] review %zu of %zu at=%.0f,%.0f hour=%d named=%u unexplored=%u reach=%s -> %s",
+		index + 1, items.size(), item.point.x, item.point.y, item.hour, item.named ? 1u : 0u, item.unexplored ? 1u : 0u,
 		reach ? reach : "unknown", text.c_str());
 }
 }
 bool Maze(int level) {
 	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == MazeDrlgType;
+}
+bool Outdoor(int level) {
+	return Generated::FindLevelFlags(static_cast<int32_t>(level)).drlgType == OutdoorDrlgType;
 }
 
 bool Register(const D2RL::PluginContext* context) {
@@ -258,6 +287,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	std::lock_guard lock(g_mutex);
 	if (!g_rooms.Observe(inRoom ? Rooms::RoomKey{room.x, room.y, true} : Rooms::RoomKey{},
 		static_cast<long long>(now))) return;
+	TagOpenings(world, state.level, room);
 	Announce(state, world, room);
 }
 

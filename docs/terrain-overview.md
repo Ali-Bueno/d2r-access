@@ -1,5 +1,8 @@
 # Terrain overview
 
+> Since 2026-09-21 the place is followed by the share of the level's rooms seen
+> (`explorado 22 por ciento`), and the seen/visited memory persists on disk: `docs/exploration.md`.
+
 The accessible equivalent of glancing at the automap: one spoken line that says
 where in the level the player stands, how far the terrain reaches along each of
 the four screen directions, and where the part they have not walked yet begins.

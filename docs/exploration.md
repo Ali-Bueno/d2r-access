@@ -1,0 +1,128 @@
+# Exploration: the unexplored mark, the two memories and their disk form
+
+What a sighted player gets from the automap, in sound and in a word: which way out has not been
+taken, where the ground the game has never streamed begins, how much of the level is filled in.
+Design conversation of 2026-09-21; the user's rule for the radar still holds (four cardinals, the
+original cues, only changes sound).
+
+## The two memories
+
+`ExploredRooms::Memory` (`src/explored_rooms.*`) keeps two rings per level, keyed by the logical
+room's tile-rect origin (`RoomEx+0x60/0x64`):
+
+| Ring | Meaning | Written | Read by |
+|---|---|---|---|
+| seen | the game streamed the room at least once (`RoomEx+0x58` set) | every 250 ms, `TerrainService::Track` | terrain overview, frontier, level-exit rule, percent |
+| visited | the player stood in the room | same poll, the rect under the player's tile | chamber rule, exit review tags, room entry line |
+
+Seen is what the automap draws: D2 reveals a room when it activates, and rooms activate within six
+tiles of the player, so a sighted player's map fills in with rooms only walked past. Visited is a
+subset. Both only grow inside a game.
+
+## The unexplored qualifier on the radar
+
+A passable reading (exit, floor) carries a boolean qualifier, `Passage::unexplored`, decided by
+`Radar::Engine::Qualify` from data the terrain service stamps onto the `World`
+(`TerrainService::Qualify`). It is never a state of its own: walls and doors are untouched, every
+`switch` on `State` stays as it was.
+
+| Level type (`Levels.txt DrlgType`) | Reading | Unexplored when |
+|---|---|---|
+| any | exit that arrives at a level exit (`Passage::exit`) | the destination level (`LevelExit::level`, from the warp node / portal / preset) has no room seen |
+| maze (1) | exit that crosses into another chamber (`Passage::crossingRoom`) | that chamber was never stood in (`RoomGrid::visited`) |
+| outdoor (3) | floor | reachable frontier lies in that screen quadrant (`World::frontier`) |
+| preset (2), towns | floor | never |
+
+The frontier (`src/frontier.*`): a walkable cell of the loaded collision, reachable from the player
+(`Navigation::Build` at the full 150-subtile window), whose neighbour is unloaded and lies inside a
+logical room never seen. Each such cell votes for the screen quadrant of its offset from the player
+(dominant screen axis, native projection `0x334DB0`). Recomputed every 250 ms on outdoor levels
+only; the log line `[terrain] explored rooms=… frontier_ms=` says what it costs.
+
+The qualifier is part of the reading for the sensor state machine: a change of the qualifier alone
+is confirmed by the same travel rule and sounds like a change of state, under the same cue interval.
+Since the seen ring only grows, a quadrant can only go from unexplored to explored while the player
+stands still; it never flickers with rooms streaming in and out.
+
+## The sound
+
+The base cue is untouched. A marked exit or floor ends in two 900 Hz pips after a
+30 ms gap. Each pip lasts 35 ms, with 30 ms of silence between them (`radar_synth.cpp`).
+The same tail accompanies both readings so
+it is one thing to learn, lowered for screen-down like the cue itself. `access-radar test` now plays
+exit, exit unexplored, open, open unexplored, blocked, door in each direction. The cue queue keeps
+the mark with the cue (`CueSource::unexplored`) and drops a queued cue whose mark no longer holds.
+
+On 2026-09-22 the user requested a distinct sound rather than a pitch adjustment:
+the former steady 660 Hz tail was confused with the pathfinder's 620 Hz ping.
+The new double pip changes the rhythm; the pathfinder sound is unchanged.
+Directional lowering applies to both pips. Live listening remains pending.
+
+## Speech
+
+- **Room entry line** (maze levels): each way out never taken gets the tag: `Salidas: izquierda,
+  sin explorar, derecha`. Level exits inside the room: `Den of Evil, sin explorar adelante`.
+- **Exit review** (R3 hold / Ctrl+V): the unexplored ways out come first, nearest first within each
+  half; the label carries the tag: `abertura, sin explorar, 8 pasos, a las 12, recto, 1 de 3`.
+- **Terrain overview** (Ctrl+O / L3+R3): the place is followed by the share of the level's rooms
+  seen: `Blood Moor, centro, explorado 22 por ciento. adelante: …`. For maze and outdoor levels every
+  logical room exists once the level is generated, so the denominator is the whole level.
+- **Radar readout** (Ctrl+T): `sin explorar` after a marked direction.
+- `Strings::Table::wayUnexplored`, `terrainPercent`; `radarTest` extended. Thirteen languages.
+
+## On disk
+
+The mod keeps both histories in one compact binary archive,
+`<plugin dir>\d2r-access\explored\explored.dat`, limited to 4 MiB and 400 level-layout entries.
+Each entry retains its map seed, level and room-layout digest; different maps
+never inherit each other's progress. The digest is FNV-1a over the sorted room
+rectangles. The bounded archive replaces the former file per level.
+If either limit is reached, the least recently updated map entries are evicted.
+
+A background worker handles disk reads, migration and atomic replacement.
+The game callbacks merge cached records and enqueue progress snapshots on the
+existing lifecycle and 30-second save cadence. Old `explored-<seed>-<level>-<digest>.txt`
+files are imported and removed only after the replacement archive is verified.
+Files with malformed rows remain intact; valid matching-level rows can still be
+imported. Unreadable files are retained for a later retry.
+
+The native automap is not a verified replacement: its persistent reveal structures
+and `.ma0` format have not been decoded for this build (`docs/D2RNavigationResearch.md`).
+The known room-active pointer clears when a room unloads. Automap visibility also
+does not establish that the player physically entered a room, which this feature
+needs independently. The mod never modifies the game's automap or character save.
+
+## What the game does not offer (RE, 2026-09-21)
+
+- `Levels.txt WarpDist` is **not** the distance at which a neighbour level is generated: it is the
+  squared-subtile radius for monster pack placement around a room's warps (`LevelsTxt+0x14`, reader
+  `0x509CC0`; D2MOO `MonsterRegion.cpp`). The "~40 m" observation comes from level-rect adjacency
+  and the six-tile near-room gap, nothing else.
+- Outdoor level rects are fixed at act creation, before any room exists (`0x3F1C60` writes
+  `Level+0x24..0x30` from the act's placement tables; D2MOO `DRLGOUTPLACE_CreateLevelConnections`).
+  `LevelAreas::Neighbours` already reads them; it may name a bearing towards a level with no rooms.
+- `CompletionTotalRoomsOverride` is not in the `LevelDef`; it lives in the `0x18C` LevelsTxt row,
+  set for one level only (Halls of Vaught, 70), most likely a denominator for the terror-zone
+  completion ratio. No per-level explored-rooms counter exists in the game; no achievement either.
+- `.ma0` format: undocumented; not read.
+- Correction recorded in `docs/act-levels-re.md`: `LevelDef+0x08` is `Layer`, `+0x40/+0x44` are
+  `SubWaypoint`/`SubShrine`.
+
+## Verification
+
+- `exploration` suite: both histories, snapshots, layout isolation, queued updates,
+  legacy migration including malformed rows, failed writes and retry, archive
+  bounds/corruption, and reachable/walled/distant frontier quadrants.
+- `radar-engine`: qualifier on exit and floor, qualifier-only change confirms and sounds plain,
+  chamber rule, walls never qualified. `radar-passage`: `crossingRoom`, `exit` index.
+- `radar-audio`: tail length, untouched base cue, two identical pips with a silent gap, same tail on floor, none on walls,
+  lowered for down; queue retention by mark. `exit-review`: ordering and tags. `terrain-overview`:
+  percent.
+
+On 2026-09-22, all 61 CTest suites passed and the installed DLL hash matched the
+build. A game-closed migration replaced nine installed text files (3,855 bytes)
+with one 2,846-byte archive. Independent readback against a temporary backup
+matched every room and visited flag across all nine keys: 286 seen, 176 visited.
+No legacy text files remain in that installation. Listening in game is pending.
+- Live: `[radar] … unexplored=1` on generated cues, `[terrain] visited room=`, `[terrain] level=…
+  seen=… visited=…` on load, the grid-origin warning must never appear.

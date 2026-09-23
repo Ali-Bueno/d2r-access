@@ -135,6 +135,7 @@ struct Table {
 	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
 	const char* roomNoExits;
 	const char* roomOpening; // a plain gap between two streamed rooms, with no name of its own
+	const char* wayUnexplored; // %s = a way out (direction, passage or exit name) never taken yet
 	// One reviewed way out: %s = label, %s = distance, %s = clock bearing phrase,
 	// %s = "" or the separator plus a reach word, %d = index (1-based), %d = count.
 	const char* exitReview;
@@ -170,6 +171,7 @@ struct Table {
 	const char* terrainExplored;
 	const char* terrainUnexplored;
 	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
+	const char* terrainPercent;        // %d = share of the level's rooms seen so far
 	const char* terrainUnavailable;    // the level's layout could not be read
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
@@ -202,13 +204,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.exitReview,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
-		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable};
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

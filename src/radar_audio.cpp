@@ -58,7 +58,9 @@ HWAVEOUT OpenDevice(HANDLE done) {
 }
 // Plays one cue to completion or cancellation. False means the device failed.
 bool PlayOne(HWAVEOUT device, HANDLE done, const Radar::Events& events, const CueSource& source, uint64_t generation) {
-	auto pcm = Synthesize(events, g_gain);
+	Radar::Marks marks{};
+	for (size_t i = 0; i < events.size(); ++i) marks[i] = source.unexplored && events[i] != Radar::State::Unknown;
+	auto pcm = Synthesize(events, marks, g_gain);
 	WAVEHDR header{};
 	header.lpData = reinterpret_cast<char*>(pcm.data());
 	header.dwBufferLength = static_cast<DWORD>(pcm.size() * sizeof(int16_t));
@@ -151,7 +153,7 @@ bool Start(const D2RL::PluginContext* context, double gain) {
 	catch (...) { g_running = false; return false; }
 	return true;
 }
-void Play(const Radar::Events& events, CueSource source) {
+void Play(const Radar::Events& events, CueSource source, const Radar::Marks& marks) {
 	std::lock_guard lock(g_mutex);
 	if (!g_running || !g_available) {
 		Trace(events, source, "dropped", "audio-unavailable");
@@ -162,16 +164,19 @@ void Play(const Radar::Events& events, CueSource source) {
 	for (size_t i = 0; i < events.size(); ++i)
 		if (events[i] != Radar::State::Unknown && g_pending.Pending()[i] != Radar::State::Unknown)
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", "superseded", GetTickCount64());
-	g_pending.Push(events, source);
-	Trace(events, source, "queued", "generated");
+	g_pending.Push(events, source, marks);
+	for (size_t i = 0; i < events.size(); ++i)
+		if (events[i] != Radar::State::Unknown)
+			RadarTrace::Audio(g_context, i, events[i], g_pending.Source(i), "queued", "generated", GetTickCount64());
 	g_wake.notify_one();
 }
-void Retain(const Radar::Events& states) {
+void Retain(const Radar::Events& states, const Radar::Marks& marks) {
 	std::lock_guard lock(g_mutex);
 	for (size_t i = 0; i < states.size(); ++i)
-		if (g_pending.Pending()[i] != Radar::State::Unknown && g_pending.Pending()[i] != states[i])
+		if (g_pending.Pending()[i] != Radar::State::Unknown
+			&& (g_pending.Pending()[i] != states[i] || g_pending.Source(i).unexplored != marks[i]))
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", "state-changed", GetTickCount64());
-	g_pending.Retain(states);
+	g_pending.Retain(states, marks);
 }
 void Silence(const char* reason) {
 	std::lock_guard lock(g_mutex);

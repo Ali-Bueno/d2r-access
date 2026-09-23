@@ -10,4 +10,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Unregister();
 // Levels.txt DrlgType 1: one streamed room is one chamber.
 bool Maze(int level);
+// Levels.txt DrlgType 3: open ground, where the frontier of the streamed
+// terrain is what "unexplored" means.
+bool Outdoor(int level);
 }

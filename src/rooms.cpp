@@ -23,7 +23,8 @@ void Side(const Radar::World& world, int fromX, int fromY, int length,
 		// The run covers indices i-run .. i-1, so its middle is i-(run+1)/2.
 		if (run >= passable) {
 			const double mid = i - (run + 1) / 2.0;
-			openings.push_back({{fromX + stepX * mid, fromY + stepY * mid}, run});
+			openings.push_back({{fromX + stepX * mid, fromY + stepY * mid}, run,
+				{fromX + stepX * mid + outX, fromY + stepY * mid + outY}});
 		}
 		run = 0;
 	}

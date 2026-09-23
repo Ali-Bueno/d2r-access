@@ -56,8 +56,10 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, const PassageQu
 			if (visited[index(next)]) continue;
 			visited[index(next)] = true;
 			result.depth = std::max(result.depth, projection(next));
-			if (home >= 0 && cell->room >= 0 && cell->room != home && (result.crossing < 0 || projection(next) < result.crossing))
+			if (home >= 0 && cell->room >= 0 && cell->room != home && (result.crossing < 0 || projection(next) < result.crossing)) {
 				result.crossing = projection(next);
+				result.crossingRoom = cell->room;
+			}
 			queue.push_back(next);
 		}
 	}
@@ -70,11 +72,13 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, const PassageQu
 	if (result.depth < query.openDepth && Obstacle(query.committed)) { result.observed = query.committed; return result; }
 	// What the passable route means: it arrives within a doorway of a level
 	// exit, or it enters another chamber and clears its border by a doorway.
-	if (query.exits) for (const auto& exit : *query.exits) {
+	if (query.exits) for (size_t i = 0; i < query.exits->size(); ++i) {
+		const auto& exit = (*query.exits)[i].position;
 		const Position relative{exit.x - grid.playerX, exit.y - grid.playerY};
 		const double ahead = projection(relative), aside = std::abs(lateral(relative));
 		if (ahead > 0 && ahead <= result.depth + query.wayThrough && aside <= query.wayThrough / 2) {
 			result.observed = State::Exit;
+			result.exit = static_cast<int>(i);
 			return result;
 		}
 	}

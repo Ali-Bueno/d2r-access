@@ -26,17 +26,18 @@ int ClockHour(Position player, Position target) {
 }
 
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
-	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings) {
+	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings, UnexploredExit unexploredExit) {
 	std::vector<Item> items;
 	items.reserve(openings.size() + exits.size());
-	const auto add = [&](std::string label, Position point, const EntityRadar::Entity* entity) {
+	const auto add = [&](std::string label, Position point, const EntityRadar::Entity* entity, bool unexplored) {
 		items.push_back({std::move(label), point, std::hypot(point.x - player.x, point.y - player.y),
-			ClockHour(player, point), entity != nullptr, entity ? *entity : EntityRadar::Entity{}});
+			ClockHour(player, point), entity != nullptr, entity ? *entity : EntityRadar::Entity{}, unexplored});
 	};
-	for (const auto& opening : openings) add(strings.roomOpening, opening.centre, nullptr);
-	for (const auto& exit : exits) add(exit.name, exit.position, &exit);
-	std::stable_sort(items.begin(), items.end(),
-		[](const Item& a, const Item& b) { return a.distance < b.distance; });
+	for (const auto& opening : openings) add(strings.roomOpening, opening.centre, nullptr, opening.unexplored);
+	for (const auto& exit : exits) add(exit.name, exit.position, &exit, unexploredExit && unexploredExit(exit));
+	std::stable_sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+		return a.unexplored != b.unexplored ? a.unexplored : a.distance < b.distance;
+	});
 	return items;
 }
 
@@ -64,8 +65,14 @@ std::string Describe(const Item& item, size_t index, size_t count, const char* r
 	const EntityRadar::Settings& scan, const Strings::Table& strings) {
 	std::string verdict;
 	if (reach != nullptr && *reach != '\0') { verdict = strings.listSeparator; verdict += reach; }
+	std::string label = item.label;
+	if (item.unexplored) {
+		char tagged[256]{};
+		std::snprintf(tagged, sizeof tagged, strings.wayUnexplored, item.label.c_str());
+		label = tagged;
+	}
 	char text[320]{};
-	std::snprintf(text, sizeof text, strings.exitReview, item.label.c_str(),
+	std::snprintf(text, sizeof text, strings.exitReview, label.c_str(),
 		EntityRadar::DistancePhrase(item.distance, scan, strings).c_str(), strings.clockHours[item.hour - 1],
 		verdict.c_str(), static_cast<int>(index + 1), static_cast<int>(count));
 	return text;

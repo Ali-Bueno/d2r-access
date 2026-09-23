@@ -129,12 +129,13 @@ context while in the inventory.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
-leads somewhere (another chamber of a dungeon, or a level exit), a soft breath
+leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
 for floor that leads nowhere new, a dull `tock` for a nearby wall and two
 knocks for a closed door ([readings](docs/radar-readings.md)),
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. Simultaneous cues play successively with **50 ms of
-silence between them**. The radar checks the full body along each passage using
+silence between them**. Exit readings include nearby transitions between outdoor
+areas when the passage scan confirms an approach. The radar checks the full body along each passage using
 the player's native movement mask. It also recognizes a complete, uniquely
 identifiable player footprint displaced from the reported cell, preventing that
 footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
@@ -266,6 +267,17 @@ L3+R3 chord (both sticks pressed in), speaks the level name, where you stand in 
 for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
 a neighbouring level you have already reached. It never names undiscovered levels and never routes.
 See [terrain overview](docs/terrain-overview.md).
+
+**Unexplored mark (built; listening pass pending):** the radar's exit and floor cues end in two short
+pips when the way leads to ground you have not covered: an opening into a chamber you have
+never stood in, stairs to a level you have never seen, open ground towards the frontier of what the
+game has streamed. The base cues are untouched and nothing new sounds on its own; the tail rides on
+the cue that was going to play. The room entry line and the exit review tag each way out never
+taken (`abertura, sin explorar`) and list those first; the terrain overview says how much of the
+level is filled in (`explorado 22 por ciento`). What you have seen and where you have stood is kept
+in one compact archive, limited to 4 MiB, with separate records per map seed and layout.
+Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
+test` auditions the marked cues. See [exploration](docs/exploration.md).
 
 ### Character panel
 

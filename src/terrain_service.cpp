@@ -2,12 +2,17 @@
 #include "async_log.h"
 #include "entity_radar.h"
 #include "explored_rooms.h"
+#include "explored_store.h"
+#include "frontier.h"
 #include "input_direction.h"
+#include "level_exit_layout.h"
+#include "native_drlg.h"
 #include "native_entities.h"
 #include "native_level_exits.h"
 #include "native_world.h"
 #include "radar.h"
 #include "radar_ui.h"
+#include "room_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_overview.h"
@@ -15,7 +20,10 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
+#include <filesystem>
+#include <map>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -30,6 +38,9 @@ using Kind = D2RL::Lifecycle::GameplayEventKind;
 constexpr uint64_t PollMs = 5 * Radar::PollMs;
 // Log the explored count again once it has grown by this share of the level.
 constexpr size_t LogGrowthPercent = 10;
+// The memory reaches the disk this often while it changes, and on every level
+// change and shutdown; a crash loses at most this much walking.
+constexpr uint64_t SaveIntervalMs = 30000;
 
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0; int level = 0; };
 std::mutex g_mutex;
@@ -43,16 +54,51 @@ std::atomic<bool> g_asked{false};
 // Distances are spoken by the same rule as the entity scan and the exit review.
 const EntityRadar::Settings g_scan;
 ExploredRooms::Memory g_explored;
-uint64_t g_nextPoll = 0;
+uint64_t g_nextPoll = 0, g_nextSave = 0;
 uint32_t g_loggedLevel = 0;
 size_t g_loggedRooms = 0;
 uint32_t g_warnedLevel = 0;
 bool g_supported = false;
+// The store worker owns archive I/O; gameplay only submits room snapshots.
+std::filesystem::path g_directory;
+ExploredStore::Store g_store;
+std::map<uint32_t, ExploredStore::Key> g_keys;
+uint32_t g_loadedLevel = 0;
+uint64_t g_nextLoadTry = 0; // the radar asks every poll; the layout is read at most this often
+uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
+// The frontier quadrants of the level the radar is qualified against.
+Radar::Marks g_frontier{};
+int g_frontierLevel = 0;
 
-void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
+// Caller holds g_mutex.
+void SaveAll(const D2RL::PluginContext* context) {
+	if (!g_explored.Dirty() || g_directory.empty()) return;
+	std::vector<ExploredStore::Update> updates;
+	for (const auto& [level, key] : g_keys)
+		updates.push_back({key, g_explored.Snapshot(level)});
+	g_store.Submit(std::move(updates));
+	if (g_store.Failed()) AsyncLog::Warn(context, "[terrain] exploration archive unavailable; pending changes will retry.");
+}
+// Caller holds g_mutex. Loads the level's file once per visit; the seed can
+// take a few polls to become readable, so an unavailable seed retries.
+void LoadLevel(const D2RL::PluginContext* context, const NativeLevelExits::Layout& native) {
+	if (g_loadedLevel == native.level || g_directory.empty()) return;
+	g_nextLoadTry = GetTickCount64() + PollMs;
+	const uint32_t seed = NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), static_cast<int>(native.level));
+	if (!seed) return;
+	const ExploredStore::Key key{seed, native.level, ExploredStore::LayoutDigest(native.rooms)};
+	g_keys[native.level] = key;
+	if (!g_store.Ready()) return; // archive loading and legacy migration never block this tick
+	const bool loaded = g_store.Load(key, g_explored);
+	g_loadedLevel = native.level;
+	AsyncLog::InfoF(context, "[terrain] level=%u seed=%08X rooms=%zu %s %s: seen=%zu visited=%zu", native.level, seed,
+		native.rooms.size(), loaded ? "loaded" : "new", ExploredStore::ArchiveFile(g_directory).filename().string().c_str(),
+		g_explored.Count(native.level), g_explored.VisitedCount(native.level));
+}
+void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);
-	// A new session is a new map: what was walked in the old one is gone.
+	// A new session is a new map: what was walked in the old one is on disk.
 	const bool newSession = event->sessionGeneration != g_state.session
 		|| event->kind == Kind::GameJoined || event->kind == Kind::GameLeft;
 	g_state.session = event->sessionGeneration;
@@ -60,8 +106,15 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	else if (event->kind == Kind::LocalPlayerReady) { g_state.ready = true; g_state.player = event->playerId; g_state.level = 0; }
 	else if (event->kind == Kind::ActChanged) g_state.level = 0;
 	else if (event->kind == Kind::LevelChanged) g_state.level = event->currentValue;
+	SaveAll(context);
+	g_loadedLevel = 0;
+	g_nextLoadTry = 0;
+	g_checkedLevel = 0;
+	g_frontier = {};
+	g_frontierLevel = 0;
 	if (newSession) {
 		g_explored.Forget();
+		g_keys.clear();
 		g_loggedLevel = 0;
 		g_loggedRooms = 0;
 	}
@@ -118,23 +171,71 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			leg.hasUnexplored ? leg.unexplored : 0.0, leg.border.empty() ? "-" : leg.border.c_str());
 		legs += entry;
 	}
-	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu%s -> %s",
+	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu percent=%d%s -> %s",
 		world.player.x, world.player.y, native.level, summary.box.x, summary.box.y,
 		summary.box.width, summary.box.height, summary.place, g_explored.Count(native.level),
-		native.rooms.size(), legs.c_str(), text.c_str());
+		native.rooms.size(), summary.percent, legs.c_str(), text.c_str());
 }
-// One poll: every room the game keeps streamed has been walked into.
-void Track(const D2RL::PluginContext* context, const Lifecycle& state) {
+// The rooms never streamed, as subtile rectangles, for the frontier.
+std::vector<NativeRooms::Bounds> Unseen(const NativeLevelExits::Layout& native) {
+	std::vector<NativeRooms::Bounds> unseen;
+	for (const auto& room : native.rooms) {
+		if (g_explored.Explored(native.level, room.rect.x, room.rect.y)) continue;
+		unseen.push_back(NativeRooms::Subtiles({room.rect.x, room.rect.y, room.rect.width, room.rect.height}));
+	}
+	return unseen;
+}
+// One poll: every room the game keeps streamed has been seen, the one under
+// the player stood in, and on open ground the frontier quadrants are current.
+void Track(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	NativeLevelExits::Layout native;
 	if (!NativeEntities::ReadLayout(state.player, false, native)) return;
+	LoadLevel(context, native);
 	for (const auto& room : native.rooms)
 		if (room.active) g_explored.Mark(native.level, room.rect.x, room.rect.y);
+	Radar::World world;
+	const bool located = NativeWorld::Read(state.player, state.session, state.level, world);
+	if (located) {
+		const int tileX = static_cast<int>(std::floor(world.player.x / LevelExitLayout::SubtilesPerTile));
+		const int tileY = static_cast<int>(std::floor(world.player.y / LevelExitLayout::SubtilesPerTile));
+		for (const auto& room : native.rooms) {
+			const auto& r = room.rect;
+			if (tileX < r.x || tileY < r.y || tileX >= r.x + r.width || tileY >= r.y + r.height) continue;
+			// The radar keys rooms by their collision grid origin, the memory by the
+			// logical rect: once per level, check that they are the same tile.
+			const int index = world.RoomAt(static_cast<int>(world.player.x), static_cast<int>(world.player.y));
+			if (index >= 0 && g_checkedLevel != native.level) {
+				const auto& grid = world.rooms[static_cast<size_t>(index)];
+				g_checkedLevel = native.level;
+				if (grid.x != r.x * LevelExitLayout::SubtilesPerTile || grid.y != r.y * LevelExitLayout::SubtilesPerTile)
+					AsyncLog::WarnF(context, "[terrain] level=%u collision grid origin %d,%d is not the room rect origin %d,%d tiles",
+						native.level, grid.x, grid.y, r.x, r.y);
+			}
+			if (g_explored.Visit(native.level, r.x, r.y))
+				AsyncLog::InfoF(context, "[terrain] visited room=%d,%d level=%u visited=%zu", r.x, r.y, native.level,
+					g_explored.VisitedCount(native.level));
+			break;
+		}
+	}
+	uint64_t frontierMs = 0;
+	if (located && RoomService::Outdoor(state.level)) {
+		const uint64_t started = GetTickCount64();
+		g_frontier = Frontier::Quadrants(world, Unseen(native));
+		g_frontierLevel = state.level;
+		frontierMs = GetTickCount64() - started;
+	} else {
+		g_frontier = {};
+		g_frontierLevel = 0;
+	}
+	if (now >= g_nextSave) { SaveAll(context); g_nextSave = now + SaveIntervalMs; }
 	const size_t explored = g_explored.Count(native.level);
 	const size_t step = std::max<size_t>(1, native.rooms.size() * LogGrowthPercent / 100);
 	if (native.level == g_loggedLevel && explored < g_loggedRooms + step) return;
 	g_loggedLevel = native.level;
 	g_loggedRooms = explored;
-	AsyncLog::InfoF(context, "[terrain] explored rooms=%zu/%zu level=%u", explored, native.rooms.size(), native.level);
+	AsyncLog::InfoF(context, "[terrain] explored rooms=%zu/%zu level=%u frontier=%u%u%u%u frontier_ms=%llu", explored, native.rooms.size(),
+		native.level, g_frontier[0] ? 1u : 0u, g_frontier[1] ? 1u : 0u, g_frontier[2] ? 1u : 0u, g_frontier[3] ? 1u : 0u,
+		static_cast<unsigned long long>(frontierMs));
 }
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
@@ -155,6 +256,11 @@ bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
+	// Next to the plugin, like the code dump and the sounds: `d2r-access\explored`.
+	if (context->pluginDirectory != nullptr) {
+		g_directory = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "explored";
+		(void)g_store.Start(g_directory);
+	}
 	(void)context->RegisterConsoleCommand("access-terrain", Console,
 		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or press both sticks in together.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
@@ -176,7 +282,7 @@ bool Register(const D2RL::PluginContext* context) {
 			!= D2RL::Lifecycle::Result::Success) { Unregister(); return false; }
 		g_listeners.push_back(handle);
 	}
-	AsyncLog::InfoF(context, "[terrain] supported=%u", g_supported ? 1u : 0u);
+	AsyncLog::InfoF(context, "[terrain] supported=%u store=%s", g_supported ? 1u : 0u, g_directory.string().c_str());
 	return g_supported;
 }
 
@@ -201,7 +307,41 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_nextPoll = now;
 	if (!state.ready || !Playing()) return;
 	std::lock_guard lock(g_mutex);
-	Track(context, state);
+	Track(context, state, now);
+}
+
+void Qualify(Radar::World& world) {
+	std::lock_guard lock(g_mutex);
+	const auto level = static_cast<uint32_t>(world.level);
+	// The radar's silent baseline must see the level's memory, so the level is
+	// loaded from here too when the terrain poll has not got to it yet.
+	if (g_loadedLevel != level && g_state.ready && GetTickCount64() >= g_nextLoadTry) {
+		NativeLevelExits::Layout native;
+		if (NativeEntities::ReadLayout(g_state.player, false, native) && native.level == level) LoadLevel(g_context, native);
+		else g_nextLoadTry = GetTickCount64() + PollMs;
+	}
+	if (g_loadedLevel != level) {
+		// The first radar baseline must not call stored paths unexplored before
+		// the worker has loaded their memory. These values are for this copy only.
+		for (auto& room : world.rooms) room.visited = true;
+		for (auto& exit : world.exits) exit.unexplored = false;
+		world.frontier = {};
+		return;
+	}
+	for (auto& room : world.rooms)
+		room.visited = g_explored.Visited(level, room.x / LevelExitLayout::SubtilesPerTile, room.y / LevelExitLayout::SubtilesPerTile);
+	for (auto& exit : world.exits) exit.unexplored = exit.level != 0 && !g_explored.Known(exit.level);
+	world.frontier = g_frontierLevel == world.level ? g_frontier : Radar::Marks{};
+}
+
+bool Visited(int level, int tileX, int tileY) {
+	std::lock_guard lock(g_mutex);
+	return g_explored.Visited(static_cast<uint32_t>(level), tileX, tileY);
+}
+
+bool Known(int level) {
+	std::lock_guard lock(g_mutex);
+	return g_explored.Known(static_cast<uint32_t>(level));
 }
 
 void Unregister() {
@@ -209,12 +349,23 @@ void Unregister() {
 	g_listeners.clear();
 	if (g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
 	g_actions.clear();
+	{
+		std::lock_guard lock(g_mutex);
+		SaveAll(g_context);
+	}
+	g_store.Stop(); // final worker write before the plugin context goes away
+	if (g_store.Failed()) AsyncLog::Warn(g_context, "[terrain] exploration archive write failed; legacy and last good archive remain intact.");
 	std::lock_guard lock(g_mutex);
 	g_explored.Forget();
+	g_keys.clear();
 	g_state = {};
 	g_asked = false;
 	g_supported = false;
 	g_nextPoll = 0;
+	g_nextSave = 0;
+	g_loadedLevel = 0;
+	g_frontier = {};
+	g_frontierLevel = 0;
 	g_loggedLevel = 0;
 	g_loggedRooms = 0;
 	g_warnedLevel = 0;
