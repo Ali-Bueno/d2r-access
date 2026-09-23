@@ -9,7 +9,8 @@ were incorrectly used as quest string IDs. The catalog now uses classic layout
 IDs, correcting three Act I and four Act III entries. Quest descriptions include
 the current controller action or visible speech caption, without duplicated tab
 labels. Built and installed; **67/67 CTest suites pass**, DLL hash verified.
-**Next step:** controller/NVDA check of Cain's objective and dialogue action.
+The user confirmed the journal correction works on 2026-09-22.
+**Next step:** none for this fix; unloaded-journal coverage remains separate.
 Evidence: `docs/quests.md`.
 
 ## NPC and priority enemy cues — 2026-09-22
@@ -656,7 +657,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Adapter + Speech (PRISM) | done | NVDA backend; all PRISM calls on a dedicated speech thread (`screen_reader.cpp`), `Speak` only queues. Console `access-say` |
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Audio cues across locales | fixes built and installed; listening pending | Numeric cue classification, generic container/exit fallback in all 13 locales, beacon UI cancellation. 59/59 suites pass in the shared workspace; `docs/audio-language-audit.md`. |
-| Quest log / automatic quest tracking | 2026-09-22 correction installed; live check pending | Classic IDs fix missing Cain and six other mappings. Current objectives, counters and controller actions; no repeated tab label. 67/67 suites pass. Unloaded journal coverage limited. `docs/quests.md` |
+| Quest log / automatic quest tracking | journal fix user-confirmed 2026-09-22 | Classic IDs fix missing Cain and six other mappings. Current objectives, counters and controller actions; no repeated tab label. 67/67 suites pass. Unloaded journal coverage limited. `docs/quests.md` |
 | Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
 | Target beacon guidance | reach verdict added 2026-09-20; listening check pending | Says recto / rodeando / no se llega when it locks, and nothing beyond the search box. Only rooms of the player's own level are walked, so a passage's far side no longer offers its exits. Scan then right-stick click / Ctrl+B. Logical-room presets expose existing inactive-room stairs; stable position identity. Never-generated exits and unexplored routes remain unavailable. `docs/distant-exits.md`, `docs/beacon.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |

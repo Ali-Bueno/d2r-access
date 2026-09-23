@@ -30,8 +30,8 @@ Sources: `game-data/index/QuestLogPanel{Original,Expansion}.json.index.json`,
 their HD counterparts, `game-data/global/ui/Layouts/QuestLogPanelOriginalHD.json`
 (`Speech`), and the 2026-09-22 session in `d2r-access.log` (quest update at 22:44:35).
 Validation: build/install succeeded; 67/67 CTest suites pass, including `quest-log`,
-`ui-text`, and `game-text-reader`; installed DLL hash matches. Live NVDA/controller
-confirmation remains pending.
+`ui-text`, and `game-text-reader`; installed DLL hash matches. The user confirmed
+the journal correction works in live play on 2026-09-22.
 
 ## Only the quests the player actually has — 2026-09-19
 
