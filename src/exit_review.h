@@ -28,12 +28,16 @@ struct Item {
 	double distance = 0;          // straight line to it, in collision subtiles
 	bool named = false;           // a real unit guidance can re-locate by itself
 	EntityRadar::Entity entity{}; // set when `named`
+	bool unexplored = false;      // never taken: spoken with the unexplored tag
 };
+// Whether a level exit leads somewhere never seen; the caller owns the memory.
+using UnexploredExit = bool (*)(const EntityRadar::Entity&);
 
 // Every way out as one list, nearest first: the room's plain openings under
 // the passage word, the level exits under their own names.
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
-	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings);
+	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings,
+	UnexploredExit unexploredExit = nullptr);
 
 // The ways out on one screen side, nearest first: the same quarter of the
 // plane the entity scan gives a push, so both modes mean the same by "left".

@@ -41,6 +41,7 @@ struct Entity {
 	bool container = false;
 	// Last so the existing positional initialisers keep working untouched.
 	Category category = Category::Unknown;
+	uint32_t destinationLevel = 0; // Kind::Exit: the level it leads to, 0 when unknown
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

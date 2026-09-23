@@ -30,9 +30,18 @@ inline constexpr std::array<Position, DirectionCount> Axes{{{-Diagonal, -Diagona
 struct ScreenVector { int x = 0, y = 0; };
 inline constexpr std::array<ScreenVector, DirectionCount> ScreenAxes{{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}};
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
+// The unexplored qualifier of a passable reading: the way leads to ground the
+// player has not covered. Rides on the exit/floor cue as a short tail; never a
+// state of its own, so walls and doors are untouched. `docs/exploration.md`
+using Marks = std::array<bool, DirectionCount>;
 inline constexpr uint64_t PollMs = 50;
 // One cue is a short tin/tock; the gap keeps successive directions separable.
 inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
+// Two short pips below the tin, distinct from the beacon's single steady ping.
+// Sound-design values chosen for cue separation; docs/exploration.md.
+inline constexpr uint64_t UnexploredPipMs = 35, UnexploredPipGapMs = 30, UnexploredMarkGapMs = 30;
+inline constexpr uint64_t UnexploredMarkMs = 2 * UnexploredPipMs + UnexploredPipGapMs;
+inline constexpr double UnexploredMarkHz = 900;
 enum class Layer { Movement, Terrain };
 
 // Navigation policy values (subtile = one D2 collision cell, five per map
@@ -56,6 +65,9 @@ struct Settings {
 	// away from a wall can still be proved to lead past that wall.
 	double reachDepth = 20;
 };
+// A level exit as the passage scan sees it; unexplored when the level it leads
+// to (0 when unknown) has no room the player has seen yet.
+struct LevelExit { Position position; uint32_t level = 0; bool unexplored = false; };
 // The room partition of a maze level (Levels.txt DrlgType 1) is one chamber
 // per streamed room; elsewhere it cuts across open floor and means nothing.
 struct PassageQuery {
@@ -63,12 +75,13 @@ struct PassageQuery {
 	State committed = State::Unknown; // the sensor's verdict: inside the hysteresis band it stands
 	bool maze = false;
 	double wayThrough = 0; // a doorway's width: how far past a border, or how near an exit, a route must reach
-	const std::vector<Position>* exits = nullptr; // level exits, in world cells
+	const std::vector<LevelExit>* exits = nullptr; // level exits, in world cells
 };
 
 struct RoomGrid {
 	int x = 0, y = 0, width = 0, height = 0;
 	std::vector<uint16_t> cells;
+	bool visited = false; // the player has stood in this room (exploration memory)
 };
 struct World {
 	Position player;
@@ -78,7 +91,11 @@ struct World {
 	uint16_t walkingMask = 0;
 	std::vector<RoomGrid> rooms;
 	bool maze = false; // one streamed room is one chamber (Levels.txt DrlgType 1)
-	std::vector<Position> exits; // the level's exits: warps, stairs, portals, border exits
+	std::vector<LevelExit> exits; // the level's exits: warps, stairs, portals, border exits
+	// Open ground (DrlgType 3): ground never streamed is reachable in that
+	// screen quadrant, so floor that way is unexplored. Stamped by the terrain
+	// service from the exploration memory; false everywhere else.
+	Marks frontier{};
 	int RoomAt(int x, int y) const; // index into rooms, or -1
 	State Cell(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
@@ -94,7 +111,10 @@ struct Passage {
 	State observed = State::Unknown; // Unknown only while coverage is insufficient
 	bool available = false; // false means coverage within openDepth is insufficient, not a dead end
 	double crossing = -1; // depth at which the route enters another streamed room, if it does
+	int crossingRoom = -1; // index into World::rooms of the room entered at `crossing`
+	int exit = -1; // index into the query's level exits when the route arrives at one
 	bool door = false; // a closed door stands on the route within the closing depth
+	bool unexplored = false; // the qualifier of a passable reading, see Engine::Qualify
 };
 // A wall the player has been warned about stays where it is. Backing away
 // from it makes the route ahead longer again, but nothing opened: an opening
@@ -107,12 +127,16 @@ struct Frontier {
 struct Sensor {
 	Passage passage;
 	State state = State::Unknown; // confirmed verdict, Unknown until the baseline
+	bool unexplored = false; // qualifier of `state`; a change of it alone is a change too
 	bool baseline = false; // the first observation after a reset is silent, dead band included
 	State candidate = State::Unknown;
+	bool candidateUnexplored = false;
 	Position candidateOrigin; // motion position where the candidate first appeared
 	uint64_t candidateSince = 0;
 	State deferred = State::Unknown; // confirmed opening waiting for the cue interval
+	bool deferredUnexplored = false;
 	State lastCue = State::Unknown;
+	bool lastCueUnexplored = false;
 	uint64_t lastCueMs = 0;
 	Frontier frontier;
 	bool wayBack = false; // the doorway just crossed: its next exit reading is taken as read
@@ -122,7 +146,14 @@ struct Sensor {
 class Engine {
 public:
 	explicit Engine(Settings settings = {}) : settings_(settings) {}
-	Events Tick(const World& world, uint64_t now);
+	// `marks`, when given, receives the unexplored qualifier of each event.
+	Events Tick(const World& world, uint64_t now, Marks* marks = nullptr);
+	// Confirmed qualifiers, one per direction, for the audio queue's retention.
+	Marks Unexplored() const;
+	// The qualifier of a passable reading: an exit into a chamber never stood
+	// in, a level exit to a level never seen, or open ground towards the
+	// frontier of what has been streamed. `docs/exploration.md`
+	static bool Qualify(const Passage& passage, const World& world, size_t direction);
 	void Reset(); // discard observations; the next known observation is a silent baseline
 	const auto& Sensors() const { return sensors_; }
 	const Settings& Configuration() const { return settings_; }

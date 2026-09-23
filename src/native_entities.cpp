@@ -199,7 +199,10 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		// padding, so a byte-sized read would silently truncate any level above
 		// 255 that a future build or a mod introduces.
 		uint16_t levelId = 0;
-		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) entity.name = LevelText(tables, levelId, LevelNameKey);
+		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) {
+			entity.name = LevelText(tables, levelId, LevelNameKey);
+			entity.destinationLevel = levelId;
+		}
 	}
 	if (entity.name.empty() && !key.empty()) entity.name = UiText::Clean(Localization::Text(key));
 	// Spatial cues are derived from the object row, not its translated label.
@@ -233,7 +236,10 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	uintptr_t destination = 0, level = 0;
 	uint32_t levelId = 0;
 	if (Peek(node + WarpNodeDestination, destination) && destination && Peek(destination + ExtendedLevel, level) && level
-		&& Peek(level + LevelId, levelId)) entity.name = LevelText(tables, levelId, LevelWarpKey);
+		&& Peek(level + LevelId, levelId)) {
+		entity.name = LevelText(tables, levelId, LevelWarpKey);
+		entity.destinationLevel = levelId;
+	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	return true;
 }
@@ -302,7 +308,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	if (distantExits && NativeLevelExits::Read(room, exits)) for (const auto& exit : exits) {
 		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
 			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position),
-			false, EntityRadar::Category::Exit};
+			false, EntityRadar::Category::Exit, exit.destination};
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
@@ -322,7 +328,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		for (const auto& crossing : LevelAreas::Neighbours(areas, here)) {
 			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
 				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
-				false, EntityRadar::Category::Exit};
+				false, EntityRadar::Category::Exit, crossing.level};
 			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 				entities.push_back(std::move(entity));

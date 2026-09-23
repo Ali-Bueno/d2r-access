@@ -109,6 +109,9 @@ Summary Describe(const Layout& layout, Position player) {
 	if (RoomAt(layout, tileX, tileY) == nullptr) return summary;
 	summary.box = Bounds(layout.rooms);
 	summary.place = Place(summary.box, player);
+	size_t explored = 0;
+	for (const auto& room : layout.rooms) explored += room.explored ? 1 : 0;
+	summary.percent = static_cast<int>(explored * 100 / layout.rooms.size());
 	for (size_t d = 0; d < Radar::DirectionCount; ++d)
 		summary.legs[d] = Walk(layout, summary.box, tileX, tileY, static_cast<Radar::Direction>(d));
 	summary.valid = true;
@@ -140,9 +143,13 @@ std::string Speak(const Summary& summary, const std::string& levelName,
 	}
 	// The place and the directions are separated the same way the directions are.
 	directions.insert(0, strings.terrainSeparator);
+	char percent[96]{};
+	std::snprintf(percent, sizeof percent, strings.terrainPercent, summary.percent);
+	std::string place = strings.terrainPlaces[std::min(summary.place, Strings::TerrainPlaceCount - 1)];
+	place += strings.listSeparator;
+	place += percent;
 	char text[1024]{};
-	std::snprintf(text, sizeof text, strings.terrainOverview, levelName.c_str(),
-		strings.terrainPlaces[std::min(summary.place, Strings::TerrainPlaceCount - 1)], directions.c_str());
+	std::snprintf(text, sizeof text, strings.terrainOverview, levelName.c_str(), place.c_str(), directions.c_str());
 	return text;
 }
 }

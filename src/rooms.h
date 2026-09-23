@@ -16,6 +16,8 @@ using Radar::Position;
 struct Opening {
 	Position centre{}; // midpoint of the gap, in collision subtiles
 	int width = 0;     // gap width in cells
+	Position across{}; // the cell just past the border, inside the room the gap leads to
+	bool unexplored = false; // that room has never been stood in (stamped by the caller)
 };
 
 struct Room {

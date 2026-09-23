@@ -12,15 +12,15 @@ constexpr double SameCell = 1;
 }
 
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
-	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings) {
+	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings, UnexploredExit unexploredExit) {
 	std::vector<Item> items;
 	items.reserve(openings.size() + exits.size());
-	const auto add = [&](std::string label, Position point, const EntityRadar::Entity* entity) {
+	const auto add = [&](std::string label, Position point, const EntityRadar::Entity* entity, bool unexplored) {
 		items.push_back({std::move(label), point, std::hypot(point.x - player.x, point.y - player.y),
-			entity != nullptr, entity ? *entity : EntityRadar::Entity{}});
+			entity != nullptr, entity ? *entity : EntityRadar::Entity{}, unexplored});
 	};
-	for (const auto& opening : openings) add(strings.roomOpening, opening.centre, nullptr);
-	for (const auto& exit : exits) add(exit.name, exit.position, &exit);
+	for (const auto& opening : openings) add(strings.roomOpening, opening.centre, nullptr, opening.unexplored);
+	for (const auto& exit : exits) add(exit.name, exit.position, &exit, unexploredExit && unexploredExit(exit));
 	std::stable_sort(items.begin(), items.end(),
 		[](const Item& a, const Item& b) { return a.distance < b.distance; });
 	return items;
@@ -54,7 +54,13 @@ void Cycle::Reset() {
 }
 
 std::string Describe(const Item& item, const EntityRadar::Settings& scan, const Strings::Table& strings) {
-	return item.label + ", " + EntityRadar::DistancePhrase(item.distance, scan, strings);
+	std::string label = item.label;
+	if (item.unexplored) {
+		char tagged[256]{};
+		std::snprintf(tagged, sizeof tagged, strings.wayUnexplored, item.label.c_str());
+		label = tagged;
+	}
+	return label + ", " + EntityRadar::DistancePhrase(item.distance, scan, strings);
 }
 
 std::string Nothing(Radar::Direction direction, const Strings::Table& strings) {

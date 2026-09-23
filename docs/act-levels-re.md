@@ -28,8 +28,8 @@ Route from the player: `Room1+0x18 → RoomEx +0x90 → Level +0x1C8 → pDrlg +
 ## Levels tables
 
 The DRLG reads a second table, `LEVELS_GetLevelDef` = `0x32C200(bank, id)` → `bank+0x14A0 + id*0x9C`
-(count `bank+0x14A8`). Row: `+0x08` Act, `+0x0C` SizeX[3], `+0x18` SizeY[3], `+0x24/+0x28` OffsetX/Y,
-`+0x2C` Depend, `+0x30` DrlgType, `+0x34` LevelType, `+0x48` Vis[8], `+0x68` Warp[8]. Accessors:
+(count `bank+0x14A8`). Row (matches D2MOO `D2LevelDefBin`, 0x9C): `+0x08` Layer (not Act; corrected 2026-09-21), `+0x0C` SizeX[3], `+0x18` SizeY[3], `+0x24/+0x28` OffsetX/Y,
+`+0x2C` Depend, `+0x30` DrlgType, `+0x34` LevelType, `+0x38/+0x3C` SubType/SubTheme, `+0x40/+0x44` SubWaypoint/SubShrine, `+0x48` Vis[8], `+0x68` Warp[8], `+0x8C` Portal, `+0x90` Position, `+0x94` SaveMonsters, `+0x98` LOSDraw (`docs/exploration.md`, RE 2026-09-21). Accessors:
 Vis `0x360800`, Warp `0x3DAA50` / `0x3DAAD0` (honour the override list). The 0x18C row at
 `bank+0x1460` is the string row (`LevelName +0xFD`, `LevelWarp +0x125`); no code reads Vis/Warp from it.
 

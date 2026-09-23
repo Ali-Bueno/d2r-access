@@ -282,6 +282,7 @@ void ChamberExit() {
 	world.maze = true;
 	const auto exit = Scan(world, {1, 0});
 	Check(exit.observed == State::Exit && exit.depth >= exit.crossing + Open, "in a maze the route into the next chamber is an exit");
+	Check(exit.crossingRoom == 1 && exit.exit < 0, "the passage names the chamber it enters, for the unexplored qualifier");
 	Check(Scan(world, {-1, 0}).observed == State::Open, "the way deeper into the same chamber is only floor");
 	Check(Scan(world, {1, 0}, Open, Close, State::Unknown, exit.depth - exit.crossing + 1).observed == State::Open,
 		"a doorway wider than the route clears past the border is not proved");
@@ -293,18 +294,19 @@ void ChamberExit() {
 		"crossing the border without a doorway's width beyond it is floor, not an exit");
 }
 
-void LevelExit() {
+void LevelExitReading() {
 	// A level exit on the route: reached within a doorway of it, on the route's
 	// own width. Exits are what a route on any level can lead to.
 	auto world = Field();
-	world.exits = {{54, 40}};
+	world.exits = {{{54, 40}}};
 	Check(Scan(world, {1, 0}).observed == State::Exit, "a route arriving at a level exit leads somewhere");
+	Check(Scan(world, {1, 0}).exit == 0 && Scan(world, {1, 0}).crossingRoom < 0, "the passage names the exit it arrives at");
 	Check(Scan(world, {-1, 0}).observed == State::Open, "the same exit behind the player does not colour the route away from it");
-	world.exits = {{54, 40 + static_cast<int>(Open)}};
+	world.exits = {{{54, 40 + static_cast<int>(Open)}}};
 	Check(Scan(world, {1, 0}).observed == State::Open, "an exit a doorway's width beside the route is not on it");
-	world.exits = {{90, 40}};
+	world.exits = {{{90, 40}}};
 	Check(Scan(world, {1, 0}).observed == State::Open, "an exit the route cannot be proved to reach is not announced");
-	world.exits = {{54, 40}};
+	world.exits = {{{54, 40}}};
 	for (int y = 0; y < Size; ++y) Put(world, 44, y, Barrier);
 	Check(Scan(world, {1, 0}).observed == State::Blocked, "a wall before the exit is still a wall");
 }
@@ -347,7 +349,7 @@ int main() {
 	DoorReading();
 	NoDeadBand();
 	ChamberExit();
-	LevelExit();
+	LevelExitReading();
 	RecordedCamp();
 	Passed();
 }

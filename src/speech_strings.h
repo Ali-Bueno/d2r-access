@@ -157,12 +157,14 @@ struct Table {
 	const char* terrainExplored;
 	const char* terrainUnexplored;
 	const char* terrainUnexploredFrom; // %s = distance where the unexplored part starts
+	const char* terrainPercent;        // %d = share of the level's rooms seen so far
 	const char* terrainUnavailable;    // the level's layout could not be read
 	// Room announcer: the ways out of a dungeon room. `room_service.h`
 	const char* roomExits;     // %s = the ways out, already joined
 	const char* roomExitNamed; // %s = a level exit's own name, %s = its direction
 	const char* roomNoExits;
 	const char* roomOpening;   // a plain gap between two streamed rooms, with no name of its own
+	const char* wayUnexplored; // %s = a way out (direction, passage or exit name) never taken yet
 	const char* roomOutside;   // BACK+Y where there is no dungeon room to describe
 	const char* roomsEnabled;
 	const char* roomsDisabled;
@@ -203,8 +205,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
-		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
+		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

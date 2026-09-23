@@ -196,6 +196,46 @@ void TravelConfirmation() {
 	Check(Silent(walk()) && Silent(walk()), "the confirmed wall is not repeated while the player keeps approaching it");
 }
 
+// The unexplored qualifier is part of the reading: an exit into a level never
+// seen, floor towards the frontier. A change of the qualifier alone confirms
+// and sounds like a change of state, and the marks travel with the events.
+void UnexploredQualifier() {
+	auto world = Field();
+	world.exits = {{{120, 90}, 7, true}}; // on the screen-right axis, within reach
+	world.frontier[Up] = true;
+	Engine engine;
+	Marks marks{};
+	uint64_t now = 1000;
+	// Under maxGapMs, so the engine keeps its evidence; over stoppedMs, so a stationary player confirms.
+	const auto rest = [&] { now += 150; return engine.Tick(world, now, &marks); };
+	Check(Silent(rest()), "the baseline is silent, marks included");
+	constexpr size_t Right = Index(Direction::Right);
+	Check(engine.Sensors()[Right].state == State::Exit && engine.Sensors()[Right].unexplored, "an exit into an unseen level reads unexplored");
+	Check(engine.Sensors()[Up].state == State::Open && engine.Sensors()[Up].unexplored, "floor towards the frontier reads unexplored");
+	Check(engine.Unexplored()[Right] && engine.Unexplored()[Up] && !engine.Unexplored()[Down], "the confirmed marks are exposed for the audio queue");
+	world.exits[0].unexplored = false; // the level across got seen
+	world.frontier[Up] = false; // and that quadrant is done
+	Check(Silent(rest()), "a qualifier change is a candidate first");
+	const auto events = rest();
+	Check(events[Right] == State::Exit && !marks[Right], "the same exit sounds again, without the mark");
+	Check(events[Up] == State::Open && !marks[Up], "the same floor sounds again, plain");
+	Check(!engine.Sensors()[Right].unexplored && !engine.Unexplored()[Up], "the confirmed marks follow");
+	Check(Silent(rest()), "and nothing repeats");
+	// The chamber rule, on the qualifier alone: an exit into a room never stood in.
+	World maze = Field();
+	maze.rooms.push_back({Size, 0, Size, Size, {}});
+	Passage passage;
+	passage.available = true;
+	passage.observed = State::Exit;
+	passage.crossingRoom = 1;
+	Check(Engine::Qualify(passage, maze, Right), "a chamber never stood in is unexplored");
+	maze.rooms[1].visited = true;
+	Check(!Engine::Qualify(passage, maze, Right), "a chamber stood in is not");
+	passage.observed = State::Blocked;
+	maze.frontier[Right] = true;
+	Check(!Engine::Qualify(passage, maze, Right), "a wall never carries the qualifier");
+}
+
 void StationaryConfirmation() {
 	auto world = Field();
 	Barrier(world, 212, Wall); // two cells ahead: not one step of route is left
@@ -550,6 +590,7 @@ int main() {
 	SilentBaseline();
 	DeadBandBaseline();
 	TravelConfirmation();
+	UnexploredQualifier();
 	StationaryConfirmation();
 	IntervalHold();
 	UnknownCoverage();
