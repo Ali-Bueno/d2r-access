@@ -7,28 +7,29 @@
 
 namespace D2RAccess::EntityCueAudio {
 namespace {
-// Listening feedback, 2026-09-22: wooden NPC tap, airy metallic enemy whoosh.
-constexpr unsigned NpcCueMs = 84, WhooshMs = 120;
+// Listening feedback, 2026-09-22: a voiced metallic swoop separates enemies
+// from the radar's filtered-noise breath. Both fit the faster 100 ms spacing.
+constexpr unsigned NpcCueMs = 84, WhooshMs = 90;
 constexpr double RearPitch = 0.80; // a major-third drop makes rear audible without changing the cue identity
 constexpr double AttackSeconds = 0.0035, ReleaseSeconds = 0.012;
 constexpr double Level = 0.32, PcmPeak = 32767, TextureCutoffHz = 1800;
 constexpr double BodyLevel = 0.75, UpperLevel = 0.30, TopLevel = 0.14;
 constexpr double UpperRatio = 1.57, TopRatio = 2.31;
 constexpr double NpcHz = 850, NpcDecaySeconds = 0.013, NpcTexture = 0.38;
-constexpr double WhooshLevel = 0.55, WhooshShimmer = 0.25;
-constexpr double WideBandRatio = 2.4, LowBandRatio = 0.45;
+constexpr double WhooshLevel = 0.29, WhooshMetalDepth = 0.65;
+constexpr double WhooshBody = 0.88, WhooshAir = 0.12, WhooshAirCutoffHz = 1500;
 
 struct WhooshTimbre { double startHz, endHz, shimmerRatio; };
 WhooshTimbre Voice(Sound sound) {
 	switch (sound) {
-	case Sound::Resurrector: return {1900, 650, 1.83};
-	case Sound::Ranged: return {2300, 800, 2.79};
-	default: return {1500, 480, 2.41}; // important enemies have the deepest sweep
+	case Sound::Resurrector: return {680, 160, 1.83};
+	case Sound::Ranged: return {880, 240, 2.19};
+	default: return {480, 110, 1.61}; // important enemies have the deepest sweep
 	}
 }
 
 struct WhooshState {
-	double wide = 0, low = 0, phase = 0;
+	double air = 0, phase = 0;
 	uint32_t noise = 0x6D2B79F5u; // fixed nonzero seed keeps synthesized texture reproducible
 };
 double Whoosh(WhooshState& state, WhooshTimbre timbre, double progress, double pitch) {
@@ -36,15 +37,16 @@ double Whoosh(WhooshState& state, WhooshTimbre timbre, double progress, double p
 	state.noise ^= state.noise >> 17;
 	state.noise ^= state.noise << 5;
 	const double air = static_cast<double>(state.noise) / UINT32_MAX * 2 - 1;
-	const double hz = (timbre.startHz + (timbre.endHz - timbre.startHz) * progress) * pitch;
+	const double remaining = 1 - progress;
+	const double hz = (timbre.endHz + (timbre.startHz - timbre.endHz) * remaining * remaining) * pitch;
 	const double angularStep = 2 * std::numbers::pi * hz / SampleRate;
-	state.wide += (1 - std::exp(-angularStep * WideBandRatio)) * (air - state.wide);
-	state.low += (1 - std::exp(-angularStep * LowBandRatio)) * (air - state.low);
+	const double airBlend = 1 - std::exp(-2 * std::numbers::pi * WhooshAirCutoffHz * pitch / SampleRate);
+	state.air += airBlend * (air - state.air);
 	state.phase += angularStep;
-	// Modulated noise adds metallic movement without a sustained musical note.
-	const double shimmer = 1 + WhooshShimmer * std::sin(state.phase) * std::sin(state.phase * timbre.shimmerRatio);
+	// A falling inharmonic resonance gives a low "vwoop", with only a little air.
+	const double body = std::sin(state.phase + WhooshMetalDepth * std::sin(state.phase * timbre.shimmerRatio));
 	const double swell = std::sin(std::numbers::pi * progress);
-	return WhooshLevel * swell * swell * (state.wide - state.low) * shimmer;
+	return WhooshLevel * swell * swell * (WhooshBody * body + WhooshAir * state.air);
 }
 
 double SafeAxis(double value, double fallback) {

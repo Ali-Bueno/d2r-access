@@ -1,4 +1,6 @@
 #include "entity_cue_audio.h"
+#include "entity_cues.h"
+#include "radar_audio.h"
 #include "test_support.h"
 
 #include <algorithm>
@@ -40,6 +42,8 @@ void DurationAndLevels() {
 		const auto pcm = Synthesize(sound, {});
 		Check(!pcm.empty() && pcm.size() % Channels == 0, "every cue contains interleaved stereo PCM");
 		Check(pcm.size() / Channels <= SampleRate * 120 / 1000, "every cue is at most 120 ms");
+		Check(pcm.size() / Channels < SampleRate * D2RAccess::EntityCues::Settings{}.gapMs / 1000,
+			"a full cue fits between rapid starts without building an audio backlog");
 		Check(Peak(pcm) > 1500 && Peak(pcm) < 14000, "cue is audible with headroom");
 		Check(pcm.front() == 0 && pcm.back() == 0, "cue starts and ends smoothly at silence");
 		const size_t frames = pcm.size() / Channels;
@@ -93,6 +97,21 @@ void Timbres() {
 	}
 }
 
+void DifferentFromRadarBreath() {
+	D2RAccess::Radar::Events events{};
+	events[0] = D2RAccess::Radar::State::Open;
+	const auto floor = D2RAccess::RadarAudio::Synthesize(events, {}, 1);
+	const size_t floorFrames = floor.size() / Channels;
+	const double floorRate = static_cast<double>(Crossings(floor, floorFrames / 3, floorFrames * 2 / 3)) / floorFrames;
+	for (const auto sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+		const auto enemy = Synthesize(sound, {});
+		const size_t frames = enemy.size() / Channels;
+		const double enemyRate = static_cast<double>(Crossings(enemy, frames / 3, frames * 2 / 3)) / frames;
+		Check(enemyRate < 0.5 * floorRate,
+			"enemy resonance occupies a distinctly lower band than the actual radar noise breath");
+	}
+}
+
 void InvalidInputsAndGain() {
 	const auto full = Synthesize(Sound::Important, {});
 	const auto half = Synthesize(Sound::Important, {}, 0.5);
@@ -117,6 +136,7 @@ int main() {
 	DurationAndLevels();
 	Spatial();
 	Timbres();
+	DifferentFromRadarBreath();
 	InvalidInputsAndGain();
 	Passed();
 }
