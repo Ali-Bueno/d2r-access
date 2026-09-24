@@ -211,6 +211,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)) return false;
 	entity.container = IsContainer(row);
+	entity.questObject = Generated::QuestItemObject(classId);
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
@@ -243,7 +244,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
 	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
-	if (entity.name.empty() && entity.container) entity.name = Strings::Current().containerUnnamed;
+	if (entity.name.empty() && (entity.container || entity.questObject)) entity.name = Strings::Current().containerUnnamed;
 	return !entity.name.empty();
 }
 // A level exit: the warp unit's node in its room, named after the destination level

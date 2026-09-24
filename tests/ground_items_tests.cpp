@@ -1,5 +1,6 @@
 #include "ground_items.h"
 #include "ground_item_text.h"
+#include "item_audio.h"
 #include "speech_strings.h"
 #include "test_support.h"
 #include <D2RLPlugin/item.h>
@@ -19,10 +20,9 @@ void Classification() {
 		Check(Classify(q, false, false) == expected[q], "native equipment quality selects the appropriate loop");
 		Check(Classify(q, true, false) == Sound::Gold, "gold overrides quality");
 		Check(Classify(q, false, true) == Sound::Potion, "consumables override quality");
+		Check(Classify(q, false, false, true) == Sound::Quest, "quest items override every native quality");
+		Check(Classify(q, false, true, true) == Sound::Quest, "quest consumables have their own cue");
 	}
-	for (auto code : {D2RL::Items::MakeItemCode("bks"), D2RL::Items::MakeItemCode("tr1"), D2RL::Items::MakeItemCode("tr2"),
-		D2RL::Items::MakeItemCode("xyz"), D2RL::Items::MakeItemCode("ice")})
-		Check(Classify(2, false, false, code) == Sound::Potion, "quest scrolls and potions share the potion loop");
 }
 void Position() {
 	const auto up = Spatialize(Make(1, {-5, -5}), {}), down = Spatialize(Make(1, {5, 5}), {});
@@ -140,9 +140,49 @@ void Containers() {
 	for (const auto& voice : batch.voices) total += voice.gain;
 	Check(total <= MixGainLimit + 0.0001f, "and the gain limit covers exits, containers and items together");
 }
+void QuestSources() {
+	Tracker tracker;
+	Snapshot scene{1};
+	Item tree = Make(70, {10, -10}, "");
+	tree.sound = Sound::Quest; tree.source = SourceKind::Object;
+	Item scroll = Make(70, {-1, -1}, "Scroll of Inifuss");
+	scroll.sound = Sound::Quest;
+	scene.questObjects = {tree, tree};
+	scene.items = {scroll, scroll};
+	auto batch = tracker.Tick(scene, 1000, true);
+	Check(batch.voices.size() == 2 && batch.speech == "Scroll of Inifuss",
+		"quest item and object with equal numeric IDs remain distinct; duplicate reads do not add voices");
+	Check(!ItemAudio::SameSource(batch.voices[0], batch.voices[1]), "playback keeps object and item voices independent");
+	Check(ItemAudio::SameSource(batch.voices[0], Spatialize(scroll, {})), "stable quest identity preserves loop position");
+	Check(batch.voices[1].right > 0 && batch.voices[0].front > 0, "quest sounds preserve screen direction");
+	Check(tracker.Tick(scene, 2000, true, false).voices.empty(), "item sound toggle silences quest objects and pickups");
+	Check(tracker.Tick(scene, 3000, false, true, false).voices.size() == 2, "quest sources do not require container sounds or speech");
+	scene.items.clear();
+	Check(tracker.Tick(scene, 4000, false).voices.size() == 1, "picking up a quest item silences only that source");
+	scene.questObjects.clear();
+	Check(tracker.Tick(scene, 5000, false).voices.empty(), "using the quest object removes its source");
+	scene.questObjects = {tree}; scene.questObjects[0].position = {AudibleRadius, 0};
+	Check(tracker.Tick(scene, 6000, false).voices.empty(), "quest objects obey the same audio radius");
+	scene.questObjects[0].position = {NAN, 0};
+	Check(tracker.Tick(scene, 7000, false).voices.empty(), "invalid quest coordinates stay silent");
+	scene.questObjects = {tree}; scene.items = {scroll};
+	for (uint32_t i = 0; i < 20; ++i) {
+		Item exit = Make(i, {1, 0}, ""); exit.sound = Sound::Portal;
+		scene.landmarks.push_back(exit);
+		Item chest = Make(i, {1, 0}, ""); chest.sound = Sound::Chest;
+		scene.containers.push_back(chest);
+		scene.items.push_back(Make(i));
+	}
+	batch = tracker.Tick(scene, 8000, false);
+	Check(batch.voices.size() == MaxVoices && batch.voices[0].sound == Sound::Quest && batch.voices[1].sound == Sound::Quest,
+		"nearby exits, containers and ordinary loot cannot crowd out quest cues");
+	Check(batch.voices[2].sound == Sound::Portal, "reserved quest share leaves room for exits");
+	float total = 0; for (const auto& voice : batch.voices) total += voice.gain;
+	Check(total <= MixGainLimit + 0.0001f, "quest sources share the pile gain limit");
+}
 }
 int main() {
-	Classification(); Position(); Tracking(); Containers();
+	Classification(); Position(); Tracking(); Containers(); QuestSources();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");

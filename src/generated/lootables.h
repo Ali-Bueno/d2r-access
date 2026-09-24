@@ -83,6 +83,17 @@ inline constexpr std::array<uint16_t, 178> LootableObjects{
 	545, 548, 549, 550, 551, 556,
 };
 
+// Quest interactions that grant a fixed quest item.
+inline constexpr std::array<uint16_t, 9> QuestItemObjects{
+	30, 108, 193, 354, 355, 356, 405, 406, 407
+};
+
+constexpr bool QuestItemObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(QuestItemObjects.begin(), QuestItemObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
 // True when this object class gives the player loot.
 constexpr bool LootableObject(uint32_t classId) {
 	if (classId > UINT16_MAX) return false;

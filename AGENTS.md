@@ -62,7 +62,10 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   `[quest]` logs, `docs/quests.md`; live NVDA check pending.
 - Ground items: Ctrl+I toggles proximity speech; Ctrl+L toggles spatial loops;
   `access-items on|off|sound-on|sound-off|status`. Fixed screen axes, rear pitch
-  0.94. Six OGG assets require FFmpeg at build time, no runtime decoder DLL.
+  0.94. Nine item OGG assets require FFmpeg at build time, no runtime decoder DLL.
+  Quest items and nine quest-item interactions (including Inifuss) use the
+  supplied quest cue, sharing Ctrl+L; two quest voices get priority. Used objects
+  stop via native selectability; nearby loaded rooms only. `docs/ground-items.md`.
   User reported silence in the first live test: raw loops were much too quiet.
   User now confirms audibility but requested quieter loops and silence while
   falling. Installed: gain 0.4, pile cap 0.5 (about 3.5 dB lower), and native
