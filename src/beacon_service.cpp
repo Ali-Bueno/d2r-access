@@ -6,7 +6,6 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
-#include "native_automap.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
@@ -101,15 +100,19 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, const
 	if (!graph) return std::nullopt;
 	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
 	if (current == NativeRooms::None) return std::nullopt;
-	auto explored = TerrainService::VisitedRooms(state.level, graph->rooms);
-	// Rooms the automap has drawn are explored too: the route stays on charted ground.
-	if (const auto charted = NativeAutomap::RevealedRooms(graph->rooms))
-		for (const auto& room : *charted)
-			if (std::none_of(explored.begin(), explored.end(), [&](const auto& known) { return known.id == room.id; }))
-				explored.push_back(room);
-	// The room the player stands in is explored even before either records it.
-	if (!NavigationPolicy::Contains(explored, world.player)) explored.push_back(graph->rooms[current]);
+	auto explored = TerrainService::ExploredRooms(state.level, graph->rooms, world.player);
+	// An unexplored room at the edge of the known map may be entered, never crossed.
+	if (entity.category == EntityRadar::Category::UnexploredRoom && !NavigationPolicy::Contains(explored, target))
+		if (const size_t room = NativeRooms::Containing(graph->rooms, target); room != NativeRooms::None)
+			explored.push_back(graph->rooms[room]);
 	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin);
+}
+// An unexplored room is reached by stepping into it: its centre may lie inside a wall.
+bool InTargetRoom(const Lifecycle& state, Radar::Position player) {
+	if (g_target.entity.category != EntityRadar::Category::UnexploredRoom) return false;
+	const auto* graph = Rooms(state);
+	const size_t room = graph ? NativeRooms::Containing(graph->rooms, player) : NativeRooms::None;
+	return room != NativeRooms::None && graph->rooms[room].id == g_target.entity.levelExitId;
 }
 bool Playing() {
 	return RadarUi::InPlay();
@@ -241,6 +244,13 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		return;
 	}
 	const auto& world = guidance.world;
+	const auto arrive = [seen] {
+		const auto name = g_target.entity.name;
+		Release("arrived");
+		BeaconAudio::Play(BeaconAudio::Sound::Arrived, {});
+		Announce(seen ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
+	};
+	if (InTargetRoom(state, world.player)) { arrive(); return; }
 	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
 	const auto update = g_tracker.Tick(world, g_target.entity.position, now, SettingsFor(g_target.entity), waypoint);
 	if (!update.valid) return;
@@ -250,14 +260,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		Announce(Strings::Current().beaconKnownRouteEnded, name);
 		return;
 	}
-	if (update.arrived) {
-		const auto name = g_target.entity.name;
-		const bool present = seen;
-		Release("arrived");
-		BeaconAudio::Play(BeaconAudio::Sound::Arrived, {});
-		Announce(present ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
-		return;
-	}
+	if (update.arrived) { arrive(); return; }
 	if (update.ping) BeaconAudio::Play(BeaconAudio::Sound::Ping, Place(update.heading));
 	if (!g_lastLog || now - g_lastLog >= LogIntervalMs) {
 		g_lastLog = now;

@@ -23,6 +23,12 @@ Some loader captions are English even with Spanish game text; the reader uses
 the actual displayed captions. Unlisted games do not appear in the public list.
 TCP/IP uses local characters, rather than Battle.net characters.
 
+The right-stick scanner has a **player** category (`jugador`) listing the
+other characters nearby by name, distance and direction. Party members are
+listed anywhere on the same level. A right-stick click follows the one just
+named (`docs/entity-scan.md`). To be found from afar, both players must be in
+the same party (the party panel's invite button).
+
 The mod's speech and audio play locally; no accessibility audio is sent to the
 other client. Navigation uses the local-player position and identity. Vitals
 read this client's HUD and local character; mercenary/corpse readers check

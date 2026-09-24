@@ -35,4 +35,17 @@ Radar::World Restrict(const Radar::World& world, const std::vector<NativeRooms::
 	}
 	return restricted;
 }
+
+std::vector<NativeRooms::Room> Explored(std::vector<NativeRooms::Room> visited,
+	const std::vector<NativeRooms::Room>* charted, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	const auto add = [&visited](const NativeRooms::Room& room) {
+		if (std::none_of(visited.begin(), visited.end(), [&](const NativeRooms::Room& known) { return known.id == room.id; }))
+			visited.push_back(room);
+	};
+	if (charted)
+		for (const auto& room : *charted) add(room);
+	// The room the player stands in is explored even before either memory records it.
+	if (const size_t current = NativeRooms::Containing(rooms, player); current != NativeRooms::None) add(rooms[current]);
+	return visited;
+}
 }

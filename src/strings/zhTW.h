@@ -87,7 +87,7 @@ inline constexpr Table zhTW {
 	.entityCueRangedDisabled = "遠程敵人提示音已關閉",
 	.entityCueAudioUnavailable = "實體提示音無法使用",
 	.entityCueReaderUnavailable = "實體讀取無法使用",
-	.surveyCategories = { "出口", "傳送門", "傳送點", "NPC", "儲藏箱", "敵人", "寶藏", "神殿", "機關", "物品" },
+	.surveyCategories = { "出口", "傳送門", "傳送點", "NPC", "儲藏箱", "敵人", "寶藏", "神殿", "機關", "物品", "房間", "玩家", "未探索房間" },
 	.surveySteps    = "%s，%s，%s",
 	.surveyOrientation = "%s，直線距離%s，%s",
 	.surveyBearing  = "%s，%s",

@@ -194,6 +194,25 @@ void CategoryCycling() {
 		"stepping from a category that is not present starts at the first");
 	Check(StepCategory({}, EntityRadar::Category::Exit, 1) == EntityRadar::Category::Unknown,
 		"an empty map offers no category at all");
+
+	const auto people = Survey(world, grid, {
+		with(5, 22, 22, EntityRadar::Category::Enemy),
+		with(6, 24, 24, EntityRadar::Category::Player),
+		with(7, 26, 26, EntityRadar::Category::Npc),
+	});
+	const auto order = Categories(people);
+	Check(order.size() == 3 && order[0] == EntityRadar::Category::Npc && order[1] == EntityRadar::Category::Player
+		&& order[2] == EntityRadar::Category::Enemy, "other players are their own category, between NPCs and enemies");
+
+	const auto rooms = Survey(world, grid, {
+		with(8, 22, 22, EntityRadar::Category::Room),
+		with(9, 24, 24, EntityRadar::Category::UnexploredRoom),
+		with(10, 26, 26, EntityRadar::Category::Exit),
+	});
+	const auto roomOrder = Categories(rooms);
+	Check(roomOrder.size() == 3 && roomOrder[0] == EntityRadar::Category::Exit
+		&& roomOrder[1] == EntityRadar::Category::UnexploredRoom && roomOrder[2] == EntityRadar::Category::Room,
+		"where is left to explore follows the ways out, before the rooms already walked");
 }
 
 void ExplorationDiscoversOnlyNearbyVisibleTargets() {
@@ -299,8 +318,11 @@ void ScannerSplitsLandmarksFromLiveEnemies() {
 	loot.category = EntityRadar::Category::Item;
 	auto waypoint = Make(5, 24, 20, EntityRadar::Kind::Object);
 	waypoint.category = EntityRadar::Category::Waypoint;
-	const auto scene = Split({enemy, chest, questChest, loot, waypoint});
+	auto ally = Make(6, 25, 20, EntityRadar::Kind::Player);
+	ally.category = EntityRadar::Category::Player;
+	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally});
 	Check(scene.enemies.size() == 1 && scene.enemies.front().id == 1, "enemies are kept apart to be read live");
+	Check(scene.players.size() == 1 && scene.players.front().id == 6, "other players are kept apart to be read live, never remembered");
 	Check(scene.landmarks.size() == 2 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5,
 		"a quest container and a waypoint are landmarks; ordinary chests and loot are left out");
 }

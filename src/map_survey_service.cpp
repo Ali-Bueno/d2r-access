@@ -132,6 +132,9 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Shrine:       return names[7];
 	case EntityRadar::Category::Interactable: return names[8];
 	case EntityRadar::Category::Item:         return names[9];
+	case EntityRadar::Category::Room:         return names[10];
+	case EntityRadar::Category::Player:       return names[11];
+	case EntityRadar::Category::UnexploredRoom: return names[12];
 	default:                                  return names[8];
 	}
 }
@@ -261,6 +264,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
+	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
+	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;
 }

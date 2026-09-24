@@ -16,6 +16,11 @@ inline constexpr uint32_t MonsterType = 1, ObjectType = 2, WarpType = 5;
 // D2Client UI 0xCE8F0 uses mode 17 for a player corpse. D2Game corpse pickup
 // 0x4B2C8A checks a type-0 unit's inventory link ID against the player ID.
 inline constexpr uint32_t PlayerCorpseMode = 17;
+// PlrMode.txt DT; liveness 0x34C2C0 treats a type-0 unit in mode 0 or 17 as dead.
+inline constexpr uint32_t PlayerDeathMode = 0;
+// PlayerData (*(Unit+0x10), getter 0x34B240): the character name, a NUL-terminated
+// char[0x3D] at +0 (copy bound in 0x1C9DE0); the quest array follows at +0x40 (0x5A6650).
+inline constexpr size_t PlayerName = 0, PlayerNameBytes = 0x3D;
 inline constexpr std::string_view PlayerCorpseNameKey = "DeadPlayerCorpseName";
 // Unit inventory getter 0x34A360: +0x90 normally, or +0x98 while the +0xA0
 // owner reference is live. Inventory link-ID getter 0x388BA0 validates magic.
@@ -136,6 +141,33 @@ inline constexpr Evidence Checks[] = {
 	{0x9F2A0, 203, 0xC90C7A453EC06F4BULL}, // warp caption: Levels row +0x125 key
 	{0xC17E0, 910, 0x34C1A6F0CFE7D2B9ULL}, // object label: SubClass portal / waypoint bits, LevelName +0xFD, ObjectData+8
 	{0x34AD40, 72, 0xAB8363B4E728C162ULL}, // ObjectData+8 byte getter
+};
+inline constexpr Evidence PlayerChecks[] = {
+	{0x34B240, 68, 0xB067440C053D4F5CULL}, // player-data getter: type 0 asserted, returns Unit+0x10
+	{0x134FC0, 265, 0x91522CA1BE41A651ULL}, // Roster.cpp name getter: PlayerData itself is the name string
+	{0x1C9DE0, 61, 0xE8F22C8774858297ULL}, // name copy bounded by 0x3D bytes at PlayerData+0
+	{0x5A6650, 83, 0xD8D67EDFC6B8BD61ULL}, // quest array at PlayerData+0x40 ends the name buffer
+};
+// Client party roster (D2Client Roster.cpp): one entry per player, the local one first.
+// RosterNext 0x136470 returns the head global (load at 0x13647D) for a null entry.
+inline constexpr uintptr_t RosterHead = 0x2A4DB90;
+// Entry: name char[0x3D] (init 0x13A220), unit id (0x1366E0), party id word (0x136570),
+// level id (0x136440, packet 0x7F), subtile X/Y (0x136450, packet 0x90), next (0x136470).
+inline constexpr size_t RosterName = 0, RosterUnitId = 0x48, RosterParty = 0x5A, RosterLevel = 0x5C,
+	RosterX = 0x60, RosterY = 0x64, RosterNext = 0x148;
+inline constexpr uint16_t NoParty = 0xFFFF; // 0x136570's "not in a party"
+inline constexpr size_t MaxRosterEntries = 64; // cycle guard, not a game limit
+inline constexpr Evidence RosterChecks[] = {
+	{0x136470, 21, 0x4F66E997F9BC6D8EULL}, // next entry; head global for null
+	{0x13A220, 332, 0x6D4A070900DAFDDAULL}, // entry init: name at +0 bounded by 0x3D, party id +0x5A, unit id +0x48
+	{0x1366E0, 9, 0x9BB24217A6F40590ULL}, // unit id +0x48
+	{0x136570, 70, 0x2AA4002801742ACCULL}, // party id +0x5A, 0xFFFF unless shared
+	{0x136440, 9, 0x9BF63A17A72DC4C4ULL}, // level id +0x5C
+	{0x136450, 17, 0x7C306C78E1D0987BULL}, // X/Y +0x60/+0x64
+	{0x12DE30, 15, 0xFC497D047C5051D3ULL}, // packet 0x90 handler: unit id, X, Y
+	{0x139420, 63, 0x9562FD5F4034BD6BULL}, // stores the 0x90 position at +0x60/+0x64
+	{0x480AD0, 461, 0x4E34945C8B6B454EULL}, // server: unit path X/Y, sent beyond 50 subtiles
+	{0xD286C, 561, 0x3BE9A00FE07BA259ULL}, // automap marker: same party, unit not loaded, same layer
 };
 inline constexpr Evidence CorpseChecks[] = {
 	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper

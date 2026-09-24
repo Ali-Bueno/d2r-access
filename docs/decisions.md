@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-24 — Unexplored rooms at the edge of the map, in the scanner
+
+The user, after playing: keep the radar, but list unexplored rooms even when unloaded,
+without revealing exits, so a lost player can head for new ground. Chosen: a separate
+*unexplored room* category listing only rooms near explored ground (`RoomGraph::Near`). The
+beacon may enter such a room and arrives on entry. Rejected: every unexplored room of the
+level, because it would lay out the whole level's shape and point toward its far end.
+`docs/entity-scan.md`.
+
 ## 2026-09-24 — Exploration follows the automap's drawn rooms
 
 Live sessions confirmed the native automap reader (`docs/automap-reader.md`).

@@ -87,7 +87,7 @@ inline constexpr Table ruRU {
 	.entityCueRangedDisabled = "Сигналы врагов дальнего боя выключены",
 	.entityCueAudioUnavailable = "Звук сигналов объектов недоступен",
 	.entityCueReaderUnavailable = "Чтение объектов недоступно",
-	.surveyCategories = { "выход", "портал", "точка перехода", "НИП", "тайник", "враг", "сокровище", "святилище", "механизм", "предмет" },
+	.surveyCategories = { "выход", "портал", "точка перехода", "НИП", "тайник", "враг", "сокровище", "святилище", "механизм", "предмет", "комната", "игрок", "неисследованная комната" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyOrientation = "%s, %s по прямой, %s",
 	.surveyBearing  = "%s, %s",

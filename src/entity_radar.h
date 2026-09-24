@@ -15,7 +15,8 @@ namespace D2RAccess::EntityRadar {
 // Corpse is a dead player unit, separate from Object even when numeric IDs overlap.
 // Room is not a game unit: a fixed place in the level's rooms, such as a
 // doorway, that guidance can lead to and never needs to re-read.
-enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse };
+// Player is another living player in the same game (multiplayer).
+enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse, Player };
 
 // What the thing is FOR, which is how a player asks for it ("where is the next
 // shrine", "any chests left"). Kind is too coarse for that: it files every
@@ -24,7 +25,8 @@ enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse };
 // Interactable is the deliberate catch-all: levers, seals, statues and doors
 // carry no SubClass bit of their own.
 enum class Category : uint8_t {
-	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item
+	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room, Player,
+	UnexploredRoom // a room never stood in, kept apart from Room so the scanner can list where to explore
 };
 
 struct EnemyTraits {

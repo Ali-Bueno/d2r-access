@@ -32,6 +32,8 @@ using GroundItemLayout::UnitType, GroundItemLayout::UnitClass, GroundItemLayout:
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
 bool g_corpsesSupported = false;
+bool g_playersSupported = false;
+bool g_rosterSupported = false;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -164,6 +166,54 @@ bool ReadPlayerCorpse(uintptr_t unit, uintptr_t room, uint32_t playerId, EntityR
 	entity.category = EntityRadar::Category::Interactable;
 	entity.name = UiText::Clean(Localization::Text(PlayerCorpseNameKey));
 	return !entity.name.empty();
+}
+// Another living player in the game, by the character name the game stores.
+bool ReadOtherPlayer(uintptr_t unit, uintptr_t room, uint32_t playerId, EntityRadar::Entity& entity) {
+	uint32_t mode = 0, flags = 0;
+	uintptr_t data = 0;
+	if (!Peek(unit + UnitMode, mode) || mode == PlayerDeathMode || mode == PlayerCorpseMode
+		|| !Peek(unit + UnitFlags1, flags) || (flags & ForcedDead)
+		|| !Peek(unit + UnitId, entity.id) || !entity.id || entity.id == playerId
+		|| !Peek(unit + UnitData, data) || !data || !DynamicPosition(unit, room, entity.position)) return false;
+	entity.name = UiText::Clean(CString(data + PlayerName, PlayerNameBytes));
+	entity.kind = EntityRadar::Kind::Player;
+	entity.category = EntityRadar::Category::Player;
+	return !entity.name.empty();
+}
+// Party members outside the loaded rooms, where the automap marks them: same
+// party, same level, unit not loaded here. The server sends the position only
+// beyond 50 subtiles; zero is treated as not received yet.
+void ReadRoster(uintptr_t head, uint32_t playerId, uint32_t level, const std::vector<uint32_t>& loaded,
+	std::vector<EntityRadar::Entity>& entities) {
+	uint16_t party = NoParty;
+	uintptr_t entry = head;
+	for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+		uint32_t id = 0;
+		if (!Peek(entry + RosterUnitId, id)) return;
+		if (id == playerId) { if (!Peek(entry + RosterParty, party)) return; break; }
+		if (!Peek(entry + RosterNext, entry)) return;
+	}
+	if (party == NoParty || !level) return;
+	entry = head;
+	for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+		EntityRadar::Entity entity;
+		uint16_t memberParty = NoParty;
+		uint32_t memberLevel = 0;
+		int32_t x = 0, y = 0;
+		if (Peek(entry + RosterUnitId, entity.id) && entity.id && entity.id != playerId
+			&& std::find(loaded.begin(), loaded.end(), entity.id) == loaded.end()
+			&& Peek(entry + RosterParty, memberParty) && memberParty == party
+			&& Peek(entry + RosterLevel, memberLevel) && memberLevel == level
+			&& Peek(entry + RosterX, x) && Peek(entry + RosterY, y)
+			&& x > 0 && y > 0 && x <= UINT16_MAX && y <= UINT16_MAX) {
+			entity.name = UiText::Clean(CString(entry + RosterName, PlayerNameBytes));
+			entity.kind = EntityRadar::Kind::Player;
+			entity.category = EntityRadar::Category::Player;
+			entity.position = {static_cast<double>(x), static_cast<double>(y)};
+			if (!entity.name.empty()) entities.push_back(std::move(entity));
+		}
+		if (!Peek(entry + RosterNext, entry)) return;
+	}
 }
 // What the object is for, from the table row the caller has already read.
 // Order matters: a waypoint and a portal are both exits, but a player asking
@@ -304,18 +354,23 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = false; return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = false; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
-	g_corpsesSupported = false;
+	g_corpsesSupported = g_playersSupported = g_rosterSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	g_corpsesSupported = LayoutCheck::Verify(context, context->exeBase, CorpseChecks, "corpse", "player corpse target disabled");
 	if (g_corpsesSupported) AsyncLog::Info(context, "[scan] Verified local player corpse ownership reader.");
+	g_playersSupported = LayoutCheck::Verify(context, context->exeBase, PlayerChecks, "players", "other players not listed");
+	if (g_playersSupported) AsyncLog::Info(context, "[scan] Verified other player name reader.");
+	g_rosterSupported = g_playersSupported
+		&& LayoutCheck::Verify(context, context->exeBase, RosterChecks, "roster", "distant party members not listed");
+	if (g_rosterSupported) AsyncLog::Info(context, "[scan] Verified party roster reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -349,6 +404,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
+	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
 	for (const auto candidateRoom : rooms) {
 		uintptr_t unit = 0;
 		if (!Peek(candidateRoom + RoomFirstUnit, unit)) return false;
@@ -356,8 +412,10 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (visited.size() >= MaxUnits || !visited.insert(unit).second) return false;
 			uint32_t unitType = 0;
 			if (!Peek(unit + UnitType, unitType)) return false;
+			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, entity))
+				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) entities.push_back(std::move(entity));
@@ -396,13 +454,17 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
+	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
+		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
 	return true;
 }
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported);
+	uintptr_t roster = 0;
+	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

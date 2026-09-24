@@ -207,6 +207,102 @@ void PlayerCorpseOwnership() {
 	f.casket.At<uintptr_t>(GroundItemLayout::UnitNext, 0);
 	Check(f.Read(entities) && !f.Find(entities, 50), "corpse pickup or unloading removes the target from a new snapshot");
 }
+void OtherPlayersAreListed() {
+	Fixture f;
+	Memory<UnitSize> self, ally;
+	Memory<PathSize> selfData, allyPath, allyData;
+	auto living = [&](Memory<UnitSize>& unit, uint32_t id, uintptr_t path, uintptr_t data) {
+		unit.At<uint32_t>(GroundItemLayout::UnitType, GroundItemLayout::PlayerType);
+		unit.At<uint32_t>(GroundItemLayout::UnitMode, 1); // PlrMode.txt NU
+		unit.At(GroundItemLayout::UnitId, id);
+		unit.At(GroundItemLayout::UnitPath, path);
+		unit.At(GroundItemLayout::UnitData, data);
+	};
+	living(self, 42, f.playerPath.Address(), selfData.Address());
+	living(ally, 60, allyPath.Address(), allyData.Address());
+	selfData.Text(PlayerName, "Yo");
+	allyData.Text(PlayerName, "Ñandú");
+	allyPath.At<uint32_t>(0, 108u << 16); allyPath.At<uint32_t>(4, 96u << 16); allyPath.At(PathRoom, f.room.Address());
+	f.casket.At(GroundItemLayout::UnitNext, self.Address());
+	self.At(GroundItemLayout::UnitNext, ally.Address());
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities), "native scan reads a room shared with another player");
+	const auto* other = f.Find(entities, 60);
+	Check(other && other->kind == EntityRadar::Kind::Player && other->category == EntityRadar::Category::Player
+		&& other->name == "Ñandú" && other->position.x == 108 && other->position.y == 96,
+		"another living player is listed by the UTF-8 character name in its PlayerData");
+	Check(!f.Find(entities, 42), "the local player never lists itself");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitId, 60);
+	Check(f.Read(entities), "native scan reads a player and an object sharing a unit ID");
+	const auto ofKind = [&](EntityRadar::Kind kind) {
+		return std::find_if(entities.begin(), entities.end(), [kind](const auto& entity) { return entity.id == 60 && entity.kind == kind; });
+	};
+	const auto player = ofKind(EntityRadar::Kind::Player), object = ofKind(EntityRadar::Kind::Object);
+	Check(player != entities.end() && object != entities.end() && !EntityRadar::SameTarget(*player, *object),
+		"a player cannot alias a world object with the same numeric unit ID");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitId, 17);
+	for (const uint32_t mode : {PlayerDeathMode, PlayerCorpseMode}) {
+		ally.At(GroundItemLayout::UnitMode, mode);
+		Check(f.Read(entities) && !f.Find(entities, 60), "a dying or dead player is not listed");
+	}
+	ally.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+	ally.At(UnitFlags1, ForcedDead);
+	Check(f.Read(entities) && !f.Find(entities, 60), "a player the liveness flag marks dead is not listed");
+	ally.At<uint32_t>(UnitFlags1, 0);
+	std::memset(allyData.data.data(), 'a', PlayerNameBytes);
+	Check(f.Read(entities) && !f.Find(entities, 60), "a name with no terminator inside its 0x3D-byte buffer is rejected");
+	allyData.At<uint8_t>(0, 0);
+	Check(f.Read(entities) && !f.Find(entities, 60), "an empty name is not listed");
+	allyData.Text(PlayerName, "Ñandú");
+	Check(NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, true, false)
+		&& !f.Find(entities, 60) && f.Find(entities, 7), "disabling only player recognition preserves the rest of the scan");
+}
+void DistantPartyMembers() {
+	Fixture f;
+	Memory<0x200> here;
+	f.roomEx.At(ExtendedLevel, here.Address()); here.At<uint32_t>(LevelId, 2);
+	Memory<UnitSize> near;
+	Memory<PathSize> nearPath, nearData;
+	near.At<uint32_t>(GroundItemLayout::UnitType, GroundItemLayout::PlayerType);
+	near.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+	near.At<uint32_t>(GroundItemLayout::UnitId, 60);
+	near.At(GroundItemLayout::UnitPath, nearPath.Address()); near.At(GroundItemLayout::UnitData, nearData.Address());
+	nearPath.At<uint32_t>(0, 108u << 16); nearPath.At<uint32_t>(4, 96u << 16); nearPath.At(PathRoom, f.room.Address());
+	nearData.Text(PlayerName, "Cerca");
+	f.casket.At(GroundItemLayout::UnitNext, near.Address());
+	// Roster: me, the loaded one, a far member, another level, no party, never positioned.
+	std::array<Memory<RosterNext + 8>, 6> roster;
+	struct Row { uint32_t id; uint16_t party; uint32_t level; int32_t x, y; const char* name; };
+	const std::array<Row, 6> rows{{{42, 3, 2, 100, 100, "Yo"}, {60, 3, 2, 500, 500, "Cerca"},
+		{70, 3, 2, 300, 400, "Lejos"}, {71, 3, 5, 300, 400, "Otro nivel"},
+		{72, NoParty, 2, 300, 400, "Sin grupo"}, {73, 3, 2, 0, 0, "Sin posición"}}};
+	for (size_t i = 0; i < rows.size(); ++i) {
+		roster[i].Text(RosterName, rows[i].name);
+		roster[i].At(RosterUnitId, rows[i].id); roster[i].At(RosterParty, rows[i].party);
+		roster[i].At(RosterLevel, rows[i].level); roster[i].At(RosterX, rows[i].x); roster[i].At(RosterY, rows[i].y);
+		if (i + 1 < rows.size()) roster[i].At(RosterNext, roster[i + 1].Address());
+	}
+	auto read = [&](std::vector<EntityRadar::Entity>& entities, uintptr_t head) {
+		return NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, true, true, head);
+	};
+	std::vector<EntityRadar::Entity> entities;
+	Check(read(entities, roster[0].Address()), "native scan reads a room with a party roster");
+	const auto* far = f.Find(entities, 70);
+	Check(far && far->kind == EntityRadar::Kind::Player && far->category == EntityRadar::Category::Player
+		&& far->name == "Lejos" && far->position.x == 300 && far->position.y == 400,
+		"a party member outside the loaded rooms is placed where the roster says, by name");
+	const auto* loaded = f.Find(entities, 60);
+	Check(loaded && loaded->position.x == 108 && std::count_if(entities.begin(), entities.end(),
+		[](const auto& entity) { return entity.id == 60; }) == 1, "a loaded unit is read from the world, never repeated from the roster");
+	Check(!f.Find(entities, 42) && !f.Find(entities, 71) && !f.Find(entities, 72) && !f.Find(entities, 73),
+		"the roster adds neither the local player, another level, a non-member nor an unsent position");
+	near.At<uint32_t>(GroundItemLayout::UnitMode, PlayerDeathMode);
+	Check(read(entities, roster[0].Address()) && !f.Find(entities, 60), "a loaded dying player is not revived from the roster");
+	roster[0].At(RosterParty, NoParty);
+	Check(read(entities, roster[0].Address()) && !f.Find(entities, 70), "without a party the roster adds nobody");
+	roster[0].At<uint16_t>(RosterParty, 3);
+	Check(read(entities, 0) && !f.Find(entities, 70), "no roster, no distant players");
+}
 void QuestObjectModes() {
 	Fixture f;
 	constexpr size_t tree = ObjectStride * 30;
@@ -285,6 +381,8 @@ void CairnStoneModes() {
 }
 int main() {
 	PlayerCorpseOwnership();
+	OtherPlayersAreListed();
+	DistantPartyMembers();
 	QuestObjectModes();
 	CairnStoneModes();
 	Fixture f;
