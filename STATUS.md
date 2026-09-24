@@ -9,8 +9,8 @@ exits. New right-stick category **unexplored room** (`sala inexplorada`),
 right after the ways out. In exploration mode it lists only the rooms bordering
 explored ground (stood in, drawn on the automap, or underfoot), loaded or not.
 The beacon may enter such a room and arrives on entry. **76/76 suites pass**;
-installed DLL SHA-256 `CC84620F…` matches the build. The friend's v3 ZIP
-(`A1F48B53…`) no longer matches the installed plugin. **Next step:** get lost on
+installed DLL SHA-256 `CC84620F…` matches the build and is in the v4 ZIP
+(see the entry below). **Next step:** get lost on
 purpose, follow the nearest unexplored room, and check that its exits appear once
 charted. `docs/entity-scan.md`, `docs/beacon.md#exploration-mode`.
 
@@ -28,10 +28,11 @@ Every fingerprint matches three captured images. **76/76 suites pass.** The
 installed DLL hash matches the build. No game launch has verified the checks
 yet. **Next step:** play a two-client game in a party; check
 `[scan] Verified party roster reader.` and the category near and far.
-Friend's package: `../d2r-access-completo-2026-09-24-v3.zip`, SHA-256
-`13522c46…` (full hash in `.sha256`). Same 38 files as the first ZIP of the day;
-only the plugin and the LEEME changed. Every entry verified; the DLL matches the
-install. v2 predates the roster reader. `docs/entity-scan.md`.
+Friend's package: `../d2r-access-completo-2026-09-24-v4.zip`, plugin from
+2fbc9c9 (players and unexplored rooms), SHA-256 `c393c764…` (full hash in
+`.sha256`). Same 38 files as the first ZIP of the day; only the plugin and the
+LEEME changed. Every entry verified; the DLL matches the install. v2 and v3
+are superseded. `docs/entity-scan.md`.
 
 ## Complete tester ZIP — 2026-09-24
 
