@@ -353,7 +353,7 @@ int main() {
 	// The rest of the description is held for the player to ask for.
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 6-13. Coste: 331"}, "right stick up reads the description the move left out, base damage first");
-	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
+	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the level scanner");
 	// An options row offers its explanation to the same gesture instead of
 	// speaking it on arrival; a row with nothing to explain offers nothing.
 	const auto itemFocus = focus;
@@ -399,7 +399,7 @@ int main() {
 	autoDetail = false;
 
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
-	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the pathfinder");
+	Check(pendingPush == InputDirection::StickPush::Down, "any other direction still belongs to the level scanner");
 	pendingPush = InputDirection::StickPush::None;
 	// The character panel claims all four directions, so it must be offered
 	// the push before the detail readout takes up out from under it.

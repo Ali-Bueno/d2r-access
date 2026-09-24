@@ -4,7 +4,7 @@ While the player explores, the plugin names the nearest **friendly** NPC
 (Akara, Kashya, Warriv, Charsi, Cain…) as soon as it is within range, with its
 distance and screen direction, so the left stick can walk to it without
 sweeping the right stick. Enemies, objects and ground items are never
-announced: the right-stick entity scan (`docs/entity-scan.md`) remains the
+announced: the right-stick scanner (`docs/entity-scan.md`) remains the
 tool for those. Requested on 2026-09-16 because story NPCs got lost while the
 player was busy killing and looting.
 

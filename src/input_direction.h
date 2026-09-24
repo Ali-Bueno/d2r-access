@@ -52,7 +52,7 @@ enum class FaceButton {
 };
 FaceButton LastFaceButton(unsigned maxAgeMs);
 
-// Right thumbstick push edges for the entity scan: a push is recorded once
+// Right thumbstick push edges for the level scanner: a push is recorded once
 // when the stick leaves its dead zone (same threshold as the left stick), in
 // the dominant axis at that moment. Releasing below the threshold re-arms it,
 // so cycling means push, release, push. Take() returns the latest push since
@@ -73,8 +73,7 @@ StickPush TakeRightStickPush(const char* claimant);
 
 // Claims the pending push only when it is the one asked for, leaving any
 // other direction for the next consumer. The menu readers share the stick
-// with the entity scan and the pathfinder, and must not swallow the pushes
-// that belong to those.
+// with the level scanner, and must not swallow the pushes that belong to it.
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
 
 // The pending push WITHOUT claiming it, so a reader whose gate is expensive
@@ -107,8 +106,7 @@ bool TakeBackButton();
 // only (D2RLPlugin/input.h Key/Modifier), so the pad button is read here with
 // the rest of the XInput state. Take() returns whether a click happened since
 // the previous Take() and clears it.
-// Left thumbstick CLICK (L3): toggles the long-range pathfinder, which
-// makes the right stick drive the catalogue instead of the entity scan.
+// Left thumbstick CLICK (L3): currently bound to no feature.
 // Both are reported on RELEASE, and not at all when the press became part of
 // an L3+R3 chord (stick_chord.h), so one press never fires two gestures.
 bool TakeLeftStickClick();

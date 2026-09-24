@@ -5,10 +5,9 @@
 #include <D2RLPlugin/api.h>
 #include <string_view>
 
-// Right-stick entity scan plus the friendly NPC announcer: lifecycle, input
-// and speech plumbing around EntityRadar and NpcProximity. The scan reads the
-// world only on a push or console command; the announcer polls on its own
-// interval and stays silent while the UI owns speech.
+// The friendly NPC announcer and the HUD-label sight check: lifecycle, input
+// and speech plumbing around NpcProximity and TargetSight. The announcer polls
+// on its own interval and stays silent while the UI owns speech.
 namespace D2RAccess::EntityRadarService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);

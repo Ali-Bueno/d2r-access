@@ -2,9 +2,9 @@
 
 The directional scan includes fixed stairs and level passages regardless of its
 ordinary 15-subtile range or intervening walls. Enemies, NPCs, loot and temporary
-portals retain their existing local scan rules. Push the right stick toward an
-exit, repeat to cycle candidates, then click the stick / Ctrl+B to follow it.
-Ctrl+E and `access-scan on|off` still control the scan.
+portals retain their existing local scan rules. Pick one in the
+right-stick scanner's exit category (`docs/entity-scan.md`), then click the
+stick / Ctrl+B to follow it.
 
 The adapter walks the current level's existing logical rooms, including inactive
 rooms. Type-5 presets are matched to room warp nodes for their actual destination

@@ -17,7 +17,7 @@ using Radar::Position;
 
 struct Settings {
 	bool requireKnownRoute = false; // exploration mode must not follow partial routes or direct fallbacks
-	// Distances are collision subtiles, the unit the entity scan speaks as
+	// Distances are collision subtiles, the unit the scanner speaks as
 	// steps. Navigation policy, not game constants.
 	//
 	// The search box is half-sided by searchRadius: as wide as the game keeps

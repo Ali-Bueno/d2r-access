@@ -228,7 +228,7 @@ int main() {
 	// Opening the panel names the character once, behind the panel's title.
 	widgets[2].text.clear();
 	CharacterStatsReader::Reset();
-	Check(!CharacterStatsReader::Tick(nullptr, On(11)), "an idle stick is left for the entity scan and the pathfinder");
+	Check(!CharacterStatsReader::Tick(nullptr, On(11)), "an idle stick is left for the level scanner");
 	Check(speech.empty(), "a name the game has not rendered yet is not spoken");
 	widgets[2].text = "Ulfr";
 	CharacterStatsReader::Tick(nullptr, On(11));
@@ -254,8 +254,8 @@ int main() {
 		"leaving the panel forgets where the cursor was");
 
 	// MEASURED 2026-09-20: the focus manager reports no focused widget at all
-	// while this panel is up, so waiting for one left the stick to the entity
-	// scan for a whole session. The panel being open is what counts.
+	// while this panel is up, so waiting for one left the stick to the level
+	// scanner for a whole session. The panel being open is what counts.
 	CharacterStatsReader::Reset();
 	pending = Push::Down;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Ulfr",

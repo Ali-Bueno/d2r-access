@@ -51,7 +51,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	// while this panel is up -- "[focus] no focused widget while
 	// CharacterStatsPanel is active", with the focus indicator matching no
 	// widget either. Waiting for focus meant the stick fell through to the
-	// entity scan for the whole session. The panel being open and visible is
+	// level scanner for the whole session. The panel being open and visible is
 	// what says the player is on it.
 	const auto focusedPanelName = NativeWidgets::ReadName(focus.panel);
 	uintptr_t panel = 0;

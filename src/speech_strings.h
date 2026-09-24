@@ -92,15 +92,9 @@ struct Table {
 	const char* radarMotionUnknown;
 	const char* radarStraight;
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
-	const char* scanEnabled;
-	const char* scanDisabled;
-	const char* pathfinderEnabled;  // L3 toggles the long-range pathfinder
-	const char* pathfinderDisabled;
 	const char* navigationExploration; // mode status: guidance uses visited areas
 	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
-	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
-	const char* scanNothing; // %s = scan direction
 	const char* scanStep; // exactly one step
 	const char* scanSteps; // %d = whole steps
 	const char* scanAdjacent; // under one step away
@@ -222,8 +216,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled,
-		t.navigationExploration, t.navigationFullAssistance, t.scanUnavailable, t.scanNothing, t.scanStep,
+		t.radarStraight,
+		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,

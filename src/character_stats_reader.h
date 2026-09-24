@@ -15,10 +15,9 @@
 //   up    previous statistic     left   first statistic
 //   down  next statistic         right  last statistic
 //
-// The stick is shared with the item/skill detail readout, the pathfinder and
-// the entity scan, so all four directions are claimed only while the
-// character panel holds focus -- which is also the one panel where none of
-// those three has anything to say.
+// The stick is shared with the item/skill detail readout and the level
+// scanner, so all four directions are claimed only while the character panel
+// holds focus -- which is also the one panel where neither has anything to say.
 namespace D2RAccess::CharacterStatsReader {
 
 // Where a push moves a cursor over `count` lines. The cursor starts at -1,

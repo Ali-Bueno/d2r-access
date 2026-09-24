@@ -3,6 +3,16 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-24 — One scanner on the right stick, following the automap
+
+The user asked the scanner to follow the automap, with no L3 mode. Chosen: the
+right stick always drives the catalogue (up/down categories, left/right
+objects). Enemies stay as a live nearest-first category. Ground loot and
+ordinary chests leave the scanner: they are not on the automap, and their loops
+already cover them. The directional "what is to my left" scan was removed, not
+moved to another gesture (user's choice). Until the native automap reveal state
+is readable, discovery keeps the range-and-sight approximation. `docs/entity-scan.md`.
+
 ## 2026-09-24 — Pathfinder: exploration first, full assistance opt-in
 
 The user felt the pathfinder led the player by the hand and wanted to encourage
