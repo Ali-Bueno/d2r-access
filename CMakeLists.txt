@@ -52,6 +52,9 @@ add_library(d2r-access SHARED
 	src/beacon.cpp
 	src/beacon_audio.cpp
 	src/beacon_service.cpp
+	src/beacon_navigation.cpp
+	src/navigation_mode.cpp
+	src/navigation_policy.cpp
 	src/radar.cpp
 	src/navigation_grid.cpp
 	src/radar_passage.cpp
@@ -158,6 +161,7 @@ if(BUILD_TESTING)
 	target_compile_features(beacon-tests PRIVATE cxx_std_20)
 	add_test(NAME beacon COMMAND beacon-tests)
 	add_executable(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp
+		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp
 		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(beacon-service-tests PRIVATE src)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
@@ -389,6 +393,12 @@ if(BUILD_TESTING)
 	target_compile_features(room-graph-tests PRIVATE cxx_std_20)
 	target_compile_definitions(room-graph-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-graph COMMAND room-graph-tests)
+	add_executable(navigation-policy-tests tests/navigation_policy_tests.cpp src/navigation_policy.cpp src/beacon_navigation.cpp
+		src/beacon.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(navigation-policy-tests PRIVATE src)
+	target_compile_features(navigation-policy-tests PRIVATE cxx_std_20)
+	target_compile_definitions(navigation-policy-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME navigation-policy COMMAND navigation-policy-tests)
 	add_executable(native-drlg-tests tests/native_drlg_tests.cpp src/native_drlg.cpp src/native_memory.cpp)
 	target_include_directories(native-drlg-tests PRIVATE src)
 	target_compile_features(native-drlg-tests PRIVATE cxx_std_20)
@@ -530,6 +540,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-level-areas-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(navigation-policy-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

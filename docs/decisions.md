@@ -3,6 +3,16 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-24 — Pathfinder: exploration first, full assistance opt-in
+
+The user felt the pathfinder led the player by the hand and wanted to encourage
+exploration. Chosen: limit what it can solve, not how often. The catalogue only
+orients (straight-line distance and direction to what was discovered), and the
+beacon only routes through visited rooms, so it helps you return rather than
+discover. Full assistance stays as an option, off by default (the user's choice).
+Rejected: removing the pathfinder; a cooldown (one use still skips the
+exploration, and when lost it only makes you wait). `docs/beacon.md#exploration-mode`.
+
 ## 2026-09-23 — Potion assignments in inventory; View reserved for settings
 
 The user chose belt consultation through inventory focus, including the assigned

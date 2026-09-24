@@ -277,10 +277,20 @@ scanned beyond ordinary range and through walls, including inactive rooms whose
 exit presets the game retains. Never-generated positions remain unknown. See
 [distant exits](docs/distant-exits.md) and [target guidance](docs/beacon.md).
 
-Navigation is not limited to the revealed automap: the level catalogue and room
-graph can use generated rooms and exits you have not discovered. The existing
-guidance remains available; a strict discovery filter has not been verified.
-See [automap discovery research](docs/automap-discovery-research.md).
+**Exploration mode (default; live validation pending):** the long-range
+catalogue (L3) lists only what you have discovered: things that came within
+scan range with a clear line of sight, and rooms you have stood in. It gives
+their straight-line distance and direction, not a walking route. Exits,
+waypoints and objects stay listed when you leave a level and come back in the
+same game. The beacon only follows routes through rooms you have visited;
+otherwise it says there is no route through visited areas and stays silent,
+and it stops if the route leaves them. Discovery approximates what a sighted
+player has seen; it does not read the automap's reveal state.
+**Full assistance** restores routes through unexplored rooms and the whole
+generated catalogue: add `full_assistance = true` under `[navigation]` in
+`d2rloader/config/d2r-access.toml` and restart, or switch for the session with
+`access-beacon full` (`access-beacon exploration` switches back). See
+[exploration mode](docs/beacon.md#exploration-mode).
 
 Your **recoverable corpse** is also a scan and beacon target when its room is
 loaded. The reader checks the game's ownership link, so another player's body

@@ -87,6 +87,22 @@ Result Read(const D2RL::PluginContext* context) {
 	return ReadSection<Result>(context, Parse, "[radar] Invalid [radar] settings; using compiled defaults.");
 }
 
+Navigation ParseNavigation(std::string_view config) {
+	Navigation result;
+	bool found = false;
+	const bool valid = ForEachKey(config, "[navigation]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "full_assistance") return Line::Ignored;
+		if (found || !value || !ParseBool(*value, result.fullAssistance)) return Line::Invalid;
+		found = true;
+		return Line::Accepted;
+	});
+	return valid ? result : Navigation{.valid = false};
+}
+Navigation ReadNavigation(const D2RL::PluginContext* context) {
+	return ReadSection<Navigation>(context, ParseNavigation,
+		"[navigation] Invalid [navigation] settings; using exploration-first routing.");
+}
+
 std::optional<bool> ParseEnabled(std::string_view config, std::string_view section) {
 	std::optional<bool> result;
 	const bool valid = ForEachKey(config, section, [&](std::string_view key, std::optional<std::string_view> value) {

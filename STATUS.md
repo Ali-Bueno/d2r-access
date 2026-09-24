@@ -2,6 +2,24 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Quest landmarks on automap — investigated, 2026-09-24
+
+D2R visuals and local tables confirm Cairn, Inifuss and Malus map glyphs;
+tables identify further quest landmarks. Exact discovery timing remains
+unverified, as does a native reveal-state reader. Research only; no gameplay
+changes. **Next step:** compare Cairn glyph visibility before/after approach and
+room unloading. [Evidence and limits](docs/automap-quest-markers.md).
+
+## Pathfinder exploration mode — installed, 2026-09-24
+
+User felt the pathfinder led by the hand. Default is now exploration: L3 lists
+only discovered things and visited rooms, by straight line and direction; R3 /
+Ctrl+B routes only through visited rooms, else says so and stays silent. Fixed
+landmarks survive a return to the level. Full assistance is opt-in
+(`[navigation] full_assistance`, `access-beacon full`). **75/75 suites pass**;
+installed DLL hash verified. **Next step:** play in the default mode and judge
+whether discovery (scan range plus sight) is enough. `docs/beacon.md#exploration-mode`.
+
 ## Cairn scan visibility — installed, 2026-09-24
 
 User confirmed the pathfinder listed the symbols and let them activate the stones,
@@ -761,7 +779,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Audio cues across locales | fixes built and installed; listening pending | Numeric cue classification, generic container/exit fallback in all 13 locales, beacon UI cancellation. 59/59 suites pass in the shared workspace; `docs/audio-language-audit.md`. |
 | Quest log / automatic quest tracking | journal user-confirmed; native packet capture installed 2026-09-23 | Guarded native objective/counter capture can cover unloaded journals; ambiguous or missing captures keep the generic alert. Startup verified, live update coverage pending. 67/67 suites pass. `docs/quests.md` |
 | Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
-| Target beacon guidance | empty-graph retry installed 2026-09-23; listening pending | Scan then R3 / Ctrl+B. Local collision and generated room graph guide toward targets; no revealed-automap filter. `docs/beacon.md`, `docs/automap-discovery-research.md` |
+| Target beacon guidance | exploration mode installed 2026-09-24; listening pending | Scan or catalogue, then R3 / Ctrl+B. Exploration (default) routes only through visited rooms; opt-in full assistance uses the whole generated room graph. `docs/beacon.md` |
 | Native automap discovery | investigated; strict mode not implemented | Current guidance retained. Native reveal state remains unverified; `.ma0` container structure inspected only. `docs/automap-discovery-research.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |

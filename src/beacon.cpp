@@ -189,6 +189,13 @@ void Tracker::Lock(uint64_t now) {
 }
 void Tracker::Clear() { *this = {}; }
 
+bool Reaches(const Radar::World& world, const Route& route, Position target, const Settings& settings) {
+	if (Length({target.x - world.player.x, target.y - world.player.y}) <= settings.arrivalDistance) return true;
+	if (!route.known || route.path.empty()) return false;
+	const auto end = route.path.back();
+	return Length({target.x - end.x, target.y - end.y}) <= settings.arrivalDistance;
+}
+
 Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
 	const Position* waypoint) {
 	Update update;
@@ -213,6 +220,10 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 		routeOrigin_ = world.player;
 		routeTarget_ = destination;
 		routeMs_ = std::max<uint64_t>(now, 1);
+	}
+	if (settings.requireKnownRoute && !update.arrived && !Reaches(world, route_, destination, settings)) {
+		update.routeUnavailable = true;
+		return update;
 	}
 	routed_ = route_.known;
 	update.routed = route_.known;

@@ -27,9 +27,10 @@ releases it on its own.
   (`docs/terrain-overview.md`), holding R3 alone is the exit review's "next way
   out" (`docs/rooms.md`, also Ctrl+V), and the chord swallows both releases, so
   no press ever fires two gestures (`src/stick_chord.*`).
-- Console `access-beacon lock|clear|status` (`lock` also accepts `toggle`,
-  `clear` also accepts `off`); `status` speaks whether something is locked
-  and, if so, its name.
+- Console `access-beacon lock|clear|status|exploration|full` (`lock` also accepts
+  `toggle`, `clear` also accepts `off`); `status` speaks the navigation mode,
+  then whether something is locked and, if so, its name. `exploration` and
+  `full` switch the mode for the session (see [exploration mode](#exploration-mode)).
 
 ## The model
 
@@ -63,6 +64,40 @@ that place itself: identity is the coordinate identity the fixed level exits
 already use, the per-tick `Refresh` skips it because a passage does not move,
 and arrival is the same `arrivalDistance` as everything else. Nothing else
 about the lock changes.
+
+## Exploration mode
+
+The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
+helps the player return, but never discovers for them.
+
+- **Catalogue (L3).** Something enters the catalogue only once it has been
+  within the scan's range (`EntityRadar::Settings::range`) on known terrain with
+  a clear line of sight (`MapSurvey::Discoverable`); it then stays while out of
+  sight. Rooms are listed once stood in. Readouts give straight-line distance and
+  direction (`surveyOrientation`), never walking steps. Exits and objects
+  (waypoints, stones, doors) are kept per level for the whole game, so they are
+  still there after a town trip (`MapSurvey::Memory`); enemies, loot and corpses
+  are forgotten on leaving.
+- **Beacon.** Routes use only the collision of logical rooms the player has
+  stood in (`TerrainService::VisitedRooms`, plus the current room, visited by
+  definition). Everything else is masked unknown (`NavigationPolicy::Restrict`)
+  and the room graph is rebuilt from visited rooms (`BeaconNavigation::Prepare`).
+  A lock needs a route whose end reaches the target or the next waypoint
+  (`Beacon::Reaches`); otherwise it says "No route through visited areas to X"
+  and stays silent. Every route update repeats the check
+  (`Settings::requireKnownRoute`): a target leaving the visited rooms or a route
+  stopping short releases with "The known route to X is no longer available"
+  (`reason=known-route-unavailable`). A failed world or room read only skips
+  that update.
+- Visited is room-level: entering a logical room qualifies its whole rectangle,
+  so a large room can route over floor never walked. Discovery approximates what
+  a sighted player has seen; it does not read the automap's reveal state
+  (`docs/automap-quest-markers.md`, `docs/automap-discovery-research.md`).
+- **Full assistance** restores the earlier behaviour: the whole generated
+  catalogue with walking steps and routes through unvisited rooms.
+  `[navigation] full_assistance = true` in `d2rloader/config/d2r-access.toml`
+  (read at startup), or `access-beacon full` for the session. Switching mode
+  releases any lock and clears the catalogue.
 
 ## Route search
 
@@ -163,7 +198,8 @@ sounds where this uses a word.
 ## Log format
 
 - `[beacon] locked id=<id> kind=<kind> at=<x>,<y> level=<n> name=<name>` — on lock.
-- `[beacon] released reason=<cancelled|arrived|lifecycle|unregister> id=<id> name=<name>` — on release.
+- `[beacon] released reason=<cancelled|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
+- `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
 - `[beacon-audio]` — output device ready/unavailable/reopening, and `silenced reason=<reason>`.
 

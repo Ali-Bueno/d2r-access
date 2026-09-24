@@ -5,6 +5,12 @@ enabled = true
 # Cue loudness, 0-100 percent of the compiled level.
 volume = 100
 
+# Long-range guidance starts with exploration-first routes through visited
+# areas. Set true to allow the optional full-assistance route through areas
+# the character has not visited. Restart the game after changing this value.
+[navigation]
+full_assistance = false
+
 # Nearest unvisited dungeon room loop and a single cue on first entry.
 # Area-transition loops use the existing Ctrl+P exit-sound toggle.
 [exploration]

@@ -64,7 +64,8 @@ int StepsTo(const Navigation::Grid& grid, Radar::Position position) {
 }
 
 void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visible,
-	const Navigation::Grid& grid, const Settings& settings) {
+	const Navigation::Grid& grid, const Settings& settings,
+	const std::vector<EntityRadar::Entity>* present) {
 	if (level != m_level) {
 		Clear();
 		m_level = level;
@@ -85,11 +86,12 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	// Anything not in this frame is only a miss when the map can currently see
 	// where it was. Out-of-window objects keep their place indefinitely, which
 	// is the point: they are what the player still has to walk to.
+	const auto& currentlyPresent = present ? *present : visible;
 	for (Tracked& tracked : m_tracked) {
-		const bool present = std::any_of(visible.begin(), visible.end(), [&tracked](const EntityRadar::Entity& entity) {
+		const bool stillPresent = std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&tracked](const EntityRadar::Entity& entity) {
 			return EntityRadar::SameTarget(tracked.entity, entity);
 		});
-		if (!present && Observed(grid, tracked.entity.position)) ++tracked.misses;
+		if (!stillPresent && Observed(grid, tracked.entity.position)) ++tracked.misses;
 	}
 	m_tracked.erase(std::remove_if(m_tracked.begin(), m_tracked.end(), [&settings](const Tracked& tracked) {
 		return tracked.misses >= settings.missesBeforeForgetting;
@@ -105,14 +107,48 @@ void Registry::Clear() {
 	m_entities.clear();
 }
 
+void Registry::KeepLandmarks() {
+	std::erase_if(m_tracked, [](const Tracked& tracked) {
+		return tracked.entity.kind != EntityRadar::Kind::Object && tracked.entity.kind != EntityRadar::Kind::Exit;
+	});
+	m_entities.clear();
+	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Memory::Select(int level, bool exploration) {
+	if (level == m_level) return;
+	if (!exploration) m_levels.clear();
+	else if (const auto previous = m_levels.find(m_level); previous != m_levels.end())
+		previous->second.KeepLandmarks();
+	m_level = level;
+}
+
+void Memory::Observe(int level, const std::vector<EntityRadar::Entity>& visible,
+	const Navigation::Grid& grid, bool exploration, const Settings& settings,
+	const std::vector<EntityRadar::Entity>* present) {
+	Select(level, exploration);
+	m_levels[level].Observe(level, visible, grid, settings, present);
+}
+
+const std::vector<EntityRadar::Entity>& Memory::Entities() const {
+	static const std::vector<EntityRadar::Entity> Empty;
+	const auto found = m_levels.find(m_level);
+	return found == m_levels.end() ? Empty : found->second.Entities();
+}
+
+void Memory::Clear() {
+	m_levels.clear();
+	m_level = 0;
+}
+
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
-	const std::vector<EntityRadar::Entity>& entities) {
+	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance) {
 	std::vector<Landmark> result;
 	result.reserve(entities.size());
 	for (const EntityRadar::Entity& entity : entities) {
 		Landmark landmark;
 		landmark.entity       = entity;
-		landmark.steps        = StepsTo(grid, entity.position);
+		landmark.steps        = fullAssistance ? StepsTo(grid, entity.position) : -1;
 		landmark.reachable    = landmark.steps >= 0;
 		landmark.straightLine = StraightLine(world.player, entity.position);
 		landmark.direction    = NpcProximity::DirectionOf(world.player, entity.position);
@@ -127,6 +163,30 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		}
 		return std::tie(a.straightLine, a.entity.id) < std::tie(b.straightLine, b.entity.id);
 	});
+	return result;
+}
+
+bool KnownLine(const Radar::World& world, Radar::Position target, double distance) {
+	constexpr double SampleStep = 0.5; // match the entity scan's half-subtile sight trace
+	for (double depth = 0; depth <= distance; depth += SampleStep) {
+		const double share = distance > 0 ? depth / distance : 0;
+		const int x = Round(world.player.x + (target.x - world.player.x) * share);
+		const int y = Round(world.player.y + (target.y - world.player.y) * share);
+		if (world.Cell(x, y, Radar::Layer::Terrain) == Radar::State::Unknown) return false;
+	}
+	return world.Cell(Round(target.x), Round(target.y), Radar::Layer::Terrain) != Radar::State::Unknown;
+}
+
+std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
+	const std::vector<EntityRadar::Entity>& entities, double range) {
+	std::vector<EntityRadar::Entity> result;
+	for (const auto& entity : entities) {
+		const double distance = StraightLine(world.player, entity.position);
+		if (!std::isfinite(distance) || distance > range
+			|| !KnownLine(world, entity.position, distance)
+			|| !EntityRadar::LineOfSight(world, world.player, entity)) continue;
+		result.push_back(entity);
+	}
 	return result;
 }
 
