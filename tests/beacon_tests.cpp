@@ -316,6 +316,38 @@ void SealedTarget() {
 	Check(std::abs(update.remaining - update.distance) < 1e-12, "an unrouted target's remaining distance is the straight line");
 }
 
+void KnownRouteOnly() {
+	Beacon::Settings s;
+	s.requireKnownRoute = true;
+	const Position target{110, 110};
+	// A sealed target: the route stops at the wall, so there is no proved way in.
+	auto sealed = Field({70, 110});
+	Fill(sealed, 106, 106, 114, 114, Wall);
+	Fill(sealed, 107, 107, 113, 113, 0);
+	Check(!Beacon::Reaches(sealed, Beacon::FindRoute(sealed, target, s), target, s),
+		"a route ending at the wall does not reach a sealed target");
+	Beacon::Tracker tracker;
+	tracker.Lock(0);
+	const auto update = tracker.Tick(sealed, target, 0, s);
+	Check(update.valid && update.routeUnavailable, "a known-route tracker reports a partial route as unavailable");
+
+	// A target on a blocked cell is reached from beside it.
+	auto solid = Field({70, 110});
+	Put(solid, 110, 110, Wall);
+	Check(Beacon::Reaches(solid, Beacon::FindRoute(solid, target, s), target, s),
+		"a route ending beside a blocked target reaches it");
+	Beacon::Tracker beside;
+	beside.Lock(0);
+	Check(!beside.Tick(solid, target, 0, s).routeUnavailable, "a known-route tracker follows a route that ends beside its target");
+
+	// Standing on the waypoint leaves no route step, yet the way on is still known.
+	const auto open = Field({110, 110});
+	const Position waypoint{110, 110};
+	Beacon::Tracker hop;
+	hop.Lock(0);
+	Check(!hop.Tick(open, At(200, 110), 0, s, &waypoint).routeUnavailable, "standing on the waypoint keeps the known route");
+}
+
 void UnknownGround() {
 	const Beacon::Settings s;
 	// No resident room at all past x = 100: the target's own ground is not
@@ -643,6 +675,7 @@ int main() {
 	Corners();
 	Doorway();
 	SealedTarget();
+	KnownRouteOnly();
 	UnknownGround();
 	BodyFootprint();
 	WalkStability();

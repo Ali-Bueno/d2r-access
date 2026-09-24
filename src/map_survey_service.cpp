@@ -12,9 +12,11 @@
 #include "native_ground_items.h"
 #include "drlg_layout.h"
 #include "native_world.h"
+#include "navigation_mode.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "terrain_service.h"
 
 #include <D2RLPlugin/input.h>
 #include <D2RLPlugin/lifecycle_events.h>
@@ -50,7 +52,7 @@ struct Lifecycle {
 
 std::mutex                 g_mutex;
 Lifecycle                  g_state;
-MapSurvey::Registry        g_registry;
+MapSurvey::Memory          g_registry;
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -72,6 +74,7 @@ uint32_t              g_selected = 0;
 enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory };
 std::atomic<Request> g_request{ Request::None };
 bool                 g_pathfinder = false; // L3: right stick drives the catalogue
+bool                 g_fullAssistance = true;
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
 
@@ -90,6 +93,15 @@ void ForgetOtherGames(const Lifecycle& state) {
 	g_registry.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
+}
+
+void ApplyMode() {
+	const bool fullAssistance = NavigationMode::FullAssistance();
+	if (fullAssistance == g_fullAssistance) return;
+	g_fullAssistance = fullAssistance;
+	g_registry.Clear();
+	g_selected = 0;
+	g_category = EntityRadar::Category::Unknown;
 }
 
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
@@ -146,6 +158,10 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// target on the far side of a wall. That is the trade the readout wants --
 	// a direction and a rough distance can be acted on, "no route" cannot.
 	// Only a landmark standing on the player has no distance to quote at all.
+	if (!g_fullAssistance) {
+		const std::string distance = EntityRadar::DistancePhrase(landmark.straightLine, EntityRadar::Settings{}, strings);
+		return Format(strings.surveyOrientation, landmark.entity.name.c_str(), distance.c_str(), direction);
+	}
 	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
 	if (!landmark.reachable && landmark.straightLine <= 0) {
 		return Format(strings.surveyBearing, landmark.entity.name.c_str(), direction);
@@ -204,6 +220,7 @@ bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities)
 // Reads the world fresh: the answer must reflect where the player is standing
 // now, not where they were when the registry was last fed.
 bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
+	ApplyMode();
 	Lifecycle state;
 	{
 		std::lock_guard lock(g_mutex);
@@ -212,14 +229,16 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	level = state.level;
 	if (!g_supported || !Playing(state)) return false;
 	ForgetOtherGames(state);
+	g_registry.Select(state.level, !g_fullAssistance);
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
 	std::vector<EntityRadar::Entity> entities;
 	if (Collect(state, entities)) {
-		g_registry.Observe(state.level, entities, grid);
+		if (g_fullAssistance) g_registry.Observe(state.level, entities, grid, false);
+		else g_registry.Observe(state.level, MapSurvey::Discoverable(world, entities), grid, true, {}, &entities);
 	}
-	landmarks = MapSurvey::Survey(world, grid, g_registry.Entities());
+	landmarks = MapSurvey::Survey(world, grid, g_registry.Entities(), g_fullAssistance);
 	return true;
 }
 
@@ -367,6 +386,7 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_supported) return;
+	ApplyMode();
 
 	PollPathfinder(context);
 
@@ -394,6 +414,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	if (!Playing(state)) return;
 	ForgetOtherGames(state);
+	g_registry.Select(state.level, !g_fullAssistance);
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
@@ -401,7 +422,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		return;
 	}
 	LogAreas(context, state);
-	g_registry.Observe(state.level, entities, Navigation::Build(world, SurveyRadius));
+	const auto grid = Navigation::Build(world, SurveyRadius);
+	if (g_fullAssistance) g_registry.Observe(state.level, entities, grid, false);
+	else g_registry.Observe(state.level, MapSurvey::Discoverable(world, entities), grid, true, {}, &entities);
 }
 
 void Shutdown() {

@@ -196,6 +196,83 @@ void CategoryCycling() {
 		"an empty map offers no category at all");
 }
 
+void ExplorationDiscoversOnlyNearbyVisibleTargets() {
+	Radar::World world = OpenWorld();
+	auto nearExit = Make(1, 22, 20, EntityRadar::Kind::Exit);
+	nearExit.levelExitId = 100;
+	auto distantExit = Make(2, 38, 20, EntityRadar::Kind::Exit);
+	distantExit.levelExitId = 200;
+	const auto found = Discoverable(world, {nearExit, distantExit, Make(3, 39, 39)});
+	Check(found.size() == 1 && found.front().id == 1,
+		"nearby visible exit is discovered, but generated distant exits and same-room objectives are hidden");
+
+	Block(world, 21, 20);
+	Check(Discoverable(world, {nearExit}).empty(), "a fixed exit behind a wall is not a new discovery");
+	world.rooms[0].cells[20 * Size + 21] = 0;
+	world.rooms[0].cells[20 * Size + 22] = 0x20; // native unknown subtile
+	Check(Discoverable(world, {nearExit}).empty(), "a nearby generated exit on unknown collision is not discovered");
+	world.rooms[0].cells[20 * Size + 22] = 0;
+	world.rooms[0].cells[20 * Size + 21] = 0x20;
+	Check(Discoverable(world, {nearExit}).empty(), "unknown terrain between player and exit cannot reveal it");
+}
+
+void KnownLandmarkSurvivesLossOfSight() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	const auto fixed = Make(1, 24, 20, EntityRadar::Kind::Object);
+	const std::vector<EntityRadar::Entity> firstPresent{fixed};
+	registry.Observe(1, Discoverable(world, firstPresent), grid, {}, &firstPresent);
+	Check(registry.Entities().size() == 1, "visible landmark enters the catalogue");
+	Block(world, 22, 20);
+	const auto hidden = Make(1, 28, 20, EntityRadar::Kind::Object);
+	const std::vector<EntityRadar::Entity> present{hidden};
+	for (int i = 0; i < 5; ++i)
+		registry.Observe(1, Discoverable(world, present), grid, {}, &present);
+	Check(registry.Entities().size() == 1 && registry.Entities().front().position.x == 24,
+		"known landmark remains at its last discovered position when currently hidden");
+}
+
+void ExplorationSurveyUsesOrientation() {
+	Radar::World world = OpenWorld();
+	WallWithGap(world, 18, 4);
+	const Navigation::Grid grid = GridFor(world);
+	const auto assisted = Survey(world, grid, {Make(1, 20, 16)}, true);
+	const auto exploration = Survey(world, grid, {Make(1, 20, 16)}, false);
+	Check(assisted.front().steps > 10, "full assistance keeps its walking route distance");
+	Check(!exploration.front().reachable && exploration.front().steps < 0 && exploration.front().straightLine < 5,
+		"exploration reports only direct distance and direction");
+}
+
+void ReturningToLevelRetainsFixedLandmarks() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Memory memory;
+	auto waypoint = Make(1, 24, 20, EntityRadar::Kind::Object);
+	waypoint.category = EntityRadar::Category::Waypoint;
+	const auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
+	const auto loot = Make(3, 26, 20, EntityRadar::Kind::Item);
+	memory.Observe(1, {waypoint, enemy, loot}, grid, true);
+	memory.Observe(2, {}, grid, true);
+	Check(memory.Entities().empty(), "other level does not show the previous level's entries");
+	memory.Select(1, true);
+	Check(memory.Entities().size() == 1 && memory.Entities().front().id == waypoint.id,
+		"returning in the same session retains a known waypoint but no enemy or loot");
+	memory.Clear();
+	memory.Select(1, true);
+	Check(memory.Entities().empty(), "a new game or mode reset forgets session landmarks");
+}
+
+void FullAssistanceKeepsLevelChangeReset() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Memory memory;
+	memory.Observe(1, {Make(1, 24, 20, EntityRadar::Kind::Object)}, grid, false);
+	memory.Select(2, false);
+	memory.Select(1, false);
+	Check(memory.Entities().empty(), "full assistance retains its level-change reset");
+}
+
 }
 
 int main() {
@@ -209,6 +286,11 @@ int main() {
 	ReobservingRefreshesPosition();
 	KindFiltering();
 	CategoryCycling();
+	ExplorationDiscoversOnlyNearbyVisibleTargets();
+	KnownLandmarkSurvivesLossOfSight();
+	ExplorationSurveyUsesOrientation();
+	ReturningToLevelRetainsFixedLandmarks();
+	FullAssistanceKeepsLevelChangeReset();
 	Passed();
 	return 0;
 }

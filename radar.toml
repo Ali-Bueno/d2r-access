@@ -5,6 +5,13 @@ enabled = true
 # Cue loudness, 0-100 percent of the compiled level.
 volume = 100
 
+# Full assistance (the default on this branch): guidance and the catalogue
+# know the whole level. Set false for exploration-first routes through
+# visited areas only; access-beacon exploration|full switches for the session.
+# Restart the game after changing this value.
+[navigation]
+full_assistance = true
+
 # Nearest unvisited dungeon room loop and a single cue on first entry.
 # Area-transition loops use the existing Ctrl+P exit-sound toggle.
 [exploration]

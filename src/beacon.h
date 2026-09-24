@@ -15,6 +15,7 @@ namespace D2RAccess::Beacon {
 using Radar::Position;
 
 struct Settings {
+	bool requireKnownRoute = false; // exploration mode must not follow partial routes or direct fallbacks
 	// Distances are collision subtiles, the unit the entity scan speaks as
 	// steps. Navigation policy, not game constants.
 	//
@@ -53,12 +54,16 @@ struct Route {
 // room is not loaded, the route heads for the reachable cell nearest to it,
 // which is what walking toward an unseen destination means in practice.
 Route FindRoute(const Radar::World& world, Position target, const Settings& settings);
+// Whether the player or the route's end gets within interaction distance of `target`;
+// an object can occupy its own destination cell.
+bool Reaches(const Radar::World& world, const Route& route, Position target, const Settings& settings);
 uint64_t PingIntervalMs(double remaining, const Settings& settings);
 
 struct Update {
 	bool valid = false;   // a target is locked and its position was supplied
 	bool ping = false;    // play one ping this tick
 	bool arrived = false; // the target is within arrivalDistance
+	bool routeUnavailable = false; // exploration mode cannot prove a route to its current destination
 	Position heading{};   // unit vector; the straight line when no route is known
 	bool routed = false;  // the heading follows a proved route
 	double distance = 0;  // straight-line distance to the target

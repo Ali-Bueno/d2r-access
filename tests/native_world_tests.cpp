@@ -152,6 +152,28 @@ int main() {
 	MovementMaskTests();
 	PlayerPresenceTests();
 	DisplacedPresenceTests();
+	{
+		using RadarConfig::ParseNavigation;
+		Check(ParseNavigation("").valid && ParseNavigation("").fullAssistance,
+			"navigation defaults to full assistance when omitted");
+		Check(ParseNavigation("[navigation]\nfull_assistance = true\n").fullAssistance,
+			"explicit true keeps full assistance");
+		Check(ParseNavigation("[navigation]\nfull_assistance = false\n").valid
+			&& !ParseNavigation("[navigation]\nfull_assistance = false\n").fullAssistance,
+			"explicit false selects exploration-first routing");
+		Check(!ParseNavigation("[navigation]\nfull_assistance = FALSE\n").valid
+			&& ParseNavigation("[navigation]\nfull_assistance = FALSE\n").fullAssistance,
+			"an invalid boolean falls back to full assistance");
+		Check(!ParseNavigation("[navigation]\nfull_assistance\n").valid,
+			"navigation setting needs a value");
+		Check(!ParseNavigation("[navigation]\nfull_assistance = false\nfull_assistance = true\n").valid
+			&& ParseNavigation("[navigation]\nfull_assistance = false\nfull_assistance = true\n").fullAssistance,
+			"a duplicate navigation setting falls back to the default");
+		Check(ParseNavigation("[radar]\nfull_assistance = false\n").fullAssistance,
+			"navigation setting outside its section is ignored");
+		Check(!ParseNavigation("[navigation]\nfull_assistance = false\n[radar]\nfull_assistance = true\n").fullAssistance,
+			"another section cannot override navigation");
+	}
 	Check(RadarConfig::Parse("[radar]\nenabled = false # quiet default\n").enabled == false, "embedded radar preference can disable startup audio");
 	Check(RadarConfig::Parse("[other]\nenabled=false\n").enabled, "other features' switches cannot disable the radar");
 	Check(!RadarConfig::Parse("[radar]\nenabled=FALSE\n").valid, "non-TOML boolean is rejected");

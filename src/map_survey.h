@@ -5,6 +5,7 @@
 #include "radar.h"
 
 #include <cstdint>
+#include <map>
 #include <vector>
 
 // A level-wide catalogue of what is on the map, with the WALKING distance to
@@ -51,9 +52,12 @@ public:
 	// `visible` is what the world reports right now; `grid` says which cells
 	// the map currently knows, so absence can be told from ignorance.
 	void Observe(int level, const std::vector<EntityRadar::Entity>& visible,
-		const Navigation::Grid& grid, const Settings& settings = {});
+		const Navigation::Grid& grid, const Settings& settings = {},
+		const std::vector<EntityRadar::Entity>* present = nullptr);
 
 	void Clear();
+	// A return visit retains fixed places; enemies, loot and corpses are transient.
+	void KeepLandmarks();
 
 	int                                     Level() const { return m_level; }
 	const std::vector<EntityRadar::Entity>& Entities() const { return m_entities; }
@@ -69,10 +73,32 @@ private:
 	std::vector<EntityRadar::Entity> m_entities;
 };
 
-// Walking distance and direction for everything known, nearest first;
-// unreachable objects sort after reachable ones, by straight line.
+// Session-scoped landmark memory. Full assistance keeps the original
+// level-change reset; exploration retains fixed places until Clear.
+class Memory {
+public:
+	void Select(int level, bool exploration);
+	void Observe(int level, const std::vector<EntityRadar::Entity>& visible,
+		const Navigation::Grid& grid, bool exploration, const Settings& settings = {},
+		const std::vector<EntityRadar::Entity>* present = nullptr);
+	const std::vector<EntityRadar::Entity>& Entities() const;
+	void Clear();
+private:
+	int m_level = 0;
+	std::map<int, Registry> m_levels;
+};
+
+// Distance and direction for everything known, nearest first: walking steps
+// with full assistance, otherwise the straight line alone. Unreachable objects
+// sort after reachable ones, by straight line.
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
-	const std::vector<EntityRadar::Entity>& entities);
+	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
+
+// New discoveries require the scan's ordinary range and an unobstructed view.
+// Fixed exits do not inherit the short scan's through-wall exception.
+std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
+	const std::vector<EntityRadar::Entity>& entities,
+	double range = EntityRadar::Settings{}.range);
 
 // The nearest `count` of one kind, in Survey order.
 std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar::Kind kind, size_t count);

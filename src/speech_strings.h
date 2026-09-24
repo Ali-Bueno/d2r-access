@@ -98,6 +98,8 @@ struct Table {
 	const char* scanDisabled;
 	const char* pathfinderEnabled;  // L3 toggles the long-range pathfinder
 	const char* pathfinderDisabled;
+	const char* navigationExploration; // mode status: guidance uses visited areas
+	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
 	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
 	const char* scanNothing; // %s = scan direction
@@ -121,6 +123,7 @@ struct Table {
 	// CategoryOrder: a new category appends here and adds a case there.
 	std::array<const char*, 10> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
+	const char* surveyOrientation; // %s = name, %s = straight-line distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
 	const char* surveyEmpty;    // %s = category
 	const char* surveyNothing;  // nothing catalogued on this level yet
@@ -140,6 +143,8 @@ struct Table {
 	const char* beaconFollowing; // %s = target name
 	const char* beaconArrived; // %s = target name
 	const char* beaconLost; // %s = target name
+	const char* beaconKnownRouteOnly; // %s = target name; no visited-area route
+	const char* beaconKnownRouteEnded; // %s = target name; known route no longer available
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -213,7 +218,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled, t.scanUnavailable, t.scanNothing, t.scanStep,
+		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled,
+		t.navigationExploration, t.navigationFullAssistance, t.scanUnavailable, t.scanNothing, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
@@ -223,6 +229,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
+		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.surveyOrientation,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,

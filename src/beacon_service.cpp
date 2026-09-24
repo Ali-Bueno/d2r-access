@@ -2,18 +2,22 @@
 #include "async_log.h"
 #include "beacon.h"
 #include "beacon_audio.h"
+#include "beacon_navigation.h"
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_rooms.h"
 #include "native_world.h"
 #include "navigation_grid.h"
+#include "navigation_mode.h"
+#include "navigation_policy.h"
 #include "pad_filter.h"
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "terrain_service.h"
 
 #include <windows.h>
 #include <atomic>
@@ -21,6 +25,7 @@
 #include <cstdio>
 #include <mutex>
 #include <numbers>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,7 +33,7 @@
 namespace D2RAccess::BeaconService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, Toggle, Clear, Status };
+enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance };
 // The locked target is re-read on this cadence: fast enough to follow a
 // walking monster, far cheaper than the 50 ms UI poll.
 constexpr uint64_t UpdateMs = 150;
@@ -71,17 +76,20 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	}
 	return g_graph.Empty() ? nullptr : &g_graph;
 }
-// Whether the collision the game currently keeps can actually reach the
-// target. A monster or a chest stands ON a blocked cell, so the cells around
-// it decide, exactly as the level-wide catalogue judges it.
-bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
-	const int x = static_cast<int>(std::lround(position.x)), y = static_cast<int>(std::lround(position.y));
-	for (int dy = -1; dy <= 1; ++dy)
-		for (int dx = -1; dx <= 1; ++dx) {
-			const Navigation::Cell* cell = grid.At(x + dx, y + dy);
-			if (cell != nullptr && cell->steps >= 0) return true;
-		}
-	return false;
+// Nothing when the world or its rooms cannot be read right now: a failed read
+// is not a lost route, so a locked beacon waits instead of releasing.
+std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Radar::Position target) {
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
+	const auto* graph = Rooms(state);
+	if (NavigationMode::FullAssistance()) return BeaconNavigation::Prepare(std::move(world), target, graph);
+	if (!graph) return std::nullopt;
+	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
+	if (current == NativeRooms::None) return std::nullopt;
+	auto visited = TerrainService::VisitedRooms(state.level, graph->rooms);
+	// The room the player stands in is visited even before the history records it.
+	if (!NavigationPolicy::Contains(visited, world.player)) visited.push_back(graph->rooms[current]);
+	return BeaconNavigation::Prepare(std::move(world), target, graph, &visited);
 }
 bool Playing() {
 	return RadarUi::InPlay();
@@ -114,6 +122,8 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	if (arg == "lock" || arg == "toggle") g_command = Command::Toggle;
 	else if (arg == "clear" || arg == "off") g_command = Command::Clear;
 	else if (arg == "status") g_command = Command::Status;
+	else if (arg == "exploration") g_command = Command::Exploration;
+	else if (arg == "full") g_command = Command::FullAssistance;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -140,6 +150,16 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	if (!g_offer.entity.id || g_offer.level != state.level || now - g_offer.offeredMs > OfferWindowMs) {
 		ScreenReader::Speak(strings.beaconNothing, true);
 		return;
+	}
+	const auto guidance = Guidance(state, g_offer.entity.position);
+	if (!NavigationMode::FullAssistance()) {
+		const bool known = guidance && guidance->available;
+		const auto destination = known && guidance->hasWaypoint ? guidance->waypoint : g_offer.entity.position;
+		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, g_settings),
+			destination, g_settings)) {
+			Announce(strings.beaconKnownRouteOnly, g_offer.entity.name);
+			return;
+		}
 	}
 	g_target = g_offer;
 	g_target.seenMs = now;
@@ -187,38 +207,26 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 }
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	if (!Playing()) return; // dialogue, pause or another window: keep the lock, stay quiet
-	Radar::World world;
-	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
 	const bool seen = Refresh(state, now);
-	// Beyond the collision window the direct search has nothing to search, so
-	// it degrades to a straight line -- which in a dungeon can point through a
-	// wall into the back of the right room. Lead to the way INTO the next room
-	// of a room-level route instead. Only ever a cell the grid proved
-	// reachable, so this can no more point through a wall than the grid can.
-	Beacon::Position hop{};
-	const Beacon::Position* waypoint = nullptr;
-	size_t hopRoom = NativeRooms::None;
-	bool hopInNextRoom = false;
-	if (const RoomGraph::Graph* graph = Rooms(state)) {
-		const size_t from = NativeRooms::Containing(graph->rooms, world.player);
-		const size_t to = NativeRooms::Containing(graph->rooms, g_target.entity.position);
-		if (from != NativeRooms::None && to != NativeRooms::None && from != to) {
-			const auto grid = Navigation::Build(world, Navigation::MaxRadius);
-			// When the target is already reachable the direct search reaches
-			// it better than any waypoint could; leave that path untouched.
-			if (!ReachableNow(grid, g_target.entity.position)) {
-				const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, RoomGraph::Route(*graph, from, to));
-				if (goal.known) {
-					hop = goal.position;
-					waypoint = &hop;
-					hopRoom = goal.room;
-					hopInNextRoom = goal.inNextRoom;
-				}
-			}
-		}
+	const auto prepared = Guidance(state, g_target.entity.position);
+	if (!prepared) return;
+	const auto& guidance = *prepared;
+	if (!guidance.available) {
+		const auto name = g_target.entity.name;
+		Release("known-route-unavailable");
+		Announce(Strings::Current().beaconKnownRouteEnded, name);
+		return;
 	}
+	const auto& world = guidance.world;
+	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
 	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings, waypoint);
 	if (!update.valid) return;
+	if (update.routeUnavailable) {
+		const auto name = g_target.entity.name;
+		Release("known-route-unavailable");
+		Announce(Strings::Current().beaconKnownRouteEnded, name);
+		return;
+	}
 	if (update.arrived) {
 		const auto name = g_target.entity.name;
 		const bool present = seen;
@@ -237,10 +245,10 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		if (waypoint != nullptr) {
 			// Room size is the open question the first dungeon answers: the
 			// doorway case needs the next room inside the 152-subtile window.
-			const auto& room = g_graph.rooms[hopRoom];
+			const auto& room = guidance.waypointRoom;
 			AsyncLog::InfoF(context, "[beacon] hop=%.0f,%.0f in_next_room=%u room=%d,%d %dx%d tiles rooms=%zu",
-				hop.x, hop.y, hopInNextRoom ? 1u : 0u, room.tileX, room.tileY, room.tileWidth, room.tileHeight,
-				g_graph.rooms.size());
+				waypoint->x, waypoint->y, guidance.inNextRoom ? 1u : 0u, room.tileX, room.tileY, room.tileWidth, room.tileHeight,
+				guidance.roomCount);
 		}
 	}
 }
@@ -253,6 +261,8 @@ void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
 
 bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
+	NavigationMode::SetFullAssistance(RadarConfig::ReadNavigation(context).fullAssistance);
+	g_settings.requireKnownRoute = !NavigationMode::FullAssistance();
 	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -272,9 +282,10 @@ bool Register(const D2RL::PluginContext* context) {
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
-		"Target beacon: lock|clear|status. Right stick click, or Ctrl+B, follows what the scan last named.");
+		"Target beacon: lock|clear|status|exploration|full. R3 or Ctrl+B requests a route; exploration uses visited areas only.");
 	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume);
-	AsyncLog::InfoF(context, "[beacon] Registered; audio=%u.", g_supported ? 1u : 0u);
+	AsyncLog::InfoF(context, "[beacon] Registered; audio=%u full_assistance=%u.", g_supported ? 1u : 0u,
+		NavigationMode::FullAssistance() ? 1u : 0u);
 	return true;
 }
 
@@ -300,6 +311,15 @@ void Tick(const D2RL::PluginContext* context) {
 		Release("lifecycle");
 		g_offer = {};
 	}
+	if (command == Command::Exploration || command == Command::FullAssistance) {
+		Release("navigation-mode");
+		g_offer = {};
+		NavigationMode::SetFullAssistance(command == Command::FullAssistance);
+		g_settings.requireKnownRoute = !NavigationMode::FullAssistance();
+		const auto& strings = Strings::Current();
+		ScreenReader::Speak(NavigationMode::FullAssistance() ? strings.navigationFullAssistance : strings.navigationExploration, true);
+		AsyncLog::InfoF(context, "[beacon] full_assistance=%u", NavigationMode::FullAssistance() ? 1u : 0u);
+	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
 		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "R3" : "command");
 	} else if (command == Command::Clear && g_tracker.Locked()) {
@@ -311,8 +331,15 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (command == Command::Status) {
 		const auto& strings = Strings::Current();
-		if (!g_tracker.Locked()) ScreenReader::Speak(strings.beaconNothing, true);
-		else Announce(strings.beaconFollowing, g_target.entity.name);
+		std::string text = NavigationMode::FullAssistance() ? strings.navigationFullAssistance : strings.navigationExploration;
+		text += ". ";
+		if (!g_tracker.Locked()) text += strings.beaconNothing;
+		else {
+			char following[256]{};
+			std::snprintf(following, sizeof following, strings.beaconFollowing, g_target.entity.name.c_str());
+			text += following;
+		}
+		ScreenReader::Speak(text, true);
 	}
 	if (!g_tracker.Locked() || !state.ready || now < g_nextUpdate) return;
 	g_nextUpdate = now + UpdateMs;
@@ -336,5 +363,9 @@ void Unregister() {
 	g_nextUpdate = g_lastLog = 0;
 	g_wasPlaying = false;
 	g_command = Command::None;
+	g_graph = {};
+	g_graphLevel = 0;
+	g_graphSession = 0;
+	NavigationMode::SetFullAssistance(false);
 }
 }

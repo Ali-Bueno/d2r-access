@@ -358,6 +358,23 @@ bool Visited(int level, int tileX, int tileY) {
 	return g_explored.Visited(static_cast<uint32_t>(level), tileX, tileY);
 }
 
+std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::lock_guard lock(g_mutex);
+	std::vector<NativeRooms::Room> visited;
+	if (level <= 0 || g_loadedLevel != static_cast<uint32_t>(level)
+		|| g_state.level != level || rooms.empty()) return visited;
+	const auto key = g_keys.find(static_cast<uint32_t>(level));
+	if (key == g_keys.end()) return visited;
+	std::vector<NativeLevelExits::LevelRoom> layout;
+	layout.reserve(rooms.size());
+	for (const auto& room : rooms)
+		layout.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight}, false});
+	if (ExploredStore::LayoutDigest(layout) != key->second.digest) return visited;
+	for (const auto& room : rooms)
+		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
+	return visited;
+}
+
 bool Known(int level) {
 	std::lock_guard lock(g_mutex);
 	return g_explored.Known(static_cast<uint32_t>(level));

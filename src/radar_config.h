@@ -13,6 +13,12 @@ inline constexpr unsigned MaxVolume = 100;
 Result Parse(std::string_view config);
 Result Read(const D2RL::PluginContext* context);
 
+// Full guidance across unexplored rooms is an explicit opt-in. Missing or
+// malformed [navigation] settings keep exploration-first routing.
+struct Navigation { bool fullAssistance = true; bool valid = true; };
+Navigation ParseNavigation(std::string_view config);
+Navigation ReadNavigation(const D2RL::PluginContext* context);
+
 // The documented [npc] keys of the friendly NPC announcer. Absent keys keep
 // the feature's compiled defaults (NpcProximity::Settings), so nothing here
 // repeats them; range is in collision subtiles like the entity scan.

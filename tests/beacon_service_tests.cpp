@@ -10,10 +10,14 @@
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_strings.h"
+#include "terrain_service.h"
 #include "test_support.h"
 
 #include <windows.h>
+#include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 using namespace D2RAccess;
@@ -22,6 +26,10 @@ std::vector<D2RL::Lifecycle::GameplayEventListener> listeners;
 D2RL::ConsoleCommandCallback console = nullptr;
 bool playing = true;
 bool worldReadable = false;
+Radar::Position playerAt{100, 100};
+// Fixture rooms are measured in subtiles: two side by side over one open collision grid.
+const std::vector<NativeRooms::Room> levelRooms{{0, 0, 50, 50}, {50, 0, 50, 50}};
+std::vector<NativeRooms::Room> visitedRooms;
 int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
@@ -56,6 +64,11 @@ void Command(const char* text) {
 	command.argsLength = static_cast<uint32_t>(std::strlen(text));
 	Check(console(nullptr, &command, nullptr) == D2RL::ConsoleCommandResult::Handled, "beacon command accepted");
 }
+std::string Format(const char* format, const char* name) {
+	char text[256]{};
+	std::snprintf(text, sizeof text, format, name);
+	return text;
+}
 }
 
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
@@ -68,23 +81,36 @@ void Silence(const char*) { ++silences; }
 }
 namespace D2RAccess::InputDirection { bool TakeRightStickClick() { return false; } }
 namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
-namespace D2RAccess::RadarConfig { Result Read(const D2RL::PluginContext*) { return {}; } }
+namespace D2RAccess::RadarConfig {
+Result Read(const D2RL::PluginContext*) { return {}; }
+Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
+}
+namespace D2RAccess::TerrainService {
+std::vector<NativeRooms::Room> VisitedRooms(int, const std::vector<NativeRooms::Room>&) { return visitedRooms; }
+}
 namespace D2RAccess::NativeWorld {
 bool Read(uint32_t, uint64_t, int, Radar::World& world, Diagnostics*) {
 	if (!worldReadable) return false;
-	world.player = {100, 100};
+	world.player = playerAt;
+	world.walkingMask = Radar::Collision::Wall;
+	world.rooms = {{0, 0, 100, 50, std::vector<uint16_t>(100 * 50, 0)}};
 	return true;
 }
 uintptr_t PlayerRoom() noexcept { return 0; }
 }
 namespace D2RAccess::NativeRooms {
-Bounds Subtiles(const Room&) { return {}; }
+Bounds Subtiles(const Room& room) { return {room.tileX, room.tileY, room.tileX + room.tileWidth, room.tileY + room.tileHeight}; }
+bool Contains(const Bounds& bounds, int x, int y) { return x >= bounds.minX && x < bounds.maxX && y >= bounds.minY && y < bounds.maxY; }
 bool Read(uintptr_t, std::vector<Room>& rooms) {
 	if (++roomReads == 1) return false;
-	rooms = {{0, 0, 50, 50}};
+	rooms = levelRooms;
 	return true;
 }
-size_t Containing(const std::vector<Room>&, Radar::Position) { return None; }
+size_t Containing(const std::vector<Room>& rooms, Radar::Position subtile) {
+	for (size_t i = 0; i < rooms.size(); ++i)
+		if (Contains(Subtiles(rooms[i]), static_cast<int>(subtile.x), static_cast<int>(subtile.y))) return i;
+	return None;
+}
 }
 namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
 namespace D2RAccess::NativeEntities {
@@ -131,15 +157,55 @@ int main() {
 	worldReadable = true;
 	EntityRadar::Entity farExit{.id = 8, .kind = EntityRadar::Kind::Exit, .position = {120, 100}, .name = "far exit"};
 	BeaconService::Offer(farExit, 0, GetTickCount64());
+	int before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
-	Check(roomReads == 1, "first room-graph read can fail while world data remains available");
+	Check(plays == before + 1, "full assistance locks while the first room-graph read fails");
+	Check(roomReads == 2, "a failed room-graph read is retried by the next use in the same level instance");
 	Sleep(160); // the service's 150 ms target refresh cadence
 	BeaconService::Tick(&context);
-	Check(roomReads == 2, "a failed room-graph read is retried in the same level instance");
+	Check(roomReads == 2, "a successfully built room graph is cached");
+
+	const auto& strings = Strings::Current();
+	Command("exploration");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.navigationExploration, "the exploration command releases the lock and names the mode");
+	playerAt = {10, 10};
+	visitedRooms = {levelRooms[0]};
+	EntityRadar::Entity gate{.id = 9, .kind = EntityRadar::Kind::Exit, .position = {70, 10}, .name = "gate"};
+	BeaconService::Offer(gate, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
+		"exploration refuses a target in a room never entered");
+	visitedRooms = {};
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
+		"without history only the room underfoot counts as visited");
+	visitedRooms = levelRooms;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1, "exploration locks a target reached through visited rooms");
+
+	worldReadable = false;
+	const int silenced = silences;
 	Sleep(160);
 	BeaconService::Tick(&context);
-	Check(roomReads == 2, "a successfully built room graph is cached");
+	Command("status");
+	BeaconService::Tick(&context);
+	Check(silences == silenced && speech.back().find(strings.navigationExploration) == 0
+		&& speech.back().find("gate") != std::string::npos, "an unreadable world keeps the exploration lock");
+	worldReadable = true;
+	visitedRooms = {levelRooms[0]};
+	Sleep(160);
+	BeaconService::Tick(&context);
+	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
+		"a target outside the visited rooms ends the known route");
+	Command("full");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.navigationFullAssistance, "the full command names full assistance");
 
 	BeaconService::Unregister();
 	Passed();

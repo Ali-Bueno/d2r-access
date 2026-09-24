@@ -1,7 +1,9 @@
 #pragma once
 
 #include "radar.h"
+#include "native_rooms.h"
 #include <D2RLPlugin/api.h>
+#include <vector>
 
 // Speaks the terrain overview on demand and keeps the exploration memory: the
 // rooms the game has streamed, the rooms the player stood in, on disk across
@@ -18,4 +20,6 @@ void Qualify(Radar::World& world);
 // tiles, on this level. The room announcer tags its ways out with it.
 bool Visited(int level, int tileX, int tileY);
 bool Known(int level); // at least one room of that level seen
+// A validated snapshot of logical rooms stood in on the loaded current level.
+std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms);
 }
