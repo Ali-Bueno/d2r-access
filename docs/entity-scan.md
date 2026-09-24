@@ -28,6 +28,24 @@ automap; enemies are the one live category.
   so they are still there after a town trip.
 - **Enemies** are never remembered: each answer lists the enemies in range and
   in sight right now, nearest first.
+- **Players** (multiplayer) are the other living characters in the game, read
+  live like enemies but not filtered by sight, by name, nearest first, so a
+  teammate can be found and followed with the beacon. Anyone standing in the
+  player's room or a loaded neighbour is read from their unit. A **party
+  member** elsewhere on the same level is placed where the game's party roster
+  says, the same position the automap marks. The server only sends that
+  position when the teammate is more than 50 steps away; how often it is
+  refreshed has not been measured. Players outside the party, or on another level, are not
+  listed (`docs/entity-units-re.md` §12).
+- **Rooms** are logical rooms of the level, read whether or not the game has
+  them loaded (`NativeRooms::Read`). *Room* lists the rooms stood in.
+  *Unexplored room* comes right after the ways out. In exploration mode it
+  lists only the rooms bordering explored ground (`RoomCatalogue::Exploration`,
+  `RoomGraph::Near`). Explored ground is a room stood in, drawn on the automap,
+  or underfoot (`TerrainService::ExploredRooms`). This is the edge of the known
+  map, so a lost player can head somewhere new. Nothing inside an unexplored
+  room is revealed: its exits appear once charted, like any landmark. Full
+  assistance lists every room never stood in.
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them

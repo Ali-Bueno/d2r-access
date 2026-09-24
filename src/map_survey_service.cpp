@@ -135,6 +135,8 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Interactable: return names[8];
 	case EntityRadar::Category::Item:         return names[9];
 	case EntityRadar::Category::Room:         return names[10];
+	case EntityRadar::Category::Player:       return names[11];
+	case EntityRadar::Category::UnexploredRoom: return names[12];
 	default:                                  return names[8];
 	}
 }
@@ -266,14 +268,18 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
+	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
+	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
 	const Strings::Table& strings = Strings::Current();
-	auto rooms = RoomCatalogue::Entities(g_rooms.Entries(), strings.surveyRoom, strings.surveyRoomUnexplored);
+	// Rooms are listed whether or not the game has them loaded. Exploration keeps
+	// the rooms stood in and the unexplored ones at the edge of the known map.
+	auto entries = g_rooms.Entries();
 	if (!g_fullAssistance) {
-		const auto visited = TerrainService::VisitedRooms(state.level, CurrentRooms(state.level, state.session));
-		std::erase_if(rooms, [&](const EntityRadar::Entity& entity) {
-			return NativeRooms::Containing(visited, entity.position) == NativeRooms::None;
-		});
+		const auto& levelRooms = CurrentRooms(state.level, state.session);
+		entries = RoomCatalogue::Exploration(entries, TerrainService::VisitedRooms(state.level, levelRooms),
+			TerrainService::ExploredRooms(state.level, levelRooms, world.player));
 	}
+	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;

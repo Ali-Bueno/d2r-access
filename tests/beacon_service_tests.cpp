@@ -7,6 +7,7 @@
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
+#include "navigation_policy.h"
 #include "pad_filter.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -94,6 +95,10 @@ std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<Na
 }
 namespace D2RAccess::TerrainService {
 std::vector<NativeRooms::Room> VisitedRooms(int, const std::vector<NativeRooms::Room>&) { return visitedRooms; }
+std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	return NavigationPolicy::Explored(VisitedRooms(level, rooms), charted ? &*charted : nullptr, rooms, player);
+}
 }
 namespace D2RAccess::NativeWorld {
 bool Read(uint32_t, uint64_t, int, Radar::World& world, Diagnostics*) {
@@ -229,6 +234,23 @@ int main() {
 	Check(plays == before + 1, "a large object is reached from beside its footprint");
 	Command("clear");
 	BeaconService::Tick(&context);
+
+	blocked = {70, 20, 79, 29}; // the unexplored room's centre is walled in
+	visitedRooms = {levelRooms[0]};
+	EntityRadar::Entity unexplored{2, EntityRadar::Kind::Room, {74.5, 24.5}, "unexplored room 2"};
+	unexplored.category = EntityRadar::Category::UnexploredRoom;
+	unexplored.levelExitId = levelRooms[1].id;
+	BeaconService::Offer(unexplored, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1, "exploration may lead into an unexplored room beside known ground");
+	playerAt = {55, 10};
+	Sleep(160);
+	BeaconService::Tick(&context);
+	Check(speech.back() == Format(strings.beaconArrived, "unexplored room 2"),
+		"stepping into the unexplored room arrives, wherever its centre lies");
+	playerAt = {10, 10};
 	blocked = {};
 	Command("full");
 	BeaconService::Tick(&context);

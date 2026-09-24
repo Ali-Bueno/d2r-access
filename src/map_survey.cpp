@@ -19,8 +19,10 @@ constexpr EntityRadar::Category CategoryOrder[] = {
 	EntityRadar::Category::Waypoint,
 	// Where there is left to go, before who and what is there: a player with
 	// no map needs the shape of the level before its contents.
+	EntityRadar::Category::UnexploredRoom,
 	EntityRadar::Category::Room,
 	EntityRadar::Category::Npc,
+	EntityRadar::Category::Player,
 	EntityRadar::Category::Stash,
 	EntityRadar::Category::Enemy,
 	EntityRadar::Category::Treasure,
@@ -181,6 +183,7 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 	Scene scene;
 	for (auto& entity : entities) {
 		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
+		else if (entity.category == EntityRadar::Category::Player) scene.players.push_back(std::move(entity));
 		else if (entity.category != EntityRadar::Category::Item
 			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
 			scene.landmarks.push_back(std::move(entity));

@@ -74,6 +74,25 @@ int main() {
 	monster.kind = EntityRadar::Kind::Enemy;
 	Check(!EntityRadar::SameTarget(entities[0], monster), "a room lock cannot follow a unit that happens to share its number");
 
+	Check(entities[1].category == EntityRadar::Category::UnexploredRoom, "a room never entered has its own category");
+
+	// Exploration lists the rooms stood in and the unexplored ones at the edge of known ground.
+	const std::vector<NativeRooms::Room> Row{Room(0, 0), Room(8, 0), Room(16, 0), Room(24, 0)};
+	RoomCatalogue::Registry row;
+	row.Observe(9, Seed, Row, {5, 5});
+	auto listed = RoomCatalogue::Exploration(row.Entries(), {}, {});
+	Check(listed.size() == 2 && listed[0].number == 1 && listed[0].explored && listed[1].number == 2 && !listed[1].explored,
+		"the room stood in and its unexplored neighbour are listed, nothing further");
+	listed = RoomCatalogue::Exploration(row.Entries(), {Row[1]}, {Row[1]});
+	Check(listed.size() == 3 && listed[1].explored && listed[2].number == 3 && !listed[2].explored,
+		"a room visited in another session counts as stood in and moves the edge");
+	listed = RoomCatalogue::Exploration(row.Entries(), {}, {Row[2]});
+	Check(listed.size() == 3 && listed[1].number == 2 && listed[2].number == 4,
+		"a room the automap drew is known ground: its neighbours are the edge, it is not unexplored");
+	const auto edge = RoomCatalogue::Entities(listed, "room %d", "unexplored room %d");
+	Check(edge[0].category == EntityRadar::Category::Room && edge[2].category == EntityRadar::Category::UnexploredRoom
+		&& edge[2].name == "unexplored room 4", "the edge rooms keep their level-wide numbers");
+
 	// The remembered set is bounded, and bounded by dropping the oldest.
 	RoomCatalogue::Registry bounded;
 	for (size_t i = 0; i < RoomCatalogue::MaxRemembered + 8; ++i)

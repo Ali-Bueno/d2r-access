@@ -7,10 +7,12 @@
 #include "frontier.h"
 #include "input_direction.h"
 #include "level_exit_layout.h"
+#include "native_automap.h"
 #include "native_drlg.h"
 #include "native_entities.h"
 #include "native_level_exits.h"
 #include "native_world.h"
+#include "navigation_policy.h"
 #include "radar.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -373,6 +375,11 @@ std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeR
 	for (const auto& room : rooms)
 		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
 	return visited;
+}
+
+std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	return NavigationPolicy::Explored(VisitedRooms(level, rooms), charted ? &*charted : nullptr, rooms, player);
 }
 
 bool Known(int level) {

@@ -408,3 +408,74 @@ Established while adding the exit loops (`docs/level-exits.md`), with the same m
   LvlWarp `Id` in `Unit+4` (compared as a byte). The destination is on the room, not the unit:
   `Room+0x18` → RoomEx, `RoomEx+0x78` warp nodes (`+0` destination RoomEx, `+8` next, `+0x10` gate,
   `+0x20` LvlWarp row), `RoomEx+0x90` → Level, `Level+0x1F8` level id.
+
+## 11. Other players' names (2026-09-24)
+
+The level scanner's player category reads other type-0 units in the loaded
+rooms. The evidence comes from the 2026-09-23 mapped image, the one the corpse
+study cites. Every fingerprint below matches that image, the Cairn
+`scroll-open` image and the 2026-09-17 `D2R.text.bin`. The controls
+0x34B9D0, 0x34A500, 0xCE8F0 and 0x34C2C0 reproduce their stored hashes.
+
+- **PlayerData** is `*(Unit+0x10)`. The getter `0x34B240` asserts the type is
+  0 at `0x34B261` (`cmp dword [rbx],0`), then reads `mov rax,[rbx+0x10]` at
+  `0x34B27A`.
+- **The name is at PlayerData+0.** The name getter `0x134FC0`
+  (`D2Client\src\Game\Roster.cpp`) returns the PlayerData pointer itself
+  (`mov rax,rbx` at `0x1350A9`) when the unit has no roster entry. With a
+  roster entry it returns the roster display name at entry+0xAA, which can
+  carry a platform tag. The corpse label `0xCE8F0` uses this getter.
+- **The buffer is `char[0x3D]`.** `0x1C9DE0` copies the name with a 0x3D bound
+  (`mov r9d,0x3D` at `0x1C9DFE`, then `bcStrCopyN`, `0x1227A80`). The ear name
+  `0x36DFA0` copies 0x3D bytes from PlayerData. The quest array begins at
+  PlayerData+0x40 (`0x5A6650`). 61 = 15 × 4 + 1, which fits 15 UTF-8
+  characters, so the name is read as UTF-8. That is an inference: no decoder
+  was found.
+- **A living player is any mode other than 0 or 17.** Those are the
+  PlrMode.txt DT and DD rows, extracted from the 3.3 CASC. The liveness test
+  `0x34C2C0` treats both modes as dead for type 0, and treats the ForcedDead
+  flag as dead for every type.
+
+`EntityLayout::PlayerChecks` guards `0x34B240`, `0x134FC0`, `0x1C9DE0` and
+`0x5A6650` on their own. A mismatch disables only the player category.
+
+## 12. Party roster: distant teammates (2026-09-24)
+
+Other players' units exist on this client only near the player. For party
+members elsewhere on the level, the scanner reads the client party roster, the
+list the automap uses to draw its party markers. Evidence comes from the
+2026-09-23 mapped image. `EntityLayout::RosterChecks` matches both Cairn
+captures, `scroll-open` and `scroll-visible`.
+
+- **List:** `RosterNext` `0x136470` returns `entry+0x148`. For a null entry it
+  returns the head global, loaded at `0x13647D` (`48 8B 05`, target
+  `0x2A4DB90`). The fingerprint covers that displacement. The automap walks
+  the list from the head and treats the head as the local player. The reader
+  instead finds the local entry by unit ID.
+- **Entry:** the fields and the functions that prove them:
+
+  | Field | Offset | Evidence |
+  |---|---|---|
+  | Name, `char[0x3D]` | +0 | init `0x13A220`: `mov edx,0x3D`, then the copy |
+  | Unit ID | +0x48 | `0x1366E0` |
+  | Party ID, word | +0x5A | `0x136570`, see below |
+  | Level ID | +0x5C | getter `0x136440`; set by `0x139460`, packet 0x7F, table entry size 10 |
+  | X / Y | +0x60 / +0x64 | getter `0x136450`; set by `0x139420` from packet 0x90 (handler `0x12DE30`, size 13: id, X, Y) |
+
+  `0x136570` returns 0xFFFF unless at least two entries share the party ID.
+  The two handlers sit 17 entries apart in the handler table at `0x22BC828`
+  and `0x22BC9C0`, 24-byte stride. That matches opcodes 0x7F and 0x90.
+- **Units:** subtiles, the same frame as unit paths. The server builder
+  `0x480AD0` fills X/Y from the unit path getters (`0x341A20`/`0x341A30`). It
+  sends 0x90 only when unit distance `0x324FC0` exceeds 50 (`cmp eax,0x32` at
+  `0x480BC8`). Its callers include the party-member loop `0x507440`, so
+  positions exist only for party members. The automap draw `0xD286C` passes
+  X/Y through the subtile projection `0x334E00`.
+- **The automap marker rule (`0xD286C`):**
+  - The local party ID is not 0xFFFF, and the entry's party ID equals it.
+  - The unit is not loaded (`0x9A5D0(id, 0)` returns null).
+  - The two levels share an automap layer (LevelDefs +0x08 via `0x32C200`).
+
+  The reader applies the first two rules. It narrows the third to the same
+  level ID, as the user asked. It also skips entries whose position is zero
+  (never received).

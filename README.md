@@ -273,8 +273,11 @@ start await a follow-up listening check.
 **Scanner (right stick; live validation pending):** during play, push the
 right stick up or down to change category, and left or right to step through
 it, nearest first. It lists what a sighted player finds on the automap: exits,
-portals, waypoints, NPCs, the stash, shrines, objects, quest containers and
-visited rooms. It also lists the enemies in sight right now. Ground loot and
+portals, waypoints, NPCs, the stash, shrines, objects, quest containers,
+visited rooms and, in their own category, the unexplored rooms bordering what
+you have explored. It also lists the enemies in sight right now and, in multiplayer,
+the other players nearby and party members anywhere on the same level, by
+name, walls or not. Ground loot and
 ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
 and 4/6 (object). See [scanner](docs/entity-scan.md).
 
@@ -286,8 +289,10 @@ Repeat to cancel. See [distant exits](docs/distant-exits.md) and
 **Exploration mode (default; live validation pending):** the scanner follows
 the game's own automap. It lists landmarks in the parts of the level the
 automap has drawn, including parts drawn in earlier games. It also lists
-anything that has come into range with a clear line of sight, and the rooms you
-have stood in. It gives their straight-line distance and direction, not a
+anything that has come into range with a clear line of sight, the rooms you
+have stood in, and the unexplored rooms at the edge of explored ground, loaded
+or not, but never what they contain. The beacon can lead into one of those
+and arrives as you step in. It gives their straight-line distance and direction, not a
 walking route. The beacon only follows routes through explored areas (drawn on
 the automap or walked); otherwise it says there is no route through explored
 areas and stays silent, and it stops if the route leaves them. See the

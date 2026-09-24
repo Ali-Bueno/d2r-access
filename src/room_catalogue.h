@@ -87,9 +87,16 @@ private:
 	std::vector<Record> m_remembered; // most recently left last
 };
 
+// Exploration mode's rooms: those stood in (`visited`, or the entry's own flag)
+// and the unexplored ones near `explored` ground (RoomGraph::Near) -- the edge
+// of the known map, never what lies beyond it. `docs/entity-scan.md`
+std::vector<Entry> Exploration(const std::vector<Entry>& entries,
+	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored);
+
 // One catalogue entity per room. `explored` and `unexplored` are printf
-// formats taking the room number. Identity is the room's rectangle origin, so
-// a selection survives the list being rebuilt.
+// formats taking the room number; unexplored rooms get their own category.
+// Identity is the room's rectangle origin, so a selection survives the list
+// being rebuilt.
 std::vector<EntityRadar::Entity> Entities(const std::vector<Entry>& entries,
 	const char* explored, const char* unexplored);
 

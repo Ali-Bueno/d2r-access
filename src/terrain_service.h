@@ -22,4 +22,7 @@ bool Visited(int level, int tileX, int tileY);
 bool Known(int level); // at least one room of that level seen
 // A validated snapshot of logical rooms stood in on the loaded current level.
 std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms);
+// Exploration's known ground: rooms stood in, rooms the automap has drawn in,
+// and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
+std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);
 }

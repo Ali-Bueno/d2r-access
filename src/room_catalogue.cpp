@@ -1,5 +1,7 @@
 #include "room_catalogue.h"
 
+#include "room_graph.h"
+
 #include <algorithm>
 #include <cstdio>
 
@@ -79,6 +81,26 @@ void Registry::Clear() {
 	m_seed = 0;
 }
 
+std::vector<Entry> Exploration(const std::vector<Entry>& entries,
+	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored) {
+	const auto listed = [](const std::vector<NativeRooms::Room>& rooms, const NativeRooms::Room& room) {
+		return std::any_of(rooms.begin(), rooms.end(), [&](const NativeRooms::Room& other) { return other.id == room.id; });
+	};
+	std::vector<Entry> stood = entries;
+	std::vector<NativeRooms::Room> known = explored;
+	for (Entry& entry : stood) {
+		entry.explored = entry.explored || listed(visited, entry.room);
+		if (entry.explored && !listed(known, entry.room)) known.push_back(entry.room);
+	}
+	std::vector<Entry> result;
+	for (const Entry& entry : stood) {
+		const bool frontier = !listed(known, entry.room) && std::any_of(known.begin(), known.end(),
+			[&](const NativeRooms::Room& room) { return RoomGraph::Near(room, entry.room); });
+		if (entry.explored || frontier) result.push_back(entry);
+	}
+	return result;
+}
+
 std::vector<EntityRadar::Entity> Entities(const std::vector<Entry>& entries,
 	const char* explored, const char* unexplored) {
 	std::vector<EntityRadar::Entity> result;
@@ -96,7 +118,7 @@ std::vector<EntityRadar::Entity> Entities(const std::vector<Entry>& entries,
 		// the room is. SameTarget compares this before anything else, which
 		// keeps a lock on room 7 from following a monster with id 7.
 		entity.levelExitId = entry.room.id;
-		entity.category = EntityRadar::Category::Room;
+		entity.category = entry.explored ? EntityRadar::Category::Room : EntityRadar::Category::UnexploredRoom;
 		result.push_back(std::move(entity));
 	}
 	return result;
