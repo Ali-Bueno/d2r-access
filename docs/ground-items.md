@@ -45,7 +45,7 @@ animation (**Dropping, 5**) is excluded; there is no guessed landing timer.
 Up to eight nearest items have independent continuous XAudio2 voices. X3DAudio
 supplies the stereo speaker matrix. Fixed screen axes derive from native
 projection `0x334DB0`: right = `(dx-dy)/sqrt(2)`, front = `-(dx+dy)/sqrt(2)`.
-Distance attenuates each source to silence at 30 subtiles. Rear sources smoothly
+Ordinary sources fade to silence at 30 subtiles; quest sources reach 45. Rear sources smoothly
 lower pitch to 94% across the first subtile behind the listener. Voices keep
 their loop position across updates. The summed gain is limited to 0.5 for
 headroom when a pile of objects peaks together. These ranges, gains and timings
@@ -125,6 +125,25 @@ Their interaction handlers are 12, 21, 28, 39–41 and 57–59. All nine rows ar
 selectable only in neutral mode, so the native current-mode gate silences
 them after use. A quest chest uses only the quest sound, without a chest loop.
 
+The user confirmed the tree cue works but found its 2.812-second repetition and
+30-subtile reach too hard to locate while exploring. The build now trims/pads
+only the quest WAV to 700 ms, preserving playback speed, with a 5 ms attack and
+20 ms release to avoid clicks. The original OGG is unchanged. Existing rear
+pitch makes repetition about 745 ms behind the player. Quest sources reach
+45 subtiles and use a linear distance fade, retaining one-third of near gain
+at the old 30-subtile boundary. Ordinary loot retains its existing range and
+attenuation; the shared near gain and pile cap remain in force.
+
+Cairn Stones (classes 17–21, installed `objects.txt` OperateFn 9) also emit this
+cue while neutral. Unlike the nine item grantors, they remain selectable after
+activation, so they explicitly require `ObjectNeutral`. D2MOO revision
+`5596f5cb6c5251a0a07c6637d26458b06099d516`,
+`source/D2Game/src/QUESTS/ACT1/A1Q4.cpp:587–639,690–805`, shows completed stones
+initialized opened, and successful activation changing neutral to operating.
+Wrong-order clicks return before changing mode. Installed rows corroborate
+selectability in modes 0 and 2, but not 1. All unactivated stones qualify;
+the mod supplies no sequence hints and performs no interaction.
+
 These cues share **Ctrl+L** / `access-items sound-on|sound-off` with item audio.
 Disabling chest or exit sounds does not suppress quest sources. The nearest
 two quest sources reserve voices before exits, containers and ordinary loot;
@@ -133,18 +152,18 @@ remain distinct even if their numeric unit IDs coincide. Ground pickup is
 refreshed at 50 ms, fixed quest objects at 500 ms. Dialogue, pause, focus and
 lifecycle suspension use the existing shared gates.
 
-The range remains 30 collision subtiles in resident nearby rooms. No distant
+The quest range is 45 collision subtiles in resident nearby rooms. No distant
 presets or undiscovered map positions are requested. Classification identifies
 quest-related objects, not whether the player's current quest needs them: no
-player quest flags are inferred. Other quest mechanisms (Cairn Stones, the
-Hellforge, Horazon's journal, and the Ancients' altar) are outside this catalog;
+player quest flags are inferred. Other quest mechanisms (the Hellforge,
+Horazon's journal, and the Ancients' altar) are outside this catalog;
 some stay selectable after use and need separate verified state handling.
 
 Validation covers native Inifuss selection/used modes, unavailable translation,
 quest classification before quality, landing and pickup, source priority and
 identity collisions, toggles, UI suspension, lifecycle reset, and the actual
-converted recording's PCM level and stereo positioning. Live controller
-listening at the tree and after collecting its scroll remains pending.
+converted recording's PCM level and stereo positioning. The initial tree cue
+is user-confirmed; the faster, farther cue and Cairn Stones need live listening.
 The Release build/deploy completed without compiler warnings and all 71 CTest
 suites passed. Installed plugin and quest WAV SHA-256 hashes match the build.
 

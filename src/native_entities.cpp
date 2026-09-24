@@ -206,12 +206,14 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
 		|| !Peek(unit + UnitId, entity.id) || !StaticPosition(unit, room, entity.position)) return false;
 	const uintptr_t row = tables.objects + classId * ObjectStride;
-	uint8_t selectable = 0, door = 0, subClass = 0, openWarp = 0;
+	uint8_t selectable = 0, door = 0, subClass = 0, openWarp = 0, operate = 0;
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
-		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)) return false;
+		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)
+		|| !Peek(row + ObjOperateFn, operate)) return false;
 	entity.container = IsContainer(row);
-	entity.questObject = Generated::QuestItemObject(classId);
+	entity.questObject = Generated::QuestItemObject(classId)
+		|| (operate == CairnStoneOperateFn && mode == ObjectNeutral);
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level

@@ -96,6 +96,11 @@ int main(int argc, char** argv) {
 		const auto* folder = sound < GroundItems::ItemSoundCount ? argv[1] : argv[2];
 		auto samples = ItemWave::Load(std::filesystem::path(folder) / name);
 		Check(!samples.empty(), "real user-provided cue decodes into supported PCM");
+		if (sound == static_cast<size_t>(GroundItems::Sound::Quest)) {
+			Check(samples.size() == ItemWave::SampleRate * 700 / 1000, "quest recording repeats at the requested 700 ms without speeding up its pitch");
+			Check(std::abs(int(samples.front())) < 100 && std::abs(int(samples.back())) < 100,
+				"shortened quest loop has quiet edges instead of a hard cut");
+		}
 		Check(ItemWave::Normalize(samples) > 0, "real loop contains a nonzero waveform");
 		int peak = 0; for (auto sample : samples) peak = std::max(peak, std::abs(int(sample)));
 		Check(std::abs(float(peak) / INT16_MAX - ItemWave::LoopPeak) < 0.0001f, "every real recording reaches the same peak with headroom");

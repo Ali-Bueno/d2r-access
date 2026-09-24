@@ -62,7 +62,8 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		|| !Peek(path, itemRoom) || itemRoom != room || !Peek(path + StaticX, x) || !Peek(path + StaticY, y)
 		|| x < 0 || y < 0 || x > UINT16_MAX || y > UINT16_MAX) return false;
 	item.position = {static_cast<double>(x), static_cast<double>(y)};
-	if (std::hypot(item.position.x - player.x, item.position.y - player.y) > GroundItems::AudibleRadius) return false;
+	const double distance = std::hypot(item.position.x - player.x, item.position.y - player.y);
+	if (distance > GroundItems::QuestAudibleRadius) return false;
 	if (!Peek(unit + UnitClass, classId) || classId >= tables.itemCount || !Peek(unit + UnitId, item.id)
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, item.quality)) return false;
 	const uintptr_t row = tables.items + classId * ItemStride;
@@ -75,6 +76,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		|| IsType(tables, typeId, TypeCode("scro"));
 	const bool quest = questFlag != 0 || IsType(tables, typeId, TypeCode("ques"));
 	item.sound = GroundItems::Classify(item.quality, gold, consumable, quest);
+	if (distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0);
 	return true;

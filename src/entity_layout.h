@@ -53,6 +53,7 @@ inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) spe
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // objects.txt OperateFn, the index of the game's interaction handler for the row.
 inline constexpr size_t ObjOperateFn = 0x15E;
+inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha through StoneLambda
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587

@@ -34,6 +34,8 @@ std::string Text(std::string_view key) {
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
+	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
+		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
 	if (key == "To The Cold Plains") return "A las Llanuras Frías";
 	if (key == "Cold Plains") return "Llanuras Frías";
 	if (key == "Waypoint") return "Punto de ruta";
@@ -223,10 +225,33 @@ void QuestObjectModes() {
 	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	Check(f.Read(entities) && !f.Find(entities, 17), "used Inifuss tree cannot continue emitting a quest cue");
 }
+void CairnStoneModes() {
+	Fixture f;
+	constexpr const char* names[] = {"StoneAlpha", "StoneBeta", "StoneGamma", "StoneDelta", "StoneLambda"};
+	std::vector<EntityRadar::Entity> entities;
+	for (uint32_t classId = 17; classId <= 21; ++classId) {
+		const size_t row = ObjectStride * classId;
+		f.objects.Text(row + ObjNameKey, names[classId - 17]);
+		f.objects.At<uint8_t>(row + ObjOperateFn, CairnStoneOperateFn);
+		f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
+		f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
+		f.casket.At<uint32_t>(GroundItemLayout::UnitClass, classId);
+		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
+		Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject,
+			"an unactivated Cairn Stone receives the quest cue");
+		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+		Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->questObject,
+			"an opened Cairn Stone remains targetable without the quest cue");
+		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+		Check(f.Read(entities) && !f.Find(entities, 17),
+			"an activating Cairn Stone is not an audio source");
+	}
+}
 }
 int main() {
 	PlayerCorpseOwnership();
 	QuestObjectModes();
+	CairnStoneModes();
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
 	Check(f.Read(entities) && entities.size() == 10, "npc, enemy, four objects, one exit warp and three exit objects are copied");

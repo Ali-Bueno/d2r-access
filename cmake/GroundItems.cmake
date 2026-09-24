@@ -6,13 +6,22 @@ find_program(D2R_FFMPEG ffmpeg REQUIRED)
 set(D2R_ITEM_SOUND_NAMES "gold" "potion" "normal equipment" "magic equipment" "rare equipment" "legendary equipment" "portal" "chest" "quest item")
 set(D2R_ITEM_WAV_DIR "${CMAKE_CURRENT_BINARY_DIR}/item-sounds")
 set(D2R_ITEM_WAVS)
+# Requested quest onset spacing; short edge fades avoid clicks when the bell repeats.
+set(D2R_QUEST_LOOP_SECONDS 0.7)
+set(D2R_QUEST_ATTACK_SECONDS 0.005)
+set(D2R_QUEST_RELEASE_START_SECONDS 0.68)
+set(D2R_QUEST_RELEASE_SECONDS 0.02)
 foreach(name IN LISTS D2R_ITEM_SOUND_NAMES)
 	set(source "${CMAKE_CURRENT_SOURCE_DIR}/sounds/item loop sounds/${name}.ogg")
 	set(output "${D2R_ITEM_WAV_DIR}/${name}.wav")
+	set(loop_filter)
+	if(name STREQUAL "quest item")
+		set(loop_filter -af "apad=whole_dur=${D2R_QUEST_LOOP_SECONDS},atrim=duration=${D2R_QUEST_LOOP_SECONDS},afade=t=in:d=${D2R_QUEST_ATTACK_SECONDS},afade=t=out:st=${D2R_QUEST_RELEASE_START_SECONDS}:d=${D2R_QUEST_RELEASE_SECONDS}")
+	endif()
 	add_custom_command(OUTPUT "${output}"
 		COMMAND "${CMAKE_COMMAND}" -E make_directory "${D2R_ITEM_WAV_DIR}"
 		COMMAND "${D2R_FFMPEG}" -nostdin -v error -y -i "${source}" -map_metadata -1
-			-vn -ac 1 -ar 48000 -c:a pcm_s16le -fflags +bitexact -flags:a +bitexact "${output}"
+			-vn ${loop_filter} -ac 1 -ar 48000 -c:a pcm_s16le -fflags +bitexact -flags:a +bitexact "${output}"
 		DEPENDS "${source}" VERBATIM)
 	list(APPEND D2R_ITEM_WAVS "${output}")
 endforeach()
