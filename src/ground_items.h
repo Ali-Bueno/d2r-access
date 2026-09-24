@@ -4,6 +4,7 @@
 #include <iterator>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace D2RAccess::GroundItems {
@@ -27,7 +28,9 @@ struct Voice {
 struct Update { std::vector<Voice> voices; std::string speech; };
 
 // Accessibility tuning in collision subtiles, not assumed native pickup ranges.
-inline constexpr double AudibleRadius = 30, SpeakRadius = 3, RearmRadius = 6;
+inline constexpr double AudibleRadius = 30, SpeakRadius = 3;
+// User request: every pass over an item reads it again; one subtile of hysteresis stops edge repeats.
+inline constexpr double RearmRadius = SpeakRadius + 1;
 // User listening feedback: quest cues need a longer reach and gentler distance fade.
 inline constexpr double QuestAudibleRadius = 45;
 constexpr double AudibleRange(Sound sound) { return sound == Sound::Quest ? QuestAudibleRadius : AudibleRadius; }
@@ -37,6 +40,7 @@ inline constexpr size_t MaxVoices = 8, MaxNamesPerAnnouncement = 4;
 inline constexpr size_t MaxContainerVoices = 3;
 // Reserve quest cues before ordinary sources without exhausting the exit/item mix.
 inline constexpr size_t MaxQuestVoices = 2;
+// Spacing for the rest of a pile; an item that has just come within reach speaks at once.
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
 // Exits never move, so their list is refreshed slowly; only the listener position is polled fast.
 inline constexpr uint64_t ExitRefreshMs = 500;
@@ -64,5 +68,6 @@ private:
 	uint64_t session_ = 0, lastSpeech_ = 0;
 	bool hasSpoken_ = false;
 	std::unordered_map<uint32_t, bool> spoken_;
+	std::unordered_set<uint32_t> waiting_; // within reach but held back by the name cap or UI
 };
 }

@@ -57,8 +57,7 @@ void Tracking() {
 	scene.items.push_back(Make(2));
 	Check(tracker.Tick(scene, 18000, true).speech == "Poción", "distinct item with the same name is still announced");
 	scene.items.push_back(Make(3));
-	Check(tracker.Tick(scene, 18100, true).speech.empty(), "speech delivery is rate limited");
-	Check(!tracker.Tick(scene, 19000, true).speech.empty(), "pending nearby item is not discarded during the cooldown");
+	Check(tracker.Tick(scene, 18100, true).speech == "Poción", "an item just within reach does not wait for the previous group");
 	tracker.Reset();
 	Check(tracker.Tick(scene, 20000, false).speech.empty(), "UI can suppress proximity speech");
 	Check(!tracker.Tick(scene, 21000, true).speech.empty(), "suppressed items remain eligible after closing a nonpausing menu");
@@ -71,6 +70,7 @@ void Tracking() {
 	Check(batch.voices.size() == MaxVoices && batch.speech == "0; 1; 2; 3", "piles keep a bounded mix and bounded speech groups");
 	float gain = 0; for (const auto& voice : batch.voices) gain += voice.gain;
 	Check(gain <= MixGainLimit + 0.0001f, "worst case pile has audio headroom");
+	Check(tracker.Tick(scene, 24050, true).speech.empty(), "the rest of a pile waits for the speech gap");
 	Check(tracker.Tick(scene, 25000, true).speech == "4; 5; 6; 7", "remaining objects in a pile are read in subsequent groups");
 	tracker.Reset(); scene.items = {Make(1), Make(1)};
 	batch = tracker.Tick(scene, 26000, true);
@@ -96,6 +96,34 @@ void Tracking() {
 	scene.items.clear();
 }
 
+Item Make(uint32_t id, Sound sound, std::string name, Point position = {}) {
+	Item result = Make(id, position, std::move(name)); result.sound = sound; return result;
+}
+void SpeechPriority() {
+	Tracker tracker;
+	Snapshot scene{1, {}, {Make(1, Sound::Normal, "Gorro", {0.5, 0}), Make(2, Sound::Potion, "Poción", {1, 0}),
+		Make(3, Sound::Gold, "37 Oro", {1.5, 0}), Make(4, Sound::Quest, "Cubo Horádrico", {2, 0})}};
+	Check(tracker.Tick(scene, 1000, true).speech == "Cubo Horádrico; Poción; 37 Oro; Gorro",
+		"one spot reads quest item, consumable and gold before the nearer equipment");
+	scene.player = {RearmRadius + 2.1, 0}; tracker.Tick(scene, 1100, true);
+	scene.player = {};
+	Check(tracker.Tick(scene, 1200, true).speech == "Cubo Horádrico; Poción; 37 Oro; Gorro",
+		"stepping off and straight back reads the pile again without waiting for the speech gap");
+
+	tracker.Reset();
+	scene.items = {Make(10, Sound::Magic, "Arco corto, mágico")};
+	Check(tracker.Tick(scene, 4000, true).speech == "Arco corto, mágico", "equipment alone is read");
+	scene.items.push_back(Make(11, Sound::Potion, "Poción"));
+	Check(tracker.Tick(scene, 4050, true).speech == "Poción", "a potion arriving next is read at once");
+
+	tracker.Reset(); scene.items.clear();
+	for (uint32_t i = 0; i < 4; ++i) scene.items.push_back(Make(20 + i, Sound::Rare, "Equipo " + std::to_string(i)));
+	scene.items.push_back(Make(30, Sound::Potion, "Poción"));
+	scene.items.push_back(Make(31, Sound::Quest, "Pergamino de Inifuss"));
+	Check(tracker.Tick(scene, 5000, true).speech == "Pergamino de Inifuss; Poción; Equipo 0; Equipo 1",
+		"the name cap keeps quest items and consumables in the first group");
+	Check(tracker.Tick(scene, 5000 + SpeechGapMs, true).speech == "Equipo 2; Equipo 3", "equipment beyond the cap follows");
+}
 void Containers() {
 	Tracker tracker;
 	Snapshot scene;
@@ -193,7 +221,7 @@ void QuestSources() {
 }
 }
 int main() {
-	Classification(); Position(); Tracking(); Containers(); QuestSources();
+	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); QuestSources();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");
