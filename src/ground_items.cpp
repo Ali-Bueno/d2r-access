@@ -7,14 +7,10 @@
 #include <unordered_set>
 
 namespace D2RAccess::GroundItems {
-Sound Classify(uint32_t quality, bool gold, bool consumable, uint32_t code) {
+Sound Classify(uint32_t quality, bool gold, bool consumable, bool quest) {
+	if (quest) return Sound::Quest;
 	if (gold) return Sound::Gold;
 	if (consumable) return Sound::Potion;
-	// Installed misc.txt: quest scrolls/potions inherit 'ques', not 'scro'/'poti'.
-	using D2RL::Items::MakeItemCode;
-	constexpr uint32_t QuestConsumables[] = {MakeItemCode("bks"), MakeItemCode("tr1"),
-		MakeItemCode("tr2"), MakeItemCode("xyz"), MakeItemCode("ice")};
-	for (const auto questCode : QuestConsumables) if (code == questCode) return Sound::Potion;
 	using Q = D2RL::Items::Quality;
 	switch (static_cast<Q>(quality)) {
 	case Q::Magic: return Sound::Magic;
@@ -27,6 +23,7 @@ Voice Spatialize(const Item& item, Point player) {
 	const double dx = item.position.x - player.x, dy = item.position.y - player.y;
 	const double distance = std::hypot(dx, dy);
 	Voice voice{item.id, item.sound};
+	voice.source = item.source;
 	if (!std::isfinite(distance)) return voice;
 	// Native projection 0x334DB0: +X down/right, +Y down/left.
 	voice.right = static_cast<float>((dx - dy) / std::numbers::sqrt2);
@@ -49,17 +46,19 @@ bool MatchesLabel(std::string_view label, const std::vector<std::string>& names)
 	return false;
 }
 namespace {
-// The nearest sources of one silent kind (exits, containers), de-duplicated by
-// unit id and capped, in the order they should claim voices.
+// Nearest sources, deduplicated by unit kind/id and capped in priority order.
 void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& result) {
 	std::vector<std::pair<double, const Item*>> nearest;
-	std::unordered_set<uint32_t> seen;
+	std::unordered_set<uint64_t> seen;
 	for (const auto& source : sources) {
 		const double distance = std::hypot(source.position.x - player.x, source.position.y - player.y);
-		if (std::isfinite(distance) && distance < AudibleRadius && seen.insert(source.id).second) nearest.emplace_back(distance, &source);
+		const uint64_t identity = (static_cast<uint64_t>(source.source) << 32) | source.id;
+		if (std::isfinite(distance) && distance < AudibleRadius && seen.insert(identity).second) nearest.emplace_back(distance, &source);
 	}
 	std::sort(nearest.begin(), nearest.end(), [](const auto& a, const auto& b) {
-		return a.first == b.first ? a.second->id < b.second->id : a.first < b.first;
+		if (a.first != b.first) return a.first < b.first;
+		if (a.second->source != b.second->source) return a.second->source < b.second->source;
+		return a.second->id < b.second->id;
 	});
 	size_t emitted = 0;
 	for (const auto& [distance, source] : nearest) {
@@ -73,9 +72,11 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
-	// Exits first and without a cap: losing the way out costs more than any
-	// loot. Containers take at most their share, so a crypt full of caskets
-	// still leaves voices for the items on the floor.
+	if (itemLoops) {
+		auto quests = snapshot.questObjects;
+		for (const auto& item : snapshot.items) if (item.sound == Sound::Quest) quests.push_back(item);
+		Emit(quests, snapshot.player, MaxQuestVoices, result);
+	}
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;
@@ -94,7 +95,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	const bool canSpeak = speechEnabled && (!hasSpoken_ || now < lastSpeech_ || now - lastSpeech_ >= SpeechGapMs);
 	size_t names = 0;
 	for (const auto& [distance, item] : nearby) {
-		if (itemLoops && result.voices.size() < MaxVoices && distance < AudibleRadius)
+		if (itemLoops && item->sound != Sound::Quest && result.voices.size() < MaxVoices && distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
 		if (!canSpeak || distance > SpeakRadius || item->name.empty() || names >= MaxNamesPerAnnouncement || spoken_.contains(item->id)) continue;
 		if (!result.speech.empty()) result.speech += "; ";

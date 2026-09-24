@@ -33,6 +33,7 @@ std::string Text(std::string_view key) {
 	if (key == PlaceholderNameKey) return "una fuerza maligna";
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
+	if (key == "Inifuss") return "Árbol de Inifuss";
 	if (key == "To The Cold Plains") return "A las Llanuras Frías";
 	if (key == "Cold Plains") return "Llanuras Frías";
 	if (key == "Waypoint") return "Punto de ruta";
@@ -62,13 +63,13 @@ struct Fixture {
 	Memory<LevelStride * 3> levels; // row 1: Cold Plains; row 2: Duriel's Lair
 	Memory<0x1600> tables;
 	Memory<MonStatStride * 60> monsters;
-	Memory<ObjectStride * 7> objects;
+	Memory<ObjectStride * 31> objects;
 	Memory<64> uniqueName;
 	Fixture() {
 		player.At<uint32_t>(GroundItemLayout::UnitId, 42); player.At(GroundItemLayout::UnitPath, playerPath.Address());
 		playerPath.At<uint32_t>(0, 100u << 16); playerPath.At<uint32_t>(4, 100u << 16); playerPath.At(PathRoom, room.Address());
 		tables.At(MonStats, monsters.Address()); tables.At<uint64_t>(MonStatCount, 60);
-		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 7);
+		tables.At(Objects, objects.Address()); tables.At<uint64_t>(ObjectCount, 31);
 		tables.At(Levels, levels.Address()); tables.At<uint64_t>(LevelCount, 3);
 		levels.Text(LevelStride + LevelNameKey, "Cold Plains"); levels.Text(LevelStride + LevelWarpKey, "To The Cold Plains");
 		levels.Text(LevelStride * 2 + LevelNameKey, "Duriel's Lair"); levels.Text(LevelStride * 2 + LevelWarpKey, "To Duriel's Lair");
@@ -203,9 +204,29 @@ void PlayerCorpseOwnership() {
 	f.casket.At<uintptr_t>(GroundItemLayout::UnitNext, 0);
 	Check(f.Read(entities) && !f.Find(entities, 50), "corpse pickup or unloading removes the target from a new snapshot");
 }
+void QuestObjectModes() {
+	Fixture f;
+	constexpr size_t tree = ObjectStride * 30;
+	f.objects.Text(tree + ObjNameKey, "Inifuss");
+	f.objects.At<uint8_t>(tree + ObjSelectable + ObjectNeutral, 1);
+	f.objects.At<uint8_t>(tree + ObjOperateFn, 12);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, 30);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
+		&& f.Find(entities, 17)->name == "Árbol de Inifuss",
+		"selectable Inifuss tree is a localized quest audio source");
+	Localization::available = false;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
+		&& f.Find(entities, 17)->name == Strings::Current().containerUnnamed,
+		"quest cue survives an unavailable game string table");
+	Localization::available = true;
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && !f.Find(entities, 17), "used Inifuss tree cannot continue emitting a quest cue");
+}
 }
 int main() {
 	PlayerCorpseOwnership();
+	QuestObjectModes();
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
 	Check(f.Read(entities) && entities.size() == 10, "npc, enemy, four objects, one exit warp and three exit objects are copied");

@@ -32,6 +32,7 @@ const EntityRadar::Entity shrine{31, EntityRadar::Kind::Object, {2, 4}, "Santuar
 size_t Portals() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Portal; return n; }
 size_t Zones() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::ZoneTransition; return n; }
 size_t Chests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Chest; return n; }
+size_t Quests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Quest; return n; }
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener); *handle = listeners.size(); return D2RL::Lifecycle::Result::Success;
 }
@@ -124,6 +125,29 @@ int main() {
 	Check(GroundItemService::OwnsWorldLabel("Poción"), "nearby world tooltip defers to the proximity announcement");
 	Check(!GroundItemService::OwnsWorldLabel("Charsi"), "NPC labels are not suppressed");
 	speech.clear(); Tick(); Check(speech.empty(), "continuous updates do not repeat the item");
+	EntityRadar::Entity tree{70, EntityRadar::Kind::Object, {3, 4}, "Árbol de Inifuss"};
+	tree.questObject = true;
+	EntityRadar::Entity questChest{71, EntityRadar::Kind::Object, {4, 4}, "Cofre", 0, true};
+	questChest.questObject = true;
+	entities.push_back(tree); entities.push_back(questChest);
+	Command("sound-on"); speech.clear(); Tick();
+	Check(Quests() == 2 && Chests() == 0 && speech.empty(), "tree and quest chest use quest audio without duplicate chest sound or speech");
+	Command("chests-off"); Check(Quests() == 2, "quest interactables remain audible with container sounds disabled");
+	Command("exits-off"); Check(Quests() == 2 && Portals() == 0, "quest interactables remain audible with exit sounds disabled");
+	Command("sound-off"); Check(voices.empty(), "item sound switch silences both quest objects");
+	Command("sound-on"); Check(Quests() == 2, "enabling item sounds refreshes quest objects without exits or containers");
+	for (auto state : {RadarUi::State::Dialogue, RadarUi::State::Paused, RadarUi::State::Inactive, RadarUi::State::Unavailable}) {
+		ui = state; Tick(); Check(voices.empty(), "quest sounds obey dialogue, pause, focus and unavailable UI gates");
+	}
+	ui = RadarUi::State::Playing; Tick(true);
+	Check(Quests() == 2, "nonpausing menus retain quest sounds");
+	Event(K::LevelChanged); Check(voices.empty(), "level transition immediately silences quest audio");
+	entities.pop_back(); entities.pop_back(); Tick();
+	Check(Quests() == 0, "used or unloaded quest objects leave no cached voices after a level transition");
+	entities.push_back(tree); Command("sound-on"); Check(Quests() == 1, "unused tree can be found again");
+	entities.pop_back(); Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Quests() == 0, "using a tree removes its sound on the native refresh");
+	Command("exits-on"); Command("chests-on"); speech.clear();
 	for (auto state : {RadarUi::State::Dialogue, RadarUi::State::Paused, RadarUi::State::Inactive, RadarUi::State::Unavailable}) {
 		ui = state; Tick(); Check(voices.empty() && !GroundItemService::OwnsWorldLabel("Poción"), "dialogue, pause, lost focus and missing UI silence loot cues");
 	}

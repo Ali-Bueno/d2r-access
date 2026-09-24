@@ -74,6 +74,21 @@ int main(int argc, char** argv) {
 	Check(f.Read(snapshot) && snapshot.items.size() == 1, "cyclic item type inheritance is bounded");
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("scro"), 0, 0});
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Potion, "scrolls use potion audio regardless of quality");
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("ques"), 0, 0});
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
+		"quest ancestry takes priority over consumable and unique item sounds");
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("hamm"), 0, 0});
+	f.itemTable.At<uint8_t>(GroundItemLayout::ItemQuest, 4);
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
+		"the native quest column also catches quest weapons with ordinary item types");
+	f.item.At<uint32_t>(0xC, GroundItemLayout::Dropping);
+	Check(f.Read(snapshot) && snapshot.items.empty(), "a falling quest item is silent");
+	f.item.At<uint32_t>(0xC, GroundItemLayout::OnGround);
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
+		"landing exposes the quest cue on the next snapshot");
+	f.item.At<uint32_t>(0xC, 0);
+	Check(f.Read(snapshot) && snapshot.items.empty(), "picking up a quest item removes its cue");
+	f.item.At<uint32_t>(0xC, GroundItemLayout::OnGround);
 	f.room.At<uintptr_t>(0xA8, 0); f.otherRoom.At(0xA8, f.item.Address()); f.itemPath.At(0, f.otherRoom.Address());
 	f.neighbors = {f.room.Address(), f.otherRoom.Address()}; f.room.At(0, reinterpret_cast<uintptr_t>(f.neighbors.data())); f.room.At<uint32_t>(0x40, 2);
 	Check(f.Read(snapshot) && snapshot.items.size() == 1, "neighbor rooms are traversed once including self links");

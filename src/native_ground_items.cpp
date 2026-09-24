@@ -67,11 +67,14 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, item.quality)) return false;
 	const uintptr_t row = tables.items + classId * ItemStride;
 	uint16_t nameId = 0, typeId = 0;
-	if (!Peek(row + ItemCode, item.code) || !Peek(row + ItemName, nameId) || !Peek(row + ItemType, typeId)) return false;
+	uint8_t questFlag = 0;
+	if (!Peek(row + ItemCode, item.code) || !Peek(row + ItemName, nameId)
+		|| !Peek(row + ItemType, typeId) || !Peek(row + ItemQuest, questFlag)) return false;
 	const bool gold = IsType(tables, typeId, TypeCode("gold"));
 	const bool consumable = IsType(tables, typeId, TypeCode("poti")) || IsType(tables, typeId, TypeCode("elix"))
 		|| IsType(tables, typeId, TypeCode("scro"));
-	item.sound = GroundItems::Classify(item.quality, gold, consumable, item.code);
+	const bool quest = questFlag != 0 || IsType(tables, typeId, TypeCode("ques"));
+	item.sound = GroundItems::Classify(item.quality, gold, consumable, quest);
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0);
 	return true;

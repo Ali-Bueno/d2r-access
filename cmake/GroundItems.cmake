@@ -3,7 +3,7 @@
 find_program(D2R_FFMPEG ffmpeg REQUIRED)
 # "chest" is the container cue, taken from the author's DevilutionX accessibility
 # fork (audio/chest.ogg there); the others are the user's own loop beds.
-set(D2R_ITEM_SOUND_NAMES "gold" "potion" "normal equipment" "magic equipment" "rare equipment" "legendary equipment" "portal" "chest")
+set(D2R_ITEM_SOUND_NAMES "gold" "potion" "normal equipment" "magic equipment" "rare equipment" "legendary equipment" "portal" "chest" "quest item")
 set(D2R_ITEM_WAV_DIR "${CMAKE_CURRENT_BINARY_DIR}/item-sounds")
 set(D2R_ITEM_WAVS)
 foreach(name IN LISTS D2R_ITEM_SOUND_NAMES)

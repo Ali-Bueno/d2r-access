@@ -229,6 +229,14 @@ Sounds stop for pickup, dialogue, pause and leaving the game. See
 [item sound categories, controls and validation](docs/ground-items.md).
 The native reader and all six audio assets have initialized in a live game.
 
+**Quest item cues:** `quest item.ogg` marks nearby ground quest items and unused
+quest-item objects, including the Tree of Inifuss, the Malus, Lam Esen's Tome,
+and the Horadric and Khalim component chests. The cue uses the same screen
+direction and 30-subtile range as loot. Up to two quest sources get priority
+over ordinary sounds. Pickup or using the object silences it; **Ctrl+L** toggles
+these cues together with item loops. Detection covers loaded nearby rooms;
+it does not locate the tree across the entire Dark Wood or check active quest flags.
+
 Navigation and loot cues use game state and bundled or synthesized sounds,
 independently of the text and voice language. If a container or exit name cannot
 be read, its cue remains available with a generic localized label. Beacon audio

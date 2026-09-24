@@ -30,6 +30,8 @@ constexpr Object Objects[] = {
 	// Objects that hand over a fixed quest item.
 	{"HoradricCubeChest",  354, true},
 	{"Malus",              108, true},
+	{"InifussTree",         30,  true},
+	{"LamEsensTome",       193, true},
 	// Not loot, and must not be swept in: a shrine, a waypoint, a door and
 	// the stash all sit in categories of their own.
 	{"DeerShrine",         2,   false},
@@ -44,6 +46,11 @@ int main() {
 		Check(Generated::LootableObject(object.id) == object.lootable,
 			std::string(object.name) + (object.lootable ? " gives loot" : " gives no loot"));
 	}
+	for (const uint32_t id : {30u, 108u, 193u, 354u, 355u, 356u, 405u, 406u, 407u})
+		Check(Generated::QuestItemObject(id), "fixed quest item object is classified separately");
+	for (const uint32_t id : {7u, 15u, 54u, 119u, 267u})
+		Check(!Generated::QuestItemObject(id), "ordinary object is not a quest item source");
+	Check(!Generated::QuestItemObject(0xFFFFFFFFu), "out-of-range quest object id is rejected");
 
 	// The lookup is a binary search, so the table has to stay sorted, and a
 	// duplicate id would mean the generator emitted a row twice.
@@ -51,6 +58,9 @@ int main() {
 	Check(std::is_sorted(ids.begin(), ids.end()), "the table is sorted");
 	Check(std::adjacent_find(ids.begin(), ids.end()) == ids.end(), "no id appears twice");
 	Check(!ids.empty(), "the table is not empty");
+	const auto& questIds = Generated::QuestItemObjects;
+	Check(std::is_sorted(questIds.begin(), questIds.end()), "quest object table is sorted");
+	Check(std::adjacent_find(questIds.begin(), questIds.end()) == questIds.end(), "quest object table has no duplicates");
 	// A class id past the table cannot read off the end.
 	Check(!Generated::LootableObject(0xFFFFFFFFu), "an out-of-range class id is not lootable");
 

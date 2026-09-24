@@ -31,13 +31,14 @@ does not reveal unidentified affixes.
 | Supplied loop | Ground item category |
 |---|---|
 | `gold.ogg` | Gold |
-| `potion.ogg` | All descendants of potion, elixir and scroll item types, plus quest potions/scrolls |
+| `potion.ogg` | All descendants of potion, elixir and scroll item types, except quest items |
 | `normal equipment.ogg` | Inferior/normal/superior equipment and remaining miscellaneous items |
 | `magic equipment.ogg` | Magic quality |
 | `rare equipment.ogg` | Rare and crafted quality |
 | `legendary equipment.ogg` | Unique and set quality |
 | `portal.ogg` | Level exits: warps, portals, waypoints |
 | `chest.ogg` | Containers you open for loot ([below](#container-loops)) |
+| `quest item.ogg` | Ground quest items and unused objects that supply quest items ([below](#quest-item-loops)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
 animation (**Dropping, 5**) is excluded; there is no guessed landing timer.
@@ -99,15 +100,57 @@ counts with `EntityLayout::ContainerRowCount` / `ObjectRowCount` — the patch
 tripwire. If they disagree it says so; rerun `tools/objects_containers.py`
 before trusting the cue.
 
-Exits claim voices first, then containers up to `MaxContainerVoices` (3), then
+After the reserved quest share, exits claim voices first, then containers up to `MaxContainerVoices` (3), then
 items: a crypt full of caskets must not silence the loot on the floor or the way
 out. Containers are never spoken — they carry no name into the mixer, exactly
 like level exits. `radar.toml` `[chests] enabled` sets the state the mod starts
 in; **Ctrl+K** toggles it for the current run.
 
+## Quest item loops
+
+Added 2026-09-23 using the supplied `quest item.ogg`. Ground quest items take
+this sound before quality or consumable classification, including the Scroll
+of Inifuss. Classification reads the live item row's nonzero `quest` byte or
+its primary type's `ques` ancestry. The flag covers quest weapons with ordinary
+weapon types, including the Malus, Horadric Staff, Gidbinn and Khalim's weapons.
+`python tools/items_quest.py` verifies code, primary type and quest flag against
+the installed text/binary tables: all 692 rows match on D2R 3.3.93787, with 26
+nonzero quest flags and 28 additional primary `ques` rows. Extract the inputs
+listed in that script before rechecking after a game update.
+Interactable sources use `Generated::QuestItemObject`, generated
+alongside the existing lootable catalog from the installed `objects.txt`:
+InifussTree (30), Malus (108), LamEsensTome (193), the Horadric Cube, Scroll and
+Staff chests (354–356), and Khalim's Heart, Eye and Brain chests (405–407).
+Their interaction handlers are 12, 21, 28, 39–41 and 57–59. All nine rows are
+selectable only in neutral mode, so the native current-mode gate silences
+them after use. A quest chest uses only the quest sound, without a chest loop.
+
+These cues share **Ctrl+L** / `access-items sound-on|sound-off` with item audio.
+Disabling chest or exit sounds does not suppress quest sources. The nearest
+two quest sources reserve voices before exits, containers and ordinary loot;
+the eight-voice and summed-gain limits still apply. Object and item identities
+remain distinct even if their numeric unit IDs coincide. Ground pickup is
+refreshed at 50 ms, fixed quest objects at 500 ms. Dialogue, pause, focus and
+lifecycle suspension use the existing shared gates.
+
+The range remains 30 collision subtiles in resident nearby rooms. No distant
+presets or undiscovered map positions are requested. Classification identifies
+quest-related objects, not whether the player's current quest needs them: no
+player quest flags are inferred. Other quest mechanisms (Cairn Stones, the
+Hellforge, Horazon's journal, and the Ancients' altar) are outside this catalog;
+some stay selectable after use and need separate verified state handling.
+
+Validation covers native Inifuss selection/used modes, unavailable translation,
+quest classification before quality, landing and pickup, source priority and
+identity collisions, toggles, UI suspension, lifecycle reset, and the actual
+converted recording's PCM level and stereo positioning. Live controller
+listening at the tree and after collecting its scroll remains pending.
+The Release build/deploy completed without compiler warnings and all 71 CTest
+suites passed. Installed plugin and quest WAV SHA-256 hashes match the build.
+
 ## Assets and build
 
-Edit the eight OGG files under `sounds/item loop sounds/` (the table above lists
+Edit the nine OGG files under `sounds/item loop sounds/` (the table above lists
 them; `cmake/GroundItems.cmake` holds the authoritative set), then build with the game
 closed. `cmake/GroundItems.cmake` uses the existing **FFmpeg command line tool**
 to create mono, 48 kHz, PCM16 WAV files in the build directory. FFmpeg is a build
@@ -142,7 +185,7 @@ on the UI thread. It retains no native item/room pointers between polls.
 | Item type table | `0x293CC0`: bank `+0x1348/+0x1350`, stride `0xE8` |
 | Type ancestry layout | Installed CASC `ItemTypes.bin`: four-byte Code then two uint16 Equiv indices; cross-checked against `itemtypes.txt` |
 | Gold amount | `0x370C90` reads stat 14, matching `ItemStatCost.txt` `gold`; guarded read-only getter `0x2F5020(unit, stat, layer=0)` |
-| Quest scroll/potion exceptions | Installed `misc.txt`: `bks`, `tr1`, `tr2`, `xyz`, `ice` inherit `ques` |
+| Ground quest classification | Installed `misc.txt`, `weapons.txt`, `armor.txt` and their `.bin`: row `quest` byte at `+0x13A`, uniquely matched across all 692 rows (169/306/217); `+0x80` code and `0x1C0` stride cross-checked. Primary `ques` ancestry also qualifies. |
 | Player death modes | Installed `plrmode.txt`: Death row 0, Dead row 17 |
 
 The scan covers the player's resident room and its native neighbors, with finite

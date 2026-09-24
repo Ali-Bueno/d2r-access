@@ -4,6 +4,9 @@
 
 namespace D2RAccess::ItemAudio {
 constexpr bool IsOneShot(GroundItems::Sound sound) { return sound == GroundItems::Sound::InsideUnexploredRoom; }
+constexpr bool SameSource(const GroundItems::Voice& a, const GroundItems::Voice& b) {
+	return a.id == b.id && a.sound == b.sound && a.source == b.source;
+}
 bool Start(const D2RL::PluginContext* context);
 void Update(std::vector<GroundItems::Voice> voices);
 void Silence();

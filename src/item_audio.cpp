@@ -140,7 +140,7 @@ void Worker(const D2RL::PluginContext* context) {
 				float totalGain = 0;
 				for (const auto& target : targets) {
 					const auto active = std::find_if(playing.begin(), playing.end(), [&](const Playing& p) {
-						return p.source && p.id == target.id && p.sound == target.sound;
+						return p.source && SameSource(p.target, target);
 					});
 					totalGain += std::max(target.gain, active == playing.end() ? 0.0f : active->gain);
 				}
@@ -153,7 +153,7 @@ void Worker(const D2RL::PluginContext* context) {
 				if (FAILED(master->SetVolume(mixVolume))) { g_running = false; break; }
 				for (auto& active : playing) {
 					if (!active.source) continue;
-					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return active.id == target.id && active.sound == target.sound; });
+					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return SameSource(active.target, target); });
 					if (found == targets.end()) {
 						AsyncLog::InfoF(context, "[item-audio] stopped id=%u", active.id);
 						active.Stop();
@@ -162,7 +162,7 @@ void Worker(const D2RL::PluginContext* context) {
 				for (const auto& target : targets) {
 					const auto sound = static_cast<size_t>(target.sound);
 					if (sound >= samples.size() || samples[sound].empty() || target.sound == Sound::InsideUnexploredRoom) continue;
-					auto active = std::find_if(playing.begin(), playing.end(), [&](const Playing& p) { return p.source && p.id == target.id && p.sound == target.sound; });
+					auto active = std::find_if(playing.begin(), playing.end(), [&](const Playing& p) { return p.source && SameSource(p.target, target); });
 					if (active == playing.end()) {
 						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
 						if (active == playing.end()) break;
