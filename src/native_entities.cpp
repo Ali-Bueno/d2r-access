@@ -8,6 +8,7 @@
 #include "native_drlg.h"
 #include "native_level_areas.h"
 #include "native_level_exits.h"
+#include "native_cairn.h"
 #include "native_memory.h"
 #include "localization.h"
 #include "speech_strings.h"
@@ -17,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstdio>
 #include <unordered_set>
 
 namespace D2RAccess::NativeEntities {
@@ -212,8 +214,12 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)
 		|| !Peek(row + ObjOperateFn, operate)) return false;
 	entity.container = IsContainer(row);
-	entity.questObject = Generated::QuestItemObject(classId)
-		|| (operate == CairnStoneOperateFn && mode == ObjectNeutral);
+	entity.questObject = Generated::QuestItemObject(classId);
+	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
+		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
+		entity.questObject = false;
+	}
+	entity.cairnUnactivated = entity.cairnStone && mode == ObjectNeutral;
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
@@ -246,7 +252,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
 	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
-	if (entity.name.empty() && (entity.container || entity.questObject)) entity.name = Strings::Current().containerUnnamed;
+	if (entity.name.empty() && (entity.container || entity.questObject || entity.cairnStone)) entity.name = Strings::Current().containerUnnamed;
 	return !entity.name.empty();
 }
 // A level exit: the warp unit's node in its room, named after the destination level
@@ -295,7 +301,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (g_corpsesSupported) AsyncLog::Info(context, "[scan] Verified local player corpse ownership reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, const CairnStones::Order* cairnOrder) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -329,6 +335,9 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
+	CairnStones::States cairnStates{};
+	std::array<bool, CairnStones::Count> cairnSeen{};
+	bool cairnConflict = false;
 	for (const auto candidateRoom : rooms) {
 		uintptr_t unit = 0;
 		if (!Peek(candidateRoom + RoomFirstUnit, unit)) return false;
@@ -336,12 +345,42 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (visited.size() >= MaxUnits || !visited.insert(unit).second) return false;
 			uint32_t unitType = 0;
 			if (!Peek(unit + UnitType, unitType)) return false;
+			if (unitType == ObjectType) {
+				uint32_t classId = 0, mode = 0;
+				if (Peek(unit + UnitClass, classId)) if (const auto stone = CairnStones::Index(classId)) {
+					if (cairnSeen[*stone]) cairnConflict = true;
+					cairnSeen[*stone] = true;
+					uint8_t operate = 0;
+					if (classId < tables.objectCount && Peek(tables.objects + classId * ObjectStride + ObjOperateFn, operate)
+						&& operate == CairnStoneOperateFn && Peek(unit + UnitMode, mode)) {
+						if (mode == ObjectNeutral) cairnStates[*stone] = CairnStones::State::Unactivated;
+						else if (mode == ObjectOperating || mode == ObjectOpened) cairnStates[*stone] = CairnStones::State::Activated;
+					}
+				}
+			}
 			EntityRadar::Entity entity;
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) entities.push_back(std::move(entity));
 			if (!Peek(unit + UnitNext, unit)) return false;
+		}
+	}
+	if (cairnOrder && CairnStones::Valid(*cairnOrder)) {
+		const auto next = cairnConflict ? std::optional<size_t>{} : CairnStones::Next(*cairnOrder, cairnStates);
+		const auto& strings = Strings::Current();
+		for (auto& entity : entities) {
+			if (!entity.cairnStone) continue;
+			const size_t stone = entity.cairnStone - 1;
+			const auto rank = CairnStones::Rank(*cairnOrder, stone);
+			if (!rank) continue;
+			entity.cairnRank = static_cast<uint8_t>(*rank);
+			entity.questObject = entity.cairnUnactivated && next && *next == stone;
+			entity.worldName = entity.name;
+			char text[512]{};
+			std::snprintf(text, sizeof text, entity.questObject ? strings.cairnStoneNext : strings.cairnStoneStep,
+				entity.worldName.c_str(), static_cast<int>(*rank));
+			entity.name = text;
 		}
 	}
 	// Permanent level transitions may outlive their loaded warp units. Read
@@ -382,7 +421,9 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported);
+	const auto order = NativeCairn::Read(session);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported,
+		order ? &*order : nullptr);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

@@ -30,7 +30,7 @@ inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0
 inline constexpr size_t PathRoom = 0x20;
 // MonMode.txt / ObjMode.txt row indices.
 inline constexpr uint32_t MonsterDeath = 0, MonsterDead = 12;
-inline constexpr uint32_t ObjectModeCount = 8, ObjectNeutral = 0, ObjectOpened = 2;
+inline constexpr uint32_t ObjectModeCount = 8, ObjectNeutral = 0, ObjectOperating = 1, ObjectOpened = 2;
 // Table bank: row pointer / row count / row stride (accessors 0x976E0, 0x38FD00).
 inline constexpr size_t MonStats = 0xF58, MonStatCount = 0xF60, MonStatStride = 0x1FC;
 inline constexpr size_t Objects = 0x1528, ObjectCount = 0x1530, ObjectStride = 0x168;

@@ -1,5 +1,6 @@
 #pragma once
 #include "entity_radar.h"
+#include "cairn_stones.h"
 #include "native_level_exits.h"
 #include <D2RLPlugin/api.h>
 #include <cstdint>
@@ -21,7 +22,7 @@ bool Initialize(const D2RL::PluginContext* context);
 // to the short-range directional scan, which answers "what is near me".
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false);
 // Factored for tests over constructed native memory.
-bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true);
+bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, const CairnStones::Order* cairnOrder = nullptr);
 // The current level's room layout around the verified local player, for the
 // terrain overview; `neighbours` also reads the bordering rooms of other levels.
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);

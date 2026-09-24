@@ -19,6 +19,7 @@
 #include "multiplayer_reader.h"
 #include "menu_navigation.h"
 #include "native_widgets.h"
+#include "native_cairn.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
@@ -254,6 +255,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	// readers that only inspect memory remain available.
 	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
 	if (nativeHooks) {
+		if (!D2RAccess::NativeCairn::Register(context)) D2RAccess::AsyncLog::Warn(context, "[cairn] Scroll order capture unavailable.");
 		(void)D2RAccess::NativeTooltips::Initialize(context);
 		(void)D2RAccess::NativeSkillNavigation::Initialize(context);
 		// Not an inline hook, but it changes what the game reads, so it goes
@@ -313,6 +315,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::AutoDetail::Unregister();
 	D2RAccess::QuestService::Unregister();
+	D2RAccess::NativeCairn::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::MenuNavigation::Reset();
 	D2RAccess::TerrainService::Unregister();

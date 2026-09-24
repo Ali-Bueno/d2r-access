@@ -4,6 +4,7 @@
 #include "ground_item_layout.h"
 #include "localization.h"
 #include "speech_strings.h"
+#include "native_cairn.h"
 #include "test_support.h"
 #include <algorithm>
 #include <array>
@@ -44,6 +45,9 @@ std::string Text(std::string_view key) {
 	if (key == PlayerCorpseNameKey) return "Cadáver";
 	return {};
 }
+}
+namespace D2RAccess::NativeCairn {
+std::optional<CairnStones::Order> Read(uint64_t) { return {}; }
 }
 namespace {
 template<size_t N> struct Memory {
@@ -142,7 +146,9 @@ struct Fixture {
 		unit.At(GroundItemLayout::UnitId, id); unit.At(GroundItemLayout::UnitPath, path.Address());
 		path.At(0, room.Address()); path.At(GroundItemLayout::StaticX, x); path.At(GroundItemLayout::StaticY, y);
 	}
-	bool Read(std::vector<EntityRadar::Entity>& result) { return NativeEntities::ReadPlayer(player.Address(), tables.Address(), 42, 7, result); }
+	bool Read(std::vector<EntityRadar::Entity>& result, const CairnStones::Order* order = nullptr) {
+		return NativeEntities::ReadPlayer(player.Address(), tables.Address(), 42, 7, result, false, false, true, order);
+	}
 	const EntityRadar::Entity* Find(const std::vector<EntityRadar::Entity>& entities, uint32_t id) {
 		for (const auto& entity : entities) if (entity.id == id) return &entity;
 		return nullptr;
@@ -228,6 +234,9 @@ void QuestObjectModes() {
 void CairnStoneModes() {
 	Fixture f;
 	constexpr const char* names[] = {"StoneAlpha", "StoneBeta", "StoneGamma", "StoneDelta", "StoneLambda"};
+	std::array<Memory<UnitSize>, CairnStones::Count> stones;
+	std::array<Memory<PathSize>, CairnStones::Count> paths;
+	const CairnStones::Order order{2, 4, 0, 1, 3};
 	std::vector<EntityRadar::Entity> entities;
 	for (uint32_t classId = 17; classId <= 21; ++classId) {
 		const size_t row = ObjectStride * classId;
@@ -235,17 +244,47 @@ void CairnStoneModes() {
 		f.objects.At<uint8_t>(row + ObjOperateFn, CairnStoneOperateFn);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
-		f.casket.At<uint32_t>(GroundItemLayout::UnitClass, classId);
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
-		Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject,
-			"an unactivated Cairn Stone receives the quest cue");
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
-		Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->questObject,
-			"an opened Cairn Stone remains targetable without the quest cue");
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, 1);
-		Check(f.Read(entities) && !f.Find(entities, 17),
-			"an activating Cairn Stone is not an audio source");
+		const size_t index = classId - 17;
+		f.Object(stones[index], paths[index], classId, static_cast<uint32_t>(100 + index), 100 + static_cast<int>(index), 100);
+		f.casket.At(GroundItemLayout::UnitNext, stones[0].Address());
+		if (index) stones[index - 1].At(GroundItemLayout::UnitNext, stones[index].Address());
 	}
+	Check(f.Read(entities) && std::none_of(entities.begin(), entities.end(), [](const auto& e) { return e.cairnStone && e.questObject; }),
+		"no decoded order leaves all Cairn quest cues silent");
+	Check(f.Find(entities, 102) && f.Find(entities, 102)->cairnUnactivated && f.Find(entities, 102)->cairnRank == 0,
+		"an unactivated Cairn is exposed for the missing-order hint without inventing a rank");
+	Check(f.Read(entities, &order), "ordered stone snapshot is readable");
+	for (size_t i = 0; i < CairnStones::Count; ++i) {
+		const auto* stone = f.Find(entities, static_cast<uint32_t>(100 + i));
+		Check(stone && stone->cairnStone == i + 1 && stone->cairnRank == *CairnStones::Rank(order, i)
+			&& stone->questObject == (i == 2) && stone->worldName == "Piedra de Cairn",
+			"ranked Cairns preserve the HUD name and only the next stone owns the quest cue");
+	}
+	Check(f.Find(entities, 102)->name.find("stone 1 of 5, next") != std::string::npos,
+		"next stone scan name includes its order and next-step status");
+	Localization::available = false;
+	Check(f.Read(entities, &order) && f.Find(entities, 102) && f.Find(entities, 102)->questObject
+		&& f.Find(entities, 102)->worldName == Strings::Current().containerUnnamed,
+		"ordered Cairn cue survives an unavailable game string table");
+	Localization::available = true;
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, ObjectOperating);
+	Check(f.Read(entities, &order) && !f.Find(entities, 102) && f.Find(entities, 104) && f.Find(entities, 104)->questObject,
+		"unselectable activating mode one advances the next cue from raw stone state");
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities, &order) && f.Find(entities, 102) && !f.Find(entities, 102)->questObject
+		&& f.Find(entities, 104)->questObject,
+		"opened mode two is activated but remains a target when selectable");
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, 3);
+	Check(f.Read(entities, &order) && std::none_of(entities.begin(), entities.end(), [](const auto& e) { return e.cairnStone && e.questObject; }),
+		"an unknown earlier stone blocks every next-stone cue");
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
+	stones[1].At(GroundItemLayout::UnitNext, stones[3].Address());
+	Check(f.Read(entities, &order) && std::none_of(entities.begin(), entities.end(), [](const auto& e) { return e.cairnStone && e.questObject; }),
+		"an unloaded earlier stone remains unknown and blocks the next cue");
+	stones[1].At(GroundItemLayout::UnitNext, stones[2].Address());
+	stones[4].At<uint32_t>(GroundItemLayout::UnitClass, 19);
+	Check(f.Read(entities, &order) && std::none_of(entities.begin(), entities.end(), [](const auto& e) { return e.cairnStone && e.questObject; }),
+		"duplicate Cairn class identities fail closed");
 }
 }
 int main() {

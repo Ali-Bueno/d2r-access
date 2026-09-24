@@ -3,6 +3,7 @@
 #include "entity_layout.h"
 #include "item_audio.h"
 #include "native_entities.h"
+#include "native_cairn.h"
 #include "native_ground_items.h"
 #include "native_world.h"
 #include "radar_ui.h"
@@ -25,6 +26,8 @@ std::vector<GroundItems::Voice> voices;
 std::vector<EntityRadar::Entity> entities{{7, EntityRadar::Kind::Npc, {2, 2}, "Kashya"},
 	{20, EntityRadar::Kind::Exit, {3, 3}, "Portal", 0, false, EntityRadar::Category::Portal}};
 bool includeBoundaries = false;
+bool cairnAvailable = false;
+std::optional<CairnStones::Order> cairnOrder;
 const std::vector<Radar::LevelExit> boundaries{{{4, 4}, 2}, {{80, 80}, 3}};
 // A casket the predicate flagged, and a shrine it did not.
 const EntityRadar::Entity casket{30, EntityRadar::Kind::Object, {2, 3}, "Ataúd", 0, true};
@@ -87,6 +90,13 @@ bool CountContainerRows(size_t& rows, size_t& total) {
 	rows = EntityLayout::ContainerRowCount;
 	total = EntityLayout::ObjectRowCount;
 	return readable;
+}
+}
+namespace D2RAccess::NativeCairn {
+bool Available() { return cairnAvailable; }
+std::optional<CairnStones::Order> Read(uint64_t session) {
+	Check(session == snapshot.session, "Cairn order read uses the active game session");
+	return cairnOrder;
 }
 }
 namespace D2RAccess::NativeWorld {
@@ -214,6 +224,27 @@ int main() {
 	Check(voices.size() == 2 && speech.size() == 1, "new session does not inherit speech suppression or stale voices");
 	snapshot.items.clear(); Tick(); Check(voices.size() == 1 && Portals() == 1, "pickup removes its live source on the next snapshot");
 	entities.clear(); Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick(); Check(voices.empty(), "a closed portal stops its loop on the next exit refresh");
+	EntityRadar::Entity stone{72, EntityRadar::Kind::Object, {3, 4}, "Cairn Stone"};
+	stone.cairnStone = 1; stone.cairnUnactivated = true;
+	entities.push_back(stone);
+	Command("sound-on"); speech.clear(); Tick();
+	Check(speech.empty() && Quests() == 0, "unavailable order capture gives no misleading scroll hint or guessed stone cue");
+	cairnAvailable = true;
+	Tick(true); Check(speech.empty(), "a nonpausing menu defers the missing-order hint");
+	Tick(); Check(speech.size() == 1 && speech[0] == Strings::Current().cairnOrderMissing && !interrupted,
+		"an unactivated Cairn names the scroll needed to identify the next stone");
+	speech.clear(); Tick(); Check(speech.empty(), "missing-order hint is spoken only once in the session");
+	cairnOrder = CairnStones::Order{2, 4, 0, 1, 3};
+	Tick(true); Check(speech.empty(), "a nonpausing menu defers the order-ready announcement");
+	Tick(); Check(speech.size() == 1 && speech[0] == Strings::Current().cairnOrderReady && !interrupted,
+		"reading the scroll announces that its sound now marks the next stone");
+	speech.clear(); Tick(); Check(speech.empty(), "order-ready announcement is spoken only once in the session");
+	cairnOrder.reset();
+	snapshot.items.clear(); snapshot.session++; Event(K::GameJoined); Event(K::LocalPlayerReady);
+	speech.clear(); Tick();
+	Check(speech.size() == 1 && speech[0] == Strings::Current().cairnOrderMissing,
+		"a new game session may repeat the missing-order hint");
+	entities.pop_back(); cairnAvailable = false;
 	GroundItemService::Unregister(); Check(removed == 6 && voices.empty(), "unload detaches all listeners and audio");
 	Passed();
 }

@@ -28,7 +28,7 @@ Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& enti
 		// distance rather than sight; a level exit is a fixed landmark the scan
 		// itself exempts from walls.
 		if (entity.kind == EntityRadar::Kind::Item || entity.kind == EntityRadar::Kind::Exit) continue;
-		if (!Names(label, entity.name)) continue;
+		if (!Names(label, entity.worldName.empty() ? entity.name : entity.worldName)) continue;
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
 		if (!std::isfinite(distance) || distance > settings.reach) continue;
 		bearer = true;

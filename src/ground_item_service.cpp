@@ -3,6 +3,7 @@
 #include "ground_item_text.h"
 #include "entity_layout.h"
 #include "native_entities.h"
+#include "native_cairn.h"
 #include "native_ground_items.h"
 #include "native_world.h"
 #include "item_audio.h"
@@ -38,6 +39,8 @@ GroundItems::Tracker g_tracker;
 bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = false;
 bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_suspended = true;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
+uint64_t g_cairnSession = 0;
+bool g_cairnNeedsOrder = false, g_cairnMissingAnnounced = false, g_cairnReadyAnnounced = false;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
 std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects;
 std::vector<std::string> g_nearbyLabels;
@@ -134,6 +137,7 @@ void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	ItemAudio::Silence();
 	g_nearbyLabels.clear();
 	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_entitiesRead = 0;
+	g_cairnNeedsOrder = false;
 	if (!g_suspended) AsyncLog::InfoF(context, "[items] suspended: %s", reason);
 	g_suspended = true;
 }
@@ -200,9 +204,14 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
+	if (state.session != g_cairnSession) {
+		g_cairnSession = state.session;
+		g_cairnMissingAnnounced = g_cairnReadyAnnounced = false;
+	}
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		g_tracker.Reset(); g_nearbyLabels.clear(); g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_entitiesRead = 0;
+		g_cairnNeedsOrder = false;
 	}
 	if (command == Command::Status) {
 		ScreenReader::Speak(std::string(GroundItemText::Enabled(g_speech)) + ". " + GroundItemText::SoundEnabled(g_sound)
@@ -257,6 +266,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		g_entitiesRead = now;
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
+		g_cairnNeedsOrder = read && std::any_of(entities.begin(), entities.end(), [](const auto& entity) {
+			return entity.cairnUnactivated && !entity.cairnRank;
+		});
 		auto landmarks = read && g_exits ? Landmarks(entities) : std::vector<GroundItems::Item>{};
 		if (g_exits && g_boundariesSupported) {
 			Radar::World world;
@@ -277,6 +289,20 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	snapshot.landmarks = g_landmarks;
 	snapshot.containers = g_containers;
 	snapshot.questObjects = g_questObjects;
+	if (g_sound && !uiOwnsSpeech && command == Command::None) {
+		const auto order = NativeCairn::Read(state.session);
+		const bool orderKnown = order.has_value();
+		if (orderKnown && !g_cairnReadyAnnounced) {
+			AsyncLog::InfoF(context, "[cairn] Decoded scroll order: %u, %u, %u, %u, %u.",
+				static_cast<unsigned>((*order)[0]), static_cast<unsigned>((*order)[1]), static_cast<unsigned>((*order)[2]),
+				static_cast<unsigned>((*order)[3]), static_cast<unsigned>((*order)[4]));
+			ScreenReader::Speak(Strings::Current().cairnOrderReady, false);
+			g_cairnReadyAnnounced = true;
+		} else if (!orderKnown && NativeCairn::Available() && g_cairnNeedsOrder && !g_cairnMissingAnnounced) {
+			ScreenReader::Speak(Strings::Current().cairnOrderMissing, false);
+			g_cairnMissingAnnounced = true;
+		}
+	}
 	if (g_speech && !uiOwnsSpeech) for (const auto& item : snapshot.items)
 		if (!item.name.empty() && std::hypot(item.position.x - snapshot.player.x, item.position.y - snapshot.player.y) <= GroundItems::SpeakRadius)
 			g_nearbyLabels.push_back(item.baseName);
@@ -301,6 +327,8 @@ void Unregister() {
 	g_speech = g_sound = g_exits = g_chests = true; g_suspended = true;
 	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear();
 	g_nearbyLabels.clear(); g_labelsUpdated = 0;
+	g_cairnSession = 0;
+	g_cairnNeedsOrder = g_cairnMissingAnnounced = g_cairnReadyAnnounced = false;
 }
 bool OwnsWorldLabel(std::string_view label) {
 	return g_speech && !g_suspended && GetTickCount64() - g_labelsUpdated <= GroundItems::SnapshotExpiryMs
