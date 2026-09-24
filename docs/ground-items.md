@@ -15,10 +15,15 @@ Preferences last for the current process. Ordinary item speech queues through
 PRISM without interrupting the current announcement.
 
 An item within three collision subtiles reads its localized base name, quality
-when applicable, and the native amount for gold. It reads once per approach;
-moving more than six subtiles away rearms it. Up to four names are grouped per
-announcement, with at least 900 ms between groups. More items remain eligible
-while nearby. There is no speech backlog for items that have already disappeared.
+when applicable, and the native amount for gold. The user asked (2026-09-24) for
+a reading on every pass: moving beyond four subtiles (one subtile of hysteresis)
+rearms it, and an item that has just come within reach speaks at once, without
+waiting for the previous group. Names read together follow the user's priority:
+quest items, then potions/elixirs/scrolls, gold, and equipment or other items
+last; distance orders each tier. Up to four names are grouped per announcement;
+the rest of a pile follows in groups at least 900 ms apart while nearby. The user
+confirmed this behavior in play the same day.
+There is no speech backlog for items that have already disappeared.
 The shared world-tooltip reader defers matching nearby names to avoid duplicates.
 Inventory descriptions still use the game's complete rendered tooltip.
 

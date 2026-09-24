@@ -67,6 +67,15 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 		++emitted;
 	}
 }
+// User priority for names read together: quest items, consumables, gold, then equipment last.
+int SpeechRank(Sound sound) {
+	switch (sound) {
+	case Sound::Quest: return 0;
+	case Sound::Potion: return 1;
+	case Sound::Gold: return 2;
+	default: return 3;
+	}
+}
 }
 
 Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops) {
@@ -92,12 +101,22 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	std::sort(nearby.begin(), nearby.end(), [](const auto& a, const auto& b) {
 		return a.first == b.first ? a.second->id < b.second->id : a.first < b.first;
 	});
-	const bool canSpeak = speechEnabled && (!hasSpoken_ || now < lastSpeech_ || now - lastSpeech_ >= SpeechGapMs);
-	size_t names = 0;
+	std::vector<const Item*> reachable;
 	for (const auto& [distance, item] : nearby) {
 		if (itemLoops && item->sound != Sound::Quest && result.voices.size() < MaxVoices && distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
-		if (!canSpeak || distance > SpeakRadius || item->name.empty() || names >= MaxNamesPerAnnouncement || spoken_.contains(item->id)) continue;
+		if (distance <= SpeakRadius && !item->name.empty() && !spoken_.contains(item->id)) reachable.push_back(item);
+	}
+	std::stable_sort(reachable.begin(), reachable.end(), [](const Item* a, const Item* b) {
+		return SpeechRank(a->sound) < SpeechRank(b->sound);
+	});
+	const bool arrived = std::any_of(reachable.begin(), reachable.end(), [&](const Item* item) { return !waiting_.contains(item->id); });
+	const bool canSpeak = speechEnabled
+		&& (arrived || !hasSpoken_ || now < lastSpeech_ || now - lastSpeech_ >= SpeechGapMs);
+	waiting_.clear();
+	size_t names = 0;
+	for (const Item* item : reachable) {
+		if (!canSpeak || names >= MaxNamesPerAnnouncement) { waiting_.insert(item->id); continue; }
 		if (!result.speech.empty()) result.speech += "; ";
 		result.speech += item->name;
 		spoken_[item->id] = true;
@@ -109,5 +128,5 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	if (totalGain > MixGainLimit) for (auto& voice : result.voices) voice.gain *= MixGainLimit / totalGain;
 	return result;
 }
-void Tracker::Reset() { spoken_.clear(); session_ = lastSpeech_ = 0; hasSpoken_ = false; }
+void Tracker::Reset() { spoken_.clear(); waiting_.clear(); session_ = lastSpeech_ = 0; hasSpoken_ = false; }
 }

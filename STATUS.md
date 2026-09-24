@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Ground item speech on every pass — installed, 2026-09-24
+
+User reported names read only once and too late. Stepping beyond 4 subtiles now
+rearms a name (was 6); a newly reached item speaks at once. Grouped names read
+quest items, consumables, gold, then equipment. Installed in the combined build
+with the pathfinder mode: **75/75 suites pass**, installed DLL hash matches the
+build. The user confirmed it works on 2026-09-24. **Next step:** none for this
+fix. `docs/ground-items.md`.
+
 ## Quest landmarks on automap — investigated, 2026-09-24
 
 D2R visuals and local tables confirm Cairn, Inifuss and Malus map glyphs;
@@ -813,7 +822,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
 | Attribute allocation / skill-tree reading | wip — descriptions/actions confirmed by user | Stock hover refresh fixes repeated skill descriptions. Current binding, available action buttons and position/count precede the full description. All 30 live Barbarian class cells are reachable in regression tests. Live log distinguishes lower-row skills and reads Porrazo's A binding/X reassignment; user confirms it works. Zero points prevents live spend-action validation. `docs/skill-actions.md` |
 | Item readout and comparison | concise reading/speed confirmed; comparison installed 2026-09-22 | Full visible selected/equipped stats on Compare; repeat while displayed; stale/glyph-only records excluded. 61/61 suites pass. `docs/native-tooltips.md` |
-| Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
+| Nearby ground item speech | every-pass rearm and priority confirmed by user 2026-09-24 | Localized base name/quality and gold amount within 3 subtiles; every pass, rearm beyond 4; quest > consumable > gold > equipment; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops | portal restoration deployed 2026-09-23 — listening pending | Interactive entrances use `portal`; walking crossings use `zone transition`. 4 suites pass. Ctrl+P. `docs/exploration.md` |
 | Life, mana and broken equipment | combined mercenary priority installed 2026-09-23; listening pending | Simultaneous alerts combine with player life first; downward critical crossings interrupt. Broken gear queues. Missing orb text is identified after stable absence. `access-vitals`; `docs/vitals.md` |
 | Poison and mercenary condition | life-source fix and level speech installed 2026-09-23; live combat pending | Panel-native mercenary percentage, shared player thresholds and level-change tracking. Missing data stays unknown. Poison unchanged. `docs/combat-status-evidence.md` |
