@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Mercenary statistics, life and level — 2026-09-23
+
+Built and installed: advanced-stat rows for player and mercenary, corrected
+native mercenary life percentage, matching player alert steps/priority, and
+level-change speech. Simultaneous vitals use one utterance; lifecycle events
+reset baselines. **71/71 suites pass**, no compiler warnings, installed DLL hash
+verified. The percentage getter and its panel consumer were verified against
+the live game before closing. **Next step:** controller/NVDA listening in the
+advanced panel and during mercenary damage, recovery and a level gain.
+`docs/character-panel.md`, `docs/vitals.md`, `docs/combat-status-evidence.md`.
+
 ## Multiplayer accessibility — 2026-09-23
 
 Built and installed: native host/browser/direct-join speech, checkbox states,
@@ -749,7 +760,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Automated text tests | done (local) | Nine CTest suites, 255 checks: text/notifications, guarded memory/tree and cell queries, gameplay lifecycle, tooltips, action help, equipment locations, delayed item speech without coordinates, shared tabs and a deliberately blocked SDK log sink |
 | Highlighted NPC/object labels | wip — sight gate built 2026-09-18, live check pending | Shared primary tooltip capture plus visible target-name HUD, now dropped when every entity of that name within reach is behind a wall. `[target]` in `radar.toml`. `docs/native-tooltips.md`, `docs/target-sight.md` |
 | Container loops | built 2026-09-18, live check pending | Chests/caskets/urns/barrels/corpses through the item mixer; opening one silences it. Rows from `objects.txt` `OperateFn`, tripwire checked by `chests-dump`. Ctrl+K, `[chests]` in `radar.toml`. `docs/ground-items.md` |
-| Character and mercenary statistics | mercenary extension installed 2026-09-22; listening pending | Shared title/value rows; mercenary no-focus stick cursor yields to real equipment focus. `character-stats` suite; `docs/character-panel.md`. |
+| Character and mercenary statistics | advanced rows installed 2026-09-23; listening pending | Shared stat rows and right-stick advanced list; title/first row announced together. `character-stats` suite; `docs/character-panel.md`. |
 | In-game panels (inventory, skills, stash) | wip — basic selection and fluency confirmed | Shared item/grid archetype, native row/column; shared tab reader covers controller strip and unfocused stash changes (tab speech unconfirmed); skills/full inventory operations remain pending |
 | Inventory potion assignments | built/deployed 2026-09-23; controller listening pending | Belt focus reads native D-pad direction, row, item and physical column total; automatic inventory potions identified separately. No new View/Back binding. `docs/belt.md` |
 | Inventory actions / equipment slot names | wip — slot-name memory + placement destination installed 2026-09-17, live check pending | User confirms available slots read while holding equipment and prefers this navigation. Added SDK-driven pickup/release context notices. Controller item/vendor actions live in the `ControllerOverlay` `ButtonLegendScrollWidget`, whose sub-text slots are now read when its entry vector is not the one `ButtonLegendWidget` uses. Live notice/repair check pending. `docs/inventory-npc-followup.md` |
@@ -757,8 +768,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Item readout and comparison | concise reading/speed confirmed; comparison installed 2026-09-22 | Full visible selected/equipped stats on Compare; repeat while displayed; stale/glyph-only records excluded. 61/61 suites pass. `docs/native-tooltips.md` |
 | Nearby ground item speech | wip — native live detections observed | Localized base name/quality and gold amount within 3 subtiles; once per approach, rearm beyond 6; Ctrl+I. Grammar tags removed after live bolts/arrows evidence. Full generated equipment names remain outside this reader. `docs/ground-items.md` |
 | Level exit loops | portal restoration deployed 2026-09-23 — listening pending | Interactive entrances use `portal`; walking crossings use `zone transition`. 4 suites pass. Ctrl+P. `docs/exploration.md` |
-| Life, mana and broken equipment | priority/partial-orb fixes installed 2026-09-23; listening pending | Simultaneous resource alerts combine with life first; only downward critical crossings interrupt. Broken gear queues. Missing life or mana text is identified individually after a stable absence. `access-vitals`; `docs/vitals.md` |
-| Poison and mercenary life | built/deployed 2026-09-23; live combat pending | Game-derived state checker and hireling identity; startup guards verified. Poison transitions and mercenary percentage steps queue; unknown data does not imply recovery/death. Other effects remain pending. `docs/combat-status-evidence.md` |
+| Life, mana and broken equipment | combined mercenary priority installed 2026-09-23; listening pending | Simultaneous alerts combine with player life first; downward critical crossings interrupt. Broken gear queues. Missing orb text is identified after stable absence. `access-vitals`; `docs/vitals.md` |
+| Poison and mercenary condition | life-source fix and level speech installed 2026-09-23; live combat pending | Panel-native mercenary percentage, shared player thresholds and level-change tracking. Missing data stays unknown. Poison unchanged. `docs/combat-status-evidence.md` |
 | Spatial item loops | wip — audibility confirmed; quieter landing-only follow-up installed | Eight supplied loops; fixed screen axes, distance, rear pitch 0.94; Ctrl+L. User confirms sound but requested lower level. Near gain 0.4 and pile limit 0.5; native falling mode excluded, no landing timer. 100 audio checks plus native landing transition regression. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)

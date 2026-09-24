@@ -103,14 +103,34 @@ void Conditions() {
 
 void MercenaryCondition() {
 	Vitals::MercenaryMeter meter;
-	Check(meter.Update(11U, 100) == -1, "first observed mercenary takes a baseline");
-	Check(meter.Update(11U, 9) == 9, "the same mercenary crosses life steps");
-	Check(meter.Update(std::nullopt, -1) == -1, "an unloaded mercenary is unknown, not dead");
-	Check(meter.Update(11U, 9) == -1, "returning unit retains its previous step");
-	Check(meter.Update(12U, 4) == -1, "a new hireling starts from its own baseline");
-	Check(meter.Update(12U, 0) == 0, "a confirmed death mode reports zero life");
+	auto alert = meter.Update(11U, 100, 10);
+	Check(alert.life < 0 && alert.level < 0, "first observed mercenary takes life and level baselines");
+	alert = meter.Update(11U, 74, 10);
+	Check(alert.life == 74 && alert.level < 0 && !alert.interrupt,
+		"mercenary life shares player steps and queues above the critical threshold");
+	alert = meter.Update(11U, 9, 11);
+	Check(alert.life == 9 && alert.level == 11 && alert.interrupt,
+		"critical mercenary damage and level gain are one interrupting change");
+	alert = meter.Update(std::nullopt, -1, -1);
+	Check(alert.life < 0 && alert.level < 0, "an unloaded mercenary is unknown, not dead");
+	alert = meter.Update(11U, 9, 11);
+	Check(alert.life < 0 && alert.level < 0, "returning unit retains its previous steps and level");
+	alert = meter.Update(11U, 10, 12);
+	Check(alert.life == 10 && alert.level == 12 && !alert.interrupt,
+		"recovery and a level gain queue behind critical downward alerts");
+	alert = meter.Update(11U, -1, 13);
+	Check(alert.life < 0 && alert.level == 13, "an unavailable life stat does not suppress a verified level gain");
+	alert = meter.Update(11U, -1, 12);
+	Check(alert.level < 0, "a stale lower level does not cause a false announcement");
+	alert = meter.Update(11U, -1, 13);
+	Check(alert.level < 0, "returning to the last confirmed level remains silent");
+	alert = meter.Update(12U, 4, 9);
+	Check(alert.life < 0 && alert.level < 0, "a new hireling starts from its own baselines");
+	alert = meter.Update(12U, 0, 9);
+	Check(alert.life == 0 && alert.interrupt, "a confirmed death mode reports zero life urgently");
 	meter.Reset();
-	Check(meter.Update(12U, 100) == -1, "session reset forgets the previous hireling");
+	alert = meter.Update(12U, 100, 12);
+	Check(alert.life < 0 && alert.level < 0, "session reset forgets the previous hireling and level");
 }
 
 void Breaking() {

@@ -95,13 +95,23 @@ std::optional<bool> Condition::Update(std::optional<bool> active) {
 
 void Condition::Reset() { previous_.reset(); }
 
-int MercenaryMeter::Update(std::optional<uint32_t> id, int percent) {
-	if (!id || percent < 0) return -1;
-	if (id_ != id) { id_ = id; life_.Reset(); }
-	return life_.Update(percent);
+MercenaryMeter::Alert MercenaryMeter::Update(std::optional<uint32_t> id, int percent, int level) {
+	Alert alert;
+	if (!id) return alert;
+	if (id_ != id) { id_ = id; life_.Reset(); level_ = -1; }
+	if (percent >= 0) {
+		const int previous = life_.Previous();
+		alert.life = life_.Update(percent);
+		alert.interrupt = alert.life >= 0 && percent <= CriticalPercent && previous > percent;
+	}
+	if (level > 0) {
+		if (level_ > 0 && level > level_) alert.level = level;
+		if (level > level_) level_ = level;
+	}
+	return alert;
 }
 
-void MercenaryMeter::Reset() { id_.reset(); life_.Reset(); }
+void MercenaryMeter::Reset() { id_.reset(); life_.Reset(); level_ = -1; }
 
 std::vector<int> Breakage::Sweep(const std::vector<Item>& worn) {
 	std::vector<int> broke;

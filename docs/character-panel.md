@@ -96,3 +96,70 @@ the identity announcement.
 The Mercenary-tab log only reaches player inventory slots, never a hireling slot;
 equipment navigation still needs a live check with an available mercenary. See
 [the tooltip/menu evidence](native-tooltips.md#compared-items-and-menu-regressions-2026-09-22).
+
+## Hiring rows (2026-09-22)
+
+The user confirms that the hiring list already reads. The extracted HD layout
+`game-data/global/ui/Layouts/HireMenuPanelHD.json` defines `HireName`, `HireLevel`,
+`HireCost` and three `HirelingSkillIconWidget` children. Its controller variant
+uses a single `ListItemWidget` candidate without separate authored focus targets
+for those icons. `game-data/local/lng/strings/ui-controller.json` contains
+`ShowMercSkills` (ID 27022, "Show Mercenary Skills"). The widget types and string
+establish a skill-display action, but do not establish which tooltip records it
+draws or its live controller binding.
+
+Previously, a generic list row was owned by `GameTextReader`, which suppressed
+`InteractionReader` as though a conversation were active. That reset native
+tooltip capture and omitted controller action hints. Runtime `ListItem` controls
+now share the interaction path with other controls, while actual dialogue/menu
+surfaces retain priority. Candidate text reads immediately; any matching rendered
+tooltip records follow in screen order without equipment-comparison labels or
+font glyphs. Only changed details announce automatically. Right-stick up repeats
+the currently visible descriptions; ordinary repeat also retains the candidate
+and action hints. Changed selection, leaving the row or closing its descriptions
+discards the old detail. No skill properties or bindings are synthesized.
+
+Automated coverage checks routing, native hint order, multiple rendered records,
+repeat/silence behavior, stale selection and transitions to unrelated controls.
+Live inspection stopped at the title screen because Windows refused foreground
+focus to the guarded desktop helper; the owned process was closed without input.
+That initial probe is superseded for hiring by the user's later gameplay log.
+Mercenary equipment still needs controller listening validation.
+
+### Full skill description interrupted by its first record
+
+The later log shows Kyoko's full Freezing Arrow, Cold Arrow and Inner Sight
+descriptions at 20:50:53.815, then an automatic Freezing Arrow-only repeat at
+20:50:54.268. Kundri similarly reads Exploding Arrow, Fire Arrow and Inner Sight
+at 20:50:59.053, then only Exploding Arrow at 20:50:59.365. These are `[interaction]`
+outputs, not requested `[detail]` reads. Candidate changes correctly switch the
+fire/cold sets. The first-only update interrupted the longer utterance, explaining
+the user's impression that each candidate had just one skill.
+
+The shared row reader now compares cleaned tooltip records individually. A new
+or changed record, or a new candidate, announces; removing records alone stays
+silent. Manual detail still follows the current snapshot, and closing the tooltip
+clears it. Reopening the full skill display announces again. This avoids preserving
+hidden skill data or relying on text-prefix heuristics. Three related CTest suites
+pass, including the full-set-to-first-record regression; listening is pending.
+
+## Advanced statistics
+
+The controller `AdvancedStatsPanelHD.json` sets `ScrollBar` (a
+`ScrollControllerWidget`) as its default focus. Each statistic is runtime text in
+`ListContainer` → `ListItemWidget` → `StatText`; focusing the scroll bar alone
+only announced the panel title (observed 2026-09-23). Both character and
+hireling `AdvancedStats` buttons open this same panel.
+
+The shared stats reader owns the focused scroll bar and speaks the localized
+title, rendered subject name, and first row in one utterance. This suppresses
+the separate title paths that would interrupt the row. The right stick reads
+the remaining live rows in tree order. Replaced row identities reset its
+cursor; changing a value in an existing row does not. Native scroll controls
+and other focused widgets keep their normal gestures. The `character-stats`
+suite covers initial speech, idle ownership, row order, traversal, value
+changes, rebuilt rows, and focus handoff; live controller and NVDA validation
+remains pending.
+
+The 2026-09-23 build passed all 71 CTest suites without compiler warnings;
+the installed plugin matches the built DLL's SHA-256.

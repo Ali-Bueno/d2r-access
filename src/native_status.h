@@ -12,7 +12,8 @@ std::optional<bool> PlayerPoisoned() noexcept;
 
 struct Mercenary {
 	uint32_t id = 0;
-	int currentLife = 0, maximumLife = 0;
+	int lifePercent = -1;
+	int level = -1;
 };
 // The unit bound to the game's HirelingInventoryPanel; absent is unknown.
 std::optional<Mercenary> MercenaryLife() noexcept;

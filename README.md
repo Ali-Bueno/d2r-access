@@ -58,6 +58,8 @@ remaining hidden until identification. Empty grid cells retain coordinate feedba
 The mercenary panel uses the shared stat-row reader. When the controller leaves
 that panel without a focused widget, the right stick reads its visible statistics
 one row at a time, as on the character panel. Equipment focus retains item detail.
+The advanced statistics panel also reads its live rows for either character:
+right-stick up/down moves between rows, and left/right reads the first/last row.
 Focusless inventory transitions no longer read every label, gold amount or
 controller-font symbol as a modal message.
 
@@ -364,9 +366,12 @@ orb. Entering and leaving poison are announced once, and the vitals report
 includes poison while active. These notices share the vitals toggle. Further
 condition coverage is tracked in [combat status evidence](docs/combat-status-evidence.md).
 
-The current mercenary's life also announces percentage-band changes and is
-included in the vitals report. These messages and broken-equipment notices
-queue behind the player's alerts. Missing mercenary data is not treated as death.
+The current mercenary's life uses the game's displayed percentage and the same
+steps and critical interrupt rule as the player's life. Simultaneous player and
+mercenary changes form one announcement, with the player's values first.
+Mercenary level increases are announced once; the vitals report includes both
+life and level. Missing mercenary data is not treated as death. Broken-equipment
+notices queue behind the life alerts.
 
 ## How it works
 
