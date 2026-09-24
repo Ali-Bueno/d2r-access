@@ -32,7 +32,7 @@ Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& enti
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
 		if (!std::isfinite(distance) || distance > settings.reach) continue;
 		bearer = true;
-		if (EntityRadar::LineOfSight(world, world.player, entity.position)) return Sight::Visible;
+		if (EntityRadar::LineOfSight(world, world.player, entity)) return Sight::Visible;
 	}
 	// Every bearer of that name within reach is behind a wall: the game is
 	// naming something the player cannot see.

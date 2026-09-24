@@ -23,12 +23,14 @@ STRIDE = 0x168
 OFFSETS = {
     "Name": 0x42,
     "Selectable0": 0x85,  # ... Selectable7 at 0x8C
+    "HasCollision0": 0xE0,  # ... HasCollision7 at 0xE7
     "IsDoor": 0xFA,
     "Lockable": 0x12F,
     "PopulateFn": 0x15D,
     "OperateFn": 0x15E,
     "OpenWarp": 0x163,
 }
+DWORD_OFFSETS = {"SizeX": 0x90, "SizeY": 0x94}
 # OperateFn values whose rows are the game's containers. Read off objects.txt,
 # not invented: 1 caskets/sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7
 # barrels, 14 crates/coffins/corpses/logs, 30 exploding chests, 39-41 and 57-59
@@ -81,6 +83,11 @@ def main():
         for mode in range(8):
             if data[OFFSETS["Selectable0"] + mode] != number(row, f"Selectable{mode}"):
                 mismatches["Selectable"] += 1
+            if data[OFFSETS["HasCollision0"] + mode] != number(row, f"HasCollision{mode}"):
+                mismatches["HasCollision"] += 1
+        for column, offset in DWORD_OFFSETS.items():
+            if int.from_bytes(data[offset:offset + 4], "little") != number(row, column):
+                mismatches[column] += 1
     print("offset vs column:", dict(mismatches) or "every offset equals its column on every row")
 
     # The predicate itself: a container handler, and the game lets the player

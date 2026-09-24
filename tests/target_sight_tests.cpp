@@ -93,6 +93,23 @@ void ObjectsAndNpcs() {
 	Check(Of(world, {stone}, "Piedra de Cairn") == Sight::Visible,
 		"the original HUD name still identifies a Cairn Stone with a symbol in sight");
 }
+void FootprintSight() {
+	auto world = OpenWorld();
+	world.walkingMask = Wall | Radar::Collision::Object | Radar::Collision::Door;
+	auto stone = Make(69, 30, 38, "Piedras de Cairn, gota hacia abajo", EntityRadar::Kind::Object);
+	stone.worldName = "Piedras de Cairn";
+	stone.footprint = {3, 3};
+	world.rooms[0].cells[37 * Size + 30] = Radar::Collision::Object;
+	Check(Of(world, {stone}, stone.worldName) == Sight::Visible,
+		"a stone's own collision cannot hide the original HUD label");
+	world.rooms[0].cells[35 * Size + 30] = Wall;
+	Check(Of(world, {stone}, stone.worldName) == Sight::Hidden,
+		"a wall outside the footprint still hides the HUD label");
+	world.rooms[0].cells[35 * Size + 30] = 0;
+	world.rooms[0].cells[37 * Size + 30] |= Radar::Collision::Door;
+	Check(Of(world, {stone}, stone.worldName) == Sight::Hidden,
+		"a door within the footprint still hides the HUD label");
+}
 }
 
 int main() {
@@ -100,6 +117,7 @@ int main() {
 	SightAcrossAWall();
 	ReachAndKinds();
 	ObjectsAndNpcs();
+	FootprintSight();
 	Passed();
 	return 0;
 }

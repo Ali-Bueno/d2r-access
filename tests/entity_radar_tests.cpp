@@ -3,6 +3,7 @@
 #include "test_support.h"
 
 #include <string>
+#include <tuple>
 
 using namespace D2RAccess;
 using namespace EntityRadar;
@@ -133,6 +134,71 @@ void DistantExits() {
 	Check(next.target.entity.levelExitId == second.levelExitId, "cycling survives a preset becoming a loaded warp unit");
 }
 
+void ObjectFootprints() {
+	constexpr uint16_t Object = Radar::Collision::Object;
+	constexpr uint16_t Door = Radar::Collision::Door;
+	constexpr uint16_t NoPath = 0x1000;
+	for (const auto [direction, x, y] : {std::tuple{Direction::Up, 16, 16},
+		std::tuple{Direction::Left, 16, 24}, std::tuple{Direction::Right, 24, 16},
+		std::tuple{Direction::Down, 24, 24}}) {
+		auto world = OpenWorld();
+		world.walkingMask = Wall | Object | Door;
+		auto stone = Make(69, x, y, "Piedras de Cairn, gota hacia abajo");
+		stone.kind = Kind::Object;
+		stone.footprint = {3, 3};
+		const int nearX = x + (x < 20 ? 1 : -1), nearY = y + (y < 20 ? 1 : -1);
+		world.rooms[0].cells[static_cast<size_t>(nearY * Size + nearX)] = Object;
+		world.rooms[0].cells[static_cast<size_t>(y * Size + x)] = Object;
+		Check(!LineOfSight(world, world.player, stone.position), "point LOS still sees the obstacle in the target's footprint");
+		Check(LineOfSight(world, world.player, stone), "an object's own collision does not hide its centre");
+		const auto targets = Scan(world, {stone}, direction, {});
+		Check(targets.size() == 1 && targets[0].entity.name == stone.name,
+			"an in-range Cairn with a symbol is scannable in its screen direction");
+		stone.footprint = {};
+		Check(!LineOfSight(world, world.player, stone), "an entity with no footprint retains point LOS");
+	}
+	auto world = OpenWorld();
+	world.walkingMask = Wall | Object | Door | NoPath;
+	auto stone = Make(69, 16, 16, "Piedras de Cairn");
+	stone.kind = Kind::Object;
+	stone.footprint = {3, 3};
+	world.rooms[0].cells[18 * Size + 18] = Object;
+	Check(!LineOfSight(world, world.player, stone), "another object's collision outside the footprint still blocks sight");
+	world.rooms[0].cells[18 * Size + 18] = Wall;
+	Check(!LineOfSight(world, world.player, stone), "an external wall still blocks sight");
+	world.rooms[0].cells[18 * Size + 18] = 0;
+	world.rooms[0].cells[17 * Size + 17] = Object | Wall;
+	Check(!LineOfSight(world, world.player, stone), "a wall overlapping the footprint still blocks sight");
+	world.rooms[0].cells[17 * Size + 17] = Object | Door;
+	Check(!LineOfSight(world, world.player, stone), "a door overlapping the footprint still blocks sight");
+	world.rooms[0].cells[17 * Size + 17] = Object | NoPath;
+	Check(!LineOfSight(world, world.player, stone), "a no-path cell overlapping the footprint still blocks sight");
+	world.rooms[0].cells[17 * Size + 17] = Object;
+	world.rooms[0].cells[16 * Size + 16] = Object | Wall;
+	Check(!LineOfSight(world, world.player, stone), "a wall in the target centre is never bypassed");
+	auto door = stone;
+	door.footprint = {};
+	world.rooms[0].cells[17 * Size + 17] = 0;
+	world.rooms[0].cells[16 * Size + 16] = Door;
+	Check(LineOfSight(world, world.player, door), "a door without a footprint keeps legacy target-centre visibility");
+	auto even = Make(70, 16, 16, "Even footprint");
+	even.kind = Kind::Object;
+	even.footprint = {4, 4};
+	auto fromLeft = OpenWorld();
+	fromLeft.walkingMask = Wall | Object;
+	fromLeft.player = {10, 10};
+	fromLeft.rooms[0].cells[14 * Size + 14] = Object;
+	Check(LineOfSight(fromLeft, fromLeft.player, even), "an even footprint includes centre minus two on both axes");
+	fromLeft.rooms[0].cells[13 * Size + 13] = Object;
+	Check(!LineOfSight(fromLeft, fromLeft.player, even), "the cell before an even footprint remains blocking");
+	auto fromRight = OpenWorld();
+	fromRight.walkingMask = Wall | Object;
+	fromRight.rooms[0].cells[17 * Size + 17] = Object;
+	Check(LineOfSight(fromRight, fromRight.player, even), "an even footprint includes centre plus one on both axes");
+	fromRight.rooms[0].cells[18 * Size + 18] = Object;
+	Check(!LineOfSight(fromRight, fromRight.player, even), "centre plus two lies outside an even footprint");
+}
+
 void CorpseIdentity() {
 	auto world = OpenWorld();
 	Entity corpse{50, Kind::Corpse, {17, 17}, "Cadáver"};
@@ -180,6 +246,7 @@ void Wording() {
 int main() {
 	Sectors();
 	Visibility();
+	ObjectFootprints();
 	Scanning();
 	Cycling();
 	DistantExits();

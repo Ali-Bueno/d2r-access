@@ -18,12 +18,13 @@ labels the game itself puts on screen obey this scan's line of sight through
 - Ordinary candidates must be inside `Settings::range` (collision subtiles) and have a
   clear terrain-layer line of sight from the player's cell centre. The ray is
   sampled every half subtile; other actors never block (the sonar's
-  `TerrainCollisionFlags` strips them), the target's own collision cell is
-  ignored, and unknown cells are transparent. Only positive wall evidence hides
-  an entity, so a closed door counts as a wall.
-- Fixed stairs/level passages bypass range and line of sight. Existing presets
-  in the current level's inactive rooms can supply their positions/destinations;
-  unknown preset data stays unknown. [Distant exit coverage](distant-exits.md).
+  `TerrainCollisionFlags` strips them). For ordinary objects with verified native
+  dimensions, only their own OBJECT collision inside their current footprint is
+  ignored; overlapping walls, doors and other blocking bits still hide them.
+  Point targets retain the centre-cell exemption, and unknown cells are transparent.
+- Fixed stairs/level passages bypass line of sight but still obey scan range.
+  Distant presets belong to the level-wide catalogue, which can also list
+  objects beyond the scan's visibility filter. [Distant exit coverage](distant-exits.md).
 - Monster/NPC candidates whose resolved name is D2R's own unnamed-unit placeholder
   (`EntityLayout::PlaceholderNameKey` = `"dummy"`, ui.json id 5382, "una fuerza maligna" — a label the
   game itself never puts on a nameplate) are dropped before any announce path sees them: scan, beacon,

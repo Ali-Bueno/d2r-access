@@ -32,6 +32,8 @@ NPC or object is named only when a ray from the player reaches it.
 - A dropped label leaves the reader with nothing to say, so the entity
   announces itself as soon as it really comes into sight — it is not swallowed
   once and forgotten.
+- Object targets use the same native footprint correction as the scan: their
+  own OBJECT collision does not hide them, while real walls and doors still do.
 - The friendly NPC announcer ([npc-proximity.md](npc-proximity.md)) now
   requires the same line of sight by default, for the same reason.
 

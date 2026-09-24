@@ -8,6 +8,33 @@ namespace D2RAccess::EntityRadar {
 namespace {
 int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); }
 size_t Index(Radar::Direction direction) { return static_cast<size_t>(direction); }
+bool SightBlocked(const Radar::World& world, int x, int y, Radar::Position centre,
+	const Entity::ObjectFootprint& footprint) {
+	uint16_t flags = 0;
+	const auto state = world.Cell(x, y, Radar::Layer::Terrain, &flags);
+	if (state != Radar::State::Blocked) return false;
+	const int64_t left = static_cast<int64_t>(Cell(centre.x)) - footprint.width / 2;
+	const int64_t top = static_cast<int64_t>(Cell(centre.y)) - footprint.height / 2;
+	if (static_cast<int64_t>(x) < left || static_cast<int64_t>(x) >= left + footprint.width
+		|| static_cast<int64_t>(y) < top || static_cast<int64_t>(y) >= top + footprint.height) return true;
+	return (Radar::TerrainCollisionFlags(flags) & ~Radar::Collision::Object & world.walkingMask) != 0;
+}
+bool TraceSight(const Radar::World& world, Radar::Position from, Radar::Position to,
+	const Entity::ObjectFootprint& footprint) {
+	const double dx = to.x - from.x, dy = to.y - from.y;
+	const double length = std::hypot(dx, dy);
+	const bool sizedObject = footprint.width && footprint.height;
+	const int fromX = Cell(from.x), fromY = Cell(from.y), toX = Cell(to.x), toY = Cell(to.y);
+	// Half-subtile steps visit every cell the ray crosses, including diagonal
+	// corner crossings.
+	constexpr double Step = 0.5;
+	for (double depth = Step; depth < length; depth += Step) {
+		const int x = Cell(from.x + dx / length * depth), y = Cell(from.y + dy / length * depth);
+		if ((x == fromX && y == fromY) || (x == toX && y == toY)) continue;
+		if (SightBlocked(world, x, y, to, footprint)) return false;
+	}
+	return !sizedObject || !SightBlocked(world, toX, toY, to, footprint);
+}
 }
 
 bool SameTarget(const Entity& a, const Entity& b) {
@@ -16,19 +43,10 @@ bool SameTarget(const Entity& a, const Entity& b) {
 }
 
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {
-	const double dx = to.x - from.x, dy = to.y - from.y;
-	const double length = std::hypot(dx, dy);
-	if (length == 0) return true;
-	const int fromX = Cell(from.x), fromY = Cell(from.y), toX = Cell(to.x), toY = Cell(to.y);
-	// Half-subtile steps visit every cell the ray crosses, including diagonal
-	// corner crossings.
-	constexpr double Step = 0.5;
-	for (double depth = Step; depth < length; depth += Step) {
-		const int x = Cell(from.x + dx / length * depth), y = Cell(from.y + dy / length * depth);
-		if ((x == fromX && y == fromY) || (x == toX && y == toY)) continue;
-		if (world.Cell(x, y, Radar::Layer::Terrain) == Radar::State::Blocked) return false;
-	}
-	return true;
+	return TraceSight(world, from, to, {});
+}
+bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target) {
+	return TraceSight(world, from, target.position, target.kind == Kind::Object ? target.footprint : Entity::ObjectFootprint{});
 }
 
 bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine) {
@@ -51,7 +69,7 @@ std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& e
 		// long-range catalogue's job.
 		if (!std::isfinite(distance) || distance > settings.range) continue;
 		if (!InSector(world.player, entity.position, direction, settings.sectorCosine)) continue;
-		if (!levelExit && !LineOfSight(world, world.player, entity.position)) continue;
+		if (!levelExit && !LineOfSight(world, world.player, entity)) continue;
 		targets.push_back({entity, distance});
 	}
 	std::sort(targets.begin(), targets.end(), [](const Target& a, const Target& b) {

@@ -213,6 +213,13 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)
 		|| !Peek(row + ObjOperateFn, operate)) return false;
+	uint8_t collision = 0;
+	uint32_t width = 0, height = 0;
+	// Doors use their separate DOOR collision bit; retain their existing sight policy.
+	if (!door && Peek(row + ObjHasCollision + mode, collision) && collision
+		&& Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height)
+		&& width > 0 && height > 0 && width <= UINT16_MAX && height <= UINT16_MAX)
+		entity.footprint = {width, height};
 	entity.container = IsContainer(row);
 	entity.questObject = Generated::QuestItemObject(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {

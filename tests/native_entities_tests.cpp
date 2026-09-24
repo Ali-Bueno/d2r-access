@@ -238,6 +238,10 @@ void CairnStoneModes() {
 		f.objects.At<uint8_t>(row + ObjOperateFn, CairnStoneOperateFn);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
+		f.objects.At<uint32_t>(row + ObjSizeX, 3);
+		f.objects.At<uint32_t>(row + ObjSizeY, 3);
+		f.objects.At<uint8_t>(row + ObjHasCollision + ObjectNeutral, 1);
+		f.objects.At<uint8_t>(row + ObjHasCollision + ObjectOpened, 1);
 		const size_t index = classId - 17;
 		f.Object(stones[index], paths[index], classId, static_cast<uint32_t>(100 + index), 100 + static_cast<int>(index), 100);
 		f.casket.At(GroundItemLayout::UnitNext, stones[0].Address());
@@ -247,10 +251,20 @@ void CairnStoneModes() {
 	for (size_t i = 0; i < CairnStones::Count; ++i) {
 		const auto* stone = f.Find(entities, static_cast<uint32_t>(100 + i));
 		Check(stone && stone->cairnStone == i + 1 && stone->questObject
+			&& stone->footprint.width == 3 && stone->footprint.height == 3
 			&& stone->worldName == "Piedra de Cairn"
 			&& stone->name.find(Strings::Current().cairnSymbols[i]) != std::string::npos,
 			"every unactivated stone gets its cue and fixed symbol while preserving the HUD name");
 	}
+	const size_t firstRow = ObjectStride * CairnStones::FirstClass;
+	f.objects.At<uint8_t>(firstRow + ObjHasCollision + ObjectNeutral, 0);
+	Check(f.Read(entities) && f.Find(entities, 100) && f.Find(entities, 100)->footprint.width == 0,
+		"a mode without collision does not claim an object footprint");
+	f.objects.At<uint8_t>(firstRow + ObjHasCollision + ObjectNeutral, 1);
+	f.objects.At<uint8_t>(firstRow + ObjIsDoor, 1);
+	Check(f.Read(entities) && f.Find(entities, 100) && f.Find(entities, 100)->footprint.width == 0,
+		"doors keep the existing point visibility policy for their separate collision bit");
+	f.objects.At<uint8_t>(firstRow + ObjIsDoor, 0);
 	Localization::available = false;
 	Check(f.Read(entities) && f.Find(entities, 102) && f.Find(entities, 102)->questObject
 		&& f.Find(entities, 102)->worldName == Strings::Current().containerUnnamed,
