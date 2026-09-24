@@ -50,7 +50,7 @@ struct Entity {
 	Category category = Category::Unknown;
 	uint32_t destinationLevel = 0; // Kind::Exit: the level it leads to, 0 when unknown
 	EnemyTraits enemy;
-	bool questObject = false; // selectable object that grants a fixed quest item
+	bool questObject = false; // unused quest item source or unactivated quest mechanism
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

@@ -81,6 +81,15 @@ int main(int argc, char** argv) {
 	f.itemTable.At<uint8_t>(GroundItemLayout::ItemQuest, 4);
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
 		"the native quest column also catches quest weapons with ordinary item types");
+	f.itemPath.At<int>(0x10, 140); f.itemPath.At<int>(0x14, 100);
+	Check(f.Read(snapshot) && snapshot.items.size() == 1,
+		"native reader includes a quest item beyond the ordinary loot radius");
+	f.itemTable.At<uint8_t>(GroundItemLayout::ItemQuest, 0);
+	Check(f.Read(snapshot) && snapshot.items.empty(), "ordinary equipment keeps the original native range filter");
+	f.itemTable.At<uint8_t>(GroundItemLayout::ItemQuest, 4);
+	f.itemPath.At<int>(0x10, 146);
+	Check(f.Read(snapshot) && snapshot.items.empty(), "quest items outside the extended radius remain excluded");
+	f.itemPath.At<int>(0x10, 101); f.itemPath.At<int>(0x14, 101);
 	f.item.At<uint32_t>(0xC, GroundItemLayout::Dropping);
 	Check(f.Read(snapshot) && snapshot.items.empty(), "a falling quest item is silent");
 	f.item.At<uint32_t>(0xC, GroundItemLayout::OnGround);

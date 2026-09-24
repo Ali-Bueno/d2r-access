@@ -162,7 +162,18 @@ void QuestSources() {
 	scene.questObjects.clear();
 	Check(tracker.Tick(scene, 5000, false).voices.empty(), "using the quest object removes its source");
 	scene.questObjects = {tree}; scene.questObjects[0].position = {AudibleRadius, 0};
-	Check(tracker.Tick(scene, 6000, false).voices.empty(), "quest objects obey the same audio radius");
+	batch = tracker.Tick(scene, 6000, false);
+	Check(batch.voices.size() == 1 && batch.voices[0].gain > LoopVolume / 4,
+		"quest object is clearly audible at the old range boundary");
+	scene.questObjects[0].position = {QuestAudibleRadius, 0};
+	Check(tracker.Tick(scene, 6100, false).voices.empty(), "quest object falls silent at its extended range boundary");
+	scroll.position = {QuestAudibleRadius - 1, 0}; scene.items = {scroll};
+	batch = tracker.Tick(scene, 6200, true);
+	Check(batch.voices.size() == 1 && batch.voices[0].gain > 0 && batch.speech.empty(),
+		"distant ground quest item is audible without premature proximity speech");
+	scene.items.clear();
+	scroll.position = {-1, -1};
+	Check(Spatialize(scene.questObjects[0], {}).gain == 0, "quest attenuation reaches zero at the new boundary");
 	scene.questObjects[0].position = {NAN, 0};
 	Check(tracker.Tick(scene, 7000, false).voices.empty(), "invalid quest coordinates stay silent");
 	scene.questObjects = {tree}; scene.items = {scroll};

@@ -28,8 +28,8 @@ Voice Spatialize(const Item& item, Point player) {
 	// Native projection 0x334DB0: +X down/right, +Y down/left.
 	voice.right = static_cast<float>((dx - dy) / std::numbers::sqrt2);
 	voice.front = static_cast<float>(-(dx + dy) / std::numbers::sqrt2);
-	const double proximity = std::clamp(1 - distance / AudibleRadius, 0.0, 1.0);
-	voice.gain = static_cast<float>(LoopVolume * proximity * proximity);
+	const double proximity = std::clamp(1 - distance / AudibleRange(item.sound), 0.0, 1.0);
+	voice.gain = static_cast<float>(LoopVolume * proximity * (item.sound == Sound::Quest ? 1 : proximity));
 	// Blend the rear pitch across one subtile to avoid chatter at the side axis.
 	voice.pitch = 1 + (RearPitch - 1) * std::clamp(-voice.front, 0.0f, 1.0f);
 	return voice;
@@ -53,7 +53,7 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 	for (const auto& source : sources) {
 		const double distance = std::hypot(source.position.x - player.x, source.position.y - player.y);
 		const uint64_t identity = (static_cast<uint64_t>(source.source) << 32) | source.id;
-		if (std::isfinite(distance) && distance < AudibleRadius && seen.insert(identity).second) nearest.emplace_back(distance, &source);
+		if (std::isfinite(distance) && distance < AudibleRange(source.sound) && seen.insert(identity).second) nearest.emplace_back(distance, &source);
 	}
 	std::sort(nearest.begin(), nearest.end(), [](const auto& a, const auto& b) {
 		if (a.first != b.first) return a.first < b.first;

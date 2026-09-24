@@ -4,13 +4,14 @@
 
 ## Quest item spatial sound — 2026-09-23
 
-Built and installed the supplied `quest item.ogg` for ground quest items and
-nine unused quest-item interactions, including the Tree of Inifuss. Two quest
-voices get priority; Ctrl+L controls them with item loops. Native item flags
-were verified against all 692 installed item rows. **71/71 suites pass**, no
-compiler warnings; installed DLL and quest WAV hashes verified. **Next step:**
-listen near Inifuss, activate it, then collect its scroll. Nearby loaded rooms
-only; no active-quest filtering. `docs/ground-items.md`.
+User confirmed the tree cue works. Built and installed the requested faster,
+farther revision: 700 ms repetition, 45-subtile reach with gentler attenuation,
+plus Cairn Stones only while unactivated. Ground quest items and the nine
+item-granting interactions retain their priority and Ctrl+L toggle.
+**71/71 suites pass**, no compiler warnings; installed DLL and all WAV hashes
+verified. Other audio assets match their original conversion. **Next step:**
+listen at greater distance and activate the Cairn Stones. Nearby loaded rooms
+only; no sequence hints or automatic interaction. `docs/ground-items.md`.
 
 ## Mercenary statistics, life and level — 2026-09-23
 
@@ -780,7 +781,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Level exit loops | portal restoration deployed 2026-09-23 — listening pending | Interactive entrances use `portal`; walking crossings use `zone transition`. 4 suites pass. Ctrl+P. `docs/exploration.md` |
 | Life, mana and broken equipment | combined mercenary priority installed 2026-09-23; listening pending | Simultaneous alerts combine with player life first; downward critical crossings interrupt. Broken gear queues. Missing orb text is identified after stable absence. `access-vitals`; `docs/vitals.md` |
 | Poison and mercenary condition | life-source fix and level speech installed 2026-09-23; live combat pending | Panel-native mercenary percentage, shared player thresholds and level-change tracking. Missing data stays unknown. Poison unchanged. `docs/combat-status-evidence.md` |
-| Spatial item / quest loops | quest cue installed 2026-09-23; listening pending | Nine item loops; ground quest flags plus nine quest-item interactions, including Inifuss. Ctrl+L, two priority voices, native landing/used-mode gates; 71 suites pass. `docs/ground-items.md` |
+| Spatial item / quest loops | tree confirmed; faster/farther and Cairn revision installed 2026-09-23 | Quest cues every 700 ms, 45-subtile reach; only unactivated Cairns sound. Ctrl+L, two priority voices; 71 suites pass. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 

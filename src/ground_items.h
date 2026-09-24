@@ -28,6 +28,9 @@ struct Update { std::vector<Voice> voices; std::string speech; };
 
 // Accessibility tuning in collision subtiles, not assumed native pickup ranges.
 inline constexpr double AudibleRadius = 30, SpeakRadius = 3, RearmRadius = 6;
+// User listening feedback: quest cues need a longer reach and gentler distance fade.
+inline constexpr double QuestAudibleRadius = 45;
+constexpr double AudibleRange(Sound sound) { return sound == Sound::Quest ? QuestAudibleRadius : AudibleRadius; }
 inline constexpr size_t MaxVoices = 8, MaxNamesPerAnnouncement = 4;
 // A crypt can hold a dozen caskets. Containers take at most this share of the
 // voices so a room full of them cannot silence the loot on the floor.
