@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Complete tester ZIP — 2026-09-24
+
+`../d2r-access-completo-2026-09-24.zip`, plugin from 7df3311: 38 files,
+56,591,584 bytes, SHA-256 `bd0bdb0d…` (full hash in `.sha256` beside it).
+Previous package plus the new plugin, `quest item.wav`, the current loader
+config and the repo's `radar.toml` as `d2r-access.toml` (adds `[navigation]`).
+Spanish LEEME lists what is new. Every entry decompresses and matches its
+SHA-256; the DLL matches the installed build. **76/76 suites pass.** **Next
+step:** the friend installs it and a two-client session is tested.
+
 ## Scanner follows the automap — installed, 2026-09-24
 
 Exploration now counts a room as explored when the stock automap has drawn in it
