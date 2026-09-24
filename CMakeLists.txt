@@ -86,6 +86,7 @@ add_library(d2r-access SHARED
 	src/target_sight.cpp
 	src/native_entities.cpp
 	src/native_cairn.cpp
+	src/cairn_scroll_service.cpp
 	src/native_level_exits.cpp
 	src/native_level_areas.cpp
 	src/level_areas.cpp
@@ -361,6 +362,12 @@ if(BUILD_TESTING)
 	target_include_directories(native-cairn-cache-tests PRIVATE src)
 	target_compile_features(native-cairn-cache-tests PRIVATE cxx_std_20)
 	add_test(NAME native-cairn-cache COMMAND native-cairn-cache-tests)
+	add_executable(cairn-scroll-service-tests tests/cairn_scroll_service_tests.cpp src/cairn_scroll_service.cpp src/speech_strings.cpp)
+	target_link_libraries(cairn-scroll-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(cairn-scroll-service-tests PRIVATE src)
+	target_compile_features(cairn-scroll-service-tests PRIVATE cxx_std_20)
+	target_compile_definitions(cairn-scroll-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME cairn-scroll-service COMMAND cairn-scroll-service-tests)
 	add_executable(ui-text-tests tests/ui_text_tests.cpp src/ui_text.cpp src/speech_strings.cpp)
 	add_executable(native-level-exits-tests tests/native_level_exits_tests.cpp src/native_level_exits.cpp src/native_memory.cpp)
 	target_include_directories(native-level-exits-tests PRIVATE src)
@@ -528,6 +535,7 @@ if(BUILD_TESTING)
 		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(cairn-stones-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-cairn-cache-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(cairn-scroll-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

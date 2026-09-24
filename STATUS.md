@@ -2,17 +2,14 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Correct Cairn Stone guidance — installed, 2026-09-24
+## Cairn puzzle symbols — installed, 2026-09-24
 
-Only the next correct stone receives the quest cue after opening the deciphered
-scroll once per game. Scan/catalogue/beacon names include its rank and next-step
-status. The live packet order and visible scroll numbers matched; the guarded
-capture clears on session changes. Unknown earlier stones never imply activation.
-Release built without warnings and deployed DLL SHA-256 matches. All 73 suites
-pass: 72 in the full run, then the remaining service suite after isolating its
-new fixture. **Next step:** open the deciphered scroll again, hear the ready
-announcement, and test the advancing cue with controller/NVDA. The new hook's
-startup and in-game cue still need live confirmation. `docs/cairn-stones-re.md`.
+User explicitly wants freedom to choose incorrectly. All neutral stones qualify
+for the cue; scan/catalogue/beacon name their fixed symbols. Opening the deciphered
+scroll reads its sequence once; reopening repeats it. Automatic next-stone selection
+and solution ranks were removed. **74/74 suites pass**, no compiler warnings;
+deployed DLL SHA-256 matches. **Next step:** controller/NVDA check of symbols and
+scroll reading. `docs/cairn-stones-re.md`, `docs/ground-items.md`.
 
 ## Quest item spatial sound — 2026-09-23
 
@@ -793,7 +790,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Level exit loops | portal restoration deployed 2026-09-23 — listening pending | Interactive entrances use `portal`; walking crossings use `zone transition`. 4 suites pass. Ctrl+P. `docs/exploration.md` |
 | Life, mana and broken equipment | combined mercenary priority installed 2026-09-23; listening pending | Simultaneous alerts combine with player life first; downward critical crossings interrupt. Broken gear queues. Missing orb text is identified after stable absence. `access-vitals`; `docs/vitals.md` |
 | Poison and mercenary condition | life-source fix and level speech installed 2026-09-23; live combat pending | Panel-native mercenary percentage, shared player thresholds and level-change tracking. Missing data stays unknown. Poison unchanged. `docs/combat-status-evidence.md` |
-| Spatial item / quest loops | tree and faster/farther confirmed; correct Cairn guidance installed 2026-09-24 | 700 ms, 45-subtile reach. Open deciphered scroll each game; only the next correct stone sounds. Ctrl+L, two priority voices; 73 suites pass. Live listening pending. `docs/ground-items.md`, `docs/cairn-stones-re.md` |
+| Spatial item / quest loops | tree and faster/farther confirmed; Cairn symbols installed 2026-09-24 | 700 ms, 45-subtile reach; all neutral stones qualify. Fixed symbols in scan; sequence read only when scroll opens. Ctrl+L, two priority voices; 74 suites pass. Listening pending. `docs/ground-items.md` |
 
 ## Derived facts (source: PluginSDK headers, path:line relative to external/PluginSDK/include/D2RLPlugin)
 

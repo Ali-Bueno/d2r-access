@@ -65,9 +65,10 @@ awaiting live NVDA/controller validation (`docs/test-ingame-text.md`).
   0.94. Nine item OGG assets require FFmpeg at build time, no runtime decoder DLL.
   Quest items and nine quest-item interactions (including Inifuss) use the
   supplied quest cue, sharing Ctrl+L; two quest voices get priority. Quest cues
-  repeat about every 700 ms with 45-subtile reach. Cairn Stones require opening
-  the deciphered scroll each game; the verified packet order selects only the
-  next unactivated stone. Missing earlier states never imply activation.
+  repeat about every 700 ms with 45-subtile reach. All neutral Cairn Stones
+  qualify; scan/catalogue/beacon identify their fixed symbols. Only opening
+  the deciphered scroll reads its sequence. Preserve the player's choice;
+  never select the correct stone or label it with its solution rank.
   Nearby loaded rooms only. `docs/ground-items.md`, `docs/cairn-stones-re.md`.
   User reported silence in the first live test: raw loops were much too quiet.
   User now confirms audibility but requested quieter loops and silence while

@@ -85,13 +85,13 @@ void ObjectsAndNpcs() {
 	// (a door, a chest set into it) is still its own bearer.
 	const std::vector<EntityRadar::Entity> door{Make(1, 30, 34, "Door", EntityRadar::Kind::Object)};
 	Check(Of(world, door, "Door") == Sight::Visible, "a door in the wall is not hidden by itself");
-	auto stone = Make(2, 30, 38, "Piedra de Cairn, piedra 1 de 5, siguiente", EntityRadar::Kind::Object);
+	auto stone = Make(2, 30, 38, "Piedra de Cairn, gota hacia arriba", EntityRadar::Kind::Object);
 	stone.worldName = "Piedra de Cairn";
 	Check(Of(world, {stone}, "Piedra de Cairn") == Sight::Hidden,
-		"the original HUD name still identifies a ranked Cairn Stone behind a wall");
+		"the original HUD name still identifies a Cairn Stone with a symbol behind a wall");
 	stone.position = {30, 32};
 	Check(Of(world, {stone}, "Piedra de Cairn") == Sight::Visible,
-		"the original HUD name still identifies a ranked Cairn Stone in sight");
+		"the original HUD name still identifies a Cairn Stone with a symbol in sight");
 }
 }
 

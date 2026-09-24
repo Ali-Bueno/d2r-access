@@ -134,23 +134,22 @@ pitch makes repetition about 745 ms behind the player. Quest sources reach
 at the old 30-subtile boundary. Ordinary loot retains its existing range and
 attenuation; the shared near gain and pile cap remain in force.
 
-Cairn Stones (classes 17–21, installed `objects.txt` OperateFn 9) use the cue
-only for the **next correct stone**. Open the deciphered Scroll of Inifuss once
-each game to capture its native order. The mod announces successful reading
-after UI speech finishes; nearby unactivated stones without an order prompt
-once to open the scroll. The scan, catalogue and beacon name each stone's rank
-and identify the next one. Original HUD labels remain available for visibility
-matching. The mod never clicks a stone.
+Cairn Stones (classes 17–21, installed `objects.txt` OperateFn 9) all qualify
+for the cue while neutral, whether or not the scroll has been opened. Activated
+stones stop sounding. As with other quest sources, the two nearest eligible
+sources receive voices. The scan, catalogue and beacon identify the fixed symbol:
+upward drop, one, downward drop, two, or zero. Original HUD labels remain
+available for visibility matching.
 
-The verified client quest-4 packet supplies the five class indices in activation
-order. Capture resets on leaving/joining games; cached globals are not trusted.
-All five values must form a permutation. Native neutral mode means unactivated;
-operating and opened mean activated. Operating stones are observed before the
-selectability gate, so a successful activation advances the cue even during its
-animation. An unreadable/unloaded earlier stone or inconsistent progress prevents
-selection. No order is inferred from position, names, or nearest distance.
-The live scroll numbers, packet consumer and server interaction were cross-checked
-in D2R 3.3.93787; see [native evidence](cairn-stones-re.md).
+Opening the deciphered Scroll of Inifuss reads its full sequence of symbols
+once, waiting for the native packet if necessary. Closing and reopening repeats
+it. The verified client quest-4 packet supplies five class indices in activation
+order; session changes clear the cache and all five values must form a permutation.
+That sequence is used only for reading the open scroll. The player compares it
+with the stones and chooses which one to touch, including making mistakes.
+There is no next-stone cue or solution rank in world labels. The live scroll
+numbers, packet consumer and server interaction were cross-checked in D2R
+3.3.93787; see [native evidence](cairn-stones-re.md).
 
 These cues share **Ctrl+L** / `access-items sound-on|sound-off` with item audio.
 Disabling chest or exit sounds does not suppress quest sources. The nearest
@@ -170,11 +169,11 @@ some stay selectable after use and need separate verified state handling.
 Validation covers native Inifuss selection/used modes, unavailable translation,
 quest classification before quality, landing and pickup, source priority and
 identity collisions, toggles, UI suspension, lifecycle reset, and the actual
-converted recording's PCM level and stereo positioning. Cairn tests exercise
-all 120 orders, each activation prefix, unknown states, duplicates, session
-reset races, original HUD labels and deferred one-time speech. The user confirmed
-the tree cue and its faster, farther revision. Correct-next-stone guidance still
-needs controller/NVDA listening after installation.
+converted recording's PCM level and stereo positioning. Cairn tests cover all
+120 valid orders, invalid permutations, session reset races, cues independent
+of scroll order, fixed symbol names and reading only the open scroll. The user
+confirmed the tree cue and its faster, farther revision. Symbol and scroll
+reading still need controller/NVDA listening after installation.
 
 ## Assets and build
 
