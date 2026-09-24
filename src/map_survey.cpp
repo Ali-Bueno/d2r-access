@@ -164,7 +164,7 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 }
 
 bool KnownLine(const Radar::World& world, Radar::Position target, double distance) {
-	constexpr double SampleStep = 0.5; // match the entity scan's half-subtile sight trace
+	constexpr double SampleStep = 0.5; // match LineOfSight's half-subtile trace
 	for (double depth = 0; depth <= distance; depth += SampleStep) {
 		const double share = distance > 0 ? depth / distance : 0;
 		const int x = Round(world.player.x + (target.x - world.player.x) * share);
@@ -172,6 +172,17 @@ bool KnownLine(const Radar::World& world, Radar::Position target, double distanc
 		if (world.Cell(x, y, Radar::Layer::Terrain) == Radar::State::Unknown) return false;
 	}
 	return world.Cell(Round(target.x), Round(target.y), Radar::Layer::Terrain) != Radar::State::Unknown;
+}
+
+Scene Split(std::vector<EntityRadar::Entity> entities) {
+	Scene scene;
+	for (auto& entity : entities) {
+		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
+		else if (entity.category != EntityRadar::Category::Item
+			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
+			scene.landmarks.push_back(std::move(entity));
+	}
+	return scene;
 }
 
 std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,

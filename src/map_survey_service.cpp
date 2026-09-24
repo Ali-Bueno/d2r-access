@@ -9,7 +9,6 @@
 #include "native_entities.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
-#include "native_ground_items.h"
 #include "drlg_layout.h"
 #include "native_world.h"
 #include "navigation_mode.h"
@@ -59,8 +58,6 @@ const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 bool                       g_supported = false;
-// Ground loot is optional: the catalogue is worth having without it.
-bool                       g_items = false;
 uint64_t                   g_nextObserve = 0;
 // The level the area list was last logged for; diagnostics only.
 int                        g_areaLevel = 0;
@@ -73,7 +70,6 @@ uint32_t              g_selected = 0;
 
 enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory };
 std::atomic<Request> g_request{ Request::None };
-bool                 g_pathfinder = false; // L3: right stick drives the catalogue
 bool                 g_fullAssistance = true;
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
@@ -141,9 +137,9 @@ std::string Format(const char* format, auto... args) {
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
-	// The entity scan's own words for a bearing and a distance, so the two
-	// readouts name the same thing the same way: "ahead" rather than "Up",
-	// and steps rather than a unit only this readout uses. The number here is
+	// The shared words for a bearing and a distance, so every readout names
+	// the same thing the same way: "ahead" rather than "Up", and steps rather
+	// than a unit only this readout uses. The number here is
 	// a real step count from the navigation grid, which is what made "metres"
 	// the wrong word for it.
 	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
@@ -199,22 +195,22 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 			crossing.level, crossing.position.x, crossing.position.y, crossing.gapTiles);
 }
 
-// Everything the catalogue tracks: the verified unit reader, plus the ground
-// loot the proximity scan already reads. Items are entities like any other
-// here -- the registry remembers one first seen across the level, and drops it
-// once the map can see its place and it has gone, which is what picking it up
-// looks like. Both observation points feed through this, so an item catalogued
-// on demand is not forgotten again by the next background pass.
-bool Collect(const Lifecycle& state, std::vector<EntityRadar::Entity>& entities) {
+using MapSurvey::Scene;
+
+bool Collect(const Lifecycle& state, Scene& scene) {
+	std::vector<EntityRadar::Entity> entities;
 	if (!NativeEntities::Read(state.player, state.session, entities, true, true)) return false;
-	GroundItems::Snapshot snapshot;
-	if (!g_items || !NativeGroundItems::Read(state.player, state.session, snapshot)) return true;
-	for (const auto& item : snapshot.items) {
-		if (item.name.empty()) continue;
-		entities.push_back({item.id, EntityRadar::Kind::Item, {item.position.x, item.position.y}, item.name,
-			0, false, EntityRadar::Category::Item});
-	}
+	scene = MapSurvey::Split(std::move(entities));
 	return true;
+}
+
+// Exploration admits only what came into view; full assistance everything loaded.
+std::vector<EntityRadar::Entity> Visible(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	return g_fullAssistance ? entities : MapSurvey::Discoverable(world, entities);
+}
+
+void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
+	g_registry.Observe(state.level, Visible(world, scene.landmarks), grid, !g_fullAssistance, {}, &scene.landmarks);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -233,12 +229,12 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
-	std::vector<EntityRadar::Entity> entities;
-	if (Collect(state, entities)) {
-		if (g_fullAssistance) g_registry.Observe(state.level, entities, grid, false);
-		else g_registry.Observe(state.level, MapSurvey::Discoverable(world, entities), grid, true, {}, &entities);
-	}
-	landmarks = MapSurvey::Survey(world, grid, g_registry.Entities(), g_fullAssistance);
+	Scene scene;
+	if (Collect(state, scene)) Observe(state, world, grid, scene);
+	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
+	const auto enemies = Visible(world, scene.enemies);
+	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
+	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;
 }
 
@@ -272,11 +268,8 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
 	// Hand the selection to the beacon, so the right-stick click leads to what
-	// the catalogue just named rather than to whatever the short-range scan
-	// last found. Every answer re-offers, including a plain repeat, so the
-	// offer is always the thing the player heard most recently. While the
-	// pathfinder is on it owns the right stick, so the scan cannot be
-	// offering something else at the same time.
+	// the scanner just named. Every answer re-offers, including a plain repeat,
+	// so the offer is always the thing the player heard most recently.
 	BeaconService::Offer(members[index].entity, level, GetTickCount64());
 
 	// The category name first when the category changed, so the player knows
@@ -304,32 +297,17 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 
 }
 
-// The long-range pathfinder is a MODE, not a key. L3 toggles it, and while it
-// is on the right stick drives the catalogue instead of the entity scan:
-// left/right through the objects in a category, up/down through categories.
-// TakeRightStickPush already resolves one dominant axis per push, so a
-// slightly diagonal push cannot change the category and the object at once.
-bool Active() { return g_pathfinder; }
-
-// The pathfinder's controls are play's alone, by the shared gate: in a menu the
-// stick and its clicks belong to the menu (the user, 2026-09-21: "pathfinder
-// should only work when menu is closed").
-void PollPathfinder(const D2RL::PluginContext* context) {
-	if (InputDirection::TakeLeftStickClick()) {
-		if (!RadarUi::InPlay()) {
-			AsyncLog::Info(context, "[survey] L3 ignored: not in play");
-			return;
-		}
-		g_pathfinder = !g_pathfinder;
-		AsyncLog::InfoF(context, "[survey] long-range pathfinder %s", g_pathfinder ? "on" : "off");
-		ScreenReader::Speak(g_pathfinder ? Strings::Current().pathfinderEnabled : Strings::Current().pathfinderDisabled, true);
-	}
-	if (!g_pathfinder) return;
+// The right stick always drives the scanner during play: left/right through
+// the objects in a category, up/down through categories. TakeRightStickPush
+// resolves one dominant axis per push, so a slightly diagonal push cannot
+// change the category and the object at once. In a menu the stick belongs to
+// the menu (the user, 2026-09-21: "pathfinder should only work when menu is closed").
+void PollStick() {
 	// Peek before the gate: it walks the panel tree, and the stick is idle on
 	// all but a few of these ticks. A push left unclaimed stays pending for the
 	// reader that does want it -- in a menu, the menu's own.
 	if (InputDirection::PeekRightStickPush() == InputDirection::StickPush::None || !RadarUi::InPlay()) return;
-	switch (InputDirection::TakeRightStickPush("pathfinder")) {
+	switch (InputDirection::TakeRightStickPush("scanner")) {
 	case InputDirection::StickPush::Left:  g_request.store(Request::PreviousObject); break;
 	case InputDirection::StickPush::Right: g_request.store(Request::NextObject); break;
 	case InputDirection::StickPush::Up:    g_request.store(Request::PreviousCategory); break;
@@ -338,17 +316,12 @@ void PollPathfinder(const D2RL::PluginContext* context) {
 	}
 }
 
-void CycleObject(int delta) {
-	g_request.store(delta >= 0 ? Request::NextObject : Request::PreviousObject);
-}
-
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context   = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
-	g_items = NativeGroundItems::Initialize(context);
-	// The level-area reader and the scan's level bearings walk the act's DRLG
+	// The level-area reader and the level bearings walk the act's DRLG
 	// structures; a failed check leaves both switched off, nothing else.
 	NativeDrlg::SetAvailable(LayoutCheck::Verify(context, context->exeBase, DrlgLayout::Checks, "rooms",
 		"level areas and level bearings are off"));
@@ -366,14 +339,21 @@ bool Register(const D2RL::PluginContext* context) {
 
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		struct Entry { const char* id; const char* label; D2RL::Input::Key key; Request request; };
+		using D2RL::Input::Key;
+		using D2RL::Input::Modifier;
+		struct Entry { const char* id; const char* label; Key key; Modifier modifier; Request request; };
+		// Ctrl+Numpad mirrors the right stick for testing without a controller.
 		for (const Entry& entry : {
-			Entry{"survey-repeat", "Repeat the current map object", D2RL::Input::Key::Backslash, Request::Repeat},
-			Entry{"survey-category-previous", "Previous map category", D2RL::Input::Key::Comma, Request::PreviousCategory},
-			Entry{"survey-category-next", "Next map category", D2RL::Input::Key::Period, Request::NextCategory}}) {
+			Entry{"survey-repeat", "Repeat the current map object", Key::Backslash, Modifier::None, Request::Repeat},
+			Entry{"survey-category-previous", "Previous map category", Key::Comma, Modifier::None, Request::PreviousCategory},
+			Entry{"survey-category-next", "Next map category", Key::Period, Modifier::None, Request::NextCategory},
+			Entry{"survey-stick-up", "Scanner: previous category", Key::Numpad8, Modifier::Control, Request::PreviousCategory},
+			Entry{"survey-stick-down", "Scanner: next category", Key::Numpad2, Modifier::Control, Request::NextCategory},
+			Entry{"survey-stick-left", "Scanner: previous object", Key::Numpad4, Modifier::Control, Request::PreviousObject},
+			Entry{"survey-stick-right", "Scanner: next object", Key::Numpad6, Modifier::Control, Request::NextObject}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
-				.defaultPrimary = {entry.key, D2RL::Input::Modifier::None}, .callback = OnAction,
+				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
 				.userData = reinterpret_cast<void*>(static_cast<intptr_t>(entry.request))};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
 			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) {
@@ -388,7 +368,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_supported) return;
 	ApplyMode();
 
-	PollPathfinder(context);
+	PollStick();
 
 	if (const Request request = g_request.exchange(Request::None); request != Request::None && !uiOwnsSpeech) {
 		// The backslash, comma and period keys go through the same gate as the stick.
@@ -416,15 +396,11 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	ForgetOtherGames(state);
 	g_registry.Select(state.level, !g_fullAssistance);
 	Radar::World world;
-	std::vector<EntityRadar::Entity> entities;
-	if (!NativeWorld::Read(state.player, state.session, state.level, world)
-		|| !Collect(state, entities)) {
-		return;
-	}
+	Scene scene;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world) || !Collect(state, scene)) return;
 	LogAreas(context, state);
 	const auto grid = Navigation::Build(world, SurveyRadius);
-	if (g_fullAssistance) g_registry.Observe(state.level, entities, grid, false);
-	else g_registry.Observe(state.level, MapSurvey::Discoverable(world, entities), grid, true, {}, &entities);
+	Observe(state, world, grid, scene);
 }
 
 void Shutdown() {

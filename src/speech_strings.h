@@ -94,15 +94,9 @@ struct Table {
 	const char* radarMotionUnknown;
 	const char* radarStraight;
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
-	const char* scanEnabled;
-	const char* scanDisabled;
-	const char* pathfinderEnabled;  // L3 toggles the long-range pathfinder
-	const char* pathfinderDisabled;
 	const char* navigationExploration; // mode status: guidance uses visited areas
 	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
-	const char* scanUnavailable;
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
-	const char* scanNothing; // %s = scan direction
 	const char* scanStep; // exactly one step
 	const char* scanSteps; // %d = whole steps
 	const char* scanAdjacent; // under one step away
@@ -194,6 +188,7 @@ struct Table {
 	const char* roomsUnavailable;
 	const char* finderEnabled;  // the exit finder, BACK+A: ways out by side on the right stick
 	const char* finderDisabled;
+	const char* finderNothing;  // %s = a side (scanDirections): no way out on that side
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -218,8 +213,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
-		t.radarStraight, t.scanEnabled, t.scanDisabled, t.pathfinderEnabled, t.pathfinderDisabled,
-		t.navigationExploration, t.navigationFullAssistance, t.scanUnavailable, t.scanNothing, t.scanStep,
+		t.radarStraight,
+		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
@@ -236,7 +231,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled};
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

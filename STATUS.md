@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## One scanner on the right stick — installed, 2026-09-24
+
+User asked the scanner to follow the automap without L3. The right stick now
+always drives the catalogue: up/down categories, left/right objects. Enemies are
+a live nearest-first category; ground loot and ordinary chests left the scanner.
+The directional scan, `access-scan` and Ctrl+E are gone. Discovery still
+approximates the automap (range plus sight); a native automap reader is being
+researched. **75/75 suites pass**; user confirmed the controls work. **Next
+step:** native automap reader (RE in progress).
+`docs/entity-scan.md`.
+
 ## Ground item speech on every pass — installed, 2026-09-24
 
 User reported names read only once and too late. Stepping beyond 4 subtiles now
@@ -788,7 +799,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Audio cues across locales | fixes built and installed; listening pending | Numeric cue classification, generic container/exit fallback in all 13 locales, beacon UI cancellation. 59/59 suites pass in the shared workspace; `docs/audio-language-audit.md`. |
 | Quest log / automatic quest tracking | journal user-confirmed; native packet capture installed 2026-09-23 | Guarded native objective/counter capture can cover unloaded journals; ambiguous or missing captures keep the generic alert. Startup verified, live update coverage pending. 67/67 suites pass. `docs/quests.md` |
 | Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
-| Target beacon guidance | exploration mode installed 2026-09-24; listening pending | Scan or catalogue, then R3 / Ctrl+B. Exploration (default) routes only through visited rooms; opt-in full assistance uses the whole generated room graph. `docs/beacon.md` |
+| Target beacon guidance | exploration mode installed 2026-09-24; listening pending | Scanner, then R3 / Ctrl+B. Exploration (default) routes only through visited rooms; opt-in full assistance uses the whole generated room graph. `docs/beacon.md` |
 | Native automap discovery | investigated; strict mode not implemented | Current guidance retained. Native reveal state remains unverified; `.ma0` container structure inspected only. `docs/automap-discovery-research.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |
@@ -804,7 +815,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Entity scan (right stick) | done; Cairn visibility fix installed 2026-09-24, listening pending | Nearby visible entities by direction; repeat cycles. Native object footprints prevent self-occlusion; real walls and range still apply. 74 suites pass. `docs/entity-scan.md`, `docs/cairn-stones-re.md` |
+| Level scanner (right stick) | user-confirmed 2026-09-24 | Up/down categories, left/right objects, nearest first; enemies live, loot and ordinary chests excluded. Replaces the directional scan and the L3 pathfinder. `docs/entity-scan.md` |
 | Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | built 2026-09-22; live listening pending | Darker floor breath, double-pip unexplored tail, outdoor exit candidates and compact storage. 61/61 suites pass; existing progress migrated. `docs/radar-readings.md`, `docs/exploration.md`. |

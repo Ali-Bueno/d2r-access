@@ -250,7 +250,7 @@ See [audio language verification and limits](docs/audio-language-audit.md).
 
 **Level exits:** entrances that require interaction, including dungeon stairs,
 cave entrances, portals and waypoints, play the `portal` loop. Only crossings
-traversed by walking use `zone transition`, at openings in the loaded collision map. The entity scan
+traversed by walking use `zone transition`, at openings in the loaded collision map. The scanner
 names exits after their destination. **Ctrl+P** toggles the exit loops;
 `access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
 
@@ -270,15 +270,21 @@ logs the verdict for everything currently in sight. See
 The user confirms that the ground-item loops are audible. The quieter level and landing-only
 start await a follow-up listening check.
 
-**Target guidance (built; live validation pending):** scan an entity with
-the right stick, then click the stick or press **Ctrl+B** to follow it with
-directional pings. Repeat to cancel. Fixed stairs and level passages can be
-scanned beyond ordinary range and through walls, including inactive rooms whose
-exit presets the game retains. Never-generated positions remain unknown. See
-[distant exits](docs/distant-exits.md) and [target guidance](docs/beacon.md).
+**Scanner (right stick; live validation pending):** during play, push the
+right stick up or down to change category, and left or right to step through
+it, nearest first. It lists what a sighted player finds on the automap: exits,
+portals, waypoints, NPCs, the stash, shrines, objects, quest containers and
+visited rooms. It also lists the enemies in sight right now. Ground loot and
+ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
+and 4/6 (object). See [scanner](docs/entity-scan.md).
 
-**Exploration mode (default; live validation pending):** the long-range
-catalogue (L3) lists only what you have discovered: things that came within
+**Target guidance (built; live validation pending):** click the right stick or
+press **Ctrl+B** to follow what the scanner last named with directional pings.
+Repeat to cancel. See [distant exits](docs/distant-exits.md) and
+[target guidance](docs/beacon.md).
+
+**Exploration mode (default; live validation pending):** the scanner lists
+only what you have discovered: things that came within
 scan range with a clear line of sight, and rooms you have stood in. It gives
 their straight-line distance and direction, not a walking route. Exits,
 waypoints and objects stay listed when you leave a level and come back in the

@@ -39,8 +39,8 @@ std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& op
 	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings,
 	UnexploredExit unexploredExit = nullptr);
 
-// The ways out on one screen side, nearest first: the same quarter of the
-// plane the entity scan gives a push, so both modes mean the same by "left".
+// The ways out on one screen side, nearest first: the quarter of the plane
+// centred on that side's screen axis.
 std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction);
 
 // Cycles a list nearest-first, continuing from the item named last: the first

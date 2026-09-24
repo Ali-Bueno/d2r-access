@@ -1,13 +1,11 @@
 #include "entity_radar.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
 namespace D2RAccess::EntityRadar {
 namespace {
 int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); }
-size_t Index(Radar::Direction direction) { return static_cast<size_t>(direction); }
 bool SightBlocked(const Radar::World& world, int x, int y, Radar::Position centre,
 	const Entity::ObjectFootprint& footprint) {
 	uint16_t flags = 0;
@@ -47,79 +45,6 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Positio
 }
 bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target) {
 	return TraceSight(world, from, target.position, target.kind == Kind::Object ? target.footprint : Entity::ObjectFootprint{});
-}
-
-bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine) {
-	const double dx = target.x - player.x, dy = target.y - player.y;
-	const double length = std::hypot(dx, dy);
-	if (length == 0) return true; // sharing the player's cell: reachable from every direction
-	const auto& axis = Radar::Axes[Index(direction)];
-	return (dx * axis.x + dy * axis.y) / length >= sectorCosine;
-}
-
-std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& entities,
-	Radar::Direction direction, const Settings& settings) {
-	std::vector<Target> targets;
-	for (const auto& entity : entities) {
-		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
-		const bool levelExit = entity.kind == Kind::Exit && entity.levelExitId != 0;
-		// Exits obey the range too. A loaded warp unit in a neighbouring room is
-		// well past it -- MEASURED 2026-09-21, "To The Den of Evil, 52 steps" on
-		// the short-range scan -- and finding a way out across the level is the
-		// long-range catalogue's job.
-		if (!std::isfinite(distance) || distance > settings.range) continue;
-		if (!InSector(world.player, entity.position, direction, settings.sectorCosine)) continue;
-		if (!levelExit && !LineOfSight(world, world.player, entity)) continue;
-		targets.push_back({entity, distance});
-	}
-	std::sort(targets.begin(), targets.end(), [](const Target& a, const Target& b) {
-		if (a.distance != b.distance) return a.distance < b.distance;
-		if (a.entity.kind != b.entity.kind) return a.entity.kind < b.entity.kind;
-		if (a.entity.levelExitId != b.entity.levelExitId) return a.entity.levelExitId < b.entity.levelExitId;
-		return a.entity.id < b.entity.id;
-	});
-	return targets;
-}
-
-Result Cycler::Push(const std::vector<Target>& targets, Radar::Direction direction, uint64_t now, const Settings& settings) {
-	Result result;
-	result.direction = direction;
-	result.count = targets.size();
-	const bool continuing = active_ && direction == direction_ && now - lastPush_ <= settings.cycleTimeoutMs;
-	direction_ = direction;
-	lastPush_ = now;
-	if (targets.empty()) { active_ = false; return result; }
-	size_t index = 0;
-	if (continuing) {
-		const auto previous = std::find_if(targets.begin(), targets.end(),
-			[this](const Target& target) {
-				return target.entity.kind == lastKind_ && target.entity.levelExitId == lastExitId_
-					&& (lastExitId_ || target.entity.id == lastId_);
-			});
-		if (previous != targets.end()) index = (static_cast<size_t>(previous - targets.begin()) + 1) % targets.size();
-	}
-	result.found = true;
-	result.index = index;
-	result.target = targets[index];
-	active_ = true;
-	lastId_ = result.target.entity.id;
-	lastKind_ = result.target.entity.kind;
-	lastExitId_ = result.target.entity.levelExitId;
-	return result;
-}
-
-void Cycler::Reset() { *this = Cycler(); }
-
-std::string Describe(const Result& result, const Settings& settings, const Strings::Table& strings) {
-	char buffer[128];
-	const char* direction = strings.scanDirections[Index(result.direction)];
-	if (!result.found) {
-		std::snprintf(buffer, sizeof buffer, strings.scanNothing, direction);
-		return buffer;
-	}
-	// The name and how far, and nothing else. A position in the candidate
-	// list is heard on every single push, and the player did not ask for it.
-	return result.target.entity.name + ", " + DistancePhrase(result.target.distance, settings, strings);
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {

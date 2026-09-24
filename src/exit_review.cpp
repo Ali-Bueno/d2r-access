@@ -9,6 +9,16 @@ namespace {
 // The same way out re-derived lands on the same collision cell, so one cell of
 // the grid is all the tolerance needed to recognise it again.
 constexpr double SameCell = 1;
+
+// A quarter of the plane centred on the screen axis a push names; a point on
+// a diagonal belongs to both neighbouring sides.
+bool OnSide(Position player, Position target, Radar::Direction direction) {
+	const double dx = target.x - player.x, dy = target.y - player.y;
+	const double length = std::hypot(dx, dy);
+	if (length == 0) return true;
+	const auto& axis = Radar::Axes[static_cast<size_t>(direction)];
+	return (dx * axis.x + dy * axis.y) / length >= Radar::Diagonal;
+}
 }
 
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
@@ -29,7 +39,7 @@ std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& op
 std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction) {
 	std::vector<Item> result;
 	for (const auto& item : items)
-		if (EntityRadar::InSector(player, item.point, direction)) result.push_back(item);
+		if (OnSide(player, item.point, direction)) result.push_back(item);
 	return result;
 }
 
@@ -65,7 +75,7 @@ std::string Describe(const Item& item, const EntityRadar::Settings& scan, const 
 
 std::string Nothing(Radar::Direction direction, const Strings::Table& strings) {
 	char text[128]{};
-	std::snprintf(text, sizeof text, strings.scanNothing, strings.scanDirections[static_cast<size_t>(direction)]);
+	std::snprintf(text, sizeof text, strings.finderNothing, strings.scanDirections[static_cast<size_t>(direction)]);
 	return text;
 }
 }

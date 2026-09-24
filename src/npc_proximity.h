@@ -14,10 +14,10 @@
 // (never an enemy, object or item) is named once with its distance and screen
 // direction as soon as it is inside range, so the left stick can track it
 // without pushing the right stick. Pure logic over the same World and Entity
-// list as the entity scan; unit-tested without the game.
+// list as the level scanner; unit-tested without the game.
 namespace D2RAccess::NpcProximity {
 struct Settings {
-	// Subtiles, same unit and default reach as the entity scan (EntityRadar::Settings).
+	// Subtiles, same unit and default reach as the scanner's discovery (EntityRadar::Settings).
 	double range = EntityRadar::Settings{}.range;
 	// An announced NPC only counts as gone once it is this far beyond range,
 	// so pacing on the boundary never repeats it.

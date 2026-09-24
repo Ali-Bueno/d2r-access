@@ -144,7 +144,7 @@ const std::vector<std::string>& PriceLabels() {
 }
 
 // A push up on the right stick, claimed only while a panel is open so the
-// entity scan and the pathfinder keep the stick during play.
+// level scanner keeps the stick during play.
 bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (!focus.panel || !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) return false;
 	const std::string& text = g_detail.empty() ? Strings::Current().detailNone : g_detail;

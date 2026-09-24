@@ -275,6 +275,24 @@ void FullAssistanceKeepsLevelChangeReset() {
 
 }
 
+void ScannerSplitsLandmarksFromLiveEnemies() {
+	auto enemy = Make(1, 20, 20, EntityRadar::Kind::Enemy);
+	enemy.category = EntityRadar::Category::Enemy;
+	auto chest = Make(2, 21, 20, EntityRadar::Kind::Object);
+	chest.category = EntityRadar::Category::Treasure;
+	auto questChest = Make(3, 22, 20, EntityRadar::Kind::Object);
+	questChest.category = EntityRadar::Category::Treasure;
+	questChest.questObject = true;
+	auto loot = Make(4, 23, 20);
+	loot.category = EntityRadar::Category::Item;
+	auto waypoint = Make(5, 24, 20, EntityRadar::Kind::Object);
+	waypoint.category = EntityRadar::Category::Waypoint;
+	const auto scene = Split({enemy, chest, questChest, loot, waypoint});
+	Check(scene.enemies.size() == 1 && scene.enemies.front().id == 1, "enemies are kept apart to be read live");
+	Check(scene.landmarks.size() == 2 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5,
+		"a quest container and a waypoint are landmarks; ordinary chests and loot are left out");
+}
+
 int main() {
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
@@ -291,6 +309,7 @@ int main() {
 	ExplorationSurveyUsesOrientation();
 	ReturningToLevelRetainsFixedLandmarks();
 	FullAssistanceKeepsLevelChangeReset();
+	ScannerSplitsLandmarksFromLiveEnemies();
 	Passed();
 	return 0;
 }

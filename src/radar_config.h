@@ -21,7 +21,7 @@ Navigation ReadNavigation(const D2RL::PluginContext* context);
 
 // The documented [npc] keys of the friendly NPC announcer. Absent keys keep
 // the feature's compiled defaults (NpcProximity::Settings), so nothing here
-// repeats them; range is in collision subtiles like the entity scan.
+// repeats them; range is in collision subtiles like the scanner's.
 struct Npc {
 	std::optional<bool> enabled, lineOfSight;
 	std::optional<double> range;

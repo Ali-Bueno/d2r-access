@@ -395,7 +395,7 @@ int main() {
 	// The rest of the description is held for the player to ask for.
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 6-13. Coste: 331"}, "right stick up reads the description the move left out, base damage first");
-	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the entity scan");
+	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the level scanner");
 	// An options row offers its explanation to the same gesture instead of
 	// speaking it on arrival; a row with nothing to explain offers nothing.
 	ClearSpeech(); InteractionReader::OfferDetail("GameplayOptionsPanel/ShowClock", "Shows a clock on the HUD.");
@@ -436,10 +436,10 @@ int main() {
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 1 a 3. Durabilidad: 5 de 6"}, "and right stick up still reads the detail");
 	autoDetail = false;
 
-	// In play, a push down belongs to the scan and the pathfinder; in a menu it
-	// asks for the controls.
+	// In play, a push down belongs to the level scanner; in a menu it asks for
+	// the controls.
 	ClearSpeech(); inPlay = true; pendingPush = InputDirection::StickPush::Down; Tick();
-	Check(pendingPush == InputDirection::StickPush::Down, "in play a push down is left for the scan and the pathfinder");
+	Check(pendingPush == InputDirection::StickPush::Down, "in play a push down is left for the level scanner");
 	inPlay = false; ClearSpeech(); Tick();
 	Check(pendingPush == InputDirection::StickPush::None && speech.size() == 1, "in a menu it is claimed, for the controls");
 	pendingPush = InputDirection::StickPush::None;

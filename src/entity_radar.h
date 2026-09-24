@@ -5,13 +5,11 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
-// Directional entity scan driven by the right thumbstick: one push names the
-// nearest visible NPC / enemy / object / item in that screen direction with its
-// distance; pushing the same direction again cycles to the next nearest and
-// wraps around. Pure logic over the collision World the sonar already reads,
-// so it is unit-tested without the game.
+// Shared entity types (NPC/enemy/object/item/exit/room/corpse) plus the
+// line-of-sight and spoken-distance helpers used by the level catalogue, NPC
+// proximity, target sight and the beacon. Pure logic over the collision World
+// the sonar already reads, so it is unit-tested without the game.
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
 // Corpse is a dead player unit, separate from Object even when numeric IDs overlap.
@@ -64,17 +62,6 @@ struct Settings {
 	// way, and neither has to claim a real-world distance it never measured.
 	double stepsPerSubtile = 1;
 	double range = 15; // subtiles; the user asked for roughly fifteen steps
-	// Each direction owns a quarter of the plane: a 90-degree sector centred
-	// on the fixed screen axis. Diagonal targets belong to both neighbours.
-	double sectorCosine = Radar::Diagonal;
-	uint64_t cycleTimeoutMs = 5000; // a later push in the same direction starts over
-};
-struct Target { Entity entity; double distance = 0; };
-struct Result {
-	bool found = false;
-	Radar::Direction direction = Radar::Direction::Up;
-	Target target;
-	size_t index = 0, count = 0; // index is zero-based within count
 };
 
 // Terrain-layer point ray between cell centres. The origin and destination
@@ -83,30 +70,6 @@ struct Result {
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 // An object's own OBJECT bits within its footprint do not hide it; other barriers still do.
 bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target);
-bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine = Radar::Diagonal);
-// Entities within range; ordinary ones must also be in sight, while fixed level
-// exits are named through walls, since an entrance can stand in wall cells.
-// All targets obey the sector and sort nearest first with stable identity ties.
-std::vector<Target> Scan(const Radar::World& world, const std::vector<Entity>& entities,
-	Radar::Direction direction, const Settings& settings);
-
-class Cycler {
-public:
-	// Announces targets[0] on a fresh push; a repeated push in the same
-	// direction within the timeout continues after the last spoken entity
-	// (looked up by id, so a rescanned list keeps its place) and wraps.
-	Result Push(const std::vector<Target>& targets, Radar::Direction direction, uint64_t now, const Settings& settings);
-	void Reset();
-private:
-	bool active_ = false;
-	Radar::Direction direction_ = Radar::Direction::Up;
-	uint32_t lastId_ = 0;
-	Kind lastKind_ = Kind::Item;
-	uint64_t lastExitId_ = 0;
-	uint64_t lastPush_ = 0;
-};
-
-std::string Describe(const Result& result, const Settings& settings, const Strings::Table& strings);
 // "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);

@@ -94,6 +94,12 @@ private:
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
 
+// What the scanner lists: map landmarks the registry remembers, and enemies
+// read live because they move. Loot and ordinary containers are left to their
+// own sounds; quest containers stay, as the automap draws them.
+struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies; };
+Scene Split(std::vector<EntityRadar::Entity> entities);
+
 // New discoveries require the scan's ordinary range and an unobstructed view.
 // Fixed exits do not inherit the short scan's through-wall exception.
 std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
