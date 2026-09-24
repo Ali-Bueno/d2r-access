@@ -1,5 +1,7 @@
 # Automap discovery investigation — 2026-09-23
 
+> Superseded for the native layout by [the automap reader](automap-reader.md) (2026-09-24).
+
 ## Result and scope
 
 The current navigation is **not restricted to the revealed automap**. Keep its
@@ -114,3 +116,17 @@ collision cells, room-graph edges and exploration frontiers. Room graphs would
 need refreshing as discovery changes, rather than once per level. Unknown reveal
 state must not be silently replaced by all generated rooms. Preserve the existing
 broader guidance as a separately identified option if the user chooses that design.
+
+## Known issue: fingerprint blind spot
+
+`LayoutCheck::Hash` hashes every `E8`/`E9` byte and skips the four bytes after
+it, as if the byte opened a `call`/`jmp rel32`. It does not decode instructions,
+so an `E8`/`E9` byte used as a ModRM, displacement or immediate byte also hides
+the next four bytes. For example, `shr eax, imm8` is `C1 E8 ib`, and its shift
+count is never hashed.
+
+Concrete case: the one-bit flag getters `0x349C20` (bit 29), `0x349C60`
+(bit 28) and `0x34FBA0` (the `EntityLayout` player-minion check, bit 9) all hash
+to `0x0E05128D99586BAA`. A patch that moved one of those bits would still pass
+`Verify`. Until the hasher is revisited (deliberately left unchanged), compare
+the raw bytes for any getter whose meaning is a shift count or mask.

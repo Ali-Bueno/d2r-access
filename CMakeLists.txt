@@ -103,6 +103,9 @@ add_library(d2r-access SHARED
 	src/terrain_service.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
+	src/automap_cells.cpp
+	src/native_automap.cpp
+	src/automap_service.cpp
 	src/native_ui.cpp
 	src/pad_filter.cpp
 	src/widget_probe.cpp
@@ -319,9 +322,11 @@ if(BUILD_TESTING)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
-	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp
+		src/native_rooms.cpp src/native_memory.cpp)
 	target_include_directories(map-survey-tests PRIVATE src)
 	target_compile_features(map-survey-tests PRIVATE cxx_std_20)
+	target_compile_definitions(map-survey-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME map-survey COMMAND map-survey-tests)
 	add_executable(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(npc-proximity-tests PRIVATE src)
@@ -404,6 +409,12 @@ if(BUILD_TESTING)
 	target_compile_features(native-drlg-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-drlg-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-drlg COMMAND native-drlg-tests)
+	# The stock automap's current layer: cell decoding and the guarded tree walk.
+	add_executable(automap-tests tests/automap_tests.cpp src/automap_cells.cpp)
+	target_include_directories(automap-tests PRIVATE src)
+	target_compile_features(automap-tests PRIVATE cxx_std_20)
+	target_compile_definitions(automap-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME automap COMMAND automap-tests)
 	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(room-catalogue-tests PRIVATE src)
 	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
@@ -548,6 +559,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-cairn-cache-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(cairn-scroll-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(automap-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-ui-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-notifications-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

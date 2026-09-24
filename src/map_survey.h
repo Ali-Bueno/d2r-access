@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entity_radar.h"
+#include "native_rooms.h"
 #include "navigation_grid.h"
 #include "radar.h"
 
@@ -105,6 +106,9 @@ Scene Split(std::vector<EntityRadar::Entity> entities);
 std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
 	const std::vector<EntityRadar::Entity>& entities,
 	double range = EntityRadar::Settings{}.range);
+// Discoverable, plus anything standing in `charted` rooms (drawn on the automap).
+std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
+	const std::vector<EntityRadar::Entity>& entities, const std::vector<NativeRooms::Room>& charted);
 
 // The nearest `count` of one kind, in Survey order.
 std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar::Kind kind, size_t count);

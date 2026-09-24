@@ -188,16 +188,26 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 	return scene;
 }
 
+bool InView(const Radar::World& world, const EntityRadar::Entity& entity, double range) {
+	const double distance = StraightLine(world.player, entity.position);
+	return std::isfinite(distance) && distance <= range && KnownLine(world, entity.position, distance)
+		&& EntityRadar::LineOfSight(world, world.player, entity);
+}
+
 std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
 	const std::vector<EntityRadar::Entity>& entities, double range) {
 	std::vector<EntityRadar::Entity> result;
-	for (const auto& entity : entities) {
-		const double distance = StraightLine(world.player, entity.position);
-		if (!std::isfinite(distance) || distance > range
-			|| !KnownLine(world, entity.position, distance)
-			|| !EntityRadar::LineOfSight(world, world.player, entity)) continue;
-		result.push_back(entity);
-	}
+	for (const auto& entity : entities)
+		if (InView(world, entity, range)) result.push_back(entity);
+	return result;
+}
+
+std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
+	const std::vector<EntityRadar::Entity>& entities, const std::vector<NativeRooms::Room>& charted) {
+	std::vector<EntityRadar::Entity> result;
+	for (const auto& entity : entities)
+		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None
+			|| InView(world, entity, EntityRadar::Settings{}.range)) result.push_back(entity);
 	return result;
 }
 

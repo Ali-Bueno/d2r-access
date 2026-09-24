@@ -2,6 +2,32 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Scanner follows the automap — installed, 2026-09-24
+
+Exploration now counts a room as explored when the stock automap has drawn in it
+(saved with the character) or the player stood in it. The scanner lists
+landmarks there, and the beacon routes through them. Large objects such as the
+Cairn Stones are now lockable (footprint-aware arrival); refusals log
+`[beacon] refused reason=`. **76/76 suites pass**, clean rebuild installed and
+hash-verified. **Next step:** play a new area and check that the scanner lists
+charted exits after a reload. `docs/entity-scan.md`, `docs/beacon.md`.
+
+**Build fix:** under the OEM code page, cl prints the Spanish `/showIncludes`
+prefix with a different byte for "ó" than the UTF-8 prefix in `rules.ninja`.
+Ninja then recorded no headers, and a header-only change linked stale objects.
+`build.ps1` now runs `chcp 65001` first; `VSLANG=1033` has no effect without
+the English pack. Any other build command must run under code page 65001 too.
+
+## Native automap reader — installed, awaiting live validation, 2026-09-24
+
+Static RE found the current layer, its four cell trees and the reveal rules
+(tiles and objects once drawn on screen). A read-only reader and diagnostics
+are installed: `access-automap status|dump|watch`, Ctrl+J toggles the watch. No
+scanner change yet. **76/76 suites pass**; installed DLL hash verified. **Next
+step:** live route A–G with the watch on, then wire the scanner to automap
+cells. Live sessions: A–G pass. Stones decode within about 1 subtile; new terrain is saved and
+revealed while the automap is hidden; object glyphs are session-only, re-added when seen. `docs/automap-reader.md`.
+
 ## One scanner on the right stick — installed, 2026-09-24
 
 User asked the scanner to follow the automap without L3. The right stick now
@@ -10,7 +36,7 @@ a live nearest-first category; ground loot and ordinary chests left the scanner.
 The directional scan, `access-scan` and Ctrl+E are gone. Discovery still
 approximates the automap (range plus sight); a native automap reader is being
 researched. **75/75 suites pass**; user confirmed the controls work. **Next
-step:** native automap reader (RE in progress).
+step:** see the automap reader entry above.
 `docs/entity-scan.md`.
 
 ## Ground item speech on every pass — installed, 2026-09-24

@@ -14,6 +14,7 @@ struct Guidance {
 };
 
 // A null visited list retains full assistance; an empty list grants no exploration route.
+// `margin` is how many cells around the target count as reaching it.
 Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Graph* graph,
-	const std::vector<NativeRooms::Room>* visited = nullptr);
+	const std::vector<NativeRooms::Room>* visited = nullptr, int margin = 1);
 }

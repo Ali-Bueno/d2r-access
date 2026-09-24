@@ -9,6 +9,7 @@
 #include "native_entities.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
+#include "native_automap.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
 #include "room_catalogue.h"
@@ -224,13 +225,22 @@ bool Collect(const Lifecycle& state, Scene& scene) {
 	return true;
 }
 
-// Exploration admits only what came into view; full assistance everything loaded.
-std::vector<EntityRadar::Entity> Visible(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
-	return g_fullAssistance ? entities : MapSurvey::Discoverable(world, entities);
+// Exploration admits what came into view and, while the automap can be read,
+// anything in a room it has drawn; full assistance everything loaded.
+std::vector<EntityRadar::Entity> Landmarks(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
+	if (g_fullAssistance) return scene.landmarks;
+	if (const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)))
+		return MapSurvey::Charted(world, scene.landmarks, *charted);
+	return MapSurvey::Discoverable(world, scene.landmarks);
+}
+
+// Enemies are never charted: in range and in sight right now, or all loaded with full assistance.
+std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene) {
+	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
-	g_registry.Observe(state.level, Visible(world, scene.landmarks), grid, !g_fullAssistance, {}, &scene.landmarks);
+	g_registry.Observe(state.level, Landmarks(state, world, scene), grid, !g_fullAssistance, {}, &scene.landmarks);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -254,7 +264,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
 		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
-	const auto enemies = Visible(world, scene.enemies);
+	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
 	const Strings::Table& strings = Strings::Current();
 	auto rooms = RoomCatalogue::Entities(g_rooms.Entries(), strings.surveyRoom, strings.surveyRoomUnexplored);

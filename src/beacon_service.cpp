@@ -6,6 +6,7 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_automap.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
@@ -21,6 +22,7 @@
 #include "terrain_service.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -81,18 +83,35 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 }
 // Nothing when the world or its rooms cannot be read right now: a failed read
 // is not a lost route, so a locked beacon waits instead of releasing.
-std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Radar::Position target) {
+// A large object is reached from beside its native footprint, not at its centre.
+double HalfFootprint(const EntityRadar::Entity& entity) {
+	const auto side = std::max(entity.footprint.width, entity.footprint.height);
+	return side > 1 ? (side - 1) / 2.0 : 0;
+}
+Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
+	Beacon::Settings settings = g_settings;
+	settings.arrivalDistance += HalfFootprint(entity);
+	return settings;
+}
+std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, const EntityRadar::Entity& entity) {
+	const Radar::Position target = entity.position;
+	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
 	const auto* graph = Rooms(state);
-	if (NavigationMode::FullAssistance()) return BeaconNavigation::Prepare(std::move(world), target, graph);
+	if (NavigationMode::FullAssistance()) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin);
 	if (!graph) return std::nullopt;
 	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
 	if (current == NativeRooms::None) return std::nullopt;
-	auto visited = TerrainService::VisitedRooms(state.level, graph->rooms);
-	// The room the player stands in is visited even before the history records it.
-	if (!NavigationPolicy::Contains(visited, world.player)) visited.push_back(graph->rooms[current]);
-	return BeaconNavigation::Prepare(std::move(world), target, graph, &visited);
+	auto explored = TerrainService::VisitedRooms(state.level, graph->rooms);
+	// Rooms the automap has drawn are explored too: the route stays on charted ground.
+	if (const auto charted = NativeAutomap::RevealedRooms(graph->rooms))
+		for (const auto& room : *charted)
+			if (std::none_of(explored.begin(), explored.end(), [&](const auto& known) { return known.id == room.id; }))
+				explored.push_back(room);
+	// The room the player stands in is explored even before either records it.
+	if (!NavigationPolicy::Contains(explored, world.player)) explored.push_back(graph->rooms[current]);
+	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin);
 }
 bool Playing() {
 	return RadarUi::InPlay();
@@ -154,12 +173,15 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(strings.beaconNothing, true);
 		return;
 	}
-	const auto guidance = Guidance(state, g_offer.entity.position);
+	const auto guidance = Guidance(state, g_offer.entity);
+	const auto settings = SettingsFor(g_offer.entity);
 	if (!NavigationMode::FullAssistance()) {
 		const bool known = guidance && guidance->available;
 		const auto destination = known && guidance->hasWaypoint ? guidance->waypoint : g_offer.entity.position;
-		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, g_settings),
-			destination, g_settings)) {
+		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, settings),
+			destination, settings)) {
+			AsyncLog::InfoF(g_context, "[beacon] refused reason=%s name=%s",
+				!guidance ? "unreadable" : !known ? "outside-explored" : "no-route", g_offer.entity.name.c_str());
 			Announce(strings.beaconKnownRouteOnly, g_offer.entity.name);
 			return;
 		}
@@ -170,7 +192,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	g_nextUpdate = now;
 	BeaconAudio::Play(BeaconAudio::Sound::Locked, {});
 	const char* reach = guidance && guidance->available && !guidance->hasWaypoint
-		? Beacon::ReachWord(guidance->world, g_target.entity.position, g_settings, strings) : nullptr;
+		? Beacon::ReachWord(guidance->world, g_target.entity.position, settings, strings) : nullptr;
 	if (reach) {
 		char text[256]{};
 		std::snprintf(text, sizeof text, strings.beaconFollowingReach, g_target.entity.name.c_str(), reach);
@@ -218,7 +240,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	if (!Playing()) return; // dialogue, pause or another window: keep the lock, stay quiet
 	const bool seen = Refresh(state, now);
-	const auto prepared = Guidance(state, g_target.entity.position);
+	const auto prepared = Guidance(state, g_target.entity);
 	if (!prepared) return;
 	const auto& guidance = *prepared;
 	if (!guidance.available) {
@@ -229,7 +251,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	}
 	const auto& world = guidance.world;
 	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
-	const auto update = g_tracker.Tick(world, g_target.entity.position, now, g_settings, waypoint);
+	const auto update = g_tracker.Tick(world, g_target.entity.position, now, SettingsFor(g_target.entity), waypoint);
 	if (!update.valid) return;
 	if (update.routeUnavailable) {
 		const auto name = g_target.entity.name;
