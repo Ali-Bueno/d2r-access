@@ -142,3 +142,24 @@ silent. Manual detail still follows the current snapshot, and closing the toolti
 clears it. Reopening the full skill display announces again. This avoids preserving
 hidden skill data or relying on text-prefix heuristics. Three related CTest suites
 pass, including the full-set-to-first-record regression; listening is pending.
+
+## Advanced statistics
+
+The controller `AdvancedStatsPanelHD.json` sets `ScrollBar` (a
+`ScrollControllerWidget`) as its default focus. Each statistic is runtime text in
+`ListContainer` → `ListItemWidget` → `StatText`; focusing the scroll bar alone
+only announced the panel title (observed 2026-09-23). Both character and
+hireling `AdvancedStats` buttons open this same panel.
+
+The shared stats reader owns the focused scroll bar and speaks the localized
+title, rendered subject name, and first row in one utterance. This suppresses
+the separate title paths that would interrupt the row. The right stick reads
+the remaining live rows in tree order. Replaced row identities reset its
+cursor; changing a value in an existing row does not. Native scroll controls
+and other focused widgets keep their normal gestures. The `character-stats`
+suite covers initial speech, idle ownership, row order, traversal, value
+changes, rebuilt rows, and focus handoff; live controller and NVDA validation
+remains pending.
+
+The 2026-09-23 build passed all 71 CTest suites without compiler warnings;
+the installed plugin matches the built DLL's SHA-256.

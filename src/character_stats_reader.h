@@ -32,6 +32,10 @@ int Advance(int cursor, InputDirection::StickPush push, int count);
 // the panel, queued behind the panel's title.
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
 
+// The advanced panel gives focus to its scroll bar while this reader owns it.
+bool OwnsFocus(NativeUi::Focus focus);
+bool AnnouncesOpening(std::string_view panel);
+
 // True for the panel this reader speaks for, so the generic readers leave it.
 bool Owns(std::string_view panel);
 

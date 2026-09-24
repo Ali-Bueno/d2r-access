@@ -67,6 +67,7 @@ InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 // The character panel's stick reader runs ahead of the detail readout, so
 // this stands in for it claiming a tick.
 bool characterStatsClaims = false;
+bool advancedScrollFocus = false;
 
 bool Tick() { now += 100; return InteractionReader::Tick(&context, now, focus, conversation); }
 bool Settle() { Tick(); return Tick(); }
@@ -194,8 +195,9 @@ UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
 void Reset() {}
 }
 namespace D2RAccess::CharacterStatsReader {
+bool OwnsFocus(NativeUi::Focus) { return advancedScrollFocus; }
 bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
-	if (!characterStatsClaims) return false;
+	if (!characterStatsClaims && !advancedScrollFocus) return false;
 	pendingPush = InputDirection::StickPush::None;
 	return true;
 }
@@ -405,6 +407,18 @@ int main() {
 	Check(Tick() && speech.empty() && pendingPush == InputDirection::StickPush::None,
 		"the character panel's reader is offered the stick before the item detail readout");
 	characterStatsClaims = false;
+	const auto previousFocus = focus;
+	const auto previousType = widgetType;
+	advancedScrollFocus = true;
+	focus = {90, 91};
+	widgetType = {"ScrollControllerWidget", UiText::Kind::Other};
+	tracked = 0;
+	ClearSpeech();
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech.empty() && tracked == 0,
+		"the advanced scroll bar is owned on idle ticks before the generic focus reader can interrupt it");
+	advancedScrollFocus = false;
+	focus = previousFocus;
+	widgetType = previousType;
 	ClearSpeech(); selection = 1; cell = {1, 0}; Settle();
 	Check(speech.empty(), "moving to another occupied cell waits instead of reading stale item text or coordinates");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;

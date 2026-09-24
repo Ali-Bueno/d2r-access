@@ -60,7 +60,9 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 		for (size_t at = 0; at < snapshot.nodes.size(); ++at)
 			if (snapshot.nodes[at].id == widget.parent) parent = static_cast<int>(at);
 		if (parent < 0) continue;
-		snapshot.nodes.push_back({id, parent, UiText::Kind::Text, widget.name, "TextBoxWidget", widget.text});
+		const bool row = widget.name == "OptionTemplate" || widget.name == "ListItem0" || widget.name == "ListItem1";
+		snapshot.nodes.push_back({id, parent, row ? UiText::Kind::ListItem : UiText::Kind::Text,
+			widget.name, row ? "ListItemWidget" : "TextBoxWidget", widget.text});
 	}
 	return snapshot;
 }
@@ -110,6 +112,7 @@ std::string Text(std::string_view key) {
 	if (key == "MiniPanelHireinv") return "Mercenario";
 	if (key == "strchrlvl") return "Nivel";
 	if (key == "strchrexp") return "Experiencia";
+	if (key == "AdvancedStats") return "Estadísticas avanzadas";
 	return {};
 }
 }
@@ -312,5 +315,66 @@ int main() {
 	pending = Push::None;
 	Check(!CharacterStatsReader::Tick(nullptr, {110, 112}) && speech == std::vector<std::string>{"Kara"},
 		"changing stats-panel instances announces the new identity once");
+
+	// Both character and hireling AdvancedStats buttons open the same panel.
+	// Controller focus remains on ScrollBar while runtime rows carry StatText.
+	widgets.clear();
+	order.clear();
+	widgets[Panel] = {"AdvancedStatsPanel", "", 0};
+	Add(2, "ScrollBar");
+	Add(3, "CharacterName", "Emilio");
+	Add(4, "ListContainer");
+	Add(5, "ListItem0", "", 4);
+	Add(6, "StatText", "Daño de habilidad. 25", 5);
+	Add(7, "ListItem1", "", 4);
+	Add(8, "StatText", "Resistencia al fuego. 75%", 7);
+	Add(9, "Title", "Estadísticas avanzadas");
+	Check(CharacterStatsReader::Owns("AdvancedStatsPanel"), "advanced statistics use the shared stats reader");
+	Check(CharacterStatsReader::OwnsFocus(On(2)) && CharacterStatsReader::AnnouncesOpening("AdvancedStatsPanel"),
+		"the advanced scroll bar and its opening announcement belong to the stats reader");
+	Check(CharacterStats::Lines(Panel) == std::vector<std::string>{"Daño de habilidad. 25", "Resistencia al fuego. 75%"},
+		"advanced statistics read only rendered list rows in their on-screen order");
+	CharacterStatsReader::Reset();
+	speech.clear();
+	pending = Push::None;
+	Check(CharacterStatsReader::Tick(nullptr, On(2))
+		&& speech == std::vector<std::string>{"Estadísticas avanzadas. Emilio. Daño de habilidad. 25"}
+		&& interrupts.back(), "the owned opening reads title, subject and first row in one utterance without dumping the list");
+	Check(CharacterStatsReader::Tick(nullptr, On(2)) && speech.size() == 1,
+		"the advanced reader keeps ownership on idle ticks and leaves unchanged content silent");
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, On(2)) && speech.back() == "Resistencia al fuego. 75%",
+		"right-stick down reads the next advanced statistic");
+	pending = Push::Up;
+	Check(CharacterStatsReader::Tick(nullptr, On(2)) && speech.back() == "Daño de habilidad. 25",
+		"right-stick up reads the previous advanced statistic");
+	widgets[6].text = "Defensa. 200";
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, On(2)) && speech.back() == "Resistencia al fuego. 75%",
+		"a changed stat value does not reset navigation to the first row");
+	widgets.clear();
+	order.clear();
+	widgets[Panel] = {"AdvancedStatsPanel", "", 0};
+	Add(2, "ScrollBar");
+	Add(3, "CharacterName", "Emilio");
+	Add(4, "ListContainer");
+	Add(15, "ListItem0", "", 4);
+	Add(16, "StatText", "Defensa. 200", 15);
+	Add(17, "ListItem1", "", 4);
+	Add(18, "StatText", "Velocidad de ataque. 10%", 17);
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, On(2)) && speech.back() == "Defensa. 200",
+		"replaced list row identities restart at the first current row");
+	Add(10, "CloseButton");
+	pending = Push::Down;
+	Check(!CharacterStatsReader::OwnsFocus(On(10)) && !CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Down,
+		"another focused advanced-panel control keeps its own gesture");
+	widgets[3].text = "Ulfr";
+	CharacterStatsReader::Reset();
+	speech.clear();
+	pending = Push::None;
+	Check(CharacterStatsReader::Tick(nullptr, On(2))
+		&& speech == std::vector<std::string>{"Estadísticas avanzadas. Ulfr. Defensa. 200"},
+		"the same advanced panel reads player statistics when opened from the character panel");
 	Passed();
 }

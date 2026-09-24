@@ -18,9 +18,10 @@ constexpr int PoisonState = 2;
 // before drawing its equipment, experience and life statistics.
 constexpr uintptr_t HirelingRelation = 0x13ABC0;
 constexpr uintptr_t UnitById = 0x9A5D0;
+constexpr uintptr_t HirelingLifePercent = 0x13AA50;
 constexpr int HirelingRelationType = 7;
-// AttributeBallWidget's stat pair for health in the mapped image.
-constexpr int LifeStat = 6, MaximumLifeStat = 7;
+// HirelingInventoryPanel 0x14F2B6A calls GetStat(unit, 12, 0) for its level.
+constexpr int LevelStat = 12;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
 constexpr Evidence PoisonChecks[] = {
 	{0x14C9D5A, 1355, 0x171692F1DDA383FCULL}, // health-orb poison branch
@@ -31,6 +32,8 @@ constexpr Evidence MercenaryChecks[] = {
 	{0x14F2A60, 425, 0xCA792CA3357E8299ULL}, // hireling panel's unit binding
 	{HirelingRelation, 123, 0x6B3D47A73702E114ULL},
 	{UnitById, 33, 0x673F574CCEEDB47EULL},
+	{HirelingLifePercent, 37, 0xDA9992529F17CB7BULL},
+	{0x14F3400, 6346, 0x60012C081091103AULL}, // panel uses the getter for displayed life
 	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
 };
 uintptr_t g_base = 0;
@@ -70,7 +73,7 @@ std::optional<Mercenary> MercenaryLife() noexcept {
 	if (!g_base || !g_mercenarySupported) return std::nullopt;
 	uintptr_t player = 0, tables = 0, unit = 0;
 	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return std::nullopt;
-	int id = -1, current = 0, maximum = 0;
+	int id = -1;
 	__try {
 		id = reinterpret_cast<int(*)(uintptr_t, int, int)>(g_base + HirelingRelation)(player, HirelingRelationType, 0);
 		if (id >= 0) unit = reinterpret_cast<uintptr_t(*)(uint32_t, int)>(g_base + UnitById)(id, EntityLayout::MonsterType);
@@ -80,15 +83,16 @@ std::optional<Mercenary> MercenaryLife() noexcept {
 		|| type != EntityLayout::MonsterType || !NativeMemory::Peek(unit + GroundItemLayout::UnitId, actualId)
 		|| actualId != static_cast<uint32_t>(id)
 		|| !NativeMemory::Peek(unit + GroundItemLayout::UnitMode, mode)) return std::nullopt;
-	if (mode == EntityLayout::MonsterDeath || mode == EntityLayout::MonsterDead)
-		return Mercenary{actualId, 0, 1};
+	const bool dead = mode == EntityLayout::MonsterDeath || mode == EntityLayout::MonsterDead;
+	int level = -1, lifePercent = -1;
 	__try {
 		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
-		current = stat(unit, LifeStat, 0);
-		maximum = stat(unit, MaximumLifeStat, 0);
+		level = stat(unit, LevelStat, 0);
+		if (!dead) lifePercent = reinterpret_cast<int(*)(uint32_t)>(g_base + HirelingLifePercent)(actualId);
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
-	if (maximum <= 0) return std::nullopt;
-	return Mercenary{actualId, current, maximum};
+	if (dead) lifePercent = 0;
+	if (lifePercent < 0 || lifePercent > 100) lifePercent = -1;
+	return Mercenary{actualId, lifePercent, level};
 }
 
 }

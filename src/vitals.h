@@ -87,11 +87,16 @@ private:
 
 class MercenaryMeter {
 public:
-	int Update(std::optional<uint32_t> id, int percent);
+	struct Alert {
+		int life = -1, level = -1;
+		bool interrupt = false;
+	};
+	Alert Update(std::optional<uint32_t> id, int percent, int level);
 	void Reset();
 private:
 	std::optional<uint32_t> id_;
 	Meter life_;
+	int level_ = -1;
 };
 
 // Equipment durability. An item that reaches zero from a positive value has

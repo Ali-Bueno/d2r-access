@@ -3,6 +3,7 @@
 #include "native_ui.h"
 #include "ui_text.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -33,6 +34,13 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type);
 // exist twice -- once under LeftSkillStats and once under RightSkillStats --
 // with identical widget names.
 std::vector<std::string> Lines(uintptr_t panel);
+
+struct AdvancedRow {
+	uintptr_t id = 0;
+	std::string text;
+};
+// The advanced panel's rendered list rows and their native row identities.
+std::vector<AdvancedRow> AdvancedRows(uintptr_t panel);
 
 // The character's name as the panel shows it, empty until the game has
 // rendered it.

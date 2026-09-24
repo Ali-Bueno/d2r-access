@@ -15,6 +15,7 @@
 #include <D2RLPlugin/input.h>
 #include <D2RLPlugin/inventory.h>
 #include <D2RLPlugin/item.h>
+#include <D2RLPlugin/lifecycle_events.h>
 
 #include <windows.h>
 #include <algorithm>
@@ -26,6 +27,7 @@
 
 namespace D2RAccess::VitalsService {
 namespace {
+using Kind = D2RL::Lifecycle::GameplayEventKind;
 enum class Command { None, On, Off, Status, Report };
 
 // The game's own HUD widgets: HUDPanelHD.json declares HealthBall and ManaBall
@@ -45,11 +47,15 @@ constexpr uint64_t DurabilitySampleMs = 1000; // durability only creeps down
 
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
+const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Input::ActionHandle> g_actions;
+std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
+std::string_view g_lastMercSource;
+uint32_t g_lastMercId = 0;
 uint64_t g_nextOrb = 0, g_nextDurability = 0;
 Vitals::Alerts g_alerts;
 Vitals::OrbAvailability g_orbAvailability;
@@ -70,16 +76,30 @@ std::string FormattedPercent(const char* format, int percent) {
 	return phrase;
 }
 
-void Announce(const Vitals::Alert& alert) {
-	if (!alert.Any()) return;
+void Append(std::string& text, std::string_view phrase) {
+	if (phrase.empty()) return;
+	if (!text.empty()) text += ". ";
+	text += phrase;
+}
+
+std::string MercenaryLevel(int level) {
+	const auto mercenary = Localization::Text("MiniPanelHireinv");
+	const auto levelLabel = Localization::Text("strchrlvl");
+	if (mercenary.empty() || levelLabel.empty()) return {};
+	return mercenary + ". " + levelLabel + " " + std::to_string(level);
+}
+
+void Announce(const Vitals::Alert& alert, const Vitals::MercenaryMeter::Alert& mercenary) {
+	if (!alert.Any() && mercenary.life < 0 && mercenary.level < 0) return;
 	const auto& strings = Strings::Current();
 	std::string text;
-	if (alert.life >= 0) text = FormattedPercent(strings.vitalsLife, alert.life);
-	if (alert.mana >= 0) {
-		if (!text.empty()) text += ". ";
-		text += FormattedPercent(strings.vitalsMana, alert.mana);
-	}
-	ScreenReader::Speak(text, alert.interrupt);
+	if (alert.life >= 0) Append(text, FormattedPercent(strings.vitalsLife, alert.life));
+	if (alert.mana >= 0) Append(text, FormattedPercent(strings.vitalsMana, alert.mana));
+	if (mercenary.life >= 0) Append(text, FormattedPercent(strings.mercenaryLife, mercenary.life));
+	if (mercenary.level > 0) Append(text, MercenaryLevel(mercenary.level));
+	AsyncLog::InfoF(g_context, "[vitals] alert life=%d mana=%d mercenary_life=%d mercenary_level=%d interrupt=%d",
+		alert.life, alert.mana, mercenary.life, mercenary.level, alert.interrupt || mercenary.interrupt);
+	if (!text.empty()) ScreenReader::Speak(text, alert.interrupt || mercenary.interrupt);
 }
 
 // Says which displayed orb value is unavailable, after persistent absence or
@@ -128,11 +148,11 @@ void Report(const D2RL::PluginContext* context) {
 	if (g_statusSupported) {
 		const auto mercenary = NativeStatus::MercenaryLife();
 		if (mercenary) {
-			const int percent = Vitals::Percent(mercenary->currentLife, mercenary->maximumLife);
-			if (percent >= 0) {
+			if (mercenary->lifePercent >= 0) {
 				if (!text.empty()) text += ". ";
-				text += FormattedPercent(strings.mercenaryLife, percent);
+				text += FormattedPercent(strings.mercenaryLife, mercenary->lifePercent);
 			}
+			if (mercenary->level > 0) Append(text, MercenaryLevel(mercenary->level));
 		}
 	}
 	// Asked for, so it interrupts: the player is waiting for this answer.
@@ -218,6 +238,11 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	return D2RL::Input::ActionResult::Handled;
 }
 
+void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
+	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
+	Reset();
+}
+
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -246,11 +271,27 @@ bool Register(const D2RL::PluginContext* context) {
 			g_actions.push_back(handle);
 		}
 	}
+	if (context->QueryService(&g_lifecycle) == D2RL::ServiceQueryResult::Success
+		&& D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) {
+		for (const auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady}) {
+			const D2RL::Lifecycle::GameplayEventListener listener{
+				.structSize = D2RL::Lifecycle::GameplayEventListenerSize,
+				.kind = kind, .callback = OnGameplay};
+			D2RL::Lifecycle::ListenerHandle handle = D2RL::Lifecycle::InvalidHandle;
+			if (g_lifecycle->registerGameplayEventListener(context, &listener, &handle) == D2RL::Lifecycle::Result::Success)
+				g_listeners.push_back(handle);
+			else AsyncLog::Warn(context, "[vitals] Gameplay lifecycle baseline reset unavailable.");
+		}
+	} else g_lifecycle = nullptr;
 	AsyncLog::Info(context, "[vitals] Life, mana and equipment announcements registered.");
 	return true;
 }
 
 void Unregister() {
+	if (g_lifecycle && g_context)
+		for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
+	g_listeners.clear();
+	g_lifecycle = nullptr;
 	if (g_input && g_context)
 		for (auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
 	g_actions.clear();
@@ -269,6 +310,8 @@ void Reset() {
 	g_breakage.Reset();
 	g_worn.clear();
 	g_hintedMask = 0;
+	g_lastMercSource = {};
+	g_lastMercId = 0;
 	g_nextOrb = 0;
 	g_nextDurability = 0;
 }
@@ -317,21 +360,34 @@ void Tick(const D2RL::PluginContext* context) {
 			g_poison.Reset();
 			g_mercenary.Reset();
 			g_hintedMask = 0;
+			g_lastMercSource = {};
+			g_lastMercId = 0;
 		} else {
 			const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
-			Announce(g_alerts.Update(life, mana));
+			const auto playerAlert = g_alerts.Update(life, mana);
+			Vitals::MercenaryMeter::Alert mercenaryAlert;
 			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));
+			if (g_statusSupported) {
+				const auto mercenary = NativeStatus::MercenaryLife();
+				const std::string_view source = !mercenary ? "unavailable"
+					: mercenary->lifePercent < 0 ? "life-unreadable" : "ready";
+				const uint32_t id = mercenary ? mercenary->id : 0;
+				if (source != g_lastMercSource || id != g_lastMercId) {
+					g_lastMercSource = source;
+					g_lastMercId = id;
+					AsyncLog::InfoF(context, "[vitals] mercenary source=%s id=%u life_percent=%d level=%d",
+						source.data(), mercenary ? mercenary->id : 0,
+						mercenary ? mercenary->lifePercent : -1, mercenary ? mercenary->level : -1);
+				}
+				mercenaryAlert = g_mercenary.Update(
+					mercenary ? std::optional<uint32_t>(mercenary->id) : std::nullopt,
+					mercenary ? mercenary->lifePercent : -1, mercenary ? mercenary->level : -1);
+			}
+			Announce(playerAlert, mercenaryAlert);
 			if (g_statusSupported) {
 				const auto changed = g_poison.Update(NativeStatus::PlayerPoisoned());
 				if (changed) ScreenReader::Speak(*changed ? Strings::Current().playerPoisoned
 					: Strings::Current().playerPoisonCleared, false);
-				const auto mercenary = NativeStatus::MercenaryLife();
-				const int percent = mercenary
-					? Vitals::Percent(mercenary->currentLife, mercenary->maximumLife) : -1;
-				const int announced = g_mercenary.Update(
-					mercenary ? std::optional<uint32_t>(mercenary->id) : std::nullopt, percent);
-				if (announced >= 0) ScreenReader::Speak(
-					FormattedPercent(Strings::Current().mercenaryLife, announced), false);
 			}
 		}
 	}

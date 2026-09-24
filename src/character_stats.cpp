@@ -13,6 +13,7 @@ namespace {
 // CharacterStatsPanelHD.json and Controller/CharacterStatsPanelHD.json).
 constexpr std::string_view CharacterPanel = "CharacterStatsPanel";
 constexpr std::string_view HirelingPanel = "HirelingInventoryPanel";
+constexpr std::string_view AdvancedPanel = "AdvancedStatsPanel";
 // Every row is a <name>Title label; the controller layout gives each one a
 // focusable child called Tooltip, which is where the controller stops.
 constexpr std::string_view TitleSuffix = "Title";
@@ -165,12 +166,38 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	return result;
 }
 
+std::vector<AdvancedRow> AdvancedRows(uintptr_t panel) {
+	std::vector<AdvancedRow> rows;
+	if (!panel || !NativeUi::Visible(panel) || NativeWidgets::ReadName(panel) != AdvancedPanel) return rows;
+	// The controller gives focus to ScrollBar while ListWidget builds runtime
+	// ListItemWidget rows, each with one displayed StatText.
+	const auto snapshot = NativeUi::Snapshot(panel, 0);
+	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
+		const auto& node = snapshot.nodes[i];
+		if (node.name != "StatText") continue;
+		for (int parent = node.parent; parent >= 0 && static_cast<size_t>(parent) < i;) {
+			const auto& ancestor = snapshot.nodes[static_cast<size_t>(parent)];
+			if (ancestor.kind == UiText::Kind::ListItem) {
+				if (auto text = UiText::Clean(node.text); !text.empty()) rows.push_back({ancestor.id, std::move(text)});
+				break;
+			}
+			if (ancestor.parent >= parent) break;
+			parent = ancestor.parent;
+		}
+	}
+	return rows;
+}
+
 std::vector<std::string> Lines(uintptr_t panel) {
 	std::vector<std::string> lines;
 	if (!panel || !NativeUi::Visible(panel)) return lines;
+	const auto panelName = NativeWidgets::ReadName(panel);
+	if (panelName == AdvancedPanel) {
+		for (auto& row : AdvancedRows(panel)) lines.push_back(std::move(row.text));
+		return lines;
+	}
 	// Who the character is leads the list: the name, then the level and class.
 	if (auto name = Name(panel); !name.empty()) lines.push_back(std::move(name));
-	const auto panelName = NativeWidgets::ReadName(panel);
 	if (auto level = panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel); !level.empty())
 		lines.push_back(std::move(level));
 	// Snapshot walks the visible tree in declaration order and omits hidden

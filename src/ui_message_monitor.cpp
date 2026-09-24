@@ -10,6 +10,7 @@
 #include "screen_reader.h"
 #include "code_dump.h"
 #include "control_state.h"
+#include "character_stats_reader.h"
 #include "focus_tracker.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
@@ -206,7 +207,7 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 	if (std::strcmp(event.command, OpenPanelCommand) == 0 || exclusive) {
 		PanelState::Opened(panel);
 		RequestTextProbes(panel);
-		if (IsAnnouncedPanel(panel, exclusive, title)) {
+		if (IsAnnouncedPanel(panel, exclusive, title) && !CharacterStatsReader::AnnouncesOpening(panel)) {
 			Say(Strings::Current().panelOpened, spoken, true);
 			// Cleaned as the tab reader cleans a tab's text, so the switcher's
 			// report of this same panel compares equal.
@@ -223,7 +224,7 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 			ControlState::Invalidate();
 		}
 	} else if (std::strcmp(event.command, TogglePanelCommand) == 0) {
-		Say(Strings::Current().panelToggled, spoken, true);
+		if (!CharacterStatsReader::AnnouncesOpening(panel)) Say(Strings::Current().panelToggled, spoken, true);
 	}
 }
 

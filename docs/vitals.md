@@ -58,11 +58,16 @@ poison once. An unreadable or dead player does not count as poison ending;
 the on-demand vitals report includes poison while it is active. See
 `docs/combat-status-evidence.md` for the native call path and its build guard.
 
-**Mercenary:** the hireling panel's native relation identifies its unit, from
-which the same current and maximum life stats yield a percentage. It shares
-the player's step schedule, takes a new baseline for each unit id, and queues
-its alerts after player speech. An unloaded unit is unknown, not a death.
-The report key includes current mercenary life when available.
+**Mercenary:** the hireling panel's native relation identifies its unit. The
+panel's own percentage getter supplies its life reading; raw current and
+maximum life stats do not form a valid fraction on this client. It shares the
+player's step schedule and critical interrupt rule. Simultaneous player and
+mercenary changes form one utterance, player first. The panel's level stat
+supplies a diff-gated level-up announcement. Each unit id takes fresh life
+and level baselines; game lifecycle events reset them even if the HUD panel
+persists between sessions. An unloaded unit is unknown, not a death. The report key
+includes current mercenary life and level when available. Native evidence is
+in `docs/combat-status-evidence.md`.
 
 **Breaking**: an item whose durability reaches zero from a positive value is
 announced with its equipment slot. An item with no maximum durability never

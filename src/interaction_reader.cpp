@@ -274,7 +274,8 @@ bool HandlesFocus(NativeUi::Focus focus) {
 	const auto type = NativeUi::Classify(focus.widget);
 	const auto kind = type.kind;
 	return IsInventory(kind) || kind == UiText::Kind::Button || kind == UiText::Kind::StatButton
-		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::ListItem || CharacterStats::HandlesFocus(focus, type);
+		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::ListItem || CharacterStats::HandlesFocus(focus, type)
+		|| CharacterStatsReader::OwnsFocus(focus);
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
