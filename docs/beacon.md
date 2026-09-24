@@ -74,21 +74,24 @@ helps the player return, but never discovers for them.
   (waypoints, stones, doors) are kept per level for the whole game, so they are
   still there after a town trip (`MapSurvey::Memory`). Enemies are never
   remembered: they are read live, within range and in sight.
-- **Beacon.** Routes use only the collision of logical rooms the player has
-  stood in (`TerrainService::VisitedRooms`, plus the current room, visited by
-  definition). Everything else is masked unknown (`NavigationPolicy::Restrict`)
-  and the room graph is rebuilt from visited rooms (`BeaconNavigation::Prepare`).
+- **Beacon.** Routes use only the collision of explored logical rooms: those
+  the player has stood in (`TerrainService::VisitedRooms`), those the automap
+  has drawn in (`NativeAutomap::RevealedRooms`), and the current room. Everything
+  else is masked unknown (`NavigationPolicy::Restrict`), and the room graph is
+  rebuilt from explored rooms (`BeaconNavigation::Prepare`).
   A lock needs a route whose end reaches the target or the next waypoint
-  (`Beacon::Reaches`); otherwise it says "No route through visited areas to X"
-  and stays silent. Every route update repeats the check
+  (`Beacon::Reaches`); otherwise it says "No route through explored areas to X",
+  stays silent and logs `[beacon] refused reason=unreadable|outside-explored|no-route`.
+  A large object is reached from beside its native footprint: arrival grows by
+  half its longer side, beyond the centre cell. Before this, a Cairn Stone could
+  never be locked. Every route update repeats the check
   (`Settings::requireKnownRoute`): a target leaving the visited rooms or a route
   stopping short releases with "The known route to X is no longer available"
   (`reason=known-route-unavailable`). A failed world or room read only skips
   that update.
-- Visited is room-level: entering a logical room qualifies its whole rectangle,
-  so a large room can route over floor never walked. Discovery approximates what
-  a sighted player has seen; it does not read the automap's reveal state
-  (`docs/automap-quest-markers.md`, `docs/automap-discovery-research.md`).
+- Explored is room-level: one drawn cell or one step inside a logical room
+  qualifies its whole rectangle, so a large room can route over floor never
+  seen (`docs/automap-reader.md`).
 - **Full assistance** restores the earlier behaviour: the whole generated
   catalogue with walking steps and routes through unvisited rooms.
   `[navigation] full_assistance = true` in `d2rloader/config/d2r-access.toml`

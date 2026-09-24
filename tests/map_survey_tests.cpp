@@ -275,6 +275,18 @@ void FullAssistanceKeepsLevelChangeReset() {
 
 }
 
+void ChartedRoomsAdmitLandmarksOutOfSight() {
+	Radar::World world = OpenWorld();
+	const auto near = Make(1, 22, 20, EntityRadar::Kind::Object);
+	const auto charted = Make(2, 38, 38, EntityRadar::Kind::Object);
+	const auto uncharted = Make(3, 39, 2, EntityRadar::Kind::Object);
+	// One 2x2-tile room (10 subtiles) in the far corner; the rest of the map is not drawn.
+	const std::vector<NativeRooms::Room> rooms{{6, 6, 2, 2, 1}};
+	const auto listed = Charted(world, {near, charted, uncharted}, rooms);
+	Check(listed.size() == 2 && listed[0].id == 1 && listed[1].id == 2,
+		"a landmark in sight or in a room the automap has drawn is listed; one in neither is not");
+}
+
 void ScannerSplitsLandmarksFromLiveEnemies() {
 	auto enemy = Make(1, 20, 20, EntityRadar::Kind::Enemy);
 	enemy.category = EntityRadar::Category::Enemy;
@@ -310,6 +322,7 @@ int main() {
 	ReturningToLevelRetainsFixedLandmarks();
 	FullAssistanceKeepsLevelChangeReset();
 	ScannerSplitsLandmarksFromLiveEnemies();
+	ChartedRoomsAdmitLandmarksOutOfSight();
 	Passed();
 	return 0;
 }

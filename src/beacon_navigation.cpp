@@ -6,11 +6,11 @@
 
 namespace D2RAccess::BeaconNavigation {
 namespace {
-bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
+bool ReachableNow(const Navigation::Grid& grid, Radar::Position position, int margin) {
 	const int x = static_cast<int>(std::lround(position.x)), y = static_cast<int>(std::lround(position.y));
-	// Targets can occupy their own cell; use the same immediate neighbours as the catalogue.
-	for (int dy = -1; dy <= 1; ++dy)
-		for (int dx = -1; dx <= 1; ++dx) {
+	// Targets occupy their own cells; any cell within the margin reaches them.
+	for (int dy = -margin; dy <= margin; ++dy)
+		for (int dx = -margin; dx <= margin; ++dx) {
 			const auto* cell = grid.At(x + dx, y + dy);
 			if (cell && cell->steps >= 0) return true;
 		}
@@ -19,7 +19,7 @@ bool ReachableNow(const Navigation::Grid& grid, Radar::Position position) {
 }
 
 Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Graph* graph,
-	const std::vector<NativeRooms::Room>* visited) {
+	const std::vector<NativeRooms::Room>* visited, int margin) {
 	Guidance result;
 	RoomGraph::Graph restricted;
 	if (visited) {
@@ -40,13 +40,11 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	}
 	if (from == to) return result;
 	const auto grid = Navigation::Build(result.world, Navigation::MaxRadius);
-	if (ReachableNow(grid, target)) return result;
+	if (ReachableNow(grid, target, margin)) return result;
 	const auto route = RoomGraph::Route(*graph, from, to);
 	const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, route);
-	if (!goal.known) {
-		result.available = !visited;
-		return result;
-	}
+	// No waypoint: the direct search decides, and exploration still requires it to arrive.
+	if (!goal.known) return result;
 	result.hasWaypoint = true;
 	result.waypoint = goal.position;
 	result.waypointRoom = graph->rooms[goal.room];

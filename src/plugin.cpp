@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "auto_detail.h"
+#include "automap_service.h"
 // D2RLoader entry points. Wiring only: every behaviour lives in a service.
 #include <D2RLPlugin/api.h>
 
@@ -98,6 +99,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::WallSlideService::Tick();
 	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
 	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
+	D2RAccess::AutomapService::Tick(context);
 	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
 	D2RAccess::EntityCueService::Tick(context);
 	D2RAccess::BeaconService::Tick(context);
@@ -288,6 +290,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	D2RAccess::WallSlideService::Register(context, nativeHooks);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
+	// After the ground items: the automap reader finds the player through their verified roots.
+	if (!D2RAccess::AutomapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[automap] Automap reader unavailable.");
 	if (!D2RAccess::EntityRadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[scan] Entity scan lifecycle unavailable.");
 	if (!D2RAccess::EntityCueService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[entity-cues] Entity cue lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
@@ -345,6 +349,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::EntityRadarService::Unregister();
 	D2RAccess::EntityCueService::Unregister();
 	D2RAccess::GroundItemService::Unregister();
+	D2RAccess::AutomapService::Unregister();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::WallSlideService::Unregister();
 	D2RAccess::RadarService::Unregister();

@@ -94,7 +94,7 @@ struct Table {
 	const char* radarMotionUnknown;
 	const char* radarStraight;
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
-	const char* navigationExploration; // mode status: guidance uses visited areas
+	const char* navigationExploration; // mode status: guidance uses explored areas
 	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
 	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
 	const char* scanStep; // exactly one step
@@ -137,7 +137,7 @@ struct Table {
 	const char* beaconFollowing; // %s = target name
 	const char* beaconArrived; // %s = target name
 	const char* beaconLost; // %s = target name
-	const char* beaconKnownRouteOnly; // %s = target name; no visited-area route
+	const char* beaconKnownRouteOnly; // %s = target name; no explored-area route
 	const char* beaconKnownRouteEnded; // %s = target name; known route no longer available
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
@@ -189,6 +189,9 @@ struct Table {
 	const char* finderEnabled;  // the exit finder, BACK+A: ways out by side on the right stick
 	const char* finderDisabled;
 	const char* finderNothing;  // %s = a side (scanDirections): no way out on that side
+	const char* automapLogged;         // the automap diagnostic finished; details are in the log
+	const char* automapWatchOn;        // the automap watch logs every change from now on
+	const char* automapWatchOff;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -231,7 +234,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing};
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
+		t.automapLogged, t.automapWatchOn, t.automapWatchOff};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

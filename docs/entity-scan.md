@@ -32,10 +32,13 @@ automap; enemies are the one live category.
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
   (`MapSurvey::Split`).
-- In exploration mode (the default) a landmark enters the scanner once it has
-  been within `EntityRadar::Settings::range` subtiles on known terrain with a
-  clear line of sight (`MapSurvey::Discoverable`). This approximates the
-  automap until its reveal state can be read (`docs/automap-discovery-research.md`).
+- In exploration mode (the default) a landmark is listed once it stands in a
+  logical room the stock automap has drawn in, meaning at least one floor or
+  wall cell (`NativeAutomap::RevealedRooms`, `MapSurvey::Charted`). Drawn
+  terrain is saved with the character, so these landmarks are listed from the
+  start of a later game. A landmark that has been in range and in sight
+  (`MapSurvey::Discoverable`) is listed too. That test is also the whole rule
+  whenever the automap cannot be read (`docs/automap-reader.md`).
   Readouts give straight-line distance and screen direction. Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
 

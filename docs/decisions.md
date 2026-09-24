@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-24 — Exploration follows the automap's drawn rooms
+
+Live sessions confirmed the native automap reader (`docs/automap-reader.md`).
+The automap is saved with the character, but its object glyphs are not. So
+"explored" is room-level: a logical room with any drawn floor or wall cell, or
+one the player stood in. The scanner lists landmarks in explored rooms. The
+beacon routes through them. This is less exact than matching each glyph, but
+it survives a reload and needs no per-object reveal rule.
+
 ## 2026-09-24 — One scanner on the right stick, following the automap
 
 The user asked the scanner to follow the automap, with no L3 mode. Chosen: the

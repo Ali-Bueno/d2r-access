@@ -3,6 +3,7 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_automap.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
@@ -17,6 +18,7 @@
 #include <windows.h>
 #include <cstdio>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,8 +30,10 @@ bool playing = true;
 bool worldReadable = false;
 Radar::Position playerAt{100, 100};
 // Fixture rooms are measured in subtiles: two side by side over one open collision grid.
-const std::vector<NativeRooms::Room> levelRooms{{0, 0, 50, 50}, {50, 0, 50, 50}};
+const std::vector<NativeRooms::Room> levelRooms{{0, 0, 50, 50, 1}, {50, 0, 50, 50, 2}};
 std::vector<NativeRooms::Room> visitedRooms;
+std::optional<std::vector<NativeRooms::Room>> chartedRooms; // what the automap has drawn; none when unreadable
+struct Box { int minX = 0, minY = 0, maxX = -1, maxY = -1; } blocked; // walled cells, inclusive
 int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
@@ -85,6 +89,9 @@ namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }
 Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
 }
+namespace D2RAccess::NativeAutomap {
+std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>&) { return chartedRooms; }
+}
 namespace D2RAccess::TerrainService {
 std::vector<NativeRooms::Room> VisitedRooms(int, const std::vector<NativeRooms::Room>&) { return visitedRooms; }
 }
@@ -94,6 +101,8 @@ bool Read(uint32_t, uint64_t, int, Radar::World& world, Diagnostics*) {
 	world.player = playerAt;
 	world.walkingMask = Radar::Collision::Wall;
 	world.rooms = {{0, 0, 100, 50, std::vector<uint16_t>(100 * 50, 0)}};
+	for (int y = blocked.minY; y <= blocked.maxY; ++y)
+		for (int x = blocked.minX; x <= blocked.maxX; ++x) world.rooms[0].cells[static_cast<size_t>(y) * 100 + x] = Radar::Collision::Wall;
 	return true;
 }
 uintptr_t PlayerRoom() noexcept { return 0; }
@@ -203,6 +212,27 @@ int main() {
 	BeaconService::Tick(&context);
 	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
 		"a target outside the visited rooms ends the known route");
+	chartedRooms = std::vector<NativeRooms::Room>{levelRooms[1]};
+	BeaconService::Offer(gate, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1, "a room the automap has drawn counts as explored");
+	Command("clear");
+	BeaconService::Tick(&context);
+	chartedRooms.reset();
+
+	blocked = {28, 8, 32, 12}; // a 5x5 object's own collision around its centre
+	EntityRadar::Entity statue{900, EntityRadar::Kind::Object, {30, 10}, "statue"};
+	statue.footprint = {5, 5};
+	BeaconService::Offer(statue, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1, "a large object is reached from beside its footprint");
+	Command("clear");
+	BeaconService::Tick(&context);
+	blocked = {};
 	Command("full");
 	BeaconService::Tick(&context);
 	Check(speech.back() == strings.navigationFullAssistance, "the full command names full assistance");

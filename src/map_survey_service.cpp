@@ -9,6 +9,8 @@
 #include "native_entities.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
+#include "native_automap.h"
+#include "native_rooms.h"
 #include "drlg_layout.h"
 #include "native_world.h"
 #include "navigation_mode.h"
@@ -52,6 +54,11 @@ struct Lifecycle {
 std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Memory          g_registry;
+// The level's logical rooms do not change while the level instance lives, so
+// the native walk happens once per instance rather than on every observation.
+std::vector<NativeRooms::Room> g_roomList;
+int                        g_roomLevel = 0;
+uint64_t                   g_roomSession = 0;
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -195,6 +202,17 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 			crossing.level, crossing.position.x, crossing.position.y, crossing.gapTiles);
 }
 
+// Rooms of the level being played, for what the automap has charted. Empty
+// when they cannot be read, which leaves exploration to line of sight alone.
+const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
+	if (g_roomLevel != level || g_roomSession != session) {
+		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
+		g_roomLevel = level;
+		g_roomSession = session;
+	}
+	return g_roomList;
+}
+
 using MapSurvey::Scene;
 
 bool Collect(const Lifecycle& state, Scene& scene) {
@@ -204,13 +222,22 @@ bool Collect(const Lifecycle& state, Scene& scene) {
 	return true;
 }
 
-// Exploration admits only what came into view; full assistance everything loaded.
-std::vector<EntityRadar::Entity> Visible(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
-	return g_fullAssistance ? entities : MapSurvey::Discoverable(world, entities);
+// Exploration admits what came into view and, while the automap can be read,
+// anything in a room it has drawn; full assistance everything loaded.
+std::vector<EntityRadar::Entity> Landmarks(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
+	if (g_fullAssistance) return scene.landmarks;
+	if (const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)))
+		return MapSurvey::Charted(world, scene.landmarks, *charted);
+	return MapSurvey::Discoverable(world, scene.landmarks);
+}
+
+// Enemies are never charted: in range and in sight right now, or all loaded with full assistance.
+std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene) {
+	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
-	g_registry.Observe(state.level, Visible(world, scene.landmarks), grid, !g_fullAssistance, {}, &scene.landmarks);
+	g_registry.Observe(state.level, Landmarks(state, world, scene), grid, !g_fullAssistance, {}, &scene.landmarks);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -232,7 +259,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	Scene scene;
 	if (Collect(state, scene)) Observe(state, world, grid, scene);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
-	const auto enemies = Visible(world, scene.enemies);
+	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;

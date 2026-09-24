@@ -70,8 +70,9 @@ int main() {
 	const auto graph = RoomGraph::Build({first, middle, last});
 	Check(BeaconNavigation::Prepare(open, far, &graph).available,
 		"full assistance plans through rooms the player never entered");
-	Check(!BeaconNavigation::Prepare(open, far, &graph, &visited).available,
-		"exploration refuses a route across an unvisited room");
+	const auto gap = BeaconNavigation::Prepare(open, far, &graph, &visited);
+	Check(!gap.hasWaypoint && !Beacon::Reaches(gap.world, Beacon::FindRoute(gap.world, far, {}), far, {}),
+		"exploration finds no way across an unvisited room");
 	const std::vector<NativeRooms::Room> start{first};
 	Check(!BeaconNavigation::Prepare(open, far, &graph, &start).available,
 		"exploration refuses a target in a room never entered");

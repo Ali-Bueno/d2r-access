@@ -283,15 +283,15 @@ press **Ctrl+B** to follow what the scanner last named with directional pings.
 Repeat to cancel. See [distant exits](docs/distant-exits.md) and
 [target guidance](docs/beacon.md).
 
-**Exploration mode (default; live validation pending):** the scanner lists
-only what you have discovered: things that came within
-scan range with a clear line of sight, and rooms you have stood in. It gives
-their straight-line distance and direction, not a walking route. Exits,
-waypoints and objects stay listed when you leave a level and come back in the
-same game. The beacon only follows routes through rooms you have visited;
-otherwise it says there is no route through visited areas and stays silent,
-and it stops if the route leaves them. Discovery approximates what a sighted
-player has seen; it does not read the automap's reveal state.
+**Exploration mode (default; live validation pending):** the scanner follows
+the game's own automap. It lists landmarks in the parts of the level the
+automap has drawn, including parts drawn in earlier games. It also lists
+anything that has come into range with a clear line of sight, and the rooms you
+have stood in. It gives their straight-line distance and direction, not a
+walking route. The beacon only follows routes through explored areas (drawn on
+the automap or walked); otherwise it says there is no route through explored
+areas and stays silent, and it stops if the route leaves them. See the
+[automap reader](docs/automap-reader.md).
 **Full assistance** restores routes through unexplored rooms and the whole
 generated catalogue: add `full_assistance = true` under `[navigation]` in
 `d2rloader/config/d2r-access.toml` and restart, or switch for the session with
