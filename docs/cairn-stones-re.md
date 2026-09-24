@@ -13,4 +13,26 @@ The installed `global/ui/Layouts/ScrollOfInifussHD.json` fixes Symbol1–5 to
 object classes 17–21. Spoken labels are upward drop, one, downward drop, two,
 and zero; they stay the same when the random activation order changes.
 
+## Scanner visibility correction — 2026-09-24
+
+The user activated the stones using the pathfinder, but the directional scan
+did not list them. The 06:27 session log shows four empty directional scans at
+player position (5113,5104), followed by catalogue entries for all five symbols;
+the beacon later identifies stone 69 at (5109,5104). The log establishes the
+scan/catalogue discrepancy, although it does not record each rejected ray cell.
+
+All five installed stone rows have SizeX=3, SizeY=3 and HasCollision0/2=1. The
+old sight ray excluded only the target centre, letting its own 3x3 collision
+footprint hide it. Object dimensions now come from the live table row, and the
+sight test discounts only OBJECT (0x0400) inside that target's exact rectangle.
+Walls, doors and other blocking bits remain effective; range and sectors are
+unchanged. Door objects keep their existing point-target sight policy.
+
+`tools/objects_containers.py` verifies uint32 SizeX at row+0x90, SizeY at +0x94,
+and eight HasCollision bytes at +0xE0 against all 587 installed text/binary rows.
+Native getters 0x3481E0, 0x3482C0 and 0x34BBE0 corroborate those fields. Mask
+getter 0x349890 returns 0x400 for the Cairn rows. Rectangle setter 0x363C80 uses
+`left = x - (width >> 1)`, `right = left + width - 1`, and the same rule for Y.
+Their complete-function fingerprints are recorded in `EntityLayout::Checks`.
+
 The wrapper passes a 15-byte stack copy to dispatcher `0x232EA0`, whose decompiled signature is `void (packet*)` and whose quest-4 case calls the order setter before returning. The dispatcher provides a normal 283-byte function entry for the inline hook, while the setter is only 30 bytes long. The hook copies the packet before calling the original, then accepts it only if the same lifecycle epoch is still ready. Its `void(const uint8_t*)` callback preserves the stock x64 calling convention and return type.

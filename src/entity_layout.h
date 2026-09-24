@@ -51,6 +51,8 @@ inline constexpr size_t MonRarityFlags = 0x1A;
 inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
+// Size getters 0x3481E0/0x3482C0; all columns cross-checked by tools/objects_containers.py.
+inline constexpr size_t ObjSizeX = 0x90, ObjSizeY = 0x94, ObjHasCollision = 0xE0;
 // objects.txt OperateFn, the index of the game's interaction handler for the row.
 inline constexpr size_t ObjOperateFn = 0x15E;
 inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha through StoneLambda
@@ -119,6 +121,11 @@ inline constexpr Evidence Checks[] = {
 	{0x985A0, 521, 0x50EC9372B676A70FULL}, // monster name builder, caches at MonsterData+0x40
 	{0x976E0, 169, 0xFF5A28122B22038AULL}, // MonStats row accessor
 	{0x38FD00, 132, 0x61F008DEA3273998ULL}, // Objects row accessor
+	{0x3481E0, 212, 0x972CCB30B7F79BBFULL}, // object SizeX: row+0x90
+	{0x3482C0, 244, 0x56884EA7EFC4EB3BULL}, // object SizeY: row+0x94
+	{0x34BBE0, 30, 0x5C3897F892CA0ECEULL}, // HasCollision[mode]: row+0xE0
+	{0x349890, 187, 0xDA8838ED9D4DA150ULL}, // ordinary object collision mask 0x400
+	{0x363C80, 99, 0xBE3C2A1BD0E88572ULL}, // object rectangle: centre - size/2, inclusive size
 	{0x324FC0, 384, 0x8B4A0736454E93DDULL}, // unit distance: static X/Y at +0x10/+0x14 for types 2, 4 and 5
 	{0x2EFEE0, 161, 0xD55AB295152D9B73ULL}, // peer warp search: type-5 units in the room unit list, class = LvlWarp Id
 	{0x3DA9A0, 168, 0x82E26127D267E177ULL}, // RoomEx+0x78 warp nodes: destination RoomEx, next, LvlWarp row (+0x2C Id)

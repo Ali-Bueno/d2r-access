@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Cairn scan visibility — installed, 2026-09-24
+
+User confirmed the pathfinder listed the symbols and let them activate the stones,
+but the short-range scan omitted them. Sight now excludes the target's own OBJECT
+collision within its native footprint, preserving walls, doors, range and sectors.
+Five native guards and all 587 table rows verified. **74/74 suites pass**, no build
+warnings; installed DLL hash matches. **Next step:** check nearby stones with the
+right-stick scan, including activated stones. `docs/cairn-stones-re.md`.
+
 ## Cairn puzzle symbols — installed, 2026-09-24
 
 User explicitly wants freedom to choose incorrectly. All neutral stones qualify
@@ -768,7 +777,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
 | Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
-| Entity scan (right stick) | done - confirmed live (camp NPCs, stash, Blood Moor enemies, items); distance calibration pending | Push = nearest visible entity in that screen sector + distance; repeat = next nearest, wraps. Terrain-layer line of sight. Items verified live (Blood Moor dagger). Unit layout from offline RE: `docs/entity-units-re.md`. Ctrl+Numpad 8/4/6/2, Ctrl+E, `access-scan`. `docs/entity-scan.md` |
+| Entity scan (right stick) | done; Cairn visibility fix installed 2026-09-24, listening pending | Nearby visible entities by direction; repeat cycles. Native object footprints prevent self-occlusion; real walls and range still apply. 74 suites pass. `docs/entity-scan.md`, `docs/cairn-stones-re.md` |
 | Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | built 2026-09-22; live listening pending | Darker floor breath, double-pip unexplored tail, outdoor exit candidates and compact storage. 61/61 suites pass; existing progress migrated. `docs/radar-readings.md`, `docs/exploration.md`. |

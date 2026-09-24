@@ -53,6 +53,7 @@ struct Entity {
 	bool questObject = false; // unused quest item source or unactivated quest mechanism
 	uint8_t cairnStone = 0; // class index + 1, or zero for other entities
 	std::string worldName; // original HUD label before optional guidance wording
+	struct ObjectFootprint { uint32_t width = 0, height = 0; } footprint; // native collision rectangle; zero when unknown
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {
@@ -80,6 +81,8 @@ struct Result {
 // cells are excluded: the destination may carry the entity's own collision.
 // Unknown cells never block; only positive wall evidence hides an entity.
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
+// An object's own OBJECT bits within its footprint do not hide it; other barriers still do.
+bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target);
 bool InSector(Radar::Position player, Radar::Position target, Radar::Direction direction, double sectorCosine = Radar::Diagonal);
 // Entities within range; ordinary ones must also be in sight, while fixed level
 // exits are named through walls, since an entrance can stand in wall cells.
