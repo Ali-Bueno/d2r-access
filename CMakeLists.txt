@@ -139,6 +139,9 @@ add_library(d2r-access SHARED
 	src/vitals.cpp
 	src/vitals_service.cpp
 	src/native_belt.cpp
+	src/skill_bar.cpp
+	src/native_skill_bar.cpp
+	src/skill_bar_service.cpp
 	src/native_status.cpp
 	src/widgets.cpp
 	plugin.rc
@@ -246,6 +249,11 @@ if(BUILD_TESTING)
 	target_compile_features(controller-help-tests PRIVATE cxx_std_20)
 	target_compile_definitions(controller-help-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME controller-help COMMAND controller-help-tests)
+	add_executable(skill-bar-tests tests/skill_bar_tests.cpp src/skill_bar.cpp src/controller_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(skill-bar-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(skill-bar-tests PRIVATE src)
+	target_compile_features(skill-bar-tests PRIVATE cxx_std_20)
+	add_test(NAME skill-bar COMMAND skill-bar-tests)
 	add_executable(native-cursor-gesture-tests tests/native_cursor_gesture_tests.cpp src/native_cursor_gesture.cpp)
 	target_include_directories(native-cursor-gesture-tests PRIVATE src)
 	target_compile_features(native-cursor-gesture-tests PRIVATE cxx_std_20)
@@ -551,6 +559,7 @@ if(BUILD_TESTING)
 		target_compile_options(radar-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-readout-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(controller-help-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(skill-bar-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-cursor-gesture-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-navigation-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-focus-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -164,6 +164,7 @@ inline constexpr Table itIT {
 	.automapLogged = "Automappa scritta nel registro",
 	.automapWatchOn = "Monitoraggio dell'automappa attivo",
 	.automapWatchOff = "Monitoraggio dell'automappa disattivato",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
 	.terrainPlaces = {"angolo posteriore sinistro", "bordo posteriore", "angolo posteriore destro",
 		"bordo sinistro", "centro", "bordo destro", "angolo anteriore sinistro", "bordo anteriore",

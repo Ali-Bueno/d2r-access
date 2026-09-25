@@ -164,6 +164,7 @@ inline constexpr Table esMX {
 	.automapLogged = "Automapa escrito en el registro",
 	.automapWatchOn = "Vigilancia del automapa activada",
 	.automapWatchOff = "Vigilancia del automapa desactivada",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
 		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",

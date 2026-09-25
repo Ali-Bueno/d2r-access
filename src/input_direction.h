@@ -130,6 +130,13 @@ bool TakeBackWith(FaceButton button);
 // whether a press happened since the previous Take() and clears it.
 bool TakeLeftStickClick();
 
+// Left trigger (LT/L2), the game's skill-bar toggle, as sampled by the last
+// Poll(): held past XInput's trigger threshold, which the game's own poll
+// uses too. `otherButton` is set while any digital button or the right
+// trigger is also down, i.e. while LT is part of a combo. Sticks do not count.
+struct TriggerHold { bool held = false, otherButton = false; };
+TriggerHold LeftTrigger();
+
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics
 // only: the radar logs it next to each cue so a log can tell where the player

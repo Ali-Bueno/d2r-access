@@ -164,6 +164,7 @@ inline constexpr Table ptBR {
 	.automapLogged = "Automapa gravado no registro",
 	.automapWatchOn = "Monitoramento do automapa ativado",
 	.automapWatchOff = "Monitoramento do automapa desativado",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 	.terrainPlaces = {"canto traseiro esquerdo", "borda traseira", "canto traseiro direito",
 		"borda esquerda", "centro", "borda direita", "canto frontal esquerdo", "borda frontal",
