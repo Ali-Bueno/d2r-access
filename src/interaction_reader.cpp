@@ -8,6 +8,7 @@
 #include "belt_reader.h"
 #include "inventory_cursor.h"
 #include "ground_item_service.h"
+#include "ground_item_text.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "native_tooltips.h"
@@ -109,6 +110,20 @@ const std::vector<std::string>& RequirementLabels() {
 	return cache.For(TooltipText::RequirementKeys);
 }
 
+// A tooltip body with any magic name the game composed with a broken grammar
+// header rebuilt, the format resolved again when the text language changes.
+TooltipText::Body ItemBody(std::string_view raw) {
+	static std::optional<Strings::Language> language;
+	static std::string format;
+	if (language != Strings::Selected() || format.empty()) {
+		language = Strings::Selected();
+		format = Localization::Text(GroundItemText::SuffixOnlyFormatKey);
+	}
+	auto body = TooltipText::Read(raw);
+	for (auto& line : body.lines) line = GroundItemText::RepairSuffixOnlyName(line, format);
+	return body;
+}
+
 std::string Refusal(const std::string& reasons) {
 	if (reasons.empty()) return Strings::Current().equipRefused;
 	char phrase[300]{};
@@ -171,7 +186,7 @@ std::string ComparisonText(const NativeTooltips::Snapshot& tooltip,
 	std::string equipped;
 	const auto heading = UiText::Clean(Localization::Text("currentEquip"));
 	for (const auto& record : tooltip.comparisons) {
-		const auto body = TooltipText::Read(record.body);
+		const auto body = ItemBody(record.body);
 		std::string text;
 		for (const auto& line : body.lines) if (line != heading) Append(text, line);
 		if (text.empty()) continue; // decorative controller glyphs are not items
@@ -409,7 +424,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		} else if (inventory) {
 			// The tooltip supplies the generated name and identification status;
 			// prices and properties remain available through the detail gesture.
-			const auto body = TooltipText::Read(tooltip.body);
+			const auto body = ItemBody(tooltip.body);
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
 			auto split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
 			if (!split.headline.empty() && !split.unidentified) {

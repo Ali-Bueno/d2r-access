@@ -371,3 +371,26 @@ in `Description::unmet`. Red lines that are not requirements are not reasons.
 
 `[item-markup]` stays as a diagnostic: once per item it logs each styled line's
 commands (`U+E07E:1`) and escapes (`TooltipText::Markup`).
+
+## Magic names with only a suffix, in esES (2026-09-25)
+
+The game composes a magic name from a format in `local/lng/strings/ui.json`
+whose optional header `a<adjective arg>n<noun arg>:` tells it which argument is
+the noun: it strips the noun's gender tag and picks the adjective's matching
+variant. `ItemNameMagicFormatSuffixOnly` passes the base as `%0` and the suffix
+as `%1`, so every gendered locale has `a1n0:%0 %1` -- except esES, whose entry
+is a copy of `ItemNameMagicFormatPrefixOnly`: `a0n1:%1 %0`. The game then prints
+the base, tag and all, after the suffix. Measured with `[item]` on 2026-09-25:
+the title line was `de llamas [fs]Maza` for a Mace of Flame (esMX: `Maza de
+llamas`).
+
+An audit of all 13 locales (every headed format in the string tables) found no
+other header that disagrees with the rest, and every locale's tags are in
+`GroundItemText`'s `GenderTags`.
+
+`GroundItemText::RepairSuffixOnlyName` reads the active language's format: when
+its header names `%1` the noun and the suffix is printed first, it takes the
+base from the first gender tag, keeps its first form, and swaps the two roles
+(`Maza de llamas`). Any other line, or any other format, is left as drawn.
+`InteractionReader` applies it to every line of an item tooltip and of the
+comparison tooltips. The game's own display is not changed.

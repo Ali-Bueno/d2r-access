@@ -1,5 +1,6 @@
 #include "character_stats.h"
 #include "entity_radar_service.h"
+#include "ground_item_text.h"
 #include "interaction_reader.h"
 #include "belt_reader.h"
 #include "native_belt.h"
@@ -184,6 +185,7 @@ std::string Text(std::string_view key) {
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
 	if (key == "currentEquip") return "Equipo actual";
 	if (key == "MiniPanelHireinv") return "Mercenario";
+	if (key == GroundItemText::SuffixOnlyFormatKey) return "a0n1:%1 %0"; // the game's esES entry
 	if (key == TooltipText::UnidentifiedKey)
 		return Strings::Selected() == Strings::Language::enUS ? "Unidentified" : "Sin identificar";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
@@ -509,6 +511,10 @@ int main() {
 		"the generated name and localized quality are spoken together once");
 	ClearSpeech(); Tick();
 	Check(speech.empty(), "a stationary generated item does not repeat");
+	ClearSpeech(); selection = 3; cell = {3, 0}; tooltip = {}; Tick();
+	Tooltip("Daño: 3-10\nde llamas [fs]Maza"); Tick();
+	Check(speech == std::vector<std::string>{"Maza de llamas. mágico"},
+		"a suffix-only name the esES table composes backwards is read in its meant order");
 	ClearSpeech(); selection = 4; cell = {4, 0}; tooltip = {}; Strings::Select(Strings::Language::enUS); Tick();
 	Check(speech.empty(), "the English magic item also waits for its composed name");
 	Tooltip("Damage: 6-13\nCrimson Spear"); Tick();

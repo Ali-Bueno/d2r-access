@@ -227,6 +227,20 @@ int main() {
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");
 	Check(GroundItemText::BaseName("[ms]ligero[fs]ligera") == "ligero", "grammatical variants are not concatenated");
 	Check(GroundItemText::BaseName("Pergamino") == "Pergamino", "untagged item names are preserved");
+	// ItemNameMagicFormatSuffixOnly in the game's ui.json: esES takes the suffix for the noun.
+	constexpr std::string_view SuffixOnlyEs = "a0n1:%1 %0", SuffixOnlyMx = "a1n0:%0 %1", SuffixOnlyEn = "%0 %1";
+	Check(GroundItemText::RepairSuffixOnlyName("de llamas [fs]Maza", SuffixOnlyEs) == "Maza de llamas",
+		"a suffix-only magic name is rebuilt in the order the format meant");
+	Check(GroundItemText::RepairSuffixOnlyName("de la zorra [fs]Maza rebordeada[fp]Mazas rebordeadas", SuffixOnlyEs)
+		== "Maza rebordeada de la zorra", "a multi-word base keeps one grammatical form");
+	Check(GroundItemText::RepairSuffixOnlyName("Cimitarra carmesí de valor", SuffixOnlyEs) == "Cimitarra carmesí de valor",
+		"a name the game resolved is left alone");
+	Check(GroundItemText::RepairSuffixOnlyName("Coste: 433", SuffixOnlyEs) == "Coste: 433", "other lines are left alone");
+	Check(GroundItemText::RepairSuffixOnlyName("[fs]Maza", SuffixOnlyEs) == "[fs]Maza", "a bare tagged base has no suffix to move");
+	Check(GroundItemText::RepairSuffixOnlyName("de llamas [fs]Maza", SuffixOnlyMx) == "de llamas [fs]Maza",
+		"a format that names the base as noun is trusted");
+	Check(GroundItemText::RepairSuffixOnlyName("Mace of Flame", SuffixOnlyEn) == "Mace of Flame", "headerless formats are trusted");
+	Check(GroundItemText::RepairSuffixOnlyName("de llamas [fs]Maza", "") == "de llamas [fs]Maza", "an unresolved format repairs nothing");
 	Check(GroundItemText::Describe("Hacha", 7, 0) == "Hacha, único", "Spanish equipment readout uses actual quality");
 	Check(GroundItemText::Describe("Oro", 2, 37) == "37 Oro", "gold includes native amount");
 	Check(GroundItemText::Describe("Poción", 2, 0) == "Poción", "ordinary consumables stay concise");
