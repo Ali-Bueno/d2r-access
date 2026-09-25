@@ -20,8 +20,17 @@ Radar::Direction Quadrant(double dx, double dy) {
 	return down < 0 ? Radar::Direction::Up : Radar::Direction::Down;
 }
 
-Radar::Marks Quadrants(const Radar::World& world, const std::vector<NativeRooms::Bounds>& unseen) {
-	Radar::Marks marks{};
+size_t Sector(double dx, double dy, Radar::Frame frame) {
+	if (frame == Radar::Frame::Cardinal) return static_cast<size_t>(Quadrant(dx, dy));
+	const auto& rays = Radar::RaysOf(frame);
+	size_t best = 0;
+	for (size_t i = 1; i < rays.size(); ++i)
+		if (dx*rays[i].world.x + dy*rays[i].world.y > dx*rays[best].world.x + dy*rays[best].world.y) best = i;
+	return best;
+}
+
+FrameMarks Quadrants(const Radar::World& world, const std::vector<NativeRooms::Bounds>& unseen) {
+	FrameMarks marks{};
 	if (unseen.empty()) return marks;
 	const auto grid = Navigation::Build(world, Navigation::MaxRadius);
 	if (!grid.originKnown) return marks;
@@ -34,7 +43,8 @@ Radar::Marks Quadrants(const Radar::World& world, const std::vector<NativeRooms:
 				const auto* next = grid.At(nx, ny);
 				if (next && next->body != Radar::State::Unknown) continue; // loaded ground, not the edge
 				if (!Inside(unseen, nx, ny)) continue;
-				marks[static_cast<size_t>(Quadrant(nx - world.player.x, ny - world.player.y))] = true;
+				for (size_t frame = 0; frame < Radar::FrameCount; ++frame)
+					marks[frame][Sector(nx - world.player.x, ny - world.player.y, static_cast<Radar::Frame>(frame))] = true;
 				break;
 			}
 		}

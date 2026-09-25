@@ -66,13 +66,16 @@ Section ReadSection(const D2RL::PluginContext* context, Parser parse, const char
 }
 Result Parse(std::string_view config) {
 	Result result;
-	bool foundEnabled = false, foundVolume = false;
+	bool foundEnabled = false, foundVolume = false, foundDiagonals = false;
 	const bool valid = ForEachKey(config, "[radar]", [&](std::string_view key, std::optional<std::string_view> value) {
-		if (key != "enabled" && key != "volume") return Line::Ignored;
+		if (key != "enabled" && key != "volume" && key != "diagonals") return Line::Ignored;
 		if (!value) return Line::Invalid;
 		if (key == "enabled") {
 			if (foundEnabled || !ParseBool(*value, result.enabled)) return Line::Invalid;
 			foundEnabled = true;
+		} else if (key == "diagonals") {
+			if (foundDiagonals || !ParseBool(*value, result.diagonals)) return Line::Invalid;
+			foundDiagonals = true;
 		} else {
 			unsigned volume = 0;
 			if (foundVolume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;

@@ -16,6 +16,7 @@ struct CueSource {
 	Radar::Position position{};
 	bool audition = false;
 	bool unexplored = false; // the cue carries the unexplored tail
+	Radar::Frame frame = Radar::Frame::Cardinal; // whose rays the direction index names
 };
 // Bounded, latest-state queue. The worker plays one direction at a time;
 // confirmed states invalidate queued cues before the player hears stale ones.
@@ -34,7 +35,9 @@ private:
 };
 // gain 0..1 scales the compiled peak level. A marked direction ends in the
 // unexplored tail: the same short tone after the exit's tin or the floor's breath.
-std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain = 1);
+// Stereo position and pitch follow the screen side of the frame's ray.
+std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain = 1,
+	Radar::Frame frame = Radar::Frame::Cardinal);
 inline std::vector<int16_t> Synthesize(const Radar::Events& events, double gain = 1) { return Synthesize(events, {}, gain); }
 bool Start(const D2RL::PluginContext* context, double gain);
 void Play(const Radar::Events& events, CueSource source, const Radar::Marks& marks = {});

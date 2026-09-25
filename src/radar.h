@@ -38,6 +38,22 @@ inline int ScreenSector(Position offset) {
 	const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / ScreenSectors));
 	return static_cast<int>((sector + ScreenSectors) % ScreenSectors);
 }
+// The navigation radar's four rays. Cardinal: the stick cardinals above.
+// Diagonal: the stick diagonals, which the game turns into the world axes (it
+// rotates the stick by 45 degrees; logged stick against velocity, 2026-09-25),
+// so the rays run along and across D2's walls. `docs/radar-readings.md`
+enum class Frame { Cardinal, Diagonal };
+inline constexpr size_t FrameCount = 2;
+struct Ray {
+	Position world;      // unit world direction
+	ScreenVector screen; // its screen side, for stereo position and pitch
+	int sector = 0;      // its name among the eight screen sectors
+};
+inline constexpr std::array<std::array<Ray, DirectionCount>, FrameCount> Rays{{
+	{{{Axes[0], ScreenAxes[0], 0}, {Axes[1], ScreenAxes[1], 6}, {Axes[2], ScreenAxes[2], 2}, {Axes[3], ScreenAxes[3], 4}}},
+	{{{{-1, 0}, {-1, -1}, 7}, {{0, -1}, {1, -1}, 1}, {{0, 1}, {-1, 1}, 5}, {{1, 0}, {1, 1}, 3}}},
+}};
+inline constexpr const std::array<Ray, DirectionCount>& RaysOf(Frame frame) { return Rays[static_cast<size_t>(frame)]; }
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
 // The unexplored qualifier of a passable reading: the way leads to ground the
 // player has not covered. Rides on the exit/floor cue as a short tail; never a
@@ -56,6 +72,7 @@ enum class Layer { Movement, Terrain };
 // Navigation policy values (subtile = one D2 collision cell, five per map
 // tile). None of them is a game constant; each comment states its origin.
 struct Settings {
+	Frame frame = Frame::Cardinal; // the service applies [radar] diagonals
 	double farRange = 150; // native snapshot bound: 30 map tiles
 	double boundaryRange = 20; // structural neighbourhood, radar_structure.cpp
 	double openDepth = 10; // two map tiles of straight route ahead is an exit; walls close one body span nearer

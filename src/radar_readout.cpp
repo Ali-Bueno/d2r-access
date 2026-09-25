@@ -8,6 +8,15 @@ int MovementDirection(Radar::Position velocity) {
 	if (velocity.x == 0 && velocity.y == 0) return -1;
 	return Radar::ScreenSector(velocity);
 }
+const char* DirectionName(Radar::Frame frame, size_t direction, const Strings::Table& text) {
+	if (frame == Radar::Frame::Cardinal) return text.radarDirections[direction];
+	return text.radarMovementDirections[static_cast<size_t>(Radar::RaysOf(frame)[direction].sector)];
+}
+std::string DirectionList(Radar::Frame frame, const Strings::Table& text) {
+	std::string result;
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) result += std::string(i ? ", " : "") + DirectionName(frame, i, text);
+	return result;
+}
 std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	const int direction = MovementDirection(engine.Velocity());
 	std::string result;
@@ -19,12 +28,13 @@ std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 		result = motion;
 	}
 	result += std::string(". ") + text.radarStraight;
+	const auto frame = engine.Configuration().frame;
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& passage = engine.Sensors()[i].passage;
 		const auto state = passage.available ? passage.observed : Radar::State::Unknown;
 		// Inside the hysteresis band the verdict is the one that stands, not a measurement.
 		const bool limited = passage.available && passage.depth > passage.closeDepth && passage.depth < passage.openDepth;
-		result += std::string(". ") + text.radarDirections[i] + ": "
+		result += std::string(". ") + DirectionName(frame, i, text) + ": "
 			+ (limited ? text.radarLimited : text.radarStates[static_cast<size_t>(state)]);
 		if (!passage.available) continue;
 		if (passage.unexplored) result += std::string(", ") + text.terrainUnexplored;

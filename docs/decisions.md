@@ -3,6 +3,20 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-25 — Radar rays along the walls: the stick diagonals
+
+The user found that a corridor could read as wall in every direction and asked to
+fix it, after being offered rays aligned with the walls. D2's walls run along the
+world axes, at 45 degrees to the four stick cardinals chosen on 2026-09-16, so in a
+world-axis corridor every cardinal ray meets a wall. The game rotates the stick by
+45 degrees into the world (41 logged stick/velocity pairs: median error 6 degrees,
+against 14.5 for the screen projection), so the stick's diagonals are the world
+axes. Chosen: the radar's four rays follow the stick diagonals by default, still
+four rays with the same sounds, panned to their side, the lower two at down's pitch.
+Kept selectable: `[radar] diagonals = false` or `access-radar cardinal`. Not
+revisited: eight rays (rejected 2026-09-16). Every other feature keeps its screen
+directions. `docs/radar-readings.md`.
+
 ## 2026-09-25 — L3 is the only stick button; R3 back to the game
 
 The user removed the R3 gestures, then the L3+R3 chord too: the scanner already

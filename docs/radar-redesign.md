@@ -14,7 +14,9 @@ velocidad; da igual si vuelvo al mismo sitio."*
 
 ## The model
 
-1. **Four directions, unchanged.** Screen cardinals up/left/right/down —
+1. **Four directions, unchanged.** (Since 2026-09-25 the rays follow the stick
+   diagonals by default, `docs/radar-readings.md`; the cardinals below stay
+   selectable.) Screen cardinals up/left/right/down —
    the user's explicit choice after listening to both the 4- and 8-direction
    builds: four sounds are enough information, and the review's 8-direction
    attempt (screen cardinals + diagonals sensing the world axes) was tried

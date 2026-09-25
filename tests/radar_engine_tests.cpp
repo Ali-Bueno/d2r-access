@@ -3,6 +3,7 @@
 #include "test_support.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numbers>
 #include <string_view>
@@ -67,6 +68,26 @@ void AxisProjection() {
 	Check(ScreenAxes[Index(Direction::Up)].y < 0 && ScreenAxes[Index(Direction::Down)].y > 0
 		&& ScreenAxes[Index(Direction::Left)].x < 0 && ScreenAxes[Index(Direction::Right)].x > 0,
 		"each direction is named after the screen side it points to");
+}
+
+void Frames() {
+	// Projection 0x334DB0 again: every ray of both frames sounds on the screen
+	// side it points to and is named after the screen sector it falls in.
+	for (const auto& frame : Rays) for (const auto& ray : frame) {
+		const double screenX = 80 * (ray.world.x - ray.world.y), screenY = 40 * (ray.world.x + ray.world.y);
+		Check(Sign(screenX) == ray.screen.x && Sign(screenY) == ray.screen.y, "every ray sounds on the screen side it points to");
+		Check(std::abs(std::hypot(ray.world.x, ray.world.y) - 1) < 1e-12, "every ray is a unit world vector");
+		Check(ScreenSector(ray.world) == ray.sector, "every ray is named after its own screen sector");
+	}
+	for (size_t i = 0; i < DirectionCount; ++i) {
+		const auto& cardinal = RaysOf(Frame::Cardinal)[i];
+		Check(cardinal.world.x == Axes[i].x && cardinal.world.y == Axes[i].y && cardinal.screen.x == ScreenAxes[i].x
+			&& cardinal.screen.y == ScreenAxes[i].y, "the cardinal frame is the stick cardinals every other feature uses");
+		const auto& diagonal = RaysOf(Frame::Diagonal)[i].world;
+		Check((diagonal.x == 0) != (diagonal.y == 0), "a diagonal ray is a world axis, the way D2's walls run");
+		Check(std::abs(diagonal.x * cardinal.world.x + diagonal.y * cardinal.world.y) - Diagonal < 1e-12,
+			"and meets every cardinal ray at 45 degrees");
+	}
 }
 
 void Thresholds() {
@@ -490,6 +511,47 @@ void AlongAnAxisWall() {
 	}
 }
 
+// A corridor along world x, the way D2 lays them out: seven cells between its
+// walls, a one-tile doorway in one of them, and a wall across its far end.
+void CorridorAlongAWorldAxis() {
+	constexpr int North = 96, South = 104, DoorFrom = 130, DoorTo = 134, End = 150;
+	const auto corridor = [] {
+		auto world = Field();
+		for (int x = 0; x < Size; ++x) { Put(world, x, North, Wall); Put(world, x, South, Wall); }
+		return world;
+	};
+	{
+		Engine engine;
+		auto world = corridor();
+		(void)engine.Tick(world, 1000);
+		for (const auto& sensor : engine.Sensors())
+			Check(sensor.state == State::Blocked, "on the stick cardinals every ray meets a corridor wall at 45 degrees: all four read wall");
+	}
+	Engine engine({.frame = Frame::Diagonal});
+	auto world = corridor();
+	for (int x = DoorFrom; x <= DoorTo; ++x) Put(world, x, North, 0);
+	for (int y = North; y <= South; ++y) Put(world, End, y, Wall);
+	uint64_t now = 1000;
+	Check(Silent(engine.Tick(world, now)), "the baseline is silent");
+	const auto& rays = RaysOf(Frame::Diagonal);
+	for (size_t i = 0; i < DirectionCount; ++i)
+		Check(engine.Sensors()[i].state == (rays[i].world.y == 0 ? State::Open : State::Blocked),
+			"on the diagonals the two rays along the corridor read floor and the two across it read wall");
+	std::array<std::vector<State>, DirectionCount> heard;
+	while (world.player.x < End - Engine::CloseDepth({}, world.bodyPattern)) {
+		world.player.x += 1; // one cell per poll, faster than running
+		const auto events = engine.Tick(world, now += PollMs);
+		for (size_t i = 0; i < DirectionCount; ++i) if (events[i] != State::Unknown) heard[i].push_back(events[i]);
+	}
+	for (size_t i = 0; i < DirectionCount; ++i) {
+		const auto& axis = rays[i].world;
+		if (axis.y < 0) Check(heard[i] == std::vector<State>{State::Open, State::Blocked},
+			"walking along it, the doorway in the side wall sounds as it passes, and the wall after it");
+		if (axis.y > 0 || axis.x < 0) Check(heard[i].empty(), "the plain side wall and the way back say nothing new");
+		if (axis.x > 0) Check(heard[i] == std::vector<State>{State::Blocked}, "the wall across the far end is announced ahead");
+	}
+}
+
 // A small stone on open ground, square across the screen-down route.
 void RockInTheWay() {
 	for (const bool slides : {true, false}) {
@@ -691,6 +753,7 @@ void Rebasing() {
 }
 int main() {
 	AxisProjection();
+	Frames();
 	Thresholds();
 	SilentBaseline();
 	DeadBandBaseline();
@@ -707,6 +770,7 @@ int main() {
 	FrontierFollowsTheLatestWall();
 	AlongAnAxisWall();
 	RockInTheWay();
+	CorridorAlongAWorldAxis();
 	DoorAhead();
 	WayBackTakenAsRead();
 	WayBackLapses();

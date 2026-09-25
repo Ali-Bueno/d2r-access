@@ -60,7 +60,7 @@ HWAVEOUT OpenDevice(HANDLE done) {
 bool PlayOne(HWAVEOUT device, HANDLE done, const Radar::Events& events, const CueSource& source, uint64_t generation) {
 	Radar::Marks marks{};
 	for (size_t i = 0; i < events.size(); ++i) marks[i] = source.unexplored && events[i] != Radar::State::Unknown;
-	auto pcm = Synthesize(events, marks, g_gain);
+	auto pcm = Synthesize(events, marks, g_gain, source.frame);
 	WAVEHDR header{};
 	header.lpData = reinterpret_cast<char*>(pcm.data());
 	header.dwBufferLength = static_cast<DWORD>(pcm.size() * sizeof(int16_t));

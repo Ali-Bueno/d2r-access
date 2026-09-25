@@ -19,6 +19,55 @@ that way" and "that way leads somewhere" are different facts.
 Down is the same sound lowered by the compiled fraction; left and right are
 panned. The `test` audition of `access-radar` plays all four in every direction.
 
+## Rays along the walls: the stick diagonals (2026-09-25)
+
+**Why.** D2's walls and corridors run along the world axes. The four stick
+cardinals are world diagonals (projection `0x334DB0`), so each of their rays
+meets every wall at 45 degrees; in a corridor along a world axis all four read
+wall even though the corridor goes on. The user asked to fix that.
+
+**The stick.** The game turns the stick into movement by rotating it 45 degrees
+into the world, not through the screen projection: over the 41 logged cues of
+2026-09-25 with the stick pushed and the character moving, the velocity is off
+that rotation by a median 6 degrees, against 14.5 for the projection, and the
+stick pushed to a corner (0.87,-0.85) moved along world -Y within 2 degrees.
+So the stick's diagonals are exactly the directions the walls run in.
+
+**The frame.** `Radar::Frame` (`src/radar.h`) holds the rays: `Cardinal`, the old
+stick cardinals, and `Diagonal`, the world axes: up-left (-X), up-right (-Y),
+down-left (+Y), down-right (+X). The service applies `[radar] diagonals`
+(default true); `access-radar diagonal|cardinal` switches for the run, forgets
+what the old rays said (silent baseline) and speaks the four names. Only the
+radar changes; the NPC announcer, terrain overview, scanner and room exits keep
+the screen directions.
+
+- The engine, passage scan and wall memory are unchanged; only the axis differs.
+  The scan's lateral tolerance stays one native cell: on an axis ray that is
+  one column either side, so a doorway exactly as wide as the body is still
+  visible for three cells while walking past it and can be confirmed.
+- Sound: the same tin, tock, knock and breath. Every diagonal is panned to its
+  side (0.9 of the way); the two lower ones take down's pitch (`DownPitch`,
+  `BreathDownPitch`), so left/right and up/down are two independent cues.
+- Unexplored qualifier: `Frontier::Quadrants` marks both frames in one pass; a
+  diagonal ray takes the frontier whose dominant world axis is its own.
+- Names: the readout and the switch use the eight screen sectors
+  (`radarMovementDirections`), already in every locale; logs say `up-left` etc.
+
+**Measured.** A seven-cell corridor along world x: the cardinals read wall in all
+four directions, the diagonals read floor along it and wall across it; walking
+along it a cell per poll, the one-tile doorway in its side wall sounds as floor
+then wall, and the wall across the far end is announced ahead
+(`CorridorAlongAWorldAxis`). Two maze chambers joined by a one-tile doorway,
+walked through along world x: 10 cues on the cardinals (wall and exit flips from
+the 45-degree geometry), 2 on the diagonals (exit ahead, then floor, the way back
+taken as read). Serpentine walks over the two captures give similar totals (Blood
+Moor 76 cardinal / 68 diagonal, camp alcove 42 / 48).
+
+**Limit.** The rays are exact; the stick is not. A stick held a few degrees off
+its corner walks slightly across a corridor, and with wall-slide prevention on
+the character stops when it reaches the side wall. The radar describes the four
+exact diagonals.
+
 ## Precision review against the Among Us sonar (2026-09-25)
 
 The user found the radar mostly right but sometimes imprecise, and silent on
@@ -148,10 +197,8 @@ is dropped on purpose (see the 2026-09-25 review above).
 ## Not ported, and why
 
 - Continuous distance: the world is a subtile grid; nothing to gain.
-- World-axis directions: Among Us walls run along its axes. Ours run along
-  screen diagonals and the four screen cardinals are the user's choice; the
-  pocket whose only way out runs along a world axis is still the exit
-  review's job (`STATUS.md`).
+- World-axis directions: ported on 2026-09-25 as the diagonal frame (above);
+  the cardinals stay selectable.
 - Its pitch encoding is ours already.
 
 Tests: `radar-passage` (door, band, chamber exit, level exit), `radar-engine`

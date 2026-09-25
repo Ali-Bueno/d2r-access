@@ -62,7 +62,8 @@ void Engine::TrackRoom(const World& world, Position motion, Position travel) {
 	size_t back = 0;
 	double best = 0;
 	for (size_t i = 0; i < sensors_.size(); ++i) {
-		const double along = travel.x*Axes[i].x + travel.y*Axes[i].y;
+		const auto& axis = RaysOf(settings_.frame)[i].world;
+		const double along = travel.x*axis.x + travel.y*axis.y;
 		if (along < best) { best = along; back = i; }
 	}
 	if (best < 0) { sensors_[back].wayBack = true; sensors_[back].wayBackAt = motion; }
@@ -109,8 +110,8 @@ State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t n
 		// Backing away from an announced wall lengthens the route without
 		// opening anything. Half the hysteresis band absorbs raster steps;
 		// the wall stops gating once the player has left its neighbourhood.
-		// Dropped, not held: D2 walls meet these rays at 45 degrees, so a held
-		// opening would sound as soon as the player walked along the same wall.
+		// Dropped, not held: D2 walls meet the cardinal rays at 45 degrees, so a
+		// held opening would sound as soon as the player walked along the same wall.
 		const auto& frontier = sensor.frontier;
 		const Position offset{motion.x - frontier.origin.x, motion.y - frontier.origin.y};
 		const double lateral = std::abs(-offset.x*axis.y + offset.y*axis.x);
@@ -201,11 +202,12 @@ Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
 	auto grid = Navigation::Build(structure, PassageRadius(reach, world.bodyPattern));
 	Navigation::LabelRooms(grid, world); // the structural snapshot is one room; membership comes from the real one
 	PassageQuery query{.openDepth = open, .closeDepth = close, .maze = world.maze, .wayThrough = wayThrough_, .exits = &world.exits};
+	const auto& rays = RaysOf(settings_.frame);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		query.committed = sensors_[i].state;
-		sensors_[i].passage = ScanPassage(grid, Axes[i], query);
+		sensors_[i].passage = ScanPassage(grid, rays[i].world, query);
 		sensors_[i].passage.unexplored = Qualify(sensors_[i].passage, world, i);
-		events[i] = Observe(sensors_[i], Axes[i], motion, now);
+		events[i] = Observe(sensors_[i], rays[i].world, motion, now);
 		if (marks && events[i] != State::Unknown) (*marks)[i] = sensors_[i].lastCueUnexplored;
 	}
 	return events;

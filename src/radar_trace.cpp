@@ -4,10 +4,10 @@
 #include <string>
 
 namespace D2RAccess::RadarTrace {
-const char* DirectionName(size_t direction) {
-	constexpr const char* Names[] = {"up", "left", "right", "down"};
-	static_assert(std::size(Names) == Radar::DirectionCount);
-	return direction < Radar::DirectionCount ? Names[direction] : "unknown";
+const char* DirectionName(size_t direction, Radar::Frame frame) {
+	constexpr const char* Sectors[] = {"up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"};
+	static_assert(std::size(Sectors) == Radar::ScreenSectors);
+	return direction < Radar::DirectionCount ? Sectors[Radar::RaysOf(frame)[direction].sector] : "unknown";
 }
 const char* StateName(Radar::State state) {
 	switch (state) {
@@ -51,7 +51,7 @@ void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, con
 	for (size_t direction=0;direction<Radar::DirectionCount;++direction) {
 		const auto& sensor=engine.Sensors()[direction];
 		AsyncLog::InfoF(context,"[radar-direction] event_ms=%llu direction=%s state=%s candidate=%s depth=%.1f open=%.1f close=%.1f available=%u deferred=%s last_cue=%s hold=%s frontier=%u,%.1f",
-			static_cast<unsigned long long>(now),DirectionName(direction),StateName(sensor.state),StateName(sensor.candidate),
+			static_cast<unsigned long long>(now),DirectionName(direction,engine.Configuration().frame),StateName(sensor.state),StateName(sensor.candidate),
 			sensor.passage.depth,sensor.passage.openDepth,sensor.passage.closeDepth,sensor.passage.available?1u:0u,
 			StateName(sensor.deferred),StateName(sensor.lastCue),sensor.hold,sensor.frontier.known?1u:0u,sensor.frontier.projection);
 	}
@@ -61,7 +61,7 @@ void Audio(const D2RL::PluginContext* context, size_t direction, Radar::State st
 	uint64_t now, unsigned result, uint64_t audioMs) {
 	AsyncLog::InfoF(context,
 		"[radar-audio] event_ms=%llu direction=%s state=%s stage=%s reason=%s at_ms=%llu elapsed_ms=%llu audio_ms=%llu session=%llu level=%d origin=%.0f,%.0f source=%s unexplored=%u result=%u",
-		static_cast<unsigned long long>(source.eventMs), DirectionName(direction), StateName(state), stage, reason,
+		static_cast<unsigned long long>(source.eventMs), DirectionName(direction, source.frame), StateName(state), stage, reason,
 		static_cast<unsigned long long>(now), static_cast<unsigned long long>(now >= source.eventMs ? now - source.eventMs : 0),
 		static_cast<unsigned long long>(audioMs), static_cast<unsigned long long>(source.session), source.level,
 		source.position.x, source.position.y, source.audition ? "audition" : "navigation", source.unexplored ? 1u : 0u, result);
