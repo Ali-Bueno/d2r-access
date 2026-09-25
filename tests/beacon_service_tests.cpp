@@ -242,7 +242,7 @@ int main() {
 	visitedRooms = {levelRooms[0]};
 	EntityRadar::Entity unexplored{2, EntityRadar::Kind::Room, {74.5, 24.5}, "unexplored room 2"};
 	unexplored.category = EntityRadar::Category::UnexploredRoom;
-	unexplored.levelExitId = levelRooms[1].id;
+	unexplored.placeId = levelRooms[1].id;
 	BeaconService::Offer(unexplored, 0, GetTickCount64());
 	before = plays;
 	Command("lock");

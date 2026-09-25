@@ -82,8 +82,8 @@ std::vector<GroundItems::Item> Landmarks(const std::vector<EntityRadar::Entity>&
 	std::unordered_set<uint32_t> unitExits;
 	for (const auto& entity : entities) {
 		if (entity.kind != EntityRadar::Kind::Exit) continue;
-		if (entity.levelExitId) {
-			if (!fixedExits.insert(entity.levelExitId).second) continue;
+		if (entity.placeId) {
+			if (!fixedExits.insert(entity.placeId).second) continue;
 		} else if (!unitExits.insert(entity.id).second) continue;
 		GroundItems::Item landmark;
 		landmark.id = entity.id; landmark.position = {entity.position.x, entity.position.y};

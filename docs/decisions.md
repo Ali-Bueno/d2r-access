@@ -3,6 +3,20 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-24 — Fixed places found on a map stay known on that map
+
+The user asked for exits already discovered on a map or dungeon to be readable
+from far away, only on that same map: a map regenerated after a game shows its
+exits only once found again. Then: waypoints too, and anything fixed, but not
+objects, which change. Chosen: exits, waypoints and the stash
+(`MapSurvey::Fixed`) the scanner counts as discovered go into the
+explored-rooms archive under the same key (map seed, level, room-layout
+digest), and the scanner lists them in later games. The key already tells a
+regenerated map apart, online or offline. Rejected: a separate file (a second
+store for the same key); recording what only full assistance listed (never
+discovered); shrines, chests, quest objects and portals, whose type, state or
+presence changes between games. `docs/exploration.md#on-disk`.
+
 ## 2026-09-24 — Unexplored rooms at the edge of the map, in the scanner
 
 The user, after playing: keep the radar, but list unexplored rooms even when unloaded,

@@ -21,7 +21,10 @@ destination does not provide a complete route through unexplored collision.
 Outdoor and town levels are also left by walking across a shared border with no
 warp on it. There (`Levels.txt DrlgType` other than 1) each logical room's near
 rooms contribute one exit per bordering level, named with that level's own name
-at the subtile midpoint of the shared tile edge, where the automap draws it.
+in the middle of the shared tile edge, on this level's last subtile facing the
+neighbour. Room bounds are half-open, so a point on the neighbour's edge stood
+in no room of this level: a border to the east or south was never charted and
+was listed only from within sight of it (fixed 2026-09-24).
 
 ## Evidence for D2R 3.3.93787
 

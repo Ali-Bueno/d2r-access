@@ -86,6 +86,7 @@ add_library(d2r-access SHARED
 	src/native_drlg.cpp
 	src/native_rooms.cpp
 	src/room_graph.cpp
+	src/corpse_memory.cpp
 	src/rooms.cpp
 	src/room_service.cpp
 	src/exit_review.cpp
@@ -411,6 +412,11 @@ if(BUILD_TESTING)
 	target_compile_features(automap-tests PRIVATE cxx_std_20)
 	target_compile_definitions(automap-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME automap COMMAND automap-tests)
+	add_executable(corpse-memory-tests tests/corpse_memory_tests.cpp src/corpse_memory.cpp src/room_graph.cpp src/navigation_grid.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(corpse-memory-tests PRIVATE src)
+	target_compile_features(corpse-memory-tests PRIVATE cxx_std_20)
+	target_compile_definitions(corpse-memory-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME corpse-memory COMMAND corpse-memory-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -558,6 +564,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-policy-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(corpse-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(item-sizes-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

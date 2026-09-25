@@ -89,9 +89,11 @@ helps the player return, but never discovers for them.
   stopping short releases with "The known route to X is no longer available"
   (`reason=known-route-unavailable`). A failed world or room read only skips
   that update.
-- **Unexplored rooms.** The scanner's unexplored-room entries border explored
-  ground, so the beacon admits that one room besides the explored ones: the
-  route may enter it but never crosses it. It arrives as soon as the player
+- **Unexplored rooms.** The scanner's unexplored-room entries share an edge
+  with explored ground, so the beacon admits that one room besides the
+  explored ones: the route may enter it but never crosses it. The waypoint is
+  the room's doorway, the nearest reachable cell inside it
+  (`docs/room-routing.md`). It arrives as soon as the player
   steps into the room, since its centre may be inside a wall. Once entered,
   the room is explored, and what the automap draws there joins the scanner.
 - Explored is room-level: one drawn cell or one step inside a logical room

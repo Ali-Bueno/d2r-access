@@ -160,6 +160,84 @@ void FailureAndBounds() {
 	std::filesystem::remove_all(directory);
 }
 
+// The fixed places found on one map are kept with its rooms, in a later game
+// too, and never offered on a regenerated one.
+void Places() {
+	using ExploredStore::Place;
+	std::vector<Place> known;
+	const Place stairs{9, 0x10002, 102.5, 207, 13, "Al nivel 2 de la Cueva", 4, 3}, border{3, 0x20003, 300, 400, 3, "Llanuras Frías", 4, 3};
+	const Place waypoint{77, 0x50006, 80, 90, 0, "Punto de viaje", 4, 5};
+	Check(ExploredStore::MergePlaces(known, {stairs, border, waypoint}) && known.size() == 3, "new places are added");
+	Place loaded = stairs;
+	loaded.id = 4711, loaded.x = 102;
+	Check(!ExploredStore::MergePlaces(known, {loaded}) && known[0] == stairs,
+		"the loaded warp at the same place is the same exit, and does not rewrite it");
+	Place renamed = stairs;
+	renamed.name = "To Cave Level 2";
+	Check(ExploredStore::MergePlaces(known, {renamed}) && known[0].name == "To Cave Level 2" && known.size() == 3,
+		"a newer name replaces the stored one");
+	Place nowhere = border, oversized = border;
+	nowhere.identity = 0;
+	oversized.identity = 0x30004, oversized.name.assign(ExploredStore::MaxPlaceName + 1, 'x');
+	Check(!ExploredStore::MergePlaces(known, {nowhere, oversized}) && known.size() == 3, "an unplaceable or oversized place is skipped");
+	std::vector<Place> many;
+	for (uint64_t i = 1; i <= ExploredStore::MaxPlaces + 5; ++i) many.push_back({1, i, 1, 1, 0, "x"});
+	std::vector<Place> bounded;
+	ExploredStore::MergePlaces(bounded, many);
+	Check(bounded.size() == ExploredStore::MaxPlaces, "a level keeps a bounded number of places");
+
+	const auto directory = Directory("places");
+	const ExploredStore::Key map{0xABCD1234u, 9, 0x1111}, regenerated{0xABCD1234u, 9, 0x2222};
+	ExploredStore::Store::Table table;
+	table[map] = {{{10, 10, true}}, 1, known};
+	table[regenerated] = {{{50, 50, true}}, 2};
+	Check(ExploredStore::WriteTable(directory, table), "rooms and places save together");
+	ExploredRooms::Memory memory;
+	std::vector<Place> read;
+	Check(ExploredStore::ReadArchive(directory, map, memory, &read) && read == known && memory.Visited(9, 10, 10),
+		"places survive the binary roundtrip exactly, kinds, half subtiles and names included");
+	read = known;
+	Check(ExploredStore::ReadArchive(directory, regenerated, memory, &read) && read.empty(),
+		"another layout of the same level has none of them");
+
+	// An archive written before places were kept still reads, and the next save upgrades it.
+	std::vector<uint8_t> bytes{'D', '2', 'R', 'E', 'X', 'P', '0', '1'};
+	const auto put = [&bytes](uint64_t value, int count) {
+		for (int i = 0; i < count; ++i) bytes.push_back(static_cast<uint8_t>(value >> (i * 8)));
+	};
+	put(1, 4); put(0xABCD1234u, 4); put(9, 4); put(0x1111, 8); put(5, 8); put(1, 4); put(20, 4); put(20, 4); put(2, 1);
+	uint64_t hash = 14695981039346656037ull;
+	for (const uint8_t byte : bytes) { hash ^= byte; hash *= 1099511628211ull; }
+	put(hash, 8);
+	std::filesystem::remove(ExploredStore::ArchiveFile(directory));
+	{
+		std::ofstream out(ExploredStore::ArchiveFile(directory), std::ios::binary);
+		out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+	}
+	ExploredRooms::Memory old;
+	read = known;
+	Check(ExploredStore::ReadArchive(directory, map, old, &read) && old.Visited(9, 20, 20) && read.empty(),
+		"a rooms-only archive loads with no places");
+
+	ExploredStore::Store worker;
+	Check(worker.Start(directory), "the store worker starts on the old archive");
+	for (int i = 0; i < 100 && !worker.Ready(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	worker.Submit({{map, {}, {stairs}}});
+	ExploredRooms::Memory cached;
+	read.clear();
+	Check(worker.Ready() && worker.Load(map, cached, &read) && read.size() == 1 && read[0] == stairs && cached.Visited(9, 20, 20),
+		"a place found this game is cached with the map's stored rooms");
+	worker.Stop();
+	std::ifstream in(ExploredStore::ArchiveFile(directory), std::ios::binary);
+	char magic[8]{};
+	in.read(magic, sizeof magic);
+	in.close();
+	read.clear();
+	Check(std::string(magic, sizeof magic) == "D2REXP02" && ExploredStore::ReadArchive(directory, map, old, &read)
+		&& read.size() == 1 && read[0] == stairs, "shutdown writes the places, upgrading the archive");
+	std::filesystem::remove_all(directory);
+}
+
 // A 60x60 open field in one streamed room; the level has one more room to the
 // right (world +X) never streamed. Frontier lies to the screen right and down,
 // the two quadrants world +X projects into, and nowhere once it is seen.
@@ -202,6 +280,7 @@ int main() {
 	Store();
 	Migration();
 	FailureAndBounds();
+	Places();
 	Quadrants();
 	Passed();
 	return 0;

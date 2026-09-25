@@ -2,6 +2,53 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Exits, waypoints and the stash found on a map stay listed in later games on that map — installed, 2026-09-24
+
+User asked for already discovered exits (maps and dungeons) to be readable from
+afar, only on the same map; a regenerated map shows none until found again.
+Then: waypoints too, and anything fixed, but not objects, which change. Kept:
+exits, waypoints, the stash (`MapSurvey::Fixed`); waypoints and the stash now
+carry a place identity (`Entity::placeId`, renamed from `levelExitId`).
+The scanner already listed them from anywhere within one game. A new game
+depended on the game having their rooms' data again (a room not yet generated
+this game has no presets, `docs/distant-exits.md`; not measured live). Discovered fixed
+places now go into `explored.dat` (format `D2REXP02`, old archives load) under
+the map's seed/level/layout key, and the scanner lists them from there. Also
+fixed: an area border to the east or south fell just outside the level's
+rooms, so it never counted as charted (the Cold Plains never listed the Blood
+Moor or the Burial Grounds). **77/77 suites pass**; installed DLL SHA-256
+`9C851034…` matches the build. **Next step:**
+find an exit and a waypoint, start a new game on the same character, check the
+log's `[terrain] level=… places=N` and that the scanner lists both at once from afar.
+`docs/exploration.md#on-disk`, `docs/entity-scan.md`.
+
+## Player corpses from anywhere on the level — installed, 2026-09-24
+
+User asked for a detector of players' corpses, like the player one, visible
+from any distance. New right-stick category **corpse** (`cadáver`) after
+players: "your corpse" and "X's corpse" (name from the corpse's PlayerData).
+A corpse read nearby is remembered per level for the whole game. A party
+member's corpse is placed even unseen, from the roster at the moment it
+appears. Pickup removes it at once. New static RE: roster life +0x4C, corpse
+ids +0x78, corpse created at the end of the death animation.
+**77/77 suites pass**; installed DLL SHA-256 `9502F540…` matches the build.
+The new `roster-corpses` fingerprints match every captured image, not yet the
+live game. **Next step:** in a party, die far from the friend, check that
+their scanner lists the corpse at once, then retrieve it.
+`docs/player-corpse-re.md`, `docs/entity-scan.md`.
+
+## Routes to unexplored rooms in dungeons — installed, 2026-09-24
+
+User reported the pathfinder struggling to reach unexplored rooms in dungeons.
+The live log showed room routes through rooms that meet only at a corner. The
+beacon waited at a dead end for 30 s, then released
+(`known-route-unavailable`). Routing now links only rooms sharing an edge that
+collision does not prove walled off. It heads for the doorway of the nearest
+reachable room, and to a room's edge only while that room is unloaded. The
+unexplored-room list uses the same rule. **77/77 suites pass**; installed
+(same DLL as above). **Next step:** in a cave, follow several unexplored rooms;
+`[beacon] hop=` should advance room by room. `docs/room-routing.md`.
+
 ## Unexplored rooms in the scanner — installed, 2026-09-24
 
 User: keep the radar; list unexplored rooms even when unloaded, never their

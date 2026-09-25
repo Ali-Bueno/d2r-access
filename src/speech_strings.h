@@ -115,10 +115,12 @@ struct Table {
 	// Map survey: the level-wide catalogue, cycled by category and by object.
 	// Indexed by the switch in MapSurveyService::CategoryName, not by
 	// CategoryOrder: a new category appends here and adds a case there.
-	std::array<const char*, 13> surveyCategories;
+	std::array<const char*, 14> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
 	const char* surveyOrientation; // %s = name, %s = straight-line distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
+	const char* corpseOwn;              // the local player's corpse
+	const char* corpseOf;               // %s = another player's name
 	const char* surveyEmpty;    // %s = category
 	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
@@ -227,7 +229,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
-		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.surveyOrientation,
+		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.surveyOrientation, t.corpseOwn, t.corpseOf,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,

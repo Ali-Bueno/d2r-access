@@ -461,6 +461,8 @@ captures, `scroll-open` and `scroll-visible`.
   | Party ID, word | +0x5A | `0x136570`, see below |
   | Level ID | +0x5C | getter `0x136440`; set by `0x139460`, packet 0x7F, table entry size 10 |
   | X / Y | +0x60 / +0x64 | getter `0x136450`; set by `0x139420` from packet 0x90 (handler `0x12DE30`, size 13: id, X, Y) |
+  | Life percent | +0x4C | set by `0x139460` from packet 0x7F; getter `0x1364A0` (`docs/player-corpse-re.md`) |
+  | Corpse ids | +0x78 | node list `{+0 id, +8 next}` from packet 0x8E (`docs/player-corpse-re.md`) |
 
   `0x136570` returns 0xFFFF unless at least two entries share the party ID.
   The two handlers sit 17 entries apart in the handler table at `0x22BC828`

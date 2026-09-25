@@ -22,14 +22,20 @@ bool SameRooms(const std::vector<ExploredRooms::Room>& a, const std::vector<Expl
 		if (a[i].tileX != b[i].tileX || a[i].tileY != b[i].tileY || a[i].visited != b[i].visited) return false;
 	return true;
 }
+// The record's size in the archive (explored_store.cpp Encode).
+size_t Bytes(const Store::Record& record) {
+	size_t bytes = 30 + 9 * record.rooms.size();
+	for (const auto& place : record.places) bytes += 35 + place.name.size();
+	return bytes;
+}
 void Bound(Store::Table& table) {
 	size_t bytes = 20;
-	for (const auto& [key, record] : table) bytes += 28 + 9 * record.rooms.size();
+	for (const auto& [key, record] : table) bytes += Bytes(record);
 	while (!table.empty() && (table.size() > MaxEntries || bytes > MaxArchiveBytes)) {
 		const auto oldest = std::min_element(table.begin(), table.end(), [](const auto& a, const auto& b) {
 			return a.second.touched < b.second.touched;
 		});
-		bytes -= 28 + 9 * oldest->second.rooms.size();
+		bytes -= Bytes(oldest->second);
 		table.erase(oldest);
 	}
 }
@@ -37,6 +43,9 @@ void MergeFromDisk(Store::Table& current, const Store::Table& loaded, uint64_t& 
 	for (const auto& [key, record] : loaded) {
 		auto& cached = current[key];
 		cached.rooms = UnionRooms(record.rooms, cached.rooms);
+		auto places = record.places; // what this session found is newer than the disk
+		MergePlaces(places, cached.places);
+		cached.places = std::move(places);
 		cached.touched = std::max(record.touched, cached.touched);
 		clock = std::max(clock, cached.touched);
 	}
@@ -55,24 +64,28 @@ bool Store::Start(std::filesystem::path directory) {
 }
 bool Store::Ready() const { std::lock_guard lock(mutex_); return ready_; }
 bool Store::Failed() const { std::lock_guard lock(mutex_); return failed_; }
-bool Store::Load(Key key, ExploredRooms::Memory& memory) const {
+bool Store::Load(Key key, ExploredRooms::Memory& memory, std::vector<Place>* places) const {
 	std::lock_guard lock(mutex_);
 	if (!ready_) return false;
 	const auto found = table_.find(key);
 	if (found == table_.end()) return false;
 	memory.Merge(key.level, found->second.rooms);
+	if (places) *places = found->second.places;
 	return true;
 }
 void Store::Submit(std::vector<Update> updates) {
 	std::lock_guard lock(mutex_);
 	if (stopping_) return;
 	for (auto& update : updates) {
-		if (update.rooms.empty()) continue;
+		if (update.rooms.empty() && update.places.empty()) continue;
 		if (update.rooms.size() > (MaxArchiveBytes - 48) / 9) { failed_ = true; continue; }
 		auto& record = table_[update.key];
 		auto merged = UnionRooms(record.rooms, update.rooms);
-		if (SameRooms(record.rooms, merged)) continue;
+		auto places = record.places;
+		const bool newPlaces = MergePlaces(places, update.places);
+		if (SameRooms(record.rooms, merged) && !newPlaces) continue;
 		record.rooms = std::move(merged);
+		record.places = std::move(places);
 		record.touched = ++clock_;
 		++generation_;
 		dirty_ = true;

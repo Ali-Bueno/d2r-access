@@ -274,10 +274,12 @@ start await a follow-up listening check.
 right stick up or down to change category, and left or right to step through
 it, nearest first. It lists what a sighted player finds on the automap: exits,
 portals, waypoints, NPCs, the stash, shrines, objects, quest containers,
-visited rooms and, in their own category, the unexplored rooms bordering what
-you have explored. It also lists the enemies in sight right now and, in multiplayer,
+visited rooms and, in their own category, the unexplored rooms sharing an
+open edge with what you have explored. It also lists the enemies in sight right now and, in multiplayer,
 the other players nearby and party members anywhere on the same level, by
-name, walls or not. Ground loot and
+name, walls or not. Exits, waypoints and the stash you have found stay listed
+from anywhere on the level in later games too, as long as the map is the same;
+a regenerated map starts with none. Ground loot and
 ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
 and 4/6 (object). See [scanner](docs/entity-scan.md).
 
@@ -303,10 +305,12 @@ generated catalogue: add `full_assistance = true` under `[navigation]` in
 `access-beacon full` (`access-beacon exploration` switches back). See
 [exploration mode](docs/beacon.md#exploration-mode).
 
-Your **recoverable corpse** is also a scan and beacon target when its room is
-loaded. The reader checks the game's ownership link, so another player's body
-is excluded. Picking it up removes the target. Scenery corpses retain their
-ordinary container behavior. See [corpse detection and limits](docs/player-corpse-re.md).
+**Player corpses** have their own scanner category, after players: "your
+corpse" and "X's corpse", from the game's ownership link. Once seen, a corpse
+is listed from anywhere on its level for the rest of the game; a party
+member's corpse is listed even unseen, from the party roster. Picking it up
+removes it. Scenery corpses retain their ordinary container behavior. See
+[corpse detection and limits](docs/player-corpse-re.md).
 The beacon retries a failed room-graph read instead of keeping an empty graph
 for the entire level.
 

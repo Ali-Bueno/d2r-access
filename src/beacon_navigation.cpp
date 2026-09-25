@@ -41,8 +41,7 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	if (from == to) return result;
 	const auto grid = Navigation::Build(result.world, Navigation::MaxRadius);
 	if (ReachableNow(grid, target, margin)) return result;
-	const auto route = RoomGraph::Route(*graph, from, to);
-	const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, route);
+	const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, from, to);
 	// No waypoint: the direct search decides, and exploration still requires it to arrive.
 	if (!goal.known) return result;
 	result.hasWaypoint = true;

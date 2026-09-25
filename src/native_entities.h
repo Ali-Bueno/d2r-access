@@ -1,4 +1,5 @@
 #pragma once
+#include "corpse_memory.h"
 #include "entity_radar.h"
 #include "native_level_exits.h"
 #include <D2RLPlugin/api.h>
@@ -23,6 +24,10 @@ bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>&
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0);
+// Every party roster entry with the corpse ids the client lists for it; false
+// when unreadable or unverified. The second form is factored for tests.
+bool ReadRosterCorpses(uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);
+bool ReadRosterCorpses(uintptr_t head, uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);
 // The current level's room layout around the verified local player, for the
 // terrain overview; `neighbours` also reads the bordering rooms of other levels.
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);

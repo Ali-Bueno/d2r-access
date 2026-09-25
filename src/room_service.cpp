@@ -168,8 +168,8 @@ EntityRadar::Entity Place(const ExitReview::Item& item) {
 	entity.kind = EntityRadar::Kind::Room;
 	entity.position = item.point;
 	entity.name = item.label;
-	entity.levelExitId = NativeLevelExits::Identity(item.point);
-	entity.id = static_cast<uint32_t>(entity.levelExitId) | 1u; // never zero: guidance ignores id 0
+	entity.placeId = NativeLevelExits::Identity(item.point);
+	entity.id = static_cast<uint32_t>(entity.placeId) | 1u; // never zero: guidance ignores id 0
 	return entity;
 }
 bool SideOf(InputDirection::StickPush push, Radar::Direction& side) {

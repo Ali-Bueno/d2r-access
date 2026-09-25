@@ -112,7 +112,7 @@ bool InTargetRoom(const Lifecycle& state, Radar::Position player) {
 	if (g_target.entity.category != EntityRadar::Category::UnexploredRoom) return false;
 	const auto* graph = Rooms(state);
 	const size_t room = graph ? NativeRooms::Containing(graph->rooms, player) : NativeRooms::None;
-	return room != NativeRooms::None && graph->rooms[room].id == g_target.entity.levelExitId;
+	return room != NativeRooms::None && graph->rooms[room].id == g_target.entity.placeId;
 }
 bool Playing() {
 	return RadarUi::InPlay();
@@ -221,7 +221,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 	}
 	// A locked exit may be a warp or a boundary with the next area; read both
 	// so the beacon can still find the one it is leading to.
-	const bool exit = g_target.entity.levelExitId != 0;
+	const bool exit = g_target.entity.kind == EntityRadar::Kind::Exit && g_target.entity.placeId != 0;
 	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {

@@ -218,9 +218,9 @@ void CategoryCycling() {
 void ExplorationDiscoversOnlyNearbyVisibleTargets() {
 	Radar::World world = OpenWorld();
 	auto nearExit = Make(1, 22, 20, EntityRadar::Kind::Exit);
-	nearExit.levelExitId = 100;
+	nearExit.placeId = 100;
 	auto distantExit = Make(2, 38, 20, EntityRadar::Kind::Exit);
-	distantExit.levelExitId = 200;
+	distantExit.placeId = 200;
 	const auto found = Discoverable(world, {nearExit, distantExit, Make(3, 39, 39)});
 	Check(found.size() == 1 && found.front().id == 1,
 		"nearby visible exit is discovered, but generated distant exits and same-room objectives are hidden");
@@ -327,6 +327,27 @@ void ScannerSplitsLandmarksFromLiveEnemies() {
 		"a quest container and a waypoint are landmarks; ordinary chests and loot are left out");
 }
 
+// What a later game on the same map may be told about: only what the layout places.
+void FixedPlacesAreTheLayoutsOwn() {
+	using EntityRadar::Category;
+	using EntityRadar::Kind;
+	const auto place = [](Kind kind, Category category, uint64_t id) {
+		auto entity = Make(1, 10, 10, kind);
+		entity.category = category;
+		entity.placeId = id;
+		return entity;
+	};
+	Check(Fixed(place(Kind::Exit, Category::Exit, 7)), "stairs, passages and borders are fixed");
+	Check(Fixed(place(Kind::Exit, Category::Waypoint, 7)), "a waypoint is fixed");
+	Check(Fixed(place(Kind::Object, Category::Stash, 7)), "the stash is fixed");
+	Check(!Fixed(place(Kind::Exit, Category::Waypoint, 0)), "without a place identity nothing can be matched in another game");
+	Check(!Fixed(place(Kind::Exit, Category::Portal, 7)), "a portal may be gone next game");
+	Check(!Fixed(place(Kind::Object, Category::Shrine, 7)) && !Fixed(place(Kind::Object, Category::Treasure, 7))
+		&& !Fixed(place(Kind::Object, Category::Interactable, 7)), "shrines, chests and other objects change between games");
+	Check(!Fixed(place(Kind::Npc, Category::Npc, 7)) && !Fixed(place(Kind::Room, Category::Room, 7)),
+		"people move, and rooms have their own memory");
+}
+
 int main() {
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
@@ -345,6 +366,7 @@ int main() {
 	FullAssistanceKeepsLevelChangeReset();
 	ScannerSplitsLandmarksFromLiveEnemies();
 	ChartedRoomsAdmitLandmarksOutOfSight();
+	FixedPlacesAreTheLayoutsOwn();
 	Passed();
 	return 0;
 }

@@ -36,8 +36,8 @@ bool TraceSight(const Radar::World& world, Radar::Position from, Radar::Position
 }
 
 bool SameTarget(const Entity& a, const Entity& b) {
-	if (a.kind != b.kind || a.levelExitId != b.levelExitId) return false;
-	return a.levelExitId || a.id == b.id;
+	if (a.kind != b.kind || a.placeId != b.placeId) return false;
+	return a.placeId || a.id == b.id;
 }
 
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {

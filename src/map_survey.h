@@ -57,7 +57,7 @@ public:
 		const std::vector<EntityRadar::Entity>* present = nullptr);
 
 	void Clear();
-	// A return visit retains fixed places; enemies, loot and corpses are transient.
+	// A return visit retains fixed places; enemies and loot are transient.
 	void KeepLandmarks();
 
 	int                                     Level() const { return m_level; }
@@ -95,11 +95,19 @@ private:
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
 
-// What the scanner lists: map landmarks the registry remembers, and enemies
-// and other players read live because they move. Loot and ordinary containers
-// are left to their own sounds; quest containers stay, as the automap draws them.
-struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players; };
+// What the scanner lists: map landmarks the registry remembers, enemies and
+// other players read live because they move, and player corpses, which the
+// corpse memory keeps level-wide. Loot and ordinary containers are left to
+// their own sounds; quest containers stay, as the automap draws them.
+struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players, corpses; };
 Scene Split(std::vector<EntityRadar::Entity> entities);
+
+// A landmark the level's layout puts in the same place in every game on the
+// same map: exits (stairs, level passages, area borders), waypoints and the
+// stash, each with a place identity. Shrines, chests, quest objects and
+// portals are left out: what they are, or whether they are there, changes
+// between games. These are kept with the map (TerrainService::RememberPlaces).
+bool Fixed(const EntityRadar::Entity& entity);
 
 // New discoveries require the scan's ordinary range and an unobstructed view.
 // Fixed exits do not inherit the short scan's through-wall exception.

@@ -2,7 +2,9 @@
 
 #include <windows.h>
 #include <algorithm>
+#include <bit>
 #include <charconv>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -13,7 +15,8 @@
 namespace D2RAccess::ExploredStore {
 namespace {
 constexpr uint64_t FnvOffset = 14695981039346656037ull, FnvPrime = 1099511628211ull;
-constexpr char Magic[] = "D2REXP01";
+// Version 2 adds each map's fixed places after its rooms; version 1 archives still read.
+constexpr char Magic[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
 using Table = Store::Table;
 using Room = ExploredRooms::Room;
 void Fnv(uint64_t& hash, uint8_t byte) { hash ^= byte; hash *= FnvPrime; }
@@ -46,6 +49,9 @@ std::vector<Room> UnionRooms(const std::vector<Room>& a, const std::vector<Room>
 	for (const auto& [position, visited] : rooms) result.push_back({position.first, position.second, visited});
 	return result;
 }
+bool Placeable(const Place& place) {
+	return place.identity && place.name.size() <= MaxPlaceName && std::isfinite(place.x) && std::isfinite(place.y);
+}
 bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 	bytes.assign(Magic, Magic + 8);
 	Put(bytes, table.size(), 4);
@@ -58,13 +64,25 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 			Put(bytes, static_cast<uint32_t>(room.tileY), 4);
 			bytes.push_back(room.visited ? 2 : 1);
 		}
+		if (entry.places.size() > MaxPlaces) return false;
+		Put(bytes, entry.places.size(), 2);
+		for (const auto& place : entry.places) {
+			if (!Placeable(place)) return false;
+			Put(bytes, place.id, 4); Put(bytes, place.identity, 8);
+			Put(bytes, std::bit_cast<uint64_t>(place.x), 8); Put(bytes, std::bit_cast<uint64_t>(place.y), 8);
+			Put(bytes, place.destination, 4); Put(bytes, place.kind, 1); Put(bytes, place.category, 1);
+			Put(bytes, place.name.size(), 1);
+			bytes.insert(bytes.end(), place.name.begin(), place.name.end());
+		}
 		if (bytes.size() + 8 > MaxArchiveBytes) return false;
 	}
 	Put(bytes, Checksum(bytes, bytes.size()), 8);
 	return bytes.size() <= MaxArchiveBytes;
 }
 bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
-	if (bytes.size() < 20 || bytes.size() > MaxArchiveBytes || !std::equal(Magic, Magic + 8, bytes.begin())) return false;
+	if (bytes.size() < 20 || bytes.size() > MaxArchiveBytes) return false;
+	const bool withPlaces = std::equal(Magic, Magic + 8, bytes.begin());
+	if (!withPlaces && !std::equal(MagicRoomsOnly, MagicRoomsOnly + 8, bytes.begin())) return false;
 	size_t at = 8;
 	uint64_t count = 0, word = 0;
 	if (!Get(bytes, at, count, 4) || count > MaxEntries) return false;
@@ -84,6 +102,26 @@ bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 			uint64_t x = 0, y = 0, flag = 0;
 			if (!Get(bytes, at, x, 4) || !Get(bytes, at, y, 4) || !Get(bytes, at, flag, 1) || (flag != 1 && flag != 2)) return false;
 			record.rooms.push_back({static_cast<int32_t>(x), static_cast<int32_t>(y), flag == 2});
+		}
+		if (withPlaces) {
+			if (!Get(bytes, at, word, 2) || word > MaxPlaces) return false;
+			for (uint64_t j = 0; j < word; ++j) {
+				Place place;
+				uint64_t id = 0, x = 0, y = 0, destination = 0, kind = 0, category = 0, length = 0;
+				if (!Get(bytes, at, id, 4) || !Get(bytes, at, place.identity, 8) || !Get(bytes, at, x, 8) || !Get(bytes, at, y, 8)
+					|| !Get(bytes, at, destination, 4) || !Get(bytes, at, kind, 1) || !Get(bytes, at, category, 1)
+					|| !Get(bytes, at, length, 1) || length > bytes.size() - at) return false;
+				place.id = static_cast<uint32_t>(id);
+				place.x = std::bit_cast<double>(x);
+				place.y = std::bit_cast<double>(y);
+				place.destination = static_cast<uint32_t>(destination);
+				place.kind = static_cast<uint8_t>(kind);
+				place.category = static_cast<uint8_t>(category);
+				place.name.assign(reinterpret_cast<const char*>(bytes.data() + at), static_cast<size_t>(length));
+				at += static_cast<size_t>(length);
+				if (!Placeable(place)) return false;
+				record.places.push_back(std::move(place));
+			}
 		}
 		if (!decoded.emplace(key, std::move(record)).second) return false;
 	}
@@ -109,7 +147,8 @@ bool SameTables(const Table& a, const Table& b) {
 	if (a.size() != b.size()) return false;
 	for (const auto& [key, record] : a) {
 		const auto found = b.find(key);
-		if (found == b.end() || found->second.touched != record.touched || !SameRooms(found->second.rooms, record.rooms)) return false;
+		if (found == b.end() || found->second.touched != record.touched || !SameRooms(found->second.rooms, record.rooms)
+			|| found->second.places != record.places) return false;
 	}
 	return true;
 }
@@ -215,6 +254,28 @@ bool LegacyFiles(const std::filesystem::path& directory, std::vector<Legacy>& re
 }
 }
 
+bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found) {
+	bool changed = false;
+	for (const auto& place : found) {
+		if (!Placeable(place)) continue;
+		const auto same = std::find_if(known.begin(), known.end(), [&](const Place& entry) { return entry.identity == place.identity; });
+		if (same != known.end()) {
+			// The position is fixed; a loaded warp and its preset differ only in id and fraction.
+			if (same->name != place.name || same->destination != place.destination
+				|| same->kind != place.kind || same->category != place.category) {
+				same->name = place.name;
+				same->destination = place.destination;
+				same->kind = place.kind;
+				same->category = place.category;
+				changed = true;
+			}
+		} else if (known.size() < MaxPlaces) {
+			known.push_back(place);
+			changed = true;
+		}
+	}
+	return changed;
+}
 bool Key::operator<(const Key& other) const { return std::tie(seed, level, digest) < std::tie(other.seed, other.level, other.digest); }
 std::filesystem::path ArchiveFile(const std::filesystem::path& directory) { return directory / "explored.dat"; }
 uint64_t LayoutDigest(const std::vector<NativeLevelExits::LevelRoom>& rooms) {
@@ -265,12 +326,13 @@ bool MigrateDirectory(const std::filesystem::path& directory, bool* cleanupIncom
 	if (cleanupIncomplete) *cleanupIncomplete = !cleaned;
 	return true; // imported rooms remain usable if cleanup needs another attempt
 }
-bool ReadArchive(const std::filesystem::path& directory, Key key, ExploredRooms::Memory& memory) {
+bool ReadArchive(const std::filesystem::path& directory, Key key, ExploredRooms::Memory& memory, std::vector<Place>* places) {
 	Table table;
 	if (!ReadTable(directory, table)) return false;
 	const auto found = table.find(key);
 	if (found == table.end()) return false;
 	memory.Merge(key.level, found->second.rooms);
+	if (places) *places = found->second.places;
 	return true;
 }
 }

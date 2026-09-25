@@ -169,10 +169,25 @@ inline constexpr Evidence RosterChecks[] = {
 	{0x480AD0, 461, 0x4E34945C8B6B454EULL}, // server: unit path X/Y, sent beyond 50 subtiles
 	{0xD286C, 561, 0x3BE9A00FE07BA259ULL}, // automap marker: same party, unit not loaded, same layer
 };
+// Roster corpses (docs/player-corpse-re.md): packet 0x8E assign prepends a node
+// {+0 corpse id, +8 next} to the owner's list at +0x78, unassign removes it on
+// pickup. Life percent at +0x4C, stored from packet 0x7F.
+inline constexpr size_t RosterLife = 0x4C, RosterCorpses = 0x78, CorpseNodeId = 0, CorpseNodeNext = 8;
+inline constexpr size_t MaxRosterCorpses = 16; // server cap: 0x42C5D7 skips creating a 16th
+inline constexpr Evidence RosterCorpseChecks[] = {
+	{0x12DE10, 29, 0x9C1AF17D2B65342BULL}, // packet 0x7F: party flag, life word +2
+	{0x139460, 1066, 0x8E9FE84BC7E56B4CULL}, // stores life +0x4C and level +0x5C
+	{0x1364A0, 144, 0xE34E738B8459B339ULL}, // life getter +0x4C
+	{0x12E1B0, 23, 0x417C2D277B098B63ULL}, // packet 0x8E: assign or unassign
+	{0x136800, 305, 0x84D2F1F985B870FCULL}, // assign: corpse id node on the owner's +0x78
+	{0x138150, 198, 0x1ADC6CE0B4205817ULL}, // unassign
+};
 inline constexpr Evidence CorpseChecks[] = {
 	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper
 	{0x388BA0, 100, 0xB5FBC7641E1D7F3AULL}, // inventory magic and link ID
 	{0xCE8F0, 344, 0xFBF8C68D0D6D122AULL}, // corpse mode and displayed name
 	{0x4B2C8A, 1679, 0x5F479D4462F948A0ULL}, // pickup compares link ID with player ID
+	{0x12D7E0, 66, 0x8C76B7E4ADFCAF4FULL}, // packet 0x74: owner and corpse ids
+	{0xFF910, 431, 0x00E34CF334B2272AULL}, // 0x74 sets the corpse inventory's link ID
 };
 }

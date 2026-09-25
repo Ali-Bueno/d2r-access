@@ -26,7 +26,8 @@ enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse, Player };
 // carry no SubClass bit of their own.
 enum class Category : uint8_t {
 	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room, Player,
-	UnexploredRoom // a room never stood in, kept apart from Room so the scanner can list where to explore
+	UnexploredRoom, // a room never stood in, kept apart from Room so the scanner can list where to explore
+	Corpse // a player's body, own or another's, listed from anywhere on its level
 };
 
 struct EnemyTraits {
@@ -40,7 +41,10 @@ struct Entity {
 	Kind kind = Kind::Item;
 	Radar::Position position; // collision subtiles, same frame as World::player
 	std::string name; // already localized by the game's own string tables
-	uint64_t levelExitId = 0; // fixed stairs/level passage: coordinate identity, independent of loaded unit id
+	// A fixed place -- stairs, level passage, waypoint, stash -- identified by
+	// where it is (NativeLevelExits::Identity), independent of the loaded unit
+	// id, which changes when the unit is recreated and in every game.
+	uint64_t placeId = 0;
 	// A world object the player opens for loot: chest, casket, urn, barrel,
 	// scenery corpse. Taken from the objects.txt interaction handler, so it holds
 	// in every language, unlike the localized name. Only the chest loop reads it;

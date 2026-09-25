@@ -3,6 +3,7 @@
 
 #include "async_log.h"
 #include "beacon_service.h"
+#include "corpse_memory.h"
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
@@ -24,6 +25,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <mutex>
@@ -54,6 +56,7 @@ struct Lifecycle {
 std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Memory          g_registry;
+CorpseMemory::Memory       g_corpses;
 // The level's logical rooms do not change while the level instance lives, so
 // the native walk happens once per instance rather than on every observation.
 std::vector<NativeRooms::Room> g_roomList;
@@ -94,6 +97,7 @@ void ForgetOtherGames(const Lifecycle& state) {
 	AsyncLog::InfoF(g_context, "[survey] game session %llu: catalogue cleared, %zu entries from the last game dropped",
 		static_cast<unsigned long long>(state.session), g_registry.Entities().size());
 	g_registry.Clear();
+	g_corpses.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
 }
@@ -135,6 +139,7 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Room:         return names[10];
 	case EntityRadar::Category::Player:       return names[11];
 	case EntityRadar::Category::UnexploredRoom: return names[12];
+	case EntityRadar::Category::Corpse:       return names[13];
 	default:                                  return names[8];
 	}
 }
@@ -225,10 +230,9 @@ bool Collect(const Lifecycle& state, Scene& scene) {
 	return true;
 }
 
-// Exploration admits what came into view and, while the automap can be read,
-// anything in a room it has drawn; full assistance everything loaded.
-std::vector<EntityRadar::Entity> Landmarks(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
-	if (g_fullAssistance) return scene.landmarks;
+// What exploration counts as found: what came into view and, while the
+// automap can be read, anything in a room it has drawn.
+std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
 	if (const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)))
 		return MapSurvey::Charted(world, scene.landmarks, *charted);
 	return MapSurvey::Discoverable(world, scene.landmarks);
@@ -239,8 +243,18 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
+// Full assistance lists everything loaded. Only what was discovered is kept
+// for this map's later games, in either mode.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
-	g_registry.Observe(state.level, Landmarks(state, world, scene), grid, !g_fullAssistance, {}, &scene.landmarks);
+	const auto& rooms = CurrentRooms(state.level, state.session);
+	const auto discovered = Discovered(state, world, scene);
+	g_registry.Observe(state.level, g_fullAssistance ? scene.landmarks : discovered, grid, !g_fullAssistance, {}, &scene.landmarks);
+	TerrainService::RememberPlaces(state.level, rooms, discovered);
+	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
+		return CorpseMemory::Covered(rooms, grid, world.player, position);
+	});
+	std::vector<CorpseMemory::Owner> owners;
+	if (NativeEntities::ReadRosterCorpses(state.player, owners)) g_corpses.Track(owners, Strings::Current().corpseOf);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -262,10 +276,18 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	Scene scene;
 	if (Collect(state, scene)) Observe(state, world, grid, scene);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
+	// Fixed places found on this same map in an earlier game, whose rooms the
+	// game has not streamed again; the live read wins where both have one.
+	for (auto& place : TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session)))
+		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) { return EntityRadar::SameTarget(known, place); }))
+			catalogued.push_back(std::move(place));
 	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
+	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
+	const auto corpses = g_corpses.Entities(state.level);
+	catalogued.insert(catalogued.end(), corpses.begin(), corpses.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;
 }
@@ -445,6 +467,7 @@ void Shutdown() {
 	g_listeners.clear();
 	g_actions.clear();
 	g_registry.Clear();
+	g_corpses.Clear();
 }
 
 }

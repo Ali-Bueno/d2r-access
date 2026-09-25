@@ -182,6 +182,16 @@ void OpenField() {
 	Check(Dot(capped.heading, {1, 0}) > 0.9, "an unproved far target is still walked toward");
 	Check(capped.path.back().x == 110 + bounded.searchRadius, "the route stops on the edge of the search box");
 
+	// A winding route leaves the box its straight line fits in: a wall between
+	// player and target, open only far below both, must still be proved.
+	auto hairpin = Field({110, 110});
+	Column(hairpin, 120, Wall);
+	Put(hairpin, 120, 200, 0);
+	const auto around = Beacon::FindRoute(hairpin, At(130, 110), s);
+	Check(around.reachable, "a route that loops far outside the straight-line box is still found");
+	Check(std::any_of(around.path.begin(), around.path.end(), [](Position p) { return p.x == 120 && p.y == 200; }),
+		"and it goes through the only gap");
+
 	// Degenerate: standing on the target leaves the search nothing to improve.
 	auto here = Field({110, 110});
 	const auto none = Beacon::FindRoute(here, {110, 110}, s);
