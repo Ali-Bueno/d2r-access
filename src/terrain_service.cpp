@@ -7,6 +7,7 @@
 #include "frontier.h"
 #include "input_direction.h"
 #include "level_exit_layout.h"
+#include "map_survey.h"
 #include "native_automap.h"
 #include "native_drlg.h"
 #include "native_entities.h"
@@ -67,6 +68,8 @@ bool g_supported = false, g_roomSounds = true;
 std::filesystem::path g_directory;
 ExploredStore::Store g_store;
 std::map<uint32_t, ExploredStore::Key> g_keys;
+// Fixed places found per map; stored ones join when the level's record loads.
+std::map<ExploredStore::Key, std::vector<ExploredStore::Place>> g_places;
 uint32_t g_loadedLevel = 0;
 uint64_t g_nextLoadTry = 0; // the radar asks every poll; the layout is read at most this often
 uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
@@ -76,10 +79,12 @@ int g_frontierLevel = 0;
 
 // Caller holds g_mutex.
 void SaveAll(const D2RL::PluginContext* context) {
-	if (!g_explored.Dirty() || g_directory.empty()) return;
+	if ((!g_explored.Dirty() && g_places.empty()) || g_directory.empty()) return;
 	std::vector<ExploredStore::Update> updates;
-	for (const auto& [level, key] : g_keys)
-		updates.push_back({key, g_explored.Snapshot(level)});
+	for (const auto& [level, key] : g_keys) {
+		const auto places = g_places.find(key);
+		updates.push_back({key, g_explored.Snapshot(level), places == g_places.end() ? std::vector<ExploredStore::Place>{} : places->second});
+	}
 	g_store.Submit(std::move(updates));
 	if (g_store.Failed()) AsyncLog::Warn(context, "[terrain] exploration archive unavailable; pending changes will retry.");
 }
@@ -93,11 +98,15 @@ void LoadLevel(const D2RL::PluginContext* context, const NativeLevelExits::Layou
 	const ExploredStore::Key key{seed, native.level, ExploredStore::LayoutDigest(native.rooms)};
 	g_keys[native.level] = key;
 	if (!g_store.Ready()) return; // archive loading and legacy migration never block this tick
-	const bool loaded = g_store.Load(key, g_explored);
+	std::vector<ExploredStore::Place> stored;
+	const bool loaded = g_store.Load(key, g_explored, &stored);
+	auto& places = g_places[key];
+	ExploredStore::MergePlaces(stored, places); // found this game is newer than the disk
+	places = std::move(stored);
 	g_loadedLevel = native.level;
-	AsyncLog::InfoF(context, "[terrain] level=%u seed=%08X rooms=%zu %s %s: seen=%zu visited=%zu", native.level, seed,
+	AsyncLog::InfoF(context, "[terrain] level=%u seed=%08X rooms=%zu %s %s: seen=%zu visited=%zu places=%zu", native.level, seed,
 		native.rooms.size(), loaded ? "loaded" : "new", ExploredStore::ArchiveFile(g_directory).filename().string().c_str(),
-		g_explored.Count(native.level), g_explored.VisitedCount(native.level));
+		g_explored.Count(native.level), g_explored.VisitedCount(native.level), places.size());
 }
 void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -120,6 +129,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 	if (newSession) {
 		g_explored.Forget();
 		g_keys.clear();
+		g_places.clear();
 		g_loggedLevel = 0;
 		g_loggedRooms = 0;
 	}
@@ -141,6 +151,18 @@ void CheckBounds(const D2RL::PluginContext* context, const NativeLevelExits::Lay
 	AsyncLog::WarnF(context, "[terrain] level=%u rect=%d,%d %dx%d differs from the room union %d,%d %dx%d",
 		native.level, native.rect.x, native.rect.y, native.rect.width, native.rect.height,
 		box.x, box.y, box.width, box.height);
+}
+// Caller holds g_mutex. The key of the loaded record for `level`, when the
+// player is there and `rooms` are that record's layout.
+const ExploredStore::Key* LoadedKey(int level, const std::vector<NativeRooms::Room>& rooms) {
+	if (level <= 0 || g_loadedLevel != static_cast<uint32_t>(level) || g_state.level != level || rooms.empty()) return nullptr;
+	const auto key = g_keys.find(static_cast<uint32_t>(level));
+	if (key == g_keys.end()) return nullptr;
+	std::vector<NativeLevelExits::LevelRoom> layout;
+	layout.reserve(rooms.size());
+	for (const auto& room : rooms)
+		layout.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight}, false});
+	return ExploredStore::LayoutDigest(layout) == key->second.digest ? &key->second : nullptr;
 }
 // One spoken summary of the level around the player.
 void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
@@ -363,18 +385,45 @@ bool Visited(int level, int tileX, int tileY) {
 std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms) {
 	std::lock_guard lock(g_mutex);
 	std::vector<NativeRooms::Room> visited;
-	if (level <= 0 || g_loadedLevel != static_cast<uint32_t>(level)
-		|| g_state.level != level || rooms.empty()) return visited;
-	const auto key = g_keys.find(static_cast<uint32_t>(level));
-	if (key == g_keys.end()) return visited;
-	std::vector<NativeLevelExits::LevelRoom> layout;
-	layout.reserve(rooms.size());
-	for (const auto& room : rooms)
-		layout.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight}, false});
-	if (ExploredStore::LayoutDigest(layout) != key->second.digest) return visited;
+	if (!LoadedKey(level, rooms)) return visited;
 	for (const auto& room : rooms)
 		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
 	return visited;
+}
+
+std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::lock_guard lock(g_mutex);
+	std::vector<EntityRadar::Entity> result;
+	const auto* key = LoadedKey(level, rooms);
+	const auto places = key ? g_places.find(*key) : g_places.end();
+	if (places == g_places.end()) return result;
+	for (const auto& place : places->second) {
+		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
+			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
+		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
+		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		result.push_back(std::move(entity));
+	}
+	return result;
+}
+
+void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found) {
+	std::vector<ExploredStore::Place> fixed;
+	for (const auto& entity : found)
+		if (MapSurvey::Fixed(entity))
+			fixed.push_back({entity.id, entity.placeId, entity.position.x, entity.position.y, entity.destinationLevel, entity.name,
+				static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category)});
+	if (fixed.empty()) return;
+	std::lock_guard lock(g_mutex);
+	const auto* key = LoadedKey(level, rooms);
+	if (!key) return;
+	auto& known = g_places[*key];
+	for (const auto& place : fixed) {
+		const bool fresh = std::none_of(known.begin(), known.end(), [&](const auto& entry) { return entry.identity == place.identity; });
+		if (ExploredStore::MergePlaces(known, {place}) && fresh)
+			AsyncLog::InfoF(g_context, "[terrain] place remembered level=%d at=%.0f,%.0f category=%u to=%u places=%zu name=%s", level,
+				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str());
+	}
 }
 
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
@@ -402,6 +451,7 @@ void Unregister() {
 	std::lock_guard lock(g_mutex);
 	g_explored.Forget();
 	g_keys.clear();
+	g_places.clear();
 	g_state = {};
 	g_asked = false;
 	g_supported = false;

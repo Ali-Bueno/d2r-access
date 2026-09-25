@@ -2,6 +2,7 @@
 
 #include "entity_radar.h"
 #include "native_rooms.h"
+#include "navigation_grid.h"
 #include "radar.h"
 
 #include <cstdint>
@@ -88,10 +89,11 @@ private:
 };
 
 // Exploration mode's rooms: those stood in (`visited`, or the entry's own flag)
-// and the unexplored ones near `explored` ground (RoomGraph::Near) -- the edge
-// of the known map, never what lies beyond it. `docs/entity-scan.md`
+// and the unexplored ones sharing an edge with `explored` ground that `grid`, when
+// given, does not prove walled off -- the edge of the known map. `docs/entity-scan.md`
 std::vector<Entry> Exploration(const std::vector<Entry>& entries,
-	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored);
+	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored,
+	const Navigation::Grid* grid = nullptr);
 
 // One catalogue entity per room. `explored` and `unexplored` are printf
 // formats taking the room number; unexplored rooms get their own category.

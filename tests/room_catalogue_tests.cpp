@@ -64,7 +64,7 @@ int main() {
 	Check(entities[0].name == "room 1", "an explored room is named by its number");
 	Check(entities[1].name == "unexplored room 2", "a room never entered says so, and still says where it is");
 	Check(entities[0].category == EntityRadar::Category::Room && entities[0].kind == EntityRadar::Kind::Room, "rooms are their own kind and category");
-	Check(entities[0].levelExitId == Level[0].id && entities[0].levelExitId != entities[1].levelExitId, "identity is the room's rectangle, so it survives a rebuilt list");
+	Check(entities[0].placeId == Level[0].id && entities[0].placeId != entities[1].placeId, "identity is the room's rectangle, so it survives a rebuilt list");
 	Check(entities[0].position.x == 19.5, "the entity sits at the room centre for bearing and ordering");
 	Check(!EntityRadar::SameTarget(entities[0], entities[1]), "two rooms are never the same target");
 
@@ -92,6 +92,19 @@ int main() {
 	const auto edge = RoomCatalogue::Entities(listed, "room %d", "unexplored room %d");
 	Check(edge[0].category == EntityRadar::Category::Room && edge[2].category == EntityRadar::Category::UnexploredRoom
 		&& edge[2].name == "unexplored room 4", "the edge rooms keep their level-wide numbers");
+	// Only a shared edge leads into a room, and not one the collision shows walled off.
+	RoomCatalogue::Registry corner;
+	corner.Observe(10, Seed, {Room(0, 0), Room(8, 8), Room(13, 0)}, {5, 5});
+	Check(RoomCatalogue::Exploration(corner.Entries(), {}, {}).size() == 1,
+		"a room meeting known ground at a corner, or across a gap, is not the edge");
+	Navigation::Grid walled;
+	walled.width = 80, walled.height = 40;
+	walled.cells.resize(80 * 40);
+	for (int y = 0; y < 40; ++y) walled.cells[static_cast<size_t>(y) * 80 + 39].body = Radar::State::Blocked;
+	RoomCatalogue::Registry pair;
+	pair.Observe(11, Seed, Level, {5, 5});
+	Check(RoomCatalogue::Exploration(pair.Entries(), {}, {}, &walled).size() == 1, "a neighbour behind a known wall is not the edge");
+	Check(RoomCatalogue::Exploration(pair.Entries(), {}, {}).size() == 2, "without collision a shared edge is still the edge");
 
 	// The remembered set is bounded, and bounded by dropping the oldest.
 	RoomCatalogue::Registry bounded;

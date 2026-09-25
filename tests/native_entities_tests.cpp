@@ -8,6 +8,7 @@
 #include "test_support.h"
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -167,9 +168,9 @@ void PlayerCorpseOwnership() {
 	std::vector<EntityRadar::Entity> entities;
 	Check(f.Read(entities), "native scan reads a room containing the player's corpse");
 	const auto* own = f.Find(entities, 50);
-	Check(own && own->kind == EntityRadar::Kind::Corpse && own->category == EntityRadar::Category::Interactable
-		&& own->name == "Cadáver" && !own->container && own->position.x == 105 && own->position.y == 110,
-		"only the linked player's body becomes a localized, positioned scan and beacon target without container audio");
+	Check(own && own->kind == EntityRadar::Kind::Corpse && own->category == EntityRadar::Category::Corpse
+		&& own->name == Strings::Current().corpseOwn && !own->container && own->position.x == 105 && own->position.y == 110,
+		"the local player's body becomes a named, positioned corpse target without container audio");
 	Check(f.Find(entities, 17) && f.Find(entities, 17)->container,
 		"the scenery casket remains an ordinary container, never a player corpse");
 	const auto corpse = *own;
@@ -186,7 +187,22 @@ void PlayerCorpseOwnership() {
 		&& !f.Find(entities, 50) && f.Find(entities, 7) && f.Find(entities, 17),
 		"disabling only corpse recognition preserves NPC and ordinary object scanning");
 	inventory.At<uint32_t>(InventoryLinkId, 43);
-	Check(f.Read(entities) && !f.Find(entities, 50), "another player's corpse is excluded by inventory owner ID");
+	Check(f.Read(entities) && f.Find(entities, 50) && f.Find(entities, 50)->name == "Cadáver",
+		"another player's corpse is listed too, with the game's own word when its name cannot be read");
+	Memory<PathSize> corpseData;
+	corpseData.Text(PlayerName, "Ñandú");
+	body.At(GroundItemLayout::UnitData, corpseData.Address());
+	char named[128]{};
+	std::snprintf(named, sizeof named, Strings::Current().corpseOf, "Ñandú");
+	Check(f.Read(entities) && f.Find(entities, 50) && f.Find(entities, 50)->name == named,
+		"another player's corpse is named after the character in its PlayerData");
+	Check(NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, true, false)
+		&& f.Find(entities, 50)->name == "Cadáver", "without the verified name reader it keeps the game's word");
+	body.At<uintptr_t>(GroundItemLayout::UnitData, 0);
+	inventory.At<uint32_t>(InventoryLinkId, 0);
+	Check(f.Read(entities) && !f.Find(entities, 50), "a body whose inventory names no owner is not a corpse");
+	inventory.At<uint32_t>(InventoryLinkId, 50);
+	Check(f.Read(entities) && !f.Find(entities, 50), "a dead player's own body, before respawn, is not its corpse");
 	inventory.At<uint32_t>(InventoryLinkId, 42);
 	body.At<uint32_t>(GroundItemLayout::UnitMode, 1);
 	Check(f.Read(entities) && !f.Find(entities, 50), "a living player with the same inventory link is excluded");
@@ -199,7 +215,8 @@ void PlayerCorpseOwnership() {
 	ownerRef.At<uint32_t>(InventoryRefCount, 1);
 	ownedInventory.At<uint32_t>(0, InventoryMagic);
 	ownedInventory.At<uint32_t>(InventoryLinkId, 43);
-	Check(f.Read(entities) && !f.Find(entities, 50), "a live inventory wrapper takes precedence over the base inventory");
+	Check(f.Read(entities) && f.Find(entities, 50) && f.Find(entities, 50)->name != Strings::Current().corpseOwn,
+		"a live inventory wrapper takes precedence over the base inventory");
 	ownedInventory.At<uint32_t>(InventoryLinkId, 42);
 	Check(f.Read(entities) && f.Find(entities, 50), "an owned wrapper can identify the player's corpse");
 	ownerRef.At<uint32_t>(InventoryRefCount, 0);
@@ -256,6 +273,35 @@ void OtherPlayersAreListed() {
 	allyData.Text(PlayerName, "Ñandú");
 	Check(NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, true, false)
 		&& !f.Find(entities, 60) && f.Find(entities, 7), "disabling only player recognition preserves the rest of the scan");
+}
+void RosterCorpseLists() {
+	// Me, a party member with two corpses on another level, and a stranger with one.
+	std::array<Memory<RosterNext + 8>, 3> roster;
+	Memory<CorpseNodeNext + 8> first, second, third;
+	struct Row { uint32_t id; uint16_t party; uint32_t level; int32_t x, y; uint32_t life; const char* name; uintptr_t corpses; };
+	const std::array<Row, 3> rows{{{42, 3, 2, 100, 100, 100, "Yo", 0}, {70, 3, 5, 300, 400, 0, "Lejos", first.Address()},
+		{72, NoParty, 2, 0, 0, 0, "Sin grupo", third.Address()}}};
+	for (size_t i = 0; i < rows.size(); ++i) {
+		roster[i].Text(RosterName, rows[i].name);
+		roster[i].At(RosterUnitId, rows[i].id); roster[i].At(RosterParty, rows[i].party); roster[i].At(RosterLevel, rows[i].level);
+		roster[i].At(RosterX, rows[i].x); roster[i].At(RosterY, rows[i].y); roster[i].At(RosterLife, rows[i].life);
+		roster[i].At(RosterCorpses, rows[i].corpses);
+		if (i + 1 < rows.size()) roster[i].At(RosterNext, roster[i + 1].Address());
+	}
+	first.At<uint32_t>(CorpseNodeId, 90); first.At(CorpseNodeNext, second.Address());
+	second.At<uint32_t>(CorpseNodeId, 91);
+	third.At<uint32_t>(CorpseNodeId, 92);
+	std::vector<CorpseMemory::Owner> owners;
+	Check(NativeEntities::ReadRosterCorpses(roster[0].Address(), 42, owners) && owners.size() == 3, "every roster entry is read");
+	Check(!owners[0].partyMember && owners[0].corpses.empty() && owners[0].life == 100, "the local player is nobody's party member");
+	Check(owners[1].partyMember && owners[1].name == "Lejos" && owners[1].level == 5 && owners[1].located
+		&& owners[1].position.x == 300 && owners[1].position.y == 400 && owners[1].life == 0
+		&& owners[1].corpses == std::vector<uint32_t>{90, 91}, "a member's level, position, life and corpse ids are read");
+	Check(!owners[2].partyMember && !owners[2].located && owners[2].corpses == std::vector<uint32_t>{92},
+		"a stranger's corpses are listed without a place");
+	second.At(CorpseNodeNext, first.Address());
+	Check(NativeEntities::ReadRosterCorpses(roster[0].Address(), 42, owners) && owners[1].corpses.size() == MaxRosterCorpses,
+		"a looping corpse list is bounded");
 }
 void DistantPartyMembers() {
 	Fixture f;
@@ -381,6 +427,7 @@ void CairnStoneModes() {
 }
 int main() {
 	PlayerCorpseOwnership();
+	RosterCorpseLists();
 	OtherPlayersAreListed();
 	DistantPartyMembers();
 	QuestObjectModes();
@@ -396,6 +443,9 @@ int main() {
 	Check(portal && portal->kind == EntityRadar::Kind::Exit && portal->name == "Llanuras Frías", "an open town portal is an exit named after its destination level");
 	const auto* waypoint = f.Find(entities, 15);
 	Check(waypoint && waypoint->kind == EntityRadar::Kind::Exit && waypoint->name == "Punto de ruta", "a waypoint is an exit by its SubClass bit");
+	Check(waypoint->placeId == NativeLevelExits::Identity(waypoint->position),
+		"a waypoint is identified by where it stands, so a later game can match it");
+	Check(!portal->placeId && !f.Find(entities, 11)->placeId, "a portal or a shrine is not a fixed place");
 	const auto* lair = f.Find(entities, 16);
 	Check(lair && lair->kind == EntityRadar::Kind::Exit && lair->name == "Guarida de Duriel", "an object named after a level is an exit");
 	Check(f.Find(entities, 9)->kind == EntityRadar::Kind::Object, "ordinary objects keep their kind");
@@ -538,7 +588,7 @@ int main() {
 	preset.At<int>(PresetX, 20); preset.At<int>(PresetY, 0);
 	Check(distant.Read(entities) && entities.size() == 10, "proximity and loop readers retain only native nearby units");
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)
-		&& entities.size() == 11 && entities.back().name == "A las Llanuras Frías" && entities.back().levelExitId,
+		&& entities.size() == 11 && entities.back().name == "A las Llanuras Frías" && entities.back().placeId,
 		"directional scan opts into named distant preset exits");
 	farRoom.At<int>(RoomTileX, 20); farRoom.At<int>(RoomTileY, 20);
 	Check(NativeEntities::ReadPlayer(distant.player.Address(), distant.tables.Address(), 42, 7, entities, true)

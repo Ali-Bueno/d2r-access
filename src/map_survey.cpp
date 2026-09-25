@@ -23,6 +23,7 @@ constexpr EntityRadar::Category CategoryOrder[] = {
 	EntityRadar::Category::Room,
 	EntityRadar::Category::Npc,
 	EntityRadar::Category::Player,
+	EntityRadar::Category::Corpse,
 	EntityRadar::Category::Stash,
 	EntityRadar::Category::Enemy,
 	EntityRadar::Category::Treasure,
@@ -184,6 +185,7 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 	for (auto& entity : entities) {
 		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Player) scene.players.push_back(std::move(entity));
+		else if (entity.category == EntityRadar::Category::Corpse) scene.corpses.push_back(std::move(entity));
 		else if (entity.category != EntityRadar::Category::Item
 			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
 			scene.landmarks.push_back(std::move(entity));
@@ -203,6 +205,14 @@ std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
 	for (const auto& entity : entities)
 		if (InView(world, entity, range)) result.push_back(entity);
 	return result;
+}
+
+bool Fixed(const EntityRadar::Entity& entity) {
+	using EntityRadar::Category;
+	using EntityRadar::Kind;
+	if (!entity.placeId) return false;
+	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint))
+		|| (entity.kind == Kind::Object && entity.category == Category::Stash);
 }
 
 std::vector<EntityRadar::Entity> Charted(const Radar::World& world,

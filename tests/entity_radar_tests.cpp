@@ -108,7 +108,7 @@ void LevelExitIdentity() {
 	auto respawned = stairs; respawned.id = 900;
 	Check(SameTarget(stairs, respawned), "a level exit survives unit recreation");
 	Check(!SameTarget(stairs, enemy), "a native enemy id cannot alias a level exit");
-	auto second = stairs; second.levelExitId = 4567;
+	auto second = stairs; second.placeId = 4567;
 	Check(!SameTarget(stairs, second), "separate exits with the same warp class keep distinct identities");
 }
 

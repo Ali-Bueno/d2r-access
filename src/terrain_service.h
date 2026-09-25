@@ -1,5 +1,6 @@
 #pragma once
 
+#include "entity_radar.h"
 #include "radar.h"
 #include "native_rooms.h"
 #include <D2RLPlugin/api.h>
@@ -22,6 +23,15 @@ bool Visited(int level, int tileX, int tileY);
 bool Known(int level); // at least one room of that level seen
 // A validated snapshot of logical rooms stood in on the loaded current level.
 std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms);
+// The fixed places found on this map in any game (MapSurvey::Fixed: exits,
+// waypoints, the stash), so a later game on the same map lists them from
+// anywhere, before the game streams their rooms again. Empty until the
+// level's record is loaded, and when `rooms` (NativeRooms::Read) are not that
+// record's layout: a regenerated map starts with none. `docs/exploration.md`
+std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms);
+// Keeps the fixed places among `found` (what the scanner counts as
+// discovered) with the record of the map `rooms` belong to.
+void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found);
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);

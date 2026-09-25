@@ -120,11 +120,9 @@ const char* ReachWord(const Radar::World& world, Position target, const Settings
 	return nullptr;
 }
 
-Route FindRoute(const Radar::World& world, Position target, const Settings& settings) {
+namespace {
+Route Search(const Radar::World& world, Position target, const Settings& settings, int radius) {
 	Route route;
-	const Position straight{target.x - world.player.x, target.y - world.player.y};
-	const int radius = static_cast<int>(std::clamp(std::ceil(Length(straight)) + settings.lookAhead,
-		static_cast<double>(MinRadius), settings.searchRadius));
 	const int startX = Cell(world.player.x), startY = Cell(world.player.y);
 	const int side = 2*radius + 1;
 	const Field field = Copy(world, startX - radius, startY - radius, side, side);
@@ -179,6 +177,17 @@ Route FindRoute(const Radar::World& world, Position target, const Settings& sett
 	route.heading = {heading.x / distance, heading.y / distance};
 	route.known = true;
 	return route;
+}
+}
+
+Route FindRoute(const Radar::World& world, Position target, const Settings& settings) {
+	const Position straight{target.x - world.player.x, target.y - world.player.y};
+	const int radius = static_cast<int>(std::clamp(std::ceil(Length(straight)) + settings.lookAhead,
+		static_cast<double>(MinRadius), settings.searchRadius));
+	const auto route = Search(world, target, settings, radius);
+	// A winding route can leave the box its straight line fits in.
+	const int widest = static_cast<int>(settings.searchRadius);
+	return route.reachable || radius >= widest ? route : Search(world, target, settings, widest);
 }
 
 void Tracker::Lock(uint64_t now) {

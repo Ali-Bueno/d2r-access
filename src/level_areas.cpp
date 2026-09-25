@@ -14,12 +14,15 @@ int Gap(int loA, int sizeA, int loB, int sizeB) {
 	return loA < loB ? loB - (loA + sizeA) : loA - (loB + sizeB);
 }
 
-// Where the player crosses, on one axis: the middle of the span the two areas
-// share where they overlap, and otherwise the neighbour's facing edge.
-int Meeting(int loA, int sizeA, int loB, int sizeB) {
+// Where the player leaves area A, in subtiles on one axis: the middle of the
+// span the two areas share where they overlap, and otherwise A's own last
+// subtile facing B. Room bounds are half-open, so the neighbour's edge would
+// stand in no room of A and the automap would never chart the crossing.
+double Leaving(int loA, int sizeA, int loB, int sizeB) {
+	constexpr int Subtiles = LevelExitLayout::SubtilesPerTile;
 	const int lo = std::max(loA, loB), hi = std::min(loA + sizeA, loB + sizeB);
-	if (lo < hi) return lo + (hi - lo) / 2;
-	return loA + sizeA <= loB ? loB : loB + sizeB;
+	if (lo < hi) return static_cast<double>((lo + (hi - lo) / 2) * Subtiles);
+	return static_cast<double>(loA + sizeA <= loB ? (loA + sizeA) * Subtiles - 1 : loA * Subtiles);
 }
 
 }
@@ -34,12 +37,10 @@ std::vector<Crossing> Neighbours(const std::vector<NativeLevelAreas::Area>& area
 		const int gapX = Gap(here->tileX, here->tileWidth, area.tileX, area.tileWidth);
 		const int gapY = Gap(here->tileY, here->tileHeight, area.tileY, area.tileHeight);
 		if (gapX >= RoomGraph::NearGapTiles || gapY >= RoomGraph::NearGapTiles) continue;
-		const int x = Meeting(here->tileX, here->tileWidth, area.tileX, area.tileWidth);
-		const int y = Meeting(here->tileY, here->tileHeight, area.tileY, area.tileHeight);
 		Crossing crossing;
 		crossing.level = area.level;
-		crossing.position = {static_cast<double>(x) * LevelExitLayout::SubtilesPerTile,
-			static_cast<double>(y) * LevelExitLayout::SubtilesPerTile};
+		crossing.position = {Leaving(here->tileX, here->tileWidth, area.tileX, area.tileWidth),
+			Leaving(here->tileY, here->tileHeight, area.tileY, area.tileHeight)};
 		crossing.gapTiles = std::max({gapX, gapY, 0});
 		result.push_back(crossing);
 	}

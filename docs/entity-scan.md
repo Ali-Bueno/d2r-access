@@ -26,6 +26,16 @@ automap; enemies are the one live category.
   interactable objects, quest containers and visited rooms — are remembered by
   the registry (`MapSurvey::Memory`). Exits and objects stay for the whole game,
   so they are still there after a town trip.
+- **Fixed places** — exits (stairs, level passages, area borders), waypoints
+  and the stash (`MapSurvey::Fixed`) — are also kept on disk with the map they
+  were found on, keyed like the explored rooms by map seed, level and room
+  layout. A later game on the same map lists them from anywhere on the level,
+  before the game streams their rooms again. A regenerated map has another key,
+  so its places appear only once discovered again. Only what exploration counts
+  as discovered is kept, in either mode. Shrines, chests, quest objects and
+  portals are not kept: what they are, or whether they are there, changes
+  between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
+  `docs/exploration.md#on-disk`).
 - **Enemies** are never remembered: each answer lists the enemies in range and
   in sight right now, nearest first.
 - **Players** (multiplayer) are the other living characters in the game, read
@@ -37,11 +47,18 @@ automap; enemies are the one live category.
   position when the teammate is more than 50 steps away; how often it is
   refreshed has not been measured. Players outside the party, or on another level, are not
   listed (`docs/entity-units-re.md` §12).
+- **Corpses** (`cadáver`, right after players) are every player's body: "your
+  corpse", or "X's corpse". Once read nearby, a corpse is listed from anywhere
+  on its level for the rest of the game, in both modes and without the sight
+  rule, until its place is read again without it or its owner takes it back.
+  A party member's corpse is placed even unseen, on any level, from the party
+  roster at the moment it appears (`CorpseMemory`, `docs/player-corpse-re.md`).
 - **Rooms** are logical rooms of the level, read whether or not the game has
   them loaded (`NativeRooms::Read`). *Room* lists the rooms stood in.
   *Unexplored room* comes right after the ways out. In exploration mode it
-  lists only the rooms bordering explored ground (`RoomCatalogue::Exploration`,
-  `RoomGraph::Near`). Explored ground is a room stood in, drawn on the automap,
+  lists only the rooms sharing an edge with explored ground that loaded
+  collision does not prove walled off (`RoomCatalogue::Exploration`,
+  `RoomGraph::Touching`/`Border`, `docs/room-routing.md`). Explored ground is a room stood in, drawn on the automap,
   or underfoot (`TerrainService::ExploredRooms`). This is the edge of the known
   map, so a lost player can head somewhere new. Nothing inside an unexplored
   room is revealed: its exits appear once charted, like any landmark. Full

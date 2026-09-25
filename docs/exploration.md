@@ -123,6 +123,19 @@ never inherit each other's progress. The digest is FNV-1a over the sorted room
 rectangles. The bounded archive replaces the former file per level.
 If either limit is reached, the least recently updated map entries are evicted.
 
+Since 2026-09-24 (format `D2REXP02`) each entry also keeps the fixed places
+found on that map (`MapSurvey::Fixed`: exits, waypoints, the stash): id, place
+identity (`NativeLevelExits::Identity` of its position), position, destination
+level, kind, category and the name the game gave it, at most 64 per entry. The
+scanner lists them in a later game on the same map, before the game streams
+their rooms again; a regenerated map has another key and starts with none
+(`docs/entity-scan.md`). One position is one place: a known place only takes a
+newer name, destination or kind, so the loaded warp and its preset (different
+id, fraction of a subtile) never rewrite the archive. A stored place whose kind
+and category are not a fixed place is skipped on use. `D2REXP01` archives still load and are
+upgraded on the next save. An older plugin cannot read `D2REXP02`; it leaves the
+archive untouched and cannot load or save exploration until updated.
+
 A background worker handles disk reads, migration and atomic replacement.
 The game callbacks merge cached records and enqueue progress snapshots on the
 existing lifecycle and 30-second save cadence. Old `explored-<seed>-<level>-<digest>.txt`

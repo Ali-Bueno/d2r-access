@@ -82,7 +82,8 @@ void Registry::Clear() {
 }
 
 std::vector<Entry> Exploration(const std::vector<Entry>& entries,
-	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored) {
+	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored,
+	const Navigation::Grid* grid) {
 	const auto listed = [](const std::vector<NativeRooms::Room>& rooms, const NativeRooms::Room& room) {
 		return std::any_of(rooms.begin(), rooms.end(), [&](const NativeRooms::Room& other) { return other.id == room.id; });
 	};
@@ -95,7 +96,10 @@ std::vector<Entry> Exploration(const std::vector<Entry>& entries,
 	std::vector<Entry> result;
 	for (const Entry& entry : stood) {
 		const bool frontier = !listed(known, entry.room) && std::any_of(known.begin(), known.end(),
-			[&](const NativeRooms::Room& room) { return RoomGraph::Near(room, entry.room); });
+			[&](const NativeRooms::Room& room) {
+				return RoomGraph::Touching(room, entry.room)
+					&& (!grid || RoomGraph::Border(*grid, room, entry.room) != RoomGraph::Passage::Closed);
+			});
 		if (entry.explored || frontier) result.push_back(entry);
 	}
 	return result;
@@ -117,7 +121,7 @@ std::vector<EntityRadar::Entity> Entities(const std::vector<Entry>& entries,
 		// Rooms do not move and are not native units, so identity is where
 		// the room is. SameTarget compares this before anything else, which
 		// keeps a lock on room 7 from following a monster with id 7.
-		entity.levelExitId = entry.room.id;
+		entity.placeId = entry.room.id;
 		entity.category = entry.explored ? EntityRadar::Category::Room : EntityRadar::Category::UnexploredRoom;
 		result.push_back(std::move(entity));
 	}

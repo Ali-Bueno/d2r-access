@@ -97,6 +97,7 @@ add_library(d2r-access SHARED
 	src/native_rooms.cpp
 	src/room_graph.cpp
 	src/room_catalogue.cpp
+	src/corpse_memory.cpp
 	src/rooms.cpp
 	src/explored_rooms.cpp
 	src/terrain_overview.cpp
@@ -420,6 +421,11 @@ if(BUILD_TESTING)
 	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
 	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
+	add_executable(corpse-memory-tests tests/corpse_memory_tests.cpp src/corpse_memory.cpp src/room_graph.cpp src/navigation_grid.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(corpse-memory-tests PRIVATE src)
+	target_compile_features(corpse-memory-tests PRIVATE cxx_std_20)
+	target_compile_definitions(corpse-memory-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME corpse-memory COMMAND corpse-memory-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -553,6 +559,7 @@ if(BUILD_TESTING)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-policy-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(corpse-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(cairn-stones-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

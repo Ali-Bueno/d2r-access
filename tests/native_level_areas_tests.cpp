@@ -65,9 +65,12 @@ int main() {
 	Check(near.size() == 1 && near[0].level == 2, "only the area that touches this one is a way out of it");
 	Check(near[0].gapTiles == 0, "abutting areas have no gap");
 	// The shared edge runs 1080..1120 on Y; the crossing is its middle, on the
-	// neighbour's near edge, in subtiles.
-	Check(near[0].position.x == 1156 * SubtilesPerTile, "the crossing sits on the neighbour's facing edge");
+	// last subtile of this area, so it stands in one of this level's rooms.
+	Check(near[0].position.x == 1156 * SubtilesPerTile - 1, "a neighbour to the east is crossed at this area's last subtile");
 	Check(near[0].position.y == 1100 * SubtilesPerTile, "and in the middle of the span the two areas share");
+	const auto back = LevelAreas::Neighbours(areas, 2);
+	Check(back.size() == 1 && back[0].position.x == 1156 * SubtilesPerTile,
+		"a neighbour to the west is crossed at this area's first subtile");
 	Check(LevelAreas::Neighbours(areas, 8).empty(), "an area the act placed at its own offset reaches nothing");
 	Check(LevelAreas::Neighbours(areas, 99).empty(), "a level that is not in the list has no neighbours");
 
