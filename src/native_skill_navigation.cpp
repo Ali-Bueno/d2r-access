@@ -113,6 +113,12 @@ std::optional<bool> TextEditing() {
 	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor)) return std::nullopt;
 	return editor != 0;
 }
+uintptr_t ActiveTextInput(uintptr_t panel) {
+	uintptr_t editor = 0, owner = 0;
+	if (!Available() || !g_activeInput || !panel || !NativeMemory::Peek(g_activeInput, editor) || !editor
+		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || owner != panel || !NativeUi::Visible(editor)) return 0;
+	return editor;
+}
 bool Select(NativeUi::Focus focus) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;
 	uintptr_t owner = 0, vtable = 0, select = 0;

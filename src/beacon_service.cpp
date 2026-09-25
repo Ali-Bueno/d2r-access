@@ -12,7 +12,6 @@
 #include "navigation_grid.h"
 #include "navigation_mode.h"
 #include "navigation_policy.h"
-#include "pad_filter.h"
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -174,16 +173,24 @@ void Announce(const char* format, const std::string& name) {
 	std::snprintf(text, sizeof text, format, name.c_str());
 	ScreenReader::Speak(text, true);
 }
+bool SameOfferedTarget() {
+	return g_offer.point == g_target.point && EntityRadar::SameTarget(g_offer.entity, g_target.entity);
+}
+// A press on what is already followed releases it; on a newly scanned target it
+// moves the beacon there in one press. docs/beacon.md
 void Toggle(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
-	if (g_tracker.Locked()) {
+	const bool offered = (g_offer.entity.id || g_offer.point) && g_offer.level == state.level
+		&& now - g_offer.offeredMs <= OfferWindowMs;
+	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
+	if (g_tracker.Locked() && !retarget) {
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
 		ScreenReader::Speak(strings.beaconCleared, true);
 		return;
 	}
 	if (!BeaconAudio::Available()) { ScreenReader::Speak(strings.beaconUnavailable, true); return; }
-	if ((!g_offer.entity.id && !g_offer.point) || g_offer.level != state.level || now - g_offer.offeredMs > OfferWindowMs) {
+	if (!offered) {
 		ScreenReader::Speak(strings.beaconNothing, true);
 		return;
 	}
@@ -200,6 +207,8 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 			return;
 		}
 	}
+	// A refused retarget above keeps the old lock; an accepted one replaces it silently.
+	if (retarget) Release("retargeted");
 	g_target = g_offer;
 	g_target.seenMs = now;
 	g_tracker.Lock(now);
@@ -327,7 +336,7 @@ bool Register(const D2RL::PluginContext* context) {
 	}
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		// Keyboard equivalent of the right-stick click, for testing without a pad.
+		// Keyboard equivalent of the left-stick click, for testing without a pad.
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "beacon-toggle", .displayName = "Follow or release the scanned target", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::B, D2RL::Input::Modifier::Control}, .callback = Action,
@@ -336,7 +345,7 @@ bool Register(const D2RL::PluginContext* context) {
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
-		"Target beacon: lock|clear|status|exploration|full. R3 or Ctrl+B requests a route; exploration uses visited areas only.");
+		"Target beacon: lock|clear|status|exploration|full. L3 or Ctrl+B requests a route; exploration uses visited areas only.");
 	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume);
 	AsyncLog::InfoF(context, "[beacon] Registered; audio=%u full_assistance=%u.", g_supported ? 1u : 0u,
 		NavigationMode::FullAssistance() ? 1u : 0u);
@@ -346,20 +355,17 @@ bool Register(const D2RL::PluginContext* context) {
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
-	const bool clicked = InputDirection::TakeRightStickClick();
+	const bool clicked = InputDirection::TakeLeftStickClick();
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
-	// Guidance's controls are play's alone. During play R3 is guidance's, so
-	// the game must not also swap weapons on it; in a menu the click is the
-	// menu's -- the game gets it, and guidance ignores it, as it ignores Ctrl+B
-	// and the console's lock and clear (the user, 2026-09-21: "ignore guidance
-	// while menu is open").
+	// Guidance's controls are play's alone: in a menu the L3 click is the menu's
+	// and guidance ignores it, as it ignores Ctrl+B and the console's lock and
+	// clear (the user, 2026-09-21: "ignore guidance while menu is open").
 	const bool playing = Playing();
 	const bool inPlay = state.ready && playing;
 	if (g_wasPlaying && !playing) BeaconAudio::Silence("ui-blocked");
 	g_wasPlaying = playing;
-	PadFilter::ClaimRightThumb(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		Release("lifecycle");
@@ -375,7 +381,7 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::InfoF(context, "[beacon] full_assistance=%u", NavigationMode::FullAssistance() ? 1u : 0u);
 	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
-		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "R3" : "command");
+		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "L3" : "command");
 	} else if (command == Command::Clear && g_tracker.Locked()) {
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});

@@ -18,6 +18,8 @@ int PlayerGold() noexcept;
 struct UnitLabel { std::string baseName; uint32_t quality = 0; };
 // Table name and quality of a focused item; generated names come from its tooltip.
 UnitLabel ItemUnitLabel(uintptr_t unit);
+// The same for an item known by its class row (the SDK's ItemInfo::classId).
+UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

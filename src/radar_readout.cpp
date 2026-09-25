@@ -6,12 +6,7 @@
 namespace D2RAccess::RadarReadout {
 int MovementDirection(Radar::Position velocity) {
 	if (velocity.x == 0 && velocity.y == 0) return -1;
-	// D2R 0x334DB0: screen X=80*(X-Y), Y=40*(X+Y). Preserve the
-	// 2:1 isometric ratio when describing actual screen movement.
-	const double x = 2 * (velocity.x - velocity.y), y = velocity.x + velocity.y;
-	constexpr int Sectors = 8; // radarMovementDirections: eight screen sectors clockwise from up
-	const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / Sectors));
-	return static_cast<int>((sector + Sectors) % Sectors);
+	return Radar::ScreenSector(velocity);
 }
 std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	const int direction = MovementDirection(engine.Velocity());

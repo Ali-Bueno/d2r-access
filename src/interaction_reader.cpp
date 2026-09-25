@@ -3,6 +3,7 @@
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_radar_service.h"
+#include "equip_attempt.h"
 #include "interaction_reader.h"
 #include "belt_reader.h"
 #include "inventory_cursor.h"
@@ -25,6 +26,9 @@
 #include <D2RLPlugin/item.h>
 #include <algorithm>
 #include <cstdio>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace D2RAccess::InteractionReader {
 namespace {
@@ -46,6 +50,10 @@ std::string g_describedFocus;
 // one once instead of on every UI poll.
 std::string g_hiddenLabel;
 std::optional<bool> g_holdingItem;
+// Red requirement lines of the item last described, and of the one in hand,
+// taken when it was picked up: why the game would refuse to equip it.
+std::string g_itemUnmet, g_heldUnmet;
+EquipAttempt::Tracker g_equipAttempt;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
 // Widget names are stable across those rebuilds, so the last value seen under
@@ -68,34 +76,51 @@ std::vector<std::string> g_rowTooltips;
 // async_log.cpp).
 std::string g_namedFocus, g_loggedTooltip;
 
-// The game's own labels for a weapon's damage and an armour's defense, so the
-// split can tell them from the item's name in any language. Each table entry is a printf format, so only the part before its
-// first placeholder can begin a rendered line -- resolving "Defense: %d" and
-// then looking for that whole string never matched anything. Resolved once per
-// language: the string tables do not change under a running game.
-const std::vector<std::string>& StatLabels() {
-	static std::vector<std::string> cached = [] {
-		std::vector<std::string> labels;
-		for (const char* key : TooltipText::BaseStatKeys) {
-			auto text = TooltipText::LabelPrefix(Localization::Text(key));
-			if (!text.empty()) labels.push_back(std::move(text));
+// The game's own labels for a set of string keys, as the part of each printf
+// format before its first placeholder -- the only part that can begin a
+// rendered line. Resolved again whenever the text language changes: the main
+// menu switches it without restarting the game.
+class Labels {
+public:
+	template <typename Keys> const std::vector<std::string>& For(const Keys& keys) {
+		if (language_ != Strings::Selected()) {
+			language_ = Strings::Selected();
+			prefixes_.clear();
+			for (const char* key : keys)
+				if (auto text = TooltipText::LabelPrefix(Localization::Text(key)); !text.empty()) prefixes_.push_back(std::move(text));
 		}
-		return labels;
-	}();
-	return cached;
+		return prefixes_;
+	}
+
+private:
+	std::optional<Strings::Language> language_;
+	std::vector<std::string> prefixes_;
+};
+
+// A weapon's damage and an armour's defense, so the split can tell them from the name.
+const std::vector<std::string>& StatLabels() {
+	static Labels cache;
+	return cache.For(TooltipText::BaseStatKeys);
+}
+
+// Requirement labels, whose red lines say what the character cannot meet.
+const std::vector<std::string>& RequirementLabels() {
+	static Labels cache;
+	return cache.For(TooltipText::RequirementKeys);
+}
+
+std::string Refusal(const std::string& reasons) {
+	if (reasons.empty()) return Strings::Current().equipRefused;
+	char phrase[300]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().equipRefusedBecause, reasons.c_str());
+	return phrase;
 }
 
 // Price labels distinguish the item's name from a shop tooltip's first line.
 const std::vector<std::string>& PriceLabels() {
-	static std::vector<std::string> cached = [] {
-		std::vector<std::string> labels;
-		for (const char* key : {TooltipText::PriceKey, TooltipText::SellKey}) {
-			auto text = TooltipText::LabelPrefix(Localization::Text(key));
-			if (!text.empty()) labels.push_back(std::move(text));
-		}
-		return labels;
-	}();
-	return cached;
+	static constexpr const char* Keys[] = {TooltipText::PriceKey, TooltipText::SellKey};
+	static Labels cache;
+	return cache.For(Keys);
 }
 
 // A push up on the right stick, claimed only while a panel is open so the
@@ -252,7 +277,10 @@ std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, Nat
 	const bool wasHolding = g_holdingItem.value_or(false);
 	g_holdingItem = holding;
 	if (!inventory) return {};
-	if (*holding) return Strings::Current().itemInHand;
+	if (*holding) {
+		g_heldUnmet = g_itemUnmet;
+		return Strings::Current().itemInHand;
+	}
 	if (!wasHolding) return {};
 	const auto destination = Destination(context, focus, type);
 	if (destination.empty()) return Strings::Current().itemReleased;
@@ -383,11 +411,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// prices and properties remain available through the detail gesture.
 			const auto body = TooltipText::Read(tooltip.body);
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
-			auto split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified);
+			auto split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
 			if (!split.headline.empty() && !split.unidentified) {
 				if (!generatedName && !itemName.empty()) split.headline = itemName;
 				else Append(split.headline, quality);
 			}
+			// What a sighted player sees in red, said with the name.
+			g_itemUnmet = split.unmet;
+			if (!split.unmet.empty()) Append(split.headline, Refusal(split.unmet));
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			comparison = ComparisonText(tooltip, split);
 			// The engine stores a body bottom-up, so Read gives the lines back
@@ -398,6 +429,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				D2RAccess::AsyncLog::InfoF(context, "[item] %zu lines, title line %s -> \"%s\" | %s",
 					body.lines.size(), body.Marked() ? std::to_string(body.heading).c_str() : "unstyled",
 					split.headline.c_str(), split.detail.c_str());
+				// How the game styled each line (colour of unmet requirements): docs/native-tooltips.md.
+				if (const auto markup = TooltipText::Markup(tooltip.body); !markup.empty())
+					D2RAccess::AsyncLog::InfoF(context, "[item-markup] %s", markup.c_str());
 			}
 			description = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(description, split.detail);
@@ -473,6 +507,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// utterance of their own.
 	const bool occupied = presence == NativeUi::ItemPresence::Occupied;
 	const bool choosingSlot = type.kind == UiText::Kind::InventorySlot && g_holdingItem.value_or(false);
+	if (inventory) {
+		const bool pressed = choosingSlot
+			&& InputDirection::LastFaceButton(EquipAttempt::PressWindowMs) == InputDirection::FaceButton::A;
+		const uint32_t held = g_holdingItem.value_or(false) ? InventoryCursor::HeldItemId(context).value_or(0) : 0;
+		if (g_equipAttempt.Update(pressed, held, now)) {
+			const auto refusal = Refusal(g_heldUnmet);
+			D2RAccess::AsyncLog::InfoF(context, "[equip] refused -> \"%s\"", refusal.c_str());
+			ScreenReader::Speak(refusal, true);
+		}
+	}
 	const bool awaitingDescription = inventory && !choosingSlot && !renderedDescription && occupied && itemName.empty();
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
@@ -604,6 +648,9 @@ void Reset() {
 	g_namedFocus.clear();
 	g_loggedTooltip.clear();
 	g_holdingItem.reset();
+	g_itemUnmet.clear();
+	g_heldUnmet.clear();
+	g_equipAttempt.Reset();
 	g_slotLocations.clear();
 	g_detail.clear();
 	g_detailFor.clear();

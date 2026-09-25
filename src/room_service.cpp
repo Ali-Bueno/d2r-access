@@ -5,7 +5,6 @@
 #include "entity_radar.h"
 #include "exit_review.h"
 #include "generated/level_flags.h"
-#include "input_direction.h"
 #include "level_exit_layout.h"
 #include "native_entities.h"
 #include "native_world.h"
@@ -219,14 +218,13 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-rooms",
-		Console, "Ways out: on|off|status, or next to review them one at a time. Ctrl+M, Ctrl+V, hold R3.");
+		Console, "Ways out: on|off|status, or next to review them one at a time. Ctrl+M, Ctrl+V.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		const D2RL::Input::ActionRegistration actions[]{
 			{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = "rooms-toggle", .displayName = "Toggle room exit announcements", .category = "Accessibility",
 				.defaultPrimary = {D2RL::Input::Key::M, D2RL::Input::Modifier::Control}, .callback = Toggle},
-			// The pad gesture is an R3 hold (see Tick); this is its keyboard equivalent.
 			{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = "rooms-next-exit", .displayName = "Review the next way out", .category = "Accessibility",
 				.defaultPrimary = {D2RL::Input::Key::V, D2RL::Input::Modifier::Control}, .callback = Next}};
@@ -251,10 +249,9 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
-	// Holding R3 asks for the next way out; the short click stays the beacon's,
-	// which is what then guides to the one just reviewed.
-	const bool held = InputDirection::TakeRightStickHold();
-	const bool requested = g_review.exchange(false) || held;
+	// Ctrl+V asks for the next way out; the beacon's L3 click then guides to
+	// the one just reviewed.
+	const bool requested = g_review.exchange(false);
 	if (command != Command::None) {
 		if (command != Command::Status) {
 			g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);

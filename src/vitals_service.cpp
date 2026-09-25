@@ -1,7 +1,9 @@
 #include "vitals_service.h"
 #include "async_log.h"
+#include "ground_item_text.h"
 #include "input_direction.h"
 #include "localization.h"
+#include "native_ground_items.h"
 #include "native_memory.h"
 #include "native_status.h"
 #include "native_ui.h"
@@ -62,6 +64,7 @@ Vitals::OrbAvailability g_orbAvailability;
 Vitals::Condition g_poison;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
+Vitals::Equipping g_equipping;
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
 
@@ -164,7 +167,8 @@ auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo
 	-> D2RL::Inventory::IterationAction {
 	auto* worn = static_cast<std::vector<Vitals::Breakage::Item>*>(userData);
 	if (worn && item && item->structSize >= D2RL::Items::ItemInfoRequiredSize)
-		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation});
+		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation,
+			item->classId, static_cast<uint32_t>(item->quality)});
 	return D2RL::Inventory::IterationAction::Continue;
 }
 
@@ -206,7 +210,7 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	// thread. Reacquire the handle so a new session cannot leave stale state.
 	D2RL::PlayerHandle player = D2RL::InvalidPlayerHandle;
 	if (inventory->getLocalPlayer(context, &player) != D2RL::Inventory::Result::Success
-		|| player == D2RL::InvalidPlayerHandle) { g_breakage.Reset(); g_worn.clear(); return; }
+		|| player == D2RL::InvalidPlayerHandle) { g_breakage.Reset(); g_equipping.Reset(); g_worn.clear(); return; }
 	std::vector<Vitals::Breakage::Item> worn;
 	const D2RL::Inventory::ItemFilter filter{
 		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
@@ -219,6 +223,17 @@ void SweepDurability(const D2RL::PluginContext* context) {
 		!= D2RL::Inventory::Result::Success) return;
 	LogWorn(context, worn);
 	const auto& labels = Strings::Current().equipmentSlots;
+	for (const auto& item : g_equipping.Sweep(worn)) {
+		const auto label = NativeGroundItems::ClassLabel(item.classId, item.quality);
+		const std::string name = GroundItemText::Describe(label.baseName, label.quality, 0);
+		if (name.empty()) continue;
+		char phrase[200]{};
+		if (item.bodyLocation > 0 && static_cast<size_t>(item.bodyLocation) < labels.size())
+			std::snprintf(phrase, sizeof(phrase), Strings::Current().itemEquippedIn, labels[item.bodyLocation], name.c_str());
+		else std::snprintf(phrase, sizeof(phrase), Strings::Current().itemEquipped, name.c_str());
+		AsyncLog::InfoF(context, "[equip] equipped id=%u at body location %d", item.id, item.bodyLocation);
+		ScreenReader::Speak(phrase, false);
+	}
 	for (const int location : g_breakage.Sweep(worn)) {
 		const char* slot = location > 0 && static_cast<size_t>(location) < labels.size()
 			? labels[location] : Strings::Current().equipment;
@@ -308,6 +323,7 @@ void Reset() {
 	g_poison.Reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
+	g_equipping.Reset();
 	g_worn.clear();
 	g_hintedMask = 0;
 	g_lastMercSource = {};

@@ -26,6 +26,8 @@ add_library(d2r-access SHARED
 	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
+	src/equip_attempt.cpp
+	src/npc_speech.cpp
 	src/display_modes.cpp
 	src/focus_tracker.cpp
 	src/frontend_native_fallback.cpp
@@ -40,7 +42,6 @@ add_library(d2r-access SHARED
 	src/native_wall_slide.cpp
 	src/game_text_reader.cpp
 	src/input_direction.cpp
-	src/stick_chord.cpp
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
@@ -108,7 +109,6 @@ add_library(d2r-access SHARED
 	src/native_automap.cpp
 	src/automap_service.cpp
 	src/native_ui.cpp
-	src/pad_filter.cpp
 	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
@@ -212,10 +212,6 @@ if(BUILD_TESTING)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
-	add_executable(stick-chord-tests tests/stick_chord_tests.cpp src/stick_chord.cpp)
-	target_include_directories(stick-chord-tests PRIVATE src)
-	target_compile_features(stick-chord-tests PRIVATE cxx_std_20)
-	add_test(NAME stick-chord COMMAND stick-chord-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
 	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
@@ -461,7 +457,7 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -476,6 +472,10 @@ if(BUILD_TESTING)
 	target_include_directories(async-log-tests PRIVATE src)
 	target_compile_features(async-log-tests PRIVATE cxx_std_20)
 	add_test(NAME async-log COMMAND async-log-tests)
+	add_executable(equip-attempt-tests tests/equip_attempt_tests.cpp src/equip_attempt.cpp)
+	target_include_directories(equip-attempt-tests PRIVATE src)
+	target_compile_features(equip-attempt-tests PRIVATE cxx_std_20)
+	add_test(NAME equip-attempt COMMAND equip-attempt-tests)
 	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tooltip-text-tests PRIVATE src)
 	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)
@@ -507,21 +507,13 @@ if(BUILD_TESTING)
 	target_include_directories(modal-reader-tests PRIVATE src)
 	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME modal-reader COMMAND modal-reader-tests)
-	add_executable(pad-filter-tests tests/pad_filter_tests.cpp src/pad_filter.cpp)
-	target_link_libraries(pad-filter-tests PRIVATE D2RLPlugin::D2RLPlugin)
-	target_include_directories(pad-filter-tests PRIVATE src)
-	target_compile_features(pad-filter-tests PRIVATE cxx_std_20)
-	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-	add_test(NAME pad-filter COMMAND pad-filter-tests)
 	if(MSVC)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(stick-chord-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -128,3 +128,14 @@ Normal `[text]` logs contain announcements/lifecycle only (SDK log lines cap at
 
 Inventories, item tooltips, general HUD/combat, full chat history and button-legend glyph
 translation remain separate phases. No radar code is included.
+
+## Focus on a panel that draws nothing (2026-09-25)
+
+`NativeUi::CurrentFocus` returns no focus when the focus manager names a panel
+with no focused widget and no visible child. `EmoteWheelPanel` is opened at the
+title screen and never closed; closing the wheel only hides its `Container`, and
+the focus manager kept naming the panel. Readers that speak the world only
+without a focused panel (world-target tooltip, monster plate) stayed silent
+until another panel took focus (the user: open and close the inventory). The rule
+is per panel shape, not per name, so any overlay that hides its content instead of
+closing recovers the same way. `native-ui` suite; live check pending.

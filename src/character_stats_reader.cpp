@@ -33,6 +33,13 @@ uintptr_t VisiblePanel(std::string_view name) {
 	const auto panel = NativeWidgets::FindPanel(name);
 	return panel && NativeUi::Visible(panel) ? panel : 0;
 }
+
+// The menu switcher's tab strip sits above every panel and has no stick
+// gesture; the left stick lands there from the top row (log, 2026-09-24).
+bool OnTabStrip(NativeUi::Focus focus) {
+	const auto kind = NativeUi::Classify(focus.widget).kind;
+	return kind == UiText::Kind::Tabs || kind == UiText::Kind::TabButton;
+}
 }
 
 int Advance(int cursor, InputDirection::StickPush push, int count) {
@@ -54,20 +61,21 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	// level scanner for the whole session. The panel being open and visible is
 	// what says the player is on it.
 	const auto focusedPanelName = NativeWidgets::ReadName(focus.panel);
+	const bool onTabs = focus.widget && OnTabStrip(focus);
 	uintptr_t panel = 0;
 	if (focusedPanelName == CharacterPanel || focusedPanelName == HirelingPanel || focusedPanelName == AdvancedPanel) panel = focus.panel;
-	else if (!focus.widget) {
+	else if (!focus.widget || onTabs) {
 		panel = VisiblePanel(AdvancedPanel);
 		if (!panel) panel = VisiblePanel(CharacterPanel);
 		if (!panel) panel = VisiblePanel(HirelingPanel);
 	}
 	if (!panel || !NativeUi::Visible(panel)) { Reset(); return false; }
 	const bool advanced = NativeWidgets::ReadName(panel) == AdvancedPanel;
-	if (advanced && focus.widget && !OwnsFocus(focus)) return false;
+	if (advanced && focus.widget && !onTabs && !OwnsFocus(focus)) return false;
 	// A focused hireling equipment slot keeps the stick's normal item-detail
 	// and navigation behavior. The stat cursor is for the observed no-focus
 	// controller state of this panel.
-	if (NativeWidgets::ReadName(panel) == HirelingPanel && focus.panel == panel && focus.widget) return false;
+	if (NativeWidgets::ReadName(panel) == HirelingPanel && focus.panel == panel && focus.widget && !onTabs) return false;
 	if (panel != g_panel) { g_panel = panel; g_cursor = -1; g_named = false; g_advancedRowIds.clear(); }
 	if (advanced && !g_named) {
 		const auto rows = CharacterStats::AdvancedRows(panel);

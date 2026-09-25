@@ -129,6 +129,22 @@ int main() {
 	Check(NativeUi::CurrentFocus().panel == 0, "hidden panel cannot own accessibility focus");
 	Check(NativeUi::Snapshot(panel.Address(), row.Address()).nodes.empty(), "closed panel is not read");
 	panel.Put<uint8_t>(0x51, 1);
+	// EmoteWheelPanel stays open all game; closing the wheel only hides its Container.
+	Widget wheel("EmoteWheelPanel", "EmoteWheelPanel"), wheelContent("Widget", "Container"), emote("ButtonWidget", "Emote2");
+	wheel.Add(wheelContent); wheelContent.Add(emote);
+	focusManager.Put(0x188, wheel.Address());
+	focusManager.Put(0x190, emote.Address());
+	Check(NativeUi::CurrentFocus().panel == wheel.Address() && NativeUi::CurrentFocus().widget == emote.Address(),
+		"an open emote wheel holds focus on its button");
+	wheelContent.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::CurrentFocus().panel == 0 && NativeUi::CurrentFocus().widget == 0,
+		"a panel whose content is all hidden cannot hold focus");
+	focusManager.Put<uintptr_t>(0x190, 0);
+	Check(NativeUi::CurrentFocus().panel == 0, "nor with no focused widget at all");
+	focusManager.Put(0x188, panel.Address());
+	Check(NativeUi::CurrentFocus().panel == panel.Address() && NativeUi::CurrentFocus().widget == 0,
+		"a panel showing content keeps focus with nothing focused");
+	focusManager.Put(0x190, row.Address());
 	row.Put<uint8_t>(0x50, 0);
 	Check(UiText::Describe(NativeUi::Snapshot(panel.Address(), row.Address())).option == "Hablar. no disponible", "disabled rows remain readable");
 	label.Put(0x30, label.Address());

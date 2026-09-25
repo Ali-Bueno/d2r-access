@@ -8,6 +8,7 @@
 #include "native_ui.h"
 #include "native_memory.h"
 #include "native_widgets.h"
+#include "npc_speech.h"
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -182,6 +183,8 @@ bool Tick(const D2RL::PluginContext* context) {
 			continue;
 		}
 		if (snapshot.surface == Surface::Other) continue;
+		// The player chose to hear NPC dialogue, not read it.
+		if (snapshot.surface == Surface::Narrative && NpcSpeech::AudioOnly()) continue;
 		auto readout = UiText::Describe(snapshot);
 		if (readout.Empty()) continue;
 		if (!readout.body.empty() && panel == focus.panel && focus.widget) {

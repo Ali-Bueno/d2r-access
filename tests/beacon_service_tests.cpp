@@ -9,7 +9,6 @@
 #include "native_rooms.h"
 #include "native_world.h"
 #include "navigation_policy.h"
-#include "pad_filter.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -86,8 +85,7 @@ bool Available() { return true; }
 void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
-namespace D2RAccess::InputDirection { bool TakeRightStickClick() { return false; } }
-namespace D2RAccess::PadFilter { void ClaimRightThumb(const D2RL::PluginContext*, bool) {} }
+namespace D2RAccess::InputDirection { bool TakeLeftStickClick() { return false; } }
 namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }
 Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
@@ -231,6 +229,16 @@ int main() {
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before + 1, "a room the automap has drawn counts as explored");
+	EntityRadar::Entity lever{901, EntityRadar::Kind::Object, {70, 10}, "lever"};
+	BeaconService::Offer(lever, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1 && speech.back().find("lever") != std::string::npos,
+		"one press on a newly scanned target moves the beacon there");
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.beaconCleared, "a second press on the same target releases it");
 	Command("clear");
 	BeaconService::Tick(&context);
 	chartedRooms.reset();

@@ -5,7 +5,6 @@
 #include "exploration_cue_service.h"
 #include "explored_store.h"
 #include "frontier.h"
-#include "input_direction.h"
 #include "level_exit_layout.h"
 #include "map_survey.h"
 #include "native_automap.h"
@@ -324,10 +323,7 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context, bool) {
-	// Both sources are consumed every tick so a latched gesture cannot fire late.
-	const bool asked = g_asked.exchange(false);
-	const bool clicked = InputDirection::TakeStickChord();
-	const bool requested = asked || clicked;
+	const bool requested = g_asked.exchange(false);
 	if (!g_supported) {
 		ExplorationCueService::Silence();
 		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
@@ -401,6 +397,9 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
 		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
+		// The name in the language being played, whichever one it was found in.
+		entity.nameKey = place.nameKey;
+		if (auto text = NativeEntities::KeyText(place.nameKey); !text.empty()) entity.name = std::move(text);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		result.push_back(std::move(entity));
 	}
@@ -412,7 +411,7 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 	for (const auto& entity : found)
 		if (MapSurvey::Fixed(entity))
 			fixed.push_back({entity.id, entity.placeId, entity.position.x, entity.position.y, entity.destinationLevel, entity.name,
-				static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category)});
+				static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey});
 	if (fixed.empty()) return;
 	std::lock_guard lock(g_mutex);
 	const auto* key = LoadedKey(level, rooms);

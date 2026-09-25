@@ -5,7 +5,7 @@
 
 #include <string>
 
-// Wiring around Beacon: the right-stick click locks whatever the level scanner
+// Wiring around Beacon: the left-stick click locks whatever the level scanner
 // last named, and a ping then leads the player there along a walkable route.
 namespace D2RAccess::BeaconService {
 bool Register(const D2RL::PluginContext* context);

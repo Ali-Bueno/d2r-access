@@ -29,7 +29,8 @@ blind players using a controller; keyboard and mouse are planned.
 Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
 lists, full scrolling dialogues, tutorial/automatic hints and area-name banners. The
 reader follows native controller focus and visible text, and suppresses repeated
-announcements. See [the controller test guide](docs/test-ingame-text.md).
+announcements. With the game's *NPC Speech* sound option on *Audio Only*, dialogue
+text is not read: the voice carries it. See [the controller test guide](docs/test-ingame-text.md).
 
 The user confirmed the Rogue Encampment entry announcement. Informational notices
 (including the Classic/Expansion restriction when pressing **G**) and the visible
@@ -283,9 +284,10 @@ a regenerated map starts with none. Ground loot and
 ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
 and 4/6 (object). See [scanner](docs/entity-scan.md).
 
-**Target guidance (built; live validation pending):** click the right stick or
+**Target guidance (built; live validation pending):** click the left stick (L3) or
 press **Ctrl+B** to follow what the scanner last named with directional pings.
-Repeat to cancel. See [distant exits](docs/distant-exits.md) and
+After naming another target, one click switches to it; clicking again on the
+same target cancels. See [distant exits](docs/distant-exits.md) and
 [target guidance](docs/beacon.md).
 
 **Exploration mode (default; live validation pending):** the scanner follows
@@ -334,14 +336,13 @@ See [quest-log implementation and remaining work](docs/quests.md).
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Holding the right stick in** (R3, about a third of a second), or
-**Ctrl+V**, reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
-getting there (straight, around or no route). A short right-stick click, or **Ctrl+B** right after,
+stairs and portals by their own name. **Ctrl+V** reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
+getting there (straight, around or no route). A short left-stick click, or **Ctrl+B** right after,
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).
 
-**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O**, or the
-L3+R3 chord (both sticks pressed in), speaks the level name, where you stand in it (`left edge`, `centre`…) and,
+**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** speaks
+the level name, where you stand in it (`left edge`, `centre`…) and,
 for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
 a neighbouring level from available native layout data. It can describe undiscovered terrain;
 it does not calculate a route.
@@ -395,7 +396,11 @@ and *Show mana orb text* gameplay options must be on — with them off the game
 writes no number and the mod identifies whichever option is missing, including
 when the other orb works. Automatic hints wait for a persistent missing reading.
 A worn item
-that reaches zero durability is announced with its equipment slot. Console
+that reaches zero durability is announced with its equipment slot, and an item
+that starts being worn, however it got there, with its slot and name
+("Equipado en Cabeza: Gorro, mágico"). An item whose requirements the character
+does not meet (the ones the game draws red) says so with its name, and a refused
+attempt to equip one says "No se puede equipar" and why. Console
 `access-vitals on|off|status`.
 See [life, mana and broken equipment](docs/vitals.md).
 

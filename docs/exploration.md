@@ -106,9 +106,9 @@ Directional lowering applies to both pips. Live listening remains pending.
 
 - **Room entry line** (maze levels): each way out never taken gets the tag: `Salidas: izquierda,
   sin explorar, derecha`. Level exits inside the room: `Den of Evil, sin explorar adelante`.
-- **Exit review** (R3 hold / Ctrl+V): the unexplored ways out come first, nearest first within each
+- **Exit review** (Ctrl+V): the unexplored ways out come first, nearest first within each
   half; the label carries the tag: `abertura, sin explorar, 8 pasos, a las 12, recto, 1 de 3`.
-- **Terrain overview** (Ctrl+O / L3+R3): the place is followed by the share of the level's rooms
+- **Terrain overview** (Ctrl+O): the place is followed by the share of the level's rooms
   seen: `Blood Moor, centro, explorado 22 por ciento. adelante: …`. For maze and outdoor levels every
   logical room exists once the level is generated, so the denominator is the whole level.
 - **Radar readout** (Ctrl+T): `sin explorar` after a marked direction.
@@ -126,7 +126,8 @@ If either limit is reached, the least recently updated map entries are evicted.
 Since 2026-09-24 (format `D2REXP02`) each entry also keeps the fixed places
 found on that map (`MapSurvey::Fixed`: exits, waypoints, the stash): id, place
 identity (`NativeLevelExits::Identity` of its position), position, destination
-level, kind, category and the name the game gave it, at most 64 per entry. The
+level, kind, category and the name the game gave it (and, from `D2REXP03`, its
+string key), at most 64 per entry. The
 scanner lists them in a later game on the same map, before the game streams
 their rooms again; a regenerated map has another key and starts with none
 (`docs/entity-scan.md`). One position is one place: a known place only takes a
@@ -135,6 +136,14 @@ id, fraction of a subtile) never rewrite the archive. A stored place whose kind
 and category are not a fixed place is skipped on use. `D2REXP01` archives still load and are
 upgraded on the next save. An older plugin cannot read `D2REXP02`; it leaves the
 archive untouched and cannot load or save exploration until updated.
+
+The game language is not part of the map key. Rooms are tile positions, so an
+archive explored in Spanish serves an English game. Since 2026-09-25 (format
+`D2REXP03`) a place also keeps the game string key of its name
+(`Entity::nameKey`: the Levels.txt name or warp key, or the objects.txt name
+key). On load, the name is read again in the language being played. A place
+stored by `D2REXP02` has no key and keeps its old text until it is found again.
+Earlier formats still load.
 
 A background worker handles disk reads, migration and atomic replacement.
 The game callbacks merge cached records and enqueue progress snapshots on the

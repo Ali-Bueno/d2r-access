@@ -4,11 +4,12 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 
 namespace D2RAccess::TooltipText {
 namespace {
 
-// U+E07E introduces the renderer's inline font command, and exactly one
+// U+E07E introduces the renderer's inline style command, and exactly one
 // character follows it. The renderer accepts that character when `c - '0'` is
 // below 0x27, so the index runs '0' through 'V' -- measured in the 3.3.93787
 // image at 0x140908BD1, 0x14090C225 and 0x14090F660, which range-check it
@@ -18,6 +19,9 @@ namespace {
 // index '0' -- kept that '0' and spoke it at the head of every line.
 constexpr std::string_view Font = "\xEE\x81\xBE";
 constexpr std::string_view Heading = "\xEE\x81\xBE" "2";
+// Item lines take D2's palette through that index: '0' white, '3' magic blue,
+// '5' socketed grey, and '1' red, an unmet requirement (log, 2026-09-25 07:49).
+constexpr std::string_view Red = "\xEE\x81\xBE" "1";
 
 bool FontIndex(char c) {
 	return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u;
@@ -47,6 +51,47 @@ void Append(std::string& text, std::string_view part) {
 
 }
 
+std::string Markup(std::string_view body) {
+	constexpr size_t Preview = 24; // enough of the line to recognise it in the log
+	std::string result;
+	for (size_t index = 0;; ++index) {
+		const size_t newline = body.find('\n');
+		const std::string_view raw = body.substr(0, newline);
+		std::string codes;
+		for (size_t i = 0; i < raw.size(); ++i) {
+			const auto byte = static_cast<unsigned char>(raw[i]);
+			char code[16]{};
+			if (raw.substr(i, 3) == "\xC3\xBF" "c" && i + 3 < raw.size()) {
+				std::snprintf(code, sizeof code, "yc%c ", raw[i + 3]);
+				i += 3;
+			} else if (byte == 0xFF && i + 2 < raw.size() && raw[i + 1] == 'c') {
+				std::snprintf(code, sizeof code, "yc%c ", raw[i + 2]);
+				i += 2;
+			} else if (byte >= 0xEE && byte <= 0xEF && i + 2 < raw.size()) {
+				const unsigned point = ((byte & 0x0F) << 12) | ((raw[i + 1] & 0x3F) << 6) | (raw[i + 2] & 0x3F);
+				if (point >= 0xE000 && point <= 0xF8FF) std::snprintf(code, sizeof code, "U+%04X ", point);
+				i += 2;
+				// The style command's index is part of it.
+				if (raw.substr(i - 2, Font.size()) == Font && i + 1 < raw.size() && FontIndex(raw[i + 1]))
+					std::snprintf(code, sizeof code, "U+%04X:%c ", point, raw[++i]);
+			} else if (byte < 0x20) {
+				std::snprintf(code, sizeof code, "\\x%02X ", byte);
+			}
+			codes += code;
+		}
+		if (!codes.empty()) {
+			std::string text = UiText::Clean(StripFont(std::string(raw)));
+			size_t cut = std::min(text.size(), Preview);
+			while (cut < text.size() && cut > 0 && (static_cast<unsigned char>(text[cut]) & 0xC0) == 0x80) --cut;
+			codes.pop_back();
+			result += "L" + std::to_string(index) + "[" + codes + "] " + text.substr(0, cut) + " | ";
+		}
+		if (newline == std::string_view::npos) break;
+		body.remove_prefix(newline + 1);
+	}
+	return result;
+}
+
 std::string LabelPrefix(std::string_view entry) {
 	// Up to the first printf placeholder, and no further than the colon that
 	// ends the label where there is one -- "Defense: %s" once the colour
@@ -68,11 +113,13 @@ Body Read(std::string_view body) {
 		const auto  newline = body.rfind('\n');
 		std::string raw(body.substr(newline == std::string_view::npos ? 0 : newline + 1));
 		const bool  heading = raw.find(Heading) != std::string::npos;
+		const bool  red = raw.find(Red) != std::string::npos;
 		std::string line = UiText::Clean(StripFont(std::move(raw)));
 		if (!line.empty()) {
 			// Reading upwards, the last styled line seen is the topmost one.
 			if (heading) result.heading = result.lines.size();
 			result.lines.push_back(std::move(line));
+			result.red.push_back(red);
 		}
 		if (newline == std::string_view::npos) break;
 		body = body.substr(0, newline);
@@ -81,7 +128,8 @@ Body Read(std::string_view body) {
 }
 
 Description Split(const Body& body, std::span<const std::string> statLabels,
-	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel) {
+	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel,
+	std::span<const std::string> requirementLabels) {
 	Description result;
 	if (body.lines.empty()) return result;
 	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
@@ -107,6 +155,7 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 		if (unidentified(body.lines[at])) { result.unidentified = true; continue; }
 		if (at == name) continue;
 		Append(result.detail, body.lines[at]);
+		if (at < body.red.size() && body.red[at] && starts(body.lines[at], requirementLabels)) Append(result.unmet, body.lines[at]);
 	}
 	if (result.unidentified && result.headline != unidentifiedLabel) Append(result.headline, unidentifiedLabel);
 	return result;

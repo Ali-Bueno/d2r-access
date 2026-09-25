@@ -83,13 +83,17 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 }
 }
 UnitLabel ItemUnitLabel(uintptr_t unit) {
-	uintptr_t player = 0, tables = 0, items = 0, data = 0;
-	uint64_t count = 0;
+	uintptr_t data = 0;
 	uint32_t type = 0, classId = 0, quality = 0;
+	if (!g_base || !unit || !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
+		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)) return {};
+	return ClassLabel(classId, quality);
+}
+UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
 	uint16_t nameId = 0;
-	if (!g_base || !unit || !RuntimeRoots(player, tables)
-		|| !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
-		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)
+	if (!g_base || !RuntimeRoots(player, tables)
 		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
 	return {GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality};

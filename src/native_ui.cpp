@@ -276,6 +276,12 @@ Focus CurrentFocus() {
 		|| !Peek(manager + FocusPanelOffset, result.panel) || !Peek(manager + FocusWidgetOffset, result.widget)) return {};
 	if (!Visible(result.panel)) return {};
 	if (!Visible(result.widget)) result.widget = 0;
+	// A panel drawing nothing cannot hold focus: EmoteWheelPanel stays open all
+	// game and only hides its Container, and kept world speech muted. docs/native-ui.md
+	if (!result.widget) {
+		const auto children = Children(result.panel);
+		if (std::none_of(children.begin(), children.end(), [](uintptr_t child) { return Visible(child); })) return {};
+	}
 	return result;
 }
 

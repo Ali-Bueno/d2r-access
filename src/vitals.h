@@ -107,6 +107,7 @@ public:
 	struct Item {
 		uint32_t id = 0;
 		int durability = 0, maximumDurability = 0, bodyLocation = 0;
+		uint32_t classId = 0, quality = 0; // for naming it
 	};
 	// The body locations of the items that broke since the previous sweep, in
 	// the order they were reported.
@@ -119,6 +120,19 @@ private:
 		bool broken = false;
 	};
 	std::vector<Known> known_;
+};
+
+// Items that start being worn, whichever way they got there. The first sweep
+// after a reset is the baseline, so entering a game says nothing, and a weapon
+// swap only moves items already worn.
+class Equipping {
+public:
+	std::vector<Breakage::Item> Sweep(const std::vector<Breakage::Item>& worn);
+	void Reset();
+
+private:
+	std::vector<uint32_t> worn_;
+	bool known_ = false;
 };
 
 }

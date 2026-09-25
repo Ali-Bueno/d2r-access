@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <deque>
 #include <numbers>
@@ -29,6 +30,14 @@ inline constexpr std::array<Position, DirectionCount> Axes{{{-Diagonal, -Diagona
 // Screen components of each direction (x right, y down), for stereo position.
 struct ScreenVector { int x = 0, y = 0; };
 inline constexpr std::array<ScreenVector, DirectionCount> ScreenAxes{{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}};
+// Eight screen sectors clockwise from up (radarMovementDirections order) for a
+// world offset, through the same projection at its 2:1 ratio; 0 when zero.
+inline constexpr int ScreenSectors = 8;
+inline int ScreenSector(Position offset) {
+	const double x = 2 * (offset.x - offset.y), y = offset.x + offset.y;
+	const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / ScreenSectors));
+	return static_cast<int>((sector + ScreenSectors) % ScreenSectors);
+}
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
 // The unexplored qualifier of a passable reading: the way leads to ground the
 // player has not covered. Rides on the exit/floor cue as a short tail; never a

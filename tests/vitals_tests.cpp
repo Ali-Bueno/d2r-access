@@ -154,9 +154,29 @@ void Breaking() {
 	breakage.Reset();
 	Check(breakage.Sweep(replaced).empty(), "leaving the game forgets what was worn");
 }
+
+void Equipping() {
+	Vitals::Equipping equipping;
+	const std::vector<Vitals::Breakage::Item> worn{{1, 28, 28, 1}, {2, 20, 40, 4}};
+	Check(equipping.Sweep(worn).empty(), "entering the game says nothing about what is already worn");
+	Check(equipping.Sweep(worn).empty(), "unchanged equipment says nothing");
+	auto helmet = worn;
+	helmet[0] = {7, 12, 12, 1};
+	const auto equipped = equipping.Sweep(helmet);
+	Check(equipped.size() == 1 && equipped[0].id == 7 && equipped[0].bodyLocation == 1,
+		"a new item in a slot is reported once, with its slot");
+	Check(equipping.Sweep(helmet).empty(), "and only once");
+	auto swapped = helmet;
+	swapped[1].bodyLocation = 11;
+	Check(equipping.Sweep(swapped).empty(), "a weapon swap moves worn items and equips nothing");
+	Check(equipping.Sweep({helmet[0]}).empty(), "taking an item off is not equipping");
+	Check(equipping.Sweep(helmet).size() == 1, "putting it back on is");
+	equipping.Reset();
+	Check(equipping.Sweep(worn).empty(), "a new game starts from a fresh baseline");
+}
 }
 
 int main() {
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
 	Passed();
 }

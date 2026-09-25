@@ -30,8 +30,9 @@ struct Place {
 	uint64_t identity = 0;    // EntityRadar::Entity::placeId; one position is one place
 	double x = 0, y = 0;      // subtiles
 	uint32_t destination = 0; // level id for an exit, 0 when unknown
-	std::string name;         // as the game named it when found
+	std::string name;         // as the game named it when found, in that game's language
 	uint8_t kind = 0, category = 0; // EntityRadar::Kind and Category, checked on use
+	std::string nameKey;      // the game string key of `name`, read again in the language being played
 	bool operator==(const Place&) const = default;
 };
 struct Update { Key key; std::vector<ExploredRooms::Room> rooms; std::vector<Place> places; };

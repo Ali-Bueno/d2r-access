@@ -115,7 +115,6 @@ struct Table {
 	// CategoryOrder: a new category appends here and adds a case there.
 	std::array<const char*, 14> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
-	const char* surveyOrientation; // %s = name, %s = straight-line distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
 	const char* surveyRoom;             // %d = room number
 	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
@@ -178,6 +177,10 @@ struct Table {
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
+	const char* itemEquipped;         // %s = item that just started being worn
+	const char* itemEquippedIn;       // %s = equipment slot, %s = item
+	const char* equipRefused;         // the game kept the item in hand
+	const char* equipRefusedBecause;  // %s = the requirements drawn red
 	const char* goldCarried;          // %s = how much gold the player is carrying
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
@@ -233,13 +236,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
-		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.surveyOrientation, t.corpseOwn, t.corpseOf,
+		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff};

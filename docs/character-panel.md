@@ -93,6 +93,12 @@ can read these rows. Any actual focused widget in equipment or another panel
 keeps the stick's usual gestures. Switching panels resets both row position and
 the identity announcement.
 
+The menu switcher's tab strip (`UISwitcherTabs`, a `TabBarWidget` outside these
+panels) is the exception: a left-stick push up from the top row lands there
+(log 2026-09-24 15:19:24), and the stat cursor then kept yielding until the panel
+was reopened. With focus on a tab strip the visible character, hireling or
+advanced panel keeps the right stick and its cursor (2026-09-25).
+
 The Mercenary-tab log only reaches player inventory slots, never a hireling slot;
 equipment navigation still needs a live check with an available mercenary. See
 [the tooltip/menu evidence](native-tooltips.md#compared-items-and-menu-regressions-2026-09-22).

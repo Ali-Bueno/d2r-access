@@ -13,6 +13,7 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "native_focus.h"
+#include "native_skill_navigation.h"
 #include "panel_state.h"
 #include "interaction_reader.h"
 #include "screen_reader.h"
@@ -147,6 +148,7 @@ constexpr LegendAction CharacterRowActions[] = {
 constexpr const char* MessageAnnouncedTypes[] = { "HDCharacterSelectorWidget" };
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
+constexpr const char* TextInputWidgetType = "InputTextBoxWidget";
 // A tab bar carries no label of its own in the layouts. What the player is
 // standing on when focus lands there is a tab, so its text is the name --
 // read live, the same way TabReader reads it.
@@ -773,6 +775,15 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		phrase += ", ";
 		phrase += role;
 	}
+	// A text box is named, then its role, then what it holds, in one phrase.
+	if (std::strcmp(match.widget->type, TextInputWidgetType) == 0) {
+		const NativeMemory::ReadScope scope;
+		const uintptr_t field = nativeWidget != 0 ? nativeWidget : NativeUi::CurrentFocus().widget;
+		if (const std::string contents = UiText::Clean(NativeUi::InputText(field)); !contents.empty()) {
+			phrase += ", ";
+			phrase += contents;
+		}
+	}
 	if (const auto percent = SliderPercent(*match.panel, *match.widget); percent) {
 		phrase += ", ";
 		phrase += PercentText(*percent);
@@ -872,7 +883,10 @@ void Tick(const D2RL::PluginContext* context) {
 	// returning from gameplay changes panel-open order. Keep popup row handling
 	// below: those runtime clones have their own text/value reader.
 	if (PanelState::Active() != DropdownPopupPanel) {
-		const NativeUi::Focus focused = NativeUi::CurrentFocus();
+		NativeUi::Focus focused = NativeUi::CurrentFocus();
+		// Typing goes to the game's active editor even after a form refresh moved
+		// focus to its default box (docs/multiplayer.md), so that box is named.
+		if (const uintptr_t editor = NativeSkillNavigation::ActiveTextInput(focused.panel)) focused.widget = editor;
 		const auto native = NativeFocus::Resolve(focused, Generated::PanelCatalog);
 		if (native.widget) {
 			g_lastNativeFallbackContext.clear();
@@ -927,6 +941,7 @@ void Tick(const D2RL::PluginContext* context) {
 				default: break;
 				}
 				if (role) phrase += ", " + std::string(role);
+				if (!readout.contents.empty()) phrase += ", " + readout.contents;
 				if (state) phrase += ", " + std::string(state);
 				if (!readout.enabled) phrase += ", " + std::string(Strings::Current().unavailable);
 				const std::string id = "native/" + readout.identity;

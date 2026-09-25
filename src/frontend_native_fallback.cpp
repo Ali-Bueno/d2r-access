@@ -143,6 +143,7 @@ Readout Describe(const UiText::Snapshot& snapshot) {
 	if (node.kind == UiText::Kind::TextInput) {
 		Append(controlText, LabelBefore(snapshot, focus));
 		if (controlText.empty()) Append(controlText, node.name);
+		if (node.type != "MaskedInputTextBoxWidget") result.contents = UiText::Clean(node.text);
 	} else if (const std::string prefix = CounterPrefix(node.name); !prefix.empty()) {
 		std::string label = TextNamed(snapshot, prefix + "Label");
 		if (label.empty()) label = TextNamed(snapshot, prefix + "HostLabel");

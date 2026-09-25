@@ -26,6 +26,7 @@ int main() {
 	panel.nodes.push_back({5, 0, Kind::TextInput, "GameNameInput", "InputTextBoxWidget", "Partida de Ana"});
 	readout = FrontendNativeFallback::Describe(panel);
 	Check(readout.text == "Nombre", "text field uses the visible label while TextField owns its value");
+	Check(readout.contents == "Partida de Ana", "text field exposes its contents for the arrival phrase");
 	const auto previousIdentity = readout.identity;
 	panel.nodes.back().text = "Partida de ambos";
 	Check(FrontendNativeFallback::Describe(panel).identity == previousIdentity, "typing does not repeat the field label");
@@ -35,6 +36,7 @@ int main() {
 	panel.nodes.push_back({7, 0, Kind::TextInput, "PasswordInput", "MaskedInputTextBoxWidget", "secret"});
 	readout = FrontendNativeFallback::Describe(panel);
 	Check(readout.text == "Contraseña", "masked text field never speaks a password");
+	Check(readout.contents.empty(), "masked text field never exposes its contents");
 	Check(readout.identity.find("secret") == std::string::npos, "masked password does not enter logging identity");
 
 	panel.focus = 9;

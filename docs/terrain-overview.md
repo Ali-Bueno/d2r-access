@@ -35,15 +35,11 @@ layout data, which is not proof that the player has discovered that terrain.
 | Gesture | Action |
 | --- | --- |
 | **Ctrl+O** | Read the overview |
-| **L3 + R3 together** (press both sticks in) | Read the overview |
 | `access-terrain` (or `access-terrain read`) | Read the overview from the console |
 
-The controller gesture is the L3+R3 chord, so the beacon's R3 click is not held
-back for a double-click window. Telling the chord from a single stick click costs
-each single click its own length instead: L3 and R3 are reported on release, and
-not at all when the press became part of the chord. The same release also tells
-an R3 click (the beacon) from an R3 hold (the exit review, `docs/rooms.md`).
-That timing lives in `src/stick_chord.*` and is unit-tested.
+The L3+R3 chord was removed on 2026-09-25 (the user: the scanner covers it), so
+the overview has no controller gesture; the mod's only stick button is L3, the
+beacon.
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 

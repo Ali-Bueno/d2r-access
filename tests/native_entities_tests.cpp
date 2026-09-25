@@ -17,11 +17,11 @@ using namespace EntityLayout;
 // local/lng/strings/ui.json id of the PlaceholderNameKey ("dummy") entry.
 constexpr uint32_t PlaceholderNameId = 5382;
 namespace D2RAccess::Localization {
-bool available = true;
+bool available = true, english = false; // english: the text language switched in the menus
 std::string Text(uint32_t id) {
 	if (!available) return {};
 	switch (id) {
-	case PlaceholderNameId: return "una fuerza maligna";
+	case PlaceholderNameId: return english ? "an evil force" : "una fuerza maligna";
 	case 2892: return "Akara";
 	case 3013: return "Zombi";
 	case DoorClosedText: return "Puerta cerrada";
@@ -32,7 +32,7 @@ std::string Text(uint32_t id) {
 }
 std::string Text(std::string_view key) {
 	if (!available) return {};
-	if (key == PlaceholderNameKey) return "una fuerza maligna";
+	if (key == PlaceholderNameKey) return english ? "an evil force" : "una fuerza maligna";
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
@@ -544,6 +544,19 @@ int main() {
 	f.monsters.At<uint16_t>(MonNameId, PlaceholderNameId);
 	Check(f.Read(entities) && !f.Find(entities, 7), "a friendly unit named by the shared placeholder is skipped");
 	f.monsters.At<uint16_t>(MonNameId, 2892);
+	// The text language switched in the menus: the placeholder is read again.
+	const auto spoken = Strings::Selected();
+	Strings::Select(Strings::Language::esES);
+	f.monsters.At<uint16_t>(MonStatStride + MonNameId, PlaceholderNameId);
+	Check(f.Read(entities) && !f.Find(entities, 8), "the Spanish placeholder is skipped in Spanish");
+	Localization::english = true;
+	Strings::Select(Strings::Language::enUS);
+	Check(f.Read(entities) && !f.Find(entities, 8), "after a switch to English the English placeholder is skipped");
+	Localization::english = false;
+	Strings::Select(Strings::Language::esES);
+	Check(f.Read(entities) && !f.Find(entities, 8), "and back in Spanish the Spanish one again");
+	Strings::Select(spoken);
+	f.monsters.At<uint16_t>(MonStatStride + MonNameId, 3013);
 	f.enemyPath.At(PathRoom, f.otherRoom.Address());
 	Check(f.Read(entities) && !f.Find(entities, 8), "a path that does not belong to the walked room is rejected");
 	f.enemyPath.At(PathRoom, f.room.Address());

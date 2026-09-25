@@ -6,7 +6,7 @@
 
 The user got lost on the way from Dark Wood to Black Marsh: three
 `known-route-unavailable` releases, then `no-route` refusals. Three route
-fixes, then one the user asked for next:
+fixes, then two the user asked for next:
 1. Room sub-goals are chosen on the terrain layer. Before, a monster in a
    doorway broke the room route mid-fight (`docs/room-routing.md`).
 2. An outdoor border is routed to its real walkable crossing, when that
@@ -15,14 +15,62 @@ fixes, then one the user asked for next:
 3. Exploration mode releases only after `routeLossMs` (3 s) without a proved
    route. Meanwhile the ping is silent.
 4. The scanner measures a border to that same crossing (distance and direction).
+5. Remembered places read in the language being played. `explored.dat` is now
+   `D2REXP03` and stores each name's game string key (`docs/exploration.md#on-disk`).
+   Maps were already language-independent.
+6. A text-language switch in the menus, without restarting, is followed: speech
+   re-detects it (`SetTextLanguage`), and the monster placeholder label is read
+   again (`PlaceholderName`), and so are the item tooltip's stat, price and
+   requirement labels (`interaction_reader.cpp` `Labels`; interaction-reader
+   test switches to English). No live switch has been tested yet.
 
 The missing Underground Passage entrance is not a bug. The Dark Wood map was
 the same (seed `6DFC5AA1`), and its 69 visited rooms loaded. But
 `explored.dat` holds only the seven places found in this session, so the
 dungeon was explored before places were saved. The entrance will be listed
 once it is seen again. **76/76 suites pass.** **Live 2026-09-25:** the user
-reports the route now holds. **Next step:** none for the route; look into any
-later `[beacon] released reason=known-route-unavailable`.
+reports the route now holds; items 1–4 are committed. **Next step:** switch the
+game to English and check the scanner names remembered places in English
+(items 5–6, uncommitted).
+
+## Unmet requirements and refused equips — installed, 2026-09-25
+
+Red requirement lines (strength, dexterity, level, class) are said with the
+item's name ("No se puede equipar: (Solo asesina). Destreza necesaria: 33"); an A
+press on an equipment slot that leaves the same item in hand says "No se puede
+equipar" and the reasons. First version failed live (it looked for `ÿc1`); the
+`[item-markup]` log showed the real marking, style command `U+E07E` + palette `1`.
+**76/76 suites pass**; installed DLL SHA-256 `2A4FC82D…` matches the build.
+**Next step:** live check on the claws / "Libro viejo". `docs/native-tooltips.md`.
+
+## R3 removed, equipped items, NPC speech on audio only — installed, 2026-09-25
+
+R3 and the L3+R3 chord have no mod gesture (the exit review stays on Ctrl+V, the
+terrain overview on Ctrl+O); L3 is the only stick button. The R3 pad filter is
+removed, so R3 is the game's again (weapon swap / emote wheel). An item that starts being worn is announced with slot
+and name (`docs/vitals.md`). With the game's NPC Speech option on Audio Only,
+dialogue text is not read (`docs/test-ingame-text.md`). **75/75 suites pass**
+(stick-chord and pad-filter suites removed with their modules). **Next step:** live check:
+equip by hand and with the controller action; NPC Speech on Audio Only.
+
+## Five UI fixes from the user's play session — installed, 2026-09-25
+
+1. Create-game text boxes: the box being typed into is named (the game's
+   active editor, not the focus a form refresh moved), and a box is one phrase:
+   label, "cuadro de edición", contents. `docs/multiplayer.md`.
+2. Scanner readout: eight screen directions ("arriba y a la izquierda").
+   `docs/entity-scan.md`.
+3. Beacon on **L3** (R3 opens the emote wheel); L3 on a newly scanned target
+   switches in one press, on the same target cancels. `docs/beacon.md`.
+4. Radar cues louder, breath most; the downward breath almost an octave darker.
+   `docs/radar-readings.md`.
+5. Focus: the stats cursor survives focus on the menu tab strip; a panel that
+   draws nothing (the closed emote wheel) no longer holds focus and mutes world
+   speech. `docs/character-panel.md`, `docs/native-ui.md`.
+
+**77/77 suites pass**; installed DLL SHA-256 `BD1F669C…` matched that build.
+**Next step:** live check of all five; for (1) log `[field]`/`[focus]` while
+pressing A on the password box; confirm L3 does nothing in the game itself.
 
 ## Exits, waypoints and the stash found on a map stay listed in later games on that map — installed, 2026-09-24
 
@@ -935,8 +983,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Mod localization (13 locales) | built and installed - live check pending | Locale headers, game-string language detection, beacon/quest messages and missing-objective text; 5763 checks pass. |
 | Audio cues across locales | fixes built and installed; listening pending | Numeric cue classification, generic container/exit fallback in all 13 locales, beacon UI cancellation. 59/59 suites pass in the shared workspace; `docs/audio-language-audit.md`. |
 | Quest log / automatic quest tracking | journal user-confirmed; native packet capture installed 2026-09-23 | Guarded native objective/counter capture can cover unloaded journals; ambiguous or missing captures keep the generic alert. Startup verified, live update coverage pending. 67/67 suites pass. `docs/quests.md` |
-| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review on an R3 hold or Ctrl+V. `docs/rooms.md` |
-| Target beacon guidance | exploration mode installed 2026-09-24; listening pending | Scanner, then R3 / Ctrl+B. Exploration (default) routes only through visited rooms; opt-in full assistance uses the whole generated room graph. `docs/beacon.md` |
+| Room exits (maze levels) | built 2026-09-20, listening check pending | Ways out of the native room the player walks into: screen directions plus named stairs/portals. Maze levels only, from `src/generated/level_flags.h`. Streamed rooms only — an unloaded neighbour is not claimed. Ctrl+M, `access-rooms`; review with Ctrl+V. `docs/rooms.md` |
+| Target beacon guidance | exploration mode installed 2026-09-24; listening pending | Scanner, then L3 / Ctrl+B; one press switches to a newly scanned target. Exploration (default) routes only through visited rooms; opt-in full assistance uses the whole generated room graph. `docs/beacon.md` |
 | Native automap discovery | investigated; strict mode not implemented | Current guidance retained. Native reveal state remains unverified; `.ma0` container structure inspected only. `docs/automap-discovery-research.md` |
 | Panel open/close announcer | done | `ui_message_monitor.cpp` + `panel_state.cpp`; localized titles from `generated/panel_titles.h`; modals: title + native prompt text + controller hint |
 | Widget vocabulary from layout JSON | done | `game-data/` (gitignored) → `tools/gen_panel_widgets.py` → `src/generated/panel_widgets.h` (105 panels, PC variants; runtime-filled states like `gameVersionNames` followed) |

@@ -7,24 +7,24 @@ complete unexplored routing remains unavailable.
 
 Lets a blind player walk to a specific thing instead of only sensing walls
 around them. The level scanner on the right stick (`docs/entity-scan.md`,
-`src/map_survey.h`) names the target; a short right-stick click, or
+`src/map_survey.h`) names the target; a short left-stick click (L3), or
 **Ctrl+B**, locks what it spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
-ping just pointing straight through a wall. Clicking again (or `Ctrl+B`,
-`access-beacon clear`) cancels the lock. Arriving announces the target and
+ping just pointing straight through a wall. Clicking with a different target
+just scanned moves the lock there in one press; clicking again on the same
+target (or `access-beacon clear`) cancels it. Arriving announces the target and
 releases it on its own.
 
 ## Controls and console
 
-- Short right-stick click (`InputDirection::TakeRightStickClick`) or **Ctrl+B**:
-  lock the last thing the entity scan or the exit review announced, or release
-  the current lock if one is active. The click is reported after **release**,
-  and only when L3 was not pressed during it and the press stayed under
-  `StickChord::RightHoldMs`: L3+R3 together is the terrain overview
-  (`docs/terrain-overview.md`), holding R3 alone is the exit review's "next way
-  out" (`docs/rooms.md`, also Ctrl+V), and the chord swallows both releases, so
-  no press ever fires two gestures (`src/stick_chord.*`).
+- Short left-stick click (`InputDirection::TakeLeftStickClick`) or **Ctrl+B**:
+  lock the last thing the entity scan or the exit review announced. With a lock
+  active, a still-fresh offer of a *different* target (`EntityRadar::SameTarget`)
+  replaces it in one press, silently releasing the old one (`retargeted`); a
+  refused retarget keeps the old lock. Otherwise the press releases the lock.
+  Moved from R3 on 2026-09-25: R3 also opens the game's emote wheel. L3 is the
+  mod's only stick button, reported on press; R3 belongs to the game again.
 - Console `access-beacon lock|clear|status|exploration|full` (`lock` also accepts
   `toggle`, `clear` also accepts `off`); `status` speaks the navigation mode,
   then whether something is locked and, if so, its name. `exploration` and
@@ -224,7 +224,7 @@ sounds where this uses a word.
 ## Log format
 
 - `[beacon] locked id=<id> kind=<kind> at=<x>,<y> level=<n> name=<name>` — on lock.
-- `[beacon] released reason=<cancelled|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
+- `[beacon] released reason=<cancelled|retargeted|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
 - `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
 - `[beacon-audio]` — output device ready/unavailable/reopening, and `silenced reason=<reason>`.

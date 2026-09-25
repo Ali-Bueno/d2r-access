@@ -102,25 +102,12 @@ const char* PushName(StickPush push);
 // since the previous Take() and clears it.
 bool TakeBackButton();
 
-// Right thumbstick CLICK (R3). The SDK's action service binds keyboard keys
-// only (D2RLPlugin/input.h Key/Modifier), so the pad button is read here with
-// the rest of the XInput state. Take() returns whether a click happened since
-// the previous Take() and clears it.
-// Left thumbstick CLICK (L3): currently bound to no feature.
-// Both are reported on RELEASE, and not at all when the press became part of
-// an L3+R3 chord (stick_chord.h), so one press never fires two gestures.
+// Left thumbstick CLICK (L3): follows or releases the scanned target (beacon),
+// the mod's only stick button (R3 is the game's). The SDK's action service
+// binds keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad
+// button is read here with the rest of the XInput state. Take() returns
+// whether a press happened since the previous Take() and clears it.
 bool TakeLeftStickClick();
-
-bool TakeRightStickClick();
-
-// Right thumbstick HOLD (R3 kept down past StickChord::RightHoldMs): reviews
-// the next way out (room_service.h). Reported on the same release the click
-// would have been, so one press is either a click or a hold, never both.
-bool TakeRightStickHold();
-
-// L3 and R3 pressed together: the terrain overview. Fires the moment both are
-// down, once per chord.
-bool TakeStickChord();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics
