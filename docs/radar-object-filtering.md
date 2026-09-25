@@ -1,5 +1,10 @@
 # Structural radar: filtering bypassable objects
 
+> **Since 2026-09-25 the filter applies only while the game slides** (wall-slide
+> prevention off, `World::slides`). With prevention on, the default since
+> 2026-09-22, a direct move stops at these objects, so they stay walls.
+> `docs/radar-readings.md`.
+
 > Current as of the 2026-09-16 redesign (docs/radar-redesign.md): this
 > filtering code is unchanged, and it now feeds the radar's only
 > classifier (the connected-passage `ScanPassage` scan) instead of one of

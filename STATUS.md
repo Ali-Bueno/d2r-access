@@ -14,6 +14,21 @@ from skills/skilldesc rows, counts from the HUD's `QuantityText`.
 unchecked are a weapon swap with separate bindings and a charged-item skill.
 `docs/skill-bar.md`.
 
+## Radar precision review against the Among Us sonar — installed, 2026-09-25
+
+User: mostly right, sometimes imprecise, silent on very open ground. Four gaps
+fixed, each with a test that fails without it: (1) lone stones/trees/posts were
+erased as clutter while wall-slide prevention stops the character at them (Blood
+Moor capture: 102 readings said open with an obstacle inside the warning
+distance) -- the filter now runs only while the game slides; (2) a gap passed
+within 500 ms of its wall cue was lost (interval counted from the wall) --
+counted between openings now; (3) a reading back to the last cue repeated;
+(4) the way-back mark never lapsed. Holding the retreat was tried and reverted
+(phantom breaths along D2's 45-degree walls). **76/76 suites pass.** **Next
+step:** live listening in Blood Moor/Cold Plains: stones and trees ahead should
+tock, and walking along a wall close by should breathe at each gap even when
+running. `docs/radar-readings.md#precision-review-against-the-among-us-sonar-2026-09-25`.
+
 ## Magic names with only a suffix read in order — installed, 2026-09-25
 
 In esES a magic item with a suffix and no prefix was read "de llamas [fs]Maza":
@@ -1024,7 +1039,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Level scanner (right stick) | user-confirmed 2026-09-24 | Up/down categories, left/right objects, nearest first; enemies live, loot and ordinary chests excluded. Replaces the directional scan and the L3 pathfinder. `docs/entity-scan.md` |
 | Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
-| Sonar radar | built 2026-09-22; live listening pending | Darker floor breath, double-pip unexplored tail, outdoor exit candidates and compact storage. 61/61 suites pass; existing progress migrated. `docs/radar-readings.md`, `docs/exploration.md`. |
+| Sonar radar | precision fixes installed 2026-09-25; live listening pending | Obstacles kept while slide prevention is on, cue interval only between openings, no repeated reading, way-back lapse. `docs/radar-readings.md`, `docs/exploration.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |

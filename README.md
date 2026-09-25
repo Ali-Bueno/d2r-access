@@ -162,10 +162,13 @@ the player's native movement mask. It also recognizes a complete, uniquely
 identifiable player footprint displaced from the reported cell, preventing that
 footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
 markers. It separates creature occupancy from terrain and keeps the original
-movement mask as the final opening check. Isolated furniture and small clutter
-are excluded from automatic space changes when a full-body check proves a route
-around them. Walls, doors, enclosed spaces and objects cutting off a corridor
-remain structural barriers. Uncertain cases retain their collision.
+movement mask as the final opening check. With wall-slide prevention on (the
+default), a direct move stops at stones, trees and furniture, so the radar
+announces them like walls. With prevention off the game steers round them, so
+isolated furniture and small clutter are excluded from automatic space changes
+when a full-body check proves a route around them. Walls, doors, enclosed
+spaces and objects cutting off a corridor remain structural barriers either way.
+Uncertain cases retain their collision.
 
 The radar follows **usable connected passages** and remembers a wall's position
 when you move away from it. More free floor before the same wall stays silent;

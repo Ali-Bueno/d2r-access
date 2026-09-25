@@ -67,7 +67,8 @@ struct Settings {
 	// player moves one native cell. A stationary player confirms after two polls.
 	double confirmDistance = 1;
 	uint64_t stationaryConfirmMs = 2 * PollMs;
-	// At most one opening cue per direction in this interval. A wall cue is a
+	// At most one opening cue per direction in this interval (counted between
+	// openings, so a wall cue never delays the next opening). A wall cue is a
 	// safety warning and is never delayed.
 	uint64_t cueIntervalMs = 500;
 	// Reach measured beyond the opening depth, so a doorway seen after backing
@@ -100,6 +101,9 @@ struct World {
 	uint16_t walkingMask = 0;
 	std::vector<RoomGrid> rooms;
 	bool maze = false; // one streamed room is one chamber (Levels.txt DrlgType 1)
+	// Stock movement steers a blocked stick direction around small obstacles;
+	// with wall-slide prevention on it stops at them. `docs/radar-readings.md`
+	bool slides = true;
 	std::vector<LevelExit> exits; // the level's exits: warps, stairs, portals, border exits
 	// Open ground (DrlgType 3): ground never streamed is reachable in that
 	// screen quadrant, so floor that way is unexplored. Stamped by the terrain
@@ -110,7 +114,8 @@ struct World {
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 };
 uint16_t TerrainCollisionFlags(uint16_t flags);
-// A local geometry-only view: actors removed, bypassable clutter removed.
+// A local geometry-only view: actors removed, and bypassable clutter too
+// while the game slides around it (World::slides).
 World StructuralWorld(const World& world, const Settings& settings);
 int StructuralRadius(const Settings& settings, int bodyPattern);
 
@@ -147,8 +152,10 @@ struct Sensor {
 	State lastCue = State::Unknown;
 	bool lastCueUnexplored = false;
 	uint64_t lastCueMs = 0;
+	uint64_t lastOpeningMs = 0; // the last exit or floor cue; the cue interval counts from it
 	Frontier frontier;
 	bool wayBack = false; // the doorway just crossed: its next exit reading is taken as read
+	Position wayBackAt; // where it was crossed; the mark lapses a doorway's width from there
 	const char* hold = ""; // why the last confirmed change did not sound (diagnostics)
 };
 
@@ -178,7 +185,7 @@ public:
 	static double WayThrough(const World& world, const Settings& settings);
 	double CurrentWayThrough() const { return wayThrough_; }
 private:
-	void TrackRoom(const World& world, Position travel);
+	void TrackRoom(const World& world, Position motion, Position travel);
 	void UpdateMotion(Position player, uint64_t now);
 	State Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const;
 	State Deliver(Sensor& sensor, Position axis, Position motion, uint64_t now) const;

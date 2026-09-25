@@ -14,6 +14,7 @@
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "wall_slide_service.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -251,10 +252,11 @@ void Tick(const D2RL::PluginContext* context) {
 		Suspend(reason);
 	} else {
 		world.maze = RoomService::Maze(world.level);
+		world.slides = !WallSlideService::Enabled();
 		RefreshExits(world, now);
 		world.exits = g_exits;
 		TerrainService::Qualify(world);
-		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.exits.size());
+		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u slides=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.slides ? 1u : 0u, world.exits.size());
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
 		Radar::Marks marks{};

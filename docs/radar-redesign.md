@@ -66,8 +66,10 @@ velocidad; da igual si vuelvo al mismo sitio."*
    proximity warning, not memory-gated). Once the player leaves the
    frontier's lateral neighbourhood the gate no longer applies. A confirmed
    opening also waits until `cueIntervalMs` since the last cue in that
-   direction before it can sound (hold reason `"interval"`); wall cues are
-   never delayed. There are no retries: a queued cue that no longer matches
+   direction before it can sound (hold reason `"interval"`); **since
+   2026-09-25 only since the last opening**, and a passable change equal to
+   the last cue is dropped (hold `"unchanged"`), `docs/radar-readings.md`;
+   wall cues are never delayed. There are no retries: a queued cue that no longer matches
    the confirmed state is dropped (`RadarAudio::Retain`), and a cue already
    sounding is not cut by a new observation — only by suspension
    (dialogue/pause/focus loss).

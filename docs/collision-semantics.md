@@ -64,9 +64,10 @@ WATER is `0x00C0` (MISSILE|PLAYER), not a bit of its own. An out-of-room query r
   PLAYER bit itself survives wherever MISSILE marks the cell (WATER shares both bits and is terrain).
   MISSILE is never stripped for the same reason. A unit standing in a doorway must not close it.
 - **Structural world** (`src/radar_structure.cpp`): the terrain layer plus removal of bypassable
-  clutter (components of WALL/OBJECT only, at most one map tile across, with a proven detour). This is
-  the layer the radar's `ScanPassage` reads, so no actor can ever produce a wall cue.
-- **Beacon** (`src/beacon.cpp`) reads the terrain layer too.
+  clutter (components of WALL/OBJECT only, at most one map tile across, with a proven detour) while
+  the game slides round it; with wall-slide prevention on, clutter stays. This is the layer the
+  radar's `ScanPassage` reads, so no actor can ever produce a wall cue.
+- **Beacon** (`src/beacon.cpp`) and **rooms** (`src/rooms.cpp`) read the terrain layer too.
 - **BLANK is Unknown on every layer**, as are cells outside any streamed room: never a wall, never an
   opening. `0x27` contains BLANK, so an invalid room answers Unknown as well.
 - Self-stamp: `NativeWorld::RemovePlayerPresence` clears the local player's own footprint and marker

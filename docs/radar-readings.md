@@ -19,6 +19,59 @@ that way" and "that way leads somewhere" are different facts.
 Down is the same sound lowered by the compiled fraction; left and right are
 panned. The `test` audition of `access-radar` plays all four in every direction.
 
+## Precision review against the Among Us sonar (2026-09-25)
+
+The user found the radar mostly right but sometimes imprecise, and silent on
+very open ground. A review against the Among Us spec and its failure list
+(`among us access/reference/audio-navigation/passability-sonar/`) found four
+gaps, each now covered by a test that fails without its fix:
+
+- **Small obstacles on open ground were erased.** The clutter filter
+  (`radar_structure.cpp`) removes lone stones, trees and posts up to one map
+  tile because stock movement steers round them. Since 2026-09-22 wall-slide
+  prevention (`docs/wall-sliding.md`, on by default) stops a direct move at
+  them instead, so the radar called open the very thing the character stopped
+  against. On the Blood Moor capture (`tests/recorded_return_grid.h`), 102 of
+  about 1,700 readings over the 25x25 cells around the player said open where
+  terrain blocks within the warning distance; one is a 4x4 stone (`WALL|PRESET`)
+  a few cells down, read as open 33.9 instead of blocked 6.4. The filter now
+  applies only while the game slides (`World::slides`, from
+  `WallSlideService::Enabled`). Among Us had the same failure: with the `Ship`
+  layer alone its sonar walked the player into tables.
+- **A gap passed right after its wall was announced was lost.** The cue
+  interval was counted from the last cue of any kind, so an opening confirmed
+  within 500 ms of a wall cue waited, and the wall returning after a narrow
+  gap replaced it: "tock ... tock". Walking along a world-axis wall at one
+  cell per poll, a one-tile gap four cells past where the ray met the wall
+  was never heard. The
+  interval now counts between openings only (`Sensor::lastOpeningMs`), as the
+  setting always described it; walls were and are never delayed. Among Us
+  kept these gaps because its walls need three sweeps to be believed.
+- **A reading that returned to what was last said still sounded.** Floor that
+  turned into an exit and back inside the cue interval repeated the floor cue.
+  A passable change equal to the last cue is now dropped (`hold=unchanged`),
+  and a way-back taken as read records its qualifier too. Walls still re-warn
+  on every approach.
+- **The way-back mark never lapsed.** It now lapses a doorway's width
+  (`wayThrough`) from where the border was crossed, as in Among Us.
+
+**Tried and rejected: holding the retreat instead of dropping it.** Among Us
+holds a cue back rather than dropping it, and here backing off a wall drops
+the opening, so a gap found by then walking along that wall does not sound.
+Holding it was built and tested, then reverted: D2 walls run along the world
+axes, at 45 degrees to all four screen rays, so the route reaches past the
+remembered point as soon as the player walks along the same wall, and the
+held opening sounded as a phantom breath a few cells later. The comparison
+walk and `AlongAnAxisWall` in `radar-engine` show both cases. Gaps are found by
+walking along a wall within the warning distance: breath at the gap, tock
+after it.
+
+A serpentine walk over the Blood Moor capture (every other row of the 21x21
+around the player, a cell per poll) gives, with the game sliding, the same 59
+cues as before, several openings up to 400 ms earlier; with prevention on it
+gives 76, the 17 new ones all the stone: a wall while it is ahead, floor once
+it is passed.
+
 ## Louder cues and a darker downward breath (2026-09-25)
 
 The user asked for slightly louder, more pronounced cues, the breath above all,
@@ -82,13 +135,15 @@ When the player's streamed room changes on a maze level, the direction most
 against the step that crossed the border is marked (`Sensor::wayBack`). Its
 next confirmed exit reading is the doorway just walked through: it is taken
 as read (`hold = "way-back"`, `lastCue = Exit`) and not sounded. Any other
-confirmation, or the next room change, clears the mark.
+confirmation, the next room change, or walking a doorway's width
+(`wayThrough`) from the crossing clears the mark.
 
 ## Queue
 
 `CueQueue::Take` plays the most urgent pending direction first: walls and
 doors, then exits, then floor, round robin among equals. Cues held for the
-interval or the retreat gate were already retained, never dropped.
+interval are retained, never dropped; an opening withheld by the retreat gate
+is dropped on purpose (see the 2026-09-25 review above).
 
 ## Not ported, and why
 

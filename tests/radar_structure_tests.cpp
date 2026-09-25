@@ -50,6 +50,9 @@ void IsolatedObjects() {
 		Check(StructuralWorld(world, {}).Cell(108, 108) == State::Open,
 			"bypassable small furniture is absent from automatic structural geometry for every native body pattern");
 		Check(world.Body(108, 108) == State::Blocked, "structural filtering never changes the physical source map");
+		world.slides = false;
+		Check(StructuralWorld(world, {}).Cell(108, 108) == State::Blocked,
+			"when a direct move stops at obstacles instead of sliding round them, small furniture is geometry again");
 	}
 	// One native map tile is the whole classification scale now: anything wider
 	// is geometry, whatever collision bit it carries.
@@ -196,10 +199,8 @@ void PhysicalGuardAndDoors() {
 	Put(world, 101, 101, 0);
 	(void)engine.Tick(world, 1400);
 	(void)engine.Tick(world, 1450);
-	const uint64_t due = 1350 + Settings{}.cueIntervalMs;
-	for (uint64_t now = 1500; now < due; now += PollMs)
-		Check(Silent(engine.Tick(world, now)), "the reopened door waits for the cue interval instead of sounding twice quickly");
-	Check(engine.Tick(world, due)[Down] == State::Open, "the real doorway reopening still sounds");
+	Check(engine.Tick(world, 1500)[Down] == State::Open,
+		"the real doorway reopening sounds once confirmed: the cue interval spaces openings, not a door and its opening");
 }
 
 void Travel() {
@@ -269,6 +270,19 @@ void RecordedReturn() {
 	}
 }
 
+void RecordedStone() {
+	// The Blood Moor capture has a four-cell stone (WALL|PRESET) a few cells down
+	// and right of the player, alone on open grass: clutter while the game steers
+	// round it, the wall a direct move stops against when it does not.
+	auto world = RecordedReturnGrid();
+	const PassageQuery query{.openDepth = Settings{}.openDepth, .closeDepth = Engine::CloseDepth({}, world.bodyPattern)};
+	const auto down = [&] { return ScanPassage(Analyze(StructuralWorld(world, {})), Axes[Down], query); };
+	Check(down().depth >= query.openDepth, "while the game slides round it, the stone leaves the way down open");
+	world.slides = false;
+	Check(down().available && down().depth <= query.closeDepth,
+		"when the move stops at it instead, the stone ahead is inside the warning distance");
+}
+
 void RecordedAlcove() {
 	// The stone alcove of the 2026-09-20 07:56:54 live run. The game refused
 	// three down inputs there while the radar reported an open route 33.9 cells
@@ -326,6 +340,7 @@ int main() {
 	PhysicalGuardAndDoors();
 	Travel();
 	RecordedReturn();
+	RecordedStone();
 	RecordedAlcove();
 	WindowAndCost();
 	Passed();

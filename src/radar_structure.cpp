@@ -90,6 +90,9 @@ World StructuralWorld(const World& world, const Settings& settings) {
 		const auto state = world.Cell(grid.x+x, grid.y+y, Layer::Terrain, &flags);
 		grid.cells[static_cast<size_t>(y)*side+x] = state == State::Unknown ? Blank : TerrainCollisionFlags(flags);
 	}
+	// Clutter is only bypassable while the game steers around it; a direct
+	// move that is not allowed to slide stops against it.
+	if (!world.slides) return result;
 	const World original = result;
 	std::vector<bool> visited(grid.cells.size());
 	std::vector<size_t> component;

@@ -8,4 +8,6 @@ void Tick();
 void Unregister();
 // Called only when the native movement code attempts to redirect a blocked target.
 bool Prevent(uintptr_t pathContext) noexcept;
+// True while a blocked stick direction stops the character instead of sliding.
+bool Enabled() noexcept;
 }
