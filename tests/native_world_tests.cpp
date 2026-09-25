@@ -179,8 +179,8 @@ int main() {
 	Check(!RadarConfig::Parse("[radar]\nenabled=FALSE\n").valid, "non-TOML boolean is rejected");
 	Check(!RadarConfig::Parse("[radar]\nenabled=false\nenabled=true").valid, "duplicate radar setting is rejected");
 	Check(RadarConfig::Parse("[radar]\r\n enabled = true\r\n").enabled, "Windows newlines and whitespace are accepted");
-	Check(RadarConfig::Parse("").diagonals, "the rays follow the stick diagonals, along the walls, unless configured otherwise");
-	Check(!RadarConfig::Parse("[radar]\ndiagonals = false\n").diagonals, "the stick cardinals can be chosen instead");
+	Check(!RadarConfig::Parse("").diagonals, "the rays follow the stick cardinals, the user's choice, unless configured otherwise");
+	Check(RadarConfig::Parse("[radar]\ndiagonals = true\n").diagonals, "the stick diagonals, along the walls, can be chosen instead");
 	Check(!RadarConfig::Parse("[radar]\ndiagonals = maybe\n").valid, "a non-boolean frame is rejected");
 	Check(RadarConfig::Parse("").enabled, "missing preference uses the compiled default");
 	Check(RadarConfig::Parse("[radar]\nvolume = 40 # quieter cues\n").volume == 40,

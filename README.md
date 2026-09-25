@@ -154,12 +154,11 @@ game rooms. It synthesizes four directional cues: a bright `tin` when a passage
 leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
 for floor that leads nowhere new, a dull `tock` for a nearby wall and two
 knocks for a closed door ([readings](docs/radar-readings.md)),
-using four fixed directions of the left stick. By default they are the
-stick's **diagonals** (up-left, up-right, down-left, down-right), which the game
-turns into the directions its walls and corridors run in, so a corridor reads
-open along its length; each is panned to its side and the two lower ones have
-a lower pitch. `[radar] diagonals = false` or `access-radar cardinal` switches
-to **up / left / right / down**, where down has a lower pitch. Simultaneous
+using fixed **up / left / right / down** directions that match the left stick;
+down has a lower pitch. `[radar] diagonals = true` or `access-radar diagonal`
+switches to the stick's diagonals, which the game turns into the directions its
+walls and corridors run in; each is then panned to its side and the two lower
+ones have a lower pitch. Simultaneous
 cues play successively with **50 ms of
 silence between them**. Exit readings include nearby transitions between outdoor
 areas when the passage scan confirms an approach. The radar checks the full body along each passage using

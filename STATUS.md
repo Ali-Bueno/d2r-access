@@ -14,18 +14,16 @@ from skills/skilldesc rows, counts from the HUD's `QuantityText`.
 unchecked are a weapon swap with separate bindings and a charged-item skill.
 `docs/skill-bar.md`.
 
-## Radar rays along the walls (stick diagonals) — installed, 2026-09-25
+## Radar back on the stick cardinals — installed, 2026-09-25
 
-User: a corridor could read as wall in every direction; fix it. D2's walls run
-along the world axes, 45 degrees to the stick cardinals; the game turns the stick
-into the world by a 45-degree rotation (41 logged pairs), so the stick diagonals
-are the wall directions. The radar's four rays now follow them by default (same
-sounds, panned to their side, lower two at down's pitch); `[radar] diagonals =
-false` or `access-radar cardinal` restores the cardinals. Corridor test: floor
-along, wall across, side doorway and far wall heard; maze doorway walk 2 cues
-instead of 10. **76/76 suites pass.** **Next step:** listen in a dungeon corridor
-and the Blood Moor; `access-radar diagonal|cardinal` to compare.
-`docs/radar-readings.md#rays-along-the-walls-the-stick-diagonals-2026-09-25`.
+The user tried rays along the stick diagonals (walls run that way, so a corridor
+reads open along its length) and preferred the cardinals: with every ray panned to
+a side, walls and exits up and down at once were an overload of cues. Default
+`[radar] diagonals = false`; `access-radar diagonal` still tries the other frame.
+Known limit kept: a corridor along a world axis can read as wall in all four
+directions. **77/77 suites pass.** **Next step:** live listening of the precision
+fixes below; an exit passed in line should tin once.
+`docs/decisions.md`, `docs/radar-readings.md`.
 
 ## Radar precision review against the Among Us sonar — installed, 2026-09-25
 
@@ -1052,7 +1050,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Level scanner (right stick) | user-confirmed 2026-09-24 | Up/down categories, left/right objects, nearest first; enemies live, loot and ordinary chests excluded. Replaces the directional scan and the L3 pathfinder. `docs/entity-scan.md` |
 | Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
-| Sonar radar | diagonal rays + precision fixes installed 2026-09-25; live listening pending | Rays along the walls (stick diagonals, cardinals selectable); obstacles kept while slide prevention is on; cue interval only between openings; no repeated reading; way-back lapse. `docs/radar-readings.md`, `docs/exploration.md`. |
+| Sonar radar | precision fixes installed 2026-09-25; live listening pending | Stick cardinals (diagonal frame selectable); obstacles kept while slide prevention is on; cue interval only between openings; no repeated reading; way-back lapse. `docs/radar-readings.md`, `docs/exploration.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |
 | Stalled local footsteps | wip - second sliding case verified; suppression pending | 23:52:33/40 grids show up/right blocked with real travel along world X; +11.008728 then -9.091965 X in five-second intervals. No stalled decisions. No filter change; Ctrl+T now distinguishes recent movement from straight-ray blockage. Full stationary suppression remains unverified. `docs/footsteps.md` |
 | Local computer use | done — initial live check | Python stdlib capture + bounded Windows inputs; menus, scroll, Ctrl+T and four movement directions verified with NVDA active. F9 up, F10 right, F11 down, F13 left assigned through game UI. Twelve mocked-input tests pass. `tools/computer_use/README.md`; no audio capture/analog controller emulation |

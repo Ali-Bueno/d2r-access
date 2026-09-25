@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-25 — Radar back on the stick cardinals after listening
+
+The user tried the diagonal rays and went back: every ray sounds from one side,
+so walls and exits "sounded up and down" at once and read as an overload of cues.
+The cardinals are enough; what matters is that passing an exit sounds, which the
+cardinals do. Default `[radar] diagonals = false`; the diagonal frame stays
+selectable (`access-radar diagonal`). Known limit kept: a corridor along a world
+axis can read as wall in all four directions. `docs/radar-readings.md`.
+
 ## 2026-09-25 — Radar rays along the walls: the stick diagonals
 
 The user found that a corridor could read as wall in every direction and asked to

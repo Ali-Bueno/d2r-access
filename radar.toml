@@ -4,11 +4,12 @@
 enabled = true
 # Cue loudness, 0-100 percent of the compiled level.
 volume = 100
-# true = the four rays follow the left stick's diagonals, which the game turns
-# into the directions its walls and corridors run in; false = the stick's up,
-# left, right and down, which meet every wall at 45 degrees. The console
-# commands access-radar diagonal|cardinal switch for the current run.
-diagonals = true
+# false = the four rays follow the left stick's up, left, right and down.
+# true = its diagonals, which the game turns into the directions its walls and
+# corridors run in (every ray then sounds from one side, up and down told apart
+# by pitch alone). The console commands access-radar diagonal|cardinal switch
+# for the current run.
+diagonals = false
 
 # Long-range guidance starts with exploration-first routes through visited
 # areas. Set true to allow the optional full-assistance route through areas

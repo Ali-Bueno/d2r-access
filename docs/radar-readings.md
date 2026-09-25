@@ -21,6 +21,11 @@ panned. The `test` audition of `access-radar` plays all four in every direction.
 
 ## Rays along the walls: the stick diagonals (2026-09-25)
 
+> **Default back to the cardinals the same day** after the user listened: every
+> diagonal sounds from one side, so walls and exits up and down at once were an
+> overload of cues. The diagonal frame stays selectable (`[radar] diagonals =
+> true`, `access-radar diagonal`). `docs/decisions.md`.
+
 **Why.** D2's walls and corridors run along the world axes. The four stick
 cardinals are world diagonals (projection `0x334DB0`), so each of their rays
 meets every wall at 45 degrees; in a corridor along a world axis all four read
@@ -36,7 +41,7 @@ So the stick's diagonals are exactly the directions the walls run in.
 **The frame.** `Radar::Frame` (`src/radar.h`) holds the rays: `Cardinal`, the old
 stick cardinals, and `Diagonal`, the world axes: up-left (-X), up-right (-Y),
 down-left (+Y), down-right (+X). The service applies `[radar] diagonals`
-(default true); `access-radar diagonal|cardinal` switches for the run, forgets
+(default false since listening); `access-radar diagonal|cardinal` switches for the run, forgets
 what the old rays said (silent baseline) and speaks the four names. Only the
 radar changes; the NPC announcer, terrain overview, scanner and room exits keep
 the screen directions.

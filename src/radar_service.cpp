@@ -49,7 +49,7 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 Radar::Engine g_engine;
-Radar::Frame g_frame = Radar::Frame::Diagonal;
+Radar::Frame g_frame = Radar::Frame::Cardinal;
 bool g_supported = false, g_ready = false, g_enabled = true, g_suspended = true;
 uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0, g_lastSnapshot = 0;
