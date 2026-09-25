@@ -173,6 +173,7 @@ inline constexpr Table zhTW {
 	.automapLogged = "自動地圖已寫入日誌",
 	.automapWatchOn = "自動地圖監視已開啟",
 	.automapWatchOff = "自動地圖監視已關閉",
+	.skillBarSlot = "%s：%s",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 	.terrainPlaces = {"左後方角落", "後方邊緣", "右後方角落", "左方邊緣", "中央",
 		"右方邊緣", "左前方角落", "前方邊緣", "右前方角落"},

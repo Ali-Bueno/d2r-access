@@ -173,6 +173,7 @@ inline constexpr Table koKR {
 	.automapLogged = "자동 지도를 로그에 기록했습니다",
 	.automapWatchOn = "자동 지도 감시 켜짐",
 	.automapWatchOff = "자동 지도 감시 꺼짐",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 	.terrainPlaces = {"뒤쪽 왼쪽 모서리", "뒤쪽 가장자리", "뒤쪽 오른쪽 모서리", "왼쪽 가장자리", "중앙",
 		"오른쪽 가장자리", "앞쪽 왼쪽 모서리", "앞쪽 가장자리", "앞쪽 오른쪽 모서리"},

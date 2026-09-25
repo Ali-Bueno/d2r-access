@@ -174,6 +174,7 @@ inline constexpr Table plPL {
 	.automapLogged = "Automapa zapisana w dzienniku",
 	.automapWatchOn = "Śledzenie automapy włączone",
 	.automapWatchOff = "Śledzenie automapy wyłączone",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 	.terrainPlaces = {"tylny lewy róg", "tylna krawędź", "tylny prawy róg", "lewa krawędź", "środek",
 		"prawa krawędź", "przedni lewy róg", "przednia krawędź", "przedni prawy róg"},

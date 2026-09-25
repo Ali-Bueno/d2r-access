@@ -173,6 +173,7 @@ inline constexpr Table frFR {
 	.automapLogged = "Carte automatique écrite dans le journal",
 	.automapWatchOn = "Surveillance de la carte automatique activée",
 	.automapWatchOff = "Surveillance de la carte automatique désactivée",
+	.skillBarSlot = "%s : %s",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 	.terrainPlaces = {"coin arrière gauche", "bord arrière", "coin arrière droit", "bord gauche", "centre",
 		"bord droit", "coin avant gauche", "bord avant", "coin avant droit"},

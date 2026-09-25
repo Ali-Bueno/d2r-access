@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Hold LT to hear the LT skill bar — works live, 2026-09-25
+
+User asked what LT/L2, RT, LB and RB do (stock map now in the doc) and chose
+this feedback: holding LT alone 0.6 s in play reads the six LT-bar slots
+("A: Tomo de portal a la ciudad, 12. X: Vacío…"), release cuts it, combos stay
+silent. Bindings come from the game's table via its getter `0x117D20`, names
+from skills/skilldesc rows, counts from the HUD's `QuantityText`.
+**77/77 suites pass**; installed DLL SHA-256 `561EE346…` matches the build.
+**Live 2026-09-25:** the user confirms it works. **Next step:** none; still
+unchecked are a weapon swap with separate bindings and a charged-item skill.
+`docs/skill-bar.md`.
+
 ## Magic names with only a suffix read in order — installed, 2026-09-25
 
 In esES a magic item with a suffix and no prefix was read "de llamas [fs]Maza":

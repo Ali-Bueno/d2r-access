@@ -60,6 +60,7 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_backPressed = false;
+TriggerHold g_leftTrigger;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
 ULONGLONG  g_lastHorizontalTickMs = 0;
@@ -137,6 +138,7 @@ void Poll() {
 		| XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_RIGHT;
 
 	g_leftStick = {};
+	g_leftTrigger = {};
 	if (g_xInputGetState != nullptr) {
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
 			PadEdgeState& edges = g_padState[padIndex];
@@ -150,6 +152,9 @@ void Poll() {
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			dpadButtons |= pad.wButtons & DpadMask;
+			g_leftTrigger.held = g_leftTrigger.held || pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+			g_leftTrigger.otherButton = g_leftTrigger.otherButton || pad.wButtons != 0
+				|| pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 			if (!g_leftStick.connected) {
 				// XInput's Y axis grows upward; screen y grows downward.
 				g_leftStick = {static_cast<float>(pad.sThumbLX) / kThumbstickMaxMagnitude,
@@ -235,6 +240,7 @@ void Poll() {
 }
 
 Stick LeftStick() { return g_leftStick; }
+TriggerHold LeftTrigger() { return g_leftTrigger; }
 bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;
 	g_leftStickClick = false;

@@ -173,6 +173,7 @@ inline constexpr Table deDE {
 	.automapLogged = "Automap ins Protokoll geschrieben",
 	.automapWatchOn = "Automap-Überwachung an",
 	.automapWatchOff = "Automap-Überwachung aus",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
 		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},

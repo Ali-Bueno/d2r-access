@@ -173,6 +173,7 @@ inline constexpr Table enUS {
 	.automapLogged = "Automap written to the log",
 	.automapWatchOn = "Automap watch on",
 	.automapWatchOff = "Automap watch off",
+	.skillBarSlot = "%s: %s",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 	.terrainPlaces = {"back left corner", "back edge", "back right corner", "left edge", "centre",
 		"right edge", "front left corner", "front edge", "front right corner"},

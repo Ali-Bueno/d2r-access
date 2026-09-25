@@ -142,6 +142,13 @@ button and row too. If the game displays an automatic potion from the inventory
 in an empty bottom cell, the reader identifies it separately from physical belt
 reserves. No new controller binding is added. See [potion assignments](docs/belt.md).
 
+**Hold LT (L2) alone** for about half a second during play to hear the LT skill
+bar, the six skills the game puts on LT + A, X, B, Y, RB and RT: each control,
+the skill's name in the game's language and the count the HUD draws (scrolls in
+a tome). Releasing LT stops the reading; an LT + button combo never triggers it.
+`access-skill-bar on|off` toggles it. See [the controller skill bar](docs/skill-bar.md),
+which also lists what every stock controller button does.
+
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
 leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
