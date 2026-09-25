@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Magic names with only a suffix read in order — installed, 2026-09-25
+
+In esES a magic item with a suffix and no prefix was read "de llamas [fs]Maza":
+the game's own esES `ItemNameMagicFormatSuffixOnly` is `a0n1:%1 %0` (esMX has
+`a1n0:%0 %1`). The item and comparison tooltips now rebuild it from that format:
+"Maza de llamas". An audit of all 13 locales found no other broken format.
+**76/76 suites pass.** **Next step:** live check on a suffix-only magic item in
+esES. `docs/native-tooltips.md#magic-names-with-only-a-suffix-in-eses-2026-09-25`.
+
 ## Beacon keeps its route in combat and at area borders — installed, 2026-09-25
 
 The user got lost on the way from Dark Wood to Black Marsh: three

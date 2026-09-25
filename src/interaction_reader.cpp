@@ -13,6 +13,7 @@
 #include "inventory_cursor.h"
 #include "native_belt.h"
 #include "ground_item_service.h"
+#include "ground_item_text.h"
 #include "input_direction.h"
 #include "localization.h"
 #include "native_tooltips.h"
@@ -155,6 +156,20 @@ const std::vector<std::string>& RequirementLabels() {
 	return cache.For(TooltipText::RequirementKeys);
 }
 
+// A tooltip body with any magic name the game composed with a broken grammar
+// header rebuilt, the format resolved again when the text language changes.
+TooltipText::Body ItemBody(std::string_view raw) {
+	static std::optional<Strings::Language> language;
+	static std::string format;
+	if (language != Strings::Selected() || format.empty()) {
+		language = Strings::Selected();
+		format = Localization::Text(GroundItemText::SuffixOnlyFormatKey);
+	}
+	auto body = TooltipText::Read(raw);
+	for (auto& line : body.lines) line = GroundItemText::RepairSuffixOnlyName(line, format);
+	return body;
+}
+
 std::string Refusal(const std::string& reasons) {
 	if (reasons.empty()) return Strings::Current().equipRefused;
 	char phrase[300]{};
@@ -255,6 +270,19 @@ bool ReadSkillLines(const D2RL::PluginContext* context, NativeUi::Focus focus, u
 
 bool IsInventory(UiText::Kind kind);
 
+// Tooltip records' lines joined as TooltipText::Comparison joins them, with a
+// suffix-only magic name repaired the way the item readout repairs it.
+std::string CompareText(std::span<const std::string> records) {
+	std::string result;
+	for (const auto& record : records)
+		for (const auto& line : ItemBody(record).lines) {
+			if (line.empty()) continue;
+			if (!result.empty()) result += result.ends_with('.') ? " " : ". ";
+			result += line;
+		}
+	return result;
+}
+
 // Compare mode, while Y is held on an inventory item (the user, 2026-09-22):
 // the left stick reads, since Y and the right stick share the right thumb.
 // Left reads the highlighted item's tooltip in full, right the equipped one the
@@ -275,8 +303,8 @@ bool ReadCompare(const D2RL::PluginContext* context, NativeUi::Focus focus, uint
 	const char* what = "detail";
 	if (push == StickPush::Up) text = g_detail;
 	else if (push == StickPush::Down) { text = ControlHints::Current(); what = "controls"; }
-	else if (current && push == StickPush::Left) { text = TooltipText::Comparison(std::span(&tooltip.body, 1)); what = "highlighted"; }
-	else if (current) { text = TooltipText::Comparison(tooltip.extras); what = "equipped"; }
+	else if (current && push == StickPush::Left) { text = CompareText(std::span(&tooltip.body, 1)); what = "highlighted"; }
+	else if (current) { text = CompareText(tooltip.extras); what = "equipped"; }
 	if (text.empty()) text = Strings::Current().detailNone;
 	D2RAccess::AsyncLog::InfoF(context, "[compare] %s -> \"%s\"", what, text.c_str());
 	ScreenReader::Speak(text, true);
@@ -524,7 +552,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// An item's own tooltip, in the order the screen draws it: the
 			// name is spoken, with its price in a shop, and the rest is held
 			// for the player to ask for.
-			const auto body = TooltipText::Read(tooltip.body);
+			const auto body = ItemBody(tooltip.body);
 			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), RequirementLabels());
 			// What a sighted player sees in red, said right after the name.
 			g_itemUnmet = split.unmet;

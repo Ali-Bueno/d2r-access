@@ -1,6 +1,7 @@
 #include "character_stats.h"
 #include "entity_radar_service.h"
 #include "generated/item_sizes.h"
+#include "ground_item_text.h"
 #include "interaction_reader.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
@@ -193,6 +194,7 @@ std::string Text(std::string_view key) {
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::PriceKey) return Strings::Selected() == Strings::Language::enUS ? "Cost: %d" : "Coste: %d";
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
+	if (key == GroundItemText::SuffixOnlyFormatKey) return "a0n1:%1 %0"; // the game's esES entry
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	if (key == "ItemStats1e") return "Fuerza necesaria: %d";
 	for (const char* requirement : TooltipText::RequirementKeys) if (key == requirement) return {};
