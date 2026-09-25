@@ -153,26 +153,21 @@ std::string Format(const char* format, auto... args) {
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
-	// The shared words for a bearing and a distance, so every readout names
-	// the same thing the same way: "ahead" rather than "Up", and steps rather
-	// than a unit only this readout uses. The number here is
-	// a real step count from the navigation grid, which is what made "metres"
-	// the wrong word for it.
-	const char* direction = strings.scanDirections[static_cast<size_t>(landmark.direction)];
+	// Eight screen bearings, diagonals included (the user, 2026-09-25: "arriba y a
+	// la izquierda", not only straight lines). Distances are real step counts.
+	const char* direction = strings.radarMovementDirections[static_cast<size_t>(landmark.direction)];
 	// Nothing here is out of reach. The grid only covers the collision window
 	// the game keeps around the player, so a landmark it cannot route to is
 	// almost always one the catalogue can see and the grid cannot -- the
 	// catalogue is the level-wide reader precisely for that. Quote the
 	// straight line, which MapSurvey::Survey fills in from world positions for
-	// every landmark whether the grid saw it or not.
-	//
-	// Say it plainly: a straight line is not a walk, so this understates a
-	// target on the far side of a wall. That is the trade the readout wants --
-	// a direction and a rough distance can be acted on, "no route" cannot.
-	// Only a landmark standing on the player has no distance to quote at all.
+	// every landmark whether the grid saw it or not. It understates a target
+	// behind a wall, but a direction and a rough distance can be acted on. Not
+	// called "straight line" aloud: next to a diagonal it made no sense (the
+	// user, 2026-09-25). Only a landmark on the player has no distance at all.
 	if (!g_fullAssistance) {
 		const std::string distance = EntityRadar::DistancePhrase(landmark.straightLine, EntityRadar::Settings{}, strings);
-		return Format(strings.surveyOrientation, landmark.entity.name.c_str(), distance.c_str(), direction);
+		return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
 	}
 	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
 	if (!landmark.reachable && landmark.straightLine <= 0) {
@@ -327,7 +322,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	if (request == Request::NextObject) index = (index + 1) % members.size();
 	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
-	// Hand the selection to the beacon, so the right-stick click leads to what
+	// Hand the selection to the beacon, so the left-stick click leads to what
 	// the scanner just named. Every answer re-offers, including a plain repeat,
 	// so the offer is always the thing the player heard most recently.
 	BeaconService::Offer(members[index].entity, level, GetTickCount64());

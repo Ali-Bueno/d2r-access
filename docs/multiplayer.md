@@ -25,7 +25,7 @@ TCP/IP uses local characters, rather than Battle.net characters.
 
 The right-stick scanner has a **player** category (`jugador`) listing the
 other characters nearby by name, distance and direction. Party members are
-listed anywhere on the same level. A right-stick click follows the one just
+listed anywhere on the same level. A left-stick click follows the one just
 named (`docs/entity-scan.md`). To be found from afar, both players must be in
 the same party (the party panel's invite button).
 
@@ -154,3 +154,20 @@ corresponding increment/decrement and difficulty pairs). It only restores a
 visible, enabled control inside the current modal when focus fell back to an
 input. New D-pad presses and active text editing take precedence. It never
 dispatches or repeats the original action.
+
+### Text boxes name the box being typed into (2026-09-25)
+
+The user heard the game-name box named while typing a password, and a box's
+contents cut off by its own label. D2RCore 1.3.0-beta's form refresh
+(`0x2FC470`, default focus at `0x2FEBC7`–`0x2FEC13`) picks `DifficultyNormal`
+under LAN Only, else `HostPasswordInput` when Unlisted, else `HostGameNameInput`
+(flags `0x687F3A` / `0x687F39`), and can run while a box is edited. Typing still
+goes to the active editor (`0x3440C48`, stored by begin-edit `0x88C810`), so
+`NativeSkillNavigation::ActiveTextInput` names that box whenever it belongs to
+the focused panel, in `FocusTracker` and `TextField`. A box is now spoken as one
+phrase, label, role, then contents (`Readout::contents`; masked boxes expose
+none): `TextField` used to speak the contents on arrival, and the tracker's
+33 ms poll then interrupted them. After editing ends, focus is announced where
+the game left it; restoring it to the edited box was not added. The refresh
+trigger and whether a controller `TextInputModal` owns the editor are unverified:
+next session, log `[field]`/`[focus]` while pressing A on the password box.

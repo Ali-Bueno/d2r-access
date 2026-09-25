@@ -137,6 +137,12 @@ void Readings() {
 	Check(Rms(wall, 0, rest, second) > between, "a wall is one strike that has not rested where the door has");
 	Check(Frequency(Synthesize(One(Down, Radar::State::Door)), 0, 0, CueFrames / 8) < Frequency(door, 0, 0, CueFrames / 8),
 		"a door is lowered for down like every other reading");
+	// Two openings at once, up and down, must not blur: down's breath is far darker, as loud.
+	const auto floorDown = Synthesize(One(Down, Radar::State::Open));
+	Check(Frequency(floorDown, 0, 0, CueFrames) < 0.75 * Frequency(floor, 0, 0, CueFrames),
+		"down's breath is much darker than up's (2026-09-25 listening)");
+	Check(std::abs(Rms(floorDown, 0, 0, CueFrames) / Rms(floor, 0, 0, CueFrames) - 1) < 0.25,
+		"the darker breath keeps the same loudness");
 	bool mirrored = true;
 	const auto left = Synthesize(One(Left, Radar::State::Open)), right = Synthesize(One(Right, Radar::State::Open));
 	for (size_t frame = 0; frame < CueFrames; ++frame)

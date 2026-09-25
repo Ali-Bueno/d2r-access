@@ -315,7 +315,8 @@ runs `'0'` through `'V'` -- 39 values. Three parser sites range-check it
 identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. Index 2 is the one
 a title is drawn in.
 
-Item tooltips are drawn with index `'0'`. Stripping only `'1'` and `'2'` left
+Item tooltips are drawn with index `'0'`; the index is D2's colour palette
+(see "Requirements the character does not meet" below). Stripping only `'1'` and `'2'` left
 that `'0'` in the text, so every spoken line began with a stray "0" and the
 base-stat labels ("One-Hand Damage: ") no longer matched their own lines.
 
@@ -340,3 +341,33 @@ fault containment. Interaction tests simulate delayed descriptions, movement to
 another occupied cell, return to an empty cell, and complete coordinate-free speech.
 The existing native UI and gameplay tests cover archetype selection and lifecycle
 integration. Build/test results are recorded in `STATUS.md`.
+
+## Requirements the character does not meet (2026-09-25)
+
+The user asked to hear when an item cannot be equipped and why. The game gives no
+refusal message: the item stays in hand, and for an item the character cannot
+use the controller legend drops "Mantener para: Equipar" altogether. What the
+tooltip shows is colour. Each item line starts with the style command `U+E07E`
+and a palette index: `0` white, `3` magic blue, `5` socketed grey, and `1` red, a
+requirement the character does not meet. Measured with `[item-markup]` on
+2026-09-25 07:49 (level 12 Barbarian): "(Solo asesina)" and "Destreza necesaria:
+33" carried `1`, the met "Fuerza necesaria: 33" carried `0`. (A first guess, D2's
+inline `ÿc1`, never appears in these bodies.)
+
+`TooltipText::Read` records which lines carry `U+E07E` `1`, and `Split` puts the
+red lines that begin with a requirement label (`RequirementKeys`:
+`ItemStats1e/1f/1p`, strength, dexterity and level, and the `<Class>Only` lines)
+in `Description::unmet`. Red lines that are not requirements are not reasons.
+
+- Focusing such an item says it with the name: "Cuchilla de muñeca. No se puede
+  equipar: (Solo asesina). Destreza necesaria: 33". The lines stay in the detail.
+- Pressing A on an equipment slot with an item in hand arms `EquipAttempt`; if the
+  same item (runtime id) is still in hand `AnswerMs` (500 ms) later, the game
+  refused: "No se puede equipar", with the reasons remembered from the item's
+  tooltip when it was picked up. A wrong slot type has no reason to give.
+- Not claimed: that unidentified items cannot be equipped (unverified). `ItemStats1a`
+  ("No se cumplen los requisitos") exists in the string table but was not seen in
+  a live tooltip.
+
+`[item-markup]` stays as a diagnostic: once per item it logs each styled line's
+commands (`U+E07E:1`) and escapes (`TooltipText::Markup`).

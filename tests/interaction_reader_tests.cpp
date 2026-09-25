@@ -148,6 +148,7 @@ void ArmLeftStickWithY(uint64_t) { ++leftStickArms; }
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
+std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
@@ -164,6 +165,7 @@ std::string Selected(uintptr_t) {
 }
 }
 namespace D2RAccess::InputDirection {
+FaceButton LastFaceButton(unsigned) { return FaceButton::None; }
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (wanted == StickPush::None || pendingPush != wanted) return false;
 	pendingPush = StickPush::None;
@@ -189,9 +191,11 @@ namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
-	if (key == TooltipText::PriceKey) return "Coste: %d";
+	if (key == TooltipText::PriceKey) return Strings::Selected() == Strings::Language::enUS ? "Cost: %d" : "Coste: %d";
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
+	if (key == "ItemStats1e") return "Fuerza necesaria: %d";
+	for (const char* requirement : TooltipText::RequirementKeys) if (key == requirement) return {};
 	++titleLookups;
 	return {};
 }
@@ -283,6 +287,13 @@ int main() {
 	ClearSpeech(); focus = {20, 21}; inventory = {}; cell = {0, 1}; selection = uint64_t{1} << 32;
 	Tooltip("Pergamino del portal de la ciudad"); Settle();
 	Check(speech == std::vector<std::string>{"Inventario. Pergamino del portal de la ciudad"}, "player inventory reads the item without coordinates");
+	// The style command's red index ('1') marks a requirement this character does not meet.
+	ClearSpeech(); cell = {1, 1}; selection = (uint64_t{1} << 32) | 1;
+	Tooltip("\xEE\x81\xBE" "1Fuerza necesaria: 40\n" "\xEE\x81\xBE" "0Armadura de placas"); Settle();
+	Check(speech == std::vector<std::string>{"Armadura de placas. No se puede equipar: Fuerza necesaria: 40"},
+		"a requirement drawn red is said with the item's name");
+	ClearSpeech(); cell = {0, 1}; selection = uint64_t{1} << 32;
+	Tooltip("Pergamino del portal de la ciudad"); Settle(); ClearSpeech();
 	ClearSpeech(); focus.widget = 22; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; cell = {};
 	Tooltip("Durabilidad: 28 de 28\nDaño: 3–6\nHacha de mano"); Settle();
 	Check(speech == std::vector<std::string>{"Inventario. Equipo. Hacha de mano"}, "equipment announces its subsection and the item name, and stops there");

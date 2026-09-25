@@ -19,6 +19,17 @@ that way" and "that way leads somewhere" are different facts.
 Down is the same sound lowered by the compiled fraction; left and right are
 panned. The `test` audition of `access-radar` plays all four in every direction.
 
+## Louder cues and a darker downward breath (2026-09-25)
+
+The user asked for slightly louder, more pronounced cues, the breath above all,
+and a clearly graver breath downward: an opening up and one down at the same
+time were hard to tell apart, because `DownPitch` (0.86) barely moves filtered
+noise. Every cue's `Level` is 0.17 (was 0.15), `BreathLevel` 2.4 (was 2.0), and
+the downward breath's cutoff is `BreathDownPitch` = 0.55 of 700 Hz, almost an
+octave darker, raised by 1/sqrt(0.55) because low-passed noise loses power with
+the square root of its cutoff. The tin, tock, knock and unexplored pips keep
+`DownPitch`. Listening under the game's ambience remains the final check.
+
 ## Cue separation and outdoor exits (2026-09-22)
 
 The user requested a slightly darker floor breath to distinguish it from the

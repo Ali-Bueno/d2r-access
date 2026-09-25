@@ -3,6 +3,29 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-25 — L3 is the only stick button; R3 back to the game
+
+The user removed the R3 gestures, then the L3+R3 chord too: the scanner already
+covers the exit review ("next way out") and the terrain overview. Kept: L3 (the
+beacon). The exit review stays on Ctrl+V and the overview on Ctrl+O, since only
+the controller gestures were asked about. With no R3 gesture left, the pad
+filter that hid R3 from the game (`PadFilter`, added 2026-09-21 so the beacon
+click would not swap weapons) had no purpose and was removed with the chord
+logic (`StickChord`), so R3 does what the game binds it to. L3 is now reported
+on press, since no chord has to be told apart. Recoverable from git history.
+
+## 2026-09-25 — Beacon on L3, one-press retarget; darker downward breath only
+
+The user moved the beacon from R3 to L3 because R3 opens the emote wheel, and
+asked that L3 on a newly scanned target switch the lock in one press, while L3
+on the same target cancels. Chosen: a retarget checks the new target before
+releasing the old one, so a refused target (no known route) keeps the current
+lock. A short R3 click is now unbound; the R3 hold and the L3+R3 chord stay.
+For the radar, only the breath (the "wind") got a larger downward drop
+(`BreathDownPitch` 0.55); the tin, tock and knock keep `DownPitch` 0.86, the
+sounds the user chose on 2026-09-16. Rejected: widening `DownPitch` for every
+cue. `docs/beacon.md`, `docs/radar-readings.md`.
+
 ## 2026-09-24 — Fixed places found on a map stay known on that map
 
 The user asked for exits already discovered on a map or dungeon to be readable

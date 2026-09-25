@@ -13,6 +13,8 @@ NativeUi::Cell Position(uintptr_t widget);
 std::optional<NativeUi::Rect> FocusRect(uintptr_t widget);
 // Null when the native text-editing state cannot be verified.
 std::optional<bool> TextEditing();
+// The text box the game is typing into when it belongs to `panel`, else 0.
+uintptr_t ActiveTextInput(uintptr_t panel);
 // Temporarily stop the game's analog cursor update during a D-pad gesture.
 void HoldCursor(bool hold);
 }

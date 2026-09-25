@@ -19,7 +19,6 @@ namespace {
 
 using GetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
 
-constexpr uint16_t RightThumb = XINPUT_GAMEPAD_RIGHT_THUMB;
 constexpr uint16_t Back = XINPUT_GAMEPAD_BACK;
 
 // The modules the game may have taken XInputGetState from, in the order to
@@ -115,17 +114,17 @@ bool TryInstall(const D2RL::PluginContext* context, bool last) {
 			if (Write(slot, reinterpret_cast<void*>(&Filtered))) g_slots.push_back(slot);
 		}
 		if (g_slots.empty()) {
-			AsyncLog::WarnF(context, "[pad] could not write the game's XInputGetState slot (error %lu); R3 still reaches the game.", GetLastError());
+			AsyncLog::WarnF(context, "[pad] could not write the game's XInputGetState slot (error %lu); the face buttons with BACK still reach the game.", GetLastError());
 			g_original = nullptr;
 			g_retries = 0;
 			return false;
 		}
-		AsyncLog::InfoF(context, "[pad] filter on %zu game slot(s) for %ls XInputGetState: R3, and the face buttons with BACK, kept during play; everything else passes through.",
+		AsyncLog::InfoF(context, "[pad] filter on %zu game slot(s) for %ls XInputGetState: the face buttons with BACK kept during play; everything else passes through.",
 			g_slots.size(), name);
 		g_retries = 0;
 		return true;
 	}
-	if (last) AsyncLog::Warn(context, "[pad] no game slot holds XInputGetState; R3 still reaches the game.");
+	if (last) AsyncLog::Warn(context, "[pad] no game slot holds XInputGetState; the face buttons with BACK still reach the game.");
 	return false;
 }
 
@@ -142,7 +141,6 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 
 uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB) {
 	const bool back = (buttons & Back) != 0;
-	buttons = Keep(buttons, RightThumb, claimed, presses.rightThumb);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
@@ -187,7 +185,7 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		(void)TryInstall(context, --g_retries == 0);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s", (kept & RightThumb) ? " R3 (guidance)" : "",
+		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s",
 			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_B) ? " B (with BACK, or closing the line reader)" : "",
 			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
 	}

@@ -23,6 +23,10 @@ std::string ItemBaseName(uintptr_t unit);
 // item reader classifies by -- or 0 when the unit is not an item or cannot be
 // read. What src/generated/item_sizes.h is keyed by.
 uint32_t ItemTableCode(uintptr_t unit);
+struct UnitLabel { std::string baseName; uint32_t quality = 0; };
+// Table name of an item known by its class row (the SDK's ItemInfo::classId),
+// with the quality it was given.
+UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

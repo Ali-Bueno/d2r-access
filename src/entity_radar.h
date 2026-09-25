@@ -58,6 +58,7 @@ struct Entity {
 	uint8_t cairnStone = 0; // class index + 1, or zero for other entities
 	std::string worldName; // original HUD label before optional guidance wording
 	struct ObjectFootprint { uint32_t width = 0, height = 0; } footprint; // native collision rectangle; zero when unknown
+	std::string nameKey; // the game string key `name` was read from; empty when composed or unknown
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

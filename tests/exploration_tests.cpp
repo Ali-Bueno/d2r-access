@@ -4,6 +4,7 @@
 #include "test_support.h"
 
 #include <filesystem>
+#include <bit>
 #include <chrono>
 #include <fstream>
 #include <string>
@@ -165,7 +166,8 @@ void FailureAndBounds() {
 void Places() {
 	using ExploredStore::Place;
 	std::vector<Place> known;
-	const Place stairs{9, 0x10002, 102.5, 207, 13, "Al nivel 2 de la Cueva", 4, 3}, border{3, 0x20003, 300, 400, 3, "Llanuras Frías", 4, 3};
+	const Place stairs{9, 0x10002, 102.5, 207, 13, "Al nivel 2 de la Cueva", 4, 3, "To The Cave Level 2"},
+		border{3, 0x20003, 300, 400, 3, "Llanuras Frías", 4, 3, "Cold Plains"};
 	const Place waypoint{77, 0x50006, 80, 90, 0, "Punto de viaje", 4, 5};
 	Check(ExploredStore::MergePlaces(known, {stairs, border, waypoint}) && known.size() == 3, "new places are added");
 	Place loaded = stairs;
@@ -176,10 +178,16 @@ void Places() {
 	renamed.name = "To Cave Level 2";
 	Check(ExploredStore::MergePlaces(known, {renamed}) && known[0].name == "To Cave Level 2" && known.size() == 3,
 		"a newer name replaces the stored one");
+	Place keyed = waypoint;
+	keyed.nameKey = "Waypoint";
+	Check(ExploredStore::MergePlaces(known, {keyed}) && known[2].nameKey == "Waypoint", "a place found again gains its name key");
 	Place nowhere = border, oversized = border;
 	nowhere.identity = 0;
 	oversized.identity = 0x30004, oversized.name.assign(ExploredStore::MaxPlaceName + 1, 'x');
-	Check(!ExploredStore::MergePlaces(known, {nowhere, oversized}) && known.size() == 3, "an unplaceable or oversized place is skipped");
+	Place oversizedKey = border;
+	oversizedKey.identity = 0x30005, oversizedKey.nameKey.assign(ExploredStore::MaxPlaceName + 1, 'x');
+	Check(!ExploredStore::MergePlaces(known, {nowhere, oversized, oversizedKey}) && known.size() == 3,
+		"an unplaceable or oversized place is skipped");
 	std::vector<Place> many;
 	for (uint64_t i = 1; i <= ExploredStore::MaxPlaces + 5; ++i) many.push_back({1, i, 1, 1, 0, "x"});
 	std::vector<Place> bounded;
@@ -233,8 +241,26 @@ void Places() {
 	in.read(magic, sizeof magic);
 	in.close();
 	read.clear();
-	Check(std::string(magic, sizeof magic) == "D2REXP02" && ExploredStore::ReadArchive(directory, map, old, &read)
+	Check(std::string(magic, sizeof magic) == "D2REXP03" && ExploredStore::ReadArchive(directory, map, old, &read)
 		&& read.size() == 1 && read[0] == stairs, "shutdown writes the places, upgrading the archive");
+
+	// An archive written before name keys were kept reads its places without one.
+	bytes = {'D', '2', 'R', 'E', 'X', 'P', '0', '2'};
+	put(1, 4); put(0xABCD1234u, 4); put(9, 4); put(0x1111, 8); put(5, 8); put(1, 4); put(20, 4); put(20, 4); put(2, 1);
+	const std::string oldName = "Pantano Negro";
+	put(1, 2); put(6, 4); put(0x60007, 8); put(std::bit_cast<uint64_t>(15640.0), 8); put(std::bit_cast<uint64_t>(5169.0), 8);
+	put(6, 4); put(4, 1); put(3, 1); put(oldName.size(), 1);
+	bytes.insert(bytes.end(), oldName.begin(), oldName.end());
+	hash = 14695981039346656037ull;
+	for (const uint8_t byte : bytes) { hash ^= byte; hash *= 1099511628211ull; }
+	put(hash, 8);
+	{
+		std::ofstream out(ExploredStore::ArchiveFile(directory), std::ios::binary);
+		out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+	}
+	read.clear();
+	Check(ExploredStore::ReadArchive(directory, map, old, &read) && read.size() == 1 && read[0].name == oldName
+		&& read[0].nameKey.empty() && read[0].destination == 6, "a version 2 archive loads its places with no name key");
 	std::filesystem::remove_all(directory);
 }
 

@@ -52,6 +52,16 @@ permits both on the UI thread, which is where the plugin's tick runs.
 Sampling: orbs every 100 ms (life can fall within one blow), durability every
 second (it only creeps down).
 
+**Equipped items (2026-09-25):** the same one-second census of worn items
+(`Vitals::Equipping`) announces a runtime id that was not worn in the previous
+census: "Equipado en <slot>: <base name, quality>", queued. It covers every way
+of equipping (by hand, the controller's equip action, swapping one item for
+another). A weapon swap only moves ids already worn, and the first census of a
+game is the baseline, so neither speaks. The name is the item's table name and
+quality (`NativeGroundItems::ClassLabel`, the ground items' reader), not a
+generated unique/rare name. Placing an item by hand still says "Colocado en
+<slot>" first. Live check pending.
+
 **Poison:** the health orb's own native color branch checks player state id 2.
 The mod calls that same verified checker and announces entering and leaving
 poison once. An unreadable or dead player does not count as poison ending;

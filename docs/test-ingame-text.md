@@ -157,3 +157,13 @@ compare `[pump] slow accessibility tick` with the existing longest-gap reports;
 the latter include time spent outside the mod's UI callback.
 Tests do not launch D2R or speak through NVDA. Test executables stay in `build/`;
 only the plugin and the existing PRISM DLL are deployed.
+
+## NPC Speech on Audio Only (2026-09-25)
+
+The game's Sound option *NPC Speech* has three states (`SoundOptionsPanelHD.json`
+`NPCSpeech`: `OptionsMenuNPCSpeechAudioOnly`, `...TextOnly`, `...AudioAndText`;
+`Settings.json` "NPC Speech"). On audio only, the reader skips narrative panels
+(`ScrollSpeechPanel`, `QuestLogSpeechPanel`, scrolling text) so the voice is not
+doubled by the screen reader (`NpcSpeech::AudioOnly`, through `ControlState`, so
+a change made in the options menu applies at once). Radar cues still pause
+during the dialogue. Live check pending: set the option, talk to an NPC.

@@ -17,6 +17,7 @@ struct Readout {
 	std::optional<bool> toggled;
 	std::string value;
 	std::string labelKey;
+	std::string contents; // a text box's text; masked boxes never expose theirs
 };
 
 // Describe only the focused control in a live native panel snapshot.

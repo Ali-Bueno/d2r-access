@@ -34,7 +34,7 @@ struct Landmark {
 	EntityRadar::Entity entity;
 	int                 steps        = -1; // -1 when no walkable route is known
 	double              straightLine = 0;  // subtiles; ordering fallback and reporting
-	Radar::Direction    direction    = Radar::Direction::Up;
+	int                 direction    = 0; // Radar::ScreenSector, up and diagonals included
 	bool                reachable    = false;
 };
 

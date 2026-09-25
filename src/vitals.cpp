@@ -132,4 +132,21 @@ std::vector<int> Breakage::Sweep(const std::vector<Item>& worn) {
 
 void Breakage::Reset() { known_.clear(); }
 
+std::vector<Breakage::Item> Equipping::Sweep(const std::vector<Breakage::Item>& worn) {
+	std::vector<Breakage::Item> equipped;
+	if (known_) {
+		for (const auto& item : worn)
+			if (std::find(worn_.begin(), worn_.end(), item.id) == worn_.end()) equipped.push_back(item);
+	}
+	worn_.clear();
+	for (const auto& item : worn) worn_.push_back(item.id);
+	known_ = true;
+	return equipped;
+}
+
+void Equipping::Reset() {
+	worn_.clear();
+	known_ = false;
+}
+
 }

@@ -51,6 +51,20 @@ int main() {
 	Check(armour.headline == "Quilted Armor", "armour is named alone too");
 	Check(armour.detail == "Defense: 43. Required Strength: 20", "and its defense leads the detail, where the screen draws it");
 
+	// Red (the style command with palette index '1') is how the game marks what
+	// this character cannot meet. Stored bottom-up, so the screen order is reversed.
+	const std::string red = std::string(Title).substr(0, 3) + "1";
+	const std::vector<std::string> requirements{"Required Strength:", "Required Level:", "(Paladin Only)"};
+	const auto heavy = TooltipText::Split(TooltipText::Read(red + "Required Strength: 40\nRequired Level: 3\n" + red
+		+ "(Paladin Only)\n" + red + "Durability: 0 of 20\nDefense: 43\nGothic Plate"), BaseStats, {}, requirements);
+	Check(heavy.unmet == "(Paladin Only). Required Strength: 40", "the red requirement lines are what the character cannot meet");
+	Check(heavy.detail.find("Required Strength: 40") != std::string::npos, "they stay in the detail too");
+	Check(heavy.unmet.find("Durability") == std::string::npos, "red that is not a requirement is not a reason");
+	Check(heavy.headline == "Gothic Plate" && armour.unmet.empty(), "requirements in the ordinary colour are met");
+	Check(TooltipText::Markup(red + "Required Strength: 40\nDefense: 43") == "L0[U+E07E:1] Required Strength: 40 | ",
+		"the markup diagnostic names each styled line's commands, index included");
+	Check(TooltipText::Markup("Defense: 43\nQuilted Armor").empty(), "and says nothing for plain lines");
+
 	// No styling: the first line stands in, and the split says so.
 	const auto plain = TooltipText::Read("Restores Health\nMinor Healing Potion");
 	Check(!plain.Marked(), "an unstyled tooltip reports that it was unstyled");

@@ -4,7 +4,7 @@
 
 The mod is built for a **blind player**: no visual feedback can be assumed in a test script. They
 use **NVDA**, an **Xbox-style controller** (A confirm, B back, D-pad, LB/RB, right stick for
-beacon/exit review), and play the game in **Spanish** (`esES`). See `README.md` and `AGENTS.md`
+the scanner, L3 for the beacon), and play the game in **Spanish** (`esES`). See `README.md` and `AGENTS.md`
 for the current feature/control list.
 
 ## How tests are written and verified

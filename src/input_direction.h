@@ -123,14 +123,12 @@ const char* PushName(StickPush push);
 // tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
-// Right thumbstick CLICK (R3) press edges. The SDK's action service binds
-// keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad button is
-// read here with the rest of the XInput state. Take() returns whether a click
-// happened since the previous Take() and clears it.
-// Left thumbstick CLICK (L3): currently bound to no feature.
+// Left thumbstick CLICK (L3): follows or releases the scanned target (beacon),
+// the mod's only stick button (R3 is the game's). The SDK's action service
+// binds keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad
+// button is read here with the rest of the XInput state. Take() returns
+// whether a press happened since the previous Take() and clears it.
 bool TakeLeftStickClick();
-
-bool TakeRightStickClick();
 
 // Left thumbstick of the first connected pad as sampled by the last Poll(),
 // in screen convention (x right, y down), each axis in [-1, 1]. Diagnostics

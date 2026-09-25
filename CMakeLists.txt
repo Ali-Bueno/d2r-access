@@ -27,6 +27,8 @@ add_library(d2r-access SHARED
 	src/character_saves.cpp
 	src/code_dump.cpp
 	src/control_state.cpp
+	src/equip_attempt.cpp
+	src/npc_speech.cpp
 	src/display_modes.cpp
 	src/focus_tracker.cpp
 	src/frontend_native_fallback.cpp
@@ -468,7 +470,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -483,6 +485,10 @@ if(BUILD_TESTING)
 	target_include_directories(async-log-tests PRIVATE src)
 	target_compile_features(async-log-tests PRIVATE cxx_std_20)
 	add_test(NAME async-log COMMAND async-log-tests)
+	add_executable(equip-attempt-tests tests/equip_attempt_tests.cpp src/equip_attempt.cpp)
+	target_include_directories(equip-attempt-tests PRIVATE src)
+	target_compile_features(equip-attempt-tests PRIVATE cxx_std_20)
+	add_test(NAME equip-attempt COMMAND equip-attempt-tests)
 	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tooltip-text-tests PRIVATE src)
 	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)

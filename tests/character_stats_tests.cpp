@@ -42,10 +42,15 @@ NativeUi::Focus On(uintptr_t widget) { return {Panel, widget}; }
 }
 
 namespace D2RAccess::NativeUi {
-Type Classify(uintptr_t widget) {
-	return widget != 0 && widget == statButton ? Type{"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton} : Type{};
-}
 bool Visible(uintptr_t widget) { return widget == Panel ? panelVisible : widgets.count(widget) != 0; }
+// A stat point button and the menu switcher's tab strip are classified; every other widget is plain.
+Type Classify(uintptr_t widget) {
+	if (widget != 0 && widget == statButton) return Type{"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
+	Type type;
+	const auto found = widgets.find(widget);
+	if (found != widgets.end() && found->second.name == "UISwitcherTabs") type.kind = UiText::Kind::Tabs;
+	return type;
+}
 uintptr_t Parent(uintptr_t widget) {
 	const auto found = widgets.find(widget);
 	return found == widgets.end() ? 0 : found->second.parent;
@@ -282,6 +287,28 @@ int main() {
 	statButton = 0; pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "5 puntos de estadísticas restantes",
 		"and with nothing focused the last statistic is the points left");
+	// MEASURED 2026-09-24: a left-stick push up from the top row puts the game's
+	// focus on the menu switcher's tab strip, outside this panel.
+	constexpr uintptr_t Overlay = 200, SwitcherTabs = 201;
+	widgets[Overlay] = {"ControllerOverlay", "", 0};
+	widgets[SwitcherTabs] = {"UISwitcherTabs", "", Overlay};
+	const NativeUi::Focus tabs{Overlay, SwitcherTabs};
+	CharacterStatsReader::Reset();
+	for (int line = 0; line < 3; ++line) { pending = Push::Down; CharacterStatsReader::Tick(nullptr, {}); }
+	const std::string third = speech.back();
+	CharacterStatsReader::Reset();
+	for (int line = 0; line < 2; ++line) { pending = Push::Down; CharacterStatsReader::Tick(nullptr, {}); }
+	pending = Push::Down;
+	Check(CharacterStatsReader::Tick(nullptr, tabs) && speech.back() == third,
+		"focus on the menu tab strip keeps the stick on the statistics, cursor and all");
+	pending = Push::Down;
+	panelVisible = false;
+	Check(!CharacterStatsReader::Tick(nullptr, tabs) && pending == Push::Down,
+		"the tab strip over a hidden panel leaves the stick alone");
+	panelVisible = true;
+	widgets.erase(Overlay);
+	widgets.erase(SwitcherTabs);
+
 	// The hireling panel reuses the same title/value row archetype. Its life
 	// value is HPStat, and the controller can leave the panel with no focused
 	// widget, so its stats remain available through the same stick reader.

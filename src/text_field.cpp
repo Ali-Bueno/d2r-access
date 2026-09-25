@@ -2,6 +2,7 @@
 
 #include "async_log.h"
 #include "native_memory.h"
+#include "native_skill_navigation.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -44,7 +45,8 @@ void Reset() {
 }
 
 void Tick(const D2RL::PluginContext* context) {
-	const NativeUi::Focus focus = NativeUi::CurrentFocus();
+	NativeUi::Focus focus = NativeUi::CurrentFocus();
+	if (const uintptr_t editor = NativeSkillNavigation::ActiveTextInput(focus.panel)) focus.widget = editor;
 	if (focus.widget == 0) {
 		Reset();
 		return;
@@ -57,16 +59,13 @@ void Tick(const D2RL::PluginContext* context) {
 		g_editable = Matches(type.name, EditableTypes, std::size(EditableTypes))
 			&& !Matches(name, IgnoredNames, std::size(IgnoredNames));
 		g_text = g_editable ? Read(focus.widget) : std::string {};
-		// Arriving on a field: say what it already holds, after the focus
-		// tracker's own "<label>, text field", so the order is what the
-		// control is and then what is in it. An empty box adds nothing --
-		// the label already said everything there is to say.
+		// Arrival is silent: the focus tracker says "<label>, text field,
+		// <contents>" as one phrase, so the contents can no longer race it.
 		// Logged even when empty and even when not editable: "the box read
 		// nothing" and "the box was never recognised" are different faults, and
 		// silence cannot tell them apart.
 		AsyncLog::InfoF(context, "[field] focus name=\"%s\" type=\"%s\" editable=%d text=\"%s\"",
 			name.c_str(), type.name.c_str(), g_editable ? 1 : 0, g_text.c_str());
-		if (g_editable && !g_text.empty()) ScreenReader::Speak(g_text, false);
 		return;
 	}
 	if (!g_editable) return;

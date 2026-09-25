@@ -164,7 +164,8 @@ auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo
 	-> D2RL::Inventory::IterationAction {
 	auto* worn = static_cast<std::vector<Vitals::Breakage::Item>*>(userData);
 	if (worn && item && item->structSize >= D2RL::Items::ItemInfoRequiredSize)
-		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation});
+		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation,
+			item->classId, static_cast<uint32_t>(item->quality)});
 	return D2RL::Inventory::IterationAction::Continue;
 }
 

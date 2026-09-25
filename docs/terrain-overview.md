@@ -38,10 +38,10 @@ layout data, which is not proof that the player has discovered that terrain.
 | **BACK + B** (hold BACK, press B), no menu open | Read the overview |
 | `access-terrain` (or `access-terrain read`) | Read the overview from the console |
 
-On the `bladestorm` branch the controller gesture is BACK+B, not upstream's
-right-stick double click, so the beacon's R3 click is never held back for a
-double-click window. BACK is the branch's modifier (`input_direction.h`); the B
-pressed with it is kept from the game during play (`pad_filter.h`).
+On the `bladestorm` branch the controller gesture is BACK+B. BACK is the
+branch's modifier (`input_direction.h`); the B pressed with it is kept from the
+game during play (`pad_filter.h`). Upstream removed its L3+R3 chord on
+2026-09-25; here the mod's only stick button is L3, the beacon.
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 

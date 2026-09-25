@@ -1,7 +1,5 @@
 #include "map_survey.h"
 
-#include "npc_proximity.h"
-
 #include <algorithm>
 #include <cmath>
 #include <tuple>
@@ -154,7 +152,7 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		landmark.steps        = fullAssistance ? StepsTo(grid, entity.position) : -1;
 		landmark.reachable    = landmark.steps >= 0;
 		landmark.straightLine = StraightLine(world.player, entity.position);
-		landmark.direction    = NpcProximity::DirectionOf(world.player, entity.position);
+		landmark.direction    = Radar::ScreenSector({entity.position.x - world.player.x, entity.position.y - world.player.y});
 		result.push_back(std::move(landmark));
 	}
 	// Reachable first, then fewest steps. Unreachable objects keep their place

@@ -50,9 +50,11 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 	constexpr double ExitHz = 1100, BlockedHz = 260, DoorHz = 180, BreathCutoffHz = 700, DownPitch = 0.86;
 	constexpr double ExitHarmonic = 2.7, BlockedHarmonic = 1.5, DoorHarmonic = 2.0, HarmonicLevel = 0.2;
 	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, KnockDecay = 0.012, KnockGap = 0.06;
-	constexpr double BreathLevel = 2.0; // preserve the breath's level with the lower cutoff; docs/radar-readings.md
+	constexpr double BreathLevel = 2.4; // preserve the breath's level with the lower cutoff; docs/radar-readings.md
+	// Down's breath sits almost an octave darker: DownPitch's 14% was lost in noise. docs/radar-readings.md
+	constexpr double BreathDownPitch = 0.55;
 	constexpr double PanWidth = 0.9; // left/right sit just inside the stereo edges
-	constexpr double Level = 0.15, PcmPeak = 32767;
+	constexpr double Level = 0.17, PcmPeak = 32767;
 	constexpr double MarkHz = Radar::UnexploredMarkHz, PipDuration = Radar::UnexploredPipMs / 1000.0;
 	constexpr double MarkDecay = 0.03, MarkHarmonic = 2.0;
 	constexpr size_t MarkGapFrames = Radar::UnexploredMarkGapMs * SampleRate / 1000;
@@ -74,7 +76,9 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 		const double harmonic = state == Radar::State::Exit ? ExitHarmonic : state == Radar::State::Door ? DoorHarmonic : BlockedHarmonic;
 		const double decay = state == Radar::State::Exit ? ExitDecay : state == Radar::State::Door ? KnockDecay : BlockedDecay;
 		// One-pole low-pass for the breath; the noise is a fixed sequence so a cue is reproducible.
-		const double smoothing = 1 - std::exp(-2 * std::numbers::pi * BreathCutoffHz * pitch / SampleRate);
+		// Low-passed noise loses power with the square root of its cutoff, so a darker breath is raised to match.
+		const double breathPitch = screen.y > 0 ? BreathDownPitch : 1, breathLevel = BreathLevel / std::sqrt(breathPitch);
+		const double smoothing = 1 - std::exp(-2 * std::numbers::pi * BreathCutoffHz * breathPitch / SampleRate);
 		uint32_t seed = 1;
 		double breath = 0;
 		for (size_t frame = 0; frame < frames; ++frame) {
@@ -85,7 +89,7 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 				seed = seed * 1664525u + 1013904223u;
 				breath += smoothing * ((seed >> 8) / 8388608.0 - 1 - breath);
 				const double swell = std::sin(std::numbers::pi * time / Duration);
-				tone = level * BreathLevel * swell * swell * fade * breath;
+				tone = level * breathLevel * swell * swell * fade * breath;
 			} else {
 				// A door is two strikes of the same knock, the second at KnockGap.
 				const double struck = state == Radar::State::Door && time >= KnockGap ? time - KnockGap : time;

@@ -15,8 +15,9 @@
 namespace D2RAccess::ExploredStore {
 namespace {
 constexpr uint64_t FnvOffset = 14695981039346656037ull, FnvPrime = 1099511628211ull;
-// Version 2 adds each map's fixed places after its rooms; version 1 archives still read.
-constexpr char Magic[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
+// Version 2 adds each map's fixed places after its rooms, version 3 each place's
+// name key; version 1 and 2 archives still read.
+constexpr char Magic[] = "D2REXP03", MagicNoKeys[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
 using Table = Store::Table;
 using Room = ExploredRooms::Room;
 void Fnv(uint64_t& hash, uint8_t byte) { hash ^= byte; hash *= FnvPrime; }
@@ -50,7 +51,8 @@ std::vector<Room> UnionRooms(const std::vector<Room>& a, const std::vector<Room>
 	return result;
 }
 bool Placeable(const Place& place) {
-	return place.identity && place.name.size() <= MaxPlaceName && std::isfinite(place.x) && std::isfinite(place.y);
+	return place.identity && place.name.size() <= MaxPlaceName && place.nameKey.size() <= MaxPlaceName
+		&& std::isfinite(place.x) && std::isfinite(place.y);
 }
 bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 	bytes.assign(Magic, Magic + 8);
@@ -73,6 +75,8 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 			Put(bytes, place.destination, 4); Put(bytes, place.kind, 1); Put(bytes, place.category, 1);
 			Put(bytes, place.name.size(), 1);
 			bytes.insert(bytes.end(), place.name.begin(), place.name.end());
+			Put(bytes, place.nameKey.size(), 1);
+			bytes.insert(bytes.end(), place.nameKey.begin(), place.nameKey.end());
 		}
 		if (bytes.size() + 8 > MaxArchiveBytes) return false;
 	}
@@ -81,7 +85,8 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 }
 bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 	if (bytes.size() < 20 || bytes.size() > MaxArchiveBytes) return false;
-	const bool withPlaces = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withKeys = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withPlaces = withKeys || std::equal(MagicNoKeys, MagicNoKeys + 8, bytes.begin());
 	if (!withPlaces && !std::equal(MagicRoomsOnly, MagicRoomsOnly + 8, bytes.begin())) return false;
 	size_t at = 8;
 	uint64_t count = 0, word = 0;
@@ -119,6 +124,11 @@ bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 				place.category = static_cast<uint8_t>(category);
 				place.name.assign(reinterpret_cast<const char*>(bytes.data() + at), static_cast<size_t>(length));
 				at += static_cast<size_t>(length);
+				if (withKeys) {
+					if (!Get(bytes, at, length, 1) || length > bytes.size() - at) return false;
+					place.nameKey.assign(reinterpret_cast<const char*>(bytes.data() + at), static_cast<size_t>(length));
+					at += static_cast<size_t>(length);
+				}
 				if (!Placeable(place)) return false;
 				record.places.push_back(std::move(place));
 			}
@@ -261,9 +271,10 @@ bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found) {
 		const auto same = std::find_if(known.begin(), known.end(), [&](const Place& entry) { return entry.identity == place.identity; });
 		if (same != known.end()) {
 			// The position is fixed; a loaded warp and its preset differ only in id and fraction.
-			if (same->name != place.name || same->destination != place.destination
+			if (same->name != place.name || same->nameKey != place.nameKey || same->destination != place.destination
 				|| same->kind != place.kind || same->category != place.category) {
 				same->name = place.name;
+				same->nameKey = place.nameKey;
 				same->destination = place.destination;
 				same->kind = place.kind;
 				same->category = place.category;

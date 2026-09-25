@@ -9,8 +9,8 @@ struct PluginContext;
 // while a name is being typed the only thing the player cannot recover is what
 // they just removed -- they know what they pressed, but a backspace is silent.
 //
-// So this reads the contents when focus arrives, and names the characters a
-// deletion takes away. Typed characters are deliberately NOT echoed: the
+// So this names the characters a deletion takes away; the focus tracker reads
+// the contents with the label when focus arrives. Typed characters are deliberately NOT echoed: the
 // player pressed the key, and repeating it back only slows entry down.
 namespace D2RAccess::TextField {
 

@@ -22,6 +22,7 @@ int stops = 0, removed = 0;
 bool inventoryOwns = false;
 int interactionTicks = 0;
 int inventorySnapshots = 0;
+bool npcAudioOnly = false;
 std::string questHelp;
 int questHelpReads = 0;
 bool automaticHints = false;
@@ -125,6 +126,7 @@ void SpeakAfter(const D2RL::PluginContext*, std::string_view text) {
 }
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
+namespace D2RAccess::NpcSpeech { bool AudioOnly() { return npcAudioOnly; } }
 namespace D2RAccess::ScreenReader {
 void Stop() { ++stops; }
 void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); }
@@ -152,6 +154,11 @@ int main() {
 	speech.clear();
 	GameTextReader::RequestRepeat(); Settle();
 	Check(speech.size() == 1 && speech.back().text.size() == 5000, "manual repeat retains full speech");
+	speech.clear(); panels.back().nodes.back().text = "Otra cosa que decir";
+	npcAudioOnly = true; Settle();
+	Check(std::none_of(speech.begin(), speech.end(), [](const auto& said) { return said.text == "Otra cosa que decir"; }),
+		"NPC Speech set to audio only leaves the dialogue text unread");
+	npcAudioOnly = false; panels.back().nodes.back().text = std::string(5000, 'a'); Settle();
 	speech.clear(); panels.pop_back(); focus = {1, 2};
 	Check(Settle() && speech.size() == 1 && speech.back().text == "Akara. Hablar", "closing dialogue restores the NPC menu");
 	speech.clear();

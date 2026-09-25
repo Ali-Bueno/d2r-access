@@ -117,7 +117,6 @@ struct Table {
 	// CategoryOrder: a new category appends here and adds a case there.
 	std::array<const char*, 14> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
-	const char* surveyOrientation; // %s = name, %s = straight-line distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
 	const char* corpseOwn;              // the local player's corpse
 	const char* corpseOf;               // %s = another player's name
@@ -160,6 +159,8 @@ struct Table {
 	const char* mercenaryLife; // %d = current hireling life percentage
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
+	const char* equipRefused;         // the game kept the item in hand
+	const char* equipRefusedBecause;  // %s = the requirements drawn red
 	const char* goldCarried;          // %s = how much gold the player is carrying
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
@@ -229,11 +230,11 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
-		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.surveyOrientation, t.corpseOwn, t.corpseOf,
+		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,

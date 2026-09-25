@@ -46,7 +46,6 @@ struct PadEdgeState {
 	bool yHeld          = false;
 	bool rightStickHeld = false;
 	bool leftThumbHeld  = false;
-	bool rightThumbHeld = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -58,7 +57,6 @@ DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
-bool g_rightStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
@@ -211,9 +209,6 @@ void Poll() {
 			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
 				g_leftStickClick = true;
 			}
-			if (UpdateEdge(edges.rightThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0)) {
-				g_rightStickClick = true;
-			}
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
@@ -255,11 +250,6 @@ Stick LeftStick() { return g_leftStick; }
 bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;
 	g_leftStickClick = false;
-	return clicked;
-}
-bool TakeRightStickClick() {
-	const bool clicked = g_rightStickClick;
-	g_rightStickClick = false;
 	return clicked;
 }
 bool TakeBackWith(FaceButton button) {

@@ -5,6 +5,7 @@
 #include <D2RLPlugin/api.h>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Live monsters / NPCs / other players / world objects in the local player's room and its
@@ -33,6 +34,8 @@ bool ReadRosterCorpses(uintptr_t head, uint32_t playerId, std::vector<CorpseMemo
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);
 // The game's own localized name of a level id; empty when the table is unreadable.
 std::string LevelName(uint32_t levelId);
+// A game string key in the language being played, cleaned as entity names are.
+std::string KeyText(std::string_view key);
 // The patch tripwire: how many objects.txt rows the container predicate selects
 // live, against EntityLayout::ContainerRowCount from the offline derivation.
 bool CountContainerRows(size_t& rows, size_t& total);

@@ -148,7 +148,7 @@ dumps once, then every 500 ms reads the tree headers and logs only changes. A
 level or layer switch logs a full dump, and new object/extra cells are logged as
 `[automap] new object ...`. Floor growth is summarized at most every 5 s. The
 whole route below can then be played with the watch on, locking a Cairn stone
-with R3 so `[beacon] locked ... at=` gives its exact position.
+with L3 so `[beacon] locked ... at=` gives its exact position.
 
 | Step | Do | Expect |
 |---|---|---|

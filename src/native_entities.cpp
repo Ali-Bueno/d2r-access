@@ -88,17 +88,24 @@ const std::unordered_set<std::string>& LevelKeys(uintptr_t levels, uint64_t coun
 	return keys;
 }
 // The placeholder label every unnamed MonStats row shares, in the player's
-// language. The game's string tables are not loaded when the plugin starts, so
-// resolve it on first success and keep it.
+// language. The string tables load after the plugin and reload when the text
+// language changes in the menus, so it is resolved again after either.
 const std::string& PlaceholderName() {
 	static std::string cached;
-	if (cached.empty()) cached = UiText::Clean(Localization::Text(PlaceholderNameKey));
+	static Strings::Language language = Strings::Selected();
+	if (cached.empty() || language != Strings::Selected()) {
+		cached = UiText::Clean(Localization::Text(PlaceholderNameKey));
+		language = Strings::Selected();
+	}
 	return cached;
 }
 // Localized Levels text for a level id: its plain name or its "To The ..." warp caption.
-std::string LevelText(const Tables& tables, uint32_t levelId, size_t keyOffset) {
+std::string LevelKey(const Tables& tables, uint32_t levelId, size_t keyOffset) {
 	if (!tables.levels || levelId >= tables.levelCount) return {};
-	const auto key = CString(tables.levels + levelId * LevelStride + keyOffset, MaxLevelKeyBytes);
+	return CString(tables.levels + levelId * LevelStride + keyOffset, MaxLevelKeyBytes);
+}
+std::string LevelText(const Tables& tables, uint32_t levelId, size_t keyOffset) {
+	const auto key = LevelKey(tables, levelId, keyOffset);
 	return key.empty() ? std::string{} : UiText::Clean(Localization::Text(key));
 }
 // The Level a room belongs to (Room1 -> RoomEx -> Level); null when unreadable.
@@ -321,16 +328,21 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		uint16_t levelId = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) {
 			entity.name = LevelText(tables, levelId, LevelNameKey);
+			entity.nameKey = LevelKey(tables, levelId, LevelNameKey);
 			entity.destinationLevel = levelId;
 		}
 	}
-	if (entity.name.empty() && !key.empty()) entity.name = UiText::Clean(Localization::Text(key));
+	if (entity.name.empty() && !key.empty()) {
+		entity.name = UiText::Clean(Localization::Text(key));
+		entity.nameKey = key;
+	}
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
 	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
 	if (entity.name.empty() && (entity.container || entity.questObject || entity.cairnStone)) entity.name = Strings::Current().containerUnnamed;
 	if (entity.cairnStone) {
 		entity.worldName = entity.name;
+		entity.nameKey.clear(); // the spoken name is composed below
 		const auto& strings = Strings::Current();
 		char text[512]{};
 		std::snprintf(text, sizeof text, strings.cairnStoneSymbol, entity.worldName.c_str(),
@@ -366,6 +378,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	if (Peek(node + WarpNodeDestination, destination) && destination && Peek(destination + ExtendedLevel, level) && level
 		&& Peek(level + LevelId, levelId)) {
 		entity.name = LevelText(tables, levelId, LevelWarpKey);
+		entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
 		entity.destinationLevel = levelId;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
@@ -452,6 +465,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		EntityRadar::Entity entity{exit.warp + 1, EntityRadar::Kind::Exit, exit.position,
 			LevelText(tables, exit.destination, LevelWarpKey), NativeLevelExits::Identity(exit.position),
 			false, EntityRadar::Category::Exit, exit.destination};
+		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
@@ -472,6 +486,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
 				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
 				false, EntityRadar::Category::Exit, crossing.level};
+			entity.nameKey = LevelKey(tables, crossing.level, LevelNameKey);
 			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 				entities.push_back(std::move(entity));
@@ -510,6 +525,10 @@ std::string LevelName(uint32_t levelId) {
 		|| !Peek(tablesAddress + Levels, tables.levels) || !tables.levels
 		|| !Peek(tablesAddress + LevelCount, tables.levelCount) || tables.levelCount > MaxTableRows) return {};
 	return LevelText(tables, levelId, LevelNameKey);
+}
+
+std::string KeyText(std::string_view key) {
+	return key.empty() ? std::string{} : UiText::Clean(Localization::Text(key));
 }
 
 bool CountContainerRowsAt(uintptr_t tablesAddress, size_t& rows, size_t& total) {

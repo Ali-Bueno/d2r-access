@@ -14,9 +14,9 @@ automap; enemies are the one live category.
   One dominant axis per push (`InputDirection::TakeRightStickPush`), so a
   diagonal push never changes both at once.
 - In a menu, dialogue or pause the stick belongs to the menu (`RadarUi::InPlay`).
-- A short right-stick click, or **Ctrl+B**, follows what the scanner last named
-  (`docs/beacon.md`). Holding R3 and the L3+R3 chord are unchanged; L3 alone is
-  no longer bound.
+- A short left-stick click (L3), or **Ctrl+B**, follows what the scanner last
+  named (`docs/beacon.md`); on a newly named target it switches in one press.
+  R3 and the L3+R3 chord have no mod gesture since 2026-09-25.
 - Keyboard: Ctrl+Numpad 8/2 previous/next category, Ctrl+Numpad 4/6
   previous/next object, `,`/`.` step categories, `\` repeats.
 
@@ -74,7 +74,7 @@ automap; enemies are the one live category.
   start of a later game. A landmark that has been in range and in sight
   (`MapSurvey::Discoverable`) is listed too. That test is also the whole rule
   whenever the automap cannot be read (`docs/automap-reader.md`).
-  Readouts give straight-line distance and screen direction. Full assistance
+  Readouts give straight-line distance and one of eight screen directions (diagonals such as "arriba y a la izquierda" included, `Radar::ScreenSector`). Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
 
 ## Code
