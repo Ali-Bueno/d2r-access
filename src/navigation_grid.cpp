@@ -72,7 +72,7 @@ const Cell* Grid::At(int worldX, int worldY) const {
 	if (dx < 0 || dy < 0 || dx >= width || dy >= height) return nullptr;
 	return &cells[static_cast<size_t>(dy*width+dx)];
 }
-Grid Build(const Radar::World& world, int radius) {
+Grid Build(const Radar::World& world, int radius, Radar::Layer layer) {
 	Grid grid;
 	// Bound this research query by the existing radar's maximum default range.
 	// Native positions are unsigned 16-bit cells, validated by ReadPlayer.
@@ -90,8 +90,8 @@ Grid Build(const Radar::World& world, int radius) {
 	grid.cells.resize(static_cast<size_t>(grid.width)*grid.height);
 	for (int y=0; y<grid.height; ++y) for (int x=0; x<grid.width; ++x) {
 		auto& cell = grid.cells[static_cast<size_t>(y)*grid.width+x];
-		(void)world.Cell(grid.x+x, grid.y+y, Radar::Layer::Movement, &cell.flags);
-		cell.body = world.Body(grid.x+x, grid.y+y, Radar::Layer::Movement, &cell.blocker);
+		(void)world.Cell(grid.x+x, grid.y+y, layer, &cell.flags);
+		cell.body = world.Body(grid.x+x, grid.y+y, layer, &cell.blocker);
 	}
 	const size_t origin = static_cast<size_t>(radius)*grid.width+radius;
 	for (size_t i=0; i<grid.cells.size(); ++i) {

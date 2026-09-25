@@ -77,6 +77,17 @@ int main() {
 		"a long open border sounds at the nearest passable point rather than its distant midpoint");
 	world.player = {50, 20};
 	Check(ZoneTransitions::Find(world, layout).empty(), "a crossing outside the audible radius does not create a source");
+	found = ZoneTransitions::Find(world, layout, 100);
+	Check(found.size() == 1 && found[0].position.x == 9 && found[0].position.y == 20,
+		"a wider radius finds the same crossing from afar, for the beacon");
+
+	EntityRadar::Entity border{2, EntityRadar::Kind::Exit, {10, 50}, "Blood Moor", 99, false, EntityRadar::Category::Exit, 2};
+	Check(ZoneTransitions::MoveToCrossing(border, found) && border.position.x == 9 && border.position.y == 20 && border.placeId == 99,
+		"an area border is placed at its walkable crossing and keeps its identity");
+	EntityRadar::Entity stairs{3, EntityRadar::Kind::Exit, {10, 50}, "Cave", 98, false, EntityRadar::Category::Exit, 9};
+	Check(!ZoneTransitions::MoveToCrossing(stairs, found) && stairs.position.y == 50, "an exit to a level with no crossing stays put");
+	EntityRadar::Entity chest{4, EntityRadar::Kind::Object, {10, 50}, "Chest"};
+	Check(!ZoneTransitions::MoveToCrossing(chest, found) && chest.position.y == 50, "anything but an exit stays put");
 
 	own = Room(0, 0, 10, 10); adjacent = Room(10, 0, 10, 10);
 	for (int y : {2, 7}) { Carve(own, 9, y); Carve(adjacent, 10, y); }

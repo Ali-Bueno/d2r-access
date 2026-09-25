@@ -159,6 +159,11 @@ void Tracker::Lock(uint64_t now) {
 }
 void Tracker::Clear() { *this = {}; }
 
+bool Tracker::RouteLost(uint64_t now, const Settings& settings) {
+	if (!lost_) { lost_ = true; lostMs_ = now; }
+	return now >= lostMs_ && now - lostMs_ >= settings.routeLossMs;
+}
+
 bool Reaches(const Radar::World& world, const Route& route, Position target, const Settings& settings) {
 	if (Length({target.x - world.player.x, target.y - world.player.y}) <= settings.arrivalDistance) return true;
 	if (!route.known || route.path.empty()) return false;
@@ -185,16 +190,18 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 	const Position destination = waypoint != nullptr ? *waypoint : target;
 	const bool moved = Length({world.player.x - routeOrigin_.x, world.player.y - routeOrigin_.y}) >= rerouteAt
 		|| Length({destination.x - routeTarget_.x, destination.y - routeTarget_.y}) >= rerouteAt;
-	if (!routeMs_ || moved || now < routeMs_ || now - routeMs_ >= intervalMs) {
+	// A lost route is proved again on every update, so it resumes as soon as it exists.
+	if (!routeMs_ || moved || lost_ || now < routeMs_ || now - routeMs_ >= intervalMs) {
 		route_ = FindRoute(world, destination, settings);
 		routeOrigin_ = world.player;
 		routeTarget_ = destination;
 		routeMs_ = std::max<uint64_t>(now, 1);
 	}
 	if (settings.requireKnownRoute && !update.arrived && !Reaches(world, route_, destination, settings)) {
-		update.routeUnavailable = true;
-		return update;
+		update.routeUnavailable = RouteLost(now, settings);
+		return update; // no ping while the route is unproved
 	}
+	lost_ = false;
 	routed_ = route_.known;
 	update.routed = route_.known;
 	update.heading = route_.known ? route_.heading : Position{};

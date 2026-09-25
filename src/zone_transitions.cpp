@@ -21,7 +21,7 @@ bool SameRoom(const NativeLevelExits::TileRect& rect, const Radar::RoomGrid& roo
 }
 }
 
-std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout) {
+std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout, double radius) {
 	std::vector<Radar::LevelExit> result;
 	if (layout.level != static_cast<uint32_t>(world.level)
 		|| !std::isfinite(world.player.x) || !std::isfinite(world.player.y)) return result;
@@ -39,7 +39,7 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 				const Radar::Position across{opening.across.x + point.x - opening.centre.x,
 					opening.across.y + point.y - opening.centre.y};
 				const double distance = std::hypot(point.x - world.player.x, point.y - world.player.y);
-				if (distance >= GroundItems::AudibleRadius
+				if (distance >= radius
 					|| world.Body(static_cast<int>(point.x), static_cast<int>(point.y), Radar::Layer::Terrain) != Radar::State::Open
 					|| world.Body(static_cast<int>(across.x), static_cast<int>(across.y), Radar::Layer::Terrain) != Radar::State::Open) continue;
 				for (const auto& neighbour : layout.neighbours) {
@@ -54,5 +54,18 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 		}
 	}
 	return result;
+}
+
+bool Crosses(const EntityRadar::Entity& entity) {
+	return entity.kind == EntityRadar::Kind::Exit && entity.destinationLevel != 0;
+}
+
+bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelExit>& crossings) {
+	if (!Crosses(entity)) return false;
+	const auto found = std::find_if(crossings.begin(), crossings.end(),
+		[&](const auto& crossing) { return crossing.level == entity.destinationLevel; });
+	if (found == crossings.end()) return false;
+	entity.position = found->position;
+	return true;
 }
 }

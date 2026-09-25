@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Beacon keeps its route in combat and at area borders — installed, 2026-09-25
+
+The user got lost on the way from Dark Wood to Black Marsh: three
+`known-route-unavailable` releases, then `no-route` refusals. Three route
+fixes, then one the user asked for next:
+1. Room sub-goals are chosen on the terrain layer. Before, a monster in a
+   doorway broke the room route mid-fight (`docs/room-routing.md`).
+2. An outdoor border is routed to its real walkable crossing, when that
+   crossing is loaded. Before, the target was the border's midpoint, which is
+   often inside the tree line (`docs/beacon.md#area-borders`).
+3. Exploration mode releases only after `routeLossMs` (3 s) without a proved
+   route. Meanwhile the ping is silent.
+4. The scanner measures a border to that same crossing (distance and direction).
+
+The missing Underground Passage entrance is not a bug. The Dark Wood map was
+the same (seed `6DFC5AA1`), and its 69 visited rooms loaded. But
+`explored.dat` holds only the seven places found in this session, so the
+dungeon was explored before places were saved. The entrance will be listed
+once it is seen again. **76/76 suites pass.** **Live 2026-09-25:** the user
+reports the route now holds. **Next step:** none for the route; look into any
+later `[beacon] released reason=known-route-unavailable`.
+
 ## Exits, waypoints and the stash found on a map stay listed in later games on that map — installed, 2026-09-24
 
 User asked for already discovered exits (maps and dungeons) to be readable from

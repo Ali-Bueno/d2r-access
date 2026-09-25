@@ -39,7 +39,8 @@ struct Grid {
 };
 // Reads the supplied world without modifying it; no native calls or persistence.
 // Callers choose physical or structural snapshots. Radius is in collision subtiles.
-Grid Build(const Radar::World& world, int radius);
+// The terrain layer ignores the units standing on the floor.
+Grid Build(const Radar::World& world, int radius, Radar::Layer layer = Radar::Layer::Movement);
 // Stamps each cell with the index of the room covering it in `rooms`, which
 // may be the physical world behind a structural (single-room) snapshot.
 void LabelRooms(Grid& grid, const Radar::World& rooms);

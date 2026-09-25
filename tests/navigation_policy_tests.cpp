@@ -8,6 +8,10 @@
 
 using namespace D2RAccess;
 namespace {
+// A monster's cell: MONSTER plus the NO_PATH it stamps (radar_grid.cpp), which
+// the native walking mask blocks.
+constexpr uint16_t NoPath = 0x1000, MonsterCell = 0x100 | NoPath;
+
 NativeRooms::Room Room(int x, int y, int width = 8, int height = 8) {
 	return {x, y, width, height, NativeRooms::Identity(x, y)};
 }
@@ -83,5 +87,24 @@ int main() {
 	const auto near = BeaconNavigation::Prepare(open, {30, 20}, &graph, &start);
 	Check(near.available && !near.hasWaypoint && near.world.Cell(60, 20) == Radar::State::Unknown,
 		"a target in the player's own room needs no waypoint and sees no unvisited floor");
+
+	// Five rooms in a row, the target's beyond the collision window, and a pack
+	// of monsters holding the only doorway out of the player's room.
+	Radar::World fight;
+	fight.player = {10, 20};
+	fight.walkingMask = Radar::Collision::Wall | NoPath;
+	fight.rooms.push_back({0, 0, 160, 40, std::vector<uint16_t>(160 * 40, 0)});
+	auto& floor = fight.rooms.front().cells;
+	for (int y = 0; y < 40; ++y) floor[static_cast<size_t>(y) * 160 + 40] = y >= 19 && y <= 21 ? MonsterCell : Radar::Collision::Wall;
+	std::vector<NativeRooms::Room> row;
+	for (int i = 0; i < 5; ++i) row.push_back(Room(i * 8, 0));
+	const auto rowGraph = RoomGraph::Build(row);
+	const Radar::Position exit{190, 20};
+	const auto fighting = BeaconNavigation::Prepare(fight, exit, &rowGraph, &row);
+	Check(fighting.available && fighting.hasWaypoint && fighting.waypointRoom.tileX == 24,
+		"monsters in the only doorway do not break the room route");
+	for (int y = 19; y <= 21; ++y) floor[static_cast<size_t>(y) * 160 + 40] = Radar::Collision::Wall;
+	Check(!BeaconNavigation::Prepare(fight, exit, &rowGraph, &row).hasWaypoint, "a wall in the same doorway does");
+	Check(fighting.target.x == exit.x && fighting.target.y == exit.y, "the guidance keeps the target it was given");
 	Passed();
 }

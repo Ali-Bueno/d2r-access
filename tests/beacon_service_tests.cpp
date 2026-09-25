@@ -1,4 +1,5 @@
 #include "beacon_service.h"
+#include "beacon.h"
 #include "beacon_audio.h"
 #include "input_direction.h"
 #include "native_entities.h"
@@ -14,6 +15,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "zone_transitions.h"
 #include "test_support.h"
 
 #include <windows.h>
@@ -129,6 +131,12 @@ size_t Containing(const std::vector<Room>& rooms, Radar::Position subtile) {
 namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
 namespace D2RAccess::NativeEntities {
 bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool) { return false; }
+bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
+}
+namespace D2RAccess::ZoneTransitions {
+std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
+bool Crosses(const EntityRadar::Entity&) { return false; }
+bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
@@ -215,8 +223,11 @@ int main() {
 	visitedRooms = {levelRooms[0]};
 	Sleep(160);
 	BeaconService::Tick(&context);
+	Check(silences == silenced, "a target briefly outside the visited rooms keeps the lock in silence");
+	Sleep(static_cast<DWORD>(Beacon::Settings{}.routeLossMs) + 160);
+	BeaconService::Tick(&context);
 	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
-		"a target outside the visited rooms ends the known route");
+		"a target outside the visited rooms for the whole grace ends the known route");
 	chartedRooms = std::vector<NativeRooms::Room>{levelRooms[1]};
 	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;

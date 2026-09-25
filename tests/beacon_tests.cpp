@@ -338,8 +338,18 @@ void KnownRouteOnly() {
 		"a route ending at the wall does not reach a sealed target");
 	Beacon::Tracker tracker;
 	tracker.Lock(0);
-	const auto update = tracker.Tick(sealed, target, 0, s);
-	Check(update.valid && update.routeUnavailable, "a known-route tracker reports a partial route as unavailable");
+	const auto first = tracker.Tick(sealed, target, 0, s);
+	Check(first.valid && !first.routeUnavailable && !first.ping, "one unproved update is waited out in silence");
+	const auto update = tracker.Tick(sealed, target, s.routeLossMs, s);
+	Check(update.valid && update.routeUnavailable, "a known-route tracker reports a route unproved for the whole grace as unavailable");
+	const auto open = Field({70, 110});
+	Beacon::Tracker recovered;
+	recovered.Lock(0);
+	(void)recovered.Tick(sealed, target, 0, s);
+	Check(!recovered.Tick(open, target, s.routeLossMs / 2, s).routeUnavailable, "a route proved again inside the grace is followed");
+	Check(!recovered.Tick(sealed, target, s.routeLossMs, s).routeUnavailable, "losing it again starts a new grace");
+	Check(!recovered.RouteLost(s.routeLossMs + s.routeLossMs / 2, s), "the new grace is counted from the new loss");
+	Check(recovered.RouteLost(2 * s.routeLossMs, s), "and runs out like the first");
 
 	// A target on a blocked cell is reached from beside it.
 	auto solid = Field({70, 110});
@@ -351,11 +361,11 @@ void KnownRouteOnly() {
 	Check(!beside.Tick(solid, target, 0, s).routeUnavailable, "a known-route tracker follows a route that ends beside its target");
 
 	// Standing on the waypoint leaves no route step, yet the way on is still known.
-	const auto open = Field({110, 110});
+	const auto onWaypoint = Field({110, 110});
 	const Position waypoint{110, 110};
 	Beacon::Tracker hop;
 	hop.Lock(0);
-	Check(!hop.Tick(open, At(200, 110), 0, s, &waypoint).routeUnavailable, "standing on the waypoint keeps the known route");
+	Check(!hop.Tick(onWaypoint, At(200, 110), 0, s, &waypoint).routeUnavailable, "standing on the waypoint keeps the known route");
 }
 
 void UnknownGround() {
