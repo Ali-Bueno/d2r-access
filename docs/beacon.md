@@ -61,6 +61,23 @@ already use, the per-tick `Refresh` skips it because a passage does not move,
 and arrival is the same `arrivalDistance` as everything else. Nothing else
 about the lock changes.
 
+## Area borders
+
+A way into a neighbouring outdoor area is named by the middle of the edge the
+two levels share (`LevelAreas::Neighbours`), which is often inside the trees or
+cliffs lining the border. While the real crossing is in loaded collision, the
+beacon follows it instead: `ZoneTransitions::Find` (the zone-transition sound's
+source), within `Navigation::MaxRadius`, nearest the player
+(`ZoneTransitions::MoveToCrossing`). Arrival, the route and, since the same
+day, the scanner's distance and direction use that point. The identity keeps
+the midpoint, so it stays one place. In
+exploration mode the room holding the crossing may be entered unexplored, as
+with an unexplored-room target.
+
+Live log, 2026-09-25, Dark Wood → Black Marsh: the midpoint was 15640,5169 and
+the player crossed near 15623,5160. Entering the midpoint's room released the
+lock (`known-route-unavailable`) and later locks were refused (`no-route`).
+
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
@@ -87,8 +104,10 @@ helps the player return, but never discovers for them.
   never be locked. Every route update repeats the check
   (`Settings::requireKnownRoute`): a target leaving the visited rooms or a route
   stopping short releases with "The known route to X is no longer available"
-  (`reason=known-route-unavailable`). A failed world or room read only skips
-  that update.
+  (`reason=known-route-unavailable`) once no route has been proved for
+  `routeLossMs`. The ping is silent meanwhile and resumes when the route returns;
+  before 2026-09-25 a single failed update released the lock. A failed world or
+  room read only skips that update.
 - **Unexplored rooms.** The scanner's unexplored-room entries share an edge
   with explored ground, so the beacon admits that one room besides the
   explored ones: the route may enter it but never crosses it. The waypoint is
@@ -194,6 +213,7 @@ sounds where this uses a word.
 | `nearPingMs` / `farPingMs` | 160 / 1200 | `Beacon::Settings`, ping interval bounds, linear in remaining route length |
 | `farDistance` | 40 | `Beacon::Settings`, remaining route length at which the ping is slowest |
 | `lockDelayMs` | 600 | `Beacon::Settings`, silence after a lock so the spoken name is not stepped on |
+| `routeLossMs` | 3000 | `Beacon::Settings`, how long exploration waits, silent, for an unproved route before releasing |
 | `UpdateMs` | 150 | `beacon_service.cpp`, how often the locked target is re-read and ticked |
 | `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scan announcement stays lockable |
 | ping tone | 620 Hz, 80 ms notes | `beacon_audio.cpp` `Synthesize`, `PingHz`/`NoteMs` |

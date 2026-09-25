@@ -20,6 +20,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "zone_transitions.h"
 
 #include <D2RLPlugin/input.h>
 #include <D2RLPlugin/lifecycle_events.h>
@@ -303,6 +304,11 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	}
 	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
+	// An area border is measured to where it is walked across, where the beacon leads.
+	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
+		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
+		for (auto& entity : catalogued) ZoneTransitions::MoveToCrossing(entity, crossings);
+	}
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	return true;
 }

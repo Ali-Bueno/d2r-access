@@ -100,7 +100,7 @@ bool Read(uint32_t player, uint64_t session, int level, Radar::World& result, Di
 }
 }
 namespace D2RAccess::ZoneTransitions {
-std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout) {
+std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout, double) {
 	Check(world.level == static_cast<int>(layout.level), "boundary finder receives matching world and layout");
 	return includeBoundaries ? boundaries : std::vector<Radar::LevelExit>{};
 }

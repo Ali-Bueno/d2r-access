@@ -19,6 +19,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "zone_transitions.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -92,19 +93,29 @@ Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 	settings.arrivalDistance += HalfFootprint(entity);
 	return settings;
 }
-std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, const EntityRadar::Entity& entity) {
-	const Radar::Position target = entity.position;
+// An area border is walked across where both levels' floor meets, rarely at the
+// middle of the shared edge that names it. docs/beacon.md#area-borders
+bool AtCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
+	NativeLevelExits::Layout layout;
+	return ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout)
+		&& ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
+}
+std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity) {
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
+	const bool crossing = AtCrossing(state, world, entity);
+	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
 	if (NavigationMode::FullAssistance()) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin);
 	if (!graph) return std::nullopt;
 	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
 	if (current == NativeRooms::None) return std::nullopt;
 	auto explored = TerrainService::ExploredRooms(state.level, graph->rooms, world.player);
-	// An unexplored room at the edge of the known map may be entered, never crossed.
-	if (entity.category == EntityRadar::Category::UnexploredRoom && !NavigationPolicy::Contains(explored, target))
+	// The room holding the target may be entered unexplored, never crossed: an
+	// unexplored room at the edge of the known map, or where a known border is crossed.
+	const bool enterable = entity.category == EntityRadar::Category::UnexploredRoom || crossing;
+	if (enterable && !NavigationPolicy::Contains(explored, target))
 		if (const size_t room = NativeRooms::Containing(graph->rooms, target); room != NativeRooms::None)
 			explored.push_back(graph->rooms[room]);
 	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin);
@@ -180,7 +191,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	const auto settings = SettingsFor(g_offer.entity);
 	if (!NavigationMode::FullAssistance()) {
 		const bool known = guidance && guidance->available;
-		const auto destination = known && guidance->hasWaypoint ? guidance->waypoint : g_offer.entity.position;
+		const auto destination = !known ? g_offer.entity.position : guidance->hasWaypoint ? guidance->waypoint : guidance->target;
 		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, settings),
 			destination, settings)) {
 			AsyncLog::InfoF(g_context, "[beacon] refused reason=%s name=%s",
@@ -195,7 +206,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	g_nextUpdate = now;
 	BeaconAudio::Play(BeaconAudio::Sound::Locked, {});
 	const char* reach = guidance && guidance->available && !guidance->hasWaypoint
-		? Beacon::ReachWord(guidance->world, g_target.entity.position, settings, strings) : nullptr;
+		? Beacon::ReachWord(guidance->world, guidance->target, settings, strings) : nullptr;
 	if (reach) {
 		char text[256]{};
 		std::snprintf(text, sizeof text, strings.beaconFollowingReach, g_target.entity.name.c_str(), reach);
@@ -247,6 +258,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	if (!prepared) return;
 	const auto& guidance = *prepared;
 	if (!guidance.available) {
+		if (!g_tracker.RouteLost(now, g_settings)) return;
 		const auto name = g_target.entity.name;
 		Release("known-route-unavailable");
 		Announce(Strings::Current().beaconKnownRouteEnded, name);
@@ -261,7 +273,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	};
 	if (InTargetRoom(state, world.player)) { arrive(); return; }
 	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
-	const auto update = g_tracker.Tick(world, g_target.entity.position, now, SettingsFor(g_target.entity), waypoint);
+	const auto update = g_tracker.Tick(world, guidance.target, now, SettingsFor(g_target.entity), waypoint);
 	if (!update.valid) return;
 	if (update.routeUnavailable) {
 		const auto name = g_target.entity.name;
@@ -274,7 +286,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	if (!g_lastLog || now - g_lastLog >= LogIntervalMs) {
 		g_lastLog = now;
 		AsyncLog::InfoF(context, "[beacon] position=%.0f,%.0f target=%.0f,%.0f seen=%u distance=%.1f remaining=%.1f routed=%u heading=%.2f,%.2f route_cells=%zu name=%s",
-			world.player.x, world.player.y, g_target.entity.position.x, g_target.entity.position.y, seen ? 1u : 0u,
+			world.player.x, world.player.y, guidance.target.x, guidance.target.y, seen ? 1u : 0u,
 			update.distance, update.remaining, update.routed ? 1u : 0u, update.heading.x, update.heading.y,
 			g_tracker.CurrentRoute().path.size(), g_target.entity.name.c_str());
 		if (waypoint != nullptr) {

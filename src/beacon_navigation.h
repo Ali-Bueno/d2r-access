@@ -5,6 +5,7 @@
 namespace D2RAccess::BeaconNavigation {
 struct Guidance {
 	Radar::World world;
+	Radar::Position target{}; // what the route leads to, as given to Prepare
 	bool available = false;
 	bool hasWaypoint = false;
 	Radar::Position waypoint{};

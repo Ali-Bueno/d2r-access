@@ -21,6 +21,7 @@ bool ReachableNow(const Navigation::Grid& grid, Radar::Position position, int ma
 Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Graph* graph,
 	const std::vector<NativeRooms::Room>* visited, int margin) {
 	Guidance result;
+	result.target = target;
 	RoomGraph::Graph restricted;
 	if (visited) {
 		if (!NavigationPolicy::Contains(*visited, world.player) || !NavigationPolicy::Contains(*visited, target)) return result;
@@ -39,7 +40,8 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 		return result;
 	}
 	if (from == to) return result;
-	const auto grid = Navigation::Build(result.world, Navigation::MaxRadius);
+	// The route's own layer: monsters in a doorway must not break the room route mid-fight.
+	const auto grid = Navigation::Build(result.world, Navigation::MaxRadius, Radar::Layer::Terrain);
 	if (ReachableNow(grid, target, margin)) return result;
 	const auto goal = RoomGraph::ChooseSubGoal(*graph, grid, from, to);
 	// No waypoint: the direct search decides, and exploration still requires it to arrive.

@@ -132,6 +132,12 @@ geometry. Every candidate is a cell `Navigation::Grid` has proved reachable:
 3. **failing that, nothing**. In exploration mode the beacon then releases
    with "known route no longer available", or refuses the lock.
 
+The grid is built on the **terrain layer**, the route's own (2026-09-25).
+On the movement layer a monster's NO_PATH stamp blocks its cell, so a fight in
+a doorway cut the player's region off. The sub-goal then vanished and the
+beacon released (`known-route-unavailable`) mid-combat. This happened twice in
+Dark Wood, 06:54:44 and 06:57:37.
+
 `Beacon::Tracker::Tick` takes the sub-goal as an optional `waypoint`. Only the
 route follows it; distance, arrival and ping cadence stay measured against the
 real target. `beacon_service.cpp` supplies one only when the target is in a

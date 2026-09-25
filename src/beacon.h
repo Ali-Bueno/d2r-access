@@ -40,6 +40,9 @@ struct Settings {
 	double farDistance = 40; // remaining route at which the cadence is slowest
 	// Room for the spoken target name before the first ping.
 	uint64_t lockDelayMs = 600;
+	// How long a known route may stay unproved, silently, before exploration
+	// ends the lock: a step across a room boundary or a short read gap must not.
+	uint64_t routeLossMs = 3000;
 };
 
 struct Route {
@@ -75,7 +78,7 @@ struct Update {
 	bool valid = false;   // a target is locked and its position was supplied
 	bool ping = false;    // play one ping this tick
 	bool arrived = false; // the target is within arrivalDistance
-	bool routeUnavailable = false; // exploration mode cannot prove a route to its current destination
+	bool routeUnavailable = false; // exploration mode has not proved a route for Settings::routeLossMs
 	Position heading{};   // unit vector; the straight line when no route is known
 	bool routed = false;  // the heading follows a proved route
 	double distance = 0;  // straight-line distance to the target
@@ -99,8 +102,13 @@ public:
 	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
 		const Position* waypoint = nullptr);
 	const Route& CurrentRoute() const { return route_; }
+	// Notes that no known route exists now; true once none has for routeLossMs.
+	// Any update that proves the route again restarts the count.
+	bool RouteLost(uint64_t now, const Settings& settings);
 private:
 	bool locked_ = false;
+	bool lost_ = false;
+	uint64_t lostMs_ = 0;
 	Route route_;
 	Position routeOrigin_{}, routeTarget_{};
 	bool routed_ = false;
