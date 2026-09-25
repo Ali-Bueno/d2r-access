@@ -64,6 +64,8 @@ bool Prevent(uintptr_t pathContext) noexcept {
 	return true;
 }
 
+bool Enabled() noexcept { return g_enabled; }
+
 void Unregister() {
 	g_enabled = false;
 	g_command = Command::None;

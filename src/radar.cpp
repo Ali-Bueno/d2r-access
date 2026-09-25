@@ -46,7 +46,10 @@ void Engine::UpdateMotion(Position player, uint64_t now) {
 	const double speed = std::max(Speed(), distance / recentSeconds);
 	velocity_ = {delta.x * speed / distance, delta.y * speed / distance};
 }
-void Engine::TrackRoom(const World& world, Position travel) {
+void Engine::TrackRoom(const World& world, Position motion, Position travel) {
+	// The mark is worth one reading near the doorway, not a memory of it.
+	for (auto& sensor : sensors_)
+		if (sensor.wayBack && Distance(motion, sensor.wayBackAt) > wayThrough_) sensor.wayBack = false;
 	const int index = world.RoomAt(static_cast<int>(world.player.x), static_cast<int>(world.player.y));
 	if (index < 0) return; // off-grid is not a room change
 	const auto& room = world.rooms[static_cast<size_t>(index)];
@@ -62,7 +65,7 @@ void Engine::TrackRoom(const World& world, Position travel) {
 		const double along = travel.x*Axes[i].x + travel.y*Axes[i].y;
 		if (along < best) { best = along; back = i; }
 	}
-	if (best < 0) sensors_[back].wayBack = true;
+	if (best < 0) { sensors_[back].wayBack = true; sensors_[back].wayBackAt = motion; }
 }
 State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const {
 	const auto& passage = sensor.passage;
@@ -106,6 +109,8 @@ State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t n
 		// Backing away from an announced wall lengthens the route without
 		// opening anything. Half the hysteresis band absorbs raster steps;
 		// the wall stops gating once the player has left its neighbourhood.
+		// Dropped, not held: D2 walls meet these rays at 45 degrees, so a held
+		// opening would sound as soon as the player walked along the same wall.
 		const auto& frontier = sensor.frontier;
 		const Position offset{motion.x - frontier.origin.x, motion.y - frontier.origin.y};
 		const double lateral = std::abs(-offset.x*axis.y + offset.y*axis.x);
@@ -121,18 +126,28 @@ State Engine::Deliver(Sensor& sensor, Position axis, Position motion, uint64_t n
 		// The doorway the player just walked through: known, so taken as read.
 		sensor.wayBack = false;
 		sensor.lastCue = State::Exit;
-		sensor.lastCueMs = now;
+		sensor.lastCueUnexplored = sensor.deferredUnexplored;
+		sensor.lastCueMs = sensor.lastOpeningMs = now;
 		sensor.deferred = State::Unknown;
 		sensor.hold = "way-back";
 		return State::Unknown;
 	}
-	if (Passable(sensor.deferred) && sensor.lastCueMs && now - sensor.lastCueMs < settings_.cueIntervalMs) {
+	if (Passable(sensor.deferred) && sensor.deferred == sensor.lastCue && sensor.deferredUnexplored == sensor.lastCueUnexplored) {
+		// Back to what the ear was last told before the change could sound.
+		sensor.deferred = State::Unknown;
+		sensor.hold = "unchanged";
+		return State::Unknown;
+	}
+	// Counted from the last opening, not from a wall: a gap passed right after
+	// its wall was announced would otherwise wait until the wall returned.
+	if (Passable(sensor.deferred) && sensor.lastOpeningMs && now - sensor.lastOpeningMs < settings_.cueIntervalMs) {
 		sensor.hold = "interval";
 		return State::Unknown;
 	}
 	sensor.lastCue = sensor.deferred;
 	sensor.lastCueUnexplored = sensor.deferredUnexplored;
 	sensor.lastCueMs = now;
+	if (Passable(sensor.lastCue)) sensor.lastOpeningMs = now;
 	sensor.deferred = State::Unknown;
 	sensor.hold = "";
 	return sensor.lastCue;
@@ -172,11 +187,11 @@ Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
 	previous_ = motion;
 	lastTick_ = now;
 	UpdateMotion(motion, now);
-	TrackRoom(world, step);
 	if (rebase || world.rooms.size() != wayThroughRooms_) {
 		wayThrough_ = WayThrough(world, settings_);
 		wayThroughRooms_ = world.rooms.size();
 	}
+	TrackRoom(world, motion, step);
 	const double close = CloseDepth(settings_, world.bodyPattern);
 	const double open = settings_.openDepth;
 	// The passage window stays inside the structural window it reads from.

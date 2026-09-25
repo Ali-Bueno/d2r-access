@@ -6,6 +6,7 @@
 #include <cmath>
 #include <numbers>
 #include <string_view>
+#include <vector>
 
 using namespace D2RAccess;
 using namespace Radar;
@@ -263,21 +264,54 @@ void IntervalHold() {
 	Barrier(world, 212, 0);
 	(void)engine.Tick(world, 1200);
 	(void)engine.Tick(world, 1250);
-	Check(engine.Tick(world, 1300)[Down] == State::Unknown,
-		"an opening confirmed inside the cue interval waits instead of sounding");
+	Check(engine.Tick(world, 1300)[Down] == State::Open,
+		"an opening right after a wall is news, not a repeat: the wall cue never delays it");
+	const uint64_t opened = 1300;
+	Barrier(world, 212, Wall);
+	(void)engine.Tick(world, 1350);
+	(void)engine.Tick(world, 1400);
+	Check(engine.Tick(world, 1450)[Down] == State::Blocked,
+		"a wall confirmed well inside the interval since the opening is never delayed by it");
+	Barrier(world, 212, 0);
+	(void)engine.Tick(world, 1500);
+	(void)engine.Tick(world, 1550);
+	Check(engine.Tick(world, 1600)[Down] == State::Unknown,
+		"a second opening inside the cue interval since the first one waits instead of sounding");
 	Check(std::string_view(engine.Sensors()[Down].hold) == "interval"
 		&& engine.Sensors()[Down].state == State::Open && engine.Sensors()[Down].deferred == State::Open,
 		"the held opening is confirmed and remembered, not discarded");
-	const uint64_t due = 1150 + Settings{}.cueIntervalMs;
-	for (uint64_t now = 1350; now < due; now += PollMs)
+	const uint64_t due = opened + Settings{}.cueIntervalMs;
+	for (uint64_t now = 1650; now < due; now += PollMs)
 		Check(engine.Tick(world, now)[Down] == State::Unknown, "the held opening stays silent for the rest of the interval");
 	Check(engine.Tick(world, due)[Down] == State::Open,
-		"the opening sounds later, once the interval since the previous cue has passed and it is still true");
+		"the opening sounds later, once the interval since the previous opening has passed and it is still true");
+}
+
+void SameReadingIsNotRepeated() {
+	// Floor that turns towards unexplored ground and straight back before its
+	// cue could sound has not changed for the ear, so nothing is said.
+	auto world = Field();
+	Engine engine;
+	uint64_t now = 1000;
 	Barrier(world, 212, Wall);
-	(void)engine.Tick(world, due + PollMs);
-	(void)engine.Tick(world, due + 2 * PollMs);
-	Check(engine.Tick(world, due + 3 * PollMs)[Down] == State::Blocked,
-		"a wall confirmed well inside the interval since the last cue is never delayed by it");
+	(void)engine.Tick(world, now); // wall baseline
+	Barrier(world, 212, 0);
+	const auto settle = [&] {
+		(void)engine.Tick(world, now += PollMs);
+		(void)engine.Tick(world, now += PollMs);
+		return engine.Tick(world, now += PollMs)[Down];
+	};
+	Check(settle() == State::Open, "the floor is announced once the wall has gone");
+	const uint64_t spoken = now;
+	const auto& sensor = engine.Sensors()[Down];
+	world.frontier[Down] = true;
+	Check(settle() == State::Unknown && sensor.deferred == State::Open && sensor.deferredUnexplored
+		&& std::string_view(sensor.hold) == "interval", "floor towards unexplored ground waits for the cue interval");
+	world.frontier[Down] = false;
+	Check(settle() == State::Unknown && sensor.deferred == State::Unknown && std::string_view(sensor.hold) == "unchanged",
+		"plain floor again before that cue sounded is what the ear was last told, so it is dropped");
+	while (now < spoken + 2 * Settings{}.cueIntervalMs)
+		Check(engine.Tick(world, now += PollMs)[Down] == State::Unknown, "and nothing sounds once the interval is over");
 }
 
 // ---------------------------------------------------------------------------
@@ -380,7 +414,6 @@ void DoorwayPastTheWallSounds() {
 	for (int x = GapFromX; x <= GapToX; ++x) Put(run.world, x, WallSum - x, 0);
 	Check(Silent(run.Begin()), "the distant wall is only a silent baseline");
 	run.Approach();
-	const uint64_t announced = run.now;
 	Check(Silent(run.Step(-1, -1)) && Silent(run.Step(-1, -1)), "two steps back is still inside the dead band");
 	const int lateralCells = static_cast<int>(1.0 / Diagonal); // one native cell of staircase wobble
 	const int gapDifference = 2 * GapFromX - WallSum;                          // world x-y of the nearest gap cell
@@ -389,18 +422,8 @@ void DoorwayPastTheWallSounds() {
 	for (int step = 0; step < reachGap - 1; ++step)
 		Check(Silent(run.Step(1, -1)), "the gap is still further sideways than the body may adjust");
 	Check(Silent(run.Step(1, -1)), "the first sight of the route through the gap is only a candidate");
-	Check(Silent(run.Step(1, -1)) && std::string_view(run.Ahead().hold) == "interval",
-		"a route that really passes the wall is not withheld by the wall, only by the cue interval");
-	Check(run.Ahead().state == State::Open, "that route is confirmed as an opening");
-	State sounded = State::Unknown;
-	uint64_t at = 0;
-	while (run.now < announced + 4 * Settings{}.cueIntervalMs && sounded == State::Unknown) {
-		const auto events = run.Step(1, -1);
-		if (events[Down] != State::Unknown) { sounded = events[Down]; at = run.now; }
-	}
-	Check(sounded == State::Open, "the opening through the gap does sound");
-	Check(at == announced + Settings{}.cueIntervalMs,
-		"it sounds at the first poll a whole cue interval after the wall it replaces");
+	Check(run.Step(1, -1)[Down] == State::Open,
+		"a route that really passes the wall sounds once confirmed: neither the wall nor its cue holds it back");
 }
 
 void FrontierFollowsTheLatestWall() {
@@ -420,9 +443,7 @@ void FrontierFollowsTheLatestWall() {
 	const double first = run.Ahead().frontier.projection;
 	Check(std::abs(first - Diagonal * Reachable) < 1e-9, "the door is remembered at its own place in the world");
 	Barrier(run.world, WallSum, 0);
-	(void)settle(0);
-	Check(run.Ahead().state == State::Open && std::string_view(run.Ahead().hold) == "interval",
-		"a route that now passes the door's place is not withheld by the memory of it");
+	Check(settle(0)[Down] == State::Open, "a route that now passes the door's place is not withheld by the memory of it");
 	constexpr int Farther = 3;
 	Check(settle(WallSum + Farther)[Down] == State::Blocked, "a second door further out is announced in its turn");
 	Check(std::abs(run.Ahead().frontier.projection - first - Farther * Diagonal) < 1e-9,
@@ -430,8 +451,61 @@ void FrontierFollowsTheLatestWall() {
 	Barrier(run.world, WallSum + Farther, 0);
 	(void)settle(0);
 	Check(run.Ahead().state == State::Open && std::string_view(run.Ahead().hold) == "interval",
-		"passing the newest remembered wall releases the opening again");
+		"passing the newest remembered wall releases the opening again, held only by the interval since the first");
 	Check(run.Ahead().frontier.known, "an opening never erases the wall memory, it only outruns it");
+}
+
+// D2's own walls run along the world axes, at 45 degrees to every screen ray:
+// here one along world x, with a gap one map tile wide a little further on.
+void AlongAnAxisWall() {
+	constexpr int WallY = 125, GapFrom = 129, GapWidth = 5;
+	const auto approach = [](Run& run) {
+		run.world.player = {100, 100};
+		for (int x = 0; x < Size; ++x) if (x < GapFrom || x >= GapFrom + GapWidth) Put(run.world, x, WallY, Wall);
+		Check(Silent(run.Begin()), "the distant wall is only a silent baseline");
+		State heard = State::Unknown;
+		for (int step = 0; step < 30 && heard == State::Unknown; ++step) heard = run.Step(1, 1)[Down];
+		Check(heard == State::Blocked, "walking at the wall announces it");
+	};
+	{
+		// Walking along it close by, at once and faster than running (a cell
+		// per poll), finds the gap: floor through it, the wall again after it.
+		Run run;
+		approach(run);
+		std::vector<State> heard;
+		for (int step = 0; step < 16; ++step)
+			if (const auto events = run.Step(1, 0); events[Down] != State::Unknown) heard.push_back(events[Down]);
+		Check(heard == std::vector<State>{State::Open, State::Blocked},
+			"a gap reached right after its wall was announced sounds, and the wall after it too");
+	}
+	{
+		// Backing off first and then walking along it: the route ahead meets the
+		// same wall further along, which is no opening.
+		Run run;
+		approach(run);
+		for (int back = 0; back < 8; ++back)
+			Check(run.Step(-1, -1)[Down] == State::Unknown, "backing away from the wall never sounds like an opening ahead");
+		for (int step = 0; step < 6; ++step)
+			Check(run.Step(1, 0)[Down] == State::Unknown, "walking along the same wall further off says nothing");
+	}
+}
+
+// A small stone on open ground, square across the screen-down route.
+void RockInTheWay() {
+	for (const bool slides : {true, false}) {
+		Run run;
+		run.world.slides = slides;
+		for (int y = 110; y <= 112; ++y) for (int x = 120; x <= 122; ++x) Put(run.world, x, y, Wall);
+		Check(Silent(run.Begin()), "a distant stone is only a silent baseline");
+		// Nine diagonal steps would put the cross footprint against it; eight stay clear.
+		Events heard{};
+		for (int step = 0; step < 8; ++step) {
+			const auto events = run.Step(1, 1);
+			if (events[Down] != State::Unknown) heard[Down] = events[Down];
+		}
+		if (slides) Check(heard[Down] == State::Unknown, "while the game steers round small obstacles, a lone stone is no wall");
+		else Check(heard[Down] == State::Blocked, "when a direct move stops at obstacles, the stone ahead is announced as a wall");
+	}
 }
 
 void DoorAhead() {
@@ -472,6 +546,37 @@ void WayBackTakenAsRead() {
 	Check(heard[Down] == State::Open, "ahead, the second chamber's floor is announced once the exit is behind");
 	Check(std::abs(engine.CurrentWayThrough() - Settings{}.openDepth) < 1e-9,
 		"a border open along its whole length is clamped to the opening depth as the doorway width");
+}
+
+void WayBackLapses() {
+	// Three maze chambers side by side along world x, the middle one narrow.
+	// Walking screen-down from it into the last, the way back reads as an exit
+	// before and after the border, so nothing confirms that would spend the mark.
+	auto world = Field();
+	world.maze = true;
+	world.player = {112, 100};
+	world.rooms = {{0, 0, 110, Size, std::vector<uint16_t>(110 * Size)}, {110, 0, 10, Size, std::vector<uint16_t>(10 * Size)},
+		{120, 0, 120, Size, std::vector<uint16_t>(120 * Size)}};
+	Engine engine;
+	uint64_t now = 1000;
+	Check(Silent(engine.Tick(world, now)), "the baseline is silent");
+	const auto& behind = engine.Sensors()[Up];
+	Check(behind.state == State::Exit, "behind, the route into the first chamber is an exit");
+	const auto step = [&] { world.player.x += 1; world.player.y += 1; return engine.Tick(world, now += PollMs); };
+	while (world.player.x < 120) Check(step()[Up] == State::Unknown, "walking on towards the border changes nothing behind");
+	const Position crossed = world.player;
+	Check(behind.wayBack && behind.state == State::Exit, "crossing marks the way back, which reads as an exit as before");
+	const auto travelled = [&] { return std::hypot(world.player.x - crossed.x, world.player.y - crossed.y); };
+	while (travelled() + std::numbers::sqrt2 <= engine.CurrentWayThrough()) {
+		(void)step();
+		Check(behind.wayBack, "within a doorway's width of the border the mark stands");
+	}
+	(void)step();
+	Check(!behind.wayBack, "one step further the mark has lapsed: it is not a memory of the doorway");
+	world.rooms[1].visited = true; // the way back now leads into explored ground: a real change
+	State heard = State::Unknown;
+	for (int poll = 0; poll < 8 && heard == State::Unknown; ++poll) heard = engine.Tick(world, now += PollMs)[Up];
+	Check(heard == State::Exit, "a later change of the way back is announced, not taken as read");
 }
 
 void RebaseForgetsTheWall() {
@@ -593,14 +698,18 @@ int main() {
 	UnexploredQualifier();
 	StationaryConfirmation();
 	IntervalHold();
+	SameReadingIsNotRepeated();
 	UnknownCoverage();
 	Rebasing();
 	RetreatKeepsTheWall();
 	LateralEscapeReleasesTheWall();
 	DoorwayPastTheWallSounds();
 	FrontierFollowsTheLatestWall();
+	AlongAnAxisWall();
+	RockInTheWay();
 	DoorAhead();
 	WayBackTakenAsRead();
+	WayBackLapses();
 	RebaseForgetsTheWall();
 	Passed();
 }
