@@ -115,6 +115,10 @@ helps the player return, but never discovers for them.
   (`docs/room-routing.md`). It arrives as soon as the player
   steps into the room, since its centre may be inside a wall. Once entered,
   the room is explored, and what the automap draws there joins the scanner.
+- **Other players** are followed as in full assistance, through rooms this
+  player has not explored: the lock is never refused and never ends for lack of
+  an explored route (`Unrestricted` in `src/beacon_service.cpp`, user's request
+  of 2026-09-26). Before, a friend who ran ahead could not be followed.
 - Explored is room-level: one drawn cell or one step inside a logical room
   qualifies its whole rectangle, so a large room can route over floor never
   seen (`docs/automap-reader.md`).

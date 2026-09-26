@@ -271,6 +271,22 @@ int main() {
 		"stepping into the unexplored room arrives, wherever its centre lies");
 	playerAt = {10, 10};
 	blocked = {};
+
+	EntityRadar::Entity ally{60, EntityRadar::Kind::Player, {70, 10}, "Amiga"};
+	ally.category = EntityRadar::Category::Player;
+	BeaconService::Offer(ally, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before + 1 && speech.back().find("Amiga") != std::string::npos,
+		"exploration follows another player into a room never entered");
+	Sleep(static_cast<DWORD>(Beacon::Settings{}.routeLossMs) + 160);
+	BeaconService::Tick(&context);
+	Command("status");
+	BeaconService::Tick(&context);
+	Check(speech.back().find("Amiga") != std::string::npos, "the known-route limit never ends following a player");
+	Command("clear");
+	BeaconService::Tick(&context);
 	Command("full");
 	BeaconService::Tick(&context);
 	Check(speech.back() == strings.navigationFullAssistance, "the full command names full assistance");
