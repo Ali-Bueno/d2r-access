@@ -27,7 +27,27 @@ The right-stick scanner has a **player** category (`jugador`) listing the
 other characters nearby by name, distance and direction. Party members are
 listed anywhere on the same level. A left-stick click follows the one just
 named (`docs/entity-scan.md`). To be found from afar, both players must be in
-the same party (the party panel's invite button).
+the same party (the party panel's invite button). A friend anywhere in the rooms
+the game has loaded is placed at their actual position. The party roster only
+places a friend who is farther away (`docs/entity-units-re.md`). Following a
+friend also works through rooms this player has not explored, even in
+exploration mode (`docs/beacon.md#exploration-mode`, 2026-09-26).
+
+### Diagnosing a multiplayer problem (2026-09-26)
+
+D2RLoader overwrites `d2rloader/logs/d2r-access.log` at every launch and has no
+retention setting. After anything odd, copy the log before starting the game
+again. In the log:
+
+- A lasting `[radar] status=level-mismatch` or `status=player-identity` points
+  at the mod's lifecycle. `[radar] lifecycle=` now prints `eventPlayer=`, the id
+  the loader's event carried.
+- `[radar-audio] stage=failed reason=stalled` followed by `Output device failed;
+  reopening` is an audio output that kept a buffer. Radar, beacon and entity cue
+  players now give up on a buffer one second after its length and reopen the
+  device (`src/wave_out.h`). Before, the radar stayed mute until a restart.
+- `status=ready`, with a `[beacon] position=` frozen while the character moves,
+  suggests a network desync rather than the mod.
 
 The mod's speech and audio play locally; no accessibility audio is sent to the
 other client. Navigation uses the local-player position and identity. Vitals
