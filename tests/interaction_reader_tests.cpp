@@ -49,8 +49,9 @@ const D2RL::PluginContext context{};
 int inventoryWalks = 0, titleLookups = 0;
 int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
-int playerGold = -1;
+int playerGold = -1, stashGold = -1;
 NativeUi::BeltSlot beltSlot;
+std::string stashGoldText; // the stash's gold_amount box, at widget 60
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
@@ -106,8 +107,11 @@ std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
 	if (id == 26 || id == 29) return "gold_button";
+	if (id == 31 || id == 32) return "gold_withdraw";
 	return "widget" + std::to_string(id);
 }
+uintptr_t FindChild(uintptr_t parent, std::string_view name) { return parent == 10 && name == "gold_amount" ? 60 : 0; }
+std::string ReadText(uintptr_t id) { return id == 60 ? stashGoldText : std::string{}; }
 }
 namespace D2RAccess::NativeTooltips {
 void Track(uintptr_t panel) { tracked = panel; }
@@ -132,6 +136,7 @@ std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, in
 }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
+int PlayerStashGold() noexcept { return stashGold; }
 std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
 uint32_t ItemTableCode(uintptr_t unit) {
 	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
@@ -389,6 +394,16 @@ int main() {
 	ClearSpeech(); Tooltip("Soltar oro"); Settle();
 	Check(speech.empty(), "the gold row's tooltip, which is its A hint again, does not re-read the row");
 	playerGold = -1; ClearSpeech();
+	// The stash's gold box cannot take focus, so its withdraw button says the
+	// amount the box shows, and the personal stash's stat when the box is unreadable.
+	const auto savedPanel = focus.panel;
+	tooltip = {}; focus = {10, 31}; stashGoldText = "12.345";
+	buttonSnapshot = {31, 31, "gold_withdraw", UiText::Surface::Other, {{31, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
+	Check(Tick() && speech == std::vector<std::string>{"12345 de oro en el alijo"}, "the withdraw button speaks the stash's gold box");
+	ClearSpeech(); stashGoldText.clear(); stashGold = 700; focus.widget = 32;
+	buttonSnapshot = {32, 32, "gold_withdraw", UiText::Surface::Other, {{32, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
+	Check(Tick() && speech == std::vector<std::string>{"700 de oro en el alijo"}, "an unreadable gold box falls back to the stash gold stat");
+	stashGold = -1; focus.panel = savedPanel; ClearSpeech();
 	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
 	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";
 	Check(Tick() && speech == std::vector<std::string>{"Pergamino del portal de la ciudad. Usar"}, "focused action can read its complete rendered help without a native caption");

@@ -6,6 +6,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "test_support.h"
+#include "trade_service.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -127,6 +128,10 @@ void SpeakAfter(const D2RL::PluginContext*, std::string_view text) {
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::NpcSpeech { bool AudioOnly() { return npcAudioOnly; } }
+namespace D2RAccess::TradeService {
+void NamePrompt(UiText::Readout&) {}
+std::string FixNotice(std::string notice) { return notice; }
+}
 namespace D2RAccess::ScreenReader {
 void Stop() { ++stops; }
 void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); }

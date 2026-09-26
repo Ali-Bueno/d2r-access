@@ -14,6 +14,8 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept;
 // from the player's stats, the same UNIT_GetStat call a gold pile on the
 // ground already uses.
 int PlayerGold() noexcept;
+// Gold in the local player's personal stash, or -1 when it cannot be read.
+int PlayerStashGold() noexcept;
 
 // An item unit's base name from the game's item table, as a ground item is
 // named -- enough for a belt's potions and scrolls, which have no quality

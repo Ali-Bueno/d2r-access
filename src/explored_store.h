@@ -43,6 +43,10 @@ inline constexpr size_t MaxPlaces = 64, MaxPlaceName = 255;
 // position takes the newer name, destination and kind. Unplaceable or
 // oversized places are skipped. True when `known` changed.
 bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found);
+// How a place just seen stands against the map's list: known, the way back to
+// the level the player came from (`cameFrom`, 0 when unknown), or a new find.
+enum class Novelty { Known, WayBack, Find };
+Novelty Classify(const std::vector<Place>& known, const Place& place, uint32_t cameFrom);
 uint64_t LayoutDigest(const std::vector<NativeLevelExits::LevelRoom>& rooms);
 std::filesystem::path ArchiveFile(const std::filesystem::path& directory);
 

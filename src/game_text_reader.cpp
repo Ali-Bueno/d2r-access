@@ -14,6 +14,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "tab_reader.h"
+#include "trade_service.h"
 #include "ui_text.h"
 #include "ui_notifications.h"
 
@@ -210,6 +211,7 @@ bool Tick(const D2RL::PluginContext* context) {
 		if (dump) Dump(context, snapshot);
 		if (NeedsFallback(snapshot)) active = UiText::Describe(snapshot);
 	}
+	TradeService::NamePrompt(active);
 	const bool owns = !active.Empty();
 	// The tab is detected BEFORE the window behind it is read. A tab change is
 	// a context change, so its name has to lead; reading the window first meant
@@ -245,7 +247,8 @@ bool Tick(const D2RL::PluginContext* context) {
 	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
 	else g_areaReader.Reset();
-	for (const auto& text : g_notices.Update(notices, now, deliveries)) {
+	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
+		const auto text = TradeService::FixNotice(notice);
 		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}

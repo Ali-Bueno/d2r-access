@@ -140,6 +140,8 @@ struct Table {
 	const char* beaconLost; // %s = target name
 	const char* beaconKnownRouteOnly; // %s = target name; no explored-area route
 	const char* beaconKnownRouteEnded; // %s = target name; known route no longer available
+	const char* placeFoundExit; // %s = an exit the scanner lists for the first time on this map
+	const char* placeFound;     // %s = a waypoint or stash the scanner lists for the first time
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -162,6 +164,23 @@ struct Table {
 	const char* equipRefused;         // the game kept the item in hand
 	const char* equipRefusedBecause;  // %s = the requirements drawn red
 	const char* goldCarried;          // %s = how much gold the player is carrying
+	const char* goldStashed;          // %s = how much gold the open stash tab holds
+	const char* handsEmpty;           // a weapon swap to empty hands
+	// Player-to-player trade (docs/trade.md). %s = the partner's name throughout.
+	const char* tradeRequested;       // %s asked this player to trade
+	const char* tradeAsking;          // this player asked %s
+	const char* tradeWith;            // the trade window's title
+	const char* tradeYourOffer;       // the lower grid
+	const char* tradeTheirOffer;      // the upper grid
+	const char* tradePartnerGold;     // %s = partner, %s = gold offered
+	const char* tradePartnerItems;    // %s = partner: their offered items changed (no count)
+	const char* tradePartnerAccepted;
+	const char* tradePartnerWithdrew;
+	const char* tradeWeWithdrew;
+	const char* tradeCompleted;
+	const char* tradeCancelled;
+	const char* tradeEnded;           // no completion signal to tell completed from cancelled
+	const char* tradePartnerUnknown;  // stands in for a name the roster does not give
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
 	const char* controlTooltipsEnabled;  // Ctrl+H: the controls among what autodetail reads
@@ -235,10 +254,10 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };

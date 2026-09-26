@@ -358,12 +358,48 @@ std::string SizePhrase(uintptr_t item) {
 
 // The inventory's gold row, named by the game's own widget name.
 constexpr std::string_view GoldButton = "gold_button";
+// The stash's withdraw button and the text box beside it that shows the open tab's gold.
+constexpr std::string_view StashGoldButton = "gold_withdraw";
+constexpr std::string_view StashGoldBox = "gold_amount", StashGoldContainer = "basicstash_container";
+
+// The digits of the stash's gold box, "" when it cannot be read.
+std::string StashGold(const D2RL::PluginContext* context, uintptr_t panel) {
+	uintptr_t box = NativeWidgets::FindChild(panel, StashGoldBox);
+	if (!box) box = NativeWidgets::FindChild(NativeWidgets::FindChild(panel, StashGoldContainer), StashGoldBox);
+	const std::string text = UiText::Clean(NativeWidgets::ReadText(box));
+	std::string digits;
+	for (const char c : text)
+		if (c >= '0' && c <= '9') digits += c;
+	static std::string logged;
+	if (text != logged) {
+		logged = text;
+		AsyncLog::InfoF(context, "[stash] gold box=%d text=\"%s\" stat=%d", box ? 1 : 0, text.c_str(), NativeGroundItems::PlayerStashGold());
+	}
+	return digits;
+}
 
 bool IsInventory(UiText::Kind kind) {
 	return kind == UiText::Kind::InventoryGrid || kind == UiText::Kind::InventorySlot || kind == UiText::Kind::InventoryItem;
 }
 
+// The trade window's two grids and the partner's name box (TradeLayoutHD.json).
+constexpr std::string_view TradeGridUs = "grid_us", TradeGridThem = "grid_them", TradeNameThem = "name_them";
+
+std::string TradePartner(uintptr_t panel) {
+	return UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(panel, TradeNameThem)));
+}
+
+std::string Formatted(const char* format, const std::string& value) {
+	char phrase[160]{};
+	std::snprintf(phrase, sizeof(phrase), format, value.c_str());
+	return phrase;
+}
+
 std::string Title(uintptr_t panel) {
+	if (NativeUi::Classify(panel).name == "TradePanel") {
+		const auto partner = TradePartner(panel);
+		return partner.empty() ? Localization::Text("NPCMenuTrade") : Formatted(Strings::Current().tradeWith, partner);
+	}
 	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
 	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
 	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
@@ -380,6 +416,11 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	Append(result.body, TabReader::Selected(focus.panel));
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
+	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) Append(result.body, Strings::Current().tradeYourOffer);
+	else if (grid == TradeGridThem) {
+		const auto partner = TradePartner(focus.panel);
+		Append(result.body, Formatted(Strings::Current().tradeTheirOffer, partner.empty() ? Strings::Current().tradePartnerUnknown : partner));
+	}
 	result.focusKey = std::to_string(focus.widget) + ":" + std::to_string(NativeUi::FocusSelection(focus.widget));
 	const auto cell = NativeUi::GridCell(focus.widget);
 	if (cell.x >= 0) {
@@ -518,11 +559,24 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 					readout.option.c_str(), UiText::Clean(NativeUi::SelectedTabText(focus.widget)).c_str());
 			}
 		} else g_tabBarLogged.clear();
-		if (NativeWidgets::ReadName(focus.widget) == GoldButton) {
+		const std::string focusName = NativeWidgets::ReadName(focus.widget);
+		if (focusName == GoldButton) {
 			if (const int gold = NativeGroundItems::PlayerGold(); gold >= 0) {
 				char phrase[64]{};
 				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldCarried,
 					std::to_string(gold).c_str());
+				readout.option = phrase;
+				goldAmount = true;
+			}
+		}
+		// Its gold box has no focusable part on the controller layouts, so the
+		// withdraw button says the amount it acts on, the same way.
+		else if (focusName == StashGoldButton) {
+			std::string gold = StashGold(context, focus.panel);
+			if (const int stat = NativeGroundItems::PlayerStashGold(); gold.empty() && stat >= 0) gold = std::to_string(stat);
+			if (!gold.empty()) {
+				char phrase[96]{};
+				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldStashed, gold.c_str());
 				readout.option = phrase;
 				goldAmount = true;
 			}

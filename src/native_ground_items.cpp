@@ -31,11 +31,12 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 namespace {
-int GoldAmount(uintptr_t unit) noexcept {
+int StatAmount(uintptr_t unit, int stat) noexcept {
 	if (!g_base) return 0;
-	__try { return reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GetStat)(unit, GoldStat, 0); }
+	__try { return reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GetStat)(unit, stat, 0); }
 	__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
+int GoldAmount(uintptr_t unit) noexcept { return StatAmount(unit, GoldStat); }
 uint32_t TypeCode(const char* s) {
 	uint32_t result = 0;
 	for (unsigned i = 0; i < 4 && s[i]; ++i) result |= static_cast<uint32_t>(static_cast<unsigned char>(s[i])) << (i * 8);
@@ -165,6 +166,13 @@ int PlayerGold() noexcept {
 	uintptr_t player = 0, tables = 0;
 	if (!RuntimeRoots(player, tables) || !player) return -1;
 	const int gold = GoldAmount(player);
+	return gold < 0 ? -1 : gold;
+}
+
+int PlayerStashGold() noexcept {
+	uintptr_t player = 0, tables = 0;
+	if (!RuntimeRoots(player, tables) || !player) return -1;
+	const int gold = StatAmount(player, StashGoldStat);
 	return gold < 0 ? -1 : gold;
 }
 

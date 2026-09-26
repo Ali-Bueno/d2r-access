@@ -138,6 +138,13 @@ add_library(d2r-access SHARED
 	src/ui_notifications.cpp
 	src/vitals.cpp
 	src/vitals_service.cpp
+	src/equipment_census.cpp
+	src/native_weapon_set.cpp
+	src/weapon_swap.cpp
+	src/weapon_swap_service.cpp
+	src/native_trade.cpp
+	src/trade.cpp
+	src/trade_service.cpp
 	src/native_belt.cpp
 	src/skill_bar.cpp
 	src/native_skill_bar.cpp
@@ -518,6 +525,14 @@ if(BUILD_TESTING)
 	target_include_directories(vitals-tests PRIVATE src)
 	target_compile_features(vitals-tests PRIVATE cxx_std_20)
 	add_test(NAME vitals COMMAND vitals-tests)
+	add_executable(weapon-swap-tests tests/weapon_swap_tests.cpp src/weapon_swap.cpp src/speech_strings.cpp)
+	target_include_directories(weapon-swap-tests PRIVATE src)
+	target_compile_features(weapon-swap-tests PRIVATE cxx_std_20)
+	add_test(NAME weapon-swap COMMAND weapon-swap-tests)
+	add_executable(trade-tests tests/trade_tests.cpp src/trade.cpp src/speech_strings.cpp)
+	target_include_directories(trade-tests PRIVATE src)
+	target_compile_features(trade-tests PRIVATE cxx_std_20)
+	add_test(NAME trade COMMAND trade-tests)
 	add_executable(quest-service-tests tests/quest_service_tests.cpp src/quest_service.cpp src/quest_progress.cpp src/quest_log.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(quest-service-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(quest-service-tests PRIVATE src)

@@ -169,7 +169,13 @@ void Places() {
 	const Place stairs{9, 0x10002, 102.5, 207, 13, "Al nivel 2 de la Cueva", 4, 3, "To The Cave Level 2"},
 		border{3, 0x20003, 300, 400, 3, "Llanuras Frías", 4, 3, "Cold Plains"};
 	const Place waypoint{77, 0x50006, 80, 90, 0, "Punto de viaje", 4, 5};
+	using ExploredStore::Novelty;
+	Check(ExploredStore::Classify(known, stairs, 0) == Novelty::Find, "a place not on the map's list is a find");
+	Check(ExploredStore::Classify(known, border, 3) == Novelty::WayBack && ExploredStore::Classify(known, border, 2) == Novelty::Find,
+		"the exit back to the level the player came from is not a find");
+	Check(ExploredStore::Classify(known, waypoint, 0) == Novelty::Find, "a waypoint, which leads nowhere, is a find");
 	Check(ExploredStore::MergePlaces(known, {stairs, border, waypoint}) && known.size() == 3, "new places are added");
+	Check(ExploredStore::Classify(known, stairs, 0) == Novelty::Known, "a place already listed, restored or seen, is known");
 	Place loaded = stairs;
 	loaded.id = 4711, loaded.x = 102;
 	Check(!ExploredStore::MergePlaces(known, {loaded}) && known[0] == stairs,
