@@ -62,6 +62,12 @@ stored Aturdir text ends with its wrapped description, `U+E07E2Aturdir`, then
 `Todavía no has aprendido esta habilidad`. The old generic glyph cleaner removed
 the marker but left the size digit attached to the name.
 
+Synergies are drawn only on the skill that receives them: `skilldesc.txt`
+`dsc3` lines, headed by string `Sksyn` ("%s recibe bonus de:"). Resist Fire has
+none; Holy Fire lists Resist Fire (+`Param8` = 21 % fire damage per level) and
+Salvation (+`Param7` = 10 %). The reader keeps every body line, so no filter
+drops them (checked against CASC data, 2026-09-25; live readout still pending).
+
 Only skill descriptions are reordered. The skill name leads, then learned state,
 description, requirements, levels and bonuses in displayed order. Font-size digits
 are removed without deleting actual levels or numbers. Row/column and remaining
