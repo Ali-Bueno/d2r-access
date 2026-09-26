@@ -2,6 +2,41 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Friend's tester ZIP v2 — 2026-09-26
+
+`../d2r-access-completo-2026-09-26-v2.zip`: the first 26/09 package with **D2RLoader 1.3.1-beta**
+in place of 1.3.0 (same plugin `37E001FD…`, config, PRISM and VC runtime; every file matches the
+live-verified install). 26 entries, 58,599,852 bytes, SHA-256 `ac1de101…` (full hash in
+`.zip.sha256`). LEEME: loader news, "both players use this package", the 1.3.1 camp check, and
+the language note softened (not rechecked on 1.3.1). Every entry decompresses and matches its
+SHA-256. Supersedes the first 26/09 ZIP. **Next step:** the friend installs it.
+
+## Loader 1.3.1-beta — installed, 2026-09-26 (live-verified)
+
+There is no loader "3.0.1": the latest is **1.3.1-beta** (2026-09-24, plugin ABI 4, SDK 0.3.0), in
+`../loader-backups/1.3.1-beta/` with hashes. The **unchanged plugin** (`37E001FD…`) runs on it:
+- **Offline:** all six D2RCore descriptors resolve once each (0x7004A8 player index, 0x7004D8
+  lookup, 0x701BB0 manager, 0x703250 findChild, 0x7034D8 findPanel, 0x705EC0 setText). The 51
+  game RVAs the new loader adds hit none of the mod's 135 fingerprinted ranges.
+- **Live A/B** (unattended, camp, esES, same steps on 1.3.1 and 1.3.0): every "Verified" reader
+  installs, radar ready, NPC and exit review speak in Spanish, no new warnings, no crash files. The
+  `[pump] slow accessibility tick` warnings (31–63 ms, about 1 per 5 s) happen on 1.3.0 too.
+- **SDK kept at 0.2.0** (`docs/decisions.md`, 2026-09-26).
+Rollback: copy `../loader-backups/1.3.0-beta/` into the game root. A friend on 1.3.0 and a
+player on 1.3.1 may not be able to play together; the 26/09 v2 ZIP carries 1.3.1. The language
+bug below was not rechecked on 1.3.1 (the runs set `esES` explicitly).
+
+## Friend's tester ZIP — 2026-09-26
+
+`../d2r-access-completo-2026-09-26.zip`, plugin from 6928fd2 (SHA-256 `37E001FD…`, matches the
+install; 79/79 suites): 26 entries, 57,885,387 bytes, SHA-256 `64ad2784…` (full hash in
+`.zip.sha256` beside it). The v2 package minus the `sounds` folder (23 sounds now embedded),
+current `radar.toml` as `d2r-access.toml`, and a Spanish LEEME with today's news (discovery sound
+and quest objects, weapon rack and stash loops, levels, following a friend, stalled audio), a note
+to delete the old `sounds` folder, the loader-language workaround and "copy the log right after a
+failure". Loader, PRISM, licences and VC runtime unchanged. Every entry decompresses and matches
+its SHA-256. **Next step:** the friend installs it.
+
 ## Chest louder, stash softer and slower — installed, 2026-09-26
 
 User: the chest is still too quiet, the stash too loud and too fast, and the stash should stop
@@ -1144,12 +1179,12 @@ descriptions synchronized; skill position/count is spoken. Fourteen UI suites /
 Controller Options intentionally has three tabs; keyboard bindings are the fourth.
 `docs/controller-navigation.md`.
 
-- **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, **v1.3.0-beta 2026-09-14**, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, pinned at `6fbabfc8` / SDK 0.2.0, plugin ABI v4).
+- **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, **v1.3.1-beta 2026-09-24**, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, pinned at `6fbabfc8` / SDK 0.2.0, plugin ABI v4).
 - **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
 - **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `prism.dll` into the game. PRISM v0.18.2 vendored in `third_party/prism/`.
 - **Mod install path:** `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\` (global) — D2RLoader zip extracted into the game folder, launch `D2RLoader.exe`.
   The loader is **three** files in the game root, all dated 2026-09-14: `D2RLoader.exe` (23,590,248), **`D2RCore.dll`** (18,345,304 — resolves the game pointers the widget and world readers depend on) and `d2rloader.mpq` (10,816,549). Both builds we have are kept outside the repo in `../loader-backups/` with their hashes and restore notes; **1.2.1-beta can no longer be downloaded**, that copy is the only one. Everything else in the root is the game's. Packaging the mod for someone else needs all three, plus `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/{prism.dll, sounds/item loop sounds/*.wav}` and a `d2rloader/config/d2rloader.toml` with the console enabled. Never ship `D2R.text.bin` (dumped game code, regenerated on first run).
-- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.0-beta installed into the game folder 2026-09-17 (SHA-256 verified). Start NVDA, launch `D2RLoader.exe` (Steam's Play button also does it: launch options `"<game>\D2RLoader.exe" %command%`, set 2026-09-25; see README). Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
+- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.1-beta installed into the game folder 2026-09-26 (SHA-256 verified; 1.3.0-beta from 2026-09-17 kept in `../loader-backups/`). Start NVDA, launch `D2RLoader.exe` (Steam's Play button also does it: launch options `"<game>\D2RLoader.exe" %command%`, set 2026-09-25; see README). Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
 
 ## Section status
 
@@ -1413,6 +1448,12 @@ controller movement. Read
 
 ## Known issues / open questions
 
+- **D2RLoader ignores the Steam language (loader bug, 1.3.0-beta).** With `text_locale`/`audio_locale`
+  empty, a Steam launch through the loader comes up `enUS` (plugin probe "close" = "close"), while
+  vanilla `D2R.exe` (Steam app language `spanish`, `Settings.json` `Language: 3`) shows "Pulsa
+  cualquier tecla para empezar". Tested 2026-09-26. `D2R.exe` holds its own Steam-name → locale table
+  (`spanish`, `latam`, `brazilian`...); the loader binaries contain none. Workaround: set both locales
+  explicitly. To be reported upstream.
 - **Entity scan:** distance factor (one subtile per metre) is provisional;
   line of sight uses terrain walkability, so a see-through fence hides what is
   behind it until the native BLOCK_LOS flag is verified. Monster/object

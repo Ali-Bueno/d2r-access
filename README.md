@@ -481,11 +481,11 @@ the level just left is not announced. `[discoveries]` in the settings file. See
 
 ## Requirements
 
-- Diablo II: Resurrected 3.3.x (Steam or Battle.net), **D2RLoader 1.3.0-beta** installed in the
-  game folder — the build `d2rloader.net` currently distributes. Older builds are no longer
-  downloadable, so the native readers target this one; a newer loader may work, since they locate
-  the game pointers by what the loader resolved rather than by an offset into it, but only 1.3.0
-  is verified.
+- Diablo II: Resurrected 3.3.x (Steam or Battle.net), **D2RLoader 1.3.1-beta** installed in the
+  game folder — the build `d2rloader.net` currently distributes. 1.3.0-beta is verified too.
+  Older builds are no longer downloadable, so the native readers target these; a newer loader may
+  work, since they locate the game pointers by what the loader resolved rather than by an offset
+  into it, but only those two are verified.
 - A screen reader (NVDA, JAWS) or Windows SAPI; PRISM picks the best one available.
 - To build: CMake 3.28+, Ninja, MSVC Build Tools 2022 (x64). The D2RLoader PluginSDK is a git
   submodule (`external/PluginSDK`); PRISM's prebuilt DLL and header are vendored in
@@ -505,8 +505,9 @@ cd d2r-access
 
 Set `D2R_GAME_DIR` in `CMakeLists.txt` (or pass `-DD2R_GAME_DIR=...`) if the game is not at the
 default Steam path. Launch the game with `D2RLoader.exe`; the plugin speaks "Diablo 2 accessibility
-loaded" when it starts. If the game runs in the wrong language under D2RLoader, set `text_locale`
-in `d2rloader/config/d2rloader.toml`.
+loaded" when it starts. D2RLoader 1.3.0-beta ignores the language chosen in Steam: with
+`text_locale` and `audio_locale` left empty the game starts in English. Set both explicitly in
+`d2rloader/config/d2rloader.toml` (for example `"esES"`).
 
 To start the loader from Steam's Play button instead, set the game's launch options (Properties →
 General → Launch Options) to the loader's path followed by `%command%`, for example:
