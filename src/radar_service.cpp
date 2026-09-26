@@ -86,8 +86,8 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	else if (event->kind == Kind::LocalPlayerReady) { g_ready = true; g_playerId = event->playerId; g_level = 0; }
 	else if (event->kind == Kind::ActChanged) g_level = 0;
 	else if (event->kind == Kind::LevelChanged) g_level = event->currentValue;
-	AsyncLog::InfoF(g_context, "[radar] lifecycle=%u session=%llu player=%u ready=%u level=%d previous=%d current=%d",
-		static_cast<unsigned>(event->kind), static_cast<unsigned long long>(g_session), g_playerId, g_ready ? 1u : 0u,
+	AsyncLog::InfoF(g_context, "[radar] lifecycle=%u session=%llu player=%u eventPlayer=%u ready=%u level=%d previous=%d current=%d",
+		static_cast<unsigned>(event->kind), static_cast<unsigned long long>(g_session), g_playerId, event->playerId, g_ready ? 1u : 0u,
 		g_level, event->previousValue, event->currentValue);
 }
 

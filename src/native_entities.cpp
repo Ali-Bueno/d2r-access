@@ -240,6 +240,49 @@ void ReadRoster(uintptr_t head, uint32_t playerId, uint32_t level, const std::ve
 		if (!Peek(entry + RosterNext, entry)) return;
 	}
 }
+// Alone in the game the wider player walk below is skipped.
+bool OthersInGame(uintptr_t head, uint32_t playerId) {
+	uintptr_t entry = head;
+	for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+		uint32_t id = 0;
+		if (!Peek(entry + RosterUnitId, id)) return false;
+		if (id && id != playerId) return true;
+		if (!Peek(entry + RosterNext, entry)) return false;
+	}
+	return false;
+}
+// Work bound for the walk below, the same as the radar's collision walk (native_world.cpp).
+constexpr size_t MaxLoadedRooms = 256;
+// Other players anywhere in this level's loaded rooms, beyond the scan ring. The game
+// places a party member from the roster only when its unit is not loaded, and the
+// roster position is stale within 50 subtiles (docs/entity-units-re.md).
+void ReadLoadedPlayers(std::vector<uintptr_t> rooms, uintptr_t level, uint32_t playerId,
+	std::vector<uint32_t>& loaded, std::vector<EntityRadar::Entity>& entities) {
+	const size_t ring = rooms.size();
+	std::unordered_set<uintptr_t> units;
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		uintptr_t neighbors = 0, unit = 0;
+		uint32_t count = 0;
+		std::array<uintptr_t, MaxRooms> adjacent{};
+		if (Peek(rooms[i] + RoomNeighbors, neighbors) && Peek(rooms[i] + RoomNeighborCount, count) && count <= MaxRooms
+			&& (!count || NativeMemory::Copy(neighbors, adjacent.data(), count * sizeof(uintptr_t))))
+			for (size_t n = 0; n < count && rooms.size() < MaxLoadedRooms; ++n)
+				if (adjacent[n] && (!level || RoomLevel(adjacent[n]) == level)
+					&& std::find(rooms.begin(), rooms.end(), adjacent[n]) == rooms.end()) rooms.push_back(adjacent[n]);
+		if (i < ring || !Peek(rooms[i] + RoomFirstUnit, unit)) continue; // the ring's units are already read
+		while (unit && units.size() < MaxUnits && units.insert(unit).second) {
+			uint32_t type = 0, id = 0;
+			if (!Peek(unit + UnitType, type)) break;
+			if (type == GroundItemLayout::PlayerType && Peek(unit + UnitId, id) && id != playerId
+				&& std::find(loaded.begin(), loaded.end(), id) == loaded.end()) {
+				loaded.push_back(id);
+				EntityRadar::Entity entity;
+				if (ReadOtherPlayer(unit, rooms[i], playerId, entity)) entities.push_back(std::move(entity));
+			}
+			if (!Peek(unit + UnitNext, unit)) break;
+		}
+	}
+}
 // What the object is for, from the table row the caller has already read.
 // Order matters: a waypoint and a portal are both exits, but a player asking
 // for a waypoint does not want the town portal, so the specific categories
@@ -495,6 +538,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
+	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);

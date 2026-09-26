@@ -349,6 +349,55 @@ void DistantPartyMembers() {
 	roster[0].At<uint16_t>(RosterParty, 3);
 	Check(read(entities, 0) && !f.Find(entities, 70), "no roster, no distant players");
 }
+void PlayersLoadedBeyondTheScanRing() {
+	Fixture f;
+	Memory<0x200> here;
+	f.roomEx.At(ExtendedLevel, here.Address()); here.At<uint32_t>(LevelId, 2);
+	// f.room -> next -> far: the ally stands two rooms away, still loaded by the game.
+	Memory<RoomSize> next, far;
+	Memory<16> nearList, nextList;
+	nearList.At(0, next.Address());
+	nextList.At(0, f.room.Address()); nextList.At(8, far.Address());
+	f.room.At(GroundItemLayout::RoomNeighbors, nearList.Address()); f.room.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	next.At(GroundItemLayout::RoomNeighbors, nextList.Address()); next.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 2);
+	next.At(RoomExtended, f.roomEx.Address()); far.At(RoomExtended, f.roomEx.Address());
+	Memory<UnitSize> ally;
+	Memory<PathSize> allyPath, allyData;
+	ally.At<uint32_t>(GroundItemLayout::UnitType, GroundItemLayout::PlayerType);
+	ally.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+	ally.At<uint32_t>(GroundItemLayout::UnitId, 60);
+	ally.At(GroundItemLayout::UnitPath, allyPath.Address()); ally.At(GroundItemLayout::UnitData, allyData.Address());
+	allyPath.At<uint32_t>(0, 140u << 16); allyPath.At<uint32_t>(4, 100u << 16); allyPath.At(PathRoom, far.Address());
+	allyData.Text(PlayerName, "Amiga");
+	far.At(GroundItemLayout::RoomFirstUnit, ally.Address());
+	// The roster still holds where she was when last more than 50 subtiles away.
+	std::array<Memory<RosterNext + 8>, 2> roster;
+	roster[0].Text(RosterName, "Yo"); roster[0].At<uint32_t>(RosterUnitId, 42); roster[0].At<uint16_t>(RosterParty, 3);
+	roster[0].At<uint32_t>(RosterLevel, 2); roster[0].At<int32_t>(RosterX, 100); roster[0].At<int32_t>(RosterY, 100);
+	roster[0].At(RosterNext, roster[1].Address());
+	roster[1].Text(RosterName, "Amiga"); roster[1].At<uint32_t>(RosterUnitId, 60); roster[1].At<uint16_t>(RosterParty, 3);
+	roster[1].At<uint32_t>(RosterLevel, 2); roster[1].At<int32_t>(RosterX, 900); roster[1].At<int32_t>(RosterY, 900);
+	auto read = [&](std::vector<EntityRadar::Entity>& entities, uintptr_t head) {
+		return NativeEntities::ReadPlayer(f.player.Address(), f.tables.Address(), 42, 7, entities, false, false, true, true, head);
+	};
+	std::vector<EntityRadar::Entity> entities;
+	Check(read(entities, roster[0].Address()), "native scan reads rooms beyond the ring in a game with others");
+	const auto* found = f.Find(entities, 60);
+	Check(found && found->name == "Amiga" && found->position.x == 140 && found->position.y == 100
+		&& std::count_if(entities.begin(), entities.end(), [](const auto& entity) { return entity.id == 60; }) == 1,
+		"a party member loaded beyond the scan ring is placed at her unit, not at the stale roster point");
+	ally.At<uint32_t>(GroundItemLayout::UnitMode, PlayerDeathMode);
+	Check(read(entities, roster[0].Address()) && !f.Find(entities, 60), "a dying player beyond the ring is not revived from the roster");
+	ally.At<uint32_t>(GroundItemLayout::UnitMode, 1);
+	Memory<0x100> otherEx;
+	Memory<0x200> otherLevel;
+	otherEx.At(ExtendedLevel, otherLevel.Address()); otherLevel.At<uint32_t>(LevelId, 5);
+	next.At(RoomExtended, otherEx.Address());
+	Check(read(entities, roster[0].Address()) && f.Find(entities, 60) && f.Find(entities, 60)->position.x == 900,
+		"the walk stays on this level; an unreached member falls back to the roster");
+	next.At(RoomExtended, f.roomEx.Address());
+	Check(read(entities, 0) && !f.Find(entities, 60), "without other players in the roster the wider walk is skipped");
+}
 void QuestObjectModes() {
 	Fixture f;
 	constexpr size_t tree = ObjectStride * 30;
@@ -429,6 +478,7 @@ int main() {
 	PlayerCorpseOwnership();
 	RosterCorpseLists();
 	OtherPlayersAreListed();
+	PlayersLoadedBeyondTheScanRing();
 	DistantPartyMembers();
 	QuestObjectModes();
 	CairnStoneModes();

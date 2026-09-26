@@ -228,6 +228,7 @@ sounds where this uses a word.
 - `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
 - `[beacon-audio]` — output device ready/unavailable/reopening, and `silenced reason=<reason>`.
+  A buffer not returned one second after its length counts as a failed device and is reopened.
 
 ## Limits
 

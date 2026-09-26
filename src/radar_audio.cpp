@@ -1,6 +1,7 @@
 #include "radar_audio.h"
 #include "async_log.h"
 #include "radar_trace.h"
+#include "wave_out.h"
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -74,14 +75,14 @@ bool PlayOne(HWAVEOUT device, HANDLE done, const Radar::Events& events, const Cu
 	}
 	const uint64_t submitted = GetTickCount64();
 	Trace(events, source, "submitted", "waveOutWrite-ok");
-	const auto finished = [&] { return (*reinterpret_cast<volatile DWORD*>(&header.dwFlags) & WHDR_DONE) != 0; };
-	while (!finished() && g_running && generation == g_generation) WaitForSingleObject(done, CancelPollMs);
-	const bool interrupted = !finished();
-	if (interrupted) waveOutReset(device);
-	Trace(events, source, interrupted ? "interrupted" : "completed",
-		interrupted ? "cancelled" : "buffer-returned", 0, GetTickCount64() - submitted);
+	const auto wait = WaveOut::Await(header, done, Channels * SampleRate * sizeof(int16_t), CancelPollMs,
+		[&] { return g_running && generation == g_generation; });
+	if (wait != WaveOut::Wait::Done) waveOutReset(device);
+	const bool returned = wait == WaveOut::Wait::Done, stalled = wait == WaveOut::Wait::Stalled;
+	Trace(events, source, returned ? "completed" : stalled ? "failed" : "interrupted",
+		returned ? "buffer-returned" : stalled ? "stalled" : "cancelled", 0, GetTickCount64() - submitted);
 	waveOutUnprepareHeader(device, &header, sizeof(header));
-	return true;
+	return !stalled;
 }
 void Worker(const D2RL::PluginContext* context) {
 	HANDLE done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
