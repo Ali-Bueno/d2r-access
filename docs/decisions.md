@@ -3,6 +3,16 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-26 — Loader 1.3.1-beta adopted, PluginSDK kept at 0.2.0
+
+The user asked to move to the new loader without breaking the mod. 1.3.1-beta keeps plugin ABI 4,
+and the unchanged plugin passes every layout check on it (offline and live, `STATUS.md`), so the
+plugin was not rebuilt. SDK 0.3.0 was turned down for now: it raises `LifecycleServiceRequiredSize`
+from 40 to 56 bytes, so the 13 services that check it would refuse to start on a 1.3.0 loader,
+which the earlier friends' packages carry. It adds nothing the mod uses. Its one breaking change,
+`DiagnosticsService::queryHookStatus` removed, does not touch the mod either. Revisit when a
+feature needs the new services (mutations, overlays, plugin communication, `getInputText`).
+
 ## 2026-09-25 — Radar back on the stick cardinals after listening
 
 The user tried the diagonal rays and went back: every ray sounds from one side,
