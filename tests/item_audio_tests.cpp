@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <fstream>
 #include <limits>
 
 using namespace D2RAccess;
@@ -22,23 +21,17 @@ std::vector<uint8_t> Wave() {
 	return bytes;
 }
 void WaveTests() {
-	const auto path = std::filesystem::temp_directory_path() / ("d2r-item-wave-" + std::to_string(GetCurrentProcessId()) + ".wav");
-	const auto load = [&](const std::vector<uint8_t>& bytes) {
-		{ std::ofstream file(path, std::ios::binary); file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size()); }
-		return ItemWave::Load(path);
-	};
+	const auto load = [](const std::vector<uint8_t>& bytes) { return ItemWave::Parse(bytes); };
 	auto bytes = Wave();
 	Check(load(bytes) == std::vector<int16_t>{100, 200}, "mono PCM16 samples are preserved");
 	for (size_t size = 0; size < bytes.size(); ++size) {
 		auto truncated = bytes; truncated.resize(size);
-		Check(load(truncated).empty(), "truncated audio is rejected without reading beyond the file");
+		Check(load(truncated).empty(), "truncated audio is rejected without reading beyond the data");
 	}
 	for (size_t offset : {0u, 8u, 16u, 20u, 22u, 24u, 28u, 32u, 34u, 40u}) {
 		auto invalid = bytes; invalid[offset] ^= 0x40;
 		Check(load(invalid).empty(), "incompatible format or invalid chunk fails quiet");
 	}
-	std::filesystem::remove(path);
-	Check(ItemWave::Load(path).empty(), "missing audio is handled");
 }
 void MatrixTests() {
 	using GroundItems::Voice;
@@ -90,11 +83,15 @@ int main(int argc, char** argv) {
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::InsideUnexploredRoom), "room arrival uses a finite XAudio2 buffer");
 	Check(!ItemAudio::IsOneShot(GroundItems::Sound::UnexploredRoom)
 		&& !ItemAudio::IsOneShot(GroundItems::Sound::ZoneTransition), "approach and zone cues loop");
-	Check(argc == 2, "converted sample directory supplied by CTest");
+	Check(argc == 2, "built plugin DLL supplied by CTest");
+	// The plugin reads the same resources from its own module at run time.
+	const HMODULE plugin = LoadLibraryExA(argv[1], nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+	Check(plugin != nullptr, "built plugin DLL opens as a resource file");
+	Check(ItemWave::LoadEmbedded(plugin, "loot", "missing.wav").empty(), "a missing embedded sound is handled");
 	for (size_t sound = 0; sound < std::size(GroundItems::SoundFiles); ++sound) {
 		const auto& file = GroundItems::SoundFiles[sound];
-		auto samples = ItemWave::Load(std::filesystem::path(argv[1]) / file.folder / file.name);
-		Check(!samples.empty(), "real user-provided cue decodes into supported PCM");
+		auto samples = ItemWave::LoadEmbedded(plugin, file.folder, file.name);
+		Check(!samples.empty(), std::string(file.name) + ": real user-provided cue is embedded as supported PCM");
 		if (sound == static_cast<size_t>(GroundItems::Sound::Quest)) {
 			Check(samples.size() == ItemWave::SampleRate * 700 / 1000, "quest recording repeats at the requested 700 ms without speeding up its pitch");
 			Check(std::abs(int(samples.front())) < 100 && std::abs(int(samples.back())) < 100,
@@ -114,5 +111,6 @@ int main(int argc, char** argv) {
 		}
 		Check(Rms(samples) > 0, "and carries signal across the whole file, not one spike");
 	}
+	FreeLibrary(plugin);
 	Passed();
 }

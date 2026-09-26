@@ -1,10 +1,10 @@
 #include "item_wave.h"
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <cstring>
-#include <fstream>
 #include <limits>
-#include <span>
+#include <string>
 
 namespace D2RAccess::ItemWave {
 namespace {
@@ -15,6 +15,17 @@ uint32_t U32(std::span<const uint8_t> bytes, size_t offset) {
 }
 uint16_t U16(std::span<const uint8_t> bytes, size_t offset) { return bytes[offset] | (uint16_t(bytes[offset + 1]) << 8); }
 bool Tag(std::span<const uint8_t> bytes, size_t offset, const char* tag) { return std::memcmp(bytes.data() + offset, tag, 4) == 0; }
+// Mirrors the RCDATA names written by cmake/GroundItems.cmake: FOLDER_STEM, spaces as underscores.
+std::wstring ResourceName(std::string_view folder, std::string_view file) {
+	std::wstring name;
+	const auto append = [&](std::string_view text) {
+		for (const char c : text) name += c == ' ' ? L'_' : static_cast<wchar_t>(std::toupper(static_cast<unsigned char>(c)));
+	};
+	append(folder);
+	name += L'_';
+	append(file.substr(0, file.rfind('.')));
+	return name;
+}
 }
 float Normalize(std::vector<int16_t>& samples) {
 	int peak = 0;
@@ -24,14 +35,8 @@ float Normalize(std::vector<int16_t>& samples) {
 	for (auto& sample : samples) sample = static_cast<int16_t>(std::lround(sample * scale));
 	return scale;
 }
-std::vector<int16_t> Load(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	if (!file) return {};
-	const auto length = file.tellg();
-	if (length < 12 || length > static_cast<std::streamoff>(MaxFileBytes)) return {};
-	std::vector<uint8_t> bytes(static_cast<size_t>(length));
-	file.seekg(0);
-	if (!file.read(reinterpret_cast<char*>(bytes.data()), length) || !Tag(bytes, 0, "RIFF") || !Tag(bytes, 8, "WAVE")) return {};
+std::vector<int16_t> Parse(std::span<const uint8_t> bytes) {
+	if (bytes.size() < 12 || bytes.size() > MaxFileBytes || !Tag(bytes, 0, "RIFF") || !Tag(bytes, 8, "WAVE")) return {};
 	const size_t end = static_cast<size_t>(U32(bytes, 4)) + 8;
 	if (end != bytes.size()) return {};
 	bool format = false;
@@ -55,5 +60,11 @@ std::vector<int16_t> Load(const std::filesystem::path& path) {
 	std::vector<int16_t> result(dataSize / sizeof(int16_t));
 	std::memcpy(result.data(), bytes.data() + data, dataSize);
 	return result;
+}
+std::vector<int16_t> LoadEmbedded(HMODULE module, std::string_view folder, std::string_view file) {
+	const HRSRC info = FindResourceW(module, ResourceName(folder, file).c_str(), reinterpret_cast<LPCWSTR>(RT_RCDATA)); // integer ID, UNICODE or not
+	const HGLOBAL handle = info ? LoadResource(module, info) : nullptr;
+	const auto* bytes = handle ? static_cast<const uint8_t*>(LockResource(handle)) : nullptr;
+	return bytes ? Parse({bytes, SizeofResource(module, info)}) : std::vector<int16_t>{};
 }
 }

@@ -10,11 +10,12 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
-#include <filesystem>
 #include <mutex>
 #include <optional>
 #include <thread>
 #include <utility>
+
+extern "C" IMAGE_DOS_HEADER __ImageBase; // this plugin's own module, which carries the sounds
 
 namespace D2RAccess::ItemAudio {
 namespace {
@@ -101,18 +102,18 @@ void Worker(const D2RL::PluginContext* context) {
 	Playing exploration, arrival;
 	try {
 		// Keep all sample memory alive until its source voices have been destroyed.
-		const auto sounds = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "sounds" / "item loop sounds";
+		const auto module = reinterpret_cast<HMODULE>(&__ImageBase);
 		size_t loaded = 0;
 		for (size_t i = 0; i < samples.size(); ++i) {
 			const auto& file = SoundFiles[i];
-			samples[i] = ItemWave::Load(sounds / file.folder / file.name);
+			samples[i] = ItemWave::LoadEmbedded(module, file.folder, file.name);
 			const float scale = ItemWave::Normalize(samples[i]);
 			if (scale > 0) {
 				++loaded;
 				AsyncLog::InfoF(context, "[item-audio] normalized %s/%s gain_db=%.1f peak=%.2f", file.folder, file.name, 20 * std::log10(scale), ItemWave::LoopPeak);
 			} else {
 				samples[i].clear();
-				AsyncLog::WarnF(context, "[item-audio] Missing/invalid/silent sound: %s/%s", file.folder, file.name);
+				AsyncLog::WarnF(context, "[item-audio] Missing/invalid/silent embedded sound: %s/%s", file.folder, file.name);
 			}
 		}
 		HRESULT output = loaded ? XAudio2Create(&engine) : E_FAIL;

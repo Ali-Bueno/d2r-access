@@ -252,8 +252,12 @@ to create mono, 48 kHz, PCM16 WAV files in the build directory. FFmpeg is a buil
 requirement on `PATH`; there is no decoder DLL or additional runtime library to
 install. Playback uses Windows XAudio2/X3DAudio. Asset-only rebuilds also deploy.
 
-The build installs the WAV files at the same relative paths under
-`d2rloader/plugins/d2r-access/sounds/item loop sounds/` (`loot/`, `exploration/`).
+The build embeds each WAV in the plugin DLL as an RCDATA resource named
+`FOLDER_STEM` (uppercase, spaces as underscores, e.g. `LOOT_NORMAL_EQUIPMENT`) and
+the plugin reads them from its own module, so players cannot swap them by
+replacing files (a resource editor still could). Nothing is installed under
+`d2rloader/plugins/d2r-access/sounds/`; an old folder there is unused and can be
+deleted. The item-audio suite opens the built DLL and checks every sound in it.
 It keeps the user's OGG sources unchanged.
 Do not commit the generated WAV files or build binaries.
 
