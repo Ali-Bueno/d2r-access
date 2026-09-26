@@ -61,11 +61,14 @@ struct Entity {
 	struct ObjectFootprint { uint32_t width = 0, height = 0; } footprint; // native collision rectangle; zero when unknown
 	std::string nameKey; // the game string key `name` was read from; empty when composed or unknown
 	bool corpse = false; // a container that is a dead body: it loops the corpse cue, not the chest one
+	bool weaponRack = false; // a container that is a weapon rack: it loops its own cue, not the chest one
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
 };
 bool SameTarget(const Entity& a, const Entity& b);
+// A quest object still to be used: the sources of the quest and tome loops.
+inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
 struct Settings {
 	// Distances are collision subtiles, and a subtile is spoken as one STEP.
 	// That is the unit the pathfinder already counts in -- Navigation::Grid

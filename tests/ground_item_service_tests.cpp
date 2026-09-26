@@ -114,6 +114,8 @@ void Stop() { voices.clear(); }
 bool Available() { return true; }
 }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
+std::vector<std::string> openPanels;
+namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; } }
 int main() {
 	using K = D2RL::Lifecycle::GameplayEventKind;
@@ -193,6 +195,31 @@ int main() {
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
 	Check(Count(GroundItems::Sound::MetalDoor) == 1 && Count(GroundItems::Sound::Corpse) == 1 && Chests() == 0 && speech.empty(),
 		"a shut iron gate loops the metal door sound and a dead rogue the corpse sound, neither spoken");
+	EntityRadar::Entity rack{36, EntityRadar::Kind::Object, {4, 3}, "Estante de armas", 0, true};
+	rack.weaponRack = true;
+	entities.push_back(rack);
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::WeaponRack) == 1 && Chests() == 0, "a weapon rack loops its own sound, not the chest one");
+	Command("chests-off");
+	Check(Count(GroundItems::Sound::WeaponRack) == 0, "and follows the container switch");
+	Command("chests-on");
+	entities.pop_back();
+	// The stash is a fixed place: it loops its own sound with the exits, under their switch.
+	entities.push_back({37, EntityRadar::Kind::Object, {4, 4}, "Alijo", 703, false, EntityRadar::Category::Stash});
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
+	Check(Count(GroundItems::Sound::Stash) == 1 && Chests() == 0 && speech.empty(), "the stash loops its own sound, unspoken");
+	const size_t beforeStash = voices.size();
+	openPanels = {"BankExpansionLayout"}; Tick();
+	Check(Count(GroundItems::Sound::Stash) == 0 && voices.size() == beforeStash - 1, "an open stash silences only its own loop");
+	openPanels = {"BankOriginalLayout"}; Tick();
+	Check(Count(GroundItems::Sound::Stash) == 0, "the classic stash layout counts too");
+	openPanels.clear(); Tick();
+	Check(Count(GroundItems::Sound::Stash) == 1, "closing the stash brings its loop back");
+	Command("exits-off");
+	Check(Count(GroundItems::Sound::Stash) == 0, "the exit switch covers the stash");
+	Command("exits-on");
+	entities.pop_back();
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Command("doors-off");
 	Check(Count(GroundItems::Sound::MetalDoor) == 0 && Count(GroundItems::Sound::Corpse) == 1, "the door switch leaves containers alone");
 	Command("doors-on"); Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();

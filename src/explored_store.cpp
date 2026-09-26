@@ -270,6 +270,12 @@ Novelty Classify(const std::vector<Place>& known, const Place& place, uint32_t c
 	return cameFrom && place.destination == cameFrom ? Novelty::WayBack : Novelty::Find;
 }
 
+bool Namesake(const std::vector<Place>& known, const Place& place) {
+	return std::any_of(known.begin(), known.end(), [&](const Place& entry) {
+		return entry.identity != place.identity && entry.kind == place.kind && entry.category == place.category && entry.name == place.name;
+	});
+}
+
 bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found) {
 	bool changed = false;
 	for (const auto& place : found) {

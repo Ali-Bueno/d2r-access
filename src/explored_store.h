@@ -23,7 +23,8 @@ struct Key {
 };
 // A fixed place found on one map: an exit, a waypoint, the stash
 // (MapSurvey::Fixed). Kept with that map's rooms, so a later game on the same
-// map knows it from anywhere, and a regenerated map never does.
+// map knows it from anywhere, and a regenerated map never does. Quest objects
+// are kept too, only so that each is announced once (EntityRadar::QuestSource).
 // `docs/exploration.md`
 struct Place {
 	uint32_t id = 0;          // the scanner's selection id
@@ -47,6 +48,9 @@ bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found);
 // the level the player came from (`cameFrom`, 0 when unknown), or a new find.
 enum class Novelty { Known, WayBack, Find };
 Novelty Classify(const std::vector<Place>& known, const Place& place, uint32_t cameFrom);
+// True when `known` holds another place of the same kind and category under the
+// same name: the five Cairn Stones are one find.
+bool Namesake(const std::vector<Place>& known, const Place& place);
 uint64_t LayoutDigest(const std::vector<NativeLevelExits::LevelRoom>& rooms);
 std::filesystem::path ArchiveFile(const std::filesystem::path& directory);
 

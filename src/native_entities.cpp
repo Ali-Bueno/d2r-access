@@ -340,6 +340,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		entity.footprint = {width, height};
 	entity.container = IsContainer(row);
 	entity.corpse = entity.container && Generated::CorpseObject(classId);
+	entity.weaponRack = entity.container && Generated::WeaponRackObject(classId);
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
 	entity.questObject = Generated::QuestItemObject(classId);

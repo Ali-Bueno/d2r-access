@@ -35,7 +35,8 @@ Voice Spatialize(const Item& item, Point player) {
 	voice.right = static_cast<float>((dx - dy) / std::numbers::sqrt2);
 	voice.front = static_cast<float>(-(dx + dy) / std::numbers::sqrt2);
 	const double proximity = std::clamp(1 - distance / AudibleRange(item.sound), 0.0, 1.0);
-	voice.gain = static_cast<float>(LoopVolume * proximity * (item.sound == Sound::Quest ? 1 : proximity));
+	const double level = std::pow(10.0, SoundFiles[static_cast<size_t>(item.sound)].levelDb / 20);
+	voice.gain = static_cast<float>(LoopVolume * level * proximity * (item.sound == Sound::Quest ? 1 : proximity));
 	// Blend the rear pitch across one subtile to avoid chatter at the side axis.
 	voice.pitch = 1 + (RearPitch - 1) * std::clamp(-voice.front, 0.0f, 1.0f);
 	return voice;

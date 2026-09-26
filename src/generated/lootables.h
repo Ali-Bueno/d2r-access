@@ -111,6 +111,17 @@ constexpr bool CorpseObject(uint32_t classId) {
 		static_cast<uint16_t>(classId));
 }
 
+// Weapon racks, by OperateFn: WeaponRack1, WeaponRack2, WeaponRackRight, WeaponRackLeft.
+inline constexpr std::array<uint16_t, 4> WeaponRackObjects{
+	106, 107, 548, 549
+};
+
+constexpr bool WeaponRackObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(WeaponRackObjects.begin(), WeaponRackObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
 // Quest books read in place: TowerTome, ArcaneTome.
 inline constexpr std::array<uint16_t, 2> TomeObjects{
 	8, 357

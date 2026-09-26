@@ -81,6 +81,7 @@ void NormalizationTests() {
 int main(int argc, char** argv) {
 	WaveTests(); MatrixTests(); NormalizationTests();
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::InsideUnexploredRoom), "room arrival uses a finite XAudio2 buffer");
+	Check(ItemAudio::IsOneShot(GroundItems::Sound::Discovered), "the discovery cue plays once");
 	Check(!ItemAudio::IsOneShot(GroundItems::Sound::UnexploredRoom)
 		&& !ItemAudio::IsOneShot(GroundItems::Sound::ZoneTransition), "approach and zone cues loop");
 	Check(argc == 2, "built plugin DLL supplied by CTest");
@@ -97,6 +98,8 @@ int main(int argc, char** argv) {
 			Check(std::abs(int(samples.front())) < 100 && std::abs(int(samples.back())) < 100,
 				"shortened quest loop has quiet edges instead of a hard cut");
 		}
+		if (sound == static_cast<size_t>(GroundItems::Sound::Stash))
+			Check(samples.size() == ItemWave::SampleRate, "the stash recording is padded to repeat once a second");
 		Check(ItemWave::Normalize(samples) > 0, "real loop contains a nonzero waveform");
 		int peak = 0; for (auto sample : samples) peak = std::max(peak, std::abs(int(sample)));
 		Check(std::abs(float(peak) / INT16_MAX - ItemWave::LoopPeak) < 0.0001f, "every real recording reaches the same peak with headroom");

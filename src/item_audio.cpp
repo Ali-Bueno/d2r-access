@@ -32,9 +32,11 @@ std::vector<Voice> g_pending;
 uint64_t g_updated = 0;
 std::vector<Voice> g_explorationPending;
 uint64_t g_explorationUpdated = 0;
-struct ArrivalRequest { Voice voice; uint64_t generation; };
-std::optional<ArrivalRequest> g_arrivalPending;
-std::atomic<uint64_t> g_arrivalGeneration{0};
+struct OneShotRequest { Voice voice; uint64_t generation; };
+// A finite cue on its own voice; a newer request replaces the one still playing.
+struct OneShotChannel { std::optional<OneShotRequest> pending; std::atomic<uint64_t> generation{0}; };
+OneShotChannel g_arrival, g_discovery;
+using Samples = std::array<std::vector<int16_t>, static_cast<size_t>(Sound::Count)>;
 struct Playing {
 	uint32_t id = 0;
 	Sound sound{};
@@ -93,13 +95,43 @@ void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::P
 		active.checked = true;
 	}
 }
+void Request(OneShotChannel& channel, const Voice& voice) {
+	std::lock_guard lock(g_mutex);
+	channel.pending = OneShotRequest{voice, ++channel.generation};
+	g_wake.notify_one();
+}
+// The mix share of a requested one-shot, or of the one still playing.
+float OneShotGain(const Playing& playing, const std::optional<OneShotRequest>& requested, const OneShotChannel& channel) {
+	if (requested && requested->generation == channel.generation.load()) return requested->voice.gain;
+	if (playing.source && playing.generation == channel.generation.load()) return std::max(playing.target.gain, playing.gain);
+	return 0;
+}
+void ServeOneShot(Playing& playing, const std::optional<OneShotRequest>& requested, const OneShotChannel& channel,
+	const Samples& samples, IXAudio2* engine, const WAVEFORMATEX& format, IXAudio2MasteringVoice* master,
+	const D2RL::PluginContext* context) {
+	if (playing.source && playing.generation != channel.generation.load()) playing.Stop();
+	if (requested && requested->generation == channel.generation.load()) {
+		playing.Stop();
+		const auto& sample = samples[static_cast<size_t>(requested->voice.sound)];
+		if (!sample.empty()) (void)StartVoice(playing, requested->voice, sample, requested->generation, engine, format, context);
+	}
+	if (!g_running || !playing.source) return;
+	XAUDIO2_VOICE_STATE state{};
+	playing.source->GetState(&state);
+	if (!state.BuffersQueued) {
+		AsyncLog::InfoF(context, "[item-audio] completed one-shot sound=%s id=%u samples=%llu",
+			SoundFiles[static_cast<size_t>(playing.sound)].name, playing.id, state.SamplesPlayed);
+		playing.Stop();
+	}
+	else ApplySpatial(playing, master, context);
+}
 void Worker(const D2RL::PluginContext* context) {
 	const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	IXAudio2* engine = nullptr;
 	IXAudio2MasteringVoice* master = nullptr;
-	std::array<std::vector<int16_t>, static_cast<size_t>(Sound::Count)> samples;
+	Samples samples;
 	std::array<Playing, MaxVoices> playing{};
-	Playing exploration, arrival;
+	Playing exploration, arrival, discovery;
 	try {
 		// Keep all sample memory alive until its source voices have been destroyed.
 		const auto module = reinterpret_cast<HMODULE>(&__ImageBase);
@@ -126,14 +158,15 @@ void Worker(const D2RL::PluginContext* context) {
 			AsyncLog::InfoF(context, "[item-audio] %zu sounds loaded; X3DAudio screen axes, rear pitch %.2f.", loaded, RearPitch);
 			while (g_running) {
 				std::vector<Voice> targets, explorationTargets;
-				std::optional<ArrivalRequest> requestedArrival;
+				std::optional<OneShotRequest> requestedArrival, requestedDiscovery;
 				{
 					std::unique_lock lock(g_mutex);
 					g_wake.wait_for(lock, std::chrono::milliseconds(UpdateMs));
 					if (g_running && GetTickCount64() - g_updated <= SnapshotExpiryMs) targets = g_pending;
 					if (g_running && GetTickCount64() - g_explorationUpdated <= ExplorationExpiryMs)
 						explorationTargets = g_explorationPending;
-					requestedArrival = std::exchange(g_arrivalPending, std::nullopt);
+					requestedArrival = std::exchange(g_arrival.pending, std::nullopt);
+					requestedDiscovery = std::exchange(g_discovery.pending, std::nullopt);
 				}
 				const Voice* room = nullptr;
 				for (const auto& target : explorationTargets)
@@ -146,10 +179,7 @@ void Worker(const D2RL::PluginContext* context) {
 					totalGain += std::max(target.gain, active == playing.end() ? 0.0f : active->gain);
 				}
 				if (room) totalGain += std::max(room->gain, exploration.source ? exploration.gain : 0.0f);
-				if (requestedArrival && requestedArrival->generation == g_arrivalGeneration.load())
-					totalGain += requestedArrival->voice.gain;
-				else if (arrival.source && arrival.generation == g_arrivalGeneration.load())
-					totalGain += std::max(arrival.target.gain, arrival.gain);
+				totalGain += OneShotGain(arrival, requestedArrival, g_arrival) + OneShotGain(discovery, requestedDiscovery, g_discovery);
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
 				if (FAILED(master->SetVolume(mixVolume))) { g_running = false; break; }
 				for (auto& active : playing) {
@@ -162,7 +192,7 @@ void Worker(const D2RL::PluginContext* context) {
 				}
 				for (const auto& target : targets) {
 					const auto sound = static_cast<size_t>(target.sound);
-					if (sound >= samples.size() || samples[sound].empty() || target.sound == Sound::InsideUnexploredRoom) continue;
+					if (sound >= samples.size() || samples[sound].empty() || IsOneShot(target.sound)) continue;
 					auto active = std::find_if(playing.begin(), playing.end(), [&](const Playing& p) { return p.source && SameSource(p.target, target); });
 					if (active == playing.end()) {
 						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
@@ -185,30 +215,15 @@ void Worker(const D2RL::PluginContext* context) {
 					if (exploration.source) { exploration.target = *room; ApplySpatial(exploration, master, context); }
 				}
 				if (!g_running) break;
-				if (arrival.source && arrival.generation != g_arrivalGeneration.load()) arrival.Stop();
-				if (requestedArrival && requestedArrival->generation == g_arrivalGeneration.load()) {
-					arrival.Stop();
-					const auto& voice = requestedArrival->voice;
-					const auto& sample = samples[static_cast<size_t>(Sound::InsideUnexploredRoom)];
-					if (!sample.empty()) (void)StartVoice(arrival, voice, sample,
-						requestedArrival->generation, engine, format, context);
-				}
+				ServeOneShot(arrival, requestedArrival, g_arrival, samples, engine, format, master, context);
 				if (!g_running) break;
-				if (arrival.source) {
-					XAUDIO2_VOICE_STATE state{};
-					arrival.source->GetState(&state);
-					if (!state.BuffersQueued) {
-						AsyncLog::InfoF(context, "[item-audio] completed arrival id=%u samples=%llu", arrival.id, state.SamplesPlayed);
-						arrival.Stop();
-					}
-					else ApplySpatial(arrival, master, context);
-				}
+				ServeOneShot(discovery, requestedDiscovery, g_discovery, samples, engine, format, master, context);
 			}
 		}
 	} catch (...) { AsyncLog::Warn(context, "[item-audio] Worker stopped after an audio initialization/playback error."); }
 	g_available = false;
 	for (auto& voice : playing) voice.Stop();
-	exploration.Stop(); arrival.Stop();
+	exploration.Stop(); arrival.Stop(); discovery.Stop();
 	if (master) master->DestroyVoice();
 	if (engine) engine->Release();
 	if (SUCCEEDED(com)) CoUninitialize();
@@ -234,14 +249,17 @@ void UpdateExploration(std::vector<Voice> voices) {
 }
 void PlayExplorationArrival(Voice voice) {
 	voice.sound = Sound::InsideUnexploredRoom;
-	std::lock_guard lock(g_mutex);
-	g_arrivalPending = ArrivalRequest{voice, ++g_arrivalGeneration};
-	g_wake.notify_one();
+	Request(g_arrival, voice);
+}
+void PlayDiscovery() {
+	Voice voice{0, Sound::Discovered};
+	voice.gain = LoopVolume; // centered and as near as a source can be, like the room arrival
+	Request(g_discovery, voice);
 }
 void SilenceExploration() {
 	std::lock_guard lock(g_mutex);
 	g_explorationPending.clear(); g_explorationUpdated = GetTickCount64();
-	g_arrivalPending.reset(); ++g_arrivalGeneration;
+	g_arrival.pending.reset(); ++g_arrival.generation;
 	g_wake.notify_one();
 }
 void Stop() {

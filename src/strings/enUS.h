@@ -130,6 +130,7 @@ inline constexpr Table enUS {
 	.wayUnexplored = "%s, unexplored",
 	.placeFoundExit = "The radar has logged a new exit: %s",
 	.placeFound = "The radar has logged a new place: %s",
+	.placeFoundQuest = "The radar has logged a new quest object: %s",
 	.exitReview = "%s, %s, %s%s, %d of %d",
 	.clockHours = {"1 o'clock", "2 o'clock", "3 o'clock", "4 o'clock", "5 o'clock", "6 o'clock",
 		"7 o'clock", "8 o'clock", "9 o'clock", "10 o'clock", "11 o'clock", "12 o'clock"},

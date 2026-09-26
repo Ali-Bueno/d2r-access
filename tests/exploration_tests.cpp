@@ -194,6 +194,15 @@ void Places() {
 	oversizedKey.identity = 0x30005, oversizedKey.nameKey.assign(ExploredStore::MaxPlaceName + 1, 'x');
 	Check(!ExploredStore::MergePlaces(known, {nowhere, oversized, oversizedKey}) && known.size() == 3,
 		"an unplaceable or oversized place is skipped");
+	const Place stone{21, 0x40001, 500, 600, 0, "Piedra de Cairn", 2, 9}, sameStone{22, 0x40001, 500, 600, 0, "Piedra de Cairn", 2, 9},
+		secondStone{23, 0x40002, 505, 600, 0, "Piedra de Cairn", 2, 9}, tree{24, 0x40003, 700, 600, 0, "Árbol de Inifuss", 2, 9},
+		chest{25, 0x40004, 710, 600, 0, "Piedra de Cairn", 2, 7};
+	Check(!ExploredStore::Namesake(known, stone), "the first stone of its name has no namesake");
+	std::vector<Place> quests{stone};
+	Check(!ExploredStore::Namesake(quests, sameStone), "the same stone seen again is known, not a namesake");
+	Check(ExploredStore::Namesake(quests, secondStone), "a second stone of the same name is a namesake");
+	Check(!ExploredStore::Namesake(quests, tree), "another quest object is a find of its own");
+	Check(!ExploredStore::Namesake(quests, chest), "a namesake shares the category too");
 	std::vector<Place> many;
 	for (uint64_t i = 1; i <= ExploredStore::MaxPlaces + 5; ++i) many.push_back({1, i, 1, 1, 0, "x"});
 	std::vector<Place> bounded;

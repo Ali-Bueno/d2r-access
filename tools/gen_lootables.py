@@ -82,6 +82,12 @@ TOME_FNS = {
     42,  # ArcaneTome, Horazon's journal that opens the way to the Canyon of the Magi
 }
 
+# Weapon racks loop their own recording instead of the chest one (user request,
+# 2026-09-26). Armor stands (OperateFn 19) keep the chest loop.
+WEAPON_RACK_FNS = {
+    20,  # WeaponRack1/2/Left/Right
+}
+
 # Containers that are a dead body, by the objects.txt Name key the game labels
 # them with (local/lng/strings: "Corpse", "Dead Rogue", "Guard Corpse", "Body",
 # "Dead Body", "Dead Guard", "Hung Skeleton", "Dead Barbarian"; "skeleton" and
@@ -119,6 +125,7 @@ def main():
 
     entries = []          # (class id, class name, OperateFn)
     corpses = []          # (class id, class name)
+    racks = []            # (class id, class name)
     tomes = []            # (class id, class name)
     by_fn = collections.defaultdict(list)
     skipped_unselectable = 0
@@ -145,6 +152,8 @@ def main():
         by_fn[fn].append(row[klass])
         if fn in CONTAINER_FNS and row[name] in CORPSE_NAME_KEYS:
             corpses.append((int(row[ident]), row[klass]))
+        if fn in WEAPON_RACK_FNS:
+            racks.append((int(row[ident]), row[klass]))
 
     entries.sort()
     if not entries:
@@ -226,6 +235,18 @@ def main():
     out.append("		static_cast<uint16_t>(classId));")
     out.append("}")
     out.append("")
+    racks.sort()
+    out.append("// Weapon racks, by OperateFn: %s." % ", ".join(class_name for _, class_name in racks))
+    out.append("inline constexpr std::array<uint16_t, %d> WeaponRackObjects{" % len(racks))
+    out.append("	" + ", ".join(str(class_id) for class_id, _ in racks))
+    out.append("};")
+    out.append("")
+    out.append("constexpr bool WeaponRackObject(uint32_t classId) {")
+    out.append("	if (classId > UINT16_MAX) return false;")
+    out.append("	return std::binary_search(WeaponRackObjects.begin(), WeaponRackObjects.end(),")
+    out.append("		static_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
     tomes.sort()
     out.append("// Quest books read in place: %s." % ", ".join(class_name for _, class_name in tomes))
     out.append("inline constexpr std::array<uint16_t, %d> TomeObjects{" % len(tomes))
@@ -250,8 +271,8 @@ def main():
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     io.open(args.out, "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print("%s: %d lootable object classes from %d OperateFn groups, %d corpses, %d tomes (%d skipped as never selectable)"
-          % (args.out, len(entries), len(by_fn), len(corpses), len(tomes), skipped_unselectable))
+    print("%s: %d lootable object classes from %d OperateFn groups, %d corpses, %d weapon racks, %d tomes (%d skipped as never selectable)"
+          % (args.out, len(entries), len(by_fn), len(corpses), len(racks), len(tomes), skipped_unselectable))
 
 
 if __name__ == "__main__":

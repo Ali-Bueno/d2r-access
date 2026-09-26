@@ -54,6 +54,11 @@ int main() {
 		Check(Generated::CorpseObject(id) && Generated::LootableObject(id), "a lootable dead body is a corpse");
 	for (const uint32_t id : {5u, 7u, 9u, 79u, 148u, 169u, 364u})
 		Check(!Generated::CorpseObject(id), "a chest, barrel, urn, casket, log or the unlabelled dungeon guy is not a corpse");
+	// Weapon racks loop their own cue; armor stands keep the chest one.
+	for (const uint32_t id : {106u, 107u, 548u, 549u})
+		Check(Generated::WeaponRackObject(id) && Generated::LootableObject(id), "a weapon rack is lootable and told apart");
+	for (const uint32_t id : {104u, 5u, 54u})
+		Check(!Generated::WeaponRackObject(id), "an armor stand, a chest or a corpse is not a weapon rack");
 	Check(Generated::TomeObject(8) && Generated::TomeObject(357), "the Moldy Tome and Horazon's journal are read in place");
 	Check(!Generated::TomeObject(193) && Generated::QuestItemObject(193), "Lam Esen's Tome hands over an item instead");
 	// Door opening sounds as the game assigns them, names notwithstanding.

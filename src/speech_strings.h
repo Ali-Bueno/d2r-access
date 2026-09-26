@@ -153,6 +153,7 @@ struct Table {
 	const char* wayUnexplored; // %s = a way out (direction, passage or exit name) never taken yet
 	const char* placeFoundExit; // %s = an exit the scanner lists for the first time on this map
 	const char* placeFound;     // %s = a waypoint or stash the scanner lists for the first time
+	const char* placeFoundQuest; // %s = a quest object the scanner lists for the first time
 	// One reviewed way out: %s = label, %s = distance, %s = clock bearing phrase,
 	// %s = "" or the separator plus a reach word, %d = index (1-based), %d = count.
 	const char* exitReview;
@@ -262,7 +263,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
 		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.exitReview,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,

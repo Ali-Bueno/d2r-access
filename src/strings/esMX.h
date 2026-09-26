@@ -130,6 +130,7 @@ inline constexpr Table esMX {
 	.wayUnexplored = "%s, sin explorar",
 	.placeFoundExit = "El radar registró una salida nueva: %s",
 	.placeFound = "El radar registró un lugar nuevo: %s",
+	.placeFoundQuest = "El radar registró un objeto de misión nuevo: %s",
 	.exitReview = "%s, %s, %s%s, %d de %d",
 	.clockHours = {"a la 1", "a las 2", "a las 3", "a las 4", "a las 5", "a las 6",
 		"a las 7", "a las 8", "a las 9", "a las 10", "a las 11", "a las 12"},

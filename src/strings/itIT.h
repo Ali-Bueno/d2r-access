@@ -130,6 +130,7 @@ inline constexpr Table itIT {
 	.wayUnexplored = "%s, non esplorato",
 	.placeFoundExit = "Il radar ha registrato una nuova uscita: %s",
 	.placeFound = "Il radar ha registrato un nuovo luogo: %s",
+	.placeFoundQuest = "Il radar ha registrato un nuovo oggetto di missione: %s",
 	.exitReview = "%s, %s, %s%s, %d di %d",
 	.clockHours = {"ore 1", "ore 2", "ore 3", "ore 4", "ore 5", "ore 6",
 		"ore 7", "ore 8", "ore 9", "ore 10", "ore 11", "ore 12"},

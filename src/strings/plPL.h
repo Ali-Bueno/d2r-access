@@ -130,6 +130,7 @@ inline constexpr Table plPL {
 	.wayUnexplored = "%s, niezbadane",
 	.placeFoundExit = "Radar zarejestrował nowe wyjście: %s",
 	.placeFound = "Radar zarejestrował nowe miejsce: %s",
+	.placeFoundQuest = "Radar zarejestrował nowy obiekt zadania: %s",
 	.exitReview = "%s, %s, %s%s, %d z %d",
 	.clockHours = {"na godzinie 1", "na godzinie 2", "na godzinie 3", "na godzinie 4", "na godzinie 5",
 		"na godzinie 6", "na godzinie 7", "na godzinie 8", "na godzinie 9", "na godzinie 10",

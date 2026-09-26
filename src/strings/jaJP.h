@@ -130,6 +130,7 @@ inline constexpr Table jaJP {
 	.wayUnexplored = "%s、未探索",
 	.placeFoundExit = "レーダーが新しい出口を記録しました：%s",
 	.placeFound = "レーダーが新しい場所を記録しました：%s",
+	.placeFoundQuest = "レーダーが新しいクエストオブジェクトを記録しました：%s",
 	.exitReview = "%s、%s、%s%s、%d 件目、全 %d 件",
 	.clockHours = {"1時の方向", "2時の方向", "3時の方向", "4時の方向", "5時の方向", "6時の方向",
 		"7時の方向", "8時の方向", "9時の方向", "10時の方向", "11時の方向", "12時の方向"},

@@ -130,6 +130,7 @@ inline constexpr Table deDE {
 	.wayUnexplored = "%s, unerforscht",
 	.placeFoundExit = "Das Radar hat einen neuen Ausgang erfasst: %s",
 	.placeFound = "Das Radar hat einen neuen Ort erfasst: %s",
+	.placeFoundQuest = "Das Radar hat ein neues Questobjekt erfasst: %s",
 	.exitReview = "%s, %s, %s%s, %d von %d",
 	.clockHours = {"1 Uhr", "2 Uhr", "3 Uhr", "4 Uhr", "5 Uhr", "6 Uhr",
 		"7 Uhr", "8 Uhr", "9 Uhr", "10 Uhr", "11 Uhr", "12 Uhr"},

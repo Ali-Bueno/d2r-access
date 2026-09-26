@@ -118,6 +118,19 @@ void CorpseIdentity() {
 	Check(!SameTarget(corpse, casket), "beacon matching cannot follow the same-ID world object in place of the corpse");
 }
 
+void QuestSources() {
+	Entity tree{7, Kind::Object, {20, 20}, "Árbol de Inifuss"};
+	Check(!QuestSource(tree), "an object is not a quest source by its name");
+	tree.questObject = true;
+	Check(QuestSource(tree), "an unused quest object is a quest source");
+	Entity tome{8, Kind::Object, {21, 21}, "Tomo mohoso"};
+	tome.unreadTome = true;
+	Check(QuestSource(tome), "an unread quest book is a quest source");
+	Entity scroll{9, Kind::Item, {22, 22}, "Pergamino de Inifuss"};
+	scroll.questObject = true;
+	Check(!QuestSource(scroll), "only world objects count; ground quest items have their own reader");
+}
+
 void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
@@ -135,6 +148,7 @@ int main() {
 	ObjectFootprints();
 	LevelExitIdentity();
 	CorpseIdentity();
+	QuestSources();
 	Wording();
 	Passed();
 	return 0;

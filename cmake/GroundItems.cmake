@@ -11,19 +11,31 @@ set(D2R_QUEST_LOOP_SECONDS 0.7)
 set(D2R_QUEST_ATTACK_SECONDS 0.005)
 set(D2R_QUEST_RELEASE_START_SECONDS 0.68)
 set(D2R_QUEST_RELEASE_SECONDS 0.02)
+# User listening, 2026-09-26: the 0.3 s stash recording repeated too fast; silence pads each pass.
+set(D2R_STASH_LOOP_SECONDS 1.0)
 # These are short clicks: peak-normalized alone they play 7-10 dB under the other
 # loops. The boost lifts their body; the limiter holds the click at full scale.
 set(D2R_CLICK_SOUNDS "corpse" "gem" "scroll" "rune")
 set(D2R_CLICK_BOOST_DB 24)
-function(d2r_loop_sounds folder)
+# User listening, 2026-09-26: at 24 dB the corpse click still played about 6 dB under the other
+# loops; 42 dB brings its loudest 100 ms to the quest and weapon rack level (docs/ground-items.md).
+set(D2R_CORPSE_BOOST_DB 42)
+# `group` is the folder under sounds/: "item loop sounds" or "one shot sounds".
+function(d2r_sounds group folder)
 	foreach(name IN LISTS ARGN)
-		set(source "${CMAKE_CURRENT_SOURCE_DIR}/sounds/item loop sounds/${folder}/${name}.ogg")
+		set(source "${CMAKE_CURRENT_SOURCE_DIR}/sounds/${group}/${folder}/${name}.ogg")
 		set(output "${D2R_ITEM_WAV_DIR}/${folder}/${name}.wav")
 		set(loop_filter)
 		if(name STREQUAL "quest item")
 			set(loop_filter -af "apad=whole_dur=${D2R_QUEST_LOOP_SECONDS},atrim=duration=${D2R_QUEST_LOOP_SECONDS},afade=t=in:d=${D2R_QUEST_ATTACK_SECONDS},afade=t=out:st=${D2R_QUEST_RELEASE_START_SECONDS}:d=${D2R_QUEST_RELEASE_SECONDS}")
+		elseif(name STREQUAL "stash")
+			set(loop_filter -af "apad=whole_dur=${D2R_STASH_LOOP_SECONDS}")
 		elseif(name IN_LIST D2R_CLICK_SOUNDS)
-			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_CLICK_BOOST_DB}dB,alimiter=limit=0.9:level=false")
+			set(boost ${D2R_CLICK_BOOST_DB})
+			if(name STREQUAL "corpse")
+				set(boost ${D2R_CORPSE_BOOST_DB})
+			endif()
+			set(loop_filter -af "aformat=sample_fmts=flt,volume=${boost}dB,alimiter=limit=0.9:level=false")
 		endif()
 		add_custom_command(OUTPUT "${output}"
 			COMMAND "${CMAKE_COMMAND}" -E make_directory "${D2R_ITEM_WAV_DIR}/${folder}"
@@ -40,10 +52,11 @@ function(d2r_loop_sounds folder)
 endfunction()
 # "chest" is the container cue, taken from the author's DevilutionX accessibility
 # fork (audio/chest.ogg there); the others are the user's own recordings.
-d2r_loop_sounds(loot "gold" "potion" "scroll" "rune" "gem" "normal equipment" "magic equipment" "rare equipment" "legendary equipment"
-	"chest" "quest item" "corpse")
-d2r_loop_sounds(exploration "portal" "wooden door" "metal door" "stone door" "slime door"
+d2r_sounds("item loop sounds" loot "gold" "potion" "scroll" "rune" "gem" "normal equipment" "magic equipment" "rare equipment" "legendary equipment"
+	"chest" "quest item" "corpse" "weapon rack" "stash")
+d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "stone door" "slime door"
 	"unexplored room" "zone transition" "inside unexplored room")
+d2r_sounds("one shot sounds" exploration "discovered")
 add_custom_target(d2r-item-sounds DEPENDS ${D2R_ITEM_WAVS})
 set(D2R_ITEM_RC "${CMAKE_CURRENT_BINARY_DIR}/item-sounds.rc")
 file(CONFIGURE OUTPUT "${D2R_ITEM_RC}" CONTENT "${D2R_ITEM_RESOURCES}" @ONLY)

@@ -10,7 +10,8 @@ original cues, only changes sound).
 ## Supplied exploration sounds (2026-09-22)
 
 `sounds/item loop sounds/exploration` supplies three OGG recordings, converted to mono PCM
-at build time and embedded in the plugin DLL with the other loop sounds:
+at build time and embedded in the plugin DLL with the other loop sounds
+(`sounds/one shot sounds/exploration/discovered` joins them for [discoveries](#speech)):
 
 | Recording | Playback |
 |---|---|
@@ -120,6 +121,20 @@ Directional lowering applies to both pips. Live listening remains pending.
   the exit back to the level the player came from (`ExploredStore::Classify`, `Novelty::WayBack`) is
   where they came in, not a find. Both are still remembered and logged (`(way back)`).
   `[discoveries] enabled` in the settings file turns the speech off. `placeFoundExit`, `placeFound`.
+- **Dungeon entrances** are exits to the scanner: the stairs or cave mouth is a warp unit, an
+  OpenWarp object or a level preset, all `Kind::Exit`/`Category::Exit` with a place identity
+  (`MapSurvey::Fixed`). Live log 2026-09-25, Dark Wood: `place remembered level=5 … to=10
+  name=Al nivel 1 del Pasadizo Subterráneo`.
+- **Quest objects** (2026-09-26, user request): an unused quest object (`EntityRadar::QuestSource`:
+  the sources of the quest and tome loops -- Tree of Inifuss, Malus, the quest chests, neutral Cairn
+  Stones, the Moldy Tome, Horazon's journal) says `El radar ha registrado un objeto de misión nuevo:
+  Árbol de Inifuss`. It has no place identity of its own, so it is kept with the map's places under
+  `NativeLevelExits::Identity` of its position; `KnownPlaces` still offers only fixed ones. A Cairn
+  Stone goes by its plain name, and a second place of the same kind, category and name is silent
+  (`ExploredStore::Namesake`), so the five stones are one find. `placeFoundQuest`.
+- **Discovery sound** (2026-09-26): each scan that announces anything plays
+  `sounds/one shot sounds/exploration/discovered.ogg` once, centered, on its own one-shot voice
+  (`ItemAudio::PlayDiscovery`), so it never cuts the room arrival cue. Same `[discoveries]` switch.
 
 ## On disk
 

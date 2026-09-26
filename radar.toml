@@ -22,9 +22,10 @@ full_assistance = false
 [exploration]
 enabled = true
 
-# Speech when the scanner lists an exit, waypoint or stash for the first time on
-# a map ("The radar has logged a new exit"). The exit back to the level you came
-# from is never announced.
+# Speech and the discovery sound when the scanner lists an exit (dungeon entrances
+# included), waypoint, stash or unused quest object for the first time on a map
+# ("The radar has logged a new exit"). The exit back to the level you came from is
+# never announced.
 [discoveries]
 enabled = true
 

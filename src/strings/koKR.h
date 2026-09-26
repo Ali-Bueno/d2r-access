@@ -130,6 +130,7 @@ inline constexpr Table koKR {
 	.wayUnexplored = "%s, 미탐사",
 	.placeFoundExit = "레이더가 새 출구를 기록했습니다: %s",
 	.placeFound = "레이더가 새 장소를 기록했습니다: %s",
+	.placeFoundQuest = "레이더가 새 퀘스트 오브젝트를 기록했습니다: %s",
 	.exitReview = "%s, %s, %s%s, %d번, 전체 %d개",
 	.clockHours = {"1시 방향", "2시 방향", "3시 방향", "4시 방향", "5시 방향", "6시 방향",
 		"7시 방향", "8시 방향", "9시 방향", "10시 방향", "11시 방향", "12시 방향"},

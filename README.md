@@ -264,7 +264,8 @@ is cancelled when guidance is suspended by dialogue, menus or loss of focus.
 See [audio language verification and limits](docs/audio-language-audit.md).
 
 **Level exits:** entrances that require interaction, including dungeon stairs,
-cave entrances, portals and waypoints, play the `portal` loop. Only crossings
+cave entrances, portals and waypoints, play the `portal` loop; the stash plays
+its own `stash` loop with them. Only crossings
 traversed by walking use `zone transition`, at openings in the loaded collision map. The scanner
 names exits after their destination. **Ctrl+P** toggles the exit loops;
 `access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
@@ -277,7 +278,8 @@ plugin config. See [exploration](docs/exploration.md).
 
 **Containers:** chests, caskets, urns, barrels, crates, corpses and the other
 things you open for loot loop through the same mixer, so you can hear where they
-are; dead bodies use the `corpse` loop instead of `chest`. Opening one silences it. What counts as a container comes from the game's
+are; dead bodies use the `corpse` loop and weapon racks the `weapon rack` loop
+instead of `chest`. Opening one silences it. What counts as a container comes from the game's
 own interaction handler, not from the name, so it holds in every language.
 **Ctrl+K** toggles them; `access-items chests-on|chests-off`, and `chests-dump`
 logs the verdict for everything currently in sight. See
@@ -451,10 +453,12 @@ names the two offer grids, and announces what the other player offers (items,
 gold), both acceptances and whether the trade completed or was cancelled; console
 `access-trade on|off`. See [trade](docs/trade.md).
 
-The first time the scanner lists an exit on a map it says "El radar ha registrado
-una salida nueva" with the exit's name (waypoints and the stash: "un lugar nuevo");
-the exit back to the level just left is not announced. `[discoveries]` in the
-settings file. See [exploration](docs/exploration.md).
+The first time the scanner lists an exit on a map, dungeon entrances included, it
+plays a discovery sound and says "El radar ha registrado una salida nueva" with the
+exit's name (waypoints and the stash: "un lugar nuevo"; unused quest objects such as
+the Tree of Inifuss or a Cairn Stone: "un objeto de misión nuevo"); the exit back to
+the level just left is not announced. `[discoveries]` in the settings file. See
+[exploration](docs/exploration.md).
 
 ## How it works
 

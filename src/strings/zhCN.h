@@ -130,6 +130,7 @@ inline constexpr Table zhCN {
 	.wayUnexplored = "%s，未探索",
 	.placeFoundExit = "雷达记录了新的出口：%s",
 	.placeFound = "雷达记录了新的地点：%s",
+	.placeFoundQuest = "雷达记录了新的任务物件：%s",
 	.exitReview = "%s、%s、%s%s、第%d个，共%d个",
 	.clockHours = {"1点钟方向", "2点钟方向", "3点钟方向", "4点钟方向", "5点钟方向", "6点钟方向",
 		"7点钟方向", "8点钟方向", "9点钟方向", "10点钟方向", "11点钟方向", "12点钟方向"},
