@@ -116,6 +116,7 @@ inline constexpr Table frFR {
 	.beaconKnownRouteEnded = "Le trajet connu vers %s n’est plus disponible",
 	.placeFoundExit = "Le radar a repéré une nouvelle sortie : %s",
 	.placeFound = "Le radar a repéré un nouveau lieu : %s",
+	.placeFoundQuest = "Le radar a repéré un nouvel objet de quête : %s",
 	.questUpdated = "Journal des quêtes mis à jour",
 	.questGoalDone = "Objectif principal d’une quête atteint",
 	.questAlertsEnabled = "Annonces de quêtes activées",

@@ -6,6 +6,7 @@
 #include "native_ground_items.h"
 #include "native_world.h"
 #include "item_audio.h"
+#include "panel_state.h"
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
@@ -37,7 +38,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 GroundItems::Tracker g_tracker;
 bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = false;
-bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors = true, g_suspended = true;
+bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors = true, g_suspended = true, g_stashOpen = false;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
 std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors;
@@ -78,13 +79,22 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
 	return D2RL::Input::ActionResult::Handled;
 }
-// Level exits, portals and waypoints as loop-only landmarks for the item mixer.
+// The game's stash layouts, classic and expansion. While one is open the stash loop gives way.
+constexpr std::string_view StashPanels[] = {"BankOriginalLayout", "BankExpansionLayout"};
+bool StashOpen() {
+	const auto& open = PanelState::OpenPanels();
+	return std::any_of(open.begin(), open.end(), [](const std::string& name) {
+		return std::find(std::begin(StashPanels), std::end(StashPanels), name) != std::end(StashPanels);
+	});
+}
+// Level exits, portals, waypoints and the stash as loop-only landmarks for the item mixer.
 std::vector<GroundItems::Item> Landmarks(const std::vector<EntityRadar::Entity>& entities) {
 	std::vector<GroundItems::Item> result;
 	std::unordered_set<uint64_t> fixedExits;
 	std::unordered_set<uint32_t> unitExits;
 	for (const auto& entity : entities) {
-		if (entity.kind != EntityRadar::Kind::Exit) continue;
+		const bool stash = entity.category == EntityRadar::Category::Stash;
+		if (entity.kind != EntityRadar::Kind::Exit && !stash) continue;
 		if (entity.placeId) {
 			if (!fixedExits.insert(entity.placeId).second) continue;
 		} else if (!unitExits.insert(entity.id).second) continue;
@@ -92,7 +102,7 @@ std::vector<GroundItems::Item> Landmarks(const std::vector<EntityRadar::Entity>&
 		landmark.id = entity.id; landmark.position = {entity.position.x, entity.position.y};
 		// Loaded exit units require interaction, including dungeon stairs.
 		// Walkable crossings come separately from ZoneTransitions::Find.
-		landmark.sound = GroundItems::Sound::Portal;
+		landmark.sound = stash ? GroundItems::Sound::Stash : GroundItems::Sound::Portal;
 		landmark.source = GroundItems::SourceKind::Object;
 		result.push_back(std::move(landmark));
 	}
@@ -125,11 +135,12 @@ std::vector<GroundItems::Item> ObjectSources(const std::vector<EntityRadar::Enti
 	std::vector<GroundItems::Item> result;
 	for (const auto& entity : entities) {
 		if (entity.kind != EntityRadar::Kind::Object) continue;
-		if (quests ? !entity.questObject && !entity.unreadTome : (!entity.container || entity.questObject)) continue;
+		if (quests ? !EntityRadar::QuestSource(entity) : (!entity.container || entity.questObject)) continue;
 		GroundItems::Item source;
 		source.id = entity.id; source.position = {entity.position.x, entity.position.y};
 		using GroundItems::Sound;
-		source.sound = quests ? (entity.questObject ? Sound::Quest : Sound::Scroll) : entity.corpse ? Sound::Corpse : Sound::Chest;
+		source.sound = quests ? (entity.questObject ? Sound::Quest : Sound::Scroll)
+			: entity.corpse ? Sound::Corpse : entity.weaponRack ? Sound::WeaponRack : Sound::Chest;
 		source.source = GroundItems::SourceKind::Object;
 		result.push_back(std::move(source));
 	}
@@ -319,6 +330,11 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		g_shutDoors = std::move(doors);
 	}
 	snapshot.landmarks = g_landmarks;
+	if (const bool stashOpen = StashOpen(); stashOpen != g_stashOpen) {
+		g_stashOpen = stashOpen;
+		AsyncLog::InfoF(context, "[items] stash %s: its loop %s", stashOpen ? "open" : "closed", stashOpen ? "paused" : "resumed");
+	}
+	if (g_stashOpen) std::erase_if(snapshot.landmarks, [](const GroundItems::Item& landmark) { return landmark.sound == GroundItems::Sound::Stash; });
 	snapshot.containers = g_containers;
 	snapshot.questObjects = g_questObjects;
 	snapshot.doors = g_shutDoors;
@@ -343,7 +359,7 @@ void Unregister() {
 	{ std::lock_guard lock(g_mutex); g_state = {}; }
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 	g_supported = g_exitsSupported = g_boundariesSupported = false;
-	g_speech = g_sound = g_exits = g_chests = true; g_suspended = true;
+	g_speech = g_sound = g_exits = g_chests = true; g_suspended = true; g_stashOpen = false;
 	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear();
 	g_nearbyLabels.clear(); g_labelsUpdated = 0;
 }

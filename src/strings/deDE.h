@@ -116,6 +116,7 @@ inline constexpr Table deDE {
 	.beaconKnownRouteEnded = "Der bekannte Weg zu %s ist nicht mehr verfügbar",
 	.placeFoundExit = "Das Radar hat einen neuen Ausgang erfasst: %s",
 	.placeFound = "Das Radar hat einen neuen Ort erfasst: %s",
+	.placeFoundQuest = "Das Radar hat ein neues Questobjekt erfasst: %s",
 	.questUpdated = "Questlog aktualisiert",
 	.questGoalDone = "Hauptziel einer Quest erreicht",
 	.questAlertsEnabled = "Questansagen aktiviert",

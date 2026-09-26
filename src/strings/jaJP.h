@@ -116,6 +116,7 @@ inline constexpr Table jaJP {
 	.beaconKnownRouteEnded = "%sへの既知のルートは利用できなくなりました",
 	.placeFoundExit = "レーダーが新しい出口を記録しました：%s",
 	.placeFound = "レーダーが新しい場所を記録しました：%s",
+	.placeFoundQuest = "レーダーが新しいクエストオブジェクトを記録しました：%s",
 	.questUpdated = "クエスト日誌が更新されました",
 	.questGoalDone = "クエストの主な目標を達成しました",
 	.questAlertsEnabled = "クエスト通知を有効にしました",

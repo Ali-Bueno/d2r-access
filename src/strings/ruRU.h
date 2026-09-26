@@ -116,6 +116,7 @@ inline constexpr Table ruRU {
 	.beaconKnownRouteEnded = "Известный путь к %s больше недоступен",
 	.placeFoundExit = "Радар отметил новый выход: %s",
 	.placeFound = "Радар отметил новое место: %s",
+	.placeFoundQuest = "Радар отметил новый квестовый объект: %s",
 	.questUpdated = "Журнал заданий обновлён",
 	.questGoalDone = "Основная цель задания достигнута",
 	.questAlertsEnabled = "Объявления заданий включены",

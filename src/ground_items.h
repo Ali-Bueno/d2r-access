@@ -9,7 +9,7 @@
 
 namespace D2RAccess::GroundItems {
 enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legendary, Portal, Chest, Quest, Corpse,
-	WoodenDoor, MetalDoor, StoneDoor, SlimeDoor, UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Count };
+	WeaponRack, Stash, WoodenDoor, MetalDoor, StoneDoor, SlimeDoor, UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered, Count };
 // What an item is by its ItemTypes.txt ancestry; equipment is told apart by quality instead.
 enum class Base { Equipment, Gold, Potion, Scroll, Rune, Gem };
 enum class SourceKind { Item, Object };
@@ -52,15 +52,21 @@ inline constexpr uint64_t ExitRefreshMs = 500;
 // User listening feedback: lower both individual sources and piles by about 3.5 dB.
 inline constexpr float LoopVolume = 0.4f, RearPitch = 0.94f;
 inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops peak together
-// Built from sounds/item loop sounds/<folder>/ and embedded in the DLL (cmake/GroundItems.cmake).
-struct SoundFile { const char* folder; const char* name; };
+// Built from sounds/item loop sounds/<folder>/ and sounds/one shot sounds/<folder>/, and embedded
+// in the DLL (cmake/GroundItems.cmake).
+// `levelDb` trims one loop against the others after peak normalization.
+struct SoundFile { const char* folder; const char* name; float levelDb = 0; };
+// User listening, 2026-09-26: the chest sat about 4 LU under the loot loops, the stash too loud.
+inline constexpr float ChestLevelDb = 4, StashLevelDb = -4;
 inline constexpr SoundFile SoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potion.wav"},
 	{"loot", "scroll.wav"}, {"loot", "rune.wav"}, {"loot", "gem.wav"}, {"loot", "normal equipment.wav"},
 	{"loot", "magic equipment.wav"}, {"loot", "rare equipment.wav"}, {"loot", "legendary equipment.wav"},
-	{"exploration", "portal.wav"}, {"loot", "chest.wav"}, {"loot", "quest item.wav"}, {"loot", "corpse.wav"},
+	{"exploration", "portal.wav"}, {"loot", "chest.wav", ChestLevelDb}, {"loot", "quest item.wav"}, {"loot", "corpse.wav"},
+	{"loot", "weapon rack.wav"}, {"loot", "stash.wav", StashLevelDb},
 	{"exploration", "wooden door.wav"}, {"exploration", "metal door.wav"}, {"exploration", "stone door.wav"},
 	{"exploration", "slime door.wav"},
-	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"}};
+	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
+	{"exploration", "discovered.wav"}};
 inline constexpr size_t ItemSoundCount = static_cast<size_t>(Sound::UnexploredRoom);
 // The file list is indexed by Sound; a missing entry would be read past the end.
 static_assert(std::size(SoundFiles) == static_cast<size_t>(Sound::Count));

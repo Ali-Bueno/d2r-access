@@ -43,6 +43,12 @@ void Position() {
 	Check(Spatialize(Make(1, {AudibleRadius, 0}), {}).gain == 0, "range boundary is silent");
 	Check(Spatialize(Make(1, {0.1, 0.1}), {}).pitch > RearPitch, "rear transition is blended at the side axis");
 	Check(Spatialize(Make(1, {NAN, 0}), {}).gain == 0, "nonfinite coordinates cannot reach the mixer");
+	Item chest = Make(2, {5, 0}), stash = Make(3, {5, 0});
+	chest.sound = Sound::Chest; stash.sound = Sound::Stash;
+	const float plain = Spatialize(Make(1, {5, 0}), {}).gain;
+	Check(std::abs(Spatialize(chest, {}).gain / plain - std::pow(10.0f, ChestLevelDb / 20)) < 1e-4f
+		&& std::abs(Spatialize(stash, {}).gain / plain - std::pow(10.0f, StashLevelDb / 20)) < 1e-4f,
+		"the chest is raised and the stash lowered by their level trims");
 }
 void Tracking() {
 	Tracker tracker;

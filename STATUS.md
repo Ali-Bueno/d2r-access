@@ -2,6 +2,39 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Chest louder, stash softer and slower — installed, 2026-09-26
+
+User: the chest is still too quiet, the stash too loud and too fast, and the stash should stop
+while it is in use. Measured as heard (looped, LUFS): chest -18.6 against about -14.5 for the
+loot loops. Runtime level trims per sound: chest +4 dB, stash -4 dB; the stash repeats once a
+second instead of every 0.3 s and pauses while the stash panel is open, back on close.
+**79/79 suites pass**; installed DLL SHA-256 `37E001FD…` matches the build. **Next step:**
+listen at a chest beside other loot, and open/close the stash (`[items] stash open` in the log).
+`docs/ground-items.md#weapon-rack-and-stash-loops`.
+
+## Weapon rack and stash loops, louder corpse — installed, 2026-09-26
+
+User supplied `weapon rack.ogg` and `stash.ogg`. Weapon racks (OperateFn 20, 4 classes) loop
+their own sound instead of the chest (armor stands keep the chest); the stash loops with the
+exits (Ctrl+P). The corpse click, measured 6 dB under the other loops, now gets a 42 dB
+build boost instead of 24 (-17.7 → -11.8 dB). 23 embedded sounds. **79/79 suites pass**;
+installed DLL SHA-256 `F5DA274F…` matches the build. **Next step:** listen to a weapon rack
+(Act 1 Barracks), the stash in town and a dead rogue next to a chest.
+`docs/ground-items.md#weapon-rack-and-stash-loops`.
+
+## Discoveries: quest objects and a discovery sound — installed, 2026-09-26
+
+User asked whether the radar announces dungeon entrances. It already did: stairs and cave
+mouths are exits to the scanner (live log 2026-09-25: "Al nivel 1 del Pasadizo Subterráneo").
+New: an unused quest object (the quest/tome loop sources: Inifuss tree, Malus, quest chests,
+Cairn Stones, Moldy Tome) is announced once per map ("…un objeto de misión nuevo: Árbol de
+Inifuss"; the five stones are one find), and every announcing scan plays the user's
+`sounds/one shot sounds/exploration/discovered.ogg`, embedded in the DLL like the others
+(21 sounds at the time). `[discoveries] enabled` covers both. **79/79 suites pass**; installed DLL
+SHA-256 `D7085FB7…` matches the build. **Next step:** live check — log says
+`[item-audio] 23 sounds loaded`; a new exit and the Stony Field stones or the Inifuss tree
+speak once with the sound. `docs/exploration.md#speech`.
+
 ## Multiplayer: following a friend, stalled audio — installed, 2026-09-26
 
 User report from a two-player session (log lost: the loader overwrites it at each launch).

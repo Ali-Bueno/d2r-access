@@ -116,6 +116,7 @@ inline constexpr Table koKR {
 	.beaconKnownRouteEnded = "%s까지의 알려진 경로를 더는 사용할 수 없습니다",
 	.placeFoundExit = "레이더가 새 출구를 기록했습니다: %s",
 	.placeFound = "레이더가 새 장소를 기록했습니다: %s",
+	.placeFoundQuest = "레이더가 새 퀘스트 오브젝트를 기록했습니다: %s",
 	.questUpdated = "퀘스트 일지가 갱신되었습니다",
 	.questGoalDone = "퀘스트의 주요 목표를 달성했습니다",
 	.questAlertsEnabled = "퀘스트 알림 켜짐",

@@ -116,6 +116,7 @@ inline constexpr Table zhTW {
 	.beaconKnownRouteEnded = "通往%s的已知路線不再可用",
 	.placeFoundExit = "雷達記錄了新的出口：%s",
 	.placeFound = "雷達記錄了新的地點：%s",
+	.placeFoundQuest = "雷達記錄了新的任務物件：%s",
 	.questUpdated = "任務日誌已更新",
 	.questGoalDone = "已達成任務的主要目標",
 	.questAlertsEnabled = "任務通知已啟用",

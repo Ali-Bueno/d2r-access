@@ -144,6 +144,7 @@ struct Table {
 	const char* beaconKnownRouteEnded; // %s = target name; known route no longer available
 	const char* placeFoundExit; // %s = an exit the scanner lists for the first time on this map
 	const char* placeFound;     // %s = a waypoint or stash the scanner lists for the first time
+	const char* placeFoundQuest; // %s = a quest object the scanner lists for the first time
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -260,7 +261,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };

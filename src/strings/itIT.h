@@ -116,6 +116,7 @@ inline constexpr Table itIT {
 	.beaconKnownRouteEnded = "Il percorso noto verso %s non è più disponibile",
 	.placeFoundExit = "Il radar ha registrato una nuova uscita: %s",
 	.placeFound = "Il radar ha registrato un nuovo luogo: %s",
+	.placeFoundQuest = "Il radar ha registrato un nuovo oggetto di missione: %s",
 	.questUpdated = "Diario delle missioni aggiornato",
 	.questGoalDone = "Obiettivo principale di una missione raggiunto",
 	.questAlertsEnabled = "Annunci delle missioni attivati",

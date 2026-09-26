@@ -6,6 +6,7 @@
 #include "explored_store.h"
 #include "frontier.h"
 #include "input_direction.h"
+#include "item_audio.h"
 #include "level_exit_layout.h"
 #include "map_survey.h"
 #include "native_automap.h"
@@ -417,11 +418,16 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 }
 
 void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found) {
-	std::vector<ExploredStore::Place> fixed;
-	for (const auto& entity : found)
-		if (MapSurvey::Fixed(entity))
-			fixed.push_back({entity.id, entity.placeId, entity.position.x, entity.position.y, entity.destinationLevel, entity.name,
-				static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey});
+	struct Found { ExploredStore::Place place; bool quest; };
+	std::vector<Found> fixed;
+	for (const auto& entity : found) {
+		const bool quest = EntityRadar::QuestSource(entity);
+		if (!quest && !MapSurvey::Fixed(entity)) continue;
+		// A quest object is known by where it stands; a Cairn Stone by its name without the symbol.
+		fixed.push_back({{entity.id, entity.placeId ? entity.placeId : NativeLevelExits::Identity(entity.position),
+			entity.position.x, entity.position.y, entity.destinationLevel, entity.worldName.empty() ? entity.name : entity.worldName,
+			static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey}, quest});
+	}
 	std::vector<std::string> finds;
 	{
 		std::lock_guard lock(g_mutex);
@@ -430,20 +436,25 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 		if (g_surveyedLevel != level) { g_cameFrom = g_surveyedLevel; g_surveyedLevel = level; }
 		if (fixed.empty()) return;
 		auto& known = g_places[*key];
-		for (const auto& place : fixed) {
+		for (const auto& [place, quest] : fixed) {
 			const auto novelty = ExploredStore::Classify(known, place, static_cast<uint32_t>(g_cameFrom));
+			const bool namesake = quest && ExploredStore::Namesake(known, place);
 			if (!ExploredStore::MergePlaces(known, {place}) || novelty == ExploredStore::Novelty::Known) continue;
 			const bool wayBack = novelty == ExploredStore::Novelty::WayBack;
 			AsyncLog::InfoF(g_context, "[terrain] place remembered level=%d at=%.0f,%.0f category=%u to=%u places=%zu name=%s%s", level,
-				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str(), wayBack ? " (way back)" : "");
-			if (wayBack || !g_placeAlerts) continue;
+				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str(),
+				wayBack ? " (way back)" : namesake ? " (quest, namesake)" : quest ? " (quest)" : "");
+			if (wayBack || namesake || !g_placeAlerts) continue;
+			const auto& strings = Strings::Current();
 			const bool exit = static_cast<EntityRadar::Category>(place.category) == EntityRadar::Category::Exit;
 			char phrase[200]{};
-			std::snprintf(phrase, sizeof(phrase), exit ? Strings::Current().placeFoundExit : Strings::Current().placeFound, place.name.c_str());
+			std::snprintf(phrase, sizeof(phrase), quest ? strings.placeFoundQuest : exit ? strings.placeFoundExit : strings.placeFound,
+				place.name.c_str());
 			finds.emplace_back(phrase);
 		}
 	}
 	for (const auto& phrase : finds) ScreenReader::Speak(phrase, false);
+	if (!finds.empty()) ItemAudio::PlayDiscovery();
 }
 
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {

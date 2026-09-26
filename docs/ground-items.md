@@ -46,6 +46,8 @@ does not reveal unidentified affixes.
 | `loot/legendary equipment.ogg` | Unique and set quality |
 | `loot/chest.ogg` | Containers you open for loot ([below](#container-loops)) |
 | `loot/corpse.ogg` | Containers that are a dead body ([below](#corpse-loops)) |
+| `loot/weapon rack.ogg` | Containers that are a weapon rack ([below](#weapon-rack-and-stash-loops)) |
+| `loot/stash.ogg` | The stash, looped with the exits ([below](#weapon-rack-and-stash-loops)) |
 | `loot/quest item.ogg` | Ground quest items and unused objects that supply quest items ([below](#quest-item-loops)) |
 | `exploration/portal.ogg` | Level exits: warps, portals, waypoints |
 | `exploration/wooden door.ogg`, `metal door.ogg`, `stone door.ogg`, `slime door.ogg` | Shut doors ([below](#door-loops)) |
@@ -128,6 +130,38 @@ comes from the objects.txt `Name` key the game labels them with, listed in
 `tools/gen_lootables.py` (`CORPSE_NAME_KEYS`) and emitted as
 `Generated::CorpseObject` (25 classes on D2R 3.3). DungeonGuy is left out: its
 key is the `Dummy` placeholder, so the game names nothing a player could recognise.
+
+Loudness: the corpse, gem, scroll and rune recordings are short clicks, so the
+build boosts them and limits the peak to 0.9 before the runtime peak
+normalization (`D2R_CLICK_BOOST_DB`, 24 dB). On 2026-09-26 the user found the
+corpse still too quiet. Measured on the built WAVs (RMS of the loudest 100 ms,
+re peak), it sat at -17.7 dB against -9 to -13 dB for the other loot loops; its
+own `D2R_CORPSE_BOOST_DB` of 42 dB brings it to -11.8 dB, the level of the quest
+(-11.7) and weapon rack (-11.6) cues, with the tail still fading to -83 dB.
+
+## Weapon rack and stash loops
+
+Requested 2026-09-26 with two new recordings. Weapon racks (objects.txt
+OperateFn 20: WeaponRack1/2/Left/Right, classes 106, 107, 548, 549) loop
+`loot/weapon rack.ogg` instead of the chest cue; they stay containers otherwise
+(same share, `[chests]` switch, Ctrl+K). `tools/gen_lootables.py`
+(`WEAPON_RACK_FNS`) emits `Generated::WeaponRackObject`. Armor stands
+(OperateFn 19) keep the chest loop. The stash (`Category::Stash`) loops
+`loot/stash.ogg` as a landmark beside the exits, under their switch (Ctrl+P,
+`access-items exits-on|off`). Neither recording needed a build-time boost
+(-11.6 and -13.1 dB).
+
+Follow-up the same day, measured as heard: each built loop repeated for 12 s,
+EBU R128 integrated loudness after the runtime peak normalization. The loot
+loops sit between -11 and -16 LUFS (median about -14.5); the chest was at
+-18.6, the quietest. Raising it through the boost+limiter would take more than
+12 dB of limiting, so a runtime trim does it instead: `SoundFile::levelDb`
+scales the voice gain in `GroundItems::Spatialize`, chest +4 dB
+(`ChestLevelDb`), stash -4 dB (`StashLevelDb`). The 0.3 s stash recording is
+padded with silence to repeat once a second (`D2R_STASH_LOOP_SECONDS`), and the
+stash loop pauses while the game's stash layout is open (`BankOriginalLayout`,
+`BankExpansionLayout` in `PanelState::OpenPanels`); the log says
+`[items] stash open: its loop paused` and `closed … resumed`.
 
 ## Door loops
 
