@@ -226,6 +226,10 @@ int main() {
 			"a non-TOML boolean or a valueless key is rejected");
 		Check(!RadarConfig::ParseChests("[chests]\nenabled = true\nenabled = false\n").valid, "a duplicate [chests] key is rejected");
 		Check(RadarConfig::Parse("[chests]\nenabled = false\n").enabled, "the container switch cannot disable the radar");
+		const auto doors = RadarConfig::ParseDoors("[chests]\nenabled = true\n[doors]\nenabled = false\n");
+		Check(doors.valid && doors.enabled == false, "the documented [doors] key parses in its own section");
+		Check(!RadarConfig::ParseDoors("[chests]\nenabled = false\n").enabled, "the container key leaves the door loops unset");
+		Check(!RadarConfig::ParseDoors("[doors]\nenabled = 1\n").valid, "a non-TOML [doors] boolean is rejected");
 	}
 	Fixture fixture;
 	Radar::World world;

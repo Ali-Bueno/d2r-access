@@ -75,6 +75,25 @@ QUEST_ITEM_FNS = {
 
 LOOT_FNS = CONTAINER_FNS | QUEST_ITEM_FNS
 
+# Quest books a player reads rather than loots; the automap draws both with the
+# tome cell (427) it gives Lam Esen's Tome. They loop the scroll cue until read.
+TOME_FNS = {
+    6,   # TowerTome, the Moldy Tome that opens the Forgotten Tower
+    42,  # ArcaneTome, Horazon's journal that opens the way to the Canyon of the Magi
+}
+
+# Containers that are a dead body, by the objects.txt Name key the game labels
+# them with (local/lng/strings: "Corpse", "Dead Rogue", "Guard Corpse", "Body",
+# "Dead Body", "Dead Guard", "Hung Skeleton", "Dead Barbarian"; "skeleton" and
+# "TrappedSoul" come from the monster strings). They get the corpse loop
+# instead of the chest one. DungeonGuy is left out: its key is the "Dummy"
+# placeholder, so the game names nothing a player could recognise.
+CORPSE_NAME_KEYS = {
+    "corpse", "RogueCorpse", "CorpseOnStick", "GuardCorpse", "body", "dead body",
+    "dead guard", "HungSkeleton", "deadbarbarian", "deadperson", "deadperson2",
+    "skeleton", "TrappedSoul",
+}
+
 
 def read_rows(path):
     rows = [line.rstrip("\n").split("\t") for line in io.open(path, encoding="utf-8-sig")]
@@ -99,6 +118,8 @@ def main():
     selectable = [index["Selectable%d" % mode] for mode in range(8)]
 
     entries = []          # (class id, class name, OperateFn)
+    corpses = []          # (class id, class name)
+    tomes = []            # (class id, class name)
     by_fn = collections.defaultdict(list)
     skipped_unselectable = 0
     for row in rows:
@@ -111,6 +132,8 @@ def main():
             fn = int(row[operate] or 0)
         except ValueError:
             continue
+        if fn in TOME_FNS:
+            tomes.append((int(row[ident]), row[klass]))
         if fn not in LOOT_FNS:
             continue
         # Only what the game itself lets the player target in some mode; the
@@ -120,6 +143,8 @@ def main():
             continue
         entries.append((int(row[ident]), row[klass], fn))
         by_fn[fn].append(row[klass])
+        if fn in CONTAINER_FNS and row[name] in CORPSE_NAME_KEYS:
+            corpses.append((int(row[ident]), row[klass]))
 
     entries.sort()
     if not entries:
@@ -181,6 +206,38 @@ def main():
     out.append("\t\tstatic_cast<uint16_t>(classId));")
     out.append("}")
     out.append("")
+    corpses.sort()
+    out.append("// Containers that are a dead body, by their objects.txt Name key:")
+    line = "//     "
+    for _, class_name in corpses:
+        piece = class_name + ", "
+        if len(line) + len(piece) > 78:
+            out.append(line.rstrip())
+            line = "//     "
+        line += piece
+    out.append(line.rstrip().rstrip(","))
+    out.append("inline constexpr std::array<uint16_t, %d> CorpseObjects{" % len(corpses))
+    out.append("	" + ", ".join(str(class_id) for class_id, _ in corpses))
+    out.append("};")
+    out.append("")
+    out.append("constexpr bool CorpseObject(uint32_t classId) {")
+    out.append("	if (classId > UINT16_MAX) return false;")
+    out.append("	return std::binary_search(CorpseObjects.begin(), CorpseObjects.end(),")
+    out.append("		static_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
+    tomes.sort()
+    out.append("// Quest books read in place: %s." % ", ".join(class_name for _, class_name in tomes))
+    out.append("inline constexpr std::array<uint16_t, %d> TomeObjects{" % len(tomes))
+    out.append("\t" + ", ".join(str(class_id) for class_id, _ in tomes))
+    out.append("};")
+    out.append("")
+    out.append("constexpr bool TomeObject(uint32_t classId) {")
+    out.append("\tif (classId > UINT16_MAX) return false;")
+    out.append("\treturn std::binary_search(TomeObjects.begin(), TomeObjects.end(),")
+    out.append("\t\tstatic_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
     out.append("// True when this object class gives the player loot.")
     out.append("constexpr bool LootableObject(uint32_t classId) {")
     out.append("\tif (classId > UINT16_MAX) return false;")
@@ -193,8 +250,8 @@ def main():
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     io.open(args.out, "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print("%s: %d lootable object classes from %d OperateFn groups (%d skipped as never selectable)"
-          % (args.out, len(entries), len(by_fn), skipped_unselectable))
+    print("%s: %d lootable object classes from %d OperateFn groups, %d corpses, %d tomes (%d skipped as never selectable)"
+          % (args.out, len(entries), len(by_fn), len(corpses), len(tomes), skipped_unselectable))
 
 
 if __name__ == "__main__":

@@ -56,14 +56,17 @@ struct Target {
 Target ParseTarget(std::string_view config);
 Target ReadTarget(const D2RL::PluginContext* context);
 
-// The documented [chests] key of the container proximity loop. Ctrl+K toggles
-// it for the current run; this is only the state it starts in.
-struct Chests {
+// A section whose only key is `enabled`: the state a runtime toggle starts in.
+struct Switch {
 	std::optional<bool> enabled;
 	bool valid = true;
 };
-Chests ParseChests(std::string_view config);
-Chests ReadChests(const D2RL::PluginContext* context);
+// [chests]: the container proximity loop; Ctrl+K toggles it for the current run.
+Switch ParseChests(std::string_view config);
+Switch ReadChests(const D2RL::PluginContext* context);
+// [doors]: the shut-door loop; access-items doors-on|doors-off changes it for the current run.
+Switch ParseDoors(std::string_view config);
+Switch ReadDoors(const D2RL::PluginContext* context);
 
 struct EntityCueSettings {
 	std::optional<bool> enabled, npcs, enemies, ranged;

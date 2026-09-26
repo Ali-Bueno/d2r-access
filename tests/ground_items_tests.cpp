@@ -17,11 +17,13 @@ void Classification() {
 	const Sound expected[] = {Sound::Normal, Sound::Normal, Sound::Normal, Sound::Normal,
 		Sound::Magic, Sound::Legendary, Sound::Rare, Sound::Legendary, Sound::Rare};
 	for (uint32_t q = 0; q < std::size(expected); ++q) {
-		Check(Classify(q, false, false) == expected[q], "native equipment quality selects the appropriate loop");
-		Check(Classify(q, true, false) == Sound::Gold, "gold overrides quality");
-		Check(Classify(q, false, true) == Sound::Potion, "consumables override quality");
-		Check(Classify(q, false, false, true) == Sound::Quest, "quest items override every native quality");
-		Check(Classify(q, false, true, true) == Sound::Quest, "quest consumables have their own cue");
+		Check(Classify(q, Base::Equipment) == expected[q], "native equipment quality selects the appropriate loop");
+		Check(Classify(q, Base::Gold) == Sound::Gold, "gold overrides quality");
+		Check(Classify(q, Base::Potion) == Sound::Potion, "potions override quality");
+		Check(Classify(q, Base::Scroll) == Sound::Scroll && Classify(q, Base::Rune) == Sound::Rune
+			&& Classify(q, Base::Gem) == Sound::Gem, "scrolls, runes and gems have their own loops");
+		Check(Classify(q, Base::Equipment, true) == Sound::Quest, "quest items override every native quality");
+		Check(Classify(q, Base::Potion, true) == Sound::Quest, "quest consumables have their own cue");
 	}
 }
 void Position() {
@@ -168,6 +170,31 @@ void Containers() {
 	for (const auto& voice : batch.voices) total += voice.gain;
 	Check(total <= MixGainLimit + 0.0001f, "and the gain limit covers exits, containers and items together");
 }
+void Doors() {
+	Tracker tracker;
+	Snapshot scene;
+	scene.session = 10;
+	const auto door = [](uint32_t id, Sound sound, Point at = {2, 2}) {
+		Item shut = Make(id, at, "");
+		shut.sound = sound;
+		return shut;
+	};
+	// A cell block: a row of shut doors beside a chest and loot on the floor.
+	for (uint32_t i = 0; i < 6; ++i) scene.doors.push_back(door(80 + i, i % 2 ? Sound::MetalDoor : Sound::WoodenDoor, {2.0 + i, 0}));
+	Item chest = Make(70, {3, 3}, "");
+	chest.sound = Sound::Chest;
+	scene.containers = {chest};
+	scene.items = {Make(1, {1, 1}, "Oro")};
+	auto batch = tracker.Tick(scene, 1000, false);
+	size_t doors = 0;
+	for (const auto& voice : batch.voices) doors += voice.sound == Sound::WoodenDoor || voice.sound == Sound::MetalDoor;
+	Check(doors == MaxDoorVoices, "a row of doors takes no more than its share");
+	Check(batch.voices[0].id == 80 && batch.voices[1].id == 81, "and the nearest doors are the ones heard");
+	Check(batch.voices.size() == MaxDoorVoices + 2, "leaving the chest and the loot audible");
+	Check(tracker.Tick(scene, 2000, false, true, true, false).voices.size() == 2, "door loops off silences only the doors");
+	scene.doors = {door(90, Sound::StoneDoor, {AudibleRadius, 0})};
+	Check(tracker.Tick(scene, 3000, false, false, false).voices.empty(), "a door out of range is silent");
+}
 void QuestSources() {
 	Tracker tracker;
 	Snapshot scene{1};
@@ -221,7 +248,7 @@ void QuestSources() {
 }
 }
 int main() {
-	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); QuestSources();
+	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); Doors(); QuestSources();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");

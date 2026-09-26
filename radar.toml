@@ -91,8 +91,15 @@ reach = 40
 
 # Containers you open for loot — chests, caskets, urns, barrels, corpses — get a
 # looping cue like the items on the floor: louder as you approach, placed in
-# stereo. Opening one silences it. Ctrl+K toggles this for the current run.
+# stereo; dead bodies use the corpse cue instead of the chest one. Opening one
+# silences it. Ctrl+K toggles this for the current run.
 [chests]
+enabled = true
+
+# Shut doors loop a wooden, metal, stone or slime cue, whichever the door is made of;
+# an opened door falls silent. access-items doors-on|doors-off changes this for
+# the current run.
+[doors]
 enabled = true
 
 # Direct movement stops when its intended direction is blocked, instead of

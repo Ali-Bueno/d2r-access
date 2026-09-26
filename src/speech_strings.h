@@ -132,6 +132,8 @@ struct Table {
 	const char* exitSoundsDisabled;
 	const char* chestSoundsEnabled; // container loop toggles
 	const char* chestSoundsDisabled;
+	const char* doorSoundsEnabled; // shut door loop toggles
+	const char* doorSoundsDisabled;
 	const char* beaconCleared;
 	const char* beaconUnavailable;
 	const char* beaconNothing;
@@ -248,6 +250,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.exitUnnamed, t.containerUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
+		t.doorSoundsEnabled, t.doorSoundsDisabled,
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,

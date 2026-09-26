@@ -277,13 +277,21 @@ plugin config. See [exploration](docs/exploration.md).
 
 **Containers:** chests, caskets, urns, barrels, crates, corpses and the other
 things you open for loot loop through the same mixer, so you can hear where they
-are; opening one silences it. What counts as a container comes from the game's
+are; dead bodies use the `corpse` loop instead of `chest`. Opening one silences it. What counts as a container comes from the game's
 own interaction handler, not from the name, so it holds in every language.
 **Ctrl+K** toggles them; `access-items chests-on|chests-off`, and `chests-dump`
 logs the verdict for everything currently in sight. See
 [container loops](docs/ground-items.md#container-loops).
 The user confirms that the ground-item loops are audible. The quieter level and landing-only
 start await a follow-up listening check.
+
+**Doors:** a shut door loops `wooden door`, `metal door`, `stone door` or
+`slime door`, chosen by the sound the game itself plays when that door opens,
+and falls silent once opened. Scrolls, runes and gems on the ground have their
+own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
+`scroll` until read. `[doors] enabled` in the plugin config and
+`access-items doors-on|doors-off` switch the door loops. See
+[door loops](docs/ground-items.md#door-loops).
 
 **Scanner (right stick; live validation pending):** during play, push the
 right stick up or down to change category, and left or right to step through

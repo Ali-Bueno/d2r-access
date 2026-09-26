@@ -16,4 +16,5 @@ const char* Enabled(bool enabled);
 const char* SoundEnabled(bool enabled);
 const char* ExitSoundEnabled(bool enabled);
 const char* ChestSoundEnabled(bool enabled);
+const char* DoorSoundEnabled(bool enabled);
 }
