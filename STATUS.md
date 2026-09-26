@@ -2,6 +2,25 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Sound folders, corpse/scroll/rune/gem loops, door loops — installed, 2026-09-25
+
+- **Folders:** sounds now live in `sounds/item loop sounds/loot|exploration/` (portal moved to
+  exploration) and install at the same paths; `GroundItems::SoundFiles` carries each folder.
+- **Loot:** corpse containers (25 classes, `Generated::CorpseObject`) loop `corpse`; scrolls,
+  runes and gems (ItemTypes `scro`/`rune`/`gem `) their own loops. The four short clicks get
+  +24 dB and a limiter at build time (user's choice) to match the other loops.
+- **Quest tomes:** the Moldy Tome and Horazon's journal loop `scroll` until read
+  (`Generated::TomeObject`, OperateFn 6/42).
+- **Doors:** shut doors loop wooden/metal/stone/slime by the game's own opening sound, read
+  from D2R.exe's per-class object sound table (`tools/gen_door_sounds.py`); `[doors]`,
+  `access-items doors-on|off`. `docs/ground-items.md#door-loops`.
+
+**79/79 suites pass**; installed DLL SHA-256 `D2DC8ABA…` matches the build; stale WAVs of the
+old layout removed from the install. **Next step:** live check the Moldy Tome (Black Marsh)
+before and after reading it, a shut and an opened door
+(Act 1 Barracks/Jail, Act 2 tombs), a dead rogue in the Blood Moor, a scroll/rune/gem on the
+floor; `access-items chests-dump` logs `corpse=` and `shut_door=` per object.
+
 ## Trade, stash gold, new exits, weapon swap — installed, 2026-09-25
 
 Four requests from the user:

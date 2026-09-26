@@ -7,10 +7,16 @@
 #include <unordered_set>
 
 namespace D2RAccess::GroundItems {
-Sound Classify(uint32_t quality, bool gold, bool consumable, bool quest) {
+Sound Classify(uint32_t quality, Base base, bool quest) {
 	if (quest) return Sound::Quest;
-	if (gold) return Sound::Gold;
-	if (consumable) return Sound::Potion;
+	switch (base) {
+	case Base::Gold: return Sound::Gold;
+	case Base::Potion: return Sound::Potion;
+	case Base::Scroll: return Sound::Scroll;
+	case Base::Rune: return Sound::Rune;
+	case Base::Gem: return Sound::Gem;
+	case Base::Equipment: break;
+	}
 	using Q = D2RL::Items::Quality;
 	switch (static_cast<Q>(quality)) {
 	case Q::Magic: return Sound::Magic;
@@ -71,14 +77,14 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 int SpeechRank(Sound sound) {
 	switch (sound) {
 	case Sound::Quest: return 0;
-	case Sound::Potion: return 1;
+	case Sound::Potion: case Sound::Scroll: return 1;
 	case Sound::Gold: return 2;
 	default: return 3;
 	}
 }
 }
 
-Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops) {
+Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops, bool doorLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
 	if (itemLoops) {
@@ -87,6 +93,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 		Emit(quests, snapshot.player, MaxQuestVoices, result);
 	}
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
+	if (doorLoops) Emit(snapshot.doors, snapshot.player, MaxDoorVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;
 	std::unordered_set<uint32_t> present;

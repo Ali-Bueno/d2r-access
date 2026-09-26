@@ -32,6 +32,7 @@ const EntityRadar::Entity shrine{31, EntityRadar::Kind::Object, {2, 4}, "Santuar
 size_t Portals() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Portal; return n; }
 size_t Zones() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::ZoneTransition; return n; }
 size_t Chests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Chest; return n; }
+size_t Count(GroundItems::Sound sound) { size_t n = 0; for (const auto& v : voices) n += v.sound == sound; return n; }
 size_t Quests() { size_t n = 0; for (const auto& v : voices) n += v.sound == GroundItems::Sound::Quest; return n; }
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener); *handle = listeners.size(); return D2RL::Lifecycle::Result::Success;
@@ -182,6 +183,41 @@ int main() {
 	entities.pop_back(); entities.pop_back();
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Check(Chests() == 0, "an opened container disappears from the unit read and its loop stops");
+	// Shut doors loop by the sound the game gives them, under their own switch;
+	// a dead body the player can loot uses the corpse loop, not the chest one.
+	EntityRadar::Entity gate{34, EntityRadar::Kind::Object, {3, 2}, "Puerta"};
+	gate.shutDoor = Generated::DoorSound::Metal;
+	EntityRadar::Entity rogue{35, EntityRadar::Kind::Object, {3, 4}, "Arpía muerta", 0, true};
+	rogue.corpse = true;
+	entities.push_back(gate); entities.push_back(rogue);
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
+	Check(Count(GroundItems::Sound::MetalDoor) == 1 && Count(GroundItems::Sound::Corpse) == 1 && Chests() == 0 && speech.empty(),
+		"a shut iron gate loops the metal door sound and a dead rogue the corpse sound, neither spoken");
+	Command("doors-off");
+	Check(Count(GroundItems::Sound::MetalDoor) == 0 && Count(GroundItems::Sound::Corpse) == 1, "the door switch leaves containers alone");
+	Command("doors-on"); Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::MetalDoor) == 1, "door loops can be reenabled");
+	auto& shut = entities[entities.size() - 2];
+	shut.shutDoor = Generated::DoorSound::Gate; Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::WoodenDoor) == 1, "the game's great-door gate sound maps to the wooden loop");
+	shut.shutDoor = Generated::DoorSound::Slime; Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::SlimeDoor) == 1, "a slime door has its own loop");
+	entities[entities.size() - 2].shutDoor = Generated::DoorSound::None;
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::MetalDoor) == 0, "an opened door falls silent");
+	entities.pop_back(); entities.pop_back();
+	// An unread quest tome loops the scroll cue with the quest objects; reading it silences it.
+	EntityRadar::Entity tome{36, EntityRadar::Kind::Object, {3, 3}, "El tomo mohoso"};
+	tome.unreadTome = true;
+	entities.push_back(tome);
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
+	Check(Count(GroundItems::Sound::Scroll) == 1 && Quests() == 0 && speech.empty(), "an unread tome loops the scroll sound, unspoken");
+	Command("sound-off"); Check(Count(GroundItems::Sound::Scroll) == 0, "the item loop switch covers tomes like other quest objects");
+	Command("sound-on"); Check(Count(GroundItems::Sound::Scroll) == 1, "and brings them back");
+	entities.back().unreadTome = false;
+	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
+	Check(Count(GroundItems::Sound::Scroll) == 0, "a read tome falls silent");
+	entities.pop_back();
 	entities.push_back({21, EntityRadar::Kind::Exit, {4, 3}, "Waypoint", 0, false, EntityRadar::Category::Waypoint});
 	entities.push_back({22, EntityRadar::Kind::Exit, {5, 4}, "Stairs", 701, false, EntityRadar::Category::Exit});
 	includeBoundaries = true;

@@ -167,19 +167,24 @@ Target ReadTarget(const D2RL::PluginContext* context) {
 	return ReadSection<Target>(context, ParseTarget, "[target] Invalid [target] settings; using compiled defaults.");
 }
 
-Chests ParseChests(std::string_view config) {
-	Chests result;
-	const bool valid = ForEachKey(config, "[chests]", [&](std::string_view key, std::optional<std::string_view> value) {
+Switch ParseSwitch(std::string_view config, std::string_view section) {
+	Switch result;
+	const bool valid = ForEachKey(config, section, [&](std::string_view key, std::optional<std::string_view> value) {
 		if (key != "enabled") return Line::Ignored;
 		bool flag = false;
 		if (!value || result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
 		result.enabled = flag;
 		return Line::Accepted;
 	});
-	return valid ? result : Chests{.valid = false};
+	return valid ? result : Switch{.valid = false};
 }
-Chests ReadChests(const D2RL::PluginContext* context) {
-	return ReadSection<Chests>(context, ParseChests, "[chests] Invalid [chests] settings; using compiled defaults.");
+Switch ParseChests(std::string_view config) { return ParseSwitch(config, "[chests]"); }
+Switch ReadChests(const D2RL::PluginContext* context) {
+	return ReadSection<Switch>(context, ParseChests, "[chests] Invalid [chests] settings; using compiled defaults.");
+}
+Switch ParseDoors(std::string_view config) { return ParseSwitch(config, "[doors]"); }
+Switch ReadDoors(const D2RL::PluginContext* context) {
+	return ReadSection<Switch>(context, ParseDoors, "[doors] Invalid [doors] settings; using compiled defaults.");
 }
 
 EntityCueSettings ParseEntityCues(std::string_view config) {

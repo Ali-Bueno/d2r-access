@@ -73,7 +73,14 @@ int main(int argc, char** argv) {
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("none"), 1, 2});
 	Check(f.Read(snapshot) && snapshot.items.size() == 1, "cyclic item type inheritance is bounded");
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("scro"), 0, 0});
-	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Potion, "scrolls use potion audio regardless of quality");
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Scroll, "scrolls use their own audio regardless of quality");
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("rune"), 0, 0});
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Rune, "runes use their own audio");
+	// A perfect skull: gem is two parents up (gemz -> gem), as in ItemTypes.txt.
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("gemz"), 2, 0});
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("gem"), 0, 0});
+	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Gem, "gems and skulls inherit the gem audio");
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("hpot"), 2, 0});
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("ques"), 0, 0});
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
 		"quest ancestry takes priority over consumable and unique item sounds");

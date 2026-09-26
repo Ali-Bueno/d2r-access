@@ -109,6 +109,8 @@ inline constexpr Table zhTW {
 	.exitSoundsDisabled = "出口音效已停用",
 	.chestSoundsEnabled = "容器音效已啟用",
 	.chestSoundsDisabled = "容器音效已停用",
+	.doorSoundsEnabled = "門音效已啟用",
+	.doorSoundsDisabled = "門音效已停用",
 	.beaconCleared = "已取消引導",
 	.beaconUnavailable = "無法使用引導",
 	.beaconNothing = "未選擇目標。請先掃描目標",

@@ -109,6 +109,8 @@ inline constexpr Table esMX {
 	.exitSoundsDisabled = "Sonidos de salidas desactivados",
 	.chestSoundsEnabled = "Sonidos de contenedores activados",
 	.chestSoundsDisabled = "Sonidos de contenedores desactivados",
+	.doorSoundsEnabled = "Sonidos de puertas activados",
+	.doorSoundsDisabled = "Sonidos de puertas desactivados",
 	.beaconCleared = "Guía cancelada",
 	.beaconUnavailable = "Guía no disponible",
 	.beaconNothing = "Ningún objetivo seleccionado. Explora primero con el escáner",

@@ -296,6 +296,9 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		&& width > 0 && height > 0 && width <= UINT16_MAX && height <= UINT16_MAX)
 		entity.footprint = {width, height};
 	entity.container = IsContainer(row);
+	entity.corpse = entity.container && Generated::CorpseObject(classId);
+	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
+	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
 	entity.questObject = Generated::QuestItemObject(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);

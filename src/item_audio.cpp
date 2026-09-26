@@ -69,7 +69,7 @@ bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>
 		return false;
 	}
 	AsyncLog::InfoF(context, "[item-audio] started id=%u sound=%s right=%.1f front=%.1f loop=%u",
-		target.id, SoundFiles[static_cast<size_t>(target.sound)], target.right, target.front, loop);
+		target.id, SoundFiles[static_cast<size_t>(target.sound)].name, target.right, target.front, loop);
 	return true;
 }
 void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::PluginContext* context) {
@@ -101,18 +101,18 @@ void Worker(const D2RL::PluginContext* context) {
 	Playing exploration, arrival;
 	try {
 		// Keep all sample memory alive until its source voices have been destroyed.
-		const auto sounds = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "sounds";
+		const auto sounds = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "sounds" / "item loop sounds";
 		size_t loaded = 0;
 		for (size_t i = 0; i < samples.size(); ++i) {
-			const auto folder = sounds / (i < ItemSoundCount ? "item loop sounds" : "exploration cues");
-			samples[i] = ItemWave::Load(folder / SoundFiles[i]);
+			const auto& file = SoundFiles[i];
+			samples[i] = ItemWave::Load(sounds / file.folder / file.name);
 			const float scale = ItemWave::Normalize(samples[i]);
 			if (scale > 0) {
 				++loaded;
-				AsyncLog::InfoF(context, "[item-audio] normalized %s gain_db=%.1f peak=%.2f", SoundFiles[i], 20 * std::log10(scale), ItemWave::LoopPeak);
+				AsyncLog::InfoF(context, "[item-audio] normalized %s/%s gain_db=%.1f peak=%.2f", file.folder, file.name, 20 * std::log10(scale), ItemWave::LoopPeak);
 			} else {
 				samples[i].clear();
-				AsyncLog::WarnF(context, "[item-audio] Missing/invalid/silent sound: %s", SoundFiles[i]);
+				AsyncLog::WarnF(context, "[item-audio] Missing/invalid/silent sound: %s/%s", file.folder, file.name);
 			}
 		}
 		HRESULT output = loaded ? XAudio2Create(&engine) : E_FAIL;

@@ -109,6 +109,8 @@ inline constexpr Table koKR {
 	.exitSoundsDisabled = "출구 소리 꺼짐",
 	.chestSoundsEnabled = "용기 소리 켜짐",
 	.chestSoundsDisabled = "용기 소리 꺼짐",
+	.doorSoundsEnabled = "문 소리 켜짐",
+	.doorSoundsDisabled = "문 소리 꺼짐",
 	.beaconCleared = "안내 취소됨",
 	.beaconUnavailable = "안내를 사용할 수 없습니다",
 	.beaconNothing = "선택한 대상이 없습니다. 먼저 대상을 탐색하세요",

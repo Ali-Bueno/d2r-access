@@ -94,6 +94,34 @@ constexpr bool QuestItemObject(uint32_t classId) {
 		static_cast<uint16_t>(classId));
 }
 
+// Containers that are a dead body, by their objects.txt Name key:
+//     RogueCorpse1, RogueCorpse2, RogueRollingCorpse1, RogueStakedCorpse1,
+//     RogueStakedCorpse2, DeadPalaceGuard, Corpse3, CorpseSkeleton,
+//     GuardOnAStick, BurnedBody1Act1, GuardCorpse2Act2, Corpse1Act3,
+//     Corpse2Act3, HaremGuard1, HaremGuard2, HaremGuard3, HaremGuard4,
+//     SewerDungeonBody, OuterHellSkeleton, DamnedV1, DamnedV2,
+//     DeadBarbarian, YetAnotherDeadBody, DeadPerson, DeadPersonAgain
+inline constexpr std::array<uint16_t, 25> CorpseObjects{
+	54, 55, 56, 57, 58, 154, 158, 171, 178, 239, 270, 271, 272, 314, 315, 316, 317, 326, 363, 383, 384, 477, 540, 545, 556
+};
+
+constexpr bool CorpseObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(CorpseObjects.begin(), CorpseObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
+// Quest books read in place: TowerTome, ArcaneTome.
+inline constexpr std::array<uint16_t, 2> TomeObjects{
+	8, 357
+};
+
+constexpr bool TomeObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(TomeObjects.begin(), TomeObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
 // True when this object class gives the player loot.
 constexpr bool LootableObject(uint32_t classId) {
 	if (classId > UINT16_MAX) return false;

@@ -1,7 +1,7 @@
 # Level exit loops (portal sound)
 
 Implemented 2026-09-16 for the installed D2R 3.3.93787 executable. Every unit that
-takes the player to another area plays the user's `portal.ogg` loop at its world
+takes the player to another area plays the user's `exploration/portal.ogg` loop at its world
 position, through the same spatial mixer as the ground item loops: fixed screen
 axes, distance attenuation to silence at 30 subtiles, rear pitch 0.94.
 

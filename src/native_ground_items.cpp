@@ -6,6 +6,7 @@
 #include "localization.h"
 #include "ui_text.h"
 #include "async_log.h"
+#include <D2RLPlugin/item.h>
 #include <windows.h>
 #include <algorithm>
 #include <array>
@@ -37,11 +38,6 @@ int StatAmount(uintptr_t unit, int stat) noexcept {
 	__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
 int GoldAmount(uintptr_t unit) noexcept { return StatAmount(unit, GoldStat); }
-uint32_t TypeCode(const char* s) {
-	uint32_t result = 0;
-	for (unsigned i = 0; i < 4 && s[i]; ++i) result |= static_cast<uint32_t>(static_cast<unsigned char>(s[i])) << (i * 8);
-	return result;
-}
 bool IsType(const Tables& tables, uint16_t index, uint32_t code) {
 	std::vector<uint16_t> pending{index};
 	for (size_t i = 0; i < pending.size(); ++i) {
@@ -72,11 +68,15 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	uint8_t questFlag = 0;
 	if (!Peek(row + ItemCode, item.code) || !Peek(row + ItemName, nameId)
 		|| !Peek(row + ItemType, typeId) || !Peek(row + ItemQuest, questFlag)) return false;
-	const bool gold = IsType(tables, typeId, TypeCode("gold"));
-	const bool consumable = IsType(tables, typeId, TypeCode("poti")) || IsType(tables, typeId, TypeCode("elix"))
-		|| IsType(tables, typeId, TypeCode("scro"));
-	const bool quest = questFlag != 0 || IsType(tables, typeId, TypeCode("ques"));
-	item.sound = GroundItems::Classify(item.quality, gold, consumable, quest);
+	using GroundItems::Base;
+	using D2RL::Items::MakeItemCode; // space padded, as the game stores "gem "
+	const auto is = [&](uint32_t code) { return IsType(tables, typeId, code); };
+	const bool gold = is(MakeItemCode("gold"));
+	const Base base = gold ? Base::Gold : is(MakeItemCode("poti")) || is(MakeItemCode("elix")) ? Base::Potion
+		: is(MakeItemCode("scro")) ? Base::Scroll : is(MakeItemCode("rune")) ? Base::Rune
+		: is(MakeItemCode("gem")) ? Base::Gem : Base::Equipment;
+	const bool quest = questFlag != 0 || is(MakeItemCode("ques"));
+	item.sound = GroundItems::Classify(item.quality, base, quest);
 	if (distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0);

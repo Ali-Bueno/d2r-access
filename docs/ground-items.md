@@ -33,17 +33,23 @@ Names come from the active game's Items table and localization service. The
 item and quality**, not its complete generated affix/unique display name. It
 does not reveal unidentified affixes.
 
-| Supplied loop | Ground item category |
+| Supplied loop (`sounds/item loop sounds/`) | Source |
 |---|---|
-| `gold.ogg` | Gold |
-| `potion.ogg` | All descendants of potion, elixir and scroll item types, except quest items |
-| `normal equipment.ogg` | Inferior/normal/superior equipment and remaining miscellaneous items |
-| `magic equipment.ogg` | Magic quality |
-| `rare equipment.ogg` | Rare and crafted quality |
-| `legendary equipment.ogg` | Unique and set quality |
-| `portal.ogg` | Level exits: warps, portals, waypoints |
-| `chest.ogg` | Containers you open for loot ([below](#container-loops)) |
-| `quest item.ogg` | Ground quest items and unused objects that supply quest items ([below](#quest-item-loops)) |
+| `loot/gold.ogg` | Gold |
+| `loot/potion.ogg` | All descendants of the potion and elixir item types, except quest items |
+| `loot/scroll.ogg` | Descendants of the scroll type (`scro`: identify, town portal) |
+| `loot/rune.ogg` | Descendants of the rune type (`rune`) |
+| `loot/gem.ogg` | Descendants of the gem type (`gem `: every gem grade and the skulls) |
+| `loot/normal equipment.ogg` | Inferior/normal/superior equipment and remaining miscellaneous items |
+| `loot/magic equipment.ogg` | Magic quality |
+| `loot/rare equipment.ogg` | Rare and crafted quality |
+| `loot/legendary equipment.ogg` | Unique and set quality |
+| `loot/chest.ogg` | Containers you open for loot ([below](#container-loops)) |
+| `loot/corpse.ogg` | Containers that are a dead body ([below](#corpse-loops)) |
+| `loot/quest item.ogg` | Ground quest items and unused objects that supply quest items ([below](#quest-item-loops)) |
+| `exploration/portal.ogg` | Level exits: warps, portals, waypoints |
+| `exploration/wooden door.ogg`, `metal door.ogg`, `stone door.ogg`, `slime door.ogg` | Shut doors ([below](#door-loops)) |
+| `exploration/unexplored room.ogg`, `zone transition.ogg`, `inside unexplored room.ogg` | Exploration cues ([exploration.md](exploration.md)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
 animation (**Dropping, 5**) is excluded; there is no guessed landing timer.
@@ -111,6 +117,53 @@ out. Containers are never spoken — they carry no name into the mixer, exactly
 like level exits. `radar.toml` `[chests] enabled` sets the state the mod starts
 in; **Ctrl+K** toggles it for the current run.
 
+## Corpse loops
+
+Requested 2026-09-25: the dead bodies a player can loot (dead rogues, guard
+corpses, villagers, harem guards, hung skeletons, trapped souls, dead
+barbarians, the "Corpse" rows) loop `loot/corpse.ogg` instead of the chest cue.
+They stay containers in every other respect: same predicate, same share of
+voices, same `[chests]` switch and Ctrl+K toggle. Which containers are bodies
+comes from the objects.txt `Name` key the game labels them with, listed in
+`tools/gen_lootables.py` (`CORPSE_NAME_KEYS`) and emitted as
+`Generated::CorpseObject` (25 classes on D2R 3.3). DungeonGuy is left out: its
+key is the `Dummy` placeholder, so the game names nothing a player could recognise.
+
+## Door loops
+
+Requested 2026-09-25: a door that is still shut loops a cue by what it is made
+of, at its position, through the same mixer (up to `MaxDoorVoices` = 2 nearest,
+claimed after exits and before containers). An opened door is silent: the loop
+is set only while the object is in mode NU (`ObjectNeutral`), so the next unit
+refresh (up to 500 ms) drops it. The radar's passage probe reads the game's own
+DOOR collision bit, which opening clears, so the way through opens there too.
+Switch: `[doors] enabled` in `radar.toml`, `access-items doors-on|doors-off`.
+
+**Which cue** is the sound the game itself plays when that door opens, not its
+class name. objects.txt has no material column; the client keeps a per-class
+object sound table in `.rdata`: 8-byte pointers indexed by objects.txt `*ID`
+(disk RVA `0x1606810` in D2R 3.3.93787, D2R.exe SHA-1 `7c742eac…`), each to a
+12-dword record whose first eight dwords are one sounds.txt `*Index` per object
+mode (close in NU, open in OP or ON). The index was confirmed on non-door rows
+(Casket5, LargeChest, Barrel, TownPortal, Fountain, torches all line up).
+`tools/gen_door_sounds.py` reads it from the installed exe and writes
+`src/generated/door_sounds.h`; it fails instead of guessing if a patch moves the
+table. The reader of the table in live code was not located (the rebuilt
+`.rdata` layout differs there), which is why the mapping is generated offline
+rather than read at runtime.
+
+| Game sound | Door classes | Loop |
+|---|---|---|
+| `object_door_wood_open` | DoorWooden*, DoorMonasteryDoubleRight, DoorSmallCathedral*, DockDoor, DesertWoodenDoor* | `wooden door` |
+| `object_door_gate_open` | DoorCourtyardDouble*, DoorCathedralDouble, AndarielDoor | `wooden door` (great wooden double doors) |
+| `object_door_metal_open` | DoorGate* (the Act 1 barred gates), DesertIronGrateDoor*, DesertWoodenGrateDoor* | `metal door` |
+| `object_door_stone` | TombDoor*, TombDoor*2 | `stone door` |
+| `object_door_slime` | SlimeDoor1/2 | `slime door` |
+
+Other objects with door-type sounds but `IsDoor` = 0 (Trapdoor, HiddenDoor2,
+Duriel's door, the Arcane and Hell gates, the Act 5 pen door, the Ancients'
+gateway, the Summit door) are not doors to the plugin and get no door loop.
+
 ## Quest item loops
 
 Added 2026-09-23 using the supplied `quest item.ogg`. Ground quest items take
@@ -167,9 +220,17 @@ lifecycle suspension use the existing shared gates.
 The quest range is 45 collision subtiles in resident nearby rooms. No distant
 presets or undiscovered map positions are requested. Classification identifies
 quest-related objects, not whether the player's current quest needs them: no
-player quest flags are inferred. Other quest mechanisms (the Hellforge,
-Horazon's journal, and the Ancients' altar) are outside this catalog;
-some stay selectable after use and need separate verified state handling.
+player quest flags are inferred. Other quest mechanisms (the Hellforge and the
+Ancients' altar) are outside this catalog; some stay selectable after use and
+need separate verified state handling.
+
+**Quest tomes** (requested 2026-09-25): the Moldy Tome (TowerTome, OperateFn 6)
+and Horazon's journal (ArcaneTome, OperateFn 42), the books the automap draws
+with the same tome cell as Lam Esen's Tome, loop `loot/scroll.ogg` in the quest
+share while the object is in its unread mode NU; both stay selectable once read,
+so the mode, not the selection, ends the loop. `Generated::TomeObject`, from
+`tools/gen_lootables.py` (`TOME_FNS`). Lam Esen's Tome hands over an item and
+keeps the quest cue.
 
 Validation covers native Inifuss selection/used modes, unavailable translation,
 quest classification before quality, landing and pickup, source priority and
@@ -182,16 +243,18 @@ reading still need controller/NVDA listening after installation.
 
 ## Assets and build
 
-Edit the nine OGG files under `sounds/item loop sounds/` (the table above lists
-them; `cmake/GroundItems.cmake` holds the authoritative set), then build with the game
+Edit the OGG files under `sounds/item loop sounds/loot/` and
+`sounds/item loop sounds/exploration/` (the table above lists them;
+`cmake/GroundItems.cmake` holds the authoritative set, and
+`GroundItems::SoundFiles` the folder each is loaded from), then build with the game
 closed. `cmake/GroundItems.cmake` uses the existing **FFmpeg command line tool**
 to create mono, 48 kHz, PCM16 WAV files in the build directory. FFmpeg is a build
 requirement on `PATH`; there is no decoder DLL or additional runtime library to
 install. Playback uses Windows XAudio2/X3DAudio. Asset-only rebuilds also deploy.
 
-The build installs the WAV files under
-`d2rloader/plugins/d2r-access/sounds/item loop sounds/`. It keeps the user's OGG
-sources unchanged. `item drop sounds/` is not used by this continuous-loop feature.
+The build installs the WAV files at the same relative paths under
+`d2rloader/plugins/d2r-access/sounds/item loop sounds/` (`loot/`, `exploration/`).
+It keeps the user's OGG sources unchanged.
 Do not commit the generated WAV files or build binaries.
 
 ## Native evidence
