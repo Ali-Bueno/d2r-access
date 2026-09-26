@@ -2,6 +2,38 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Multiplayer: following a friend, stalled audio — installed, 2026-09-26
+
+User report from a two-player session (log lost: the loader overwrites it at each launch).
+(1) On one map L3 could not follow the friend, later it could; (2) after both took a portal
+back into a dungeon the radar went mute, possibly a desync. Code audit and fixes:
+- **Friend placement:** a friend whose unit is loaded but outside the scan's room and its
+  neighbours was placed at the roster X/Y, which the game refreshes only beyond 50 subtiles
+  (stale, even from the previous level). The scanner now looks for other players across the
+  level's loaded rooms, only when the roster lists someone else. Test fails without the fix.
+- **Stalled audio:** radar/beacon/entity cue players waited forever on a buffer the device
+  never returned (e.g. a headset switching profile for voice chat). Now one second past the
+  buffer's length counts as a device failure and the output is reopened (`src/wave_out.h`).
+- **Log:** `[radar] lifecycle=` prints `eventPlayer=`.
+- **Following a friend** (user's choice): L3 now follows another player through rooms this
+  player has not explored, even in exploration mode; before, the lock was refused
+  (`outside-explored`) or ended after 3 s. Test fails without the change.
+**79/79 suites pass**; installed DLL SHA-256 `273E7C36…` matches the build.
+**Next step:** the next two-player session; copy the log right after anything odd.
+`docs/multiplayer.md#diagnosing-a-multiplayer-problem-2026-09-26`. Launch research for a
+future release: `docs/release-launch.md`.
+
+## Loop sounds embedded in the DLL — installed, 2026-09-26
+
+User request: players must not be able to swap the loot/exploration sounds. The 20 WAVs are
+now RCDATA resources in `d2rl-d2r-access.dll` (`FOLDER_STEM` names, generated
+`build/item-sounds.rc`) and `ItemWave::LoadEmbedded` reads them from the plugin's own module;
+nothing is installed under `plugins/d2r-access/sounds/` any more (removed from the install).
+DLL 1.4 → 13.4 MB. The item-audio suite opens the built DLL and checks all 20. **79/79 suites
+pass** (same install as above). **Next step:** at the next launch
+the log should say `[item-audio] 20 sounds loaded`; the next friend package drops the `sounds`
+folder and tells them to delete the old one. `docs/ground-items.md#assets-and-build`.
+
 ## Friend's tester ZIP v2 — 2026-09-25
 
 `../d2r-access-completo-2026-09-25-v2.zip`, plugin from 98df013 (SHA-256 `D2DC8ABA…`, matches
