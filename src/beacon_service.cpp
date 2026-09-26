@@ -86,9 +86,15 @@ double HalfFootprint(const EntityRadar::Entity& entity) {
 	const auto side = std::max(entity.footprint.width, entity.footprint.height);
 	return side > 1 ? (side - 1) / 2.0 : 0;
 }
+// Following another player leads through rooms this player has not explored, as full
+// assistance does: the user asked for it on 2026-09-26.
+bool Unrestricted(const EntityRadar::Entity& entity) {
+	return NavigationMode::FullAssistance() || entity.category == EntityRadar::Category::Player;
+}
 Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 	Beacon::Settings settings = g_settings;
 	settings.arrivalDistance += HalfFootprint(entity);
+	settings.requireKnownRoute = !Unrestricted(entity);
 	return settings;
 }
 // An area border is walked across where both levels' floor meets, rarely at the
@@ -105,7 +111,7 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Entit
 	const bool crossing = AtCrossing(state, world, entity);
 	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
-	if (NavigationMode::FullAssistance()) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin);
+	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin);
 	if (!graph) return std::nullopt;
 	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
 	if (current == NativeRooms::None) return std::nullopt;
@@ -195,7 +201,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	}
 	const auto guidance = Guidance(state, g_offer.entity);
 	const auto settings = SettingsFor(g_offer.entity);
-	if (!NavigationMode::FullAssistance()) {
+	if (!Unrestricted(g_offer.entity)) {
 		const bool known = guidance && guidance->available;
 		const auto destination = !known ? g_offer.entity.position : guidance->hasWaypoint ? guidance->waypoint : guidance->target;
 		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, settings),

@@ -321,7 +321,8 @@ or not, but never what they contain. The beacon can lead into one of those
 and arrives as you step in. It gives their straight-line distance and direction, not a
 walking route. The beacon only follows routes through explored areas (drawn on
 the automap or walked); otherwise it says there is no route through explored
-areas and stays silent, and it stops if the route leaves them. See the
+areas and stays silent, and it stops if the route leaves them. Another player is
+the exception: the beacon follows them through unexplored rooms too. See the
 [automap reader](docs/automap-reader.md).
 **Full assistance** restores routes through unexplored rooms and the whole
 generated catalogue: add `full_assistance = true` under `[navigation]` in
