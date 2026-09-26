@@ -1,9 +1,8 @@
 #include "vitals_service.h"
 #include "async_log.h"
-#include "ground_item_text.h"
+#include "equipment_census.h"
 #include "input_direction.h"
 #include "localization.h"
-#include "native_ground_items.h"
 #include "native_memory.h"
 #include "native_status.h"
 #include "native_ui.h"
@@ -15,8 +14,6 @@
 
 #include <D2RLPlugin/context.h>
 #include <D2RLPlugin/input.h>
-#include <D2RLPlugin/inventory.h>
-#include <D2RLPlugin/item.h>
 #include <D2RLPlugin/lifecycle_events.h>
 
 #include <windows.h>
@@ -163,15 +160,6 @@ void Report(const D2RL::PluginContext* context) {
 	HintOrbText(missing, true);
 }
 
-auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* item, void* userData) noexcept
-	-> D2RL::Inventory::IterationAction {
-	auto* worn = static_cast<std::vector<Vitals::Breakage::Item>*>(userData);
-	if (worn && item && item->structSize >= D2RL::Items::ItemInfoRequiredSize)
-		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation,
-			item->classId, static_cast<uint32_t>(item->quality)});
-	return D2RL::Inventory::IterationAction::Continue;
-}
-
 // What the character is wearing, logged only when it changes.
 //
 // The mod cannot write a save: character_saves.cpp opens a .d2s GENERIC_READ
@@ -201,31 +189,16 @@ void LogWorn(const D2RL::PluginContext* context, const std::vector<Vitals::Break
 }
 
 void SweepDurability(const D2RL::PluginContext* context) {
-	const D2RL::InventoryService* inventory = nullptr;
-	if (!context || context->QueryService(&inventory)
-			!= D2RL::ServiceQueryResult::Success
-		|| !D2RL::HasInventoryServiceField(inventory, D2RL::InventoryServiceRequiredSize)
-		|| !inventory->getLocalPlayer || !inventory->forEachInventoryItem) return;
-	// inventory.h permits capturing the player and reading its items on the UI
-	// thread. Reacquire the handle so a new session cannot leave stale state.
-	D2RL::PlayerHandle player = D2RL::InvalidPlayerHandle;
-	if (inventory->getLocalPlayer(context, &player) != D2RL::Inventory::Result::Success
-		|| player == D2RL::InvalidPlayerHandle) { g_breakage.Reset(); g_equipping.Reset(); g_worn.clear(); return; }
 	std::vector<Vitals::Breakage::Item> worn;
-	const D2RL::Inventory::ItemFilter filter{
-		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
-		.flags = 0,
-		.containerMask = D2RL::Items::ContainerBit(D2RL::Items::ItemContainer::Equipment),
-		.reserved = 0};
-	// A failed enumeration must not read as "wearing nothing", so the census
-	// is only taken when the game actually answered.
-	if (inventory->forEachInventoryItem(context, player, &filter, CollectWorn, &worn)
-		!= D2RL::Inventory::Result::Success) return;
+	switch (EquipmentCensus::Read(context, worn)) {
+	case EquipmentCensus::Result::Unavailable: return;
+	case EquipmentCensus::Result::NoPlayer: g_breakage.Reset(); g_equipping.Reset(); g_worn.clear(); return;
+	case EquipmentCensus::Result::Read: break;
+	}
 	LogWorn(context, worn);
 	const auto& labels = Strings::Current().equipmentSlots;
 	for (const auto& item : g_equipping.Sweep(worn)) {
-		const auto label = NativeGroundItems::ClassLabel(item.classId, item.quality);
-		const std::string name = GroundItemText::Describe(label.baseName, label.quality, 0);
+		const std::string name = EquipmentCensus::Name(item);
 		if (name.empty()) continue;
 		char phrase[200]{};
 		if (item.bodyLocation > 0 && static_cast<size_t>(item.bodyLocation) < labels.size())

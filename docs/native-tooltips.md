@@ -214,6 +214,17 @@ names and action labels are unaffected. If an occupied cell never renders text,
 it remains silent. The user confirmed the new behavior on 2026-09-15:
 “parece que funcionó bien”.
 
+## Stash gold (2026-09-25)
+
+The stash's gold is drawn in the `gold_amount` text box (under `basicstash_container` in
+`BankExpansionLayout`, at the root of `BankOriginalLayout`), which has no focusable part on the
+controller layouts. Focus on its `gold_withdraw` button ("Retirar") says the amount instead of the
+label, the same way the inventory's gold row does: `12345 de oro en el alijo`. The digits come from
+the box's own text, which follows the open tab; when the box cannot be read, the player's
+`goldbank` stat (ItemStatCost row 15, `UNIT_GetStat` `0x2F5020`) is used, which is the personal
+stash only. `[stash] gold box=… text=… stat=…` logs both on each change. Live check pending on a
+shared tab.
+
 ## Inventory action labels and equipment locations
 
 A read-only probe with the inventory open found `gold_button` as a native

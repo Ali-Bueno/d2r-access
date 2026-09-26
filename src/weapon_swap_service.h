@@ -1,0 +1,9 @@
+#pragma once
+#include <D2RLPlugin/api.h>
+
+// Wiring around WeaponSwap: a weapon swap (R3, W, the inventory's I/II tabs)
+// names the set and the weapons now in hand. `access-weapon-swap on|off`.
+namespace D2RAccess::WeaponSwapService {
+bool Register(const D2RL::PluginContext* context);
+void Tick(const D2RL::PluginContext* context);
+}

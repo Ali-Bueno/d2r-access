@@ -2,6 +2,45 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Trade, stash gold, new exits, weapon swap — installed, 2026-09-25
+
+Four requests from the user:
+1. **Trade**: request prompts name the partner ("canaria quiere comerciar contigo"), the grids read
+   "Comercio con canaria. Tu oferta" / "Oferta de canaria", the partner's items, gold and
+   acceptance are told, so is this player's acceptance, and the end says completed or
+   cancelled (hook on the S2C 0x2E "completed" reply). The busy notice gets its missing space.
+   `docs/trade.md`.
+2. **Stash gold**: the stash's withdraw button says "12345 de oro en el alijo" (the gold box
+   cannot take focus). `docs/native-tooltips.md#stash-gold-2026-09-25`.
+3. **New exit**: "El radar ha registrado una salida nueva: Cementerio" the first time the
+   scanner lists an exit on a map (waypoint/stash: "un lugar nuevo"); not for restored places
+   or the exit back. `docs/exploration.md#speech`.
+4. **Weapon swap**: "Armas 2: Arco largo, Carcaj" from the game's own set flag. `docs/weapon-swap.md`.
+
+New settings sections `[discoveries]`, `[weapon_swap]`, `[trade]`. **79/79 suites pass**; installed DLL SHA-256 `CA5E33B9…` matches the build.
+**Next step:** live checks — a two-client trade (prompts, grids, partner offer, both endings),
+the stash withdraw button on a personal and a shared tab (`[stash] gold` log line), a new
+exit in an unexplored area, and swaps with full, half-empty and empty sets.
+
+## Skill synergies — not a bug, live check pending, 2026-09-25
+
+Resist Fire's tooltip has no synergy section in the game itself (`skilldesc.txt`
+`dsc3` empty); synergies are drawn on the receiving skill, e.g. Holy Fire. The
+skill reader keeps every tooltip line. No code change. **Next step:** read
+Fuego sagrado or Purificación with the detail gesture and confirm "recibe bonus
+de" is spoken. `docs/progression.md`.
+
+## Friend's tester ZIP — 2026-09-25
+
+`../d2r-access-completo-2026-09-25.zip`, plugin from 501dd67 (SHA-256
+`b9be7e00…`, matches the install): 38 entries, 56,628,533 bytes, SHA-256
+`c21cb1f1…` (full hash in `.zip.sha256` beside it). v4 package with the new
+plugin, `radar.toml` as `d2r-access.toml` (adds `[radar] diagonals`) and a
+Spanish LEEME that leads with the control change (guidance on L3, R3 back to
+the game, Ctrl+V / Ctrl+O) and fixes the old R3 references. Loader, PRISM,
+WAVs and VC runtime unchanged. Every entry decompresses and matches its
+SHA-256. **77/77 suites pass.** **Next step:** the friend installs it.
+
 ## Hold LT to hear the LT skill bar — works live, 2026-09-25
 
 User asked what LT/L2, RT, LB and RB do (stock map now in the doc) and chose
@@ -1015,7 +1054,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 - **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `prism.dll` into the game. PRISM v0.18.2 vendored in `third_party/prism/`.
 - **Mod install path:** `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\` (global) — D2RLoader zip extracted into the game folder, launch `D2RLoader.exe`.
   The loader is **three** files in the game root, all dated 2026-09-14: `D2RLoader.exe` (23,590,248), **`D2RCore.dll`** (18,345,304 — resolves the game pointers the widget and world readers depend on) and `d2rloader.mpq` (10,816,549). Both builds we have are kept outside the repo in `../loader-backups/` with their hashes and restore notes; **1.2.1-beta can no longer be downloaded**, that copy is the only one. Everything else in the root is the game's. Packaging the mod for someone else needs all three, plus `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/{prism.dll, sounds/item loop sounds/*.wav}` and a `d2rloader/config/d2rloader.toml` with the console enabled. Never ship `D2R.text.bin` (dumped game code, regenerated on first run).
-- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.0-beta installed into the game folder 2026-09-17 (SHA-256 verified). Start NVDA, launch `D2RLoader.exe`. Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
+- **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.0-beta installed into the game folder 2026-09-17 (SHA-256 verified). Start NVDA, launch `D2RLoader.exe` (Steam's Play button also does it: launch options `"<game>\D2RLoader.exe" %command%`, set 2026-09-25; see README). Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
 
 ## Section status
 

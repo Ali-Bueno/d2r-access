@@ -14,6 +14,8 @@ bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept;
 // from the player's stats, the same UNIT_GetStat call a gold pile on the
 // ground already uses.
 int PlayerGold() noexcept;
+// Gold in the local player's personal stash, or -1 when it cannot be read.
+int PlayerStashGold() noexcept;
 
 struct UnitLabel { std::string baseName; uint32_t quality = 0; };
 // Table name and quality of a focused item; generated names come from its tooltip.

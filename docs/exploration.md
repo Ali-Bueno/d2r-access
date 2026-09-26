@@ -113,6 +113,13 @@ Directional lowering applies to both pips. Live listening remains pending.
   logical room exists once the level is generated, so the denominator is the whole level.
 - **Radar readout** (Ctrl+T): `sin explorar` after a marked direction.
 - `Strings::Table::wayUnexplored`, `terrainPercent`; `radarTest` extended. Thirteen languages.
+- **New place** (2026-09-25): the first time the scanner lists an exit on a map it says
+  `El radar ha registrado una salida nueva: Cementerio`; a waypoint or the stash says `un lugar
+  nuevo`. Queued, not interrupting. The gate is `TerrainService::RememberPlaces`: a place whose
+  identity is already on the map's list (restored from `explored.dat` or seen before) is known, and
+  the exit back to the level the player came from (`ExploredStore::Classify`, `Novelty::WayBack`) is
+  where they came in, not a find. Both are still remembered and logged (`(way back)`).
+  `[discoveries] enabled` in the settings file turns the speech off. `placeFoundExit`, `placeFound`.
 
 ## On disk
 

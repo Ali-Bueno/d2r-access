@@ -22,6 +22,22 @@ full_assistance = false
 [exploration]
 enabled = true
 
+# Speech when the scanner lists an exit, waypoint or stash for the first time on
+# a map ("The radar has logged a new exit"). The exit back to the level you came
+# from is never announced.
+[discoveries]
+enabled = true
+
+# Speech after a weapon swap (R3, W): the set and the weapons now in hand.
+# access-weapon-swap on|off toggles it for the current run.
+[weapon_swap]
+enabled = true
+
+# Player-to-player trade: who asks, what the other player offers, accepts or
+# withdraws, and whether the trade completed. access-trade on|off toggles it.
+[trade]
+enabled = true
+
 # Friendly NPC announcer: names the nearest town NPC (never enemies, objects or
 # items) once it comes within range, with its distance and screen direction, so
 # the left stick can walk to it. Ctrl+N toggles it for the current run.

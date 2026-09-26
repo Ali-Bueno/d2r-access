@@ -264,6 +264,12 @@ bool LegacyFiles(const std::filesystem::path& directory, std::vector<Legacy>& re
 }
 }
 
+Novelty Classify(const std::vector<Place>& known, const Place& place, uint32_t cameFrom) {
+	if (std::any_of(known.begin(), known.end(), [&](const Place& entry) { return entry.identity == place.identity; }))
+		return Novelty::Known;
+	return cameFrom && place.destination == cameFrom ? Novelty::WayBack : Novelty::Find;
+}
+
 bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found) {
 	bool changed = false;
 	for (const auto& place : found) {

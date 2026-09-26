@@ -37,6 +37,8 @@
 #include "ui_thread_pump.h"
 #include "tab_highlight.h"
 #include "vitals_service.h"
+#include "weapon_swap_service.h"
+#include "trade_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
 #include "widgets.h"
@@ -104,6 +106,8 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::SkillBarService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
+	D2RAccess::WeaponSwapService::Tick(context);
+	D2RAccess::TradeService::Tick(context);
 	LogRightStickPush(context);
 }
 
@@ -264,6 +268,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	} else {
 		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor, footfall or movement hook this session.");
 	}
+	if (!D2RAccess::TradeService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[trade] Trade announcements unavailable.");
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
 	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	D2RAccess::WallSlideService::Register(context, nativeHooks);
@@ -280,6 +285,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
+	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");

@@ -430,6 +430,23 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
+### Weapon swap, stash gold and trading
+
+A weapon swap (R3, W or the inventory's I/II tabs) names the set and the weapons
+now in hand ("Armas 2: Arco largo, Carcaj"); console `access-weapon-swap on|off`.
+See [weapon swap](docs/weapon-swap.md). In the stash, the withdraw button says the
+gold the open tab holds ("12345 de oro en el alijo").
+
+Trading with another player names the partner in the game's own request prompts,
+names the two offer grids, and announces what the other player offers (items,
+gold), both acceptances and whether the trade completed or was cancelled; console
+`access-trade on|off`. See [trade](docs/trade.md).
+
+The first time the scanner lists an exit on a map it says "El radar ha registrado
+una salida nueva" with the exit's name (waypoints and the stash: "un lugar nuevo");
+the exit back to the level just left is not announced. `[discoveries]` in the
+settings file. See [exploration](docs/exploration.md).
+
 ## How it works
 
 - The plugin listens to the game's UI message bus through the D2RLoader SDK (`PanelManager`,
@@ -477,6 +494,17 @@ Set `D2R_GAME_DIR` in `CMakeLists.txt` (or pass `-DD2R_GAME_DIR=...`) if the gam
 default Steam path. Launch the game with `D2RLoader.exe`; the plugin speaks "Diablo 2 accessibility
 loaded" when it starts. If the game runs in the wrong language under D2RLoader, set `text_locale`
 in `d2rloader/config/d2rloader.toml`.
+
+To start the loader from Steam's Play button instead, set the game's launch options (Properties →
+General → Launch Options) to the loader's path followed by `%command%`, for example:
+
+```
+"D:\games\steam\steamapps\common\Diablo II Resurrected\D2RLoader.exe" %command%
+```
+
+Steam then passes the `D2R.exe` path to the loader as an argument, which the loader forwards to the
+game harmlessly (verified with loader 1.3.0-beta). Do not rename or replace `D2R.exe`: the loader
+maps it from disk, and Steam restores it on update or file verification.
 
 Console commands (developer console, `Ctrl+`` in game): `access-say <text>`, `access-trace on|off`,
 `access-dump-code`, `access-text on|off|repeat|dump`. The latter controls in-game text

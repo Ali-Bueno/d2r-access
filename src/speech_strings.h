@@ -149,6 +149,8 @@ struct Table {
 	const char* roomNoExits;
 	const char* roomOpening; // a plain gap between two streamed rooms, with no name of its own
 	const char* wayUnexplored; // %s = a way out (direction, passage or exit name) never taken yet
+	const char* placeFoundExit; // %s = an exit the scanner lists for the first time on this map
+	const char* placeFound;     // %s = a waypoint or stash the scanner lists for the first time
 	// One reviewed way out: %s = label, %s = distance, %s = clock bearing phrase,
 	// %s = "" or the separator plus a reach word, %d = index (1-based), %d = count.
 	const char* exitReview;
@@ -182,6 +184,25 @@ struct Table {
 	const char* equipRefused;         // the game kept the item in hand
 	const char* equipRefusedBecause;  // %s = the requirements drawn red
 	const char* goldCarried;          // %s = how much gold the player is carrying
+	const char* goldStashed;          // %s = how much gold the open stash tab holds
+	const char* weaponSet;            // %d = weapon set (1 or 2), %s = the weapons in hand or handsEmpty
+	const char* handsEmpty;
+	// Player-to-player trade (docs/trade.md). %s = the partner's name throughout.
+	const char* tradeRequested;       // %s asked this player to trade
+	const char* tradeAsking;          // this player asked %s
+	const char* tradeWith;            // the trade window's title
+	const char* tradeYourOffer;       // the lower grid
+	const char* tradeTheirOffer;      // the upper grid
+	const char* tradePartnerGold;     // %s = partner, %s = gold offered
+	const char* tradePartnerItems;    // %s = partner, %s = how many items offered
+	const char* tradePartnerAccepted;
+	const char* tradePartnerWithdrew;
+	const char* tradeWeAccepted;
+	const char* tradeWeWithdrew;
+	const char* tradeCompleted;
+	const char* tradeCancelled;
+	const char* tradeEnded;           // no completion signal to tell completed from cancelled
+	const char* tradePartnerUnknown;  // stands in for a name the roster does not give
 	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
 	const char* autoDetailDisabled;
 	const char* listSeparator; // joins the items of a spoken list
@@ -238,12 +259,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
 		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.exitReview,
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.weaponSet, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeAccepted, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown,
+		t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot};

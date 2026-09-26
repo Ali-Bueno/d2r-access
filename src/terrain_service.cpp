@@ -62,7 +62,9 @@ uint64_t g_nextPoll = 0, g_nextSave = 0;
 uint32_t g_loggedLevel = 0;
 size_t g_loggedRooms = 0;
 uint32_t g_warnedLevel = 0;
-bool g_supported = false, g_roomSounds = true;
+bool g_supported = false, g_roomSounds = true, g_placeAlerts = true;
+// The level being surveyed and the one before it: the way back is not a find.
+int g_surveyedLevel = 0, g_cameFrom = 0;
 // The store worker owns archive I/O; gameplay only submits room snapshots.
 std::filesystem::path g_directory;
 ExploredStore::Store g_store;
@@ -129,6 +131,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 		g_explored.Forget();
 		g_keys.clear();
 		g_places.clear();
+		g_surveyedLevel = g_cameFrom = 0;
 		g_loggedLevel = 0;
 		g_loggedRooms = 0;
 	}
@@ -293,6 +296,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	g_roomSounds = RadarConfig::ReadEnabled(context, "[exploration]").value_or(true);
+	g_placeAlerts = RadarConfig::ReadEnabled(context, "[discoveries]").value_or(true);
 	// Next to the plugin, like the code dump and the sounds: `d2r-access\explored`.
 	if (context->pluginDirectory != nullptr) {
 		g_directory = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "explored";
@@ -414,17 +418,28 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 		if (MapSurvey::Fixed(entity))
 			fixed.push_back({entity.id, entity.placeId, entity.position.x, entity.position.y, entity.destinationLevel, entity.name,
 				static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey});
-	if (fixed.empty()) return;
-	std::lock_guard lock(g_mutex);
-	const auto* key = LoadedKey(level, rooms);
-	if (!key) return;
-	auto& known = g_places[*key];
-	for (const auto& place : fixed) {
-		const bool fresh = std::none_of(known.begin(), known.end(), [&](const auto& entry) { return entry.identity == place.identity; });
-		if (ExploredStore::MergePlaces(known, {place}) && fresh)
-			AsyncLog::InfoF(g_context, "[terrain] place remembered level=%d at=%.0f,%.0f category=%u to=%u places=%zu name=%s", level,
-				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str());
+	std::vector<std::string> finds;
+	{
+		std::lock_guard lock(g_mutex);
+		const auto* key = LoadedKey(level, rooms);
+		if (!key) return;
+		if (g_surveyedLevel != level) { g_cameFrom = g_surveyedLevel; g_surveyedLevel = level; }
+		if (fixed.empty()) return;
+		auto& known = g_places[*key];
+		for (const auto& place : fixed) {
+			const auto novelty = ExploredStore::Classify(known, place, static_cast<uint32_t>(g_cameFrom));
+			if (!ExploredStore::MergePlaces(known, {place}) || novelty == ExploredStore::Novelty::Known) continue;
+			const bool wayBack = novelty == ExploredStore::Novelty::WayBack;
+			AsyncLog::InfoF(g_context, "[terrain] place remembered level=%d at=%.0f,%.0f category=%u to=%u places=%zu name=%s%s", level,
+				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str(), wayBack ? " (way back)" : "");
+			if (wayBack || !g_placeAlerts) continue;
+			const bool exit = static_cast<EntityRadar::Category>(place.category) == EntityRadar::Category::Exit;
+			char phrase[200]{};
+			std::snprintf(phrase, sizeof(phrase), exit ? Strings::Current().placeFoundExit : Strings::Current().placeFound, place.name.c_str());
+			finds.emplace_back(phrase);
+		}
 	}
+	for (const auto& phrase : finds) ScreenReader::Speak(phrase, false);
 }
 
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
@@ -457,6 +472,8 @@ void Unregister() {
 	g_asked = false;
 	g_supported = false;
 	g_roomSounds = true;
+	g_placeAlerts = true;
+	g_surveyedLevel = g_cameFrom = 0;
 	g_nextPoll = 0;
 	g_nextSave = 0;
 	g_loadedLevel = 0;
