@@ -52,7 +52,7 @@ inline constexpr uint64_t ExitRefreshMs = 500;
 // User listening feedback: lower both individual sources and piles by about 3.5 dB.
 inline constexpr float LoopVolume = 0.4f, RearPitch = 0.94f;
 inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops peak together
-// Installed under sounds/item loop sounds/<folder>/ (cmake/GroundItems.cmake).
+// Built from sounds/item loop sounds/<folder>/ and embedded in the DLL (cmake/GroundItems.cmake).
 struct SoundFile { const char* folder; const char* name; };
 inline constexpr SoundFile SoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potion.wav"},
 	{"loot", "scroll.wav"}, {"loot", "rune.wav"}, {"loot", "gem.wav"}, {"loot", "normal equipment.wav"},

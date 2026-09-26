@@ -10,7 +10,7 @@ original cues, only changes sound).
 ## Supplied exploration sounds (2026-09-22)
 
 `sounds/item loop sounds/exploration` supplies three OGG recordings, converted to mono PCM
-at build time and deployed with the existing sound assets:
+at build time and embedded in the plugin DLL with the other loop sounds:
 
 | Recording | Playback |
 |---|---|

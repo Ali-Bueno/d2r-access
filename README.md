@@ -488,9 +488,9 @@ settings file. See [exploration](docs/exploration.md).
 
 ## Build and install
 
-Build with the game closed. FFmpeg must be on `PATH` to convert the six OGG
-loop sources to WAV. The build also installs these audio assets; FFmpeg is not
-needed to run the installed plugin.
+Build with the game closed. FFmpeg must be on `PATH` to convert the OGG loop
+sources to WAV. The build embeds those sounds in the plugin DLL, so there are no
+loose sound files to install or replace; FFmpeg is not needed to run the plugin.
 
 ```powershell
 git clone --recurse-submodules <this repo>
