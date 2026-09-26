@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Friend's tester ZIP v2 — 2026-09-25
+
+`../d2r-access-completo-2026-09-25-v2.zip`, plugin from 98df013 (SHA-256 `D2DC8ABA…`, matches
+the install): 46 entries, 57,713,847 bytes, SHA-256 `31fc1e45…` (full hash in `.zip.sha256`
+beside it). Built on the first 25/09 package: new plugin, current `radar.toml` as
+`d2r-access.toml` (adds `[doors]`, `[discoveries]`, `[weapon_swap]`, `[trade]`), the 20 WAVs in
+the `loot/` and `exploration/` layout, and a Spanish LEEME with this version's news (doors,
+corpses, scroll/rune/gem, tomes, trade, stash gold, new exits, weapon swap) and a note that the
+old sound folders can be deleted. Loader and PRISM match the install; VC runtime unchanged. Every
+entry decompresses and matches its SHA-256. **Next step:** the friend installs it.
+
 ## Sound folders, corpse/scroll/rune/gem loops, door loops — installed, 2026-09-25
 
 - **Folders:** sounds now live in `sounds/item loop sounds/loot|exploration/` (portal moved to
