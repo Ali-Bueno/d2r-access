@@ -480,4 +480,9 @@ captures, `scroll-open` and `scroll-visible`.
 
   The reader applies the first two rules. It narrows the third to the same
   level ID, as the user asked. It also skips entries whose position is zero
-  (never received).
+  (never received). For "not loaded" it looks for the player unit across the
+  loaded rooms of the level (a walk over each room's near-room list, same level,
+  at most 256 rooms), not only the scan's own room and its neighbours. Within 50
+  subtiles the roster X/Y is stale, so a unit two rooms away used to be placed
+  where the friend last stood far away, even on the previous level (2026-09-26).
+  The walk runs only when the roster lists someone besides the local player.

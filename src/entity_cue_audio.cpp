@@ -1,5 +1,6 @@
 #include "entity_cue_audio.h"
 #include "async_log.h"
+#include "wave_out.h"
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -45,11 +46,11 @@ bool PlayOne(HWAVEOUT device, HANDLE done, std::vector<int16_t>& pcm, uint64_t g
 		waveOutUnprepareHeader(device, &header, sizeof(header));
 		return false;
 	}
-	const auto finished = [&] { return (*reinterpret_cast<volatile DWORD*>(&header.dwFlags) & WHDR_DONE) != 0; };
-	while (!finished() && g_running && generation == g_generation) WaitForSingleObject(done, CancelPollMs);
-	if (!finished()) waveOutReset(device);
+	const auto wait = WaveOut::Await(header, done, Channels * SampleRate * sizeof(int16_t), CancelPollMs,
+		[&] { return g_running && generation == g_generation; });
+	if (wait != WaveOut::Wait::Done) waveOutReset(device);
 	waveOutUnprepareHeader(device, &header, sizeof(header));
-	return true;
+	return wait != WaveOut::Wait::Stalled;
 }
 
 void Worker(const D2RL::PluginContext* context) {
