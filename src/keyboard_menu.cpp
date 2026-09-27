@@ -18,6 +18,7 @@
 #include "native_sort.h"
 #include "native_tooltips.h"
 #include "native_ui.h"
+#include "native_value_controls.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -53,6 +54,7 @@ constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen direc
 constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server answered is one it refuses
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
+constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
@@ -74,6 +76,8 @@ constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSki
 // The list of skills, one panel for both hands, and the game's own words for
 // each hand: the lines of its help screen for the two mouse buttons.
 constexpr std::string_view SkillList = "SkillSelect";
+// The rows of an open dropdown, a panel of its own drawn over the menu it belongs to.
+constexpr std::string_view DropdownList = "DropdownListContents";
 constexpr const char* LeftHandKey = "StrHDHelpLeftMouse";
 constexpr const char* RightHandKey = "StrHDHelpRightMouse";
 
@@ -94,6 +98,18 @@ struct Entry {
 	bool belt = false;  // the belt, which counts its places from the bottom row up
 	std::string name, type;
 };
+// A step of a value that is under way. The game itself steps a slider or an
+// option the pointer is over when the left or right arrow key goes down (READ,
+// not measured), so the value is looked at first, and the arrow of the control
+// is clicked only when the key has not changed it.
+struct Adjusting {
+	uintptr_t widget = 0;
+	int before = 0;
+	bool up = false, clicked = false;
+	uint64_t since = 0, look = 0;
+};
+Adjusting g_adjusting;
+
 // The open menu: what each thing is, and beside it where it is for the cursor.
 std::vector<Entry> g_entries;
 std::vector<Target> g_targets;
@@ -238,6 +254,9 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 	} else if (type.kind == Kind::Tabs) {
 		if (const int tabs = NativeUi::TabCount(widget); tabs > 1) whole = AddCells(entry, {tabs, 1, {}});
 	}
+	// A slider and an option that steps are one place each: their arrows are
+	// what the left and right arrow keys click, not places of their own.
+	const bool steps = NativeValueControls::Of(widget) != NativeValueControls::Kind::None;
 	const bool control = type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::ListItem
 		|| type.kind == Kind::Focusable || type.kind == Kind::InventorySlot || type.kind == Kind::InventoryItem
 		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
@@ -251,7 +270,7 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 			g_entries.push_back(entry);
 		}
 	}
-	if (whole) return;
+	if (whole || steps) return;
 	const uintptr_t inside = type.kind == Kind::TabButton ? widget : tab;
 	for (const uintptr_t child : NativeUi::Children(widget)) Collect(child, panel, inside, depth + 1);
 }
@@ -333,7 +352,7 @@ std::string Build(const D2RL::PluginContext* context) {
 		}
 	}
 	for (size_t i = shown.size(); i-- > 0;) {
-		if (!shown[i].name.ends_with("Modal")) continue;
+		if (!shown[i].name.ends_with("Modal") && shown[i].name != DropdownList) continue;
 		shown = {shown[i]};
 		break;
 	}
@@ -511,6 +530,7 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	g_said.clear();
 	g_titleUntil = 0;
 	g_listHand = NativeSkillHand::Hand::None;
+	g_adjusting = {};
 	NativeUi::ClearCursor();
 }
 
@@ -586,6 +606,50 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	(void)Land(context, now, place);
 }
 
+// The left and right arrows on a slider or an option that steps change its
+// value and leave the cursor where it is (the user, 2026-09-27). False for
+// any other control.
+bool Adjust(const D2RL::PluginContext* context, uint64_t now, const Entry& entry, bool up) {
+	if (NativeValueControls::Of(entry.widget) == NativeValueControls::Kind::None) return false;
+	if (g_adjusting.widget) return true; // one step at a time
+	const auto value = NativeValueControls::Value(entry.widget);
+	if (!value) {
+		AsyncLog::WarnF(context, "[cursor] value of %s (%s) could not be read", entry.name.c_str(), entry.type.c_str());
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		return true;
+	}
+	g_adjusting = {entry.widget, *value, up, false, now, now + OwnStepMs};
+	return true;
+}
+
+void Adjusted(const D2RL::PluginContext* context, uint64_t now) {
+	auto& step = g_adjusting;
+	if (!step.widget || now < step.look || MenuMouse::Busy()) return;
+	const auto* entry = EntryOf(step.widget);
+	const auto value = entry ? NativeValueControls::Value(step.widget) : std::nullopt;
+	if (!value) { step = {}; return; }
+	if (*value == step.before && !step.clicked) {
+		const uintptr_t arrow = NativeValueControls::Arrow(step.widget, step.up);
+		const auto rect = arrow ? NativeSkillNavigation::RectAt(arrow, NativeUi::FocusSelection(arrow)) : std::nullopt;
+		if (rect && OnScreen(*rect)) {
+			AsyncLog::InfoF(context, "[cursor] value of %s: the key left it at %d; click on its arrow %s", entry->name.c_str(), *value,
+				step.up ? "up" : "down");
+			const auto back = PointerRect(*entry, g_place, false);
+			MenuMouse::ClickAt(*rect, MenuMouse::Button::Left, back.value_or(NativeUi::Rect{}));
+			step.clicked = true;
+			step.look = now + AfterClickMs;
+			return;
+		}
+		AsyncLog::WarnF(context, "[cursor] value of %s: its arrow %s", entry->name.c_str(), arrow ? "has no rectangle" : "is not there");
+	}
+	const auto shown = NativeValueControls::Shown(step.widget);
+	AsyncLog::InfoF(context, "[cursor] value of %s: %d -> %d %s, shown \"%s\"", entry->name.c_str(), step.before, *value,
+		*value == step.before ? "unchanged" : step.clicked ? "by a click on its arrow" : "by the game on the key", shown.c_str());
+	// A reader that heard the game say the value changed has said it already.
+	if (ScreenReader::LastSpoken() < step.since && !shown.empty()) ScreenReader::Speak(shown, true);
+	step = {};
+}
+
 void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
 	if (!g_engaged) {
 		g_engaged = true;
@@ -598,6 +662,8 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 	Refresh(context, now);
 	if (waited) return; // the press ends the wait, and says where the cursor is
 	if (!g_place.widget) return;
+	if (direction == Direction::Left || direction == Direction::Right)
+		if (const auto* entry = EntryOf(g_place.widget); entry && Adjust(context, now, *entry, direction == Direction::Right)) return;
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding, g_links);
 	if (next == g_place) {
@@ -621,6 +687,15 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 		ScreenReader::Speak(Strings::Current().unavailable, true);
 		return;
 	}
+	// A click on a slider sets its value to where the click was, the middle of
+	// it here. The value is said instead; the arrows change it. A click on an
+	// option that steps goes to its next state, as Enter does for the game.
+	if (entry && NativeValueControls::Of(entry->widget) == NativeValueControls::Kind::Slider) {
+		AsyncLog::InfoF(context, "[cursor] no click on the slider %s: its value is said", entry->name.c_str());
+		ScreenReader::Speak(NativeValueControls::Shown(entry->widget), true);
+		return;
+	}
+	if (entry && button == MenuMouse::Button::Left && Adjust(context, now, *entry, true)) return;
 	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
 	AsyncLog::InfoF(context, "[cursor] %s click%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
 		shift ? " with Shift" : "", control ? " with Ctrl" : "", entry ? entry->name.c_str() : "where the pointer is");
@@ -890,6 +965,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint32_t pending = g_pending.exchange(0);
 	for (size_t act = 0; act < Acts; ++act)
 		if (pending & (1u << act)) Do(context, now, static_cast<Act>(act));
+	Adjusted(context, now);
 
 	// A place no reader named is named here, so no move passes in silence.
 	if (g_landedAt && now >= g_landedAt && now - g_landedAt >= SilenceMs) {

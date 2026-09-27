@@ -32,6 +32,7 @@
 #include "native_skill_navigation.h"
 #include "native_sort.h"
 #include "native_swap.h"
+#include "native_value_controls.h"
 #include "native_weapon_set.h"
 #include "native_world.h"
 #include "navigation_grid.h"
@@ -969,6 +970,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeBeltFill::Initialize(context);
 	if (nativeHooks) (void)NativeSkillHand::Initialize(context);
 	if (nativeHooks) (void)NativeSkillIcons::Initialize(context);
+	if (nativeHooks) (void)NativeValueControls::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
