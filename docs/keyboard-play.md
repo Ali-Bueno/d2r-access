@@ -1,8 +1,10 @@
 # Keyboard play
 
 Playing the game from the keyboard alone, with no controller connected: what
-is built, what the first live test of 2026-09-27 measured, and what the second
+is built, what the two live tests of 2026-09-27 measured, and what the next
 has to measure. How the character is made to act is in `keyboard-actions.md`.
+What is not built is in `keyboard-unbuilt.md`; every key is in
+`keyboard-keys.md`.
 
 **MEASURED** means the running game or its log showed it. **READ** means the
 code or the game's data says so. **OPEN** means not established.
@@ -15,6 +17,7 @@ In play:
 |---|---|
 | arrows (held) | walk |
 | A / W (held) | fight with the left / right skill; a ranged fight keeps its distance |
+| Y | swap weapons |
 | Tab, Shift+Tab | next / previous monster |
 | D | walk up to the nearest usable thing and use it |
 | Shift+Home | walk to what the scanner named |
@@ -35,14 +38,16 @@ Everywhere:
 | Home | say it again |
 | Ctrl+S, then PageUp / PageDown, Space | the settings list |
 
-In a menu (built after the first test, not yet tried in the game):
+In a menu:
 
 | key | what |
 |---|---|
 | arrows | move the mod's cursor: control to control, and by item inside a grid. A held arrow repeats |
 | A | left click where the cursor is |
-| W | right click where the cursor is |
-| Shift+A, Ctrl+A, Shift+W, Ctrl+W | the same click with the key held, which the game sees: Shift + left click equips, Ctrl + left click sells, moves or drops |
+| D | right click where the cursor is (W until the user moved it, 2026-09-27) |
+| Shift+A, Ctrl+A, Shift+D | the same click with the key held, which the game sees: Shift + left click equips, Ctrl + left click sells, moves or drops |
+| Y | swap weapons |
+| backslash | say it again |
 | Ctrl + up, down | the line before, the line after, of what the cursor is on |
 | Ctrl + left, right | its first line, its last line |
 | PageUp, PageDown | the tab before, the tab after |
@@ -52,11 +57,11 @@ In a menu (built after the first test, not yet tried in the game):
 | Ctrl+R, Shift+R | repair all, repair (a merchant who repairs) |
 | Alt+T | transmute (the Horadric Cube) |
 | Alt+S | sort the grid the cursor is in; the player's inventory when it is in none |
+| Alt+F | fill the belt from the inventory, while an inventory is open |
 
 In play PageUp, PageDown, Home and End are what they were (the user,
 2026-09-27: they are tab keys "when a menu is open. otherwise they are still
-the navigation keys"). **"Say it again" has no key in a menu now**: Home was
-its key.
+the navigation keys"). In a menu backslash says it again: Home was its key.
 
 ## What the first live test measured
 
@@ -103,6 +108,33 @@ move its own cursor and then finished the move. In keyboard mode the game has
 no cursor to move, so they never ran: the session has no `[keys]` line. They
 were replaced by the mod's own cursor, below.
 
+## What the second live test measured
+
+Session of 2026-09-27 12:18 to 12:21, keyboard mode, no controller, the build
+of `f64d6ff`. Its log is kept in the workspace, outside this repository, as
+`re/logs/keyboard-second-live-test-2026-09-27.log`. **Three faults it showed
+were fixed afterwards and have not been tested.**
+
+| finding | evidence |
+|---|---|
+| The sort, the swap, the belt's rows and the belt's fill all match the running game | `[sort] Verified.`, `[swap] Verified.`, `[belt-rows] Verified.`, `[belt-fill] Verified.` |
+| The loader took every key | `[keyboard] 28 of 28 keys registered` |
+| **The pointer lands where it is put, at once** | every `[cursor] on ... placed=1 pointer X,Y` has the middle of its rectangle, read in the same call |
+| The cursor takes the menu as it opens, and lists it | `[cursor] taken: a menu is up and no pad is connected`, `[cursor] menu: MainMenuPanel ... -- 17 things`, `18 places, 0 not reached` |
+| **The readers read the cursor as they read the focus** | `[focus] CharacterSelectPanel/CreateCharacter (ButtonWidget) -> "Create New, button"`, and the character's row as "Gordan, Level 7 Paladin" |
+| **On the main menu the loader does not deliver A**; the key watch did | `[menu-keys] left click came by watching the key: the loader did not deliver it here (menu: MainMenuPanel ...)` |
+| A click on the character's row, the fifth, started the game | `[cursor] left click on ListItem0` at 12:19:20.036, `"going to Game"` 400 ms later. Why not the first four is OPEN |
+| **FAULT, fixed `ee44174`: in the game, the game was never in play** | `[radar] status=dialogue` from 12:19:22 on with no menu open; `[survey] request ignored: not in play`; A and D logged as `left click on where the pointer is`. `HireablesPanel`, the mercenary's portrait on the HUD, was in the list of menus of the play gate, and it is open for the whole game |
+| **FAULT, fixed `f841d56`: a click went to the wrong button** | the main menu's bar of tabs is drawn at y = -130; the cursor began on it, the pointer stayed at 1719,937, and A clicked what was there: `[cursor] left click on Tabs`, then `"going to CharacterCreate"` |
+| **FAULT, fixed `a946d64`: panels of play were in the cursor's menu** | `[cursor] menu: HireablesPanel MessageLogPanel_800x600 CandidateListPanel -- 3 things`, the three a scroll bar and its arrows |
+| A place with no reader is named by the cursor, by its layout name | `[cursor] no reader named it; said "UpArrow"`, and "Druid", "Offline", "Online" |
+| The pointer is put between the skill buttons when a menu closes | `[cursor] play goes on: the pointer to 962,1042`. 17 seconds later: `World target -> "Experience: 31,952 / 32,886"`. OPEN whether the place is over the experience bar |
+
+Not pressed in this test: Y, Alt+F, Alt+S, backslash, the tab keys, Home and
+End in a menu. No inventory, skill tree, quest log or options panel was
+opened, so **the cursor in a grid of items, the belt and the readers of items
+are still unmeasured.**
+
 ## The menus: how they are built
 
 The user's decisions, 2026-09-27:
@@ -127,7 +159,13 @@ The user's decisions, 2026-09-27:
 | the cursor in the game | `src/keyboard_menu.*` | lists the open menu's controls and grids, moves the cursor, places the pointer, clicks, switches tabs and menus |
 | the mouse | `src/menu_mouse.*` | the pointer on a rectangle; a click as a press and a release some frames apart (`SendInput`) |
 | the stand-in for focus | `NativeUi::SetCursor` | `CurrentFocus` and `FocusSelection` give the mod's cursor while it is set, so every reader reads it as it reads the controller's focus |
-| the gate | `RadarUi::MenuPanel` | the inventory, skill tree, stash and the rest are menus by name; in keyboard mode no `UISwitcher` opens with them |
+| the gate | `RadarUi::MenuPanel` | the inventory, skill tree, stash and the rest are menus by name; in keyboard mode no `UISwitcher` opens with them. **A panel that is open in play must never be in its list** (the second test) |
+| the weapon swap | `src/native_swap.*` | Y runs the handler of the game's own swap key (key action 44, `0x11BF00`); 700 ms later a set that has not changed is said to be unavailable |
+| the belt's rows | `src/native_belt_rows.*` | the slots of the belt worn, whether it is drawn in full, the game's "show belt" turned on while the belt is in the menu, the belt's own hit test for the point to click |
+| the belt's fill | `src/native_belt_fill.*` | Alt+F makes the calls the belt's handler makes when the controller's hold completes |
+| the keys in the hints | `src/click_words.*` | pure, tested. "Ctrl + Left Click to Sell" is said as "Ctrl + A to Sell" while the keyboard has the menu, in the game's thirteen languages |
+| the pointer at rest | `Park` in `src/keyboard_menu.cpp` | when a menu closes and play goes on, the pointer is put between the HUD's two skill buttons |
+| a click refused | `Land`, `Click` in `src/keyboard_menu.cpp` | a place drawn off the screen is not a place; a click is refused, and said to be unavailable, when the pointer did not go to where the cursor is |
 | lines | `InputDirection::PostLineStep`, `ReadLines` in `src/interaction_reader.cpp` | Ctrl with an arrow walks an item's or a skill's tooltip a line at a time; on the character panel and Advanced Stats it is the right stick, which walks their lines already |
 
 ### READ in the game's code (3.3.93787), none of it measured live
@@ -168,12 +206,17 @@ cannot be a key of the loader's, which takes one modifier. OPEN.
 
 ### OPEN, and what in the log answers it
 
-The second live test is the first time any of this runs. Copy the log before
-the next launch; it does not always append.
+The next live test is the first with the game in play and the menus built.
+Copy the log before the next launch; it does not always append.
 
 | question | the log line |
 |---|---|
-| Does the pointer land where it is put? | `[cursor] on <name> ... placed=1 pointer X,Y`: the pointer's own position after the move |
+| Is the game in play with no menu open? | no `[survey] request ignored: not in play`, no `[radar] status=dialogue`, and `[actions] run to` when an arrow is held |
+| Does the pointer go where it is put? | MEASURED yes. `[cursor] the pointer did not go to ...` names a place it did not reach, and a click there is refused |
+| Does Y swap? | `[swap] the game's swap key handler: ran`, then `[weapon-swap] set=...`; `[swap] the set in use did not change in 700 ms: refused` means the game or the server said no |
+| Are the belt's rows there? | `[belt-rows] show belt: ran, shown 0 -> 1`, then `[cursor] thing Belt (BeltWidget) ... cells 4xN`, and for each move `[cursor] belt slot N; the belt takes the point for slot N`: the two numbers have to be the same |
+| Does Alt+F fill? | `[belt-fill] sent, N planned`, the game's own sound, and the potions in the belt afterwards; `nothing to fill` and `refused` are the game's answers |
+| Is a hint said with the mod's keys? | "Ctrl + A to Sell" heard on an item at a merchant |
 | Does the game show a tooltip for what the pointer is on, and is it captured? | an `[interaction]` line with the item's name after the `[cursor] on` line; `[cursor] no reader named it; said "..."` means no reader spoke within 450 ms |
 | What is in each menu, and is everything reached? | `[cursor] menu:`, one `[cursor] thing` per control, then `[cursor] N places, M not reached`; `NOT REACHED by the arrows` names what the arrows miss |
 | Does the loader deliver the keys with a menu open, and on the title screen? | `[menu-keys] ... came by watching the key` means it did not, and the game's own use of that key was not held back |
@@ -191,10 +234,8 @@ INFERRED, to be listened for:
   is set. Whether the game also moves its own focus with the arrows there is
   not measured.
 - Sliders and dropdowns: a click opens a dropdown, whose rows are then
-  controls. A slider has no key to change it yet.
-- The belt is the HUD's. Its bottom row is added to the menu while an
-  inventory is open; the rows above it are not.
-- The pointer stays where the last menu left it when play goes on.
+  controls. A slider has no key to change it yet (`keyboard-unbuilt.md`).
+- The belt is the HUD's. It is added to the menu while an inventory is open.
 
 ### Sort
 
@@ -224,9 +265,57 @@ same grid, after checking all three functions byte for byte. The log line is
 **The first press in the game is the measurement**: what the readers say is
 under the cursor afterwards, and the `[grid]` census lines before and after.
 
-The belt's "hold to fill" (`ControllerPromptHoldToPopulateBelt`) is the
-controller's alone too. Its work is written inside the belt's handler
-(`0x2283E0`), with no function of its own to call. Not built.
+### The weapon swap
+
+READ, not pressed in a test; the working files are `re/actions/swap`.
+
+- The game's table of key actions (`0x22A7930`, records of 0x18 bytes) holds
+  `0x11BF00` for action 44, which the `.key` file binds to W. It takes no
+  argument. It asks whether input is free (`0x13DE60`) or the inventory is
+  open, and whether the character is free to act (`0x14B380`: not in the
+  middle of a blow, a throw, a kick or a skill), reads the set in use from
+  the registry and jumps to the swap with it.
+- The swap is `0x1E33A0`, `void(uint8 set in use)`. **It is not without an
+  argument**: the server compares the set it is given with its own and
+  refuses one that differs. It sends message 0x50 in single player too. With
+  a trade open it swaps on the client alone (`0x15B920`), as the game's key
+  does. `docs/weapon-swap.md` calls the two paths "local game" and
+  "otherwise"; the test is the trade window (`UIVisible(0x16)`).
+- Neither function checks for a player: the mod looks the player up first.
+- The controller check is in the dispatcher that calls the handler
+  (`0x11FF30`), not in the handler.
+- OPEN: whether the first question passes with a panel other than the
+  inventory open. If Y says "Unavailable" in the skill tree, that is why.
+
+### The belt
+
+READ, not tried in a test; the working files are `re/actions/belt`.
+
+- A belt has 4, 8, 12 or 16 slots by the belt worn (`belts.txt`);
+  `BeltWidget::Update` (`0x228DB0`) writes the number to the widget's +0x6A4
+  every frame. slot = column + 4 * row, and row 0 is the bottom row.
+- The rows above the bottom one are drawn, and take a click, only while the
+  belt is drawn in full (+0x6A0): while the pointer is over the belt, or
+  while UI state 0x1A is on, which is what the game's "show belt" key
+  toggles (`0x11B1D0`, no argument, nothing with no belt worn). The mod turns
+  it on while the belt is in the cursor's menu and off when the menu closes,
+  and leaves alone one the player turned on.
+- A slot's rectangle holds the space between the cells and, drawn in full,
+  the belt's cap, and a click counts only on the cell in its top left. The
+  belt's own hit test (`0x226C60`) is asked which point is the slot's.
+- In the cursor's grid the top row is row 0, so the cursor's cell is turned
+  into the game's slot (`Selection` in `src/keyboard_menu.cpp`). An empty
+  slot says "Empty" and where it is, its row counted from the bottom one.
+- **The fill's plan is not written inside the handler**, as was first read:
+  the handler `0x2283E0` calls `0x386FF0`, which makes the whole plan, and
+  `0x0ECA70`, which sends message 0x5D. The controller check is the
+  handler's first call and is in none of the functions the mod calls. The
+  server makes the plan again with the same slot finder and refuses the
+  whole message, before any potion moves, if one entry differs.
+- With the mouse a potion goes from the inventory to the belt by Shift +
+  left click (READ 0.8), which is Shift+A; a left click on a belt slot picks
+  the potion up or puts the one in hand down, a right click drinks it, Shift +
+  right click gives it to the mercenary.
 
 ## Found on the way
 

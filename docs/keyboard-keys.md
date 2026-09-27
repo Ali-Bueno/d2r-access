@@ -1,10 +1,15 @@
 # Every key, in one place
 
-The keys of keyboard play on the `keyboard-local` branch, 2026-09-27. The
-mod's keys are READ from what the code registers with the loader; the game's
-own are READ from the character's `.key` file. What each of the game's
-actions is called is from the order of the game's key binding screen and was
-not checked against it. How the menus work is in `keyboard-play.md`.
+The keys of keyboard play on the `keyboard-local` branch, 2026-09-27, after
+the third session of that day. The mod's keys are READ from what the code
+registers with the loader (MEASURED 12:18: `[keyboard] 28 of 28 keys
+registered`); the game's own are READ from the character's `.key` file. What
+each of the game's actions is called is from the order of the game's key
+binding screen and was not checked against it. How the menus work is in
+`keyboard-play.md`.
+
+**Every key below was chosen or confirmed by the user on 2026-09-27.** Ask
+before adding one, and read this file first.
 
 ## In play
 
@@ -13,6 +18,7 @@ not checked against it. How the menus work is in `keyboard-play.md`.
 | arrows, held | walk |
 | A, held | fight with the left skill |
 | W, held | fight with the right skill |
+| Y | swap weapons |
 | Tab, Shift+Tab | next monster, previous monster |
 | D | walk up to the nearest usable thing and use it |
 | H | walk to the nearest unexplored room |
@@ -24,15 +30,16 @@ not checked against it. How the menus work is in `keyboard-play.md`.
 | Z, X | life, mana |
 | PageUp, PageDown | scanner: previous object, next object |
 | Ctrl+PageUp, Ctrl+PageDown | scanner: previous category, next category |
-| Home | say the scanner's object again |
+| Home, backslash | say the scanner's object again |
 | Ctrl+Numpad 4, Ctrl+Numpad 6 | scanner: previous object, next object |
 | Ctrl+Numpad 8, Ctrl+Numpad 2 | scanner: previous category, next category |
-| backslash | say the scanner's object again |
-| comma, full stop | scanner: previous category, next category |
 | Ctrl+B | follow or release what the scanner named |
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
+
+Comma and full stop were the scanner's category keys and were retired by the
+user on 2026-09-27.
 
 ## In a menu
 
@@ -40,10 +47,13 @@ not checked against it. How the menus work is in `keyboard-play.md`.
 |---|---|
 | arrows | move the cursor; a held arrow repeats |
 | A | left click: choose, pick up, put down |
-| W | right click: use, read, open, buy |
-| Shift+A | left click with Shift: equip, unequip |
+| D | right click: use, read, open, buy, drink |
+| Shift+A | left click with Shift: equip, unequip, a potion to the belt |
 | Ctrl+A | left click with Ctrl: sell, drop, move to the stash or the cube |
-| Shift+W, Ctrl+W | right click with the key held |
+| Shift+D | right click with Shift |
+| W | nothing: it is kept from the game, whose W swaps weapons |
+| Y | swap weapons |
+| backslash | say it again |
 | Ctrl+Up, Ctrl+Down | the line before, the line after |
 | Ctrl+Left, Ctrl+Right | the first line, the last line |
 | PageUp, PageDown | the tab before, the tab after |
@@ -55,6 +65,13 @@ not checked against it. How the menus work is in `keyboard-play.md`.
 | Shift+R | repair |
 | Alt+T | transmute |
 | Alt+S | sort |
+| Alt+F | fill the belt from the inventory (with an inventory open) |
+
+Ctrl+D is not a click: it is the whole description's switch, below.
+
+**Decided by the user, not yet built:** with the cursor on a slider or on an
+option that steps through values, the left and right arrows change the value,
+"the same as the controller would". See `keyboard-unbuilt.md`.
 
 ## Everywhere
 
@@ -90,8 +107,8 @@ Every switch that has no key of its own is in the Ctrl+S list.
 | M | message log | yes |
 | Esc | game menu; shuts what is open | yes |
 | Space | shuts every panel | yes, but not while the Ctrl+S list is open |
-| S | the list of skills to choose from | yes |
-| F1 to F8 | skills 1 to 8 | yes |
+| S | the list of skills for the RIGHT hand (READ in the image) | yes |
+| F1 to F8 | skills 1 to 8; with a list of skills open, binds the skill under the pointer | yes |
 | 1 to 4 | the belt's potions | yes |
 | grave accent | show the belt | yes |
 | R | run or walk | yes |
@@ -103,7 +120,7 @@ Every switch that has no key of its own is in the Ctrl+S list.
 | Numpad 0 to 7 | the spoken calls | yes |
 | F9 to F12, V | automap options | yes |
 | PrintScreen | screenshot | yes |
-| **W** | **swap weapons** | **no: the mod's, in play and in a menu** |
+| **W** | **swap weapons** | **no: the mod's. Y swaps** |
 | Tab | automap | no: next monster |
 | H | help screen | no: explore |
 | Z | portraits | no: life |
@@ -113,12 +130,9 @@ Every switch that has no key of its own is in the Ctrl+S list.
 
 | what | why | what it would take |
 |---|---|---|
-| swap weapons | W is the mod's | a key of the user's choosing; in the inventory the two swap areas can be clicked |
-| say it again, in a menu | Home was its key and is a tab key there | a key of the user's choosing |
-| choose the left skill | the game's S key opens the right skill's list; the left one is a click on the HUD | a key that clicks the HUD's left skill button |
-| move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | the mod watching the key itself |
-| fill the belt | the controller's hold; the game has no function of its own for it | not built |
-| change a slider | the mouse drags it | not built |
-| the belt's upper rows | only the bottom row is in the cursor's menu | not built |
+| choose the left skill | the game has no key for the left hand's list; with the mouse it is a click on the HUD's left skill button | the user's decision: a key, or the button put in the cursor's menu. Asked 2026-09-27, answered with a question; see `keyboard-unbuilt.md` |
+| move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | INFERRED to work already through the key watch: Ctrl+Shift+A. Not measured |
+| change a slider, step an option | not built | the arrows, as decided |
 
-Keys no one uses: J, K, L, U, Y, Insert, Delete, and most keys with Alt.
+Keys no one uses: J, K, L, U, Insert, Delete, comma, full stop, and most
+keys with Alt.
