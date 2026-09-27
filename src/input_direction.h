@@ -144,6 +144,18 @@ TriggerHold LeftTrigger();
 struct Stick { float x = 0, y = 0; bool connected = false; };
 Stick LeftStick();
 
+// The keyboard's twins of the gestures above. A key posts the gesture its
+// reader already listens for, so every reader serves pad and keyboard alike and
+// none has to learn a second input. The game takes no part in this: nothing
+// posted here is input to it, and no pad is imitated. Post after Poll() in the
+// same update; a left-stick push no reader claims is dropped by the next Poll,
+// as one made without Y held is.
+void PostRightStickPush(StickPush push);
+void PostLeftStickPush(StickPush push); // as if made with Y held
+void PostBackWith(FaceButton button);
+void PostLeftStickClick();
+void PostFacePress(FaceButton button);  // only B has a reader so far
+
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.
 void Shutdown();

@@ -301,6 +301,23 @@ bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
 	g_rightStickPush = StickPush::None;
 	return true;
 }
+void PostRightStickPush(StickPush push) {
+	if (push == StickPush::None) return;
+	// A push still pending is about to be replaced, as a pad's would be.
+	ResolvePush(g_rightStickPush, nullptr);
+	g_rightStickPush = push;
+}
+void PostLeftStickPush(StickPush push) { g_leftStickPush = push; }
+void PostBackWith(FaceButton button) {
+	if (button == FaceButton::A) g_backWithA = true;
+	else if (button == FaceButton::B) g_backWithB = true;
+	else if (button == FaceButton::X) g_backWithX = true;
+	else if (button == FaceButton::Y) g_backWithY = true;
+}
+void PostLeftStickClick() { g_leftStickClick = true; }
+void PostFacePress(FaceButton button) {
+	if (button == FaceButton::B) g_pressedB = true;
+}
 PushRecord TakePushRecord() {
 	const PushRecord record{g_resolvedPush, g_resolvedClaimant};
 	g_resolvedPush     = StickPush::None;
