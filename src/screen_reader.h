@@ -24,6 +24,9 @@ const char* BackendName();
 // interrupt=true only on context changes (new screen / panel); false for
 // incremental information so previous speech is not cut off.
 void Speak(std::string_view text, bool interrupt);
+// When anything was last given to Speak, as GetTickCount64 counts; 0 before
+// the first. For a reader of last resort that speaks only if no other did.
+unsigned long long LastSpoken();
 void Stop();
 
 }

@@ -3,6 +3,8 @@
 #include <prism.h>
 #include <windows.h>
 
+#include <atomic>
+
 #include <condition_variable>
 #include <cstdio>
 #include <deque>
@@ -58,6 +60,7 @@ std::mutex              g_mutex;
 std::condition_variable g_wake;
 std::deque<Request>     g_queue;
 bool                    g_quit      = false;
+std::atomic<unsigned long long> g_lastSpoken{0};
 bool                    g_available = false; // backend acquired (set by Initialize, cleared by Shutdown)
 
 template <typename Fn>
@@ -229,7 +232,10 @@ const char* BackendName() {
 	return g_available ? g_state.backendName.c_str() : "";
 }
 
+unsigned long long LastSpoken() { return g_lastSpoken.load(); }
+
 void Speak(std::string_view text, bool interrupt) {
+	if (!text.empty()) g_lastSpoken = GetTickCount64();
 	if (!g_available || text.empty()) {
 		return;
 	}
