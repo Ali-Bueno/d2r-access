@@ -80,7 +80,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 	// A panel the player can navigate is the focus reader's job; this is only
 	// for the ones the game opens without giving anything focus.
-	if (NativeUi::CurrentFocus().widget != 0) return;
+	if (NativeUi::GameFocus().widget != 0) return;
 
 	const uintptr_t panel = NativeWidgets::FindPanel(active);
 	if (panel == 0) return;

@@ -28,6 +28,16 @@ uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);
 std::vector<uintptr_t> Children(uintptr_t widget);
 Focus CurrentFocus();
+// The game's own focus, whatever the keyboard's cursor is on: for a reader
+// that asks whether the game itself gave a panel anything to stand on.
+Focus GameFocus();
+// The keyboard's cursor, standing in for the focus the game does not keep in
+// keyboard mode (MEASURED 2026-09-27, docs/keyboard-play.md). While it is set
+// and shown CurrentFocus gives it, and FocusSelection gives `selection` for
+// its widget, so every reader reads where the keyboard is as it reads where
+// the controller is. Nothing of the game's is written.
+void SetCursor(Focus focus, uint64_t selection);
+void ClearCursor();
 // Read-only FocusableWidget selection; safe to copy during tooltip rendering.
 uint64_t FocusSelection(uintptr_t widget);
 Cell GridCell(uintptr_t widget);

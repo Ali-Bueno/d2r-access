@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <array>
+#include <atomic>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -49,6 +50,9 @@ constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindP
 // Bounds protect traversal from stale/corrupt pointers and cap UI-thread work.
 constexpr size_t MaxNodes = 512, MaxDepth = 32, MaxTypeName = 96;
 std::unordered_map<uintptr_t, Type> g_types;
+// Read from the tooltip draw as well as from the UI update.
+std::atomic<uintptr_t> g_cursorPanel{0}, g_cursorWidget{0};
+std::atomic<uint64_t> g_cursorSelection{UINT64_MAX};
 
 uintptr_t CallType(uintptr_t function, uintptr_t widget) noexcept {
 	__try {
@@ -248,7 +252,25 @@ std::vector<uintptr_t> Children(uintptr_t widget) {
 	return NativeWidgets::SupportsTree() && widget ? VectorAt(widget + ChildrenOffset) : std::vector<uintptr_t>{};
 }
 
+void SetCursor(Focus focus, uint64_t selection) {
+	g_cursorSelection = selection;
+	g_cursorPanel = focus.panel;
+	g_cursorWidget = focus.widget;
+}
+
+void ClearCursor() {
+	g_cursorWidget = 0;
+	g_cursorPanel = 0;
+	g_cursorSelection = UINT64_MAX;
+}
+
 Focus CurrentFocus() {
+	if (const Focus cursor{g_cursorPanel.load(), g_cursorWidget.load()};
+		cursor.panel && cursor.widget && Visible(cursor.panel) && Visible(cursor.widget)) return cursor;
+	return GameFocus();
+}
+
+Focus GameFocus() {
 	if (!NativeWidgets::SupportsTree()) return {};
 	uintptr_t manager = 0;
 	Focus result;
@@ -267,6 +289,7 @@ Focus CurrentFocus() {
 }
 
 uint64_t FocusSelection(uintptr_t widget) {
+	if (widget && widget == g_cursorWidget.load()) return g_cursorSelection.load();
 	uint64_t result = UINT64_MAX;
 	if (NativeWidgets::SupportsTree() && widget) (void)Peek(widget + SelectionOffset, result);
 	return result;

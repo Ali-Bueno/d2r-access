@@ -25,7 +25,7 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 
 namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
 namespace D2RAccess::NativeUi {
-Focus CurrentFocus() { return {}; } // these panels open with nothing focused
+Focus GameFocus() { return {}; } // these panels open with nothing focused
 UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return tree; }
 }
 namespace D2RAccess::NativeWidgets { uintptr_t FindPanel(std::string_view) { return Panel; } }
