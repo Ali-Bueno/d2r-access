@@ -348,6 +348,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		return D2RL::Input::ActionResult::Ignored;
 	}
 	const auto request = static_cast<Request>(reinterpret_cast<intptr_t>(userData));
+	// A backslash typed into a box of text the keyboard's cursor is on is the box's.
+	if (request == Request::Repeat && KeyboardMenu::Typing()) return D2RL::Input::ActionResult::Ignored;
 	// In a menu backslash says again what the keyboard's cursor is on.
 	if (request == Request::Repeat && KeyboardMenu::Active()) KeyboardMenu::Deliver(KeyboardMenu::Act::SayAgain);
 	else g_request.store(request);

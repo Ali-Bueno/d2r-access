@@ -10,6 +10,7 @@
 #include "menu_mouse.h"
 #include "native_belt_fill.h"
 #include "native_belt_rows.h"
+#include "native_class_choice.h"
 #include "localization.h"
 #include "native_ground_items.h"
 #include "native_skill_hand.h"
@@ -55,6 +56,7 @@ constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server a
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
+constexpr uint64_t ChoiceMs = 3000;     // a class clicked that is not chosen by then was not chosen
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
@@ -109,6 +111,9 @@ struct Adjusting {
 	uint64_t since = 0, look = 0;
 };
 Adjusting g_adjusting;
+// A class that was clicked, until it is seen to be chosen or the wait is over.
+struct Choosing { uintptr_t widget = 0; uint64_t since = 0; };
+Choosing g_choosing;
 
 // The open menu: what each thing is, and beside it where it is for the cursor.
 std::vector<Entry> g_entries;
@@ -119,6 +124,7 @@ std::vector<Target> g_mended;
 std::string g_menu;         // the open panels by name, to tell one menu from the next
 Place g_place;
 std::atomic<bool> g_active{false};
+std::atomic<bool> g_typing{false}; // the cursor is on a box of text, which has the keys that type
 bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
 bool g_holding = false;     // an item was in hand when the pointer was last placed
 bool g_landed = false;      // the pointer went to where the cursor is
@@ -433,6 +439,13 @@ std::string Name(const Entry& entry, const Place& place) {
 	}
 	// A skill's icon has no text of its own; the text under it is its level.
 	if (auto skill = NativeSkillIcons::Name(entry.widget); !skill.empty()) return skill;
+	// A class's figure is called by the class's key in the string table.
+	if (NativeClassChoice::Is(entry.widget)) {
+		std::string name = UiText::Clean(Localization::Text(entry.name));
+		if (name.empty()) name = entry.name;
+		if (NativeClassChoice::Of(entry.widget) == NativeClassChoice::State::Chosen) name += ", " + std::string(Strings::Current().checked);
+		return name;
+	}
 	const auto readout = UiText::Describe(NativeUi::Snapshot(entry.widget, entry.widget));
 	std::string text = !readout.option.empty() ? readout.option : readout.body;
 	if (text.empty()) text = UiText::Clean(NativeWidgets::ReadText(entry.widget));
@@ -531,6 +544,7 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	g_titleUntil = 0;
 	g_listHand = NativeSkillHand::Hand::None;
 	g_adjusting = {};
+	g_choosing = {};
 	NativeUi::ClearCursor();
 }
 
@@ -650,6 +664,29 @@ void Adjusted(const D2RL::PluginContext* context, uint64_t now) {
 	step = {};
 }
 
+// A class that was clicked is said once it is chosen, with what the screen
+// then shows of it: its description.
+void Chosen(const D2RL::PluginContext* context, uint64_t now) {
+	auto& choice = g_choosing;
+	if (!choice.widget) return;
+	const auto* entry = EntryOf(choice.widget);
+	const auto state = entry ? NativeClassChoice::Of(choice.widget) : NativeClassChoice::State::Unknown;
+	const bool over = !entry || now - choice.since >= ChoiceMs;
+	if (state != NativeClassChoice::State::Chosen && !over) return;
+	if (state == NativeClassChoice::State::Chosen) {
+		std::string words = Name(*entry, {});
+		const auto about = NativeClassChoice::Description(entry->panel);
+		if (!about.empty()) words += ". " + about;
+		AsyncLog::InfoF(context, "[cursor] class %s chosen after %llu ms; said \"%s\"", entry->name.c_str(),
+			static_cast<unsigned long long>(now - choice.since), words.c_str());
+		ScreenReader::Speak(words, true);
+	} else if (entry) {
+		AsyncLog::WarnF(context, "[cursor] class %s was clicked and is not chosen: its state is %d", entry->name.c_str(), static_cast<int>(state));
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+	}
+	choice = {};
+}
+
 void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
 	if (!g_engaged) {
 		g_engaged = true;
@@ -696,6 +733,18 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 		return;
 	}
 	if (entry && button == MenuMouse::Button::Left && Adjust(context, now, *entry, true)) return;
+	// A click on the class that is chosen would put it back, and one on a figure
+	// that is stepping forward or back is lost. Another class is chosen by a
+	// click on it, which puts this one back.
+	if (entry && NativeClassChoice::Is(entry->widget)) {
+		const auto state = NativeClassChoice::Of(entry->widget);
+		if (state != NativeClassChoice::State::NotChosen && state != NativeClassChoice::State::Unknown) {
+			AsyncLog::InfoF(context, "[cursor] no click on %s: its state is %d", entry->name.c_str(), static_cast<int>(state));
+			ScreenReader::Speak(Name(*entry, g_place), true);
+			return;
+		}
+		g_choosing = {entry->widget, now};
+	}
 	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
 	AsyncLog::InfoF(context, "[cursor] %s click%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
 		shift ? " with Shift" : "", control ? " with Ctrl" : "", entry ? entry->name.c_str() : "where the pointer is");
@@ -836,6 +885,7 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 }
 
 bool Active() { return g_active.load(); }
+bool Typing() { return g_typing.load(); }
 
 void Deliver(Act act) {
 	const size_t index = static_cast<size_t>(act);
@@ -928,6 +978,7 @@ void Tick(const D2RL::PluginContext* context) {
 		&& !KeyboardService::Playing();
 	g_active = menu;
 	if (!menu) {
+		g_typing = false;
 		// The pointer was the menu's only if the cursor put it somewhere.
 		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
@@ -938,7 +989,15 @@ void Tick(const D2RL::PluginContext* context) {
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
 		return;
 	}
-	const bool typing = NativeSkillNavigation::TextEditing().value_or(false);
+	// A box of text the game says is being edited has every key. One the cursor
+	// is on has the keys that type and the left and right arrows, whatever the
+	// game says: out of controller mode it says nothing (READ), and the name box
+	// of character creation takes what is typed at any time.
+	const bool editing = NativeSkillNavigation::TextEditing().value_or(false);
+	const auto* on = g_engaged ? EntryOf(g_place.widget) : nullptr;
+	const bool field = on && on->kind == Kind::TextInput;
+	g_typing = field;
+	const bool typing = editing || field;
 	// With no pad the menu is the keyboard's from the moment it opens; with one
 	// connected it is the pad's until an arrow key is pressed.
 	if (!g_engaged && !InputDirection::LeftStick().connected) {
@@ -956,7 +1015,9 @@ void Tick(const D2RL::PluginContext* context) {
 		if (down && !arrow.down) { step = true; arrow.next = now + RepeatDelayMs; }
 		else if (down && now >= arrow.next) { step = true; arrow.next = now + RepeatMs; }
 		arrow.down = down;
-		if (!step || typing || alt || MenuMouse::Busy()) continue;
+		if (!step || editing || alt || MenuMouse::Busy()) continue;
+		// Up and down leave a box of text; left and right move in what is typed.
+		if (field && (arrow.direction == Direction::Left || arrow.direction == Direction::Right)) continue;
 		if (control) InputDirection::PostLineStep(arrow.push);
 		else Step(context, now, arrow.direction);
 	}
@@ -966,6 +1027,7 @@ void Tick(const D2RL::PluginContext* context) {
 	for (size_t act = 0; act < Acts; ++act)
 		if (pending & (1u << act)) Do(context, now, static_cast<Act>(act));
 	Adjusted(context, now);
+	Chosen(context, now);
 
 	// A place no reader named is named here, so no move passes in silence.
 	if (g_landedAt && now >= g_landedAt && now - g_landedAt >= SilenceMs) {

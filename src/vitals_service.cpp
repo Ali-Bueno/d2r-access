@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "equipment_census.h"
 #include "input_direction.h"
+#include "keyboard_menu.h"
 #include "localization.h"
 #include "native_memory.h"
 #include "native_status.h"
@@ -219,6 +220,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (event == nullptr || event->kind != D2RL::Input::ActionEventKind::Pressed) {
 		return D2RL::Input::ActionResult::Ignored;
 	}
+	// A letter typed into a box of text the keyboard's cursor is on is the box's.
+	if (KeyboardMenu::Typing()) return D2RL::Input::ActionResult::Ignored;
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	return D2RL::Input::ActionResult::Handled;
 }

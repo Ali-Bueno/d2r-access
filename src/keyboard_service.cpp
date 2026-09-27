@@ -22,6 +22,7 @@
 #include "map_survey_service.h"
 #include "native_actions.h"
 #include "native_belt_fill.h"
+#include "native_class_choice.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -878,6 +879,13 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
 	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
+	// With the keyboard's cursor on a box of text the keys that type are the
+	// box's: a letter alone or with Shift, and the keys that move in the text.
+	if (KeyboardMenu::Typing() && !g_settingsOpen.load()
+		&& (event->binding.modifier == D2RL::Input::Modifier::None || event->binding.modifier == D2RL::Input::Modifier::Shift)) {
+		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
+		return D2RL::Input::ActionResult::Ignored;
+	}
 	// In a menu the keys are the menu's: a click, a tab, a button (keyboard_menu.h).
 	if (!g_playing.load() && !g_settingsOpen.load() && KeyboardMenu::Active()) {
 		using KeyboardMenu::Act;
@@ -971,6 +979,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeSkillHand::Initialize(context);
 	if (nativeHooks) (void)NativeSkillIcons::Initialize(context);
 	if (nativeHooks) (void)NativeValueControls::Initialize(context);
+	if (nativeHooks) (void)NativeClassChoice::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {

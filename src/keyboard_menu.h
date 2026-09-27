@@ -44,6 +44,10 @@ void Tick(const D2RL::PluginContext* context);
 void Reset();
 // True while a menu is up and the keys above are the menu's.
 bool Active();
+// True while the cursor is on a box of text. The keys that type, alone or with
+// Shift, are the box's then, and so are the left and right arrows; up and down
+// leave the box. Any thread.
+bool Typing();
 // A key of the menu as the loader delivered it. The same keys are watched
 // directly as well, for the screens where the loader delivers none.
 void Deliver(Act act);
