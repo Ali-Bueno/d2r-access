@@ -158,6 +158,7 @@ add_library(d2r-access SHARED
 	src/grid_jump.cpp
 	src/menu_cursor.cpp
 	src/menu_mouse.cpp
+	src/native_sort.cpp
 	src/native_actions.cpp
 	src/keyboard_service.cpp
 	src/keyboard_menu.cpp
