@@ -93,6 +93,8 @@ Place g_place;
 std::atomic<bool> g_active{false};
 bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
 bool g_holding = false;     // an item was in hand when the pointer was last placed
+bool g_landed = false;      // the pointer went to where the cursor is
+NativeUi::Cell g_pointerAt; // the point the pointer was last put on, and went to
 uint64_t g_refreshAt = 0;
 uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
 std::string g_toSay;        // what to say if no reader does
@@ -143,6 +145,13 @@ bool Contains(const MenuCursor::Rect& outer, const MenuCursor::Rect& inner) {
 	return x >= outer.x && y >= outer.y && x < outer.x + outer.width && y < outer.y + outer.height;
 }
 
+// A place drawn off the screen cannot be pointed at. MEASURED 2026-09-27: the
+// main menu's bar of tabs is drawn at y = -130 when there is one tab to show,
+// the pointer stayed where it was, and the click went to what was under it.
+bool OnScreen(const NativeUi::Rect& rect) {
+	return rect.x + rect.width / 2 >= 0 && rect.y + rect.height / 2 >= 0;
+}
+
 bool NotMenu(std::string_view name) {
 	return name.starts_with("HUD") || name.starts_with(MessageLog) || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
 }
@@ -185,7 +194,7 @@ bool AddCells(Entry entry, GridJump::Grid grid) {
 	if (grid.width < 1 || grid.height < 1) return false;
 	const auto first = NativeSkillNavigation::RectAt(entry.widget, Selection(entry, {0, 0}, grid.height));
 	const auto last = NativeSkillNavigation::RectAt(entry.widget, Selection(entry, {grid.width - 1, grid.height - 1}, grid.height));
-	if (!first || !last || (grid.width * grid.height > 1 && *first == *last)) return false;
+	if (!first || !last || (grid.width * grid.height > 1 && *first == *last) || !OnScreen(*first) || !OnScreen(*last)) return false;
 	entry.cells = true;
 	g_targets.push_back({entry.widget, ToRect(Union(*first, *last)), std::move(grid)});
 	g_entries.push_back(std::move(entry));
@@ -220,7 +229,7 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
 		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
 	if (!whole && control && type.name != "BeltWidget") {
-		if (const auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget))) {
+		if (const auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && OnScreen(*rect)) {
 			g_targets.push_back({widget, ToRect(*rect), {}});
 			g_entries.push_back(entry);
 		}
@@ -399,11 +408,21 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	g_place = place;
 	g_holding = holding;
 	g_said.clear();
+	POINT before{};
+	(void)GetCursorPos(&before);
 	const bool placed = MenuMouse::Place(*rect);
 	NativeTooltips::Discard(now + SettleMs);
 	NativeUi::SetCursor({owner ? owner : entry->panel, entry->widget}, selection);
 	POINT pointer{};
 	(void)GetCursorPos(&pointer);
+	// The pointer is where it is put at once (MEASURED 2026-09-27). One that was
+	// put somewhere new and has not moved did not go there.
+	const NativeUi::Cell point{rect->x + rect->width / 2, rect->y + rect->height / 2};
+	const bool same = point.x == g_pointerAt.x && point.y == g_pointerAt.y;
+	g_landed = placed && (same || pointer.x != before.x || pointer.y != before.y);
+	if (g_landed) g_pointerAt = point;
+	else AsyncLog::WarnF(context, "[cursor] the pointer did not go to %s: it is at %ld,%ld and was put on %d,%d; a click is refused",
+		entry->name.c_str(), pointer.x, pointer.y, point.x, point.y);
 	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld",
 		entry->name.c_str(), entry->type.c_str(), entry->cells ? place.anchor.x : -1, entry->cells ? place.anchor.y : -1,
 		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
@@ -440,6 +459,8 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	if (g_engaged && context) AsyncLog::InfoF(context, "[cursor] released: %s", reason);
 	g_engaged = false;
 	ClickWords::SetKeyboard(false);
+	g_landed = false;
+	g_pointerAt = {};
 	g_place = {};
 	g_menu.clear();
 	g_landedAt = 0;
@@ -526,6 +547,12 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	if (repeated) return;
 	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL);
 	const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr;
+	if (entry && !g_landed) {
+		// Never a click on whatever the pointer happens to be over.
+		AsyncLog::WarnF(context, "[cursor] no click: the pointer is not on %s", entry->name.c_str());
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		return;
+	}
 	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
 	AsyncLog::InfoF(context, "[cursor] %s click%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
 		shift ? " with Shift" : "", control ? " with Ctrl" : "", entry ? entry->name.c_str() : "where the pointer is");
