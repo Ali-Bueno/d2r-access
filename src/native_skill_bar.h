@@ -18,4 +18,8 @@ std::optional<std::array<Binding, Buttons>> AlternateBar();
 
 // The game's condition for drawing the LT bar on the HUD (0x2399F0).
 bool BackBarShown() noexcept;
+
+// A skill's name in the game's language, by skill id; "" when its table row
+// cannot be read or it has no description. UI thread only.
+std::string SkillName(int skill);
 }

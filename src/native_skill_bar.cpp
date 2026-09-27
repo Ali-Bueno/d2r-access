@@ -77,6 +77,12 @@ std::optional<std::array<Binding, Buttons>> AlternateBar() {
 	return bar;
 }
 
+std::string SkillName(int skill) {
+	uintptr_t player = 0, tables = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) return {};
+	return SkillName(tables, skill);
+}
+
 bool BackBarShown() noexcept {
 	if (!g_base) return false;
 	__try {

@@ -28,6 +28,7 @@
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_skill_hand.h"
+#include "native_skill_icons.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
 #include "native_swap.h"
@@ -967,6 +968,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
 	if (nativeHooks) (void)NativeBeltFill::Initialize(context);
 	if (nativeHooks) (void)NativeSkillHand::Initialize(context);
+	if (nativeHooks) (void)NativeSkillIcons::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {

@@ -161,6 +161,7 @@ add_library(d2r-access SHARED
 	src/menu_mouse.cpp
 	src/native_sort.cpp
 	src/native_skill_hand.cpp
+	src/native_skill_icons.cpp
 	src/native_swap.cpp
 	src/native_belt_rows.cpp
 	src/native_belt_fill.cpp

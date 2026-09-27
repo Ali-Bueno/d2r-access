@@ -13,6 +13,7 @@
 #include "localization.h"
 #include "native_ground_items.h"
 #include "native_skill_hand.h"
+#include "native_skill_icons.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
 #include "native_tooltips.h"
@@ -243,7 +244,10 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
 	if (!whole && control && type.name != "BeltWidget") {
 		if (const auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && OnScreen(*rect)) {
-			g_targets.push_back({widget, ToRect(*rect), {}});
+			// The skills of a skill tree, and of the list of skills, stand together:
+			// a step from one lands on another before it lands on a tab beside them.
+			const bool skill = NativeSkillIcons::InTree(widget) || NativeSkillIcons::InList(widget);
+			g_targets.push_back({widget, ToRect(*rect), {}, skill ? NativeUi::Parent(widget) : 0});
 			g_entries.push_back(entry);
 		}
 	}
@@ -408,6 +412,8 @@ std::string Name(const Entry& entry, const Place& place) {
 		const auto slot = NativeUi::BeltItem(entry.widget);
 		return slot.item ? NativeGroundItems::ItemBaseName(slot.item) : std::string(Strings::Current().slotEmpty);
 	}
+	// A skill's icon has no text of its own; the text under it is its level.
+	if (auto skill = NativeSkillIcons::Name(entry.widget); !skill.empty()) return skill;
 	const auto readout = UiText::Describe(NativeUi::Snapshot(entry.widget, entry.widget));
 	std::string text = !readout.option.empty() ? readout.option : readout.body;
 	if (text.empty()) text = UiText::Clean(NativeWidgets::ReadText(entry.widget));
@@ -455,6 +461,8 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
 	if (entry->belt) AsyncLog::InfoF(context, "[cursor] belt slot %d; the belt takes the point for slot %d", static_cast<int>(selection),
 		NativeBeltRows::SlotAt(entry->widget, {rect->x + rect->width / 2, rect->y + rect->height / 2}));
+	if (const auto skill = NativeSkillIcons::Skill(entry->widget))
+		AsyncLog::InfoF(context, "[cursor] skill id=%d \"%s\"", *skill, NativeSkillIcons::Name(entry->widget).c_str());
 	Expect(now, Name(*entry, place));
 	// A quest shows what it is about when it is clicked, not when the pointer is over it.
 	if (entry->kind == Kind::QuestButton) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
