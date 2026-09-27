@@ -88,6 +88,9 @@ struct Entry {
 // The open menu: what each thing is, and beside it where it is for the cursor.
 std::vector<Entry> g_entries;
 std::vector<Target> g_targets;
+// The steps made for what the arrows alone would miss, and the menu they were made for.
+std::vector<MenuCursor::Link> g_links;
+std::vector<Target> g_mended;
 std::string g_menu;         // the open panels by name, to tell one menu from the next
 Place g_place;
 std::atomic<bool> g_active{false};
@@ -264,6 +267,16 @@ void Thin() {
 	g_entries.resize(kept);
 }
 
+bool Same(const std::vector<Target>& first, const std::vector<Target>& second) {
+	return std::equal(first.begin(), first.end(), second.begin(), second.end(), [](const Target& a, const Target& b) {
+		return a.widget == b.widget && a.rect == b.rect && a.group == b.group && a.grid.width == b.grid.width && a.grid.height == b.grid.height
+			&& std::equal(a.grid.items.begin(), a.grid.items.end(), b.grid.items.begin(), b.grid.items.end(),
+				[](const GridJump::Item& one, const GridJump::Item& other) {
+					return one.x == other.x && one.y == other.y && one.width == other.width && one.height == other.height;
+				});
+	});
+}
+
 uintptr_t FindNamed(uintptr_t widget, std::string_view name, bool byType, int depth) {
 	if (!widget || depth > MaxDepth || !NativeUi::Visible(widget)) return 0;
 	if ((byType ? NativeUi::Classify(widget).name : NativeWidgets::ReadName(widget)) == name) return widget;
@@ -325,6 +338,10 @@ std::string Build(const D2RL::PluginContext* context) {
 		Collect(belt, hud, 0, 0);
 	} else HideBelt(context);
 	Thin();
+	if (!Same(g_targets, g_mended)) {
+		g_links = MenuCursor::Mend(g_targets);
+		g_mended = g_targets;
+	}
 	return menu;
 }
 
@@ -442,8 +459,16 @@ void Census(const D2RL::PluginContext* context) {
 			g_entries[i].type.c_str(), target.rect.x, target.rect.y, target.rect.width, target.rect.height,
 			target.grid.width, target.grid.height, target.grid.items.size());
 	}
+	constexpr const char* Ways[] = {"left", "right", "up", "down"};
+	for (const auto& link : g_links) {
+		const auto* from = EntryOf(link.from.widget);
+		const auto* to = EntryOf(link.to.widget);
+		AsyncLog::InfoF(context, "[cursor] a step made for what the arrows miss: from %s cell %d,%d %s to %s cell %d,%d",
+			from ? from->name.c_str() : "?", link.from.anchor.x, link.from.anchor.y, Ways[static_cast<size_t>(link.direction)],
+			to ? to->name.c_str() : "?", link.to.anchor.x, link.to.anchor.y);
+	}
 	const auto all = MenuCursor::Everything(g_targets);
-	const auto reached = MenuCursor::Reachable(g_targets, MenuCursor::First(g_targets));
+	const auto reached = MenuCursor::Reachable(g_targets, MenuCursor::First(g_targets), g_links);
 	size_t missed = 0;
 	for (const auto& place : all) {
 		if (std::find(reached.begin(), reached.end(), place) != reached.end()) continue;
@@ -531,7 +556,7 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 	Refresh(context, now);
 	if (!g_place.widget) return;
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
-	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding);
+	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding, g_links);
 	if (next == g_place) {
 		// Nothing that way: where the cursor is, again.
 		if (const auto* entry = EntryOf(g_place.widget)) ScreenReader::Speak(Name(*entry, g_place), true);
@@ -753,6 +778,8 @@ void Reset() {
 	MenuMouse::Reset();
 	g_entries.clear();
 	g_targets.clear();
+	g_links.clear();
+	g_mended.clear();
 	g_active = false;
 	g_beltShown = false;
 	g_beltRows = 0;

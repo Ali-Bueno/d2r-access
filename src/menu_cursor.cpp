@@ -1,14 +1,65 @@
 #include "menu_cursor.h"
 
-#include "menu_navigation_policy.h"
-
 #include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <iterator>
+#include <tuple>
 
 namespace D2RAccess::MenuCursor {
 namespace {
 constexpr Direction All[] = {Direction::Left, Direction::Right, Direction::Up, Direction::Down};
 
 bool IsGrid(const Target& target) { return target.grid.width > 0 && target.grid.height > 0; }
+bool Drawn(const Target& target) { return target.widget && target.rect.width > 0 && target.rect.height > 0; }
+bool Horizontal(Direction direction) { return direction == Direction::Left || direction == Direction::Right; }
+Direction Opposite(Direction direction) {
+	switch (direction) {
+	case Direction::Left:  return Direction::Right;
+	case Direction::Right: return Direction::Left;
+	case Direction::Up:    return Direction::Down;
+	default:               return Direction::Up;
+	}
+}
+
+// The space between two spans of one axis, 0 where they overlap or touch.
+int64_t Space(int64_t firstStart, int64_t firstLength, int64_t secondStart, int64_t secondLength) {
+	return std::max<int64_t>({0, secondStart - (firstStart + firstLength), firstStart - (secondStart + secondLength)});
+}
+
+// How far `to` lies from `from` one way: `ahead` is how far its middle is
+// that way, in half units and below 1 for what lies behind; `along` is the
+// space between the two that way, and `across` the space between them to the side.
+struct Distance { int64_t ahead = 0, along = 0, across = 0; };
+Distance Between(const Rect& from, const Rect& to, Direction direction) {
+	const int64_t x = (2LL * to.x + to.width) - (2LL * from.x + from.width);
+	const int64_t y = (2LL * to.y + to.height) - (2LL * from.y + from.height);
+	const int64_t wide = Space(from.x, from.width, to.x, to.width), high = Space(from.y, from.height, to.y, to.height);
+	switch (direction) {
+	case Direction::Left:  return {-x, wide, high};
+	case Direction::Right: return {x, wide, high};
+	case Direction::Up:    return {-y, high, wide};
+	default:               return {y, high, wide};
+	}
+}
+
+// The nearest thing one way from `origin`, or null. What lies more to one side
+// than that way comes after everything that does not, and of those a thing of
+// another group after the things of the group the step is made from.
+const Target* Nearest(std::span<const Target> targets, const Target* current, const Rect& origin, Direction direction) {
+	const Target* best = nullptr;
+	std::tuple<bool, bool, int64_t, int64_t, int64_t, int, int> least;
+	for (const auto& target : targets) {
+		if (&target == current || !Drawn(target)) continue;
+		const auto distance = Between(origin, target.rect, direction);
+		if (distance.ahead <= 0) continue;
+		const std::tuple score{distance.across > distance.along, target.group != current->group,
+			distance.along * distance.along + distance.across * distance.across, distance.across, distance.ahead,
+			target.rect.y, target.rect.x};
+		if (!best || score < least) { best = &target; least = score; }
+	}
+	return best;
+}
 bool Inside(const GridJump::Grid& grid, Cell cell) {
 	return cell.x >= 0 && cell.y >= 0 && cell.x < grid.width && cell.y < grid.height;
 }
@@ -95,9 +146,12 @@ Place First(std::span<const Target> targets) {
 	return IsGrid(*first) ? OnCell(*first, {0, 0}) : Place{first->widget, {}, {}};
 }
 
-Place Move(std::span<const Target> targets, const Place& from, Direction direction, bool byCell) {
+Place Move(std::span<const Target> targets, const Place& from, Direction direction, bool byCell, std::span<const Link> links) {
 	const auto* current = Find(targets, from.widget);
 	if (!current) return First(targets);
+	for (auto link = links.rbegin(); link != links.rend(); ++link)
+		if (link->direction == direction && link->from.widget == from.widget && link->from.anchor == from.anchor
+			&& Find(targets, link->to.widget)) return link->to;
 	if (IsGrid(*current) && Inside(current->grid, from.travel)) {
 		if (byCell) {
 			Cell next = from.travel;
@@ -113,24 +167,13 @@ Place Move(std::span<const Target> targets, const Place& from, Direction directi
 		}
 	}
 	// Nothing further in this grid, or not in one: the nearest thing that way.
-	// The place stands in the list as itself, and the rest by their place in it.
-	constexpr uintptr_t Here = 1, Offset = 2;
 	const Rect origin = byCell && IsGrid(*current)
 		? RectOf(*current, {current->widget, from.travel, from.travel}) : RectOf(*current, from);
-	std::vector<MenuNavigationPolicy::Node> nodes{{Here, origin.x, origin.y, origin.width, origin.height}};
-	for (size_t i = 0; i < targets.size(); ++i) {
-		const auto& target = targets[i];
-		if (&target == current || !target.widget) continue;
-		nodes.push_back({i + Offset, target.rect.x, target.rect.y, target.rect.width, target.rect.height});
-	}
-	const int dx = direction == Direction::Left ? -1 : direction == Direction::Right ? 1 : 0;
-	const int dy = direction == Direction::Up ? -1 : direction == Direction::Down ? 1 : 0;
-	const uintptr_t chosen = MenuNavigationPolicy::Move(nodes, Here, dx, dy);
-	if (chosen < Offset) return from;
-	const auto& target = targets[chosen - Offset];
-	if (!IsGrid(target)) return {target.widget, {}, {}};
-	const Cell cell = Entry(target, origin, direction);
-	return byCell ? Place{target.widget, cell, cell} : OnCell(target, cell);
+	const auto* chosen = Nearest(targets, current, origin, direction);
+	if (!chosen) return from;
+	if (!IsGrid(*chosen)) return {chosen->widget, {}, {}};
+	const Cell cell = Entry(*chosen, origin, direction);
+	return byCell ? Place{chosen->widget, cell, cell} : OnCell(*chosen, cell);
 }
 
 std::vector<Place> Everything(std::span<const Target> targets) {
@@ -148,7 +191,7 @@ std::vector<Place> Everything(std::span<const Target> targets) {
 	return places;
 }
 
-std::vector<Place> Reachable(std::span<const Target> targets, const Place& from) {
+std::vector<Place> Reachable(std::span<const Target> targets, const Place& from, std::span<const Link> links) {
 	std::vector<Place> met, seen, queue;
 	if (!Find(targets, from.widget)) return met;
 	met.push_back(Anchored(from));
@@ -156,7 +199,7 @@ std::vector<Place> Reachable(std::span<const Target> targets, const Place& from)
 	queue.push_back(from);
 	for (size_t head = 0; head < queue.size(); ++head) {
 		for (const auto direction : All) {
-			const auto next = Move(targets, Place(queue[head]), direction, false);
+			const auto next = Move(targets, Place(queue[head]), direction, false, links);
 			// A cell travelled through is a state of its own: the same item
 			// entered on another row goes on along that row.
 			if (std::find(seen.begin(), seen.end(), next) != seen.end()) continue;
@@ -166,5 +209,102 @@ std::vector<Place> Reachable(std::span<const Target> targets, const Place& from)
 		}
 	}
 	return met;
+}
+
+namespace {
+// Every place, and after them every other cell travelled through, with where
+// each of the four steps leads from it.
+struct Steps {
+	std::vector<Place> states;
+	std::vector<std::array<size_t, 4>> next;
+};
+Steps Walk(std::span<const Target> targets, const std::vector<Place>& all, std::span<const Link> links) {
+	Steps steps{all, {}};
+	for (size_t at = 0; at < steps.states.size(); ++at) {
+		std::array<size_t, 4> leads{};
+		for (size_t way = 0; way < std::size(All); ++way) {
+			const auto to = Move(targets, Place(steps.states[at]), All[way], false, links);
+			auto known = std::find(steps.states.begin(), steps.states.end(), to);
+			if (known == steps.states.end()) known = steps.states.insert(steps.states.end(), to);
+			leads[way] = static_cast<size_t>(known - steps.states.begin());
+		}
+		steps.next.push_back(leads);
+	}
+	return steps;
+}
+
+// The places the steps lead to from `first`, and the places they lead back to it from.
+void Reach(const Steps& steps, const std::vector<Place>& all, size_t first, std::vector<bool>& reached, std::vector<bool>& returns) {
+	const size_t count = steps.states.size();
+	const auto place = [&](size_t state) {
+		return static_cast<size_t>(std::find(all.begin(), all.end(), Anchored(steps.states[state])) - all.begin());
+	};
+	std::vector<bool> out(count, false), back(count, false);
+	std::vector<size_t> queue{first};
+	out[first] = true;
+	for (size_t head = 0; head < queue.size(); ++head)
+		for (const size_t to : steps.next[queue[head]]) if (!out[to]) { out[to] = true; queue.push_back(to); }
+	// To be on the place is to be back, whatever cell of it was travelled through.
+	queue.clear();
+	for (size_t state = 0; state < count; ++state) if (place(state) == first) { back[state] = true; queue.push_back(state); }
+	for (size_t head = 0; head < queue.size(); ++head)
+		for (size_t from = 0; from < count; ++from) {
+			if (back[from] || std::find(steps.next[from].begin(), steps.next[from].end(), queue[head]) == steps.next[from].end()) continue;
+			back[from] = true;
+			queue.push_back(from);
+		}
+	reached.assign(all.size(), false);
+	returns.assign(all.size(), false);
+	for (size_t state = 0; state < count; ++state) if (out[state]) reached[place(state)] = true;
+	for (size_t state = 0; state < all.size(); ++state) returns[state] = back[state];
+}
+}
+
+std::vector<Link> Mend(std::span<const Target> targets) {
+	std::vector<Link> links;
+	const auto all = Everything(targets);
+	const auto entered = std::find(all.begin(), all.end(), Anchored(First(targets)));
+	if (entered == all.end()) return links;
+	const size_t first = static_cast<size_t>(entered - all.begin());
+	std::vector<Rect> drawn;
+	for (const auto& place : all) drawn.push_back(RectOf(*Find(targets, place.widget), place));
+	std::vector<bool> reached, returns;
+	// A round mends one place. One mended may cost another its only step, which
+	// a later round mends, so there are more rounds than places to be had.
+	for (size_t round = 0; round < 4 * all.size(); ++round) {
+		Reach(Walk(targets, all, links), all, first, reached, returns);
+		// A place missed is mended before one that does not lead back.
+		const bool missing = std::find(reached.begin(), reached.end(), false) != reached.end();
+		const auto& whole = missing ? reached : returns;
+		size_t apart = all.size(), beside = all.size();
+		int64_t least = 0;
+		for (size_t lone = 0; lone < all.size(); ++lone) {
+			if (whole[lone]) continue;
+			for (size_t near = 0; near < all.size(); ++near) {
+				if (!whole[near]) continue;
+				const int64_t wide = Space(drawn[near].x, drawn[near].width, drawn[lone].x, drawn[lone].width);
+				const int64_t high = Space(drawn[near].y, drawn[near].height, drawn[lone].y, drawn[lone].height);
+				const int64_t distance = wide * wide + high * high;
+				if (apart != all.size() && distance >= least) continue;
+				apart = lone;
+				beside = near;
+				least = distance;
+			}
+		}
+		if (apart == all.size()) break;
+		// The step is made from the place that is reached to the one that is
+		// not, or from the one that does not lead back to one that does.
+		const size_t from = missing ? beside : apart, to = missing ? apart : beside;
+		const int64_t x = (2LL * drawn[to].x + drawn[to].width) - (2LL * drawn[from].x + drawn[from].width);
+		const int64_t y = (2LL * drawn[to].y + drawn[to].height) - (2LL * drawn[from].y + drawn[from].height);
+		const Direction direction = std::llabs(x) >= std::llabs(y) ? (x >= 0 ? Direction::Right : Direction::Left)
+			: (y >= 0 ? Direction::Down : Direction::Up);
+		const Place on = Move(targets, all[from], direction, false, links);
+		links.push_back({all[from], all[to], direction});
+		if (!missing) continue;
+		if (Anchored(on) != all[from] && Anchored(on) != all[to]) links.push_back({all[to], on, direction});
+		links.push_back({all[to], all[from], Opposite(direction)});
+	}
+	return links;
 }
 }
