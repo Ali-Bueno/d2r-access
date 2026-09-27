@@ -402,8 +402,6 @@ bool Register(const D2RL::PluginContext* context) {
 		// Ctrl+Numpad mirrors the right stick for testing without a controller.
 		for (const Entry& entry : {
 			Entry{"survey-repeat", "Repeat the current map object", Key::Backslash, Modifier::None, Request::Repeat},
-			Entry{"survey-category-previous", "Previous map category", Key::Comma, Modifier::None, Request::PreviousCategory},
-			Entry{"survey-category-next", "Next map category", Key::Period, Modifier::None, Request::NextCategory},
 			Entry{"survey-stick-up", "Scanner: previous category", Key::Numpad8, Modifier::Control, Request::PreviousCategory},
 			Entry{"survey-stick-down", "Scanner: next category", Key::Numpad2, Modifier::Control, Request::NextCategory},
 			Entry{"survey-stick-left", "Scanner: previous object", Key::Numpad4, Modifier::Control, Request::PreviousObject},
@@ -428,7 +426,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	PollStick();
 
 	if (const Request request = g_request.exchange(Request::None); request != Request::None && !uiOwnsSpeech) {
-		// The backslash, comma and period keys go through the same gate as the stick.
+		// The backslash key goes through the same gate as the stick.
 		if (!RadarUi::InPlay()) {
 			AsyncLog::Info(context, "[survey] request ignored: not in play");
 			return;
