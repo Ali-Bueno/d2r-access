@@ -47,6 +47,10 @@ void Deliver(Act act);
 // A click on a button of the open menu by the name its layout gives it, for a
 // key that presses it for the player. False when it is not shown.
 bool Press(const D2RL::PluginContext* context, std::string_view button);
+// The game's own filling of the belt from the inventory (native_belt_fill.h),
+// while the belt is in the menu. False when there was nothing to fill, the
+// game refused, or the belt is not in the menu.
+bool FillBelt(const D2RL::PluginContext* context);
 // The game's own sorting (native_sort.h) of the grid the cursor is in, or of
 // the player's inventory when it is in none. False when the game refused or
 // there is no grid. What is under the cursor afterwards is read as any move is.

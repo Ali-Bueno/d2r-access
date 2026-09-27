@@ -162,6 +162,7 @@ add_library(d2r-access SHARED
 	src/native_sort.cpp
 	src/native_swap.cpp
 	src/native_belt_rows.cpp
+	src/native_belt_fill.cpp
 	src/native_actions.cpp
 	src/keyboard_service.cpp
 	src/keyboard_menu.cpp

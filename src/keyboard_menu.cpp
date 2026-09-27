@@ -8,6 +8,7 @@
 #include "keyboard_service.h"
 #include "menu_cursor.h"
 #include "menu_mouse.h"
+#include "native_belt_fill.h"
 #include "native_belt_rows.h"
 #include "native_ground_items.h"
 #include "native_skill_navigation.h"
@@ -46,6 +47,7 @@ constexpr uint64_t RepeatMs = 180;      // and then this often
 constexpr uint64_t SilenceMs = 450;     // a place no reader has named by then is named here
 constexpr uint64_t GraceMs = 60;        // how long a key seen directly waits for the loader to deliver it
 constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen directly is the same press
+constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server answered is one it refuses
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
@@ -93,6 +95,7 @@ std::string g_said;         // what the cursor said of where it is, when no read
 bool g_beltShown = false;   // the game's "show belt" was turned on from here, and is to be turned off
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
+uint64_t g_lastFill = 0;
 
 struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
 Arrow g_arrows[] = {
@@ -693,6 +696,24 @@ bool Sort(const D2RL::PluginContext* context) {
 	NativeTooltips::Discard(now + AfterClickMs);
 	g_refreshAt = now + AfterClickMs;
 	return true;
+}
+
+bool FillBelt(const D2RL::PluginContext* context) {
+	if (!g_active.load()) return false;
+	const uint64_t now = GetTickCount64();
+	if (now - g_lastFill < FillGapMs) return true;
+	Refresh(context, now);
+	for (const auto& entry : g_entries) {
+		if (!entry.belt) continue;
+		if (NativeBeltFill::Fill(context, entry.widget) != NativeBeltFill::Result::Sent) return false;
+		g_lastFill = now;
+		// The potions are where the game put them now.
+		NativeTooltips::Discard(now + AfterClickMs);
+		g_refreshAt = now + AfterClickMs;
+		return true;
+	}
+	AsyncLog::Info(context, "[cursor] fill: the belt is not in this menu");
+	return false;
 }
 
 void Reset() {

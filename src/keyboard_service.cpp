@@ -21,6 +21,7 @@
 #include "keyboard_menu.h"
 #include "map_survey_service.h"
 #include "native_actions.h"
+#include "native_belt_fill.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -87,7 +88,7 @@ enum class Command : uint32_t {
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
 	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
-	ClickLeft, ClickRight, Transmute, Sort,
+	ClickLeft, ClickRight, Transmute, Sort, FillBelt,
 	// Console only, for the first live tests.
 	TestRun, TestPlain, TestHalt, TestStatus, LogOn, LogOff,
 };
@@ -123,7 +124,7 @@ std::atomic<Command> g_command{Command::None};
 std::atomic<Command> g_deferred{Command::None};
 // A key that presses a button of the open menu, by the button's name in the layout.
 std::atomic<const char*> g_press{nullptr};
-std::atomic<bool> g_sort{false};
+std::atomic<bool> g_sort{false}, g_fill{false};
 // A swap that was asked for: when, and the set that was in use. 0 when none is waited for.
 uint64_t g_swapAsked = 0;
 bool g_swapFrom = false;
@@ -889,9 +890,10 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			: command == Command::Transmute ? TransmuteButton : nullptr;
 		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
 			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop;
-		if (menuKey || command == Command::Sort) {
+		if (menuKey || command == Command::Sort || command == Command::FillBelt) {
 			if (!pressed) return D2RL::Input::ActionResult::Ignored;
 			if (command == Command::Sort) g_sort = true;
+			else if (command == Command::FillBelt) g_fill = true;
 			else if (button) g_press = button;
 			else KeyboardMenu::Deliver(command == Command::ClickLeft ? Act::ClickLeft : command == Command::ClickRight ? Act::ClickRight
 				: command == Command::ReadPrevious ? Act::TabPrevious : command == Command::ReadNext ? Act::TabNext
@@ -900,7 +902,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		}
 	}
 	// Out of a menu a click with Shift or Ctrl, and the cube's key, are the game's keys.
-	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort)
+	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort
+		|| command == Command::FillBelt)
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
 	if (command == Command::Swap && NativeSkillNavigation::TextEditing().value_or(false)) return D2RL::Input::ActionResult::Ignored;
@@ -956,6 +959,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (nativeHooks) (void)NativeSwap::Initialize(context);
 	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
+	if (nativeHooks) (void)NativeBeltFill::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -997,7 +1001,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},
 			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
-			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort}}) {
+			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort},
+			Entry{"keyboard-fill-belt", "Menu: fill the belt from the inventory", Key::F, Modifier::Alt, Command::FillBelt}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -1037,6 +1042,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (const char* button = g_press.exchange(nullptr); button && !KeyboardMenu::Press(context, button))
 		ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (g_sort.exchange(false) && !KeyboardMenu::Sort(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
+	if (g_fill.exchange(false) && !KeyboardMenu::FillBelt(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
 	if (Settings(command, now)) command = Command::None;
 	if (command == Command::Swap && state.ready) Swap(context, now);
@@ -1115,6 +1121,7 @@ void Unregister() {
 	End("unregister", false);
 	g_press = nullptr;
 	g_sort = false;
+	g_fill = false;
 	g_swapAsked = 0;
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
