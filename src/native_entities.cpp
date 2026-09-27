@@ -501,7 +501,10 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
-				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) entities.push_back(std::move(entity));
+				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
+				entity.unit = static_cast<uint8_t>(unitType);
+				entities.push_back(std::move(entity));
+			}
 			if (!Peek(unit + UnitNext, unit)) return false;
 		}
 	}

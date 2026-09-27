@@ -65,6 +65,11 @@ struct Entity {
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
+	// The game's own unit type of a loaded unit (1 monster, 2 object, 5 warp tile),
+	// which its commands name a target by together with `id`; NoUnit for what is
+	// not one: a preset of a room not loaded yet, an area border, a room.
+	static constexpr uint8_t NoUnit = 0xFF;
+	uint8_t unit = NoUnit;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 // A quest object still to be used: the sources of the quest and tome loops.
