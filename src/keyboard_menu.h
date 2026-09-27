@@ -14,10 +14,13 @@
 //                            of what the cursor is on, so the game shows its
 //                            tooltip, and the readers read the cursor as they
 //                            read the controller's focus (NativeUi::SetCursor).
-//   A, W                     left click, right click, where the cursor is. With
-//                            Shift or Ctrl held the game sees the click with it:
-//                            Shift + left click equips, Ctrl + left click sells,
-//                            moves or drops (the game's own hints say which).
+//   A, D                     left click, right click, where the cursor is (the
+//                            user, 2026-09-27: A and D in a menu, as A and W
+//                            are the two hands in play). With Shift or Ctrl
+//                            held the game sees the click with it: Shift + left
+//                            click equips, Ctrl + left click sells, moves or
+//                            drops (the game's own hints say which). Ctrl+D is
+//                            the whole description's switch, not a click.
 //   Ctrl + arrows            read line by line: up and down a line, left and
 //                            right the first and the last (InputDirection::PostLineStep).
 //   PageUp, PageDown         the tab before and after, in a menu that has tabs.

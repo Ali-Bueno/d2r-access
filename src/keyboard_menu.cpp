@@ -93,12 +93,15 @@ Arrow g_arrows[] = {
 	{VK_LEFT, Direction::Left, InputDirection::StickPush::Left}, {VK_RIGHT, Direction::Right, InputDirection::StickPush::Right},
 	{VK_UP, Direction::Up, InputDirection::StickPush::Up}, {VK_DOWN, Direction::Down, InputDirection::StickPush::Down},
 };
-// The keys of the menu, watched directly beside the loader's delivery of them.
-struct Watched { int key; Act act; bool modified; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
+// The keys of the menu, watched directly beside the loader's delivery of them,
+// and what may be held with each for it still to be the menu's key. Ctrl+D is
+// the whole description's switch, so D is a click alone and with Shift.
+enum class With { Nothing, Shift, ShiftOrControl };
+struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
 Watched g_watched[] = {
-	{'A', Act::ClickLeft, true}, {'W', Act::ClickRight, true}, {VK_PRIOR, Act::TabPrevious, false},
-	{VK_NEXT, Act::TabNext, false}, {VK_HOME, Act::MenuPrevious, false}, {VK_END, Act::MenuNext, false},
-	{VK_OEM_5, Act::SayAgain, false},
+	{'A', Act::ClickLeft, With::ShiftOrControl}, {'D', Act::ClickRight, With::Shift}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
+	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
+	{VK_OEM_5, Act::SayAgain, With::Nothing},
 };
 constexpr size_t Acts = 7;
 constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
@@ -533,14 +536,16 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 // The keys of the menu seen directly. One the loader delivers is the loader's;
 // one it does not, on a screen where it delivers none, is acted on from here.
 void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
-	const bool modifier = Down(VK_SHIFT) || Down(VK_CONTROL) || Down(VK_MENU);
+	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL), alt = Down(VK_MENU);
 	for (auto& key : g_watched) {
 		const bool down = Down(key.key);
 		const bool pressed = down && !key.down;
 		key.down = down;
 		// PageUp, PageDown, Home and End with a modifier are reading keys, and
 		// the settings list steps with them while it is open.
-		if (pressed && !typing && !Down(VK_MENU) && (key.modified || (!modifier && !KeyboardService::SettingsOpen()))) {
+		const bool mine = key.with == With::ShiftOrControl || (key.with == With::Shift && !control)
+			|| (!shift && !control && !KeyboardService::SettingsOpen());
+		if (pressed && !typing && !alt && mine) {
 			key.waiting = true;
 			key.since = now;
 		}

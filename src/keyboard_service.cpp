@@ -831,7 +831,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void* userData) noexcept
 	-> D2RL::Input::ActionResult {
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)) return D2RL::Input::ActionResult::Ignored;
-	const auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
+	auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
 	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
@@ -840,12 +840,15 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		using KeyboardMenu::Act;
 		if (command == Command::Attack || command == Command::Cast) {
 			const size_t hand = command == Command::Attack ? 0 : 1;
-			// A held key repeats its press; only the first one is a click.
-			if (pressed && g_held[hand].exchange(static_cast<uint32_t>(event->binding.key)) == 0)
-				KeyboardMenu::Deliver(hand == 0 ? Act::ClickLeft : Act::ClickRight);
+			// A held key repeats its press; only the first one is a click. W is
+			// kept from the game and does nothing here: the game's W swaps weapons.
+			if (pressed && g_held[hand].exchange(static_cast<uint32_t>(event->binding.key)) == 0 && hand == 0)
+				KeyboardMenu::Deliver(Act::ClickLeft);
 			if (!pressed) g_held[hand] = 0;
 			return pressed ? D2RL::Input::ActionResult::Handled : D2RL::Input::ActionResult::Ignored;
 		}
+		// D is the right click in a menu, as it is the hand that uses a thing in play.
+		if (command == Command::Interact) command = Command::ClickRight;
 		const char* button = command == Command::RetreatExit ? RepairAllButton : command == Command::RetreatBack ? RepairButton
 			: command == Command::Transmute ? TransmuteButton : nullptr;
 		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
@@ -932,7 +935,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-cast", "Fight with the right skill (hold)", Key::W, Modifier::None, Command::Cast},
 			Entry{"keyboard-target-next", "Next monster", Key::Tab, Modifier::None, Command::TargetNext},
 			Entry{"keyboard-target-previous", "Previous monster", Key::Tab, Modifier::Shift, Command::TargetPrevious},
-			Entry{"keyboard-use", "Walk up to the nearest thing and use it", Key::D, Modifier::None, Command::Interact},
+			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
 			Entry{"keyboard-walk", "Walk to the scanned target", Key::Home, Modifier::Shift, Command::WalkToTarget},
 			Entry{"keyboard-explore", "Walk to unexplored ground", Key::H, Modifier::None, Command::Explore},
 			Entry{"keyboard-retreat", "Retreat to the nearest way out", Key::R, Modifier::Control, Command::RetreatExit},
@@ -951,8 +954,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
-			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::W, Modifier::Shift, Command::ClickRight},
-			Entry{"keyboard-right-click-control", "Menu: right click with Ctrl", Key::W, Modifier::Control, Command::ClickRight},
+			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},
 			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
 			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
