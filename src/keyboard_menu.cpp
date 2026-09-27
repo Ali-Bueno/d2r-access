@@ -57,6 +57,8 @@ constexpr std::string_view NotMenus[] = {
 	"InGameMoviePlayerPanel", "MoviePlayerPanel", "ControllerOverlay", "UISwitcher", "EndGameTimerPanel",
 };
 constexpr std::string_view Hud = "HUDPanel";
+// The HUD's two skill buttons. Between them the HUD has nothing of its own.
+constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
 
 // The menus Home and End go through, each with its button of the mini menu
 // and the start of the name of the panel it opens.
@@ -382,6 +384,26 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	NativeUi::ClearCursor();
 }
 
+// When play goes on the pointer is put on the HUD, between its two skill
+// buttons. Left where the menu had it, it would be over the world, where the
+// game takes what is under it for what the player means and names it.
+void Park(const D2RL::PluginContext* context) {
+	const uintptr_t hud = NativeWidgets::FindPanel(Hud);
+	const uintptr_t left = FindNamed(hud, LeftSkill, false, 0), right = FindNamed(hud, RightSkill, false, 0);
+	const auto from = left ? NativeSkillNavigation::RectAt(left, NativeUi::FocusSelection(left)) : std::nullopt;
+	const auto to = right ? NativeSkillNavigation::RectAt(right, NativeUi::FocusSelection(right)) : std::nullopt;
+	const int gap = from && to ? to->x - (from->x + from->width) : 0;
+	if (gap < 2) {
+		AsyncLog::InfoF(context, "[cursor] the pointer stays where the menu left it: left skill button %s, right %s, %d between them",
+			!left ? "not shown" : from ? "found" : "has no rectangle", !right ? "not shown" : to ? "found" : "has no rectangle", gap);
+		return;
+	}
+	const NativeUi::Rect rest{from->x + from->width, from->y, gap, from->height};
+	AsyncLog::InfoF(context, "[cursor] play goes on: the pointer to %d,%d, between the skill buttons",
+		rest.x + rest.width / 2, rest.y + rest.height / 2);
+	MenuMouse::PlaceAfter(rest);
+}
+
 // The menu as it is now, and the cursor on it: where it was if that still
 // stands, at the menu's first thing otherwise.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
@@ -621,7 +643,10 @@ void Tick(const D2RL::PluginContext* context) {
 		&& !KeyboardService::Playing();
 	g_active = menu;
 	if (!menu) {
+		// The pointer was the menu's only if the cursor put it somewhere.
+		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
+		if (moved && Foreground() && KeyboardService::Playing()) Park(context);
 		g_pending = 0;
 		for (auto& arrow : g_arrows) arrow.down = Down(arrow.key);
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }

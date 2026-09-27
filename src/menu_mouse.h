@@ -23,6 +23,8 @@ void Click(Button button);
 // The pointer on the rectangle, a click there, and the pointer back on
 // `after` when that has any size: a key that presses a button for the player.
 void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& after = {});
+// The pointer on the rectangle once every step that waits is done.
+void PlaceAfter(const NativeUi::Rect& rect);
 // True while steps wait: what the pointer is on is about to change.
 bool Busy();
 void Tick(uint64_t now);

@@ -56,6 +56,10 @@ void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& af
 	if (after.width > 0 && after.height > 0) g_steps.push_back({Act::Place, button, after, SettleMs});
 }
 
+void PlaceAfter(const NativeUi::Rect& rect) {
+	g_steps.push_back({Act::Place, Button::Left, rect, g_steps.empty() ? 0 : SettleMs});
+}
+
 bool Busy() { return !g_steps.empty(); }
 
 void Tick(uint64_t now) {
