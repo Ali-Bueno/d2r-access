@@ -137,6 +137,9 @@ per open panel. What exists to build it from:
   instead of `NativeUi::CurrentFocus()`, they would read it as they read the
   controller's. Where `CurrentFocus` is called is the list of places to change.
 
+The mouse follows this cursor and clicks for it; see section 2, which the
+user decided.
+
 **OPEN, and the first thing to measure:** whether
 `NativeSkillNavigation::Select` and `SelectAt` give a widget focus in keyboard
 mode. READ: they place the game's cursor (`0x14F690`, documented as the
@@ -145,20 +148,68 @@ works without a controller, the game itself then holds the focus and the
 readers need no change. The pause menu did show a moving focus in keyboard
 mode, so a focus can exist there. One call and one log line settle it.
 
-### 2. Acting on what the cursor is on
+### 2. Acting on what the cursor is on: the mouse (DECIDED)
 
-**OPEN, and the user's decision.** The arrows can move and the readers can
-read without it, but choosing a button, picking up an item, selling, spending
-a point all need an act. The ways known:
+**The user, 2026-09-27:** *"the mod can just control the mouse like the diablo
+hellfire mod does. that should be the easiest."* This settles the question
+that was open here. The mod keeps its own cursor, puts the game's mouse on
+what that cursor is on, and clicks. The game's internal press-a-button
+function is not used and the question about it is closed.
 
-- The loader's `WidgetService::dispatchUiAction`, which sends a panel message
-  such as `TradePanelMessage:Confirm`. The layouts name the message each
-  button sends. No game code is called. Covers buttons, not item grids.
-- The game's own click path, as the walking and fighting use it.
-- The game's internal press-a-button function (`0x1401452E0`), which its
-  tests use in controller mode. It imitates no device, but it maps a key to a
-  pad button, which the user ruled out on 2026-09-20. **Asked twice, not
-  answered. Not to be built without a yes.**
+**How the Diablo mod does it (READ, `D:\Games\Dev\Custom\Diablo`):**
+
+- It keeps its own place, `Slot`, and moves it with the arrows
+  (`InventoryMoveFromKeyboard`, `Source/controls/plrctrls.cpp:2408`).
+- After each move it puts the mouse on the middle of what it landed on:
+  `SetCursorPos(mousePos)` (`plrctrls.cpp:1336`, and a dozen more call sites
+  for the stash, the spell list and the buttons). For an item of several cells
+  that is the middle of the whole item, found from its first slot
+  (`FindFirstSlotOnItem`, `plrctrls.cpp:1327`).
+- `SetCursorPos` (`Source/diablo.cpp:2794`) sets the game's own
+  `MousePosition` and, in keyboard-and-mouse mode, moves the real pointer too
+  (`SDL_WarpMouseInWindow`).
+- An action key then calls the game's own handler for a click, which acts on
+  whatever is under the mouse: `PerformPrimaryAction` (`plrctrls.cpp:2862`)
+  calls `LiftInventoryItem` -> `CheckInvItem`, `CheckChrBtns` for a stat
+  point, `ActivateStashButton` for a stash button.
+
+So the pattern is three steps: the mod's cursor moves, the mouse follows it,
+a key clicks where the mouse is.
+
+**What D2R offers for each step:**
+
+| step | what exists | state |
+|---|---|---|
+| where a control is | `NativeSkillNavigation::FocusRect(widget)`, and `ReadRectAt` for one cell of a grid (`src/native_skill_navigation.cpp`) | READ; the inventory grid's own rectangle function is `0x2C47B0`, which takes column and row |
+| put the mouse there | the game's `0x14F690`, already called by `SelectNative`; `docs/controller-navigation.md:57`: it "updates the native cursor and OS position" | READ. **OPEN: whether it works in keyboard mode**, and whether it clamps to bounds that only hold in controller mode. Windows' own `SetCursorPos` is the fallback, and then the rectangle has to be turned into screen coordinates |
+| click | `SendInput` with a mouse button, as `tools/computer_use` does for its tests; or the game's own mouse handlers (table at `0x142293A70`: left down `0x140083FC0`, left up `0x1400839A0`, right down `0x1400839E0`, right up `0x140083B00`; these are the handlers for a click in the WORLD, from the static pass in `re/actions/input`, not re-checked, and a click on a panel may go another way) | READ, neither tried from the plugin. `SendInput` needs the game's window in front, which it is while the player plays |
+
+**What comes for free with the mouse (INFERRED, to be measured):** the game
+draws a tooltip for whatever the mouse is over, and the mod already captures
+every tooltip the game draws (`src/native_tooltips.cpp`, a hook on the draw).
+So an item under the mouse may read itself without any focus at all. The
+hover also gives the game's own highlight, which is what a click then acts on.
+
+**What the mouse covers:** choosing a button, switching a tab (a tab is a
+button), picking up and placing an item, equipping, the belt, selling and
+buying, repair and repair all, the stash and its gold, transmuting, spending a
+stat or skill point, binding a skill, the quest log's tabs and entries, the
+waypoint list, the title screen's buttons. In keyboard mode these are all
+mouse actions to the game already.
+
+**What to decide or measure when building it:**
+
+- Left click and right click are different acts in keyboard mode, and a click
+  with Shift or Ctrl held is another again. What each does in each panel has
+  NOT been read or measured here; the game's own hint strings
+  (`game-data/local/lng/strings/ui.json`) are where to read it. The keys for
+  them are the user's to choose, with the reading keys of section 4.
+- The real pointer moves, so a sighted helper would see it jump. Nobody has
+  asked for it to be hidden or put back.
+- Move the mouse only while a menu is up. INFERRED, not measured: in play the
+  game picks the unit under the mouse as its own target (`SelectUpdate`), and
+  the keyboard's walking and fighting do not use the mouse at all, so there
+  is nothing to gain by moving it there and something to disturb.
 
 ### 3. The gate
 
@@ -188,8 +239,8 @@ PageUp and PageDown. **Which keys these get is the user's to say.** Keys the
 game has not bound (READ from the character's `.key` file): D, J, K, L, U, X,
 Y, Insert, Delete, and every chord.
 
-The tab keys themselves need the act of section 2: a tab is switched by the
-message its button sends.
+The tab keys themselves need the act of section 2: a tab is a button, and the
+mouse clicks it.
 
 ### 5. Carried over, not yet tried in the game
 
