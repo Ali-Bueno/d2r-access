@@ -153,6 +153,7 @@ add_library(d2r-access SHARED
 	src/widgets.cpp
 	src/retreat.cpp
 	src/auto_walk.cpp
+	src/combat_target.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -561,7 +562,12 @@ if(BUILD_TESTING)
 	target_include_directories(auto-walk-tests PRIVATE src)
 	target_compile_features(auto-walk-tests PRIVATE cxx_std_20)
 	add_test(NAME auto-walk COMMAND auto-walk-tests)
+	add_executable(combat-target-tests tests/combat_target_tests.cpp src/combat_target.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(combat-target-tests PRIVATE src)
+	target_compile_features(combat-target-tests PRIVATE cxx_std_20)
+	add_test(NAME combat-target COMMAND combat-target-tests)
 	if(MSVC)
+		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
