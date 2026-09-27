@@ -152,6 +152,7 @@ add_library(d2r-access SHARED
 	src/native_status.cpp
 	src/widgets.cpp
 	src/retreat.cpp
+	src/auto_walk.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -556,8 +557,13 @@ if(BUILD_TESTING)
 	target_include_directories(retreat-tests PRIVATE src)
 	target_compile_features(retreat-tests PRIVATE cxx_std_20)
 	add_test(NAME retreat COMMAND retreat-tests)
+	add_executable(auto-walk-tests tests/auto_walk_tests.cpp src/auto_walk.cpp src/beacon.cpp src/radar_grid.cpp)
+	target_include_directories(auto-walk-tests PRIVATE src)
+	target_compile_features(auto-walk-tests PRIVATE cxx_std_20)
+	add_test(NAME auto-walk COMMAND auto-walk-tests)
 	if(MSVC)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
