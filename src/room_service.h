@@ -16,4 +16,10 @@ bool Maze(int level);
 // Levels.txt DrlgType 3: open ground, where the frontier of the streamed
 // terrain is what "unexplored" means.
 bool Outdoor(int level);
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled();
+void SetEnabled(bool enabled);
+bool Finder();
+void SetFinder(bool enabled); // in play only, as BACK+A is
 }

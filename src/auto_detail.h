@@ -27,4 +27,8 @@ bool ControlTooltips();
 // Says the new state after a toggle. UI thread.
 void Tick(const D2RL::PluginContext* context);
 
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+void SetEnabled(bool enabled);
+void SetControlTooltips(bool enabled);
 }

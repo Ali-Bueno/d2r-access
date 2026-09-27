@@ -305,4 +305,11 @@ void Unregister() {
 	g_input = nullptr;
 	g_ready = g_supported = false;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
+bool Diagonal() { return g_frame == Radar::Frame::Diagonal; }
+void SetDiagonal(bool diagonal) { g_command = diagonal ? Command::Diagonal : Command::Cardinal; }
 }

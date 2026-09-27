@@ -36,4 +36,10 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool RoomSounds();
+void SetRoomSounds(bool enabled);
+bool PlaceAlerts();
+void SetPlaceAlerts(bool enabled);
 }

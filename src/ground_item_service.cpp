@@ -367,4 +367,18 @@ bool OwnsWorldLabel(std::string_view label) {
 	return g_speech && !g_suspended && GetTickCount64() - g_labelsUpdated <= GroundItems::SnapshotExpiryMs
 		&& GroundItems::MatchesLabel(label, g_nearbyLabels);
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled(Switch which) {
+	return which == Switch::Speech ? g_speech : which == Switch::Sounds ? g_sound
+		: which == Switch::Exits ? g_exits : which == Switch::Chests ? g_chests : g_doors;
+}
+void SetEnabled(Switch which, bool enabled) {
+	g_command = which == Switch::Speech ? (enabled ? Command::SpeechOn : Command::SpeechOff)
+		: which == Switch::Sounds ? (enabled ? Command::SoundOn : Command::SoundOff)
+		: which == Switch::Exits ? (enabled ? Command::ExitsOn : Command::ExitsOff)
+		: which == Switch::Chests ? (enabled ? Command::ChestsOn : Command::ChestsOff)
+		: (enabled ? Command::DoorsOn : Command::DoorsOff);
+}
 }

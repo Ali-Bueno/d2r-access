@@ -427,4 +427,8 @@ void Unregister() {
 	g_graphSession = 0;
 	NavigationMode::SetFullAssistance(false);
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+void SetFullAssistance(bool enabled) { g_command = enabled ? Command::FullAssistance : Command::Exploration; }
 }

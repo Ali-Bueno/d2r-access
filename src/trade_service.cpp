@@ -78,4 +78,9 @@ std::string PartnerName() {
 	const auto state = g_supported ? NativeTrade::Read() : std::nullopt;
 	return state && (state->pending || state->active) ? NativeTrade::PartnerName() : std::string{};
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_enabled = enabled; }
 }

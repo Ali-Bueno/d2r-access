@@ -356,4 +356,11 @@ void Unregister() {
 	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_supported = false; g_nextPoll = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
+bool Finder() { return g_finder; }
+void SetFinder(bool enabled) { if (g_finder != enabled) g_finderToggle = true; }
 }

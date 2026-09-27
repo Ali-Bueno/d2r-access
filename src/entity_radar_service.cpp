@@ -205,4 +205,9 @@ void Unregister() {
 	g_revision = 0; g_command = Command::None; g_npcNextPoll = 0;
 	g_settings = {}; g_npcSettings = {}; g_sightSettings = {}; g_sight = {};
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool NpcEnabled() { return g_npcEnabled; }
+void SetNpcEnabled(bool enabled) { g_command = enabled ? Command::NpcOn : Command::NpcOff; }
 }

@@ -14,4 +14,8 @@ void NamePrompt(UiText::Readout& readout);
 std::string FixNotice(std::string notice);
 // The partner's name while a trade is pending or active, "" otherwise.
 std::string PartnerName();
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled();
+void SetEnabled(bool enabled);
 }

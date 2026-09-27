@@ -263,4 +263,8 @@ bool Tick(const D2RL::PluginContext* context) {
 void SetEnabled(bool enabled) { g_enabled.store(enabled); }
 void RequestRepeat() { g_repeat.store(true); }
 void RequestDump() { g_dump.store(true); }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled.load(); }
 }

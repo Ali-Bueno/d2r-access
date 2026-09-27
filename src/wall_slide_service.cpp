@@ -74,4 +74,8 @@ void Unregister() {
 	g_prevented = 0;
 	g_reported = g_reportAt = 0;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 }

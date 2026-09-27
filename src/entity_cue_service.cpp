@@ -190,4 +190,17 @@ void Unregister() {
 	g_settings = {}; g_enabled = true; g_supported = g_audioStarted = false; g_suspended = true;
 	g_revision = g_lastPoll = 0;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled(Cue cue) {
+	return cue == Cue::All ? g_enabled : cue == Cue::Npcs ? g_settings.npcs
+		: cue == Cue::Enemies ? g_settings.enemies : g_settings.ranged;
+}
+void SetEnabled(Cue cue, bool enabled) {
+	g_command = cue == Cue::All ? (enabled ? Command::On : Command::Off)
+		: cue == Cue::Npcs ? (enabled ? Command::NpcOn : Command::NpcOff)
+		: cue == Cue::Enemies ? (enabled ? Command::EnemyOn : Command::EnemyOff)
+		: (enabled ? Command::RangedOn : Command::RangedOff);
+}
 }

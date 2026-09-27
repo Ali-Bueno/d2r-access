@@ -499,4 +499,11 @@ void Unregister() {
 	g_warnedLevel = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool RoomSounds() { return g_roomSounds; }
+void SetRoomSounds(bool enabled) { g_roomSounds = enabled; }
+bool PlaceAlerts() { return g_placeAlerts; }
+void SetPlaceAlerts(bool enabled) { g_placeAlerts = enabled; }
 }
