@@ -371,6 +371,8 @@ void PollStick() {
 	}
 }
 
+void Repeat() { g_request.store(Request::Repeat); }
+
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context   = context;

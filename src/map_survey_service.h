@@ -11,5 +11,7 @@ namespace D2RAccess::MapSurveyService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Shutdown();
+// Says the object the scanner stands on again, as the backslash key does.
+void Repeat();
 
 }

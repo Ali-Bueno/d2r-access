@@ -313,6 +313,12 @@ void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
 	g_offer = {entity, level, now, now};
 }
 
+bool Offered(EntityRadar::Entity& entity, int level) {
+	if (!g_offer.entity.id || g_offer.level != level) return false;
+	entity = g_offer.entity;
+	return true;
+}
+
 bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	NavigationMode::SetFullAssistance(RadarConfig::ReadNavigation(context).fullAssistance);

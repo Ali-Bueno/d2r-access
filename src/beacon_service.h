@@ -14,4 +14,6 @@ void Unregister();
 // The scanner hands over what it just announced, so locking needs no second
 // read and always follows exactly what the player heard.
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now);
+// What the scanner named last on this level, for a walk there; false when nothing was.
+bool Offered(EntityRadar::Entity& entity, int level);
 }
