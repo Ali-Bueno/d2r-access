@@ -25,6 +25,8 @@ std::string ItemBaseName(uintptr_t unit);
 // item reader classifies by -- or 0 when the unit is not an item or cannot be
 // read. What src/generated/item_sizes.h is keyed by.
 uint32_t ItemTableCode(uintptr_t unit);
+// The same code for an item class id, as the loader's item records give it; 0 when unreadable.
+uint32_t ClassCode(uint32_t classId);
 struct UnitLabel { std::string baseName; uint32_t quality = 0; };
 // Table name of an item known by its class row (the SDK's ItemInfo::classId),
 // with the quality it was given.

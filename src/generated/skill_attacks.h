@@ -6,7 +6,9 @@
 // 3 by the weapon in hand, 288 not attacks.
 #pragma once
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace D2RAccess::Generated {
@@ -51,6 +53,26 @@ inline constexpr std::array<SkillAttack, 429> SkillAttacks{{
 constexpr SkillAttack SkillAttackFor(int skill) {
 	return skill >= 0 && static_cast<size_t>(skill) < SkillAttacks.size()
 		? SkillAttacks[static_cast<size_t>(skill)] : SkillAttack::None;
+}
+
+// The weapons that shoot: the bows and crossbows of weapons.txt, by item code
+// as the game stores it (little-endian, space-padded), sorted. With one in
+// hand a Weapon skill is ranged.
+inline constexpr std::array<uint32_t, 42> ShootingWeapons{{
+	0x20316D61u, 0x20326D61u, 0x20366D61u, 0x20376C36u, 0x20376D61u, 0x20377336u,
+	0x20386C38u, 0x20387338u, 0x2062626Cu, 0x20626273u, 0x20626336u, 0x20626338u,
+	0x20626836u, 0x20626838u, 0x20626C36u, 0x20626C38u, 0x20626D61u, 0x20627336u,
+	0x20627338u, 0x2062776Cu, 0x20627773u, 0x20627868u, 0x2062786Cu, 0x2062786Du,
+	0x20627872u, 0x20636D61u, 0x20776263u, 0x20776268u, 0x2077626Cu, 0x20776273u,
+	0x20776C36u, 0x20776C38u, 0x20777336u, 0x20777338u, 0x20786836u, 0x20786838u,
+	0x20786C36u, 0x20786C38u, 0x20786D36u, 0x20786D38u, 0x20787236u, 0x20787238u,
+}};
+
+// A NUL byte is taken as the space the game pads a short code with.
+constexpr bool ShootingWeapon(uint32_t code) {
+	for (int shift = 0; shift < 32; shift += 8)
+		if (((code >> shift) & 0xFFu) == 0) code |= 0x20u << shift;
+	return std::binary_search(ShootingWeapons.begin(), ShootingWeapons.end(), code);
 }
 
 }

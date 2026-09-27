@@ -36,6 +36,11 @@ The rules, in order. Each is a column of skills.txt, not a list of names:
 is why it gates the weapon skills: Find Potion and Find Item are `h2h` and are
 not attacks.
 
+`Weapon` needs the weapon: the header also lists the codes of the weapons that
+shoot, the bows and crossbows of weapons.txt (type bow, xbow or abow). A
+throwing weapon is not one of them: the plain Attack swings it, and Throw is a
+skill of its own.
+
 Known limits, stated rather than patched with a list of names:
   - How FAR each ranged skill carries is not in this table. The reach is one
     policy distance in the plugin, not a per-skill fact.
@@ -49,9 +54,9 @@ Usage:
     python tools/gen_skill_attacks.py [--excel game-data/global/excel]
                                       [--out src/generated/skill_attacks.h]
 
-skills.txt comes from the game's CASC storage:
+skills.txt and weapons.txt come from the game's CASC storage:
     tools/casc_extract.exe extract "<game dir>" game-data "excel\skills.txt"
-and lands in game-data/global/excel/. game-data/ is gitignored; the generated
+and land in game-data/global/excel/. game-data/ is gitignored; the generated
 header is what gets committed.
 """
 import argparse
@@ -63,6 +68,13 @@ NONE, MELEE, RANGED, WEAPON = "None", "Melee", "Ranged", "Weapon"
 MISSILES = ("srvmissile", "srvmissilea", "srvmissileb", "srvmissilec")
 DAMAGE = ("MinDam", "EMin", "SrcDam")
 OTHER_TARGETS = ("TargetPet", "TargetAlly", "TargetCorpse", "TargetItem")
+SHOOTING = ("bow", "xbow", "abow")
+
+
+def packed(code):
+    """The item code as the game stores it: little-endian, space-padded."""
+    text = code.ljust(4)
+    return sum(ord(ch) << (8 * i) for i, ch in enumerate(text))
 
 
 def main():
@@ -115,6 +127,14 @@ def main():
             kind = NONE
         kinds[skill] = kind
 
+    with io.open(args.excel / "weapons.txt", encoding="utf-8-sig", errors="replace", newline="") as source:
+        weapons = list(csv.reader(source, delimiter="	"))
+    code_at, type_at = weapons[0].index("code"), weapons[0].index("type")
+    shooting = sorted(packed(row[code_at].strip()) for row in weapons[1:]
+                      if len(row) > max(code_at, type_at) and row[code_at].strip() and row[type_at].strip() in SHOOTING)
+    if not shooting:
+        raise SystemExit("weapons.txt: no bow or crossbow found")
+
     last = max(kinds)
     counts = {kind: sum(1 for value in kinds.values() if value == kind) for kind in (NONE, MELEE, RANGED, WEAPON)}
 
@@ -128,7 +148,9 @@ def main():
     out.append("// %d by the weapon in hand, %d not attacks." % (counts[WEAPON], counts[NONE]))
     out.append("#pragma once")
     out.append("")
+    out.append("#include <algorithm>")
     out.append("#include <array>")
+    out.append("#include <cstddef>")
     out.append("#include <cstdint>")
     out.append("")
     out.append("namespace D2RAccess::Generated {")
@@ -157,13 +179,28 @@ def main():
     out.append("\t\t? SkillAttacks[static_cast<size_t>(skill)] : SkillAttack::None;")
     out.append("}")
     out.append("")
+    out.append("// The weapons that shoot: the bows and crossbows of weapons.txt, by item code")
+    out.append("// as the game stores it (little-endian, space-padded), sorted. With one in")
+    out.append("// hand a Weapon skill is ranged.")
+    out.append("inline constexpr std::array<uint32_t, %d> ShootingWeapons{{" % len(shooting))
+    for start in range(0, len(shooting), 6):
+        out.append("	" + " ".join("0x%08Xu," % code for code in shooting[start:start + 6]))
+    out.append("}};")
+    out.append("")
+    out.append("// A NUL byte is taken as the space the game pads a short code with.")
+    out.append("constexpr bool ShootingWeapon(uint32_t code) {")
+    out.append("	for (int shift = 0; shift < 32; shift += 8)")
+    out.append("		if (((code >> shift) & 0xFFu) == 0) code |= 0x20u << shift;")
+    out.append("	return std::binary_search(ShootingWeapons.begin(), ShootingWeapons.end(), code);")
+    out.append("}")
+    out.append("")
     out.append("}")
     out.append("")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     io.open(args.out, "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print("%s: %d skills -- %d melee, %d ranged, %d weapon, %d not attacks"
-          % (args.out, len(kinds), counts[MELEE], counts[RANGED], counts[WEAPON], counts[NONE]))
+    print("%s: %d skills -- %d melee, %d ranged, %d weapon, %d not attacks; %d shooting weapons"
+          % (args.out, len(kinds), counts[MELEE], counts[RANGED], counts[WEAPON], counts[NONE], len(shooting)))
     for kind in (MELEE, RANGED, WEAPON):
         print("%s: %s" % (kind, ", ".join(names[skill] for skill in sorted(kinds) if kinds[skill] == kind and skill < 403)))
 

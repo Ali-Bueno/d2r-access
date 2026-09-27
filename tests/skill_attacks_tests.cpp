@@ -40,5 +40,12 @@ int main() {
 	for (const auto& skill : Skills) Check(Generated::SkillAttackFor(skill.id) == skill.kind, skill.name);
 	Check(Generated::SkillAttackFor(-1) == SkillAttack::None, "no skill is not an attack");
 	Check(Generated::SkillAttackFor(100000) == SkillAttack::None, "a skill the table does not know is not an attack");
+	// 'sbw ' Short Bow, 'lxb ' Light Crossbow; 'ssd ' Short Sword, 'jav ' Javelin.
+	Check(Generated::ShootingWeapon(0x20776273u), "a short bow shoots");
+	Check(Generated::ShootingWeapon(0x2062786Cu), "a light crossbow shoots");
+	Check(Generated::ShootingWeapon(0x00776273u), "a NUL-padded code finds the same bow");
+	Check(!Generated::ShootingWeapon(0x20647373u), "a short sword does not shoot");
+	Check(!Generated::ShootingWeapon(0x2076616Au), "a javelin in hand is swung by the plain Attack");
+	Check(!Generated::ShootingWeapon(0), "no weapon does not shoot");
 	Passed();
 }

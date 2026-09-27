@@ -120,6 +120,15 @@ uint32_t ItemTableCode(uintptr_t unit) {
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
 	return code;
 }
+uint32_t ClassCode(uint32_t classId) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
+	uint32_t code = 0;
+	if (!g_base || !RuntimeRoots(player, tables)
+		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
+		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
+	return code;
+}
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	if (!context) return false;
