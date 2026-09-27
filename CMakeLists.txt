@@ -151,6 +151,7 @@ add_library(d2r-access SHARED
 	src/skill_bar_service.cpp
 	src/native_status.cpp
 	src/widgets.cpp
+	src/retreat.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -550,7 +551,13 @@ if(BUILD_TESTING)
 	target_compile_features(pad-filter-tests PRIVATE cxx_std_20)
 	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME pad-filter COMMAND pad-filter-tests)
+	# Keyboard play: the routes and choices behind the walking and fighting keys.
+	add_executable(retreat-tests tests/retreat_tests.cpp src/retreat.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	target_include_directories(retreat-tests PRIVATE src)
+	target_compile_features(retreat-tests PRIVATE cxx_std_20)
+	add_test(NAME retreat COMMAND retreat-tests)
 	if(MSVC)
+		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
