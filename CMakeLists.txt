@@ -155,6 +155,7 @@ add_library(d2r-access SHARED
 	src/auto_walk.cpp
 	src/combat_target.cpp
 	src/explore_goal.cpp
+	src/grid_jump.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -572,7 +573,12 @@ if(BUILD_TESTING)
 	target_compile_features(explore-goal-tests PRIVATE cxx_std_20)
 	target_compile_definitions(explore-goal-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME explore-goal COMMAND explore-goal-tests)
+	add_executable(grid-jump-tests tests/grid_jump_tests.cpp src/grid_jump.cpp)
+	target_include_directories(grid-jump-tests PRIVATE src)
+	target_compile_features(grid-jump-tests PRIVATE cxx_std_20)
+	add_test(NAME grid-jump COMMAND grid-jump-tests)
 	if(MSVC)
+		target_compile_options(grid-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(explore-goal-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
