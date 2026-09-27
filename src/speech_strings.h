@@ -218,6 +218,23 @@ struct Table {
 	const char* automapWatchOn;        // the automap watch logs every change from now on
 	const char* automapWatchOff;
 	const char* skillBarSlot;          // %s = controller button, %s = skill name and HUD count
+	// Keyboard play: walking, exploring, retreating and fighting. `keyboard_service.h`
+	const char* walkTo; // %s = what the character sets out for
+	const char* walkStopped; // a walk, a retreat or a fight ended by the player
+	const char* walkBlocked; // %s = the target; the character stopped making headway
+	const char* walkNoRoute; // %s = the target
+	const char* walkNothing; // the scanner has named nothing to walk to
+	const char* exploreTo;
+	const char* exploreArrived;
+	const char* exploreNothing; // every room that can be reached is explored
+	const char* retreatTo; // %s = a way out by name, or roomOpening
+	const char* retreatNone;
+	const char* retreatNoPassage; // no corridor or doorway in reach
+	const char* retreatBackUnknown; // the way the player came in cannot be told
+	const char* targetNone; // no monster to fight or step to
+	const char* targetOutOfReach; // %s = a monster with no way to it
+	const char* interactNothing;
+	const char* actionsUnavailable; // the game's command could not be verified on this build
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -262,7 +279,9 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
-		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot};
+		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
+		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
+		t.retreatTo, t.retreatNone, t.retreatNoPassage, t.retreatBackUnknown, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
