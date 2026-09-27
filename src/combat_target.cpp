@@ -1,7 +1,10 @@
 #include "combat_target.h"
 
+#include "auto_walk.h"
+
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace D2RAccess::CombatTarget {
 namespace {
@@ -76,5 +79,69 @@ Move Decide(const Candidate& target, const Reach& reach) {
 	const bool inReach = target.distance <= reach.range && (!reach.ranged || target.sight);
 	if (inReach) return Move::Strike;
 	return target.steps >= 0 ? Move::Close : Move::Unreachable;
+}
+
+double Clearance(Position from, const std::vector<Position>& threats) {
+	double nearest = std::numeric_limits<double>::max();
+	for (const auto threat : threats)
+		nearest = std::min(nearest, std::hypot(threat.x - from.x, threat.y - from.y));
+	return nearest;
+}
+
+bool Closing(Position player, const std::vector<Position>& threats, const Spacing& spacing) {
+	return Clearance(player, threats) < spacing.tooClose;
+}
+
+namespace {
+// Whether the walk there leads away: no step of it brings a monster nearer
+// than it is now. Ground on the far side of a monster is not fallen back to.
+bool Away(Position from, Position to, const std::vector<Position>& threats, double here) {
+	const int steps = static_cast<int>(std::ceil(std::hypot(to.x - from.x, to.y - from.y)));
+	for (int i = 1; i <= steps; ++i) {
+		const double part = static_cast<double>(i) / steps;
+		if (Clearance({from.x + (to.x - from.x) * part, from.y + (to.y - from.y) * part}, threats) < here) return false;
+	}
+	return true;
+}
+}
+
+Ground FallBack(const Radar::World& world, const Navigation::Grid& grid, const std::vector<Position>& threats,
+	Position target, double range, const Spacing& spacing) {
+	Ground ground;
+	if (threats.empty() || grid.cells.empty()) return ground;
+	const double here = Clearance(world.player, threats);
+	struct Place { Position cell; double clearance; int steps; };
+	std::vector<Place> places;
+	const int px = Cell(world.player.x), py = Cell(world.player.y);
+	for (int y = py - spacing.leg; y <= py + spacing.leg; ++y) {
+		for (int x = px - spacing.leg; x <= px + spacing.leg; ++x) {
+			const auto* cell = grid.At(x, y);
+			if (!cell || cell->steps < 1 || cell->steps > spacing.leg) continue;
+			const Position place{static_cast<double>(x), static_cast<double>(y)};
+			if (std::hypot(target.x - place.x, target.y - place.y) > range) continue;
+			const double clearance = Clearance(place, threats);
+			if (clearance < here + spacing.gain) continue;
+			places.push_back({place, clearance, cell->steps});
+		}
+	}
+	// The most distance first, up to what is enough; then the shortest walk.
+	std::sort(places.begin(), places.end(), [&spacing](const Place& a, const Place& b) {
+		const double ca = std::min(a.clearance, spacing.enough), cb = std::min(b.clearance, spacing.enough);
+		if (ca != cb) return ca > cb;
+		if (a.steps != b.steps) return a.steps < b.steps;
+		return a.cell.y != b.cell.y ? a.cell.y < b.cell.y : a.cell.x < b.cell.x;
+	});
+	size_t viewed = 0;
+	for (const auto& place : places) {
+		// The cheap tests first; only a place that passes them is worth a look at the view.
+		if (!Away(world.player, place.cell, threats, here) || !AutoWalk::Straight(world, world.player, place.cell)) continue;
+		if (viewed++ >= spacing.views) break;
+		if (!EntityRadar::LineOfSight(world, place.cell, target)) continue;
+		ground.found = true;
+		ground.cell = place.cell;
+		ground.clearance = place.clearance;
+		return ground;
+	}
+	return ground;
 }
 }

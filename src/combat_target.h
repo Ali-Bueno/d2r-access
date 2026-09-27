@@ -57,4 +57,33 @@ struct Reach {
 };
 enum class Move { Strike, Close, Unreachable };
 Move Decide(const Candidate& target, const Reach& reach);
+
+// Keeping a ranged fight at range, as a player does and as the game's own
+// ranged monsters do: when a monster closes, fall back to ground that puts more
+// distance between, shoot from there, and fall back again. Where there is no
+// such ground -- a corner, a dead end, monsters on every side -- the character
+// stands and fights.
+struct Spacing {
+	double tooClose = 9; // a monster nearer than this is closing on the player
+	double gain = 3;     // ground to fall back to is at least this much farther from every monster
+	double enough = 16;  // past this, more distance is not worth a longer walk
+	int leg = 14;        // the longest walk back, in walking steps
+	size_t views = 48;   // how many of the best places are looked at for a view of the monster fought
+};
+// The distance from a place to the nearest monster; very large when there is none.
+double Clearance(Position from, const std::vector<Position>& threats);
+// Whether a monster has come nearer than a ranged fight allows.
+bool Closing(Position player, const std::vector<Position>& threats, const Spacing& spacing = {});
+
+struct Ground {
+	bool found = false;
+	Position cell;
+	double clearance = 0; // how far the nearest monster is from there
+};
+// Where to fall back to: a cell the body walks straight to, farther from every
+// monster than the player stands now, still within `range` of `target` and
+// with a clear view of it, so the next shot is loosed from there. Nothing is
+// found when no cell is all of that: the character is cornered.
+Ground FallBack(const Radar::World& world, const Navigation::Grid& grid, const std::vector<Position>& threats,
+	Position target, double range, const Spacing& spacing = {});
 }

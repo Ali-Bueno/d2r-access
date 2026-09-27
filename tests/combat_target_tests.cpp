@@ -1,6 +1,8 @@
 #include "combat_target.h"
 #include "test_support.h"
 
+#include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -129,6 +131,68 @@ int main() {
 		Check(CombatTarget::Decide(open, sword) == Move::Close, "a melee attack closes on a monster out of arm's reach");
 		const auto near = CombatTarget::Rank(world, grid, {Monster(3, {62, 60})});
 		Check(CombatTarget::Decide(near[0], sword) == Move::Strike, "a melee attack strikes a monster beside the player");
+	}
+	{
+		// A monster has closed on open floor: there is ground to fall back to.
+		const World world = Field({60, 60});
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{66, 60}};
+		const CombatTarget::Spacing spacing;
+		Check(CombatTarget::Closing(world.player, pack), "a monster six steps off is closing");
+		Check(!CombatTarget::Closing(world.player, {{80, 60}}), "a monster twenty steps off is not");
+		Check(!CombatTarget::Closing(world.player, {}), "with no monster nothing is closing");
+		const auto ground = CombatTarget::FallBack(world, grid, pack, pack[0], 24);
+		Check(ground.found, "open floor has ground to fall back to");
+		Check(ground.cell.x < 60, "the ground lies away from the monster");
+		Check(ground.clearance >= 6 + spacing.gain, "it is farther from the monster than the player stood");
+		Check(std::hypot(ground.cell.x - 66, ground.cell.y - 60) <= 24, "and still within range of it");
+		Check(EntityRadar::LineOfSight(world, ground.cell, pack[0]), "with a clear view of it");
+	}
+	{
+		// Monsters on two sides: the ground lies between them, to the side.
+		const World world = Field({60, 60});
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{66, 60}, {54, 60}};
+		const auto ground = CombatTarget::FallBack(world, grid, pack, pack[0], 24);
+		Check(ground.found, "with monsters east and west there is ground north or south");
+		Check(std::abs(ground.cell.y - 60) > std::abs(ground.cell.x - 60), "the ground lies to the side, not toward either");
+		Check(ground.clearance >= 6 + CombatTarget::Spacing{}.gain, "it is farther from both");
+	}
+	{
+		// Cornered: the back of a dead end, the monster in its mouth.
+		World world = Field({57, 60});
+		Fill(world, 54, 56, 64, 64, Wall);
+		Fill(world, 56, 58, 64, 62, 0); // a pocket open to the east
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{63, 60}};
+		Check(!CombatTarget::FallBack(world, grid, pack, pack[0], 24).found, "at the back of a dead end there is nowhere to fall back to");
+	}
+	{
+		// A corridor closed behind the player: the only ground farther from the
+		// monster lies past it, and that is not falling back.
+		World world = Field({60, 60});
+		Fill(world, 0, 0, Size - 1, Size - 1, Wall);
+		Fill(world, 58, 58, Size - 1, 62, 0);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{64, 60}};
+		Check(!CombatTarget::FallBack(world, grid, pack, pack[0], 24).found, "ground on the far side of the monster is not fallen back to");
+	}
+	{
+		// The attack reaches less far than the distance to keep: stand and fight.
+		const World world = Field({60, 60});
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{66, 60}};
+		Check(!CombatTarget::FallBack(world, grid, pack, pack[0], 8).found, "ground out of the attack's reach is not fallen back to");
+	}
+	{
+		// Ground from which the monster cannot be seen is no place to shoot from.
+		World world = Field({60, 60});
+		Fill(world, 58, 40, 58, 80, Wall); // a wall just west of the player
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const std::vector<Position> pack{{66, 60}};
+		const auto ground = CombatTarget::FallBack(world, grid, pack, pack[0], 24);
+		Check(!ground.found || ground.cell.x > 58, "the far side of a wall is not fallen back to");
+		Check(!ground.found || EntityRadar::LineOfSight(world, ground.cell, pack[0]), "whatever is chosen has a view of the monster");
 	}
 	Passed();
 	return 0;
