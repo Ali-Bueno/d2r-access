@@ -154,6 +154,7 @@ add_library(d2r-access SHARED
 	src/retreat.cpp
 	src/auto_walk.cpp
 	src/combat_target.cpp
+	src/explore_goal.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -566,7 +567,13 @@ if(BUILD_TESTING)
 	target_include_directories(combat-target-tests PRIVATE src)
 	target_compile_features(combat-target-tests PRIVATE cxx_std_20)
 	add_test(NAME combat-target COMMAND combat-target-tests)
+	add_executable(explore-goal-tests tests/explore_goal_tests.cpp src/explore_goal.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	target_include_directories(explore-goal-tests PRIVATE src)
+	target_compile_features(explore-goal-tests PRIVATE cxx_std_20)
+	target_compile_definitions(explore-goal-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME explore-goal COMMAND explore-goal-tests)
 	if(MSVC)
+		target_compile_options(explore-goal-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
