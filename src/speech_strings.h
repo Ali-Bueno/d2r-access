@@ -145,6 +145,9 @@ struct Table {
 	const char* questAlertsEnabled;
 	const char* questAlertsDisabled;
 	const char* questNoObjective;
+	const char* cairnStoneSymbol; // %s = native object name, %s = fixed scroll symbol
+	const char* cairnScrollOrder; // %s = spoken symbol sequence, assembled when scroll opens
+	std::array<const char*, 5> cairnSymbols; // scroll Symbol1..5: DropUp, I, DropDown, II, Zero
 	const char* vitalsLife;          // %d = whole percent of life left
 	const char* vitalsMana;          // %d = whole percent of mana left
 	const char* vitalsEnabled;
@@ -221,6 +224,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
+		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.goldCarried, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
@@ -229,7 +233,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
-	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces);
+	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

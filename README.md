@@ -231,8 +231,11 @@ The native reader and all six audio assets have initialized in a live game.
 
 **Quest item cues:** `quest item.ogg` marks nearby ground quest items and unused
 quest-item objects, including the Tree of Inifuss, the Malus, Lam Esen's Tome,
-and the Horadric and Khalim component chests. Unactivated Cairn Stones also
-sound; each falls silent once activated. The cue repeats about every 700 ms,
+and the Horadric and Khalim component chests. Every unactivated Cairn Stone is
+eligible for the cue. The scan, catalogue and beacon name its fixed symbol;
+opening the deciphered Scroll of Inifuss reads the symbol sequence. Reopen it
+to hear the sequence again, then choose which stone to touch yourself.
+The cue repeats about every 700 ms,
 uses screen direction and reaches 45 subtiles with a gentler distance fade.
 Up to two quest sources get priority
 over ordinary sounds. Pickup or successful activation silences it; **Ctrl+L** toggles

@@ -1,5 +1,6 @@
 #include "quest_service.h"
 #include "async_log.h"
+#include "cairn_scroll_service.h"
 #include "localization.h"
 #include "layout_check.h"
 #include "native_memory.h"
@@ -184,6 +185,7 @@ void Unregister() {
 	g_lifecycle = nullptr;
 	g_ready = false;
 	g_command = Command::None;
+	CairnScrollService::Reset();
 	Reset();
 }
 
@@ -213,6 +215,10 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	if (command != Command::None)
 		ScreenReader::Speak(g_enabled ? Strings::Current().questAlertsEnabled : Strings::Current().questAlertsDisabled, true);
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	const bool foreground = process == GetCurrentProcessId();
+	CairnScrollService::Tick(context, g_session, g_ready, foreground);
 	if (!g_ready || !g_enabled) return;
 	if (g_language != Strings::Selected()) Reset(); // Never announce a locale change as progress.
 	const uint64_t now = GetTickCount64();
@@ -243,9 +249,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			}
 		}
 	}
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	const bool canSpeak = !uiOwnsSpeech && RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	const bool canSpeak = !uiOwnsSpeech && RadarUi::Inspect(foreground) == RadarUi::State::Playing;
 	const auto announcement = g_reader.Update(g_sample, now, canSpeak);
 	std::string text;
 	if (announcement.kind == QuestProgress::Kind::Updated) text = Strings::Current().questUpdated;

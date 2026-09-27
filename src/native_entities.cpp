@@ -8,6 +8,7 @@
 #include "native_drlg.h"
 #include "native_level_areas.h"
 #include "native_level_exits.h"
+#include "cairn_stones.h"
 #include "native_memory.h"
 #include "localization.h"
 #include "speech_strings.h"
@@ -17,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstdio>
 #include <unordered_set>
 
 namespace D2RAccess::NativeEntities {
@@ -212,8 +214,11 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)
 		|| !Peek(row + ObjOperateFn, operate)) return false;
 	entity.container = IsContainer(row);
-	entity.questObject = Generated::QuestItemObject(classId)
-		|| (operate == CairnStoneOperateFn && mode == ObjectNeutral);
+	entity.questObject = Generated::QuestItemObject(classId);
+	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
+		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
+		entity.questObject = mode == ObjectNeutral;
+	}
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
 	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
@@ -246,7 +251,15 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
 	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
-	if (entity.name.empty() && (entity.container || entity.questObject)) entity.name = Strings::Current().containerUnnamed;
+	if (entity.name.empty() && (entity.container || entity.questObject || entity.cairnStone)) entity.name = Strings::Current().containerUnnamed;
+	if (entity.cairnStone) {
+		entity.worldName = entity.name;
+		const auto& strings = Strings::Current();
+		char text[512]{};
+		std::snprintf(text, sizeof text, strings.cairnStoneSymbol, entity.worldName.c_str(),
+			strings.cairnSymbols[entity.cairnStone - 1]);
+		entity.name = text;
+	}
 	return !entity.name.empty();
 }
 // A level exit: the warp unit's node in its room, named after the destination level

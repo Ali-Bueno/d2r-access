@@ -51,6 +51,8 @@ struct Entity {
 	uint32_t destinationLevel = 0; // Kind::Exit: the level it leads to, 0 when unknown
 	EnemyTraits enemy;
 	bool questObject = false; // unused quest item source or unactivated quest mechanism
+	uint8_t cairnStone = 0; // class index + 1, or zero for other entities
+	std::string worldName; // original HUD label before optional guidance wording
 };
 bool SameTarget(const Entity& a, const Entity& b);
 struct Settings {

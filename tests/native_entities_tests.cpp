@@ -1,4 +1,5 @@
 #include "native_entities.h"
+#include "cairn_stones.h"
 #include "entity_layout.h"
 #include "level_exit_layout.h"
 #include "ground_item_layout.h"
@@ -228,6 +229,8 @@ void QuestObjectModes() {
 void CairnStoneModes() {
 	Fixture f;
 	constexpr const char* names[] = {"StoneAlpha", "StoneBeta", "StoneGamma", "StoneDelta", "StoneLambda"};
+	std::array<Memory<UnitSize>, CairnStones::Count> stones;
+	std::array<Memory<PathSize>, CairnStones::Count> paths;
 	std::vector<EntityRadar::Entity> entities;
 	for (uint32_t classId = 17; classId <= 21; ++classId) {
 		const size_t row = ObjectStride * classId;
@@ -235,17 +238,35 @@ void CairnStoneModes() {
 		f.objects.At<uint8_t>(row + ObjOperateFn, CairnStoneOperateFn);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
 		f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
-		f.casket.At<uint32_t>(GroundItemLayout::UnitClass, classId);
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectNeutral);
-		Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject,
-			"an unactivated Cairn Stone receives the quest cue");
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
-		Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->questObject,
-			"an opened Cairn Stone remains targetable without the quest cue");
-		f.casket.At<uint32_t>(GroundItemLayout::UnitMode, 1);
-		Check(f.Read(entities) && !f.Find(entities, 17),
-			"an activating Cairn Stone is not an audio source");
+		const size_t index = classId - 17;
+		f.Object(stones[index], paths[index], classId, static_cast<uint32_t>(100 + index), 100 + static_cast<int>(index), 100);
+		f.casket.At(GroundItemLayout::UnitNext, stones[0].Address());
+		if (index) stones[index - 1].At(GroundItemLayout::UnitNext, stones[index].Address());
 	}
+	Check(f.Read(entities), "all five unactivated stones are readable without a scroll order");
+	for (size_t i = 0; i < CairnStones::Count; ++i) {
+		const auto* stone = f.Find(entities, static_cast<uint32_t>(100 + i));
+		Check(stone && stone->cairnStone == i + 1 && stone->questObject
+			&& stone->worldName == "Piedra de Cairn"
+			&& stone->name.find(Strings::Current().cairnSymbols[i]) != std::string::npos,
+			"every unactivated stone gets its cue and fixed symbol while preserving the HUD name");
+	}
+	Localization::available = false;
+	Check(f.Read(entities) && f.Find(entities, 102) && f.Find(entities, 102)->questObject
+		&& f.Find(entities, 102)->worldName == Strings::Current().containerUnnamed,
+		"Cairn cue survives an unavailable game string table");
+	Localization::available = true;
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, ObjectOperating);
+	Check(f.Read(entities) && !f.Find(entities, 102) && f.Find(entities, 104) && f.Find(entities, 104)->questObject,
+		"unselectable activating mode one stops its cue without muting the others");
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && f.Find(entities, 102) && !f.Find(entities, 102)->questObject
+		&& f.Find(entities, 102)->name.find(Strings::Current().cairnSymbols[2]) != std::string::npos
+		&& f.Find(entities, 104)->questObject,
+		"opened mode two keeps the same symbol as a target but has no quest cue");
+	stones[2].At<uint32_t>(GroundItemLayout::UnitMode, 3);
+	Check(f.Read(entities) && !f.Find(entities, 102) && f.Find(entities, 100)->questObject,
+		"unselectable modes never stop other unactivated stones from sounding");
 }
 }
 int main() {

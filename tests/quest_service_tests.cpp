@@ -82,6 +82,10 @@ std::string Text(std::string_view key) { const auto found = strings.find(key); r
 std::string Text(uint32_t id) { return id == 3714 ? "El Cubil del Mal" : std::string(); }
 }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
+namespace D2RAccess::CairnScrollService {
+void Tick(const D2RL::PluginContext*, uint64_t, bool, bool) {}
+void Reset() {}
+}
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
 }
