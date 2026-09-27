@@ -158,6 +158,7 @@ add_library(d2r-access SHARED
 	src/grid_jump.cpp
 	src/native_actions.cpp
 	src/keyboard_service.cpp
+	src/keyboard_menu.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)

@@ -16,6 +16,7 @@
 #include "entity_cue_service.h"
 #include "input_direction.h"
 #include "interaction_reader.h"
+#include "keyboard_menu.h"
 #include "keyboard_service.h"
 #include "localization.h"
 #include "modal_reader.h"
@@ -84,6 +85,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::InputDirection::Poll();
 	// Before every reader: a key posts the gesture a reader takes this same update.
 	D2RAccess::KeyboardService::Tick(context);
+	D2RAccess::KeyboardMenu::Tick(context);
 	if (!D2RAccess::MenuNavigation::Tick(context)) D2RAccess::SkillNavigation::Tick(context);
 	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
@@ -350,6 +352,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
 	D2RAccess::PadFilter::Remove();
+	D2RAccess::KeyboardMenu::Reset();
 	D2RAccess::KeyboardService::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::AutoDetail::Unregister();
