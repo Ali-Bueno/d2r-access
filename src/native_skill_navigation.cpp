@@ -38,6 +38,15 @@ void UpdateCursor(uintptr_t cursor, uint64_t now) {
 		reinterpret_cast<NativeCursorGesture::ResetFn>(g_base + CursorResetRva))) return;
 	if (g_original) reinterpret_cast<void(*)(uintptr_t, uint64_t)>(g_original)(cursor, now);
 }
+bool ReadRectAt(uintptr_t widget, uint64_t selection, Rect& rect) noexcept {
+	uintptr_t vtable = 0, function = 0;
+	if (!NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + FocusRectSlot, function)
+		|| !NativeMemory::Executable(function)) return false;
+	__try {
+		reinterpret_cast<Rect*(*)(uintptr_t, Rect*, uint64_t)>(function)(widget, &rect, selection);
+		return rect.width > 0 && rect.height > 0;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
 bool ReadRect(uintptr_t widget, Rect& rect) noexcept {
 	uintptr_t vtable = 0, function = 0;
 	if (!NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + FocusRectSlot, function)
@@ -118,6 +127,15 @@ uintptr_t ActiveTextInput(uintptr_t panel) {
 	if (!Available() || !g_activeInput || !panel || !NativeMemory::Peek(g_activeInput, editor) || !editor
 		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || owner != panel || !NativeUi::Visible(editor)) return 0;
 	return editor;
+}
+bool SelectAt(NativeUi::Focus focus, uint64_t selection) {
+	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;
+	uintptr_t owner = 0, vtable = 0, select = 0;
+	Rect rect{};
+	if (!NativeMemory::Peek(focus.widget + OwnerPanelOffset, owner) || owner != focus.panel
+		|| !NativeMemory::Peek(focus.widget, vtable) || !NativeMemory::Peek(vtable + SelectSlot, select)
+		|| select != g_base + SelectRva || !ReadRectAt(focus.widget, selection, rect)) return false;
+	return SelectNative(focus.widget, rect, selection);
 }
 bool Select(NativeUi::Focus focus) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;
