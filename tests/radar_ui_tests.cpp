@@ -52,6 +52,8 @@ int main() {
 	Check(RadarUi::Inspect(true) == State::Playing, "closing it resumes gameplay");
 	Check(RadarUi::MenuPanel("DropGoldModal") && RadarUi::MenuPanel("SkillsTreePanel"), "a modal and the skill tree are menus");
 	Check(!RadarUi::MenuPanel("MiniMenuPanel") && !RadarUi::MenuPanel("HUDPanel"), "the mini menu and the HUD are not");
+	Check(!RadarUi::MenuPanel("HireablesPanel") && RadarUi::MenuPanel("HireMenuPanel"),
+		"the mercenary's portrait is open for the whole game and is not a menu; the list of mercenaries to hire is");
 	PanelState::Opened("NpcDialogPanel");
 	Check(RadarUi::Inspect(true) == State::Dialogue, "active NPC dialogue has a separate suspension reason");
 	PanelState::Closed("NpcDialogPanel");

@@ -12,13 +12,15 @@ namespace D2RAccess::RadarUi {
 namespace {
 constexpr std::string_view MenuSwitcher = "UISwitcher";
 // The panels the player works in, by the names the layouts give them. The HUD,
-// the mini menu, the automap and the tooltips are open in play and are not here.
+// the mini menu, the automap and the tooltips are open in play and are not here,
+// and neither is HireablesPanel: it is the mercenary's portrait on the HUD, open
+// for the whole game (MEASURED 2026-09-27: with it here the game was never in play).
 constexpr std::string_view Menus[] = {
 	"PlayerInventoryExpansionLayout", "PlayerInventoryOriginalLayout", "HirelingInventoryPanel",
 	"CharacterStatsPanel", "AdvancedStatsPanel", "SkillsTreePanel", "SkillSelect",
 	"BankExpansionLayout", "BankOriginalLayout", "VendorPanelLayout", "HoradricCubeLayout", "ImbueItemsPanel",
 	"TradeLayout", "WaypointsPanelExpansion", "WaypointsPanelOriginal", "QuestLogPanelExpansion", "QuestLogPanelOriginal",
-	"HireMenuPanel", "HireablesPanel", "PartyPanel", "HelpPanel", "KeyBindingMenu",
+	"HireMenuPanel", "PartyPanel", "HelpPanel", "KeyBindingMenu",
 	"ChroniclePanel", "LootFilterOptionsPanel", "LootFilterProfilePanel", "LootFilterItemPanel", "LootFilterRuleDetailsPanel",
 };
 }
