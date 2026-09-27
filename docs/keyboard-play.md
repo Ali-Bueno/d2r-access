@@ -18,6 +18,7 @@ In play:
 | arrows (held) | walk |
 | A / W (held) | fight with the left / right skill; a ranged fight keeps its distance |
 | Y | swap weapons |
+| Shift+S | the list of skills for the left hand; the game's S opens the right hand's |
 | Tab, Shift+Tab | next / previous monster |
 | D | walk up to the nearest usable thing and use it |
 | Shift+Home | walk to what the scanner named |
@@ -42,11 +43,13 @@ In a menu:
 
 | key | what |
 |---|---|
-| arrows | move the mod's cursor: control to control, and by item inside a grid. A held arrow repeats |
+| arrows | move the mod's cursor: to the nearest control that way, and by item inside a grid. A held arrow repeats |
+| left, right | on a slider or an option that steps: change its value. On a box of text: move in what is typed |
 | A | left click where the cursor is |
 | D | right click where the cursor is (W until the user moved it, 2026-09-27) |
 | Shift+A, Ctrl+A, Shift+D | the same click with the key held, which the game sees: Shift + left click equips, Ctrl + left click sells, moves or drops |
 | Y | swap weapons |
+| Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
 | Ctrl + up, down | the line before, the line after, of what the cursor is on |
 | Ctrl + left, right | its first line, its last line |
@@ -140,7 +143,10 @@ are still unmeasured.**
 The user's decisions, 2026-09-27:
 
 - *"the mod can just control the mouse like the diablo hellfire mod does."*
-- Left click is A and right click is W.
+  After the second test: *"I absolutely love the mouse pointer system, that
+  was even better than I expected. it makes controls that aren't even
+  accessible with the controller accessible"*.
+- Left click is A and right click is D (W at first; the user moved it).
 - PageUp, PageDown, Home and End are tab keys only while a menu is open.
 - *"we don't actually care whether the game's cursor works in keyboard mode ...
   the mod should simply control the mouse like the diablo hellfire mod does,
@@ -155,7 +161,13 @@ The user's decisions, 2026-09-27:
 
 | piece | file | what it does |
 |---|---|---|
-| the cursor's logic | `src/menu_cursor.*` | pure, tested. A step inside a grid is `GridJump::Move`; a step past its edge, or from a control, is `MenuNavigationPolicy::Move` over everything else; a step into a grid enters at the cell nearest to where it came from |
+| the cursor's logic | `src/menu_cursor.*` | pure, tested. A step inside a grid is `GridJump::Move`; a step past its edge, or from a control, lands on the nearest thing that way (below); a step into a grid enters at the cell nearest to where it came from |
+| the steps made | `MenuCursor::Mend` | a place the arrows would miss is given a step of its own from the nearest place that is reached, and a place that does not lead back is given one to a place that does. The log names each: `[cursor] a step made for what the arrows miss` |
+| the hand of the list of skills | `src/native_skill_hand.*` | asks the game which hand its list of skills is open for (`0x238240`) |
+| the skills' icons | `src/native_skill_icons.*` | the skill an icon of the skill tree or of the list stands for, and its name in the game's language |
+| values | `src/native_value_controls.*` | a slider's value and its two arrows, an option's state and its two arrows |
+| the classes | `src/native_class_choice.*` | whether a class of character creation is chosen, and the description the screen shows |
+| where skills stand | `tools/gen_skill_tree.py`, `src/generated/skill_tree.h` | the page, row and column of every class's skills, from the game's tables; the cursor's tests walk every page |
 | the cursor in the game | `src/keyboard_menu.*` | lists the open menu's controls and grids, moves the cursor, places the pointer, clicks, switches tabs and menus |
 | the mouse | `src/menu_mouse.*` | the pointer on a rectangle; a click as a press and a release some frames apart (`SendInput`) |
 | the stand-in for focus | `NativeUi::SetCursor` | `CurrentFocus` and `FocusSelection` give the mod's cursor while it is set, so every reader reads it as it reads the controller's focus |
@@ -167,6 +179,40 @@ The user's decisions, 2026-09-27:
 | the pointer at rest | `Park` in `src/keyboard_menu.cpp` | when a menu closes and play goes on, the pointer is put between the HUD's two skill buttons |
 | a click refused | `Land`, `Click` in `src/keyboard_menu.cpp` | a place drawn off the screen is not a place; a click is refused, and said to be unavailable, when the pointer did not go to where the cursor is |
 | lines | `InputDirection::PostLineStep`, `ReadLines` in `src/interaction_reader.cpp` | Ctrl with an arrow walks an item's or a skill's tooltip a line at a time; on the character panel and Advanced Stats it is the right stick, which walks their lines already |
+
+### The nearest thing that way
+
+The user, 2026-09-27: every element is to be reached by single presses of an
+arrow, the cursor snapping to the nearest: *"on the controller you have to
+move diagonally ... right arrow from row 1, column 1 should go to row 2,
+column 2"* when row 1 has no skill in column 2. That is the Paladin's combat
+page: Sacrifice, then Holy Bolt a row lower in the next column, with Smite
+further along Sacrifice's own row.
+
+The rule (`Nearest` in `src/menu_cursor.cpp`), in this order:
+
+1. Only what lies that way at all: its middle is further that way than the
+   middle of where the cursor is.
+2. What lies **more that way than to one side** comes first. The space
+   between the two things along the way is set against the space between
+   them across it.
+3. Of those, a thing of the **group** the step is made from comes first. The
+   skills of a skill tree are a group, and so are the skills of the list for
+   a hand: the tabs of the skill tree are drawn right over its first row,
+   and without this a step to the right from the first skill lands on a tab.
+4. Then the nearest, by the two spaces together.
+
+So right from Sacrifice is Holy Bolt, and down from Sacrifice is Zeal, the
+next skill of its own column: Holy Bolt lies more to the side than down.
+**The same two steps do not always lead back**: left from Holy Bolt is Zeal,
+not Sacrifice, because the third row is drawn a little nearer to the second
+than the first is. No memory of the last step is kept to make it lead back:
+with one, a place reached only by that step could be missed.
+
+Tested (`tests/menu_cursor_tests.cpp`): every skill, tab and button of every
+page of every class is reached from every other, at four sizes of icon, with
+no step made for any; sixty inventories beside a stash filled at random; four
+hundred menus strewn at random, mended where the arrows alone fall short.
 
 ### READ in the game's code (3.3.93787), none of it measured live
 
@@ -206,12 +252,23 @@ cannot be a key of the loader's, which takes one modifier. OPEN.
 
 ### OPEN, and what in the log answers it
 
-The next live test is the first with the game in play and the menus built.
-Copy the log before the next launch; it does not always append.
+The next live test, the third, is the first with the game in play and the
+menus built. Copy the log before the next launch; it does not always append.
+**At load the log has to say** `[keyboard] 29 of 29 keys registered`, and
+`Verified.` after each of `[skill-hand]`, `[skill-icons]`, `[values]` and
+`[classes]`. An `Unsupported layout` line names what is switched off.
 
 | question | the log line |
 |---|---|
 | Is the game in play with no menu open? | no `[survey] request ignored: not in play`, no `[radar] status=dialogue`, and `[actions] run to` when an arrow is held |
+| Does Shift+S open the list for the left hand? | `[cursor] left skill: the HUD's button is clicked`, `OpenPanel SkillSelect`, `[cursor] the list of skills is open for the left hand; said "..."` |
+| Is a skill named, in the list and in the tree? | `[cursor] skill id=.. ".."` on each move; then an `[interaction]` line with the tooltip, or `[cursor] no reader named it; said "<the skill>"` |
+| Are the skills of the tree places? | `[cursor] thing SkillButton3 0,0 (ButtonWidget) rect ...`, ten to a page; the size of the rectangle is the icon's |
+| Was a step made for a place? | `[cursor] a step made for what the arrows miss: from X right to Y`. None is expected in the skill tree |
+| Does an arrow change a slider or an option? | `[cursor] value of X: 50 -> 55 by the game on the key` or `by a click on its arrow`, and the value heard once |
+| Does A choose a class? | `[cursor] left click on Paladin`, then `[cursor] class Paladin chosen after N ms; said "..."`. `was clicked and is not chosen` means the click was lost |
+| Is an "a" typed into the name by the click? | `[field] focus name="InputText" ... text="..."` when the cursor comes to the name box: the text has to be empty. See `keyboard-unbuilt.md`, item 9 |
+| Does Enter create the character? | `CharacterCreate:Create` in a `[ui]` line, then `going to Game` |
 | Does the pointer go where it is put? | MEASURED yes. `[cursor] the pointer did not go to ...` names a place it did not reach, and a click there is refused |
 | Does Y swap? | `[swap] the game's swap key handler: ran`, then `[weapon-swap] set=...`; `[swap] the set in use did not change in 700 ms: refused` means the game or the server said no |
 | Are the belt's rows there? | `[belt-rows] show belt: ran, shown 0 -> 1`, then `[cursor] thing Belt (BeltWidget) ... cells 4xN`, and for each move `[cursor] belt slot N; the belt takes the point for slot N`: the two numbers have to be the same |
@@ -233,8 +290,9 @@ INFERRED, to be listened for:
   of its own in keyboard mode. The mod's cursor is read in its place while it
   is set. Whether the game also moves its own focus with the arrows there is
   not measured.
-- Sliders and dropdowns: a click opens a dropdown, whose rows are then
-  controls. A slider has no key to change it yet (`keyboard-unbuilt.md`).
+- Sliders and dropdowns: a click opens a dropdown, whose rows are then the
+  whole menu. The left and right arrows change a slider and an option that
+  steps (`keyboard-unbuilt.md`, item 2).
 - The belt is the HUD's. It is added to the menu while an inventory is open.
 
 ### Sort

@@ -1,6 +1,6 @@
-# Keyboard play: what is not built
+# Keyboard play: what is not built, and what is built and not measured
 
-Written 2026-09-27 after the third session of that day, for the next one. The
+Written 2026-09-27 after the fourth session of that day, for the next one. The
 user, the same day: *"those are very important and need to be built before
 actual play."* So this list is the work, not a wish list. Nothing here is
 optional.
@@ -11,131 +11,98 @@ not checked. **OPEN** means not known.
 
 What is built is in `keyboard-play.md`; every key is in `keyboard-keys.md`.
 The working files of the static passes are in the workspace, outside this
-repository: `re/actions/swap`, `re/actions/belt`, `re/actions/widgets`, each
-with a `notes.txt` that has the offsets, the functions and their
+repository: `re/actions/swap`, `belt`, `widgets`, `skilltree`, `charcreate`,
+each with a `notes.txt` that has the offsets, the functions and their
 fingerprints. **Read the notes before reading the image again.**
 
-## What was done since this list was first written
+## The state in one paragraph
+
+Two live tests have run, the second at 12:18. **No test has run since**, so
+nothing built after it has been heard or pressed in the game: not the three
+fixes of the third session, and nothing of the fourth. The user's word on the
+second test, 2026-09-27: the pointer system works *"even better than I
+expected"*, and the keys are taken from the game as they should be. What the
+fourth session built is READ from the game's code and tested outside the
+game. **The next thing is the third live test**; its list is in
+`keyboard-play.md`.
+
+## What was done in the fourth session
 
 | was | now |
 |---|---|
-| 1. swap weapons | **built**, Y (`0958e46`). Verified at load; not pressed in a test |
-| 3. say it again, in a menu | **built**, backslash (`786d14e`). Not pressed in a test |
-| 4. the belt | **built**: every row (`d69d0b2`), the fill on Alt+F (`f64d6ff`). Verified at load; not tried in a test |
-| 8. the controls in the mod's keys | **built** for an item's hints (`0b27dce`). Not heard in a test |
-| 10. the pointer, when play goes on | **built** (`f3d5ea8`); where it rests is in question, item 7 below |
-| the menu's right click | moved from W to D by the user (`7ceb6e1`) |
-| comma and full stop | retired by the user (`a99cc8c`) |
-
-The second live test (12:18, three and a half minutes) found that **the game
-was never in play**: the mercenary's portrait was counted as a menu. That is
-fixed (`ee44174`), with two more things the same log showed (`a946d64`,
-`f841d56`). **No test has run since those three fixes**, so play itself, with
-the menus built, has still not been tried. `keyboard-play.md` has the
-findings.
+| the character could not move (second test) | the fix of the third session (`ee44174`) is now held by a test that puts every panel the second test had open in play through the play gate (`8e503cb`). Not walked in the game yet |
+| 1. choosing the skill for each hand | **built**: Shift+S, the user's choice, clicks the HUD's left skill button (`b3eaf91`). The hand is said as the list opens, for the game's S as well |
+| the arrows, from thing to thing | **built anew** (`9637755`): the nearest thing that way, and a step made for anything the arrows would miss. Every page of every class's skill tree is walked in the tests |
+| 5. the skill tree's reader | the skills ARE buttons in keyboard mode (READ; the third session's "no button template" was a misreading). The cursor names a skill by its icon when no reader does (`d0fff69`) |
+| 2. sliders, options that step, dropdowns | **built** (`5f7d516`): left and right change the value; the rows of an open dropdown are the menu |
+| 9. character creation | **built** (`af807aa`): typing, the class's name, the chosen class said with its description. One question is open, item 9 below |
 
 ## Decisions that are the user's
 
 | question | state |
 |---|---|
-| How is the left hand's skill chosen? | **open.** Asked 2026-09-27; the user answered with a question (item 1). Put the facts to them and ask again; do not choose |
+| **A key for a click where a box of text takes every letter** | not asked yet; needed only if the third test shows A typing an "a" into the name on character creation (item 9) |
 | Should the scroll bar and its two arrows be places of the cursor? | not asked yet (item 3) |
 | Is "Row 1, column 2" after "Empty" wanted on an empty belt slot? | built unasked; told to the user 2026-09-27, no answer yet |
+| The hand of the list of skills is said in the game's words, "Left Mouse-Button Skill". Are other words wanted? | built; told to the user 2026-09-27 |
+| Should it be said that the line of chat has opened? | not asked. MEASURED in the second test: Enter opened the chat twice, for nine seconds each, and nothing said so |
 
-## 1. Choosing the skill for each hand
+## 1. Choosing the skill for each hand: built, not measured
 
-**The state:** no key of the mod's. A and W fight with whatever skill is on
-each hand.
+**The keys:** the game's S opens the list for the right hand; **Shift+S**
+(the user, 2026-09-27: *"a key to open it is fine. shift+s"*) opens it for the
+left, in play as in a menu, by a click on the HUD's `LeftSkillButton`. The
+same key shuts it. In the list the arrows move from skill to skill, A puts
+the skill on the hand and shuts the list, and F1 to F8 bind the skill under
+the pointer to that key (the game's own).
 
-The user's question, 2026-09-27: *"is this necessary? how are skills assigned
-to a hand by the UI? you can bind skills to a hotkey, are you sure that left
-click isn't attack and right click isn't use skill instead of being
-skill-per-hand?"*
+**What the mod says:** the hand, as the list opens and when it changes to the
+other hand, in the game's words (`StrHDHelpLeftMouse`, "Left Mouse-Button
+Skill"). The cursor lands on the first skill after 1.2 seconds, or at once on
+an arrow key, so the hand is heard out.
 
-**What is known:**
+**READ:** the list is one panel, `SkillSelect`, for both hands. The hand is
+not a field of the panel: the game keeps it in its UI registry and reads it
+with `0x238240`, which `src/native_skill_hand.*` calls. The icons are copies
+of `ButtonTemplate` named `ButtonTemplate0`, `ButtonTemplate1` and so on,
+each with its skill id at +0xC08.
 
-- MEASURED, first live test: the character has a skill on each hand
-  (`[keyboard] fight: hand=left skill=0`, and W used skill 104). Skill 0 is
-  Attack: the left hand attacks because Attack is the skill on it.
-- READ, `re/actions/widgets/notes.txt` section D: the game's key S (action 13)
-  opens and shuts the list of skills **for the right hand only. No key action
-  of the game opens the left hand's list.** With the mouse it is a click on
-  the HUD's `LeftSkillButton`; `RightSkillButton` opens the right hand's.
-- READ: the list is the panel `SkillSelect`. Its skills are copies of
-  `ButtonTemplate` made at run time under `SelectionTray`, each a button with
-  a rectangle, its skill id at +0xC08. A click on one puts that skill on the
-  hand the list was opened for and shuts the list.
-- READ: F1 to F8 pressed while the list is open bind the skill under the
-  pointer to that key. INFERRED (0.8): for the hand the list is open for.
-- MEASURED, second test: both HUD skill buttons give a rectangle
-  (`[cursor] play goes on: the pointer to 962,1042, between the skill
-  buttons`).
+**To measure:** `[skill-hand] Verified.`; `[cursor] left skill: the HUD's
+button is clicked`; `[cursor] the list of skills is open for the left hand`;
+`[cursor] thing ButtonTemplate0 (SkillSelectButtonWidget)`; `[cursor] skill
+id=.. ".."` on each move, and what is heard: the skill's name, or its whole
+tooltip. After A on a skill: `[keyboard] status` (console `access-actions
+status`) gives `left_skill=`.
 
-**So:** the right hand can be changed today with the game's S, the arrows and
-A, once `SkillSelect` is seen to work with the cursor. The left hand cannot.
-
-**To build, once the user has chosen:** either a key that clicks
-`LeftSkillButton` (it has to work in play, where the menu keys are off), or
-the two HUD buttons put in the cursor's menu while the skill tree is open, as
-the belt is while an inventory is. `FindNamed(hud, LeftSkill, ...)` and
-`ClickWidget` in `src/keyboard_menu.cpp` are the pieces.
-
-**To measure:** what `SkillSelect` holds (`[cursor] thing` lines), whether a
-skill in it reads its name, and whether a click chooses it.
-
-## 2. Sliders, options that step, and dropdowns
+## 2. Sliders, options that step, and dropdowns: built, not measured
 
 **The user's decision, 2026-09-27:** *"left and right should change a slider,
-the same as an option with toggles, the same as the controller would."* So:
-with the cursor on a slider or a carousel, the left and right arrows change
-the value and do not move the cursor. Up and down still move it.
+the same as an option with toggles, the same as the controller would."*
 
-**What is known, all READ, `re/actions/widgets/notes.txt`:**
+**As built** (`src/native_value_controls.*`, `Adjust` in
+`src/keyboard_menu.cpp`):
 
-- **Slider** (`SettingsSliderWidget`): value at +0x6C4, minimum +0x6BC,
-  maximum +0x6C0, increment +0x6B0 (0 means a step of 5 percent of the
-  range). Its two arrows are widgets inside the slider object, `LeftArrow` at
-  slider +0x970 and `RightArrow` at slider +0x1500, **not among its children**,
-  so the cursor does not list them. A click on an arrow steps the value by
-  one step. A click on the track sets the value to where the click was:
-  **never click the track to step.** The setter is `SetValue(slider, value,
-  1, 1)` at `0x8DC0C0`; keys, arrows and the mouse all go through it, and with
-  the last argument set it tells the options panel.
-- **Carousel** (`CarouselWidget`): three children, `CarouselText`,
-  `CarouselLeftArrow`, `CarouselRightArrow`. A click on an arrow steps it; a
-  click on its body does nothing.
-- **Dropdown** (`DropdownListWidget`): a click opens the panel
-  `DropdownListContents`. Its rows are the children of the row container of
-  its list `Items`, in order, which `NativeUi::ListRows` reads already; each
-  row has a `TextBox` child and a rectangle. A click on a row chooses it and
-  shuts the list.
-- With the pointer over a slider or a carousel the game itself steps it on
-  the Left and Right arrow keys. OPEN: whether the mod's arrow handling keeps
-  those keys from the game (the mod reads the arrows by `GetAsyncKeyState`
-  and does not consume them). **If the game already steps the value when the
-  arrow is pressed, a click by the mod would step it twice.** Measure before
-  building: land on a slider, press right once, read +0x6C4 before and after.
+- On a slider (`SettingsSliderWidget`) or an option that steps
+  (`CarouselWidget`) the left and right arrows change the value and the
+  cursor stays. Up and down move the cursor.
+- **The mod looks before it clicks.** READ: with the pointer over one the
+  game itself steps it when the arrow key goes down. So the value is read,
+  120 ms are waited, and the control's own arrow is clicked only if the value
+  has not changed. The log says which: `by the game on the key` or `by a
+  click on its arrow`. A value cannot be stepped twice either way.
+- A on a slider says its value and clicks nothing: a click on the track sets
+  the value to where the click was. A on an option that steps goes to its
+  next state.
+- The value is said by the cursor only when no reader said it first.
+- A carousel's two arrows are no longer places of their own.
+- The rows of an open dropdown (`DropdownListContents`) are the whole menu
+  while it is open, as a modal is. A on the dropdown opens it, A on a row
+  chooses it.
 
-**To build:**
+**To measure:** `[values] Verified.`; `[cursor] value of X: 50 -> 55 by ...,
+shown "55"`; whether the value is heard once.
 
-- In `Step` of `src/keyboard_menu.cpp`: on a `Kind::ValueControl` that is a
-  slider or a carousel, left and right act on the value. For a carousel,
-  click the arrow child. For a slider, click the arrow inside it (its
-  rectangle by `RectAt(slider + 0x970)` after checking its name and class) or
-  call `SetValue`, fingerprinted as `src/native_sort.cpp` does.
-- `Thin()` probably drops a carousel for holding its two arrows (INFERRED):
-  the carousel has to stay the place, and its arrows must not be places.
-- A dropdown's rows into the cursor's menu when the list is open
-  (`DropdownListContents` is a panel of its own, so `Build` may take it
-  already: look for it in the `[cursor] menu:` line), and the row the cursor
-  is on read by its `TextBox`.
-- The value said after a change. `src/focus_tracker.cpp` reads a value when
-  the game says it changed; whether that runs with the cursor is OPEN.
-
-## 3. Rows out of view: scrolling
-
-**The state:** not built, and not investigated: the static pass on it was
-stopped when the usage limit was reached, and left nothing.
+## 3. Rows out of view: scrolling. NOT BUILT, not investigated
 
 READ in the layouts: the options panels, the key binding menu, the dropdown
 list, the character list and others put their rows in a `ScrollViewWidget`
@@ -146,44 +113,41 @@ their layout names, and a click on an arrow was made; what it scrolled is
 not in the log.
 
 **What is known, READ:** `0x1FACD0` is `GetScreenRect(widget, Rect*)` for any
-widget, not only a focusable one (`re/actions/widgets/notes.txt`, shared
-mechanics). `ScrollViewWidget` init `0x892F80` makes a child `View` (kept at
-+0x90) and moves the children into it.
+widget, not only a focusable one. `ScrollViewWidget` init `0x892F80` makes a
+child `View` (kept at +0x90) and moves the children into it.
 
-**OPEN, the questions the stopped pass was given:** where the scroll position
-is kept and in what unit; whether a row's rectangle from the focus rectangle
-virtual already has the scroll in it; whether the mouse wheel scrolls the
-view; whether the game has a "bring this row into view" that the controller's
-focus uses, and whether it depends on controller mode; how to tell a row
+**OPEN:** where the scroll position is kept and in what unit; whether a row's
+rectangle already has the scroll in it; whether the mouse wheel scrolls the
+view; whether the game has a "bring this row into view"; how to tell a row
 that is clipped.
 
 **To build:** bring the row into view when the cursor lands on it, then put
 the pointer on it. Until then a long list is reached only through the bar's
-arrows.
+arrows. **This is the first thing to build after the third test.**
 
 ## 4. Rows in a list: characters, waypoints, the NPC's menu
 
-**MEASURED, second test, character select:**
+**MEASURED, second test, character select:** the cursor lands on the
+character's row and the reader reads it. A on the row was pressed five times
+and the game started 400 ms after the fifth.
 
-- The cursor lands on the character's row and the reader reads it
-  (`[focus] CharacterSelectPanel/CharacterTemplate...#Gordan, Level 7 Paladin
-  row 0 -> "Gordan, Level 7 Paladin"`).
-- A on the row was pressed five times (12:19:03 to 12:19:20). The game
-  started 400 ms after the fifth. OPEN: why the fifth and not the first four;
-  whether another key was pressed is not in the log.
-- The panel has a play button, `QuickPlayButton`, which the cursor reaches.
+**READ** (`re/actions/charcreate/notes.txt`, E): one click on a row chooses
+the character. A second click within 500 ms, or Enter, sends the game's
+"select character" message; whether that starts the game is OPEN, and five
+slow clicks cannot have met the 500 ms by themselves, so **the test's start is
+not explained.** What starts the game for certain is the Play button,
+`QuickPlayButton`, which the cursor reaches: **A on the character, then A on
+Play.** A character who has finished Normal is asked the difficulty in a
+modal (`CharacterDifficultyModal`), which the cursor takes as any modal.
 
-**OPEN:** whether the game moves its own focus with the arrows on these
-screens; whether a waypoint travels on one click; the NPC's menu. None was
-opened in the test.
+**OPEN:** whether a waypoint travels on one click; the NPC's menu. None was
+opened in a test.
 
 ## 5. The readers that were built on the controller
 
-READ in the code, not yet heard in keyboard mode:
-
-| reader | what is wrong | where |
+| reader | what is known | where |
 |---|---|---|
-| the skill tree | reads `TabN > SkillButtonContainer > SkillButton`, a shape measured in controller mode only. The mouse layout has no button template: the class and the parent of a skill button in mouse mode are OPEN | `src/native_progression.cpp:56-61` |
+| the skill tree | READ: the panel builds a button for each skill in both modes, `Tab<n> > SkillButtonContainer > "SkillButton<page> <column>,<row>"`, so the reader's shape holds. It waits for the game's tooltip to name the skill. INFERRED 0.85: the tooltip of a skill under the pointer is drawn through the path the mod captures. If it is not, the cursor names the skill itself after 450 ms | `src/native_progression.cpp`, `src/native_skill_icons.*` |
 | the quest log | the mod clicks a quest on landing to fill the shared pane; the reader may say "Empty" first if the pane fills after 150 ms (INFERRED) | `src/ui_text.cpp:130-147` |
 | the second skill bar | reads controller-mode state; in keyboard mode the skills bound to F1 to F8 stand in its place | `src/skill_bar_service.cpp` |
 | the tab highlight | has never run: it builds an empty focus | `src/tab_highlight.cpp:20` |
@@ -191,51 +155,81 @@ READ in the code, not yet heard in keyboard mode:
 | the scroll bar and its arrows | no reader: the cursor says "ScrollBar", "UpArrow" (MEASURED) | item 3 |
 | `PluginIconTooltip` on the character's row | no reader: the cursor says its layout name (MEASURED) | the loader's own icon |
 
-The belt's automatic potion (`src/native_belt.cpp:25`) answers nothing out of
-controller mode, and that is right: it is the controller's alone.
-
 The cursor names a place itself when no reader does (`[cursor] no reader
 named it; said "..."`). **Every such line in the log is a reader to fix.**
 
+**A point in the skill tree:** A on a skill that can be raised spends a
+point (READ: the button sends `UseSkillPoint`, and the panel a message 0x3B to
+the server). **With Shift held the message differs** (its flag is 0xFFFF; what
+the server does with it is OPEN), so Shift+A on a skill is not to be advised
+before it is known.
+
 ## 6. Ctrl + Shift + left click
 
-**The state:** the loader takes one modifier, so this cannot be a key of the
-loader's. It is the game's gesture for "move", where an item has two places
-to go.
-
-INFERRED: it works already. The mod watches A directly beside the loader
-(`Watch` in `src/keyboard_menu.cpp`) and clicks if the loader delivers
-nothing, and the game sees the Ctrl and Shift that are held (READ: the game
-reads both from the real key state when the click arrives).
-
-**To measure:** `[menu-keys] left click came by watching the key` after
-Ctrl+Shift+A, and what the readers say next.
+The loader takes one modifier, so this cannot be a key of the loader's. It is
+the game's gesture for "move", where an item has two places to go. INFERRED:
+it works already through the key watch. **To measure:** `[menu-keys] left
+click came by watching the key` after Ctrl+Shift+A.
 
 ## 7. Where the pointer rests in play
 
-**The state:** built, between the HUD's two skill buttons. MEASURED: the
-place is found and the pointer is put there (`the pointer to 962,1042`).
-
-**In question:** 17 seconds after the pointer was put there the log has
-`[interaction] World target -> "Experience: 31,952 / 32,886"`, the experience
-bar's tooltip. Whether the resting place is over the experience bar, or the
-mouse was moved by hand, is OPEN. If a menu's closing is followed by
+Built, between the HUD's two skill buttons. In question: 17 seconds after the
+pointer was put there the second test has `World target -> "Experience: ..."`,
+the experience bar's tooltip. If a menu's closing is followed by
 "Experience" every time, the place is wrong: try the HUD's click catcher
 (`BGClickCatcher`) where no widget is drawn over it.
 
 ## 8. Home and End
 
-**The state:** built on the mini menu's buttons in the HUD, not pressed in
-either test. OPEN: whether the mini menu is shown and its buttons give a
-rectangle. The log line is `[cursor] menus: ... button found / not shown /
-has no rectangle`. The game's own keys open each menu: C, I, T, Q, O, Esc.
+Built on the mini menu's buttons in the HUD, not pressed in either test. The
+log line is `[cursor] menus: ... button found / not shown / has no
+rectangle`. The game's own keys open each menu: C, I, T, Q, O, Esc.
 
-## 9. Character creation
+## 9. Character creation: built, with one question open
 
-MEASURED, second test: the panel's eight classes are places
-(`HDCharacterSelectorWidget`), the cursor named one itself ("Druid"), and the
-name box, the hardcore checkbox, the version dropdown and the two buttons are
-reached. Not tried: choosing a class and making a character.
+**READ** (`re/actions/charcreate/notes.txt`):
+
+- **The name box takes what is typed at any time**, wherever the pointer is
+  and with no click: its layout sets `alwaysAcceptsKeyInput`. Nothing begins
+  the typing and nothing ends it.
+- Out of controller mode the game never says a box is being edited (the
+  global the mod's `TextEditing` reads has one writer, on the controller's
+  path). INFERRED 0.85.
+- A class is a rectangle: a click anywhere in it chooses the class. A click
+  on the class that is chosen puts it back. A click while the figure steps
+  forward or back is lost. Choosing another class puts the first back.
+- **Enter creates the character**, the same as a click on Create, once a
+  class is chosen and the name is allowed: 2 to 15 letters, no digits, no
+  space, one hyphen or underscore at most and not at either end. Offline the
+  game starts at once.
+- Esc puts the chosen class back; with none chosen it leaves the screen.
+- A name that is taken opens `DismissableModal` ("That character name is
+  already taken"); a hardcore character asks in `ConfirmationModal`.
+- The version dropdown offers Classic, Expansion and Reign of the Warlock,
+  by the class chosen and by what is owned. `ToggleLegacy` switches to the old
+  graphics and rebuilds the screen from the legacy layout: not to be pressed.
+
+**As built:** with the cursor on a box of text the keys that type are the
+box's and the left and right arrows move in the text; up and down leave it.
+A class is called by its name in the game's language, "checked" after it when
+it is chosen; A on it chooses it, and once the game has chosen it the class
+is said with the description the screen shows. A on the class that is chosen
+says so and clicks nothing.
+
+**The way through, for the third test:** arrows to a class, A; the class and
+its description are said; arrows to the name box ("Character Name, text
+field"); type; Enter.
+
+**OPEN, the question that decides a key:** does the loader hold the mod's
+keys back from the game on this screen? Its README says the plugin's keys do
+not run "while chat, another text field, or the binding control is active",
+and this box is always active.
+
+| what the third test shows | what it means |
+|---|---|
+| A on a class chooses it, and the name stays empty | the loader delivers A and holds it back. Nothing more is needed |
+| A on a class chooses it, and an "a" is in the name (`[field] focus name="InputText" ... text="a"` when the cursor comes to the box) | the loader does not deliver A there; the key watch clicked and the game typed. **A key that types nothing is needed for the click on this screen, and it is the user's to choose** |
+| A on a class does nothing | neither the loader nor the key watch acted; read `[menu-keys]` |
 
 ## 10. Sort, in a trade
 
@@ -245,11 +239,8 @@ trade.
 
 ## The order to build in
 
-1. **A live test first**, with the three fixes in: walk, fight, open the
-   inventory, move in it, the belt, Alt+F, Y, the skill tree, the options.
-   The log lines to read are listed in `keyboard-play.md`.
-2. Item 2, sliders and options, and item 3, scrolling: without them the
-   options cannot be set.
-3. Item 1, once the user has chosen.
+1. **The third live test**, by the list in `keyboard-play.md`.
+2. Item 3, scrolling: without it a long list of options is not reached.
+3. Item 9's key, if the test asks for it, once the user has chosen.
 4. Item 5: whatever the log shows the cursor naming for itself.
-5. Items 4, 6, 7, 8, 9 as the log decides them.
+5. Items 4, 6, 7, 8 as the log decides them.
