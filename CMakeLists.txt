@@ -156,6 +156,7 @@ add_library(d2r-access SHARED
 	src/combat_target.cpp
 	src/explore_goal.cpp
 	src/grid_jump.cpp
+	src/native_actions.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
