@@ -117,6 +117,29 @@ std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
 		|| select != g_base + SelectRva || !ReadRect(widget, rect)) return std::nullopt;
 	return NativeUi::Rect{rect.x, rect.y, rect.width, rect.height};
 }
+std::optional<NativeUi::Rect> RectAt(uintptr_t widget, uint64_t selection) {
+	uintptr_t vtable = 0, select = 0;
+	Rect rect{};
+	if (!Available() || !NativeUi::Visible(widget)
+		|| !NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + SelectSlot, select)
+		|| select != g_base + SelectRva || !ReadRectAt(widget, selection, rect)) return std::nullopt;
+	return NativeUi::Rect{rect.x, rect.y, rect.width, rect.height};
+}
+uintptr_t Owner(uintptr_t widget) {
+	uintptr_t owner = 0;
+	if (!widget || !NativeMemory::Peek(widget + OwnerPanelOffset, owner) || !NativeUi::Visible(owner)) return 0;
+	return owner;
+}
+bool PlacePointer(NativeUi::Cell point) noexcept {
+	if (!Available()) return false;
+	// READ, 3.3.93787: out of controller mode 0x14F690 clamps nothing. It keeps the
+	// point as the game's mouse position, turns it into window pixels (0x7F210)
+	// and moves the real pointer there (0x120A280: ClientToScreen, SetCursorPos).
+	__try {
+		reinterpret_cast<void(*)(Point)>(g_base + CursorPositionRva)(Point{point.x, point.y});
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
 std::optional<bool> TextEditing() {
 	uintptr_t editor = 0;
 	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor)) return std::nullopt;
