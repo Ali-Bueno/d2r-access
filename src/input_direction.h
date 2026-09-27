@@ -151,6 +151,8 @@ Stick LeftStick();
 // same update; a left-stick push no reader claims is dropped by the next Poll,
 // as one made without Y held is.
 void PostRightStickPush(StickPush push);
+// A left-stick push is dropped by the next Poll unless Y is held, and its
+// reader looks only every third update or so: a posted one is kept for that long.
 void PostLeftStickPush(StickPush push); // as if made with Y held
 void PostBackWith(FaceButton button);
 void PostLeftStickClick();

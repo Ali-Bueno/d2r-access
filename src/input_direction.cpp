@@ -60,6 +60,8 @@ bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
+ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
+constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
 TriggerHold g_leftTrigger;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
@@ -226,7 +228,9 @@ void Poll() {
 		}
 	}
 
-	if (!FaceButtonHeld(FaceButton::Y)) g_leftStickPush = StickPush::None;
+	const bool posted = g_leftStickPosted != 0 && GetTickCount64() - g_leftStickPosted <= kPostedPushMs;
+	if (!posted) g_leftStickPosted = 0;
+	if (!FaceButtonHeld(FaceButton::Y) && !posted) g_leftStickPush = StickPush::None;
 	g_dpad = {0, 0, dpadButtons != 0 && dpadButtons != g_previousDpad, dpadButtons != 0};
 	if (dpadButtons == XINPUT_GAMEPAD_DPAD_UP) g_dpad.y = -1;
 	else if (dpadButtons == XINPUT_GAMEPAD_DPAD_DOWN) g_dpad.y = 1;
@@ -307,7 +311,10 @@ void PostRightStickPush(StickPush push) {
 	ResolvePush(g_rightStickPush, nullptr);
 	g_rightStickPush = push;
 }
-void PostLeftStickPush(StickPush push) { g_leftStickPush = push; }
+void PostLeftStickPush(StickPush push) {
+	g_leftStickPush = push;
+	g_leftStickPosted = GetTickCount64();
+}
 void PostBackWith(FaceButton button) {
 	if (button == FaceButton::A) g_backWithA = true;
 	else if (button == FaceButton::B) g_backWithB = true;
