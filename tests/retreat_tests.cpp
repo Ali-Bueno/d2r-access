@@ -125,6 +125,52 @@ int main() {
 		Check(!Retreat::Find(grid, {}, {}, settings).found, "no way out, no plan");
 		Check(!Retreat::Find(Navigation::Grid{}, {{90, 60}}, {}, settings).found, "an unread world has no plan");
 	}
+	{
+		// Open floor has no narrow place, and neither has the foot of a wall.
+		World world = Field({60, 60});
+		Fill(world, 80, 0, 80, Size - 1, Wall);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		Check(Retreat::Chokepoints(grid).empty(), "open floor beside one wall has no narrow place");
+	}
+	{
+		// A doorway three cells wide in a wall three cells thick.
+		World world = Field({60, 60});
+		Fill(world, 70, 0, 72, Size - 1, Wall);
+		Fill(world, 70, 59, 72, 61, 0);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const auto points = Retreat::Chokepoints(grid);
+		Check(!points.empty(), "a doorway is a narrow place");
+		bool inside = true;
+		for (const auto point : points) inside &= point.x >= 66 && point.x <= 76 && point.y >= 59 && point.y <= 61;
+		Check(inside, "the narrow places found are the doorway's own cells");
+		const auto plan = Retreat::Find(grid, points, {}, {.arrival = 1});
+		Check(plan.found && Distance(plan.path.back(), {70, 60}) <= 5, "the retreat to a narrow place ends in the doorway");
+	}
+	{
+		// A corridor five cells wide running across the field.
+		World world = Field({60, 60});
+		Fill(world, 0, 0, Size - 1, 56, Wall);
+		Fill(world, 0, 62, Size - 1, Size - 1, Wall);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		const auto points = Retreat::Chokepoints(grid);
+		Check(points.size() > 100, "a corridor is narrow along its whole length");
+	}
+	{
+		// A niche in a wall, three wide and two deep, is not a passage.
+		World world = Field({60, 60});
+		Fill(world, 80, 0, 85, Size - 1, Wall);
+		Fill(world, 80, 59, 81, 61, 0);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		Check(Retreat::Chokepoints(grid).empty(), "a niche in a wall is not a passage");
+	}
+	{
+		// The corner of a room is not narrow: its walls meet, they do not face.
+		World world = Field({60, 60});
+		Fill(world, 80, 0, 80, Size - 1, Wall);
+		Fill(world, 0, 80, Size - 1, 80, Wall);
+		const auto grid = Navigation::Build(world, Radius, Layer::Terrain);
+		Check(Retreat::Chokepoints(grid).empty(), "the corner of a room is not a narrow place");
+	}
 	Passed();
 	return 0;
 }

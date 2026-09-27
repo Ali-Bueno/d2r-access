@@ -103,4 +103,45 @@ Plan Find(const Navigation::Grid& grid, const std::vector<Position>& goals,
 	}
 	return plan;
 }
+
+namespace {
+// Open cells from a cell along a direction, itself excluded, up to `limit`;
+// `walled` tells a run ended by a wall from one ended by the limit, the edge
+// of the grid or ground not read yet.
+int Run(const Navigation::Grid& grid, int x, int y, int dx, int dy, int limit, bool& walled) {
+	walled = false;
+	for (int run = 0; run < limit; ++run) {
+		x += dx;
+		y += dy;
+		const auto* cell = grid.At(x, y);
+		if (!cell || cell->body == Radar::State::Unknown) return run;
+		if (cell->body != Radar::State::Open) { walled = true; return run; }
+	}
+	return limit;
+}
+}
+
+std::vector<Position> Chokepoints(const Navigation::Grid& grid, const Narrows& narrows) {
+	std::vector<Position> points;
+	// Across a passage, and along it: the world axes, then the diagonals.
+	constexpr int Axes[4][4] = {{1, 0, 0, 1}, {0, 1, 1, 0}, {1, 1, 1, -1}, {1, -1, 1, 1}};
+	for (int row = 0; row < grid.height; ++row) {
+		for (int column = 0; column < grid.width; ++column) {
+			const auto& cell = grid.cells[static_cast<size_t>(row) * grid.width + column];
+			if (cell.steps < 0 || cell.body != Radar::State::Open) continue;
+			const int x = grid.x + column, y = grid.y + row;
+			for (const auto& axis : Axes) {
+				bool wallA = false, wallB = false, unused = false;
+				const int across = Run(grid, x, y, axis[0], axis[1], narrows.width, wallA)
+					+ Run(grid, x, y, -axis[0], -axis[1], narrows.width, wallB) + 1;
+				if (!wallA || !wallB || across > narrows.width) continue;
+				if (Run(grid, x, y, axis[2], axis[3], narrows.through, unused) < narrows.through
+					|| Run(grid, x, y, -axis[2], -axis[3], narrows.through, unused) < narrows.through) continue;
+				points.push_back({static_cast<double>(x), static_cast<double>(y)});
+				break;
+			}
+		}
+	}
+	return points;
+}
 }

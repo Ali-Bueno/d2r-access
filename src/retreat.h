@@ -39,4 +39,18 @@ struct Plan {
 // will have moved by the time the player gets there.
 Plan Find(const Navigation::Grid& grid, const std::vector<Position>& goals,
 	const std::vector<Position>& threats, const Settings& settings = {});
+
+// Where a pack can only come a few at a time: corridors and doorways. A cell
+// is one when walls stand on both sides of it no more than `width` apart,
+// along a world axis or a diagonal, and the floor runs on for `through` cells
+// both ways across that, so the corner of a room and a niche in a wall are
+// not taken for a passage. Walls the map has not shown yet do not count: an
+// unread edge is not a wall.
+struct Narrows {
+	int width = 7;   // the widest gap still called narrow, in cells the body fits in
+	int through = 4; // floor needed each way along the passage
+};
+// Every such cell the player can walk to, as goals for Find. Build the grid on
+// the terrain layer, as for Find.
+std::vector<Position> Chokepoints(const Navigation::Grid& grid, const Narrows& narrows = {});
 }
