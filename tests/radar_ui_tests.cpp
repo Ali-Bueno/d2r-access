@@ -62,5 +62,20 @@ int main() {
 	Check(RadarUi::Inspect(true) == State::Dialogue, "open narrative speech suspends cues");
 	PanelState::Closed("ScrollSpeechPanel");
 	Check(RadarUi::Inspect(true) == State::Playing, "ending narrative speech resumes gameplay");
+	// MEASURED 2026-09-27, 12:19 to 12:21: every panel the game opened while the
+	// character stood in the camp with no menu up, the line of chat and the
+	// automap among them. With one of them taken for a menu the arrows do not walk.
+	PanelState::Reset();
+	panels.clear();
+	for (const char* name : {"LoadScreenPanel", "PanelBordersPanel", "TooltipsPanel", "HUDWarnings", "HUDPanel", "HUDMonsterHealth",
+		"HUDLevelNames", "InGameMoviePlayerPanel", "HireablesPanel", "HUDMessagePanel", "MiniMenuPanel", "HelpButtonPanel",
+		"ShowItemsPanel", "ChatPanel", "MessageLogPanel_800x600", "CandidateListPanel", "AutoMap"}) {
+		const std::string_view panel = name;
+		panels.push_back({name, panel == "HUDMessagePanel" ? Surface::NotificationFeed : panel == "HUDMonsterHealth" ? Surface::Target
+			: panel == "HUDLevelNames" ? Surface::Area : Surface::Other});
+		PanelState::Opened(name);
+		Check(!RadarUi::MenuPanel(name), name);
+	}
+	Check(RadarUi::Inspect(true) == State::Playing, "with every panel of play open and no menu up the game is in play");
 	Passed();
 }
