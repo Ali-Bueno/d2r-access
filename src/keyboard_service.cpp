@@ -18,6 +18,7 @@
 #include "ground_item_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
+#include "keyboard_menu.h"
 #include "map_survey_service.h"
 #include "native_actions.h"
 #include "native_entities.h"
@@ -25,6 +26,7 @@
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_skill_navigation.h"
+#include "native_sort.h"
 #include "native_world.h"
 #include "navigation_grid.h"
 #include "navigation_mode.h"
@@ -79,6 +81,8 @@ enum class Command : uint32_t {
 	Settings, SettingsChange,
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
+	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
+	ClickLeft, ClickRight, Transmute, Sort,
 	// Console only, for the first live tests.
 	TestRun, TestPlain, TestHalt, TestStatus, LogOn, LogOff,
 };
@@ -111,6 +115,12 @@ std::atomic<Command> g_command{Command::None};
 // A command typed in the console waits here until the console is closed and
 // the game is in play again: the console itself is not play.
 std::atomic<Command> g_deferred{Command::None};
+// A key that presses a button of the open menu, by the button's name in the layout.
+std::atomic<const char*> g_press{nullptr};
+std::atomic<bool> g_sort{false};
+constexpr const char* RepairAllButton = "button_repair_all";
+constexpr const char* RepairButton = "button_repair";
+constexpr const char* TransmuteButton = "convert";
 // The fighting keys, left hand then right: the key while it is held (its
 // virtual-key code, 0 when up) and whether it went down since the last update.
 std::atomic<uint32_t> g_held[2]{};
@@ -825,6 +835,34 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
 	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
+	// In a menu the keys are the menu's: a click, a tab, a button (keyboard_menu.h).
+	if (!g_playing.load() && !g_settingsOpen.load() && KeyboardMenu::Active()) {
+		using KeyboardMenu::Act;
+		if (command == Command::Attack || command == Command::Cast) {
+			const size_t hand = command == Command::Attack ? 0 : 1;
+			// A held key repeats its press; only the first one is a click.
+			if (pressed && g_held[hand].exchange(static_cast<uint32_t>(event->binding.key)) == 0)
+				KeyboardMenu::Deliver(hand == 0 ? Act::ClickLeft : Act::ClickRight);
+			if (!pressed) g_held[hand] = 0;
+			return pressed ? D2RL::Input::ActionResult::Handled : D2RL::Input::ActionResult::Ignored;
+		}
+		const char* button = command == Command::RetreatExit ? RepairAllButton : command == Command::RetreatBack ? RepairButton
+			: command == Command::Transmute ? TransmuteButton : nullptr;
+		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
+			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop;
+		if (menuKey || command == Command::Sort) {
+			if (!pressed) return D2RL::Input::ActionResult::Ignored;
+			if (command == Command::Sort) g_sort = true;
+			else if (button) g_press = button;
+			else KeyboardMenu::Deliver(command == Command::ClickLeft ? Act::ClickLeft : command == Command::ClickRight ? Act::ClickRight
+				: command == Command::ReadPrevious ? Act::TabPrevious : command == Command::ReadNext ? Act::TabNext
+				: command == Command::Repeat ? Act::MenuPrevious : Act::MenuNext);
+			return D2RL::Input::ActionResult::Handled;
+		}
+	}
+	// Out of a menu a click with Shift or Ctrl, and the cube's key, are the game's keys.
+	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort)
+		return D2RL::Input::ActionResult::Ignored;
 	const bool reading = command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
 		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
@@ -874,6 +912,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (!context) return false;
 	g_context = context;
 	(void)NativeActions::Initialize(context, nativeHooks);
+	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -909,7 +948,13 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
 			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
-			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange}}) {
+			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
+			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
+			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
+			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::W, Modifier::Shift, Command::ClickRight},
+			Entry{"keyboard-right-click-control", "Menu: right click with Ctrl", Key::W, Modifier::Control, Command::ClickRight},
+			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
+			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -946,6 +991,9 @@ void Tick(const D2RL::PluginContext* context) {
 	{ std::lock_guard lock(g_mutex); state = g_state; }
 	const bool inPlay = state.ready && RadarUi::InPlay();
 	g_playing = inPlay;
+	if (const char* button = g_press.exchange(nullptr); button && !KeyboardMenu::Press(context, button))
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+	if (g_sort.exchange(false) && !KeyboardMenu::Sort(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
 	if (Settings(command, now)) command = Command::None;
 	Read(command, inPlay);
@@ -1015,8 +1063,13 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 }
 
+bool Playing() { return g_playing.load(); }
+bool SettingsOpen() { return g_settingsOpen.load(); }
+
 void Unregister() {
 	End("unregister", false);
+	g_press = nullptr;
+	g_sort = false;
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
 	g_listeners.clear();

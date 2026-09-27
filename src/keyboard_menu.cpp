@@ -1,49 +1,129 @@
 #include "keyboard_menu.h"
 
 #include "async_log.h"
-#include "grid_jump.h"
+#include "input_direction.h"
 #include "inventory_cursor.h"
+#include "keyboard_service.h"
+#include "menu_cursor.h"
+#include "menu_mouse.h"
+#include "native_ground_items.h"
 #include "native_skill_navigation.h"
+#include "native_sort.h"
+#include "native_tooltips.h"
 #include "native_ui.h"
 #include "native_widgets.h"
-#include "skill_grid.h"
-#include "skill_navigation.h"
+#include "panel_state.h"
+#include "screen_reader.h"
+#include "speech_strings.h"
+#include "ui_text.h"
 
 #include <windows.h>
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
+#include <cstdio>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace D2RAccess::KeyboardMenu {
 namespace {
+using GridJump::Cell;
 using GridJump::Direction;
+using MenuCursor::Place;
+using MenuCursor::Target;
+using UiText::Kind;
 
-// A move of the cursor is the key's when the key is down, or went down this
-// recently: the game may act on a tap after the key is already up again.
-constexpr uint64_t RecentMs = 250;
-constexpr int Keys[] = {VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN}; // GridJump::Direction order
+// Policy, not game constants.
+constexpr uint64_t SettleMs = 90;       // from a move of the pointer to a tooltip taken as the new place's
+constexpr uint64_t RefreshMs = 250;     // how often the open menu is looked at again
+constexpr uint64_t AfterClickMs = 250;  // from a click to a look at what it changed
+constexpr uint64_t RepeatDelayMs = 500; // a held arrow steps again after this long
+constexpr uint64_t RepeatMs = 180;      // and then this often
+constexpr uint64_t SilenceMs = 450;     // a place no reader has named by then is named here
+constexpr uint64_t GraceMs = 60;        // how long a key seen directly waits for the loader to deliver it
+constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen directly is the same press
+constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
+constexpr size_t MaxEntries = 256;
+constexpr int MaxDepth = 32;
+constexpr int BeltColumns = 4;          // the row of the belt that is always shown
 
-bool g_down[4]{};
-int g_last = -1;       // the arrow that went down last, as an index into Keys
-uint64_t g_lastMs = 0;
+// Panels that are open without being a menu, by the names the layouts give them.
+constexpr std::string_view NotMenus[] = {
+	"TooltipsPanel", "PanelBordersPanel", "BlockingPanel", "MiniMenuPanel", "HelpButtonPanel", "AutoMap", "ChatPanel",
+	"FocusManager", "GlobalData", "SaveIndicatorPanel", "NotificationPanel", "LoadScreenPanel", "MainMenuLoadingPanel",
+	"LobbyBackgroundPanel", "DismissibleTooltipPanel", "TutorialTooltip", "EmoteWheelPanel", "ClickCatcher",
+	"InGameMoviePlayerPanel", "MoviePlayerPanel", "ControllerOverlay", "UISwitcher", "EndGameTimerPanel",
+};
+constexpr std::string_view Hud = "HUDPanel";
 
-uintptr_t g_grid = 0;  // the grid the cursor was in at the last update
-GridJump::Cell g_cell; // the cell the game's cursor was on
-GridJump::Cell g_cursor; // the cell travelled through, inside what stands on g_cell
-uintptr_t g_skill = 0; // the skill the cursor was on
+// The menus Home and End go through, each with its button of the mini menu
+// and the start of the name of the panel it opens.
+struct Menu { std::string_view button, panel; };
+constexpr Menu Menus[] = {
+	{"MiniMenuCharacter", "CharacterStatsPanel"}, {"MiniMenuInventory", "PlayerInventory"},
+	{"MiniMenuSkillTree", "SkillsTreePanel"}, {"MiniMenuQuestLog", "QuestLogPanel"}, {"MiniMenuPauseMenu", "PauseLayout"},
+};
+constexpr std::string_view ReturnToGame = "ReturnToGame";
 
-// The arrow a move now would belong to, or -1: the one held, the latest first.
-int Arrow(uint64_t now) {
-	int held = -1;
-	for (int i = 0; i < 4; ++i) {
-		const bool down = (GetAsyncKeyState(Keys[i]) & 0x8000) != 0;
-		if (down && !g_down[i]) { g_last = i; g_lastMs = now; }
-		g_down[i] = down;
-		if (down) held = i;
-	}
-	if (g_last >= 0 && g_down[g_last]) return g_last;
-	if (held >= 0) return held;
-	return g_last >= 0 && now - g_lastMs <= RecentMs ? g_last : -1;
+struct Entry {
+	uintptr_t widget = 0, panel = 0;
+	uintptr_t tab = 0;  // the tab it is drawn inside, when it is inside one
+	Kind kind = Kind::Other;
+	bool cells = false; // several places: a grid of items, the belt, a bar of tabs
+	std::string name, type;
+};
+// The open menu: what each thing is, and beside it where it is for the cursor.
+std::vector<Entry> g_entries;
+std::vector<Target> g_targets;
+std::string g_menu;         // the open panels by name, to tell one menu from the next
+Place g_place;
+std::atomic<bool> g_active{false};
+bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
+bool g_holding = false;     // an item was in hand when the pointer was last placed
+uint64_t g_refreshAt = 0;
+uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
+std::string g_toSay;        // what to say if no reader does
+uint64_t g_lastClick = 0;
+
+struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
+Arrow g_arrows[] = {
+	{VK_LEFT, Direction::Left, InputDirection::StickPush::Left}, {VK_RIGHT, Direction::Right, InputDirection::StickPush::Right},
+	{VK_UP, Direction::Up, InputDirection::StickPush::Up}, {VK_DOWN, Direction::Down, InputDirection::StickPush::Down},
+};
+// The keys of the menu, watched directly beside the loader's delivery of them.
+struct Watched { int key; Act act; bool modified; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
+Watched g_watched[] = {
+	{'A', Act::ClickLeft, true}, {'W', Act::ClickRight, true}, {VK_PRIOR, Act::TabPrevious, false},
+	{VK_NEXT, Act::TabNext, false}, {VK_HOME, Act::MenuPrevious, false}, {VK_END, Act::MenuNext, false},
+};
+constexpr size_t Acts = 6;
+constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu"};
+std::atomic<uint64_t> g_delivered[Acts]{};
+std::atomic<uint32_t> g_pending{0};
+
+bool Down(int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; }
+bool Foreground() {
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	return process == GetCurrentProcessId();
+}
+uint64_t Pack(Cell cell) {
+	return static_cast<uint32_t>(cell.x) | (static_cast<uint64_t>(static_cast<uint32_t>(cell.y)) << 32);
+}
+MenuCursor::Rect ToRect(const NativeUi::Rect& rect) { return {rect.x, rect.y, rect.width, rect.height}; }
+NativeUi::Rect Union(const NativeUi::Rect& a, const NativeUi::Rect& b) {
+	const int left = std::min(a.x, b.x), top = std::min(a.y, b.y);
+	const int right = std::max(a.x + a.width, b.x + b.width), bottom = std::max(a.y + a.height, b.y + b.height);
+	return {left, top, right - left, bottom - top};
+}
+bool Contains(const MenuCursor::Rect& outer, const MenuCursor::Rect& inner) {
+	const int x = inner.x + inner.width / 2, y = inner.y + inner.height / 2;
+	return x >= outer.x && y >= outer.y && x < outer.x + outer.width && y < outer.y + outer.height;
+}
+
+bool NotMenu(std::string_view name) {
+	return name.starts_with("HUD") || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
 }
 
 GridJump::Grid ReadGrid(uintptr_t widget) {
@@ -72,78 +152,494 @@ GridJump::Grid ReadGrid(uintptr_t widget) {
 	return grid;
 }
 
-void Grid(const D2RL::PluginContext* context, NativeUi::Focus focus, int arrow) {
-	const auto at = NativeUi::GridCell(focus.widget);
-	if (at.x < 0) { g_grid = 0; return; }
-	const GridJump::Cell cell{at.x, at.y};
-	if (focus.widget != g_grid) {
-		g_grid = focus.widget;
-		g_cell = g_cursor = cell;
-		return;
-	}
-	if (cell == g_cell) return;
-	const auto accept = [&] { g_cell = g_cursor = cell; };
-	// Not the keyboard's move, or an item is in hand: the cursor is where the game put it.
-	if (arrow < 0 || InventoryCursor::HoldingItem(context).value_or(true)) { accept(); return; }
-	const auto grid = ReadGrid(focus.widget);
-	if (grid.width < 1 || g_cursor.x >= grid.width || g_cursor.y >= grid.height) { accept(); return; }
-	const auto step = GridJump::Move(grid, g_cursor, static_cast<Direction>(arrow));
-	if (!step.moved) { accept(); return; }
-	if (step.anchor != cell) {
-		const uint64_t selection = static_cast<uint32_t>(step.anchor.x) | (static_cast<uint64_t>(static_cast<uint32_t>(step.anchor.y)) << 32);
-		if (!NativeSkillNavigation::SelectAt(focus, selection)) {
-			AsyncLog::Warn(context, "[keys] The cursor could not be placed; the game's own move stands.");
-			accept();
-			return;
-		}
-		AsyncLog::InfoF(context, "[keys] grid %s: game %d,%d -> %d,%d", NativeWidgets::ReadName(focus.widget).c_str(),
-			cell.x, cell.y, step.anchor.x, step.anchor.y);
-	}
-	g_cell = step.anchor;
-	g_cursor = step.cursor;
+// A widget of several places, by the rectangles of its first and its last.
+bool AddCells(Entry entry, GridJump::Grid grid) {
+	if (grid.width < 1 || grid.height < 1) return false;
+	const auto first = NativeSkillNavigation::RectAt(entry.widget, Pack({0, 0}));
+	const auto last = NativeSkillNavigation::RectAt(entry.widget, Pack({grid.width - 1, grid.height - 1}));
+	if (!first || !last || (grid.width * grid.height > 1 && *first == *last)) return false;
+	entry.cells = true;
+	g_targets.push_back({entry.widget, ToRect(Union(*first, *last)), std::move(grid)});
+	g_entries.push_back(std::move(entry));
+	return true;
 }
 
-void Skills(const D2RL::PluginContext* context, NativeUi::Focus focus, int arrow) {
-	if (focus.widget == g_skill) return;
-	const uintptr_t from = g_skill;
-	g_skill = focus.widget;
-	if (arrow < 0 || !from) return;
-	const auto nodes = SkillNavigation::Nodes(focus.panel);
-	const auto listed = [&nodes](uintptr_t widget) {
-		return std::any_of(nodes.begin(), nodes.end(), [widget](const auto& node) { return node.widget == widget; });
-	};
-	if (!listed(from)) return;
-	constexpr int Steps[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-	const auto next = SkillGrid::Jump(nodes, from, Steps[arrow][0], Steps[arrow][1]);
-	// No skill that way: the key leaves the skills, for the tabs or the buttons, as the game moved it.
-	if (!next || next == from || next == focus.widget) return;
-	if (!NativeSkillNavigation::Select({focus.panel, next})) {
-		AsyncLog::Warn(context, "[keys] The skill could not be selected; the game's own move stands.");
+void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
+	if (!widget || depth > MaxDepth || g_entries.size() >= MaxEntries || !NativeUi::Visible(widget)) return;
+	Entry entry;
+	entry.widget = widget;
+	entry.panel = panel;
+	entry.tab = tab;
+	entry.name = NativeWidgets::ReadName(widget);
+	// A template container of the layouts, not a part of the menu.
+	if (entry.name == "Templates") return;
+	const auto type = NativeUi::Classify(widget);
+	entry.kind = type.kind;
+	entry.type = type.name;
+	bool whole = false; // nothing inside it is a place of its own
+	if (type.kind == Kind::InventoryGrid) {
+		whole = AddCells(entry, ReadGrid(widget));
+	} else if (type.name == "BeltWidget") {
+		whole = AddCells(entry, {BeltColumns, 1, {}});
+	} else if (type.kind == Kind::Tabs) {
+		if (const int tabs = NativeUi::TabCount(widget); tabs > 1) whole = AddCells(entry, {tabs, 1, {}});
+	}
+	const bool control = type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::ListItem
+		|| type.kind == Kind::Focusable || type.kind == Kind::InventorySlot || type.kind == Kind::InventoryItem
+		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
+		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
+	if (!whole && control && type.name != "BeltWidget") {
+		if (const auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget))) {
+			g_targets.push_back({widget, ToRect(*rect), {}});
+			g_entries.push_back(entry);
+		}
+	}
+	if (whole) return;
+	const uintptr_t inside = type.kind == Kind::TabButton ? widget : tab;
+	for (const uintptr_t child : NativeUi::Children(widget)) Collect(child, panel, inside, depth + 1);
+}
+
+// A control drawn around others is where they stand, not one of them, and a
+// control drawn exactly over another is the same place twice.
+void Thin() {
+	std::vector<bool> drop(g_targets.size(), false);
+	for (size_t i = 0; i < g_targets.size(); ++i) {
+		if (g_entries[i].cells) continue;
+		int holds = 0;
+		for (size_t j = 0; j < g_targets.size(); ++j) {
+			if (i == j || drop[j]) continue;
+			if (j < i && !g_entries[j].cells && g_targets[j].rect == g_targets[i].rect) { drop[i] = true; break; }
+			if (g_targets[j].rect != g_targets[i].rect && Contains(g_targets[i].rect, g_targets[j].rect)
+				&& (g_entries[j].cells || g_targets[j].rect.width * g_targets[j].rect.height < g_targets[i].rect.width * g_targets[i].rect.height)) ++holds;
+		}
+		if (holds >= 2) drop[i] = true;
+	}
+	size_t kept = 0;
+	for (size_t i = 0; i < g_targets.size(); ++i) {
+		if (drop[i]) continue;
+		if (kept != i) { g_targets[kept] = std::move(g_targets[i]); g_entries[kept] = std::move(g_entries[i]); }
+		++kept;
+	}
+	g_targets.resize(kept);
+	g_entries.resize(kept);
+}
+
+uintptr_t FindNamed(uintptr_t widget, std::string_view name, bool byType, int depth) {
+	if (!widget || depth > MaxDepth || !NativeUi::Visible(widget)) return 0;
+	if ((byType ? NativeUi::Classify(widget).name : NativeWidgets::ReadName(widget)) == name) return widget;
+	for (const uintptr_t child : NativeUi::Children(widget))
+		if (const uintptr_t found = FindNamed(child, name, byType, depth + 1)) return found;
+	return 0;
+}
+
+// The open menu, read again. The panels that are open and shown, oldest first;
+// under a modal only the modal, which takes every click until it is answered.
+std::string Build() {
+	g_entries.clear();
+	g_targets.clear();
+	struct Open { uintptr_t panel; std::string name; };
+	std::vector<Open> shown;
+	const auto panels = NativeUi::Panels();
+	for (const auto& name : PanelState::OpenPanels()) {
+		if (NotMenu(name)) continue;
+		for (const uintptr_t panel : panels) {
+			if (NativeWidgets::ReadName(panel) != name || !NativeUi::Visible(panel)) continue;
+			shown.push_back({panel, name});
+			break;
+		}
+	}
+	for (size_t i = shown.size(); i-- > 0;) {
+		if (!shown[i].name.ends_with("Modal")) continue;
+		shown = {shown[i]};
+		break;
+	}
+	std::string menu;
+	bool items = false;
+	for (const auto& open : shown) {
+		menu += open.name;
+		menu += ' ';
+		items = items || open.name.find("Inventory") != std::string::npos;
+		Collect(open.panel, open.panel, 0, 0);
+	}
+	// The belt is the HUD's, and is where potions are put from the inventory.
+	if (items) {
+		if (const uintptr_t hud = NativeWidgets::FindPanel(Hud); hud && NativeUi::Visible(hud))
+			if (const uintptr_t belt = FindNamed(hud, "BeltWidget", true, 0)) Collect(belt, hud, 0, 0);
+	}
+	Thin();
+	return menu;
+}
+
+const Entry* EntryOf(uintptr_t widget) {
+	for (const auto& entry : g_entries) if (entry.widget == widget) return &entry;
+	return nullptr;
+}
+
+// Where the pointer goes for a place: the middle of the control, of the whole
+// item, or of the cell. With an item in hand the game's own rectangle for the
+// cell is where the pointer has to be for the item to begin on that cell.
+std::optional<NativeUi::Rect> PointerRect(const Entry& entry, const Place& place, bool holding) {
+	if (!entry.cells) return NativeSkillNavigation::RectAt(entry.widget, NativeUi::FocusSelection(entry.widget));
+	const auto first = NativeSkillNavigation::RectAt(entry.widget, Pack(place.anchor));
+	if (!first || holding) return first;
+	const auto* target = MenuCursor::Find(g_targets, entry.widget);
+	const int item = target ? GridJump::ItemAt(target->grid, place.anchor) : GridJump::Empty;
+	if (item == GridJump::Empty) return first;
+	const auto& found = target->grid.items[static_cast<size_t>(item)];
+	const auto last = NativeSkillNavigation::RectAt(entry.widget, Pack({found.x + found.width - 1, found.y + found.height - 1}));
+	return last ? Union(*first, *last) : *first;
+}
+
+std::string TabText(uintptr_t bar, int tab) {
+	return UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(bar, "Text" + std::to_string(tab))));
+}
+
+// What a place is called when no reader has called it anything.
+std::string Name(const Entry& entry, const Place& place) {
+	if (entry.kind == Kind::InventoryGrid) {
+		const auto slot = NativeUi::GridItemAt(entry.widget, {place.anchor.x, place.anchor.y});
+		if (slot.item) return NativeGroundItems::ItemBaseName(slot.item);
+		char phrase[64]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, place.anchor.y + 1, place.anchor.x + 1);
+		return phrase;
+	}
+	if (entry.kind == Kind::Tabs && entry.cells) return TabText(entry.widget, place.anchor.x);
+	const auto readout = UiText::Describe(NativeUi::Snapshot(entry.widget, entry.widget));
+	std::string text = !readout.option.empty() ? readout.option : readout.body;
+	if (text.empty()) text = UiText::Clean(NativeWidgets::ReadText(entry.widget));
+	return text.empty() ? entry.name : text;
+}
+
+void Expect(uint64_t now, std::string text) {
+	g_landedAt = now;
+	g_toSay = std::move(text);
+}
+
+bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) {
+	const auto* entry = EntryOf(place.widget);
+	if (!entry) return false;
+	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
+	const auto rect = PointerRect(*entry, place, holding);
+	if (!rect) {
+		AsyncLog::WarnF(context, "[cursor] no rectangle for %s (%s); the cursor stays", entry->name.c_str(), entry->type.c_str());
+		return false;
+	}
+	const uint64_t selection = entry->cells ? Pack(place.anchor) : NativeUi::FocusSelection(entry->widget);
+	const uintptr_t owner = NativeSkillNavigation::Owner(entry->widget);
+	g_place = place;
+	g_holding = holding;
+	const bool placed = MenuMouse::Place(*rect);
+	NativeTooltips::Discard(now + SettleMs);
+	NativeUi::SetCursor({owner ? owner : entry->panel, entry->widget}, selection);
+	POINT pointer{};
+	(void)GetCursorPos(&pointer);
+	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld",
+		entry->name.c_str(), entry->type.c_str(), entry->cells ? place.anchor.x : -1, entry->cells ? place.anchor.y : -1,
+		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
+	Expect(now, Name(*entry, place));
+	// A quest shows what it is about when it is clicked, not when the pointer is over it.
+	if (entry->kind == Kind::QuestButton) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
+	return true;
+}
+
+void Census(const D2RL::PluginContext* context) {
+	AsyncLog::InfoF(context, "[cursor] menu: %s-- %zu things", g_menu.c_str(), g_targets.size());
+	for (size_t i = 0; i < g_targets.size(); ++i) {
+		const auto& target = g_targets[i];
+		AsyncLog::InfoF(context, "[cursor] thing %s (%s) rect %d,%d %dx%d cells %dx%d items %zu", g_entries[i].name.c_str(),
+			g_entries[i].type.c_str(), target.rect.x, target.rect.y, target.rect.width, target.rect.height,
+			target.grid.width, target.grid.height, target.grid.items.size());
+	}
+	const auto all = MenuCursor::Everything(g_targets);
+	const auto reached = MenuCursor::Reachable(g_targets, MenuCursor::First(g_targets));
+	size_t missed = 0;
+	for (const auto& place : all) {
+		if (std::find(reached.begin(), reached.end(), place) != reached.end()) continue;
+		++missed;
+		const auto* entry = EntryOf(place.widget);
+		AsyncLog::WarnF(context, "[cursor] NOT REACHED by the arrows: %s cell %d,%d", entry ? entry->name.c_str() : "?",
+			place.anchor.x, place.anchor.y);
+	}
+	AsyncLog::InfoF(context, "[cursor] %zu places, %zu not reached", all.size(), missed);
+}
+
+void Release(const D2RL::PluginContext* context, const char* reason) {
+	if (g_engaged && context) AsyncLog::InfoF(context, "[cursor] released: %s", reason);
+	g_engaged = false;
+	g_place = {};
+	g_menu.clear();
+	g_landedAt = 0;
+	g_toSay.clear();
+	NativeUi::ClearCursor();
+}
+
+// The menu as it is now, and the cursor on it: where it was if that still
+// stands, at the menu's first thing otherwise.
+void Refresh(const D2RL::PluginContext* context, uint64_t now) {
+	g_refreshAt = now + RefreshMs;
+	const std::string menu = Build();
+	const bool changed = menu != g_menu;
+	g_menu = menu;
+	if (g_targets.empty()) {
+		if (g_place.widget) { g_place = {}; NativeUi::ClearCursor(); }
 		return;
 	}
-	AsyncLog::InfoF(context, "[keys] skill: game %s -> %s", NativeWidgets::ReadName(focus.widget).c_str(),
-		NativeWidgets::ReadName(next).c_str());
-	g_skill = next;
+	if (changed) Census(context);
+	auto place = MenuCursor::Settle(g_targets, g_place);
+	if (!place.widget) place = MenuCursor::First(g_targets);
+	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
+	if (place != g_place || holding != g_holding) (void)Land(context, now, place);
 }
+
+void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
+	if (!g_engaged) {
+		g_engaged = true;
+		AsyncLog::Info(context, "[cursor] taken by an arrow key");
+		Refresh(context, now);
+		return; // the first press says where the cursor is
+	}
+	Refresh(context, now);
+	if (!g_place.widget) return;
+	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
+	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding);
+	if (next == g_place) {
+		// Nothing that way: where the cursor is, again.
+		if (const auto* entry = EntryOf(g_place.widget)) ScreenReader::Speak(Name(*entry, g_place), true);
+		return;
+	}
+	(void)Land(context, now, next);
+}
+
+void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button button) {
+	// Counted from the last press that came, so a key held down clicks once.
+	const bool repeated = now - g_lastClick < ClickGapMs;
+	g_lastClick = now;
+	if (repeated) return;
+	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL);
+	const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr;
+	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
+	AsyncLog::InfoF(context, "[cursor] %s click%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
+		shift ? " with Shift" : "", control ? " with Ctrl" : "", entry ? entry->name.c_str() : "where the pointer is");
+	if (rect) MenuMouse::ClickAt(*rect, button);
+	else MenuMouse::Click(button);
+	g_refreshAt = now + AfterClickMs;
+}
+
+void ClickWidget(const D2RL::PluginContext* context, uint64_t now, uintptr_t widget, uint64_t selection, const char* what) {
+	const auto rect = NativeSkillNavigation::RectAt(widget, selection);
+	if (!rect) {
+		AsyncLog::WarnF(context, "[cursor] %s: no rectangle for %s", what, NativeWidgets::ReadName(widget).c_str());
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		return;
+	}
+	const auto* entry = EntryOf(g_place.widget);
+	const auto back = entry ? PointerRect(*entry, g_place, g_holding) : std::nullopt;
+	AsyncLog::InfoF(context, "[cursor] %s: click on %s", what, NativeWidgets::ReadName(widget).c_str());
+	MenuMouse::ClickAt(*rect, MenuMouse::Button::Left, back.value_or(NativeUi::Rect{}));
+	NativeTooltips::Discard(now + AfterClickMs);
+	g_refreshAt = now + AfterClickMs;
+}
+
+void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
+	Refresh(context, now);
+	// A bar of tabs first: the stash, the shop, the quest log, the waypoints, the options.
+	for (const auto& entry : g_entries) {
+		if (entry.kind != Kind::Tabs || !entry.cells) continue;
+		const int tabs = NativeUi::TabCount(entry.widget), open = NativeUi::SelectedTab(entry.widget);
+		const int next = std::clamp((open < 0 ? 0 : open) + delta, 0, tabs - 1);
+		if (next == open) { ScreenReader::Speak(TabText(entry.widget, next), true); return; }
+		ClickWidget(context, now, entry.widget, Pack({next, 0}), "tab");
+		Expect(now + AfterClickMs, TabText(entry.widget, next));
+		return;
+	}
+	// Tabs that are controls of their own: the skill tree's. The open one is
+	// the one the skills shown are drawn inside.
+	std::vector<const Entry*> tabs;
+	for (const auto& entry : g_entries) if (entry.kind == Kind::TabButton) tabs.push_back(&entry);
+	if (tabs.size() < 2) { ScreenReader::Speak(Strings::Current().unavailable, true); return; }
+	std::sort(tabs.begin(), tabs.end(), [](const Entry* a, const Entry* b) {
+		const auto* first = MenuCursor::Find(g_targets, a->widget);
+		const auto* second = MenuCursor::Find(g_targets, b->widget);
+		return first->rect.y != second->rect.y ? first->rect.y < second->rect.y : first->rect.x < second->rect.x;
+	});
+	int open = -1;
+	for (size_t i = 0; i < tabs.size() && open < 0; ++i)
+		for (const auto& entry : g_entries) if (entry.tab == tabs[i]->widget) { open = static_cast<int>(i); break; }
+	const int next = std::clamp((open < 0 ? 0 : open) + delta, 0, static_cast<int>(tabs.size()) - 1);
+	const auto* tab = tabs[static_cast<size_t>(next)];
+	AsyncLog::InfoF(context, "[cursor] tabs: %zu, open %d, to %d", tabs.size(), open, next);
+	if (next == open) { ScreenReader::Speak(Name(*tab, {}), true); return; }
+	ClickWidget(context, now, tab->widget, NativeUi::FocusSelection(tab->widget), "tab");
+	Expect(now + AfterClickMs, Name(*tab, {}));
+}
+
+void StepMenu(const D2RL::PluginContext* context, uint64_t now, int delta) {
+	// The menu that is open: the one opened last.
+	int open = -1;
+	const auto& panels = PanelState::OpenPanels();
+	for (auto name = panels.rbegin(); name != panels.rend() && open < 0; ++name)
+		for (size_t i = 0; i < std::size(Menus); ++i)
+			if (name->starts_with(Menus[i].panel)) { open = static_cast<int>(i); break; }
+	const int count = static_cast<int>(std::size(Menus));
+	const int next = open < 0 ? (delta > 0 ? 0 : count - 1) : ((open + delta) % count + count) % count;
+	const uintptr_t hud = NativeWidgets::FindPanel(Hud);
+	const uintptr_t button = FindNamed(hud, Menus[next].button, false, 0);
+	const auto to = button ? NativeSkillNavigation::RectAt(button, NativeUi::FocusSelection(button)) : std::nullopt;
+	AsyncLog::InfoF(context, "[cursor] menus: open %d, to %d (%.*s), button %s", open, next,
+		static_cast<int>(Menus[next].button.size()), Menus[next].button.data(), !button ? "not shown" : to ? "found" : "has no rectangle");
+	if (!to) { ScreenReader::Speak(Strings::Current().unavailable, true); return; }
+	// The open menu is shut the way it was opened, by its own button; the game
+	// menu covers the mini menu, and is left by its own way back.
+	if (open >= 0) {
+		const bool paused = Menus[open].button == Menus[std::size(Menus) - 1].button;
+		uintptr_t shut = paused ? 0 : FindNamed(hud, Menus[open].button, false, 0);
+		if (paused) for (const auto& entry : g_entries) if (entry.name == ReturnToGame) shut = entry.widget;
+		if (const auto from = shut ? NativeSkillNavigation::RectAt(shut, NativeUi::FocusSelection(shut)) : std::nullopt)
+			MenuMouse::ClickAt(*from, MenuMouse::Button::Left);
+	}
+	MenuMouse::ClickAt(*to, MenuMouse::Button::Left);
+	NativeTooltips::Discard(now + AfterClickMs);
+	g_refreshAt = now + 2 * AfterClickMs;
+}
+
+void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
+	switch (act) {
+	case Act::ClickLeft:    Click(context, now, MenuMouse::Button::Left); break;
+	case Act::ClickRight:   Click(context, now, MenuMouse::Button::Right); break;
+	case Act::TabPrevious:  StepTab(context, now, -1); break;
+	case Act::TabNext:      StepTab(context, now, 1); break;
+	case Act::MenuPrevious: StepMenu(context, now, -1); break;
+	case Act::MenuNext:     StepMenu(context, now, 1); break;
+	}
+}
+
+// The keys of the menu seen directly. One the loader delivers is the loader's;
+// one it does not, on a screen where it delivers none, is acted on from here.
+void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
+	const bool modifier = Down(VK_SHIFT) || Down(VK_CONTROL) || Down(VK_MENU);
+	for (auto& key : g_watched) {
+		const bool down = Down(key.key);
+		const bool pressed = down && !key.down;
+		key.down = down;
+		// PageUp, PageDown, Home and End with a modifier are reading keys, and
+		// the settings list steps with them while it is open.
+		if (pressed && !typing && !Down(VK_MENU) && (key.modified || (!modifier && !KeyboardService::SettingsOpen()))) {
+			key.waiting = true;
+			key.since = now;
+		}
+		if (!key.waiting) continue;
+		const size_t act = static_cast<size_t>(key.act);
+		const uint64_t delivered = g_delivered[act].load();
+		if (delivered && delivered + DeliveredMs >= key.since) { key.waiting = false; continue; }
+		if (now - key.since < GraceMs) continue;
+		key.waiting = false;
+		if (!key.logged) {
+			key.logged = true;
+			AsyncLog::InfoF(context, "[menu-keys] %s came by watching the key: the loader did not deliver it here (menu: %s)",
+				ActNames[act], g_menu.c_str());
+		}
+		g_pending |= 1u << act;
+	}
+}
+}
+
+bool Active() { return g_active.load(); }
+
+void Deliver(Act act) {
+	const size_t index = static_cast<size_t>(act);
+	g_delivered[index] = GetTickCount64();
+	g_pending |= 1u << index;
+}
+
+bool Press(const D2RL::PluginContext* context, std::string_view button) {
+	if (!g_active.load()) return false;
+	const uint64_t now = GetTickCount64();
+	Refresh(context, now);
+	for (const auto& entry : g_entries) {
+		if (entry.name != button) continue;
+		ClickWidget(context, now, entry.widget, NativeUi::FocusSelection(entry.widget), "key");
+		return true;
+	}
+	AsyncLog::InfoF(context, "[cursor] key: %.*s is not in this menu", static_cast<int>(button.size()), button.data());
+	return false;
+}
+
+bool Sort(const D2RL::PluginContext* context) {
+	if (!g_active.load()) return false;
+	const uint64_t now = GetTickCount64();
+	Refresh(context, now);
+	const Entry* grid = nullptr;
+	if (const auto* on = EntryOf(g_place.widget); on && on->kind == Kind::InventoryGrid) grid = on;
+	for (const auto& entry : g_entries) {
+		if (grid) break;
+		if (entry.kind == Kind::InventoryGrid && NativeWidgets::ReadName(entry.panel).starts_with("PlayerInventory")) grid = &entry;
+	}
+	if (!grid || NativeSort::Sort(context, grid->widget) != NativeSort::Result::Sorted) return false;
+	// The items are where the game put them now, and the cursor is on another.
+	NativeTooltips::Discard(now + AfterClickMs);
+	g_refreshAt = now + AfterClickMs;
+	return true;
 }
 
 void Reset() {
-	g_grid = g_skill = 0;
-	g_last = -1;
+	Release(nullptr, "reset");
+	MenuMouse::Reset();
+	g_entries.clear();
+	g_targets.clear();
+	g_active = false;
+	g_pending = 0;
+	for (auto& arrow : g_arrows) { arrow.down = false; arrow.next = 0; }
+	for (auto& key : g_watched) { key.down = key.waiting = false; }
 }
 
 void Tick(const D2RL::PluginContext* context) {
-	const int arrow = Arrow(GetTickCount64());
-	if (!NativeSkillNavigation::Available()) return;
-	const auto focus = NativeUi::CurrentFocus();
-	if (!focus.panel || !focus.widget) { g_grid = g_skill = 0; return; }
-	if (NativeUi::Classify(focus.widget).kind == UiText::Kind::InventoryGrid) {
-		g_skill = 0;
-		Grid(context, focus, arrow);
+	const uint64_t now = GetTickCount64();
+	MenuMouse::Tick(now);
+	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()
+		&& !KeyboardService::Playing();
+	g_active = menu;
+	if (!menu) {
+		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
+		g_pending = 0;
+		for (auto& arrow : g_arrows) arrow.down = Down(arrow.key);
+		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
 		return;
 	}
-	g_grid = 0;
-	if (NativeWidgets::ReadName(focus.panel) == "SkillsTreePanel") Skills(context, focus, arrow);
-	else g_skill = 0;
+	const bool typing = NativeSkillNavigation::TextEditing().value_or(false);
+	// With no pad the menu is the keyboard's from the moment it opens; with one
+	// connected it is the pad's until an arrow key is pressed.
+	if (!g_engaged && !InputDirection::LeftStick().connected) {
+		g_engaged = true;
+		AsyncLog::Info(context, "[cursor] taken: a menu is up and no pad is connected");
+		g_refreshAt = 0;
+	}
+	if (g_engaged && now >= g_refreshAt && !MenuMouse::Busy()) Refresh(context, now);
+
+	const bool control = Down(VK_CONTROL), alt = Down(VK_MENU);
+	for (auto& arrow : g_arrows) {
+		const bool down = Down(arrow.key);
+		bool step = false;
+		if (down && !arrow.down) { step = true; arrow.next = now + RepeatDelayMs; }
+		else if (down && now >= arrow.next) { step = true; arrow.next = now + RepeatMs; }
+		arrow.down = down;
+		if (!step || typing || alt || MenuMouse::Busy()) continue;
+		if (control) InputDirection::PostLineStep(arrow.push);
+		else Step(context, now, arrow.direction);
+	}
+
+	Watch(context, now, typing);
+	const uint32_t pending = g_pending.exchange(0);
+	for (size_t act = 0; act < Acts; ++act)
+		if (pending & (1u << act)) Do(context, now, static_cast<Act>(act));
+
+	// A place no reader named is named here, so no move passes in silence.
+	if (g_landedAt && now >= g_landedAt && now - g_landedAt >= SilenceMs) {
+		if (ScreenReader::LastSpoken() < g_landedAt && !g_toSay.empty()) {
+			AsyncLog::InfoF(context, "[cursor] no reader named it; said \"%s\"", g_toSay.c_str());
+			ScreenReader::Speak(g_toSay, true);
+		}
+		g_landedAt = 0;
+		g_toSay.clear();
+	}
 }
 }

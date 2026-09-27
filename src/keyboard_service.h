@@ -10,6 +10,7 @@
 // In play:
 //   arrows            walk while held
 //   A / W             fight with the left / right skill while held
+//                     (in a menu: left click / right click, keyboard_menu.h)
 //   Tab, Shift+Tab    next / previous monster
 //   D                 walk up to the nearest thing and use it
 //   Shift+Home        walk to what the scanner named
@@ -24,6 +25,14 @@
 //   Ctrl+PageUp, Ctrl+PageDown  categories in play; first / last, or aside, in a menu
 //   Shift+PageUp, Shift+PageDown  compare: the item in full / the one equipped
 //   Home                        say it again
+// In a menu PageUp, PageDown, Home and End are the menu's (keyboard_menu.h):
+// the tab before and after, the menu before and after. Ctrl with an arrow key
+// reads line by line there.
+// Keys that press a button of the open menu for the player:
+//   Ctrl+R            repair all, at a merchant who repairs
+//   Shift+R           repair, the same
+//   Alt+T             transmute, in the Horadric Cube
+//   Alt+S             sort the grid the cursor is in (native_sort.h)
 // Settings, everywhere:
 //   Ctrl+S            open or close the list of the mod's switches
 //   PageUp, PageDown  previous / next switch while it is open
@@ -33,4 +42,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks);
 // Right after InputDirection::Poll: what it posts is for this update's readers.
 void Tick(const D2RL::PluginContext* context);
 void Unregister();
+// In a game and in play, as of the last update: the keys act on the world.
+bool Playing();
+// The list of the mod's switches is open and steps with PageUp and PageDown.
+bool SettingsOpen();
 }
