@@ -96,6 +96,7 @@ constexpr double UseReach = 3;        // a thing is used from this near, plus ha
 constexpr double UseRange = 20;       // how far D looks for something to use, in walking steps
 constexpr double MeleeReach = 3;      // a blow lands from this near
 constexpr uint64_t SettingsIdleMs = 30000; // a settings list left open and unused closes itself
+constexpr uint64_t BackMs = 1500;     // how long one fall back may take before the fight goes on
 constexpr double RangedReach = 24;    // a shot or a spell is loosed from this near: see docs/keyboard-actions.md
 
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0; int level = 0, cameFrom = 0, revision = 0; };
@@ -141,6 +142,11 @@ std::vector<uint64_t> g_refused; // rooms an exploring walk gave up on, this lev
 uint64_t g_nextAct = 0, g_nextStep = 0, g_nextStrike = 0, g_nextGear = 0;
 bool g_stepping = false;    // a held arrow is walking the character
 bool g_closing = false;     // a fight is walking up to its monster
+bool g_backing = false;     // a ranged fight is falling back from one
+bool g_struck = true;       // a blow was struck since the last fall back
+Position g_backTo;
+uint64_t g_backStart = 0, g_corneredLog = 0;
+CombatTarget::Spacing g_spacing;
 bool g_saidNone = false;    // "no enemies" was said for this hold
 uint32_t g_saidOutOfReach = 0; // the monster last said to be out of reach
 bool g_shooting = false;    // a bow or crossbow is in hand
@@ -216,7 +222,7 @@ void End(const char* reason, bool halt) {
 	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
 	g_mode = Mode::Idle;
 	g_walker.Stop();
-	g_closing = false;
+	g_closing = g_backing = false;
 	g_goalName.clear();
 	if (halt) (void)NativeActions::Halt();
 }
@@ -542,6 +548,7 @@ void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand
 	g_walker.Start();
 	g_saidNone = false;
 	g_saidOutOfReach = 0;
+	g_struck = true;
 	g_nextAct = g_nextStrike = 0;
 	const auto reach = ReachOf(context, hand, now);
 	AsyncLog::InfoF(g_context, "[keyboard] fight: hand=%s skill=%d ranged=%u reach=%.0f", hand == Hand::Left ? "left" : "right",
@@ -558,7 +565,7 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 	if (!target) {
 		if (!g_saidNone) ScreenReader::Speak(strings.targetNone, true);
 		g_saidNone = true;
-		if (g_closing) { g_closing = false; (void)NativeActions::Halt(); }
+		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
 		return;
 	}
 	g_saidNone = false;
@@ -569,11 +576,47 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		g_walker.Start();
 	}
 	const auto reach = ReachOf(context, g_hand, now);
+	if (reach.ranged) {
+		// A ranged fight keeps its distance: a shot, a fall back when a monster
+		// closes, the next shot from there. The order is given again until the
+		// character is free to move, since a shot under way cannot be broken off.
+		if (g_backing) {
+			if (Distance(scene.world.player, g_backTo) > 2 && now - g_backStart < BackMs) {
+				(void)NativeActions::MoveTo(g_backTo);
+				return;
+			}
+			g_backing = false;
+		}
+		std::vector<Position> threats;
+		for (const auto& monster : ranked) threats.push_back(monster.entity.position);
+		if (g_struck && CombatTarget::Closing(scene.world.player, threats, g_spacing)) {
+			const double here = CombatTarget::Clearance(scene.world.player, threats);
+			const auto ground = CombatTarget::FallBack(scene.world, scene.grid, threats, target->entity.position, reach.range, g_spacing);
+			if (ground.found) {
+				AsyncLog::InfoF(g_context, "[keyboard] fight: falling back to %.0f,%.0f, nearest monster %.1f -> %.1f",
+					ground.cell.x, ground.cell.y, here, ground.clearance);
+				g_backing = true;
+				g_struck = g_closing = false;
+				g_backTo = ground.cell;
+				g_backStart = now;
+				g_walker.Start();
+				(void)NativeActions::MoveTo(g_backTo);
+				return;
+			}
+			if (now - g_corneredLog >= 2000) {
+				g_corneredLog = now;
+				AsyncLog::InfoF(g_context, "[keyboard] fight: nowhere to fall back to with a monster at %.1f; standing", here);
+			}
+			// Asked again only after the next blow, not five times a second.
+			g_struck = false;
+		}
+	}
 	switch (CombatTarget::Decide(*target, reach)) {
 	case CombatTarget::Move::Strike:
 		if (g_closing) { g_closing = false; g_walker.Start(); }
 		if (now >= g_nextStrike) {
 			g_nextStrike = now + StrikeMs;
+			g_struck = true;
 			(void)NativeActions::SkillOn(g_hand, static_cast<Unit>(target->entity.unit), target->entity.id);
 		}
 		break;
@@ -958,7 +1001,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 	if (g_mode == Mode::Fight && !g_held[g_hand == Hand::Left ? 0 : 1].load()) {
 		// The key is up: the blow under way finishes, a walk toward the monster does not.
-		End("fighting key released", g_closing);
+		End("fighting key released", g_closing || g_backing);
 	}
 	if (g_mode == Mode::Idle || now < g_nextAct) return;
 	g_nextAct = now + ActMs;
