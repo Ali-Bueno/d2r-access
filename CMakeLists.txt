@@ -157,6 +157,7 @@ add_library(d2r-access SHARED
 	src/explore_goal.cpp
 	src/grid_jump.cpp
 	src/menu_cursor.cpp
+	src/click_words.cpp
 	src/menu_mouse.cpp
 	src/native_sort.cpp
 	src/native_actions.cpp
@@ -497,7 +498,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -588,6 +589,10 @@ if(BUILD_TESTING)
 	target_include_directories(menu-cursor-tests PRIVATE src)
 	target_compile_features(menu-cursor-tests PRIVATE cxx_std_20)
 	add_test(NAME menu-cursor COMMAND menu-cursor-tests)
+	add_executable(click-words-tests tests/click_words_tests.cpp src/click_words.cpp src/speech_strings.cpp)
+	target_include_directories(click-words-tests PRIVATE src)
+	target_compile_features(click-words-tests PRIVATE cxx_std_20)
+	add_test(NAME click-words COMMAND click-words-tests)
 	add_executable(skill-jump-tests tests/skill_jump_tests.cpp src/skill_grid.cpp)
 	target_include_directories(skill-jump-tests PRIVATE src)
 	target_compile_features(skill-jump-tests PRIVATE cxx_std_20)
@@ -606,6 +611,7 @@ if(BUILD_TESTING)
 		target_compile_options(skill-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(grid-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(menu-cursor-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(click-words-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(explore-goal-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

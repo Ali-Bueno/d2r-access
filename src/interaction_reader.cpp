@@ -1,6 +1,7 @@
 #include "advanced_stats_reader.h"
 #include "async_log.h"
 #include "auto_detail.h"
+#include "click_words.h"
 #include "control_hints.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
@@ -175,7 +176,8 @@ TooltipText::Body ItemBody(std::string_view raw) {
 		format = Localization::Text(GroundItemText::SuffixOnlyFormatKey);
 	}
 	auto body = TooltipText::Read(raw);
-	for (auto& line : body.lines) line = GroundItemText::RepairSuffixOnlyName(line, format);
+	// A line that names a click names the keyboard's key for it (click_words.h).
+	for (auto& line : body.lines) line = ClickWords::Spoken(GroundItemText::RepairSuffixOnlyName(line, format));
 	return body;
 }
 

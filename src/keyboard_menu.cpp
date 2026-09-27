@@ -1,6 +1,7 @@
 #include "keyboard_menu.h"
 
 #include "async_log.h"
+#include "click_words.h"
 #include "game_text_reader.h"
 #include "input_direction.h"
 #include "inventory_cursor.h"
@@ -376,6 +377,7 @@ void Census(const D2RL::PluginContext* context) {
 void Release(const D2RL::PluginContext* context, const char* reason) {
 	if (g_engaged && context) AsyncLog::InfoF(context, "[cursor] released: %s", reason);
 	g_engaged = false;
+	ClickWords::SetKeyboard(false);
 	g_place = {};
 	g_menu.clear();
 	g_landedAt = 0;
@@ -660,6 +662,7 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::Info(context, "[cursor] taken: a menu is up and no pad is connected");
 		g_refreshAt = 0;
 	}
+	ClickWords::SetKeyboard(g_engaged);
 	if (g_engaged && now >= g_refreshAt && !MenuMouse::Busy()) Refresh(context, now);
 
 	const bool control = Down(VK_CONTROL), alt = Down(VK_MENU);
