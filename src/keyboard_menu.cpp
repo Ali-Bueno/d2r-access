@@ -58,7 +58,12 @@ constexpr std::string_view NotMenus[] = {
 	"FocusManager", "GlobalData", "SaveIndicatorPanel", "NotificationPanel", "LoadScreenPanel", "MainMenuLoadingPanel",
 	"LobbyBackgroundPanel", "DismissibleTooltipPanel", "TutorialTooltip", "EmoteWheelPanel", "ClickCatcher",
 	"InGameMoviePlayerPanel", "MoviePlayerPanel", "ControllerOverlay", "UISwitcher", "EndGameTimerPanel",
+	// MEASURED 2026-09-27, open through a whole game: the mercenary's portrait,
+	// the list of an input method's candidates, the names of items on the ground.
+	"HireablesPanel", "CandidateListPanel", "ShowItemsPanel",
 };
+// The message log, by the start of its name: it has one layout for each size of the old screen.
+constexpr std::string_view MessageLog = "MessageLogPanel";
 constexpr std::string_view Hud = "HUDPanel";
 // The HUD's two skill buttons. Between them the HUD has nothing of its own.
 constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
@@ -139,7 +144,7 @@ bool Contains(const MenuCursor::Rect& outer, const MenuCursor::Rect& inner) {
 }
 
 bool NotMenu(std::string_view name) {
-	return name.starts_with("HUD") || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
+	return name.starts_with("HUD") || name.starts_with(MessageLog) || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
 }
 
 GridJump::Grid ReadGrid(uintptr_t widget) {
