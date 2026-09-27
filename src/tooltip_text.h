@@ -39,6 +39,7 @@ struct Description {
 	std::string name, price;
 	std::string detail;   // base damage or defense, requirements, properties, flavour text
 	std::string unmet;    // the red requirement lines: what this character cannot meet
+	bool unidentified = false; // the tooltip's "Unidentified" line, said after the name, not in the detail
 	bool Empty() const { return headline.empty() && detail.empty(); }
 };
 
@@ -51,10 +52,12 @@ struct Description {
 // Both also decide which line the NAME is: the name is the first line that is
 // none of them. A vendor tooltip puts its price line where an inventory one has
 // the name, so taking the first line outright read "Cost: 30" as the item.
-// `requirementLabels` begin the lines the game draws red when unmet; those red
-// lines also go to `unmet`, and stay in the detail.
+// `unidentifiedLabel` is the game's "Unidentified" line: it follows the name
+// and leaves the detail. `requirementLabels` begin the lines the game draws red
+// when unmet; those red lines also go to `unmet`, and stay in the detail.
 Description Split(const Body& body, std::span<const std::string> statLabels,
-	std::span<const std::string> priceLabels = {}, std::span<const std::string> requirementLabels = {});
+	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
+	std::span<const std::string> requirementLabels = {});
 
 // What a held compare button adds, as the screen draws it: each extra record's
 // lines ("Currently Equipped", then the equipped item), joined for speech.

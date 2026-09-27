@@ -6,6 +6,7 @@
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
+#include "native_ground_items.h"
 #include "native_progression.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -138,6 +139,10 @@ namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
 int PlayerStashGold() noexcept { return stashGold; }
 std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
+// 80: a magic spear, 81: a superior short sword (D2RL::Items::Quality 4 and 3).
+UnitLabel ItemUnitLabel(uintptr_t unit) {
+	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3} : UnitLabel{};
+}
 uint32_t ItemTableCode(uintptr_t unit) {
 	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
 }
@@ -197,6 +202,7 @@ namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
+	if (key == TooltipText::UnidentifiedKey) return "Sin identificar";
 	if (key == TooltipText::PriceKey) return Strings::Selected() == Strings::Language::enUS ? "Cost: %d" : "Coste: %d";
 	if (key == TooltipText::SellKey) return "Valor de venta: %d";
 	if (key == GroundItemText::SuffixOnlyFormatKey) return "a0n1:%1 %0"; // the game's esES entry
@@ -490,6 +496,17 @@ int main() {
 	Check(speech == std::vector<std::string>{"Fila 1, columna 3"}, "confirmed empty cell retains quick coordinate feedback after an occupied cell");
 	ClearSpeech(); itemPresence = NativeUi::ItemPresence::Occupied; Tooltip("Poción"); Tick();
 	Check(speech == std::vector<std::string>{"Poción"}, "an item appearing in the same cell replaces its coordinate readout");
+	// Magic and better say their quality after the name; a lesser item's own
+	// name already says it; an unidentified item says that instead.
+	ClearSpeech(); gridItem = 80; Tooltip("Daño: 6-13\nLanza carmesí"); Tick();
+	Check(speech == std::vector<std::string>{"Lanza carmesí. mágico"}, "a magic item says its quality after its name");
+	ClearSpeech(); Tooltip("Sin identificar\nLanza"); Tick();
+	Check(speech == std::vector<std::string>{"Lanza. Sin identificar"}, "an unidentified item says so in place of its quality");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech.size() == 1 && speech.back().find("Sin identificar") == std::string::npos, "and it is not repeated in the detail");
+	ClearSpeech(); gridItem = 81; Tooltip("Espada corta superior"); Tick();
+	Check(speech == std::vector<std::string>{"Espada corta superior"}, "a lesser item keeps its own name, with no quality word");
+	gridItem = 0;
 	// A belt slot's item is named by its tooltip, now drawn at once; an empty
 	// slot, which has no tooltip, says so from the slot.
 	ClearSpeech(); tooltip = {}; cell = {}; focus = {20, 23}; widgetType = {"BeltWidget", UiText::Kind::InventoryItem};

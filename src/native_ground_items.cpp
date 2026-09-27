@@ -94,6 +94,13 @@ std::string ItemBaseName(uintptr_t unit) {
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
 	return GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 }
+UnitLabel ItemUnitLabel(uintptr_t unit) {
+	uintptr_t data = 0;
+	uint32_t type = 0, classId = 0, quality = 0;
+	if (!g_base || !unit || !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
+		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)) return {};
+	return ClassLabel(classId, quality);
+}
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
 	uintptr_t player = 0, tables = 0, items = 0;
 	uint64_t count = 0;

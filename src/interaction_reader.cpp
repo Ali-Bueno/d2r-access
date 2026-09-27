@@ -32,6 +32,7 @@
 #include "tooltip_text.h"
 #include "ui_text.h"
 
+#include <D2RLPlugin/item.h>
 #include <atomic>
 #include <cstdio>
 #include <optional>
@@ -607,14 +608,23 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// name is spoken, with its price in a shop, and the rest is held
 			// for the player to ask for.
 			const auto body = ItemBody(tooltip.body);
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), RequirementLabels());
-			// What a sighted player sees in red, said right after the name.
-			g_itemUnmet = split.unmet;
-			if (!split.unmet.empty()) {
-				Append(split.name, Refusal(split.unmet));
-				split.headline = split.name;
-				Append(split.headline, split.price);
+			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
+			// Magic and better, the quality the screen shows only by colour
+			// ("Crimson Spear. magic"); an unidentified item says so instead
+			// (Split). A lesser item's own name already says it ("Superior Short
+			// Sword"), and a runeword's name is its own, so the name is kept.
+			if (!split.unidentified && !split.name.empty()) {
+				const uint32_t quality = NativeGroundItems::ItemUnitLabel(focusItem).quality;
+				const auto& qualities = Strings::Current().itemQualities;
+				if (quality >= static_cast<uint32_t>(D2RL::Items::Quality::Magic) && quality < qualities.size())
+					Append(split.name, qualities[quality]);
 			}
+			// What a sighted player sees in red, said right after that.
+			g_itemUnmet = split.unmet;
+			if (!split.unmet.empty()) Append(split.name, Refusal(split.unmet));
+			split.headline = split.name;
+			Append(split.headline, split.price);
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line

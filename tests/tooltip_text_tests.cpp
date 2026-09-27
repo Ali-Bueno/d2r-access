@@ -56,7 +56,7 @@ int main() {
 	const std::string red = std::string(Title).substr(0, 3) + "1";
 	const std::vector<std::string> requirements{"Required Strength:", "Required Level:", "(Paladin Only)"};
 	const auto heavy = TooltipText::Split(TooltipText::Read(red + "Required Strength: 40\nRequired Level: 3\n" + red
-		+ "(Paladin Only)\n" + red + "Durability: 0 of 20\nDefense: 43\nGothic Plate"), BaseStats, {}, requirements);
+		+ "(Paladin Only)\n" + red + "Durability: 0 of 20\nDefense: 43\nGothic Plate"), BaseStats, {}, {}, requirements);
 	Check(heavy.unmet == "(Paladin Only). Required Strength: 40", "the red requirement lines are what the character cannot meet");
 	Check(heavy.detail.find("Required Strength: 40") != std::string::npos, "they stay in the detail too");
 	Check(heavy.unmet.find("Durability") == std::string::npos, "red that is not a requirement is not a reason");
@@ -105,6 +105,12 @@ int main() {
 	const auto buying = TooltipText::Split(TooltipText::Read("Defense: 8\nCap\nCost: 30"), BaseStats, Prices);
 	Check(buying.headline == "Cap. Cost: 30" && buying.detail == "Defense: 8", "buying reads the name and the price the same way");
 	Check(buying.name == "Cap" && buying.price == "Cost: 30", "the name and the price are also kept apart, so an item's size can go between them");
+	// "Unidentified" is the name's status: said right after it, and not again in the detail.
+	const auto unknown = TooltipText::Split(TooltipText::Read("Unidentified\nDefense: 8\nCap\nCost: 30"), BaseStats, Prices, "Unidentified");
+	Check(unknown.unidentified && unknown.name == "Cap. Unidentified" && unknown.headline == "Cap. Unidentified. Cost: 30",
+		"an unidentified item says so after its name, ahead of the price");
+	Check(unknown.detail == "Defense: 8", "and the detail no longer carries it");
+	Check(!buying.unidentified, "an identified item has no such status");
 	// Holding the compare button adds the equipped item as another record.
 	const std::vector<std::string> extras{"Defense: 2\nLeather Gloves\nCurrently Equipped", "\xEE\x80\x93"};
 	Check(TooltipText::Comparison(extras) == "Currently Equipped. Leather Gloves. Defense: 2", "a comparison reads as the screen draws it, and a button image adds nothing");
