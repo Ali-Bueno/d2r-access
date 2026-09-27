@@ -43,9 +43,15 @@ int main() {
 	panels[1].visible = false;
 	Check(RadarUi::Inspect(true) == State::Playing, "a hidden closing panel does not prolong suspension");
 	PanelState::Reset();
-	PanelState::Opened("PlayerInventoryExpansionLayout");
 	PanelState::Opened("AutoMap");
-	Check(RadarUi::Inspect(true) == State::Playing, "inventory and automap keep unpaused sensing active");
+	Check(RadarUi::Inspect(true) == State::Playing, "the automap keeps unpaused sensing active");
+	// In keyboard mode the game opens no menu switcher with a menu.
+	PanelState::Opened("PlayerInventoryExpansionLayout");
+	Check(RadarUi::Inspect(true) == State::Dialogue, "an open inventory is a menu with no menu switcher beside it");
+	PanelState::Closed("PlayerInventoryExpansionLayout");
+	Check(RadarUi::Inspect(true) == State::Playing, "closing it resumes gameplay");
+	Check(RadarUi::MenuPanel("DropGoldModal") && RadarUi::MenuPanel("SkillsTreePanel"), "a modal and the skill tree are menus");
+	Check(!RadarUi::MenuPanel("MiniMenuPanel") && !RadarUi::MenuPanel("HUDPanel"), "the mini menu and the HUD are not");
 	PanelState::Opened("NpcDialogPanel");
 	Check(RadarUi::Inspect(true) == State::Dialogue, "active NPC dialogue has a separate suspension reason");
 	PanelState::Closed("NpcDialogPanel");

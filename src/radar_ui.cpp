@@ -11,6 +11,20 @@
 namespace D2RAccess::RadarUi {
 namespace {
 constexpr std::string_view MenuSwitcher = "UISwitcher";
+// The panels the player works in, by the names the layouts give them. The HUD,
+// the mini menu, the automap and the tooltips are open in play and are not here.
+constexpr std::string_view Menus[] = {
+	"PlayerInventoryExpansionLayout", "PlayerInventoryOriginalLayout", "HirelingInventoryPanel",
+	"CharacterStatsPanel", "AdvancedStatsPanel", "SkillsTreePanel", "SkillSelect",
+	"BankExpansionLayout", "BankOriginalLayout", "VendorPanelLayout", "HoradricCubeLayout", "ImbueItemsPanel",
+	"TradeLayout", "WaypointsPanelExpansion", "WaypointsPanelOriginal", "QuestLogPanelExpansion", "QuestLogPanelOriginal",
+	"HireMenuPanel", "HireablesPanel", "PartyPanel", "HelpPanel", "KeyBindingMenu",
+	"ChroniclePanel", "LootFilterOptionsPanel", "LootFilterProfilePanel", "LootFilterItemPanel", "LootFilterRuleDetailsPanel",
+};
+}
+
+bool MenuPanel(std::string_view name) {
+	return name.ends_with("Modal") || std::find(std::begin(Menus), std::end(Menus), name) != std::end(Menus);
 }
 
 State Inspect(bool foreground) {
@@ -28,7 +42,7 @@ State Inspect(bool foreground) {
 		// MEASURED 2026-09-20: CharacterStatsPanel classifies as neither Menu nor
 		// Narrative, so the directional scan kept answering the right stick while
 		// the player was standing in the character panel.
-		if (name == MenuSwitcher) return State::Dialogue;
+		if (name == MenuSwitcher || MenuPanel(name)) return State::Dialogue;
 		const auto surface = NativeUi::Classify(panel).surface;
 		if (surface == UiText::Surface::Menu || surface == UiText::Surface::Narrative) return State::Dialogue;
 		if (name.starts_with("PauseLayout") || name == "SettingsPanel") return State::Paused;
