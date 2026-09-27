@@ -259,8 +259,12 @@ bool Register(const D2RL::PluginContext* context) {
 				.defaultPrimary = {entry.key, D2RL::Input::Modifier::None}, .callback = OnAction,
 				.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(entry.command))};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) {
+			// Both keys are the game's own as well (Gordan.key: Z is its action 43); a refusal must show.
+			const auto result = g_input->registerAction(context, &action, &handle);
+			if (result == D2RL::Input::Result::Success) {
 				g_actions.push_back(handle);
+			} else {
+				AsyncLog::WarnF(context, "[vitals] %s was refused by the loader: result %u", entry.id, static_cast<unsigned>(result));
 			}
 		}
 	}
