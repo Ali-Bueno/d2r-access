@@ -3,7 +3,8 @@
 #include "radar_audio.h"
 
 namespace D2RAccess::RadarTrace {
-const char* DirectionName(size_t direction);
+// Log name of a radar direction; the cardinal frame for other features' indices.
+const char* DirectionName(size_t direction, Radar::Frame frame = Radar::Frame::Cardinal);
 const char* StateName(Radar::State state);
 void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, const Radar::Engine& engine, uint64_t now);
 // Call only for lifecycle events, never for every poll/frame. All writes use

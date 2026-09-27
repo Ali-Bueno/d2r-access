@@ -28,7 +28,7 @@
 namespace D2RAccess::RadarService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Toggle, Status, Dump, Test };
+enum class Command { None, On, Off, Toggle, Status, Dump, Test, Diagonal, Cardinal };
 constexpr uint64_t TestStepMs = 400; // audition spacing: well over one cue plus its gap
 constexpr int DumpRadius = 12; // 25x25 local ASCII diagnostic, not sensor range
 // Collision snapshots are bulky records; one per second keeps AsyncLog's
@@ -49,6 +49,7 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 Radar::Engine g_engine;
+Radar::Frame g_frame = Radar::Frame::Cardinal;
 bool g_supported = false, g_ready = false, g_enabled = true, g_suspended = true;
 uint32_t g_playerId = 0;
 uint64_t g_session = 0, g_lastPoll = 0, g_testDue = 0, g_lastSnapshot = 0;
@@ -112,7 +113,7 @@ void LogSensors(uint64_t now) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
 		const auto& s = g_engine.Sensors()[i];
 		AsyncLog::InfoF(g_context, "[radar-state] direction=%s state=%s unexplored=%u candidate=%s candidate_age=%llu depth=%.1f open=%.1f close=%.1f available=%u observed=%s deferred=%s last_cue=%s last_cue_age=%llu hold=%s frontier=%u,%.1f",
-			RadarTrace::DirectionName(i), RadarTrace::StateName(s.state), s.unexplored ? 1u : 0u, RadarTrace::StateName(s.candidate),
+			RadarTrace::DirectionName(i, g_engine.Configuration().frame), RadarTrace::StateName(s.state), s.unexplored ? 1u : 0u, RadarTrace::StateName(s.candidate),
 			static_cast<unsigned long long>(s.candidate == Radar::State::Unknown ? 0 : now - s.candidateSince),
 			s.passage.depth, s.passage.openDepth, s.passage.closeDepth, s.passage.available ? 1u : 0u, RadarTrace::StateName(s.passage.observed),
 			RadarTrace::StateName(s.deferred), RadarTrace::StateName(s.lastCue),
@@ -144,6 +145,8 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	else if (arg == "status") request = Command::Status;
 	else if (arg == "dump") request = Command::Dump;
 	else if (arg == "test") request = Command::Test;
+	else if (arg == "diagonal") request = Command::Diagonal;
+	else if (arg == "cardinal") request = Command::Cardinal;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	g_command = request;
 	return D2RL::ConsoleCommandResult::Handled;
@@ -161,7 +164,7 @@ void LogGenerated(const Radar::World& world, const Radar::Events& events, const 
 		const auto stick = InputDirection::LeftStick();
 		AsyncLog::InfoF(g_context, "[radar] direction=%zu state=%u unexplored=%u position=%.0f,%.0f axes=screen depth=%.1f open=%.1f close=%.1f speed=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f stick=%.2f,%.2f trigger=passage",
 			i, static_cast<unsigned>(events[i]), marks[i] ? 1u : 0u, world.player.x, world.player.y, sensor.passage.depth, sensor.passage.openDepth,
-			sensor.passage.closeDepth, g_engine.Speed(), static_cast<unsigned long long>(now), RadarTrace::DirectionName(i),
+			sensor.passage.closeDepth, g_engine.Speed(), static_cast<unsigned long long>(now), RadarTrace::DirectionName(i, g_engine.Configuration().frame),
 			RadarTrace::StateName(events[i]), static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y,
 			stick.connected ? stick.x : 0.0f, stick.connected ? stick.y : 0.0f);
 	}
@@ -172,6 +175,8 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	const auto config = RadarConfig::Read(context);
 	g_enabled = config.enabled;
+	g_frame = config.diagonals ? Radar::Frame::Diagonal : Radar::Frame::Cardinal;
+	g_engine = Radar::Engine({.frame = g_frame});
 	g_supported = NativeWorld::Initialize(context);
 	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
@@ -195,9 +200,10 @@ bool Register(const D2RL::PluginContext* context) {
 			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		}
 	}
-	(void)context->RegisterConsoleCommand("access-radar", Console, "Navigation sonar: on|off|status|dump|test.");
+	(void)context->RegisterConsoleCommand("access-radar", Console, "Navigation sonar: on|off|status|dump|test|diagonal|cardinal.");
 	(void)RadarAudio::Start(context, static_cast<double>(config.volume) / RadarConfig::MaxVolume);
-	AsyncLog::InfoF(context, "[radar] Four-direction sonar registered (volume %u%%); waiting for local player and level.", config.volume);
+	AsyncLog::InfoF(context, "[radar] Four-direction sonar registered (volume %u%%, diagonals=%u); waiting for local player and level.",
+		config.volume, g_frame == Radar::Frame::Diagonal ? 1u : 0u);
 	return true;
 }
 
@@ -209,6 +215,14 @@ void Tick(const D2RL::PluginContext* context) {
 		g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
 		Suspend(g_enabled ? "enabled-reset" : "disabled");
 		ScreenReader::Speak(g_enabled ? Strings::Current().radarEnabled : Strings::Current().radarDisabled, true);
+	}
+	if (command == Command::Diagonal || command == Command::Cardinal) {
+		// A new frame is a new set of rays: nothing the old ones said still holds.
+		Suspend("frame");
+		g_frame = command == Command::Diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal;
+		g_engine = Radar::Engine({.frame = g_frame});
+		AsyncLog::InfoF(context, "[radar] frame=%s", g_frame == Radar::Frame::Diagonal ? "diagonal" : "cardinal");
+		ScreenReader::Speak(RadarReadout::DirectionList(g_frame, Strings::Current()), true);
 	}
 	if (command == Command::Test && RadarAudio::Available()) {
 		Suspend("audition");
@@ -230,7 +244,7 @@ void Tick(const D2RL::PluginContext* context) {
 			const size_t step = static_cast<size_t>(g_testStep++);
 			events[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].state;
 			marks[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].unexplored;
-			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true}, marks);
+			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true, .frame = g_frame}, marks);
 			g_testDue = now + TestStepMs;
 		}
 		return;
@@ -255,8 +269,8 @@ void Tick(const D2RL::PluginContext* context) {
 		world.slides = !WallSlideService::Enabled();
 		RefreshExits(world, now);
 		world.exits = g_exits;
-		TerrainService::Qualify(world);
-		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u slides=%u exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.slides ? 1u : 0u, world.exits.size());
+		TerrainService::Qualify(world, g_frame);
+		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u slides=%u frame=%s exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.slides ? 1u : 0u, g_frame == Radar::Frame::Diagonal ? "diagonal" : "cardinal", world.exits.size());
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
 		Radar::Marks marks{};
@@ -266,7 +280,7 @@ void Tick(const D2RL::PluginContext* context) {
 		for (size_t i = 0; i < states.size(); ++i) states[i] = g_engine.Sensors()[i].state;
 		RadarAudio::Retain(states, g_engine.Unexplored());
 		LogGenerated(world, events, marks, now);
-		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player}, marks);
+		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player, .frame = g_frame}, marks);
 		const bool generated = std::any_of(events.begin(), events.end(), [](auto state) { return state != Radar::State::Unknown; });
 		if (generated && (!g_lastSnapshot || now - g_lastSnapshot >= SnapshotIntervalMs)) {
 			RadarTrace::Snapshot(context, world, g_engine, now);

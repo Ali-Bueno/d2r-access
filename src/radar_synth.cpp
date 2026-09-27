@@ -39,7 +39,7 @@ Radar::Events CueQueue::Take(CueSource* source) {
 bool CueQueue::Empty() const {
 	return std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
 }
-std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain) {
+std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain, Radar::Frame frame) {
 	// Sound-design values, deliberately separate from collision constants.
 	// Bright tin = exit, dull tock = wall, a double knock = door, a soft breath
 	// of filtered noise = floor that leads nowhere new; stereo position follows
@@ -68,7 +68,7 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 		const auto state = events[direction];
 		if (state == Radar::State::Unknown) continue;
 		if (!pcm.empty()) pcm.resize(pcm.size() + SampleRate * Channels * CueGapMs / 1000);
-		const auto screen = Radar::ScreenAxes[direction];
+		const auto screen = Radar::RaysOf(frame)[direction].screen;
 		const double pan = PanWidth * screen.x, pitch = screen.y > 0 ? DownPitch : 1;
 		const double left = std::sqrt((1 - pan) / 2), right = std::sqrt((1 + pan) / 2);
 		const bool marked = marks[direction] && Radar::Passable(state);

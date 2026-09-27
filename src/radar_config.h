@@ -5,10 +5,12 @@
 #include <string_view>
 
 namespace D2RAccess::RadarConfig {
-// The documented [radar] keys: enabled (boolean) and volume (0-100 percent of
-// the compiled cue level). Other keys belong to other features. Invalid or
-// duplicate radar values retain the compiled defaults.
-struct Result { bool enabled = true; unsigned volume = 100; bool valid = true; };
+// The documented [radar] keys: enabled (boolean), volume (0-100 percent of
+// the compiled cue level) and diagonals (rays along the stick diagonals, which
+// follow the walls, instead of its cardinals; off by the user's choice after
+// listening). Other keys belong to other features. Invalid or duplicate radar
+// values retain the compiled defaults.
+struct Result { bool enabled = true; unsigned volume = 100; bool diagonals = false; bool valid = true; };
 inline constexpr unsigned MaxVolume = 100;
 Result Parse(std::string_view config);
 Result Read(const D2RL::PluginContext* context);

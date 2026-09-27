@@ -15,8 +15,9 @@ bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Unregister();
 // Stamps the radar's world with what the memory knows: the rooms stood in,
-// the exits into levels never seen, the frontier quadrants of open ground.
-void Qualify(Radar::World& world);
+// the exits into levels never seen, the frontier of open ground by the rays
+// of the radar's frame.
+void Qualify(Radar::World& world, Radar::Frame frame);
 // True when the player has stood in the room whose rect origin is given, in
 // tiles, on this level. The room announcer tags its ways out with it.
 bool Visited(int level, int tileX, int tileY);

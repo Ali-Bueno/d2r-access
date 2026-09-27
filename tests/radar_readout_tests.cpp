@@ -83,6 +83,28 @@ void Passages() {
 	Check(close < 12 * step && 12 * step < open, "the limited case really sits inside the engine's dead band");
 }
 
+void DiagonalNames() {
+	// On the diagonal frame each ray is named by its screen sector, in the
+	// engine's order, and the switch speaks the same four names.
+	auto world = Field();
+	Engine engine({.frame = Frame::Diagonal});
+	(void)engine.Tick(world, 1000);
+	const auto readout = RadarReadout::Describe(engine, Text);
+	const auto list = RadarReadout::DirectionList(Frame::Diagonal, Text);
+	size_t previous = 0, listed = 0;
+	for (const auto& ray : RaysOf(Frame::Diagonal)) {
+		const std::string name = Text.radarMovementDirections[static_cast<size_t>(ray.sector)];
+		const size_t at = readout.find(name + ": ");
+		Check(at != std::string::npos && at > previous, "each diagonal is named after its screen sector, in the engine's order");
+		previous = at;
+		const size_t inList = list.find(name, listed);
+		Check(inList != std::string::npos && inList >= listed, "the spoken list names the four diagonals in the same order");
+		listed = inList + name.size();
+	}
+	Check(RadarReadout::DirectionList(Frame::Cardinal, Text).starts_with(Text.radarDirections[0]),
+		"the cardinal list keeps the radar's own direction words");
+}
+
 void UnknownCoverage() {
 	auto world = Field();
 	Sum(world, 212, Blank);
@@ -133,6 +155,7 @@ void MovementSectors() {
 }
 int main() {
 	Passages();
+	DiagonalNames();
 	UnknownCoverage();
 	Motion();
 	MovementSectors();

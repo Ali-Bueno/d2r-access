@@ -280,23 +280,32 @@ void Quadrants() {
 		"world minus/plus both axes is screen up/down");
 	Check(Frontier::Quadrant(-1, 1) == Radar::Direction::Left && Frontier::Quadrant(1, -1) == Radar::Direction::Right,
 		"the other diagonals are screen left/right");
+	constexpr auto Cardinal = static_cast<size_t>(Radar::Frame::Cardinal), Diagonal = static_cast<size_t>(Radar::Frame::Diagonal);
+	const auto empty = [](const Frontier::FrameMarks& marks) {
+		for (const auto& frame : marks) for (const bool mark : frame) if (mark) return false;
+		return true;
+	};
 	auto world = Field(60, 60);
 	const NativeRooms::Bounds east{160, 100, 200, 160}; // the room across the right border, world +X
 	auto marks = Frontier::Quadrants(world, {east});
-	Check(marks[static_cast<size_t>(Radar::Direction::Right)] && marks[static_cast<size_t>(Radar::Direction::Down)],
+	Check(marks[Cardinal][static_cast<size_t>(Radar::Direction::Right)] && marks[Cardinal][static_cast<size_t>(Radar::Direction::Down)],
 		"an unseen room in world +X is frontier to the screen right and down");
-	Check(!marks[static_cast<size_t>(Radar::Direction::Up)] && !marks[static_cast<size_t>(Radar::Direction::Left)],
+	Check(!marks[Cardinal][static_cast<size_t>(Radar::Direction::Up)] && !marks[Cardinal][static_cast<size_t>(Radar::Direction::Left)],
 		"and nowhere else");
-	const auto none = Frontier::Quadrants(world, {});
-	Check(!none[0] && !none[1] && !none[2] && !none[3], "no unseen room, no frontier");
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
+		const auto& axis = Radar::RaysOf(Radar::Frame::Diagonal)[i].world;
+		// The room's corners sit exactly between two rays, so only the two ends of the axis are certain.
+		if (axis.x > 0) Check(marks[Diagonal][i], "for the diagonals it is frontier along the ray of world +X");
+		if (axis.x < 0) Check(!marks[Diagonal][i], "and never along the opposite ray");
+		Check(Frontier::Sector(axis.x, axis.y, Radar::Frame::Diagonal) == i, "each diagonal ray is the sector of its own axis");
+	}
+	Check(empty(Frontier::Quadrants(world, {})), "no unseen room, no frontier");
 	// A wall along the whole right border: the unseen room is there but not reachable.
 	for (int y = 0; y < 60; ++y) world.rooms[0].cells[static_cast<size_t>(y * 60 + 59)] = Radar::Collision::Wall;
-	const auto walled = Frontier::Quadrants(world, {east});
-	Check(!walled[0] && !walled[1] && !walled[2] && !walled[3], "frontier behind a wall is not reachable frontier");
+	Check(empty(Frontier::Quadrants(world, {east})), "frontier behind a wall is not reachable frontier");
 	// An unseen room whose rect does not touch the loaded ground is not the edge of it.
 	const NativeRooms::Bounds far{400, 400, 440, 440};
-	const auto distant = Frontier::Quadrants(Field(60, 60), {far});
-	Check(!distant[0] && !distant[1] && !distant[2] && !distant[3], "an unseen room nowhere near the loaded ground is no frontier");
+	Check(empty(Frontier::Quadrants(Field(60, 60), {far})), "an unseen room nowhere near the loaded ground is no frontier");
 }
 }
 

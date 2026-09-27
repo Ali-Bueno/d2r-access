@@ -74,7 +74,7 @@ uint32_t g_loadedLevel = 0;
 uint64_t g_nextLoadTry = 0; // the radar asks every poll; the layout is read at most this often
 uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
 // The frontier quadrants of the level the radar is qualified against.
-Radar::Marks g_frontier{};
+Frontier::FrameMarks g_frontier{};
 int g_frontierLevel = 0;
 
 // Caller holds g_mutex.
@@ -268,9 +268,11 @@ void Track(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 	if (native.level == g_loggedLevel && explored < g_loggedRooms + step) return;
 	g_loggedLevel = native.level;
 	g_loggedRooms = explored;
-	AsyncLog::InfoF(context, "[terrain] explored rooms=%zu/%zu level=%u frontier=%u%u%u%u frontier_ms=%llu", explored, native.rooms.size(),
-		native.level, g_frontier[0] ? 1u : 0u, g_frontier[1] ? 1u : 0u, g_frontier[2] ? 1u : 0u, g_frontier[3] ? 1u : 0u,
-		static_cast<unsigned long long>(frontierMs));
+	const auto& cardinal = g_frontier[static_cast<size_t>(Radar::Frame::Cardinal)];
+	const auto& diagonal = g_frontier[static_cast<size_t>(Radar::Frame::Diagonal)];
+	AsyncLog::InfoF(context, "[terrain] explored rooms=%zu/%zu level=%u frontier=%u%u%u%u diagonal=%u%u%u%u frontier_ms=%llu", explored,
+		native.rooms.size(), native.level, cardinal[0] ? 1u : 0u, cardinal[1] ? 1u : 0u, cardinal[2] ? 1u : 0u, cardinal[3] ? 1u : 0u,
+		diagonal[0] ? 1u : 0u, diagonal[1] ? 1u : 0u, diagonal[2] ? 1u : 0u, diagonal[3] ? 1u : 0u, static_cast<unsigned long long>(frontierMs));
 }
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
@@ -353,7 +355,7 @@ void Tick(const D2RL::PluginContext* context, bool) {
 	Track(context, state, now);
 }
 
-void Qualify(Radar::World& world) {
+void Qualify(Radar::World& world, Radar::Frame frame) {
 	std::lock_guard lock(g_mutex);
 	const auto level = static_cast<uint32_t>(world.level);
 	// The radar's silent baseline must see the level's memory, so the level is
@@ -374,7 +376,7 @@ void Qualify(Radar::World& world) {
 	for (auto& room : world.rooms)
 		room.visited = g_explored.Visited(level, room.x / LevelExitLayout::SubtilesPerTile, room.y / LevelExitLayout::SubtilesPerTile);
 	for (auto& exit : world.exits) exit.unexplored = exit.level != 0 && !g_explored.Known(exit.level);
-	world.frontier = g_frontierLevel == world.level ? g_frontier : Radar::Marks{};
+	world.frontier = g_frontierLevel == world.level ? g_frontier[static_cast<size_t>(frame)] : Radar::Marks{};
 }
 
 bool Visited(int level, int tileX, int tileY) {

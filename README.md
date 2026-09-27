@@ -155,7 +155,11 @@ leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-p
 for floor that leads nowhere new, a dull `tock` for a nearby wall and two
 knocks for a closed door ([readings](docs/radar-readings.md)),
 using fixed **up / left / right / down** directions that match the left stick;
-down has a lower pitch. Simultaneous cues play successively with **50 ms of
+down has a lower pitch. `[radar] diagonals = true` or `access-radar diagonal`
+switches to the stick's diagonals, which the game turns into the directions its
+walls and corridors run in; each is then panned to its side and the two lower
+ones have a lower pitch. Simultaneous
+cues play successively with **50 ms of
 silence between them**. Exit readings include nearby transitions between outdoor
 areas when the passage scan confirms an approach. The radar checks the full body along each passage using
 the player's native movement mask. It also recognizes a complete, uniquely

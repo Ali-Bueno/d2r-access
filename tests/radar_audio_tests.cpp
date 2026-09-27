@@ -93,6 +93,28 @@ void StereoPosition() {
 	Check(centred, "up and down are centred, with both ears carrying the same signal");
 }
 
+void DiagonalFrame() {
+	// The diagonal rays sit in the screen's corners: every one is panned to its
+	// side, and the two lower ones take down's pitch, so left/right and up/down
+	// stay two independent cues.
+	constexpr auto Diagonal = Radar::Frame::Diagonal;
+	constexpr size_t Window = CueFrames / 2;
+	const double high = Frequency(Synthesize(One(Up, Radar::State::Exit)), 0, 0, Window);
+	const double low = Frequency(Synthesize(One(Down, Radar::State::Exit)), 0, 0, Window);
+	const auto& rays = Radar::RaysOf(Diagonal);
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) {
+		const auto pcm = Synthesize(One(i, Radar::State::Exit), {}, 1, Diagonal);
+		const size_t loud = rays[i].screen.x < 0 ? 0 : 1;
+		Check(Rms(pcm, loud, 0, CueFrames) > 3 * Rms(pcm, 1 - loud, 0, CueFrames),
+			"each diagonal ray is louder in the ear of its screen side");
+		const auto side = Synthesize(One(rays[i].screen.x < 0 ? Left : Right, Radar::State::Exit));
+		Check(std::abs(Rms(pcm, loud, 0, CueFrames) - Rms(side, loud, 0, CueFrames)) < 1e-6 || rays[i].screen.y > 0,
+			"an upper diagonal is panned exactly like the side it leans to");
+		const double pitch = Frequency(pcm, loud, 0, Window);
+		Check(std::abs(pitch - (rays[i].screen.y > 0 ? low : high)) < 1e-9, "a lower diagonal takes down's pitch, an upper one up's");
+	}
+}
+
 void Register() {
 	// Measure over the loud part of the cue, where the decay still leaves a
 	// clean waveform in every register.
@@ -269,6 +291,7 @@ void UnexploredTail() {
 int main() {
 	Layout();
 	StereoPosition();
+	DiagonalFrame();
 	Register();
 	Readings();
 	Volume();
