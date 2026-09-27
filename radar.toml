@@ -1,5 +1,5 @@
 # Navigation radar. Restart the game after changing these defaults.
-# Ctrl+R also toggles the radar for the current run.
+# Ctrl+G also toggles the radar for the current run.
 [radar]
 enabled = true
 # Cue loudness, 0-100 percent of the compiled level.

@@ -189,7 +189,7 @@ bool Register(const D2RL::PluginContext* context) {
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		struct Shortcut { const char* id; const char* label; D2RL::Input::Key key; Command command; };
-		const Shortcut shortcuts[] = {{"radar-toggle", "Toggle navigation radar", D2RL::Input::Key::R, Command::Toggle},
+		const Shortcut shortcuts[] = {{"radar-toggle", "Toggle navigation radar", D2RL::Input::Key::G, Command::Toggle},
 			{"radar-status", "Read navigation radar", D2RL::Input::Key::T, Command::Status}};
 		for (const auto& shortcut : shortcuts) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
