@@ -27,6 +27,8 @@
 #include "native_rooms.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
+#include "native_swap.h"
+#include "native_weapon_set.h"
 #include "native_world.h"
 #include "navigation_grid.h"
 #include "navigation_mode.h"
@@ -79,6 +81,8 @@ enum class Command : uint32_t {
 	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	Settings, SettingsChange,
+	// In play and in a menu: the game's own key for it is W, the right hand's.
+	Swap,
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
 	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
@@ -100,6 +104,7 @@ constexpr double UseReach = 3;        // a thing is used from this near, plus ha
 constexpr double UseRange = 20;       // how far D looks for something to use, in walking steps
 constexpr double MeleeReach = 3;      // a blow lands from this near
 constexpr uint64_t SettingsIdleMs = 30000; // a settings list left open and unused closes itself
+constexpr uint64_t SwapAnswerMs = 700; // a swap the game has not made by then was refused
 constexpr uint64_t BackMs = 1500;     // how long one fall back may take before the fight goes on
 constexpr double RangedReach = 24;    // a shot or a spell is loosed from this near: see docs/keyboard-actions.md
 
@@ -118,6 +123,9 @@ std::atomic<Command> g_deferred{Command::None};
 // A key that presses a button of the open menu, by the button's name in the layout.
 std::atomic<const char*> g_press{nullptr};
 std::atomic<bool> g_sort{false};
+// A swap that was asked for: when, and the set that was in use. 0 when none is waited for.
+uint64_t g_swapAsked = 0;
+bool g_swapFrom = false;
 constexpr const char* RepairAllButton = "button_repair_all";
 constexpr const char* RepairButton = "button_repair";
 constexpr const char* TransmuteButton = "convert";
@@ -708,6 +716,33 @@ void Read(Command command, bool inPlay) {
 	}
 }
 
+// ---- the weapon swap ----
+
+// The game's own key handler is run; the weapons in hand are named by the
+// weapon swap's own announcement when the set changes (weapon_swap_service.h).
+void Swap(const D2RL::PluginContext* context, uint64_t now) {
+	const auto set = NativeWeaponSet::SecondSet();
+	if (NativeSwap::Swap(context) != NativeSwap::Result::Asked) {
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		return;
+	}
+	if (!set) return;
+	g_swapAsked = now;
+	g_swapFrom = *set;
+}
+
+// The game refuses in silence: in the middle of a blow, with input taken by
+// something else, and whatever the server refuses. The player is told.
+void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
+	if (!g_swapAsked) return;
+	const auto set = NativeWeaponSet::SecondSet();
+	if (set && *set != g_swapFrom) { g_swapAsked = 0; return; }
+	if (now - g_swapAsked < SwapAnswerMs) return;
+	g_swapAsked = 0;
+	AsyncLog::InfoF(context, "[swap] the set in use did not change in %llu ms: refused", static_cast<unsigned long long>(SwapAnswerMs));
+	ScreenReader::Speak(Strings::Current().unavailable, true);
+}
+
 // ---- the settings list ----
 
 SettingsList::Menu BuildSettings() {
@@ -866,7 +901,9 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	// Out of a menu a click with Shift or Ctrl, and the cube's key, are the game's keys.
 	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort)
 		return D2RL::Input::ActionResult::Ignored;
-	const bool reading = command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
+	// A letter typed into a line of chat is the chat's.
+	if (command == Command::Swap && NativeSkillNavigation::TextEditing().value_or(false)) return D2RL::Input::ActionResult::Ignored;
+	const bool reading = command == Command::Swap || command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
 		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
 	if (!reading && !g_playing.load()) {
@@ -916,6 +953,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	(void)NativeActions::Initialize(context, nativeHooks);
 	if (nativeHooks) (void)NativeSort::Initialize(context);
+	if (nativeHooks) (void)NativeSwap::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -950,6 +988,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-compare-item", "Compare: the item in full", Key::PageUp, Modifier::Shift, Command::CompareItem},
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
 			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
+			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
 			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
@@ -998,6 +1037,8 @@ void Tick(const D2RL::PluginContext* context) {
 	if (g_sort.exchange(false) && !KeyboardMenu::Sort(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
 	if (Settings(command, now)) command = Command::None;
+	if (command == Command::Swap && state.ready) Swap(context, now);
+	SwapAnswer(context, now);
 	Read(command, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
@@ -1072,6 +1113,7 @@ void Unregister() {
 	End("unregister", false);
 	g_press = nullptr;
 	g_sort = false;
+	g_swapAsked = 0;
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
 	g_listeners.clear();
