@@ -156,6 +156,7 @@ add_library(d2r-access SHARED
 	src/combat_target.cpp
 	src/explore_goal.cpp
 	src/grid_jump.cpp
+	src/menu_cursor.cpp
 	src/native_actions.cpp
 	src/keyboard_service.cpp
 	src/keyboard_menu.cpp
@@ -581,6 +582,10 @@ if(BUILD_TESTING)
 	target_include_directories(grid-jump-tests PRIVATE src)
 	target_compile_features(grid-jump-tests PRIVATE cxx_std_20)
 	add_test(NAME grid-jump COMMAND grid-jump-tests)
+	add_executable(menu-cursor-tests tests/menu_cursor_tests.cpp src/menu_cursor.cpp src/menu_navigation_policy.cpp src/grid_jump.cpp)
+	target_include_directories(menu-cursor-tests PRIVATE src)
+	target_compile_features(menu-cursor-tests PRIVATE cxx_std_20)
+	add_test(NAME menu-cursor COMMAND menu-cursor-tests)
 	add_executable(skill-jump-tests tests/skill_jump_tests.cpp src/skill_grid.cpp)
 	target_include_directories(skill-jump-tests PRIVATE src)
 	target_compile_features(skill-jump-tests PRIVATE cxx_std_20)
@@ -598,6 +603,7 @@ if(BUILD_TESTING)
 		target_compile_options(skill-attacks-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(grid-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(menu-cursor-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(explore-goal-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
