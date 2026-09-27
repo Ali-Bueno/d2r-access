@@ -302,6 +302,21 @@ std::string SelectedTabText(uintptr_t widget) {
 	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
 }
 
+int SelectedTab(uintptr_t widget) {
+	int32_t selected = -1;
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs
+		|| !Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return -1;
+	return selected;
+}
+
+int TabCount(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return 0;
+	int count = 0;
+	// A bar names its tabs Text0 onward; one it does not show has no caption.
+	while (count < 8 && !NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(count))).empty()) ++count;
+	return count;
+}
+
 std::string FocusedTabText(uintptr_t widget) {
 	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
 	const auto x = static_cast<int32_t>(FocusSelection(widget));
