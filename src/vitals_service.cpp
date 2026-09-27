@@ -249,9 +249,9 @@ bool Register(const D2RL::PluginContext* context) {
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		using D2RL::Input::Key;
 		struct Entry { const char* id; const char* label; Key key; Command command; };
-		// Z and X are the keyboard's own: each orb by itself (the user, 2026-09-27).
+		// Z and X are the keyboard's own: each orb by itself, and no key for
+		// both (the user, 2026-09-27). R is left to the game.
 		for (const Entry& entry : {
-			Entry{"vitals-report", "Say life and mana", Key::R, Command::Report},
 			Entry{"vitals-life", "Say life", Key::Z, Command::Life},
 			Entry{"vitals-mana", "Say mana", Key::X, Command::Mana}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
