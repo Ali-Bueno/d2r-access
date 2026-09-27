@@ -25,6 +25,7 @@ std::atomic<uintptr_t> g_panel{0};
 std::mutex g_mutex;
 Snapshot g_latest;
 uint64_t g_lastCopy = 0;
+std::atomic<uint64_t> g_discardUntil{0};
 void* g_original = nullptr;
 
 void DrawTooltip(uintptr_t tooltip) {
@@ -52,6 +53,13 @@ void Track(uintptr_t panel) {
 
 void Reset() { Track(0); }
 
+void Discard(uint64_t until) {
+	g_discardUntil = until;
+	std::lock_guard lock(g_mutex);
+	g_latest = {};
+	g_lastCopy = 0;
+}
+
 void Capture(uintptr_t tooltip) noexcept {
 	try {
 		const uintptr_t panel = g_panel.load();
@@ -59,6 +67,7 @@ void Capture(uintptr_t tooltip) noexcept {
 		if (!panel || !tooltip || !NativeMemory::Peek(panel + RecordsOffset, records)
 			|| !records.count || records.count > MaxRecords || records.data != tooltip) return;
 		const uint64_t now = GetTickCount64();
+		if (now < g_discardUntil.load()) return;
 		const NativeMemory::ReadScope readScope;
 		const auto focus = NativeUi::CurrentFocus();
 		const auto selection = NativeUi::FocusSelection(focus.widget);
