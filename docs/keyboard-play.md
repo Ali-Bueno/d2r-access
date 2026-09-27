@@ -126,7 +126,7 @@ were fixed afterwards and have not been tested.**
 | The cursor takes the menu as it opens, and lists it | `[cursor] taken: a menu is up and no pad is connected`, `[cursor] menu: MainMenuPanel ... -- 17 things`, `18 places, 0 not reached` |
 | **The readers read the cursor as they read the focus** | `[focus] CharacterSelectPanel/CreateCharacter (ButtonWidget) -> "Create New, button"`, and the character's row as "Gordan, Level 7 Paladin" |
 | **On the main menu the loader does not deliver A**; the key watch did | `[menu-keys] left click came by watching the key: the loader did not deliver it here (menu: MainMenuPanel ...)` |
-| A click on the character's row, the fifth, started the game | `[cursor] left click on ListItem0` at 12:19:20.036, `"going to Game"` 400 ms later. Why not the first four is OPEN |
+| Five clicks on the character's row began no game; **Enter did** (the user) | `[cursor] left click on ListItem0` five times, the last at 12:19:20.036; `CharacterSelect:SelectCharacter` at 12:19:20.415, then `FrontEndNavigation:ToGame`. READ: one click only chooses a row; two within 500 ms, or Enter, act on the row chosen |
 | **FAULT, fixed `ee44174`: in the game, the game was never in play** | `[radar] status=dialogue` from 12:19:22 on with no menu open; `[survey] request ignored: not in play`; A and D logged as `left click on where the pointer is`. `HireablesPanel`, the mercenary's portrait on the HUD, was in the list of menus of the play gate, and it is open for the whole game |
 | **FAULT, fixed `f841d56`: a click went to the wrong button** | the main menu's bar of tabs is drawn at y = -130; the cursor began on it, the pointer stayed at 1719,937, and A clicked what was there: `[cursor] left click on Tabs`, then `"going to CharacterCreate"` |
 | **FAULT, fixed `a946d64`: panels of play were in the cursor's menu** | `[cursor] menu: HireablesPanel MessageLogPanel_800x600 CandidateListPanel -- 3 things`, the three a scroll bar and its arrows |
@@ -167,6 +167,7 @@ The user's decisions, 2026-09-27:
 | the skills' icons | `src/native_skill_icons.*` | the skill an icon of the skill tree or of the list stands for, and its name in the game's language |
 | values | `src/native_value_controls.*` | a slider's value and its two arrows, an option's state and its two arrows |
 | the classes | `src/native_class_choice.*` | whether a class of character creation is chosen, and the description the screen shows |
+| rows that are chosen, then acted on | `src/native_list_rows.*` | a character's row: one click chooses it, two act on it. The cursor chooses the row it comes to, so Enter acts on that row, and A clicks twice |
 | where skills stand | `tools/gen_skill_tree.py`, `src/generated/skill_tree.h` | the page, row and column of every class's skills, from the game's tables; the cursor's tests walk every page |
 | the cursor in the game | `src/keyboard_menu.*` | lists the open menu's controls and grids, moves the cursor, places the pointer, clicks, switches tabs and menus |
 | the mouse | `src/menu_mouse.*` | the pointer on a rectangle; a click as a press and a release some frames apart (`SendInput`) |
@@ -255,8 +256,9 @@ cannot be a key of the loader's, which takes one modifier. OPEN.
 The next live test, the third, is the first with the game in play and the
 menus built. Copy the log before the next launch; it does not always append.
 **At load the log has to say** `[keyboard] 29 of 29 keys registered`, and
-`Verified.` after each of `[skill-hand]`, `[skill-icons]`, `[values]` and
-`[classes]`. An `Unsupported layout` line names what is switched off.
+`Verified.` after each of `[skill-hand]`, `[skill-icons]`, `[values]`,
+`[classes]` and `[rows]`. An `Unsupported layout` line names what is switched
+off.
 
 | question | the log line |
 |---|---|
@@ -266,6 +268,8 @@ menus built. Copy the log before the next launch; it does not always append.
 | Are the skills of the tree places? | `[cursor] thing SkillButton3 0,0 (ButtonWidget) rect ...`, ten to a page; the size of the rectangle is the icon's |
 | Was a step made for a place? | `[cursor] a step made for what the arrows miss: from X right to Y`. None is expected in the skill tree |
 | Does an arrow change a slider or an option? | `[cursor] value of X: 50 -> 55 by the game on the key` or `by a click on its arrow`, and the value heard once |
+| Which character does Enter begin with? | with two characters: the arrows to the second, `[cursor] row 1 is chosen as the cursor comes to it; the list had 0`, Enter, and the character the game begins with |
+| Does A begin the game on a character? | `[cursor] left click, twice on ListItem0`, then `CharacterSelect:SelectCharacter` in a `[ui]` line |
 | Does A choose a class? | `[cursor] left click on Paladin`, then `[cursor] class Paladin chosen after N ms; said "..."`. `was clicked and is not chosen` means the click was lost |
 | Is an "a" typed into the name by the click? | `[field] focus name="InputText" ... text="..."` when the cursor comes to the name box: the text has to be empty. See `keyboard-unbuilt.md`, item 9 |
 | Does Enter create the character? | `CharacterCreate:Create` in a `[ui]` line, then `going to Game` |

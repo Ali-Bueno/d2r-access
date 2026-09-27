@@ -49,7 +49,8 @@ user on 2026-09-27.
 |---|---|
 | arrows | move the cursor to the nearest thing that way; a held arrow repeats |
 | left, right, on a slider or an option that steps | change its value; the cursor stays |
-| A | left click: choose, pick up, put down. On an option that steps: its next state. On a slider: its value is said |
+| A | left click: choose, pick up, put down. On an option that steps: its next state. On a slider: its value is said. On a character of character select: two clicks, which begin the game |
+| Enter | the game's own: on character select it begins the game with the character chosen, which is the one the cursor is on |
 | D | right click: use, read, open, buy, drink |
 | Shift+A | left click with Shift: equip, unequip, a potion to the belt |
 | Ctrl+A | left click with Ctrl: sell, drop, move to the stash or the cube |

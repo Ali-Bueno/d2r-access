@@ -128,17 +128,37 @@ arrows. **This is the first thing to build after the third test.**
 ## 4. Rows in a list: characters, waypoints, the NPC's menu
 
 **MEASURED, second test, character select:** the cursor lands on the
-character's row and the reader reads it. A on the row was pressed five times
-and the game started 400 ms after the fifth.
+character's row and the reader reads it. A on the row was pressed five
+times, seconds apart, and began no game. The user, 2026-09-27: the five were
+attempts to click the character, and **Enter began the game**. The log has
+the game's own message for it, `CharacterSelect:SelectCharacter`, at
+12:19:20.415, and `FrontEndNavigation:ToGame` 12 ms after it.
 
-**READ** (`re/actions/charcreate/notes.txt`, E): one click on a row chooses
-the character. A second click within 500 ms, or Enter, sends the game's
-"select character" message; whether that starts the game is OPEN, and five
-slow clicks cannot have met the 500 ms by themselves, so **the test's start is
-not explained.** What starts the game for certain is the Play button,
-`QuickPlayButton`, which the cursor reaches: **A on the character, then A on
-Play.** A character who has finished Normal is asked the difficulty in a
-modal (`CharacterDifficultyModal`), which the cursor takes as any modal.
+**READ** (`re/actions/charcreate/notes.txt`, E): one click on a row only
+chooses the character. A second click on the same row within 500 ms sends
+that message, and so does Enter, **for the row the list has chosen, wherever
+the pointer is.** So the five clicks did what one click does, and the row
+Enter acts on is the row last clicked, not the row the pointer is over.
+
+**Built, fourth session** (`src/native_list_rows.*`, `Land` and `Click` in
+`src/keyboard_menu.cpp`), not pressed:
+
+- **A row is chosen as the cursor comes to it**, by one click, when the list
+  has another row chosen. So Enter acts on the row the cursor is on.
+- **A on such a row clicks twice**, 160 ms apart, which is the mouse's way to
+  act on it. A on a character begins the game, as Enter does.
+- The Play button, `QuickPlayButton`, begins it as well. A character who has
+  finished Normal is asked the difficulty in a modal
+  (`CharacterDifficultyModal`), which the cursor takes as any modal.
+
+**To measure, with more than one character:** `[cursor] row 1 is chosen as
+the cursor comes to it; the list had 0`, then Enter, and which character the
+game begins with. `[cursor] left click, twice on ListItem1`, then
+`SelectCharacter` in a `[ui]` line.
+
+**Seen in the same log, OPEN:** every arrow key pressed on that screen is
+followed by the game's `ScrollController:ManualScrollInput`. The game takes
+the arrow keys there for something of its own; what it moves is not known.
 
 **OPEN:** whether a waypoint travels on one click; the NPC's menu. None was
 opened in a test.
