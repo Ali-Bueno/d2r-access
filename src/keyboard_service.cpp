@@ -21,6 +21,7 @@
 #include "keyboard_menu.h"
 #include "map_survey_service.h"
 #include "native_actions.h"
+#include "native_belt_rows.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_exits.h"
@@ -954,6 +955,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	(void)NativeActions::Initialize(context, nativeHooks);
 	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (nativeHooks) (void)NativeSwap::Initialize(context);
+	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {

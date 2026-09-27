@@ -8,6 +8,7 @@
 #include "keyboard_service.h"
 #include "menu_cursor.h"
 #include "menu_mouse.h"
+#include "native_belt_rows.h"
 #include "native_ground_items.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
@@ -48,7 +49,6 @@ constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen direc
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
-constexpr int BeltColumns = 4;          // the row of the belt that is always shown
 
 // Panels that are open without being a menu, by the names the layouts give them.
 constexpr std::string_view NotMenus[] = {
@@ -75,6 +75,7 @@ struct Entry {
 	uintptr_t tab = 0;  // the tab it is drawn inside, when it is inside one
 	Kind kind = Kind::Other;
 	bool cells = false; // several places: a grid of items, the belt, a bar of tabs
+	bool belt = false;  // the belt, which counts its places from the bottom row up
 	std::string name, type;
 };
 // The open menu: what each thing is, and beside it where it is for the cursor.
@@ -89,6 +90,8 @@ uint64_t g_refreshAt = 0;
 uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
 std::string g_toSay;        // what to say if no reader does
 std::string g_said;         // what the cursor said of where it is, when no reader did
+bool g_beltShown = false;   // the game's "show belt" was turned on from here, and is to be turned off
+int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
 
 struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
@@ -162,11 +165,18 @@ GridJump::Grid ReadGrid(uintptr_t widget) {
 	return grid;
 }
 
+// A place of several as the game counts it. The belt counts its slots from the
+// bottom row up, four to a row (native_belt_rows.h); a grid of items and a bar
+// of tabs count from the top left, as the cursor does.
+uint64_t Selection(const Entry& entry, Cell cell, int rows) {
+	return entry.belt ? Pack({cell.x + NativeBeltRows::Columns * (rows - 1 - cell.y), 0}) : Pack(cell);
+}
+
 // A widget of several places, by the rectangles of its first and its last.
 bool AddCells(Entry entry, GridJump::Grid grid) {
 	if (grid.width < 1 || grid.height < 1) return false;
-	const auto first = NativeSkillNavigation::RectAt(entry.widget, Pack({0, 0}));
-	const auto last = NativeSkillNavigation::RectAt(entry.widget, Pack({grid.width - 1, grid.height - 1}));
+	const auto first = NativeSkillNavigation::RectAt(entry.widget, Selection(entry, {0, 0}, grid.height));
+	const auto last = NativeSkillNavigation::RectAt(entry.widget, Selection(entry, {grid.width - 1, grid.height - 1}, grid.height));
 	if (!first || !last || (grid.width * grid.height > 1 && *first == *last)) return false;
 	entry.cells = true;
 	g_targets.push_back({entry.widget, ToRect(Union(*first, *last)), std::move(grid)});
@@ -190,7 +200,10 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 	if (type.kind == Kind::InventoryGrid) {
 		whole = AddCells(entry, ReadGrid(widget));
 	} else if (type.name == "BeltWidget") {
-		whole = AddCells(entry, {BeltColumns, 1, {}});
+		entry.belt = true;
+		// The rows above the bottom one are places while the belt is drawn in full.
+		const int slots = NativeBeltRows::Expanded(widget) ? NativeBeltRows::Slots(widget) : 0;
+		whole = AddCells(entry, {NativeBeltRows::Columns, slots ? slots / NativeBeltRows::Columns : 1, {}});
 	} else if (type.kind == Kind::Tabs) {
 		if (const int tabs = NativeUi::TabCount(widget); tabs > 1) whole = AddCells(entry, {tabs, 1, {}});
 	}
@@ -242,9 +255,26 @@ uintptr_t FindNamed(uintptr_t widget, std::string_view name, bool byType, int de
 	return 0;
 }
 
+// The game's "show belt" is turned off again if it was turned on from here.
+void HideBelt(const D2RL::PluginContext* context) {
+	if (!g_beltShown) return;
+	g_beltShown = false;
+	if (NativeBeltRows::Shown().value_or(false)) (void)NativeBeltRows::ToggleShown(context);
+}
+
+// A belt of more than one row is drawn in full while it is in the menu, so the
+// rows above the bottom one are there to be reached and clicked. The game's
+// own "show belt" does it; one the player turned on is left as it is.
+void ShowBelt(const D2RL::PluginContext* context, uintptr_t belt) {
+	if (g_beltShown || NativeBeltRows::Slots(belt) <= NativeBeltRows::Columns) return;
+	const auto shown = NativeBeltRows::Shown();
+	if (!shown || *shown) return;
+	g_beltShown = NativeBeltRows::ToggleShown(context) && NativeBeltRows::Shown().value_or(false);
+}
+
 // The open menu, read again. The panels that are open and shown, oldest first;
 // under a modal only the modal, which takes every click until it is answered.
-std::string Build() {
+std::string Build(const D2RL::PluginContext* context) {
 	g_entries.clear();
 	g_targets.clear();
 	struct Open { uintptr_t panel; std::string name; };
@@ -272,10 +302,11 @@ std::string Build() {
 		Collect(open.panel, open.panel, 0, 0);
 	}
 	// The belt is the HUD's, and is where potions are put from the inventory.
-	if (items) {
-		if (const uintptr_t hud = NativeWidgets::FindPanel(Hud); hud && NativeUi::Visible(hud))
-			if (const uintptr_t belt = FindNamed(hud, "BeltWidget", true, 0)) Collect(belt, hud, 0, 0);
-	}
+	const uintptr_t hud = items ? NativeWidgets::FindPanel(Hud) : 0;
+	if (const uintptr_t belt = hud && NativeUi::Visible(hud) ? FindNamed(hud, "BeltWidget", true, 0) : 0) {
+		ShowBelt(context, belt);
+		Collect(belt, hud, 0, 0);
+	} else HideBelt(context);
 	Thin();
 	return menu;
 }
@@ -285,14 +316,28 @@ const Entry* EntryOf(uintptr_t widget) {
 	return nullptr;
 }
 
+// A slot of the belt takes a click on the cell drawn in the top left of its
+// rectangle, which holds the space between the cells as well and, drawn in
+// full, the belt's cap. The belt's own hit test says which point is the slot's.
+NativeUi::Rect BeltPoint(uintptr_t belt, int slot, const NativeUi::Rect& rect) {
+	constexpr int Parts[][2] = {{2, 2}, {2, 3}, {3, 3}, {4, 4}};
+	for (const auto& part : Parts) {
+		const NativeUi::Cell point{rect.x + rect.width / part[0], rect.y + rect.height / part[1]};
+		if (NativeBeltRows::SlotAt(belt, point) == slot) return {point.x - 1, point.y - 1, 2, 2};
+	}
+	return rect;
+}
+
 // Where the pointer goes for a place: the middle of the control, of the whole
 // item, or of the cell. With an item in hand the game's own rectangle for the
 // cell is where the pointer has to be for the item to begin on that cell.
 std::optional<NativeUi::Rect> PointerRect(const Entry& entry, const Place& place, bool holding) {
 	if (!entry.cells) return NativeSkillNavigation::RectAt(entry.widget, NativeUi::FocusSelection(entry.widget));
-	const auto first = NativeSkillNavigation::RectAt(entry.widget, Pack(place.anchor));
-	if (!first || holding) return first;
 	const auto* target = MenuCursor::Find(g_targets, entry.widget);
+	const uint64_t selection = Selection(entry, place.anchor, target ? target->grid.height : 1);
+	const auto first = NativeSkillNavigation::RectAt(entry.widget, selection);
+	if (first && entry.belt) return BeltPoint(entry.widget, static_cast<int>(selection), *first);
+	if (!first || holding) return first;
 	const int item = target ? GridJump::ItemAt(target->grid, place.anchor) : GridJump::Empty;
 	if (item == GridJump::Empty) return first;
 	const auto& found = target->grid.items[static_cast<size_t>(item)];
@@ -314,6 +359,11 @@ std::string Name(const Entry& entry, const Place& place) {
 		return phrase;
 	}
 	if (entry.kind == Kind::Tabs && entry.cells) return TabText(entry.widget, place.anchor.x);
+	if (entry.belt) {
+		// The slot the cursor is on, which the belt is read at while the cursor stands in for the focus.
+		const auto slot = NativeUi::BeltItem(entry.widget);
+		return slot.item ? NativeGroundItems::ItemBaseName(slot.item) : std::string(Strings::Current().slotEmpty);
+	}
 	const auto readout = UiText::Describe(NativeUi::Snapshot(entry.widget, entry.widget));
 	std::string text = !readout.option.empty() ? readout.option : readout.body;
 	if (text.empty()) text = UiText::Clean(NativeWidgets::ReadText(entry.widget));
@@ -334,7 +384,9 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		AsyncLog::WarnF(context, "[cursor] no rectangle for %s (%s); the cursor stays", entry->name.c_str(), entry->type.c_str());
 		return false;
 	}
-	const uint64_t selection = entry->cells ? Pack(place.anchor) : NativeUi::FocusSelection(entry->widget);
+	const auto* target = MenuCursor::Find(g_targets, entry->widget);
+	const uint64_t selection = entry->cells ? Selection(*entry, place.anchor, target ? target->grid.height : 1)
+		: NativeUi::FocusSelection(entry->widget);
 	const uintptr_t owner = NativeSkillNavigation::Owner(entry->widget);
 	g_place = place;
 	g_holding = holding;
@@ -347,6 +399,8 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld",
 		entry->name.c_str(), entry->type.c_str(), entry->cells ? place.anchor.x : -1, entry->cells ? place.anchor.y : -1,
 		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
+	if (entry->belt) AsyncLog::InfoF(context, "[cursor] belt slot %d; the belt takes the point for slot %d", static_cast<int>(selection),
+		NativeBeltRows::SlotAt(entry->widget, {rect->x + rect->width / 2, rect->y + rect->height / 2}));
 	Expect(now, Name(*entry, place));
 	// A quest shows what it is about when it is clicked, not when the pointer is over it.
 	if (entry->kind == Kind::QuestButton) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
@@ -410,18 +464,32 @@ void Park(const D2RL::PluginContext* context) {
 // stands, at the menu's first thing otherwise.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	g_refreshAt = now + RefreshMs;
-	const std::string menu = Build();
+	const std::string menu = Build(context);
 	const bool changed = menu != g_menu;
 	g_menu = menu;
 	if (g_targets.empty()) {
 		if (g_place.widget) { g_place = {}; NativeUi::ClearCursor(); }
 		return;
 	}
-	if (changed) Census(context);
+	// The belt counts from the bottom row. When rows come or go above it the
+	// cursor stays on its slot, and the pointer follows the slot to where it is drawn now.
+	bool redrawn = false;
+	int rows = 0;
+	for (size_t i = 0; i < g_entries.size(); ++i) {
+		if (!g_entries[i].belt) continue;
+		rows = g_targets[i].grid.height;
+		if (g_beltRows && rows != g_beltRows && g_place.widget == g_entries[i].widget) {
+			g_place.anchor.y += rows - g_beltRows;
+			g_place.travel.y += rows - g_beltRows;
+			redrawn = true;
+		}
+	}
+	if (changed || rows != g_beltRows) Census(context);
+	g_beltRows = rows;
 	auto place = MenuCursor::Settle(g_targets, g_place);
 	if (!place.widget) place = MenuCursor::First(g_targets);
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
-	if (place != g_place || holding != g_holding) (void)Land(context, now, place);
+	if (place != g_place || holding != g_holding || redrawn) (void)Land(context, now, place);
 }
 
 void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
@@ -633,6 +701,8 @@ void Reset() {
 	g_entries.clear();
 	g_targets.clear();
 	g_active = false;
+	g_beltShown = false;
+	g_beltRows = 0;
 	g_pending = 0;
 	for (auto& arrow : g_arrows) { arrow.down = false; arrow.next = 0; }
 	for (auto& key : g_watched) { key.down = key.waiting = false; }
@@ -648,6 +718,7 @@ void Tick(const D2RL::PluginContext* context) {
 		// The pointer was the menu's only if the cursor put it somewhere.
 		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
+		HideBelt(context);
 		if (moved && Foreground() && KeyboardService::Playing()) Park(context);
 		g_pending = 0;
 		for (auto& arrow : g_arrows) arrow.down = Down(arrow.key);

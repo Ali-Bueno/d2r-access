@@ -549,7 +549,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.slot, belt.known ? 1 : 0,
 				reinterpret_cast<void*>(belt.item));
 		}
-		if (belt.known && !belt.item) readout.option = Strings::Current().slotEmpty;
+		if (belt.known && !belt.item) {
+			readout.option = Strings::Current().slotEmpty;
+			// An empty slot says where it is, as an empty cell of a grid does. The
+			// belt's rows are counted from the bottom one, which is the row that is
+			// drunk from; its columns are the keys 1 to 4.
+			if (belt.slot >= 0) {
+				char phrase[64]{};
+				std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, belt.slot / 4 + 1, belt.slot % 4 + 1);
+				readout.coordinates = phrase;
+			}
+		}
 		// An empty bottom cell shows, see-through, the inventory potion its
 		// D-pad button would drink (docs/belt.md): name it instead of "Empty".
 		if (belt.known && !belt.item && belt.slot >= 0 && belt.slot < 4) {

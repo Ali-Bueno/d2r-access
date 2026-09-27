@@ -18,6 +18,7 @@
 #include "input_direction.h"
 #include "native_belt.h"
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -530,7 +531,12 @@ int main() {
 	Check(!speech.empty() && speech.back().find("Poción de curación menor") != std::string::npos, "and is read with it");
 	ClearSpeech(); selection = 1; beltSlot = {true, 1, 0}; tooltip = {};
 	Settle();
-	Check(speech == std::vector<std::string>{Strings::Current().slotEmpty}, "an empty belt slot says so instead of nothing");
+	{
+		char where[64]{};
+		std::snprintf(where, sizeof(where), Strings::Current().gridCell, 1, 2);
+		Check(speech == std::vector<std::string>{std::string(Strings::Current().slotEmpty) + ". " + where},
+			"an empty belt slot says so, and where in the belt it is");
+	}
 	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77};
 	Settle(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
 	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "the next slot reads its item once its tooltip is drawn");
