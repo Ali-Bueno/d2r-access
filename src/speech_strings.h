@@ -235,6 +235,21 @@ struct Table {
 	const char* targetOutOfReach; // %s = a monster with no way to it
 	const char* interactNothing;
 	const char* actionsUnavailable; // the game's command could not be verified on this build
+	// The keyboard's settings list, and the switches that had no phrase of their own. `settings_list.h`
+	const char* settingsOpened;
+	const char* settingsClosed;
+	const char* skillBarReaderOn;
+	const char* skillBarReaderOff;
+	const char* tradeAlertsOn;
+	const char* tradeAlertsOff;
+	const char* weaponSwapAlertsOn;
+	const char* weaponSwapAlertsOff;
+	const char* skillGridOn;
+	const char* skillGridOff;
+	const char* explorationSoundsOn;
+	const char* explorationSoundsOff;
+	const char* discoveriesOn;
+	const char* discoveriesOff;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -281,7 +296,9 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
 		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
-		t.retreatTo, t.retreatNone, t.retreatNoPassage, t.retreatBackUnknown, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable};
+		t.retreatTo, t.retreatNone, t.retreatNoPassage, t.retreatBackUnknown, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
+		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff,
+		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
