@@ -183,6 +183,8 @@ bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	return true;
 }
 StickPush PeekRightStickPush() { return pendingPush; }
+bool lineStep = false;
+bool LineStepPending() { return lineStep && pendingPush != StickPush::None; }
 bool pressB = false;
 bool holdingY = false;
 bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }
@@ -430,6 +432,17 @@ int main() {
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Daño: 6-13. Coste: 331"}, "right stick up reads the description the move left out, base damage first");
 	Check(pendingPush == InputDirection::StickPush::None, "the push is claimed, not left for the level scanner");
+	// Ctrl with an arrow key walks the same description a line at a time.
+	ClearSpeech(); InputDirection::lineStep = true; pendingPush = InputDirection::StickPush::Down;
+	Check(Tick() && speech == std::vector<std::string>{"Daño: 6-13"}, "a line step down reads the line after the name");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Down; Tick();
+	pendingPush = InputDirection::StickPush::Down; Tick();
+	Check(speech == std::vector<std::string>{"Coste: 331", "Coste: 331"}, "the footer is the last line, and past it the last is read again");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Left; Tick();
+	pendingPush = InputDirection::StickPush::Right; Tick();
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Hacha grande", "Coste: 331", "Daño: 6-13"}, "left is the first line, right the last, up the one before");
+	InputDirection::lineStep = false;
 	// An options row offers its explanation to the same gesture instead of
 	// speaking it on arrival; a row with nothing to explain offers nothing.
 	ClearSpeech(); InteractionReader::OfferDetail("GameplayOptionsPanel/ShowClock", "Shows a clock on the HUD.");

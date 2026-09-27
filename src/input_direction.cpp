@@ -62,6 +62,8 @@ bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
+bool g_lineStep = false;                      // the pending right-stick push is the keyboard's line step
+ULONGLONG g_lineStepPosted = 0;
 TriggerHold g_leftTrigger;
 
 Horizontal g_lastHorizontal       = Horizontal::None;
@@ -220,6 +222,7 @@ void Poll() {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
 				ResolvePush(g_rightStickPush, nullptr);
+				g_lineStep = false;
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
 				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
@@ -228,6 +231,13 @@ void Poll() {
 		}
 	}
 
+	// A line step nothing in the menu had lines for is not kept for the level
+	// scanner to find when the menu closes.
+	if (g_lineStep && GetTickCount64() - g_lineStepPosted > kPostedPushMs) {
+		ResolvePush(g_rightStickPush, nullptr);
+		g_rightStickPush = StickPush::None;
+		g_lineStep = false;
+	}
 	const bool posted = g_leftStickPosted != 0 && GetTickCount64() - g_leftStickPosted <= kPostedPushMs;
 	if (!posted) g_leftStickPosted = 0;
 	if (!FaceButtonHeld(FaceButton::Y) && !posted) g_leftStickPush = StickPush::None;
@@ -310,11 +320,18 @@ void PostRightStickPush(StickPush push) {
 	// A push still pending is about to be replaced, as a pad's would be.
 	ResolvePush(g_rightStickPush, nullptr);
 	g_rightStickPush = push;
+	g_lineStep = false;
 }
 void PostLeftStickPush(StickPush push) {
 	g_leftStickPush = push;
 	g_leftStickPosted = GetTickCount64();
 }
+void PostLineStep(StickPush push) {
+	PostRightStickPush(push);
+	g_lineStep = push != StickPush::None;
+	g_lineStepPosted = GetTickCount64();
+}
+bool LineStepPending() { return g_lineStep && g_rightStickPush != StickPush::None; }
 void PostBackWith(FaceButton button) {
 	if (button == FaceButton::A) g_backWithA = true;
 	else if (button == FaceButton::B) g_backWithB = true;

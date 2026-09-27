@@ -112,6 +112,14 @@ LineReader g_lineReader;
 std::vector<std::string> g_skillLines;
 uintptr_t g_skillLinesWidget = 0;
 
+// Ctrl with an arrow key on an item or a skill (the user, 2026-09-27): its
+// description a line at a time, up and down a line, left and right to the
+// first and the last. The lines are the tooltip's own, in the order the screen
+// draws them, the name first; an item's size comes last. Held for whatever the
+// cursor is on now, by its widget and its place in it. No line is given a number.
+struct KeyLines { std::string owner; std::vector<std::string> lines; size_t at = 0; };
+KeyLines g_keyLines;
+
 // Item tooltips in the log: off unless asked for, and each only once.
 std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
@@ -224,6 +232,35 @@ bool ReadAside(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 void OfferAside(uintptr_t widget, std::string text) {
 	g_asideWidget = widget;
 	g_aside = std::move(text);
+}
+
+std::string LinesOwner(uintptr_t widget, uint64_t selection) {
+	return std::to_string(widget) + ":" + std::to_string(selection);
+}
+
+void OfferLines(const std::string& owner, std::vector<std::string> lines) {
+	if (owner != g_keyLines.owner) g_keyLines = {owner, {}, 0};
+	if (lines.empty() || lines == g_keyLines.lines) return;
+	g_keyLines.lines = std::move(lines);
+	if (g_keyLines.at >= g_keyLines.lines.size()) g_keyLines.at = 0;
+}
+
+bool ReadLines(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	using InputDirection::StickPush;
+	if (!InputDirection::LineStepPending() || !focus.panel || g_keyLines.lines.empty()
+		|| g_keyLines.owner != LinesOwner(focus.widget, NativeUi::FocusSelection(focus.widget))) return false;
+	const auto push = InputDirection::PeekRightStickPush();
+	if (!InputDirection::TakeRightStickPushIf(push, "line")) return false;
+	const size_t last = g_keyLines.lines.size() - 1;
+	// At either end the step reads the same line again rather than nothing.
+	if (push == StickPush::Up && g_keyLines.at > 0) --g_keyLines.at;
+	else if (push == StickPush::Down && g_keyLines.at < last) ++g_keyLines.at;
+	else if (push == StickPush::Left) g_keyLines.at = 0;
+	else if (push == StickPush::Right) g_keyLines.at = last;
+	const auto& line = g_keyLines.lines[g_keyLines.at];
+	AsyncLog::InfoF(context, "[lines] key %zu -> \"%s\"", g_keyLines.at, line.c_str());
+	ScreenReader::Speak(line, true);
+	return true;
 }
 
 bool ReadSkillLines(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_t now) {
@@ -473,6 +510,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// is lost by that order -- the character panel holds neither items nor
 	// skills, so there is never a detail for up to read there.
 	if (CharacterStatsReader::Tick(context, focus)) return true;
+	if (ReadLines(context, focus)) return true;
 	if (ReadSkillLines(context, focus, now)) return true;
 	if (ReadDetail(context, focus)) return true;
 	if (ReadHints(context)) return true;
@@ -592,6 +630,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
+	// Moving on drops the lines of what the cursor was on, as it drops its detail.
+	const auto linesOwner = LinesOwner(focus.widget, selection);
+	OfferLines(linesOwner, {});
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -602,12 +643,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			description = ProgressionText::SkillDescription(tooltip.body);
 			g_skillLines = ProgressionText::SkillLines(tooltip.body);
 			g_skillLinesWidget = focus.widget;
+			OfferLines(linesOwner, g_skillLines);
 			Append(description, UiText::Clean(tooltip.footer));
 		} else if (inventory) {
 			// An item's own tooltip, in the order the screen draws it: the
 			// name is spoken, with its price in a shop, and the rest is held
 			// for the player to ask for.
 			const auto body = ItemBody(tooltip.body);
+			{
+				std::vector<std::string> lines;
+				for (const auto& line : body.lines) if (!line.empty()) lines.push_back(line);
+				if (auto footer = UiText::Clean(tooltip.footer); !footer.empty()) lines.push_back(std::move(footer));
+				if (!size.empty()) lines.push_back(size);
+				OfferLines(linesOwner, std::move(lines));
+			}
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
 			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
 			// Magic and better, the quality the screen shows only by colour
@@ -870,6 +919,7 @@ void Reset() {
 	g_tabTitle.clear();
 	if (g_lineReader.widget) PadFilter::ReleaseB();
 	g_lineReader = {};
+	g_keyLines = {};
 	g_skillLines.clear();
 	g_skillLinesWidget = 0;
 	g_readPanel = 0;

@@ -154,6 +154,14 @@ void PostRightStickPush(StickPush push);
 // A left-stick push is dropped by the next Poll unless Y is held, and its
 // reader looks only every third update or so: a posted one is kept for that long.
 void PostLeftStickPush(StickPush push); // as if made with Y held
+// Ctrl with an arrow key in a menu: a step through the lines of what the
+// cursor is on, up and down a line, left and right to the first and the last.
+// It is a right-stick push to every reader that walks lines already (the
+// character panel, Advanced Stats), and LineStepPending tells the reader of
+// items and skills that the keyboard made it, where the stick's four
+// directions are four different readouts.
+void PostLineStep(StickPush push);
+bool LineStepPending();
 void PostBackWith(FaceButton button);
 void PostLeftStickClick();
 void PostFacePress(FaceButton button);  // only B has a reader so far
