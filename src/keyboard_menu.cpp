@@ -13,6 +13,7 @@
 #include "native_class_choice.h"
 #include "localization.h"
 #include "native_ground_items.h"
+#include "native_list_rows.h"
 #include "native_skill_hand.h"
 #include "native_skill_icons.h"
 #include "native_skill_navigation.h"
@@ -57,6 +58,7 @@ constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
 constexpr uint64_t ChoiceMs = 3000;     // a class clicked that is not chosen by then was not chosen
+constexpr uint64_t RowPairMs = 400;     // a click on a row this soon after another is the second of the two that act on it
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
@@ -137,6 +139,9 @@ bool g_beltShown = false;   // the game's "show belt" was turned on from here, a
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
 uint64_t g_lastFill = 0;
+// The last click that went to a row of a list that tells choosing from acting.
+struct RowClick { uintptr_t widget = 0; uint64_t at = 0; };
+RowClick g_rowClicked;
 uint64_t g_titleUntil = 0;  // until then the cursor waits to land: what the menu is called is being said
 NativeSkillHand::Hand g_listHand = NativeSkillHand::Hand::None; // the hand the list of skills was last said to be for
 
@@ -498,6 +503,16 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	Expect(now, Name(*entry, place));
 	// A quest shows what it is about when it is clicked, not when the pointer is over it.
 	if (entry->kind == Kind::QuestButton) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
+	// A row that one click chooses is chosen as the cursor comes to it: Enter
+	// acts on the row the list has chosen, not on the one the pointer is over
+	// (READ), and the two have to be the same row for a player who cannot see
+	// which is lit. A row that is chosen already is not clicked again: a second
+	// click within half a second would act on it.
+	if (const auto places = NativeListRows::Of(entry->widget); places && places->chosen != places->row && g_landed) {
+		AsyncLog::InfoF(context, "[cursor] row %d is chosen as the cursor comes to it; the list had %d", places->row, places->chosen);
+		MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
+		g_rowClicked = {entry->widget, now};
+	}
 	return true;
 }
 
@@ -545,6 +560,7 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	g_listHand = NativeSkillHand::Hand::None;
 	g_adjusting = {};
 	g_choosing = {};
+	g_rowClicked = {};
 	NativeUi::ClearCursor();
 }
 
@@ -746,10 +762,18 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 		g_choosing = {entry->widget, now};
 	}
 	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
-	AsyncLog::InfoF(context, "[cursor] %s click%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
-		shift ? " with Shift" : "", control ? " with Ctrl" : "", entry ? entry->name.c_str() : "where the pointer is");
+	// A row that one click only chooses is acted on by two, as the mouse does it
+	// (the user, 2026-09-27, of five clicks on a character that began no game:
+	// the click "should have clicked"). A click that went to the row a moment
+	// ago is the first of the two.
+	const bool row = entry && rect && button == MenuMouse::Button::Left && !shift && !control && NativeListRows::TwoClicks(entry->widget);
+	const bool twice = row && !(g_rowClicked.widget == entry->widget && now - g_rowClicked.at < RowPairMs);
+	AsyncLog::InfoF(context, "[cursor] %s click%s%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
+		shift ? " with Shift" : "", control ? " with Ctrl" : "", twice ? ", twice" : "", entry ? entry->name.c_str() : "where the pointer is");
 	if (rect) MenuMouse::ClickAt(*rect, button);
 	else MenuMouse::Click(button);
+	if (twice) MenuMouse::ClickAt(*rect, button);
+	g_rowClicked = row ? RowClick{entry->widget, now} : RowClick{};
 	g_refreshAt = now + AfterClickMs;
 }
 

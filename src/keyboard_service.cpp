@@ -23,6 +23,7 @@
 #include "native_actions.h"
 #include "native_belt_fill.h"
 #include "native_class_choice.h"
+#include "native_list_rows.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -980,6 +981,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeSkillIcons::Initialize(context);
 	if (nativeHooks) (void)NativeValueControls::Initialize(context);
 	if (nativeHooks) (void)NativeClassChoice::Initialize(context);
+	if (nativeHooks) (void)NativeListRows::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
