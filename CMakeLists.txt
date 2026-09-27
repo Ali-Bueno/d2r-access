@@ -159,6 +159,7 @@ add_library(d2r-access SHARED
 	src/native_actions.cpp
 	src/keyboard_service.cpp
 	src/keyboard_menu.cpp
+	src/settings_list.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -588,7 +589,12 @@ if(BUILD_TESTING)
 	target_include_directories(skill-attacks-tests PRIVATE src)
 	target_compile_features(skill-attacks-tests PRIVATE cxx_std_20)
 	add_test(NAME skill-attacks COMMAND skill-attacks-tests)
+	add_executable(settings-list-tests tests/settings_list_tests.cpp src/settings_list.cpp)
+	target_include_directories(settings-list-tests PRIVATE src)
+	target_compile_features(settings-list-tests PRIVATE cxx_std_20)
+	add_test(NAME settings-list COMMAND settings-list-tests)
 	if(MSVC)
+		target_compile_options(settings-list-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-attacks-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(grid-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

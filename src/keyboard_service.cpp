@@ -1,16 +1,22 @@
 #include "keyboard_service.h"
 
 #include "async_log.h"
+#include "auto_detail.h"
 #include "auto_walk.h"
 #include "beacon.h"
 #include "beacon_navigation.h"
 #include "beacon_service.h"
 #include "combat_target.h"
+#include "entity_cue_service.h"
 #include "entity_radar.h"
+#include "entity_radar_service.h"
 #include "equipment_census.h"
 #include "explore_goal.h"
+#include "footstep_service.h"
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
+#include "ground_item_service.h"
+#include "ground_item_text.h"
 #include "input_direction.h"
 #include "map_survey_service.h"
 #include "native_actions.h"
@@ -21,13 +27,25 @@
 #include "native_skill_navigation.h"
 #include "native_world.h"
 #include "navigation_grid.h"
+#include "navigation_mode.h"
+#include "quest_service.h"
+#include "radar_readout.h"
+#include "radar_service.h"
 #include "radar_ui.h"
 #include "retreat.h"
 #include "room_graph.h"
+#include "room_service.h"
 #include "screen_reader.h"
+#include "settings_list.h"
+#include "skill_bar_service.h"
+#include "skill_navigation.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "trade_service.h"
+#include "vitals_service.h"
+#include "wall_slide_service.h"
 #include "weapon_swap.h"
+#include "weapon_swap_service.h"
 #include "zone_transitions.h"
 
 #include <D2RLPlugin/context.h>
@@ -58,6 +76,7 @@ enum class Command : uint32_t {
 	None, Interact, TargetNext, TargetPrevious, WalkToTarget, Explore,
 	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
+	Settings, SettingsChange,
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
 	// Console only, for the first live tests.
@@ -76,6 +95,7 @@ constexpr double Stride = 10;         // how far ahead a held arrow aims
 constexpr double UseReach = 3;        // a thing is used from this near, plus half its footprint
 constexpr double UseRange = 20;       // how far D looks for something to use, in walking steps
 constexpr double MeleeReach = 3;      // a blow lands from this near
+constexpr uint64_t SettingsIdleMs = 30000; // a settings list left open and unused closes itself
 constexpr double RangedReach = 24;    // a shot or a spell is loosed from this near: see docs/keyboard-actions.md
 
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0; int level = 0, cameFrom = 0, revision = 0; };
@@ -99,6 +119,12 @@ std::atomic<int> g_testX{0}, g_testY{0};
 // act on the world are left to the game, so A still opens the character screen
 // from a menu and Tab is the game's own there.
 std::atomic<bool> g_playing{false};
+// While the settings list is open the reading keys step through it and Space
+// changes a switch; closed, Space is the game's.
+std::atomic<bool> g_settingsOpen{false};
+SettingsList::Menu g_settings;
+Strings::Language g_settingsLanguage{};
+bool g_settingsBuilt = false;
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
@@ -629,6 +655,76 @@ void Read(Command command, bool inPlay) {
 	}
 }
 
+// ---- the settings list ----
+
+SettingsList::Menu BuildSettings() {
+	using SettingsList::Entry;
+	using Cue = EntityCueService::Cue;
+	using Item = GroundItemService::Switch;
+	using T = Strings::Table;
+	const auto phrase = [](const char* T::* on, const char* T::* off) {
+		return [on, off](bool state) { return std::string(Strings::Current().*(state ? on : off)); };
+	};
+	std::vector<Entry> entries{
+		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true},
+		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true},
+		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true},
+		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
+			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true},
+		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true},
+		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true},
+		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true},
+		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true},
+		{[] { return EntityCueService::Enabled(Cue::All); }, [](bool on) { EntityCueService::SetEnabled(Cue::All, on); }, phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true},
+		{[] { return EntityCueService::Enabled(Cue::Npcs); }, [](bool on) { EntityCueService::SetEnabled(Cue::Npcs, on); }, phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true},
+		{[] { return EntityCueService::Enabled(Cue::Enemies); }, [](bool on) { EntityCueService::SetEnabled(Cue::Enemies, on); }, phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true},
+		{[] { return EntityCueService::Enabled(Cue::Ranged); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ranged, on); }, phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true},
+		{[] { return GroundItemService::Enabled(Item::Speech); }, [](bool on) { GroundItemService::SetEnabled(Item::Speech, on); }, [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true},
+		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true},
+		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true},
+		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true},
+		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true},
+		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true},
+		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true},
+		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true},
+		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true},
+		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true},
+		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false},
+		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false},
+		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false},
+		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false},
+		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false},
+		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false},
+	};
+	return SettingsList::Menu(std::move(entries), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+}
+
+// True when the command was the list's and is spent.
+bool Settings(Command command, uint64_t now) {
+	if (!g_settingsBuilt || g_settingsLanguage != Strings::Selected()) {
+		const bool open = g_settings.Open();
+		g_settings = BuildSettings();
+		g_settingsLanguage = Strings::Selected();
+		g_settingsBuilt = true;
+		if (open) (void)g_settings.Toggle(now);
+	}
+	std::string text;
+	bool spent = true;
+	if (command == Command::Settings) text = g_settings.Toggle(now);
+	else if (!g_settings.Open()) spent = false;
+	else if (command == Command::SettingsChange) text = g_settings.Change(now);
+	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
+	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
+	else spent = false;
+	if (!spent) text = g_settings.Expire(now, SettingsIdleMs);
+	g_settingsOpen = g_settings.Open();
+	if (!text.empty()) {
+		AsyncLog::InfoF(g_context, "[keyboard] settings: %s", text.c_str());
+		ScreenReader::Speak(text, true);
+	}
+	return spent;
+}
+
 // ---- console: the first live tests ----
 
 void Test(const Lifecycle& state, Command command) {
@@ -684,9 +780,11 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)) return D2RL::Input::ActionResult::Ignored;
 	const auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
+	// Space changes a switch of the settings list and is the game's otherwise.
+	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
 	const bool reading = command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
-		|| command == Command::Repeat;
+		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
 	if (!reading && !g_playing.load()) {
 		// A release still has to end a hold begun in play.
 		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
@@ -766,7 +864,9 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-read-last", "Read: next category, or last", Key::PageDown, Modifier::Control, Command::ReadLast},
 			Entry{"keyboard-compare-item", "Compare: the item in full", Key::PageUp, Modifier::Shift, Command::CompareItem},
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
-			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat}}) {
+			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
+			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
+			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -804,6 +904,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool inPlay = state.ready && RadarUi::InPlay();
 	g_playing = inPlay;
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
+	if (Settings(command, now)) command = Command::None;
 	Read(command, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
@@ -893,5 +994,8 @@ void Unregister() {
 	g_revision = 0;
 	g_stepping = false;
 	g_playing = false;
+	g_settingsOpen = false;
+	g_settings = {};
+	g_settingsBuilt = false;
 }
 }

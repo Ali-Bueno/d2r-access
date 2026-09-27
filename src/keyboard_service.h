@@ -24,6 +24,10 @@
 //   Ctrl+PageUp, Ctrl+PageDown  categories in play; first / last, or aside, in a menu
 //   Shift+PageUp, Shift+PageDown  compare: the item in full / the one equipped
 //   Home                        say it again
+// Settings, everywhere:
+//   Ctrl+S            open or close the list of the mod's switches
+//   PageUp, PageDown  previous / next switch while it is open
+//   Space             change the switch
 namespace D2RAccess::KeyboardService {
 bool Register(const D2RL::PluginContext* context, bool nativeHooks);
 // Right after InputDirection::Poll: what it posts is for this update's readers.
