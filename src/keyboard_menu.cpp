@@ -1,6 +1,7 @@
 #include "keyboard_menu.h"
 
 #include "async_log.h"
+#include "game_text_reader.h"
 #include "input_direction.h"
 #include "inventory_cursor.h"
 #include "keyboard_service.h"
@@ -84,6 +85,7 @@ bool g_holding = false;     // an item was in hand when the pointer was last pla
 uint64_t g_refreshAt = 0;
 uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
 std::string g_toSay;        // what to say if no reader does
+std::string g_said;         // what the cursor said of where it is, when no reader did
 uint64_t g_lastClick = 0;
 
 struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
@@ -96,9 +98,11 @@ struct Watched { int key; Act act; bool modified; bool down = false, waiting = f
 Watched g_watched[] = {
 	{'A', Act::ClickLeft, true}, {'W', Act::ClickRight, true}, {VK_PRIOR, Act::TabPrevious, false},
 	{VK_NEXT, Act::TabNext, false}, {VK_HOME, Act::MenuPrevious, false}, {VK_END, Act::MenuNext, false},
+	{VK_OEM_5, Act::SayAgain, false},
 };
-constexpr size_t Acts = 6;
-constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu"};
+constexpr size_t Acts = 7;
+constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
+	"say again"};
 std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
@@ -328,6 +332,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	const uintptr_t owner = NativeSkillNavigation::Owner(entry->widget);
 	g_place = place;
 	g_holding = holding;
+	g_said.clear();
 	const bool placed = MenuMouse::Place(*rect);
 	NativeTooltips::Discard(now + SettleMs);
 	NativeUi::SetCursor({owner ? owner : entry->panel, entry->widget}, selection);
@@ -370,6 +375,7 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	g_menu.clear();
 	g_landedAt = 0;
 	g_toSay.clear();
+	g_said.clear();
 	NativeUi::ClearCursor();
 }
 
@@ -502,6 +508,16 @@ void StepMenu(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	g_refreshAt = now + 2 * AfterClickMs;
 }
 
+// What was said of where the cursor is, again: by the reader that said it, or
+// by the cursor when it named the place itself.
+void SayAgain(const D2RL::PluginContext* context, uint64_t now) {
+	AsyncLog::InfoF(context, "[cursor] say again: %s", g_said.empty() ? "asked of the readers" : "the cursor's own words");
+	if (!g_said.empty()) { ScreenReader::Speak(g_said, true); return; }
+	GameTextReader::RequestRepeat();
+	// A reader with nothing to say again leaves the place to be named here.
+	if (const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr) Expect(now, Name(*entry, g_place));
+}
+
 void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	switch (act) {
 	case Act::ClickLeft:    Click(context, now, MenuMouse::Button::Left); break;
@@ -510,6 +526,7 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	case Act::TabNext:      StepTab(context, now, 1); break;
 	case Act::MenuPrevious: StepMenu(context, now, -1); break;
 	case Act::MenuNext:     StepMenu(context, now, 1); break;
+	case Act::SayAgain:     SayAgain(context, now); break;
 	}
 }
 
@@ -637,6 +654,7 @@ void Tick(const D2RL::PluginContext* context) {
 		if (ScreenReader::LastSpoken() < g_landedAt && !g_toSay.empty()) {
 			AsyncLog::InfoF(context, "[cursor] no reader named it; said \"%s\"", g_toSay.c_str());
 			ScreenReader::Speak(g_toSay, true);
+			g_said = g_toSay;
 		}
 		g_landedAt = 0;
 		g_toSay.clear();

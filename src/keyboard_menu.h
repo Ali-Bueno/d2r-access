@@ -23,13 +23,14 @@
 //   PageUp, PageDown         the tab before and after, in a menu that has tabs.
 //   Home, End                the menu before and after: character, inventory,
 //                            skill tree, quest log, game menu.
+//   backslash                say it again (Home says it again in play).
 //
 // With an item in hand the cursor goes cell by cell: where the item would be
 // put down matters cell by cell. A connected pad is not touched; with one
 // connected the cursor wakes only when an arrow key is pressed.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
-enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext };
+enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain };
 
 // After KeyboardService::Tick and before the readers, so what is read is
 // where the cursor ends up.

@@ -13,6 +13,7 @@
 #include "native_automap.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
+#include "keyboard_menu.h"
 #include "native_world.h"
 #include "navigation_mode.h"
 #include "radar_ui.h"
@@ -346,7 +347,10 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (event == nullptr || event->kind != D2RL::Input::ActionEventKind::Pressed) {
 		return D2RL::Input::ActionResult::Ignored;
 	}
-	g_request.store(static_cast<Request>(reinterpret_cast<intptr_t>(userData)));
+	const auto request = static_cast<Request>(reinterpret_cast<intptr_t>(userData));
+	// In a menu backslash says again what the keyboard's cursor is on.
+	if (request == Request::Repeat && KeyboardMenu::Active()) KeyboardMenu::Deliver(KeyboardMenu::Act::SayAgain);
+	else g_request.store(request);
 	return D2RL::Input::ActionResult::Handled;
 }
 
