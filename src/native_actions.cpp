@@ -45,9 +45,9 @@ constexpr Evidence SkillChecks[] = {
 	{0x33DB60, 48, 0xE190B1066334A726ULL}, // skills -> right skill
 	{0x33E080, 15, 0x912940B532D9CE76ULL}, // skill -> id
 };
-constexpr uint64_t LogIntervalMs = 250;
 
-using CommandFn = void(*)(uint32_t, uintptr_t, int32_t, int32_t);
+// Whatever the game returns is handed back untouched: the hook stands between it and its callers.
+using CommandFn = uintptr_t(*)(uint32_t, uintptr_t, int32_t, int32_t);
 const D2RL::PluginContext* g_context = nullptr;
 uintptr_t g_base = 0;
 CommandFn g_command = nullptr;  // the game's function, past our own hook when there is one
@@ -56,22 +56,39 @@ bool g_skills = false;
 std::atomic<bool> g_logging{true};
 std::atomic<uint32_t> g_uiThread{0};
 uint32_t g_lastOp = ~0U;
-uint64_t g_lastLog = 0;
+uint64_t g_repeats = 0; // commands of the same number since the last line
+uint32_t g_ownOp = ~0U;  // our own last command, and when it was last logged
+uint64_t g_ownLog = 0;
+constexpr uint64_t OwnLogMs = 1000;
+
+// Our own commands, one line a second for as long as the command stays the
+// same: a walk gives its orders several times a second.
+bool LogOwn(uint32_t op) {
+	if (!g_logging.load()) return false;
+	const uint64_t now = GetTickCount64();
+	if (op == g_ownOp && now - g_ownLog < OwnLogMs) return false;
+	g_ownOp = op;
+	g_ownLog = now;
+	return true;
+}
 
 // Every command the game issues passes here first, ours excepted: those go
 // straight to g_command. Observes only; the call goes on unchanged.
-void Observe(uint32_t op, uintptr_t player, int32_t a, int32_t b) {
+uintptr_t Observe(uint32_t op, uintptr_t player, int32_t a, int32_t b) {
+	// One line when the command number changes, not one per command: a held
+	// stick issues its move many times a second.
 	if (g_logging.load()) {
-		const uint64_t now = GetTickCount64();
-		if (op != g_lastOp || now - g_lastLog >= LogIntervalMs) {
-			g_lastOp = op;
-			g_lastLog = now;
-			AsyncLog::InfoF(g_context, "[actions] game command 0x%02X a=%d b=%d from RVA %llX thread=%lu ui_thread=%lu",
+		if (op != g_lastOp) {
+			AsyncLog::InfoF(g_context, "[actions] game command 0x%02X a=%d b=%d from RVA %llX thread=%lu ui_thread=%lu after %llu of 0x%02X",
 				op, a, b, static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(_ReturnAddress()) - g_base),
-				GetCurrentThreadId(), static_cast<unsigned long>(g_uiThread.load()));
+				GetCurrentThreadId(), static_cast<unsigned long>(g_uiThread.load()),
+				static_cast<unsigned long long>(g_repeats), g_lastOp == ~0U ? 0 : g_lastOp);
+			g_lastOp = op;
+			g_repeats = 0;
 		}
+		++g_repeats;
 	}
-	g_original(op, player, a, b);
+	return g_original(op, player, a, b);
 }
 
 bool Call(uint32_t op, int32_t a, int32_t b, const char* what) noexcept {
@@ -86,7 +103,7 @@ bool Call(uint32_t op, int32_t a, int32_t b, const char* what) noexcept {
 		g_command = nullptr;
 		return false;
 	}
-	if (g_logging.load()) AsyncLog::InfoF(g_context, "[actions] %s: command 0x%02X a=%d b=%d", what, op, a, b);
+	if (LogOwn(op)) AsyncLog::InfoF(g_context, "[actions] %s: command 0x%02X a=%d b=%d", what, op, a, b);
 	return true;
 }
 
@@ -127,7 +144,7 @@ bool MoveTo(Radar::Position cell, bool run, bool plain) {
 		g_command = nullptr;
 		return false;
 	}
-	if (g_logging.load()) AsyncLog::InfoF(g_context, "[actions] %s: %d,%d", run ? "run to" : "walk to", Cell(cell.x), Cell(cell.y));
+	if (LogOwn(op)) AsyncLog::InfoF(g_context, "[actions] %s: %d,%d", run ? "run to" : "walk to", Cell(cell.x), Cell(cell.y));
 	return true;
 }
 bool SkillAt(Hand hand, Radar::Position cell) {
