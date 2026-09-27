@@ -27,6 +27,9 @@
 //   Home, End                the menu before and after: character, inventory,
 //                            skill tree, quest log, game menu.
 //   backslash                say it again (Home says it again in play).
+//   Shift+S                  the list of skills for the left hand, in play as
+//                            well (the user, 2026-09-27). The game's own S opens
+//                            the right hand's. The hand is said as the list opens.
 //
 // With an item in hand the cursor goes cell by cell: where the item would be
 // put down matters cell by cell. A connected pad is not touched; with one
@@ -47,6 +50,10 @@ void Deliver(Act act);
 // A click on a button of the open menu by the name its layout gives it, for a
 // key that presses it for the player. False when it is not shown.
 bool Press(const D2RL::PluginContext* context, std::string_view button);
+// A click on the HUD's button of the left hand's skill, which opens the list
+// of skills for that hand, or shuts it when it is open for it. In play as in a
+// menu. False when the button is not shown or gives no rectangle.
+bool LeftSkillList(const D2RL::PluginContext* context);
 // The game's own filling of the belt from the inventory (native_belt_fill.h),
 // while the belt is in the menu. False when there was nothing to fill, the
 // game refused, or the belt is not in the menu.

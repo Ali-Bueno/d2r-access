@@ -10,7 +10,9 @@
 #include "menu_mouse.h"
 #include "native_belt_fill.h"
 #include "native_belt_rows.h"
+#include "localization.h"
 #include "native_ground_items.h"
+#include "native_skill_hand.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
 #include "native_tooltips.h"
@@ -49,6 +51,7 @@ constexpr uint64_t GraceMs = 60;        // how long a key seen directly waits fo
 constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen directly is the same press
 constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server answered is one it refuses
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
+constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
@@ -67,6 +70,11 @@ constexpr std::string_view MessageLog = "MessageLogPanel";
 constexpr std::string_view Hud = "HUDPanel";
 // The HUD's two skill buttons. Between them the HUD has nothing of its own.
 constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
+// The list of skills, one panel for both hands, and the game's own words for
+// each hand: the lines of its help screen for the two mouse buttons.
+constexpr std::string_view SkillList = "SkillSelect";
+constexpr const char* LeftHandKey = "StrHDHelpLeftMouse";
+constexpr const char* RightHandKey = "StrHDHelpRightMouse";
 
 // The menus Home and End go through, each with its button of the mini menu
 // and the start of the name of the panel it opens.
@@ -106,6 +114,8 @@ bool g_beltShown = false;   // the game's "show belt" was turned on from here, a
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
 uint64_t g_lastFill = 0;
+uint64_t g_titleUntil = 0;  // until then the cursor waits to land: what the menu is called is being said
+NativeSkillHand::Hand g_listHand = NativeSkillHand::Hand::None; // the hand the list of skills was last said to be for
 
 struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
 Arrow g_arrows[] = {
@@ -491,6 +501,8 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	g_landedAt = 0;
 	g_toSay.clear();
 	g_said.clear();
+	g_titleUntil = 0;
+	g_listHand = NativeSkillHand::Hand::None;
 	NativeUi::ClearCursor();
 }
 
@@ -514,6 +526,22 @@ void Park(const D2RL::PluginContext* context) {
 	MenuMouse::PlaceAfter(rest);
 }
 
+// The list of skills is one panel for both hands and has no title. The hand it
+// is open for is said when it opens, and again when it changes to the other.
+void SayHand(const D2RL::PluginContext* context, uint64_t now, const std::string& menu) {
+	using NativeSkillHand::Hand;
+	const bool open = (' ' + menu).find(' ' + std::string(SkillList) + ' ') != std::string::npos;
+	const Hand hand = open ? NativeSkillHand::Chosen() : Hand::None;
+	if (hand == g_listHand) return;
+	g_listHand = hand;
+	if (hand == Hand::None) return;
+	const std::string words = UiText::Clean(Localization::Text(hand == Hand::Left ? LeftHandKey : RightHandKey));
+	AsyncLog::InfoF(context, "[cursor] the list of skills is open for the %s hand; said \"%s\"", hand == Hand::Left ? "left" : "right", words.c_str());
+	if (words.empty()) return;
+	ScreenReader::Speak(words, true);
+	g_titleUntil = now + TitleMs;
+}
+
 // The menu as it is now, and the cursor on it: where it was if that still
 // stands, at the menu's first thing otherwise.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
@@ -521,6 +549,7 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	const std::string menu = Build(context);
 	const bool changed = menu != g_menu;
 	g_menu = menu;
+	SayHand(context, now, menu);
 	if (g_targets.empty()) {
 		if (g_place.widget) { g_place = {}; NativeUi::ClearCursor(); }
 		return;
@@ -543,7 +572,10 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	auto place = MenuCursor::Settle(g_targets, g_place);
 	if (!place.widget) place = MenuCursor::First(g_targets);
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
-	if (place != g_place || holding != g_holding || redrawn) (void)Land(context, now, place);
+	if (place == g_place && holding == g_holding && !redrawn) return;
+	// What the menu is called is heard out first, unless an arrow asks sooner.
+	if (now < g_titleUntil) { g_refreshAt = g_titleUntil; return; }
+	(void)Land(context, now, place);
 }
 
 void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
@@ -553,7 +585,10 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 		Refresh(context, now);
 		return; // the first press says where the cursor is
 	}
+	const bool waited = now < g_titleUntil && !g_place.widget;
+	g_titleUntil = 0;
 	Refresh(context, now);
+	if (waited) return; // the press ends the wait, and says where the cursor is
 	if (!g_place.widget) return;
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding, g_links);
@@ -736,6 +771,21 @@ bool Press(const D2RL::PluginContext* context, std::string_view button) {
 	}
 	AsyncLog::InfoF(context, "[cursor] key: %.*s is not in this menu", static_cast<int>(button.size()), button.data());
 	return false;
+}
+
+bool LeftSkillList(const D2RL::PluginContext* context) {
+	const uint64_t now = GetTickCount64();
+	const uintptr_t hud = Foreground() ? NativeWidgets::FindPanel(Hud) : 0;
+	const uintptr_t button = hud && NativeUi::Visible(hud) ? FindNamed(hud, LeftSkill, false, 0) : 0;
+	const auto rect = button ? NativeSkillNavigation::RectAt(button, NativeUi::FocusSelection(button)) : std::nullopt;
+	const bool there = rect && OnScreen(*rect);
+	AsyncLog::InfoF(context, "[cursor] left skill: the HUD's button %s", !button ? "is not shown" : !rect ? "has no rectangle"
+		: there ? "is clicked" : "is off the screen");
+	if (!there) return false;
+	MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
+	NativeTooltips::Discard(now + AfterClickMs);
+	g_refreshAt = now + AfterClickMs;
+	return true;
 }
 
 bool Sort(const D2RL::PluginContext* context) {

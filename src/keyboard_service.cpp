@@ -27,6 +27,7 @@
 #include "native_ground_items.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
+#include "native_skill_hand.h"
 #include "native_skill_navigation.h"
 #include "native_sort.h"
 #include "native_swap.h"
@@ -85,6 +86,9 @@ enum class Command : uint32_t {
 	Settings, SettingsChange,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
+	// In play and in a menu: the list of skills for the left hand. The game's
+	// own key, S, opens the right hand's and it has none for the left.
+	LeftSkill,
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
 	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
@@ -906,8 +910,10 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		|| command == Command::FillBelt)
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
-	if (command == Command::Swap && NativeSkillNavigation::TextEditing().value_or(false)) return D2RL::Input::ActionResult::Ignored;
-	const bool reading = command == Command::Swap || command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
+	if ((command == Command::Swap || command == Command::LeftSkill) && NativeSkillNavigation::TextEditing().value_or(false))
+		return D2RL::Input::ActionResult::Ignored;
+	const bool reading = command == Command::Swap || command == Command::LeftSkill
+		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
 		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
 	if (!reading && !g_playing.load()) {
@@ -960,6 +966,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeSwap::Initialize(context);
 	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
 	if (nativeHooks) (void)NativeBeltFill::Initialize(context);
+	if (nativeHooks) (void)NativeSkillHand::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -995,6 +1002,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
 			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
 			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},
+			Entry{"keyboard-left-skill", "Choose the skill of the left hand", Key::S, Modifier::Shift, Command::LeftSkill},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
 			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
@@ -1047,6 +1055,8 @@ void Tick(const D2RL::PluginContext* context) {
 	if (Settings(command, now)) command = Command::None;
 	if (command == Command::Swap && state.ready) Swap(context, now);
 	SwapAnswer(context, now);
+	if (command == Command::LeftSkill && !(state.ready && KeyboardMenu::LeftSkillList(context)))
+		ScreenReader::Speak(Strings::Current().unavailable, true);
 	Read(command, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
