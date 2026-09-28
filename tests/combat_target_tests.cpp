@@ -198,8 +198,8 @@ int main() {
 		// Only what is on screen is fought: the view is wider than it is tall.
 		const Position player{60, 60};
 		Check(CombatTarget::OnScreen(player, {80, 60}), "a monster 20 to one side of the screen is on it");
-		Check(CombatTarget::OnScreen(player, {72, 48}), "a monster 24 across the screen is on it");
-		Check(!CombatTarget::OnScreen(player, {74, 46}), "a monster 28 across the screen is off it");
+		Check(CombatTarget::OnScreen(player, {76, 44}), "a monster 32 across the screen is on it");
+		Check(!CombatTarget::OnScreen(player, {78, 42}), "a monster 36 across the screen is off it");
 		Check(CombatTarget::OnScreen(player, {78, 78}), "a monster 36 down the screen is on it");
 		Check(!CombatTarget::OnScreen(player, {80, 80}), "a monster 40 down the screen is off it");
 		Check(!CombatTarget::OnScreen(player, {20, 20}), "a monster far up the screen is off it");
