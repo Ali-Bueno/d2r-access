@@ -118,9 +118,11 @@ void Registry::KeepLandmarks() {
 
 void Memory::Select(int level, bool exploration) {
 	if (level == m_level) return;
-	if (!exploration) m_levels.clear();
-	else if (const auto previous = m_levels.find(m_level); previous != m_levels.end())
-		previous->second.KeepLandmarks();
+	// Full assistance keeps every level's discoveries whole for the session, to
+	// be walked back to (the user, 2026-09-28: "if it has been discovered and
+	// loaded, I should be able to return to it using the scanner").
+	if (exploration)
+		if (const auto previous = m_levels.find(m_level); previous != m_levels.end()) previous->second.KeepLandmarks();
 	m_level = level;
 }
 

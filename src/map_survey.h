@@ -74,8 +74,9 @@ private:
 	std::vector<EntityRadar::Entity> m_entities;
 };
 
-// Session-scoped landmark memory. Full assistance keeps the original
-// level-change reset; exploration retains fixed places until Clear.
+// Session-scoped memory of everything discovered, one registry a level. Full
+// assistance keeps every level whole until Clear; exploration keeps only the
+// fixed places of a level it leaves.
 class Memory {
 public:
 	void Select(int level, bool exploration);

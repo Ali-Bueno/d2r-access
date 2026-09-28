@@ -286,14 +286,19 @@ void ReturningToLevelRetainsFixedLandmarks() {
 	Check(memory.Entities().empty(), "a new game or mode reset forgets session landmarks");
 }
 
-void FullAssistanceKeepsLevelChangeReset() {
+void FullAssistanceKeepsEveryLevel() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
 	Memory memory;
-	memory.Observe(1, {Make(1, 24, 20, EntityRadar::Kind::Object)}, grid, false);
+	auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
+	enemy.category = EntityRadar::Category::Enemy;
+	auto loot = Make(3, 26, 20);
+	loot.category = EntityRadar::Category::Item;
+	memory.Observe(1, {Make(1, 24, 20, EntityRadar::Kind::Object), enemy, loot}, grid, false);
 	memory.Select(2, false);
+	Check(memory.Entities().empty(), "another level shows none of this one's");
 	memory.Select(1, false);
-	Check(memory.Entities().empty(), "full assistance retains its level-change reset");
+	Check(memory.Entities().size() == 3, "full assistance keeps everything a level discovered, to walk back to");
 }
 
 }
@@ -367,7 +372,7 @@ int main() {
 	KnownLandmarkSurvivesLossOfSight();
 	ExplorationSurveyUsesOrientation();
 	ReturningToLevelRetainsFixedLandmarks();
-	FullAssistanceKeepsLevelChangeReset();
+	FullAssistanceKeepsEveryLevel();
 	ScannerSplitsLandmarksFromLiveEnemies();
 	ChartedRoomsAdmitLandmarksOutOfSight();
 	FixedPlacesAreTheLayoutsOwn();

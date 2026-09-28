@@ -252,10 +252,8 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
-// Items on the ground are read live as enemies are: one is picked up or dropped
-// at any moment. Every loaded room of the level, however far; no sight needed
-// with full assistance.
-std::vector<EntityRadar::Entity> Items(const Lifecycle& state, const Radar::World& world) {
+// Items on the ground in every loaded room of the level, however far.
+std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 	std::vector<EntityRadar::Entity> items;
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return items;
@@ -270,15 +268,27 @@ std::vector<EntityRadar::Entity> Items(const Lifecycle& state, const Radar::Worl
 		entity.unit = static_cast<uint8_t>(NativeActions::Unit::Item);
 		items.push_back(std::move(entity));
 	}
-	return g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
+	return items;
 }
 
 // Full assistance lists everything loaded. Only what was discovered is kept
 // for this map's later games, in either mode.
+// Enemies and items are remembered as every other thing is (the user,
+// 2026-09-28: everything discovered stays), and forgotten the same way: once
+// the map can see where one was and it is not there -- killed, picked up.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
 	const auto& rooms = CurrentRooms(state.level, state.session);
 	const auto discovered = Discovered(state, world, scene);
-	g_registry.Observe(state.level, g_fullAssistance ? scene.landmarks : discovered, grid, !g_fullAssistance, {}, &scene.landmarks);
+	const auto items = LoadedItems(state);
+	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
+	const auto enemies = Enemies(world, scene);
+	seen.insert(seen.end(), enemies.begin(), enemies.end());
+	const auto found = g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
+	seen.insert(seen.end(), found.begin(), found.end());
+	std::vector<EntityRadar::Entity> present = scene.landmarks;
+	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
+	present.insert(present.end(), items.begin(), items.end());
+	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
 		return CorpseMemory::Covered(rooms, grid, world.player, position);
@@ -311,10 +321,6 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	for (auto& place : TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session)))
 		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) { return EntityRadar::SameTarget(known, place); }))
 			catalogued.push_back(std::move(place));
-	const auto enemies = Enemies(world, scene);
-	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
-	const auto items = Items(state, world);
-	catalogued.insert(catalogued.end(), items.begin(), items.end());
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
