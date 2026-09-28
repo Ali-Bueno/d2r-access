@@ -18,11 +18,12 @@ enum class Button { Left, Right };
 
 // The pointer on the middle of the rectangle, now. False when it could not be put there.
 bool Place(const NativeUi::Rect& rect);
-// A move of one pixel and back, as a hand on the mouse makes: Place moves the
+// A move of two pixels and back, as a hand on the mouse makes: Place moves the
 // pointer without an input event. EXPERIMENT 2026-09-28 for the skills of the
 // skill tree and of the list of skills, whose tooltip, and F1 to F8, came only
-// when something made the game look at what is under the pointer again (the
-// one tooltip of that test came as a panel opened). INFERRED, not measured.
+// when something made the game look at what is under the pointer again: a
+// panel opening, or a click, which is input too (MEASURED 03:25:44). The first
+// try, a relative move of one count, changed nothing (MEASURED 03:25).
 void Nudge();
 // A click where the pointer is.
 void Click(Button button);

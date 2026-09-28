@@ -44,13 +44,21 @@ void Press(Button button, uint64_t settle) {
 }
 
 void Nudge() {
+	POINT at{};
+	if (!GetCursorPos(&at)) return;
+	const int left = GetSystemMetrics(SM_XVIRTUALSCREEN), top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+	const int width = GetSystemMetrics(SM_CXVIRTUALSCREEN), height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	if (width <= 1 || height <= 1) return;
+	// Absolute places: a move of one count relative can come to no pixel at all
+	// once the pointer's acceleration has had its say.
+	const POINT points[2] = {{at.x + 2, at.y}, at};
 	INPUT inputs[2]{};
-	for (auto& input : inputs) {
-		input.type = INPUT_MOUSE;
-		input.mi.dwFlags = MOUSEEVENTF_MOVE;
+	for (int i = 0; i < 2; ++i) {
+		inputs[i].type = INPUT_MOUSE;
+		inputs[i].mi.dx = static_cast<LONG>((static_cast<long long>(points[i].x - left) * 65535) / (width - 1));
+		inputs[i].mi.dy = static_cast<LONG>((static_cast<long long>(points[i].y - top) * 65535) / (height - 1));
+		inputs[i].mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
 	}
-	inputs[0].mi.dx = 1;
-	inputs[1].mi.dx = -1;
 	(void)SendInput(2, inputs, sizeof(INPUT));
 }
 
