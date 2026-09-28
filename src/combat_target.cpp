@@ -88,6 +88,11 @@ double Clearance(Position from, const std::vector<Position>& threats) {
 	return nearest;
 }
 
+bool OnScreen(Position player, Position at, const Screen& screen) {
+	const double dx = at.x - player.x, dy = at.y - player.y;
+	return std::abs(dx - dy) <= screen.halfWidth && std::abs(dx + dy) <= screen.halfHeight;
+}
+
 bool Closing(Position player, const std::vector<Position>& threats, const Spacing& spacing) {
 	return Clearance(player, threats) < spacing.tooClose;
 }

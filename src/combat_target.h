@@ -33,6 +33,17 @@ struct Settings {
 std::vector<Candidate> Rank(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, const Settings& settings = {});
 
+// The part of the world a sighted player sees, the character at its middle.
+// Policy, not read from the game: the legacy 800x600 view at 32 by 16 pixels
+// to a subtile, which D2R's wider view is taken to contain.
+struct Screen {
+	double halfWidth = 25;  // |x - y| of an offset: 400 pixels either side
+	double halfHeight = 37; // |x + y| of an offset: 300 pixels above and below
+};
+// Whether `at` is on the screen around `player`. Only what is on screen can be
+// clicked, so only that is fought or used.
+bool OnScreen(Position player, Position at, const Screen& screen = {});
+
 class Lock {
 public:
 	uint32_t Id() const { return id_; }

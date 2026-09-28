@@ -392,6 +392,7 @@ void BeginUse(const Lifecycle& state) {
 	for (const auto& thing : things) {
 		const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
 		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
+		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
 		nearest = &thing;
 		fewest = steps;
 	}
@@ -540,7 +541,12 @@ CombatTarget::Reach ReachOf(const D2RL::PluginContext* context, Hand hand, uint6
 }
 
 std::vector<CombatTarget::Candidate> Monsters(const Scene& scene) {
-	return CombatTarget::Rank(scene.world, scene.grid, scene.entities, g_targets);
+	auto ranked = CombatTarget::Rank(scene.world, scene.grid, scene.entities, g_targets);
+	// As with a mouse: a monster off the screen cannot be clicked, so it is not fought.
+	std::erase_if(ranked, [&](const CombatTarget::Candidate& monster) {
+		return !CombatTarget::OnScreen(scene.world.player, monster.entity.position);
+	});
+	return ranked;
 }
 
 void StepTarget(const Lifecycle& state, int delta) {
