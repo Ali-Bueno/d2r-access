@@ -22,7 +22,7 @@ before adding one, and read this file first.
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
 | Tab, Shift+Tab | next monster, previous monster, on screen |
-| full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. The next D picks up that item and no other; if it has gone, D says so and takes nothing (`563dd3a`, the user, 2026-09-28) |
+| full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. **Chests and every other container, and corpses, count as items** (the user, 2026-09-28). The next D picks up or opens that one and no other; if it has gone, D says so and takes nothing. On a player's corpse D walks up and says it cannot: the corpse message `0x13` is READ, not verified with the command, and a fault would stop every keyboard action for the session |
 | D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored room |
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
