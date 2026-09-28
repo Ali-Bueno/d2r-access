@@ -687,6 +687,51 @@ int main() {
 	Check(across.Read(entities) && !across.Find(entities, 77), "a neighbour room belonging to another level contributes no entity");
 	foreignEx.At(ExtendedLevel, nearLevel.Address());
 	Check(across.Read(entities) && across.Find(entities, 77), "a neighbour room of this level is still walked");
+
+	// Town NPCs: Lut Gholein (level 40) with Akara's MonStats row placed once in an unloaded room.
+	Fixture town;
+	Memory<0x200> townLevel;
+	Memory<0x100> townFar;
+	Memory<0x30> spawn, secondSpawn;
+	townLevel.At<uint32_t>(LevelId, 40); townLevel.At(LevelFirstRoom, town.roomEx.Address());
+	town.roomEx.At(ExtendedLevel, townLevel.Address()); town.roomEx.At(RoomNext, townFar.Address());
+	townFar.At(ExtendedLevel, townLevel.Address()); townFar.At(RoomPresets, spawn.Address());
+	for (auto* room : {&town.roomEx, &townFar}) {
+		room->At<int>(RoomTileX, 20); room->At<int>(RoomTileY, 20);
+		room->At<int>(RoomTileWidth, 8); room->At<int>(RoomTileHeight, 8);
+	}
+	townFar.At<int>(RoomTileX, 100); townFar.At<int>(RoomTileY, 200);
+	spawn.At<uint32_t>(PresetType, MonsterType); spawn.At<uint32_t>(PresetClass, 0);
+	spawn.At<int>(PresetX, 20); spawn.At<int>(PresetY, 5);
+	const auto readTown = [&](bool townNpcs) {
+		return NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 42, 7, entities, false, false, true, true, 0, townNpcs);
+	};
+	const auto townNpc = [&]() -> const EntityRadar::Entity* {
+		for (const auto& entity : entities) if (entity.kind == EntityRadar::Kind::Npc && entity.placeId) return &entity;
+		return nullptr;
+	};
+	Check(readTown(true) && entities.size() == 10 && town.Find(entities, 7) && town.Find(entities, 7)->placeId == 1,
+		"a loaded town NPC carries its MonStats row as identity and its spawn point adds nothing");
+	town.room.At(GroundItemLayout::RoomFirstUnit, town.enemy.Address());
+	Check(readTown(true) && entities.size() == 10 && townNpc() && townNpc()->name == "Akara"
+		&& townNpc()->position.x == 520 && townNpc()->position.y == 1005,
+		"an unloaded town NPC is listed at its spawn point, named from its MonStats row");
+	Check(readTown(false) && entities.size() == 9 && !townNpc(), "readers that do not opt in keep the nearby units only");
+	townLevel.At<uint32_t>(LevelId, 41);
+	Check(readTown(true) && entities.size() == 9 && !townNpc(), "outside a town nothing changes");
+	townLevel.At<uint32_t>(LevelId, 40);
+	spawn.At<uint32_t>(PresetClass, 1);
+	Check(readTown(true) && entities.size() == 9, "a hostile MonStats row is never a town NPC");
+	spawn.At<uint32_t>(PresetClass, 0);
+	spawn.At(PresetNext, secondSpawn.Address());
+	secondSpawn.At<uint32_t>(PresetType, MonsterType); secondSpawn.At<uint32_t>(PresetClass, 0);
+	secondSpawn.At<int>(PresetX, 1); secondSpawn.At<int>(PresetY, 1);
+	Check(readTown(true) && entities.size() == 9, "a row placed more than once (guards) has no single place to list");
+	spawn.At<uintptr_t>(PresetNext, 0);
+	townFar.At<uintptr_t>(RoomPresets, 0); town.roomEx.At(RoomPresets, spawn.Address());
+	Check(readTown(true) && entities.size() == 9, "a spawn point in a walked room without its NPC is left out");
+	town.room.At(GroundItemLayout::RoomFirstUnit, town.npc.Address());
+	Check(readTown(true) && entities.size() == 10 && town.Find(entities, 7)->placeId == 1, "the NPC back on its spot is its live unit again");
 	Passed();
 	return 0;
 }

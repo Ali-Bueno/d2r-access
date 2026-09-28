@@ -63,6 +63,9 @@ automap; enemies are the one live category.
   map, so a lost player can head somewhere new. Nothing inside an unexplored
   room is revealed: its exits appear once charted, like any landmark. Full
   assistance lists every room never stood in.
+- **Town NPCs** (only in a town, the first level of each act in `Levels.txt`) are listed from
+  anywhere in town once seen, so a lost player can walk back to any of them
+  (`docs/decisions.md`, 2026-09-28). See [Town NPCs](#town-npcs).
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
@@ -76,6 +79,33 @@ automap; enemies are the one live category.
   whenever the automap cannot be read (`docs/automap-reader.md`).
   Readouts give straight-line distance and one of eight screen directions (diagonals such as "arriba y a la izquierda" included, `Radar::ScreenSector`). Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
+
+## Town NPCs
+
+The level's logical rooms keep their presets whether or not the game has them loaded (the walk
+of `docs/distant-exits.md`). A monster preset's class is its MonStats row. A row the `npc` column
+marks and the presets place exactly once is one town NPC, named from its MonStats `NameStr`.
+Its identity (`placeId`) is that row, so the live unit and its spawn point are one target for the
+scanner and the beacon:
+- **Unit loaded:** the NPC is listed where it stands.
+- **Spawn point in an unloaded room:** the NPC is listed at its spawn point.
+- **Spawn point in a room just walked, with no unit:** the NPC is not listed, because it has
+  moved away (for example an NPC that moves after a quest).
+
+**Seen first.** In exploration mode a town NPC is listed only after it has been seen. Seen means
+the exploration rule held at its unit or spawn point: in range and in sight, or in a room the
+automap has drawn. Drawn rooms are saved with the character, so NPCs that character saw in an
+earlier game count from the start; a new character starts with none. A sighting then lasts the whole game, wherever the NPC walks
+(`MapSurvey::TownNpcSightings`). Full assistance lists them all.
+
+Rows placed more than once (guards) and NPCs with no preset keep the ordinary landmark rules.
+Outside towns nothing changes. `[survey] town NPCs on level L: N, S seen: name@x,y/spawn|unit` is
+logged when either count changes. It checks the RoomEx preset lists hold every NPC of the town: a room the
+game never set up may have none (`docs/distant-exits.md#coverage-and-validation`).
+
+Code: `NativeLevelExits::ReadMonsters`, `NativeEntities` `AddTownNpcs` (opt-in `townNpcs`, asked
+for by the scanner and by a beacon locked on a town NPC), `MapSurvey::Scene::townNpcs`,
+`MapSurvey::TownNpcSightings`.
 
 ## Code
 

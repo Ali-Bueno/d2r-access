@@ -29,6 +29,18 @@ Evidence comes from the installed CASC tables extracted with the existing
   or nearby-NPC enumeration service for those handles. Inventory grid x/y values
   are not world coordinates.
 
+## Act II: Lut Gholein (checked 2026-09-28)
+
+- `Levels.txt`: Lut Gholein is level 40, `Act 2 - Town`, one 56 x 56-tile level (DrlgType 2).
+- `LvlPrest.txt`: it is built from the one `Act 2 - Town` preset (Def 301). No tavern, smithy,
+  docks or palace-yard row exists.
+- The palace interior is `Harem Level 1` (level 50, its own `Act 2 - Harem` preset). It is a
+  separate area, reached through its exit like any other level.
+
+So, as in Act I, the game has no names for the parts of a town. The NPCs are the named
+landmarks. Since 2026-09-28 the scanner lists them from anywhere in town once seen
+(`docs/entity-scan.md#town-npcs`).
+
 ## Proposed accessible behavior and next implementation step
 
 Use real named landmarks first: for example, announce "Cerca de Charsi" when

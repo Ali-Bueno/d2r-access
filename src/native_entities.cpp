@@ -1,4 +1,5 @@
 #include "native_entities.h"
+#include "generated/level_flags.h"
 #include "generated/lootables.h"
 #include "layout_check.h"
 #include "entity_layout.h"
@@ -167,6 +168,45 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// ("an evil force"): decoration and helper units, never worth announcing.
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
+}
+// A town NPC's identity is its MonStats row, so the live unit and its spawn point are one target.
+uint64_t TownNpcIdentity(uint32_t classId) { return static_cast<uint64_t>(classId) + 1; }
+// The name of a MonStats row the npc column marks, empty for any other row.
+std::string NpcName(const Tables& tables, uint32_t classId) {
+	if (classId >= tables.monsterCount) return {};
+	const uintptr_t row = tables.monsters + classId * MonStatStride;
+	uint16_t nameId = 0;
+	uint8_t flagsA = 0;
+	if (!Peek(row + MonFlagsA, flagsA) || !(flagsA & FlagNpc) || !Peek(row + MonNameId, nameId) || !nameId) return {};
+	auto name = UiText::Clean(Localization::Text(nameId));
+	return name == PlaceholderName() ? std::string{} : name;
+}
+// In a town, every NPC its presets place once is listed from anywhere in it:
+// the loaded unit where there is one, else its spawn point. A spawn point in a
+// room just walked is left out, as the NPC is not there (docs/entity-scan.md).
+void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& walked, const Tables& tables,
+	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
+	uint32_t levelId = 0;
+	std::vector<NativeLevelExits::MonsterPreset> presets;
+	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town
+		|| !NativeLevelExits::ReadMonsters(room, presets)) return;
+	std::unordered_set<uintptr_t> walkedRooms;
+	for (const auto walkedRoom : walked)
+		if (uintptr_t extended = 0; Peek(walkedRoom + RoomExtended, extended) && extended) walkedRooms.insert(extended);
+	for (const auto& preset : presets) {
+		// Several presets of one row (guards) have no single place to name.
+		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) continue;
+		auto name = NpcName(tables, preset.monster);
+		if (name.empty()) continue;
+		const uint64_t identity = TownNpcIdentity(preset.monster);
+		bool live = false;
+		for (const auto& [index, classId] : liveNpcs)
+			if (classId == preset.monster) entities[index].placeId = identity, live = true;
+		if (live || walkedRooms.contains(preset.room)) continue;
+		EntityRadar::Entity npc{static_cast<uint32_t>(identity), EntityRadar::Kind::Npc, preset.position, std::move(name), identity,
+			false, EntityRadar::Category::Npc};
+		entities.push_back(std::move(npc));
+	}
 }
 // A player's corpse, own or another's: its inventory's link ID names the owner,
 // the same test the game's corpse pickup makes (docs/player-corpse-re.md). The
@@ -475,7 +515,7 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit) {
 		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
 	return count;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool townNpcs) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -510,6 +550,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
+	std::vector<std::pair<size_t, uint32_t>> liveNpcs; // entity index, MonStats row
 	for (const auto candidateRoom : rooms) {
 		uintptr_t unit = 0;
 		if (!Peek(candidateRoom + RoomFirstUnit, unit)) return false;
@@ -523,7 +564,11 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
-				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) entities.push_back(std::move(entity));
+				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
+				if (uint32_t classId = 0; townNpcs && entity.kind == EntityRadar::Kind::Npc && Peek(unit + UnitClass, classId))
+					liveNpcs.emplace_back(entities.size(), classId);
+				entities.push_back(std::move(entity));
+			}
 			if (!Peek(unit + UnitNext, unit)) return false;
 		}
 	}
@@ -561,18 +606,19 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
+	if (townNpcs && level) AddTownNpcs(room, level, rooms, tables, liveNpcs, entities);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool townNpcs) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	uintptr_t roster = 0;
 	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, townNpcs);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

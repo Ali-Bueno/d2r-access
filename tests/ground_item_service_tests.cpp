@@ -72,7 +72,7 @@ bool Read(uint32_t player, uint64_t session, GroundItems::Snapshot& result) {
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return supported; }
-bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits, bool levelBearings) {
+bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits, bool levelBearings, bool) {
 	Check(!distantExits, "proximity loops never request unloaded exit presets");
 	Check(!levelBearings, "proximity loops do not use approximate area bearings");
 	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity");

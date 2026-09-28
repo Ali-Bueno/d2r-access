@@ -3,6 +3,19 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-28 — Town NPCs listed from anywhere in town, no district names
+
+The user found Lut Gholein too big to find the NPCs and asked for tavern/smithy-style places and an
+unlimited NPC range, **only in town**; outside, the scanner stays as it was. The game names no
+district: each town is one Levels.txt level built from one LvlPrest map (`docs/map-landmarks.md`),
+so "taberna" or "herrería" would be names the mod made up, and were turned down. The NPCs who run
+those places are the real landmarks. In towns the scanner now lists every NPC the level's presets
+place once, from anywhere, once it has been seen. It shows the loaded unit if there is one, else its
+spawn point. The user then asked that NPCs not yet seen stay out. "Seen" is the scanner's
+exploration rule: in range and in sight, or standing in a room the automap has drawn. Full
+assistance lists them all, as it does rooms. Rows placed more than once, such as guards, stay as
+before. `docs/entity-scan.md#town-npcs`.
+
 ## 2026-09-26 — Loader 1.3.1-beta adopted, PluginSDK kept at 0.2.0
 
 The user asked to move to the new loader without breaking the mod. 1.3.1-beta keeps plugin ABI 4,

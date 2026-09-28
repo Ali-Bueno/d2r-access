@@ -294,9 +294,11 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 		return false;
 	}
 	// A locked exit may be a warp or a boundary with the next area; read both
-	// so the beacon can still find the one it is leading to.
+	// so the beacon can still find the one it is leading to. A town NPC may be
+	// its spawn point until its unit loads.
 	const bool exit = g_target.entity.kind == EntityRadar::Kind::Exit && g_target.entity.placeId != 0;
-	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit)) return false;
+	const bool townNpc = g_target.entity.kind == EntityRadar::Kind::Npc && g_target.entity.placeId != 0;
+	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, townNpc)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity = entity;

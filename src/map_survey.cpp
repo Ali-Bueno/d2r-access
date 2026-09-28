@@ -184,6 +184,7 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Player) scene.players.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Corpse) scene.corpses.push_back(std::move(entity));
+		else if (entity.category == EntityRadar::Category::Npc && entity.placeId) scene.townNpcs.push_back(std::move(entity));
 		else if (entity.category != EntityRadar::Category::Item
 			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
 			scene.landmarks.push_back(std::move(entity));
@@ -219,6 +220,20 @@ std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 	for (const auto& entity : entities)
 		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None
 			|| InView(world, entity, EntityRadar::Settings{}.range)) result.push_back(entity);
+	return result;
+}
+
+void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& found) {
+	for (const auto& npc : found)
+		if (npc.placeId) m_seen[level].insert(npc.placeId);
+}
+
+std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const {
+	std::vector<EntityRadar::Entity> result;
+	const auto seen = m_seen.find(level);
+	if (seen == m_seen.end()) return result;
+	for (const auto& npc : townNpcs)
+		if (seen->second.contains(npc.placeId)) result.push_back(npc);
 	return result;
 }
 

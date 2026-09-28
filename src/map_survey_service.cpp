@@ -75,6 +75,11 @@ uint64_t                   g_nextObserve = 0;
 // The level the area list was last logged for; diagnostics only.
 int                        g_areaLevel = 0;
 uint64_t                   g_areaSession = 0;
+// How many town NPCs were last logged, and where; diagnostics only.
+int                        g_townNpcLevel = 0;
+uint64_t                   g_townNpcSession = 0;
+size_t                     g_townNpcCount = 0, g_townNpcSeen = 0;
+MapSurvey::TownNpcSightings g_townNpcs;
 
 // What the player is currently pointed at. Kept by identity, not index, so a
 // rescan that adds or removes objects does not silently move the selection.
@@ -101,6 +106,7 @@ void ForgetOtherGames(const Lifecycle& state) {
 		static_cast<unsigned long long>(state.session), g_registry.Entities().size());
 	g_registry.Clear();
 	g_corpses.Clear();
+	g_townNpcs.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
 }
@@ -221,21 +227,42 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 
 using MapSurvey::Scene;
 
+// The town NPCs listed from afar, whenever their number changes: whether every
+// NPC of the town has a spawn point the reader finds (docs/entity-scan.md).
+void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, const Scene& scene) {
+	const size_t seen = g_townNpcs.Seen(state.level, scene.townNpcs).size();
+	if (state.level == g_townNpcLevel && state.session == g_townNpcSession && scene.townNpcs.size() == g_townNpcCount
+		&& seen == g_townNpcSeen) return;
+	g_townNpcLevel = state.level; g_townNpcSession = state.session; g_townNpcCount = scene.townNpcs.size(); g_townNpcSeen = seen;
+	if (scene.townNpcs.empty()) return;
+	std::string listed;
+	for (const auto& npc : scene.townNpcs) {
+		char entry[96]{};
+		std::snprintf(entry, sizeof(entry), " %s@%.0f,%.0f/%s", npc.name.c_str(), npc.position.x, npc.position.y,
+			npc.id == npc.placeId ? "spawn" : "unit");
+		listed += entry;
+	}
+	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu, %zu seen:%s", state.level, scene.townNpcs.size(), seen, listed.c_str());
+}
+
 bool Collect(const Lifecycle& state, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
-	if (!NativeEntities::Read(state.player, state.session, entities, true, true)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true)) return false;
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }
 
 // What exploration counts as found: what came into view and, while the
-// automap can be read, anything in a room it has drawn. An area border also
-// counts where it is walked across, not only at the middle of the edge.
-std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
-	const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session));
-	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
+// automap can be read, anything in a room it has drawn.
+ZoneTransitions::Filter Found(const Lifecycle& state, const Radar::World& world) {
+	return [charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)), &world](const std::vector<EntityRadar::Entity>& entities) {
 		return charted ? MapSurvey::Charted(world, entities, *charted) : MapSurvey::Discoverable(world, entities);
 	};
+}
+
+// The landmarks found. An area border also counts where it is walked across,
+// not only at the middle of the edge.
+std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene, const ZoneTransitions::Filter& found) {
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
 		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
@@ -251,7 +278,9 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 // for this map's later games, in either mode.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
 	const auto& rooms = CurrentRooms(state.level, state.session);
-	const auto discovered = Discovered(state, world, scene);
+	const auto found = Found(state, world);
+	const auto discovered = Discovered(state, world, scene, found);
+	g_townNpcs.Found(state.level, found(scene.townNpcs));
 	g_registry.Observe(state.level, g_fullAssistance ? scene.landmarks : discovered, grid, !g_fullAssistance, {}, &scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
@@ -291,6 +320,10 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
+	// Town NPCs from anywhere in town once seen, all of them with full assistance:
+	// the user asked to find them when lost, but not before seeing them (2026-09-28).
+	const auto townNpcs = g_fullAssistance ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
+	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);
 	catalogued.insert(catalogued.end(), corpses.begin(), corpses.end());
@@ -478,6 +511,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	LogAreas(context, state);
 	const auto grid = Navigation::Build(world, SurveyRadius);
 	Observe(state, world, grid, scene);
+	LogTownNpcs(context, state, scene);
 	// Rooms are marked explored by standing in them, so this has to keep up
 	// with the player rather than wait for the next catalogue question.
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
@@ -495,6 +529,7 @@ void Shutdown() {
 	g_actions.clear();
 	g_registry.Clear();
 	g_corpses.Clear();
+	g_townNpcs.Clear();
 }
 
 }

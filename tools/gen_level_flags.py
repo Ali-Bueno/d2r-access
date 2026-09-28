@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """gen_level_flags.py -- Generates src/generated/level_flags.h, a per-level-id
-table of two Levels.txt facts the plugin needs to describe a level without
-reading game memory: DrlgType (the layout generator: maze/preset/outdoor) and
+table of the Levels.txt facts the plugin needs to describe a level without
+reading game memory: DrlgType (the layout generator: maze/preset/outdoor),
 *IsInside (whether the level has a ceiling/is indoors), read straight off the
-row so the plugin never has to guess.
+row so the plugin never has to guess, and whether the level is its act's town.
+
+The town is the first level of its Act (lowest non-zero Id): each act starts
+there, and the rows are Rogue Encampment, Lut Gholein, Kurast Docks, the
+Pandemonium Fortress and Harrogath. Id 0 is the "Null" row, not a level.
 
 Levels.txt has one non-level row, "Expansion" (all columns blank, including
 Id) -- a section separator Blizzard leaves in the sheet, not a real level; it
@@ -22,7 +26,7 @@ import argparse
 import sys
 from pathlib import Path
 
-REQUIRED_COLUMNS = ("Id", "Name", "DrlgType", "*IsInside")
+REQUIRED_COLUMNS = ("Id", "Name", "Act", "DrlgType", "*IsInside")
 
 
 def load_rows(levels_txt: Path) -> list[dict[str, str]]:
@@ -66,6 +70,11 @@ def main() -> int:
         return 1
 
     rows = load_rows(levels_txt)
+    towns: dict[int, int] = {}
+    for row in rows:
+        level, act = int(row["Id"]), int(row["Act"])
+        if level and (act not in towns or level < towns[act]):
+            towns[act] = level
     entries = []
     for row in rows:
         entries.append({
@@ -73,6 +82,7 @@ def main() -> int:
             "name": row.get("Name", "").strip(),
             "drlgType": int(row["DrlgType"]),
             "inside": row["*IsInside"].strip() == "1",
+            "town": int(row["Id"]) in towns.values(),
         })
     entries.sort(key=lambda e: e["id"])
 
@@ -85,6 +95,7 @@ def main() -> int:
     lines.append("// Levels.txt (unmodified, no interpreted meaning) so the plugin never has to")
     lines.append("// infer indoor/outdoor from anything else. *IsInside is the authoritative flag;")
     lines.append("// drlgType is carried through for callers that need the layout generator kind.")
+    lines.append("// town is the first level of its Act, where the act starts.")
     lines.append("#pragma once")
     lines.append("")
     lines.append("#include <cstddef>")
@@ -96,13 +107,14 @@ def main() -> int:
     lines.append("\tint32_t id;")
     lines.append("\tint32_t drlgType; // Levels.txt DrlgType, unmodified")
     lines.append("\tbool inside;      // Levels.txt *IsInside")
+    lines.append("\tbool town;        // the lowest non-zero Id of its Levels.txt Act")
     lines.append("};")
     lines.append("")
     lines.append("inline constexpr LevelFlags LevelFlagsTable[] = {")
     for e in entries:
         name_comment = f" // {escape_c_string(e['name'])}" if e["name"] else ""
         lines.append(
-            f"\t{{ {e['id']}, {e['drlgType']}, {'true' if e['inside'] else 'false'} }},{name_comment}"
+            f"\t{{ {e['id']}, {e['drlgType']}, {'true' if e['inside'] else 'false'}, {'true' if e['town'] else 'false'} }},{name_comment}"
         )
     lines.append("};")
     lines.append("")
@@ -113,7 +125,7 @@ def main() -> int:
     lines.append("")
     lines.append("// No level with this id exists in Levels.txt: {} for drlgType/inside is not a")
     lines.append("// valid Levels.txt value, so it can't be mistaken for a real row.")
-    lines.append("inline constexpr LevelFlags UnknownLevel{ -1, -1, false };")
+    lines.append("inline constexpr LevelFlags UnknownLevel{ -1, -1, false, false };")
     lines.append("")
     lines.append("inline constexpr const LevelFlags& FindLevelFlags(int32_t id) {")
     lines.append("\tfor (const auto& entry : LevelFlagsTable) {")
@@ -134,6 +146,7 @@ def main() -> int:
     print(f"[gen-level-flags] {len(entries)} levels read from {levels_txt.relative_to(repo_root)}")
     print(f"[gen-level-flags] inside: {inside_count}, outside: {len(entries) - inside_count}")
     print(f"[gen-level-flags] DrlgType counts: {dict(sorted(drlg_counts.items()))}")
+    print(f"[gen-level-flags] towns: {[e['id'] for e in entries if e['town']]}")
     print(f"[gen-level-flags] wrote {out_header}")
 
     return 0

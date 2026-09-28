@@ -2,7 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Filled sockets read natively, cues paused in cinematics — built, not installed, 2026-09-28
+## Seen town NPCs from anywhere in town — installed, 2026-09-28
+
+User, in Lut Gholein: the town is huge. They asked for tavern/smithy-style places and an unlimited
+NPC range, only in town, then for NPCs not yet seen to stay out. **No district names:** the game has
+none. Lut Gholein is one level from one preset (`docs/map-landmarks.md`). **Town NPCs:** in a town,
+the scanner's NPC category lists every NPC already seen, from anywhere. Seen means in range and in
+sight, or in a room the automap drew. It uses the loaded unit, or else the NPC's spawn point from the
+level's presets. The beacon follows either. Full assistance lists all of them. Outside towns nothing
+changes. **81/81 suites pass.** Installed DLL SHA-256 `50B089FA…` matches the build (it also carries
+the sockets/cinematics entry below).
+
+**Next step:** in Lut Gholein, cycle the NPC category from a far corner and follow one with L3.
+Check `[survey] town NPCs`: the total should be every town NPC, and "seen" only those met. A missing
+one points to rooms without presets. `docs/entity-scan.md#town-npcs`.
+
+## Filled sockets read natively, cues paused in cinematics — installed with the town NPC build, 2026-09-28
 
 **Sockets:** the RE found that an item's socketed gems and runes are its own inventory. The item
 count sits at `Inv+0x4C`, verified live: the topaz sword read 1, the controls 0. The reader of the
@@ -18,9 +33,9 @@ Socketing says "Engarzado en X. Huecos libres: N". New `SocketChecks` fingerprin
 **Cinematics:** act videos (`MoviePlayerMessage:Play` … `Cinematics:MovieComplete`) now pause every
 cue, as a pause menu does. The user heard the NPC cue through the Act 2 video.
 
-**81/81 suites pass**; plugin objects compile. **Not installed:** the game was running.
+**81/81 suites pass.** Installed with the town NPC build (`50B089FA…`).
 
-**Next step:** `.\build.ps1`. Live checks: the Filo de la tormenta should say "Huecos llenos" with a
+**Next step:** live checks. The Filo de la tormenta should say "Huecos llenos" with a
 gem in hand, and the next act video should be silent.
 
 ## Socketing: the SDK's filled-socket count is wrong — built, not installed, 2026-09-28
@@ -1316,7 +1331,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |
-| Internal town landmarks | wip — investigated, not implemented | Actual camp/NPC/object records identified; runtime world positions still need deriving. No kitchen/square district labels found in reviewed tables. `docs/map-landmarks.md` |
+| Internal town landmarks | seen NPCs from anywhere in town installed 2026-09-28; live check pending | The game names no district (Acts I and II checked). Town NPCs, once seen, are the landmarks: live unit or preset spawn point. `docs/map-landmarks.md`, `docs/entity-scan.md#town-npcs` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Level scanner (right stick) | user-confirmed 2026-09-24 | Up/down categories, left/right objects, nearest first; enemies live, loot and ordinary chests excluded. Replaces the directional scan and the L3 pathfinder. `docs/entity-scan.md` |
 | Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |

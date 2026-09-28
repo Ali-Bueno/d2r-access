@@ -133,7 +133,7 @@ bool Read(uintptr_t, std::vector<Area>& output) { output = actAreas; return !act
 }
 namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
 namespace D2RAccess::NativeEntities {
-bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool) { return false; }
+bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool) { return false; }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
 }
 namespace D2RAccess::ZoneTransitions {

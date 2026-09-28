@@ -324,11 +324,35 @@ void ScannerSplitsLandmarksFromLiveEnemies() {
 	waypoint.category = EntityRadar::Category::Waypoint;
 	auto ally = Make(6, 25, 20, EntityRadar::Kind::Player);
 	ally.category = EntityRadar::Category::Player;
-	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally});
+	auto npc = Make(7, 26, 20, EntityRadar::Kind::Npc);
+	npc.category = EntityRadar::Category::Npc;
+	auto townNpc = npc;
+	townNpc.id = 8; townNpc.placeId = 155;
+	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally, npc, townNpc});
 	Check(scene.enemies.size() == 1 && scene.enemies.front().id == 1, "enemies are kept apart to be read live");
 	Check(scene.players.size() == 1 && scene.players.front().id == 6, "other players are kept apart to be read live, never remembered");
-	Check(scene.landmarks.size() == 2 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5,
-		"a quest container and a waypoint are landmarks; ordinary chests and loot are left out");
+	Check(scene.townNpcs.size() == 1 && scene.townNpcs.front().id == 8, "a town NPC is kept apart, to be listed from anywhere in town");
+	Check(scene.landmarks.size() == 3 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5 && scene.landmarks[2].id == 7,
+		"a quest container, a waypoint and an NPC outside town are landmarks; ordinary chests and loot are left out");
+}
+
+// A town NPC is listed from afar only once seen, then wherever it walks.
+void TownNpcsListedOnceSeen() {
+	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
+	auto atma = Make(2, 90, 90, EntityRadar::Kind::Npc);
+	atma.category = EntityRadar::Category::Npc; atma.placeId = 177;
+	TownNpcSightings sightings;
+	Check(sightings.Seen(40, {fara, atma}).empty(), "no town NPC is listed before it is seen");
+	sightings.Found(40, {fara});
+	auto walked = fara;
+	walked.id = 55; walked.position = {60, 60};
+	const auto seen = sightings.Seen(40, {walked, atma});
+	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
+		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
+	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
+	sightings.Clear();
+	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
 }
 
 // What a later game on the same map may be told about: only what the layout places.
@@ -369,6 +393,7 @@ int main() {
 	ReturningToLevelRetainsFixedLandmarks();
 	FullAssistanceKeepsLevelChangeReset();
 	ScannerSplitsLandmarksFromLiveEnemies();
+	TownNpcsListedOnceSeen();
 	ChartedRoomsAdmitLandmarksOutOfSight();
 	FixedPlacesAreTheLayoutsOwn();
 	Passed();

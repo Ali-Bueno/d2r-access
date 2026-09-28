@@ -4,6 +4,7 @@
 // Levels.txt (unmodified, no interpreted meaning) so the plugin never has to
 // infer indoor/outdoor from anything else. *IsInside is the authoritative flag;
 // drlgType is carried through for callers that need the layout generator kind.
+// town is the first level of its Act, where the act starts.
 #pragma once
 
 #include <cstddef>
@@ -15,147 +16,148 @@ struct LevelFlags {
 	int32_t id;
 	int32_t drlgType; // Levels.txt DrlgType, unmodified
 	bool inside;      // Levels.txt *IsInside
+	bool town;        // the lowest non-zero Id of its Levels.txt Act
 };
 
 inline constexpr LevelFlags LevelFlagsTable[] = {
-	{ 0, 0, false }, // Null
-	{ 1, 2, false }, // Act 1 - Town
-	{ 2, 3, false }, // Act 1 - Wilderness 1
-	{ 3, 3, false }, // Act 1 - Wilderness 2
-	{ 4, 3, false }, // Act 1 - Wilderness 3
-	{ 5, 3, false }, // Act 1 - Wilderness 4
-	{ 6, 3, false }, // Act 1 - Wilderness 5
-	{ 7, 3, false }, // Act 1 - Wilderness 6
-	{ 8, 1, true }, // Act 1 - Cave 1
-	{ 9, 1, true }, // Act 1 - Cave 2
-	{ 10, 1, true }, // Act 1 - Cave 3
-	{ 11, 1, true }, // Act 1 - Cave 4
-	{ 12, 1, true }, // Act 1 - Cave 5
-	{ 13, 2, true }, // Act 1 - Cave 2 Treasure
-	{ 14, 2, true }, // Act 1 - Cave 3 Treasure
-	{ 15, 2, true }, // Act 1 - Cave 4 Treasure
-	{ 16, 2, true }, // Act 1 - Cave 5 Treasure
-	{ 17, 3, false }, // Act 1 - Graveyard
-	{ 18, 1, true }, // Act 1 - Crypt 1 A
-	{ 19, 1, true }, // Act 1 - Crypt 2 A
-	{ 20, 2, true }, // Act 1 - Tower 2
-	{ 21, 1, true }, // Act 1 - Crypt 3 A
-	{ 22, 1, true }, // Act 1 - Crypt 3 B
-	{ 23, 1, true }, // Act 1 - Crypt 3 C
-	{ 24, 1, true }, // Act 1 - Crypt 3 D
-	{ 25, 2, true }, // Act 1 - Crypt 3 E
-	{ 26, 2, false }, // Act 1 - Monastery
-	{ 27, 2, false }, // Act 1 - Courtyard 1
-	{ 28, 1, true }, // Act 1 - Barracks
-	{ 29, 1, true }, // Act 1 - Jail 1
-	{ 30, 1, true }, // Act 1 - Jail 2
-	{ 31, 1, true }, // Act 1 - Jail 3
-	{ 32, 2, false }, // Act 1 - Courtyard 2
-	{ 33, 2, true }, // Act 1 - Cathedral
-	{ 34, 1, true }, // Act 1 - Catacombs 1
-	{ 35, 1, true }, // Act 1 - Catacombs 2
-	{ 36, 1, true }, // Act 1 - Catacombs 3
-	{ 37, 2, true }, // Act 1 - Catacombs 4
-	{ 38, 2, false }, // Act 1 - Tristram
-	{ 39, 3, false }, // Act 1 - Moo Moo Farm
-	{ 40, 2, false }, // Act 2 - Town
-	{ 41, 3, false }, // Act 2 - Desert 1
-	{ 42, 3, false }, // Act 2 - Desert 2
-	{ 43, 3, false }, // Act 2 - Desert 3
-	{ 44, 3, false }, // Act 2 - Desert 4
-	{ 45, 3, false }, // Act 2 - Desert 5
-	{ 46, 3, false }, // Act 2 - Valley of the Kings
-	{ 47, 1, true }, // Act 2 - Sewer 1 A
-	{ 48, 1, true }, // Act 2 - Sewer 1 B
-	{ 49, 1, true }, // Act 2 - Sewer 1 C
-	{ 50, 2, true }, // Act 2 - Harem
-	{ 51, 1, true }, // Act 2 - Corrupt Harem 1
-	{ 52, 1, true }, // Act 2 - Basement 1
-	{ 53, 1, true }, // Act 2 - Basement 2
-	{ 54, 1, true }, // Act 2 - Basement 3
-	{ 55, 1, true }, // Act 2 - Tomb 1 A
-	{ 56, 1, true }, // Act 2 - Tomb 2 A
-	{ 57, 1, true }, // Act 2 - Tomb 2 B
-	{ 58, 1, true }, // Act 2 - Tomb 3 A
-	{ 59, 1, true }, // Act 2 - Tomb 1 Treasure
-	{ 60, 1, true }, // Act 2 - Tomb 2 Treasure
-	{ 61, 1, true }, // Act 2 - Tomb 3 Treasure
-	{ 62, 1, true }, // Act 2 - Lair 1 A
-	{ 63, 1, true }, // Act 2 - Lair 1 B
-	{ 64, 1, true }, // Act 2 - Lair 1 Treasure
-	{ 65, 1, true }, // Act 2 - Sewer 2 A
-	{ 66, 1, true }, // Act 2 - Tomb Tal 1
-	{ 67, 1, true }, // Act 2 - Tomb Tal 2
-	{ 68, 1, true }, // Act 2 - Tomb Tal 3
-	{ 69, 1, true }, // Act 2 - Tomb Tal 4
-	{ 70, 1, true }, // Act 2 - Tomb Tal 5
-	{ 71, 1, true }, // Act 2 - Tomb Tal 6
-	{ 72, 1, true }, // Act 2 - Tomb Tal 7
-	{ 73, 2, true }, // Act 2 - Duriel's Lair
-	{ 74, 1, true }, // Act 2 - Arcane
-	{ 75, 2, false }, // Act 3 - Town
-	{ 76, 3, false }, // Act 3 - Jungle 1
-	{ 77, 3, false }, // Act 3 - Jungle 2
-	{ 78, 3, false }, // Act 3 - Jungle 3
-	{ 79, 3, false }, // Act 3 - Kurast 1
-	{ 80, 3, false }, // Act 3 - Kurast 2
-	{ 81, 3, false }, // Act 3 - Kurast 3
-	{ 82, 3, false }, // Act 3 - Kurast 4
-	{ 83, 3, false }, // Act 3 - Travincal
-	{ 84, 1, true }, // Act 3 - Spider 1
-	{ 85, 1, true }, // Act 3 - Spider 2
-	{ 86, 1, true }, // Act 3 - Dungeon 1 A
-	{ 87, 1, true }, // Act 3 - Dungeon 1 B
-	{ 88, 1, true }, // Act 3 - Dungeon 2 A
-	{ 89, 1, true }, // Act 3 - Dungeon 2 B
-	{ 90, 2, true }, // Act 3 - Dungeon 1 Treasure
-	{ 91, 2, true }, // Act 3 - Dungeon 2 Treasure
-	{ 92, 1, true }, // Act 3 - Sewer 1
-	{ 93, 2, true }, // Act 3 - Sewer 2
-	{ 94, 2, true }, // Act 3 - Temple 1
-	{ 95, 2, true }, // Act 3 - Temple 2
-	{ 96, 2, true }, // Act 3 - Temple 3
-	{ 97, 2, true }, // Act 3 - Temple 4
-	{ 98, 2, true }, // Act 3 - Temple 5
-	{ 99, 2, true }, // Act 3 - Temple 6
-	{ 100, 1, true }, // Act 3 - Mephisto 1
-	{ 101, 1, true }, // Act 3 - Mephisto 2
-	{ 102, 2, true }, // Act 3 - Mephisto 3
-	{ 103, 2, false }, // Act 4 - Town
-	{ 104, 3, false }, // Act 4 - Mesa 1
-	{ 105, 3, false }, // Act 4 - Mesa 2
-	{ 106, 3, false }, // Act 4 - Mesa 3
-	{ 107, 1, false }, // Act 4 - Lava 1
-	{ 108, 3, false }, // Act 4 - Diablo 1
-	{ 109, 2, false }, // Act 5 - Town
-	{ 110, 3, false }, // Act 5 - Siege 1
-	{ 111, 3, false }, // Act 5 - Barricade 1
-	{ 112, 3, false }, // Act 5 - Barricade 2
-	{ 113, 1, true }, // Act 5 - Ice Cave 1
-	{ 114, 1, true }, // Act 5 - Ice Cave 1A
-	{ 115, 1, true }, // Act 5 - Ice Cave 2
-	{ 116, 1, true }, // Act 5 - Ice Cave 2A
-	{ 117, 3, false }, // Act 5 - Barricade Snow
-	{ 118, 1, true }, // Act 5 - Ice Cave 3
-	{ 119, 1, true }, // Act 5 - Ice Cave 3A
-	{ 120, 2, false }, // Act 5 - Mountain Top
-	{ 121, 2, true }, // Act 5 - Temple Entrance
-	{ 122, 1, true }, // Act 5 - Temple 1
-	{ 123, 1, true }, // Act 5 - Temple 2
-	{ 124, 2, true }, // Act 5 - Temple Boss
-	{ 125, 1, false }, // Act 5 - Hell 1
-	{ 126, 1, false }, // Act 5 - Hell 2
-	{ 127, 1, false }, // Act 5 - Hell 3
-	{ 128, 1, true }, // Act 5 - Baal Temple 1
-	{ 129, 1, true }, // Act 5 - Baal Temple 2
-	{ 130, 1, true }, // Act 5 - Baal Temple 3
-	{ 131, 2, true }, // Act 5 - Throne Room
-	{ 132, 2, true }, // Act 5 - World Stone
-	{ 133, 1, true }, // Act 5 - Pandemonium 1
-	{ 134, 3, false }, // Act 5 - Pandemonium 2
-	{ 135, 1, false }, // Act 5 - Pandemonium 3
-	{ 136, 2, false }, // Act 5 - Pandemonium Finale
-	{ 137, 2, false }, // Act 5 - Colossal Summit
+	{ 0, 0, false, false }, // Null
+	{ 1, 2, false, true }, // Act 1 - Town
+	{ 2, 3, false, false }, // Act 1 - Wilderness 1
+	{ 3, 3, false, false }, // Act 1 - Wilderness 2
+	{ 4, 3, false, false }, // Act 1 - Wilderness 3
+	{ 5, 3, false, false }, // Act 1 - Wilderness 4
+	{ 6, 3, false, false }, // Act 1 - Wilderness 5
+	{ 7, 3, false, false }, // Act 1 - Wilderness 6
+	{ 8, 1, true, false }, // Act 1 - Cave 1
+	{ 9, 1, true, false }, // Act 1 - Cave 2
+	{ 10, 1, true, false }, // Act 1 - Cave 3
+	{ 11, 1, true, false }, // Act 1 - Cave 4
+	{ 12, 1, true, false }, // Act 1 - Cave 5
+	{ 13, 2, true, false }, // Act 1 - Cave 2 Treasure
+	{ 14, 2, true, false }, // Act 1 - Cave 3 Treasure
+	{ 15, 2, true, false }, // Act 1 - Cave 4 Treasure
+	{ 16, 2, true, false }, // Act 1 - Cave 5 Treasure
+	{ 17, 3, false, false }, // Act 1 - Graveyard
+	{ 18, 1, true, false }, // Act 1 - Crypt 1 A
+	{ 19, 1, true, false }, // Act 1 - Crypt 2 A
+	{ 20, 2, true, false }, // Act 1 - Tower 2
+	{ 21, 1, true, false }, // Act 1 - Crypt 3 A
+	{ 22, 1, true, false }, // Act 1 - Crypt 3 B
+	{ 23, 1, true, false }, // Act 1 - Crypt 3 C
+	{ 24, 1, true, false }, // Act 1 - Crypt 3 D
+	{ 25, 2, true, false }, // Act 1 - Crypt 3 E
+	{ 26, 2, false, false }, // Act 1 - Monastery
+	{ 27, 2, false, false }, // Act 1 - Courtyard 1
+	{ 28, 1, true, false }, // Act 1 - Barracks
+	{ 29, 1, true, false }, // Act 1 - Jail 1
+	{ 30, 1, true, false }, // Act 1 - Jail 2
+	{ 31, 1, true, false }, // Act 1 - Jail 3
+	{ 32, 2, false, false }, // Act 1 - Courtyard 2
+	{ 33, 2, true, false }, // Act 1 - Cathedral
+	{ 34, 1, true, false }, // Act 1 - Catacombs 1
+	{ 35, 1, true, false }, // Act 1 - Catacombs 2
+	{ 36, 1, true, false }, // Act 1 - Catacombs 3
+	{ 37, 2, true, false }, // Act 1 - Catacombs 4
+	{ 38, 2, false, false }, // Act 1 - Tristram
+	{ 39, 3, false, false }, // Act 1 - Moo Moo Farm
+	{ 40, 2, false, true }, // Act 2 - Town
+	{ 41, 3, false, false }, // Act 2 - Desert 1
+	{ 42, 3, false, false }, // Act 2 - Desert 2
+	{ 43, 3, false, false }, // Act 2 - Desert 3
+	{ 44, 3, false, false }, // Act 2 - Desert 4
+	{ 45, 3, false, false }, // Act 2 - Desert 5
+	{ 46, 3, false, false }, // Act 2 - Valley of the Kings
+	{ 47, 1, true, false }, // Act 2 - Sewer 1 A
+	{ 48, 1, true, false }, // Act 2 - Sewer 1 B
+	{ 49, 1, true, false }, // Act 2 - Sewer 1 C
+	{ 50, 2, true, false }, // Act 2 - Harem
+	{ 51, 1, true, false }, // Act 2 - Corrupt Harem 1
+	{ 52, 1, true, false }, // Act 2 - Basement 1
+	{ 53, 1, true, false }, // Act 2 - Basement 2
+	{ 54, 1, true, false }, // Act 2 - Basement 3
+	{ 55, 1, true, false }, // Act 2 - Tomb 1 A
+	{ 56, 1, true, false }, // Act 2 - Tomb 2 A
+	{ 57, 1, true, false }, // Act 2 - Tomb 2 B
+	{ 58, 1, true, false }, // Act 2 - Tomb 3 A
+	{ 59, 1, true, false }, // Act 2 - Tomb 1 Treasure
+	{ 60, 1, true, false }, // Act 2 - Tomb 2 Treasure
+	{ 61, 1, true, false }, // Act 2 - Tomb 3 Treasure
+	{ 62, 1, true, false }, // Act 2 - Lair 1 A
+	{ 63, 1, true, false }, // Act 2 - Lair 1 B
+	{ 64, 1, true, false }, // Act 2 - Lair 1 Treasure
+	{ 65, 1, true, false }, // Act 2 - Sewer 2 A
+	{ 66, 1, true, false }, // Act 2 - Tomb Tal 1
+	{ 67, 1, true, false }, // Act 2 - Tomb Tal 2
+	{ 68, 1, true, false }, // Act 2 - Tomb Tal 3
+	{ 69, 1, true, false }, // Act 2 - Tomb Tal 4
+	{ 70, 1, true, false }, // Act 2 - Tomb Tal 5
+	{ 71, 1, true, false }, // Act 2 - Tomb Tal 6
+	{ 72, 1, true, false }, // Act 2 - Tomb Tal 7
+	{ 73, 2, true, false }, // Act 2 - Duriel's Lair
+	{ 74, 1, true, false }, // Act 2 - Arcane
+	{ 75, 2, false, true }, // Act 3 - Town
+	{ 76, 3, false, false }, // Act 3 - Jungle 1
+	{ 77, 3, false, false }, // Act 3 - Jungle 2
+	{ 78, 3, false, false }, // Act 3 - Jungle 3
+	{ 79, 3, false, false }, // Act 3 - Kurast 1
+	{ 80, 3, false, false }, // Act 3 - Kurast 2
+	{ 81, 3, false, false }, // Act 3 - Kurast 3
+	{ 82, 3, false, false }, // Act 3 - Kurast 4
+	{ 83, 3, false, false }, // Act 3 - Travincal
+	{ 84, 1, true, false }, // Act 3 - Spider 1
+	{ 85, 1, true, false }, // Act 3 - Spider 2
+	{ 86, 1, true, false }, // Act 3 - Dungeon 1 A
+	{ 87, 1, true, false }, // Act 3 - Dungeon 1 B
+	{ 88, 1, true, false }, // Act 3 - Dungeon 2 A
+	{ 89, 1, true, false }, // Act 3 - Dungeon 2 B
+	{ 90, 2, true, false }, // Act 3 - Dungeon 1 Treasure
+	{ 91, 2, true, false }, // Act 3 - Dungeon 2 Treasure
+	{ 92, 1, true, false }, // Act 3 - Sewer 1
+	{ 93, 2, true, false }, // Act 3 - Sewer 2
+	{ 94, 2, true, false }, // Act 3 - Temple 1
+	{ 95, 2, true, false }, // Act 3 - Temple 2
+	{ 96, 2, true, false }, // Act 3 - Temple 3
+	{ 97, 2, true, false }, // Act 3 - Temple 4
+	{ 98, 2, true, false }, // Act 3 - Temple 5
+	{ 99, 2, true, false }, // Act 3 - Temple 6
+	{ 100, 1, true, false }, // Act 3 - Mephisto 1
+	{ 101, 1, true, false }, // Act 3 - Mephisto 2
+	{ 102, 2, true, false }, // Act 3 - Mephisto 3
+	{ 103, 2, false, true }, // Act 4 - Town
+	{ 104, 3, false, false }, // Act 4 - Mesa 1
+	{ 105, 3, false, false }, // Act 4 - Mesa 2
+	{ 106, 3, false, false }, // Act 4 - Mesa 3
+	{ 107, 1, false, false }, // Act 4 - Lava 1
+	{ 108, 3, false, false }, // Act 4 - Diablo 1
+	{ 109, 2, false, true }, // Act 5 - Town
+	{ 110, 3, false, false }, // Act 5 - Siege 1
+	{ 111, 3, false, false }, // Act 5 - Barricade 1
+	{ 112, 3, false, false }, // Act 5 - Barricade 2
+	{ 113, 1, true, false }, // Act 5 - Ice Cave 1
+	{ 114, 1, true, false }, // Act 5 - Ice Cave 1A
+	{ 115, 1, true, false }, // Act 5 - Ice Cave 2
+	{ 116, 1, true, false }, // Act 5 - Ice Cave 2A
+	{ 117, 3, false, false }, // Act 5 - Barricade Snow
+	{ 118, 1, true, false }, // Act 5 - Ice Cave 3
+	{ 119, 1, true, false }, // Act 5 - Ice Cave 3A
+	{ 120, 2, false, false }, // Act 5 - Mountain Top
+	{ 121, 2, true, false }, // Act 5 - Temple Entrance
+	{ 122, 1, true, false }, // Act 5 - Temple 1
+	{ 123, 1, true, false }, // Act 5 - Temple 2
+	{ 124, 2, true, false }, // Act 5 - Temple Boss
+	{ 125, 1, false, false }, // Act 5 - Hell 1
+	{ 126, 1, false, false }, // Act 5 - Hell 2
+	{ 127, 1, false, false }, // Act 5 - Hell 3
+	{ 128, 1, true, false }, // Act 5 - Baal Temple 1
+	{ 129, 1, true, false }, // Act 5 - Baal Temple 2
+	{ 130, 1, true, false }, // Act 5 - Baal Temple 3
+	{ 131, 2, true, false }, // Act 5 - Throne Room
+	{ 132, 2, true, false }, // Act 5 - World Stone
+	{ 133, 1, true, false }, // Act 5 - Pandemonium 1
+	{ 134, 3, false, false }, // Act 5 - Pandemonium 2
+	{ 135, 1, false, false }, // Act 5 - Pandemonium 3
+	{ 136, 2, false, false }, // Act 5 - Pandemonium Finale
+	{ 137, 2, false, false }, // Act 5 - Colossal Summit
 };
 
 // Levels.txt row count (excluding the blank "Expansion" separator row): the
@@ -165,7 +167,7 @@ inline constexpr size_t LevelRowCount = 138;
 
 // No level with this id exists in Levels.txt: {} for drlgType/inside is not a
 // valid Levels.txt value, so it can't be mistaken for a real row.
-inline constexpr LevelFlags UnknownLevel{ -1, -1, false };
+inline constexpr LevelFlags UnknownLevel{ -1, -1, false, false };
 
 inline constexpr const LevelFlags& FindLevelFlags(int32_t id) {
 	for (const auto& entry : LevelFlagsTable) {
