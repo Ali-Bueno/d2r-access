@@ -92,7 +92,7 @@ game's code, not pressed in a test).
 | key | what |
 |---|---|
 | Ctrl+S | the list of the mod's switches, open and shut |
-| PageUp, PageDown, Space | with that list open: previous, next, change |
+| PageUp, PageDown, Space | with that list open: previous, next, change. **The arrows do not step through it and walk the character instead** (MEASURED 2026-09-27 18:19; the user expects the arrows). To be built; what changes a switch with the arrows is the user's to say |
 | Ctrl+D | the whole description on every move, on and off |
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |

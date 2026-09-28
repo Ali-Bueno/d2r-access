@@ -15,16 +15,58 @@ repository: `re/actions/swap`, `belt`, `widgets`, `skilltree`, `charcreate`,
 each with a `notes.txt` that has the offsets, the functions and their
 fingerprints. **Read the notes before reading the image again.**
 
-## The state in one paragraph
+## THE THIRD LIVE TEST, 18:12: READ THIS FIRST
 
-Two live tests have run, the second at 12:18. **No test has run since**, so
-nothing built after it has been heard or pressed in the game: not the three
-fixes of the third session, and nothing of the fourth. The user's word on the
+The test ran after this file was written; the rest of the file is as it was
+before it. The findings, with the log lines, are in `keyboard-play.md`
+("What the third live test measured"). In short:
+
+**Works, MEASURED:** walking, fighting, Tab, Shift+Home, D on an NPC and the
+NPC's menu, the retreat, Z and X, Y, the pause menu, the game's S with the
+hand said, a skill put on the hand with A, A on a character beginning the
+game, a dropdown opened and a row chosen.
+
+**Broken, MEASURED, and the work of the next session, in this order:**
+
+1. **The arrows on character creation.** The user: *"completely broken, not
+   all elements are reachable. namely class select, name entry"*. Seven of
+   the screen's fifteen places were never landed on in 73 seconds, the name
+   box among them. Nothing is out of the arrows' reach; the way to it
+   cannot be found by ear: up from every class is the "Toggle" button, the
+   name box is below four of the eight classes only, and a step and the step
+   back do not match. **The arrows have to go by rows on a screen like this,
+   which is the user's to agree to first.** The table of where each arrow
+   leads is in the workspace's `HANDOFF.md`.
+2. **A class says nothing for 450 ms.** No reader names it, and the cursor
+   waits that long before it does. Only "Druid" was ever heard. The same
+   wait holds for a dropdown's rows and for the skills of the list of skills.
+3. **The game version is not read.** The dropdown is "Game Version,
+   dropdown" with no value, and the button beside it is read with a raw
+   `%s`. The user: *"game version does not read correctly"*.
+4. **After a dropdown closes the cursor is thrown to the screen's first
+   place**, which on character creation is the "Toggle" button.
+5. **The mod's settings list does not take the arrows.** The user: *"the
+   character moves instead of navigating the settings"*. It was built on
+   PageUp, PageDown and Space, and nothing keeps the arrows from walking the
+   character while it is open.
+6. **The log does not say what was spoken.** Several paths speak without a
+   line, so what the user heard on a row or a skill cannot be read back.
+7. Scroll bars and their arrows are places and are called "UpArrow",
+   "ScrollBar"; the character panel has sixteen places called "Tooltip".
+8. In the list of skills the Tome of Town Portal is read as "4", the number
+   on its icon.
+
+**Not pressed in the test:** Shift+S, the inventory, the belt, the skill
+tree, the options and their sliders. Items 1, 2 and the skill tree's part of
+5 below are still "built, not measured" for those.
+
+## The state before the third test
+
+Two live tests had run, the second at 12:18. The user's word on the
 second test, 2026-09-27: the pointer system works *"even better than I
 expected"*, and the keys are taken from the game as they should be. What the
-fourth session built is READ from the game's code and tested outside the
-game. **The next thing is the third live test**; its list is in
-`keyboard-play.md`.
+fourth session built was READ from the game's code and tested outside the
+game.
 
 ## What was done in the fourth session
 

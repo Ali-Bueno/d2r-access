@@ -138,6 +138,34 @@ End in a menu. No inventory, skill tree, quest log or options panel was
 opened, so **the cursor in a grid of items, the belt and the readers of items
 are still unmeasured.**
 
+## What the third live test measured
+
+Session of 2026-09-27 18:12 to 18:20, keyboard mode, no controller, the build
+of `472d872`. Its log is kept in the workspace, outside this repository, as
+`re/logs/keyboard-third-live-test-2026-09-27.log`. **Nothing was built after
+it.** The whole account, with the table of where each arrow leads on
+character creation, is at the top of the workspace's `HANDOFF.md`.
+
+| finding | evidence |
+|---|---|
+| Every native module matches the game, the five new ones among them | `Verified.` after `[skill-hand]`, `[skill-icons]`, `[values]`, `[classes]`, `[rows]`; `[keyboard] 29 of 29 keys registered` |
+| **The character walks** | 69 `[actions] run to` lines; no `not in play` line in the log |
+| The character fights, picks a monster with Tab, walks to what the scanner named, retreats | `fight: hand=left skill=0`, `left skill on: command 0x06`; `target id=16`; `walk to id=2 ... ended: arrived`; `retreat: to Blood Moor` |
+| D talks to an NPC and the NPC's menu works | `use id=11 ... name=Warriv`, `left click on ListItem0`, the speech read |
+| Y swaps, Z and X say life and mana | `[swap] the game's swap key handler: ran`, `[weapon-swap] set=1`; `[vitals] report life=40 mana=100` |
+| **A on a character begins the game** | `left click, twice on ListItem0`, `CharacterSelect:SelectCharacter` 277 ms later |
+| **The hand of the list of skills is said, and A puts a skill on it** | `the list of skills is open for the right hand; said "Right Mouse-Button Skill"`; `left click on ButtonTemplate3`, then `fight: hand=right skill=97` |
+| The list's icons hold the skills the code said they hold | `skill id=220 "Tome of Town Portal"` and seven more, each by its name |
+| **FAULT: on character creation seven of fifteen places were never reached**, the name box among them | the `[cursor] on` lines: ToggleLegacy 14 times, the info button 10, the dropdown 9, Druid 8, Warlock 5, Sorceress 4, Create 3, Paladin 1; none for the rest |
+| **FAULT: a class is silent for 450 ms** and only "Druid" was ever said | `[cursor] no reader named it; said "Druid"` three times, 430 to 460 ms after the landing; no stay on a class lasted over 590 ms |
+| **FAULT: the game version is not read** | `"Game Version, dropdown"` with no value; `"Create a '%s' version of your character., button"`; `[value] ... GameVersionDropdown -> ""` |
+| **FAULT: after a dropdown closes the cursor is on the screen's first place** | `[cursor] on ToggleLegacy` after each of three |
+| **FAULT: the arrows walk the character while the mod's settings list is open** | `[keyboard] settings: Settings. Auto detail off` at 18:19:54.772, `[actions] run to` at 18:19:56.088 |
+| FAULT: a skill of the list is read as the number on its icon, or not at all | `[interaction] SkillSelect -> "4"` on the Tome of Town Portal |
+| FAULT: scroll bars and their arrows are places | the cursor on `UpArrow`, `ScrollBar`, said by those names |
+| OPEN: a weapon swap the mod was not asked for | `[weapon-swap] set=2` at 18:19:38.713, no `[swap]` line before it |
+| OPEN: what was said where the log has no line | the cursor's "nothing that way" and some readers speak without a log line |
+
 ## The menus: how they are built
 
 The user's decisions, 2026-09-27:
