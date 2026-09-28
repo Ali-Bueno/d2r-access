@@ -125,6 +125,18 @@ void AbsenceOutsideTheMapIsNotForgetting() {
 		"an object outside what the map currently knows is kept: that is what the player still has to walk to");
 }
 
+void AbsenceBeyondTheScanIsNotForgetting() {
+	Radar::World world = OpenWorld();
+	// The grid knows the whole room, but the object stood some 25 subtiles
+	// away: the game may still hold the floor there and not the thing on it.
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	registry.Observe(1, {Make(1, 38, 38)}, grid);
+	for (int i = 0; i < 10; ++i) registry.Observe(1, {}, grid);
+	Check(registry.Entities().size() == 1,
+		"an object beyond the scan's reach is kept however long it is missing, to walk back to");
+}
+
 void ChangingLevelClears() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -364,6 +376,7 @@ int main() {
 	ReachableSortsAheadOfUnreachable();
 	OutOfViewObjectsAreKept();
 	AbsenceOutsideTheMapIsNotForgetting();
+	AbsenceBeyondTheScanIsNotForgetting();
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();

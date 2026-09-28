@@ -42,12 +42,17 @@ struct Settings {
 	// An object is only dropped once the map has had this many chances to show
 	// it again, so a monster stepping behind a corner does not erase it.
 	int missesBeforeForgetting = 3;
+	// And only while its place is this close to the player. The map reaches
+	// further than the things standing on it: MEASURED 2026-09-28, Charsi and
+	// Gheed left the list from across the camp, their places still on the map,
+	// and came back when walked toward. Close by, a missing thing is gone.
+	double forgetWithin = EntityRadar::Settings{}.range;
 };
 
 // What has been seen on the current level. Entities come and go as the world
 // window moves, so this accumulates them instead of trusting one frame, and
-// drops one only when the map can currently see its last known place and it is
-// no longer there. Changing level clears everything.
+// drops one only when the map can currently see its last known place, within
+// the scan's reach, and it is no longer there. Changing level clears everything.
 class Registry {
 public:
 	// `visible` is what the world reports right now; `grid` says which cells

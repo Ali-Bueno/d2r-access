@@ -35,8 +35,11 @@ int Round(double value) { return static_cast<int>(std::lround(value)); }
 
 // True when the map currently has an opinion about this cell. An entity whose
 // last known cell is outside the grid, or inside it but still unknown, has not
-// been shown to be gone -- it is simply out of view.
-bool Observed(const Navigation::Grid& grid, Radar::Position position) {
+// been shown to be gone -- it is simply out of view. So is one further from
+// the player than `within`, where the game may hold the map but not the thing.
+bool Observed(const Navigation::Grid& grid, Radar::Position position, double within) {
+	const double dx = position.x - grid.playerX, dy = position.y - grid.playerY;
+	if (dx * dx + dy * dy > within * within) return false;
 	const Navigation::Cell* cell = grid.At(Round(position.x), Round(position.y));
 	return cell != nullptr && cell->body != Radar::State::Unknown;
 }
@@ -92,7 +95,7 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 		const bool stillPresent = std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&tracked](const EntityRadar::Entity& entity) {
 			return EntityRadar::SameTarget(tracked.entity, entity);
 		});
-		if (!stillPresent && Observed(grid, tracked.entity.position)) ++tracked.misses;
+		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
 	m_tracked.erase(std::remove_if(m_tracked.begin(), m_tracked.end(), [&settings](const Tracked& tracked) {
 		return tracked.misses >= settings.missesBeforeForgetting;
