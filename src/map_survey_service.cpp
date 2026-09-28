@@ -234,7 +234,7 @@ using MapSurvey::Scene;
 
 bool Collect(const Lifecycle& state, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
-	if (!NativeEntities::Read(state.player, state.session, entities, true, true)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true)) return false;
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }

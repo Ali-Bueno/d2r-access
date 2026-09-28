@@ -237,7 +237,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 	}
 	if (g_target.entity.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
-		if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return false;
+		if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return false;
 		for (const auto& item : snapshot.items)
 			if (item.id == g_target.entity.id) {
 				g_target.entity.position = {item.position.x, item.position.y};
@@ -249,7 +249,8 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 	// A locked exit may be a warp or a boundary with the next area; read both
 	// so the beacon can still find the one it is leading to.
 	const bool exit = g_target.entity.kind == EntityRadar::Kind::Exit && g_target.entity.placeId != 0;
-	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit)) return false;
+	// As far as the scanner reads: what it named may be rooms away.
+	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, true)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity = entity;

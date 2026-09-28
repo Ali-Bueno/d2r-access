@@ -218,10 +218,10 @@ struct Scene {
 	Navigation::Grid grid; // the terrain layer: a monster in a doorway is not a wall
 	std::vector<Entity> entities;
 };
-bool Look(const Lifecycle& state, Scene& scene, bool exits) {
+bool Look(const Lifecycle& state, Scene& scene, bool exits, bool wholeLevel = false) {
 	if (!NativeWorld::Read(state.player, state.session, state.level, scene.world)) return false;
 	scene.grid = Navigation::Build(scene.world, Navigation::MaxRadius, Radar::Layer::Terrain);
-	if (!NativeEntities::Read(state.player, state.session, scene.entities, exits, exits)) scene.entities.clear();
+	if (!NativeEntities::Read(state.player, state.session, scene.entities, exits, exits, wholeLevel)) scene.entities.clear();
 	// An area border is walked across where both levels' floor meets.
 	if (NativeLevelExits::Layout layout; exits && NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(scene.world, layout, Navigation::MaxRadius);
@@ -342,7 +342,8 @@ bool Refresh(const Lifecycle& state, const Scene& scene, Entity& target) {
 	if (target.kind == EntityRadar::Kind::Room) return true;
 	if (target.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
-		if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return true; // unread is not gone
+		// As far as the scanner reads items: what it named may be rooms away.
+		if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return true; // unread is not gone
 		for (const auto& item : snapshot.items)
 			if (item.id == target.id) { target.position = {item.position.x, item.position.y}; return true; }
 		return false;
@@ -373,7 +374,8 @@ Position Beyond(Position player, Position crossing) {
 void Walk(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	Scene scene;
-	if (!Look(state, scene, g_target.kind == EntityRadar::Kind::Exit)) return;
+	// A walk to what the scanner named looks as far as the scanner does.
+	if (!Look(state, scene, g_target.kind == EntityRadar::Kind::Exit, g_mode == Mode::Walk)) return;
 	const std::string name = g_target.name;
 	if (!Refresh(state, scene, g_target)) {
 		End("target gone", true);

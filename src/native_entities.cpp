@@ -453,7 +453,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (g_rosterCorpsesSupported) AsyncLog::Info(context, "[scan] Verified roster corpse reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -485,16 +485,32 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		if (level && RoomLevel(adjacent[i]) != level) continue;
 		rooms.push_back(adjacent[i]);
 	}
+	// The scanner's read goes on through every loaded room of this level, as the
+	// walk for other players does. A room past the ring that cannot be read is
+	// passed over; it never fails the ring's read.
+	const size_t ring = rooms.size();
+	for (size_t i = 0; wholeLevel && i < rooms.size(); ++i) {
+		uintptr_t list = 0;
+		uint32_t listCount = 0;
+		std::array<uintptr_t, MaxRooms> next{};
+		if (!Peek(rooms[i] + RoomNeighbors, list) || !Peek(rooms[i] + RoomNeighborCount, listCount) || listCount > MaxRooms
+			|| (listCount && !NativeMemory::Copy(list, next.data(), listCount * sizeof(uintptr_t)))) continue;
+		for (size_t n = 0; n < listCount && rooms.size() < MaxLoadedRooms; ++n)
+			if (next[n] && (!level || RoomLevel(next[n]) == level)
+				&& std::find(rooms.begin(), rooms.end(), next[n]) == rooms.end()) rooms.push_back(next[n]);
+	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
-	for (const auto candidateRoom : rooms) {
+	for (size_t r = 0; r < rooms.size(); ++r) {
+		const uintptr_t candidateRoom = rooms[r];
+		const bool past = r >= ring;
 		uintptr_t unit = 0;
-		if (!Peek(candidateRoom + RoomFirstUnit, unit)) return false;
+		if (!Peek(candidateRoom + RoomFirstUnit, unit)) { if (past) continue; return false; }
 		while (unit) {
-			if (visited.size() >= MaxUnits || !visited.insert(unit).second) return false;
+			if (visited.size() >= MaxUnits || !visited.insert(unit).second) { if (past) break; return false; }
 			uint32_t unitType = 0;
-			if (!Peek(unit + UnitType, unitType)) return false;
+			if (!Peek(unit + UnitType, unitType)) { if (past) break; return false; }
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
@@ -505,7 +521,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entity.unit = static_cast<uint8_t>(unitType);
 				entities.push_back(std::move(entity));
 			}
-			if (!Peek(unit + UnitNext, unit)) return false;
+			if (!Peek(unit + UnitNext, unit)) { if (past) break; return false; }
 		}
 	}
 	// Permanent level transitions may outlive their loaded warp units. Read
@@ -548,12 +564,12 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	uintptr_t roster = 0;
 	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, wholeLevel);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {
