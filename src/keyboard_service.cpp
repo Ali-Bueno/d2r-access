@@ -168,8 +168,8 @@ Mode g_mode = Mode::Idle;
 Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a far retreat heads for
-uint32_t g_itemPick = 0;    // the item comma and full stop chose, which the next D takes
-EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item or a container: ids of different kinds may meet
+uint32_t g_itemPick = 0;    // the item or object comma and full stop chose, which the next D takes
+EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item or an object: ids of different kinds may meet
 std::string g_itemPickName;
 Position g_walkFrom;        // where a walk to what the scanner named began
 bool g_walkFromSet = false;
@@ -442,18 +442,19 @@ void Walk(const Lifecycle& state, uint64_t now) {
 // Comma and full stop: the items on the ground on screen, nearest on foot
 // first. The one chosen is what the next D picks up, in place of whatever is
 // nearest (the user, 2026-09-28: "I can't specifically target items I want").
-// Everything looted as a chest is -- chests, urns, barrels, dead bodies, a
-// player's corpse -- counts as an item here too (the user, 2026-09-28), on
-// screen as Tab's monsters are.
+// Every object counts here too -- chests, urns, dead bodies, shrines, levers,
+// doors, the stash -- and a player's corpse (the user, 2026-09-28), on screen
+// as Tab's monsters are.
 void StepItem(const Lifecycle& state, int delta) {
 	const auto& strings = Strings::Current();
-	const std::string none = Format(strings.surveyEmpty, strings.surveyCategories[9]);
+	const std::string none = strings.interactNothing;
 	Scene scene;
 	GroundItems::Snapshot snapshot;
-	if (!Look(state, scene, false) || !NativeGroundItems::Read(state.player, state.session, snapshot)) {
+	if (!Look(state, scene, false)) {
 		ScreenReader::Speak(none, true);
 		return;
 	}
+	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) snapshot.items.clear();
 	struct Pick { Entity entity; int steps = 0; };
 	std::vector<Pick> picks;
 	for (const auto& item : snapshot.items) {
@@ -470,8 +471,8 @@ void StepItem(const Lifecycle& state, int delta) {
 		if (steps >= 0) picks.push_back({std::move(entity), steps});
 	}
 	for (const auto& entity : scene.entities) {
-		const bool loot = entity.container || entity.category == EntityRadar::Category::Treasure || entity.kind == EntityRadar::Kind::Corpse;
-		if (!loot || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
+		const bool usable = entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
+		if (!usable || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
 		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
 		if (steps >= 0) picks.push_back({entity, steps});
 	}
@@ -1239,8 +1240,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-cast", "Fight with the right skill (hold)", Key::W, Modifier::None, Command::Cast},
 			Entry{"keyboard-target-next", "Next monster", Key::Tab, Modifier::None, Command::TargetNext},
 			Entry{"keyboard-target-previous", "Previous monster", Key::Tab, Modifier::Shift, Command::TargetPrevious},
-			Entry{"keyboard-item-next", "Next item on the ground, for D to pick up", Key::Period, Modifier::None, Command::ItemNext},
-			Entry{"keyboard-item-previous", "Previous item on the ground, for D to pick up", Key::Comma, Modifier::None, Command::ItemPrevious},
+			Entry{"keyboard-item-next", "Next item or object on screen, for D to use", Key::Period, Modifier::None, Command::ItemNext},
+			Entry{"keyboard-item-previous", "Previous item or object on screen, for D to use", Key::Comma, Modifier::None, Command::ItemPrevious},
 			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
 			Entry{"keyboard-walk", "Walk to the scanned target", Key::Home, Modifier::Shift, Command::WalkToTarget},
 			Entry{"keyboard-explore", "Walk to unexplored ground", Key::H, Modifier::None, Command::Explore},
