@@ -501,6 +501,15 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	if (const auto skill = NativeSkillIcons::Skill(entry->widget))
 		AsyncLog::InfoF(context, "[cursor] skill id=%d \"%s\"", *skill, NativeSkillIcons::Name(entry->widget).c_str());
 	Expect(now, Name(*entry, place));
+	// No reader names a class or a row of an open dropdown (MEASURED 2026-09-27):
+	// waiting for one only left them silent, so they are named at once.
+	if (NativeClassChoice::Is(entry->widget) || g_menu.starts_with(DropdownList)) {
+		AsyncLog::InfoF(context, "[cursor] said at once \"%s\"", g_toSay.c_str());
+		ScreenReader::Speak(g_toSay, true);
+		g_said = g_toSay;
+		g_landedAt = 0;
+		g_toSay.clear();
+	}
 	// A quest shows what it is about when it is clicked, not when the pointer is over it.
 	if (entry->kind == Kind::QuestButton) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
 	// A row that one click chooses is chosen as the cursor comes to it: Enter
