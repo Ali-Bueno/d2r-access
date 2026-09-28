@@ -51,15 +51,33 @@ struct Plate {
 	uint32_t championKind = 0;           // string id of a champion's kind (Champion, Fanatic, ...), 0 when none
 	std::string_view natureKey;          // DemonKey or UndeadKey, empty when neither or for an ordinary monster
 	std::vector<uint16_t> enchantments;  // string ids
+	std::vector<std::string_view> immunities; // keys, for any monster (Immune)
 };
 Plate Read(uint16_t flags, std::span<const uint8_t, Slots> slots, uint8_t rowFlags, const Tables& tables);
 // The words said after the monster's name, joined by `separator`: a unique's
 // `unique` (its gold says nothing aloud), a champion's kind when `named` is false
-// (a composed name already carries it), then the plate's line.
+// (a composed name already carries it), then the plate's line, immunities last.
 struct Words {
 	std::function<std::string(uint32_t)> byId;
 	std::function<std::string(std::string_view)> byKey;
 	std::string_view unique, separator;
 };
 std::string Spoken(const Plate& plate, bool named, const Words& words);
+
+// The immunities the game names under any monster's health plate (0x1400CEA50),
+// in its order: the monster's resistance, less the player's pierce of it, from
+// 100 up. Stat ids are ItemStatCost.txt rows; the keys, the game's strings.
+struct Immunity { int resist, pierce; std::string_view key; };
+inline constexpr std::array<Immunity, 6> Immunities{{
+	{36, 192, "strScaryMonDesc5"}, // physical
+	{37, 193, "strScaryMonDesc6"}, // magic
+	{39, 189, "strScaryMonDesc1"}, // fire
+	{41, 190, "strScaryMonDesc3"}, // lightning
+	{43, 187, "strScaryMonDesc2"}, // cold
+	{45, 191, "strScaryMonDesc4"}, // poison
+}};
+inline constexpr int ImmuneFrom = 100;
+// The uber bosses' MonStats rows, whose plate the game gives no immunities.
+inline constexpr uint32_t UberFirst = 704, UberLast = 709;
+std::vector<std::string_view> Immune(std::span<const int, Immunities.size()> resist, std::span<const int, Immunities.size()> pierce);
 }

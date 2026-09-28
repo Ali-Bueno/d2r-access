@@ -93,6 +93,7 @@ std::string Spoken(const Plate& plate, bool named, const Words& words) {
 	if (!plate.natureKey.empty()) said.push_back(Form(words.byKey(plate.natureKey)));
 	if (plate.rank == Rank::Minion) said.push_back(Form(words.byKey(MinionKey)));
 	for (const uint16_t id : plate.enchantments) said.push_back(Form(words.byId(id)));
+	for (const auto key : plate.immunities) said.push_back(Form(words.byKey(key)));
 	std::string text;
 	for (const auto& word : said) {
 		if (word.empty()) continue;
@@ -100,5 +101,12 @@ std::string Spoken(const Plate& plate, bool named, const Words& words) {
 		text += word;
 	}
 	return text;
+}
+
+std::vector<std::string_view> Immune(std::span<const int, Immunities.size()> resist, std::span<const int, Immunities.size()> pierce) {
+	std::vector<std::string_view> keys;
+	for (size_t i = 0; i < Immunities.size(); ++i)
+		if (resist[i] >= ImmuneFrom && resist[i] - pierce[i] >= ImmuneFrom) keys.push_back(Immunities[i].key);
+	return keys;
 }
 }

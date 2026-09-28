@@ -91,11 +91,33 @@ void Plates() {
 	slots = {7};
 	Check(Say(0x09, slots, 0) == "unique", "a word the strings lack is left out, with no stray separator");
 }
+void Immunities() {
+	using MonsterPlate::Immune;
+	//                         physical magic fire lightning cold poison
+	std::array<int, 6> resist{0, 0, 100, 75, 0, 110}, pierce{};
+	auto keys = Immune(resist, pierce);
+	Check(keys == std::vector<std::string_view>{"strScaryMonDesc1", "strScaryMonDesc4"}, "fire and poison at 100 and up, in the game's order");
+	pierce = {0, 0, 1, 0, 0, 10};
+	Check(Immune(resist, pierce) == std::vector<std::string_view>{"strScaryMonDesc4"}, "the player's pierce breaks an immunity below 100");
+	resist = {100, 100, 0, 100, 100, 0}; pierce = {};
+	Check(Immune(resist, pierce) == std::vector<std::string_view>{"strScaryMonDesc5", "strScaryMonDesc6", "strScaryMonDesc3", "strScaryMonDesc2"},
+		"physical, magic, lightning, cold: the game's order, not the strings' numbering");
+	resist = {99, 0, 0, 0, 0, 0}; pierce = {-5, 0, 0, 0, 0, 0};
+	Check(Immune(resist, pierce).empty(), "a resistance under 100 is never an immunity, whatever the pierce");
+	MonsterPlate::Plate plate;
+	plate.immunities = {"strScaryMonDesc1"};
+	const auto words = MonsterPlate::Words{[](uint32_t) { return std::string{}; },
+		[](std::string_view key) { return std::string(key == "strScaryMonDesc1" ? "Immune to Fire" : ""); }, "unique", ", "};
+	Check(MonsterPlate::Spoken(plate, true, words) == "Immune to Fire", "an ordinary monster's immunity is said on its own");
+	plate.rank = MonsterPlate::Rank::Unique;
+	Check(MonsterPlate::Spoken(plate, true, words) == "unique, Immune to Fire", "immunities come last");
+}
 }
 
 int main() {
 	Forms();
 	Names();
 	Plates();
+	Immunities();
 	Passed();
 }

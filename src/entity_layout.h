@@ -127,6 +127,15 @@ inline constexpr Evidence PlateChecks[] = {
 	{EnchantmentNames, 90, 0xFFD1840F1B59BEC2ULL}, // string id per enchantment (u16 x 45)
 	{ChampionKinds, 40, 0xDD6CBCB100035905ULL}, // champion kind word per enchantment (u32 pairs x 5)
 };
+// The immunities under a monster's name: resistances and the player's pierce
+// through UNIT_GetStat, which the reader calls.
+inline constexpr uintptr_t GetStat = 0x2F5020;
+struct CallEvidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
+inline constexpr CallEvidence ImmunityChecks[] = {
+	{0xCEA50, 4463, 0x70E3E5C8EE55E616ULL}, // plate builder: six resist/pierce/text records, 100 and up, layer 0
+	{0x92A10, 3, 0x62941518298855C4ULL}, // its second pierce stat switched off (xor al,al; ret)
+	{GetStat, 147, 0xEF955B08A436F777ULL, true}, // UNIT_GetStat: called, and detoured by 1.3.0-beta
+};
 inline constexpr Evidence Checks[] = {
 	{0x3614C0, 653, 0xA85E778CC89FCD70ULL}, // complete logical room list and tile rectangles
 	{0x361040, 33, 0x884F085CB2600C15ULL}, // RoomEx+0x98 preset list
