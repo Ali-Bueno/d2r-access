@@ -167,6 +167,41 @@ std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
 bool Down(int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; }
+
+// Character creation's name box takes what is typed wherever the cursor is
+// (READ), so A typed an "a" as it clicked a class. What the game would type is
+// kept from it unless the cursor is on the box (the user, 2026-09-28).
+std::atomic<bool> g_keepLetters{false};
+HHOOK g_letterHook = nullptr;
+bool g_letterTried = false;
+const D2RL::PluginContext* g_letterContext = nullptr;
+
+LRESULT CALLBACK KeepLetters(int code, WPARAM wParam, LPARAM lParam) {
+	if (code == HC_ACTION && wParam == PM_REMOVE && g_keepLetters.load()) {
+		auto* message = reinterpret_cast<MSG*>(lParam);
+		// Printable characters only: Enter, Esc and Backspace stay the game's.
+		if (message->message == WM_CHAR && message->wParam >= 0x20 && message->wParam != 0x7F) {
+			AsyncLog::InfoF(g_letterContext, "[menu-keys] kept '%c' from the name box: the cursor is not on it",
+				message->wParam < 0x80 ? static_cast<char>(message->wParam) : '?');
+			message->message = WM_NULL;
+		}
+	}
+	return CallNextHookEx(nullptr, code, wParam, lParam);
+}
+
+// On the thread of the game's window, which is in front when this is called.
+void HookLetters(const D2RL::PluginContext* context) {
+	if (g_letterHook || g_letterTried) return;
+	DWORD process = 0;
+	const DWORD thread = GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	if (process != GetCurrentProcessId() || !thread) return;
+	g_letterTried = true;
+	g_letterContext = context;
+	g_letterHook = SetWindowsHookExW(WH_GETMESSAGE, KeepLetters, nullptr, thread);
+	if (g_letterHook) AsyncLog::InfoF(context, "[menu-keys] typed letters can be kept from a box of text (thread %lu)", thread);
+	else AsyncLog::WarnF(context, "[menu-keys] typed letters cannot be kept from a box of text: error %lu", GetLastError());
+}
+
 bool Foreground() {
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
@@ -1016,6 +1051,10 @@ void Reset() {
 	g_active = false;
 	g_beltShown = false;
 	g_beltRows = 0;
+	g_keepLetters = false;
+	if (g_letterHook) UnhookWindowsHookEx(g_letterHook);
+	g_letterHook = nullptr;
+	g_letterTried = false;
 	g_pending = 0;
 	for (auto& arrow : g_arrows) { arrow.down = false; arrow.next = 0; }
 	for (auto& key : g_watched) { key.down = key.waiting = false; }
@@ -1029,6 +1068,7 @@ void Tick(const D2RL::PluginContext* context) {
 	g_active = menu;
 	if (!menu) {
 		g_typing = false;
+		g_keepLetters = false;
 		// The pointer was the menu's only if the cursor put it somewhere.
 		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
@@ -1047,6 +1087,8 @@ void Tick(const D2RL::PluginContext* context) {
 	const auto* on = g_engaged ? EntryOf(g_place.widget) : nullptr;
 	const bool field = on && on->kind == Kind::TextInput;
 	g_typing = field;
+	HookLetters(context);
+	g_keepLetters = g_engaged && !field && g_menu.find("CharacterCreatePanel") != std::string::npos;
 	const bool typing = editing || field;
 	// With no pad the menu is the keyboard's from the moment it opens; with one
 	// connected it is the pad's until an arrow key is pressed.
