@@ -170,7 +170,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 		}
 	}
 	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
-	else if (type.kind == Kind::TabButton) node.text = NativeWidgets::ReadText(widget);
+	else if (type.kind == Kind::TabButton) node.text = TabLabel(widget);
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
@@ -315,6 +315,21 @@ int TabCount(uintptr_t widget) {
 	// A bar names its tabs Text0 onward; one it does not show has no caption.
 	while (count < 8 && !NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(count))).empty()) ++count;
 	return count;
+}
+
+std::string TabLabel(uintptr_t widget) {
+	const std::string name = NativeWidgets::ReadName(widget);
+	bool numbered = name.size() > 3 && name.starts_with("Tab");
+	for (size_t i = 3; numbered && i < name.size(); ++i) numbered = name[i] >= '0' && name[i] <= '9';
+	if (numbered) {
+		const std::string label = "Text" + name;
+		uintptr_t parent = Parent(widget);
+		for (int depth = 0; parent && depth < 4; ++depth, parent = Parent(parent))
+			if (const uintptr_t text = NativeWidgets::FindChild(parent, label); text && Visible(text)) {
+				if (auto read = NativeWidgets::ReadText(text); !read.empty()) return read;
+			}
+	}
+	return NativeWidgets::ReadText(widget);
 }
 
 std::string FocusedTabText(uintptr_t widget) {

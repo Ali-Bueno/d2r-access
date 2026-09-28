@@ -69,6 +69,10 @@ std::string SelectedTabText(uintptr_t widget);
 // The tab a controller highlight is on in a tab bar, which moving along the bar
 // changes without opening it: the label at the FocusableWidget hover index
 // (+0x544), not the open tab's (+0x16C4). Empty when there is none.
+// A tab's name. The skill tree's "Tab<n>" carries "Character (A) (C)" as its
+// own text in the mouse layout (MEASURED 2026-09-28); its tree's name is the
+// "TextTab<n>" drawn beside it, "Defensive Auras". Any other tab: its own text.
+std::string TabLabel(uintptr_t widget);
 std::string FocusedTabText(uintptr_t widget);
 std::vector<uintptr_t> Panels();
 // Bounded discovery, including hidden controls. Visibility is rechecked when read.

@@ -35,6 +35,8 @@ std::vector<uintptr_t> FindControls(uintptr_t parent, UiText::Kind kind) {
 	return result;
 }
 }
+// No "Tab<n>" here: a tab is called by its own text, as TabLabel falls back to.
+namespace D2RAccess::NativeUi { std::string TabLabel(uintptr_t widget) { return NativeWidgets::ReadText(widget); } }
 namespace D2RAccess::NativeControllerHelp { std::string ForFocus(NativeUi::Focus) { return "X: Asignar habilidad"; } }
 namespace D2RAccess::NativeWidgets {
 std::string ReadName(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).name : ""; }
