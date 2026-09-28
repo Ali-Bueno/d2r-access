@@ -7,7 +7,9 @@
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
+#include "native_actions.h"
 #include "native_entities.h"
+#include "native_ground_items.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
 #include "native_automap.h"
@@ -240,6 +242,26 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
+// Items on the ground are read live as enemies are: one is picked up or dropped
+// at any moment. The same reach as enemies: all loaded with full assistance.
+std::vector<EntityRadar::Entity> Items(const Lifecycle& state, const Radar::World& world) {
+	std::vector<EntityRadar::Entity> items;
+	GroundItems::Snapshot snapshot;
+	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return items;
+	for (const auto& item : snapshot.items) {
+		if (item.source != GroundItems::SourceKind::Item) continue;
+		EntityRadar::Entity entity;
+		entity.id = item.id;
+		entity.kind = EntityRadar::Kind::Item;
+		entity.category = EntityRadar::Category::Item;
+		entity.position = {item.position.x, item.position.y};
+		entity.name = item.name;
+		entity.unit = static_cast<uint8_t>(NativeActions::Unit::Item);
+		items.push_back(std::move(entity));
+	}
+	return g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
+}
+
 // Full assistance lists everything loaded. Only what was discovered is kept
 // for this map's later games, in either mode.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
@@ -280,6 +302,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			catalogued.push_back(std::move(place));
 	const auto enemies = Enemies(world, scene);
 	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
+	const auto items = Items(state, world);
+	catalogued.insert(catalogued.end(), items.begin(), items.end());
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
