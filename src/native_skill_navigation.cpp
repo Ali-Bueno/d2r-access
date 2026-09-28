@@ -135,8 +135,16 @@ bool PlacePointer(NativeUi::Cell point) noexcept {
 	// READ, 3.3.93787: out of controller mode 0x14F690 clamps nothing. It keeps the
 	// point as the game's mouse position, turns it into window pixels (0x7F210)
 	// and moves the real pointer there (0x120A280: ClientToScreen, SetCursorPos).
+	// Then hover is recomputed from it, as the stock cursor commit 0x2346C0 does:
+	// without that the game went on showing the tooltip of what the mouse was
+	// last over (MEASURED 2026-09-28 09:08: "Kashya" on the list of skills, and
+	// no skill's own tooltip, name only, the nudge sent every time).
+	uintptr_t manager = 0;
+	const auto panels = NativeWidgets::PanelManager();
+	if (panels) (void)NativeMemory::Peek(panels + FocusManagerOffset, manager);
 	__try {
 		reinterpret_cast<void(*)(Point)>(g_base + CursorPositionRva)(Point{point.x, point.y});
+		if (manager) reinterpret_cast<void(*)(uintptr_t, bool)>(g_base + RefreshHoverRva)(manager, false);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
