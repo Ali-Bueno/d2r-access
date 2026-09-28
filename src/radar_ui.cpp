@@ -15,6 +15,7 @@ constexpr std::string_view MenuSwitcher = "UISwitcher";
 
 State Inspect(bool foreground) {
 	if (!foreground) return State::Inactive;
+	if (PanelState::MoviePlaying()) return State::Paused;
 	if (!NativeWidgets::SupportsTree()) return State::Unavailable;
 	const auto& open = PanelState::OpenPanels();
 	for (const auto panel : NativeUi::Panels()) {

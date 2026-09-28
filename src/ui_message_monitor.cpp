@@ -44,6 +44,12 @@ constexpr const char* TogglePanelCommand        = "TogglePanel";
 // shown in the front end even though no close message follows, so entering
 // it starts the panel record afresh.
 constexpr const char* FrontEndNavigationTarget = "FrontEndNavigation";
+
+// An act cinematic's start and end, as the game announces them (live, 2026-09-28).
+constexpr const char* MoviePlayerTarget = "MoviePlayerMessage";
+constexpr const char* MoviePlayCommand  = "Play";
+constexpr const char* CinematicsTarget  = "Cinematics";
+constexpr const char* MovieDoneCommand  = "MovieComplete";
 constexpr const char* NavigationCommandPrefix  = "To";
 
 // Screens that carry a selection in the message text itself
@@ -281,6 +287,12 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		FocusTracker::PanelsChanged();
 		Localization::DetectSpeechLanguage(context); // no-op once detected
 		AnnouncePanel(*event);
+	} else if (std::strcmp(event->target, MoviePlayerTarget) == 0 && std::strcmp(event->command, MoviePlayCommand) == 0) {
+		PanelState::MovieStarted();
+		AsyncLog::Info(context, "[ui] cinematic started: cues paused");
+	} else if (std::strcmp(event->target, CinematicsTarget) == 0 && std::strcmp(event->command, MovieDoneCommand) == 0) {
+		PanelState::MovieEnded();
+		AsyncLog::Info(context, "[ui] cinematic ended");
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
 		FocusTracker::NoteScrollInput();
 	} else if (std::strcmp(event->target, QuestLogTarget) == 0) {

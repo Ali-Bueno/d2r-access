@@ -54,5 +54,13 @@ int main() {
 	Check(RadarUi::Inspect(true) == State::Dialogue, "open narrative speech suspends cues");
 	PanelState::Closed("ScrollSpeechPanel");
 	Check(RadarUi::Inspect(true) == State::Playing, "ending narrative speech resumes gameplay");
+	// Act 2 arrival, 2026-09-28: the NPC cue kept playing through the act cinematic.
+	PanelState::MovieStarted();
+	Check(RadarUi::Inspect(true) == State::Paused, "an act cinematic pauses every cue");
+	PanelState::MovieEnded();
+	Check(RadarUi::Inspect(true) == State::Playing, "the cinematic's end resumes them");
+	PanelState::MovieStarted();
+	PanelState::Reset();
+	Check(RadarUi::Inspect(true) == State::Playing, "leaving to the front end never leaves cues paused");
 	Passed();
 }
