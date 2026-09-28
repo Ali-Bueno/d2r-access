@@ -43,6 +43,17 @@ void Press(Button button, uint64_t settle) {
 }
 }
 
+void Nudge() {
+	INPUT inputs[2]{};
+	for (auto& input : inputs) {
+		input.type = INPUT_MOUSE;
+		input.mi.dwFlags = MOUSEEVENTF_MOVE;
+	}
+	inputs[0].mi.dx = 1;
+	inputs[1].mi.dx = -1;
+	(void)SendInput(2, inputs, sizeof(INPUT));
+}
+
 bool Place(const NativeUi::Rect& rect) {
 	if (rect.width <= 0 || rect.height <= 0) return false;
 	return NativeSkillNavigation::PlacePointer({rect.x + rect.width / 2, rect.y + rect.height / 2});
