@@ -160,7 +160,7 @@ character creation, is at the top of the workspace's `HANDOFF.md`.
 | **FAULT: a class is silent for 450 ms** and only "Druid" was ever said | `[cursor] no reader named it; said "Druid"` three times, 430 to 460 ms after the landing; no stay on a class lasted over 590 ms |
 | **FAULT: the game version is not read** | `"Game Version, dropdown"` with no value; `"Create a '%s' version of your character., button"`; `[value] ... GameVersionDropdown -> ""` |
 | **FAULT: after a dropdown closes the cursor is on the screen's first place** | `[cursor] on ToggleLegacy` after each of three |
-| **FAULT: the arrows walk the character while the mod's settings list is open** | `[keyboard] settings: Settings. Auto detail off` at 18:19:54.772, `[actions] run to` at 18:19:56.088 |
+| NOT A FAULT (the user, 2026-09-28): the arrows walk the character while the mod's settings list is open. The list steps with PageUp and PageDown | `[keyboard] settings: Settings. Auto detail off` at 18:19:54.772, `[actions] run to` at 18:19:56.088 |
 | FAULT: a skill of the list is read as the number on its icon, or not at all | `[interaction] SkillSelect -> "4"` on the Tome of Town Portal |
 | FAULT: scroll bars and their arrows are places | the cursor on `UpArrow`, `ScrollBar`, said by those names |
 | OPEN: a weapon swap the mod was not asked for | `[weapon-swap] set=2` at 18:19:38.713, no `[swap]` line before it |
@@ -283,7 +283,7 @@ cannot be a key of the loader's, which takes one modifier. OPEN.
 
 The next live test, the third, is the first with the game in play and the
 menus built. Copy the log before the next launch; it does not always append.
-**At load the log has to say** `[keyboard] 29 of 29 keys registered`, and
+**At load the log has to say** `[keyboard] 30 of 30 keys registered` (29 before J, 2026-09-28), and
 `Verified.` after each of `[skill-hand]`, `[skill-icons]`, `[values]`,
 `[classes]` and `[rows]`. An `Unsupported layout` line names what is switched
 off.

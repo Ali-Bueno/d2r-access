@@ -45,10 +45,10 @@ game, a dropdown opened and a row chosen.
    `%s`. The user: *"game version does not read correctly"*.
 4. **After a dropdown closes the cursor is thrown to the screen's first
    place**, which on character creation is the "Toggle" button.
-5. **The mod's settings list does not take the arrows.** The user: *"the
-   character moves instead of navigating the settings"*. It was built on
-   PageUp, PageDown and Space, and nothing keeps the arrows from walking the
-   character while it is open.
+5. ~~The mod's settings list does not take the arrows.~~ **Not to be
+   built.** The list steps with PageUp and PageDown and changes with Space;
+   the user did not know that, and once told, 2026-09-28: *"no need to fix
+   the arrow keys"*. The documents say so now.
 6. **The log does not say what was spoken.** Several paths speak without a
    line, so what the user heard on a row or a skill cannot be read back.
 7. Scroll bars and their arrows are places and are called "UpArrow",
@@ -83,7 +83,7 @@ game.
 
 | question | state |
 |---|---|
-| **A key for a click where a box of text takes every letter** | not asked yet; needed only if the third test shows A typing an "a" into the name on character creation (item 9) |
+| ~~A key for a click where a box of text takes every letter~~ | **not needed.** The fourth test showed A typing into the name; the user asked that typing reach the box only with the cursor on it, built `dcc8e0e` (keyboard-keys.md) |
 | Should the scroll bar and its two arrows be places of the cursor? | not asked yet (item 3) |
 | Is "Row 1, column 2" after "Empty" wanted on an empty belt slot? | built unasked; told to the user 2026-09-27, no answer yet |
 | The hand of the list of skills is said in the game's words, "Left Mouse-Button Skill". Are other words wanted? | built; told to the user 2026-09-27 |

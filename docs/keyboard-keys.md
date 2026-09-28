@@ -3,8 +3,8 @@
 The keys of keyboard play on the `keyboard-local` branch, 2026-09-27, after
 the fourth session of that day. The mod's keys are READ from what the code
 registers with the loader (MEASURED 12:18: `[keyboard] 28 of 28 keys
-registered`; Shift+S was added after that, so the next log has to say 29 of
-29); the game's own are READ from the character's `.key` file. What
+registered`; Shift+S was added after that, and J on 2026-09-28, so the next
+log has to say 30 of 30); the game's own are READ from the character's `.key` file. What
 each of the game's actions is called is from the order of the game's key
 binding screen and was not checked against it. How the menus work is in
 `keyboard-play.md`.
@@ -17,14 +17,14 @@ before adding one, and read this file first.
 | key | what |
 |---|---|
 | arrows, held | walk |
-| A, held | fight with the left skill |
-| W, held | fight with the right skill |
+| A, held | fight with the left skill: only a monster on screen, as a click would (`22e2739`) |
+| W, held | fight with the right skill: only a monster on screen |
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
-| Tab, Shift+Tab | next monster, previous monster |
-| D | walk up to the nearest usable thing and use it |
+| Tab, Shift+Tab | next monster, previous monster, on screen |
+| D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored room |
-| Shift+Home | walk to what the scanner named |
+| Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
 | Ctrl+R | retreat to the nearest way out |
 | Shift+R | retreat the way you came in |
 | Alt+R | retreat to the nearest corridor or doorway |
@@ -39,6 +39,10 @@ before adding one, and read this file first.
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
+
+"On screen" is a 16:9 view around the character, INFERRED from the user's
+1920x1080 and not measured (`CombatTarget::OnScreen`). The scanner lists
+items on the ground and every chest as well since 2026-09-28.
 
 Comma and full stop were the scanner's category keys and were retired by the
 user on 2026-09-27.
@@ -59,6 +63,7 @@ user on 2026-09-27.
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
+| J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (Ctrl+D). Added 2026-09-28 at the user's asking, not pressed yet |
 | Ctrl+Up, Ctrl+Down | the line before, the line after |
 | Ctrl+Left, Ctrl+Right | the first line, the last line |
 | PageUp, PageDown | the tab before, the tab after |
@@ -82,6 +87,13 @@ backslash, Home and End do nothing of the mod's there, and the left and right
 arrows move in what is typed. **Up and down leave the box.** Keys with Ctrl or
 Alt stay the mod's.
 
+On character creation the name box takes what is typed wherever the cursor
+is (READ), so **letters reach it only while the cursor is on it**: elsewhere
+on that screen they are kept from the game, and A clicks without typing an
+"a" (`dcc8e0e`, the user's report 2026-09-28; not pressed yet). Enter, Esc
+and Backspace always reach the game. The log says `[menu-keys] kept 'a' from
+the name box` for each one kept.
+
 On character creation the game's own keys are: **Enter creates the
 character** once a class is chosen and the name is allowed, and Esc puts the
 chosen class back, or leaves the screen when none is chosen (READ in the
@@ -92,7 +104,7 @@ game's code, not pressed in a test).
 | key | what |
 |---|---|
 | Ctrl+S | the list of the mod's switches, open and shut |
-| PageUp, PageDown, Space | with that list open: previous, next, change. **The arrows do not step through it and walk the character instead** (MEASURED 2026-09-27 18:19; the user expects the arrows). To be built; what changes a switch with the arrows is the user's to say |
+| PageUp, PageDown, Space | with that list open: previous, next, change. The arrows are not the list's: in play they still walk the character. The user, 2026-09-28, once told PageUp and PageDown step the list: no change wanted |
 | Ctrl+D | the whole description on every move, on and off |
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |
@@ -145,7 +157,6 @@ Every switch that has no key of its own is in the Ctrl+S list.
 | what | why | what it would take |
 |---|---|---|
 | move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | INFERRED to work already through the key watch: Ctrl+Shift+A. Not measured |
-| a click on a screen where a box of text takes every letter, if the loader does not hold the mod's keys back from it | character creation: its name box takes what is typed wherever the pointer is (READ). If A there both clicks and types an "a", a key that types nothing is needed for the click | **the user's decision, not asked yet.** The third live test says whether it is needed: `keyboard-unbuilt.md`, item 9 |
 
-Keys no one uses: J, K, L, U, Insert, Delete, comma, full stop, and most
+Keys no one uses: K, L, U, Insert, Delete, comma, full stop, and most
 keys with Alt.
