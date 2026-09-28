@@ -19,4 +19,6 @@ bool Offered(EntityRadar::Entity& entity, int level);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 void SetFullAssistance(bool enabled);
+bool Sounds();
+void SetSounds(bool enabled);
 }

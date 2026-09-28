@@ -220,6 +220,8 @@ inline constexpr Table frFR {
 	.explorationSoundsOff = "Sons des salles inexplorées : désactivé",
 	.discoveriesOn = "Annonces de découvertes : activé",
 	.discoveriesOff = "Annonces de découvertes : désactivé",
+	.beaconSoundsOn = "Sons du guidage : activé",
+	.beaconSoundsOff = "Sons du guidage : désactivé",
 	.itemQualities = {"", "qualité inférieure", "", "supérieure", "magique", "ensemble", "rare", "unique", "façonné"},
 	.terrainPlaces = {"coin arrière gauche", "bord arrière", "coin arrière droit", "bord gauche", "centre",
 		"bord droit", "coin avant gauche", "bord avant", "coin avant droit"},

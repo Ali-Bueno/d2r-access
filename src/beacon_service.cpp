@@ -36,7 +36,7 @@
 namespace D2RAccess::BeaconService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance };
+enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, SoundsOn, SoundsOff };
 // The locked target is re-read on this cadence: fast enough to follow a
 // walking monster, far cheaper than the 50 ms UI poll.
 constexpr uint64_t UpdateMs = 150;
@@ -57,7 +57,7 @@ Beacon::Settings g_settings;
 Beacon::Tracker g_tracker;
 struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; };
 Target g_offer, g_target;
-bool g_supported = false;
+bool g_supported = false, g_sounds = true;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
 bool g_wasPlaying = false;
@@ -150,6 +150,11 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	else if (event->kind == Kind::LevelChanged) g_state.level = event->currentValue;
 	++g_state.revision;
 }
+// The beacon's sounds have a switch of their own. With it off the beacon still
+// locks, follows and arrives, in speech alone.
+void Cue(BeaconAudio::Sound sound, BeaconAudio::Placement placement = {}) {
+	if (g_sounds) BeaconAudio::Play(sound, placement);
+}
 void Release(const char* reason) {
 	if (g_tracker.Locked()) AsyncLog::InfoF(g_context, "[beacon] released reason=%s id=%u name=%s", reason, g_target.entity.id, g_target.entity.name.c_str());
 	g_tracker.Clear();
@@ -164,6 +169,8 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	else if (arg == "status") g_command = Command::Status;
 	else if (arg == "exploration") g_command = Command::Exploration;
 	else if (arg == "full") g_command = Command::FullAssistance;
+	else if (arg == "sounds-on") g_command = Command::SoundsOn;
+	else if (arg == "sounds-off") g_command = Command::SoundsOff;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -190,7 +197,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
 	if (g_tracker.Locked() && !retarget) {
 		Release("cancelled");
-		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
+		Cue(BeaconAudio::Sound::Cleared);
 		ScreenReader::Speak(strings.beaconCleared, true);
 		return;
 	}
@@ -218,7 +225,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	g_target.seenMs = now;
 	g_tracker.Lock(now);
 	g_nextUpdate = now;
-	BeaconAudio::Play(BeaconAudio::Sound::Locked, {});
+	Cue(BeaconAudio::Sound::Locked);
 	Announce(strings.beaconFollowing, g_target.entity.name);
 	AsyncLog::InfoF(g_context, "[beacon] locked id=%u kind=%u at=%.0f,%.0f level=%d name=%s", g_target.entity.id,
 		static_cast<unsigned>(g_target.entity.kind), g_target.entity.position.x, g_target.entity.position.y,
@@ -276,7 +283,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	const auto arrive = [seen] {
 		const auto name = g_target.entity.name;
 		Release("arrived");
-		BeaconAudio::Play(BeaconAudio::Sound::Arrived, {});
+		Cue(BeaconAudio::Sound::Arrived);
 		Announce(seen ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
 	};
 	if (InTargetRoom(state, world.player)) { arrive(); return; }
@@ -290,7 +297,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		return;
 	}
 	if (update.arrived) { arrive(); return; }
-	if (update.ping) BeaconAudio::Play(BeaconAudio::Sound::Ping, Place(update.heading));
+	if (update.ping) Cue(BeaconAudio::Sound::Ping, Place(update.heading));
 	if (!g_lastLog || now - g_lastLog >= LogIntervalMs) {
 		g_lastLog = now;
 		AsyncLog::InfoF(context, "[beacon] position=%.0f,%.0f target=%.0f,%.0f seen=%u distance=%.1f remaining=%.1f routed=%u heading=%.2f,%.2f route_cells=%zu name=%s",
@@ -343,7 +350,7 @@ bool Register(const D2RL::PluginContext* context) {
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
-		"Target beacon: lock|clear|status|exploration|full. L3 or Ctrl+B requests a route; exploration uses visited areas only.");
+		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off. L3 or Ctrl+B requests a route; exploration uses visited areas only.");
 	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume);
 	AsyncLog::InfoF(context, "[beacon] Registered; audio=%u full_assistance=%u.", g_supported ? 1u : 0u,
 		NavigationMode::FullAssistance() ? 1u : 0u);
@@ -380,11 +387,18 @@ void Tick(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(NavigationMode::FullAssistance() ? strings.navigationFullAssistance : strings.navigationExploration, true);
 		AsyncLog::InfoF(context, "[beacon] full_assistance=%u", NavigationMode::FullAssistance() ? 1u : 0u);
 	}
+	if (command == Command::SoundsOn || command == Command::SoundsOff) {
+		g_sounds = command == Command::SoundsOn;
+		if (!g_sounds) BeaconAudio::Silence("sounds-off");
+		const auto& strings = Strings::Current();
+		ScreenReader::Speak(g_sounds ? strings.beaconSoundsOn : strings.beaconSoundsOff, true);
+		AsyncLog::InfoF(context, "[beacon] sounds=%u", g_sounds ? 1u : 0u);
+	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
 		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "L3" : "command");
 	} else if (command == Command::Clear && g_tracker.Locked()) {
 		Release("cancelled");
-		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
+		Cue(BeaconAudio::Sound::Cleared);
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);
 	} else if (command == Command::Toggle || clicked) {
 		Toggle(state, now);
@@ -419,6 +433,7 @@ void Unregister() {
 	g_input = nullptr;
 	g_offer = g_target = {};
 	g_supported = false;
+	g_sounds = true;
 	g_revision = 0;
 	g_nextUpdate = g_lastLog = 0;
 	g_wasPlaying = false;
@@ -432,4 +447,6 @@ void Unregister() {
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 void SetFullAssistance(bool enabled) { g_command = enabled ? Command::FullAssistance : Command::Exploration; }
+bool Sounds() { return g_sounds; }
+void SetSounds(bool enabled) { g_command = enabled ? Command::SoundsOn : Command::SoundsOff; }
 }

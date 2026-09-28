@@ -220,6 +220,8 @@ inline constexpr Table enUS {
 	.explorationSoundsOff = "Unexplored room sounds off",
 	.discoveriesOn = "Discovery announcements on",
 	.discoveriesOff = "Discovery announcements off",
+	.beaconSoundsOn = "Guidance sounds on",
+	.beaconSoundsOff = "Guidance sounds off",
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 	.terrainPlaces = {"back left corner", "back edge", "back right corner", "left edge", "centre",
 		"right edge", "front left corner", "front edge", "front right corner"},

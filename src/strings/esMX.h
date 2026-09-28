@@ -220,6 +220,8 @@ inline constexpr Table esMX {
 	.explorationSoundsOff = "Sonidos de salas sin explorar desactivado",
 	.discoveriesOn = "Anuncios de descubrimientos activado",
 	.discoveriesOff = "Anuncios de descubrimientos desactivado",
+	.beaconSoundsOn = "Sonidos de guía activados",
+	.beaconSoundsOff = "Sonidos de guía desactivados",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
 		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",

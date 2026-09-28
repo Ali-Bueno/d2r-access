@@ -220,6 +220,8 @@ inline constexpr Table zhCN {
 	.explorationSoundsOff = "未探索房间的声音已关闭",
 	.discoveriesOn = "发现提示已开启",
 	.discoveriesOff = "发现提示已关闭",
+	.beaconSoundsOn = "引导音效已开启",
+	.beaconSoundsOff = "引导音效已关闭",
 	.itemQualities = {"", "劣质", "", "精良", "魔法", "套装", "稀有", "暗金", "合成"},
 	.terrainPlaces = {"左后方角落", "后方边缘", "右后方角落", "左侧边缘", "中央",
 		"右侧边缘", "左前方角落", "前方边缘", "右前方角落"},

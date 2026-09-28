@@ -220,6 +220,8 @@ inline constexpr Table jaJP {
 	.explorationSoundsOff = "未探索の部屋の音 オフ",
 	.discoveriesOn = "発見の通知 オン",
 	.discoveriesOff = "発見の通知 オフ",
+	.beaconSoundsOn = "誘導の音 オン",
+	.beaconSoundsOff = "誘導の音 オフ",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 	.terrainPlaces = {"後方左の角", "後方の端", "後方右の角", "左の端", "中央",
 		"右の端", "前方左の角", "前方の端", "前方右の角"},

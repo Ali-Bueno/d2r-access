@@ -220,6 +220,8 @@ inline constexpr Table deDE {
 	.explorationSoundsOff = "Klänge für unerkundete Räume aus",
 	.discoveriesOn = "Entdeckungsansagen an",
 	.discoveriesOff = "Entdeckungsansagen aus",
+	.beaconSoundsOn = "Zielführungsklänge an",
+	.beaconSoundsOff = "Zielführungsklänge aus",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
 		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},

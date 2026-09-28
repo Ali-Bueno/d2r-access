@@ -220,6 +220,8 @@ inline constexpr Table zhTW {
 	.explorationSoundsOff = "未探索房間的聲音已關閉",
 	.discoveriesOn = "發現提示已開啟",
 	.discoveriesOff = "發現提示已關閉",
+	.beaconSoundsOn = "引導音效已開啟",
+	.beaconSoundsOff = "引導音效已關閉",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 	.terrainPlaces = {"左後方角落", "後方邊緣", "右後方角落", "左方邊緣", "中央",
 		"右方邊緣", "左前方角落", "前方邊緣", "右前方角落"},
