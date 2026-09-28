@@ -81,6 +81,14 @@ uint64_t                   g_areaSession = 0;
 // rescan that adds or removes objects does not silently move the selection.
 EntityRadar::Category g_category = EntityRadar::Category::Unknown;
 uint32_t              g_selected = 0;
+// A fixed place is known by where it is: an exit's id is not its own (a warp's
+// row, a level's number, or a unit's id while its room is loaded). MEASURED
+// 2026-09-28, Cave Level 1: every step said Cold Plains, never Cave Level 2;
+// INFERRED cause, a shared or changing id, which the place does not have.
+uint64_t              g_selectedPlace = 0;
+bool Selected(const EntityRadar::Entity& entity) {
+	return g_selectedPlace ? entity.placeId == g_selectedPlace : entity.id == g_selected;
+}
 
 enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory };
 std::atomic<Request> g_request{ Request::None };
@@ -104,6 +112,7 @@ void ForgetOtherGames(const Lifecycle& state) {
 	g_corpses.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
+	g_selectedPlace = 0;
 }
 
 void ApplyMode() {
@@ -112,6 +121,7 @@ void ApplyMode() {
 	g_fullAssistance = fullAssistance;
 	g_registry.Clear();
 	g_selected = 0;
+	g_selectedPlace = 0;
 	g_category = EntityRadar::Category::Unknown;
 }
 
@@ -331,6 +341,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	if (request == Request::PreviousCategory || request == Request::NextCategory) {
 		g_category = MapSurvey::StepCategory(landmarks, g_category, request == Request::NextCategory ? 1 : -1);
 		g_selected = 0;
+	g_selectedPlace = 0;
 	} else if (g_category == EntityRadar::Category::Unknown) {
 		g_category = MapSurvey::StepCategory(landmarks, g_category, 0);
 	}
@@ -343,11 +354,12 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 
 	size_t index = 0;
 	for (size_t i = 0; i < members.size(); ++i) {
-		if (members[i].entity.id == g_selected) { index = i; break; }
+		if (Selected(members[i].entity)) { index = i; break; }
 	}
 	if (request == Request::NextObject) index = (index + 1) % members.size();
 	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
+	g_selectedPlace = members[index].entity.placeId;
 	// Hand the selection to the beacon, so the left-stick click leads to what
 	// the scanner just named. Every answer re-offers, including a plain repeat,
 	// so the offer is always the thing the player heard most recently.
