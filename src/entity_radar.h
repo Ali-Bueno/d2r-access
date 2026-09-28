@@ -81,6 +81,11 @@ struct Entity {
 	uint8_t unit = NoUnit;
 };
 bool SameTarget(const Entity& a, const Entity& b);
+// `loaded` is `known` made again under a new unit id: the game gives an object a
+// new id when its room is loaded again (MEASURED 2026-09-28: the Refilling Shrine
+// at 5427,4812 was id 28, then 61; a Loose Rock 30, then 63). An object never
+// moves, so one of the same name and kind within a step of where it stood is it.
+bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.

@@ -48,6 +48,12 @@ bool SameTarget(const Entity& a, const Entity& b) {
 	return a.placeId || a.id == b.id;
 }
 
+bool Recreated(const Entity& known, const Entity& loaded) {
+	return known.kind == Kind::Object && loaded.kind == Kind::Object && !known.placeId && !loaded.placeId
+		&& known.id != loaded.id && known.category == loaded.category && known.name == loaded.name
+		&& std::abs(known.position.x - loaded.position.x) <= 1 && std::abs(known.position.y - loaded.position.y) <= 1;
+}
+
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {
 	return TraceSight(world, from, to, {});
 }

@@ -75,10 +75,22 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 		m_level = level;
 	}
 
+	const auto& currentlyPresent = present ? *present : visible;
+	const auto loaded = [&currentlyPresent](const EntityRadar::Entity& known) {
+		return std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&known](const EntityRadar::Entity& entity) {
+			return EntityRadar::SameTarget(known, entity);
+		});
+	};
 	for (const EntityRadar::Entity& entity : visible) {
-		const auto found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity](const Tracked& tracked) {
+		auto found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity](const Tracked& tracked) {
 			return EntityRadar::SameTarget(tracked.entity, entity);
 		});
+		// An object made again under a new id takes its old entry's place, rather
+		// than being listed twice with the old one unreachable.
+		if (found == m_tracked.end())
+			found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity, &loaded](const Tracked& tracked) {
+				return EntityRadar::Recreated(tracked.entity, entity) && !loaded(tracked.entity);
+			});
 		if (found == m_tracked.end()) {
 			m_tracked.push_back({entity, 0});
 		} else {
@@ -90,11 +102,8 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	// Anything not in this frame is only a miss when the map can currently see
 	// where it was. Out-of-window objects keep their place indefinitely, which
 	// is the point: they are what the player still has to walk to.
-	const auto& currentlyPresent = present ? *present : visible;
 	for (Tracked& tracked : m_tracked) {
-		const bool stillPresent = std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&tracked](const EntityRadar::Entity& entity) {
-			return EntityRadar::SameTarget(tracked.entity, entity);
-		});
+		const bool stillPresent = loaded(tracked.entity);
 		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
 	m_tracked.erase(std::remove_if(m_tracked.begin(), m_tracked.end(), [&settings](const Tracked& tracked) {

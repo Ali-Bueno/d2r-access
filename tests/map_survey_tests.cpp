@@ -137,6 +137,31 @@ void AbsenceBeyondTheScanIsNotForgetting() {
 		"an object beyond the scan's reach is kept however long it is missing, to walk back to");
 }
 
+void RecreatedObjectTakesItsOldPlace() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	auto shrine = Make(28, 38, 38, EntityRadar::Kind::Object);
+	shrine.name = "Refilling Shrine";
+	registry.Observe(1, {shrine}, grid);
+	auto again = shrine;
+	again.id = 61;
+	const std::vector<EntityRadar::Entity> present{again};
+	registry.Observe(1, present, grid, {}, &present);
+	Check(registry.Entities().size() == 1 && registry.Entities().front().id == 61,
+		"an object loaded again under a new id is one entry, with the id it has now");
+
+	Registry items;
+	auto potion = Make(4, 38, 38);
+	potion.name = "Minor Healing Potion";
+	auto other = potion;
+	other.id = 5;
+	items.Observe(1, {potion}, grid);
+	const std::vector<EntityRadar::Entity> both{other};
+	items.Observe(1, both, grid, {}, &both);
+	Check(items.Entities().size() == 2, "two items of one name on one spot stay two: an item may lie on another");
+}
+
 void ChangingLevelClears() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -377,6 +402,7 @@ int main() {
 	OutOfViewObjectsAreKept();
 	AbsenceOutsideTheMapIsNotForgetting();
 	AbsenceBeyondTheScanIsNotForgetting();
+	RecreatedObjectTakesItsOldPlace();
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();
