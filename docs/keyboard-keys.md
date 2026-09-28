@@ -63,7 +63,7 @@ user on 2026-09-27.
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
-| J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (Ctrl+D). Added 2026-09-28 at the user's asking, not pressed yet |
+| J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (Ctrl+D). **On the character screen it reads the game's tooltip of the stat line the cursor is on, and never moves the lines** (the pad cannot reach that tooltip at all). Added 2026-09-28 at the user's asking, not pressed yet |
 | Ctrl+Up, Ctrl+Down | the line before, the line after |
 | Ctrl+Left, Ctrl+Right | the first line, the last line |
 | PageUp, PageDown | the tab before, the tab after |
