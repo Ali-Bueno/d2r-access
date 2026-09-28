@@ -61,7 +61,8 @@ using Events = std::array<State, DirectionCount>; // Unknown means no event.
 using Marks = std::array<bool, DirectionCount>;
 inline constexpr uint64_t PollMs = 50;
 // One cue is a short tin/tock; the gap keeps successive directions separable.
-inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
+// The floor breath is longer so its rising or falling sweep can be heard.
+inline constexpr uint64_t CueDurationMs = 120, BreathDurationMs = 180, CueGapMs = 50;
 // Two short pips below the tin, distinct from the beacon's single steady ping.
 // Sound-design values chosen for cue separation; docs/exploration.md.
 inline constexpr uint64_t UnexploredPipMs = 35, UnexploredPipGapMs = 30, UnexploredMarkGapMs = 30;

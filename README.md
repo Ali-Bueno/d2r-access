@@ -151,8 +151,8 @@ which also lists what every stock controller button does.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
-leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
-for floor that leads nowhere new, a dull `tock` for a nearby wall and two
+leads somewhere (another chamber of a dungeon, or a level exit), a soft breath
+for floor that leads nowhere new (rising upward, falling downward), a dull `tock` for a nearby wall and two
 knocks for a closed door ([readings](docs/radar-readings.md)),
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. `[radar] diagonals = true` or `access-radar diagonal`

@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Radar breath rises up, falls down (D4 mod's sound) — installed, 2026-09-28
+
+User could not tell an opening ahead from one behind. The floor breath is now the D4 mod's, copied
+unchanged: band-passed noise sweeping 900→2400 Hz up, 600→220 Hz down, steady 1200 Hz sideways,
+180 ms. **82/82 suites pass.** Installed DLL SHA-256 `95251F45…` matches the build.
+
+**Next step:** walk a corridor with openings ahead and behind and judge the two breaths under the
+game's ambience; also check the falling breath is not mistaken for the enemy swoop.
+`docs/radar-readings.md`.
+
 ## Way back to the last death place — installed, 2026-09-28
 
 User died to Radament (Sewers Level 3), pressed *Save and exit*, and had to find the room blind: the
