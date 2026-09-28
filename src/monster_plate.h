@@ -57,12 +57,13 @@ Plate Read(uint16_t flags, std::span<const uint8_t, Slots> slots, uint8_t rowFla
 // The words said after the monster's name, joined by `separator`: a unique's
 // `unique` (its gold says nothing aloud), a champion's kind when `named` is false
 // (a composed name already carries it), then the plate's line, immunities last.
+// A word `name` already says is not said again.
 struct Words {
 	std::function<std::string(uint32_t)> byId;
 	std::function<std::string(std::string_view)> byKey;
 	std::string_view unique, separator;
 };
-std::string Spoken(const Plate& plate, bool named, const Words& words);
+std::string Spoken(const Plate& plate, std::string_view name, bool named, const Words& words);
 
 // The immunities the game names under any monster's health plate (0x1400CEA50),
 // in its order: the monster's resistance, less the player's pierce of it, from

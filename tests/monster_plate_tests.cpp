@@ -59,8 +59,9 @@ MonsterPlate::Words Words() {
 				: key == MonsterPlate::MinionKey ? "Minion" : "");
 		}, "unique", ", "};
 }
-std::string Say(uint16_t flags, std::array<uint8_t, MonsterPlate::Slots> slots, uint8_t row, bool named = true) {
-	return MonsterPlate::Spoken(MonsterPlate::Read(flags, slots, row, GameTables()), named, Words());
+std::string Say(uint16_t flags, std::array<uint8_t, MonsterPlate::Slots> slots, uint8_t row, bool named = true,
+	std::string_view name = "Fallen") {
+	return MonsterPlate::Spoken(MonsterPlate::Read(flags, slots, row, GameTables()), name, named, Words());
 }
 void Plates() {
 	using MonsterPlate::Rank;
@@ -85,6 +86,9 @@ void Plates() {
 	Check(Say(0x10, slots, MonsterPlate::RowUndead) == "Undead, Minion", "a minion: its nature, then Minion, never enchantments");
 	Check(Say(0x10, slots, MonsterPlate::RowHighUndead) == "Undead, Minion", "high undead are undead too");
 	Check(Say(0x10, slots, MonsterPlate::RowDemon | MonsterPlate::RowUndead) == "Demon, Minion", "demon wins over undead, as in the game");
+	Check(Say(0x10, slots, MonsterPlate::RowDemon, true, "Minion of Fallen") == "Demon", "a word the name already says is not said twice");
+	slots = {16, 5};
+	Check(Say(0x0D, slots, 0, false, "Champion Fallen") == "Extra Strong", "nor a champion's kind its name carries");
 	slots = {5, 0, 30, 200, 16};
 	Check(Say(0x09, slots, 0) == "unique, Extra Strong, Aura Enchanted",
 		"an empty slot is skipped, not an end; an id past the table and a hidden one are never said");
@@ -108,9 +112,9 @@ void Immunities() {
 	plate.immunities = {"strScaryMonDesc1"};
 	const auto words = MonsterPlate::Words{[](uint32_t) { return std::string{}; },
 		[](std::string_view key) { return std::string(key == "strScaryMonDesc1" ? "Immune to Fire" : ""); }, "unique", ", "};
-	Check(MonsterPlate::Spoken(plate, true, words) == "Immune to Fire", "an ordinary monster's immunity is said on its own");
+	Check(MonsterPlate::Spoken(plate, "Zombie", true, words) == "Immune to Fire", "an ordinary monster's immunity is said on its own");
 	plate.rank = MonsterPlate::Rank::Unique;
-	Check(MonsterPlate::Spoken(plate, true, words) == "unique, Immune to Fire", "immunities come last");
+	Check(MonsterPlate::Spoken(plate, "Zombie", true, words) == "unique, Immune to Fire", "immunities come last");
 }
 }
 

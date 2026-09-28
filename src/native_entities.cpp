@@ -191,7 +191,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	if (entity.name.empty()) entity.name = UiText::Clean(Localization::Text(nameId));
 	if (plate.rank != MonsterPlate::Rank::Normal || !plate.immunities.empty()) {
 		const auto& strings = Strings::Current();
-		entity.enemy.plate = UiText::Clean(MonsterPlate::Spoken(plate, named, {
+		entity.enemy.plate = UiText::Clean(MonsterPlate::Spoken(plate, entity.name, named, {
 			[](uint32_t id) { return Localization::Text(id); }, [](std::string_view key) { return Localization::Text(key); },
 			strings.monsterUnique, strings.listSeparator}));
 	}

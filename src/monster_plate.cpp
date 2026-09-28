@@ -86,7 +86,7 @@ Plate Read(uint16_t flags, std::span<const uint8_t, Slots> slots, uint8_t rowFla
 	return plate;
 }
 
-std::string Spoken(const Plate& plate, bool named, const Words& words) {
+std::string Spoken(const Plate& plate, std::string_view name, bool named, const Words& words) {
 	std::vector<std::string> said;
 	if (plate.rank == Rank::Unique) said.emplace_back(words.unique);
 	if (plate.rank == Rank::Champion && !named && plate.championKind) said.push_back(Form(words.byId(plate.championKind)));
@@ -96,7 +96,7 @@ std::string Spoken(const Plate& plate, bool named, const Words& words) {
 	for (const auto key : plate.immunities) said.push_back(Form(words.byKey(key)));
 	std::string text;
 	for (const auto& word : said) {
-		if (word.empty()) continue;
+		if (word.empty() || name.find(word) != std::string_view::npos) continue;
 		if (!text.empty()) text += words.separator;
 		text += word;
 	}
