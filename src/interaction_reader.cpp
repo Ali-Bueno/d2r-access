@@ -474,6 +474,38 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 		if (const char* slot = SlotName(SlotLocation(context, focus.widget))) Append(result.option, slot);
 	return result;
 }
+
+// The game goes on drawing the tooltip of the place the pointer left for a
+// while after it moves (MEASURED 2026-09-28: the helmet's, 200 ms after the
+// cursor came to the torso, read as "Torso. Skull Cap"). An item's tooltip is
+// taken for the item under the cursor once it names that item; one that never
+// does is taken after NamesItemMs all the same, so a name this misjudges can
+// delay a readout but never silence it.
+constexpr uint64_t NamesItemMs = 400;
+uintptr_t g_namingWidget = 0;
+uint64_t g_namingSelection = 0, g_namingSince = 0;
+bool g_namingLogged = false;
+bool NamesItem(const D2RL::PluginContext* context, const std::string& body, uintptr_t item, uintptr_t widget, uint64_t selection, uint64_t now) {
+	if (widget != g_namingWidget || selection != g_namingSelection) {
+		g_namingWidget = widget;
+		g_namingSelection = selection;
+		g_namingSince = now;
+		g_namingLogged = false;
+	}
+	if (!item) return true;
+	const std::string name = NativeGroundItems::ItemBaseName(item);
+	if (name.empty() || UiText::Clean(body).find(name) != std::string::npos) return true;
+	if (now - g_namingSince >= NamesItemMs) {
+		D2RAccess::AsyncLog::InfoF(context, "[interaction] a tooltip without \"%s\" taken after %llu ms", name.c_str(),
+			static_cast<unsigned long long>(NamesItemMs));
+		return true;
+	}
+	if (!g_namingLogged) {
+		g_namingLogged = true;
+		D2RAccess::AsyncLog::InfoF(context, "[interaction] held back a tooltip that does not name \"%s\": the last place's", name.c_str());
+	}
+	return false;
+}
 }
 
 void OfferDetail(std::string_view owner, std::string detail) {
@@ -649,7 +681,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
 		&& (!inventory || tooltip.selection == selection)
-		&& equipmentPresence != NativeUi::ItemPresence::Empty) {
+		&& equipmentPresence != NativeUi::ItemPresence::Empty
+		&& (!inventory || NamesItem(context, tooltip.body, focusItem, focus.widget, selection, now))) {
 		std::string description;
 		if (progression.skill) {
 			description = ProgressionText::SkillDescription(tooltip.body);
