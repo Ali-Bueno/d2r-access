@@ -222,6 +222,8 @@ inline constexpr Table esMX {
 	.discoveriesOff = "Anuncios de descubrimientos desactivado",
 	.beaconSoundsOn = "Sonidos de guía activados",
 	.beaconSoundsOff = "Sonidos de guía desactivados",
+	.modSoundsOn = "Todos los sonidos del mod activados",
+	.modSoundsOff = "Todos los sonidos del mod desactivados",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
 		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",

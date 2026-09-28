@@ -222,6 +222,8 @@ inline constexpr Table itIT {
 	.discoveriesOff = "Annunci delle scoperte: disattivo",
 	.beaconSoundsOn = "Suoni della guida: attivo",
 	.beaconSoundsOff = "Suoni della guida: disattivo",
+	.modSoundsOn = "Tutti i suoni della mod: attivo",
+	.modSoundsOff = "Tutti i suoni della mod: disattivo",
 	.itemQualities = {"", "bassa qualità", "", "superiore", "magico", "di completo", "raro", "unico", "fabbricato"},
 	.terrainPlaces = {"angolo posteriore sinistro", "bordo posteriore", "angolo posteriore destro",
 		"bordo sinistro", "centro", "bordo destro", "angolo anteriore sinistro", "bordo anteriore",

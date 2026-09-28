@@ -1,5 +1,6 @@
 #include "entity_cue_audio.h"
 #include "async_log.h"
+#include "mod_sounds.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -114,7 +115,7 @@ bool Start(const D2RL::PluginContext* context, double gain) {
 void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
-		if (!g_running || !g_available) return;
+		if (!g_running || !g_available || !ModSounds::Enabled()) return;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

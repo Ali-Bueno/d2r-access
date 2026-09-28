@@ -58,6 +58,7 @@ add_library(d2r-access SHARED
 	src/beacon_service.cpp
 	src/beacon_navigation.cpp
 	src/navigation_mode.cpp
+	src/mod_sounds.cpp
 	src/navigation_policy.cpp
 	src/radar.cpp
 	src/navigation_grid.cpp

@@ -222,6 +222,8 @@ inline constexpr Table ptBR {
 	.discoveriesOff = "Anúncios de descobertas: desligado",
 	.beaconSoundsOn = "Sons da guia: ligado",
 	.beaconSoundsOff = "Sons da guia: desligado",
+	.modSoundsOn = "Todos os sons do mod: ligado",
+	.modSoundsOff = "Todos os sons do mod: desligado",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 	.terrainPlaces = {"canto traseiro esquerdo", "borda traseira", "canto traseiro direito",
 		"borda esquerda", "centro", "borda direita", "canto frontal esquerdo", "borda frontal",

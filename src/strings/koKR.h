@@ -222,6 +222,8 @@ inline constexpr Table koKR {
 	.discoveriesOff = "발견 알림 꺼짐",
 	.beaconSoundsOn = "안내 소리 켜짐",
 	.beaconSoundsOff = "안내 소리 꺼짐",
+	.modSoundsOn = "모드의 모든 소리 켜짐",
+	.modSoundsOff = "모드의 모든 소리 꺼짐",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 	.terrainPlaces = {"뒤쪽 왼쪽 모서리", "뒤쪽 가장자리", "뒤쪽 오른쪽 모서리", "왼쪽 가장자리", "중앙",
 		"오른쪽 가장자리", "앞쪽 왼쪽 모서리", "앞쪽 가장자리", "앞쪽 오른쪽 모서리"},

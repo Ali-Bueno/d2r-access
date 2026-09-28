@@ -222,6 +222,8 @@ inline constexpr Table deDE {
 	.discoveriesOff = "Entdeckungsansagen aus",
 	.beaconSoundsOn = "Zielführungsklänge an",
 	.beaconSoundsOff = "Zielführungsklänge aus",
+	.modSoundsOn = "Alle Mod-Klänge an",
+	.modSoundsOff = "Alle Mod-Klänge aus",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
 		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},

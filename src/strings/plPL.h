@@ -222,6 +222,8 @@ inline constexpr Table plPL {
 	.discoveriesOff = "Komunikaty o odkryciach: wyłączone",
 	.beaconSoundsOn = "Dźwięki prowadzenia: włączone",
 	.beaconSoundsOff = "Dźwięki prowadzenia: wyłączone",
+	.modSoundsOn = "Wszystkie dźwięki moda: włączone",
+	.modSoundsOff = "Wszystkie dźwięki moda: wyłączone",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 	.terrainPlaces = {"tylny lewy róg", "tylna krawędź", "tylny prawy róg", "lewa krawędź", "środek",
 		"prawa krawędź", "przedni lewy róg", "przednia krawędź", "przedni prawy róg"},

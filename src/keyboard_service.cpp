@@ -20,6 +20,7 @@
 #include "input_direction.h"
 #include "keyboard_menu.h"
 #include "map_survey_service.h"
+#include "mod_sounds.h"
 #include "native_actions.h"
 #include "native_belt_fill.h"
 #include "native_class_choice.h"
@@ -920,6 +921,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		return [on, off](bool state) { return std::string(Strings::Current().*(state ? on : off)); };
 	};
 	std::vector<Entry> entries{
+		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
 		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
 		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},

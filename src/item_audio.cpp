@@ -2,6 +2,7 @@
 #include "item_wave.h"
 #include "item_spatial.h"
 #include "async_log.h"
+#include "mod_sounds.h"
 #include <windows.h>
 #include <xaudio2.h>
 #include <algorithm>
@@ -96,6 +97,7 @@ void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::P
 	}
 }
 void Request(OneShotChannel& channel, const Voice& voice) {
+	if (!ModSounds::Enabled()) return;
 	std::lock_guard lock(g_mutex);
 	channel.pending = OneShotRequest{voice, ++channel.generation};
 	g_wake.notify_one();
@@ -237,12 +239,14 @@ bool Start(const D2RL::PluginContext* context) {
 	return true;
 }
 void Update(std::vector<Voice> voices) {
+	if (!ModSounds::Enabled()) voices.clear();
 	std::lock_guard lock(g_mutex);
 	g_pending = std::move(voices); g_updated = GetTickCount64();
 	g_wake.notify_one();
 }
 void Silence() { Update({}); }
 void UpdateExploration(std::vector<Voice> voices) {
+	if (!ModSounds::Enabled()) voices.clear();
 	std::lock_guard lock(g_mutex);
 	g_explorationPending = std::move(voices); g_explorationUpdated = GetTickCount64();
 	g_wake.notify_one();
