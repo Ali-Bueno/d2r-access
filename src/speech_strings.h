@@ -120,6 +120,9 @@ struct Table {
 	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
 	const char* corpseOwn;              // the local player's corpse
 	const char* corpseOf;               // %s = another player's name
+	const char* deathPlace;             // where the player last died, on that level
+	const char* deathRoute;             // %s = level died on, %s = the exit toward it
+	const char* deathRouteWaypoint;     // %s = level died on, %s = waypoint, %s = level to pick
 	const char* surveyEmpty;    // %s = category
 	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
@@ -273,7 +276,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconCleared, t.beaconUnavailable,
 		t.beaconNothing, t.beaconFollowing, t.beaconFollowingReach, t.beaconReachStraight,
 		t.beaconReachAround, t.beaconReachNoRoute, t.beaconArrived, t.beaconLost,
-		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
+		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf, t.deathPlace, t.deathRoute, t.deathRouteWaypoint,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,

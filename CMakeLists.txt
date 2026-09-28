@@ -106,6 +106,8 @@ add_library(d2r-access SHARED
 	src/terrain_service.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
+	src/death_place.cpp
+	src/death_place_service.cpp
 	src/automap_cells.cpp
 	src/native_automap.cpp
 	src/automap_service.cpp
@@ -440,6 +442,11 @@ if(BUILD_TESTING)
 	target_compile_features(corpse-memory-tests PRIVATE cxx_std_20)
 	target_compile_definitions(corpse-memory-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME corpse-memory COMMAND corpse-memory-tests)
+	add_executable(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
+	target_include_directories(death-place-tests PRIVATE src)
+	target_compile_features(death-place-tests PRIVATE cxx_std_20)
+	target_compile_definitions(death-place-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME death-place COMMAND death-place-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)

@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-28 — The last death place is kept per map and routed to
+
+The user died to a boss, pressed *Save and exit*, and had to find the boss room blind: the new game
+moves the corpse to town. The mod now keeps the place, per map, on disk, and the corpse category
+leads there over the exits already found. The level-to-level route uses only the exploration
+memory, not `Levels.txt` `Vis`. That column holds the warp links only, not the open borders
+between outdoor areas, and it would reveal ways never found. Waypoints are a fallback only: the mod
+cannot read which ones are activated. `docs/death-place.md`.
+
 ## 2026-09-28 — Town NPCs listed from anywhere in town, no district names
 
 The user found Lut Gholein too big to find the NPCs and asked for tavern/smithy-style places and an

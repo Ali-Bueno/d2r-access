@@ -31,6 +31,7 @@
 #include "room_service.h"
 #include "radar_service.h"
 #include "terrain_service.h"
+#include "death_place_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
@@ -282,6 +283,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
+	D2RAccess::DeathPlaceService::Register(context);
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");

@@ -53,6 +53,8 @@ automap; enemies are the one live category.
   rule, until its place is read again without it or its owner takes it back.
   A party member's corpse is placed even unseen, on any level, from the party
   roster at the moment it appears (`CorpseMemory`, `docs/player-corpse-re.md`).
+  The same category lists where the player last died on this map, even in a later game, or, on
+  another level, the known exit toward it (`docs/death-place.md`).
 - **Rooms** are logical rooms of the level, read whether or not the game has
   them loaded (`NativeRooms::Read`). *Room* lists the rooms stood in.
   *Unexplored room* comes right after the ways out. In exploration mode it

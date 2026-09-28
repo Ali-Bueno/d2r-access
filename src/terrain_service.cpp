@@ -394,13 +394,11 @@ std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeR
 	return visited;
 }
 
-std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
-	std::lock_guard lock(g_mutex);
+namespace {
+// Stored places as scanner landmarks, fixed places only.
+std::vector<EntityRadar::Entity> Landmarks(const std::vector<ExploredStore::Place>& places) {
 	std::vector<EntityRadar::Entity> result;
-	const auto* key = LoadedKey(level, rooms);
-	const auto places = key ? g_places.find(*key) : g_places.end();
-	if (places == g_places.end()) return result;
-	for (const auto& place : places->second) {
+	for (const auto& place : places) {
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
 		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
@@ -410,6 +408,24 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 		result.push_back(std::move(entity));
 	}
+	return result;
+}
+}
+
+std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::lock_guard lock(g_mutex);
+	const auto* key = LoadedKey(level, rooms);
+	const auto places = key ? g_places.find(*key) : g_places.end();
+	return places == g_places.end() ? std::vector<EntityRadar::Entity>{} : Landmarks(places->second);
+}
+
+std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
+	auto stored = g_store.MapPlaces(seed);
+	std::lock_guard lock(g_mutex);
+	for (const auto& [key, places] : g_places)
+		if (key.seed == seed) ExploredStore::MergePlaces(stored[key.level], places); // found this game is newer than the disk
+	std::map<int, std::vector<EntityRadar::Entity>> result;
+	for (const auto& [level, places] : stored) result[static_cast<int>(level)] = Landmarks(places);
 	return result;
 }
 

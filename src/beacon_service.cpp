@@ -3,6 +3,7 @@
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
+#include "death_place.h"
 #include "input_direction.h"
 #include "level_areas.h"
 #include "native_entities.h"
@@ -274,6 +275,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 // loaded rooms keeps its last known place: that is still where it was.
 bool Refresh(const Lifecycle& state, uint64_t now) {
 	if (g_target.point) { g_target.seenMs = now; return true; } // a passage does not move
+	if (g_target.entity.placeId == DeathPlace::Identity) { g_target.seenMs = now; return true; } // a place, not a unit
 	std::vector<EntityRadar::Entity> entities;
 	// A room is not a native unit and never moves: it is exactly where the
 	// catalogue said it was, so there is nothing to re-read and nothing that

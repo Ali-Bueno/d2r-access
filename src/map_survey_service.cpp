@@ -4,6 +4,7 @@
 #include "async_log.h"
 #include "beacon_service.h"
 #include "corpse_memory.h"
+#include "death_place_service.h"
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
@@ -338,6 +339,10 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	}
 	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
+	// Where the player last died on this map, or the known way toward it.
+	const auto death = DeathPlaceService::Landmarks(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
+		state.level, world.player, catalogued);
+	catalogued.insert(catalogued.end(), death.begin(), death.end());
 	// An area border is measured to where it is walked across, where the beacon leads.
 	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
@@ -514,8 +519,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	LogTownNpcs(context, state, scene);
 	// Rooms are marked explored by standing in them, so this has to keep up
 	// with the player rather than wait for the next catalogue question.
-	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
-		CurrentRooms(state.level, state.session), world.player);
+	const uint32_t seed = NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level);
+	g_rooms.Observe(state.level, seed, CurrentRooms(state.level, state.session), world.player);
+	DeathPlaceService::Track(seed, state.level, world.player);
 }
 
 void Shutdown() {

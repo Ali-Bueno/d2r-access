@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Way back to the last death place — installed, 2026-09-28
+
+User died to Radament (Sewers Level 3), pressed *Save and exit*, and had to find the room blind: the
+new game put the corpse in town. Now the death screen records the place where the player last stood.
+It is kept per map in `explored\deaths.txt`. The corpse category lists "donde moriste" on that level.
+On other levels it lists the known exit toward it ("camino a donde moriste, *level*: *exit*"), or the
+waypoint when no walking route is known. It is forgotten once reached. **82/82 suites pass** (new
+`death-place`). Installed DLL SHA-256 `3B06AFDC…` matches the build.
+
+**Next step:** die somewhere two levels deep, *Save and exit*, rejoin. Check the corpse category in
+town and on each level on the way, and `[death]` in the log. `docs/death-place.md`.
+
 ## Seen town NPCs from anywhere in town — installed, 2026-09-28
 
 User, in Lut Gholein: the town is huge. They asked for tavern/smithy-style places and an unlimited
@@ -1334,7 +1346,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Internal town landmarks | seen NPCs from anywhere in town installed 2026-09-28; live check pending | The game names no district (Acts I and II checked). Town NPCs, once seen, are the landmarks: live unit or preset spawn point. `docs/map-landmarks.md`, `docs/entity-scan.md#town-npcs` |
 | Native world / local map | wip — camp and Blood Moor runtime confirmed | 18:19–18:29 session retained terrain, entered level 2; movement mask 1C09. Direct room reads, 19 fingerprints. Full-map coverage unverified. `docs/sonar-radar.md` |
 | Level scanner (right stick) | user-confirmed 2026-09-24 | Up/down categories, left/right objects, nearest first; enemies live, loot and ordinary chests excluded. Replaces the directional scan and the L3 pathfinder. `docs/entity-scan.md` |
-| Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. `docs/player-corpse-re.md` |
+| Own corpse recovery | built/deployed 2026-09-23; live recovery pending | Native ownership check excludes other players and scenery. Separate scan identity supports beacon locking; loaded rooms only. Startup guards verified. The last death place is kept per map and routed to over known exits (installed 2026-09-28). `docs/player-corpse-re.md`, `docs/death-place.md` |
 | Friendly NPC announcer | line of sight on by default 2026-09-18; live check pending | Nearest friendly NPC spoken once when in range (15 subtiles, 3 hysteresis), distance + screen direction, no interrupt; silent in menus/dialogue/UI speech. Ctrl+N, `access-npc`, `[npc]` in `radar.toml`. `docs/npc-proximity.md` |
 | Sonar radar | precision fixes installed 2026-09-25; live listening pending | Stick cardinals (diagonal frame selectable); obstacles kept while slide prevention is on; cue interval only between openings; no repeated reading; way-back lapse. `docs/radar-readings.md`, `docs/exploration.md`. |
 | Connected navigation research | done locally - runtime integration built | Native body graph's bounded directional passage query (`ScanPassage`) is now the radar's only classifier, driving all four directions. No persistent doorway IDs/full-map guidance. `docs/D2RNavigationResearch.md`, `docs/radar-connected-passages.md` (historical), `docs/radar-redesign.md` (current use). |

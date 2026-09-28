@@ -2,6 +2,7 @@
 #include "ui_message_monitor.h"
 
 #include "quest_service.h"
+#include "death_place_service.h"
 #include "menu_navigation.h"
 
 #include "generated/panel_titles.h"
@@ -32,6 +33,8 @@ namespace {
 // the SDK (widget-localization sample: "PanelManager:ClosePanel:<name>") and
 // observed in the plugin's own trace.
 constexpr const char* PanelManagerTarget        = "PanelManager";
+// The game's death screen (global/ui/layouts): the player has just died.
+constexpr const char* YouDiedPanel              = "YouDiedModal";
 constexpr const char* OpenPanelCommand          = "OpenPanel";
 constexpr const char* OpenExclusivePanelCommand = "OpenExclusivePanel";
 constexpr const char* ClosePanelCommand         = "ClosePanel";
@@ -287,6 +290,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		FocusTracker::PanelsChanged();
 		Localization::DetectSpeechLanguage(context); // no-op once detected
 		AnnouncePanel(*event);
+		if (std::strcmp(event->command, OpenPanelCommand) == 0 && std::strcmp(Safe(event->text), YouDiedPanel) == 0)
+			DeathPlaceService::NoteDeath();
 	} else if (std::strcmp(event->target, MoviePlayerTarget) == 0 && std::strcmp(event->command, MoviePlayCommand) == 0) {
 		PanelState::MovieStarted();
 		AsyncLog::Info(context, "[ui] cinematic started: cues paused");
