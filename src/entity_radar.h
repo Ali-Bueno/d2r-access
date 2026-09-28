@@ -4,8 +4,10 @@
 #include "radar.h"
 #include "speech_strings.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // Shared entity types (NPC/enemy/object/item/exit/room/corpse) plus the
 // line-of-sight and spoken-distance helpers used by the level catalogue, NPC
@@ -35,6 +37,13 @@ struct EnemyTraits {
 	bool important = false;
 	bool resurrector = false;
 	bool ranged = false;
+	// What the game shows about the monster beyond its name, spoken after it:
+	// unique, champion, minion, and the enchantments under its health plate.
+	// Empty for an ordinary monster (monster_plate.h).
+	std::string plate;
+	// MonsterData's type flags (+0x1A) and enchantment slots (+0x20) as read, for the log.
+	uint16_t flags = 0;
+	std::array<uint8_t, 9> enchantments{};
 };
 
 struct Entity {
@@ -72,6 +81,8 @@ struct Entity {
 	uint8_t unit = NoUnit;
 };
 bool SameTarget(const Entity& a, const Entity& b);
+// The name to say, followed by an enemy's plate when it has one.
+std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
 inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
 struct Settings {

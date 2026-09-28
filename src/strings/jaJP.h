@@ -96,6 +96,7 @@ inline constexpr Table jaJP {
 	.surveyNothing  = "ここには何もありません",
 	.exitUnnamed = "出口",
 	.containerUnnamed = "容器",
+	.monsterUnique = "ユニーク",
 	.itemSpeechEnabled = "近くのアイテムの読み上げ オン",
 	.itemSpeechDisabled = "近くのアイテムの読み上げ オフ",
 	.itemSoundsEnabled = "アイテムの音 オン",

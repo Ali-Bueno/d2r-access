@@ -20,6 +20,7 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <optional>
 #include <unordered_set>
 
 namespace D2RAccess::NativeEntities {
@@ -32,6 +33,9 @@ using GroundItemLayout::UnitType, GroundItemLayout::UnitClass, GroundItemLayout:
 	GroundItemLayout::MaxTableRows, GroundItemLayout::PositionScale;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
+// The game's enchantment names and champion kinds, once PlateChecks has passed.
+static_assert(std::tuple_size_v<decltype(EntityRadar::EnemyTraits::enchantments)> == MonsterPlate::Slots);
+std::optional<MonsterPlate::Tables> g_plate;
 bool g_corpsesSupported = false;
 bool g_rosterCorpsesSupported = false;
 bool g_playersSupported = false;
@@ -141,8 +145,12 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// non-interact monster. Hidden helper units ("an evil force") fail it.
 	const bool hostile = align == AlignHostile && !(flagsA & FlagNpc);
 	if (hostile && !(flagsA & FlagKillable)) return false;
+	MonsterPlate::Plate plate;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
 	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
+	if (hostile && g_plate && Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, entity.enemy.flags)
+		&& NativeMemory::Copy(data + MonEnchantments, entity.enemy.enchantments.data(), entity.enemy.enchantments.size()))
+		plate = MonsterPlate::Read(entity.enemy.flags, entity.enemy.enchantments, flagsA, *g_plate);
 	if (hostile) {
 		uint8_t bossFlags = 0, rangedFlags = 0;
 		if (Peek(row + MonFlagsBoss, bossFlags)) entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
@@ -161,7 +169,14 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// Built only once the game has shown it (hover, health plate): before that, and
 	// always for a super unique, it is composed here from the same string ids.
 	if (entity.name.empty() && data) entity.name = UiText::Clean(ComposedName(data));
+	const bool named = !entity.name.empty();
 	if (entity.name.empty()) entity.name = UiText::Clean(Localization::Text(nameId));
+	if (plate.rank != MonsterPlate::Rank::Normal) {
+		const auto& strings = Strings::Current();
+		entity.enemy.plate = UiText::Clean(MonsterPlate::Spoken(plate, named, {
+			[](uint32_t id) { return Localization::Text(id); }, [](std::string_view key) { return Localization::Text(key); },
+			strings.monsterUnique, strings.listSeparator}));
+	}
 	if (entity.name.empty()) return false;
 	// Rows the game leaves unnamed all resolve to the same placeholder label
 	// ("an evil force"): decoration and helper units, never worth announcing.
@@ -455,6 +470,10 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
+	g_plate.reset();
+	if (MonsterPlate::Tables tables; LayoutCheck::Verify(context, context->exeBase, PlateChecks, "plate", "monster ranks and enchantments not spoken")
+		&& NativeMemory::Copy(g_base + EnchantmentNames, tables.enchantments.data(), sizeof(tables.enchantments))
+		&& NativeMemory::Copy(g_base + ChampionKinds, tables.champions.data(), sizeof(tables.champions))) g_plate = tables;
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	g_corpsesSupported = LayoutCheck::Verify(context, context->exeBase, CorpseChecks, "corpse", "player corpse target disabled");
 	if (g_corpsesSupported) AsyncLog::Info(context, "[scan] Verified player corpse ownership reader.");

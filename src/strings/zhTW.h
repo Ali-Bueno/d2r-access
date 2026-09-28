@@ -96,6 +96,7 @@ inline constexpr Table zhTW {
 	.surveyNothing  = "這裡什麼都沒有",
 	.exitUnnamed = "出口",
 	.containerUnnamed = "容器",
+	.monsterUnique = "獨特",
 	.itemSpeechEnabled = "附近物品朗讀已啟用",
 	.itemSpeechDisabled = "附近物品朗讀已停用",
 	.itemSoundsEnabled = "物品音效已啟用",

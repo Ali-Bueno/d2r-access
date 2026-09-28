@@ -96,6 +96,7 @@ inline constexpr Table itIT {
 	.surveyNothing  = "qui non c'è nulla",
 	.exitUnnamed = "Uscita",
 	.containerUnnamed = "Contenitore",
+	.monsterUnique = "unico",
 	.itemSpeechEnabled = "Lettura degli oggetti vicini attivata",
 	.itemSpeechDisabled = "Lettura degli oggetti vicini disattivata",
 	.itemSoundsEnabled = "Suoni degli oggetti attivati",

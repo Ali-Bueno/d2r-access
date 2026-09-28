@@ -159,7 +159,7 @@ const char* CategoryName(EntityRadar::Category category) {
 }
 
 std::string Format(const char* format, auto... args) {
-	char buffer[256]{};
+	char buffer[512]{};
 	std::snprintf(buffer, sizeof(buffer), format, args...);
 	return buffer;
 }
@@ -180,17 +180,17 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// user, 2026-09-25). Only a landmark on the player has no distance at all.
 	if (!g_fullAssistance) {
 		const std::string distance = EntityRadar::DistancePhrase(landmark.straightLine, EntityRadar::Settings{}, strings);
-		return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
+		return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 	}
 	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
 	if (!landmark.reachable && landmark.straightLine <= 0) {
-		return Format(strings.surveyBearing, landmark.entity.name.c_str(), direction);
+		return Format(strings.surveyBearing, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), direction);
 	}
 	// Spoken like the scan's distance. For a reachable landmark it is the
 	// WALKING distance -- the steps the game's own graph needs to get there --
 	// and a wall between the two makes the numbers differ.
 	const std::string distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
-	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
+	return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 }
 
 // What the act has built around this level, once per level. The exits

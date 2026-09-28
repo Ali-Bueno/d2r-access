@@ -35,6 +35,14 @@ bool TraceSight(const Radar::World& world, Radar::Position from, Radar::Position
 }
 }
 
+std::string SpokenName(const Entity& entity, std::string_view separator) {
+	if (entity.enemy.plate.empty()) return entity.name;
+	std::string text = entity.name;
+	text += separator;
+	text += entity.enemy.plate;
+	return text;
+}
+
 bool SameTarget(const Entity& a, const Entity& b) {
 	if (a.kind != b.kind || a.placeId != b.placeId) return false;
 	return a.placeId || a.id == b.id;

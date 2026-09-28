@@ -96,6 +96,7 @@ inline constexpr Table ptBR {
 	.surveyNothing  = "nada aqui",
 	.exitUnnamed = "Saída",
 	.containerUnnamed = "Recipiente",
+	.monsterUnique = "único",
 	.itemSpeechEnabled = "Leitura de itens próximos ativada",
 	.itemSpeechDisabled = "Leitura de itens próximos desativada",
 	.itemSoundsEnabled = "Sons de itens ativados",

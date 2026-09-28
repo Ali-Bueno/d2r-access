@@ -60,6 +60,7 @@ inline constexpr size_t MonNameIds = 0x32, MonNameParts = 4;
 inline constexpr uint16_t NoText = 0xFFFF;
 inline constexpr size_t MonRarityFlags = 0x1A;
 inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
+inline constexpr size_t MonEnchantments = 0x20; // monster_plate.h
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // Size getters 0x3481E0/0x3482C0; all columns cross-checked by tools/objects_containers.py.
@@ -114,6 +115,18 @@ inline constexpr size_t MaxWarpNodes = 64;
 inline constexpr size_t Levels = 0x1460, LevelCount = 0x1468, LevelStride = 0x18C, LevelNameKey = 0xFD, LevelWarpKey = 0x125;
 inline constexpr size_t MaxNameBytes = 128, MaxKeyBytes = 32, MaxLevelKeyBytes = LevelWarpKey - LevelNameKey;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
+// What the game shows under a monster's name (monster_plate.h). A failure here
+// leaves names and everything else as they were; only the plate goes silent.
+inline constexpr uintptr_t EnchantmentNames = 0x1CDD580, ChampionKinds = 0x1CDD4F0;
+inline constexpr Evidence PlateChecks[] = {
+	{0x38E870, 110, 0x586160E9AD4B858AULL}, // type flag test: word MonsterData+0x1A
+	{0x38E310, 89, 0x75798E11AFCA6543ULL}, // enchantment slots: MonsterData+0x20
+	{0x1DFAE0, 1492, 0xC548373152B03EC0ULL}, // enchantment names: 9 slots, 0 skipped, 45 and up never shown
+	{0x1DF6B0, 377, 0xCB49FEE4D15D7A45ULL}, // a special monster's line: nature, then enchantments
+	{0x1DF830, 325, 0x87F6F0E49BBF623FULL}, // a minion's line: nature, then "Minion"
+	{EnchantmentNames, 90, 0xFFD1840F1B59BEC2ULL}, // string id per enchantment (u16 x 45)
+	{ChampionKinds, 40, 0xDD6CBCB100035905ULL}, // champion kind word per enchantment (u32 pairs x 5)
+};
 inline constexpr Evidence Checks[] = {
 	{0x3614C0, 653, 0xA85E778CC89FCD70ULL}, // complete logical room list and tile rectangles
 	{0x361040, 33, 0x884F085CB2600C15ULL}, // RoomEx+0x98 preset list

@@ -67,4 +67,38 @@ std::string Compose(std::string_view format, std::span<const std::string> parts)
 	}
 	return Trim(std::move(result));
 }
+
+Plate Read(uint16_t flags, std::span<const uint8_t, Slots> slots, uint8_t rowFlags, const Tables& tables) {
+	Plate plate;
+	if (flags & SpecialMask) plate.rank = flags & FlagChampion ? Rank::Champion : Rank::Unique;
+	else if (flags & FlagMinion) plate.rank = Rank::Minion;
+	else return plate;
+	if (rowFlags & RowDemon) plate.natureKey = DemonKey;
+	else if (rowFlags & (RowUndead | RowHighUndead)) plate.natureKey = UndeadKey;
+	for (const uint8_t slot : slots) {
+		if (!slot) continue; // empty, and the game skips rather than stops on it
+		for (const auto& kind : tables.champions)
+			if (plate.rank == Rank::Champion && !plate.championKind && kind.text && kind.enchantment == slot) plate.championKind = kind.text;
+		// A minion's line never lists enchantments.
+		if (plate.rank != Rank::Minion && slot < tables.enchantments.size() && tables.enchantments[slot])
+			plate.enchantments.push_back(tables.enchantments[slot]);
+	}
+	return plate;
+}
+
+std::string Spoken(const Plate& plate, bool named, const Words& words) {
+	std::vector<std::string> said;
+	if (plate.rank == Rank::Unique) said.emplace_back(words.unique);
+	if (plate.rank == Rank::Champion && !named && plate.championKind) said.push_back(Form(words.byId(plate.championKind)));
+	if (!plate.natureKey.empty()) said.push_back(Form(words.byKey(plate.natureKey)));
+	if (plate.rank == Rank::Minion) said.push_back(Form(words.byKey(MinionKey)));
+	for (const uint16_t id : plate.enchantments) said.push_back(Form(words.byId(id)));
+	std::string text;
+	for (const auto& word : said) {
+		if (word.empty()) continue;
+		if (!text.empty()) text += words.separator;
+		text += word;
+	}
+	return text;
+}
 }

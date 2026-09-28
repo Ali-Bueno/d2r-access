@@ -96,6 +96,7 @@ inline constexpr Table ruRU {
 	.surveyNothing  = "здесь ничего нет",
 	.exitUnnamed = "Выход",
 	.containerUnnamed = "Контейнер",
+	.monsterUnique = "уникальный",
 	.itemSpeechEnabled = "Чтение предметов рядом включено",
 	.itemSpeechDisabled = "Чтение предметов рядом выключено",
 	.itemSoundsEnabled = "Звуки предметов включены",

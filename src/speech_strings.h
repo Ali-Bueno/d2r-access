@@ -124,6 +124,7 @@ struct Table {
 	const char* surveyNothing;  // nothing catalogued on this level yet
 	const char* exitUnnamed; // a level exit whose destination name is unavailable
 	const char* containerUnnamed; // a loot container whose localized name is unavailable
+	const char* monsterUnique; // a unique or super unique monster, which the game marks by its name's gold alone
 	const char* itemSpeechEnabled; // nearby ground item reading toggles
 	const char* itemSpeechDisabled;
 	const char* itemSoundsEnabled; // ground item loop toggles
@@ -288,7 +289,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
 		t.entityCueRangedDisabled, t.entityCueAudioUnavailable, t.entityCueReaderUnavailable,
-		t.exitUnnamed, t.containerUnnamed,
+		t.exitUnnamed, t.containerUnnamed, t.monsterUnique,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
 		t.doorSoundsEnabled, t.doorSoundsDisabled, t.questSoundsEnabled, t.questSoundsDisabled,

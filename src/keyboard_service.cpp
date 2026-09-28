@@ -196,7 +196,7 @@ int g_graphLevel = 0;
 uint64_t g_graphSession = 0;
 
 std::string Format(const char* format, auto... args) {
-	char buffer[320]{};
+	char buffer[512]{};
 	std::snprintf(buffer, sizeof(buffer), format, args...);
 	return buffer;
 }
@@ -256,7 +256,7 @@ std::string Describe(const Radar::World& world, const Entity& entity, int steps)
 	const char* direction = strings.radarMovementDirections[static_cast<size_t>(Radar::ScreenSector(offset))];
 	const double reach = steps >= 0 ? static_cast<double>(steps) : Distance(world.player, entity.position);
 	const auto distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
-	return Format(strings.surveySteps, entity.name.c_str(), distance.c_str(), direction);
+	return Format(strings.surveySteps, EntityRadar::SpokenName(entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 }
 
 void End(const char* reason, bool halt) {
@@ -707,8 +707,12 @@ void StepTarget(const Lifecycle& state, int delta) {
 	const auto ranked = Monsters(scene);
 	const auto* target = g_lock.Choose(ranked, delta);
 	if (!target) { ScreenReader::Speak(strings.targetNone, true); return; }
-	AsyncLog::InfoF(g_context, "[keyboard] target id=%u steps=%d sight=%u of %zu name=%s", target->entity.id, target->steps,
-		target->sight ? 1u : 0u, ranked.size(), target->entity.name.c_str());
+	const auto& enemy = target->entity.enemy;
+	char slots[3 * std::tuple_size_v<decltype(enemy.enchantments)> + 1]{};
+	for (size_t i = 0; i < enemy.enchantments.size(); ++i)
+		std::snprintf(slots + 3 * i, sizeof(slots) - 3 * i, "%s%02X", i ? " " : "", enemy.enchantments[i]);
+	AsyncLog::InfoF(g_context, "[keyboard] target id=%u steps=%d sight=%u of %zu name=%s flags=%04X slots=%s plate=%s", target->entity.id,
+		target->steps, target->sight ? 1u : 0u, ranked.size(), target->entity.name.c_str(), enemy.flags, slots, enemy.plate.c_str());
 	ScreenReader::Speak(Describe(scene.world, target->entity, target->steps), true);
 }
 

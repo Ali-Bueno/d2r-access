@@ -96,6 +96,7 @@ inline constexpr Table koKR {
 	.surveyNothing  = "여기에는 아무것도 없습니다",
 	.exitUnnamed = "출구",
 	.containerUnnamed = "용기",
+	.monsterUnique = "고유",
 	.itemSpeechEnabled = "주변 아이템 읽기 켜짐",
 	.itemSpeechDisabled = "주변 아이템 읽기 꺼짐",
 	.itemSoundsEnabled = "아이템 소리 켜짐",
