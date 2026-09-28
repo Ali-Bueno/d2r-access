@@ -264,6 +264,33 @@ bool Ready() {
 	return false;
 }
 
+// Log only, no change to the walk: an order the character did not move on is
+// given again unchanged, and the game's own flags of each cell on the straight
+// line to it are logged, to find what the game will not walk that our map
+// calls open (2026-09-28: 5791,4784 refused three times from 5807,4783 in the camp).
+Position g_orderFrom, g_lastOrder;
+bool g_ordered = false;
+void LogStall(const Radar::World& world, Position order) {
+	const double length = Distance(world.player, order);
+	std::string cells;
+	int lastX = 0, lastY = 0, listed = 0;
+	for (double along = 0; length >= 1 && along <= length && listed < 24; along += 0.5) {
+		const int x = static_cast<int>(std::lround(world.player.x + (order.x - world.player.x) * along / length));
+		const int y = static_cast<int>(std::lround(world.player.y + (order.y - world.player.y) * along / length));
+		if (listed && x == lastX && y == lastY) continue;
+		lastX = x;
+		lastY = y;
+		++listed;
+		uint16_t flags = 0;
+		const auto state = world.Cell(x, y, Radar::Layer::Movement, &flags);
+		char cell[40];
+		std::snprintf(cell, sizeof(cell), " %d,%d=%04X/%d", x, y, flags, static_cast<int>(state));
+		cells += cell;
+	}
+	AsyncLog::InfoF(g_context, "[keyboard] walk: no move on %.0f,%.0f from %.0f,%.0f, mask %04X; on the way:%s",
+		order.x, order.y, world.player.x, world.player.y, world.walkingMask, cells.c_str());
+}
+
 // One leg of a walk toward a thing, along the route the beacon would ping.
 Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& target, double reach, uint64_t now) {
 	if (Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
@@ -277,7 +304,14 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 	if (route.path.empty()) return Progress::NoRoute;
 	const auto step = g_walker.Tick(scene.world, route.path, now, g_walk);
 	if (step.event == AutoWalk::Event::Blocked) return Progress::Blocked;
-	if (step.event == AutoWalk::Event::Order) (void)NativeActions::MoveTo(step.order);
+	if (step.event == AutoWalk::Event::Order) {
+		if (g_ordered && step.order.x == g_lastOrder.x && step.order.y == g_lastOrder.y && Distance(scene.world.player, g_orderFrom) < 1)
+			LogStall(scene.world, step.order);
+		g_ordered = true;
+		g_lastOrder = step.order;
+		g_orderFrom = scene.world.player;
+		(void)NativeActions::MoveTo(step.order);
+	}
 	return Progress::Going;
 }
 
