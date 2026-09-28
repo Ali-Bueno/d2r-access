@@ -14,20 +14,11 @@ namespace {
 
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::InputService*  g_input   = nullptr;
-D2RL::Input::ActionHandle  g_action  = D2RL::Input::InvalidHandle;
 D2RL::Input::ActionHandle  g_tooltipsAction = D2RL::Input::InvalidHandle;
 std::atomic<bool>          g_enabled { false };
 std::atomic<bool>          g_tooltips { true };
 std::atomic<bool>          g_toggled { false };         // a press waiting to be announced
 std::atomic<bool>          g_tooltipsToggled { false };
-
-auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {
-	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize) || event->kind != D2RL::Input::ActionEventKind::Pressed)
-		return D2RL::Input::ActionResult::Ignored;
-	g_enabled.store(!g_enabled.load());
-	g_toggled.store(true);
-	return D2RL::Input::ActionResult::Handled;
-}
 
 auto TooltipsAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize) || event->kind != D2RL::Input::ActionEventKind::Pressed)
@@ -46,22 +37,18 @@ bool Register(const D2RL::PluginContext* context) {
 		return false;
 	}
 	g_context = context;
-	const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize, .logicalId = "auto-detail",
-		.displayName = "Toggle reading the whole description on highlight", .category = "Accessibility",
-		.defaultPrimary = {D2RL::Input::Key::D, D2RL::Input::Modifier::Control}, .callback = Action, .userData = nullptr};
 	const D2RL::Input::ActionRegistration tooltips{.structSize = D2RL::Input::ActionRegistrationSize, .logicalId = "control-tooltips",
 		.displayName = "Toggle reading the controls with autodetail", .category = "Accessibility",
 		.defaultPrimary = {D2RL::Input::Key::H, D2RL::Input::Modifier::Control}, .callback = TooltipsAction, .userData = nullptr};
-	const bool registered = g_input->registerAction(context, &action, &g_action) == D2RL::Input::Result::Success;
-	return g_input->registerAction(context, &tooltips, &g_tooltipsAction) == D2RL::Input::Result::Success && registered;
+	// Autodetail has no key: Ctrl+D is the menu's right click with Ctrl (the
+	// user, 2026-09-28). It is changed in the Ctrl+S list.
+	return g_input->registerAction(context, &tooltips, &g_tooltipsAction) == D2RL::Input::Result::Success;
 }
 
 void Unregister() {
 	if (g_input != nullptr && g_context != nullptr) {
-		for (const auto handle : {g_action, g_tooltipsAction})
-			if (handle != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, handle);
+		if (g_tooltipsAction != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, g_tooltipsAction);
 	}
-	g_action   = D2RL::Input::InvalidHandle;
 	g_tooltipsAction = D2RL::Input::InvalidHandle;
 	g_input    = nullptr;
 	g_context  = nullptr;

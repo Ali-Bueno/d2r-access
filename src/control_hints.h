@@ -14,7 +14,7 @@ struct PluginContext;
 // automatically". Every reader that finds controls offers them here and never
 // speaks them itself; right stick down in a menu reads the latest
 // (InteractionReader), and with autodetail and control tooltips both on
-// (Ctrl+D, Ctrl+H) they are also spoken unasked, queued after everything else.
+// (autodetail, Ctrl+H) they are also spoken unasked, queued after everything else.
 namespace D2RAccess::ControlHints {
 
 // The controls for what was just described; empty clears them, so a readout

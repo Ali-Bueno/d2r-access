@@ -152,12 +152,11 @@ Arrow g_arrows[] = {
 	{VK_UP, Direction::Up, InputDirection::StickPush::Up}, {VK_DOWN, Direction::Down, InputDirection::StickPush::Down},
 };
 // The keys of the menu, watched directly beside the loader's delivery of them,
-// and what may be held with each for it still to be the menu's key. Ctrl+D is
-// the whole description's switch, so D is a click alone and with Shift.
+// and what may be held with each for it still to be the menu's key.
 enum class With { Nothing, Shift, ShiftOrControl };
 struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
 Watched g_watched[] = {
-	{'A', Act::ClickLeft, With::ShiftOrControl}, {'D', Act::ClickRight, With::Shift}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
+	{'A', Act::ClickLeft, With::ShiftOrControl}, {'D', Act::ClickRight, With::ShiftOrControl}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
 	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
 };

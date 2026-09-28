@@ -19,8 +19,7 @@
 //                            are the two hands in play). With Shift or Ctrl
 //                            held the game sees the click with it: Shift + left
 //                            click equips, Ctrl + left click sells, moves or
-//                            drops (the game's own hints say which). Ctrl+D is
-//                            the whole description's switch, not a click.
+//                            drops (the game's own hints say which).
 //   Ctrl + arrows            read line by line: up and down a line, left and
 //                            right the first and the last (InputDirection::PostLineStep).
 //   PageUp, PageDown         the tab before and after, in a menu that has tabs.

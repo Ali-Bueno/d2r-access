@@ -319,7 +319,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
 	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
 	if (!D2RAccess::KeyboardService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[keyboard] Keyboard play unavailable.");
-	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");
+	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+H could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {

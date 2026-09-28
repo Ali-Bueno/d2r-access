@@ -4,7 +4,7 @@ namespace D2RL {
 struct PluginContext;
 }
 
-// Ctrl+D, "autodetail": read the whole description on every highlight instead
+// "Autodetail", in the Ctrl+S list: read the whole description on every highlight instead
 // of holding everything but the name for right stick up. Covers what that
 // gesture reads -- an item's tooltip, a skill's description, an options row's
 // explanation -- and leaves the gesture working either way. Off by default,

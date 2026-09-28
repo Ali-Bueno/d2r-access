@@ -61,11 +61,12 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Shift+A | left click with Shift: equip, unequip, a potion to the belt |
 | Ctrl+A | left click with Ctrl: sell, drop, move to the stash or the cube |
 | Shift+D | right click with Shift |
+| Ctrl+D | right click with Ctrl. Until 2026-09-28 it was autodetail's switch, which is now only in the Ctrl+S list (the user's choice) |
 | W | nothing: it is kept from the game, whose W swaps weapons |
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
-| J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (Ctrl+D). **On the character screen it reads the game's tooltip of the stat line the cursor is on, and never moves the lines** (the pad cannot reach that tooltip at all). Added 2026-09-28 at the user's asking, not pressed yet |
+| J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (in the Ctrl+S list). **On the character screen it reads the game's tooltip of the stat line the cursor is on, and never moves the lines** (the pad cannot reach that tooltip at all). Added 2026-09-28 at the user's asking, not pressed yet |
 | Ctrl+Up, Ctrl+Down | the line before, the line after |
 | Ctrl+Left, Ctrl+Right | the first line, the last line |
 | PageUp, PageDown | the tab before, the tab after |
@@ -78,8 +79,6 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Alt+T | transmute |
 | Alt+S | sort |
 | Alt+F | fill the belt from the inventory (with an inventory open) |
-
-Ctrl+D is not a click: it is the whole description's switch, below.
 
 ### With the cursor on a box of text
 
@@ -107,7 +106,6 @@ game's code, not pressed in a test).
 |---|---|
 | Ctrl+S | the list of the mod's switches, open and shut |
 | PageUp, PageDown, Space | with that list open: previous, next, change. The arrows are not the list's: in play they still walk the character. The user, 2026-09-28, once told PageUp and PageDown step the list: no change wanted |
-| Ctrl+D | the whole description on every move, on and off |
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |
 | Ctrl+F | footstep filter |

@@ -1270,6 +1270,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},
+			Entry{"keyboard-right-click-control", "Menu: right click with Ctrl", Key::D, Modifier::Control, Command::ClickRight},
 			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
 			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort},
 			Entry{"keyboard-fill-belt", "Menu: fill the belt from the inventory", Key::F, Modifier::Alt, Command::FillBelt}}) {

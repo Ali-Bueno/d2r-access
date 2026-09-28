@@ -189,7 +189,7 @@ struct Table {
 	const char* tradeCancelled;
 	const char* tradeEnded;           // no completion signal to tell completed from cancelled
 	const char* tradePartnerUnknown;  // stands in for a name the roster does not give
-	const char* autoDetailEnabled;    // Ctrl+D: the whole description on every highlight
+	const char* autoDetailEnabled;    // autodetail: the whole description on every highlight
 	const char* autoDetailDisabled;
 	const char* controlTooltipsEnabled;  // Ctrl+H: the controls among what autodetail reads
 	const char* controlTooltipsDisabled;
