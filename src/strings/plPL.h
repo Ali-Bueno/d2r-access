@@ -106,6 +106,8 @@ inline constexpr Table plPL {
 	.chestSoundsDisabled = "Dźwięki pojemników wyłączone",
 	.doorSoundsEnabled = "Dźwięki drzwi włączone",
 	.doorSoundsDisabled = "Dźwięki drzwi wyłączone",
+	.questSoundsEnabled = "Dźwięki obiektów zadań włączone",
+	.questSoundsDisabled = "Dźwięki obiektów zadań wyłączone",
 	.beaconCleared = "Prowadzenie anulowane",
 	.beaconUnavailable = "Prowadzenie niedostępne",
 	.beaconNothing = "Nie wybrano celu. Najpierw wyszukaj cel skanerem",

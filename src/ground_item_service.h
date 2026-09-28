@@ -11,7 +11,7 @@ void Unregister();
 bool OwnsWorldLabel(std::string_view label);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
-enum class Switch { Speech, Sounds, Exits, Chests, Doors };
+enum class Switch { Speech, Sounds, Exits, Chests, Doors, Quests };
 bool Enabled(Switch which);
 void SetEnabled(Switch which, bool enabled);
 }

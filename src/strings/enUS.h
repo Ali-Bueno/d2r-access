@@ -106,6 +106,8 @@ inline constexpr Table enUS {
 	.chestSoundsDisabled = "Container sounds disabled",
 	.doorSoundsEnabled = "Door sounds enabled",
 	.doorSoundsDisabled = "Door sounds disabled",
+	.questSoundsEnabled = "Quest object sounds enabled",
+	.questSoundsDisabled = "Quest object sounds disabled",
 	.beaconCleared = "Guidance cancelled",
 	.beaconUnavailable = "Guidance unavailable",
 	.beaconNothing = "No target selected. Scan a target first",

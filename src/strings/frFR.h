@@ -106,6 +106,8 @@ inline constexpr Table frFR {
 	.chestSoundsDisabled = "Sons des conteneurs désactivés",
 	.doorSoundsEnabled = "Sons des portes activés",
 	.doorSoundsDisabled = "Sons des portes désactivés",
+	.questSoundsEnabled = "Sons des éléments de quête activés",
+	.questSoundsDisabled = "Sons des éléments de quête désactivés",
 	.beaconCleared = "Guidage annulé",
 	.beaconUnavailable = "Guidage indisponible",
 	.beaconNothing = "Aucune cible sélectionnée. Scannez d’abord une cible",

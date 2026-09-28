@@ -106,6 +106,8 @@ inline constexpr Table jaJP {
 	.chestSoundsDisabled = "容器の音 オフ",
 	.doorSoundsEnabled = "扉の音 オン",
 	.doorSoundsDisabled = "扉の音 オフ",
+	.questSoundsEnabled = "クエスト対象物の音 オン",
+	.questSoundsDisabled = "クエスト対象物の音 オフ",
 	.beaconCleared = "誘導を解除しました",
 	.beaconUnavailable = "誘導を利用できません",
 	.beaconNothing = "目標が選択されていません。先に目標をスキャンしてください",

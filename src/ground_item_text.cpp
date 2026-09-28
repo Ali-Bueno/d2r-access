@@ -77,4 +77,8 @@ const char* DoorSoundEnabled(bool enabled) {
 	const auto& t = Strings::Current();
 	return enabled ? t.doorSoundsEnabled : t.doorSoundsDisabled;
 }
+const char* QuestSoundEnabled(bool enabled) {
+	const auto& t = Strings::Current();
+	return enabled ? t.questSoundsEnabled : t.questSoundsDisabled;
+}
 }

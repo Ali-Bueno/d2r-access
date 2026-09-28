@@ -138,8 +138,10 @@ int main() {
 	Check(Quests() == 2 && Chests() == 0 && speech.empty(), "tree and quest chest use quest audio without duplicate chest sound or speech");
 	Command("chests-off"); Check(Quests() == 2, "quest interactables remain audible with container sounds disabled");
 	Command("exits-off"); Check(Quests() == 2 && Portals() == 0, "quest interactables remain audible with exit sounds disabled");
-	Command("sound-off"); Check(voices.empty(), "item sound switch silences both quest objects");
-	Command("sound-on"); Check(Quests() == 2, "enabling item sounds refreshes quest objects without exits or containers");
+	Command("sound-off"); Check(Quests() == 2, "quest objects keep sounding with item sounds disabled");
+	Command("quests-off"); Check(voices.empty(), "quest object switch silences both quest objects");
+	Command("quests-on"); Check(Quests() == 2, "enabling quest object sounds refreshes them without items, exits or containers");
+	Command("sound-on");
 	for (auto state : {RadarUi::State::Dialogue, RadarUi::State::Paused, RadarUi::State::Inactive, RadarUi::State::Unavailable}) {
 		ui = state; Tick(); Check(voices.empty(), "quest sounds obey dialogue, pause, focus and unavailable UI gates");
 	}
@@ -240,8 +242,8 @@ int main() {
 	entities.push_back(tome);
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
 	Check(Count(GroundItems::Sound::Scroll) == 1 && Quests() == 0 && speech.empty(), "an unread tome loops the scroll sound, unspoken");
-	Command("sound-off"); Check(Count(GroundItems::Sound::Scroll) == 0, "the item loop switch covers tomes like other quest objects");
-	Command("sound-on"); Check(Count(GroundItems::Sound::Scroll) == 1, "and brings them back");
+	Command("quests-off"); Check(Count(GroundItems::Sound::Scroll) == 0, "the quest object switch covers tomes like other quest objects");
+	Command("quests-on"); Check(Count(GroundItems::Sound::Scroll) == 1, "and brings them back");
 	entities.back().unreadTome = false;
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Check(Count(GroundItems::Sound::Scroll) == 0, "a read tome falls silent");

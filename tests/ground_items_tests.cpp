@@ -216,7 +216,13 @@ void QuestSources() {
 	Check(!ItemAudio::SameSource(batch.voices[0], batch.voices[1]), "playback keeps object and item voices independent");
 	Check(ItemAudio::SameSource(batch.voices[0], Spatialize(scroll, {})), "stable quest identity preserves loop position");
 	Check(batch.voices[1].right > 0 && batch.voices[0].front > 0, "quest sounds preserve screen direction");
-	Check(tracker.Tick(scene, 2000, true, false).voices.empty(), "item sound toggle silences quest objects and pickups");
+	batch = tracker.Tick(scene, 2000, true, false);
+	Check(batch.voices.size() == 1 && batch.voices[0].source == SourceKind::Object,
+		"item sound toggle silences the quest pickup, not the quest object");
+	batch = tracker.Tick(scene, 2100, true, true, true, true, false);
+	Check(batch.voices.size() == 1 && batch.voices[0].source == SourceKind::Item,
+		"quest object toggle silences the Cairn Stone, not the quest pickup");
+	Check(tracker.Tick(scene, 2200, true, false, true, true, false).voices.empty(), "both toggles off silence every quest source");
 	Check(tracker.Tick(scene, 3000, false, true, false).voices.size() == 2, "quest sources do not require container sounds or speech");
 	scene.items.clear();
 	Check(tracker.Tick(scene, 4000, false).voices.size() == 1, "picking up a quest item silences only that source");

@@ -106,6 +106,8 @@ inline constexpr Table ruRU {
 	.chestSoundsDisabled = "Звуки контейнеров выключены",
 	.doorSoundsEnabled = "Звуки дверей включены",
 	.doorSoundsDisabled = "Звуки дверей выключены",
+	.questSoundsEnabled = "Звуки объектов заданий включены",
+	.questSoundsDisabled = "Звуки объектов заданий выключены",
 	.beaconCleared = "Наведение отменено",
 	.beaconUnavailable = "Наведение недоступно",
 	.beaconNothing = "Цель не выбрана. Сначала найдите цель сканером",
