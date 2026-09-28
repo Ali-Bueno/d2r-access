@@ -28,6 +28,11 @@ constexpr size_t UnitSkills = 0x100, SkillsLeft = 0x08, SkillsRight = 0x10;
 constexpr uint32_t Walk = 0x01, Run = 0x03;
 constexpr uint32_t LeftAt = 0x05, LeftOn = 0x06, RightAt = 0x0C, RightOn = 0x0D;
 constexpr uint32_t TakeItem = 0x16, TalkTo = 0x2F, UseTile = 0x40, UseObject = 0x41;
+// A player unit in reach: the game's click (0x140101E29) sends 0x13, whose
+// server handler is in PlrMsg.cpp, to loot a corpse, and 0x2B (PlrTrade.cpp),
+// a trade, to a living player. READ 2026-09-28; the game calls this same
+// command function with 0x13 itself (0x140101E83).
+constexpr uint32_t LootCorpse = 0x13;
 constexpr uint8_t CommandPrefix[] = {0x40, 0x55, 0x53, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0x8D, 0x6C, 0x24, 0xC9};
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 constexpr Evidence Checks[] = {
@@ -161,7 +166,8 @@ bool Interact(Unit type, uint32_t id) {
 	case Unit::Monster: op = TalkTo; break;
 	case Unit::Tile:    op = UseTile; break;
 	case Unit::Object:  op = UseObject; break;
-	default: return false; // another player or a missile: nothing to open or take
+	case Unit::Player:  op = LootCorpse; break; // only ever a corpse here: D never offers a living player
+	default: return false; // a missile: nothing to open or take
 	}
 	return Call(op, static_cast<int32_t>(type), static_cast<int32_t>(id), "interact with");
 }

@@ -165,7 +165,7 @@ Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a far retreat heads for
 uint32_t g_itemPick = 0;    // the item comma and full stop chose, which the next D takes
-EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item, a chest or a corpse: ids of different kinds may meet
+EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item or a container: ids of different kinds may meet
 std::string g_itemPickName;
 Position g_walkFrom;        // where a walk to what the scanner named began
 bool g_walkFromSet = false;
@@ -395,12 +395,7 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		if (g_mode == Mode::Interact) {
 			AsyncLog::InfoF(g_context, "[keyboard] use id=%u unit=%u name=%s", g_target.id, g_target.unit, name.c_str());
 			End("used", false);
-			// A player's corpse has no command the mod has verified (the game's message
-			// for it, 0x13, is READ but not in the table the command is known to take).
-			if (!NativeActions::Interact(static_cast<Unit>(g_target.unit), g_target.id)) {
-				AsyncLog::InfoF(g_context, "[keyboard] use: nothing to send for unit %u", g_target.unit);
-				ScreenReader::Speak(strings.unavailable, true);
-			}
+			(void)NativeActions::Interact(static_cast<Unit>(g_target.unit), g_target.id);
 		} else if (g_mode == Mode::Walk && g_target.kind == EntityRadar::Kind::Exit) {
 			// An exit is taken, not stood beside: stairs or a doorway are used as
 			// D uses them; an area border is walked on across.
@@ -443,8 +438,9 @@ void Walk(const Lifecycle& state, uint64_t now) {
 // Comma and full stop: the items on the ground on screen, nearest on foot
 // first. The one chosen is what the next D picks up, in place of whatever is
 // nearest (the user, 2026-09-28: "I can't specifically target items I want").
-// Chests and every other container, and corpses, count as items here too
-// (the user, 2026-09-28), on screen as Tab's monsters are.
+// Everything looted as a chest is -- chests, urns, barrels, dead bodies, a
+// player's corpse -- counts as an item here too (the user, 2026-09-28), on
+// screen as Tab's monsters are.
 void StepItem(const Lifecycle& state, int delta) {
 	const auto& strings = Strings::Current();
 	const std::string none = Format(strings.surveyEmpty, strings.surveyCategories[9]);
@@ -470,7 +466,7 @@ void StepItem(const Lifecycle& state, int delta) {
 		if (steps >= 0) picks.push_back({std::move(entity), steps});
 	}
 	for (const auto& entity : scene.entities) {
-		const bool loot = entity.category == EntityRadar::Category::Treasure || entity.kind == EntityRadar::Kind::Corpse;
+		const bool loot = entity.container || entity.category == EntityRadar::Category::Treasure || entity.kind == EntityRadar::Kind::Corpse;
 		if (!loot || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
 		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
 		if (steps >= 0) picks.push_back({entity, steps});
@@ -504,7 +500,8 @@ void BeginUse(const Lifecycle& state) {
 	for (const auto& entity : scene.entities) {
 		using EntityRadar::Kind;
 		if (entity.unit == Entity::NoUnit) continue;
-		if (entity.kind == Kind::Npc || entity.kind == Kind::Object || entity.kind == Kind::Exit) things.push_back(entity);
+		if (entity.kind == Kind::Npc || entity.kind == Kind::Object || entity.kind == Kind::Exit || entity.kind == Kind::Corpse)
+			things.push_back(entity);
 	}
 	GroundItems::Snapshot snapshot;
 	if (NativeGroundItems::Read(state.player, state.session, snapshot)) {
@@ -526,10 +523,6 @@ void BeginUse(const Lifecycle& state) {
 	// The item comma or full stop chose is taken, once, in place of whatever is
 	// nearest. One that has gone takes nothing else in its place.
 	if (const uint32_t pick = std::exchange(g_itemPick, 0)) {
-		// A corpse is not among what D uses unasked; the one chosen is looked for all the same.
-		if (g_itemPickKind == EntityRadar::Kind::Corpse)
-			for (const auto& entity : scene.entities)
-				if (entity.kind == EntityRadar::Kind::Corpse && entity.id == pick && entity.unit != Entity::NoUnit) things.push_back(entity);
 		for (const auto& thing : things) {
 			if (thing.kind != g_itemPickKind || thing.id != pick) continue;
 			const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
