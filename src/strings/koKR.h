@@ -108,6 +108,8 @@ inline constexpr Table koKR {
 	.doorSoundsDisabled = "문 소리 꺼짐",
 	.questSoundsEnabled = "퀘스트 사물 소리 켜짐",
 	.questSoundsDisabled = "퀘스트 사물 소리 꺼짐",
+	.stashSoundEnabled = "보관함 소리 켜짐",
+	.stashSoundDisabled = "보관함 소리 꺼짐",
 	.beaconCleared = "안내 취소됨",
 	.beaconUnavailable = "안내를 사용할 수 없습니다",
 	.beaconNothing = "선택한 대상이 없습니다. 먼저 대상을 탐색하세요",

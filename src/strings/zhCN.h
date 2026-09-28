@@ -108,6 +108,8 @@ inline constexpr Table zhCN {
 	.doorSoundsDisabled = "门音效已关闭",
 	.questSoundsEnabled = "任务物体音效已开启",
 	.questSoundsDisabled = "任务物体音效已关闭",
+	.stashSoundEnabled = "储藏箱音效已开启",
+	.stashSoundDisabled = "储藏箱音效已关闭",
 	.beaconCleared = "已取消引导",
 	.beaconUnavailable = "引导不可用",
 	.beaconNothing = "未选择目标。请先扫描目标",

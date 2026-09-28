@@ -108,6 +108,8 @@ inline constexpr Table deDE {
 	.doorSoundsDisabled = "Türgeräusche deaktiviert",
 	.questSoundsEnabled = "Questobjektgeräusche aktiviert",
 	.questSoundsDisabled = "Questobjektgeräusche deaktiviert",
+	.stashSoundEnabled = "Schatzgeräusch aktiviert",
+	.stashSoundDisabled = "Schatzgeräusch deaktiviert",
 	.beaconCleared = "Zielführung abgebrochen",
 	.beaconUnavailable = "Zielführung nicht verfügbar",
 	.beaconNothing = "Kein Ziel ausgewählt. Zuerst ein Ziel scannen",

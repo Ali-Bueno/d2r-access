@@ -108,6 +108,8 @@ inline constexpr Table itIT {
 	.doorSoundsDisabled = "Suoni delle porte disattivati",
 	.questSoundsEnabled = "Suoni degli elementi delle missioni attivati",
 	.questSoundsDisabled = "Suoni degli elementi delle missioni disattivati",
+	.stashSoundEnabled = "Suono del forziere attivato",
+	.stashSoundDisabled = "Suono del forziere disattivato",
 	.beaconCleared = "Guida annullata",
 	.beaconUnavailable = "Guida non disponibile",
 	.beaconNothing = "Nessun obiettivo selezionato. Scansiona prima un obiettivo",

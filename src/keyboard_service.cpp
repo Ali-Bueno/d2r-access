@@ -937,6 +937,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
 		{[] { return GroundItemService::Enabled(Item::Quests); }, [](bool on) { GroundItemService::SetEnabled(Item::Quests, on); }, [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
 		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
+		{[] { return GroundItemService::Enabled(Item::Stash); }, [](bool on) { GroundItemService::SetEnabled(Item::Stash, on); }, [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
 		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
 		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},

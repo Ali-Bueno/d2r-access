@@ -207,7 +207,7 @@ int main() {
 	Check(Count(GroundItems::Sound::WeaponRack) == 0, "and follows the container switch");
 	Command("chests-on");
 	entities.pop_back();
-	// The stash is a fixed place: it loops its own sound with the exits, under their switch.
+	// The stash is a fixed place: it loops its own sound with the exits, under a switch of its own.
 	entities.push_back({37, EntityRadar::Kind::Object, {4, 4}, "Alijo", 703, false, EntityRadar::Category::Stash});
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
 	Check(Count(GroundItems::Sound::Stash) == 1 && Chests() == 0 && speech.empty(), "the stash loops its own sound, unspoken");
@@ -219,8 +219,13 @@ int main() {
 	openPanels.clear(); Tick();
 	Check(Count(GroundItems::Sound::Stash) == 1, "closing the stash brings its loop back");
 	Command("exits-off");
-	Check(Count(GroundItems::Sound::Stash) == 0, "the exit switch covers the stash");
+	Check(Count(GroundItems::Sound::Stash) == 1 && Portals() == 0, "the exit switch leaves the stash alone");
+	Command("stash-off");
+	Check(Count(GroundItems::Sound::Stash) == 0, "the stash switch silences the stash");
 	Command("exits-on");
+	Check(Count(GroundItems::Sound::Stash) == 0 && Portals() == 1, "and only the stash");
+	Command("stash-on");
+	Check(Count(GroundItems::Sound::Stash) == 1, "the stash loop can be reenabled");
 	entities.pop_back();
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Command("doors-off");

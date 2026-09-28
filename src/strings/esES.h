@@ -108,6 +108,8 @@ inline constexpr Table esES {
 	.doorSoundsDisabled = "Sonidos de puertas desactivados",
 	.questSoundsEnabled = "Sonidos de elementos de misión activados",
 	.questSoundsDisabled = "Sonidos de elementos de misión desactivados",
+	.stashSoundEnabled = "Sonido del alijo activado",
+	.stashSoundDisabled = "Sonido del alijo desactivado",
 	.beaconCleared = "Guía cancelada",
 	.beaconUnavailable = "Guía no disponible",
 	.beaconNothing = "Ningún objetivo seleccionado. Explora primero con el escáner",

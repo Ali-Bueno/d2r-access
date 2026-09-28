@@ -108,6 +108,8 @@ inline constexpr Table esMX {
 	.doorSoundsDisabled = "Sonidos de puertas desactivados",
 	.questSoundsEnabled = "Sonidos de elementos de misión activados",
 	.questSoundsDisabled = "Sonidos de elementos de misión desactivados",
+	.stashSoundEnabled = "Sonido del arcón activado",
+	.stashSoundDisabled = "Sonido del arcón desactivado",
 	.beaconCleared = "Guía cancelada",
 	.beaconUnavailable = "Guía no disponible",
 	.beaconNothing = "Ningún objetivo seleccionado. Explora primero con el escáner",

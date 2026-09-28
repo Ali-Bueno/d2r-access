@@ -81,4 +81,8 @@ const char* QuestSoundEnabled(bool enabled) {
 	const auto& t = Strings::Current();
 	return enabled ? t.questSoundsEnabled : t.questSoundsDisabled;
 }
+const char* StashSoundEnabled(bool enabled) {
+	const auto& t = Strings::Current();
+	return enabled ? t.stashSoundEnabled : t.stashSoundDisabled;
+}
 }
