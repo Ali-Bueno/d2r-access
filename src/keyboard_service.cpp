@@ -112,6 +112,7 @@ constexpr uint64_t GearMs = 1000;     // how often the weapon in hand is looked 
 constexpr double Stride = 10;         // how far ahead a held arrow aims
 constexpr double UseReach = 3;        // a thing is used from this near, plus half its footprint
 constexpr double UseRange = 20;       // how far D looks for something to use, in walking steps
+constexpr double CrossBy = 5;         // how far past an area border's crossing a walk goes on
 constexpr double MeleeReach = 3;      // a blow lands from this near
 constexpr uint64_t SettingsIdleMs = 30000; // a settings list left open and unused closes itself
 constexpr uint64_t SwapAnswerMs = 700; // a swap the game has not made by then was refused
@@ -160,6 +161,8 @@ Mode g_mode = Mode::Idle;
 Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a far retreat heads for
+Position g_walkFrom;        // where a walk to what the scanner named began
+bool g_walkFromSet = false;
 std::string g_goalName;     // the way out a retreat last named
 AutoWalk::Walker g_walker;
 AutoWalk::Settings g_walk;
@@ -290,6 +293,7 @@ void BeginWalk(const Lifecycle& state) {
 	g_mode = Mode::Walk;
 	g_walker.Start();
 	g_nextAct = 0;
+	g_walkFromSet = false;
 	AsyncLog::InfoF(g_context, "[keyboard] walk to id=%u at=%.0f,%.0f name=%s", target.id, target.position.x, target.position.y, target.name.c_str());
 	ScreenReader::Speak(Format(strings.walkTo, target.name.c_str()), true);
 }
@@ -316,6 +320,17 @@ bool InTargetRoom(const Lifecycle& state, Position player) {
 	return room != NativeRooms::None && graph->rooms[room].id == g_target.placeId;
 }
 
+// A point past an area border's crossing, the way the walk came to it. The
+// crossing is the last cell on this side: the walk stopped there and two steps
+// more changed the level (MEASURED 2026-09-28, the Blood Moor from the camp).
+Position Beyond(Position player, Position crossing) {
+	Position way{crossing.x - player.x, crossing.y - player.y};
+	if (std::hypot(way.x, way.y) < 1) way = {crossing.x - g_walkFrom.x, crossing.y - g_walkFrom.y};
+	const double length = std::hypot(way.x, way.y);
+	if (length < 1) return crossing;
+	return {std::round(crossing.x + way.x / length * CrossBy), std::round(crossing.y + way.y / length * CrossBy)};
+}
+
 void Walk(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	Scene scene;
@@ -326,6 +341,7 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(Format(strings.beaconLost, name.c_str()), true);
 		return;
 	}
+	if (!g_walkFromSet) { g_walkFrom = scene.world.player; g_walkFromSet = true; }
 	const double reach = UseReach + HalfFootprint(g_target);
 	if (g_mode == Mode::Explore && InTargetRoom(state, scene.world.player)) {
 		End("explored", true);
@@ -338,6 +354,19 @@ void Walk(const Lifecycle& state, uint64_t now) {
 			AsyncLog::InfoF(g_context, "[keyboard] use id=%u unit=%u name=%s", g_target.id, g_target.unit, name.c_str());
 			End("used", false);
 			(void)NativeActions::Interact(static_cast<Unit>(g_target.unit), g_target.id);
+		} else if (g_mode == Mode::Walk && g_target.kind == EntityRadar::Kind::Exit) {
+			// An exit is taken, not stood beside: stairs or a doorway are used as
+			// D uses them; an area border is walked on across.
+			End("arrived", false);
+			ScreenReader::Speak(Format(strings.beaconArrived, name.c_str()), true);
+			if (g_target.unit != Entity::NoUnit) {
+				AsyncLog::InfoF(g_context, "[keyboard] take exit id=%u unit=%u name=%s", g_target.id, g_target.unit, name.c_str());
+				(void)NativeActions::Interact(static_cast<Unit>(g_target.unit), g_target.id);
+			} else {
+				const Position beyond = Beyond(scene.world.player, g_target.position);
+				AsyncLog::InfoF(g_context, "[keyboard] cross into %s: on to %.0f,%.0f", name.c_str(), beyond.x, beyond.y);
+				(void)NativeActions::MoveTo(beyond);
+			}
 		} else {
 			End("arrived", true);
 			ScreenReader::Speak(Format(strings.beaconArrived, name.c_str()), true);
