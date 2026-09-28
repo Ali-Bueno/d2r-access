@@ -172,6 +172,7 @@ add_library(d2r-access SHARED
 	src/keyboard_service.cpp
 	src/keyboard_menu.cpp
 	src/settings_list.cpp
+	src/settings_store.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -613,6 +614,10 @@ if(BUILD_TESTING)
 	target_include_directories(settings-list-tests PRIVATE src)
 	target_compile_features(settings-list-tests PRIVATE cxx_std_20)
 	add_test(NAME settings-list COMMAND settings-list-tests)
+	add_executable(settings-store-tests tests/settings_store_tests.cpp src/settings_store.cpp)
+	target_include_directories(settings-store-tests PRIVATE src)
+	target_compile_features(settings-store-tests PRIVATE cxx_std_20)
+	add_test(NAME settings-store COMMAND settings-store-tests)
 	if(MSVC)
 		target_compile_options(settings-list-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(skill-attacks-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

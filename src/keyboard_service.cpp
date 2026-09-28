@@ -48,6 +48,7 @@
 #include "room_service.h"
 #include "screen_reader.h"
 #include "settings_list.h"
+#include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
 #include "speech_strings.h"
@@ -72,6 +73,8 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <map>
+#include <filesystem>
 #include <utility>
 #include <string_view>
 #include <vector>
@@ -908,7 +911,7 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // ---- the settings list ----
 
-SettingsList::Menu BuildSettings() {
+std::vector<SettingsList::Entry> SettingEntries() {
 	using SettingsList::Entry;
 	using Cue = EntityCueService::Cue;
 	using Item = GroundItemService::Switch;
@@ -917,37 +920,106 @@ SettingsList::Menu BuildSettings() {
 		return [on, off](bool state) { return std::string(Strings::Current().*(state ? on : off)); };
 	};
 	std::vector<Entry> entries{
-		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true},
-		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true},
-		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true},
+		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
+		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
+		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
-			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true},
-		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true},
-		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true},
-		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true},
-		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true},
-		{[] { return EntityCueService::Enabled(Cue::All); }, [](bool on) { EntityCueService::SetEnabled(Cue::All, on); }, phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true},
-		{[] { return EntityCueService::Enabled(Cue::Npcs); }, [](bool on) { EntityCueService::SetEnabled(Cue::Npcs, on); }, phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true},
-		{[] { return EntityCueService::Enabled(Cue::Enemies); }, [](bool on) { EntityCueService::SetEnabled(Cue::Enemies, on); }, phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true},
-		{[] { return EntityCueService::Enabled(Cue::Ranged); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ranged, on); }, phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true},
-		{[] { return GroundItemService::Enabled(Item::Speech); }, [](bool on) { GroundItemService::SetEnabled(Item::Speech, on); }, [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true},
-		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true},
-		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true},
-		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true},
-		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true},
-		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true},
-		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true},
-		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true},
-		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true},
-		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true},
-		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false},
-		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false},
-		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false},
-		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false},
-		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false},
-		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false},
+			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
+		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
+		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
+		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
+		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
+		{[] { return EntityCueService::Enabled(Cue::All); }, [](bool on) { EntityCueService::SetEnabled(Cue::All, on); }, phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
+		{[] { return EntityCueService::Enabled(Cue::Npcs); }, [](bool on) { EntityCueService::SetEnabled(Cue::Npcs, on); }, phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
+		{[] { return EntityCueService::Enabled(Cue::Enemies); }, [](bool on) { EntityCueService::SetEnabled(Cue::Enemies, on); }, phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
+		{[] { return EntityCueService::Enabled(Cue::Ranged); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ranged, on); }, phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
+		{[] { return GroundItemService::Enabled(Item::Speech); }, [](bool on) { GroundItemService::SetEnabled(Item::Speech, on); }, [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
+		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
+		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
+		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
+		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
+		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
+		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
+		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
+		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
+		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
+		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
+		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
+		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
+		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
+		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
+		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 	};
-	return SettingsList::Menu(std::move(entries), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	return entries;
+}
+
+SettingsList::Menu BuildSettings() {
+	return SettingsList::Menu(SettingEntries(), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+}
+
+// ---- the switches kept between sessions ----
+
+// The saved switches are put back at start one at a time, each once the one
+// before has taken: two of the radar's share one command. What each says as
+// it is put back is not spoken. After that a change of any switch, from the
+// list or from its own key, is written within a second; a switch never
+// changed keeps what the file has, even one that did not take this session.
+constexpr uint64_t SettingTakeMs = 2000;   // how long a switch put back may take before the next
+constexpr uint64_t SettingQuietMs = 5000;  // how long its own announcement is listened for
+constexpr uint64_t SettingCheckMs = 1000;  // how often the switches are looked at for a change
+std::filesystem::path g_settingsFile;
+std::vector<SettingsList::Entry> g_switches;
+std::map<std::string, bool> g_saved;
+std::vector<std::pair<size_t, bool>> g_restore;
+size_t g_restoreAt = 0;
+uint64_t g_restoreSince = 0, g_settingsCheck = 0;
+std::vector<bool> g_seen;
+bool g_settingsLoaded = false;
+
+void Persist(uint64_t now) {
+	if (g_settingsFile.empty()) return;
+	if (!g_settingsLoaded) {
+		g_settingsLoaded = true;
+		g_switches = SettingEntries();
+		if (const auto text = SettingsStore::Load(g_settingsFile)) g_saved = SettingsStore::Decode(*text);
+		for (size_t i = 0; i < g_switches.size(); ++i)
+			if (const auto found = g_switches[i].key ? g_saved.find(g_switches[i].key) : g_saved.end();
+				found != g_saved.end() && g_switches[i].on() != found->second) g_restore.push_back({i, found->second});
+		AsyncLog::InfoF(g_context, "[settings] %zu saved, %zu to put back, file %s", g_saved.size(), g_restore.size(),
+			g_settingsFile.string().c_str());
+	}
+	if (g_restoreAt < g_restore.size()) {
+		const auto [index, value] = g_restore[g_restoreAt];
+		const auto& entry = g_switches[index];
+		if (!g_restoreSince) {
+			ScreenReader::Swallow(entry.say(value), now + SettingQuietMs);
+			entry.set(value);
+			g_restoreSince = now;
+			AsyncLog::InfoF(g_context, "[settings] put back %s=%u", entry.key, value ? 1u : 0u);
+			return;
+		}
+		if (entry.on() != value && now - g_restoreSince < SettingTakeMs) return;
+		if (entry.on() != value) AsyncLog::InfoF(g_context, "[settings] %s did not take", entry.key);
+		++g_restoreAt;
+		g_restoreSince = 0;
+		return;
+	}
+	if (now < g_settingsCheck) return;
+	g_settingsCheck = now + SettingCheckMs;
+	bool changed = false;
+	if (g_seen.empty()) {
+		for (const auto& entry : g_switches) g_seen.push_back(entry.on());
+		return;
+	}
+	for (size_t i = 0; i < g_switches.size(); ++i) {
+		const bool on = g_switches[i].on();
+		if (on == g_seen[i]) continue;
+		g_seen[i] = on;
+		if (g_switches[i].key) { g_saved[g_switches[i].key] = on; changed = true; }
+	}
+	if (!changed) return;
+	const bool saved = SettingsStore::Save(g_settingsFile, SettingsStore::Encode(g_saved));
+	AsyncLog::InfoF(g_context, "[settings] %s %zu switches", saved ? "saved" : "could not save", g_saved.size());
 }
 
 // True when the command was the list's and is spent.
@@ -969,6 +1041,7 @@ bool Settings(Command command, uint64_t now) {
 	else spent = false;
 	if (!spent) text = g_settings.Expire(now, SettingsIdleMs);
 	g_settingsOpen = g_settings.Open();
+	Persist(now);
 	if (!text.empty()) {
 		AsyncLog::InfoF(g_context, "[keyboard] settings: %s", text.c_str());
 		ScreenReader::Speak(text, true);
@@ -1127,6 +1200,7 @@ void ReleaseLostHolds() {
 bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (!context) return false;
 	g_context = context;
+	if (context->pluginDirectory) g_settingsFile = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "settings.txt";
 	(void)NativeActions::Initialize(context, nativeHooks);
 	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (nativeHooks) (void)NativeSwap::Initialize(context);

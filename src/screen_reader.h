@@ -27,6 +27,10 @@ void Speak(std::string_view text, bool interrupt);
 // When anything was last given to Speak, as GetTickCount64 counts; 0 before
 // the first. For a reader of last resort that speaks only if no other did.
 unsigned long long LastSpoken();
+// One saying of exactly `text` before `untilMs` (GetTickCount64) is dropped:
+// a switch put back at start as it was saved says its own change, which is
+// not news to the player.
+void Swallow(std::string_view text, unsigned long long untilMs);
 void Stop();
 
 }

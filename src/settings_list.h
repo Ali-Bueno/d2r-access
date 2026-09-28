@@ -18,6 +18,7 @@ struct Entry {
 	std::function<void(bool)> set;
 	std::function<std::string(bool)> say; // the phrase for a state
 	bool announces = false;               // the switch says its own change when set
+	const char* key = nullptr;            // the name it is saved under between sessions (settings_store.h)
 };
 
 class Menu {

@@ -3,6 +3,7 @@
 #include <prism.h>
 #include <windows.h>
 
+#include <algorithm>
 #include <atomic>
 
 #include <condition_variable>
@@ -12,6 +13,8 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace D2RAccess::ScreenReader {
 
@@ -234,7 +237,26 @@ const char* BackendName() {
 
 unsigned long long LastSpoken() { return g_lastSpoken.load(); }
 
+std::mutex g_swallowMutex;
+std::vector<std::pair<std::string, unsigned long long>> g_swallow;
+
+void Swallow(std::string_view text, unsigned long long untilMs) {
+	if (text.empty()) return;
+	std::lock_guard<std::mutex> lock(g_swallowMutex);
+	g_swallow.emplace_back(std::string(text), untilMs);
+}
+
 void Speak(std::string_view text, bool interrupt) {
+	if (!text.empty()) {
+		std::lock_guard<std::mutex> lock(g_swallowMutex);
+		const unsigned long long now = GetTickCount64();
+		std::erase_if(g_swallow, [&](const auto& entry) { return now > entry.second; });
+		const auto found = std::find_if(g_swallow.begin(), g_swallow.end(), [&](const auto& entry) { return entry.first == text; });
+		if (found != g_swallow.end()) {
+			g_swallow.erase(found);
+			return;
+		}
+	}
 	if (!text.empty()) g_lastSpoken = GetTickCount64();
 	if (!g_available || text.empty()) {
 		return;
