@@ -249,7 +249,7 @@ std::vector<EntityRadar::Entity> Items(const Lifecycle& state, const Radar::Worl
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return items;
 	for (const auto& item : snapshot.items) {
-		if (item.source != GroundItems::SourceKind::Item) continue;
+		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
 		EntityRadar::Entity entity;
 		entity.id = item.id;
 		entity.kind = EntityRadar::Kind::Item;
