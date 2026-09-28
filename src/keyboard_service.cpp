@@ -72,6 +72,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <string_view>
 #include <vector>
 
@@ -84,7 +85,7 @@ using NativeActions::Unit;
 using Radar::Position;
 
 enum class Command : uint32_t {
-	None, Interact, TargetNext, TargetPrevious, WalkToTarget, Explore,
+	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, WalkToTarget, Explore,
 	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
@@ -163,6 +164,8 @@ Mode g_mode = Mode::Idle;
 Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a far retreat heads for
+uint32_t g_itemPick = 0;    // the item comma and full stop chose, which the next D takes
+std::string g_itemPickName;
 Position g_walkFrom;        // where a walk to what the scanner named began
 bool g_walkFromSet = false;
 std::string g_goalName;     // the way out a retreat last named
@@ -427,6 +430,53 @@ void Walk(const Lifecycle& state, uint64_t now) {
 	}
 }
 
+// ---- choosing an item on the ground ----
+
+// Comma and full stop: the items on the ground on screen, nearest on foot
+// first. The one chosen is what the next D picks up, in place of whatever is
+// nearest (the user, 2026-09-28: "I can't specifically target items I want").
+void StepItem(const Lifecycle& state, int delta) {
+	const auto& strings = Strings::Current();
+	const std::string none = Format(strings.surveyEmpty, strings.surveyCategories[9]);
+	Scene scene;
+	GroundItems::Snapshot snapshot;
+	if (!Look(state, scene, false) || !NativeGroundItems::Read(state.player, state.session, snapshot)) {
+		ScreenReader::Speak(none, true);
+		return;
+	}
+	struct Pick { Entity entity; int steps = 0; };
+	std::vector<Pick> picks;
+	for (const auto& item : snapshot.items) {
+		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
+		Entity entity;
+		entity.id = item.id;
+		entity.kind = EntityRadar::Kind::Item;
+		entity.category = EntityRadar::Category::Item;
+		entity.position = {item.position.x, item.position.y};
+		entity.name = item.name;
+		entity.unit = static_cast<uint8_t>(Unit::Item);
+		if (!CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
+		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
+		if (steps >= 0) picks.push_back({std::move(entity), steps});
+	}
+	std::stable_sort(picks.begin(), picks.end(), [](const Pick& a, const Pick& b) {
+		return a.steps != b.steps ? a.steps < b.steps : a.entity.id < b.entity.id;
+	});
+	if (picks.empty()) {
+		g_itemPick = 0;
+		ScreenReader::Speak(none, true);
+		return;
+	}
+	size_t index = delta > 0 ? 0 : picks.size() - 1;
+	for (size_t i = 0; i < picks.size(); ++i)
+		if (picks[i].entity.id == g_itemPick) { index = (i + picks.size() + (delta > 0 ? 1 : picks.size() - 1)) % picks.size(); break; }
+	const auto& pick = picks[index];
+	g_itemPick = pick.entity.id;
+	g_itemPickName = pick.entity.name;
+	AsyncLog::InfoF(g_context, "[keyboard] item chosen id=%u steps=%d name=%s", pick.entity.id, pick.steps, pick.entity.name.c_str());
+	ScreenReader::Speak(Describe(scene.world, pick.entity, pick.steps), true);
+}
+
 void BeginUse(const Lifecycle& state) {
 	const auto& strings = Strings::Current();
 	if (!Ready()) return;
@@ -454,7 +504,24 @@ void BeginUse(const Lifecycle& state) {
 	}
 	const Entity* nearest = nullptr;
 	int fewest = 0;
+	bool chosen = false;
+	// The item comma or full stop chose is taken, once, in place of whatever is
+	// nearest. One that has gone takes nothing else in its place.
+	if (const uint32_t pick = std::exchange(g_itemPick, 0)) {
+		for (const auto& thing : things) {
+			if (thing.kind != EntityRadar::Kind::Item || thing.id != pick) continue;
+			const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
+			if (steps >= 0 && CombatTarget::OnScreen(scene.world.player, thing.position)) { nearest = &thing; fewest = steps; chosen = true; }
+			break;
+		}
+		if (!chosen) {
+			AsyncLog::InfoF(g_context, "[keyboard] use: the item chosen, id=%u, is gone", pick);
+			ScreenReader::Speak(Format(strings.beaconLost, g_itemPickName.c_str()), true);
+			return;
+		}
+	}
 	for (const auto& thing : things) {
+		if (chosen) break;
 		const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
 		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
 		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
@@ -993,7 +1060,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		|| command == Command::FillBelt)
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
-	if ((command == Command::Swap || command == Command::LeftSkill) && NativeSkillNavigation::TextEditing().value_or(false))
+	if ((command == Command::Swap || command == Command::LeftSkill || command == Command::ItemNext || command == Command::ItemPrevious)
+		&& NativeSkillNavigation::TextEditing().value_or(false))
 		return D2RL::Input::ActionResult::Ignored;
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
@@ -1073,6 +1141,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-cast", "Fight with the right skill (hold)", Key::W, Modifier::None, Command::Cast},
 			Entry{"keyboard-target-next", "Next monster", Key::Tab, Modifier::None, Command::TargetNext},
 			Entry{"keyboard-target-previous", "Previous monster", Key::Tab, Modifier::Shift, Command::TargetPrevious},
+			Entry{"keyboard-item-next", "Next item on the ground, for D to pick up", Key::Period, Modifier::None, Command::ItemNext},
+			Entry{"keyboard-item-previous", "Previous item on the ground, for D to pick up", Key::Comma, Modifier::None, Command::ItemPrevious},
 			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
 			Entry{"keyboard-walk", "Walk to the scanned target", Key::Home, Modifier::Shift, Command::WalkToTarget},
 			Entry{"keyboard-explore", "Walk to unexplored ground", Key::H, Modifier::None, Command::Explore},
@@ -1150,6 +1220,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_revision = state.revision;
 		End("lifecycle", false);
 		g_lock.Clear();
+		g_itemPick = 0;
 		g_refused.clear();
 		g_stepping = false;
 	}
@@ -1184,6 +1255,8 @@ void Tick(const D2RL::PluginContext* context) {
 	case Command::Interact:       BeginUse(state); break;
 	case Command::TargetNext:     StepTarget(state, 1); break;
 	case Command::TargetPrevious: StepTarget(state, -1); break;
+	case Command::ItemNext:       StepItem(state, 1); break;
+	case Command::ItemPrevious:   StepItem(state, -1); break;
 	case Command::WalkToTarget:   BeginWalk(state); break;
 	case Command::Explore:        BeginExplore(state); break;
 	case Command::RetreatExit:    BeginRetreat(state, Way::Exit); break;
