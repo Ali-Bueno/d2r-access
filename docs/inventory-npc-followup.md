@@ -151,3 +151,159 @@ offset, and the fallback cannot fire while the vector read works.
 
 Still to confirm live: at the blacksmith, whether the spoken help now lists
 Buy/Sell/Repair; the `[interaction]` log line records whatever is read.
+
+## Socketing
+
+### The problem (live log, 2026-09-28)
+
+A Topacio fragmentado was put into a rare Mandoble ("Filo de la tormenta").
+
+- **The sword was never named.** While the gem was in hand, the sword's cells logged
+  `[item] cell … unit=…C040 -> ""` and nothing was spoken. The game renders no item tooltip while
+  the hand holds an item, and a generated name (magic and better) waited for one.
+- **The feedback was wrong.** The socketing was announced as a plain drop: `placement -> "Colocado
+  en Fila 2, columna 1"`.
+
+### Naming the item under the hand
+
+A generated name now comes from the tooltip last seen for that runtime id. `ItemHand::Names` keeps
+it, and trusts it only while the item's table name and quality still match. Without a remembered
+name it falls back to the table name plus quality ("Mandoble. raro"). Equipment slots benefit too:
+a worn item under the hand is now named instead of "Ocupado".
+
+### What the hand did
+
+`ItemHand::Resolve` works from two readings:
+
+- the runtime id in hand, read through the SDK's `getCursorItem`/`getItemInfo`;
+- the item the focus rested on while the hand was full, with its `socketCount`/`socketedItemCount`
+  from `forEachInventoryItem`. `runtimeId` is the native unit id at `+0x08`, per the SDK README.
+
+The outcomes:
+
+| What happened | Outcome | Announcement |
+|---|---|---|
+| Hand emptied onto an item that stayed there and gained a filled socket | Socketed | "Engarzado en X", plus the socket state |
+| Hand emptied onto an item that stayed there and whose quantity grew (a scroll into a tome, a stack) | Merged | "Añadido a X" |
+| Hand still full, but holding a different item (the game handed the target back) | Swapped | "Intercambiado. En mano: X" |
+| Hand emptied by the drop button (X) with no such evidence | Thrown | "Tirado al suelo" |
+| Hand emptied anywhere else | Placed | the old "Colocado en …" |
+
+Each non-placement outcome logs `[item] hand outcome=… sockets=a/b->c/d quantity=m->n`. Tests:
+
+- `tests/item_hand_tests.cpp`;
+- the socketing scenario in `tests/interaction_reader_tests.cpp`.
+
+### Second live session (2026-09-28): the target had no sockets
+
+The game swapping instead of socketing was the game's own rule. Every attempt was on "de electrocución
+Mandoble", and the log gave `sockets=0/0` for it. Its tooltip has no "Con huecos (N)" line, only
+"Max Sockets: 2". That is the RT "Show Ranges" line: the most sockets the base can be given, not the
+ones it has.
+
+That session also showed a gem thrown with X over the sword announced as "Añadido a" the sword.
+Merged now needs its evidence (the target's quantity grows), and an X press is Thrown.
+
+To stop the guessing, with a gem, rune or jewel in hand every item under it says "Sin huecos",
+"Huecos libres: N" or "Huecos llenos". Whether the held item is one of those comes from the game's
+own `ItemTypes.txt`: `gem`, `rune` and `jewl` all have `sock` ("Socket Filler") as parent, read
+through the same type-ancestry walk the ground-item sounds use (`NativeGroundItems::SocketFiller`).
+
+Confirmed live 2026-09-28: D2R swaps when a gem is put on an item with no free socket.
+
+### Third live session (2026-09-28): the SDK's filled-socket count is wrong
+
+The rare "Filo de la tormenta" was read as `sockets=0/1` (one socket, none filled), and the reader said
+"Huecos libres: 1". But the game refused a Rubí twice:
+
+- on the equipped sword, the character said "No puedo";
+- in the backpack, the game swapped the gem for the sword.
+
+The sword's tooltip lists "Añade 1-8 p. de daño de rayos", exactly the Topacio fragmentado weapon
+bonus, and that topaz had left the hand onto the sword in the first session. So the socket is filled,
+and the SDK's `socketedItemCount` read 0. The character (level 16) meets the Rubí's level 12.
+
+The reader no longer trusts that count:
+
+- **Hovering with a gem, rune or jewel in hand:** says the total ("Con huecos: N", like the game's
+  "Con huecos (N)") or "Sin huecos". It never says how many are free.
+- **Socketed:** the hand holding a socket filler emptied onto another item with sockets that stayed
+  under the focus, without the drop button.
+- **Refused:** the game handed that item back for the gem, or answered "No puedo" on an equipment
+  slot. Both say "No se pudo engarzar" (`socketRefused`); the slot refusal is no longer called a
+  failed equip.
+
+The filled count now comes from the item's own inventory; see the next section.
+
+### Socket contents
+
+Recovered 2026-09-28 from `re/D2R.rebuilt.exe` (D2R 3.3.93787) and confirmed live on the running game
+(loader 1.3.1-beta).
+
+An item's socketed gems, runes and jewels are the items of its own inventory:
+
+| Field | Where | Evidence |
+|---|---|---|
+| Item's inventory | `Unit+0x90` (or `+0x98` while the `+0xA0` owner reference counts), magic `0x01020304` | getter `0x34A360` (already fingerprinted for corpses) |
+| Owner unit / owner id | `Inv+0x08` / `Inv+0x48` | socket insert `0x3856E0`; link-id getter `0x388BA0` |
+| Item count | `Inv+0x4C` (dword) | `0x3856E0` reads it as the socket cell and increments it; remove `0x38BA30` decrements it |
+| First / last item | `Inv+0x10` / `Inv+0x18` | first-item getter `0x388C10`; append `0x38B2A0` |
+| Next item | `ItemData+0xB0` (ItemData = `Unit+0x10`); `+0xA0` parent inventory, `+0xA8` previous | next-item getter `0x38ABA0` |
+
+Live readings:
+
+- **Filo de la tormenta** (one socket, holding a chipped topaz): inventory count 1. The first item is a
+  class-577 unit in mode 6, a new unit id and not the chipped topaz still in the bag.
+- **Controls:** potions, loose gems and the key have no inventory. Rings, amulets, armour and a magic
+  sword have an inventory with count 0.
+- **The player's own inventory:** count 26, and walking the list gives exactly 26 items.
+
+Having an inventory does not mean the item has sockets, so the total still comes from the SDK's
+`socketCount`.
+
+`NativeEntities::FilledSockets` reads the count after checking three things: the magic, that `Inv+8`
+is the item itself, and that `Inv+0x48` is its id. A count above 6 (the most `gemsockets` allows) is
+rejected. It is gated by `EntityLayout::SocketChecks`:
+
+- `0x34A360`, `0x388BA0`, `0x388C10` and `0x3856E0`;
+- hashes reproduced offline and live.
+
+Do not fingerprint `0x38BA30`: the loader rewrites one of its calls in memory.
+
+When the count is unverified or unreadable, the reader says only the total ("Con huecos: N").
+
+## Arrivals
+
+### The problem (live log, 2026-09-28)
+
+The user: sometimes a bought or taken-off item "is not in the inventory" until the panel is closed and
+reopened. The log showed no stale read: every grid cell resolved live. What happened instead:
+
+- **09:08:02:** the "de electrocución Mandoble" was bought with the focus on the vendor, and nothing
+  was said.
+- **09:08:10:** a ruby was picked up.
+- **Until 09:08:27:** columns 1, 2 and 4 were searched with the ruby in hand, while the sword lay in
+  column 3.
+- **After that:** closing the panel put the ruby back, and the sword was found after reopening.
+
+Four purchases at 09:22 were silent too, and potions can go straight into the belt, where the grid
+never shows them.
+
+### What it says now
+
+While `PlayerInventoryExpansionLayout` is open, `InventoryArrivalService` samples the player's
+backpack, belt and worn items through the SDK's `forEachInventoryItem`, every 100 ms. The item info
+gives `container`, `x`/`y` (top-left cell, per the SDK README) and `runtimeId`.
+
+`InventoryArrivals::Diff` reports an item newly in the backpack or belt, or one that moved there from
+the worn slots. It skips the item that was in hand, because "Colocado en …" already covers it, and it
+skips moves within the backpack, such as sorting. What it reports is spoken without interrupting:
+
+- "Nuevo en el inventario: X, Fila r, columna c" (or "…, Cinturón");
+- "Desequipado: X, Fila r, columna c".
+
+Names come from `InteractionReader::ItemName`: the tooltip name the reader remembered for that runtime
+id (a vendor item keeps its id when bought), else the table name and quality.
+
+Log: `[items] arrived id=… place=… at=x,y unequipped=…`. Console: `access-arrivals on|off`. Config:
+`[inventory_arrivals] enabled`. Tests: `tests/inventory_arrivals_tests.cpp`.

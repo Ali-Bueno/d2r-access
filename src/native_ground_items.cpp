@@ -88,7 +88,9 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 	uint32_t type = 0, classId = 0, quality = 0;
 	if (!g_base || !unit || !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)) return {};
-	return ClassLabel(classId, quality);
+	auto label = ClassLabel(classId, quality);
+	if (!Peek(unit + UnitId, label.id)) label.id = 0;
+	return label;
 }
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
 	uintptr_t player = 0, tables = 0, items = 0;
@@ -98,6 +100,18 @@ UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
 		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
 	return {GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality};
+}
+bool SocketFiller(uint32_t classId) {
+	uintptr_t player = 0, address = 0;
+	Tables tables;
+	uint16_t typeId = 0;
+	if (!g_base || !RuntimeRoots(player, address)
+		|| !Peek(address + Items, tables.items) || !tables.items
+		|| !Peek(address + ItemCount, tables.itemCount) || tables.itemCount > MaxTableRows
+		|| !Peek(address + Types, tables.types) || !tables.types
+		|| !Peek(address + TypeCount, tables.typeCount) || tables.typeCount > MaxTableRows
+		|| classId >= tables.itemCount || !Peek(tables.items + classId * ItemStride + ItemType, typeId)) return false;
+	return IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
 }
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;

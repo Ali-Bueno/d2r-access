@@ -4,6 +4,7 @@
 #include "native_level_exits.h"
 #include <D2RLPlugin/api.h>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,6 +14,8 @@
 // native name resolver is never called because it allocates.
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext* context);
+// How many gems, runes or jewels sit in an item's sockets; unknown when unverified or unreadable.
+std::optional<uint32_t> FilledSockets(uintptr_t unit);
 // Distant presets are opt-in for the directional scan/beacon. Proximity speech
 // and spatial loops keep the nearby, live-unit-only snapshot.
 //

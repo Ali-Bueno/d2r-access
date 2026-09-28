@@ -17,11 +17,13 @@ int PlayerGold() noexcept;
 // Gold in the local player's personal stash, or -1 when it cannot be read.
 int PlayerStashGold() noexcept;
 
-struct UnitLabel { std::string baseName; uint32_t quality = 0; };
-// Table name and quality of a focused item; generated names come from its tooltip.
+struct UnitLabel { std::string baseName; uint32_t quality = 0; uint32_t id = 0; };
+// Table name, quality and runtime id of a focused item; generated names come from its tooltip.
 UnitLabel ItemUnitLabel(uintptr_t unit);
 // The same for an item known by its class row (the SDK's ItemInfo::classId).
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
+// Whether an item class goes into sockets: ItemTypes.txt makes gem, rune and jewel children of "sock".
+bool SocketFiller(uint32_t classId);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

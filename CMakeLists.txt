@@ -45,6 +45,7 @@ add_library(d2r-access SHARED
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
 	src/inventory_cursor.cpp
+	src/item_hand.cpp
 	src/plugin.cpp
 	src/localization.cpp
 	src/native_widgets.cpp
@@ -140,6 +141,8 @@ add_library(d2r-access SHARED
 	src/native_weapon_set.cpp
 	src/weapon_swap.cpp
 	src/weapon_swap_service.cpp
+	src/inventory_arrival_service.cpp
+	src/inventory_arrivals.cpp
 	src/native_trade.cpp
 	src/trade.cpp
 	src/trade_service.cpp
@@ -472,7 +475,7 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/item_hand.cpp src/ground_item_text.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -491,6 +494,14 @@ if(BUILD_TESTING)
 	target_include_directories(equip-attempt-tests PRIVATE src)
 	target_compile_features(equip-attempt-tests PRIVATE cxx_std_20)
 	add_test(NAME equip-attempt COMMAND equip-attempt-tests)
+	add_executable(inventory-arrivals-tests tests/inventory_arrivals_tests.cpp src/inventory_arrivals.cpp)
+	target_include_directories(inventory-arrivals-tests PRIVATE src)
+	target_compile_features(inventory-arrivals-tests PRIVATE cxx_std_20)
+	add_test(NAME inventory-arrivals COMMAND inventory-arrivals-tests)
+	add_executable(item-hand-tests tests/item_hand_tests.cpp src/item_hand.cpp)
+	target_include_directories(item-hand-tests PRIVATE src)
+	target_compile_features(item-hand-tests PRIVATE cxx_std_20)
+	add_test(NAME item-hand COMMAND item-hand-tests)
 	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tooltip-text-tests PRIVATE src)
 	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)

@@ -10,9 +10,11 @@
 #include "ground_item_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
+#include "item_hand.h"
 #include "localization.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
+#include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_progression.h"
 #include "progression_text.h"
@@ -29,6 +31,7 @@
 #include <cstdio>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace D2RAccess::InteractionReader {
@@ -55,6 +58,15 @@ std::optional<bool> g_holdingItem;
 // taken when it was picked up: why the game would refuse to equip it.
 std::string g_itemUnmet, g_heldUnmet;
 EquipAttempt::Tracker g_equipAttempt;
+// The runtime id in hand, and what the focus rested on while the hand was full:
+// the item a gem goes into or the game swaps back. docs/inventory-npc-followup.md#socketing
+uint32_t g_heldId = 0;
+bool g_heldFiller = false; // a gem, rune or jewel is in hand
+struct Hovered { ItemHand::Under item; std::string name; bool read = false; };
+Hovered g_hovered;
+struct SocketRead { uint32_t id = 0; std::string state; };
+SocketRead g_socketRead;
+ItemHand::Names g_itemNames;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
 // Widget names are stable across those rebuilds, so the last value seen under
@@ -325,25 +337,131 @@ std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focu
 	return phrase;
 }
 
-std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type) {
-	// Focus may pass through another control while the same item remains held.
-	if (!inventory && !g_holdingItem.value_or(false)) return {};
-	const auto holding = InventoryCursor::HoldingItem(context);
-	if (!holding || holding == g_holdingItem) return {};
-	const bool wasHolding = g_holdingItem.value_or(false);
-	g_holdingItem = holding;
-	if (!inventory) return {};
-	if (*holding) {
+// A table name with its quality: what an item is called when no tooltip names it.
+std::string TableName(const std::string& base, uint32_t quality) {
+	const auto& qualities = Strings::Current().itemQualities;
+	std::string name = base;
+	if (quality < qualities.size()) Append(name, qualities[quality]);
+	return name;
+}
+
+// The item the game handed back: the one just under the focus, or one of its own.
+std::string HeldName(const InventoryCursor::ItemState& held) {
+	if (held.id == g_hovered.item.id && !g_hovered.name.empty()) return g_hovered.name;
+	return ItemName(held.id, held.classId, held.quality);
+}
+
+ItemHand::Under UnderOf(const InventoryCursor::ItemState& item) { return {item.id, item.sockets, item.filled, item.quantity}; }
+
+// An item's sockets: the total from the SDK, the filled ones from the item's own
+// inventory, because the SDK read 0 for a filled socket. docs/inventory-npc-followup.md#socket-contents
+std::optional<ItemHand::Under> ReadUnder(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit) {
+	const auto state = id ? InventoryCursor::Find(context, id) : std::nullopt;
+	if (!state) return std::nullopt;
+	auto item = UnderOf(*state);
+	item.filled = NativeEntities::FilledSockets(unit).value_or(ItemHand::UnknownFilled);
+	return item;
+}
+
+// What the focus rests on while the hand is full, read once per item.
+void Hover(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit, const std::string& name) {
+	if (id == g_hovered.item.id) {
+		if (!name.empty()) g_hovered.name = name;
+		return;
+	}
+	g_hovered = {{id}, name};
+	if (const auto item = ReadUnder(context, id, unit)) {
+		g_hovered.item = *item;
+		g_hovered.read = true;
+	}
+}
+
+// Whether an item has room for a gem, rune or jewel; only the total when the
+// filled ones cannot be read.
+std::string SocketState(const ItemHand::Under& item) {
+	const auto& strings = Strings::Current();
+	if (!item.sockets) return strings.socketsNone;
+	char text[80]{};
+	if (item.filled == ItemHand::UnknownFilled)
+		std::snprintf(text, sizeof(text), strings.socketsCount, static_cast<int>(item.sockets));
+	else if (item.filled >= item.sockets) return strings.socketsFull;
+	else std::snprintf(text, sizeof(text), strings.socketsFree, static_cast<int>(item.sockets - item.filled));
+	return text;
+}
+
+// What the hand did: picked up, put down, socketed, stacked, swapped or thrown.
+std::string HandNotice(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type,
+	const InventoryCursor::ItemState& held, uint32_t heldBefore, bool wasHolding, bool filler, uint32_t focusedId, uintptr_t focusedUnit) {
+	const auto& strings = Strings::Current();
+	if (held.id && !wasHolding) {
 		g_heldUnmet = g_itemUnmet;
-		return Strings::Current().itemInHand;
+		return strings.itemInHand;
 	}
 	if (!wasHolding) return {};
+	ItemHand::Under after{focusedId};
+	if (focusedId && focusedId == g_hovered.item.id)
+		if (const auto item = ReadUnder(context, focusedId, focusedUnit)) after = *item;
+	const bool dropPressed = InputDirection::LastFaceButton(EquipAttempt::AnswerMs) == InputDirection::FaceButton::X;
+	const auto outcome = ItemHand::Resolve(heldBefore, held.id, g_hovered.item, after, filler, dropPressed);
+	if (outcome != ItemHand::Outcome::Placed && outcome != ItemHand::Outcome::None)
+		AsyncLog::InfoF(context, "[item] hand outcome=%d held=%u->%u filler=%u under=%u sockets=%u/%u->%u/%u quantity=%d->%d name=\"%s\"",
+			static_cast<int>(outcome), heldBefore, held.id, filler ? 1u : 0u, g_hovered.item.id, g_hovered.item.filled,
+			g_hovered.item.sockets, after.filled, after.sockets, g_hovered.item.quantity, after.quantity, g_hovered.name.c_str());
+	switch (outcome) {
+	case ItemHand::Outcome::Swapped: {
+		// A gem handed back for the item it was put on: the game would not socket it.
+		std::string text = filler && held.id == g_hovered.item.id ? strings.socketRefused : "";
+		Append(text, Formatted(strings.itemSwapped, HeldName(held)));
+		return text;
+	}
+	case ItemHand::Outcome::Merged: return Formatted(strings.itemAddedTo, g_hovered.name);
+	case ItemHand::Outcome::Thrown: return strings.itemDropped;
+	case ItemHand::Outcome::Socketed: {
+		auto text = Formatted(strings.itemSocketedIn, g_hovered.name);
+		Append(text, SocketState(after));
+		return text;
+	}
+	case ItemHand::Outcome::Placed: case ItemHand::Outcome::None: break;
+	}
+	if (held.id) return {};
 	const auto destination = Destination(context, focus, type);
-	if (destination.empty()) return Strings::Current().itemReleased;
-	char phrase[200]{};
-	std::snprintf(phrase, sizeof(phrase), Strings::Current().itemPlacedIn, destination.c_str());
-	return phrase;
+	return destination.empty() ? std::string(strings.itemReleased) : Formatted(strings.itemPlacedIn, destination);
 }
+
+// The sockets of the item under a gem in hand, read once per item and hand.
+std::string SocketsUnder(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit) {
+	if (id != g_socketRead.id) {
+		g_socketRead = {id, {}};
+		if (const auto item = ReadUnder(context, id, unit)) g_socketRead.state = SocketState(*item);
+	}
+	return g_socketRead.state;
+}
+
+std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type,
+	uint32_t focusedId, uintptr_t focusedUnit, const std::string& focusedName) {
+	// Focus may pass through another control while the same item remains held.
+	if (!inventory && !g_holdingItem.value_or(false)) return {};
+	const auto held = InventoryCursor::Held(context);
+	if (!held) return {};
+	const bool wasHolding = g_holdingItem.value_or(false), wasFiller = g_heldFiller;
+	const uint32_t heldBefore = std::exchange(g_heldId, held->id);
+	g_holdingItem = held->id != 0;
+	if (held->id != heldBefore) {
+		g_heldFiller = held->id && NativeGroundItems::SocketFiller(held->classId);
+		g_socketRead = {};
+	}
+	auto notice = inventory ? HandNotice(context, focus, type, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
+	// Recorded after the notice, which judges the hand against what lay under it before.
+	if (held->id) Hover(context, focusedId, focusedUnit, focusedName);
+	else g_hovered = {};
+	return notice;
+}
+}
+
+std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality) {
+	const auto label = NativeGroundItems::ClassLabel(classId, quality);
+	auto name = g_itemNames.Recall(id, label.baseName, quality);
+	return name.empty() ? TableName(label.baseName, quality) : name;
 }
 
 void OfferDetail(std::string_view owner, std::string detail) {
@@ -404,8 +522,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		itemName = item.baseName;
 		Append(itemName, quality);
 	}
+	// An item in hand hides the game's tooltips: a generated name is the one
+	// the tooltip last gave, else the table name.
+	else if (generatedName && g_holdingItem.value_or(false) && !item.baseName.empty()) {
+		itemName = g_itemNames.Recall(item.id, item.baseName, item.quality);
+		if (itemName.empty()) itemName = TableName(item.baseName, item.quality);
+	}
 	// An empty grid cell is told by its coordinates; a slot has none to say.
 	else if (itemSlot.known && !itemSlot.item && type.kind != UiText::Kind::InventoryGrid) itemName = Strings::Current().slotEmpty;
+	// With a gem, rune or jewel in hand, each item under it says whether it has room for one.
+	const std::string sockets = inventory && g_holdingItem.value_or(false) && g_heldFiller && item.id
+		? SocketsUnder(context, item.id, itemSlot.item) : std::string{};
 	if (!inventory) g_namedFocus.clear();
 	else if (readout.focusKey != g_namedFocus) {
 		g_namedFocus = readout.focusKey;
@@ -484,6 +611,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (!split.headline.empty() && !split.unidentified) {
 				if (!generatedName && !itemName.empty()) split.headline = itemName;
 				else Append(split.headline, quality);
+				if (generatedName) g_itemNames.Remember(item.id, item.baseName, item.quality, split.headline);
 			}
 			// What a sighted player sees in red, said with the name.
 			g_itemUnmet = split.unmet;
@@ -556,6 +684,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// a focus change cannot repeat a description belonging to the previous state.
 	if (ReadDetail(context, focus)) return true;
 	if (!nameInOption) Append(readout.option, itemName);
+	Append(readout.option, sockets);
 	Append(readout.option, belt.summary);
 	// A named cell says what is in it, not where it is.
 	if (type.kind == UiText::Kind::InventoryGrid && !readout.option.empty()) readout.coordinates.clear();
@@ -567,7 +696,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// rather than let the move pass in silence.
 		else if (readout.option.empty()) Append(readout.option, Strings::Current().equipment);
 	}
-	auto cursorNotice = CursorNotice(context, inventory, focus, type);
+	auto cursorNotice = CursorNotice(context, inventory, focus, type, item.id, itemSlot.item, itemName);
 	const auto help = (inventory || action || stats) && !progression.skill ? NativeControllerHelp::ForFocus(focus) : std::string{};
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. A cell or slot holding an
@@ -581,7 +710,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			&& InputDirection::LastFaceButton(EquipAttempt::PressWindowMs) == InputDirection::FaceButton::A;
 		const uint32_t held = g_holdingItem.value_or(false) ? InventoryCursor::HeldItemId(context).value_or(0) : 0;
 		if (g_equipAttempt.Update(pressed, held, now)) {
-			const auto refusal = Refusal(g_heldUnmet);
+			// A gem on a worn item's slot was a socketing the game refused, not an equip.
+			const auto refusal = g_heldFiller && equipmentPresence == NativeUi::ItemPresence::Occupied
+				? std::string(Strings::Current().socketRefused) : Refusal(g_heldUnmet);
 			D2RAccess::AsyncLog::InfoF(context, "[equip] refused -> \"%s\"", refusal.c_str());
 			ScreenReader::Speak(refusal, true);
 		}
@@ -717,6 +848,10 @@ void Reset() {
 	g_namedFocus.clear();
 	g_loggedTooltip.clear();
 	g_holdingItem.reset();
+	g_heldId = 0;
+	g_heldFiller = false;
+	g_hovered = {};
+	g_socketRead = {};
 	g_itemUnmet.clear();
 	g_heldUnmet.clear();
 	g_equipAttempt.Reset();

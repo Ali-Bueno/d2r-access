@@ -182,6 +182,17 @@ struct Table {
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
+	const char* itemSocketedIn;       // %s = item the carried gem, rune or jewel went into
+	const char* itemAddedTo;          // %s = stack or tome the carried item joined
+	const char* itemSwapped;          // %s = item the game handed back in exchange
+	const char* itemDropped;          // the drop button threw the carried item on the ground
+	const char* socketsNone;          // the item under a gem in hand has no sockets
+	const char* socketsCount;         // %d = how many sockets the item under a gem in hand has
+	const char* socketsFree;          // %d = how many of them are empty
+	const char* socketsFull;          // ... every one filled
+	const char* socketRefused;        // the game kept the gem out of the item
+	const char* itemArrived;          // %s = item, %s = where it landed (bought, handed over)
+	const char* itemUnequippedTo;     // %s = item, %s = where the taken-off item landed
 	const char* itemEquipped;         // %s = item that just started being worn
 	const char* itemEquippedIn;       // %s = equipment slot, %s = item
 	const char* equipRefused;         // the game kept the item in hand
@@ -268,7 +279,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.weaponSet, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeAccepted, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.weaponSet, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeAccepted, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown,
 		t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,

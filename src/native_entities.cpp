@@ -19,6 +19,7 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <optional>
 #include <unordered_set>
 
 namespace D2RAccess::NativeEntities {
@@ -35,11 +36,25 @@ bool g_corpsesSupported = false;
 bool g_rosterCorpsesSupported = false;
 bool g_playersSupported = false;
 bool g_rosterSupported = false;
+bool g_socketsSupported = false;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
 	const std::unordered_set<std::string>* levelKeys = nullptr; // every LevelName / LevelWarp key
 };
+// A unit's inventory as getter 0x34A360 returns it: +0x90, or +0x98 while the
+// +0xA0 owner reference counts at +8. False when a read fails; null is no inventory.
+bool InventoryOf(uintptr_t unit, uintptr_t& inventory) {
+	uintptr_t ownerRef = 0;
+	if (!Peek(unit + UnitInventoryRef, ownerRef) || !Peek(unit + UnitInventory, inventory)) return false;
+	if (!ownerRef) return true;
+	uint32_t references = 0;
+	uintptr_t owned = 0;
+	if (!Peek(ownerRef + InventoryRefCount, references)) return false;
+	if (references && !Peek(unit + UnitOwnedInventory, owned)) return false;
+	if (references && owned) inventory = owned;
+	return true;
+}
 
 // A bounded, printable C string at `address`; empty when unreadable or garbage.
 std::string CString(uintptr_t address, size_t maxBytes) {
@@ -158,18 +173,10 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 // dead owner's own unit lies on the same spot until respawn and is not one.
 bool ReadPlayerCorpse(uintptr_t unit, uintptr_t room, uint32_t playerId, bool names, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, owner = 0, magic = 0;
-	uintptr_t inventory = 0, ownerRef = 0, data = 0;
+	uintptr_t inventory = 0, data = 0;
 	if (!Peek(unit + UnitMode, mode) || mode != PlayerCorpseMode
 		|| !Peek(unit + UnitId, entity.id) || !entity.id || entity.id == playerId
-		|| !Peek(unit + UnitInventoryRef, ownerRef)
-		|| !Peek(unit + UnitInventory, inventory)) return false;
-	if (ownerRef) {
-		uint32_t references = 0;
-		uintptr_t owned = 0;
-		if (!Peek(ownerRef + InventoryRefCount, references)) return false;
-		if (references && (!Peek(unit + UnitOwnedInventory, owned))) return false;
-		if (references && owned) inventory = owned;
-	}
+		|| !InventoryOf(unit, inventory)) return false;
 	if (!inventory || !Peek(inventory, magic) || magic != InventoryMagic
 		|| !Peek(inventory + InventoryLinkId, owner) || !owner || owner == entity.id
 		|| !DynamicPosition(unit, room, entity.position)) return false;
@@ -437,7 +444,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = false; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
-	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = false;
+	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
@@ -451,7 +458,22 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_rosterCorpsesSupported = g_rosterSupported
 		&& LayoutCheck::Verify(context, context->exeBase, RosterCorpseChecks, "roster-corpses", "distant corpses not placed");
 	if (g_rosterCorpsesSupported) AsyncLog::Info(context, "[scan] Verified roster corpse reader.");
+	g_socketsSupported = LayoutCheck::Verify(context, context->exeBase, SocketChecks, "sockets", "filled sockets not counted");
+	if (g_socketsSupported) AsyncLog::Info(context, "[scan] Verified socketed item reader.");
 	return true;
+}
+
+std::optional<uint32_t> FilledSockets(uintptr_t unit) {
+	const NativeMemory::ReadScope scope;
+	uint32_t type = 0, id = 0, magic = 0, ownerId = 0, count = 0;
+	uintptr_t inventory = 0, owner = 0;
+	if (!g_socketsSupported || !unit || !Peek(unit + UnitType, type) || type != GroundItemLayout::ItemUnitType
+		|| !Peek(unit + UnitId, id) || !InventoryOf(unit, inventory)) return std::nullopt;
+	if (!inventory) return 0u; // an item that never held anything has no inventory
+	if (!Peek(inventory, magic) || magic != InventoryMagic || !Peek(inventory + InventoryOwner, owner) || owner != unit
+		|| !Peek(inventory + InventoryLinkId, ownerId) || ownerId != id
+		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
+	return count;
 }
 bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster) {
 	const NativeMemory::ReadScope scope;

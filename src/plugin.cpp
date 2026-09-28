@@ -38,6 +38,7 @@
 #include "tab_highlight.h"
 #include "vitals_service.h"
 #include "weapon_swap_service.h"
+#include "inventory_arrival_service.h"
 #include "trade_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
@@ -107,6 +108,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::SkillBarService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
 	D2RAccess::WeaponSwapService::Tick(context);
+	D2RAccess::InventoryArrivalService::Tick(context);
 	D2RAccess::TradeService::Tick(context);
 	LogRightStickPush(context);
 }
@@ -286,6 +288,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
 	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
+	(void)D2RAccess::InventoryArrivalService::Register(context);
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");

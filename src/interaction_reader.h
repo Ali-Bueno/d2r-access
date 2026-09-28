@@ -14,4 +14,6 @@ void OfferDetail(std::string_view owner, std::string detail);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange = {});
 void Reset();
 std::string Repeat();
+// An item's name as the reader says it: its tooltip's name once one was seen, else its table name and quality.
+std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality);
 }

@@ -2,6 +2,109 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Filled sockets read natively, cues paused in cinematics — built, not installed, 2026-09-28
+
+**Sockets:** the RE found that an item's socketed gems and runes are its own inventory. The item
+count sits at `Inv+0x4C`, verified live: the topaz sword read 1, the controls 0. The reader of the
+item under a gem in hand now says one of:
+- "Huecos libres: N";
+- "Huecos llenos";
+- "Sin huecos";
+- only the total ("Con huecos: N"), if unreadable.
+
+Socketing says "Engarzado en X. Huecos libres: N". New `SocketChecks` fingerprints:
+`docs/inventory-npc-followup.md#socket-contents`.
+
+**Cinematics:** act videos (`MoviePlayerMessage:Play` … `Cinematics:MovieComplete`) now pause every
+cue, as a pause menu does. The user heard the NPC cue through the Act 2 video.
+
+**81/81 suites pass**; plugin objects compile. **Not installed:** the game was running.
+
+**Next step:** `.\build.ps1`. Live checks: the Filo de la tormenta should say "Huecos llenos" with a
+gem in hand, and the next act video should be silent.
+
+## Socketing: the SDK's filled-socket count is wrong — built, not installed, 2026-09-28
+
+User: the Rubí would not go into a sword the reader said had "Huecos libres: 1".
+
+The sword's one socket already holds a topaz: its "Añade 1-8 p. de daño de rayos" line is the chipped
+topaz bonus. The SDK read `socketedItemCount` 0, so the game rightly refused ("No puedo" on the worn
+slot, a swap in the backpack).
+
+Changes:
+- **Hovering with a gem in hand** now says only the total ("Con huecos: N") or "Sin huecos".
+- **"Engarzado en X"** comes from the gem leaving the hand onto a socketed item that stays.
+- **A refusal** (swap or "No puedo") says "No se pudo engarzar".
+
+**81/81 suites pass**; plugin objects compile. **Not installed:** the game was running.
+
+**Next step:** `.uild.ps1` with the game closed. The filled count needs the item inventory list
+offsets (RE). `docs/inventory-npc-followup.md#third-live-session-2026-09-28-the-sdks-filled-socket-count-is-wrong`.
+
+## Bought and taken-off items say where they landed — installed, 2026-09-28
+
+User: a bought or unequipped item sometimes "is not in the inventory" until the panel is reopened.
+The log showed no stale read. The purchase was silent and the item simply went unsearched: the sword
+was in column 3, only columns 1, 2 and 4 were searched, and potions may go into the belt.
+
+While the inventory is open, items new to the backpack or belt, or moved there from the worn slots,
+are now spoken with their place. For example: "Nuevo en el inventario: X, Fila 1, columna 3" or
+"Desequipado: X, …". It uses the SDK's inventory walk every 100 ms. **81/81 suites pass.** Installed
+DLL SHA-256 `A6998DF8…` matches the build (it also carries the socketing entry below).
+
+**Next step:** buy a potion and a weapon, unequip a helm, and check `[items] arrived` in the log. If a
+row or column comes out swapped, that is the SDK's `x`/`y`.
+`docs/inventory-npc-followup.md#arrivals`.
+
+## Socketing: the item under a gem is named, the result is announced — installed, 2026-09-28
+
+User: with a gem in hand, the target sword was silent, and nothing said whether it was socketed.
+The log showed why:
+- **The sword was silent** because the game shows no tooltip while an item is in hand, and magic or
+  better names waited for one. The name now comes from the last tooltip seen for that item, or else
+  the table name and quality.
+- **There was no socketing feedback:** it was announced as "Colocado en Fila 2, columna 1". The SDK's
+  socket counts now tell it apart. It says "Engarzado en X", plus "Huecos libres: N" when sockets
+  remain. A tome or stack gets "Añadido a X". A swap gets "Intercambiado. En mano: X".
+
+**80/80 suites pass**, including the new `item-hand` suite. Installed DLL SHA-256 `7D793EA9…` matches
+the build.
+
+**Second live session:**
+- **Every swap was correct.** The target, "de electrocución Mandoble", has no sockets (`sockets=0/0`):
+  "Max Sockets: 2" is the RT range line, not sockets it has.
+- **A gem thrown with X was announced as "Añadido a"**, now fixed.
+
+Now, with a gem, rune or jewel in hand, each item under it says "Sin huecos", "Huecos libres: N" or
+"Huecos llenos". The hand filler comes from the ItemTypes `sock` ancestry. "Añadido a" needs the
+target's quantity to grow, and X is "Tirado al suelo". Installed `F2F32A41…`; 80/80 pass.
+
+**Open:**
+- Antidote, thawing and stamina potions: the game's own tooltip has only their name (price at a
+  vendor). Nothing is lost by the reader.
+- Buying: see the arrivals entry above.
+
+**Next step:** socket a gem into an item with a free socket, then try one on an item with none. Check the log for `[item] hand outcome=`. `docs/inventory-npc-followup.md#socketing`.
+
+## Monastery Gate: border found at its crossing, beacon survives a step across — installed, 2026-09-28
+
+User report from the Monastery Gate, checked against the live log:
+- **(1) Fixed: the scanner listed the gate late.** A border counted as discovered only at the middle of the
+  shared edge, in a room the automap had not drawn. It now also counts at its walkable crossing.
+- **(3) Fixed: L3 to the Outer Cloister "led back to Tamoe".** The route was right (east alcove, then the
+  strip along the Tamoe border). One step into Tamoe released the lock. Now it parks and resumes on the
+  way back.
+- **(2) No change: an opened door does not read open.** This is the cardinal frame's known limit: gates
+  are crossed on a screen diagonal, so the door posts block both rays beside it. The user found it
+  works well enough.
+
+Both fixes have a test that fails without them. **79/79 suites passed** at the time. Installed with the
+socketing build (`7D793EA9…`).
+
+**Next step:** in the east alcove, lock the Outer Cloister, then step into Tamoe and back. Expect `[beacon] resumed` in the log.
+
+`docs/beacon.md#area-borders`.
+
 ## Friend's tester ZIP v2 — 2026-09-26
 
 `../d2r-access-completo-2026-09-26-v2.zip`: the first 26/09 package with **D2RLoader 1.3.1-beta**

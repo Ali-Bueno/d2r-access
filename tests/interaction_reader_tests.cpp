@@ -7,6 +7,7 @@
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
+#include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_progression.h"
 #include "native_widgets.h"
@@ -18,6 +19,8 @@
 #include "tooltip_text.h"
 #include "input_direction.h"
 
+#include <cstdio>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -65,6 +68,11 @@ std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 std::optional<bool> holdingItem;
+uint32_t heldId = 1; // the runtime id in hand while holdingItem is true
+constexpr uint32_t GemClass = 900; // an item class the ItemTypes ancestry makes a socket filler
+InputDirection::FaceButton lastFaceButton = InputDirection::FaceButton::None;
+std::map<uint32_t, InventoryCursor::ItemState> ownedItems; // the player's items by runtime id
+std::map<uintptr_t, uint32_t> filledSockets; // what each item unit's own inventory holds; absent when unreadable
 InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 // The character panel's stick reader runs ahead of the detail readout, so
 // this stands in for it claiming a tick.
@@ -142,8 +150,16 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 	if (unit == 77) return {"Poción de curación menor", 2};
 	if (unit == 78) return {"Amuleto", 4};
 	if (unit == 79) return {"Hacha grande", 2};
-	if (unit == 80) return {"Lanza", 4};
+	if (unit == 80) return {"Lanza", 4, 80};
 	return {};
+}
+UnitLabel ClassLabel(uint32_t classId, uint32_t quality) { return classId == 80 ? UnitLabel{"Lanza", quality} : UnitLabel{}; }
+bool SocketFiller(uint32_t classId) { return classId == GemClass; }
+}
+namespace D2RAccess::NativeEntities {
+std::optional<uint32_t> FilledSockets(uintptr_t unit) {
+	const auto found = filledSockets.find(unit);
+	return found == filledSockets.end() ? std::nullopt : std::optional<uint32_t>(found->second);
 }
 }
 namespace D2RAccess::NativeBelt {
@@ -151,7 +167,17 @@ std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, in
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
-std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
+std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? heldId : 0u; }
+std::optional<ItemState> Held(const D2RL::PluginContext*) {
+	if (!holdingItem) return std::nullopt;
+	if (!*holdingItem) return ItemState{};
+	const auto found = ownedItems.find(heldId);
+	return found == ownedItems.end() ? ItemState{heldId} : found->second;
+}
+std::optional<ItemState> Find(const D2RL::PluginContext*, uint32_t id) {
+	const auto found = ownedItems.find(id);
+	return found == ownedItems.end() ? std::nullopt : std::optional<ItemState>(found->second);
+}
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
@@ -168,7 +194,7 @@ std::string Selected(uintptr_t) {
 }
 }
 namespace D2RAccess::InputDirection {
-FaceButton LastFaceButton(unsigned) { return FaceButton::None; }
+FaceButton LastFaceButton(unsigned) { return lastFaceButton; }
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (wanted == StickPush::None || pendingPush != wanted) return false;
 	pendingPush = StickPush::None;
@@ -692,8 +718,8 @@ int main() {
 		ClearSpeech(); focus = {20, 82}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot};
 		equipmentLocation = 2; equipmentPresence = NativeUi::ItemPresence::Occupied; itemUnit = 78;
 		Tick();
-		Check(speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Ocupado"},
-			"after a focus gap, a held item's destination reads immediately without another placement prompt or waiting for its magic tooltip");
+		Check(speech == std::vector<std::string>{"Inventario. Equipo. Cuello. Amuleto. mágico"},
+			"after a focus gap, a held item's destination names what it holds at once, without another placement prompt or waiting for a tooltip that never comes");
 		ClearSpeech(); Tick(); Check(speech.empty(), "an unchanged occupied destination stays silent");
 	}
 	focus = {}; widgetType = {}; holdingItem.reset(); Tick(); ClearSpeech();
@@ -706,6 +732,58 @@ int main() {
 	focus = {20, 81}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; Tick(); ClearSpeech();
 	holdingItem = true; Tick();
 	Check(speech == std::vector<std::string>{Strings::Current().itemInHand}, "an actual new pickup still announces after a release outside inventory");
+
+	// Socketing, 2026-09-28: with a gem in hand the rare sword under it was never
+	// named, and the socketing was announced as "Placed in row 2, column 1".
+	const auto phrase = [](const char* format, const std::string& value) {
+		char text[200]{};
+		std::snprintf(text, sizeof(text), format, value.c_str());
+		return std::string(text);
+	};
+	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear();
+	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
+	cell = {0, 0}; selection = 0; holdingItem = false; itemUnit = 80; itemPresence = NativeUi::ItemPresence::Occupied;
+	ownedItems = {{80, {80, 80, 4, 2, 0}}, {41, {41, GemClass, 2, 0, 0}}};
+	Tooltip("Lanza del zorro"); Settle();
+	const auto pickUpGem = [&] {
+		tooltip = {}; cell = {1, 0}; selection = 1; itemUnit = 0; itemPresence = NativeUi::ItemPresence::Empty;
+		heldId = 41; holdingItem = true; Tick();
+		ClearSpeech(); cell = {0, 0}; selection = 0; itemUnit = 80; itemPresence = NativeUi::ItemPresence::Occupied; Tick();
+	};
+	const std::string lance = "Lanza del zorro. mágico";
+	const auto socketText = [](const char* format, int count) {
+		char text[80]{};
+		std::snprintf(text, sizeof(text), format, count);
+		return std::string(text);
+	};
+	filledSockets = {{80, 0}};
+	pickUpGem();
+	Check(speech.size() == 1 && speech[0].starts_with(lance + ". " + socketText(Strings::Current().socketsFree, 2)),
+		"with a gem in hand the item under it keeps its tooltip name and says how many sockets are free");
+	ClearSpeech(); holdingItem = false; filledSockets[80] = 1; Tick();
+	Check(speech.size() == 1 && speech[0] == phrase(Strings::Current().itemSocketedIn, lance) + ". "
+		+ socketText(Strings::Current().socketsFree, 1),
+		"a gem that goes into the socketed item under it is announced as socketed, with the sockets left");
+	pickUpGem();
+	ClearSpeech(); lastFaceButton = InputDirection::FaceButton::X; holdingItem = false; Tick();
+	Check(speech.size() == 1 && speech[0] == Strings::Current().itemDropped,
+		"the drop button emptying the hand is announced as thrown away, not as socketed");
+	lastFaceButton = InputDirection::FaceButton::None;
+	// Monastery, 2026-09-28: the SDK called this socket empty; the item's own inventory holds its topaz.
+	filledSockets[80] = 2;
+	pickUpGem();
+	Check(speech.size() == 1 && speech[0].starts_with(lance + ". " + Strings::Current().socketsFull),
+		"an item whose own inventory fills every socket says the sockets are full");
+	ClearSpeech(); heldId = 80; itemUnit = UnnamedUnit; Tick();
+	Check(speech.size() == 1 && speech[0] == std::string(Strings::Current().socketRefused) + ". "
+		+ phrase(Strings::Current().itemSwapped, lance),
+		"a gem the game hands back for the item under it says the socketing was refused and what is now in hand");
+	holdingItem = false; heldId = 1; Tick();
+	filledSockets.clear();
+	pickUpGem();
+	Check(speech.size() == 1 && speech[0].starts_with(lance + ". " + socketText(Strings::Current().socketsCount, 2)),
+		"when the filled sockets cannot be read only the total is said, never a guess");
+	holdingItem = false; heldId = 1; ownedItems.clear(); Tick();
 	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear();
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	cell = {0, 0}; selection = 0; holdingItem = false; itemUnit = 0;
