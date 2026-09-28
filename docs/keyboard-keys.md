@@ -22,6 +22,7 @@ before adding one, and read this file first.
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
 | Tab, Shift+Tab | next monster, previous monster, on screen |
+| full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. The next D picks up that item and no other; if it has gone, D says so and takes nothing (`563dd3a`, the user, 2026-09-28) |
 | D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored room |
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
@@ -45,7 +46,7 @@ before adding one, and read this file first.
 items on the ground and every chest as well since 2026-09-28.
 
 Comma and full stop were the scanner's category keys and were retired by the
-user on 2026-09-27.
+user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the ground.
 
 ## In a menu
 
@@ -158,5 +159,5 @@ Every switch that has no key of its own is in the Ctrl+S list.
 |---|---|---|
 | move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | INFERRED to work already through the key watch: Ctrl+Shift+A. Not measured |
 
-Keys no one uses: K, L, U, Insert, Delete, comma, full stop, and most
+Keys no one uses: K, L, U, Insert, Delete, and most
 keys with Alt.
