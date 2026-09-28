@@ -34,6 +34,11 @@ UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 // The same for an item unit, with the quality its unit data holds.
 UnitLabel ItemUnitLabel(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
+// The scanner's read: every item on the ground in the loaded rooms of the
+// player's level, however far, where Read keeps to the player's room, its
+// neighbours and the item sounds' reach (the user, 2026-09-28: items in other
+// rooms dropped out of the scanner).
+bool ReadLevel(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 }

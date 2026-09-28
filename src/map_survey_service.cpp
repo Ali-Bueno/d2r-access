@@ -243,11 +243,12 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 }
 
 // Items on the ground are read live as enemies are: one is picked up or dropped
-// at any moment. The same reach as enemies: all loaded with full assistance.
+// at any moment. Every loaded room of the level, however far; no sight needed
+// with full assistance.
 std::vector<EntityRadar::Entity> Items(const Lifecycle& state, const Radar::World& world) {
 	std::vector<EntityRadar::Entity> items;
 	GroundItems::Snapshot snapshot;
-	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) return items;
+	if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return items;
 	for (const auto& item : snapshot.items) {
 		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
 		EntityRadar::Entity entity;
