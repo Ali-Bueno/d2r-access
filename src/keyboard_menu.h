@@ -36,7 +36,7 @@
 // connected the cursor wakes only when an arrow key is pressed.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
-enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain };
+enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail };
 
 // After KeyboardService::Tick and before the readers, so what is read is
 // where the cursor ends up.

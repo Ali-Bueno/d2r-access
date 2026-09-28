@@ -158,11 +158,11 @@ struct Watched { int key; Act act; With with; bool down = false, waiting = false
 Watched g_watched[] = {
 	{'A', Act::ClickLeft, With::ShiftOrControl}, {'D', Act::ClickRight, With::Shift}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
-	{VK_OEM_5, Act::SayAgain, With::Nothing},
+	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
 };
-constexpr size_t Acts = 7;
+constexpr size_t Acts = 8;
 constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
-	"say again"};
+	"say again", "description"};
 std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
@@ -934,6 +934,12 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	case Act::MenuPrevious: StepMenu(context, now, -1); break;
 	case Act::MenuNext:     StepMenu(context, now, 1); break;
 	case Act::SayAgain:     SayAgain(context, now); break;
+	// The pad's right stick up: the description of what the cursor is on, for
+	// a player with autodetail off (the user, 2026-09-28).
+	case Act::Detail:
+		AsyncLog::Info(context, "[cursor] description asked for");
+		InputDirection::PostRightStickPush(InputDirection::StickPush::Up);
+		break;
 	}
 }
 

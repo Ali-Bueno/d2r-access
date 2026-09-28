@@ -87,6 +87,8 @@ enum class Command : uint32_t {
 	None, Interact, TargetNext, TargetPrevious, WalkToTarget, Explore,
 	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
+	// In a menu: the description of what the cursor is on, the pad's right stick up.
+	ReadDetail,
 	Settings, SettingsChange,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
@@ -973,7 +975,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		const char* button = command == Command::RetreatExit ? RepairAllButton : command == Command::RetreatBack ? RepairButton
 			: command == Command::Transmute ? TransmuteButton : nullptr;
 		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
-			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop;
+			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop
+			|| command == Command::ReadDetail;
 		if (menuKey || command == Command::Sort || command == Command::FillBelt) {
 			if (!pressed) return D2RL::Input::ActionResult::Ignored;
 			if (command == Command::Sort) g_sort = true;
@@ -981,7 +984,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			else if (button) g_press = button;
 			else KeyboardMenu::Deliver(command == Command::ClickLeft ? Act::ClickLeft : command == Command::ClickRight ? Act::ClickRight
 				: command == Command::ReadPrevious ? Act::TabPrevious : command == Command::ReadNext ? Act::TabNext
-				: command == Command::Repeat ? Act::MenuPrevious : Act::MenuNext);
+				: command == Command::ReadDetail ? Act::Detail : command == Command::Repeat ? Act::MenuPrevious : Act::MenuNext);
 			return D2RL::Input::ActionResult::Handled;
 		}
 	}
@@ -1085,6 +1088,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-compare-item", "Compare: the item in full", Key::PageUp, Modifier::Shift, Command::CompareItem},
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
 			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
+			Entry{"keyboard-read-detail", "Menu: read the description", Key::J, Modifier::None, Command::ReadDetail},
 			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},
 			Entry{"keyboard-left-skill", "Choose the skill of the left hand", Key::S, Modifier::Shift, Command::LeftSkill},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
