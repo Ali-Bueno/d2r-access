@@ -83,8 +83,11 @@ struct Entity {
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a
 // new id when its room is loaded again (MEASURED 2026-09-28: the Refilling Shrine
-// at 5427,4812 was id 28, then 61; a Loose Rock 30, then 63). An object never
-// moves, so one of the same name and kind within a step of where it stood is it.
+// at 5427,4812 was id 28, then 61; a Loose Rock 30, then 63), and an item too
+// (MEASURED 10:40: five "Large Axe" and two "Bardiche, magic" listed on one spot).
+// Objects and items never move: the same name within a step is it. Whether a
+// monster keeps its id is NOT measured; one of the same name within the scan's
+// range is taken for it, which changes nothing while ids are kept.
 bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);

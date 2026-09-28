@@ -156,10 +156,28 @@ void RecreatedObjectTakesItsOldPlace() {
 	potion.name = "Minor Healing Potion";
 	auto other = potion;
 	other.id = 5;
-	items.Observe(1, {potion}, grid);
-	const std::vector<EntityRadar::Entity> both{other};
-	items.Observe(1, both, grid, {}, &both);
-	Check(items.Entities().size() == 2, "two items of one name on one spot stay two: an item may lie on another");
+	const std::vector<EntityRadar::Entity> first{potion, other};
+	items.Observe(1, first, grid, {}, &first);
+	Check(items.Entities().size() == 2, "two items of one name on one spot are two: an item may lie on another");
+	auto potionAgain = potion, otherAgain = other;
+	potionAgain.id = 6;
+	otherAgain.id = 7;
+	const std::vector<EntityRadar::Entity> again2{potionAgain, otherAgain};
+	items.Observe(1, again2, grid, {}, &again2);
+	Check(items.Entities().size() == 2 && items.Entities().front().id != 4 && items.Entities().back().id != 5,
+		"loaded again under new ids, they are still two, not four");
+
+	Registry monsters;
+	auto fallen = Make(9, 38, 30, EntityRadar::Kind::Enemy);
+	fallen.name = "Fallen";
+	monsters.Observe(1, {fallen}, grid);
+	auto moved = fallen;
+	moved.id = 90;
+	moved.position = {36, 33};
+	const std::vector<EntityRadar::Entity> pack{moved};
+	monsters.Observe(1, pack, grid, {}, &pack);
+	Check(monsters.Entities().size() == 1 && monsters.Entities().front().id == 90,
+		"a monster of the same name near where one was lost from the loaded rooms takes its entry");
 }
 
 void ChangingLevelClears() {

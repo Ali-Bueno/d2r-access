@@ -49,9 +49,15 @@ bool SameTarget(const Entity& a, const Entity& b) {
 }
 
 bool Recreated(const Entity& known, const Entity& loaded) {
-	return known.kind == Kind::Object && loaded.kind == Kind::Object && !known.placeId && !loaded.placeId
-		&& known.id != loaded.id && known.category == loaded.category && known.name == loaded.name
-		&& std::abs(known.position.x - loaded.position.x) <= 1 && std::abs(known.position.y - loaded.position.y) <= 1;
+	if (known.kind != loaded.kind || known.placeId || loaded.placeId || known.id == loaded.id
+		|| known.category != loaded.category || known.name != loaded.name) return false;
+	double within = 0;
+	switch (known.kind) {
+	case Kind::Object: case Kind::Item: within = 1; break;
+	case Kind::Enemy: case Kind::Npc: within = Settings{}.range; break;
+	default: return false;
+	}
+	return std::abs(known.position.x - loaded.position.x) <= within && std::abs(known.position.y - loaded.position.y) <= within;
 }
 
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {

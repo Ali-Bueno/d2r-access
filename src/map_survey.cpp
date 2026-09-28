@@ -85,8 +85,9 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 		auto found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity](const Tracked& tracked) {
 			return EntityRadar::SameTarget(tracked.entity, entity);
 		});
-		// An object made again under a new id takes its old entry's place, rather
-		// than being listed twice with the old one unreachable.
+		// A thing made again under a new id takes its old entry's place, rather
+		// than being listed twice with the old one unreachable. One not loaded
+		// is taken at most once, so two things alike stay two.
 		if (found == m_tracked.end())
 			found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity, &loaded](const Tracked& tracked) {
 				return EntityRadar::Recreated(tracked.entity, entity) && !loaded(tracked.entity);
