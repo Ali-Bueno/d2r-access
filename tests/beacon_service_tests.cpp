@@ -140,7 +140,8 @@ std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::
 bool Crosses(const EntityRadar::Entity&) { return false; }
 bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
-namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; } }
+namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
+bool Recreated(const Entity&, const Entity&) { return false; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
 

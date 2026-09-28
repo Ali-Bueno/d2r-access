@@ -264,6 +264,13 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 			g_target.seenMs = now;
 			return true;
 		}
+	// An object is loaded again under a new id: it is still the one led to.
+	for (const auto& entity : entities)
+		if (EntityRadar::Recreated(g_target.entity, entity)) {
+			g_target.entity = entity;
+			g_target.seenMs = now;
+			return true;
+		}
 	return false;
 }
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
