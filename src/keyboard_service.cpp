@@ -19,6 +19,7 @@
 #include "ground_item_text.h"
 #include "input_direction.h"
 #include "keyboard_menu.h"
+#include "map_survey.h"
 #include "map_survey_service.h"
 #include "mod_sounds.h"
 #include "native_actions.h"
@@ -342,7 +343,16 @@ void BeginWalk(const Lifecycle& state) {
 	ScreenReader::Speak(Format(strings.walkTo, target.name.c_str()), true);
 }
 
-// The thing as it is now: a unit moves, and is a unit only while its room is loaded.
+// Where a thing that is not there is gone: close enough that it would be loaded,
+// as the scanner forgets it (MapSurvey::Settings::forgetWithin). Further off, what
+// the scanner still lists is walked to where it was (the user, 2026-09-28:
+// "Target lost" on a remembered shrine 90 steps away, 27 ms into the walk).
+bool Near(const Radar::World& world, Position position) {
+	return Distance(world.player, position) <= MapSurvey::Settings{}.forgetWithin;
+}
+
+// The thing as it is now: a unit moves, and is a unit only while its room is
+// loaded, under an id that is new each time its room is loaded again.
 bool Refresh(const Lifecycle& state, const Scene& scene, Entity& target) {
 	if (target.kind == EntityRadar::Kind::Room) return true;
 	if (target.kind == EntityRadar::Kind::Item) {
@@ -351,12 +361,23 @@ bool Refresh(const Lifecycle& state, const Scene& scene, Entity& target) {
 		if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return true; // unread is not gone
 		for (const auto& item : snapshot.items)
 			if (item.id == target.id) { target.position = {item.position.x, item.position.y}; return true; }
-		return false;
+		// One of the same name where it lay serves as well.
+		for (const auto& item : snapshot.items)
+			if (item.source == GroundItems::SourceKind::Item && item.name == target.name
+				&& std::abs(item.position.x - target.position.x) <= 1 && std::abs(item.position.y - target.position.y) <= 1) {
+				target.id = item.id;
+				target.position = {item.position.x, item.position.y};
+				return true;
+			}
+		return !Near(scene.world, target.position);
 	}
 	for (const auto& entity : scene.entities)
 		if (EntityRadar::SameTarget(entity, target)) { target = entity; return true; }
-	// Not loaded is not gone: a place keeps where it was.
-	return target.placeId != 0 || target.unit == Entity::NoUnit;
+	for (const auto& entity : scene.entities)
+		if (EntityRadar::Recreated(target, entity)) { target = entity; return true; }
+	// Not loaded is not gone: a place keeps where it was, and a unit too until
+	// the player is close enough to see it is not there.
+	return target.placeId != 0 || target.unit == Entity::NoUnit || !Near(scene.world, target.position);
 }
 
 bool InTargetRoom(const Lifecycle& state, Position player) {
