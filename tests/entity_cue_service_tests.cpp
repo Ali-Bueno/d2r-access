@@ -151,6 +151,7 @@ int main() {
 	Check(plays.size() == 4, "NPC category switch suppresses only NPC cues");
 	Check(!speech.empty() && speech.back().find("NPC cues off") != std::string::npos,
 		"NPC category state remains readable through the shared speech sink");
+	Check(speech.back() == "NPC cues off", "a change says only the switch it changed, not every cue");
 	Command("npc-on");
 	Poll();
 	Check(plays.size() == 5, "NPC cues can be restored without changing the independent announcer");

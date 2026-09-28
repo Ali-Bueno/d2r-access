@@ -88,6 +88,19 @@ std::string StatusText() {
 	if (!g_audioStarted || !EntityCueAudio::Available()) { result += ". "; result += strings.entityCueAudioUnavailable; }
 	return result;
 }
+
+// A change says only the switch it changed (the user, 2026-09-28: "just the one
+// that was toggled"); status reads them all. Also the phrase the settings list
+// holds back when it puts a saved switch back at start.
+std::string ChangeText(Command command) {
+	const auto& strings = Strings::Current();
+	switch (command) {
+	case Command::On: case Command::Off: return g_enabled ? strings.entityCuesEnabled : strings.entityCuesDisabled;
+	case Command::NpcOn: case Command::NpcOff: return g_settings.npcs ? strings.entityCueNpcsEnabled : strings.entityCueNpcsDisabled;
+	case Command::EnemyOn: case Command::EnemyOff: return g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
+	default: return g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
+	}
+}
 }
 
 bool Register(const D2RL::PluginContext* context) {
@@ -135,7 +148,7 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (changed) Suspend(context, "settings changed");
 	if (command != Command::None) {
-		ScreenReader::Speak(StatusText(), true);
+		ScreenReader::Speak(changed ? ChangeText(command) : StatusText(), true);
 		AsyncLog::InfoF(context, "[entity-cues] status enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
 			g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
 			g_settings.npcs, g_settings.enemies, g_settings.ranged);
