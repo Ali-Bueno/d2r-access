@@ -25,6 +25,7 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "tooltip_text.h"
 #include "ui_text.h"
 
 #include <windows.h>
@@ -925,6 +926,21 @@ void SayAgain(const D2RL::PluginContext* context, uint64_t now) {
 	if (const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr) Expect(now, Name(*entry, g_place));
 }
 
+// On the character screen the pad's right stick up steps through the lines
+// of stats, so J reads instead what the game's tooltip says of the line the
+// cursor is on: a pad player cannot reach that at all (the user, 2026-09-28).
+bool SayStatTooltip(const D2RL::PluginContext* context, uint64_t now) {
+	if (g_menu.find("CharacterStatsPanel") == std::string::npos) return false;
+	const auto tooltip = NativeTooltips::Latest(now);
+	std::string text;
+	if (g_place.widget && tooltip.widget == g_place.widget)
+		for (const auto& line : TooltipText::Read(tooltip.body).lines) text += (text.empty() ? "" : ". ") + line;
+	AsyncLog::InfoF(context, "[cursor] stat tooltip of %s: \"%s\"%s", EntryOf(g_place.widget) ? EntryOf(g_place.widget)->name.c_str() : "nothing",
+		text.c_str(), tooltip.widget && tooltip.widget != g_place.widget ? " (the tooltip drawn is another's)" : "");
+	ScreenReader::Speak(text.empty() ? std::string(Strings::Current().detailNone) : text, true);
+	return true;
+}
+
 void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	switch (act) {
 	case Act::ClickLeft:    Click(context, now, MenuMouse::Button::Left); break;
@@ -937,6 +953,7 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	// The pad's right stick up: the description of what the cursor is on, for
 	// a player with autodetail off (the user, 2026-09-28).
 	case Act::Detail:
+		if (SayStatTooltip(context, now)) break;
 		AsyncLog::Info(context, "[cursor] description asked for");
 		InputDirection::PostRightStickPush(InputDirection::StickPush::Up);
 		break;
