@@ -31,6 +31,7 @@
 #include "tab_reader.h"
 #include "tooltip_delay.h"
 #include "tooltip_text.h"
+#include "native_skill_icons.h"
 #include "ui_text.h"
 
 #include <D2RLPlugin/item.h>
@@ -481,6 +482,26 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 // taken for the item under the cursor once it names that item; one that never
 // does is taken after NamesItemMs all the same, so a name this misjudges can
 // delay a readout but never silence it.
+// A skill's tooltip is taken only when its own first lines name the skill
+// under the cursor, with no time limit: the game went on drawing Prayer's,
+// the skill last clicked, and every skill after was read as Prayer (MEASURED
+// 2026-09-28 03:25:57 on). The first lines, because a tooltip names other
+// skills lower down among what it gains from.
+uintptr_t g_skillHeld = 0;
+bool NamesSkill(const D2RL::PluginContext* context, const std::string& body, uintptr_t widget) {
+	const std::string name = NativeSkillIcons::Name(widget);
+	if (name.empty()) return true;
+	const auto lines = TooltipText::Read(body).lines;
+	for (size_t i = 0; i < lines.size() && i < 2; ++i)
+		if (lines[i].find(name) != std::string::npos) return true;
+	if (g_skillHeld != widget) {
+		g_skillHeld = widget;
+		D2RAccess::AsyncLog::InfoF(context, "[interaction] held back a skill tooltip that is not \"%s\"'s: \"%s\"", name.c_str(),
+			lines.empty() ? "" : lines.front().c_str());
+	}
+	return false;
+}
+
 constexpr uint64_t NamesItemMs = 400;
 uintptr_t g_namingWidget = 0;
 uint64_t g_namingSelection = 0, g_namingSince = 0;
@@ -682,7 +703,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
 		&& (!inventory || tooltip.selection == selection)
 		&& equipmentPresence != NativeUi::ItemPresence::Empty
-		&& (!inventory || NamesItem(context, tooltip.body, focusItem, focus.widget, selection, now))) {
+		&& (!inventory || NamesItem(context, tooltip.body, focusItem, focus.widget, selection, now))
+		&& (!progression.skill || NamesSkill(context, tooltip.body, focus.widget))) {
 		std::string description;
 		if (progression.skill) {
 			description = ProgressionText::SkillDescription(tooltip.body);

@@ -136,6 +136,8 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 namespace D2RAccess::NativeBelt {
 std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return std::nullopt; }
 }
+// No skill named here: every skill tooltip is taken, as before the check.
+namespace D2RAccess::NativeSkillIcons { std::string Name(uintptr_t) { return {}; } }
 namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
 int PlayerStashGold() noexcept { return stashGold; }
