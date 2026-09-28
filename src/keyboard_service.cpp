@@ -302,6 +302,46 @@ void LogStall(const Radar::World& world, Position order) {
 		order.x, order.y, world.player.x, world.player.y, world.walkingMask, cells.c_str());
 }
 
+// Every order to walk goes through here. One given again from where it was
+// first given, more than a second on, the character not having moved, is
+// logged once a place with the character's own state and the game's cells
+// around it: 2026-09-28 the character stood at 7580,13196 for 90 seconds and
+// the game refused every order, the arrows' and the mouse's, and the log
+// could not say why (mode, path, or the floor under it).
+constexpr uint64_t StuckMs = 1000;
+Position g_moveOrder{-1, -1}, g_moveFrom{-1, -1}, g_stuckAt{-1, -1};
+uint64_t g_moveSince = 0;
+void LogStuck(const Radar::World& world, Position order) {
+	const auto state = NativeActions::ReadMoveState();
+	std::string rows;
+	const int px = static_cast<int>(world.player.x), py = static_cast<int>(world.player.y);
+	for (int dy = -2; dy <= 2; ++dy) {
+		if (dy > -2) rows += " |";
+		for (int dx = -2; dx <= 2; ++dx) {
+			uint16_t flags = 0;
+			const auto cell = world.Cell(px + dx, py + dy, Radar::Layer::Movement, &flags);
+			char text[16];
+			std::snprintf(text, sizeof(text), " %04X/%d", flags, static_cast<int>(cell));
+			rows += text;
+		}
+	}
+	AsyncLog::InfoF(g_context, "[keyboard] stuck: no move for %llu ms at %d,%d, ordered to %.0f,%.0f; read=%u mode=%u path_type=%u"
+		" position_raw=%08X,%08X pattern=%d mask %04X; cells x-2..x+2, rows y-2..y+2:%s",
+		static_cast<unsigned long long>(StuckMs), px, py, order.x, order.y, state.read ? 1u : 0u, state.mode, state.pathType,
+		state.x, state.y, world.bodyPattern, world.walkingMask, rows.c_str());
+}
+void Order(const Radar::World& world, Position order, uint64_t now) {
+	if (order.x != g_moveOrder.x || order.y != g_moveOrder.y || Distance(world.player, g_moveFrom) >= 1) {
+		g_moveOrder = order;
+		g_moveFrom = world.player;
+		g_moveSince = now;
+	} else if (now - g_moveSince >= StuckMs && Distance(world.player, g_stuckAt) >= 1) {
+		g_stuckAt = world.player;
+		LogStuck(world, order);
+	}
+	(void)NativeActions::MoveTo(order);
+}
+
 // One leg of a walk toward a thing, along the route the beacon would ping.
 Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& target, double reach, uint64_t now) {
 	if (Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
@@ -321,7 +361,7 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 		g_ordered = true;
 		g_lastOrder = step.order;
 		g_orderFrom = scene.world.player;
-		(void)NativeActions::MoveTo(step.order);
+		Order(scene.world, step.order, now);
 	}
 	return Progress::Going;
 }
@@ -684,7 +724,7 @@ void RetreatOn(const Lifecycle& state, uint64_t now) {
 		End("retreat blocked", true);
 		ScreenReader::Speak(Format(strings.walkBlocked, name.c_str()), true);
 	} else if (step.event == AutoWalk::Event::Order) {
-		(void)NativeActions::MoveTo(step.order);
+		Order(scene.world, step.order, now);
 	}
 }
 
@@ -842,7 +882,7 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 			: g_walker.Tick(scene.world, route.path, now, g_walk);
 		if (step.event == AutoWalk::Event::Order) {
 			g_closing = true;
-			(void)NativeActions::MoveTo(step.order);
+			Order(scene.world, step.order, now);
 		} else if (step.event == AutoWalk::Event::Blocked && g_saidOutOfReach != target->entity.id) {
 			g_saidOutOfReach = target->entity.id;
 			ScreenReader::Speak(Format(strings.targetOutOfReach, target->entity.name.c_str()), false);
@@ -885,7 +925,7 @@ void Step(const Lifecycle& state, Position heading, uint64_t now) {
 		const Position aim{std::round(world.player.x + heading.x * reach), std::round(world.player.y + heading.y * reach)};
 		if (Distance(aim, world.player) < 1 || !AutoWalk::Straight(world, world.player, aim)) continue;
 		g_stepping = true;
-		(void)NativeActions::MoveTo(aim);
+		Order(world, aim, now);
 		return;
 	}
 }

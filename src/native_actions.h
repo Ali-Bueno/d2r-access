@@ -37,6 +37,11 @@ bool SkillOn(Hand hand, Unit type, uint32_t id);
 bool Interact(Unit type, uint32_t id);
 // Stop where the character stands.
 bool Halt();
+// The character's own movement state, for the log when it will not move: its
+// animation mode (unit +0xC), its path's type (path +0x50) and its position as
+// the game keeps it, 16 bits of fraction. `read` is false when unreadable.
+struct MoveState { bool read = false; uint32_t mode = 0, pathType = 0, x = 0, y = 0; };
+MoveState ReadMoveState();
 // The skill the player has selected for that hand, by skill id; -1 when it
 // cannot be read. The skill commands above use it: they carry no skill of
 // their own.

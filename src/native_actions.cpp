@@ -181,6 +181,21 @@ bool Halt() {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 
+MoveState ReadMoveState() {
+	using NativeMemory::Peek;
+	// The same offsets the footstep reader (unit +0xC, +0x38, path +0) and the
+	// movement hook (path +0x50) read.
+	constexpr size_t UnitMode = 0xC, UnitPath = 0x38, PathPosition = 0, PathType = 0x50;
+	MoveState state;
+	uintptr_t player = 0, tables = 0, path = 0;
+	const NativeMemory::ReadScope scope;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player || !Peek(player + UnitMode, state.mode)
+		|| !Peek(player + UnitPath, path) || !path || !Peek(path + PathPosition, state.x)
+		|| !Peek(path + PathPosition + 4, state.y) || !Peek(path + PathType, state.pathType)) return {};
+	state.read = true;
+	return state;
+}
+
 int SelectedSkill(Hand hand) {
 	using NativeMemory::Peek;
 	if (!g_skills) return -1;
