@@ -348,6 +348,22 @@ void ShowBelt(const D2RL::PluginContext* context, uintptr_t belt) {
 
 // The open menu, read again. The panels that are open and shown, oldest first;
 // under a modal only the modal, which takes every click until it is answered.
+// Character creation: down from every class is the name box, drawn under all
+// of them, or the hardcore box while there is no name box. Added to the
+// nearest-thing rule, which sent four of the eight classes elsewhere (MEASURED
+// 2026-09-27: the name box and the hardcore box were never landed on).
+void LinkClasses() {
+	const Entry* below = nullptr;
+	for (const std::string_view name : {"InputText", "HardcoreCheckbox"}) {
+		for (const auto& entry : g_entries)
+			if (entry.name == name && NativeWidgets::ReadName(entry.panel) == "CharacterCreatePanel") { below = &entry; break; }
+		if (below) break;
+	}
+	if (!below) return;
+	for (const auto& entry : g_entries)
+		if (NativeClassChoice::Is(entry.widget)) g_links.push_back({{entry.widget, {}, {}}, {below->widget, {}, {}}, Direction::Down});
+}
+
 std::string Build(const D2RL::PluginContext* context) {
 	g_entries.clear();
 	g_targets.clear();
@@ -384,6 +400,7 @@ std::string Build(const D2RL::PluginContext* context) {
 	Thin();
 	if (!Same(g_targets, g_mended)) {
 		g_links = MenuCursor::Mend(g_targets);
+		LinkClasses();
 		g_mended = g_targets;
 	}
 	return menu;
