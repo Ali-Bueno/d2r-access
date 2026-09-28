@@ -3,6 +3,7 @@
 #include "generated/item_sizes.h"
 #include "ground_item_text.h"
 #include "interaction_reader.h"
+#include "mercenary_stats.h"
 #include "inventory_cursor.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
@@ -135,6 +136,14 @@ Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeBelt {
 std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return std::nullopt; }
+}
+// No mercenary here.
+namespace D2RAccess::MercenaryStats {
+std::string Name(uintptr_t) { return {}; }
+std::string LevelAndType(uintptr_t) { return {}; }
+std::string Experience(uintptr_t) { return {}; }
+std::vector<std::string> Lines(uintptr_t) { return {}; }
+std::vector<Skill> Skills(uintptr_t) { return {}; }
 }
 // No skill named here: every skill tooltip is taken, as before the check.
 namespace D2RAccess::NativeSkillIcons { std::string Name(uintptr_t) { return {}; } }

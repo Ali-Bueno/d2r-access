@@ -32,6 +32,7 @@
 #include "tooltip_delay.h"
 #include "tooltip_text.h"
 #include "native_skill_icons.h"
+#include "mercenary_stats.h"
 #include "ui_text.h"
 
 #include <D2RLPlugin/item.h>
@@ -502,6 +503,43 @@ bool NamesSkill(const D2RL::PluginContext* context, const std::string& body, uin
 	return false;
 }
 
+// The mercenary's panel. A skill icon has no text of its own: it is named from
+// the tooltip text the panel keeps on it, and the rest is its detail, for J or
+// autodetail. Ctrl with the arrows reads the mercenary's statistics there,
+// which nothing else reaches from the keyboard; on the controller they are
+// Advanced Stats' (the user, 2026-09-28: "skill0, skill1, skill2").
+bool MercenaryPanel(uintptr_t panel) { return panel && NativeWidgets::ReadName(panel) == MercenaryStats::Panel; }
+UiText::Readout MercenarySkill(NativeUi::Focus focus) {
+	UiText::Readout readout;
+	readout.context = NativeWidgets::ReadName(focus.panel);
+	readout.focusKey = std::to_string(focus.widget);
+	const std::string name = NativeWidgets::ReadName(focus.widget);
+	size_t index = 0;
+	if (name.size() <= 5 || !name.starts_with("Skill")) return readout;
+	for (size_t i = 5; i < name.size(); ++i) {
+		if (name[i] < '0' || name[i] > '9') return readout;
+		index = index * 10 + static_cast<size_t>(name[i] - '0');
+	}
+	const auto skills = MercenaryStats::Skills(focus.panel);
+	if (index >= skills.size()) return readout;
+	const auto lines = TooltipText::Read(skills[index].text).lines;
+	if (lines.empty()) return readout;
+	readout.option = lines.front();
+	std::string detail;
+	for (size_t i = 1; i < lines.size(); ++i) Append(detail, lines[i]);
+	if (AutoDetail::Enabled()) Append(readout.option, detail);
+	OfferDetail(readout.focusKey, detail);
+	return readout;
+}
+std::vector<std::string> MercenaryLines(uintptr_t panel) {
+	std::vector<std::string> lines;
+	for (auto line : {MercenaryStats::Name(panel), MercenaryStats::LevelAndType(panel), MercenaryStats::Experience(panel)})
+		if (!line.empty()) lines.push_back(std::move(line));
+	for (auto& line : MercenaryStats::Lines(panel))
+		if (!line.empty()) lines.push_back(std::move(line));
+	return lines;
+}
+
 constexpr uint64_t NamesItemMs = 400;
 uintptr_t g_namingWidget = 0;
 uint64_t g_namingSelection = 0, g_namingSince = 0;
@@ -541,7 +579,8 @@ bool HandlesFocus(NativeUi::Focus focus) {
 	const auto type = NativeUi::Classify(focus.widget);
 	const auto kind = type.kind;
 	return IsInventory(kind) || kind == UiText::Kind::Button || kind == UiText::Kind::StatButton
-		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::Tabs || CharacterStats::HandlesFocus(focus, type);
+		|| kind == UiText::Kind::TabButton || kind == UiText::Kind::Tabs || CharacterStats::HandlesFocus(focus, type)
+		|| type.name == "HirelingSkillIconWidget";
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
@@ -589,7 +628,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const auto progression = button ? NativeProgression::Read(focus, type) : NativeProgression::Details{};
 	if (type.kind != UiText::Kind::StatButton) g_stat = {};
 	UiText::Readout readout = inventory ? Inventory(context, focus, type)
-		: stats ? CharacterStats::Read(focus, type) : UiText::Readout{};
+		: stats ? CharacterStats::Read(focus, type)
+		: type.name == "HirelingSkillIconWidget" ? MercenarySkill(focus) : UiText::Readout{};
 	// A belt slot's item is named by the game's tooltip like any other, drawn
 	// at once now the controller layout's delay is gone (TooltipDelay; the
 	// user, 2026-09-22, on naming it early from the slot: "the belt fix is now
@@ -797,6 +837,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
+	// An item there keeps its own lines; anywhere else on the panel, the mercenary's.
+	if (MercenaryPanel(focus.panel) && !renderedDescription) OfferLines(linesOwner, MercenaryLines(focus.panel));
 	// While an item is held the game draws no tooltip for what the cursor is
 	// over -- MEASURED 2026-09-21, none in five seconds of moving a held item
 	// across others -- so an occupied cell said nothing and a slot only
