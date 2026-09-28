@@ -268,6 +268,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
 
+	D2RAccess::ScreenReader::LogTo(context);
 	if (D2RAccess::ScreenReader::Initialize(context->pluginDirectory)) {
 		D2RAccess::AsyncLog::InfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
 		D2RAccess::ScreenReader::Speak(D2RAccess::Strings::Current().pluginLoaded, true);

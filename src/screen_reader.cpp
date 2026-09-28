@@ -1,4 +1,5 @@
 #include "screen_reader.h"
+#include "async_log.h"
 
 #include <prism.h>
 #include <windows.h>
@@ -186,6 +187,8 @@ void SpeechThread(std::wstring path, std::promise<bool> ready) {
 	ReleasePrism();
 }
 
+std::atomic<const D2RL::PluginContext*> g_log{nullptr};
+
 }
 
 bool Initialize(const wchar_t* pluginDirectory) {
@@ -211,6 +214,7 @@ bool Initialize(const wchar_t* pluginDirectory) {
 }
 
 void Shutdown() {
+	g_log = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(g_mutex);
 		g_quit = true;
@@ -240,6 +244,8 @@ unsigned long long LastSpoken() { return g_lastSpoken.load(); }
 std::mutex g_swallowMutex;
 std::vector<std::pair<std::string, unsigned long long>> g_swallow;
 
+void LogTo(const D2RL::PluginContext* context) { g_log = context; }
+
 void Swallow(std::string_view text, unsigned long long untilMs) {
 	if (text.empty()) return;
 	std::lock_guard<std::mutex> lock(g_swallowMutex);
@@ -254,9 +260,12 @@ void Speak(std::string_view text, bool interrupt) {
 		const auto found = std::find_if(g_swallow.begin(), g_swallow.end(), [&](const auto& entry) { return entry.first == text; });
 		if (found != g_swallow.end()) {
 			g_swallow.erase(found);
+			if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] held back: %.*s", static_cast<int>(text.size()), text.data());
 			return;
 		}
 	}
+	if (const auto* log = g_log.load(); log && !text.empty())
+		AsyncLog::InfoF(log, "[speech] %s: %.*s", interrupt ? "interrupts" : "queued", static_cast<int>(text.size()), text.data());
 	if (!text.empty()) g_lastSpoken = GetTickCount64();
 	if (!g_available || text.empty()) {
 		return;
