@@ -4,6 +4,7 @@
 #include "input_direction.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_level_areas.h"
 #include "native_automap.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
@@ -39,6 +40,7 @@ struct Box { int minX = 0, minY = 0, maxX = -1, maxY = -1; } blocked; // walled 
 int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
+std::vector<NativeLevelAreas::Area> actAreas; // the act's built areas; none when unreadable
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener,
 	D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
@@ -60,9 +62,9 @@ bool RegisterCommand(const D2RL::PluginContext*, const D2RL::ConsoleCommandRegis
 const D2RL::PluginApi api{.apiSize = D2RL::PluginApiSize, .registerConsoleCommand = RegisterCommand, .queryService = Query};
 const D2RL::PluginContext context{.contextSize = sizeof(D2RL::PluginContext), .api = &api};
 
-void Event(D2RL::Lifecycle::GameplayEventKind kind) {
+void Event(D2RL::Lifecycle::GameplayEventKind kind, int32_t level = 0) {
 	const D2RL::Lifecycle::GameplayEvent event{.structSize = D2RL::Lifecycle::GameplayEventSize, .kind = kind,
-		.playerId = 42, .sessionGeneration = 1};
+		.playerId = 42, .sessionGeneration = 1, .currentValue = level};
 	for (const auto& listener : listeners) if (listener.kind == kind) listener.callback(&context, &event, nullptr);
 }
 void Command(const char* text) {
@@ -125,6 +127,9 @@ size_t Containing(const std::vector<Room>& rooms, Radar::Position subtile) {
 		if (Contains(Subtiles(rooms[i]), static_cast<int>(subtile.x), static_cast<int>(subtile.y))) return i;
 	return None;
 }
+}
+namespace D2RAccess::NativeLevelAreas {
+bool Read(uintptr_t, std::vector<Area>& output) { output = actAreas; return !actAreas.empty(); }
 }
 namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
 namespace D2RAccess::NativeEntities {
@@ -290,6 +295,39 @@ int main() {
 	Command("full");
 	BeaconService::Tick(&context);
 	Check(speech.back() == strings.navigationFullAssistance, "the full command names full assistance");
+
+	// Monastery Gate, 2026-09-28: the way to the Outer Cloister runs along the border with Tamoe Highland.
+	actAreas = {{26, 3000, 1000, 64, 18}, {7, 3000, 1018, 80, 80}, {8, 1000, 1000, 10, 10}};
+	const auto status = [] { Command("status"); BeaconService::Tick(&context); return speech.back(); };
+	Event(Kind::LevelChanged, 26);
+	BeaconService::Tick(&context);
+	BeaconService::OfferPoint({70, 10}, "cloister", 26, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	Event(Kind::LevelChanged, 7);
+	BeaconService::Tick(&context);
+	Check(status().find(strings.beaconNothing) != std::string::npos, "a step into the neighbouring area stops the guidance");
+	before = plays;
+	Event(Kind::LevelChanged, 26);
+	BeaconService::Tick(&context);
+	Check(plays == before + 1 && status().find("cloister") != std::string::npos,
+		"walking back into the area resumes the lock the step across its border interrupted");
+	Event(Kind::LevelChanged, 8);
+	BeaconService::Tick(&context);
+	Event(Kind::LevelChanged, 26);
+	BeaconService::Tick(&context);
+	Check(status().find(strings.beaconNothing) != std::string::npos, "a warp to an area far away ends the lock");
+	BeaconService::OfferPoint({70, 10}, "cloister", 26, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	Event(Kind::LevelChanged, 7);
+	BeaconService::Tick(&context);
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.beaconCleared, "a press while the lock waits across the border releases it");
+	Event(Kind::LevelChanged, 26);
+	BeaconService::Tick(&context);
+	Check(status().find(strings.beaconNothing) != std::string::npos, "a released lock does not come back");
 
 	BeaconService::Unregister();
 	Passed();

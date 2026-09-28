@@ -89,6 +89,20 @@ int main() {
 	EntityRadar::Entity chest{4, EntityRadar::Kind::Object, {10, 50}, "Chest"};
 	Check(!ZoneTransitions::MoveToCrossing(chest, found) && chest.position.y == 50, "anything but an exit stays put");
 
+	// Tamoe Highland, 2026-09-28: the Monastery Gate was walked into before its edge's middle was ever seen.
+	const ZoneTransitions::Filter nearPlayer = [](const std::vector<EntityRadar::Entity>& entities) {
+		std::vector<EntityRadar::Entity> kept;
+		for (const auto& entity : entities) if (entity.position.y <= 25) kept.push_back(entity);
+		return kept;
+	};
+	const EntityRadar::Entity unseenBorder{2, EntityRadar::Kind::Exit, {10, 50}, "Blood Moor", 99, false, EntityRadar::Category::Exit, 2};
+	const EntityRadar::Entity nearChest{5, EntityRadar::Kind::Object, {5, 10}, "Chest"};
+	const auto kept = ZoneTransitions::FoundAtCrossings({unseenBorder, stairs, nearChest}, found, nearPlayer);
+	Check(kept.size() == 2 && kept[0].placeId == 99 && kept[0].position.y == 50 && kept[1].id == 5,
+		"a border is found where it is walked across and keeps the point that names it");
+	Check(ZoneTransitions::FoundAtCrossings({unseenBorder}, {}, nearPlayer).empty(),
+		"a border with no crossing in reach is judged at its naming point");
+
 	own = Room(0, 0, 10, 10); adjacent = Room(10, 0, 10, 10);
 	for (int y : {2, 7}) { Carve(own, 9, y); Carve(adjacent, 10, y); }
 	world = World(own, adjacent, {7, 7});

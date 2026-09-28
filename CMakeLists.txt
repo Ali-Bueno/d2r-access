@@ -176,7 +176,7 @@ if(BUILD_TESTING)
 	add_test(NAME beacon COMMAND beacon-tests)
 	add_executable(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp
 		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp
-		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/speech_strings.cpp src/async_log.cpp)
+		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(beacon-service-tests PRIVATE src)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(beacon-service-tests PRIVATE cxx_std_20)

@@ -4,8 +4,10 @@
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
 #include "input_direction.h"
+#include "level_areas.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
@@ -30,6 +32,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace D2RAccess::BeaconService {
@@ -58,6 +61,9 @@ Beacon::Tracker g_tracker;
 // rooms): a fixed place, so the per-tick refresh must not look for it.
 struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; bool point = false; };
 Target g_offer, g_target;
+// A lock waiting for the player to walk back into its level. docs/beacon.md#area-borders
+Target g_parked;
+Lifecycle g_seen;
 bool g_supported = false;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
@@ -157,6 +163,37 @@ void Release(const char* reason) {
 	g_target = {};
 	BeaconAudio::Silence(reason);
 }
+bool Parked() { return g_parked.entity.id || g_parked.point; }
+// Whether `to` is an area the player walks into from `from` across their shared edge.
+bool AcrossBorder(int from, int to) {
+	std::vector<NativeLevelAreas::Area> areas;
+	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return false;
+	const auto neighbours = LevelAreas::Neighbours(areas, static_cast<uint32_t>(to));
+	return std::any_of(neighbours.begin(), neighbours.end(),
+		[from](const LevelAreas::Crossing& crossing) { return crossing.level == static_cast<uint32_t>(from); });
+}
+// A lifecycle change ends the lock, except a step into a neighbouring area: a
+// route along a border may cross it, so the lock waits there for the way back.
+void OnLifecycle(const Lifecycle& state, uint64_t now) {
+	const Lifecycle before = std::exchange(g_seen, state);
+	g_offer = {};
+	const bool walked = before.ready && state.ready && before.session == state.session
+		&& before.level && state.level && before.level != state.level;
+	if (walked && Parked() && g_parked.level == state.level) {
+		g_target = std::exchange(g_parked, {});
+		g_target.seenMs = now;
+		g_tracker.Lock(now);
+		g_nextUpdate = now;
+		BeaconAudio::Play(BeaconAudio::Sound::Locked, {});
+		AsyncLog::InfoF(g_context, "[beacon] resumed id=%u level=%d name=%s", g_target.entity.id, g_target.level, g_target.entity.name.c_str());
+		return;
+	}
+	g_parked = {};
+	const bool parks = walked && g_tracker.Locked() && g_target.level == before.level
+		&& g_target.entity.destinationLevel != static_cast<uint32_t>(state.level) && AcrossBorder(before.level, state.level);
+	if (parks) g_parked = g_target;
+	Release(parks ? "left-area" : "lifecycle");
+}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -189,7 +226,8 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	const bool offered = (g_offer.entity.id || g_offer.point) && g_offer.level == state.level
 		&& now - g_offer.offeredMs <= OfferWindowMs;
 	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
-	if (g_tracker.Locked() && !retarget) {
+	if ((g_tracker.Locked() && !retarget) || (Parked() && !offered)) {
+		g_parked = {};
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
 		ScreenReader::Speak(strings.beaconCleared, true);
@@ -215,6 +253,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	}
 	// A refused retarget above keeps the old lock; an accepted one replaces it silently.
 	if (retarget) Release("retargeted");
+	g_parked = {};
 	g_target = g_offer;
 	g_target.seenMs = now;
 	g_tracker.Lock(now);
@@ -374,12 +413,11 @@ void Tick(const D2RL::PluginContext* context) {
 	g_wasPlaying = playing;
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		Release("lifecycle");
-		g_offer = {};
+		OnLifecycle(state, now);
 	}
 	if (command == Command::Exploration || command == Command::FullAssistance) {
 		Release("navigation-mode");
-		g_offer = {};
+		g_offer = g_parked = {};
 		NavigationMode::SetFullAssistance(command == Command::FullAssistance);
 		g_settings.requireKnownRoute = !NavigationMode::FullAssistance();
 		const auto& strings = Strings::Current();
@@ -388,7 +426,8 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
 		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "L3" : "command");
-	} else if (command == Command::Clear && g_tracker.Locked()) {
+	} else if (command == Command::Clear && (g_tracker.Locked() || Parked())) {
+		g_parked = {};
 		Release("cancelled");
 		BeaconAudio::Play(BeaconAudio::Sound::Cleared, {});
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);
@@ -423,7 +462,8 @@ void Unregister() {
 	g_context = nullptr;
 	g_lifecycle = nullptr;
 	g_input = nullptr;
-	g_offer = g_target = {};
+	g_offer = g_target = g_parked = {};
+	g_seen = {};
 	g_supported = false;
 	g_revision = 0;
 	g_nextUpdate = g_lastLog = 0;

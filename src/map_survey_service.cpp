@@ -229,11 +229,17 @@ bool Collect(const Lifecycle& state, Scene& scene) {
 }
 
 // What exploration counts as found: what came into view and, while the
-// automap can be read, anything in a room it has drawn.
+// automap can be read, anything in a room it has drawn. An area border also
+// counts where it is walked across, not only at the middle of the edge.
 std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
-	if (const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)))
-		return MapSurvey::Charted(world, scene.landmarks, *charted);
-	return MapSurvey::Discoverable(world, scene.landmarks);
+	const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session));
+	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
+		return charted ? MapSurvey::Charted(world, entities, *charted) : MapSurvey::Discoverable(world, entities);
+	};
+	NativeLevelExits::Layout layout;
+	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
+		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
+	return ZoneTransitions::FoundAtCrossings(scene.landmarks, ZoneTransitions::Find(world, layout, Navigation::MaxRadius), found);
 }
 
 // Enemies are never charted: in range and in sight right now, or all loaded with full assistance.
