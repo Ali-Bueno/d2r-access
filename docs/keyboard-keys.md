@@ -4,7 +4,7 @@ The keys of keyboard play on the `keyboard-local` branch, 2026-09-27, after
 the fourth session of that day. The mod's keys are READ from what the code
 registers with the loader (MEASURED 12:18: `[keyboard] 28 of 28 keys
 registered`; Shift+S was added after that, and J on 2026-09-28, so the next
-log has to say 30 of 30); the game's own are READ from the character's `.key` file. What
+log has to say 30 of 30; MEASURED 2026-09-28 03:35: 32 of 32, and with [ and ] the next says 34 of 34); the game's own are READ from the character's `.key` file. What
 each of the game's actions is called is from the order of the game's key
 binding screen and was not checked against it. How the menus work is in
 `keyboard-play.md`.
@@ -23,6 +23,7 @@ before adding one, and read this file first.
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
 | Tab, Shift+Tab | next monster, previous monster, on screen |
 | full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. **Every object counts as an item: chests, urns, barrels, dead bodies, shrines, levers, doors, the stash, and a player's corpse** (the user, 2026-09-28). D takes a corpse as it opens a chest: the game's own message for it, `0x13` (READ in the game's click code, not pressed yet). The next D picks up or opens that one and no other; if it has gone, D says so and takes nothing |
+| right bracket, left bracket | next NPC, previous one, on screen, nearest first, as full stop and comma do; the next D talks to that one (the user, 2026-09-28: an NPC close to other things D could take) |
 | D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored room |
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |

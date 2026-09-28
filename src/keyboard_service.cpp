@@ -89,7 +89,7 @@ using NativeActions::Unit;
 using Radar::Position;
 
 enum class Command : uint32_t {
-	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, WalkToTarget, Explore,
+	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, WalkToTarget, Explore,
 	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
@@ -168,8 +168,8 @@ Mode g_mode = Mode::Idle;
 Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a far retreat heads for
-uint32_t g_itemPick = 0;    // the item or object comma and full stop chose, which the next D takes
-EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item or an object: ids of different kinds may meet
+uint32_t g_itemPick = 0;    // the item, object or NPC comma, full stop, [ or ] chose, which the next D takes
+EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item, an object or an NPC: ids of different kinds may meet
 std::string g_itemPickName;
 Position g_walkFrom;        // where a walk to what the scanner named began
 bool g_walkFromSet = false;
@@ -437,24 +437,26 @@ void Walk(const Lifecycle& state, uint64_t now) {
 	}
 }
 
-// ---- choosing an item on the ground ----
+// ---- choosing what D uses ----
 
 // Comma and full stop: the items on the ground on screen, nearest on foot
 // first. The one chosen is what the next D picks up, in place of whatever is
 // nearest (the user, 2026-09-28: "I can't specifically target items I want").
 // Every object counts here too -- chests, urns, dead bodies, shrines, levers,
 // doors, the stash -- and a player's corpse (the user, 2026-09-28), on screen
-// as Tab's monsters are.
-void StepItem(const Lifecycle& state, int delta) {
+// as Tab's monsters are. [ and ] step through the NPCs on screen the same way,
+// for the next D to talk to the one chosen when other things stand closer
+// (the user, 2026-09-28).
+void StepPick(const Lifecycle& state, int delta, bool npcs) {
 	const auto& strings = Strings::Current();
-	const std::string none = strings.interactNothing;
+	const std::string none = npcs ? Format(strings.surveyEmpty, strings.surveyCategories[3]) : strings.interactNothing;
 	Scene scene;
 	GroundItems::Snapshot snapshot;
 	if (!Look(state, scene, false)) {
 		ScreenReader::Speak(none, true);
 		return;
 	}
-	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) snapshot.items.clear();
+	if (npcs || !NativeGroundItems::Read(state.player, state.session, snapshot)) snapshot.items.clear();
 	struct Pick { Entity entity; int steps = 0; };
 	std::vector<Pick> picks;
 	for (const auto& item : snapshot.items) {
@@ -471,7 +473,8 @@ void StepItem(const Lifecycle& state, int delta) {
 		if (steps >= 0) picks.push_back({std::move(entity), steps});
 	}
 	for (const auto& entity : scene.entities) {
-		const bool usable = entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
+		const bool usable = npcs ? entity.kind == EntityRadar::Kind::Npc
+			: entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
 		if (!usable || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
 		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
 		if (steps >= 0) picks.push_back({entity, steps});
@@ -1158,8 +1161,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		|| command == Command::FillBelt)
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
-	if ((command == Command::Swap || command == Command::LeftSkill || command == Command::ItemNext || command == Command::ItemPrevious)
-		&& NativeSkillNavigation::TextEditing().value_or(false))
+	if ((command == Command::Swap || command == Command::LeftSkill || command == Command::ItemNext || command == Command::ItemPrevious
+		|| command == Command::NpcNext || command == Command::NpcPrevious) && NativeSkillNavigation::TextEditing().value_or(false))
 		return D2RL::Input::ActionResult::Ignored;
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
@@ -1242,6 +1245,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-target-previous", "Previous monster", Key::Tab, Modifier::Shift, Command::TargetPrevious},
 			Entry{"keyboard-item-next", "Next item or object on screen, for D to use", Key::Period, Modifier::None, Command::ItemNext},
 			Entry{"keyboard-item-previous", "Previous item or object on screen, for D to use", Key::Comma, Modifier::None, Command::ItemPrevious},
+			Entry{"keyboard-npc-next", "Next NPC on screen, for D to talk to", Key::RightBracket, Modifier::None, Command::NpcNext},
+			Entry{"keyboard-npc-previous", "Previous NPC on screen, for D to talk to", Key::LeftBracket, Modifier::None, Command::NpcPrevious},
 			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
 			Entry{"keyboard-walk", "Walk to the scanned target", Key::Home, Modifier::Shift, Command::WalkToTarget},
 			Entry{"keyboard-explore", "Walk to unexplored ground", Key::H, Modifier::None, Command::Explore},
@@ -1354,8 +1359,10 @@ void Tick(const D2RL::PluginContext* context) {
 	case Command::Interact:       BeginUse(state); break;
 	case Command::TargetNext:     StepTarget(state, 1); break;
 	case Command::TargetPrevious: StepTarget(state, -1); break;
-	case Command::ItemNext:       StepItem(state, 1); break;
-	case Command::ItemPrevious:   StepItem(state, -1); break;
+	case Command::ItemNext:       StepPick(state, 1, false); break;
+	case Command::ItemPrevious:   StepPick(state, -1, false); break;
+	case Command::NpcNext:        StepPick(state, 1, true); break;
+	case Command::NpcPrevious:    StepPick(state, -1, true); break;
 	case Command::WalkToTarget:   BeginWalk(state); break;
 	case Command::Explore:        BeginExplore(state); break;
 	case Command::RetreatExit:    BeginRetreat(state, Way::Exit); break;
