@@ -11,6 +11,7 @@
 #include "cairn_stones.h"
 #include "native_memory.h"
 #include "localization.h"
+#include "monster_plate.h"
 #include "speech_strings.h"
 #include "ui_text.h"
 #include "async_log.h"
@@ -114,6 +115,17 @@ uintptr_t RoomLevel(uintptr_t room) {
 	if (!Peek(room + RoomExtended, extended) || !extended || !Peek(extended + ExtendedLevel, level)) return 0;
 	return level;
 }
+// A champion's, unique's or super unique's name from its string ids, as the game
+// composes it before caching it; empty for an ordinary monster.
+std::string ComposedName(uintptr_t data) {
+	std::array<uint16_t, MonNameParts> ids{};
+	if (!NativeMemory::Copy(data + MonNameIds, ids.data(), sizeof(ids)) || ids[0] == NoText) return {};
+	const auto format = Localization::Text(ids[0]);
+	if (ids[1] == NoText) return MonsterPlate::Form(format);
+	std::vector<std::string> parts;
+	for (size_t i = 1; i < ids.size() && ids[i] != NoText; ++i) parts.push_back(Localization::Text(ids[i]));
+	return MonsterPlate::Compose(format, parts);
+}
 bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
 	uintptr_t data = 0;
@@ -146,6 +158,9 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));
+	// Built only once the game has shown it (hover, health plate): before that, and
+	// always for a super unique, it is composed here from the same string ids.
+	if (entity.name.empty() && data) entity.name = UiText::Clean(ComposedName(data));
 	if (entity.name.empty()) entity.name = UiText::Clean(Localization::Text(nameId));
 	if (entity.name.empty()) return false;
 	// Rows the game leaves unnamed all resolve to the same placeholder label

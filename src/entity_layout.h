@@ -52,6 +52,12 @@ inline constexpr std::string_view PlaceholderNameKey = "dummy";
 inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable = 1u << 7; // +0x3D bits
 // MonsterData (*(Unit+0x10)): the game's own composed display name, cached by 0x985A0.
 inline constexpr size_t MonCachedName = 0x40;
+// The string ids that name builder composes it from, at +0x32: a format, then
+// its parts %0 %1 %2, NoText when absent (every one of them at spawn, 0x1A2C90).
+// A super unique's own name is the format with no parts; the builder returns it
+// and never caches it at +0x40.
+inline constexpr size_t MonNameIds = 0x32, MonNameParts = 4;
+inline constexpr uint16_t NoText = 0xFFFF;
 inline constexpr size_t MonRarityFlags = 0x1A;
 inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).

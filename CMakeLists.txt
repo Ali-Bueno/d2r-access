@@ -81,6 +81,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
+	src/monster_plate.cpp
 	src/native_cairn.cpp
 	src/cairn_scroll_service.cpp
 	src/native_level_exits.cpp
@@ -369,7 +370,7 @@ if(BUILD_TESTING)
 	target_include_directories(target-sight-tests PRIVATE src)
 	target_compile_features(target-sight-tests PRIVATE cxx_std_20)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-entities-tests PRIVATE src)
 	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
@@ -611,6 +612,10 @@ if(BUILD_TESTING)
 	target_include_directories(skill-attacks-tests PRIVATE src)
 	target_compile_features(skill-attacks-tests PRIVATE cxx_std_20)
 	add_test(NAME skill-attacks COMMAND skill-attacks-tests)
+	add_executable(monster-plate-tests tests/monster_plate_tests.cpp src/monster_plate.cpp)
+	target_include_directories(monster-plate-tests PRIVATE src)
+	target_compile_features(monster-plate-tests PRIVATE cxx_std_20)
+	add_test(NAME monster-plate COMMAND monster-plate-tests)
 	add_executable(settings-list-tests tests/settings_list_tests.cpp src/settings_list.cpp)
 	target_include_directories(settings-list-tests PRIVATE src)
 	target_compile_features(settings-list-tests PRIVATE cxx_std_20)

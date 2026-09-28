@@ -24,6 +24,9 @@ std::string Text(uint32_t id) {
 	case PlaceholderNameId: return english ? "an evil force" : "una fuerza maligna";
 	case 2892: return "Akara";
 	case 3013: return "Zombi";
+	case 2869: return "Bishibosh";
+	case 11072: return "a0n1:%1 %0"; // strChampionFormatXp, esES
+	case 3220: return "[fs]campeona[ms]campeón[fp]campeonas[mp]campeones";
 	case DoorClosedText: return "Puerta cerrada";
 	case DoorOpenText: return "Puerta abierta";
 	case 0x2A39: return "Santuario";
@@ -551,6 +554,16 @@ int main() {
 	f.enemyData.At(MonCachedName, f.uniqueName.Address());
 	Check(f.Read(entities) && f.Find(entities, 8)->name == "Zombi el Voraz", "the game's cached composed name wins over the base name");
 	f.enemyData.At<uintptr_t>(MonCachedName, 0);
+	const auto nameIds = [&](uint16_t format, uint16_t first, uint16_t second) {
+		f.enemyData.At<uint16_t>(MonNameIds, format); f.enemyData.At<uint16_t>(MonNameIds + 2, first);
+		f.enemyData.At<uint16_t>(MonNameIds + 4, second); f.enemyData.At<uint16_t>(MonNameIds + 6, NoText);
+	};
+	nameIds(2869, NoText, NoText);
+	Check(f.Read(entities) && f.Find(entities, 8)->name == "Bishibosh", "a super unique is named by its own string, never cached");
+	nameIds(11072, 3220, 3013);
+	Check(f.Read(entities) && f.Find(entities, 8)->name == "Zombi campeón", "a champion's name is composed before the game caches it");
+	nameIds(NoText, NoText, NoText);
+	Check(f.Read(entities) && f.Find(entities, 8)->name == "Zombi", "an ordinary monster keeps its base name");
 
 	const auto* casket = f.Find(entities, 17);
 	Check(casket && casket->container && casket->kind == EntityRadar::Kind::Object,
