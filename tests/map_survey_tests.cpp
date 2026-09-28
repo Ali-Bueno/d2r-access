@@ -327,8 +327,8 @@ void ScannerSplitsLandmarksFromLiveEnemies() {
 	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally});
 	Check(scene.enemies.size() == 1 && scene.enemies.front().id == 1, "enemies are kept apart to be read live");
 	Check(scene.players.size() == 1 && scene.players.front().id == 6, "other players are kept apart to be read live, never remembered");
-	Check(scene.landmarks.size() == 2 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5,
-		"a quest container and a waypoint are landmarks; ordinary chests and loot are left out");
+	Check(scene.landmarks.size() == 3 && scene.landmarks[0].id == 2 && scene.landmarks[1].id == 3 && scene.landmarks[2].id == 5,
+		"a chest, a quest container and a waypoint are landmarks; items are left to their own reader");
 }
 
 // What a later game on the same map may be told about: only what the layout places.

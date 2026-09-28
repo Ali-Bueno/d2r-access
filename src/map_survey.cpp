@@ -184,9 +184,7 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Player) scene.players.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Corpse) scene.corpses.push_back(std::move(entity));
-		else if (entity.category != EntityRadar::Category::Item
-			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
-			scene.landmarks.push_back(std::move(entity));
+		else if (entity.category != EntityRadar::Category::Item) scene.landmarks.push_back(std::move(entity));
 	}
 	return scene;
 }

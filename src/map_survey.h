@@ -95,10 +95,10 @@ private:
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
 
-// What the scanner lists: map landmarks the registry remembers, enemies and
-// other players read live because they move, and player corpses, which the
-// corpse memory keeps level-wide. Loot and ordinary containers are left to
-// their own sounds; quest containers stay, as the automap draws them.
+// What the scanner lists: map landmarks the registry remembers, chests and
+// every other container among them (the user, 2026-09-28), enemies and other
+// players read live because they move, and player corpses, which the corpse
+// memory keeps level-wide. Items on the ground are read on their own.
 struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players, corpses; };
 Scene Split(std::vector<EntityRadar::Entity> entities);
 
