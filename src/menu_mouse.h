@@ -19,11 +19,11 @@ enum class Button { Left, Right };
 // The pointer on the middle of the rectangle, now. False when it could not be put there.
 bool Place(const NativeUi::Rect& rect);
 // A move of two pixels and back, as a hand on the mouse makes: Place moves the
-// pointer without an input event. EXPERIMENT 2026-09-28 for the skills of the
-// skill tree and of the list of skills, whose tooltip, and F1 to F8, came only
-// when something made the game look at what is under the pointer again: a
-// panel opening, or a click, which is input too (MEASURED 03:25:44). The first
-// try, a relative move of one count, changed nothing (MEASURED 03:25).
+// pointer without an input event, and the game kept its hover where it was.
+// MEASURED 2026-09-28: skills showed no tooltip and took no F-key until this
+// (the user: "key binding is working now"); a waypoint was read with the Close
+// button's tooltip. A relative move of one count changed nothing (03:25).
+// Given after every landing of the cursor.
 void Nudge();
 // A click where the pointer is.
 void Click(Button button);

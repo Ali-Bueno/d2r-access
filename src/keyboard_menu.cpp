@@ -551,13 +551,12 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
 	if (entry->belt) AsyncLog::InfoF(context, "[cursor] belt slot %d; the belt takes the point for slot %d", static_cast<int>(selection),
 		NativeBeltRows::SlotAt(entry->widget, {rect->x + rect->width / 2, rect->y + rect->height / 2}));
-	if (const auto skill = NativeSkillIcons::Skill(entry->widget)) {
-		// The game shows a skill's tooltip, and binds F1 to F8 to it, only once it
-		// sees the mouse move over it (menu_mouse.h, an experiment).
-		if (g_landed) MenuMouse::Nudge();
-		AsyncLog::InfoF(context, "[cursor] skill id=%d \"%s\"%s", *skill, NativeSkillIcons::Name(entry->widget).c_str(),
-			g_landed ? ", the pointer nudged" : "");
-	}
+	// The game sees what is under the pointer only once the mouse moves over it
+	// (menu_mouse.h): without the nudge a skill showed no tooltip and took no
+	// F-key, and a waypoint was read with the Close button's tooltip.
+	if (g_landed) MenuMouse::Nudge();
+	if (const auto skill = NativeSkillIcons::Skill(entry->widget))
+		AsyncLog::InfoF(context, "[cursor] skill id=%d \"%s\"", *skill, NativeSkillIcons::Name(entry->widget).c_str());
 	Expect(now, Name(*entry, place));
 	// No reader names a class or a row of an open dropdown (MEASURED 2026-09-27):
 	// waiting for one only left them silent, so they are named at once.
