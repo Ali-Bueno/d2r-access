@@ -330,6 +330,18 @@ void LogStuck(const Radar::World& world, Position order) {
 		static_cast<unsigned long long>(StuckMs), px, py, order.x, order.y, state.read ? 1u : 0u, state.mode, state.pathType,
 		state.x, state.y, world.bodyPattern, world.walkingMask, rows.c_str());
 }
+// 2026-09-29, the Blood Moor: a Fallen died under the attack order and the
+// game had left the player's stamp on the two cells it had just stood on;
+// with a shrine on the third side every first step was refused until Save
+// and Exit. A stamp beside a character that will not move is taken off with
+// the game's own remover; the order given next shows whether that freed it.
+void ClearLeftStamps(const Radar::World& world) {
+	for (const auto& centre : Radar::LeftPlayerStamps(world)) {
+		const bool removed = NativeWorld::RemovePlayerStamp(static_cast<int>(centre.x), static_cast<int>(centre.y));
+		AsyncLog::InfoF(g_context, "[keyboard] stuck: %s the player stamp left at %.0f,%.0f",
+			removed ? "took off" : "could not take off", centre.x, centre.y);
+	}
+}
 void Order(const Radar::World& world, Position order, uint64_t now) {
 	if (order.x != g_moveOrder.x || order.y != g_moveOrder.y || Distance(world.player, g_moveFrom) >= 1) {
 		g_moveOrder = order;
@@ -338,6 +350,7 @@ void Order(const Radar::World& world, Position order, uint64_t now) {
 	} else if (now - g_moveSince >= StuckMs && Distance(world.player, g_stuckAt) >= 1) {
 		g_stuckAt = world.player;
 		LogStuck(world, order);
+		ClearLeftStamps(world);
 	}
 	(void)NativeActions::MoveTo(order);
 }

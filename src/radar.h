@@ -131,6 +131,13 @@ struct World {
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 };
 uint16_t TerrainCollisionFlags(uint16_t flags);
+// Centres of player stamps (0x80 on the five-cell cross, NO_PATH 0x1000 at
+// the centre, no monster or missile on it) beside the player's own cell, in a
+// world its own stamp is already taken out of (NativeWorld). Cells of the
+// player's own cross count as stamped: that removal cleared them. Pattern 1
+// only. 2026-09-29 the game left two where the player had just stood, and
+// with a shrine on the third side every first step was refused.
+std::vector<Position> LeftPlayerStamps(const World& world);
 // A local geometry-only view: actors removed, and bypassable clutter too
 // while the game slides around it (World::slides).
 World StructuralWorld(const World& world, const Settings& settings);

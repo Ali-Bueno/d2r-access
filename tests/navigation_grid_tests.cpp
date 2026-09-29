@@ -115,6 +115,33 @@ void Camp(bool dump) {
 	Check(grid.touchesUnknown, "the uncaptured map outside the camp fixture remains unknown");
 	if (dump) std::cout << "camp player=" << grid.playerX << ',' << grid.playerY << " reachable=" << grid.reachable << '\n' << grid.Dump();
 }
+void LeftStamps() {
+	// The 2026-09-29 stuck line at 5851,4970, rows y-2..y+2, the player's own
+	// stamp already taken out: two left north and west, the shrine south.
+	const uint16_t rows[5][5] = {
+		{0x0000, 0x0000, 0x8080, 0x8000, 0x8000},
+		{0x0000, 0x0080, 0x1080, 0x8080, 0x0000},
+		{0x0080, 0x1080, 0x0000, 0x0000, 0x0000},
+		{0x0000, 0x0080, 0x0400, 0x0400, 0x0400},
+		{0x0000, 0x0000, 0x0400, 0x0400, 0x0400}};
+	auto w = Field(1);
+	for (int dy = -2; dy <= 2; ++dy) for (int dx = -2; dx <= 2; ++dx) Put(w, 20 + dx, 20 + dy, rows[dy + 2][dx + 2]);
+	auto left = Radar::LeftPlayerStamps(w);
+	Check(left.size() == 2, "both stamps left beside the player are found");
+	Check(std::any_of(left.begin(), left.end(), [](auto p) { return p.x == 20 && p.y == 19; })
+		&& std::any_of(left.begin(), left.end(), [](auto p) { return p.x == 19 && p.y == 20; }), "they are centred north and west");
+	int open = 0;
+	for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) open += (dx || dy) && w.Body(20 + dx, 20 + dy) == Radar::State::Open;
+	Check(open == 0, "with them and the shrine no first step is open");
+	for (const auto& p : left) Put(w, static_cast<int>(p.x), static_cast<int>(p.y), 0x0080);
+	Check(w.Body(20, 19) == Radar::State::Open && w.Body(19, 20) == Radar::State::Open, "without their centres north and west open");
+	Check(Radar::LeftPlayerStamps(w).empty(), "no stamp is found once their markers are gone");
+	Put(w, 20, 19, 0x1080); Put(w, 20, 18, 0x0100);
+	Check(Radar::LeftPlayerStamps(w).empty(), "a monster on the cross is not a player's stamp");
+	w = Field(2);
+	for (int dy = -2; dy <= 2; ++dy) for (int dx = -2; dx <= 2; ++dx) Put(w, 20 + dx, 20 + dy, rows[dy + 2][dx + 2]);
+	Check(Radar::LeftPlayerStamps(w).empty(), "only the player's own pattern is matched");
+}
 void BoundsAndCost() {
 	auto w=Field();
 	Check(Navigation::Build(w,0).cells.empty() && Navigation::Build(w,Navigation::MaxRadius+1).cells.empty(), "invalid analysis radii cannot allocate an unbounded grid");
@@ -136,6 +163,6 @@ void BoundsAndCost() {
 }
 int main(int argc, char** argv) {
 	if (argc > 1 && std::string_view(argv[1]) == "camp") { Camp(true); Passed(); return 0; }
-	WallAndDoorway(); FirstDirection(); CoarseCellTrap(); BodyAndDiagonals(); ClearanceAndCoverage(); RoomSeamsAndIdentity(); Camp(false); BoundsAndCost();
+	WallAndDoorway(); FirstDirection(); CoarseCellTrap(); BodyAndDiagonals(); ClearanceAndCoverage(); RoomSeamsAndIdentity(); Camp(false); LeftStamps(); BoundsAndCost();
 	Passed();
 }

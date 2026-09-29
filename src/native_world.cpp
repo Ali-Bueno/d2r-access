@@ -41,6 +41,10 @@ constexpr int MaxRoomSide = 1024, MaxNeighbors = 64, MaxRooms = 256; // corrupti
 constexpr size_t MaxCopiedCells = 512 * 1024; // <= 1 MiB per local snapshot
 constexpr double SnapshotRadius = 152; // default 150-subtile radar plus footprint
 uintptr_t g_indexFunction = 0, g_playerFunction = 0;
+// Pattern remover, fingerprinted in Checks: (room, x, y, pattern, footprint
+// mask); it finds the cell's room among the room and its neighbours (0x38DFB0).
+constexpr uintptr_t RemoveStampRva = 0x3636D0;
+uintptr_t g_removeStamp = 0;
 
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 // FNV-1a of complete recovered accessors/readers. Verify before consuming their
@@ -148,7 +152,7 @@ void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	g_indexFunction = g_playerFunction = 0;
+	g_indexFunction = g_playerFunction = g_removeStamp = 0;
 	if (!context) return false;
 	const auto base = context->exeBase;
 	IMAGE_DOS_HEADER dos{};
@@ -183,6 +187,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (target < base || target >= end) return false;
 	g_indexFunction = index;
 	g_playerFunction = player;
+	g_removeStamp = base + RemoveStampRva;
 	AsyncLog::Info(context, "[radar] Verified live room collision reader; no map generation required.");
 	return true;
 }
@@ -259,6 +264,28 @@ uintptr_t PlayerRoom() noexcept {
 	uintptr_t player = LocalPlayer(), path = 0, room = 0;
 	if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room)) return 0;
 	return room;
+}
+namespace {
+bool CallRemoveStamp(uintptr_t room, int x, int y, int pattern, uint32_t mask) noexcept {
+	__try {
+		reinterpret_cast<void(*)(uintptr_t, int, int, int, uint32_t)>(g_removeStamp)(room, x, y, pattern, mask);
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { g_removeStamp = 0; return false; }
+}
+}
+bool RemovePlayerStamp(int x, int y) noexcept {
+	if (!g_removeStamp || !g_indexFunction || !g_playerFunction) return false;
+	uintptr_t path = 0, room = 0;
+	int pattern = -1;
+	uint32_t mask = 0;
+	{
+		const NativeMemory::ReadScope scope;
+		const uintptr_t player = LocalPlayer();
+		if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room) || !room
+			|| !Peek(path + PathPattern, pattern) || pattern < MinPlayerPattern || pattern > MaxPattern
+			|| !Peek(path + PathFootprintMask, mask) || !mask || mask > std::numeric_limits<uint16_t>::max()) return false;
+	}
+	return CallRemoveStamp(room, x, y, pattern, mask);
 }
 bool IsLocalPlayer(uintptr_t player) noexcept {
 	return player && g_indexFunction && g_playerFunction && player == LocalPlayer();

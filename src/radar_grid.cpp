@@ -1,5 +1,7 @@
 #include "radar.h"
 
+#include <cstdlib>
+
 namespace D2RAccess::Radar {
 uint16_t TerrainCollisionFlags(uint16_t flags) {
 	// 0x341D70 restores MONSTER; 0x363CF0 stamps NO_PATH/PET alongside actors.
@@ -54,5 +56,26 @@ State World::Body(int x, int y, Layer layer, uint16_t* flags) const {
 		}
 	}
 	return result;
+}
+
+std::vector<Position> LeftPlayerStamps(const World& world) {
+	constexpr uint16_t Player = 0x80, Monster = 0x100, Missile = 0x40, NoPath = 0x1000;
+	std::vector<Position> centres;
+	if (world.bodyPattern != 1) return centres;
+	const int px = static_cast<int>(world.player.x), py = static_cast<int>(world.player.y);
+	const auto own = [&](int x, int y) { return std::abs(x - px) + std::abs(y - py) <= 1; };
+	const auto stamped = [&](int x, int y, uint16_t required) {
+		uint16_t flags = 0;
+		if (world.Cell(x, y, Layer::Movement, &flags) == State::Unknown || (flags & (Monster | Missile))) return false;
+		return (flags & required) == required || (required == Player && own(x, y));
+	};
+	for (int cy = -1; cy <= 1; ++cy) {
+		for (int cx = -1; cx <= 1; ++cx) {
+			const int x = px + cx, y = py + cy;
+			if ((cx || cy) && stamped(x, y, Player | NoPath) && stamped(x - 1, y, Player) && stamped(x + 1, y, Player)
+				&& stamped(x, y - 1, Player) && stamped(x, y + 1, Player)) centres.push_back({static_cast<double>(x), static_cast<double>(y)});
+		}
+	}
+	return centres;
 }
 }

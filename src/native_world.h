@@ -24,6 +24,12 @@ bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, 
 // logical room list is reached through (native_rooms.h). Zero when the player
 // cannot be resolved. Guarded reads only; nothing is retained.
 uintptr_t PlayerRoom() noexcept;
+// Takes the player's stamp off the client map centred at x,y with the game's
+// own remover 0x3636D0(room, x, y, pattern, footprint mask), the call it
+// makes itself before moving a unit; pattern and mask are the player's own.
+// For a stamp the game left where the player no longer stands (radar.h
+// LeftPlayerStamps). UI thread only.
+bool RemovePlayerStamp(int x, int y) noexcept;
 // Factored for fault/structure tests. Performs only guarded reads.
 bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
 }
