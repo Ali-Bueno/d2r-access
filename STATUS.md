@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Friend's tester ZIP — 2026-09-29
+
+`../d2r-access-completo-2026-09-29.zip`: the 26/09 v2 package with the plugin from 09fdf5f
+(`95251F45…`, matches the build and the install; 82/82 suites). 26 entries, 58,633,966 bytes,
+SHA-256 `1be42219…` (full hash in `.zip.sha256`). Loader 1.3.1-beta, config (`radar.toml`,
+unchanged since 6928fd2), PRISM, licences and VC runtime byte-identical to v2. Spanish LEEME with
+the 28/09 news (radar breath, death place, town NPCs, sockets, arrivals, cinematics, border
+beacon) and an honest note: this exact build has not been launched in the game yet (the last game
+run, 28/09 11:16, used an earlier build). Every entry decompresses and matches its SHA-256.
+**Next step:** launch once to confirm it loads, then send it.
+
 ## Radar breath rises up, falls down (D4 mod's sound) — installed, 2026-09-28
 
 User could not tell an opening ahead from one behind. The floor breath is now the D4 mod's, copied
