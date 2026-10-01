@@ -35,7 +35,7 @@ Everywhere:
 |---|---|
 | PageUp, PageDown | the pad's right stick: objects in play; detail and controls in a menu |
 | Ctrl+PageUp, Ctrl+PageDown | its other axis: categories in play; skill lines and item size in a menu |
-| Shift+PageUp, Shift+PageDown | compare: the item in full, the one equipped |
+| Shift+PageUp, Shift+PageDown | compare: the previous, the next tooltip the game draws (highlighted item first, then each equipped one; stops at either end) |
 | Home | say it again |
 | Ctrl+S, then PageUp / PageDown, Space | the settings list |
 
@@ -207,7 +207,7 @@ The user's decisions, 2026-09-27:
 | the keys in the hints | `src/click_words.*` | pure, tested. "Ctrl + Left Click to Sell" is said as "Ctrl + A to Sell" while the keyboard has the menu, in the game's thirteen languages |
 | the pointer at rest | `Park` in `src/keyboard_menu.cpp` | when a menu closes and play goes on, the pointer is put between the HUD's two skill buttons |
 | a click refused | `Land`, `Click` in `src/keyboard_menu.cpp` | a place drawn off the screen is not a place; a click is refused, and said to be unavailable, when the pointer did not go to where the cursor is |
-| lines | `InputDirection::PostLineStep`, `ReadLines` in `src/interaction_reader.cpp` | Ctrl with an arrow walks an item's or a skill's tooltip a line at a time; on the character panel and Advanced Stats it is the right stick, which walks their lines already |
+| lines | `InputDirection::PostLineStep`, `ReadLines` in `src/interaction_reader.cpp` | Ctrl with an arrow walks an item's or a skill's tooltip a line at a time, with the game's Ctrl view (an item's ranges) on; Shift with an arrow walks it as the game draws it with Shift held, the regular tooltip; on the character panel and Advanced Stats it is the right stick, which walks their lines already |
 
 ### The nearest thing that way
 

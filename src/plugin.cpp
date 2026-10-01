@@ -24,6 +24,7 @@
 #include "menu_navigation.h"
 #include "native_widgets.h"
 #include "native_cairn.h"
+#include "native_memory.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
@@ -47,6 +48,10 @@
 #include "widget_probe.h"
 #include "widgets.h"
 
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -79,43 +84,102 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 		record.claimant ? record.claimant : "nobody, a later push replaced it");
 }
 
+// Which part of a UI update took the time, for an update of 30 ms or more:
+// the mod's work runs on the game's own thread, so the game waits for it.
+// One line a second at most (the user, 2026-09-30: "slight lag when
+// navigating any inventory screen"; HANDOFF).
+class Laps {
+public:
+	explicit Laps(const D2RL::PluginContext* context)
+		: context_(context), checks_(D2RAccess::NativeMemory::Checks()), start_(Clock::now()), last_(start_) {}
+	Laps(const Laps&) = delete;
+	Laps& operator=(const Laps&) = delete;
+	void operator()(const char* name) {
+		const auto now = Clock::now();
+		if (count_ < parts_.size()) parts_[count_++] = {name, Ms(last_, now)};
+		last_ = now;
+	}
+	~Laps() {
+		const auto now = Clock::now();
+		const double total = Ms(start_, now);
+		if (total < SlowMs) return;
+		++slow_;
+		if (now - reported_ < std::chrono::seconds(1)) return;
+		reported_ = now;
+		std::sort(parts_.begin(), parts_.begin() + count_, [](const Part& a, const Part& b) { return a.ms > b.ms; });
+		std::string list;
+		for (size_t i = 0; i < count_ && parts_[i].ms >= 1; ++i) {
+			char part[64]{};
+			std::snprintf(part, sizeof(part), "%s%s %.1f", list.empty() ? "" : ", ", parts_[i].name, parts_[i].ms);
+			list += part;
+		}
+		const auto checks = D2RAccess::NativeMemory::Checks();
+		D2RAccess::AsyncLog::WarnF(context_, "[pump] update of %.1f ms (%u of 30 ms or more since the last line), %llu page checks taking %.1f ms: %s",
+			total, slow_, static_cast<unsigned long long>(checks.count - checks_.count), checks.ms - checks_.ms,
+			list.empty() ? "no part over 1 ms" : list.c_str());
+		slow_ = 0;
+	}
+private:
+	using Clock = std::chrono::steady_clock;
+	static double Ms(Clock::time_point from, Clock::time_point to) { return std::chrono::duration<double, std::milli>(to - from).count(); }
+	static constexpr double SlowMs = 30;
+	struct Part { const char* name = ""; double ms = 0; };
+	const D2RL::PluginContext* context_;
+	D2RAccess::NativeMemory::PageChecks checks_;
+	Clock::time_point start_, last_;
+	std::array<Part, 40> parts_{};
+	size_t count_ = 0;
+	static inline Clock::time_point reported_{};
+	static inline unsigned slow_ = 0;
+};
+
 // One UI update: sample input first so a value message arriving this update
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
-	D2RAccess::InputDirection::Poll();
+	Laps lap(context);
+	// One pass for the whole update: a page's permission is asked of Windows
+	// once, not once a read. Half the readers opened no scope of their own
+	// (the play test five services make every update, the ground items, the
+	// world snapshot), and each of their reads was a VirtualQuery of its own,
+	// 0.3-0.5 microseconds apiece (measured offline 2026-10-01). Every copy is
+	// still guarded, and a fault drops what the pass had remembered.
+	const D2RAccess::NativeMemory::ReadScope pages;
+	D2RAccess::InputDirection::Poll(); lap("InputDirection");
 	// Before every reader: a key posts the gesture a reader takes this same update.
-	D2RAccess::KeyboardService::Tick(context);
-	D2RAccess::KeyboardMenu::Tick(context);
+	D2RAccess::KeyboardService::Tick(context); lap("KeyboardService");
+	D2RAccess::KeyboardMenu::Tick(context); lap("KeyboardMenu");
 	if (!D2RAccess::MenuNavigation::Tick(context)) D2RAccess::SkillNavigation::Tick(context);
-	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
+	lap("MenuNavigation/SkillNavigation");
+	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context); lap("GameTextReader");
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
-	D2RAccess::MultiplayerReader::Tick(context);
+	lap("FocusTracker");
+	D2RAccess::MultiplayerReader::Tick(context); lap("MultiplayerReader");
 	// After the focus tracker, so landing on a strip is its announcement and
 	// only a later move along the strip is this one's.
-	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech);
-	D2RAccess::TextField::Tick(context);
-	D2RAccess::AutoDetail::Tick(context);
-	D2RAccess::ModalReader::Tick(context);
-	D2RAccess::WidgetProbe::Tick(context);
-	D2RAccess::UiMessageMonitor::Tick(context);
-	D2RAccess::NativeWidgets::Tick(context);
-	D2RAccess::QuestService::Tick(context, uiOwnsSpeech);
-	D2RAccess::RadarService::Tick(context);
-	D2RAccess::RoomService::Tick(context, uiOwnsSpeech);
-	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech);
-	D2RAccess::FootstepService::Tick();
-	D2RAccess::WallSlideService::Tick();
-	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
-	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
-	D2RAccess::AutomapService::Tick(context);
-	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
-	D2RAccess::EntityCueService::Tick(context);
-	D2RAccess::BeaconService::Tick(context);
-	D2RAccess::SkillBarService::Tick(context);
-	D2RAccess::VitalsService::Tick(context);
-	D2RAccess::WeaponSwapService::Tick(context);
-	D2RAccess::TradeService::Tick(context);
-	LogRightStickPush(context);
+	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech); lap("TabHighlight");
+	D2RAccess::TextField::Tick(context); lap("TextField");
+	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
+	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
+	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
+	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
+	D2RAccess::NativeWidgets::Tick(context); lap("NativeWidgets");
+	D2RAccess::QuestService::Tick(context, uiOwnsSpeech); lap("QuestService");
+	D2RAccess::RadarService::Tick(context); lap("RadarService");
+	D2RAccess::RoomService::Tick(context, uiOwnsSpeech); lap("RoomService");
+	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech); lap("TerrainService");
+	D2RAccess::FootstepService::Tick(); lap("FootstepService");
+	D2RAccess::WallSlideService::Tick(); lap("WallSlideService");
+	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech); lap("GroundItemService");
+	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech); lap("MapSurveyService");
+	D2RAccess::AutomapService::Tick(context); lap("AutomapService");
+	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech); lap("EntityRadarService");
+	D2RAccess::EntityCueService::Tick(context); lap("EntityCueService");
+	D2RAccess::BeaconService::Tick(context); lap("BeaconService");
+	D2RAccess::SkillBarService::Tick(context); lap("SkillBarService");
+	D2RAccess::VitalsService::Tick(context); lap("VitalsService");
+	D2RAccess::WeaponSwapService::Tick(context); lap("WeaponSwapService");
+	D2RAccess::TradeService::Tick(context); lap("TradeService");
+	LogRightStickPush(context); lap("LogRightStickPush");
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {

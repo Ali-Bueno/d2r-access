@@ -206,6 +206,14 @@ double HalfFootprint(const Entity& entity) {
 	const auto side = std::max(entity.footprint.width, entity.footprint.height);
 	return side > 1 ? (side - 1) / 2.0 : 0;
 }
+// How near a cell must be to count as reaching a thing. A shut door's collision
+// is its own DOOR bit, not a footprint, and covers the cell beside its anchor:
+// 2026-09-29 D said "Nothing to use here" two cells from one, and comma and
+// full stop never listed one. It is reached from within its own length.
+int Margin(const Entity& entity) {
+	const double door = entity.doorSpan > 1 ? (entity.doorSpan - 1) / 2.0 : 0;
+	return 1 + static_cast<int>(std::ceil(std::max(HalfFootprint(entity), door)));
+}
 
 const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	if (g_graphLevel != state.level || g_graphSession != state.session || g_graph.Empty()) {
@@ -226,7 +234,7 @@ struct Scene {
 };
 bool Look(const Lifecycle& state, Scene& scene, bool exits, bool wholeLevel = false) {
 	if (!NativeWorld::Read(state.player, state.session, state.level, scene.world)) return false;
-	scene.grid = Navigation::Build(scene.world, Navigation::MaxRadius, Radar::Layer::Terrain);
+	scene.grid = Navigation::Build(scene.world, Navigation::MaxRadius, Radar::Layer::Terrain, false);
 	if (!NativeEntities::Read(state.player, state.session, scene.entities, exits, exits, wholeLevel)) scene.entities.clear();
 	// An area border is walked across where both levels' floor meets.
 	if (NativeLevelExits::Layout layout; exits && NativeEntities::ReadLayout(state.player, true, layout)) {
@@ -330,42 +338,127 @@ void LogStuck(const Radar::World& world, Position order) {
 		static_cast<unsigned long long>(StuckMs), px, py, order.x, order.y, state.read ? 1u : 0u, state.mode, state.pathType,
 		state.x, state.y, world.bodyPattern, world.walkingMask, rows.c_str());
 }
-// 2026-09-29, the Blood Moor: a Fallen died under the attack order and the
-// game had left the player's stamp on the two cells it had just stood on;
-// with a shrine on the third side every first step was refused until Save
-// and Exit. A stamp beside a character that will not move is taken off with
-// the game's own remover; the order given next shows whether that freed it.
-void ClearLeftStamps(const Radar::World& world) {
-	for (const auto& centre : Radar::LeftPlayerStamps(world)) {
-		const bool removed = NativeWorld::RemovePlayerStamp(static_cast<int>(centre.x), static_cast<int>(centre.y));
-		AsyncLog::InfoF(g_context, "[keyboard] stuck: %s the player stamp left at %.0f,%.0f",
-			removed ? "took off" : "could not take off", centre.x, centre.y);
+// Markers left on the game's own map where no unit stands any more
+// (radar.h LeftMarkers) are taken off it, a cell at a time, with the game's
+// own single-cell reset. 2026-09-29, the Blood Moor: two player stamps beside
+// the character and a shrine on the third side refused every first step until
+// Save and Exit. 2026-09-30, the Catacombs: three more a cell ahead of the
+// character, each with an arm or two already gone, so the first remedy, which
+// wanted a whole cross, took none of them off; a marker with nothing round it
+// at 22570,9623; and a doorway walked through at 11:48:00 that no route
+// passed eighteen seconds later. The user, 2026-10-01: the mod leaves them,
+// something in how it orders the character to move; which call is not measured.
+//
+// Away from the character they are taken off twice a second in play. On the
+// eight cells round it only once the game has refused a move, or the arrows
+// find no step: a live stamp can sit a cell off the character, and only a
+// refusal shows that one there is in the way. The reset reaches a cell only
+// through the character's room and the rooms beside it, so a marker farther
+// off does not come off yet: that is said once, and it is tried again when the
+// character has come some way from where it was tried.
+constexpr uint64_t SweepMs = 500;
+constexpr double RetryAfter = 20; // cells walked before a marker that stayed is tried again
+uint64_t g_nextSweep = 0, g_nextBeside = 0;
+struct Kept { int x = 0, y = 0; Position from; }; // would not come off, tried from there
+std::vector<Kept> g_kept;
+void TakeOffMarkers(const Lifecycle& state, const Radar::World& world, bool beside) {
+	const auto known = [](const Radar::LeftMarker& marker) {
+		return std::find_if(g_kept.begin(), g_kept.end(), [&](const Kept& other) { return other.x == marker.x && other.y == marker.y; });
+	};
+	const auto kept = [&](const Radar::LeftMarker& marker) {
+		const auto found = known(marker);
+		return found != g_kept.end() && Distance(world.player, found->from) < RetryAfter;
+	};
+	// The cells are looked at first, with no unit known: nearly always there is
+	// nothing, and the units of the whole level are not read for nothing.
+	std::vector<Position> units;
+	auto left = Radar::LeftMarkers(world, units, beside);
+	std::erase_if(left, kept);
+	if (left.empty()) return;
+	std::vector<Entity> entities;
+	// Every loaded room of the level: without the units a live one's marker cannot be told from a left one.
+	if (!NativeEntities::Read(state.player, state.session, entities, false, false, true)) return;
+	for (const auto& entity : entities)
+		if (entity.unit == static_cast<uint8_t>(Unit::Player) || entity.unit == static_cast<uint8_t>(Unit::Monster)) units.push_back(entity.position);
+	left = Radar::LeftMarkers(world, units, beside);
+	std::erase_if(left, kept);
+	// With other players in the game, or a roster that cannot be read, a
+	// stamp away from the character may be a player's whose unit was not read:
+	// only a bare marker is taken off then, and a stamp after a refused move.
+	std::vector<CorpseMemory::Owner> roster;
+	const bool alone = NativeEntities::ReadRosterCorpses(state.player, roster)
+		&& std::none_of(roster.begin(), roster.end(), [&](const CorpseMemory::Owner& owner) { return owner.id != state.player; });
+	if (!alone && !beside) std::erase_if(left, [](const Radar::LeftMarker& marker) { return (marker.flags & 0x80) != 0; });
+	if (left.empty()) return;
+	for (const auto& marker : left)
+		for (const auto& cell : Radar::MarkerCells(world, marker)) (void)NativeWorld::ClearCell(cell.x, cell.y, cell.mask);
+	// The map is read again: only that shows what came off.
+	Radar::World after;
+	const bool read = NativeWorld::Read(state.player, state.session, state.level, after);
+	for (const auto& marker : left) {
+		uint16_t now = marker.flags;
+		const bool gone = read && after.Cell(marker.x, marker.y, Radar::Layer::Movement, &now) != Radar::State::Unknown && !(now & 0x1000);
+		const auto before = known(marker);
+		// One that stayed is said once; when it comes off at a later try, that is said too.
+		if (gone || before == g_kept.end())
+			AsyncLog::InfoF(g_context, "[keyboard] marker left at %d,%d (%04X, %s), %.0f cells from the character%s: %s",
+				marker.x, marker.y, marker.flags, marker.flags & 0x80 ? "a player stamp" : "bare",
+				Distance(world.player, {static_cast<double>(marker.x), static_cast<double>(marker.y)}),
+				beside ? ", looked for after a step the character could not take" : "", gone ? "taken off" : "NOT taken off");
+		if (gone) { if (before != g_kept.end()) g_kept.erase(before); }
+		else if (before != g_kept.end()) before->from = world.player;
+		else g_kept.push_back({marker.x, marker.y, world.player});
 	}
 }
-void Order(const Radar::World& world, Position order, uint64_t now) {
-	if (order.x != g_moveOrder.x || order.y != g_moveOrder.y || Distance(world.player, g_moveFrom) >= 1) {
+void Sweep(const Lifecycle& state, uint64_t now) {
+	if (now < g_nextSweep) return;
+	g_nextSweep = now + SweepMs;
+	Radar::World world;
+	if (NativeWorld::Read(state.player, state.session, state.level, world)) TakeOffMarkers(state, world, false);
+}
+// The order is "refused" while it is given again and again from the same
+// cell: a second tap of the same arrow, seconds after the first, is not that.
+// A walk gives a far order again only when it has stalled (AutoWalk stallMs,
+// 1200), so the gap that still counts as "again and again" is longer than that.
+constexpr uint64_t OrderGapMs = 2000;
+static_assert(OrderGapMs > AutoWalk::Settings{}.stallMs, "a stalled walk's repeated order must still count as the same refusal");
+uint64_t g_moveLast = 0;
+void Order(const Lifecycle& state, const Radar::World& world, Position order, uint64_t now) {
+	if (order.x != g_moveOrder.x || order.y != g_moveOrder.y || Distance(world.player, g_moveFrom) >= 1
+		|| now - g_moveLast > OrderGapMs) {
 		g_moveOrder = order;
 		g_moveFrom = world.player;
 		g_moveSince = now;
-	} else if (now - g_moveSince >= StuckMs && Distance(world.player, g_stuckAt) >= 1) {
-		g_stuckAt = world.player;
-		LogStuck(world, order);
-		ClearLeftStamps(world);
+	} else if (now - g_moveSince >= StuckMs) {
+		// Logged once a place; the markers are looked for again every second it lasts.
+		if (Distance(world.player, g_stuckAt) >= 1) {
+			g_stuckAt = world.player;
+			LogStuck(world, order);
+		}
+		g_moveSince = now;
+		TakeOffMarkers(state, world, true);
 	}
+	g_moveLast = now;
 	(void)NativeActions::MoveTo(order);
 }
 
 // One leg of a walk toward a thing, along the route the beacon would ping.
 Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& target, double reach, uint64_t now) {
 	if (Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
-	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(target)));
-	const auto guidance = BeaconNavigation::Prepare(scene.world, target.position, Rooms(state), nullptr, margin);
+	const int margin = Margin(target);
+	const auto guidance = BeaconNavigation::Prepare(scene.world, target.position, Rooms(state), nullptr, margin, &scene.grid);
 	if (!guidance.available) return Progress::Unreadable;
 	Beacon::Settings settings;
 	settings.arrivalDistance = reach;
 	const Position destination = guidance.hasWaypoint ? guidance.waypoint : target.position;
 	const auto route = Beacon::FindRoute(guidance.world, destination, settings);
-	if (route.path.empty()) return Progress::NoRoute;
+	if (route.path.empty()) {
+		// No cell the character can reach is nearer the place than its own.
+		AsyncLog::InfoF(g_context, "[keyboard] walk: no route from %.0f,%.0f to %.0f,%.0f (%s) for %s at %.0f,%.0f",
+			scene.world.player.x, scene.world.player.y, destination.x, destination.y,
+			guidance.hasWaypoint ? "the way into the next room" : "the thing itself", target.name.c_str(), target.position.x, target.position.y);
+		return Progress::NoRoute;
+	}
 	const auto step = g_walker.Tick(scene.world, route.path, now, g_walk);
 	if (step.event == AutoWalk::Event::Blocked) return Progress::Blocked;
 	if (step.event == AutoWalk::Event::Order) {
@@ -374,7 +467,7 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 		g_ordered = true;
 		g_lastOrder = step.order;
 		g_orderFrom = scene.world.player;
-		Order(scene.world, step.order, now);
+		Order(state, scene.world, step.order, now);
 	}
 	return Progress::Going;
 }
@@ -543,14 +636,14 @@ void StepPick(const Lifecycle& state, int delta, bool npcs) {
 		entity.name = item.name;
 		entity.unit = static_cast<uint8_t>(Unit::Item);
 		if (!CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
-		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
+		const int steps = Steps(scene.grid, entity.position, Margin(entity));
 		if (steps >= 0) picks.push_back({std::move(entity), steps});
 	}
 	for (const auto& entity : scene.entities) {
 		const bool usable = npcs ? entity.kind == EntityRadar::Kind::Npc
 			: entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
 		if (!usable || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
-		const int steps = Steps(scene.grid, entity.position, 1 + static_cast<int>(std::ceil(HalfFootprint(entity))));
+		const int steps = Steps(scene.grid, entity.position, Margin(entity));
 		if (steps >= 0) picks.push_back({entity, steps});
 	}
 	std::stable_sort(picks.begin(), picks.end(), [](const Pick& a, const Pick& b) {
@@ -607,7 +700,7 @@ void BeginUse(const Lifecycle& state) {
 	if (const uint32_t pick = std::exchange(g_itemPick, 0)) {
 		for (const auto& thing : things) {
 			if (thing.kind != g_itemPickKind || thing.id != pick) continue;
-			const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
+			const int steps = Steps(scene.grid, thing.position, Margin(thing));
 			if (steps >= 0 && CombatTarget::OnScreen(scene.world.player, thing.position)) { nearest = &thing; fewest = steps; chosen = true; }
 			break;
 		}
@@ -619,7 +712,7 @@ void BeginUse(const Lifecycle& state) {
 	}
 	for (const auto& thing : things) {
 		if (chosen) break;
-		const int steps = Steps(scene.grid, thing.position, 1 + static_cast<int>(std::ceil(HalfFootprint(thing))));
+		const int steps = Steps(scene.grid, thing.position, Margin(thing));
 		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
 		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
 		nearest = &thing;
@@ -737,7 +830,7 @@ void RetreatOn(const Lifecycle& state, uint64_t now) {
 		End("retreat blocked", true);
 		ScreenReader::Speak(Format(strings.walkBlocked, name.c_str()), true);
 	} else if (step.event == AutoWalk::Event::Order) {
-		Order(scene.world, step.order, now);
+		Order(state, scene.world, step.order, now);
 	}
 }
 
@@ -849,7 +942,7 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		// character is free to move, since a shot under way cannot be broken off.
 		if (g_backing) {
 			if (Distance(scene.world.player, g_backTo) > 2 && now - g_backStart < BackMs) {
-				(void)NativeActions::MoveTo(g_backTo);
+				Order(state, scene.world, g_backTo, now);
 				return;
 			}
 			g_backing = false;
@@ -867,7 +960,7 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 				g_backTo = ground.cell;
 				g_backStart = now;
 				g_walker.Start();
-				(void)NativeActions::MoveTo(g_backTo);
+				Order(state, scene.world, g_backTo, now);
 				return;
 			}
 			if (now - g_corneredLog >= 2000) {
@@ -895,7 +988,7 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 			: g_walker.Tick(scene.world, route.path, now, g_walk);
 		if (step.event == AutoWalk::Event::Order) {
 			g_closing = true;
-			Order(scene.world, step.order, now);
+			Order(state, scene.world, step.order, now);
 		} else if (step.event == AutoWalk::Event::Blocked && g_saidOutOfReach != target->entity.id) {
 			g_saidOutOfReach = target->entity.id;
 			ScreenReader::Speak(Format(strings.targetOutOfReach, target->entity.name.c_str()), false);
@@ -938,8 +1031,14 @@ void Step(const Lifecycle& state, Position heading, uint64_t now) {
 		const Position aim{std::round(world.player.x + heading.x * reach), std::round(world.player.y + heading.y * reach)};
 		if (Distance(aim, world.player) < 1 || !AutoWalk::Straight(world, world.player, aim)) continue;
 		g_stepping = true;
-		Order(world, aim, now);
+		Order(state, world, aim, now);
 		return;
+	}
+	// No step that way at all: a marker left beside the character is one of
+	// the things that does it, and no order is given here for the game to refuse.
+	if (now >= g_nextBeside) {
+		g_nextBeside = now + StuckMs;
+		TakeOffMarkers(state, world, true);
 	}
 }
 
@@ -1402,6 +1501,9 @@ void Tick(const D2RL::PluginContext* context) {
 		g_itemPick = 0;
 		g_refused.clear();
 		g_stepping = false;
+		// Another level's cells: what would not come off there, and where the character last stuck.
+		g_kept.clear();
+		g_moveOrder = g_moveFrom = g_stuckAt = {-1, -1};
 	}
 	ReleaseLostHolds();
 	const bool attack = g_pressed[0].exchange(false), cast = g_pressed[1].exchange(false);
@@ -1414,6 +1516,7 @@ void Tick(const D2RL::PluginContext* context) {
 		return;
 	}
 	if (command == Command::TestRun || command == Command::TestPlain || command == Command::TestHalt) Test(state, command);
+	Sweep(state, now);
 
 	// The arrows walk while held, and end whatever else was walking. While a
 	// line of chat is being typed they are the text cursor's.

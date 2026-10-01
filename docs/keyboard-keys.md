@@ -67,8 +67,10 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
 | J | the description of what the cursor is on, as the pad's right stick up does: for play with autodetail off (in the Ctrl+S list). **On the character screen it reads the game's tooltip of the stat line the cursor is on, and never moves the lines** (the pad cannot reach that tooltip at all). Added 2026-09-28 at the user's asking, not pressed yet |
-| Ctrl+Up, Ctrl+Down | the line before, the line after |
-| Ctrl+Left, Ctrl+Right | the first line, the last line |
+| Ctrl+Up, Ctrl+Down | the line before, the line after, with the game's Ctrl view on: an item's ranges, "+(1-3) to Sacrifice" |
+| Ctrl+Left, Ctrl+Right | the first line, the last line, the same way |
+| Shift+Up, Shift+Down | the line before, the line after, as the game draws the tooltip with Shift held, which is the regular one: "+2 to Sacrifice" (the user, 2026-09-29; the game shows ranges only with Ctrl, the user, 2026-09-30). After the compare key reads the equipped item they walk that item's lines instead, until the compare key reads the highlighted one again or the cursor moves |
+| Shift+Left, Shift+Right | the first line, the last line, the same way |
 | PageUp, PageDown | the tab before, the tab after |
 | Home, End | the menu before, the menu after |
 | Ctrl+PageUp | a skill's lines, opened and closed |

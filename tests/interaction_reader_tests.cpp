@@ -197,6 +197,7 @@ bool TakeRightStickPushIf(StickPush wanted, const char*) {
 StickPush PeekRightStickPush() { return pendingPush; }
 bool lineStep = false;
 bool LineStepPending() { return lineStep && pendingPush != StickPush::None; }
+bool LineStepPlain() { return false; }
 bool pressB = false;
 bool holdingY = false;
 bool FaceButtonHeld(FaceButton button) { return button == FaceButton::Y && holdingY; }

@@ -1,5 +1,6 @@
 #include "navigation_grid.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 
@@ -9,10 +10,18 @@ struct Delta { int x, y; };
 // Native movement trace 0x364700 allows diagonal destination steps, including
 // point-body corner cuts. World::Body supplies the actual footprint restriction.
 constexpr std::array<Delta,8> Steps{{{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{1,-1},{-1,1},{1,1}}};
-int Neighbor(const Grid& grid, size_t index, size_t direction) {
-	const int x = static_cast<int>(index % grid.width) + Steps[direction].x;
-	const int y = static_cast<int>(index / grid.width) + Steps[direction].y;
-	return x < 0 || y < 0 || x >= grid.width || y >= grid.height ? -1 : y*grid.width+x;
+// The eight neighbours of one cell, in Steps' order; -1 past the window. The
+// cell's column and row are found once here: finding them again for each
+// neighbour was sixteen divisions a cell, in three passes over the grid.
+std::array<int,8> Around(const Grid& grid, size_t index) {
+	const auto at = static_cast<uint32_t>(index), width = static_cast<uint32_t>(grid.width);
+	const int column = static_cast<int>(at % width), row = static_cast<int>(at / width);
+	std::array<int,8> around{};
+	for (size_t d=0; d<Steps.size(); ++d) {
+		const int x = column + Steps[d].x, y = row + Steps[d].y;
+		around[d] = x < 0 || y < 0 || x >= grid.width || y >= grid.height ? -1 : y*grid.width+x;
+	}
+	return around;
 }
 void Clearance(Grid& grid) {
 	std::vector<size_t> queue;
@@ -23,16 +32,17 @@ void Clearance(Grid& grid) {
 	}
 	// The analysis window is a coverage limit, not evidence of a wall. Its
 	// outer unknown cells also limit how much extra clearance can be proved.
-	for (size_t i=0; i<grid.cells.size(); ++i) {
-		const int x = static_cast<int>(i % grid.width), y = static_cast<int>(i / grid.width);
+	for (int y=0; y<grid.height; ++y) for (int x=0; x<grid.width; ++x) {
+		const size_t i = static_cast<size_t>(y)*grid.width+x;
 		if (grid.cells[i].clearance && (x == 0 || y == 0 || x == grid.width-1 || y == grid.height-1)) {
 			grid.cells[i].clearance = 1; queue.push_back(i);
 		}
 	}
 	for (size_t cursor=0; cursor<queue.size(); ++cursor) {
 		const size_t index = queue[cursor];
+		const auto around = Around(grid,index);
 		for (size_t d=0; d<Steps.size(); ++d) {
-			const int next = Neighbor(grid,index,d);
+			const int next = around[d];
 			if (next < 0 || grid.cells[next].clearance <= grid.cells[index].clearance+1) continue;
 			grid.cells[next].clearance = grid.cells[index].clearance+1;
 			queue.push_back(static_cast<size_t>(next));
@@ -47,8 +57,9 @@ void Reachability(Grid& grid, size_t origin) {
 	for (size_t cursor=0; cursor<queue.size(); ++cursor) {
 		const size_t index = queue[cursor];
 		const auto& current = grid.cells[index];
+		const auto around = Around(grid,index);
 		for (size_t d=0; d<Steps.size(); ++d) {
-			const int next = Neighbor(grid,index,d);
+			const int next = around[d];
 			if (next < 0) { grid.touchesWindow = true; continue; }
 			auto& cell = grid.cells[next];
 			if (cell.body == Radar::State::Unknown) grid.touchesUnknown = true;
@@ -72,7 +83,7 @@ const Cell* Grid::At(int worldX, int worldY) const {
 	if (dx < 0 || dy < 0 || dx >= width || dy >= height) return nullptr;
 	return &cells[static_cast<size_t>(dy*width+dx)];
 }
-Grid Build(const Radar::World& world, int radius, Radar::Layer layer) {
+Grid Build(const Radar::World& world, int radius, Radar::Layer layer, bool clearance) {
 	Grid grid;
 	// Bound this research query by the existing radar's maximum default range.
 	// Native positions are unsigned 16-bit cells, validated by ReadPlayer.
@@ -88,10 +99,46 @@ Grid Build(const Radar::World& world, int radius, Radar::Layer layer) {
 	grid.session = world.session; grid.level = world.level;
 	grid.bodyPattern = world.bodyPattern; grid.walkingMask = world.walkingMask;
 	grid.cells.resize(static_cast<size_t>(grid.width)*grid.height);
+	// Each room's rectangle is copied once into a flat field one cell wider
+	// than the window, and the body is tested there. World::Cell searches the
+	// room list on every call, and a cross body made that six searches a cell:
+	// 20-38 ms a build at the full radius over 16-64 rooms (measured offline
+	// 2026-10-01), on the game's own thread. The result is the same cell for
+	// cell; the navigation-grid test holds the two against each other.
+	const int fieldX = grid.x-1, fieldY = grid.y-1, fieldWidth = grid.width+2, fieldHeight = grid.height+2;
+	const size_t fieldCells = static_cast<size_t>(fieldWidth)*fieldHeight;
+	std::vector<uint16_t> raw(fieldCells, 0);
+	std::vector<Radar::State> state(fieldCells, Radar::State::Unknown);
+	std::vector<uint8_t> covered(fieldCells, 0); // the first room covering a cell owns it, as World::RoomAt has it
+	for (const auto& room : world.rooms) {
+		const int x0 = std::max(fieldX, room.x), x1 = std::min(fieldX+fieldWidth, room.x+room.width);
+		const int y0 = std::max(fieldY, room.y), y1 = std::min(fieldY+fieldHeight, room.y+room.height);
+		for (int y=y0; y<y1; ++y) for (int x=x0; x<x1; ++x) {
+			const size_t index = static_cast<size_t>(y-fieldY)*fieldWidth+(x-fieldX);
+			if (covered[index]) continue;
+			covered[index] = 1;
+			const size_t source = static_cast<size_t>(y-room.y)*room.width+(x-room.x);
+			if (source >= room.cells.size() || (room.cells[source] & Radar::Collision::Blank)) continue;
+			const uint16_t flags = room.cells[source];
+			raw[index] = flags;
+			const uint16_t tested = layer == Radar::Layer::Terrain ? Radar::TerrainCollisionFlags(flags) : flags;
+			state[index] = tested & world.walkingMask ? Radar::State::Blocked : Radar::State::Open;
+		}
+	}
 	for (int y=0; y<grid.height; ++y) for (int x=0; x<grid.width; ++x) {
 		auto& cell = grid.cells[static_cast<size_t>(y)*grid.width+x];
-		(void)world.Cell(grid.x+x, grid.y+y, layer, &cell.flags);
-		cell.body = world.Body(grid.x+x, grid.y+y, layer, &cell.blocker);
+		const size_t centre = static_cast<size_t>(y+1)*fieldWidth+(x+1);
+		cell.flags = cell.blocker = raw[centre];
+		cell.body = state[centre];
+		// World::Body's own order: the first blocked cell of the footprint
+		// names the blocker, an unknown one leaves the body unknown.
+		for (int dy=-1; dy<=1 && cell.body != Radar::State::Blocked; ++dy) for (int dx=-1; dx<=1; ++dx) {
+			if (world.bodyPattern == 0 || (dx == 0 && dy == 0)) continue;
+			if ((world.bodyPattern % 2) != 0 && dx != 0 && dy != 0) continue;
+			const size_t next = static_cast<size_t>(y+1+dy)*fieldWidth+(x+1+dx);
+			if (state[next] == Radar::State::Blocked) { cell.blocker = raw[next]; cell.body = Radar::State::Blocked; break; }
+			if (state[next] == Radar::State::Unknown) cell.body = Radar::State::Unknown;
+		}
 	}
 	const size_t origin = static_cast<size_t>(radius)*grid.width+radius;
 	for (size_t i=0; i<grid.cells.size(); ++i) {
@@ -99,12 +146,13 @@ Grid Build(const Radar::World& world, int radius, Radar::Layer layer) {
 		// Native trace skips the origin: permit escape from a known overlap,
 		// but never traverse another blocked centre or return into this one.
 		if (cell.body != Radar::State::Open && !(i == origin && cell.body == Radar::State::Blocked)) continue;
+		const auto around = Around(grid,i);
 		for (size_t d=0; d<Steps.size(); ++d) {
-			const int next = Neighbor(grid,i,d);
+			const int next = around[d];
 			if (next >= 0 && grid.cells[next].body == Radar::State::Open) cell.exits |= static_cast<uint8_t>(1u<<d);
 		}
 	}
-	Clearance(grid);
+	if (clearance) Clearance(grid);
 	Reachability(grid,origin);
 	return grid;
 }

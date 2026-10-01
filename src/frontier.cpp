@@ -32,7 +32,7 @@ size_t Sector(double dx, double dy, Radar::Frame frame) {
 FrameMarks Quadrants(const Radar::World& world, const std::vector<NativeRooms::Bounds>& unseen) {
 	FrameMarks marks{};
 	if (unseen.empty()) return marks;
-	const auto grid = Navigation::Build(world, Navigation::MaxRadius);
+	const auto grid = Navigation::Build(world, Navigation::MaxRadius, Radar::Layer::Movement, false);
 	if (!grid.originKnown) return marks;
 	for (int y = grid.y; y < grid.y + grid.height; ++y) {
 		for (int x = grid.x; x < grid.x + grid.width; ++x) {

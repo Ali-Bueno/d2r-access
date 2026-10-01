@@ -63,6 +63,7 @@ StickPush g_leftStickPush = StickPush::None; // only while Y is held
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
 bool g_lineStep = false;                      // the pending right-stick push is the keyboard's line step
+bool g_lineStepPlain = false;                 // ... made with Shift, for the tooltip as drawn with no key held
 ULONGLONG g_lineStepPosted = 0;
 TriggerHold g_leftTrigger;
 
@@ -326,12 +327,14 @@ void PostLeftStickPush(StickPush push) {
 	g_leftStickPush = push;
 	g_leftStickPosted = GetTickCount64();
 }
-void PostLineStep(StickPush push) {
+void PostLineStep(StickPush push, bool plain) {
 	PostRightStickPush(push);
 	g_lineStep = push != StickPush::None;
+	g_lineStepPlain = plain;
 	g_lineStepPosted = GetTickCount64();
 }
 bool LineStepPending() { return g_lineStep && g_rightStickPush != StickPush::None; }
+bool LineStepPlain() { return g_lineStepPlain; }
 void PostBackWith(FaceButton button) {
 	if (button == FaceButton::A) g_backWithA = true;
 	else if (button == FaceButton::B) g_backWithB = true;

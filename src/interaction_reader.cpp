@@ -36,6 +36,7 @@
 #include "ui_text.h"
 
 #include <D2RLPlugin/item.h>
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <optional>
@@ -120,7 +121,15 @@ uintptr_t g_skillLinesWidget = 0;
 // first and the last. The lines are the tooltip's own, in the order the screen
 // draws them, the name first; an item's size comes last. Held for whatever the
 // cursor is on now, by its widget and its place in it. No line is given a number.
-struct KeyLines { std::string owner; std::vector<std::string> lines; size_t at = 0; };
+// Both keys read the tooltip as the game draws it at the moment of the key:
+// with Ctrl held that is its ranges, "+(1-3) to Sacrifice" (MEASURED
+// 2026-09-29), with Shift held the regular tooltip, "+2 to Sacrifice" (the
+// user, 2026-09-29 and 2026-09-30: the game shows ranges only with Ctrl). A
+// copy kept from earlier once read a jewel's ranges under Shift (2026-09-30),
+// so none is kept. Shift's follow the compare readout: after the equipped item
+// is read they are its lines (compare), after the highlighted one again they
+// are the highlighted item's once more.
+struct KeyLines { std::string owner; std::vector<std::string> lines; size_t at = 0; std::vector<std::string> compare; };
 KeyLines g_keyLines;
 
 // Item tooltips in the log: off unless asked for, and each only once.
@@ -131,6 +140,11 @@ std::string g_itemLogged;
 // change. Diagnosis only: what the game draws beside a held compare is not
 // yet measured.
 std::string g_compareLogged;
+
+// The compare record read last (0 the highlighted item, then each equipped
+// record the game draws), and the item it belongs to.
+std::string g_compareOwner;
+size_t g_compareAt = 0;
 
 // The belt slot last logged, so [belt] is written once per move, not per poll.
 int g_beltSlot = -2;
@@ -255,14 +269,21 @@ bool ReadLines(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		|| g_keyLines.owner != LinesOwner(focus.widget, NativeUi::FocusSelection(focus.widget))) return false;
 	const auto push = InputDirection::PeekRightStickPush();
 	if (!InputDirection::TakeRightStickPushIf(push, "line")) return false;
-	const size_t last = g_keyLines.lines.size() - 1;
+	// Shift's lines: the equipped item's after the compare readout read it, else
+	// the tooltip as drawn now, as Ctrl's are.
+	const bool shift = InputDirection::LineStepPlain();
+	const bool compare = shift && !g_keyLines.compare.empty();
+	const auto& lines = compare ? g_keyLines.compare : g_keyLines.lines;
+	const size_t last = lines.size() - 1;
+	if (g_keyLines.at > last) g_keyLines.at = last;
 	// At either end the step reads the same line again rather than nothing.
 	if (push == StickPush::Up && g_keyLines.at > 0) --g_keyLines.at;
 	else if (push == StickPush::Down && g_keyLines.at < last) ++g_keyLines.at;
 	else if (push == StickPush::Left) g_keyLines.at = 0;
 	else if (push == StickPush::Right) g_keyLines.at = last;
-	const auto& line = g_keyLines.lines[g_keyLines.at];
-	AsyncLog::InfoF(context, "[lines] key %zu -> \"%s\"", g_keyLines.at, line.c_str());
+	const auto& line = lines[g_keyLines.at];
+	AsyncLog::InfoF(context, "[lines] key %zu%s -> \"%s\"", g_keyLines.at,
+		compare ? " equipped" : shift ? " shift" : "", line.c_str());
 	ScreenReader::Speak(line, true);
 	return true;
 }
@@ -325,6 +346,15 @@ std::string CompareText(std::span<const std::string> records) {
 	return result;
 }
 
+// The same records' lines, one entry each, for the line keys.
+std::vector<std::string> CompareLines(std::span<const std::string> records) {
+	std::vector<std::string> lines;
+	for (const auto& record : records)
+		for (auto& line : ItemBody(record).lines)
+			if (!line.empty()) lines.push_back(std::move(line));
+	return lines;
+}
+
 // Compare mode, while Y is held on an inventory item (the user, 2026-09-22):
 // the left stick reads, since Y and the right stick share the right thumb.
 // Left reads the highlighted item's tooltip in full, right the equipped one the
@@ -345,8 +375,30 @@ bool ReadCompare(const D2RL::PluginContext* context, NativeUi::Focus focus, uint
 	const char* what = "detail";
 	if (push == StickPush::Up) text = g_detail;
 	else if (push == StickPush::Down) { text = ControlHints::Current(); what = "controls"; }
-	else if (current && push == StickPush::Left) { text = CompareText(std::span(&tooltip.body, 1)); what = "highlighted"; }
-	else if (current) { text = CompareText(tooltip.extras); what = "equipped"; }
+	else if (current) {
+		// Each record the game draws is read on its own, the highlighted item
+		// first: right the next, left the previous, stopping at either end (the
+		// user, 2026-09-29). Joined, a shield compared read the weapon first.
+		std::vector<const std::string*> records{&tooltip.body};
+		for (const auto& extra : tooltip.extras)
+			if (!CompareText(std::span(&extra, 1)).empty()) records.push_back(&extra);
+		const auto owner = LinesOwner(focus.widget, NativeUi::FocusSelection(focus.widget));
+		if (g_compareOwner != owner) { g_compareOwner = owner; g_compareAt = 0; }
+		g_compareAt = (std::min)(g_compareAt, records.size() - 1);
+		if (push == StickPush::Right && g_compareAt + 1 < records.size()) ++g_compareAt;
+		else if (push == StickPush::Left && g_compareAt > 0) --g_compareAt;
+		D2RAccess::AsyncLog::InfoF(context, "[compare] record %zu of %zu", g_compareAt, records.size());
+		if (push == StickPush::Right && records.size() == 1) what = "equipped"; // nothing to compare against
+		else {
+			text = CompareText(std::span(records[g_compareAt], 1));
+			what = g_compareAt == 0 ? "highlighted" : "equipped";
+		}
+		// Shift's lines become the item just read (the user, 2026-09-29).
+		if (g_keyLines.owner == owner && (push == StickPush::Left || records.size() > 1)) {
+			g_keyLines.compare = g_compareAt == 0 ? std::vector<std::string>{} : CompareLines(std::span(records[g_compareAt], 1));
+			g_keyLines.at = 0;
+		}
+	}
 	if (text.empty()) text = Strings::Current().detailNone;
 	D2RAccess::AsyncLog::InfoF(context, "[compare] %s -> \"%s\"", what, text.c_str());
 	ScreenReader::Speak(text, true);
@@ -588,14 +640,18 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.
 	if (AdvancedStatsReader::Tick(context, focus)) return !conversation;
+	// The hire list's stats exist only in the game's tooltip, and a menu
+	// suspends this reader and its capture; HireStats keeps capture on there
+	// and takes the right stick. Its skill icons and gold lines are the
+	// keyboard cursor's places whether or not the menu reader has anything to
+	// say of the panel, so it is asked either way: left to the readers below, an
+	// icon was read as the first row's skill of that number, or by its layout name.
+	const bool hire = HireStats::Tick(context, now, focus);
 	if (conversation) {
-		// The hire list's stats exist only in the game's tooltip, and a menu
-		// suspends this reader and its capture; HireStats keeps capture on there
-		// and takes the right stick.
-		if (HireStats::Tick(context, now, focus)) return false;
-		Reset();
+		if (!hire) Reset();
 		return false;
 	}
+	if (hire) return true;
 	// Focus that has been anywhere else since, even back in the same panel
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;

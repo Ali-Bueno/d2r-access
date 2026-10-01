@@ -17,8 +17,22 @@ constexpr size_t MaxTextBytes = 64 * 1024; // corruption guard, not a truncation
 // simply falls back to VirtualQuery; no entries survive the outer scope.
 struct Region { uintptr_t begin = 0, end = 0; };
 thread_local std::array<Region, 64> g_regions;
-thread_local size_t g_regionCount = 0, g_readDepth = 0;
+thread_local size_t g_regionCount = 0, g_readDepth = 0, g_lastRegion = 0;
+thread_local PageChecks g_checks;
+
+SIZE_T Query(const void* address, MEMORY_BASIC_INFORMATION& info) noexcept {
+	LARGE_INTEGER start{}, end{}, frequency{};
+	QueryPerformanceCounter(&start);
+	const SIZE_T size = VirtualQuery(address, &info, sizeof(info));
+	QueryPerformanceCounter(&end);
+	QueryPerformanceFrequency(&frequency);
+	++g_checks.count;
+	g_checks.ms += static_cast<double>(end.QuadPart - start.QuadPart) * 1000.0 / static_cast<double>(frequency.QuadPart);
+	return size;
 }
+}
+
+PageChecks Checks() noexcept { return g_checks; }
 
 ReadScope::ReadScope() noexcept { if (g_readDepth++ == 0) g_regionCount = 0; }
 ReadScope::~ReadScope() { if (--g_readDepth == 0) g_regionCount = 0; }
@@ -30,9 +44,15 @@ bool Readable(const void* address, size_t size) noexcept {
 	while (cursor < end) {
 		if (g_readDepth) {
 			bool found = false;
+			// The region found last first: one read is nearly always beside the one before it.
+			if (g_lastRegion < g_regionCount && cursor >= g_regions[g_lastRegion].begin && cursor < g_regions[g_lastRegion].end) {
+				cursor = g_regions[g_lastRegion].end;
+				continue;
+			}
 			for (size_t i = 0; i < g_regionCount; ++i) {
 				if (cursor >= g_regions[i].begin && cursor < g_regions[i].end) {
 					cursor = g_regions[i].end;
+					g_lastRegion = i;
 					found = true;
 					break;
 				}
@@ -40,7 +60,7 @@ bool Readable(const void* address, size_t size) noexcept {
 			if (found) continue;
 		}
 		MEMORY_BASIC_INFORMATION info{};
-		if (VirtualQuery(reinterpret_cast<void*>(cursor), &info, sizeof(info)) != sizeof(info)
+		if (Query(reinterpret_cast<void*>(cursor), info) != sizeof(info)
 			|| info.State != MEM_COMMIT || (info.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0) return false;
 		constexpr DWORD flags = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY
 			| PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
@@ -67,7 +87,7 @@ bool Copy(uintptr_t address, void* output, size_t size) noexcept {
 
 bool Executable(uintptr_t address) noexcept {
 	MEMORY_BASIC_INFORMATION info{};
-	return address != 0 && VirtualQuery(reinterpret_cast<void*>(address), &info, sizeof(info)) == sizeof(info)
+	return address != 0 && Query(reinterpret_cast<void*>(address), info) == sizeof(info)
 		&& info.State == MEM_COMMIT && (info.Protect & (PAGE_GUARD | PAGE_NOACCESS)) == 0
 		&& (info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) != 0;
 }

@@ -3,6 +3,7 @@
 #include "async_log.h"
 #include "click_words.h"
 #include "game_text_reader.h"
+#include "hire_stats.h"
 #include "input_direction.h"
 #include "inventory_cursor.h"
 #include "keyboard_service.h"
@@ -14,6 +15,7 @@
 #include "localization.h"
 #include "native_ground_items.h"
 #include "native_list_rows.h"
+#include "native_memory.h"
 #include "native_skill_hand.h"
 #include "native_skill_icons.h"
 #include "native_skill_navigation.h"
@@ -31,6 +33,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <optional>
@@ -83,6 +86,8 @@ constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSki
 constexpr std::string_view SkillList = "SkillSelect";
 // The rows of an open dropdown, a panel of its own drawn over the menu it belongs to.
 constexpr std::string_view DropdownList = "DropdownListContents";
+// The list of mercenaries to hire, and the NPC's dialogue it is opened from.
+constexpr std::string_view HirePanel = "HireMenuPanel", NpcDialog = "NpcDialogPanel";
 constexpr const char* LeftHandKey = "StrHDHelpLeftMouse";
 constexpr const char* RightHandKey = "StrHDHelpRightMouse";
 
@@ -102,6 +107,7 @@ struct Entry {
 	bool cells = false; // several places: a grid of items, the belt, a bar of tabs
 	bool belt = false;  // the belt, which counts its places from the bottom row up
 	std::string name, type;
+	NativeUi::Rect point{}; // where the pointer rests when that is not the middle of the control; no size when it is
 };
 // A step of a value that is under way. The game itself steps a slider or an
 // option the pointer is over when the left or right arrow key goes down (READ,
@@ -133,6 +139,8 @@ bool g_holding = false;     // an item was in hand when the pointer was last pla
 bool g_landed = false;      // the pointer went to where the cursor is
 NativeUi::Cell g_pointerAt; // the point the pointer was last put on, and went to
 uint64_t g_refreshAt = 0;
+size_t g_things = 0;        // how many things the menu had when they were last listed in the log
+uint64_t g_thingsLogged = 0;
 uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
 std::string g_toSay;        // what to say if no reader does
 std::string g_said;         // what the cursor said of where it is, when no reader did
@@ -145,6 +153,17 @@ struct RowClick { uintptr_t widget = 0; uint64_t at = 0; };
 RowClick g_rowClicked;
 uint64_t g_titleUntil = 0;  // until then the cursor waits to land: what the menu is called is being said
 NativeSkillHand::Hand g_listHand = NativeSkillHand::Hand::None; // the hand the list of skills was last said to be for
+
+// Diagnostics: what reading the menu again costs, by part (the user,
+// 2026-09-30: "slight lag when navigating any inventory screen"; HANDOFF).
+using Clock = std::chrono::steady_clock;
+double Ms(Clock::time_point from, Clock::time_point to) { return std::chrono::duration<double, std::milli>(to - from).count(); }
+struct BuildCost { double walk = 0, grids = 0, thin = 0, mend = 0; int cells = 0; };
+BuildCost g_cost;
+Clock::time_point g_tickStart;     // when this tick of the menu began
+bool g_logBuild = false;           // the next build is a key's, and is logged whatever it costs
+uint64_t g_buildLogged = 0;        // when a build was last logged for being slow
+constexpr double SlowBuildMs = 10; // a build this slow is logged, at most once a second
 
 struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
 Arrow g_arrows[] = {
@@ -234,6 +253,8 @@ bool NotMenu(std::string_view name) {
 
 GridJump::Grid ReadGrid(uintptr_t widget) {
 	GridJump::Grid grid;
+	const auto start = Clock::now();
+	struct Timed { Clock::time_point start; ~Timed() { g_cost.grids += Ms(start, Clock::now()); } } timed{start};
 	const auto size = NativeUi::GridSize(widget);
 	if (size.x < 1 || size.y < 1) return grid;
 	grid.width = size.x;
@@ -241,6 +262,7 @@ GridJump::Grid ReadGrid(uintptr_t widget) {
 	std::vector<uintptr_t> units;
 	for (int y = 0; y < size.y; ++y) {
 		for (int x = 0; x < size.x; ++x) {
+			++g_cost.cells;
 			const auto slot = NativeUi::GridItemAt(widget, {x, y});
 			if (!slot.known || !slot.item) continue;
 			const auto known = std::find(units.begin(), units.end(), slot.item);
@@ -308,7 +330,22 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
 		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
 	if (!whole && control && type.name != "BeltWidget") {
-		if (const auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && OnScreen(*rect)) {
+		if (auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && OnScreen(*rect)) {
+			// A row of the hire list is a place, and so is each skill icon and the
+			// price drawn inside it (the user, 2026-10-01: "the player should be able
+			// to highlight the individual skill icons"). The row's place is its name
+			// and level, the part left of its first icon: whole, it was dropped as what
+			// its icons stand in (Thin; MEASURED 2026-09-30, no place for the name),
+			// and the pointer in its middle was on the first icon's edge.
+			if (type.kind == Kind::ListItem && NativeWidgets::ReadName(panel) == HirePanel) {
+				int left = rect->x + rect->width;
+				for (const uintptr_t child : NativeUi::Children(widget)) {
+					if (!NativeUi::Visible(child) || NativeUi::Classify(child).name != "HirelingSkillIconWidget") continue;
+					if (const auto icon = NativeSkillNavigation::RectAt(child, NativeUi::FocusSelection(child))) left = std::min(left, icon->x);
+				}
+				if (left - rect->x >= rect->height) rect->width = left - rect->x;
+				entry.point = *rect;
+			}
 			// The skills of a skill tree, and of the list of skills, stand together:
 			// a step from one lands on another before it lands on a tab beside them.
 			const bool skill = NativeSkillIcons::InTree(widget) || NativeSkillIcons::InList(widget);
@@ -400,6 +437,8 @@ void LinkClasses() {
 }
 
 std::string Build(const D2RL::PluginContext* context) {
+	g_cost = {};
+	const auto start = Clock::now();
 	g_entries.clear();
 	g_targets.clear();
 	struct Open { uintptr_t panel; std::string name; };
@@ -420,11 +459,23 @@ std::string Build(const D2RL::PluginContext* context) {
 	}
 	std::string menu;
 	bool items = false;
+	size_t asked = 0; // the choices of the NPC's dialogue that are drawn
 	for (const auto& open : shown) {
+		// Hiring with a mercenary already in service, the NPC asks before it is
+		// replaced, and the two answers are drawn over the hire list as choices of
+		// its own dialogue (MEASURED 2026-09-30 12:19:28: two rows at 169,282 and
+		// 169,306, 480 wide, over the row that was chosen). The list stays drawn
+		// under them, but a click on it takes the question away: each time the
+		// cursor went from Close to a row, its click of the row ended the question
+		// (12:14:17, OpenPanel HireMenuPanel 190 ms after). While the dialogue
+		// offers a choice the list is not the cursor's.
+		if (open.name == HirePanel && asked) continue;
 		menu += open.name;
 		menu += ' ';
 		items = items || open.name.find("Inventory") != std::string::npos;
+		const size_t before = g_entries.size();
 		Collect(open.panel, open.panel, 0, 0);
+		if (open.name == NpcDialog) asked = g_entries.size() - before;
 	}
 	// The belt is the HUD's, and is where potions are put from the inventory.
 	const uintptr_t hud = items ? NativeWidgets::FindPanel(Hud) : 0;
@@ -432,12 +483,17 @@ std::string Build(const D2RL::PluginContext* context) {
 		ShowBelt(context, belt);
 		Collect(belt, hud, 0, 0);
 	} else HideBelt(context);
+	const auto walked = Clock::now();
 	Thin();
+	const auto thinned = Clock::now();
 	if (!Same(g_targets, g_mended)) {
 		g_links = MenuCursor::Mend(g_targets);
 		LinkClasses();
 		g_mended = g_targets;
 	}
+	g_cost.walk = Ms(start, walked);
+	g_cost.thin = Ms(walked, thinned);
+	g_cost.mend = Ms(thinned, Clock::now());
 	return menu;
 }
 
@@ -462,6 +518,7 @@ NativeUi::Rect BeltPoint(uintptr_t belt, int slot, const NativeUi::Rect& rect) {
 // item, or of the cell. With an item in hand the game's own rectangle for the
 // cell is where the pointer has to be for the item to begin on that cell.
 std::optional<NativeUi::Rect> PointerRect(const Entry& entry, const Place& place, bool holding) {
+	if (!entry.cells && entry.point.width > 0) return entry.point;
 	if (!entry.cells) return NativeSkillNavigation::RectAt(entry.widget, NativeUi::FocusSelection(entry.widget));
 	const auto* target = MenuCursor::Find(g_targets, entry.widget);
 	const uint64_t selection = Selection(entry, place.anchor, target ? target->grid.height : 1);
@@ -496,6 +553,8 @@ std::string Name(const Entry& entry, const Place& place) {
 	}
 	// A skill's icon has no text of its own; the text under it is its level.
 	if (auto skill = NativeSkillIcons::Name(entry.widget); !skill.empty()) return skill;
+	// The hire list's skill icons and gold lines: by the skill, and by the game's words with the amount.
+	if (auto hire = HireStats::Said(entry.widget, entry.panel); !hire.empty()) return hire;
 	// A class's figure is called by the class's key in the string table.
 	if (NativeClassChoice::Is(entry.widget)) {
 		std::string name = UiText::Clean(Localization::Text(entry.name));
@@ -512,6 +571,19 @@ std::string Name(const Entry& entry, const Place& place) {
 void Expect(uint64_t now, std::string text) {
 	g_landedAt = now;
 	g_toSay = std::move(text);
+}
+
+// The row of the hire list a place is drawn inside: a skill icon is the row's
+// child, a price the child of a container in it. Null for anything else.
+const Entry* RowAround(const Entry& entry) {
+	if (entry.point.width > 0) return nullptr; // a row itself
+	uintptr_t widget = entry.widget;
+	for (int depth = 0; depth < 3 && widget; ++depth) {
+		widget = NativeUi::Parent(widget);
+		for (const auto& other : g_entries)
+			if (other.widget == widget && other.point.width > 0) return &other;
+	}
+	return nullptr;
 }
 
 bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) {
@@ -545,9 +617,10 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	if (g_landed) g_pointerAt = point;
 	else AsyncLog::WarnF(context, "[cursor] the pointer did not go to %s: it is at %ld,%ld and was put on %d,%d; a click is refused",
 		entry->name.c_str(), pointer.x, pointer.y, point.x, point.y);
-	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld",
+	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld; %.1f ms into the tick",
 		entry->name.c_str(), entry->type.c_str(), entry->cells ? place.anchor.x : -1, entry->cells ? place.anchor.y : -1,
-		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y);
+		rect->x, rect->y, rect->width, rect->height, holding ? 1u : 0u, placed ? 1u : 0u, pointer.x, pointer.y,
+		Ms(g_tickStart, Clock::now()));
 	if (entry->belt) AsyncLog::InfoF(context, "[cursor] belt slot %d; the belt takes the point for slot %d", static_cast<int>(selection),
 		NativeBeltRows::SlotAt(entry->widget, {rect->x + rect->width / 2, rect->y + rect->height / 2}));
 	// The game sees what is under the pointer only once the mouse moves over it
@@ -558,8 +631,11 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		AsyncLog::InfoF(context, "[cursor] skill id=%d \"%s\"", *skill, NativeSkillIcons::Name(entry->widget).c_str());
 	Expect(now, Name(*entry, place));
 	// No reader names a class or a row of an open dropdown (MEASURED 2026-09-27):
-	// waiting for one only left them silent, so they are named at once.
-	if (NativeClassChoice::Is(entry->widget) || g_menu.starts_with(DropdownList)) {
+	// waiting for one only left them silent, so they are named at once. Nor a
+	// skill icon or a gold line of the hire list: left to the wait they were
+	// called "Skill2" and "YourGoldTooltipWidget" (MEASURED 2026-09-30).
+	if (NativeClassChoice::Is(entry->widget) || g_menu.starts_with(DropdownList)
+		|| !HireStats::Said(entry->widget, entry->panel).empty()) {
 		AsyncLog::InfoF(context, "[cursor] said at once \"%s\"", g_toSay.c_str());
 		ScreenReader::Speak(g_toSay, true);
 		g_said = g_toSay;
@@ -577,6 +653,15 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		AsyncLog::InfoF(context, "[cursor] row %d is chosen as the cursor comes to it; the list had %d", places->row, places->chosen);
 		MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
 		g_rowClicked = {entry->widget, now};
+	} else if (const Entry* row = g_landed ? RowAround(*entry) : nullptr) {
+		// An icon or a price inside a row: the row it is drawn in is chosen too,
+		// by a click on the row's own place, and the pointer goes back to the icon.
+		if (const auto around = NativeListRows::Of(row->widget); around && around->chosen != around->row) {
+			AsyncLog::InfoF(context, "[cursor] row %d is chosen as the cursor comes to %s inside it; the list had %d",
+				around->row, entry->name.c_str(), around->chosen);
+			MenuMouse::ClickAt(row->point, MenuMouse::Button::Left, *rect);
+			g_rowClicked = {row->widget, now};
+		}
 	}
 	return true;
 }
@@ -669,7 +754,19 @@ void SayHand(const D2RL::PluginContext* context, uint64_t now, const std::string
 // stands, at the menu's first thing otherwise.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	g_refreshAt = now + RefreshMs;
+	const auto checks = NativeMemory::Checks();
+	const auto start = Clock::now();
 	const std::string menu = Build(context);
+	const double took = Ms(start, Clock::now());
+	if (g_logBuild || (took >= SlowBuildMs && now - g_buildLogged >= 1000)) {
+		if (!g_logBuild) g_buildLogged = now;
+		const auto after = NativeMemory::Checks();
+		AsyncLog::InfoF(context, "[cursor] read the menu again%s in %.1f ms: walk %.1f ms (grids %.1f ms, %d cells), thin %.1f ms, "
+			"mend %.1f ms; %llu page checks taking %.1f ms; %zu places", g_logBuild ? " for a key" : "", took, g_cost.walk,
+			g_cost.grids, g_cost.cells, g_cost.thin, g_cost.mend, static_cast<unsigned long long>(after.count - checks.count),
+			after.ms - checks.ms, g_targets.size());
+	}
+	g_logBuild = false;
 	const bool changed = menu != g_menu;
 	g_menu = menu;
 	SayHand(context, now, menu);
@@ -690,7 +787,15 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 			redrawn = true;
 		}
 	}
-	if (changed || rows != g_beltRows) Census(context);
+	// The things are listed again when their number changes under the same
+	// panels: 2026-09-30 the NPC's two answers appeared over the hire list, the
+	// menu's name stayed the same, and the log could not show they were there.
+	const bool recount = g_targets.size() != g_things && now - g_thingsLogged >= 1000;
+	if (changed || rows != g_beltRows || recount) {
+		Census(context);
+		g_things = g_targets.size();
+		g_thingsLogged = now;
+	}
 	g_beltRows = rows;
 	auto place = MenuCursor::Settle(g_targets, g_place);
 	if (!place.widget) place = MenuCursor::First(g_targets);
@@ -777,6 +882,7 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 	}
 	const bool waited = now < g_titleUntil && !g_place.widget;
 	g_titleUntil = 0;
+	g_logBuild = true;
 	Refresh(context, now);
 	if (waited) return; // the press ends the wait, and says where the cursor is
 	if (!g_place.widget) return;
@@ -814,6 +920,16 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 		return;
 	}
 	if (entry && button == MenuMouse::Button::Left && Adjust(context, now, *entry, true)) return;
+	// A skill icon or a gold line of the hire list has nothing a click does, and
+	// a click inside a row the cursor has just chosen would be the second click
+	// of two on that row, which hires. It is said again; the row is what hires.
+	if (entry) {
+		if (const auto said = HireStats::Said(entry->widget, entry->panel); !said.empty()) {
+			AsyncLog::InfoF(context, "[cursor] no click on %s of the hire list: it is said", entry->name.c_str());
+			ScreenReader::Speak(said, true);
+			return;
+		}
+	}
 	// A click on the class that is chosen would put it back, and one on a figure
 	// that is stepping forward or back is lost. Another class is chosen by a
 	// click on it, which puts this one back.
@@ -1088,6 +1204,7 @@ void Reset() {
 
 void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
+	g_tickStart = Clock::now();
 	MenuMouse::Tick(now);
 	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()
 		&& !KeyboardService::Playing();
@@ -1126,7 +1243,7 @@ void Tick(const D2RL::PluginContext* context) {
 	ClickWords::SetKeyboard(g_engaged);
 	if (g_engaged && now >= g_refreshAt && !MenuMouse::Busy()) Refresh(context, now);
 
-	const bool control = Down(VK_CONTROL), alt = Down(VK_MENU);
+	const bool control = Down(VK_CONTROL), shift = Down(VK_SHIFT), alt = Down(VK_MENU);
 	for (auto& arrow : g_arrows) {
 		const bool down = Down(arrow.key);
 		bool step = false;
@@ -1137,6 +1254,7 @@ void Tick(const D2RL::PluginContext* context) {
 		// Up and down leave a box of text; left and right move in what is typed.
 		if (field && (arrow.direction == Direction::Left || arrow.direction == Direction::Right)) continue;
 		if (control) InputDirection::PostLineStep(arrow.push);
+		else if (shift) InputDirection::PostLineStep(arrow.push, true);
 		else Step(context, now, arrow.direction);
 	}
 

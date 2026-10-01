@@ -251,6 +251,18 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 				g_target.seenMs = now;
 				return true;
 			}
+		// An item is loaded again under a new id as an object is (MEASURED
+		// 2026-09-28): one of the same name where it lay is the one led to. The
+		// walk to an item already took it so; the beacon said the item was lost
+		// with the item lying there.
+		for (const auto& item : snapshot.items)
+			if (item.source == GroundItems::SourceKind::Item && item.name == g_target.entity.name
+				&& std::abs(item.position.x - g_target.entity.position.x) <= 1 && std::abs(item.position.y - g_target.entity.position.y) <= 1) {
+				g_target.entity.id = item.id;
+				g_target.entity.position = {item.position.x, item.position.y};
+				g_target.seenMs = now;
+				return true;
+			}
 		return false;
 	}
 	// A locked exit may be a warp or a boundary with the next area; read both

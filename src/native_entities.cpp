@@ -391,6 +391,8 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	entity.weaponRack = entity.container && Generated::WeaponRackObject(classId);
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
+	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
+		entity.doorSpan = std::max(width, height);
 	entity.questObject = Generated::QuestItemObject(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);

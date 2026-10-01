@@ -74,6 +74,7 @@ struct Entity {
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
+	uint32_t doorSpan = 0; // a shut door's long side in cells (objects.txt SizeX/SizeY), zero otherwise; not a footprint
 	// The game's own unit type of a loaded unit (1 monster, 2 object, 5 warp tile),
 	// which its commands name a target by together with `id`; NoUnit for what is
 	// not one: a preset of a room not loaded yet, an area border, a room.

@@ -15,6 +15,45 @@ repository: `re/actions/swap`, `belt`, `widgets`, `skilltree`, `charcreate`,
 each with a `notes.txt` that has the offsets, the functions and their
 fingerprints. **Read the notes before reading the image again.**
 
+## Item lines: Shift read a jewel's ranges - 2026-09-30, FIX DEPLOYED 06:55, NOT TESTED IN GAME
+
+The evidence is in the workspace's `HANDOFF.md`, top section.
+- **The user:** Shift+arrows on a jewel read the ranges ("+(5-10)% Enhanced Damage"); only Ctrl
+  should. The user's facts: the game never shows ranges with Shift, and Ctrl was held only after
+  the bug was found. MEASURED (06:24 log): J read "+6%" before and after.
+- READ: Shift read a separate copy of the tooltip kept from earlier, not the one on screen. What
+  put the ranges into that copy is NOT KNOWN.
+- **Built:** the copy is gone; Shift+arrows read the tooltip as drawn at the key, as Ctrl+arrows
+  and the compare readout do. Shift+Right landing on the size is by design (the user asked for
+  that fix to be reverted).
+
+## NOT STARTED: a walk hops in place against a wall when a closed door is in the way - 2026-10-01
+
+**The user:** "the player can become stuck against a wall if the mod can't find a clear route and will simply hop in place. ... this happens most often when there is a closed door and the mod doesn't account for that along the path but simply tries to path straight to the objective. It never stops until a manual movement key is pressed. the mod should account for closed doors and just alert the player that a door is in the way that needs to be opened instead of trying to path through a wall when the closed door path is rejected."
+**Wanted:** a walk whose way is shut by a closed door stops and says a door is in the way and has to be opened; it never walks at a wall and never goes on until a key stops it.
+**Where to start (READ, not a diagnosis):** `Beacon::FindRoute` returns the way to the reachable cell nearest the place when the place cannot be reached, which is a cell against the wall; a shut door's cells carry the DOOR bit, a wall to the router; `Advance` never asks whether the wall is a door; the room graph joins rooms by nearness. HANDOFF.md, top section of 2026-10-01, has the rest. Find the hopping in a log first.
+
+## Hire mercenary screen in keyboard mode - 2026-09-30, REBUILT 2026-10-01, BEING TESTED BY THE USER
+
+**The user:** "hire mercenary screen doesn't work with the keyboard support. reads only skill slots and doesn't even read those properly. mercenary name doesn't highlight correctly, stat buffer and compare stats buffers don't work." Asked for it to be documented as a priority first.
+**MEASURED (04:40:42-04:40:52 log, `HireMenuPanel` opened from the NPC's "hire"):**
+- `[cursor] menu: NpcDialogPanel HireMenuPanel -- 42 things`. The places are only leaves: `YourGoldTooltipWidget`, then for each of 8 rows (y 197..554, step 51) `Skill0/1/2 (HirelingSkillIconWidget)` 32x32 at x 411/445/478 plus `GoldCostTooltipWidget` at x 521, then `CloseButton`. **No place is the row itself**, so there is no place for the mercenary's name.
+- Up/Down moved the pointer along the `Skill2` column (478,197 -> 478,554) and each landing spoke `native fallback HireMenuPanel/Skill2 -> "Skill2"`: the layout name, no reader. The pointer sits on a skill icon, not the name, which is why the game's own highlight looks wrong (INFERRED: the row highlights from the mouse hover over the icon's part of the row).
+- No `[hire]` line at all in the session.
+**READ (the cause of the buffers):** `src/hire_stats.cpp` `Tick` runs only when `NativeUi::Focus` is a `ListItem` in `HireMenuPanel` -- the controller's focus. Keyboard mode has no focus (`keyboard-mode-has-no-focus`), so the skills/stats buffer and anything keyed off the focused row never run. Its walk is the left stick with Y held (`PadFilter::ArmLeftStickWithY`), a pad-only gesture.
+**Fix, in order:**
+1. The cursor's places in `HireMenuPanel` are the ROWS (the ListItem each row's skill icons sit in), not their leaves; the pointer rests on the row's name part (left of the icons) so the game highlights that row. Keep Close and the gold line.
+2. A reader for a row: the mercenary's name and what the row draws (cost, level), as the game writes it.
+3. `HireStats` fed by the cursor's row in keyboard mode (not only the focus), and walked with the keyboard's buffer keys (Shift+arrows item lines, Ctrl+arrows the ranges view -- `keyboard-key-decisions`), plus the compare buffer against the current mercenary.
+**Step 1 DEPLOYED 05:39, 95/95 ctest, NOT TESTED IN GAME (2026-09-30, `keyboard-local`, uncommitted):** `Collect` in `src/keyboard_menu.cpp` stops at a `ListItem` in `HireMenuPanel`, so the row is one place and `Thin()` no longer drops it for holding the icons. INFERRED, not measured: `NativeUi::CurrentFocus()` prefers the cursor, so with the row as the place `HireStats` and the row reader get the row as they do on the pad. The first deploy failed while the game was running; redeployed 05:39. **Next: test the hire list** and check the log for `[cursor] thing ... (ListItemWidget)` rows and what the row says. 
+**Steps 2-3 (keyboard buffers) DEPLOYED 05:52, 95/95 ctest, NOT TESTED IN GAME (2026-09-30, uncommitted):** `HireStats::Tick` takes a `KeyboardTick` path while `KeyboardMenu::Active()`; the controller path is unchanged. Record 0 is the highlighted mercenary: the tooltip the game draws for the row if it draws one (NOT measured whether the mouse on a row draws one in keyboard mode), else the row's `HireName`/`HireLevel`/`HireCost`, then each skill as `MercenaryStats::Skills(row)` reads its icon's tooltip text (READ: same `HirelingSkillIconWidget` class and offsets as the mercenary panel; untested on the hire list). Any other tooltip record drawn beside it is record 1 and on. Shift/Ctrl+arrows walk the lines of the record read last; Shift+PageUp reads record 0 in full, Shift+PageDown the next record, and it stops at the last one; with only one record it says "none". Log: `[hire] record N, M lines: ...`, `[hire] compare record ...`, `[hire] record N line M -> ...`. **The log's `[hire] record` lines will show what the game actually draws.** The user plans to redo this properly later with mouse hover, as on the mercenary panel (user, 2026-09-30); this is a stopgap.
+Nothing above is measured beyond the log lines quoted. Fix only this screen (`scope-fixes-to-the-screen-reported`).
+
+**2026-10-01, BUILT, 95/95, NOT TESTED IN GAME (the user: "the player should be able to highlight the individual skill icons and read them like tooltips ... the confirm button to replace a mercenary after hiring one also can not currently be highlighted"):**
+- A row's skill icons and its price are places again, beside the row: the row's own place is its name and level (left of the first icon), where the pointer now rests. Right from a row: Skill0, Skill1, Skill2, the price. An icon is said by its skill's name (the whole tooltip with details read unasked), at once; Shift or Ctrl with an arrow walks that tooltip's lines. The two gold lines say the game's own words and the amount. Coming to an icon chooses its row. A on an icon or a price says it again and clicks nothing; A on the row hires.
+- MEASURED (12:19:28 log): the question asked before a mercenary is replaced is two rows of the NPC's dialogue, 480 wide at 169,282 and 169,306, drawn over the hire list. While the dialogue has places and the hire list is open, only the dialogue's are the cursor's. What the two rows say is not measured; the next log's `[cursor] thing` and `[text] NpcDialogPanel` lines will show.
+- HANDOFF.md, session 2026-10-01, section 3 has the evidence.
+
 ## THE THIRD LIVE TEST, 18:12: READ THIS FIRST
 
 The test ran after this file was written; the rest of the file is as it was

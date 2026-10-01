@@ -118,16 +118,21 @@ std::vector<Skill> Skills(uintptr_t panel) {
 	for (int icon = 0; icon < SkillIcons; ++icon) {
 		const uintptr_t widget = NativeWidgets::FindChild(panel, "Skill" + std::to_string(icon));
 		if (!widget || !NativeUi::Visible(widget)) continue;
-		Skill skill;
-		int32_t value = -1;
-		if (NativeMemory::Peek(widget + SkillIdOffset, value)) skill.id = value;
-		if (NativeMemory::Peek(widget + SkillLevelOffset, value)) skill.level = value;
-		std::string text;
-		if (NativeMemory::ReadEngineString(widget + SkillTextOffset, text) && NativeMemory::LooksLikeText(text))
-			skill.text = std::move(text);
-		skills.push_back(std::move(skill));
+		skills.push_back(SkillOf(widget));
 	}
 	return skills;
+}
+
+Skill SkillOf(uintptr_t icon) {
+	Skill skill;
+	if (!icon) return skill;
+	int32_t value = -1;
+	if (NativeMemory::Peek(icon + SkillIdOffset, value)) skill.id = value;
+	if (NativeMemory::Peek(icon + SkillLevelOffset, value)) skill.level = value;
+	std::string text;
+	if (NativeMemory::ReadEngineString(icon + SkillTextOffset, text) && NativeMemory::LooksLikeText(text))
+		skill.text = std::move(text);
+	return skill;
 }
 
 std::string CurrentOfMaximum(std::string_view text) {

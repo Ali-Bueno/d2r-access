@@ -312,7 +312,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	g_registry.Select(state.level, !g_fullAssistance);
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
-	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
+	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Scene scene;
 	if (Collect(state, scene)) Observe(state, world, grid, scene);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
@@ -503,7 +503,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	Scene scene;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world) || !Collect(state, scene)) return;
 	LogAreas(context, state);
-	const auto grid = Navigation::Build(world, SurveyRadius);
+	const auto grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Observe(state, world, grid, scene);
 }
 
