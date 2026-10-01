@@ -15,6 +15,69 @@ repository: `re/actions/swap`, `belt`, `widgets`, `skilltree`, `charcreate`,
 each with a `notes.txt` that has the offsets, the functions and their
 fingerprints. **Read the notes before reading the image again.**
 
+## Walking: the user's rule of 2026-10-01, and where the walk does not keep it - AUDIT ONLY, NOTHING HERE CHANGED
+
+**The user, 2026-10-01:** "click to move should essentially be as smooth as a sighted player
+clicking tiles. it should never click anywhere off screen, it should only click valid tiles the
+player can move to and it should calculate the path to the objective in on-screen hops. ... if
+it's not, don't rewrite it this session. document anything that doesn't work that way and we'll
+fix it later."
+
+How the walk works (READ, `keyboard_service.cpp`, `auto_walk.cpp`, `beacon.cpp`,
+`native_actions.cpp`): the whole route is found first, over the floor the game has loaded (up to
+150 cells round the character). It is then walked in hops. Each hop is one call of the game's own
+click-to-move (`MoveToPoint`) on the farthest cell of the route, at most 20 cells off, that the
+body walks to in a straight clear line. The next hop is given when the character has gone more
+than 6 cells or is within 6 of the last one, about every 0.6 s at a run, while it is still running.
+
+**1. Never off screen: kept, by a screen size that is a guess.**
+- READ: no order is farther than 20 cells (a walk, a retreat), 10 (the arrows), 14 walking steps
+  (a ranged fight's fall back), or 5 past an area border. The mod's own screen
+  (`CombatTarget::Screen`) is 33 cells either side and 37 up and down along the screen's axes,
+  and a point 20 cells off is inside it in every direction.
+- Does not keep it: that screen size is INFERRED, never measured (its own comment says so), and no
+  order is tested against it; they are inside only because 20 is small. The console's
+  `access-actions run <dx> <dy>` orders any offset (a test command).
+
+**2. Only tiles the character can move to: kept by the mod's own test, which is not the game's.**
+- READ: every order is a cell of a route proved on the loaded floor with the body fitted, with a
+  straight clear line to it (`AutoWalk::Straight`).
+- Does not keep it, MEASURED 2026-10-01: 96 times in one session two logged orders of a walk were
+  2.0 s and 8 cells apart, 24 of them in ten minutes by the dune in the Far Oasis. The character
+  ran about 8 cells and stood (mode 1 at 13:05:16, 13:05:21 and 13:05:26) where an unbroken run
+  covers 12 to 14 cells a second; the arrows crossed the same ground at that speed (13:05:32 to
+  13:05:35). INFERRED:
+  an order given while the character is running stops it there, and it stands until the walk
+  gives the order again 1.2 s later. And each time that walk turned round, the game refused the
+  order for a second or more with every cell round the character open (`stuck:` lines, 13:05:07
+  to 13:07:45, the character standing between two cells).
+- **What the game did with those orders is NOT KNOWN.** `MoveToPoint` replaces the cell ordered
+  with where the game's own path ends and sends that; nothing logs what it sent. The measurement
+  to make next: in `native_actions.cpp` the hook on the game's command already sees it, so log
+  the cell the game sent whenever it is not the cell ordered, with the character's position.
+- Does not keep it, READ: the straight line is tested on the terrain layer, which leaves out
+  monsters, the mercenary and other players, and the game's own test does not.
+- Does not keep it, READ: a walk orders up to 20 cells and the arrows 10. `collision-semantics.md`
+  (from D2MOO, not checked in the D2R image) has the game use its own route search only for a
+  cell within 18, and a straight trace with wall following beyond.
+- Does not keep it, READ: `Beyond` orders a cell 5 past an area border that nothing tested; `Halt`
+  is an order to the character's own cell; and when a place cannot be reached the route leads to
+  the reachable cell nearest it, against the wall (the door task below).
+
+**3. The path in on-screen hops: kept for the loaded floor; past it the way was a guess.**
+- READ: hops are at most 20 cells and each is a straight clear line, so each is one click a
+  sighted player could make.
+- Did not keep it, MEASURED 2026-10-01: for a thing the loaded floor does not reach, the route
+  led toward a room chosen by the room graph, a guess that changed at room borders; the walk to
+  the Maggot Lair went back and forth for four minutes. `level_route.h` (built 2026-10-01 before
+  the user's rule was given, `1c0fe18`, deployed 13:41, NOT tested in game) replaces the guess
+  with the way over every part of the level the game has shown: `keyboard-play.md`, "A far walk".
+  The hops themselves are unchanged by it.
+- Does not keep it: the beacon and the scanner still use the room graph and the loaded floor only.
+
+**"As smooth as a sighted player clicking": not yet.** The 8-cell runs and the refusals under 2
+are what is not smooth, and their cause is the thing to measure first.
+
 ## Item lines: Shift read a jewel's ranges - 2026-09-30, FIX DEPLOYED 06:55, NOT TESTED IN GAME
 
 The evidence is in the workspace's `HANDOFF.md`, top section.
