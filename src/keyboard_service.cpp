@@ -19,6 +19,7 @@
 #include "ground_item_text.h"
 #include "input_direction.h"
 #include "keyboard_menu.h"
+#include "level_route.h"
 #include "map_survey.h"
 #include "map_survey_service.h"
 #include "mod_sounds.h"
@@ -225,6 +226,40 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	return g_graph.Empty() ? nullptr : &g_graph;
 }
 
+// What the game has shown of the level's floor this game (level_route.h), for
+// the levels walked most lately: the game keeps a room's collision only while
+// the player is near, and a walk that knows only what is loaded plans again
+// from nothing at every room border. Null when the level's rooms cannot be
+// read or are too many cells to keep.
+constexpr size_t RememberedLevels = 8;
+struct Remembered { int level = 0; uint64_t used = 0; LevelRoute::Memory memory; };
+std::vector<Remembered> g_remembered;
+uint64_t g_rememberedSession = 0, g_rememberedClock = 0;
+LevelRoute::Plan g_plan;
+const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& world) {
+	if (!state.level || world.level != state.level) return nullptr;
+	if (g_rememberedSession != state.session) {
+		// Another game: the same level is another map.
+		g_remembered.clear();
+		g_plan.Clear();
+		g_rememberedSession = state.session;
+	}
+	auto found = std::find_if(g_remembered.begin(), g_remembered.end(), [&](const Remembered& entry) { return entry.level == world.level; });
+	if (found == g_remembered.end()) {
+		const auto* graph = Rooms(state);
+		Remembered entry{world.level};
+		if (!graph || !entry.memory.Begin(state.session, world.level, graph->rooms)) return nullptr;
+		if (g_remembered.size() >= RememberedLevels)
+			g_remembered.erase(std::min_element(g_remembered.begin(), g_remembered.end(),
+				[](const Remembered& a, const Remembered& b) { return a.used < b.used; }));
+		g_remembered.push_back(std::move(entry));
+		found = g_remembered.end() - 1;
+	}
+	found->used = ++g_rememberedClock;
+	(void)found->memory.Learn(world);
+	return &found->memory;
+}
+
 // What is around the player right now. Read fresh for every decision: the
 // monsters move, and so has the player.
 struct Scene {
@@ -414,7 +449,11 @@ void Sweep(const Lifecycle& state, uint64_t now) {
 	if (now < g_nextSweep) return;
 	g_nextSweep = now + SweepMs;
 	Radar::World world;
-	if (NativeWorld::Read(state.player, state.session, state.level, world)) TakeOffMarkers(state, world, false);
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
+	// The floor is remembered here too, twice a second in play: what the arrows
+	// walk past is known to a later walk.
+	(void)Remember(state, world);
+	TakeOffMarkers(state, world, false);
 }
 // The order is "refused" while it is given again and again from the same
 // cell: a second tap of the same arrow, seconds after the first, is not that.
@@ -442,21 +481,69 @@ void Order(const Lifecycle& state, const Radar::World& world, Position order, ui
 	(void)NativeActions::MoveTo(order);
 }
 
+// The way to a thing the loaded floor does not reach, over what the game has
+// shown of the level so far: `ahead` is as far along it as the loaded floor
+// goes. False when the remembered map has no way either.
+//
+// 2026-10-01, the Far Oasis, the walk to the Maggot Lair: from the rooms by
+// the lair the loaded floor reached it, 230-odd steps back south and round a
+// dune, and the walk turned south; two rooms south the lair's surroundings
+// were freed, the room graph's guess led north again, into the dead end under
+// the dune, and so on from 13:03 to 13:07 (orders north to y 4355, then south
+// to y 4402, over and over). The room graph still leads when the map has no way.
+constexpr uint64_t LedLogMs = 3000;     // how often the log says where the map leads
+constexpr uint64_t LedPlaceMs = 1000;   // a thing that moves is led to where it was, this long at most
+constexpr double LedPlaceDrift = 10;    // and no farther off than this: each new place is a search of the level
+uint64_t g_ledLog = 0, g_ledPlaceAt = 0;
+bool g_ledGuess = false;
+Position g_ledPlace{-1, -1};
+bool Led(const Lifecycle& state, const Scene& scene, const Entity& target, int margin, uint64_t now, Position& ahead) {
+	const auto* memory = Remember(state, scene.world);
+	if (!memory) return false;
+	if (now < g_ledPlaceAt || now - g_ledPlaceAt >= LedPlaceMs || Distance(target.position, g_ledPlace) > LedPlaceDrift) {
+		g_ledPlace = target.position;
+		g_ledPlaceAt = now;
+	}
+	const auto way = g_plan.From(*memory, scene.world.player, g_ledPlace, margin, scene.world.bodyPattern);
+	if (!LevelRoute::Ahead(way.path, scene.grid, ahead)) return false;
+	if (now < g_ledLog || now - g_ledLog >= LedLogMs || way.guess != g_ledGuess) {
+		g_ledLog = now;
+		g_ledGuess = way.guess;
+		AsyncLog::InfoF(g_context, "[keyboard] walk: led by the remembered map to %s at %.0f,%.0f: %zu cells from %.0f,%.0f, %s; now to %.0f,%.0f",
+			target.name.c_str(), target.position.x, target.position.y, way.path.size(), scene.world.player.x, scene.world.player.y,
+			way.guess ? "part of it ground not seen yet" : "all of it seen", ahead.x, ahead.y);
+	}
+	return true;
+}
+
 // One leg of a walk toward a thing, along the route the beacon would ping.
 Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& target, double reach, uint64_t now) {
 	if (Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
 	const int margin = Margin(target);
-	const auto guidance = BeaconNavigation::Prepare(scene.world, target.position, Rooms(state), nullptr, margin, &scene.grid);
-	if (!guidance.available) return Progress::Unreadable;
 	Beacon::Settings settings;
 	settings.arrivalDistance = reach;
-	const Position destination = guidance.hasWaypoint ? guidance.waypoint : target.position;
-	const auto route = Beacon::FindRoute(guidance.world, destination, settings);
+	Position destination = target.position;
+	const char* toward = "the thing itself";
+	Beacon::Route route;
+	if (Steps(scene.grid, target.position, margin) < 0 && Led(state, scene, target, margin, now, destination)) {
+		toward = "the way over the remembered map";
+		route = Beacon::FindRoute(scene.world, destination, settings);
+	} else {
+		const auto guidance = BeaconNavigation::Prepare(scene.world, target.position, Rooms(state), nullptr, margin, &scene.grid);
+		if (!guidance.available) return Progress::Unreadable;
+		if (guidance.hasWaypoint) {
+			destination = guidance.waypoint;
+			toward = "the way into the next room";
+		} else {
+			destination = target.position;
+		}
+		route = Beacon::FindRoute(guidance.world, destination, settings);
+	}
 	if (route.path.empty()) {
 		// No cell the character can reach is nearer the place than its own.
 		AsyncLog::InfoF(g_context, "[keyboard] walk: no route from %.0f,%.0f to %.0f,%.0f (%s) for %s at %.0f,%.0f",
 			scene.world.player.x, scene.world.player.y, destination.x, destination.y,
-			guidance.hasWaypoint ? "the way into the next room" : "the thing itself", target.name.c_str(), target.position.x, target.position.y);
+			toward, target.name.c_str(), target.position.x, target.position.y);
 		return Progress::NoRoute;
 	}
 	const auto step = g_walker.Tick(scene.world, route.path, now, g_walk);
@@ -1595,6 +1682,9 @@ void Unregister() {
 	g_graph = {};
 	g_graphLevel = 0;
 	g_graphSession = 0;
+	g_remembered.clear();
+	g_rememberedSession = 0;
+	g_plan.Clear();
 	g_revision = 0;
 	g_stepping = false;
 	g_playing = false;

@@ -155,6 +155,7 @@ add_library(d2r-access SHARED
 	src/widgets.cpp
 	src/retreat.cpp
 	src/auto_walk.cpp
+	src/level_route.cpp
 	src/combat_target.cpp
 	src/explore_goal.cpp
 	src/grid_jump.cpp
@@ -583,6 +584,11 @@ if(BUILD_TESTING)
 	target_include_directories(auto-walk-tests PRIVATE src)
 	target_compile_features(auto-walk-tests PRIVATE cxx_std_20)
 	add_test(NAME auto-walk COMMAND auto-walk-tests)
+	add_executable(level-route-tests tests/level_route_tests.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(level-route-tests PRIVATE src)
+	target_compile_features(level-route-tests PRIVATE cxx_std_20)
+	target_compile_definitions(level-route-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME level-route COMMAND level-route-tests)
 	add_executable(combat-target-tests tests/combat_target_tests.cpp src/combat_target.cpp src/auto_walk.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(combat-target-tests PRIVATE src)
 	target_compile_features(combat-target-tests PRIVATE cxx_std_20)
@@ -635,6 +641,7 @@ if(BUILD_TESTING)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(retreat-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(level-route-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

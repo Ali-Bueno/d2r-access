@@ -407,6 +407,52 @@ READ, not tried in a test; the working files are `re/actions/belt`.
   the potion up or puts the one in hand down, a right click drinks it, Shift +
   right click gives it to the mercenary.
 
+## A far walk: the remembered map
+
+The game keeps collision only near the player and frees it again
+(`docs/room-routing.md`), so a walk that plans on the loaded floor alone
+knows a different level at every room border.
+
+MEASURED 2026-10-01, the Far Oasis, the walk to the Maggot Lair (13:03 to
+13:07): the orders went north along x 5204 to about y 4355, then south to
+about y 4402, then north again, over and over. The scanner's distance to the
+lair shows why. Going south it was a walking distance (237, 221, 211, 207
+steps): the lair's surroundings were loaded and the route was the true one,
+back out and round. Going north it was the straight line (141, 125, 109
+steps; 124, 100 on an earlier pass): they were not loaded, and the room
+graph's guess led straight at the lair, into ground from which it is about 50
+cells off in a straight line and 283 steps on foot (13:07:23, near 5222,4310). MEASURED OFFLINE on a fixture of that shape, the repo's own routing:
+292 turns in 300 looks, never arriving.
+
+`src/level_route.h` keeps every room's floor as the game shows it, for the
+level (the last eight levels of the game being played), and finds the way to
+a place over that:
+
+1. over ground seen open only, while such a way exists;
+2. failing that, over ground not seen yet as well: walking toward an unseen
+   place;
+3. never over ground seen shut.
+
+`KeyboardService::Advance` uses it when the loaded floor does not reach the
+thing walked to, and heads for the last cell of that way the loaded floor
+reaches. The room graph leads only when the map has no way either. What was
+seen stays seen, so a look can only rule ways out. The floor is learnt twice
+a second in play, walk or no walk, so ground walked past with the arrows is
+known to a later walk.
+
+Log: `[keyboard] walk: led by the remembered map to NAME at x,y: N cells from
+x,y, all of it seen|part of it ground not seen yet; now to x,y`, at most one
+every three seconds.
+
+Cost, MEASURED OFFLINE: learning 25 loaded rooms 0.17 ms; one search of a
+400 x 400 level (the Far Oasis) 3.6 ms, made when the map or the place
+changes, not on every look.
+
+Not done: the beacon and the scanner's distances still know only the loaded
+floor, so the scanner says the straight line to a thing whose surroundings
+are not loaded, and that number jumps when they load (100 steps, then 250,
+in the walk above). Nothing is kept from one game to the next.
+
 ## Found on the way
 
 - `TabHighlight::Tick` builds an empty focus (`NativeUi::Focus()`) where it
