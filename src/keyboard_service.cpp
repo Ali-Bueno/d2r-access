@@ -318,6 +318,17 @@ int Steps(const Navigation::Grid& grid, Position position, int margin) {
 	}
 	return fewest;
 }
+// The steps to where D can use a thing from. A teleport pad at a walkway's end
+// stands on a cell the game marks shut, the drop beyond it, so no cell beside
+// it holds the body: 2026-10-02 09:37:58 at 25145,5387 full stop said "Nothing
+// to use here" five times, and none of the seven pads standing so was ever used,
+// though each is the way back across its gap. Such a pad counts from as near as
+// a walk counts as there (Walk: UseReach and half the footprint).
+int UseSteps(const Navigation::Grid& grid, const Entity& entity) {
+	const int steps = Steps(grid, entity.position, Margin(entity));
+	if (steps >= 0 || !entity.padClass) return steps;
+	return Steps(grid, entity.position, static_cast<int>(std::ceil(UseReach + HalfFootprint(entity))));
+}
 
 // A thing by name, distance and direction, as the scanner says it.
 std::string Describe(const Radar::World& world, const Entity& entity, int steps) {
@@ -846,7 +857,7 @@ void StepPick(const Lifecycle& state, int delta, bool npcs) {
 		const bool usable = npcs ? entity.kind == EntityRadar::Kind::Npc
 			: entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
 		if (!usable || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
-		const int steps = Steps(scene.grid, entity.position, Margin(entity));
+		const int steps = UseSteps(scene.grid, entity);
 		if (steps >= 0) picks.push_back({entity, steps});
 	}
 	std::stable_sort(picks.begin(), picks.end(), [](const Pick& a, const Pick& b) {
@@ -903,7 +914,7 @@ void BeginUse(const Lifecycle& state) {
 	if (const uint32_t pick = std::exchange(g_itemPick, 0)) {
 		for (const auto& thing : things) {
 			if (thing.kind != g_itemPickKind || thing.id != pick) continue;
-			const int steps = Steps(scene.grid, thing.position, Margin(thing));
+			const int steps = UseSteps(scene.grid, thing);
 			if (steps >= 0 && CombatTarget::OnScreen(scene.world.player, thing.position)) { nearest = &thing; fewest = steps; chosen = true; }
 			break;
 		}
@@ -915,7 +926,7 @@ void BeginUse(const Lifecycle& state) {
 	}
 	for (const auto& thing : things) {
 		if (chosen) break;
-		const int steps = Steps(scene.grid, thing.position, Margin(thing));
+		const int steps = UseSteps(scene.grid, thing);
 		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
 		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
 		nearest = &thing;
