@@ -2,6 +2,7 @@
 
 #include "native_rooms.h"
 #include "navigation_grid.h"
+#include "pad_links.h"
 #include "radar.h"
 
 #include <cstdint>
@@ -111,24 +112,43 @@ public:
 	enum class Answer { Unknown, Reached, CutOff };
 	Reach() = default;
 	Reach(const Memory& memory, Position from, int bodyPattern);
+	// The same search, through the teleport pads in `links` too (pad_links.h):
+	// ground got to within `useWithin` cells of a pad, as near as D uses one
+	// from, gets to the ground within LandWithin of the pad it leads to. A pad
+	// counts as one step. `pads` is the Pads::Revision the links were taken at.
+	Reach(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin, uint64_t pads);
 	// Whether this is still the ground reached from `from` on `memory` as it is
 	// now: the same map, unchanged, and `from` on the ground reached.
 	bool Holds(const Memory& memory, Position from, int bodyPattern) const;
+	// The search through pads holds only from the cell it was made from, with
+	// the same pads: which pad comes first depends on where the way starts.
+	bool Holds(const Memory& memory, Position from, int bodyPattern, uint64_t pads) const;
 	// A thing: reached when the body stands on reached ground within `margin`
 	// cells of it. Unknown when none of those cells is part of the level, and
 	// when the player stands nowhere the body fits.
 	Answer To(Position place, int margin) const;
 	// A room, max exclusive: reached when any of its cells is.
 	Answer Within(const NativeRooms::Bounds& bounds) const;
+	// The pad to use first on the shortest way to a thing or a room the search
+	// through pads reached. False when the way takes no pad, or there is none.
+	bool Via(Position place, int margin, Pad& pad) const;
+	bool ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad) const;
 private:
 	// Outside the level; no place for the body; a place for it, not got to; got to.
 	enum Mark : uint8_t { Outside, Shut, Stood, Got };
+	void Flood(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin);
 	Mark At(int x, int y) const;
 	Answer Among(int minX, int minY, int maxX, int maxY) const; // max exclusive
-	uint64_t session_ = 0, revision_ = 0;
-	int level_ = 0, pattern_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0;
-	bool any_ = false;
+	bool First(int minX, int minY, int maxX, int maxY, Pad& pad) const; // max exclusive
+	uint64_t session_ = 0, revision_ = 0, pads_ = 0;
+	int level_ = 0, pattern_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0, fromX_ = 0, fromY_ = 0;
+	bool any_ = false, linked_ = false;
 	std::vector<uint8_t> cells_; // one cell of margin all round, as Field has
+	// With pads only: the steps to each cell got to, and the first pad of that
+	// way as an index into links_ plus one, zero when walked to.
+	std::vector<int32_t> steps_;
+	std::vector<uint16_t> via_;
+	std::vector<Link> links_;
 };
 
 // Where a walk along `path` heads now: its last cell before it leaves the floor

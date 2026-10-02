@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 
 namespace D2RAccess::LevelRoute {
@@ -219,34 +220,78 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 Reach::Reach(const Memory& memory, Position from, int bodyPattern)
 	: session_(memory.Session()), revision_(memory.Revision()), level_(memory.Level()), pattern_(bodyPattern),
 	  x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
+	Flood(memory, from, bodyPattern, {}, 0);
+}
+
+Reach::Reach(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin, uint64_t pads)
+	: session_(memory.Session()), revision_(memory.Revision()), pads_(pads), level_(memory.Level()), pattern_(bodyPattern),
+	  x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()), linked_(true) {
+	Flood(memory, from, bodyPattern, links, useWithin);
+}
+
+void Reach::Flood(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin) {
 	if (width_ <= 0 || height_ <= 0) return;
 	const Floor floor = Standing(memory, bodyPattern, true, true);
 	const size_t across = floor.across;
 	cells_.resize(floor.stood.size());
 	for (size_t i = 0; i < cells_.size(); ++i)
 		cells_[i] = floor.ground[i] == Ground::Outside ? Outside : floor.stood[i] ? Stood : Shut;
+	if (linked_) {
+		steps_.assign(cells_.size(), -1);
+		via_.assign(cells_.size(), 0);
+		links_ = links;
+	}
+	const auto index = [&](int x, int y) { return static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1); };
 	std::vector<uint32_t> queue;
-	const auto seed = [&](int x, int y) {
-		if (At(x, y) != Stood) return;
-		const size_t at = static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1);
+	const auto got = [&](size_t at, int32_t steps, uint16_t via) {
 		cells_[at] = Got;
+		if (linked_) { steps_[at] = steps; via_[at] = via; }
 		queue.push_back(static_cast<uint32_t>(at));
 	};
-	const int x = Cell(from.x), y = Cell(from.y);
+	const auto seed = [&](int x, int y) {
+		if (At(x, y) != Stood) return;
+		got(index(x, y), 0, 0);
+	};
+	fromX_ = Cell(from.x);
+	fromY_ = Cell(from.y);
+	const int x = fromX_, y = fromY_;
 	seed(x, y);
 	// The cell stood on need not fit the body (Field::From): the cells beside it that do.
 	if (queue.empty())
 		for (const auto step : Steps8) seed(x + step.x, y + step.y);
 	any_ = !queue.empty();
+	// The cells a pad is used from.
+	std::vector<uint8_t> uses;
+	if (!links.empty()) {
+		uses.assign(cells_.size(), 0);
+		for (const auto& link : links)
+			for (int useY = link.from.y - useWithin; useY <= link.from.y + useWithin; ++useY)
+				for (int useX = link.from.x - useWithin; useX <= link.from.x + useWithin; ++useX)
+					if (At(useX, useY) != Outside) uses[index(useX, useY)] = 1;
+	}
+	std::vector<uint8_t> taken(links.size(), 0);
 	const auto row = static_cast<int64_t>(across);
 	std::array<int64_t, 8> around{};
 	for (size_t i = 0; i < Steps8.size(); ++i) around[i] = Steps8[i].y * row + Steps8[i].x;
 	for (size_t head = 0; head < queue.size(); ++head) {
+		const size_t at = queue[head];
+		if (!uses.empty() && uses[at]) {
+			// A pad is used from here: on to the ground beside the one it leads to.
+			const int atX = static_cast<int>(at % across) - 1 + x_, atY = static_cast<int>(at / across) - 1 + y_;
+			for (size_t i = 0; i < links.size(); ++i) {
+				const auto& link = links[i];
+				if (taken[i] || std::abs(atX - link.from.x) > useWithin || std::abs(atY - link.from.y) > useWithin) continue;
+				taken[i] = 1;
+				const auto via = via_[at] ? via_[at] : static_cast<uint16_t>(i + 1);
+				for (int landY = link.to.y - LandWithin; landY <= link.to.y + LandWithin; ++landY)
+					for (int landX = link.to.x - LandWithin; landX <= link.to.x + LandWithin; ++landX)
+						if (At(landX, landY) == Stood) got(index(landX, landY), steps_[at] + 1, via);
+			}
+		}
 		for (const auto offset : around) {
-			const auto next = static_cast<size_t>(static_cast<int64_t>(queue[head]) + offset);
+			const auto next = static_cast<size_t>(static_cast<int64_t>(at) + offset);
 			if (cells_[next] != Stood) continue;
-			cells_[next] = Got;
-			queue.push_back(static_cast<uint32_t>(next));
+			got(next, linked_ ? steps_[at] + 1 : 0, linked_ ? via_[at] : uint16_t{0});
 		}
 	}
 }
@@ -256,8 +301,13 @@ Reach::Mark Reach::At(int x, int y) const {
 	return static_cast<Mark>(cells_[static_cast<size_t>(y - y_ + 1) * (static_cast<size_t>(width_) + 2) + static_cast<size_t>(x - x_ + 1)]);
 }
 
+bool Reach::Holds(const Memory& memory, Position from, int bodyPattern, uint64_t pads) const {
+	return linked_ && !cells_.empty() && pads == pads_ && Cell(from.x) == fromX_ && Cell(from.y) == fromY_
+		&& memory.Session() == session_ && memory.Revision() == revision_ && memory.Level() == level_ && bodyPattern == pattern_;
+}
+
 bool Reach::Holds(const Memory& memory, Position from, int bodyPattern) const {
-	if (cells_.empty() || memory.Session() != session_ || memory.Revision() != revision_ || memory.Level() != level_
+	if (linked_ || cells_.empty() || memory.Session() != session_ || memory.Revision() != revision_ || memory.Level() != level_
 		|| bodyPattern != pattern_) return false;
 	const int x = Cell(from.x), y = Cell(from.y);
 	const Mark mark = At(x, y);
@@ -292,6 +342,31 @@ Reach::Answer Reach::To(Position place, int margin) const {
 
 Reach::Answer Reach::Within(const NativeRooms::Bounds& bounds) const {
 	return Among(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
+}
+
+bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad) const {
+	if (!linked_ || !any_) return false;
+	int32_t fewest = -1;
+	uint16_t via = 0;
+	for (int y = std::max(minY, y_); y < std::min(maxY, y_ + height_); ++y) {
+		for (int x = std::max(minX, x_); x < std::min(maxX, x_ + width_); ++x) {
+			if (At(x, y) != Got) continue;
+			const size_t at = static_cast<size_t>(y - y_ + 1) * (static_cast<size_t>(width_) + 2) + static_cast<size_t>(x - x_ + 1);
+			if (fewest < 0 || steps_[at] < fewest) { fewest = steps_[at]; via = via_[at]; }
+		}
+	}
+	if (!via) return false;
+	pad = links_[via - 1].from;
+	return true;
+}
+
+bool Reach::Via(Position place, int margin, Pad& pad) const {
+	const int x = Cell(place.x), y = Cell(place.y);
+	return First(x - margin, y - margin, x + margin + 1, y + margin + 1, pad);
+}
+
+bool Reach::ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad) const {
+	return First(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, pad);
 }
 
 bool Ahead(const std::vector<Position>& path, const Navigation::Grid& grid, Position& cell) {

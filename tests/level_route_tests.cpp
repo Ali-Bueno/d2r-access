@@ -325,6 +325,60 @@ int main() {
 		(void)memory.Learn(level.Loaded({Left + 51.0, Top + 61.0}, 0));
 		Check(!LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "an opened door is a way");
 	}
+	{
+		// The Arcane Sanctuary's pads, as measured 2026-10-02: each gap is crossed
+		// by a pad on shut ground at the end of one walkway (25145,5387) and a pad
+		// on the floor of the next (25156,5387), and each leads to the other.
+		using Answer = LevelRoute::Reach::Answer;
+		using LevelRoute::Link;
+		using LevelRoute::Pad;
+		Level level;
+		level.Fill(Left, Top, Left + Width - 1, Top + Height - 1, Wall);
+		level.Fill(Left + 10, Top + 10, Left + 40, Top + 20, 0);  // walkway A, stood on
+		level.Fill(Left + 60, Top + 10, Left + 90, Top + 20, 0);  // B, past a void
+		level.Fill(Left + 110, Top + 10, Left + 140, Top + 20, 0); // C, past another
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		for (int row = 0; row < Down; ++row)
+			for (int column = 0; column < Across; ++column)
+				(void)memory.Learn(level.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
+		const Pad edgeA{Left + 41, Top + 15, 192}, floorB{Left + 62, Top + 15, 192};
+		const Pad edgeB{Left + 91, Top + 15, 304}, floorC{Left + 112, Top + 15, 304};
+		const std::vector<Link> both{{edgeA, floorB}, {floorB, edgeA}, {edgeB, floorC}, {floorC, edgeB}};
+		const std::vector<Link> first{{edgeA, floorB}, {floorB, edgeA}};
+		const Position player{Left + 15.0, Top + 15.0}, onA{Left + 25.0, Top + 15.0}, onB{Left + 80.0, Top + 15.0}, onC{Left + 130.0, Top + 15.0};
+		const LevelRoute::Reach walking(memory, player, 1);
+		Check(walking.To(onB, 1) == Answer::CutOff && walking.To(onC, 1) == Answer::CutOff, "walking alone, both walkways past the voids are cut off");
+		const LevelRoute::Reach pads(memory, player, 1, both, 3, 7);
+		Pad pad;
+		Check(pads.To(onB, 1) == Answer::Reached && pads.Via(onB, 1, pad) && pad == edgeA,
+			"through the pads B is reached, by the pad at the end of A");
+		Check(pads.To(onC, 1) == Answer::Reached && pads.Via(onC, 1, pad) && pad == edgeA,
+			"and C, two pads on: the pad to use first is still the one on A");
+		Check(pads.To(onA, 1) == Answer::Reached && !pads.Via(onA, 1, pad), "a place walked to takes no pad");
+		const auto rooms = level.Rooms();
+		Check(pads.Within(NativeRooms::Subtiles(rooms[3])) == Answer::Reached && pads.ViaWithin(NativeRooms::Subtiles(rooms[3]), pad) && pad == edgeA,
+			"a room holding only C is reached the same way");
+		const LevelRoute::Reach fromB(memory, onB, 1, both, 3, 7);
+		Check(fromB.Via(onC, 1, pad) && pad == edgeB, "from B, C is by B's own pad");
+		Check(fromB.To(onA, 1) == Answer::Reached && fromB.Via(onA, 1, pad) && pad == floorB,
+			"and the way back to A is the pad on B's floor, which lands beside the pad on shut ground");
+		const LevelRoute::Reach half(memory, player, 1, first, 3, 7);
+		Check(half.To(onB, 1) == Answer::Reached && half.To(onC, 1) == Answer::CutOff, "a pad with no way known takes no one anywhere");
+		Check(LevelRoute::Reach(memory, player, 1, both, 1, 7).To(onB, 1) == Answer::CutOff,
+			"fixture: from within one cell no body stands by the pad on shut ground");
+		// With no pads the search marks every cell as the search on foot does.
+		const LevelRoute::Reach none(memory, player, 1, {}, 3, 7);
+		bool same = true;
+		for (int y = Top - 2; y < Top + Height + 2 && same; ++y)
+			for (int x = Left - 2; x < Left + Width + 2 && same; ++x)
+				same = none.To({static_cast<double>(x), static_cast<double>(y)}, 0) == walking.To({static_cast<double>(x), static_cast<double>(y)}, 0);
+		for (const auto& room : rooms) same = same && none.Within(NativeRooms::Subtiles(room)) == walking.Within(NativeRooms::Subtiles(room));
+		Check(same, "with no pads every cell and room answers as the search on foot");
+		Check(pads.Holds(memory, player, 1, 7) && !pads.Holds(memory, {Left + 16.0, Top + 15.0}, 1, 7) && !pads.Holds(memory, player, 1, 8),
+			"the search through pads holds from its own cell, with the same pads");
+		Check(!pads.Holds(memory, player, 1) && !walking.Holds(memory, player, 1, 7), "and the two searches never stand in for each other");
+	}
 	Passed();
 	return 0;
 }
