@@ -241,6 +241,90 @@ int main() {
 		Check(!LevelRoute::Ahead({{Left + 20.0, Top + 60.0}}, grid, ahead), "a way that starts off the loaded floor leads nowhere yet");
 		Check(!LevelRoute::Ahead({}, grid, ahead), "no way leads nowhere");
 	}
+	{
+		// The Arcane Sanctuary, 2026-10-02, as a fixture: two walkways with a
+		// void between them that only a teleport pad crosses, all of it loaded.
+		using Answer = LevelRoute::Reach::Answer;
+		Level level;
+		level.Fill(Left, Top, Left + Width - 1, Top + Height - 1, Wall);
+		level.Fill(Left + 10, Top + 10, Left + 70, Top + 20, 0);  // the walkway stood on
+		level.Fill(Left + 80, Top + 10, Left + 150, Top + 20, 0); // the one past the void
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		const Position player{Left + 20.0, Top + 15.0}, near{Left + 68.0, Top + 15.0}, far{Left + 82.0, Top + 15.0};
+		(void)memory.Learn(level.Loaded(player, 2));
+		Check(memory.At(Left + 82, Top + 15) == Ground::Open && memory.At(Left + 120, Top + 15) == Ground::Unseen,
+			"fixture: the second walkway is loaded where it begins, and not at its far end");
+		LevelRoute::Reach reach(memory, player, 1);
+		Check(reach.To(near, 1) == Answer::Reached, "a pad on the walkway stood on is reached");
+		Check(reach.To(far, 1) == Answer::CutOff, "a pad across the void is cut off");
+		Check(reach.To({Left + 75.0, Top + 15.0}, 1) == Answer::CutOff, "and so is a place in the void itself");
+		Check(reach.To({Left - 40.0, Top + 15.0}, 1) == Answer::Unknown, "a place outside the level's rooms cannot be told");
+		Check(LevelRoute::Plan().From(memory, player, far, 1, 1).path.empty(), "the walk's own plan has no way where the reach says cut off");
+		Check(!LevelRoute::Plan().From(memory, player, near, 1, 1).path.empty(), "and has one where it says reached");
+		Check(reach.Holds(memory, near, 1), "the ground reached holds while the player stays on it");
+		Check(!reach.Holds(memory, far, 1), "and not once a teleport pad has put the player on other ground");
+		Check(!reach.Holds(memory, player, 2), "nor for another body");
+		const LevelRoute::Reach across(memory, far, 1);
+		Check(across.To(far, 1) == Answer::Reached && across.To(near, 1) == Answer::CutOff, "from the far walkway it is the first that is cut off");
+		// A thing whose own cells are shut is reached from the cells beside it.
+		level.Fill(Left + 40, Top + 14, Left + 42, Top + 16, 0x0400);
+		(void)memory.Learn(level.Loaded(player, 2));
+		Check(!reach.Holds(memory, player, 1), "a map that changed is searched again");
+		reach = LevelRoute::Reach(memory, player, 1);
+		Check(reach.To({Left + 41.0, Top + 15.0}, 2) == Answer::Reached, "a chest is reached from beside it");
+		Check(reach.To({Left + 41.0, Top + 15.0}, 0) == Answer::CutOff, "fixture: its own cell is not stood on");
+		// A room: any of its ground. The rooms are 40 cells a side.
+		const auto rooms = level.Rooms();
+		Check(reach.Within(NativeRooms::Subtiles(rooms[0])) == Answer::Reached, "the room stood in is reached");
+		Check(reach.Within(NativeRooms::Subtiles(rooms[2])) == Answer::CutOff, "a room holding only the far walkway is cut off");
+		Check(reach.Within(NativeRooms::Subtiles(rooms[Across])) == Answer::CutOff, "and so is a room of nothing but wall");
+		// Ground not seen yet may have a way: nothing past it is called cut off.
+		Level open;
+		open.Fill(Left + 60, Top, Left + 62, Top + Height - 1, Wall); // a wall from top to bottom
+		LevelRoute::Memory partly;
+		Check(partly.Begin(1, 1, open.Rooms()), "fixture: the map begins");
+		LevelRoute::Memory whole = partly;
+		for (int row = 0; row < Down; ++row)
+			for (int column = 0; column < Across; ++column)
+				(void)whole.Learn(open.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
+		Check(LevelRoute::Reach(whole, player, 1).To({Left + 70.0, Top + 15.0}, 1) == Answer::CutOff, "past a wall seen from end to end a place is cut off");
+		(void)partly.Learn(open.Loaded(player, 1));
+		Check(LevelRoute::Reach(partly, player, 1).To({Left + 70.0, Top + 15.0}, 1) == Answer::Reached,
+			"with the wall seen in the rooms loaded only, the same place may be got to round its end");
+		// Standing where the body does not fit, the ground beside is reached all the same.
+		const Position against{Left + 10.0, Top + 10.0};
+		const LevelRoute::Reach corner(memory, against, 1);
+		Check(corner.To(near, 1) == Answer::Reached && corner.Holds(memory, against, 1), "a cell the body does not fit on can still be left");
+		Check(LevelRoute::Reach(memory, {Left + 75.0, Top + 30.0}, 1).To(near, 1) == Answer::Unknown, "from inside a wall nothing can be told");
+		Check(LevelRoute::Reach().To(near, 1) == Answer::Unknown && !LevelRoute::Reach().Holds(memory, player, 1), "nor with no map at all");
+	}
+	{
+		// A door: no way is planned through one shut, and what lies past it is not cut off.
+		using Answer = LevelRoute::Reach::Answer;
+		constexpr uint16_t Door = 0x0800, Object = 0x0400;
+		Level level;
+		level.Fill(Left, Top + 60, Left + Width - 1, Top + 62, Wall); // a wall across the level
+		level.Fill(Left + 50, Top + 60, Left + 52, Top + 62, Door);   // and a doorway in it, its door shut
+		level.At(Left + 51, Top + 61) = Door | Object;
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		for (int row = 0; row < Down; ++row)
+			for (int column = 0; column < Across; ++column)
+				(void)memory.Learn(level.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
+		Check(memory.At(Left + 50, Top + 60) == Ground::Door && memory.At(Left + 51, Top + 61) == Ground::Door, "a shut door is remembered as a door");
+		level.At(Left + 100, Top + 30) = Object;
+		level.At(Left + 101, Top + 30) = Door | Wall;
+		(void)memory.Learn(level.Loaded({Left + 100.0, Top + 30.0}, 0));
+		Check(memory.At(Left + 100, Top + 30) == Ground::Blocked && memory.At(Left + 101, Top + 30) == Ground::Blocked,
+			"an object alone, and a door on a wall, are ground seen shut");
+		const Position player{Left + 51.0, Top + 100.0}, place{Left + 51.0, Top + 20.0};
+		Check(LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "no way is planned through a shut door");
+		Check(LevelRoute::Reach(memory, player, 1).To(place, 1) == Answer::Reached, "what lies past a shut door is not cut off");
+		level.Fill(Left + 50, Top + 60, Left + 52, Top + 62, 0); // the door opened
+		(void)memory.Learn(level.Loaded({Left + 51.0, Top + 61.0}, 0));
+		Check(!LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "an opened door is a way");
+	}
 	Passed();
 	return 0;
 }

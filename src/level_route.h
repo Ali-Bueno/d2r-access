@@ -27,7 +27,10 @@
 namespace D2RAccess::LevelRoute {
 using Radar::Position;
 
-enum class Ground : uint8_t { Outside, Unseen, Open, Blocked };
+// Door: a shut door, and nothing else in the cell that stops a walk. No way is
+// planned through one, since the game will not walk through it; but a door can
+// be opened, so what lies past one is not cut off (Reach).
+enum class Ground : uint8_t { Outside, Unseen, Open, Blocked, Door };
 
 class Memory {
 public:
@@ -91,6 +94,41 @@ private:
 	};
 	Key key_;
 	std::optional<Field> seen_, any_;
+};
+
+// The ground the player can get to on foot from where they stand, as far as the
+// game has shown the level: over ground seen open, over ground not seen yet,
+// and through doors, which can be opened. What it does not reach is cut off by
+// ground seen shut all the way round, and only that is called cut off: a place
+// past ground not seen yet may still have a way.
+//
+// 2026-10-02, the Arcane Sanctuary: its walkways are joined by teleport pads
+// alone. The scanner listed every pad loaded, twenty of them, and 34 walks to
+// a pad ended with no way, one of them only after running for four seconds to
+// the edge nearest the pad.
+class Reach {
+public:
+	enum class Answer { Unknown, Reached, CutOff };
+	Reach() = default;
+	Reach(const Memory& memory, Position from, int bodyPattern);
+	// Whether this is still the ground reached from `from` on `memory` as it is
+	// now: the same map, unchanged, and `from` on the ground reached.
+	bool Holds(const Memory& memory, Position from, int bodyPattern) const;
+	// A thing: reached when the body stands on reached ground within `margin`
+	// cells of it. Unknown when none of those cells is part of the level, and
+	// when the player stands nowhere the body fits.
+	Answer To(Position place, int margin) const;
+	// A room, max exclusive: reached when any of its cells is.
+	Answer Within(const NativeRooms::Bounds& bounds) const;
+private:
+	// Outside the level; no place for the body; a place for it, not got to; got to.
+	enum Mark : uint8_t { Outside, Shut, Stood, Got };
+	Mark At(int x, int y) const;
+	Answer Among(int minX, int minY, int maxX, int maxY) const; // max exclusive
+	uint64_t session_ = 0, revision_ = 0;
+	int level_ = 0, pattern_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0;
+	bool any_ = false;
+	std::vector<uint8_t> cells_; // one cell of margin all round, as Field has
 };
 
 // Where a walk along `path` heads now: its last cell before it leaves the floor

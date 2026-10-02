@@ -23,7 +23,7 @@ In play:
 | D | walk up to the nearest usable thing and use it |
 | Shift+Home | walk to what the scanner named |
 | H | walk to the nearest unexplored room |
-| Ctrl+R, Shift+R, Alt+R | retreat to the nearest way out / the way in / the nearest corridor or doorway |
+| Ctrl+R | retreat: walk back to the way you came into the level, and stop beside it |
 | End | stop |
 | Ctrl+Y | the ways out of this room |
 | Z, X | life, mana. There is no key for both |
@@ -452,6 +452,123 @@ Not done: the beacon and the scanner's distances still know only the loaded
 floor, so the scanner says the straight line to a thing whose surroundings
 are not loaded, and that number jumps when they load (100 steps, then 250,
 in the walk above). Nothing is kept from one game to the next.
+
+## What cannot be reached: the filter and the look before a walk
+
+MEASURED 2026-10-02, the Arcane Sanctuary (level 74), 07:06 to 07:16: its
+walkways are joined by teleport pads alone. The scanner listed every pad
+loaded (14, then 18, then 20) and 80-odd monsters. Of 62 walks begun, 45
+ended in `no route`, 34 of them to a pad. One to the pad at 25336,5507, begun
+at 07:10:06 from 25333,5461, ran to 25328,5507 and said "No way" there four
+seconds later, eight cells from the pad. That pad and the one at 25336,5517
+are a pair: after each use of one the other was at no steps (07:08:23 to
+07:08:27). H ended in `no route` three times, to an unexplored room
+(07:11:27, 07:11:28, 07:13:08).
+
+Built the same day, on the remembered map above: `LevelRoute::Reach`, the
+ground the player can get to on foot from where they stand, by one search of
+the level's map from the player:
+
+- over ground seen open, over ground not seen yet, and through shut doors (a
+  door can be opened);
+- a thing is **cut off** when no cell the body stands on was got to as near
+  it as a walk counts as there (three cells and half its footprint); a room,
+  when none of its cells was;
+- a thing outside the level's own rooms, and everything when the player
+  stands nowhere the body fits, is **unknown**, which is never treated as cut
+  off.
+
+So only what the game has shown to be shut all the way round is called cut
+off. A place past ground not seen yet stays reachable until that ground is
+seen; in a level only partly loaded some things that cannot be reached are
+still listed. The search is made again only when the map changes or the
+player is on other ground (past a teleport pad).
+
+Used in three places (`KeyboardService::CutOff`, `NoWay`):
+
+1. **The scanner's filter, Ctrl+U**, and in the Ctrl+S list; off until
+   switched on, kept between sessions as `reach-filter`. On, the scanner
+   leaves out what the loaded floor has no steps to and the map shows cut
+   off. Log, when what is left out changes: `[survey] reach filter: N of M
+   cut off from x,y and left out: NAME@x,y ...` (the first twelve by name).
+2. **A walk, before its first step** (Shift+Home): cut off, it is not begun
+   and says "No way to NAME". Log: `[keyboard] walk: not begun, no way on foot
+   from x,y to NAME at x,y`. The same is asked at every look of a walk under
+   way, so a thing found cut off as the map loads ends the walk there and not
+   at the edge nearest it (`walk: no way on foot from ...`). Always on.
+3. **H**: rooms cut off are passed over when the nearest unexplored room is
+   chosen. With none left that can be reached it says "Nothing left to explore
+   here". Always on.
+
+D is unchanged: it already takes only what the loaded floor has steps to. A
+walk with a shut door in the way begins as before.
+
+A shut door is told by the DOOR bit (0x0800) with no WALL or NOPLAYER on the
+cell, READ in `docs/collision-semantics.md`, not measured in the game: no log
+kept so far holds a cell with that bit.
+
+Cost, MEASURED OFFLINE: the search 2.6 ms on a 400 x 400 level, 13.8 ms on
+920 x 920 all open (the Arcane Sanctuary's box is 900 x 900); asking about one
+thing after it, nothing that can be measured.
+
+**Not tested in the game.**
+
+## The retreat: Ctrl+R, back the way in
+
+MEASURED 2026-10-02 08:39, the Arcane Sanctuary, come into by its waypoint at
+25448,5448, life at 48 percent: Shift+R said "The way back is not known" (it
+looked only for stairs to the level left, 40, and a waypoint leads to none);
+Ctrl+R said "No way out found" (it looked only at the rooms round the player,
+and the waypoint was some 110 cells off, on the scanner's list all along);
+Alt+R said "Retreating to passage", `0 cells`, and "Arrived" where the player
+already stood.
+
+The user, the same day: "collapse retreat to control+r autowalks immediately
+to the way the player entered from. everything else is dangerous and failure
+prone. this includes if the player entered via waypoint, control+r should
+retreat to the waypoint. the goal is to simply give the player some breathing
+room to heal, not to attempt to perform complex calculations".
+
+Built:
+
+- **The way in** is taken at the first look in each level (`NoteWayIn`):
+  where the player first stands, and the way out standing within 10 cells of
+  that place -- stairs, a waypoint, a portal, an area border. One that leads to
+  the level just left is taken before one that merely stands nearer. Looked for
+  again twice a second while the player is still there and nothing was found.
+  Log: `[keyboard] way in: NAME at x,y, N cells from where the player came in
+  at x,y (level L, from F)`.
+- With nothing found there, **the place itself** is the way in, called "the
+  entrance". So there is always somewhere to go.
+- **A hop** -- the player more than 20 cells from where they stood at the last
+  look, half a second before -- is a teleport pad taken (or the Teleport skill).
+  Where the player lands is kept as the way onto that ground, with the thing
+  within 3 cells of it, the pad itself. Log: `[keyboard] hop from x,y to x,y`,
+  then `[keyboard] way in, hopped onto: Teleport Pad at x,y ...`. MEASURED the
+  same day at 08:44: from 25378,5446 the filter called the waypoint cut off, the
+  pads at 25385 and 25396 between.
+- **Ctrl+R** walks there as Shift+Home walks to what the scanner named: the
+  same look at the whole way first, the same legs, the same remembered map
+  (`SetOut`, `Walk`). It stops beside it and does not take it; D does that. An
+  area border is walked back to where it was crossed. A portal that has closed
+  is walked to where it stood. When the way in is cut off on foot after a hop,
+  it walks to the pad hopped onto instead (`[keyboard] retreat: no way on foot
+  from ... the way in; to the way onto this ground`); D on that pad goes back.
+  Log: `[keyboard] retreat to NAME at x,y, what the player came in by|what the
+  player hopped onto|...nothing found there`.
+- **Taken out:** Shift+R and Alt+R as retreats, and the retreat planner that
+  priced the ground by the monsters and looked for corridors
+  (`src/retreat.cpp`, its test). Shift+R is still repair in a merchant's menu,
+  and Ctrl+R repair all; in play Shift+R and Alt+R are the game's.
+
+Known limits: only the last hop is kept, so the way back is one pad at a time,
+which is what D on the pad does anyway. The walk never takes a pad itself. If
+the map does not show the way in cut off yet when Ctrl+R is pressed, the walk
+heads for it and stops with "No way to NAME" once the map does; a second Ctrl+R
+then goes to the pad. Ctrl+R in the first half second of a level, before the
+first look, says the terrain is unavailable.
+
+**Not tested in the game.**
 
 ## Found on the way
 

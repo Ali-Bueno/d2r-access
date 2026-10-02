@@ -1,6 +1,11 @@
 #pragma once
 
+#include "entity_radar.h"
+#include "radar.h"
+
 #include <D2RLPlugin/api.h>
+
+#include <vector>
 
 // Keyboard play: the keys that walk, fight, retreat and explore, and the keys
 // that stand in for the pad's reading gestures. The character acts through the
@@ -15,9 +20,7 @@
 //   D                 walk up to the nearest thing and use it
 //   Shift+Home        walk to what the scanner named
 //   H                 walk to the nearest unexplored ground
-//   Ctrl+R            retreat to the nearest way out
-//   Shift+R           retreat the way the player came in
-//   Alt+R             retreat to the nearest corridor or doorway
+//   Ctrl+R            walk back to the way the player came into the level
 //   End               stop
 //   Ctrl+Y            the ways out of this room
 // Reading, everywhere (the pad's right stick):
@@ -46,4 +49,8 @@ void Unregister();
 bool Playing();
 // The list of the mod's switches is open and steps with PageUp and PageDown.
 bool SettingsOpen();
+// For each of `things`, whether the game has shown that it cannot be got to on
+// foot from where `world` has the player (level_route.h, Reach): the walk's own
+// test, here for the scanner's filter. All false when the level's map is not kept.
+std::vector<bool> CutOff(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things);
 }

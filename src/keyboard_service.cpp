@@ -46,7 +46,6 @@
 #include "radar_readout.h"
 #include "radar_service.h"
 #include "radar_ui.h"
-#include "retreat.h"
 #include "room_graph.h"
 #include "room_service.h"
 #include "screen_reader.h"
@@ -92,7 +91,7 @@ using Radar::Position;
 
 enum class Command : uint32_t {
 	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, WalkToTarget, Explore,
-	RetreatExit, RetreatBack, RetreatPassage, Stop, RoomLayout,
+	Retreat, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
@@ -105,12 +104,11 @@ enum class Command : uint32_t {
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
 	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
-	ClickLeft, ClickRight, Transmute, Sort, FillBelt,
+	ClickLeft, ClickRight, Transmute, Sort, FillBelt, Repair,
 	// Console only, for the first live tests.
 	TestRun, TestPlain, TestHalt, TestStatus, LogOn, LogOff,
 };
 enum class Mode { Idle, Walk, Interact, Explore, Retreat, Fight };
-enum class Way { Exit, Back, Passage };
 enum class Progress { Going, Arrived, Blocked, NoRoute, Unreadable };
 
 // Policy, not game constants. Distances are collision subtiles.
@@ -167,20 +165,17 @@ bool g_settingsBuilt = false;
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
-Way g_way = Way::Exit;
 Hand g_hand = Hand::Left;
-Entity g_target;            // what a walk, a use or a far retreat heads for
+Entity g_target;            // what a walk, a use or a retreat heads for
 uint32_t g_itemPick = 0;    // the item, object or NPC comma, full stop, [ or ] chose, which the next D takes
 EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item, an object or an NPC: ids of different kinds may meet
 std::string g_itemPickName;
 Position g_walkFrom;        // where a walk to what the scanner named began
 bool g_walkFromSet = false;
-std::string g_goalName;     // the way out a retreat last named
 AutoWalk::Walker g_walker;
 AutoWalk::Settings g_walk;
 CombatTarget::Lock g_lock;
 CombatTarget::Settings g_targets;
-Retreat::Settings g_retreat;
 std::vector<uint64_t> g_refused; // rooms an exploring walk gave up on, this level
 uint64_t g_nextAct = 0, g_nextStep = 0, g_nextStrike = 0, g_nextGear = 0;
 bool g_stepping = false;    // a held arrow is walking the character
@@ -260,6 +255,37 @@ const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& w
 	return &found->memory;
 }
 
+// Whether the game has shown that a thing cannot be got to on foot from where
+// the player stands (LevelRoute::Reach). The ground reached is found again only
+// when the map changes or the player is on other ground, as past a teleport
+// pad: it is a search of the whole level.
+LevelRoute::Reach g_reach;
+const LevelRoute::Reach* Reached(const Lifecycle& state, const Radar::World& world) {
+	const auto* memory = Remember(state, world);
+	if (!memory) return nullptr;
+	if (!g_reach.Holds(*memory, world.player, world.bodyPattern)) g_reach = LevelRoute::Reach(*memory, world.player, world.bodyPattern);
+	return &g_reach;
+}
+bool CutOff(const LevelRoute::Reach& reach, const Lifecycle& state, const Entity& target) {
+	using Answer = LevelRoute::Reach::Answer;
+	if (target.kind == EntityRadar::Kind::Room) {
+		// A room is walked into, not up to: any of its ground will do.
+		const auto* graph = Rooms(state);
+		if (!graph) return false;
+		const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == target.placeId; });
+		return room != graph->rooms.end() && reach.Within(NativeRooms::Subtiles(*room)) == Answer::CutOff;
+	}
+	// As near as a walk counts as there (Walk: UseReach and half the footprint),
+	// which is wider than the margin a route is planned to: stairs set into a
+	// wall have no place for the body beside them, and are walked up to all the same.
+	const int within = std::max(Margin(target), static_cast<int>(std::ceil(UseReach + HalfFootprint(target))));
+	return reach.To(target.position, within) == Answer::CutOff;
+}
+bool CutOff(const Lifecycle& state, const Radar::World& world, const Entity& target) {
+	const auto* reach = Reached(state, world);
+	return reach && CutOff(*reach, state, target);
+}
+
 // What is around the player right now. Read fresh for every decision: the
 // monsters move, and so has the player.
 struct Scene {
@@ -308,7 +334,6 @@ void End(const char* reason, bool halt) {
 	g_mode = Mode::Idle;
 	g_walker.Stop();
 	g_closing = g_backing = false;
-	g_goalName.clear();
 	if (halt) (void)NativeActions::Halt();
 }
 
@@ -445,11 +470,65 @@ void TakeOffMarkers(const Lifecycle& state, const Radar::World& world, bool besi
 		else g_kept.push_back({marker.x, marker.y, world.player});
 	}
 }
+// The way the player came into the level, which Ctrl+R walks back to: where
+// they first stood in it, and what they came through -- stairs, a waypoint, a
+// portal, an area border -- which stands beside that. Looked for at the first
+// look in the level, and again while the player is still there and nothing
+// has been found. With nothing found the place itself is the way in, so a
+// retreat always has somewhere to go.
+//
+// A hop within the level, a teleport pad of the Arcane Sanctuary, can put the
+// player on ground the way in cannot be walked to from (2026-10-02 08:44: the
+// waypoint cut off from 25378,5446, past the pads at 25385 and 25396). The
+// way onto that ground is the pad hopped onto, kept the same way.
+constexpr double ArriveNear = 10; // what the player came through stands this near where they first stood
+constexpr double HopNear = 3;     // a pad hopped onto is under the player: a thing no farther off than this
+constexpr double HopFar = 20;     // farther than this between two looks is a hop, not a stride...
+constexpr uint64_t HopMs = 1000;  // ...when the looks are no farther apart than this
+struct Arrival { Position at; Entity way; bool named = false; };
+struct WayIn { uint64_t session = 0; int level = 0; Arrival entered, hopped; bool hop = false; Position last; uint64_t lastAt = 0; };
+WayIn g_wayIn;
+// What the player came through, beside `arrival`: the nearest `kind` within `within`.
+void Name(const Lifecycle& state, Arrival& arrival, EntityRadar::Kind kind, double within, const char* what) {
+	Scene scene;
+	if (!Look(state, scene, true)) return;
+	// The level left beats what merely stands near: the stairs back up, not a waypoint beside them.
+	const auto back = [&](const Entity& entity) { return state.cameFrom && static_cast<int>(entity.destinationLevel) == state.cameFrom; };
+	const Entity* way = nullptr;
+	for (const auto& entity : scene.entities) {
+		if ((entity.kind != kind && entity.kind != EntityRadar::Kind::Exit) || Distance(entity.position, arrival.at) > within) continue;
+		if (!way || back(entity) > back(*way)
+			|| (back(entity) == back(*way) && Distance(entity.position, arrival.at) < Distance(way->position, arrival.at))) way = &entity;
+	}
+	if (!way) return;
+	arrival.way = *way;
+	arrival.named = true;
+	AsyncLog::InfoF(g_context, "[keyboard] %s: %s at %.0f,%.0f, %.0f cells from where the player came in at %.0f,%.0f (level %d, from %d)",
+		what, way->name.c_str(), way->position.x, way->position.y, Distance(way->position, arrival.at), arrival.at.x, arrival.at.y, state.level, state.cameFrom);
+}
+void NoteWayIn(const Lifecycle& state, const Radar::World& world, uint64_t now) {
+	if (world.level != state.level) return;
+	if (g_wayIn.session != state.session || g_wayIn.level != state.level) {
+		g_wayIn = {state.session, state.level, {world.player}};
+	} else if (now - g_wayIn.lastAt <= HopMs && Distance(world.player, g_wayIn.last) > HopFar) {
+		AsyncLog::InfoF(g_context, "[keyboard] hop from %.0f,%.0f to %.0f,%.0f", g_wayIn.last.x, g_wayIn.last.y, world.player.x, world.player.y);
+		g_wayIn.hopped = {world.player};
+		g_wayIn.hop = true;
+	}
+	g_wayIn.last = world.player;
+	g_wayIn.lastAt = now;
+	if (!g_wayIn.entered.named && Distance(world.player, g_wayIn.entered.at) <= ArriveNear)
+		Name(state, g_wayIn.entered, EntityRadar::Kind::Exit, ArriveNear, "way in");
+	if (g_wayIn.hop && !g_wayIn.hopped.named && Distance(world.player, g_wayIn.hopped.at) <= HopNear)
+		Name(state, g_wayIn.hopped, EntityRadar::Kind::Object, HopNear, "way in, hopped onto");
+}
+
 void Sweep(const Lifecycle& state, uint64_t now) {
 	if (now < g_nextSweep) return;
 	g_nextSweep = now + SweepMs;
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
+	NoteWayIn(state, world, now);
 	// The floor is remembered here too, twice a second in play: what the arrows
 	// walk past is known to a later walk.
 	(void)Remember(state, world);
@@ -559,19 +638,43 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 	return Progress::Going;
 }
 
+// No way on foot to a thing further off than `reach`: the loaded floor does not
+// get to it, and the remembered map shows it cut off.
+bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, double reach) {
+	if (Distance(scene.world.player, target.position) <= reach) return false;
+	if (target.kind != EntityRadar::Kind::Room && Steps(scene.grid, target.position, Margin(target)) >= 0) return false;
+	return CutOff(state, scene.world, target);
+}
+
 // ---- walking to what the scanner named, and to the nearest thing to use ----
+
+// A walk to `target`, a retreat's too: false when it is not begun. The whole
+// way is looked for before the first step. 2026-10-02, the Arcane Sanctuary: a
+// walk to a teleport pad across the void ran for four seconds, to eight cells
+// from it, and said "No way" there (07:10:06 to 07:10:10).
+bool SetOut(const Lifecycle& state, const Entity& target, Mode mode, const char* reason) {
+	if (Scene scene; Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
+		End("no way", true);
+		AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
+			scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
+		ScreenReader::Speak(Format(Strings::Current().walkNoRoute, target.name.c_str()), true);
+		return false;
+	}
+	End(reason, false);
+	g_target = target;
+	g_mode = mode;
+	g_walker.Start();
+	g_nextAct = 0;
+	g_walkFromSet = false;
+	return true;
+}
 
 void BeginWalk(const Lifecycle& state) {
 	const auto& strings = Strings::Current();
 	if (!Ready()) return;
 	Entity target;
 	if (!BeaconService::Offered(target, state.level)) { ScreenReader::Speak(strings.walkNothing, true); return; }
-	End("walk to target", false);
-	g_target = target;
-	g_mode = Mode::Walk;
-	g_walker.Start();
-	g_nextAct = 0;
-	g_walkFromSet = false;
+	if (!SetOut(state, target, Mode::Walk, "walk to target")) return;
 	AsyncLog::InfoF(g_context, "[keyboard] walk to id=%u at=%.0f,%.0f name=%s", target.id, target.position.x, target.position.y, target.name.c_str());
 	ScreenReader::Speak(Format(strings.walkTo, target.name.c_str()), true);
 }
@@ -633,19 +736,32 @@ Position Beyond(Position player, Position crossing) {
 void Walk(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	Scene scene;
-	// A walk to what the scanner named looks as far as the scanner does.
-	if (!Look(state, scene, g_target.kind == EntityRadar::Kind::Exit, g_mode == Mode::Walk)) return;
+	// A walk to what the scanner named, and a retreat, look as far as the scanner does.
+	if (!Look(state, scene, g_target.kind == EntityRadar::Kind::Exit, g_mode == Mode::Walk || g_mode == Mode::Retreat)) return;
 	const std::string name = g_target.name;
 	if (!Refresh(state, scene, g_target)) {
-		End("target gone", true);
-		ScreenReader::Speak(Format(strings.beaconLost, name.c_str()), true);
-		return;
+		if (g_mode != Mode::Retreat) {
+			End("target gone", true);
+			ScreenReader::Speak(Format(strings.beaconLost, name.c_str()), true);
+			return;
+		}
+		// A portal closes: where it stood is still the way in.
+		AsyncLog::InfoF(g_context, "[keyboard] retreat: %s is gone, on to where it was, %.0f,%.0f", name.c_str(), g_target.position.x, g_target.position.y);
+		g_target.unit = Entity::NoUnit;
 	}
 	if (!g_walkFromSet) { g_walkFrom = scene.world.player; g_walkFromSet = true; }
 	const double reach = UseReach + HalfFootprint(g_target);
 	if (g_mode == Mode::Explore && InTargetRoom(state, scene.world.player)) {
 		End("explored", true);
 		ScreenReader::Speak(strings.exploreArrived, true);
+		return;
+	}
+	// Cut off, as the map now shows: said here, not from the edge nearest the thing.
+	if (g_mode != Mode::Interact && NoWay(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach)) {
+		AsyncLog::InfoF(g_context, "[keyboard] walk: no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
+			scene.world.player.x, scene.world.player.y, name.c_str(), g_target.position.x, g_target.position.y);
+		End("no way", true);
+		ScreenReader::Speak(Format(strings.walkNoRoute, name.c_str()), true);
 		return;
 	}
 	switch (Advance(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach, now)) {
@@ -824,9 +940,17 @@ void BeginExplore(const Lifecycle& state) {
 	const auto* graph = Rooms(state);
 	if (!graph || !Look(state, scene, false)) { ScreenReader::Speak(strings.terrainUnavailable, true); return; }
 	const auto explored = TerrainService::ExploredRooms(state.level, graph->rooms, scene.world.player);
-	const auto choice = ExploreGoal::Nearest(*graph, scene.grid, explored, scene.world.player, g_refused);
+	// A room cut off from here is no place to walk to: 2026-10-02, the Arcane
+	// Sanctuary, H ended three times with no way to the room it chose. Looked
+	// for at each ask, since a teleport pad changes it.
+	std::vector<uint64_t> refused = g_refused;
+	if (const auto* reach = Reached(state, scene.world))
+		for (const auto& room : graph->rooms)
+			if (reach->Within(NativeRooms::Subtiles(room)) == LevelRoute::Reach::Answer::CutOff) refused.push_back(room.id);
+	const size_t cutOff = refused.size() - g_refused.size();
+	const auto choice = ExploreGoal::Nearest(*graph, scene.grid, explored, scene.world.player, refused);
 	if (!choice.found) {
-		AsyncLog::InfoF(g_context, "[keyboard] explore: nothing left, %zu rooms, %zu explored, %zu given up", graph->rooms.size(), explored.size(), g_refused.size());
+		AsyncLog::InfoF(g_context, "[keyboard] explore: nothing left, %zu rooms, %zu explored, %zu given up, %zu cut off", graph->rooms.size(), explored.size(), g_refused.size(), cutOff);
 		ScreenReader::Speak(strings.exploreNothing, true);
 		return;
 	}
@@ -847,78 +971,54 @@ void BeginExplore(const Lifecycle& state) {
 
 // ---- retreating ----
 
-void BeginRetreat(const Lifecycle&, Way way) {
-	if (!Ready()) return;
-	End("retreat", false);
-	g_way = way;
-	g_mode = Mode::Retreat;
-	g_walker.Start();
-	g_nextAct = 0;
+// Ctrl+R: back to the way the player came into the level, walked as a walk to
+// what the scanner named is walked, and no further: room to drink and heal,
+// not a way out of the fight worked out from the monsters. 2026-10-02, the
+// Arcane Sanctuary, come into by its waypoint: Ctrl+R said "No way out found"
+// and Shift+R "The way back is not known" with the waypoint on the scanner's
+// list, and Alt+R said "Retreating to passage" where the player stood. The
+// user: "collapse retreat to control+r autowalks immediately to the way the
+// player entered from. everything else is dangerous and failure prone."
+constexpr uint32_t PlaceOnly = 0xFFFFFFFF; // the id of a way in that is a place alone: no unit has it
+// An arrival as a place to walk to.
+Entity Target(const Arrival& arrival) {
+	Entity target = arrival.way;
+	if (arrival.named && target.unit == Entity::NoUnit) {
+		// An area border: back to where it was crossed, ground the player has
+		// walked, not to wherever along it the scanner would put it from here.
+		target.id = PlaceOnly;
+		target.placeId = 0;
+	}
+	if (!arrival.named) {
+		target = {};
+		target.id = PlaceOnly;
+		target.kind = EntityRadar::Kind::Exit;
+		target.category = EntityRadar::Category::Exit;
+		target.position = arrival.at;
+		target.name = Strings::Current().retreatEntrance;
+	}
+	return target;
 }
-
-void RetreatOn(const Lifecycle& state, uint64_t now) {
+void BeginRetreat(const Lifecycle& state) {
 	const auto& strings = Strings::Current();
-	Scene scene;
-	if (!Look(state, scene, g_way != Way::Passage)) return;
-	std::vector<Position> goals, threats;
-	std::vector<const Entity*> ways;
-	for (const auto& entity : scene.entities) {
-		if (entity.kind == EntityRadar::Kind::Enemy) threats.push_back(entity.position);
-		if (entity.kind != EntityRadar::Kind::Exit || g_way == Way::Passage) continue;
-		if (g_way == Way::Back && static_cast<int>(entity.destinationLevel) != state.cameFrom) continue;
-		goals.push_back(entity.position);
-		ways.push_back(&entity);
-	}
-	auto settings = g_retreat;
-	if (g_way == Way::Passage) {
-		goals = Retreat::Chokepoints(scene.grid);
-		settings.arrival = 1;
-	}
-	if (goals.empty()) {
-		End("no goal", false);
-		ScreenReader::Speak(g_way == Way::Passage ? strings.retreatNoPassage
-			: g_way == Way::Back ? strings.retreatBackUnknown : strings.retreatNone, true);
+	if (!Ready()) return;
+	if (g_wayIn.session != state.session || g_wayIn.level != state.level) {
+		// Not looked at yet in this level: the world could not be read.
+		ScreenReader::Speak(strings.terrainUnavailable, true);
 		return;
 	}
-	const auto plan = Retreat::Find(scene.grid, goals, threats, settings);
-	if (!plan.found) {
-		if (g_way == Way::Passage) {
-			End("no passage reached", false);
-			ScreenReader::Speak(strings.retreatNoPassage, true);
-			return;
-		}
-		// Every way out lies past what the game keeps loaded around the player:
-		// head for the nearest, room by room, as a walk to it would.
-		const Entity* nearest = ways.front();
-		for (const auto* way : ways)
-			if (Distance(scene.world.player, way->position) < Distance(scene.world.player, nearest->position)) nearest = way;
-		g_target = *nearest;
-		g_mode = Mode::Walk;
-		g_walker.Start();
-		AsyncLog::InfoF(g_context, "[keyboard] retreat: far way out id=%u name=%s", g_target.id, g_target.name.c_str());
-		ScreenReader::Speak(Format(strings.retreatTo, g_target.name.c_str()), true);
-		return;
+	Entity target = Target(g_wayIn.entered);
+	const char* how = g_wayIn.entered.named ? "what the player came in by" : "where the player came in, nothing found there";
+	// Past a hop the way in may be cut off on foot: then the way onto this ground is the way back.
+	if (Scene scene; g_wayIn.hop && Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
+		AsyncLog::InfoF(g_context, "[keyboard] retreat: no way on foot from %.0f,%.0f to %s at %.0f,%.0f, the way in; to the way onto this ground",
+			scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
+		target = Target(g_wayIn.hopped);
+		how = g_wayIn.hopped.named ? "what the player hopped onto" : "where the player hopped onto, nothing found there";
 	}
-	const std::string name = g_way == Way::Passage ? std::string(strings.roomOpening) : ways[plan.goal]->name;
-	if (name != g_goalName) {
-		// The first choice, or a better one now that the monsters have moved.
-		const bool first = g_goalName.empty();
-		g_goalName = name;
-		AsyncLog::InfoF(g_context, "[keyboard] retreat: to %s, %zu cells, threatened=%u, %zu monsters", name.c_str(), plan.path.size(), plan.threatened ? 1u : 0u, threats.size());
-		ScreenReader::Speak(Format(strings.retreatTo, name.c_str()), first);
-	}
-	if (plan.path.size() <= 1) {
-		End("retreat arrived", true);
-		ScreenReader::Speak(Format(strings.beaconArrived, name.c_str()), true);
-		return;
-	}
-	const auto step = g_walker.Tick(scene.world, plan.path, now, g_walk);
-	if (step.event == AutoWalk::Event::Blocked) {
-		End("retreat blocked", true);
-		ScreenReader::Speak(Format(strings.walkBlocked, name.c_str()), true);
-	} else if (step.event == AutoWalk::Event::Order) {
-		Order(state, scene.world, step.order, now);
-	}
+	if (!SetOut(state, target, Mode::Retreat, "retreat")) return;
+	AsyncLog::InfoF(g_context, "[keyboard] retreat to %s at %.0f,%.0f, %s", target.name.c_str(), target.position.x, target.position.y, how);
+	ScreenReader::Speak(Format(strings.retreatTo, target.name.c_str()), true);
 }
 
 // ---- fighting ----
@@ -1222,6 +1322,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
+		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 	};
 	return entries;
 }
@@ -1366,7 +1467,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	else if (args == "log on") g_command = Command::LogOn;
 	else if (args == "log off") g_command = Command::LogOff;
 	else if (word == "explore") g_deferred = Command::Explore;
-	else if (word == "retreat") g_deferred = Command::RetreatExit;
+	else if (word == "retreat") g_deferred = Command::Retreat;
 	else if (word == "stop") g_deferred = Command::Stop;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
@@ -1400,7 +1501,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		}
 		// D is the right click in a menu, as it is the hand that uses a thing in play.
 		if (command == Command::Interact) command = Command::ClickRight;
-		const char* button = command == Command::RetreatExit ? RepairAllButton : command == Command::RetreatBack ? RepairButton
+		const char* button = command == Command::Retreat ? RepairAllButton : command == Command::Repair ? RepairButton
 			: command == Command::Transmute ? TransmuteButton : nullptr;
 		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
 			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop
@@ -1418,7 +1519,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	}
 	// Out of a menu a click with Shift or Ctrl, and the cube's key, are the game's keys.
 	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort
-		|| command == Command::FillBelt)
+		|| command == Command::FillBelt || command == Command::Repair)
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
 	if ((command == Command::Swap || command == Command::LeftSkill || command == Command::ItemNext || command == Command::ItemPrevious
@@ -1510,9 +1611,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
 			Entry{"keyboard-walk", "Walk to the scanned target", Key::Home, Modifier::Shift, Command::WalkToTarget},
 			Entry{"keyboard-explore", "Walk to unexplored ground", Key::H, Modifier::None, Command::Explore},
-			Entry{"keyboard-retreat", "Retreat to the nearest way out", Key::R, Modifier::Control, Command::RetreatExit},
-			Entry{"keyboard-retreat-back", "Retreat the way you came in", Key::R, Modifier::Shift, Command::RetreatBack},
-			Entry{"keyboard-retreat-passage", "Retreat to a corridor or doorway", Key::R, Modifier::Alt, Command::RetreatPassage},
+			Entry{"keyboard-retreat", "Retreat to the way you came in; in a menu, repair all", Key::R, Modifier::Control, Command::Retreat},
 			Entry{"keyboard-stop", "Stop walking or fighting", Key::End, Modifier::None, Command::Stop},
 			Entry{"keyboard-room", "Say the ways out of this room", Key::Y, Modifier::Control, Command::RoomLayout},
 			Entry{"keyboard-read-previous", "Read: previous", Key::PageUp, Modifier::None, Command::ReadPrevious},
@@ -1533,7 +1632,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-right-click-control", "Menu: right click with Ctrl", Key::D, Modifier::Control, Command::ClickRight},
 			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
 			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort},
-			Entry{"keyboard-fill-belt", "Menu: fill the belt from the inventory", Key::F, Modifier::Alt, Command::FillBelt}}) {
+			Entry{"keyboard-fill-belt", "Menu: fill the belt from the inventory", Key::F, Modifier::Alt, Command::FillBelt},
+			Entry{"keyboard-repair", "Menu: repair", Key::R, Modifier::Shift, Command::Repair}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -1591,6 +1691,8 @@ void Tick(const D2RL::PluginContext* context) {
 		// Another level's cells: what would not come off there, and where the character last stuck.
 		g_kept.clear();
 		g_moveOrder = g_moveFrom = g_stuckAt = {-1, -1};
+		// Where a new level is first stood in is the way in: looked at the first moment in play.
+		g_nextSweep = 0;
 	}
 	ReleaseLostHolds();
 	const bool attack = g_pressed[0].exchange(false), cast = g_pressed[1].exchange(false);
@@ -1630,9 +1732,7 @@ void Tick(const D2RL::PluginContext* context) {
 	case Command::NpcPrevious:    StepPick(state, -1, true); break;
 	case Command::WalkToTarget:   BeginWalk(state); break;
 	case Command::Explore:        BeginExplore(state); break;
-	case Command::RetreatExit:    BeginRetreat(state, Way::Exit); break;
-	case Command::RetreatBack:    BeginRetreat(state, Way::Back); break;
-	case Command::RetreatPassage: BeginRetreat(state, Way::Passage); break;
+	case Command::Retreat:        BeginRetreat(state); break;
 	case Command::Stop:
 		End("stop key", true);
 		ScreenReader::Speak(Strings::Current().walkStopped, true);
@@ -1649,8 +1749,8 @@ void Tick(const D2RL::PluginContext* context) {
 	switch (g_mode) {
 	case Mode::Walk:
 	case Mode::Interact:
-	case Mode::Explore: Walk(state, now); break;
-	case Mode::Retreat: RetreatOn(state, now); break;
+	case Mode::Explore:
+	case Mode::Retreat: Walk(state, now); break;
 	case Mode::Fight:   Fight(context, state, now); break;
 	case Mode::Idle:    break;
 	}
@@ -1658,6 +1758,16 @@ void Tick(const D2RL::PluginContext* context) {
 
 bool Playing() { return g_playing.load(); }
 bool SettingsOpen() { return g_settingsOpen.load(); }
+
+std::vector<bool> CutOff(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things) {
+	std::vector<bool> cut(things.size(), false);
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	if (const auto* reach = Reached(state, world))
+		for (size_t i = 0; i < things.size(); ++i) cut[i] = CutOff(*reach, state, *things[i]);
+	return cut;
+}
 
 void Unregister() {
 	End("unregister", false);
@@ -1685,6 +1795,8 @@ void Unregister() {
 	g_remembered.clear();
 	g_rememberedSession = 0;
 	g_plan.Clear();
+	g_reach = {};
+	g_wayIn = {};
 	g_revision = 0;
 	g_stepping = false;
 	g_playing = false;

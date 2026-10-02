@@ -13,11 +13,55 @@ constexpr int64_t MaxCells = 1024 * 1024;
 // (Radar::TerrainCollisionFlags); a bare one is a marker left behind
 // (radar.h LeftMarkers), and neither is floor to remember.
 constexpr uint16_t NoPath = 0x1000;
+constexpr uint16_t DoorBits = Radar::Collision::Door | Radar::Collision::Object;
 struct Step { int x, y; };
 // Straight steps first, so a way runs straight where it can.
 constexpr std::array<Step, 8> Steps8{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
 
 int Cell(double value) { return static_cast<int>(std::lround(value)); }
+
+// The level with one cell of margin all round, never stood on, so no step is
+// tested against the level's edge, and where on it the body fits: on ground
+// seen open, with `unseen` on ground not seen yet, with `doors` in a doorway
+// whose door is shut.
+struct Floor {
+	size_t across = 0;
+	std::vector<Ground> ground;
+	std::vector<uint8_t> stood;
+};
+Floor Standing(const Memory& memory, int bodyPattern, bool unseen, bool doors) {
+	Floor floor;
+	const int width = memory.Width(), height = memory.Height();
+	floor.across = static_cast<size_t>(width) + 2;
+	const size_t cells = floor.across * (static_cast<size_t>(height) + 2);
+	floor.ground.assign(cells, Ground::Outside);
+	for (int y = 0; y < height; ++y)
+		std::copy_n(memory.Cells().begin() + static_cast<size_t>(y) * width, width, floor.ground.begin() + static_cast<size_t>(y + 1) * floor.across + 1);
+	const auto row = static_cast<int64_t>(floor.across);
+	// The cells of the body round its centre.
+	std::vector<int64_t> body;
+	for (int dy = -1; dy <= 1; ++dy)
+		for (int dx = -1; dx <= 1; ++dx)
+			if ((dx || dy) && bodyPattern != 0 && ((bodyPattern % 2) == 0 || dx == 0 || dy == 0)) body.push_back(dy * row + dx);
+	const auto open = [doors](Ground ground) { return ground == Ground::Open || (doors && ground == Ground::Door); };
+	floor.stood.assign(cells, 0);
+	for (int y = 1; y <= height; ++y) {
+		for (int x = 1; x <= width; ++x) {
+			const size_t at = static_cast<size_t>(y) * floor.across + static_cast<size_t>(x);
+			bool seen = open(floor.ground[at]);
+			if (!seen && floor.ground[at] != Ground::Unseen) continue;
+			bool fits = true;
+			for (const auto offset : body) {
+				const Ground beside = floor.ground[static_cast<size_t>(static_cast<int64_t>(at) + offset)];
+				if (beside == Ground::Unseen) seen = false;
+				// Past the level's own rooms the body cannot be shown to fit.
+				else if (!open(beside)) { fits = false; break; }
+			}
+			floor.stood[at] = fits && (seen || unseen);
+		}
+	}
+	return floor;
+}
 }
 
 bool Memory::Begin(uint64_t session, int level, const std::vector<NativeRooms::Room>& rooms) {
@@ -58,11 +102,14 @@ bool Memory::Learn(const Radar::World& world) {
 				const size_t source = static_cast<size_t>(y - room->y) * room->width + (x - room->x);
 				if (source >= room->cells.size()) continue;
 				const uint16_t raw = room->cells[source];
+				const auto shut = static_cast<uint16_t>(Radar::TerrainCollisionFlags(raw) & mask);
 				// A blank cell of a loaded room is no floor, and no route here crosses
 				// one (Beacon, Navigation): shut, or a way would be planned through it
-				// for ever.
-				const Ground ground = (raw & Radar::Collision::Blank) || (Radar::TerrainCollisionFlags(raw) & mask)
-					? Ground::Blocked : Ground::Open;
+				// for ever. A shut door's cells carry DOOR, which opening it clears
+				// (docs/collision-semantics.md); whether they carry OBJECT too is not
+				// measured, so either counts as the door's own.
+				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
+					: (shut & Radar::Collision::Door) ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
 				if (cell == ground) continue;
 				cell = ground;
@@ -83,35 +130,13 @@ Ground Memory::At(int x, int y) const {
 Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen)
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
-	// One cell of margin all round, never stood on, so no step is tested against the level's edge.
-	const size_t across = static_cast<size_t>(width_) + 2, cells = across * (static_cast<size_t>(height_) + 2);
-	steps_.assign(cells, -1);
+	// A shut door is no part of a way: the game will not walk through one.
+	const Floor floor = Standing(memory, bodyPattern, unseen, false);
+	const size_t across = floor.across;
+	const auto& stood = floor.stood;
+	steps_.assign(stood.size(), -1);
 	const auto index = [&](int x, int y) { return static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1); };
 	const auto row = static_cast<int64_t>(across);
-	std::vector<Ground> ground(cells, Ground::Outside);
-	for (int y = 0; y < height_; ++y)
-		std::copy_n(memory.Cells().begin() + static_cast<size_t>(y) * width_, width_, ground.begin() + static_cast<size_t>(y + 1) * across + 1);
-	// The cells of the body round its centre.
-	std::vector<int64_t> body;
-	for (int dy = -1; dy <= 1; ++dy)
-		for (int dx = -1; dx <= 1; ++dx)
-			if ((dx || dy) && bodyPattern != 0 && ((bodyPattern % 2) == 0 || dx == 0 || dy == 0)) body.push_back(dy * row + dx);
-	// Whether the body fits on each cell: on ground seen open, or with `unseen` on ground not seen yet.
-	std::vector<uint8_t> stood(cells, 0);
-	for (int y = y_; y < y_ + height_; ++y) {
-		for (int x = x_; x < x_ + width_; ++x) {
-			const size_t at = index(x, y);
-			if (ground[at] != Ground::Open && ground[at] != Ground::Unseen) continue;
-			bool fits = true, seen = ground[at] == Ground::Open;
-			for (const auto offset : body) {
-				const Ground beside = ground[static_cast<size_t>(static_cast<int64_t>(at) + offset)];
-				// Past the level's own rooms the body cannot be shown to fit.
-				if (beside == Ground::Outside || beside == Ground::Blocked) { fits = false; break; }
-				if (beside == Ground::Unseen) seen = false;
-			}
-			stood[at] = fits && (seen || unseen);
-		}
-	}
 	std::vector<uint32_t> queue;
 	const int placeX = Cell(place.x), placeY = Cell(place.y);
 	for (int dy = -margin; dy <= margin; ++dy) {
@@ -189,6 +214,84 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 	way.path = any_->From(from);
 	way.guess = !way.path.empty();
 	return way;
+}
+
+Reach::Reach(const Memory& memory, Position from, int bodyPattern)
+	: session_(memory.Session()), revision_(memory.Revision()), level_(memory.Level()), pattern_(bodyPattern),
+	  x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
+	if (width_ <= 0 || height_ <= 0) return;
+	const Floor floor = Standing(memory, bodyPattern, true, true);
+	const size_t across = floor.across;
+	cells_.resize(floor.stood.size());
+	for (size_t i = 0; i < cells_.size(); ++i)
+		cells_[i] = floor.ground[i] == Ground::Outside ? Outside : floor.stood[i] ? Stood : Shut;
+	std::vector<uint32_t> queue;
+	const auto seed = [&](int x, int y) {
+		if (At(x, y) != Stood) return;
+		const size_t at = static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1);
+		cells_[at] = Got;
+		queue.push_back(static_cast<uint32_t>(at));
+	};
+	const int x = Cell(from.x), y = Cell(from.y);
+	seed(x, y);
+	// The cell stood on need not fit the body (Field::From): the cells beside it that do.
+	if (queue.empty())
+		for (const auto step : Steps8) seed(x + step.x, y + step.y);
+	any_ = !queue.empty();
+	const auto row = static_cast<int64_t>(across);
+	std::array<int64_t, 8> around{};
+	for (size_t i = 0; i < Steps8.size(); ++i) around[i] = Steps8[i].y * row + Steps8[i].x;
+	for (size_t head = 0; head < queue.size(); ++head) {
+		for (const auto offset : around) {
+			const auto next = static_cast<size_t>(static_cast<int64_t>(queue[head]) + offset);
+			if (cells_[next] != Stood) continue;
+			cells_[next] = Got;
+			queue.push_back(static_cast<uint32_t>(next));
+		}
+	}
+}
+
+Reach::Mark Reach::At(int x, int y) const {
+	if (cells_.empty() || x < x_ || y < y_ || x >= x_ + width_ || y >= y_ + height_) return Outside;
+	return static_cast<Mark>(cells_[static_cast<size_t>(y - y_ + 1) * (static_cast<size_t>(width_) + 2) + static_cast<size_t>(x - x_ + 1)]);
+}
+
+bool Reach::Holds(const Memory& memory, Position from, int bodyPattern) const {
+	if (cells_.empty() || memory.Session() != session_ || memory.Revision() != revision_ || memory.Level() != level_
+		|| bodyPattern != pattern_) return false;
+	const int x = Cell(from.x), y = Cell(from.y);
+	const Mark mark = At(x, y);
+	if (mark != Shut && mark != Outside) return mark == Got;
+	// Where the body does not fit, every place beside it that it does fit was a start.
+	bool beside = false;
+	for (const auto step : Steps8) {
+		const Mark next = At(x + step.x, y + step.y);
+		if (next == Stood) return false;
+		beside = beside || next == Got;
+	}
+	return beside;
+}
+
+Reach::Answer Reach::Among(int minX, int minY, int maxX, int maxY) const {
+	if (!any_) return Answer::Unknown;
+	bool inside = false;
+	for (int y = std::max(minY, y_); y < std::min(maxY, y_ + height_); ++y) {
+		for (int x = std::max(minX, x_); x < std::min(maxX, x_ + width_); ++x) {
+			const Mark mark = At(x, y);
+			if (mark == Got) return Answer::Reached;
+			inside = inside || mark != Outside;
+		}
+	}
+	return inside ? Answer::CutOff : Answer::Unknown;
+}
+
+Reach::Answer Reach::To(Position place, int margin) const {
+	const int x = Cell(place.x), y = Cell(place.y);
+	return Among(x - margin, y - margin, x + margin + 1, y + margin + 1);
+}
+
+Reach::Answer Reach::Within(const NativeRooms::Bounds& bounds) const {
+	return Among(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
 }
 
 bool Ahead(const std::vector<Position>& path, const Navigation::Grid& grid, Position& cell) {

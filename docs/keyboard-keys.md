@@ -27,9 +27,7 @@ before adding one, and read this file first.
 | D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored room |
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
-| Ctrl+R | retreat to the nearest way out |
-| Shift+R | retreat the way you came in |
-| Alt+R | retreat to the nearest corridor or doorway |
+| Ctrl+R | retreat: walk back to the way you came into the level -- the stairs, waypoint, portal or area border you arrived by, or the place you first stood if none stands there -- and stop beside it (the user, 2026-10-02: "collapse retreat to control+r"). Shift+R and Alt+R retreat no more; in play they are the game's |
 | End | stop |
 | Z, X | life, mana |
 | PageUp, PageDown | scanner: previous object, next object |
@@ -111,6 +109,7 @@ game's code, not pressed in a test).
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |
 | Ctrl+F | footstep filter |
+| Ctrl+U | the scanner's filter for what cannot be reached: on, it lists only what the player can get to on foot from where they stand (the user, 2026-10-02: Ctrl+F if free, else the first Ctrl key that makes sense; Ctrl+F is the footstep filter). Off until switched on; also in the Ctrl+S list |
 | Ctrl+N | NPC announcer |
 | Ctrl+M | room announcements |
 | Ctrl+V | exit finder |

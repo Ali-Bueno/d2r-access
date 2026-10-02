@@ -16,6 +16,7 @@
 #include "native_rooms.h"
 #include "drlg_layout.h"
 #include "keyboard_menu.h"
+#include "keyboard_service.h"
 #include "native_world.h"
 #include "navigation_mode.h"
 #include "radar_ui.h"
@@ -90,9 +91,16 @@ bool Selected(const EntityRadar::Entity& entity) {
 	return g_selectedPlace ? entity.placeId == g_selectedPlace : entity.id == g_selected;
 }
 
-enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory };
+enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory, ReachFilter };
 std::atomic<Request> g_request{ Request::None };
 bool                 g_fullAssistance = true;
+// The filter for what cannot be reached, and its key, which is a switch and
+// works out of play too.
+std::atomic<bool>    g_reachFilter{ false };
+std::atomic<bool>    g_reachToggle{ false };
+// What the filter last left out, so the log says it once and not at every key.
+size_t               g_cutLogged = 0;
+int                  g_cutLevel = 0;
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
 
@@ -297,6 +305,36 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	if (NativeEntities::ReadRosterCorpses(state.player, owners)) g_corpses.Track(owners, Strings::Current().corpseOf);
 }
 
+// The filter for what cannot be reached. 2026-10-02, the Arcane Sanctuary: its
+// walkways are joined by teleport pads alone, and the scanner listed all twenty
+// pads loaded, 34 walks to one ending with no way. Left out: what the loaded floor
+// has no steps to and the map of the level shows cut off from where the player
+// stands. What cannot be told stays listed -- a place past ground the game has
+// not shown yet, or past a door, which can be opened.
+void LeaveOutCutOff(const Radar::World& world, std::vector<MapSurvey::Landmark>& landmarks) {
+	std::vector<const EntityRadar::Entity*> things;
+	things.reserve(landmarks.size());
+	for (const auto& landmark : landmarks) things.push_back(&landmark.entity);
+	const auto cut = KeyboardService::CutOff(world, things);
+	std::vector<MapSurvey::Landmark> listed;
+	listed.reserve(landmarks.size());
+	std::string names;
+	size_t out = 0;
+	constexpr size_t Named = 12; // enough to find a thing left out wrongly; the rest are counted
+	for (size_t i = 0; i < landmarks.size(); ++i) {
+		if (landmarks[i].reachable || !cut[i]) { listed.push_back(std::move(landmarks[i])); continue; }
+		const auto& entity = landmarks[i].entity;
+		if (out++ < Named) names += Format(" %s@%.0f,%.0f", entity.name.c_str(), entity.position.x, entity.position.y);
+	}
+	if (out != g_cutLogged || world.level != g_cutLevel) {
+		g_cutLogged = out;
+		g_cutLevel = world.level;
+		AsyncLog::InfoF(g_context, "[survey] reach filter: %zu of %zu cut off from %.0f,%.0f and left out:%s%s",
+			out, landmarks.size(), world.player.x, world.player.y, names.c_str(), out > Named ? " ..." : "");
+	}
+	landmarks = std::move(listed);
+}
+
 // Reads the world fresh: the answer must reflect where the player is standing
 // now, not where they were when the registry was last fed.
 bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
@@ -332,6 +370,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 		for (auto& entity : catalogued) ZoneTransitions::MoveToCrossing(entity, crossings);
 	}
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
+	if (g_reachFilter) LeaveOutCutOff(world, landmarks);
 	return true;
 }
 
@@ -391,6 +430,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		return D2RL::Input::ActionResult::Ignored;
 	}
 	const auto request = static_cast<Request>(reinterpret_cast<intptr_t>(userData));
+	if (request == Request::ReachFilter) { g_reachToggle = true; return D2RL::Input::ActionResult::Handled; }
 	// A backslash typed into a box of text the keyboard's cursor is on is the box's.
 	if (request == Request::Repeat && KeyboardMenu::Typing()) return D2RL::Input::ActionResult::Ignored;
 	// In a menu backslash says again what the keyboard's cursor is on.
@@ -421,6 +461,9 @@ void PollStick() {
 }
 
 void Repeat() { g_request.store(Request::Repeat); }
+
+bool ReachFilter() { return g_reachFilter.load(); }
+void SetReachFilter(bool on) { g_reachFilter = on; }
 
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
@@ -454,7 +497,8 @@ bool Register(const D2RL::PluginContext* context) {
 			Entry{"survey-stick-up", "Scanner: previous category", Key::Numpad8, Modifier::Control, Request::PreviousCategory},
 			Entry{"survey-stick-down", "Scanner: next category", Key::Numpad2, Modifier::Control, Request::NextCategory},
 			Entry{"survey-stick-left", "Scanner: previous object", Key::Numpad4, Modifier::Control, Request::PreviousObject},
-			Entry{"survey-stick-right", "Scanner: next object", Key::Numpad6, Modifier::Control, Request::NextObject}}) {
+			Entry{"survey-stick-right", "Scanner: next object", Key::Numpad6, Modifier::Control, Request::NextObject},
+			Entry{"survey-reach-filter", "Scanner: list only what can be reached", Key::U, Modifier::Control, Request::ReachFilter}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -471,6 +515,14 @@ bool Register(const D2RL::PluginContext* context) {
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_supported) return;
 	ApplyMode();
+
+	if (g_reachToggle.exchange(false)) {
+		const bool on = !g_reachFilter.load();
+		g_reachFilter = on;
+		const Strings::Table& strings = Strings::Current();
+		AsyncLog::InfoF(context, "[survey] reach filter %s", on ? "on" : "off");
+		ScreenReader::Speak(on ? strings.reachFilterOn : strings.reachFilterOff, true);
+	}
 
 	PollStick();
 
