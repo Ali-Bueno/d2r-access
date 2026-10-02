@@ -511,6 +511,95 @@ Cost, MEASURED OFFLINE: the search 2.6 ms on a 400 x 400 level, 13.8 ms on
 920 x 920 all open (the Arcane Sanctuary's box is 900 x 900); asking about one
 thing after it, nothing that can be measured.
 
+**Not tested in the game.** Since the section below, all three count the ways
+through the teleport pads as well.
+
+## Teleport pads: the ones back across, where each leads, and routes through them
+
+The user, 2026-10-02, after a town portal back into the Arcane Sanctuary: "I
+could not find a teleport pad that took me to the next part of the dungeon.
+the teleport pads simply looped around and around", and comma / full stop said
+"Nothing to use here" at a pad the walk had just reached.
+
+**MEASURED in the log of 08:37-09:52** (the `[radar-collision]` snapshots):
+
+- Every pad used with D stands on open floor, all eight cells round it open.
+  Seven pads stand on a shut cell (0001) at the very end of a walkway, the
+  drop beyond, three cells open beside them: 25385,5447; 25265,5507;
+  25207,5510; 25225,5537; 25145,5387; 25077,5500; 25085,5517. Not one was used.
+- A gap is crossed by a floor pad on one side and an edge pad on the other:
+  25396 landed by 25385, 25276 by 25265, 25207,5516 by 25207,5510, 25156 by
+  25145. Going out from the waypoint takes floor pads; coming back takes edge
+  pads. From 09:34 the player went round four pairs of floor pads; the walk
+  reached the edge pad at 25145,5387 at 09:37:58 and full stop said "Nothing to
+  use here" five times (the same at 25077,5500 from 09:35:34).
+- H said "Nothing left to explore here" fourteen times, 14 rooms unexplored,
+  `59 cut off`: the filter's search counted every room past a pad as cut off.
+
+**Why the edge pads were not offered, READ:** D and comma/full stop took only
+a thing with a cell within 1 that the body fits on; at a walkway's end there is
+none (25144,5387 is open, but the body's cross needs 25145). The walk counts
+within 3 as arrived, and the scanner, with no steps to it, says the straight
+line ("2 steps").
+
+**Where a pad leads, READ in the game** (`re/D2R_image.exe`, 3.3.93787): the
+operate table at `0x1423A51C0`, entry 27 at `0x14058EAD0` (objects.txt
+TeleportPad1-4, classes 192, 304, 305, 306, the only rows on handler 27). The
+pad keeps no destination; it sends the player to another object of its class,
+one in its own room first, onto a free cell within 3 of it (mask 0x1C09).
+**READ in the level files** (`Act2/Arcane/sanct*.ds1`, extracted with
+`tools/casc_extract.exe`; objpreset Act 2 rows 2-5 are TeleportPad1-4): 42 pads
+in 53 files, only in the "2" variant of a room, always two of a class. The room
+at 25060,5420 (`sanctNSW2.ds1`) holds the three pairs measured there, told
+apart by class alone; `sanctEW2.ds1` holds 25156,5387 and 25145,5387 to the
+cell. So a pad leads to the only other pad of its class in its room
+(`src/pad_links.h`); where a room held other than one, nothing would be assumed
+until the pad was used. What a pad was seen to do wins over that.
+
+**Built:**
+
+- **The edge pads** (`UseSteps`): D and comma/full stop take a teleport pad
+  from as near as a walk counts as there (3 cells) when no cell within 1 holds
+  the body. Everything else is counted as before.
+- **The pads read** (`Entity::padClass`, set for handler 27) are kept with
+  the level's map, from the scanner's read twice a second and the walk's looks.
+  Log, when one is new: `[keyboard] pads: level L, N known, M with a
+  destination, K of them seen used`.
+- **"Teleported"**: after D uses a pad, a jump of more than 4 cells between
+  two reads a quarter second apart, within 2 s, is said, and logged against
+  where the pad was worked out to lead: `[keyboard] teleported: pad at x,y
+  class C, landed x,y beside the pad at x,y; expected the pad at x,y, by the
+  rule: as expected | NOT as expected | nothing to compare`. No jump:
+  `[keyboard] pad at x,y class C used, and no teleport seen`.
+- **The search through pads** (`LevelRoute::Reach` with links): ground got to
+  within 3 of a pad gets to the ground within 3 of where it leads, a pad
+  counting as one step; each cell keeps the first pad of the shortest way. Made
+  only in a level with a pad whose way is known, and asked only of what walking
+  alone does not get to.
+- **A walk, H, Ctrl+R**: where only the pads get to a thing, the walk goes to
+  the first pad of the way and stops there: "Arrived at Teleport Pad". The pad
+  becomes D's choice, as if full stop had chosen it. D then uses it and the mod
+  says "Teleported"; the walk key again goes on from there. The user: "the
+  player should still have to stop and interact with it with d. but it's fine
+  if the route has to split into legs accounting for each pad". The walk never
+  uses a pad itself, and while under way it asks only walking alone, so it
+  cannot run to the edge of a gap. H takes a room past the pads only when none
+  is left that walking alone gets to, the nearest by the steps of the way. Log:
+  `[keyboard] walk: by teleport pad at x,y, the first of the way to NAME at
+  x,y`; `[keyboard] explore: room R by teleport pad at x,y, N steps`.
+- **Ctrl+U** leaves out only what neither walking nor the pads get to: "if the
+  teleport pads can reach other teleport pads, then display them all" (the
+  user).
+- A walk that arrives at any teleport pad makes it D's choice.
+
+Cost, MEASURED OFFLINE: the search through 42 pad links 3.6 ms on a 400 x 400
+level, 19.1 ms on 920 x 920 (walking alone 2.8 and 14.5 ms in the same run).
+
+**NOT measured:** that the game uses an edge pad when D is pressed from the
+walkway's end (it checks no floor in handler 27, and the edge pads are the only
+way back, but no use of one is in any log); that the class read from a client
+unit is the server's. The `teleported` lines answer both.
+
 **Not tested in the game.**
 
 ## The retreat: Ctrl+R, back the way in
@@ -551,8 +640,10 @@ Built:
   same look at the whole way first, the same legs, the same remembered map
   (`SetOut`, `Walk`). It stops beside it and does not take it; D does that. An
   area border is walked back to where it was crossed. A portal that has closed
-  is walked to where it stood. When the way in is cut off on foot after a hop,
-  it walks to the pad hopped onto instead (`[keyboard] retreat: no way on foot
+  is walked to where it stood. Where only the pads get back to the way in, it
+  walks to the first pad of the way (the section above). When the way in is cut
+  off on foot after a hop and no pad is known to lead back, it walks to the pad
+  hopped onto instead (`[keyboard] retreat: no way on foot
   from ... the way in; to the way onto this ground`); D on that pad goes back.
   Log: `[keyboard] retreat to NAME at x,y, what the player came in by|what the
   player hopped onto|...nothing found there`.
@@ -562,7 +653,9 @@ Built:
   and Ctrl+R repair all; in play Shift+R and Alt+R are the game's.
 
 Known limits: only the last hop is kept, so the way back is one pad at a time,
-which is what D on the pad does anyway. The walk never takes a pad itself. If
+which is what D on the pad does anyway. A hop is a jump of more than 20 cells,
+and about half the pad pairs of 2026-10-02 are nearer than that (6 to 18 cells):
+past one of those no hop is kept. The walk never takes a pad itself. If
 the map does not show the way in cut off yet when Ctrl+R is pressed, the walk
 heads for it and stops with "No way to NAME" once the map does; a second Ctrl+R
 then goes to the pad. Ctrl+R in the first half second of a level, before the
