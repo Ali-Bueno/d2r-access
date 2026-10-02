@@ -2,6 +2,38 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Named places and corridors — installed, 2026-10-02
+
+User: names for parts of the map (bridge, tavern, palace entrance), then detail inside them (the
+hall, the counter), then what the game does not name (corridors). Walking in now speaks:
+- the named piece (`RoomEx+0x74/+0x40` → LvlPrest map, `src/preset_map_layout.h`);
+- the interior and the landmark nearest by walking distance, from each preset's HD layout (props
+  and prefabs: `TOWN_2_BAR` = Atma's tavern, `barstool`, `pf_town_blacksmith01` = Charsi's forge);
+- in maze levels, corridor / dead end / bend / junction from the live grid, scaled by the maze's
+  own doorway width, plus what a corridor leads to ("pasillo, hacia Escalera a …").
+
+**Ctrl+U** toggles; `access-places where` asks; `access-places dump` logs the live grid. 578 pieces,
+2418 landmarks, 82 interiors (`tools/gen_places.py`). **87/87 suites pass** (new `places`,
+`passages`). Installed DLL SHA-256 `AB15AF70…` matches the build.
+
+**Live 2026-10-02.** First runs: nothing spoken. The game keeps the File column as
+`data\global\tiles\…`, the lookup missed it; fixed. Third run works:
+- Lut Gholein: mesas, puestos, taberna, barra, mesas, fuera (east door), taberna.
+- Rogue Encampment N1 (origin tile 1024,1256): forja at Charsi.
+- Blood Moor: río on the river pieces (def 26), but twice in 5 s along a chain of pieces. Now a named
+  piece's name holds within one piece size of it, and only a new kind is spoken.
+- Den of Evil: no corridor spoken. Its piece is one 24×24-tile cave preset. The real grid rebuilt
+  from `[radar-collision]` records shows caverns joined by necks, and the path stayed in the cavern.
+  Corridors are still unproven in the Catacombs, Barracks and Jail.
+
+- User: say "forja" when passing through the forge, not within 7 steps of a point. Landmarks are now
+  footprints from their prefabs (forge 31×30, tents 10–26, wagons ~17×12), at = on it or one tile off.
+  Replaying the camp walk: hoguera, forja, hoguera, carro, tiendas, carro, tiendas (was only forja).
+
+**Next step:** walk the Rogue Encampment past the forge, Akara's tent, Gheed's wagon and the bonfire;
+then the Catacombs, Barracks or Jail for corridors (`access-places dump` where one is wrong).
+`docs/places.md`.
+
 ## Enemy growl, attack reach ping, quiet monster plate, boss life — installed, 2026-10-02
 
 User: the plate spammed monster names, even out of reach. Friend: Diablo 1-style monster

@@ -28,6 +28,7 @@
 #include "skill_bar_service.h"
 #include "quest_service.h"
 #include "radar_config.h"
+#include "place_service.h"
 #include "room_service.h"
 #include "radar_service.h"
 #include "terrain_service.h"
@@ -98,6 +99,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech);
 	D2RAccess::RadarService::Tick(context);
 	D2RAccess::RoomService::Tick(context, uiOwnsSpeech);
+	D2RAccess::PlaceService::Tick(context, uiOwnsSpeech);
 	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech);
 	D2RAccess::FootstepService::Tick();
 	D2RAccess::WallSlideService::Tick();
@@ -284,6 +286,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::EntityCueService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[entity-cues] Entity cue lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
+	if (!D2RAccess::PlaceService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[places] Place names unavailable.");
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	D2RAccess::DeathPlaceService::Register(context);
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
@@ -336,6 +339,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::MenuNavigation::Reset();
 	D2RAccess::TerrainService::Unregister();
+	D2RAccess::PlaceService::Unregister();
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();
 	D2RAccess::EntityRadarService::Unregister();

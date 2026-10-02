@@ -1,5 +1,8 @@
 # Named places inside towns: initial findings
 
+> **Superseded 2026-10-02:** the game does name the parts of a town, in the HD layouts of its
+> presets (acoustic zones, lighting boxes, named props). See `docs/places.md`.
+
 Investigated 2026-09-15 after the user confirmed hearing Rogue Encampment on
 entry and asked about smaller places such as a forge, kitchen or central square.
 This is an investigation, not an implemented proximity reader.

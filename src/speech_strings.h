@@ -19,6 +19,10 @@ enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR
 
 inline constexpr std::size_t LanguageCount = 13;
 
+// Named places (docs/places.md), one word per value of the generated enums in
+// generated/place_data.h; place_service.cpp asserts the counts still match.
+inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 24;
+
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 
@@ -173,6 +177,18 @@ struct Table {
 	const char* roomsEnabled;
 	const char* roomsDisabled;
 	const char* roomsUnavailable;
+	std::array<const char*, PresetPlaceWords> placePresets; // the first, PresetPlace::None, is never spoken
+	std::array<const char*, PlaceInteriorWords> placeInteriors;
+	std::array<const char*, PlaceFeatureWords> placeFeatures;
+	const char* placeOutside; // left an interior for open ground
+	const char* placeCorridor;
+	const char* placeDeadEnd; // a corridor shut at one end
+	const char* placeBend;
+	const char* placeJunction;
+	const char* placeTowards; // %s = what a corridor leads to: a level exit or a landmark
+	const char* placesEnabled;
+	const char* placesDisabled;
+	const char* placesUnavailable;
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
 	const char* questAlertsEnabled;
@@ -292,6 +308,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf, t.deathPlace, t.deathRoute, t.deathRouteWaypoint,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.exitReview,
 		t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable,
+		t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards,
+		t.placesEnabled, t.placesDisabled, t.placesUnavailable,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
@@ -305,6 +323,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities);
 	each(t.clockHours); each(t.terrainPlaces); each(t.cairnSymbols);
+	each(t.placePresets); each(t.placeInteriors); each(t.placeFeatures);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

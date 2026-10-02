@@ -366,6 +366,16 @@ getting there (straight, around or no route). A short left-stick click, or **Ctr
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).
 
+**Named places (built; live validation pending):** walking into a named part of the map speaks it,
+without interrupting: a named map piece (*bridge*, *Fallen camp*, *graveyard*), an interior
+(*tavern*, *palace entrance*, *hut*, *temple*) and the landmark within a few steps (*bar*,
+*kitchen*, *fireplace*, *stairs*, *dock*, *stalls*, *throne*). Everything comes from the game's own
+HD map layouts; the landmark is the nearest one by walking distance, so it never names a room
+through its wall. In maze levels it also reads corridors from the walkable grid: *corridor*,
+*dead-end corridor*, *bend*, *junction*, and what a corridor leads to (*towards* the stairs, the
+throne). **Ctrl+U** toggles it; `access-places where` speaks the current place.
+See [named places](docs/places.md).
+
 **Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** speaks
 the level name, where you stand in it (`left edge`, `centre`…) and,
 for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
@@ -593,6 +603,14 @@ build\casc-extract\casc_extract.exe extract "<game folder>" game-data "global\ui
 python tools\layout_index.py
 python tools\gen_panel_titles.py
 python tools\gen_panel_widgets.py
+```
+
+Named places come from the HD map layouts:
+
+```powershell
+build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "hd\env\preset\"
+build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "\pf_"
+python tools\gen_places.py --hd-root <scratch>
 ```
 
 ## Layout

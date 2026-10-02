@@ -44,14 +44,32 @@ struct RoomKey {
 // first `settleMs` after a change, so the first room and any room entered
 // after a settled second are spoken at once, and only a flip on a threshold
 // has to hold. Both values are hand-tuned there; check them by listening.
-struct Hysteresis {
+// Any key with `valid` and equality works; places reuse it (docs/places.md).
+template <typename Key>
+struct BasicHysteresis {
 	int settleMs = 1000, dwellMs = 400;
-	RoomKey current{}, candidate{};
+	Key current{}, candidate{};
 	long long entered = -1, candidateSince = -1;
-	// True when `observed` becomes the current room and is to be announced.
-	bool Observe(RoomKey observed, long long nowMs);
-	void Forget();
+	// True when `observed` becomes the current key and is to be announced.
+	bool Observe(const Key& observed, long long nowMs) {
+		const auto dropCandidate = [&] { candidate = {}; candidateSince = -1; };
+		// Off-grid keeps the current room: not knowing is not leaving.
+		if (observed == current || !observed.valid) { dropCandidate(); return false; }
+		if (const bool settled = !current.valid || nowMs - entered >= settleMs; !settled) {
+			if (!(observed == candidate)) { candidate = observed; candidateSince = nowMs; }
+			if (nowMs - candidateSince < dwellMs) return false;
+		}
+		current = observed;
+		dropCandidate();
+		entered = nowMs;
+		return true;
+	}
+	void Forget() {
+		current = candidate = {};
+		entered = candidateSince = -1;
+	}
 };
+using Hysteresis = BasicHysteresis<RoomKey>;
 
 // The streamed room covering `position` and every passable gap on its border.
 // False when no resident room covers the point.

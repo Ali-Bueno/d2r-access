@@ -121,9 +121,8 @@ spoken line.
 - Only streamed rooms. An opening into ground D2 has not loaded is not
   reported, and there is no way around that from inside the process: inactive
   rooms have no collision grid at all.
-- No room name. Nothing recovered on the room identifies its `LvlPrest` row, so
-  a room is described by its ways out, not by itself. The preset filenames do
-  encode the open sides (`CaveN`, `CaveNE`), which would be a cross-check if
-  that link is ever reversed.
+- No room name in the exit line. The room's `LvlPrest` row is now known
+  (`RoomEx+0x74/+0x40`, `docs/places.md`), and the place service names landmarks
+  inside it, but a maze cell's own name (`CaveNE`) only encodes its open sides.
 - Maze levels only, by design. Towns and the open acts keep the radar, the
   entity scan and the beacon.

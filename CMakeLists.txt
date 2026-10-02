@@ -65,6 +65,10 @@ add_library(d2r-access SHARED
 	src/exit_review.cpp
 	src/rooms.cpp
 	src/room_service.cpp
+	src/places.cpp
+	src/passages.cpp
+	src/place_service.cpp
+	src/native_preset_map.cpp
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
 	src/explored_rooms.cpp
@@ -197,6 +201,15 @@ if(BUILD_TESTING)
 	target_include_directories(rooms-tests PRIVATE src)
 	target_compile_features(rooms-tests PRIVATE cxx_std_20)
 	add_test(NAME rooms COMMAND rooms-tests)
+	# Named places: the piece's name, its interiors and the landmark in walking reach.
+	add_executable(places-tests tests/places_tests.cpp src/places.cpp)
+	target_include_directories(places-tests PRIVATE src)
+	target_compile_features(places-tests PRIVATE cxx_std_20)
+	add_test(NAME places COMMAND places-tests)
+	add_executable(passages-tests tests/passages_tests.cpp src/passages.cpp)
+	target_include_directories(passages-tests PRIVATE src)
+	target_compile_features(passages-tests PRIVATE cxx_std_20)
+	add_test(NAME passages COMMAND passages-tests)
 	# The ways out reviewed one at a time: labels, clock bearings and the cycle.
 	add_executable(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(exit-review-tests PRIVATE src)

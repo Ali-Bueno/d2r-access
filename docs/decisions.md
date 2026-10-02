@@ -12,6 +12,25 @@ whatever the game targets. The repeat and wall rules stay. Rejected: deriving ea
 range from missiles.txt. That is unverified, and the game's own targeting already bounds it.
 `docs/attack-reach.md`.
 
+## 2026-10-02 — Corridors from the walkable grid, measured by the level's own doorways
+
+The user asked for what the HD layouts cannot name: corridors, bends, junctions, dead ends. Chosen:
+read them from the live collision grid, in maze levels, with every measure scaled by the maze's
+median doorway width. Rejected: one fixed width, because measured corridors run from 6 (town
+streets) to 20 subtiles (Catacombs). Rejected: corridors on open ground and in towns, where the
+room partition gives no doorway width to measure by. `docs/places.md#corridors`.
+
+## 2026-10-02 — Named places inside towns and buildings, from the HD layouts
+
+The user asked again for tavern- and palace-style names, then for detail inside them (the hall, the
+counter). This reverses the 2026-09-28 "no district names" entry: the game does name them. Every
+preset's HD layout marks interiors with acoustic and lighting volumes (`TOWN_2_BAR` is Atma's
+tavern) and names its props (`barstool`, `table_kitchen`, `anvil`). The room → LvlPrest map link
+was reversed too. Chosen: speak the named piece, the interior and the landmark nearest by
+walking distance, generated from the game's files, never drawn by hand. Rejected: hand-drawn zones
+over map images, which would not survive a patch and would cover only what we drew. Rejected:
+straight-line nearest props, which name a room through its wall. `docs/places.md`.
+
 ## 2026-09-28 — The radar breath rises up and falls down, as in the D4 mod
 
 The user could not tell an opening ahead from one behind even with the darker downward breath, and
