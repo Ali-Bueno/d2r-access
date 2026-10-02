@@ -68,6 +68,10 @@ inline constexpr size_t ObjSizeX = 0x90, ObjSizeY = 0x94, ObjHasCollision = 0xE0
 // objects.txt OperateFn, the index of the game's interaction handler for the row.
 inline constexpr size_t ObjOperateFn = 0x15E;
 inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha through StoneLambda
+// objects.txt TeleportPad1-4 (classes 192, 304, 305, 306), the Arcane
+// Sanctuary's pads, and no other row. The handler (0x14058EAD0 in 3.3.93787)
+// sends the player to the other object of the pad's class in its room.
+inline constexpr uint8_t TeleportPadOperateFn = 27;
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587

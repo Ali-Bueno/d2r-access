@@ -39,6 +39,7 @@ std::string Text(std::string_view key) {
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
+	if (key == "teleport pad") return "Plataforma de teletransporte";
 	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
 		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
 	if (key == "To The Cold Plains") return "A las Llanuras Frías";
@@ -420,6 +421,21 @@ void QuestObjectModes() {
 	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	Check(f.Read(entities) && !f.Find(entities, 17), "used Inifuss tree cannot continue emitting a quest cue");
 }
+void TeleportPadClass() {
+	Fixture f;
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->padClass == 0
+		&& f.Find(entities, 9) && f.Find(entities, 9)->padClass == 0,
+		"an object on any other handler is no teleport pad");
+	constexpr size_t pad = ObjectStride * 30;
+	f.objects.Text(pad + ObjNameKey, "teleport pad");
+	f.objects.At<uint8_t>(pad + ObjSelectable + ObjectNeutral, 1);
+	f.objects.At<uint8_t>(pad + ObjOperateFn, TeleportPadOperateFn);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, 30);
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->padClass == 30
+		&& f.Find(entities, 17)->kind == EntityRadar::Kind::Object && !f.Find(entities, 17)->container,
+		"a teleport pad keeps its class, the only thing that tells which pad it leads to");
+}
 void CairnStoneModes() {
 	Fixture f;
 	constexpr const char* names[] = {"StoneAlpha", "StoneBeta", "StoneGamma", "StoneDelta", "StoneLambda"};
@@ -484,6 +500,7 @@ int main() {
 	PlayersLoadedBeyondTheScanRing();
 	DistantPartyMembers();
 	QuestObjectModes();
+	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;

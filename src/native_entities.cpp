@@ -394,6 +394,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
 		entity.doorSpan = std::max(width, height);
 	entity.questObject = Generated::QuestItemObject(classId);
+	if (operate == TeleportPadOperateFn) entity.padClass = static_cast<uint16_t>(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
 		entity.questObject = mode == ObjectNeutral;

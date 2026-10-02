@@ -80,6 +80,9 @@ struct Entity {
 	// not one: a preset of a room not loaded yet, an area border, a room.
 	static constexpr uint8_t NoUnit = 0xFF;
 	uint8_t unit = NoUnit;
+	// A teleport pad's objects.txt class, zero for anything else. A pad leads to
+	// the other pad of its class in its room (EntityLayout::TeleportPadOperateFn).
+	uint16_t padClass = 0;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a
