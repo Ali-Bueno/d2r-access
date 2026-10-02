@@ -1,6 +1,7 @@
 #pragma once
 #include "ground_items.h"
 #include <D2RLPlugin/api.h>
+#include <optional>
 #include <string>
 
 namespace D2RAccess::NativeGroundItems {
@@ -24,6 +25,9 @@ UnitLabel ItemUnitLabel(uintptr_t unit);
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 // Whether an item class goes into sockets: ItemTypes.txt makes gem, rune and jewel children of "sock".
 bool SocketFiller(uint32_t classId);
+// A weapon class: a bow or crossbow (ItemTypes.txt children of "miss"), and its melee rangeadder.
+struct Weapon { bool missile = false; int rangeAdder = 0; };
+std::optional<Weapon> WeaponOf(uint32_t classId);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);
 // Guarded snapshot adapter, also exercised using constructed native memory.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

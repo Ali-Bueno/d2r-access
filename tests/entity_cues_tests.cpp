@@ -29,16 +29,37 @@ void FilteringAndPriority() {
 	const auto world = World();
 	auto melee = Make(1, Kind::Ranged, 31, 30); melee.enemy = {};
 	auto object = Make(2, Kind::Important, 31, 30); object.kind = EntityRadar::Kind::Object;
-	Check(Select(world, {melee, object}, {}).empty(), "ordinary enemies and objects have no cue even with hostile-looking flags");
+	Check(Select(world, {object}, {}).empty(), "objects have no cue even with hostile-looking flags");
+	const auto ordinary = Select(world, {Make(9, Kind::Ordinary, 35, 30), melee, Make(10, Kind::Ordinary, 30, 34),
+		Make(11, Kind::Ordinary, 30, 33), Make(12, Kind::Ordinary, 26, 30)}, {});
+	Check(ordinary.size() == MaxOrdinary && ordinary[0].id == 1 && ordinary[1].id == 11 && ordinary[2].id == 10
+		&& ordinary[0].kind == Kind::Ordinary,
+		"the nearest ordinary enemies of a pack each sound, nearest first, as in Diablo 1");
+	Check(ordinary[0].slot != ordinary[1].slot && ordinary[1].slot != ordinary[2].slot,
+		"each rank keeps a cadence of its own");
+	auto blocked = World();
+	for (int x = 0; x < Size; ++x) blocked.rooms[0].cells[32 * Size + x] = 1;
+	const auto seen = Select(blocked, {Make(11, Kind::Ordinary, 30, 33), Make(12, Kind::Ordinary, 26, 30)}, {});
+	Check(seen.size() == 1 && seen[0].id == 12 && seen[0].slot == static_cast<size_t>(Kind::Ordinary),
+		"a nearer enemy behind a wall gives its rank to the next one in sight");
+	Settings quiet; quiet.ordinary = false;
+	Check(Select(world, {melee}, quiet).empty(), "ordinary enemy cues can be disabled separately");
 	const std::vector entities{Make(3, Kind::Npc, 32, 30), Make(4, Kind::Npc, 34, 30),
-		Make(5, Kind::Important, 38, 30), Make(6, Kind::Resurrector, 36, 30), Make(7, Kind::Ranged, 31, 30)};
+		Make(5, Kind::Important, 38, 30), Make(6, Kind::Resurrector, 36, 30), Make(7, Kind::Ranged, 31, 30),
+		Make(8, Kind::Ordinary, 31, 31)};
 	const auto selected = Select(world, entities, {});
-	Check(selected.size() == 3 && selected[0].id == 5 && selected[1].id == 6 && selected[2].id == 3,
-		"boss and shaman take the two enemy slots, with one nearest NPC independently");
+	Check(selected.size() == 4 && selected[0].id == 5 && selected[1].id == 6 && selected[2].id == 7 && selected[3].id == 3,
+		"three priority enemy classes fill the enemy slots before the ordinary one, with one nearest NPC independently");
+	const auto mixed = Select(world, {entities[2], entities[3], entities[5], Make(13, Kind::Ordinary, 32, 32)}, {});
+	Check(mixed.size() == 3 && mixed[2].id == 8 && mixed[2].kind == Kind::Ordinary,
+		"beside a boss and a shaman only the nearest ordinary enemy fits in the three streams");
 	Check(Select(world, {entities[0], entities[1]}, {}).size() == 1, "a town never creates one stream per NPC");
 	Check(Select(world, {Make(8, Kind::Ranged, 32, 30), Make(9, Kind::Ranged, 34, 30)}, {}).size() == 1,
 		"ranged packs produce only their nearest representative");
 	Settings settings; settings.ranged = false;
+	Check(Select(world, {entities[4]}, settings)[0].kind == Kind::Ordinary,
+		"an ordinary ranged enemy without its own cue still sounds as an ordinary enemy");
+	settings.ordinary = false;
 	Check(Select(world, {entities[4]}, settings).empty(), "ordinary ranged enemies can be disabled separately");
 	auto eliteArcher = entities[4]; eliteArcher.enemy.important = true;
 	Check(Select(world, {eliteArcher}, settings)[0].kind == Kind::Important, "disabling ordinary ranged cues preserves elite archers");
@@ -108,9 +129,19 @@ void FairScheduling() {
 	Check(!tracker.Update(world, entities, 99, {}), "simultaneously discovered targets are staggered");
 	Check(Is(tracker.Update(world, entities, 100, {}), 2), "shaman follows the important enemy");
 }
+void PackCadence() {
+	const auto world = World();
+	const std::vector pack{Make(1, Kind::Ordinary, 31, 30), Make(2, Kind::Ordinary, 30, 32), Make(3, Kind::Ordinary, 28, 30)};
+	Tracker tracker;
+	std::map<uint32_t, unsigned> counts;
+	for (uint64_t now = 0; now < 3000; now += 100)
+		if (const auto cue = tracker.Update(world, pack, now, {})) ++counts[cue->id];
+	Check(counts.size() == 3 && counts[1] >= 8 && counts[2] >= 8 && counts[3] >= 8,
+		"three nearby pack members each repeat, none starved");
+}
 void FastRepeatsAtRuntimeCadence() {
 	const auto world = World();
-	for (const auto kind : {Kind::Npc, Kind::Important, Kind::Resurrector, Kind::Ranged}) {
+	for (const auto kind : {Kind::Npc, Kind::Important, Kind::Resurrector, Kind::Ranged, Kind::Ordinary}) {
 		Tracker near, far;
 		unsigned nearCount = 0, farCount = 0;
 		// The service reads a fresh snapshot every 100 ms; measure audible starts
@@ -125,6 +156,6 @@ void FastRepeatsAtRuntimeCadence() {
 }
 }
 int main() {
-	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); FastRepeatsAtRuntimeCadence();
+	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); PackCadence(); FastRepeatsAtRuntimeCadence();
 	Passed();
 }

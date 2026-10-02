@@ -384,20 +384,36 @@ in one compact archive, limited to 4 MiB, with separate records per map seed and
 Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
 test` auditions the marked cues. See [exploration](docs/exploration.md).
 
-### NPC and priority enemy sounds
+### NPC and enemy sounds
 
-Soft synthesized pulses locate the nearest NPC and up to two priority enemy
-types: bosses/elites, resurrecting shamans, then ordinary ranged enemies.
-NPCs use a light wooden tap; enemies use a low, resonant metallic swoop with a
-little air texture. Sounds follow the radar's fixed screen directions. A single
-target repeats about every 0.2 seconds nearby or 0.5 seconds at maximum range. Ordinary
-melee crowds remain silent. Dialogue and menu/focus gating suspend the sounds.
+Soft synthesized pulses locate the nearest NPC and up to three enemies: the
+nearest boss/elite, resurrecting shaman and ordinary ranged enemy, then the
+nearest other enemies in the streams left, each heard on its own (as Diablo 1's
+diablo-access plays its three nearest monsters, so a pack's spread is audible). NPCs use a light wooden tap; priority enemies a low, resonant
+metallic swoop; ordinary enemies a short rough growl. Sounds follow the radar's
+fixed screen directions. A single target repeats about every 0.2 seconds nearby
+or 0.5 seconds at maximum range. Dialogue and menu/focus gating suspend the sounds.
+
+**Attack reach.** A bright rising two-note ping, placed toward the enemy, plays
+when an enemy in sight comes within reach of your attacks, once until every
+enemy is out of reach again. The reach follows the skills bound to the controller
+bars and the weapon in hand (bow or crossbow, ranged skills, melee skills,
+damaging spells), read from the game's own skill and weapon tables; ranged
+reaches as far as the enemy sounds, melee is contact plus the weapon's
+`rangeadder`. `attack-melee` / `attack-ranged` fix it by hand, `attack-auto`
+returns to the automatic choice, and `status` says the current reach.
+
+The monster health plate names a monster only once it is within that reach
+(bosses and elites from first sight), without interrupting other speech, and a
+name the auto-target keeps trading inside a pack is not repeated until it has
+been off the plate for ten seconds.
 
 Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
-`enemy-off` and `ranged-off` switches (and matching `*-on`). Persistent range,
-volume and switches live under `[entity_cues]` in the plugin TOML. This is
-independent of the existing NPC speech toggle. Listening validation is pending;
-see [entity cue behavior and controls](docs/entity-cues.md).
+`enemy-off`, `ranged-off`, `ordinary-off` and `reach-off` switches (and matching
+`*-on`). Persistent range, volume, switches and the attack reach live under
+`[entity_cues]` in the plugin TOML. This is independent of the existing NPC
+speech toggle. See [entity cue behavior and controls](docs/entity-cues.md) and
+[attack reach](docs/attack-reach.md).
 
 ### Character panel
 
@@ -441,6 +457,17 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
+
+### Boss life
+
+A boss's life is said as it falls, the way your own is: `Andariel, 74 por
+ciento` when it crosses 75, 50, then every 10 down to 10, then every point
+(interrupting at 10 and below), and `0` when it dies. It covers act and quest
+bosses and superuniques (Rakanishu, Blood Raven, Andariel, Mephisto, Diablo...),
+using the fill of the game's own health plate. The first sight is only a
+baseline, so nothing is said until the fight starts. `access-boss-life
+on|off|status`; `[boss_life] enabled` in the plugin TOML. See
+[boss life](docs/boss-life.md).
 ### Weapon swap, stash gold and trading
 
 A weapon swap (R3, W or the inventory's I/II tabs) names the set and the weapons

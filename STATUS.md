@@ -2,6 +2,35 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Enemy growl, attack reach ping, quiet monster plate, boss life — installed, 2026-10-02
+
+User: the plate spammed monster names, even out of reach. Friend: Diablo 1-style monster
+sounds and a sound when an enemy is in reach (a ranged player was shooting blind). User: narrate
+boss life like their own. **85/85 suites pass**; installed DLL SHA-256 `64A98CE7…` matches the
+build. Unattended run reached only the title screen (the user was using the PC), but its startup log
+shows `monster=1` (new fingerprints match under 1.3.1-beta) and the new settings registered.
+
+- Every enemy has a cue: the three nearest growl, each on its own, after the priority classes
+  (design of mojsior/diablo-access, the D1 mod the friend meant).
+- A rising ping when an enemy in sight comes within attack reach; melee or ranged from the
+  bound skills and weapon (skills.txt `Range`/damage, weapons `rangeadder`, found by table
+  correlation). `access-entity-cues attack-melee|attack-ranged|attack-auto`.
+- Plate names only within reach (bosses/elites always), never interrupting, no repeat while
+  the target trades; the affix line's stray "5• 0" is gone.
+- Boss life (bosses, superuniques) on the player's life steps, from the game's own plate fill.
+
+**Live 2026-10-02 (sorceress, Blood Moor, Den of Evil).** Growls and 15 reach pings played.
+- Enemy names barely spoken: 11 of 16 held back as beyond the 15-subtile ranged default, while
+  Glacial Spike hit from 20–23. Ranged attacks now name what the auto-target picks; melee keeps the
+  reach rule.
+- Next run: the Fallen still unnamed. The gate admitted the name, the reader's 80 ms settle lost it
+  to the next hop, and from then on it was "just heard". Admitted names now speak at once
+  (regression test fails without the fix).
+
+**Next step:** user fights a pack and a boss (Blood Raven / Rakanishu): each kind of enemy named once,
+the ping distance for their class, the life steps. `docs/attack-reach.md`, `docs/boss-life.md`,
+`docs/entity-cues.md`.
+
 ## Friend's tester ZIP — 2026-09-29
 
 `../d2r-access-completo-2026-09-29.zip`: the 26/09 v2 package with the plugin from 09fdf5f

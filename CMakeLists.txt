@@ -87,6 +87,11 @@ add_library(d2r-access SHARED
 	src/entity_cue_audio.cpp
 	src/entity_cue_synth.cpp
 	src/entity_cue_service.cpp
+	src/attack_reach.cpp
+	src/native_attack.cpp
+	src/monster_names.cpp
+	src/boss_life.cpp
+	src/boss_life_service.cpp
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
@@ -329,12 +334,24 @@ if(BUILD_TESTING)
 	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-audio-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
-	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/entity_cues.cpp src/speech_strings.cpp src/async_log.cpp)
+	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/entity_cues.cpp src/attack_reach.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(entity-cue-service-tests PRIVATE src)
 	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(entity-cue-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME entity-cue-service COMMAND entity-cue-service-tests)
+	add_executable(attack-reach-tests tests/attack_reach_tests.cpp src/attack_reach.cpp src/entity_cues.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(attack-reach-tests PRIVATE src)
+	target_compile_features(attack-reach-tests PRIVATE cxx_std_20)
+	add_test(NAME attack-reach COMMAND attack-reach-tests)
+	add_executable(monster-names-tests tests/monster_names_tests.cpp src/monster_names.cpp)
+	target_include_directories(monster-names-tests PRIVATE src)
+	target_compile_features(monster-names-tests PRIVATE cxx_std_20)
+	add_test(NAME monster-names COMMAND monster-names-tests)
+	add_executable(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
+	target_include_directories(boss-life-tests PRIVATE src)
+	target_compile_features(boss-life-tests PRIVATE cxx_std_20)
+	add_test(NAME boss-life COMMAND boss-life-tests)
 	add_executable(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
@@ -482,7 +499,7 @@ if(BUILD_TESTING)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/equip_attempt.cpp src/item_hand.cpp src/ground_item_text.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/equip_attempt.cpp src/item_hand.cpp src/ground_item_text.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -552,6 +569,9 @@ if(BUILD_TESTING)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(attack-reach-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(monster-names-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(boss-life-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

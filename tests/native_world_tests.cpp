@@ -308,9 +308,18 @@ int main() {
 		Check(absent.valid && !absent.enabled && !absent.range && !absent.volume && !absent.ranged,
 			"absent entity section keeps compiled defaults");
 		Check(RadarConfig::ParseEntityCues("[entity_cues]\nvolume = 0\n").volume == 0u, "entity cues accept explicit silence");
+		const auto reach = RadarConfig::ParseEntityCues("[entity_cues]\nordinary = false\nreach = false\nattack = \"ranged\"\n"
+			"melee_reach = 4.5\nranged_reach = 20\n");
+		Check(reach.valid && reach.ordinary == false && reach.reach == false && reach.attack == AttackReach::Mode::Ranged
+			&& reach.meleeReach == 4.5 && reach.rangedReach == 20.0, "ordinary cues, the reach ping and the attack reach parse");
+		Check(RadarConfig::ParseEntityCues("[entity_cues]\nattack = melee\n").attack == AttackReach::Mode::Melee
+			&& RadarConfig::ParseEntityCues("[entity_cues]\nattack = \"auto\"\n").attack == AttackReach::Mode::Auto,
+			"the attack mode is accepted with or without quotes");
+		Check(RadarConfig::ParseBossLife("[boss_life]\nenabled = false\n").enabled == false, "boss life can be disabled");
 		for (const auto invalid : {"range = nan", "range = inf", "range = 0", "range = -1", "range = 101",
 			"volume = -1", "volume = 101", "volume = 1.5", "enabled = yes", "npcs = 1", "ranged", "enemies = false\nenemies = true",
-			"volume = 0\nvolume = 1", "range = 15\nrange = 15"}) {
+			"volume = 0\nvolume = 1", "range = 15\nrange = 15", "attack = bow", "attack = melee\nattack = melee",
+			"melee_reach = 0", "ranged_reach = 101", "ordinary = maybe"}) {
 			const auto parsed = RadarConfig::ParseEntityCues(std::string("[entity_cues]\n") + invalid + "\n");
 			Check(!parsed.valid && !parsed.enabled && !parsed.range && !parsed.volume, "invalid entity settings discard the entire section");
 		}

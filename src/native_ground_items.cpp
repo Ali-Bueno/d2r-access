@@ -101,17 +101,30 @@ UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
 	return {GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality};
 }
-bool SocketFiller(uint32_t classId) {
+namespace {
+// The item and type tables, and the class's type, for an ancestry test.
+bool ClassType(uint32_t classId, Tables& tables, uint16_t& typeId) {
 	uintptr_t player = 0, address = 0;
+	return g_base && RuntimeRoots(player, address)
+		&& Peek(address + Items, tables.items) && tables.items
+		&& Peek(address + ItemCount, tables.itemCount) && tables.itemCount <= MaxTableRows
+		&& Peek(address + Types, tables.types) && tables.types
+		&& Peek(address + TypeCount, tables.typeCount) && tables.typeCount <= MaxTableRows
+		&& classId < tables.itemCount && Peek(tables.items + classId * ItemStride + ItemType, typeId);
+}
+}
+bool SocketFiller(uint32_t classId) {
 	Tables tables;
 	uint16_t typeId = 0;
-	if (!g_base || !RuntimeRoots(player, address)
-		|| !Peek(address + Items, tables.items) || !tables.items
-		|| !Peek(address + ItemCount, tables.itemCount) || tables.itemCount > MaxTableRows
-		|| !Peek(address + Types, tables.types) || !tables.types
-		|| !Peek(address + TypeCount, tables.typeCount) || tables.typeCount > MaxTableRows
-		|| classId >= tables.itemCount || !Peek(tables.items + classId * ItemStride + ItemType, typeId)) return false;
-	return IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
+	return ClassType(classId, tables, typeId) && IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
+}
+std::optional<Weapon> WeaponOf(uint32_t classId) {
+	Tables tables;
+	uint16_t typeId = 0;
+	uint8_t rangeAdder = 0;
+	if (!ClassType(classId, tables, typeId)
+		|| !Peek(tables.items + classId * ItemStride + GroundItemLayout::ItemRangeAdder, rangeAdder)) return std::nullopt;
+	return Weapon{IsType(tables, typeId, D2RL::Items::MakeItemCode("miss")), rangeAdder};
 }
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;

@@ -115,6 +115,7 @@ void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available) return;
+		if (g_pending.pending && g_pending.sound == Sound::Reach && sound != Sound::Reach) return;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

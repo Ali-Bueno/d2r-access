@@ -1,4 +1,5 @@
 #include "character_stats.h"
+#include "entity_cue_service.h"
 #include "entity_radar_service.h"
 #include "ground_item_text.h"
 #include "interaction_reader.h"
@@ -31,9 +32,15 @@ bool OwnsWorldLabel(std::string_view label) { return ownsLabel && label.starts_w
 
 namespace D2RAccess::EntityRadarService {
 std::string hiddenLabel;
-TargetSight::Sight LabelSight(std::string_view label) {
-	return !hiddenLabel.empty() && label == hiddenLabel ? TargetSight::Sight::Hidden : TargetSight::Sight::Unknown;
+std::optional<TargetSight::Bearer> bearer; // what every other label names, when set
+TargetSight::Bearer LabelTarget(std::string_view label) {
+	if (!hiddenLabel.empty() && label == hiddenLabel) return {TargetSight::Sight::Hidden};
+	return bearer.value_or(TargetSight::Bearer{});
 }
+}
+namespace D2RAccess::EntityCueService {
+std::optional<double> reach;
+std::optional<double> NamingReach() { return reach; }
 }
 
 namespace {
@@ -283,6 +290,38 @@ int main() {
 	EntityRadarService::hiddenLabel.clear();
 	Settle();
 	Check(speech == std::vector<std::string>{"Charsi"}, "HUD target-name text covers targets without a tooltip");
+	// The auto-target trading a pack's names out of reach (log, 2026-09-29).
+	ClearSpeech(); EntityCueService::reach = 3.0;
+	EntityRadarService::bearer = TargetSight::Bearer{TargetSight::Sight::Visible, EntityRadar::Kind::Enemy, false, 12};
+	target = {40, 0, "HUDMonsterHealth", UiText::Surface::Target, {
+		{41, -1, UiText::Kind::Text, "Name", "TextBoxWidget", "Trinchante. Demonio"},
+	}};
+	Settle();
+	Check(speech.empty(), "a monster beyond attack reach is not named");
+	EntityRadarService::bearer->distance = 2; Settle();
+	Check(speech == std::vector<std::string>{"Trinchante. Demonio"} && !interrupts.back(),
+		"within reach it is named without cutting other speech off");
+	ClearSpeech();
+	const std::string shaman = "Chamán trinchante. Demonio \xEE\x81\xBE" "5\xE2\x80\xA2\xEE\x81\xBE" "0Invoca trinchantes";
+	target.nodes[0].text = shaman; Settle();
+	Check(speech == std::vector<std::string>{"Chamán trinchante. Demonio, Invoca trinchantes"},
+		"a second monster is named once, its affix dot spoken as a pause");
+	ClearSpeech();
+	for (int round = 0; round < 6; ++round) {
+		target.nodes[0].text = round % 2 ? shaman : "Trinchante. Demonio";
+		Tick();
+	}
+	Check(speech.empty(), "the target trading names inside a pack is not repeated");
+	// Live 2026-10-02: a Fallen joined a rat on the plate for under the reader's
+	// settle, the target hopped back, and the Fallen was never named at all.
+	target.nodes[0].text = "Caído. Demonio"; Tick();
+	target.nodes[0].text = "Trinchante. Demonio"; Tick();
+	Check(speech == std::vector<std::string>{"Caído. Demonio"}, "a new name on the plate for one poll is still said");
+	ClearSpeech();
+	EntityRadarService::bearer = TargetSight::Bearer{TargetSight::Sight::Visible, EntityRadar::Kind::Enemy, true, 12};
+	target.nodes[0].text = "Rakanishu. Demonio"; Settle();
+	Check(speech == std::vector<std::string>{"Rakanishu. Demonio"}, "a boss is named from first sight");
+	ClearSpeech(); target = {}; EntityRadarService::bearer.reset(); EntityCueService::reach.reset(); Settle();
 	ClearSpeech(); focus = {50, 51}; Settle();
 	Check(speech.empty(), "another focused menu suppresses background target labels");
 	target = {}; focus = {10, 11}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};

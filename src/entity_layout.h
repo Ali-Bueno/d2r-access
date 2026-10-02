@@ -59,6 +59,9 @@ inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable
 inline constexpr size_t MonCachedName = 0x40;
 inline constexpr size_t MonRarityFlags = 0x1A;
 inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
+// Superunique (Rakanishu, Bishibosh...): client setup 0x98FA0 stores the
+// SuperUniques row (+0x2A, via 0x38E810) only when this bit is set.
+inline constexpr uint16_t MonSuperUnique = 0x0002;
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // Size getters 0x3481E0/0x3482C0; all columns cross-checked by tools/objects_containers.py.

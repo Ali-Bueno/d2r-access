@@ -95,7 +95,13 @@ std::string Clean(std::string_view text) {
 			const auto c = static_cast<unsigned char>(text[i + 2]);
 			if (a >= 0xEE && a <= 0xEF && (b & 0xC0) == 0x80 && (c & 0xC0) == 0x80) {
 				const unsigned code = ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
-				if (code >= 0xE000 && code <= 0xF8FF) { i += 3; space = !result.empty(); continue; }
+				if (code >= 0xE000 && code <= 0xF8FF) {
+					i += 3;
+					// The font command takes exactly one index character: docs/native-tooltips.md.
+					if (code == FontCommand && i < text.size() && FontIndex(text[i])) ++i;
+					space = !result.empty();
+					continue;
+				}
 			}
 		}
 		const unsigned char ch = static_cast<unsigned char>(text[i++]);

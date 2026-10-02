@@ -2,6 +2,7 @@
 #include "auto_detail.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
+#include "entity_cue_service.h"
 #include "entity_radar_service.h"
 #include "equip_attempt.h"
 #include "interaction_reader.h"
@@ -12,6 +13,7 @@
 #include "input_direction.h"
 #include "item_hand.h"
 #include "localization.h"
+#include "monster_names.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
 #include "native_entities.h"
@@ -52,7 +54,10 @@ std::string g_help, g_spokenHelp, g_helpContext;
 std::string g_describedFocus;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
-std::string g_hiddenLabel;
+std::string g_hiddenLabel, g_quietMonster;
+MonsterNames::Gate g_monsterNames;
+// The game's monster health plate: the panel the auto-target names its monster in.
+constexpr std::string_view MonsterPlate = "HUDMonsterHealth";
 std::optional<bool> g_holdingItem;
 // Red requirement lines of the item last described, and of the one in hand,
 // taken when it was picked up: why the game would refuse to equip it.
@@ -721,7 +726,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
 	if (!focus.panel && readout.Empty()) {
-		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel("HUDMonsterHealth"), 0);
+		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel(MonsterPlate), 0);
 		if (target.surface == UiText::Surface::Target) readout = UiText::Describe(target);
 	}
 	if (!focus.panel && GroundItemService::OwnsWorldLabel(readout.body)) {
@@ -733,8 +738,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// which the right-stick scan would never list. Those are dropped and the
 	// reader is left with nothing to say, so the same entity announces itself as
 	// soon as it is really in sight.
-	if (!focus.panel && !readout.Empty()
-		&& EntityRadarService::LabelSight(readout.body) == TargetSight::Sight::Hidden) {
+	const auto bearer = !focus.panel && !readout.Empty() ? EntityRadarService::LabelTarget(readout.body) : TargetSight::Bearer{};
+	// A monster the plate names is said once it is within melee reach (a ranged
+	// attack reaches what the auto-target picks), and not again while the
+	// auto-target keeps trading it with the rest of its pack.
+	const bool monsterLabel = !focus.panel && !readout.Empty() && bearer.sight != TargetSight::Sight::Hidden
+		&& (bearer.sight == TargetSight::Sight::Visible ? bearer.kind == EntityRadar::Kind::Enemy : readout.context == MonsterPlate);
+	if (bearer.sight == TargetSight::Sight::Hidden) {
 		if (g_hiddenLabel != readout.body) {
 			g_hiddenLabel = readout.body;
 			AsyncLog::InfoF(context, "[interaction] behind a wall, not spoken -> \"%s\"", readout.body.c_str());
@@ -742,6 +752,23 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout = {};
 		renderedDescription = false;
 	} else if (!readout.Empty()) g_hiddenLabel.clear();
+	if (!monsterLabel) g_monsterNames.Absent();
+	else {
+		const bool visible = bearer.sight == TargetSight::Sight::Visible;
+		if (!g_monsterNames.Admit(readout.body, visible ? std::optional{bearer.distance} : std::nullopt,
+			visible && bearer.important, EntityCueService::NamingReach(), now)) {
+			if (g_quietMonster != readout.body) {
+				g_quietMonster = readout.body;
+				AsyncLog::InfoF(context, "[interaction] out of reach or just heard, not spoken -> \"%s\" distance=%.1f",
+					readout.body.c_str(), visible ? bearer.distance : -1.0);
+			}
+			readout = {};
+			renderedDescription = false;
+		} else {
+			g_quietMonster.clear();
+			readout.body = MonsterNames::Speakable(readout.body);
+		}
+	}
 	if (inventory != g_inventory) {
 		if (g_inventory) ScreenReader::Stop();
 		g_reader.Reset();
@@ -780,7 +807,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// for capture, rather than the dialogue delay.
 	const bool complete = renderedDescription || !itemName.empty()
 		|| type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty();
-	auto announcement = action ? g_reader.Update(readout, now, 0)
+	// A monster name the gate admits is new by construction; waiting for it to
+	// settle loses it to the auto-target's next hop (live log, 2026-10-02).
+	auto announcement = action || monsterLabel ? g_reader.Update(readout, now, 0)
 		: inventory ? g_reader.Update(readout, now, complete ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
@@ -807,6 +836,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// new context: the legend repopulates ~60 ms after the focus moves (MEASURED
 	// 2026-09-21, character panel), so it queues instead of cutting the row off.
 	bool interrupt = !(helpFollows && !describedNow);
+	if (monsterLabel) interrupt = false; // incremental combat news, never a context change
 	// The tooltip arriving 400 ms behind a name already spoken for this focus is
 	// the tail of that utterance, or a correction to it. Either way only what it
 	// adds is said, and it queues instead of cutting the name off mid-word.
@@ -845,6 +875,8 @@ void Reset() {
 	g_describedFocus.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
+	g_quietMonster.clear();
+	g_monsterNames.Reset();
 	g_namedFocus.clear();
 	g_loggedTooltip.clear();
 	g_holdingItem.reset();

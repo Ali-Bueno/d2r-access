@@ -1,5 +1,6 @@
 #pragma once
 
+#include "attack_reach.h"
 #include <D2RLPlugin/api.h>
 #include <optional>
 #include <string_view>
@@ -67,10 +68,14 @@ Switch ReadChests(const D2RL::PluginContext* context);
 // [doors]: the shut-door loop; access-items doors-on|doors-off changes it for the current run.
 Switch ParseDoors(std::string_view config);
 Switch ReadDoors(const D2RL::PluginContext* context);
+// [boss_life]: boss life announcements; access-boss-life on|off changes it for the current run.
+Switch ParseBossLife(std::string_view config);
+Switch ReadBossLife(const D2RL::PluginContext* context);
 
 struct EntityCueSettings {
-	std::optional<bool> enabled, npcs, enemies, ranged;
-	std::optional<double> range;
+	std::optional<bool> enabled, npcs, enemies, ranged, ordinary, reach;
+	std::optional<AttackReach::Mode> attack;
+	std::optional<double> range, meleeReach, rangedReach;
 	std::optional<unsigned> volume;
 	bool valid = true;
 };

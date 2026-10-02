@@ -110,6 +110,14 @@ struct Table {
 	const char* entityCueRangedDisabled;
 	const char* entityCueAudioUnavailable;
 	const char* entityCueReaderUnavailable;
+	const char* entityCueOrdinaryEnabled;
+	const char* entityCueOrdinaryDisabled;
+	const char* entityCueReachEnabled;
+	const char* entityCueReachDisabled;
+	const char* attackReachMelee;  // %s = spoken distance ("3 pasos")
+	const char* attackReachRanged; // %s = spoken distance
+	const char* attackModeAuto;    // the reach follows the bound skills and the weapon
+	const char* attackModeFixed;   // the reach was set by a command or the config
 	// Map survey: the level-wide catalogue, cycled by category and by object.
 	// Indexed by the switch in MapSurveyService::CategoryName, not by
 	// CategoryOrder: a new category appends here and adds a case there.
@@ -182,6 +190,9 @@ struct Table {
 	const char* playerPoisoned;
 	const char* playerPoisonCleared;
 	const char* mercenaryLife; // %d = current hireling life percentage
+	const char* bossLife; // %s = the boss's name, %d = whole percent of its life left
+	const char* bossLifeEnabled;
+	const char* bossLifeDisabled;
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
 	const char* itemPlacedIn;         // %s = where the carried item was just placed
@@ -269,6 +280,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
 		t.entityCueRangedDisabled, t.entityCueAudioUnavailable, t.entityCueReaderUnavailable,
+		t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled,
+		t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed,
 		t.exitUnnamed, t.containerUnnamed,
 		t.itemSpeechEnabled, t.itemSpeechDisabled, t.itemSoundsEnabled, t.itemSoundsDisabled,
 		t.exitSoundsEnabled, t.exitSoundsDisabled, t.chestSoundsEnabled, t.chestSoundsDisabled,
@@ -282,7 +295,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.weaponSet, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeAccepted, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.equipmentBroken, t.currentOfMaximum, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.itemEquipped, t.itemEquippedIn, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.weaponSet, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeAccepted, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown,
 		t.autoDetailEnabled, t.autoDetailDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,

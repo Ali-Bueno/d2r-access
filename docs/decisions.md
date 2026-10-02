@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-02 — Ranged attacks name every monster the auto-target picks
+
+The user, on a sorceress: enemy names were almost never spoken in combat. Of 16 names the plate
+showed in sight, 11 were held back as beyond the 15-subtile ranged reach, while Glacial Spike was
+killing them from 20–23. Chosen: the reach rule applies to melee only; a ranged attack names
+whatever the game targets. The repeat and wall rules stay. Rejected: deriving each spell's missile
+range from missiles.txt. That is unverified, and the game's own targeting already bounds it.
+`docs/attack-reach.md`.
+
 ## 2026-09-28 — The radar breath rises up and falls down, as in the D4 mod
 
 The user could not tell an opening ahead from one behind even with the darker downward breath, and

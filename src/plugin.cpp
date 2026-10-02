@@ -38,6 +38,7 @@
 #include "ui_thread_pump.h"
 #include "tab_highlight.h"
 #include "vitals_service.h"
+#include "boss_life_service.h"
 #include "weapon_swap_service.h"
 #include "inventory_arrival_service.h"
 #include "trade_service.h"
@@ -108,6 +109,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::BeaconService::Tick(context);
 	D2RAccess::SkillBarService::Tick(context);
 	D2RAccess::VitalsService::Tick(context);
+	D2RAccess::BossLifeService::Tick(context);
 	D2RAccess::WeaponSwapService::Tick(context);
 	D2RAccess::InventoryArrivalService::Tick(context);
 	D2RAccess::TradeService::Tick(context);
@@ -288,6 +290,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
+	if (!D2RAccess::BossLifeService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[boss-life] Boss life announcements unavailable.");
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
 	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
 	(void)D2RAccess::InventoryArrivalService::Register(context);
@@ -325,6 +328,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
+	D2RAccess::BossLifeService::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::AutoDetail::Unregister();
 	D2RAccess::QuestService::Unregister();

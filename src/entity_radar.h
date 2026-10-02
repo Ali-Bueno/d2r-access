@@ -35,6 +35,7 @@ struct EnemyTraits {
 	bool important = false;
 	bool resurrector = false;
 	bool ranged = false;
+	bool boss = false; // an act or quest boss, or a superunique: the fights whose life is narrated
 };
 
 struct Entity {
