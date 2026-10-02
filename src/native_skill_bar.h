@@ -22,6 +22,10 @@ std::optional<std::array<Binding, Buttons>> AlternateBar();
 // current weapon set, for the attack reach. UI thread only.
 std::optional<std::vector<AttackReach::Skill>> BoundSkills();
 
+// The name of the player's class skill at a skill-tree page, row and column
+// (skilldesc.txt SkillPage/SkillRow/SkillColumn, 1-based); "" when unknown. UI thread only.
+std::string ClassSkillName(int page, int row, int column);
+
 // The game's condition for drawing the LT bar on the HUD (0x2399F0).
 bool BackBarShown() noexcept;
 }

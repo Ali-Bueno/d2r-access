@@ -666,6 +666,31 @@ int main() {
 	ClearSpeech();
 	Tooltip("Registra un cadáver.\nBuscar poción"); Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Buscar poción."), "next native D-pad selection reads its skill without repeating the branch");
+	// MEASURED 2026-10-02: the tooltip rendered ~450 ms after each move; the tables name the skill at once.
+	InteractionReader::Reset(); ClearSpeech(); tooltip = {};
+	focus = {70, 74}; progression.name = "Aullido";
+	progression.readout = {"Skills", "Gritos de guerra", "", "74"};
+	progression.readout.coordinates = "Fila 1, columna 1";
+	Check(Tick() && speech.empty(), "a skill named from the tables holds for one poll while the game rebuilds its legend");
+	Tick();
+	Check(speech == std::vector<std::string>{"Gritos de guerra. Aullido. 1 punto. X: Asignar habilidad. Fila 1, columna 1"},
+		"a skill named from the tables is read without waiting for its tooltip");
+	ClearSpeech(); Tooltip("Huyen aterrorizados.\n\xEE\x81\xBE" "2Aullido\nSin aprender"); Tick();
+	Check(speech.empty(), "its tooltip arriving with the same name repeats nothing");
+	pendingPush = InputDirection::StickPush::Up;
+	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "the tooltip still supplies the detail for right stick up");
+	ClearSpeech(); autoDetail = true;
+	focus.widget = 75; progression.name = "Burla"; progression.readout.focusKey = "75"; progression.readout.coordinates = "Fila 2, columna 1";
+	Settle();
+	Check(speech == std::vector<std::string>{"Burla. 1 punto. X: Asignar habilidad. Fila 2, columna 1"}, "the next skill is named from the tables too");
+	ClearSpeech(); Tooltip("Provoca a un monstruo.\n\xEE\x81\xBE" "2Burla"); Tick();
+	Check(speech == std::vector<std::string>{"Provoca a un monstruo."} && interrupts == std::vector<bool>{false},
+		"with automatic detail the tooltip queues only what the skill does behind its name");
+	ClearSpeech(); autoDetail = false;
+	focus.widget = 76; progression.name = "Aullido"; progression.readout.focusKey = "76"; progression.readout.coordinates = "Fila 3, columna 1";
+	Settle(); ClearSpeech(); Tooltip("Aumenta la defensa.\n\xEE\x81\xBE" "2Grito"); Tick();
+	Check(speech.size() == 1 && speech[0].starts_with("Grito. 1 punto") && interrupts == std::vector<bool>{true},
+		"a tooltip naming another skill corrects the table name");
 	ClearSpeech(); progression = {}; widgetType = {"TabWidget", UiText::Kind::TabButton}; focus.widget = 73;
 	buttonSnapshot = {73, 73, "Tab1", UiText::Surface::Other, {{73, -1, UiText::Kind::TabButton, "Tab1", "", "Dominio del combate"}}};
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Dominio del combate"}, "focused branch tabs are readable through the shared interaction pipeline");

@@ -81,3 +81,27 @@ Ataque doble and Salto across branches. Porrazo reads `Asignada a A`,
 The user then confirmed the requested controller recheck: “sí, parece que ahora
 funciona bien!” Point spending was not requested; the zero-point state cannot
 validate live spend-button output.
+
+## Naming a skill before its tooltip
+
+MEASURED 2026-10-02 (sorceress): `[field] focus` to `[interaction]` took 420–456 ms on
+every D-pad move, because the reader waited for the stock tooltip to supply the name.
+The cell's generated name already says where the skill sits:
+`SkillButton<SkillPage> <SkillColumn-1>,<SkillRow-1>` (live: Blizzard `SkillButton3 0,4`
+= page 3, row 5, column 1; Chilling Armor `2,4`; Frozen Orb `0,5`; Barbarian Howl
+`SkillButton3 0,0`, all matching `game-data/global/excel/skilldesc.txt`).
+
+| Native fact | Evidence |
+|---|---|
+| skills row `+0x2C` u8 charclass: PlayerClass index (ama … ass, war = 7), `0xFF` for none | The only offset matching all 429 rows of CASC `skills.bin` (3.3.93787) |
+| skilldesc row `+2/+3/+4` u8 SkillPage, SkillRow, SkillColumn | All 263 rows of CASC `skilldesc.bin` |
+| Player class | Player unit `+4` (`GroundItemLayout::UnitClass`) |
+
+`NativeSkillBar::ClassSkillName` finds the class skill at that place and names it the
+way the LT bar does (two skills in one place return nothing). The reader then speaks
+name, points, binding, actions and position after one poll, so the legend the game
+rebuilds for the move is the new skill's. When the tooltip renders it only supplies the
+detail: offered to right stick up, or queued behind the name with automatic detail on.
+A tooltip naming another skill replaces the table name and logs
+`[skill-tree] table name … differs from the tooltip …`. Common and item-granted skills
+have no cell and still wait for their tooltip.

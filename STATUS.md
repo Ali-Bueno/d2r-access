@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Skill tree reads at once — installed, 2026-10-02
+
+User (sorceress): half a second before each skill in the tree is read. Log: 420–456 ms from focus
+to speech on every move; the reader waited for the game's tooltip. Now the name comes from the
+skill tables by the cell's page/row/column (offsets checked on every row of `skills.bin` /
+`skilldesc.bin`), one poll after the move; the tooltip only adds the detail. **87/87 suites
+pass**; installed DLL SHA-256 `0E4F069F…` matches the build. **Live 2026-10-02: user confirms it
+works.** `[skill-tree] … differs` in the log would mean a wrong table name. `docs/skill-actions.md`.
+
 ## Named places and corridors — installed, 2026-10-02
 
 User: names for parts of the map (bridge, tavern, palace entrance), then detail inside them (the
@@ -63,16 +72,16 @@ shows `monster=1` (new fingerprints match under 1.3.1-beta) and the new settings
 the ping distance for their class, the life steps. `docs/attack-reach.md`, `docs/boss-life.md`,
 `docs/entity-cues.md`.
 
-## Friend's tester ZIP — 2026-09-29
+## Friend's tester ZIP v2 — 2026-10-02
 
-`../d2r-access-completo-2026-09-29.zip`: the 26/09 v2 package with the plugin from 09fdf5f
-(`95251F45…`, matches the build and the install; 82/82 suites). 26 entries, 58,633,966 bytes,
-SHA-256 `1be42219…` (full hash in `.zip.sha256`). Loader 1.3.1-beta, config (`radar.toml`,
-unchanged since 6928fd2), PRISM, licences and VC runtime byte-identical to v2. Spanish LEEME with
-the 28/09 news (radar breath, death place, town NPCs, sockets, arrivals, cinematics, border
-beacon) and an honest note: this exact build has not been launched in the game yet (the last game
-run, 28/09 11:16, used an earlier build). Every entry decompresses and matches its SHA-256.
-**Next step:** launch once to confirm it loads, then send it.
+`../d2r-access-completo-2026-10-02-v2.zip` (the only package kept; the user wants older ZIPs and
+`.sha256` files deleted): the first 02/10 package (user confirmed it works) with the skill-tree
+plugin (`0E4F069F…`, d97041e + the uncommitted fix; matches the build and the install, tested live
+by the user; 87/87 suites). 26 entries, 58,468,395 bytes, SHA-256
+`9dae07903e7d1956fc76a6faea4aafb4863aeed5532f678f01627fccea622ebe`. Loader 1.3.1-beta, PRISM,
+licences, VC runtime and `d2r-access.toml` byte-identical to the first 02/10 package. Spanish
+LEEME with the skill-tree news first. Every entry matches its SHA-256.
+**Next step:** send it.
 
 ## Radar breath rises up, falls down (D4 mod's sound) — installed, 2026-09-28
 
@@ -1402,7 +1411,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Section / feature | Status | Notes |
 |---|---|---|
 | D2RLoader multiplayer | done — controller confirmed 2026-09-23 | Native form speech, D-pad navigation and retained checkbox focus; 71 suites pass. Internet session unverified. `docs/multiplayer.md` |
-| Complete tester ZIP | updated — 2026-09-23 | Use `-actualizado.zip`: multiplayer fixes and instructions, 37 entries verified; recipient startup pending. |
+| Complete tester ZIP | updated — 2026-10-02 | `d2r-access-completo-2026-10-02-v2.zip`, plugin d97041e + skill-tree fix, 26 entries verified. |
 | NPC / priority enemy sounds | faster resonant revision installed; listening pending | Wooden NPC tap; voiced enemy swoop. 150–450 ms intervals; 4 suites pass. `docs/entity-cues.md` |
 | Exploration sound assets | built/deployed — listening pending | One nearest room loop; arrival once per new room; zone loops at real crossings. 64 suites pass. `docs/exploration.md` |
 | Directional wall sliding | wip — built/deployed; controller check pending | Local type-17 fallback probes use zero travel. 50 new checks pass. `access-movement on\|off\|status`; `docs/wall-sliding.md` |

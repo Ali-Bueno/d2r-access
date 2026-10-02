@@ -2,6 +2,7 @@
 #include "native_controller_help.h"
 #include "controller_text.h"
 #include "localization.h"
+#include "native_skill_bar.h"
 #include "native_widgets.h"
 #include "progression_text.h"
 #include "speech_strings.h"
@@ -68,11 +69,12 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 			result.help = phrase;
 		}
 		Append(result.help, NativeControllerHelp::ForFocus(focus));
-		const auto cell = ProgressionText::SkillCell(name);
+		const auto [tree, cell] = ProgressionText::ParseSkillButton(name);
 		if (cell.x >= 0) {
 			char phrase[100]{};
 			std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
 			result.readout.coordinates = phrase;
+			result.name = NativeSkillBar::ClassSkillName(tree, cell.y + 1, cell.x + 1);
 		}
 	} else return result;
 	result.readout.context = NativeWidgets::ReadName(focus.panel);

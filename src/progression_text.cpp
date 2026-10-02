@@ -22,7 +22,7 @@ TooltipText::Description SkillReadout(std::string_view description, std::string_
 	return result;
 }
 
-NativeUi::Cell SkillCell(std::string_view name) {
+SkillButton ParseSkillButton(std::string_view name) {
 	constexpr std::string_view prefix = "SkillButton"; // live generated names, docs/progression.md
 	if (!name.starts_with(prefix)) return {};
 	name.remove_prefix(prefix.size());
@@ -38,8 +38,10 @@ NativeUi::Cell SkillCell(std::string_view name) {
 	constexpr int MaxCoordinate = 512;
 	if (row.ec != std::errc{} || row.ptr != end || cell.x < 0 || cell.y < 0
 		|| cell.x >= MaxCoordinate || cell.y >= MaxCoordinate) return {};
-	return cell;
+	return {tree, cell};
 }
+
+NativeUi::Cell SkillCell(std::string_view name) { return ParseSkillButton(name).cell; }
 
 std::string SkillDescription(std::string_view body) {
 	// U+E07E followed by 1 or 2 sets font size. Captured from the stock skill

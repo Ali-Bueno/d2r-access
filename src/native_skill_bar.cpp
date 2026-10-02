@@ -21,6 +21,10 @@ constexpr size_t Descs = 0x1190, DescCount = 0x1198, DescStride = 300, DescName 
 // skills.txt Range (u8), MinDam, EType and EMin (i32): the only offsets that
 // match all 429 rows of game-data/global/excel/skills.bin; docs/attack-reach.md.
 constexpr size_t SkillRange = 0x34, SkillMinDamage = 0x250, SkillElement = 0x284, SkillElementMin = 0x288;
+// skills.txt charclass (u8 PlayerClass row, 0xFF for none) and skilldesc.txt
+// SkillPage/SkillRow/SkillColumn (u8): the only offsets that match every row of
+// CASC skills.bin and skilldesc.bin; docs/skill-actions.md.
+constexpr size_t SkillClass = 0x2C, DescPlace = 2;
 constexpr uint16_t MissingName = 0x1506; // 0x28BCF0's id for a skill without a description
 constexpr GroundItemLayout::Evidence Checks[] = {
 	{ControllerMode, 41, 0x290F3F607678EB67ULL},
@@ -97,6 +101,30 @@ std::optional<std::vector<AttackReach::Skill>> BoundSkills() {
 		skills.push_back({static_cast<AttackReach::SkillRange>(range), element != 0 || elementMinimum > 0 || minimum > 0});
 	}
 	return skills;
+}
+
+std::string ClassSkillName(int page, int row, int column) {
+	uintptr_t player = 0, tables = 0, skills = 0, descs = 0;
+	uint32_t playerClass = 0, skillCount = 0, descCount = 0;
+	if (!g_base || page <= 0 || !NativeGroundItems::RuntimeRoots(player, tables)
+		|| !Peek(player + GroundItemLayout::UnitClass, playerClass)
+		|| !Peek(tables + Skills, skills) || !skills || !Peek(tables + SkillCount, skillCount)
+		|| skillCount > GroundItemLayout::MaxTableRows
+		|| !Peek(tables + Descs, descs) || !descs || !Peek(tables + DescCount, descCount)) return {};
+	const std::array<uint8_t, 3> wanted{static_cast<uint8_t>(page), static_cast<uint8_t>(row), static_cast<uint8_t>(column)};
+	int found = NoSkill;
+	for (uint32_t skill = 0; skill < skillCount; ++skill) {
+		const uintptr_t record = skills + static_cast<uintptr_t>(skill) * SkillStride;
+		uint8_t owner = 0;
+		int16_t desc = -1;
+		std::array<uint8_t, 3> place{};
+		if (!Peek(record + SkillClass, owner) || owner != playerClass || !Peek(record + SkillDesc, desc)
+			|| desc < 0 || static_cast<uint32_t>(desc) >= descCount
+			|| !Peek(descs + desc * DescStride + DescPlace, place) || place != wanted) continue;
+		if (found != NoSkill) return {}; // two skills in one cell: not the table this was verified on
+		found = static_cast<int>(skill);
+	}
+	return SkillName(tables, found);
 }
 
 bool BackBarShown() noexcept {

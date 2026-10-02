@@ -40,7 +40,7 @@ namespace D2RAccess::InteractionReader {
 namespace {
 UiText::Reader g_reader;
 bool g_inventory = false;
-constexpr uint64_t InventorySettleMs = 20; // at most one subsequent 30 Hz UI poll
+constexpr uint64_t OnePollSettleMs = 20; // at most one subsequent 30 Hz UI poll
 struct InventoryContext {
 	uintptr_t panel = 0;
 	std::string name, title;
@@ -52,6 +52,9 @@ std::string g_help, g_spokenHelp, g_helpContext;
 // The focus the last real readout described, so a hint can tell "nothing new
 // to say here" from "nothing said about here yet".
 std::string g_describedFocus;
+// "focus|headline" of a skill last named from the game's tables before its
+// tooltip rendered, and the last table/tooltip name disagreement logged.
+std::string g_skillHeadline, g_skillMismatch;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
 std::string g_hiddenLabel, g_quietMonster;
@@ -596,8 +599,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	bool renderedDescription = false, nameInOption = false;
 	// What the tooltip adds to a name already spoken, kept so only that part is
 	// announced when it arrives behind the name.
-	std::string tooltipAddition, comparison, rowDetail;
+	std::string tooltipAddition, comparison, rowDetail, skillAddition;
 	std::vector<std::string> rowTooltips;
+	const std::string tableHeadline = progression.skill && !progression.name.empty()
+		? ProgressionText::SkillReadout(progression.name, progression.points, progression.help).headline : std::string{};
 	// Discard the previous focus/cell's last rendered description while the new
 	// one is being built. Empty cells still expose the actual grid coordinates.
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
@@ -652,6 +657,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		renderedDescription = !description.empty();
 		if (progression.skill) {
 			auto split = ProgressionText::SkillReadout(description, progression.points, progression.help);
+			// Behind a headline already named from the tables the tooltip adds only
+			// the detail; a different name is the game's word and replaces it.
+			if (!tableHeadline.empty() && split.headline == tableHeadline) {
+				if (AutoDetail::Enabled()) skillAddition = split.detail;
+			} else if (!tableHeadline.empty()) {
+				if (auto seen = progression.name + "|" + split.headline; seen != g_skillMismatch) {
+					g_skillMismatch = std::move(seen);
+					AsyncLog::InfoF(context, "[skill-tree] table name \"%s\" differs from the tooltip \"%s\"",
+						progression.name.c_str(), split.headline.c_str());
+				}
+			}
 			readout.option = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(readout.option, split.detail);
 			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
@@ -670,6 +686,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	// The tooltip renders ~370 ms after a move (MEASURED 2026-10-02), so a tree
+	// skill is named from the game's tables at once and the tooltip adds the detail.
+	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (list && rowDetail.empty()) g_detail.clear();
 	// Disappearing records must not interrupt a full description with its remaining fragment.
 	const bool rowDetailChanged = !rowDetail.empty()
@@ -800,7 +819,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		return true; // the hints stay pending until the description arrives
 	}
-	if (progression.skill && !renderedDescription) return true;
+	if (progression.skill && !renderedDescription && tableHeadline.empty()) return true; // await the tooltip
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || action || stats; }
 	// A name read from the unit, a rendered focus-matching description and an
 	// equipment slot are complete already. Cells without one wait a single poll
@@ -809,8 +828,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		|| type.kind == UiText::Kind::InventorySlot || !cursorNotice.empty();
 	// A monster name the gate admits is new by construction; waiting for it to
 	// settle loses it to the auto-target's next hop (live log, 2026-10-02).
-	auto announcement = action || monsterLabel ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, complete ? 0 : InventorySettleMs)
+	// A skill named from the tables holds for one poll, so the legend the game
+	// rebuilds for the move is read as the new skill's, not the last one's.
+	auto announcement = progression.skill && !renderedDescription ? g_reader.Update(readout, now, OnePollSettleMs)
+		: action || monsterLabel ? g_reader.Update(readout, now, 0)
+		: inventory ? g_reader.Update(readout, now, complete ? 0 : OnePollSettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;
@@ -844,8 +866,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		interrupt = false;
 		if (describedNow && !tooltipAddition.empty()) announcement.text = tooltipAddition;
 	}
+	if (!skillAddition.empty() && describedNow && g_skillHeadline == readout.focusKey + "|" + tableHeadline) {
+		interrupt = false;
+		announcement.text = skillAddition;
+	}
 	if (helpFollows) Append(announcement.text, help);
-	if (describedNow) g_describedFocus = readout.focusKey;
+	if (describedNow) {
+		g_describedFocus = readout.focusKey;
+		g_skillHeadline = progression.skill && !renderedDescription ? readout.focusKey + "|" + readout.option : std::string{};
+	}
 	if (!cursorNotice.empty()) {
 		Append(cursorNotice, announcement.text);
 		announcement.text = std::move(cursorNotice);
@@ -873,6 +902,8 @@ void Reset() {
 	g_help.clear();
 	g_spokenHelp.clear();
 	g_describedFocus.clear();
+	g_skillHeadline.clear();
+	g_skillMismatch.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
 	g_quietMonster.clear();
