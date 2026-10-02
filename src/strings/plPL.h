@@ -225,6 +225,7 @@ inline constexpr Table plPL {
 	.modSoundsOff = "Wszystkie dźwięki moda: wyłączone",
 	.reachFilterOn = "Skaner podaje tylko to, do czego da się dojść",
 	.reachFilterOff = "Skaner podaje wszystko",
+	.teleported = "Teleportowano",
 	.itemQualities = {"", "niskiej jakości", "", "dobrej jakości", "magiczny", "z zestawu", "rzadki", "unikatowy", "wytworzony"},
 	.terrainPlaces = {"tylny lewy róg", "tylna krawędź", "tylny prawy róg", "lewa krawędź", "środek",
 		"prawa krawędź", "przedni lewy róg", "przednia krawędź", "przedni prawy róg"},

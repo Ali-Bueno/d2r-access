@@ -225,6 +225,7 @@ inline constexpr Table ptBR {
 	.modSoundsOff = "Todos os sons do mod: desligado",
 	.reachFilterOn = "O scanner lista só o que pode ser alcançado",
 	.reachFilterOff = "O scanner lista tudo",
+	.teleported = "Teletransportado",
 	.itemQualities = {"", "qualidade inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "artesanal"},
 	.terrainPlaces = {"canto traseiro esquerdo", "borda traseira", "canto traseiro direito",
 		"borda esquerda", "centro", "borda direita", "canto frontal esquerdo", "borda frontal",

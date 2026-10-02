@@ -297,6 +297,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
 	present.insert(present.end(), items.begin(), items.end());
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
+	KeyboardService::NotePads(world, scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
 		return CorpseMemory::Covered(rooms, grid, world.player, position);

@@ -155,6 +155,7 @@ add_library(d2r-access SHARED
 	src/widgets.cpp
 	src/auto_walk.cpp
 	src/level_route.cpp
+	src/pad_links.cpp
 	src/combat_target.cpp
 	src/explore_goal.cpp
 	src/grid_jump.cpp

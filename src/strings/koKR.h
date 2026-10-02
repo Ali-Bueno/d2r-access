@@ -225,6 +225,7 @@ inline constexpr Table koKR {
 	.modSoundsOff = "모드의 모든 소리 꺼짐",
 	.reachFilterOn = "스캐너가 갈 수 있는 곳만 나열",
 	.reachFilterOff = "스캐너가 모두 나열",
+	.teleported = "순간이동했습니다",
 	.itemQualities = {"", "저급", "", "고급", "마법", "세트", "희귀", "고유", "제작"},
 	.terrainPlaces = {"뒤쪽 왼쪽 모서리", "뒤쪽 가장자리", "뒤쪽 오른쪽 모서리", "왼쪽 가장자리", "중앙",
 		"오른쪽 가장자리", "앞쪽 왼쪽 모서리", "앞쪽 가장자리", "앞쪽 오른쪽 모서리"},

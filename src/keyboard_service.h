@@ -53,4 +53,7 @@ bool SettingsOpen();
 // foot from where `world` has the player (level_route.h, Reach): the walk's own
 // test, here for the scanner's filter. All false when the level's map is not kept.
 std::vector<bool> CutOff(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things);
+// The teleport pads among `entities`, read in the level `world` is of, are kept
+// with that level's map, to work out where each leads (pad_links.h).
+void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
 }

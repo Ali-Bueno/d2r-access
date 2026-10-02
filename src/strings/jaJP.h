@@ -225,6 +225,7 @@ inline constexpr Table jaJP {
 	.modSoundsOff = "MODのすべての音 オフ",
 	.reachFilterOn = "スキャナーは到達できるものだけを一覧",
 	.reachFilterOff = "スキャナーはすべてを一覧",
+	.teleported = "テレポートしました",
 	.itemQualities = {"", "粗悪", "", "上質", "魔法", "セット", "レア", "ユニーク", "クラフト"},
 	.terrainPlaces = {"後方左の角", "後方の端", "後方右の角", "左の端", "中央",
 		"右の端", "前方左の角", "前方の端", "前方右の角"},

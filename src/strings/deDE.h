@@ -225,6 +225,7 @@ inline constexpr Table deDE {
 	.modSoundsOff = "Alle Mod-Klänge aus",
 	.reachFilterOn = "Scanner listet nur Erreichbares",
 	.reachFilterOff = "Scanner listet alles",
+	.teleported = "Teleportiert",
 	.itemQualities = {"", "minderwertig", "", "hochwertig", "magisch", "Set", "selten", "einzigartig", "gefertigt"},
 	.terrainPlaces = {"hintere linke Ecke", "hinterer Rand", "hintere rechte Ecke", "linker Rand", "Mitte",
 		"rechter Rand", "vordere linke Ecke", "vorderer Rand", "vordere rechte Ecke"},

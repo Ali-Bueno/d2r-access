@@ -227,7 +227,7 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 // from nothing at every room border. Null when the level's rooms cannot be
 // read or are too many cells to keep.
 constexpr size_t RememberedLevels = 8;
-struct Remembered { int level = 0; uint64_t used = 0; LevelRoute::Memory memory; };
+struct Remembered { int level = 0; uint64_t used = 0; LevelRoute::Memory memory; LevelRoute::Pads pads; };
 std::vector<Remembered> g_remembered;
 uint64_t g_rememberedSession = 0, g_rememberedClock = 0;
 LevelRoute::Plan g_plan;
@@ -253,6 +253,30 @@ const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& w
 	found->used = ++g_rememberedClock;
 	(void)found->memory.Learn(world);
 	return &found->memory;
+}
+
+// The teleport pads seen in a level whose map is kept, and where each leads
+// (pad_links.h), for as long as the map. Null when the map is not kept.
+LevelRoute::Pads* PadsOf(const Lifecycle& state) {
+	if (g_rememberedSession != state.session) return nullptr;
+	const auto found = std::find_if(g_remembered.begin(), g_remembered.end(), [&](const Remembered& entry) { return entry.level == state.level; });
+	return found == g_remembered.end() ? nullptr : &found->pads;
+}
+LevelRoute::Pad PadOf(const Entity& entity) {
+	return {static_cast<int>(std::lround(entity.position.x)), static_cast<int>(std::lround(entity.position.y)), entity.padClass};
+}
+// The pads among things just read are kept with the level's map.
+void NotePads(const Lifecycle& state, const std::vector<Entity>& entities) {
+	auto* pads = PadsOf(state);
+	if (!pads) return;
+	bool added = false;
+	for (const auto& entity : entities)
+		if (entity.padClass && entity.unit != Entity::NoUnit) added = pads->Note(PadOf(entity)) || added;
+	if (!added) return;
+	const auto* graph = Rooms(state);
+	const auto links = graph ? pads->Links(graph->rooms) : std::vector<LevelRoute::Link>{};
+	AsyncLog::InfoF(g_context, "[keyboard] pads: level %d, %zu known, %zu with a destination, %zu of them seen used", state.level,
+		pads->All().size(), links.size(), static_cast<size_t>(std::count_if(links.begin(), links.end(), [](const auto& link) { return link.seen; })));
 }
 
 // Whether the game has shown that a thing cannot be got to on foot from where
@@ -297,6 +321,7 @@ bool Look(const Lifecycle& state, Scene& scene, bool exits, bool wholeLevel = fa
 	if (!NativeWorld::Read(state.player, state.session, state.level, scene.world)) return false;
 	scene.grid = Navigation::Build(scene.world, Navigation::MaxRadius, Radar::Layer::Terrain, false);
 	if (!NativeEntities::Read(state.player, state.session, scene.entities, exits, exits, wholeLevel)) scene.entities.clear();
+	NotePads(state, scene.entities);
 	// An area border is walked across where both levels' floor meets.
 	if (NativeLevelExits::Layout layout; exits && NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(scene.world, layout, Navigation::MaxRadius);
@@ -532,6 +557,53 @@ void NoteWayIn(const Lifecycle& state, const Radar::World& world, uint64_t now) 
 		Name(state, g_wayIn.entered, EntityRadar::Kind::Exit, ArriveNear, "way in");
 	if (g_wayIn.hop && !g_wayIn.hopped.named && Distance(world.player, g_wayIn.hopped.at) <= HopNear)
 		Name(state, g_wayIn.hopped, EntityRadar::Kind::Object, HopNear, "way in, hopped onto");
+}
+
+// A teleport pad D used: the player's being sent is said, and where the pad
+// put them is checked against where it was worked out to lead (pad_links.h),
+// which is the measure of that working out. 2026-10-02 a pad sent the player
+// 0.25 to 0.6 s after D, and the pads of a pair stood 6 cells apart at the
+// least, across a void.
+constexpr uint64_t SentWithinMs = 2000; // longer after D is no teleport
+constexpr uint64_t SentGapMs = 250;     // two reads no farther apart than this...
+constexpr double SentFar = 4;           // ...and farther apart than this are a pad's jump: running covers 1.4 cells in 0.1 s
+struct PadUse { bool active = false; uint64_t session = 0, since = 0, lastAt = 0; int level = 0; LevelRoute::Pad pad; Position last; };
+PadUse g_padUse;
+void WatchPad(const Lifecycle& state, const Entity& pad, Position player, uint64_t now) {
+	g_padUse = {true, state.session, now, now, state.level, PadOf(pad), player};
+}
+void Sent(const Lifecycle& state, uint64_t now) {
+	if (!g_padUse.active) return;
+	const auto& pad = g_padUse.pad;
+	if (state.session != g_padUse.session || state.level != g_padUse.level || now - g_padUse.since > SentWithinMs) {
+		g_padUse.active = false;
+		AsyncLog::InfoF(g_context, "[keyboard] pad at %d,%d class %u used, and no teleport seen", pad.x, pad.y, pad.padClass);
+		return;
+	}
+	const auto move = NativeActions::ReadMoveState();
+	if (!move.read) return;
+	const Position at{move.x / 65536.0, move.y / 65536.0};
+	const bool jumped = now - g_padUse.lastAt <= SentGapMs && Distance(at, g_padUse.last) > SentFar;
+	g_padUse.last = at;
+	g_padUse.lastAt = now;
+	if (!jumped) return;
+	g_padUse.active = false;
+	ScreenReader::Speak(Strings::Current().teleported, true);
+	auto* pads = PadsOf(state);
+	const auto* graph = Rooms(state);
+	std::optional<LevelRoute::Link> expected;
+	LevelRoute::Pad to;
+	bool beside = false;
+	if (pads) {
+		if (graph) expected = pads->Lead(pad, graph->rooms);
+		beside = pads->Used(pad, at, to);
+	}
+	char landed[64] = "beside no pad known", lead[96] = "nowhere known";
+	if (beside) std::snprintf(landed, sizeof landed, "beside the pad at %d,%d", to.x, to.y);
+	if (expected) std::snprintf(lead, sizeof lead, "the pad at %d,%d, %s", expected->to.x, expected->to.y, expected->seen ? "seen before" : "by the rule");
+	AsyncLog::InfoF(g_context, "[keyboard] teleported: pad at %d,%d class %u, landed %.0f,%.0f %s; expected %s: %s",
+		pad.x, pad.y, pad.padClass, at.x, at.y, landed, lead,
+		!expected || !beside ? "nothing to compare" : expected->to == to ? "as expected" : "NOT as expected");
 }
 
 void Sweep(const Lifecycle& state, uint64_t now) {
@@ -780,6 +852,7 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		if (g_mode == Mode::Interact) {
 			AsyncLog::InfoF(g_context, "[keyboard] use id=%u unit=%u name=%s", g_target.id, g_target.unit, name.c_str());
 			End("used", false);
+			if (g_target.padClass) WatchPad(state, g_target, scene.world.player, now);
 			(void)NativeActions::Interact(static_cast<Unit>(g_target.unit), g_target.id);
 		} else if (g_mode == Mode::Walk && g_target.kind == EntityRadar::Kind::Exit) {
 			// An exit is taken, not stood beside: stairs or a doorway are used as
@@ -1704,6 +1777,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_moveOrder = g_moveFrom = g_stuckAt = {-1, -1};
 		// Where a new level is first stood in is the way in: looked at the first moment in play.
 		g_nextSweep = 0;
+		g_padUse.active = false;
 	}
 	ReleaseLostHolds();
 	const bool attack = g_pressed[0].exchange(false), cast = g_pressed[1].exchange(false);
@@ -1717,6 +1791,7 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (command == Command::TestRun || command == Command::TestPlain || command == Command::TestHalt) Test(state, command);
 	Sweep(state, now);
+	Sent(state, now);
 
 	// The arrows walk while held, and end whatever else was walking. While a
 	// line of chat is being typed they are the text cursor's.
@@ -1778,6 +1853,13 @@ std::vector<bool> CutOff(const Radar::World& world, const std::vector<const Enti
 	if (const auto* reach = Reached(state, world))
 		for (size_t i = 0; i < things.size(); ++i) cut[i] = CutOff(*reach, state, *things[i]);
 	return cut;
+}
+
+void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	NotePads(state, entities);
 }
 
 void Unregister() {

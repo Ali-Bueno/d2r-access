@@ -259,6 +259,7 @@ struct Table {
 	const char* modSoundsOff;
 	const char* reachFilterOn; // the scanner lists only what can be got to on foot (map_survey_service.h)
 	const char* reachFilterOff;
+	const char* teleported; // a teleport pad D used has sent the player (keyboard_service.cpp)
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -309,7 +310,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);

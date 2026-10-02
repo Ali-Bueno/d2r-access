@@ -225,6 +225,7 @@ inline constexpr Table esES {
 	.modSoundsOff = "Todos los sonidos del mod desactivados",
 	.reachFilterOn = "El escáner solo lista lo que se puede alcanzar",
 	.reachFilterOff = "El escáner lista todo",
+	.teleported = "Teletransportado",
 	.itemQualities = {"", "calidad inferior", "", "superior", "mágico", "de conjunto", "raro", "único", "fabricado"},
 	.terrainPlaces = {"esquina trasera izquierda", "borde trasero", "esquina trasera derecha",
 		"borde izquierdo", "centro", "borde derecho", "esquina delantera izquierda",

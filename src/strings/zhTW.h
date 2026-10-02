@@ -225,6 +225,7 @@ inline constexpr Table zhTW {
 	.modSoundsOff = "模組全部音效已關閉",
 	.reachFilterOn = "掃描器只列出可到達的目標",
 	.reachFilterOff = "掃描器列出全部目標",
+	.teleported = "已傳送",
 	.itemQualities = {"", "次等", "", "上等", "魔法", "套裝", "稀有", "獨特", "手工打造"},
 	.terrainPlaces = {"左後方角落", "後方邊緣", "右後方角落", "左方邊緣", "中央",
 		"右方邊緣", "左前方角落", "前方邊緣", "右前方角落"},
