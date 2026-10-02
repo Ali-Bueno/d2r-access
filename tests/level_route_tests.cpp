@@ -355,6 +355,9 @@ int main() {
 			"through the pads B is reached, by the pad at the end of A");
 		Check(pads.To(onC, 1) == Answer::Reached && pads.Via(onC, 1, pad) && pad == edgeA,
 			"and C, two pads on: the pad to use first is still the one on A");
+		int toB = 0, toC = 0;
+		Check(pads.Via(onB, 1, pad, &toB) && pads.Via(onC, 1, pad, &toC) && toB > 0 && toC > toB,
+			"the way on to C is longer than the way to B");
 		Check(pads.To(onA, 1) == Answer::Reached && !pads.Via(onA, 1, pad), "a place walked to takes no pad");
 		const auto rooms = level.Rooms();
 		Check(pads.Within(NativeRooms::Subtiles(rooms[3])) == Answer::Reached && pads.ViaWithin(NativeRooms::Subtiles(rooms[3]), pad) && pad == edgeA,

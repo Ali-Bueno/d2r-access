@@ -344,7 +344,7 @@ Reach::Answer Reach::Within(const NativeRooms::Bounds& bounds) const {
 	return Among(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
 }
 
-bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad) const {
+bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const {
 	if (!linked_ || !any_) return false;
 	int32_t fewest = -1;
 	uint16_t via = 0;
@@ -357,16 +357,17 @@ bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad) const {
 	}
 	if (!via) return false;
 	pad = links_[via - 1].from;
+	if (steps) *steps = fewest;
 	return true;
 }
 
-bool Reach::Via(Position place, int margin, Pad& pad) const {
+bool Reach::Via(Position place, int margin, Pad& pad, int* steps) const {
 	const int x = Cell(place.x), y = Cell(place.y);
-	return First(x - margin, y - margin, x + margin + 1, y + margin + 1, pad);
+	return First(x - margin, y - margin, x + margin + 1, y + margin + 1, pad, steps);
 }
 
-bool Reach::ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad) const {
-	return First(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, pad);
+bool Reach::ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad, int* steps) const {
+	return First(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, pad, steps);
 }
 
 bool Ahead(const std::vector<Position>& path, const Navigation::Grid& grid, Position& cell) {

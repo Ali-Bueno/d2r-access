@@ -73,6 +73,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <map>
@@ -227,7 +228,8 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 // from nothing at every room border. Null when the level's rooms cannot be
 // read or are too many cells to keep.
 constexpr size_t RememberedLevels = 8;
-struct Remembered { int level = 0; uint64_t used = 0; LevelRoute::Memory memory; LevelRoute::Pads pads; };
+// `padThings`: each pad's entity as last read, to walk to when it is not loaded.
+struct Remembered { int level = 0; uint64_t used = 0; LevelRoute::Memory memory; LevelRoute::Pads pads; std::vector<Entity> padThings; };
 std::vector<Remembered> g_remembered;
 uint64_t g_rememberedSession = 0, g_rememberedClock = 0;
 LevelRoute::Plan g_plan;
@@ -257,21 +259,31 @@ const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& w
 
 // The teleport pads seen in a level whose map is kept, and where each leads
 // (pad_links.h), for as long as the map. Null when the map is not kept.
-LevelRoute::Pads* PadsOf(const Lifecycle& state) {
+Remembered* Kept(const Lifecycle& state) {
 	if (g_rememberedSession != state.session) return nullptr;
 	const auto found = std::find_if(g_remembered.begin(), g_remembered.end(), [&](const Remembered& entry) { return entry.level == state.level; });
-	return found == g_remembered.end() ? nullptr : &found->pads;
+	return found == g_remembered.end() ? nullptr : &*found;
+}
+LevelRoute::Pads* PadsOf(const Lifecycle& state) {
+	auto* kept = Kept(state);
+	return kept ? &kept->pads : nullptr;
 }
 LevelRoute::Pad PadOf(const Entity& entity) {
 	return {static_cast<int>(std::lround(entity.position.x)), static_cast<int>(std::lround(entity.position.y)), entity.padClass};
 }
 // The pads among things just read are kept with the level's map.
 void NotePads(const Lifecycle& state, const std::vector<Entity>& entities) {
-	auto* pads = PadsOf(state);
-	if (!pads) return;
+	auto* kept = Kept(state);
+	if (!kept) return;
+	auto* pads = &kept->pads;
 	bool added = false;
-	for (const auto& entity : entities)
-		if (entity.padClass && entity.unit != Entity::NoUnit) added = pads->Note(PadOf(entity)) || added;
+	for (const auto& entity : entities) {
+		if (!entity.padClass || entity.unit == Entity::NoUnit) continue;
+		added = pads->Note(PadOf(entity)) || added;
+		const auto known = std::find_if(kept->padThings.begin(), kept->padThings.end(), [&](const Entity& thing) { return PadOf(thing) == PadOf(entity); });
+		if (known == kept->padThings.end()) kept->padThings.push_back(entity);
+		else *known = entity;
+	}
 	if (!added) return;
 	const auto* graph = Rooms(state);
 	const auto links = graph ? pads->Links(graph->rooms) : std::vector<LevelRoute::Link>{};
@@ -308,6 +320,52 @@ bool CutOff(const LevelRoute::Reach& reach, const Lifecycle& state, const Entity
 bool CutOff(const Lifecycle& state, const Radar::World& world, const Entity& target) {
 	const auto* reach = Reached(state, world);
 	return reach && CutOff(*reach, state, target);
+}
+
+// The ground got to through the teleport pads as well (LevelRoute::Reach with
+// the pads' links), searched only in a level with a pad whose way is known, and
+// asked only of what walking alone does not get to. 2026-10-02, the Arcane
+// Sanctuary: H said "Nothing left to explore here" fourteen times with fourteen
+// rooms not explored, every one of them past a pad.
+LevelRoute::Reach g_padReach;
+const LevelRoute::Reach* PadReached(const Lifecycle& state, const Radar::World& world) {
+	const auto* memory = Remember(state, world);
+	auto* pads = PadsOf(state);
+	if (!memory || !pads || pads->All().empty()) return nullptr;
+	if (!g_padReach.Holds(*memory, world.player, world.bodyPattern, pads->Revision())) {
+		const auto* graph = Rooms(state);
+		const auto links = graph ? pads->Links(graph->rooms) : std::vector<LevelRoute::Link>{};
+		if (links.empty()) return nullptr;
+		// A pad is used from as near as D uses one (UseSteps); a pad has no footprint.
+		g_padReach = LevelRoute::Reach(*memory, world.player, world.bodyPattern, links, static_cast<int>(std::ceil(UseReach)), pads->Revision());
+	}
+	return &g_padReach;
+}
+// A thing got to through the pads, and the pad to use first on the way. False
+// as well when walking alone gets to it: then no pad is wanted.
+bool PadWayFrom(const LevelRoute::Reach& reach, const Lifecycle& state, const Entity& target, LevelRoute::Pad& pad) {
+	if (target.kind == EntityRadar::Kind::Room) {
+		const auto* graph = Rooms(state);
+		if (!graph) return false;
+		const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == target.placeId; });
+		return room != graph->rooms.end() && reach.ViaWithin(NativeRooms::Subtiles(*room), pad);
+	}
+	// As near as a walk counts as there, as CutOff has it.
+	const int within = std::max(Margin(target), static_cast<int>(std::ceil(UseReach + HalfFootprint(target))));
+	return reach.Via(target.position, within, pad);
+}
+bool PadWay(const Lifecycle& state, const Radar::World& world, const Entity& target, LevelRoute::Pad& pad) {
+	const auto* reach = PadReached(state, world);
+	return reach && PadWayFrom(*reach, state, target, pad);
+}
+// The pad to walk to: as loaded now, else as last read.
+std::optional<Entity> PadThing(const Lifecycle& state, const std::vector<Entity>& loaded, const LevelRoute::Pad& pad) {
+	for (const auto& entity : loaded)
+		if (entity.padClass && entity.unit != Entity::NoUnit && PadOf(entity) == pad) return entity;
+	if (const auto* kept = Kept(state))
+		for (const auto& thing : kept->padThings)
+			if (PadOf(thing) == pad) return thing;
+	return std::nullopt;
 }
 
 // What is around the player right now. Read fresh for every decision: the
@@ -735,16 +793,31 @@ bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, dou
 // way is looked for before the first step. 2026-10-02, the Arcane Sanctuary: a
 // walk to a teleport pad across the void ran for four seconds, to eight cells
 // from it, and said "No way" there (07:10:06 to 07:10:10).
+//
+// Where only teleport pads get to it, the walk goes to the first pad of the way
+// and stops there, for D to use: "the player should still have to stop and
+// interact with it with d. but it's fine if the route has to split into legs
+// accounting for each pad" (the user, 2026-10-02). The walk key again goes on
+// from where the pad put the player.
 bool SetOut(const Lifecycle& state, const Entity& target, Mode mode, const char* reason) {
+	Entity leg = target;
 	if (Scene scene; Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
-		End("no way", true);
-		AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
-			scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
-		ScreenReader::Speak(Format(Strings::Current().walkNoRoute, target.name.c_str()), true);
-		return false;
+		LevelRoute::Pad pad;
+		std::optional<Entity> first;
+		if (PadWay(state, scene.world, target, pad)) first = PadThing(state, scene.entities, pad);
+		if (!first) {
+			End("no way", true);
+			AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
+				scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
+			ScreenReader::Speak(Format(Strings::Current().walkNoRoute, target.name.c_str()), true);
+			return false;
+		}
+		leg = *first;
+		AsyncLog::InfoF(g_context, "[keyboard] walk: by teleport pad at %d,%d, the first of the way to %s at %.0f,%.0f",
+			pad.x, pad.y, target.name.c_str(), target.position.x, target.position.y);
 	}
 	End(reason, false);
-	g_target = target;
+	g_target = leg;
 	g_mode = mode;
 	g_walker.Start();
 	g_nextAct = 0;
@@ -870,6 +943,13 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		} else {
 			End("arrived", true);
 			ScreenReader::Speak(Format(strings.beaconArrived, name.c_str()), true);
+			// At a teleport pad the next D uses it, as if comma or full stop had
+			// chosen it, and not whatever else stands nearer.
+			if (g_target.padClass && g_target.unit != Entity::NoUnit) {
+				g_itemPick = g_target.id;
+				g_itemPickKind = g_target.kind;
+				g_itemPickName = name;
+			}
 		}
 		break;
 	case Progress::Blocked:
@@ -1017,6 +1097,41 @@ void BeginUse(const Lifecycle& state) {
 
 // ---- exploring ----
 
+// No room left that walking alone gets to: the nearest past the teleport pads,
+// by the steps of the way, is walked toward as a walk to what the scanner named
+// is (SetOut): to the first pad of the way, for D to use. False when the pads
+// get to none.
+bool ExploreByPad(const Lifecycle& state, const Scene& scene, const RoomGraph::Graph& graph, const std::vector<NativeRooms::Room>& explored) {
+	const auto* walking = Reached(state, scene.world);
+	const auto* pads = walking ? PadReached(state, scene.world) : nullptr;
+	if (!pads) return false;
+	size_t best = NativeRooms::None;
+	int fewest = -1;
+	LevelRoute::Pad first;
+	for (size_t i = 0; i < graph.rooms.size(); ++i) {
+		const auto& room = graph.rooms[i];
+		const auto bounds = NativeRooms::Subtiles(room);
+		if (std::any_of(explored.begin(), explored.end(), [&](const auto& known) { return known.id == room.id; })
+			|| std::find(g_refused.begin(), g_refused.end(), room.id) != g_refused.end()
+			|| walking->Within(bounds) != LevelRoute::Reach::Answer::CutOff) continue;
+		LevelRoute::Pad pad;
+		int steps = 0;
+		if (pads->ViaWithin(bounds, pad, &steps) && (fewest < 0 || steps < fewest)) { best = i; fewest = steps; first = pad; }
+	}
+	if (best == NativeRooms::None) return false;
+	const auto thing = PadThing(state, scene.entities, first);
+	if (!thing) return false;
+	End("explore", false);
+	g_target = *thing;
+	g_mode = Mode::Walk;
+	g_walker.Start();
+	g_nextAct = 0;
+	g_walkFromSet = false;
+	AsyncLog::InfoF(g_context, "[keyboard] explore: room %zu by teleport pad at %d,%d, %d steps", best, first.x, first.y, fewest);
+	ScreenReader::Speak(Strings::Current().exploreTo, true);
+	return true;
+}
+
 void BeginExplore(const Lifecycle& state) {
 	const auto& strings = Strings::Current();
 	if (!Ready()) return;
@@ -1033,6 +1148,7 @@ void BeginExplore(const Lifecycle& state) {
 			if (reach->Within(NativeRooms::Subtiles(room)) == LevelRoute::Reach::Answer::CutOff) refused.push_back(room.id);
 	const size_t cutOff = refused.size() - g_refused.size();
 	const auto choice = ExploreGoal::Nearest(*graph, scene.grid, explored, scene.world.player, refused);
+	if (!choice.found && cutOff && ExploreByPad(state, scene, *graph, explored)) return;
 	if (!choice.found) {
 		AsyncLog::InfoF(g_context, "[keyboard] explore: nothing left, %zu rooms, %zu explored, %zu given up, %zu cut off", graph->rooms.size(), explored.size(), g_refused.size(), cutOff);
 		ScreenReader::Speak(strings.exploreNothing, true);
@@ -1093,8 +1209,11 @@ void BeginRetreat(const Lifecycle& state) {
 	}
 	Entity target = Target(g_wayIn.entered);
 	const char* how = g_wayIn.entered.named ? "what the player came in by" : "where the player came in, nothing found there";
-	// Past a hop the way in may be cut off on foot: then the way onto this ground is the way back.
-	if (Scene scene; g_wayIn.hop && Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
+	// Past a hop the way in may be cut off on foot, with no pad known to lead
+	// back: then the way onto this ground is the way back.
+	LevelRoute::Pad pad;
+	if (Scene scene; g_wayIn.hop && Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))
+		&& !PadWay(state, scene.world, target, pad)) {
 		AsyncLog::InfoF(g_context, "[keyboard] retreat: no way on foot from %.0f,%.0f to %s at %.0f,%.0f, the way in; to the way onto this ground",
 			scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
 		target = Target(g_wayIn.hopped);
@@ -1850,8 +1969,18 @@ std::vector<bool> CutOff(const Radar::World& world, const std::vector<const Enti
 	Lifecycle state;
 	state.session = world.session;
 	state.level = world.level;
-	if (const auto* reach = Reached(state, world))
-		for (size_t i = 0; i < things.size(); ++i) cut[i] = CutOff(*reach, state, *things[i]);
+	const auto* reach = Reached(state, world);
+	if (!reach) return cut;
+	// What walking alone does not get to is cut off only when the pads do not
+	// get to it either; the search through them is made only then.
+	const LevelRoute::Reach* pads = nullptr;
+	bool looked = false;
+	for (size_t i = 0; i < things.size(); ++i) {
+		if (!CutOff(*reach, state, *things[i])) continue;
+		if (!looked) { pads = PadReached(state, world); looked = true; }
+		LevelRoute::Pad pad;
+		cut[i] = !pads || !PadWayFrom(*pads, state, *things[i], pad);
+	}
 	return cut;
 }
 

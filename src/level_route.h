@@ -130,16 +130,17 @@ public:
 	// A room, max exclusive: reached when any of its cells is.
 	Answer Within(const NativeRooms::Bounds& bounds) const;
 	// The pad to use first on the shortest way to a thing or a room the search
-	// through pads reached. False when the way takes no pad, or there is none.
-	bool Via(Position place, int margin, Pad& pad) const;
-	bool ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad) const;
+	// through pads reached, and the steps of that way when `steps` is given.
+	// False when the way takes no pad, or there is none.
+	bool Via(Position place, int margin, Pad& pad, int* steps = nullptr) const;
+	bool ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad, int* steps = nullptr) const;
 private:
 	// Outside the level; no place for the body; a place for it, not got to; got to.
 	enum Mark : uint8_t { Outside, Shut, Stood, Got };
 	void Flood(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin);
 	Mark At(int x, int y) const;
 	Answer Among(int minX, int minY, int maxX, int maxY) const; // max exclusive
-	bool First(int minX, int minY, int maxX, int maxY, Pad& pad) const; // max exclusive
+	bool First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const; // max exclusive
 	uint64_t session_ = 0, revision_ = 0, pads_ = 0;
 	int level_ = 0, pattern_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0, fromX_ = 0, fromY_ = 0;
 	bool any_ = false, linked_ = false;
