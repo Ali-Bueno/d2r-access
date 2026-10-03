@@ -15,6 +15,7 @@ struct Placement { double right = 0, front = 1; };
 
 std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain = 1);
 bool Start(const D2RL::PluginContext* context, double gain);
+// A pending Reach ping is never replaced by a presence pulse.
 void Play(Sound sound, Placement placement);
 void Silence();
 void Stop();

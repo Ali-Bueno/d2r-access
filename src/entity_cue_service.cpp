@@ -38,7 +38,7 @@ AttackReach::Tracker g_reachTracker;
 std::optional<AttackReach::Style> g_style;
 std::optional<double> g_reach;
 std::string g_reachLogged;
-bool g_reachCue = false;
+bool g_reachCue = true;
 uint64_t g_lastLoadout = 0;
 constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
@@ -162,11 +162,11 @@ bool Register(const D2RL::PluginContext* context) {
 	g_settings.enemies = config.enemies.value_or(g_settings.enemies);
 	g_settings.ranged = config.ranged.value_or(g_settings.ranged);
 	g_settings.range = config.range.value_or(g_settings.range);
-	g_settings.ordinary = config.ordinary.value_or(false);
-	g_reachCue = config.reach.value_or(false);
+	g_settings.ordinary = config.ordinary.value_or(g_settings.ordinary);
+	g_reachCue = config.reach.value_or(g_reachCue);
 	g_reachSettings.mode = config.attack.value_or(g_reachSettings.mode);
 	g_reachSettings.meleeReach = config.meleeReach.value_or(g_reachSettings.meleeReach);
-	g_reachSettings.rangedReach = config.rangedReach.value_or(g_reachSettings.rangedReach);
+	g_reachSettings.rangedReach = config.rangedReach.value_or(g_settings.range);
 	(void)context->RegisterConsoleCommand("access-entity-cues", Console,
 		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
 	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0);
@@ -262,7 +262,7 @@ void Unregister() {
 	{ std::lock_guard lock(g_mutex); g_lifecycleState = {}; }
 	g_context = nullptr; g_lifecycle = nullptr;
 	g_command = Command::None;
-	g_reachTracker.Reset(); g_reachSettings = {}; g_style.reset(); g_reach.reset(); g_reachLogged.clear(); g_reachCue = false; g_lastLoadout = 0;
+	g_reachTracker.Reset(); g_reachSettings = {}; g_style.reset(); g_reach.reset(); g_reachLogged.clear(); g_reachCue = true; g_lastLoadout = 0;
 	g_settings = {}; g_enabled = true; g_supported = g_audioStarted = false; g_suspended = true;
 	g_revision = g_lastPoll = 0;
 }

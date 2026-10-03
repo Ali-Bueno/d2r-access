@@ -35,7 +35,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 void Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	g_supported = nativeHooks && NativeWallSlide::Initialize(context);
-	g_enabled = g_supported && RadarConfig::ReadEnabled(context, "[movement]").value_or(false);
+	g_enabled = g_supported && RadarConfig::ReadEnabled(context, "[movement]").value_or(true);
 	(void)context->RegisterConsoleCommand("access-movement", Console, "Prevent directional wall sliding: on|off|status.");
 	AsyncLog::InfoF(context, "[movement] prevention enabled=%u supported=%u", g_enabled ? 1u : 0u, g_supported ? 1u : 0u);
 }

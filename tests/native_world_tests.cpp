@@ -154,24 +154,24 @@ int main() {
 	DisplacedPresenceTests();
 	{
 		using RadarConfig::ParseNavigation;
-		Check(ParseNavigation("").valid && ParseNavigation("").fullAssistance,
-			"navigation defaults to full assistance when omitted");
+		Check(ParseNavigation("").valid && !ParseNavigation("").fullAssistance,
+			"navigation defaults to exploration-first when omitted");
 		Check(ParseNavigation("[navigation]\nfull_assistance = true\n").fullAssistance,
-			"explicit true keeps full assistance");
+			"full assistance requires an explicit true setting");
 		Check(ParseNavigation("[navigation]\nfull_assistance = false\n").valid
 			&& !ParseNavigation("[navigation]\nfull_assistance = false\n").fullAssistance,
-			"explicit false selects exploration-first routing");
-		Check(!ParseNavigation("[navigation]\nfull_assistance = FALSE\n").valid
-			&& ParseNavigation("[navigation]\nfull_assistance = FALSE\n").fullAssistance,
-			"an invalid boolean falls back to full assistance");
+			"explicit false retains exploration-first routing");
+		Check(!ParseNavigation("[navigation]\nfull_assistance = TRUE\n").valid
+			&& !ParseNavigation("[navigation]\nfull_assistance = TRUE\n").fullAssistance,
+			"invalid boolean keeps full assistance off");
 		Check(!ParseNavigation("[navigation]\nfull_assistance\n").valid,
 			"navigation setting needs a value");
-		Check(!ParseNavigation("[navigation]\nfull_assistance = false\nfull_assistance = true\n").valid
-			&& ParseNavigation("[navigation]\nfull_assistance = false\nfull_assistance = true\n").fullAssistance,
-			"a duplicate navigation setting falls back to the default");
-		Check(ParseNavigation("[radar]\nfull_assistance = false\n").fullAssistance,
+		Check(!ParseNavigation("[navigation]\nfull_assistance = true\nfull_assistance = false\n").valid
+			&& !ParseNavigation("[navigation]\nfull_assistance = true\nfull_assistance = false\n").fullAssistance,
+			"duplicate navigation setting fails closed");
+		Check(!ParseNavigation("[radar]\nfull_assistance = true\n").fullAssistance,
 			"navigation setting outside its section is ignored");
-		Check(!ParseNavigation("[navigation]\nfull_assistance = false\n[radar]\nfull_assistance = true\n").fullAssistance,
+		Check(ParseNavigation("[navigation]\nfull_assistance = true\n[radar]\nfull_assistance = false\n").fullAssistance,
 			"another section cannot override navigation");
 	}
 	Check(RadarConfig::Parse("[radar]\nenabled = false # quiet default\n").enabled == false, "embedded radar preference can disable startup audio");

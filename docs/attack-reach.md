@@ -1,8 +1,9 @@
-# Optional enemy growls and attack reach
+# Enemy growls and attack reach
 
-Hand-ported from upstream `b3997e1` on 2026-10-03. Both new channels default
-off on this branch, preserving its existing priority cues and sounds. The
-keyboard settings list offers ordinary enemy growls and the attack-reach ping.
+Hand-ported from upstream `b3997e1` on 2026-10-03. Both channels are on by
+default, as upstream had them; `ordinary = false` and `reach = false` restore
+the priority-only cues. The keyboard settings list offers ordinary enemy
+growls and the attack-reach ping.
 The enemy master switch also controls them.
 
 With growls enabled, up to three enemy streams prioritize important enemies,

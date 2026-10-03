@@ -9,7 +9,7 @@ namespace D2RAccess::EntityCues {
 enum class Kind { Npc, Important, Resurrector, Ranged, Ordinary };
 inline constexpr size_t KindCount = 5, MaxOrdinary = 3, SlotCount = KindCount - 1 + MaxOrdinary;
 struct Settings {
-	bool npcs = true, enemies = true, ranged = true, ordinary = false;
+	bool npcs = true, enemies = true, ranged = true, ordinary = true;
 	double range = EntityRadar::Settings{}.range;
 	// Listening feedback, 2026-09-22: much faster repeats, including mixed groups.
 	uint64_t nearIntervalMs = 150, farIntervalMs = 450, gapMs = 100;

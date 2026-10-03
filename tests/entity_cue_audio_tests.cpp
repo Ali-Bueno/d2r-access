@@ -38,7 +38,7 @@ int Crossings(const std::vector<int16_t>& pcm, size_t fromFrame, size_t toFrame)
 }
 
 void DurationAndLevels() {
-	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Resurrector, Sound::Ranged, Sound::Ordinary, Sound::Reach}) {
 		const auto pcm = Synthesize(sound, {});
 		Check(!pcm.empty() && pcm.size() % Channels == 0, "every cue contains interleaved stereo PCM");
 		Check(pcm.size() / Channels <= SampleRate * 120 / 1000, "every cue is at most 120 ms");
@@ -50,6 +50,9 @@ void DurationAndLevels() {
 		if (sound == Sound::Npc) {
 			Check(Rms(pcm, 0, frames * 2 / 3, frames) < 0.25 * Rms(pcm, 0, 0, frames / 3),
 				"the NPC retains its quickly decaying wooden tap");
+		} else if (sound == Sound::Reach) {
+			Check(Rms(pcm, 0, 0, frames / 5) > 2 * Rms(pcm, 0, frames / 5 * 2 - frames / 10, frames / 5 * 2),
+				"the reach ping strikes and decays before its second note");
 		} else {
 			const double middle = Rms(pcm, 0, frames / 3, frames * 2 / 3);
 			Check(middle > 2 * Rms(pcm, 0, 0, frames / 3) && middle > 2 * Rms(pcm, 0, frames * 2 / 3, frames),
@@ -97,13 +100,35 @@ void Timbres() {
 	}
 }
 
+void NewCues() {
+	const auto growl = Synthesize(Sound::Ordinary, {});
+	const auto ping = Synthesize(Sound::Reach, {});
+	const auto important = Synthesize(Sound::Important, {});
+	const size_t growlFrames = growl.size() / Channels, pingFrames = ping.size() / Channels;
+	Check(growl != important && ping != growl && ping != important, "the growl and the ping have signatures of their own");
+	const double growlRate = static_cast<double>(Crossings(growl, growlFrames / 3, growlFrames * 2 / 3)) / growlFrames;
+	const size_t importantFrames = important.size() / Channels;
+	const double importantRate = static_cast<double>(Crossings(important, importantFrames / 3, importantFrames * 2 / 3)) / importantFrames;
+	const double pingRate = static_cast<double>(Crossings(ping, 0, pingFrames / 3)) / pingFrames;
+	Check(pingRate > 4 * growlRate && pingRate > 4 * importantRate, "the ping sits far above every enemy cue");
+	const size_t split = pingFrames * 42 / 100;
+	Check(Crossings(ping, split + 50, split + 650) > Crossings(ping, 50, 650), "the ping rises to its second note");
+	const auto rearGrowl = Synthesize(Sound::Ordinary, {0, -1});
+	Check(Crossings(rearGrowl, growlFrames / 3, growlFrames * 2 / 3) < Crossings(growl, growlFrames / 3, growlFrames * 2 / 3),
+		"a growl behind is lower than one ahead");
+	const auto rearPing = Synthesize(Sound::Reach, {0, -1});
+	Check(Crossings(rearPing, 50, 650) < Crossings(ping, 50, 650), "a ping behind is lower than one ahead");
+	const auto left = Synthesize(Sound::Reach, {-0.75, 1});
+	Check(Rms(left, 0) > 2 * Rms(left, 1), "the ping is placed toward the enemy");
+}
+
 void DifferentFromRadarBreath() {
 	D2RAccess::Radar::Events events{};
 	events[0] = D2RAccess::Radar::State::Open;
 	const auto floor = D2RAccess::RadarAudio::Synthesize(events, {}, 1);
 	const size_t floorFrames = floor.size() / Channels;
 	const double floorRate = static_cast<double>(Crossings(floor, floorFrames / 3, floorFrames * 2 / 3)) / floorFrames;
-	for (const auto sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+	for (const auto sound : {Sound::Important, Sound::Resurrector, Sound::Ranged, Sound::Ordinary}) {
 		const auto enemy = Synthesize(sound, {});
 		const size_t frames = enemy.size() / Channels;
 		const double enemyRate = static_cast<double>(Crossings(enemy, frames / 3, frames * 2 / 3)) / frames;
@@ -133,17 +158,10 @@ void InvalidInputsAndGain() {
 }
 
 int main() {
-
-    for (const auto sound : {Sound::Ordinary, Sound::Reach}) {
-        const auto pcm = Synthesize(sound, {});
-        Check(!pcm.empty() && pcm.size() % Channels == 0 && Peak(pcm) > 1500 && Peak(pcm) < 16000,
-            "new optional sounds are audible stereo with headroom");
-        Check(pcm.front() == 0 && pcm.back() == 0, "new optional sounds start and end at silence");
-        Check(Synthesize(sound, {1, 0}) != Synthesize(sound, {-1, 0}), "new optional sounds preserve spatial placement");
-    }
-    DurationAndLevels();
+	DurationAndLevels();
 	Spatial();
 	Timbres();
+	NewCues();
 	DifferentFromRadarBreath();
 	InvalidInputsAndGain();
 	Passed();

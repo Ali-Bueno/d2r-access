@@ -60,13 +60,10 @@ int main() {
 	Strings::Select(Strings::Language::enUS);
 	WallSlideService::Register(&context, true);
 	Check(console && initializeCalls == 1, "supported native movement registers its command and initializes once");
-	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "feature defaults off without configuration");
-	Check(!WallSlideService::Enabled(), "and the radar is told blocked moves still slide");
+	Check(WallSlideService::Prevent(0x1234) && directionalCalls == 1, "feature defaults on and checks native attempt identity");
+	Check(WallSlideService::Enabled(), "the radar is told that blocked moves stop instead of sliding");
 	WallSlideService::Tick();
 	Check(speech.empty(), "blocked movement never speaks automatically");
-	Check(Command("on") == D2RL::ConsoleCommandResult::Handled && WallSlideService::Prevent(0x1234) && directionalCalls == 1,
-		"on enables prevention and checks native attempt identity");
-	Check(WallSlideService::Enabled(), "the radar is told that blocked moves stop instead of sliding");
 	Check(Command("status") == D2RL::ConsoleCommandResult::Handled && speech.back() == Strings::Current().movementEnabled && interrupted,
 		"status speaks the enabled state as a context update");
 	Check(Command("off") == D2RL::ConsoleCommandResult::Handled && speech.back() == Strings::Current().movementDisabled,
@@ -97,7 +94,7 @@ int main() {
 		"disabled native hooks cannot be enabled by configuration");
 	Command("status");
 	Check(speech.back() == Strings::Current().movementUnavailable, "status reports unavailable without native hooks");
-	Reset(); configured = true;
+	Reset();
 	WallSlideService::Register(&context, true);
 	directional = false;
 	Check(!WallSlideService::Prevent(1) && directionalCalls == 1, "enabled prevention passes through unrelated native attempts");

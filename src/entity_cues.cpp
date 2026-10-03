@@ -8,6 +8,9 @@
 namespace D2RAccess::EntityCues {
 namespace {
 constexpr size_t MaxEnemyClasses = 2; // leave room for combat, speech and the navigation radar
+// With growls, three enemy streams at once, as Diablo 1's diablo-access plays its three nearest emitters.
+constexpr size_t MaxEnemyStreams = 3;
+constexpr std::array Priorities{Kind::Important, Kind::Resurrector, Kind::Ranged};
 constexpr std::array Order{Kind::Important, Kind::Resurrector, Kind::Ranged, Kind::Npc};
 std::optional<Kind> Classify(const EntityRadar::Entity& entity, const Settings& settings) {
 	if (entity.kind == EntityRadar::Kind::Npc) return settings.npcs ? std::optional{Kind::Npc} : std::nullopt;
@@ -93,13 +96,13 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 		slot = cue;
 	}
 	std::vector<Cue> selected;
-	for (const auto kind : std::array{Kind::Important, Kind::Resurrector, Kind::Ranged})
-		if (const auto& cue = nearest[static_cast<size_t>(kind)]; cue && selected.size() < 3) selected.push_back(*cue);
+	for (const auto kind : Priorities)
+		if (const auto& cue = nearest[static_cast<size_t>(kind)]; cue && selected.size() < MaxEnemyStreams) selected.push_back(*cue);
 	std::sort(ordinary.begin(), ordinary.end(), [](const Candidate& a, const Candidate& b) { return Nearer(a.cue, b.cue); });
 	// One slot per rank, so the nearest enemy changing does not restart its cadence.
 	size_t rank = 0;
 	for (auto& candidate : ordinary) {
-		if (selected.size() >= 3 || rank >= MaxOrdinary) break;
+		if (selected.size() >= MaxEnemyStreams || rank >= MaxOrdinary) break;
 		if (!EntityRadar::LineOfSight(world, world.player, candidate.position)) continue;
 		candidate.cue.slot = static_cast<size_t>(Kind::Ordinary) + rank++;
 		selected.push_back(candidate.cue);
