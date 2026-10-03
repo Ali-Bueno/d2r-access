@@ -61,7 +61,6 @@ QUEST_ITEM_FNS = {
     28,  # LamEsensTome
     39,  # HoradricCubeChest
     40,  # HoradricScrollChest
-    31,  # GidBInnDecoy, the Flayer Jungle altar that holds the Gidbinn
     41,  # StaffOfKingsChest
     57,  # KhalimHeartChest
     58,  # KhalimEyeChest
@@ -77,22 +76,27 @@ QUEST_ITEM_FNS = {
 LOOT_FNS = CONTAINER_FNS | QUEST_ITEM_FNS
 
 # Objects a quest is advanced by using, which hand over no item: each handler
-# below is the only one of its object (docs/quest-objects.md). They loop the
-# quest cue and list as quest objects while in their neutral mode.
+# below is the only one of its object (docs/quest-objects.md). Each maps to the
+# modes (objects.txt Mode0..7 order) in which it is still a quest step; it loops
+# the quest cue and lists as a quest object only then.
+NEUTRAL = (0,)
 QUEST_MECHANISM_FNS = {
-    10,  # Gibbet, Cain's cage in Tristram
-    24,  # TaintedSunShrine, the Tainted Sun altar
-    25,  # SevenTombsReceptacle, the orifice the Horadric Staff goes in
-    45,  # BeneathTheCityLever, the sewer lever to Radament's lair
-    49,  # SoulStoneForge, the Hellforge
-    52,  # DiabloSeal2, DiabloSeal4
-    53,  # CompellingOrb, smashed with Khalim's Will
-    54,  # DiabloSeal1
-    55,  # DiabloSeal3
-    56,  # DiabloSeal5
-    65,  # AncientsAltar, the Altar of the Heavens
-    67,  # AnyaYetAgain, Frozen Anya
-    74,  # ColossalAltar, the other Altar of the Heavens row
+    10: NEUTRAL,  # Gibbet, Cain's cage in Tristram
+    24: NEUTRAL,  # TaintedSunShrine, the Tainted Sun altar
+    25: NEUTRAL,  # SevenTombsReceptacle, the orifice the Horadric Staff goes in
+    31: NEUTRAL,  # GidBInnDecoy: wakes a guardian that drops the Gidbinn
+    45: NEUTRAL,  # BeneathTheCityLever, opens the Kurast sewer stairs
+    # SoulStoneForge, the Hellforge: mode 2 holds the Soulstone until the hammer
+    # breaks it (the client asks for the hammer in hand in mode 2, 0x140FA6DA).
+    49: (0, 2),
+    52: NEUTRAL,  # DiabloSeal2, DiabloSeal4
+    53: NEUTRAL,  # CompellingOrb, smashed with Khalim's Will
+    54: NEUTRAL,  # DiabloSeal1
+    55: NEUTRAL,  # DiabloSeal3
+    56: NEUTRAL,  # DiabloSeal5
+    65: NEUTRAL,  # AncientsAltar, the Altar of the Heavens
+    67: NEUTRAL,  # AnyaYetAgain, Frozen Anya
+    74: NEUTRAL,  # ColossalAltar, the other Altar of the Heavens row
 }
 
 # The Chaos Sanctuary seals, all five of which open the way to Diablo. Their
@@ -201,7 +205,7 @@ def main():
     entries.sort()
     if not entries:
         raise SystemExit("no lootable objects found -- is objects.txt the right file?")
-    unmatched = QUEST_MECHANISM_FNS - {fn for _, _, fn in mechanisms}
+    unmatched = set(QUEST_MECHANISM_FNS) - {fn for _, _, fn in mechanisms}
     if unmatched:
         raise SystemExit("OperateFn %s matched no selectable object -- did objects.txt change?" % sorted(unmatched))
 
@@ -306,16 +310,28 @@ def main():
     out.append("}")
     out.append("")
     mechanisms.sort()
-    out.extend(wrap_comment("// Quest mechanisms, used in their neutral mode: %s."
+    out.extend(wrap_comment("// Quest mechanisms, by OperateFn: %s."
                             % ", ".join(class_name for _, class_name, _ in mechanisms)))
     out.append("inline constexpr std::array<uint16_t, %d> QuestMechanismObjects{" % len(mechanisms))
     out.append("	" + ", ".join(str(class_id) for class_id, _, _ in mechanisms))
+    out.append("};")
+    out.append("")
+    out.append("// The modes in which each is still a quest step, bit n for mode n.")
+    out.append("inline constexpr std::array<uint8_t, %d> QuestMechanismModes{" % len(mechanisms))
+    out.append("	" + ", ".join("0x%02X" % sum(1 << mode for mode in QUEST_MECHANISM_FNS[fn]) for _, _, fn in mechanisms))
     out.append("};")
     out.append("")
     out.append("constexpr bool QuestMechanismObject(uint32_t classId) {")
     out.append("	if (classId > UINT16_MAX) return false;")
     out.append("	return std::binary_search(QuestMechanismObjects.begin(), QuestMechanismObjects.end(),")
     out.append("		static_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
+    out.append("// True while a quest mechanism in this mode is still to be used.")
+    out.append("constexpr bool QuestMechanismStep(uint32_t classId, uint32_t mode) {")
+    out.append("	const auto found = std::lower_bound(QuestMechanismObjects.begin(), QuestMechanismObjects.end(), classId);")
+    out.append("	if (found == QuestMechanismObjects.end() || *found != classId || mode >= 8) return false;")
+    out.append("	return (QuestMechanismModes[found - QuestMechanismObjects.begin()] >> mode) & 1;")
     out.append("}")
     out.append("")
     seals.sort()
