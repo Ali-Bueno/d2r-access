@@ -27,7 +27,7 @@ struct Field {
 	size_t Index(int cx, int cy) const { return static_cast<size_t>(cy-y)*width + (cx-x); }
 };
 
-Field Copy(const Radar::World& world, int left, int top, int width, int height) {
+Field Copy(const Radar::World& world, int left, int top, int width, int height, Radar::Layer layer) {
 	const size_t cells = static_cast<size_t>(width) * height;
 	Field field{left, top, width, height, std::vector<uint8_t>(cells, 0), std::vector<uint8_t>(cells, 0)};
 	for (const auto& room : world.rooms) {
@@ -44,7 +44,8 @@ Field Copy(const Radar::World& world, int left, int top, int width, int height) 
 				if (raw & Blank) continue; // unknown: never routed through, never a wall
 				// Terrain layer: a monster or another player standing in a
 				// doorway must not reroute the beacon.
-				field.open[index] = (Radar::TerrainCollisionFlags(raw) & world.walkingMask) ? 0 : 1;
+				const auto flags = layer == Radar::Layer::Terrain ? Radar::TerrainCollisionFlags(raw) : raw;
+				field.open[index] = (flags & world.walkingMask) ? 0 : 1;
 			}
 		}
 	}
@@ -87,7 +88,7 @@ Route Search(const Radar::World& world, Position target, const Settings& setting
 	Route route;
 	const int startX = Cell(world.player.x), startY = Cell(world.player.y);
 	const int side = 2*radius + 1;
-	const Field field = Copy(world, startX - radius, startY - radius, side, side);
+	const Field field = Copy(world, startX - radius, startY - radius, side, side, settings.layer);
 	const int goalX = Cell(target.x), goalY = Cell(target.y);
 	const size_t start = field.Index(startX, startY);
 	std::vector<int32_t> parent(field.open.size(), -1);
@@ -107,6 +108,8 @@ Route Search(const Radar::World& world, Position target, const Settings& setting
 			if (!field.Inside(nx, ny)) continue;
 			const size_t next = field.Index(nx, ny);
 			if (parent[next] >= 0 || !field.open[next]) continue;
+			if (settings.layer == Radar::Layer::Movement && step.x && step.y
+				&& !field.open[field.Index(nx, y)] && !field.open[field.Index(x, ny)]) continue;
 			parent[next] = static_cast<int32_t>(index);
 			length[next] = length[index] + step.length;
 			const double distance = std::hypot(static_cast<double>(nx-goalX), static_cast<double>(ny-goalY));

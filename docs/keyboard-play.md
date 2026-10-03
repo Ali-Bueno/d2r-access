@@ -681,3 +681,31 @@ deployed; none pressed in the first test, or not told apart in it.
 Known limits, unchanged: a shut door blocks a walk; the reach of a ranged
 attack is one distance for every skill (24 subtiles); the second skill bar's
 reader and the belt's automatic potion name read controller-mode state.
+
+## Retreat through a monster pack — 2026-10-03
+
+The user's own log records Ctrl+R at 11:24:53, targeting the way in,
+`To The Canyon of the Magi` at 22722,14430. Native run orders repeated a
+destination at 22695,14313 while the player remained near 22677,14312.
+The collision/stall report includes monster footprints and blocked centers;
+the walk reported blocked at 11:24:57, before the death screen at 11:24:59.
+This establishes an engaged retreat and failed movement, not a missed key.
+
+Previously both routing and straight movement legs used terrain collision,
+which deliberately strips transient actors. That kept choosing a line through
+the pack. Retreat now uses the same `Beacon::FindRoute` and `AutoWalk` with
+their additive Movement-layer option. The target is still the remembered
+entrance or first teleport pad. No alternative escape destination or weighted
+retreat planner is introduced. Terrain-only exploration and reach filtering
+keep their existing defaults.
+
+Retreat rejects diagonal corner squeezes and checks the whole native body.
+When a monster blocks an issued destination, the next permitted order can
+choose an open detour without waiting for the 1.2-second stall timeout. The
+250-ms order limit remains; actual game animation/hit recovery still controls
+when movement can occur. A completely surrounded body has no proved route.
+
+`auto-walk` regression coverage includes a moving blocker, a surrounded
+character and the anonymous 57x57 collision capture from 11:24:53. The capture
+is a nearby route test, not proof of survival or the complete distant entrance
+route. User-led live confirmation remains necessary.

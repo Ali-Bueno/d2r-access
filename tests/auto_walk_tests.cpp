@@ -1,5 +1,6 @@
 #include "auto_walk.h"
 #include "beacon.h"
+#include "retreat_collision.h"
 #include "test_support.h"
 
 #include <cmath>
@@ -35,6 +36,60 @@ double Distance(Position a, Position b) { return std::hypot(a.x - b.x, a.y - b.y
 int main() {
 	const AutoWalk::Settings settings;
 	const Beacon::Settings routing;
+    {
+        // A monster arrives on an order already under way: change direction
+        // at the order interval instead of waiting for the stall timeout.
+        World world = Field({20, 60}, 1);
+        Beacon::Settings retreatRoute;
+        retreatRoute.layer = Radar::Layer::Movement;
+        AutoWalk::Settings retreatWalk;
+        retreatWalk.layer = Radar::Layer::Movement;
+        AutoWalk::Walker walker;
+        walker.Start();
+        const Position target{80, 60};
+        const auto first = walker.Tick(world, Beacon::FindRoute(world, target, retreatRoute).path, 1000, retreatWalk);
+        Check(first.event == Event::Order, "retreat gives its first order immediately");
+        Fill(world, 25, 60, 25, 60, 0x1100);
+        Check(AutoWalk::Straight(world, world.player, first.order), "ordinary terrain routes ignore a transient monster");
+        Check(!AutoWalk::Straight(world, world.player, first.order, Radar::Layer::Movement), "retreat sees the monster blocking its order");
+        const auto route = Beacon::FindRoute(world, target, retreatRoute);
+        Check(route.reachable, "retreat finds a detour around the monster");
+        const auto changed = walker.Tick(world, route.path, 1300, retreatWalk);
+        Check(changed.event == Event::Order && changed.order.y != first.order.y, "retreat changes the blocked order before the stall timeout");
+        Check(AutoWalk::Straight(world, world.player, changed.order, Radar::Layer::Movement), "new retreat order fits beside the monster");
+    }
+    {
+        World world = Field({20, 60}, 1);
+        Fill(world, 18, 58, 22, 62, 0x1100);
+        Beacon::Settings retreat;
+        retreat.layer = Radar::Layer::Movement;
+        const auto route = Beacon::FindRoute(world, {80, 60}, retreat);
+        Check(!route.known && route.path.empty(), "a completely surrounded player is not promised an escape through monsters");
+    }
+    {
+        World world;
+        world.player = {22675.06561, 14313.21709};
+        world.bodyPattern = 1;
+        world.walkingMask = PlayerPath;
+        Radar::RoomGrid room{22647, 14285, 57, 57, {}};
+        for (const auto [flags, count] : RetreatCollision) room.cells.insert(room.cells.end(), count, flags);
+        world.rooms.push_back(std::move(room));
+        const Position entrance{22722, 14430};
+        const auto terrain = Beacon::FindRoute(world, entrance, routing);
+        Beacon::Settings retreatRoute;
+        retreatRoute.layer = Radar::Layer::Movement;
+        AutoWalk::Settings retreatWalk;
+        retreatWalk.layer = Radar::Layer::Movement;
+        const auto retreat = Beacon::FindRoute(world, entrance, retreatRoute);
+        Check(terrain.known && retreat.known, "captured death encounter has a locally usable retreat route");
+        for (const auto point : retreat.path)
+            Check(world.Body(static_cast<int>(point.x), static_cast<int>(point.y), Radar::Layer::Movement) == Radar::State::Open,
+                "captured retreat detour never walks through a monster or wall");
+        const auto leg = AutoWalk::Leg(world, retreat.path, retreatWalk);
+        Check(AutoWalk::Straight(world, world.player, leg, Radar::Layer::Movement), "captured retreat order follows the live open ground");
+        Check(Distance(world.player, retreat.path.back()) > 10, "captured retreat gets beyond the immediate pack");
+    }
+
 	{
 		const World world = Field({20, 20});
 		Check(AutoWalk::Straight(world, {20, 20}, {40, 33}), "open floor is walked straight");

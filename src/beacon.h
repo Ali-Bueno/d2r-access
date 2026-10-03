@@ -15,6 +15,7 @@ namespace D2RAccess::Beacon {
 using Radar::Position;
 
 struct Settings {
+	Radar::Layer layer = Radar::Layer::Terrain; // movement commands may also avoid live unit footprints
 	bool requireKnownRoute = false; // exploration mode must not follow partial routes or direct fallbacks
 	// Distances are collision subtiles, the unit the scanner speaks as
 	// steps. Navigation policy, not game constants.

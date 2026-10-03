@@ -16,6 +16,7 @@ using Radar::Position;
 
 // Navigation policy, not game constants. Distances are collision subtiles.
 struct Settings {
+	Radar::Layer layer = Radar::Layer::Terrain; // retreat can test live blockers as well as terrain
 	double reach = 20;  // the farthest an order is given from the player
 	double renew = 6;   // a new order once the player is this near the last one
 	uint64_t orderIntervalMs = 250; // orders are never given faster than this
@@ -27,7 +28,7 @@ struct Settings {
 };
 
 // Whether the body walks from one cell to the other in a straight line.
-bool Straight(const Radar::World& world, Position from, Position to);
+bool Straight(const Radar::World& world, Position from, Position to, Radar::Layer layer = Radar::Layer::Terrain);
 // The farthest point of `path` within reach that the body walks straight to
 // from the player; the first cell when not even that one is, so a walk always
 // has somewhere to start. `path` must not be empty.

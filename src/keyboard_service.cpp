@@ -742,6 +742,9 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 	const int margin = Margin(target);
 	Beacon::Settings settings;
 	settings.arrivalDistance = reach;
+	// The scanner keeps terrain reachability. A retreat must also steer round
+	// monsters standing on that route, using the same route finder on live collision.
+	if (g_mode == Mode::Retreat) settings.layer = Radar::Layer::Movement;
 	Position destination = target.position;
 	const char* toward = "the thing itself";
 	Beacon::Route route;
@@ -766,7 +769,9 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 			toward, target.name.c_str(), target.position.x, target.position.y);
 		return Progress::NoRoute;
 	}
-	const auto step = g_walker.Tick(scene.world, route.path, now, g_walk);
+	auto walking = g_walk;
+	walking.layer = settings.layer;
+	const auto step = g_walker.Tick(scene.world, route.path, now, walking);
 	if (step.event == AutoWalk::Event::Blocked) return Progress::Blocked;
 	if (step.event == AutoWalk::Event::Order) {
 		if (g_ordered && step.order.x == g_lastOrder.x && step.order.y == g_lastOrder.y && Distance(scene.world.player, g_orderFrom) < 1)
