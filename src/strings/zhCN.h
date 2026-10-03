@@ -90,6 +90,8 @@ inline constexpr Table zhCN {
 	.surveyCategories = { "出口", "传送门", "传送点", "NPC", "储藏箱", "敌人", "宝藏", "神殿", "机关", "物品", "房间", "玩家", "未探索房间", "尸体" },
 	.surveySteps    = "%s，%s，%s",
 	.surveyBearing  = "%s，%s",
+	.surveyRoom     = "房间 %d",
+	.surveyRoomUnexplored = "未探索房间 %d",
 	.corpseOwn = "你的尸体",
 	.corpseOf = "%s的尸体",
 	.surveyEmpty    = "这里没有%s",

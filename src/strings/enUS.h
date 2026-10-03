@@ -90,6 +90,8 @@ inline constexpr Table enUS {
 	.surveyCategories = { "exit", "portal", "waypoint", "NPC", "stash", "enemy", "treasure", "shrine", "object", "item", "room", "player", "unexplored room", "corpse" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
+	.surveyRoom     = "room %d",
+	.surveyRoomUnexplored = "unexplored room %d",
 	.corpseOwn = "your corpse",
 	.corpseOf = "%s's corpse",
 	.surveyEmpty    = "no %s here",

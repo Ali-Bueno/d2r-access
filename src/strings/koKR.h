@@ -90,6 +90,8 @@ inline constexpr Table koKR {
 	.surveyCategories = { "출구", "차원문", "경유지", "NPC", "보관함", "적", "보물", "제단", "장치", "아이템", "방", "플레이어", "미탐험 방", "시체" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
+	.surveyRoom     = "%d번 방",
+	.surveyRoomUnexplored = "미탐험 %d번 방",
 	.corpseOwn = "내 시체",
 	.corpseOf = "%s의 시체",
 	.surveyEmpty    = "여기에는 %s이(가) 없습니다",

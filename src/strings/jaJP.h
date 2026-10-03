@@ -90,6 +90,8 @@ inline constexpr Table jaJP {
 	.surveyCategories = { "出口", "ポータル", "ウェイポイント", "NPC", "保管庫", "敵", "宝箱", "聖堂", "装置", "アイテム", "部屋", "プレイヤー", "未探索の部屋", "死体" },
 	.surveySteps    = "%s、%s、%s",
 	.surveyBearing  = "%s、%s",
+	.surveyRoom     = "部屋 %d",
+	.surveyRoomUnexplored = "未探索の部屋 %d",
 	.corpseOwn = "あなたの死体",
 	.corpseOf = "%sの死体",
 	.surveyEmpty    = "ここに%sはありません",

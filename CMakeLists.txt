@@ -103,6 +103,7 @@ add_library(d2r-access SHARED
 	src/native_drlg.cpp
 	src/native_rooms.cpp
 	src/room_graph.cpp
+	src/room_catalogue.cpp
 	src/corpse_memory.cpp
 	src/rooms.cpp
 	src/room_service.cpp
@@ -479,6 +480,11 @@ if(BUILD_TESTING)
 	target_compile_features(room-graph-tests PRIVATE cxx_std_20)
 	target_compile_definitions(room-graph-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-graph COMMAND room-graph-tests)
+	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/room_graph.cpp src/navigation_grid.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(room-catalogue-tests PRIVATE src)
+	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
+	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
 	add_executable(navigation-policy-tests tests/navigation_policy_tests.cpp src/navigation_policy.cpp src/beacon_navigation.cpp
 		src/beacon.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(navigation-policy-tests PRIVATE src)
@@ -726,6 +732,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-level-areas-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-policy-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(corpse-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

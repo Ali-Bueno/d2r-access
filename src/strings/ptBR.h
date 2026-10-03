@@ -90,6 +90,8 @@ inline constexpr Table ptBR {
 	.surveyCategories = { "saída", "portal", "ponto de passagem", "NPC", "baú", "inimigo", "tesouro", "santuário", "mecanismo", "item", "sala", "jogador", "sala inexplorada", "cadáver" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
+	.surveyRoom     = "sala %d",
+	.surveyRoomUnexplored = "sala inexplorada %d",
 	.corpseOwn = "seu cadáver",
 	.corpseOf = "cadáver de %s",
 	.surveyEmpty    = "nenhum %s aqui",

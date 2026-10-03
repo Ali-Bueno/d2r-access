@@ -121,6 +121,8 @@ struct Table {
 	std::array<const char*, 14> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
+	const char* surveyRoom;             // %d = room number
+	const char* surveyRoomUnexplored;   // %d = room number, never entered yet
 	const char* corpseOwn;              // the local player's corpse
 	const char* corpseOf;               // %s = another player's name
 	const char* surveyEmpty;    // %s = category

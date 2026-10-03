@@ -21,6 +21,7 @@
 #include "native_world.h"
 #include "navigation_mode.h"
 #include "radar_ui.h"
+#include "room_catalogue.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
@@ -63,6 +64,7 @@ std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Memory          g_registry;
 CorpseMemory::Memory       g_corpses;
+RoomCatalogue::Registry    g_rooms;
 // The level's logical rooms do not change while the level instance lives, so
 // the native walk happens once per instance rather than on every observation.
 std::vector<NativeRooms::Room> g_roomList;
@@ -389,6 +391,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Scene scene;
 	if (Collect(state, scene)) Observe(state, world, grid, scene);
+	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
+		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	// Fixed places found on this same map in an earlier game, whose rooms the
 	// game has not streamed again; the live read wins where both have one.
@@ -402,6 +406,17 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);
 	catalogued.insert(catalogued.end(), corpses.begin(), corpses.end());
+	// Rooms are listed whether or not the game has them loaded. Exploration keeps
+	// the rooms stood in and the unexplored ones at the edge of the known map.
+	auto entries = g_rooms.Entries();
+	if (!g_fullAssistance) {
+		const auto& levelRooms = CurrentRooms(state.level, state.session);
+		entries = RoomCatalogue::Exploration(entries, TerrainService::VisitedRooms(state.level, levelRooms),
+			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid);
+	}
+	const Strings::Table& strings = Strings::Current();
+	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
+	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
 	// An area border is measured to where it is walked across, where the beacon leads.
 	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
@@ -511,9 +526,9 @@ bool Register(const D2RL::PluginContext* context) {
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
 	// The level-area reader and the level bearings walk the act's DRLG
-	// structures; a failed check leaves both switched off, nothing else.
+	// structures; a failed check switches them off and room memory keys on the layout alone.
 	NativeDrlg::SetAvailable(LayoutCheck::Verify(context, context->exeBase, DrlgLayout::Checks, "rooms",
-		"level areas and level bearings are off"));
+		"level areas and level bearings are off; room memory falls back to the room layout alone"));
 
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -597,6 +612,10 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	LogAreas(context, state);
 	const auto grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Observe(state, world, grid, scene);
+	// Rooms are marked explored by standing in them, so this has to keep up
+	// with the player rather than wait for the next catalogue question.
+	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
+		CurrentRooms(state.level, state.session), world.player);
 }
 
 void Shutdown() {

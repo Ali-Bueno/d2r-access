@@ -90,6 +90,8 @@ inline constexpr Table deDE {
 	.surveyCategories = { "Ausgang", "Portal", "Wegpunkt", "NSC", "Lager", "Feind", "Schatz", "Schrein", "Mechanismus", "Gegenstand", "Raum", "Spieler", "unerforschter Raum", "Leiche" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
+	.surveyRoom     = "Raum %d",
+	.surveyRoomUnexplored = "unerforschter Raum %d",
 	.corpseOwn = "deine Leiche",
 	.corpseOf = "Leiche von %s",
 	.surveyEmpty    = "hier gibt es kein %s",

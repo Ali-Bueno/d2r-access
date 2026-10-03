@@ -90,6 +90,8 @@ inline constexpr Table ruRU {
 	.surveyCategories = { "выход", "портал", "точка перехода", "НИП", "тайник", "враг", "сокровище", "святилище", "механизм", "предмет", "комната", "игрок", "неисследованная комната", "труп" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
+	.surveyRoom     = "комната %d",
+	.surveyRoomUnexplored = "неисследованная комната %d",
 	.corpseOwn = "ваш труп",
 	.corpseOf = "труп игрока %s",
 	.surveyEmpty    = "здесь нет: %s",
