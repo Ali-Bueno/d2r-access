@@ -1,5 +1,6 @@
 #include "native_entities.h"
 #include "cairn_stones.h"
+#include "tomb_symbols.h"
 #include "entity_layout.h"
 #include "level_exit_layout.h"
 #include "ground_item_layout.h"
@@ -47,6 +48,8 @@ std::string Text(std::string_view key) {
 	if (key == "Waypoint") return "Punto de ruta";
 	if (key == "Duriel's Lair") return "Guarida de Duriel";
 	if (key == "Portal") return "Portal";
+	if (key == "To Tal Rasha's Tomb") return "To Tal Rasha's Tomb";
+	if (key == "Tal Rasha's Tomb") return "Tal Rasha's Tomb";
 	if (key == PlayerCorpseNameKey) return "Cadáver";
 	return {};
 }
@@ -493,7 +496,47 @@ void CairnStoneModes() {
 		"unselectable modes never stop other unactivated stones from sounding");
 }
 }
+namespace {
+void TombEntranceSymbols() {
+	const auto language = Strings::Selected();
+	Strings::Select(Strings::Language::enUS);
+	Fixture f;
+	Memory<LevelStride * 73> levels;
+	f.tables.At(Levels, levels.Address()); f.tables.At<uint64_t>(LevelCount, 73);
+	std::vector<EntityRadar::Entity> entities;
+	const char* labels[] = {"four-pointed star", "square", "crescent", "circle", "double chevron with a diamond", "triangle", "circle above a crescent"};
+	for (uint32_t i = 0; i < 7; ++i) {
+		const uint32_t level = 66 + i;
+		levels.Text(LevelStride * level + LevelWarpKey, "To Tal Rasha's Tomb");
+		levels.Text(LevelStride * level + LevelNameKey, "Tal Rasha's Tomb");
+		f.destLevel.At(LevelId, level);
+		Check(f.Read(entities), "tomb warp snapshot is readable");
+		const auto* warp = f.Find(entities, 12);
+		Check(warp && warp->name == std::string("To Tal Rasha's Tomb: ") + labels[i]
+			&& warp->destinationLevel == level && warp->worldName == "To Tal Rasha's Tomb"
+			&& warp->nameKey == "To Tal Rasha's Tomb",
+			"each loaded tomb entrance has its matching journal symbol and retains native identity");
+		f.portalData.At<uint16_t>(ObjPortalLevel, static_cast<uint16_t>(level));
+		Check(f.Read(entities) && f.Find(entities, 14)->name == "Tal Rasha's Tomb",
+			"a town portal to a tomb is not given an entrance carving");
+	}
+	Check(!TombSymbols::Index(65) && !TombSymbols::Index(73), "adjacent levels are not tomb symbols");
+	EntityRadar::Entity remembered{0, EntityRadar::Kind::Exit, {10, 20}, "Tal Rasha's Tomb", 1,
+		false, EntityRadar::Category::Exit, 69};
+	remembered.nameKey = "Tal Rasha's Tomb";
+	TombSymbols::Mark(remembered, Strings::Current());
+	TombSymbols::Mark(remembered, Strings::Current());
+	Check(remembered.name == "Tal Rasha's Tomb: circle", "presets and restored entrances acquire the symbol once");
+	Strings::Select(Strings::Language::esES);
+	TombSymbols::Mark(remembered, Strings::Current());
+	Check(remembered.name == "Tal Rasha's Tomb: círculo" && remembered.nameKey == "Tal Rasha's Tomb",
+		"remembered symbol wording changes language while retaining the relocalizable game key");
+	Strings::Select(language);
+}
+}
+
 int main() {
+	TombEntranceSymbols();
 	PlayerCorpseOwnership();
 	RosterCorpseLists();
 	OtherPlayersAreListed();

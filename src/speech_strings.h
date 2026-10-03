@@ -158,6 +158,7 @@ struct Table {
 	const char* cairnStoneSymbol; // %s = native object name, %s = fixed scroll symbol
 	const char* cairnScrollOrder; // %s = spoken symbol sequence, assembled when scroll opens
 	std::array<const char*, 5> cairnSymbols; // scroll Symbol1..5: DropUp, I, DropDown, II, Zero
+	std::array<const char*, 7> tombSymbols; // TalRashaSymbol frames 0..6, shared with tomb entrance names
 	const char* vitalsLife;          // %d = whole percent of life left
 	const char* vitalsMana;          // %d = whole percent of mana left
 	const char* vitalsEnabled;
@@ -314,7 +315,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
-	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols);
+	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
 }
 
 // Compile-time guard: a language table that leaves a field out of its

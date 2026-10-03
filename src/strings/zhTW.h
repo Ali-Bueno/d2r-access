@@ -130,6 +130,7 @@ inline constexpr Table zhTW {
 	.cairnStoneSymbol = "%s，%s",
 	.cairnScrollOrder = "石頭順序：%s",
 	.cairnSymbols = {"向上的水滴", "一", "向下的水滴", "二", "零"},
+	.tombSymbols = {"四角星", "正方形", "月牙", "圓形", "帶菱形的雙V形", "三角形", "月牙上方的圓形"},
 	.vitalsLife = "生命 %d 百分比",
 	.vitalsMana = "法力 %d 百分比",
 	.vitalsEnabled = "生命與法力播報已啟用",

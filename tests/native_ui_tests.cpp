@@ -12,7 +12,7 @@
 
 namespace {
 uintptr_t managerAddress = 0;
-bool supported = true;
+bool supported = true, tombSupported = true;
 uintptr_t cellItem = 0, queriedWidget = 0;
 D2RAccess::NativeUi::Cell queriedCell;
 bool itemQueryFault = false;
@@ -69,6 +69,7 @@ struct Widget {
 // are the actual production implementation under test.
 namespace D2RAccess::NativeWidgets {
 bool SupportsTree() { return supported; }
+bool SupportsTombSymbols() { return supported && tombSupported; }
 uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 	const auto* widget = reinterpret_cast<Widget*>(parent);
 	for (uintptr_t child : widget->children) if (ReadName(child) == name) return child;
@@ -86,7 +87,59 @@ std::string ReadText(uintptr_t widget) {
 }
 }
 
+namespace {
+void TombJournalSymbols() {
+	using namespace D2RAccess;
+	const auto language = Strings::Selected();
+	Strings::Select(Strings::Language::enUS);
+	Widget panel("QuestLogPanel", "QuestLogPanelExpansion"), quest("QuestLogButtonWidget", "Quest11", "The Seven Tombs");
+	Widget title("TextBoxWidget", "ShortDescription", "The Seven Tombs");
+	Widget objective("TextBoxWidget", "LongDescription", "The Symbol of the True Tomb of Tal Rasha.");
+	Widget symbol("ImageWidget", "TalRashaSymbol");
+	panel.Add(quest); quest.Add(symbol); panel.Add(title); panel.Add(objective);
+	const auto read = [&] { return UiText::Describe(NativeUi::Snapshot(panel.Address(), quest.Address())); };
+	const char* labels[] = {"four-pointed star", "square", "crescent", "circle", "double chevron with a diamond", "triangle", "circle above a crescent"};
+	for (int32_t frame = 0; frame < 7; ++frame) {
+		symbol.Put(0x90, frame);
+		const auto reading = read();
+		Check(reading.body == "The Seven Tombs" && reading.option == objective.text + " " + labels[frame],
+			"each visible journal frame is plain text after the objective, with the title once");
+		UiText::Reader reader;
+		(void)reader.Update(reading, 0);
+		(void)reader.Update(reading, 200);
+		Check(reader.Repeat().find(labels[frame]) != std::string::npos,
+			"manual repeat includes the journal symbol");
+	}
+	symbol.Put<uint8_t>(0x51, 0);
+	Check(read().option == objective.text, "a hidden symbol never reveals the true tomb");
+	symbol.Put<uint8_t>(0x51, 1); quest.Put<uint8_t>(0x51, 0);
+	Check(UiText::Describe(NativeUi::Snapshot(panel.Address(), 0)).body.find("crescent") == std::string::npos,
+		"a hidden quest ancestor also withholds its graphic");
+	quest.Put<uint8_t>(0x51, 1);
+	for (int32_t frame : {-1, 7, 100}) {
+		symbol.Put(0x90, frame);
+		Check(read().option == objective.text, "invalid frames fail closed without a guessed symbol");
+	}
+	symbol.Put<int32_t>(0x90, 3);
+	tombSupported = false;
+	Check(read().option == objective.text, "failed native symbol verification preserves ordinary journal text");
+	tombSupported = true;
+	const std::string staleTitle = "Another quest";
+	title.StringAt(0x88, staleTitle);
+	Check(read().option == Strings::Current().slotEmpty, "stale details do not acquire the selected quest's symbol");
+	title.StringAt(0x88, title.text);
+	objective.StringAt(0x88, "");
+	Check(read().option == Strings::Current().questNoObjective, "a symbol never invents a missing objective");
+	objective.StringAt(0x88, objective.text);
+	Strings::Select(Strings::Language::esES);
+	Check(read().option == objective.text + " círculo", "symbol vocabulary follows the selected text language");
+	Strings::Select(language);
+	NativeUi::Reset();
+}
+}
+
 int main() {
+	TombJournalSymbols();
 	using namespace D2RAccess;
 	Strings::Select(Strings::Language::esES);
 	Widget manager("Widget", "PanelManager"), focusManager("FocusManager", "FocusManager");

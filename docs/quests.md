@@ -2,6 +2,15 @@
 
 How the mod names quests and reads objectives, and what is still open.
 
+## Tal Rasha symbol — 2026-10-03
+
+Selecting The Seven Tombs now appends the visible journal graphic's plain
+symbol name to its objective; repeat includes it. The verified ImageWidget
+frame is read only from the visible tree with matching quest details. The
+seven entrance labels use that same vocabulary, including restored map places.
+Native evidence, the mapping and validation: [Tal Rasha symbols](tal-rasha-symbols.md).
+Built/deployed with the game closed; 96/96 suites pass. Live speech pending.
+
 ## Missing Cain quest and controller actions — 2026-09-22
 
 The latest live session repeatedly focused `Quest3` while `ShortDescription`

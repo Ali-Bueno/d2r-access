@@ -130,6 +130,7 @@ inline constexpr Table jaJP {
 	.cairnStoneSymbol = "%s、%s",
 	.cairnScrollOrder = "石の順番：%s",
 	.cairnSymbols = {"上向きのしずく", "一", "下向きのしずく", "二", "ゼロ"},
+	.tombSymbols = {"四芒星", "四角", "三日月", "円", "ひし形付きの二重のV字", "三角", "三日月の上の円"},
 	.vitalsLife = "ライフ %d パーセント",
 	.vitalsMana = "マナ %d パーセント",
 	.vitalsEnabled = "ライフとマナの読み上げ オン",

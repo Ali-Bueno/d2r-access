@@ -2,6 +2,7 @@
 #include "native_widgets.h"
 #include "core_slots.h"
 #include "native_memory.h"
+#include "layout_check.h"
 
 #include <windows.h>
 
@@ -41,6 +42,7 @@ FindPanelFn g_findPanel  = nullptr;
 FindChildFn g_findChild  = nullptr;
 bool g_supportsTree = false;
 bool g_supportsNotifications = false;
+bool g_supportsTombSymbols = false;
 constexpr uintptr_t NotificationCountRva = 0x84CC70;
 constexpr uintptr_t NotificationEntryRva = 0x84D0B0;
 constexpr size_t NotificationCountSlot = 0xC8;
@@ -176,6 +178,16 @@ bool Initialize(const D2RL::PluginContext* context) {
 		&& NativeMemory::Copy(g_exeBase + NotificationEntryRva, entryCode, sizeof(entryCode))
 		&& std::memcmp(entryCode, EntryCode, sizeof(entryCode)) == 0;
 	if (g_supportsTree && !g_supportsNotifications) D2RAccess::AsyncLog::Warn(context, "[notice] Unrecognized message accessor; repeated-delivery detection disabled.");
+	// ImageWidget::SetFrame and the journal population routine prove +0x90
+	// and the visible TalRashaSymbol semantics. See docs/tal-rasha-symbols.md.
+	struct SymbolCheck { uintptr_t rva; size_t size; uint64_t hash; };
+	constexpr SymbolCheck symbolChecks[] {
+		{0x859700, 7, 0xEAB4DB47D06D0BC4ULL},
+		{0x14DE610, 1572, 0x10E3E6169FE18826ULL},
+	};
+	g_supportsTombSymbols = g_supportsTree && LayoutCheck::Verify(context, g_exeBase, symbolChecks,
+		"tomb", "journal symbol reading disabled");
+	if (g_supportsTombSymbols) AsyncLog::Info(context, "[tomb] Verified visible journal symbol reader.");
 	return true;
 }
 
@@ -184,6 +196,7 @@ bool IsAvailable() {
 }
 
 bool SupportsTree() { return IsAvailable() && g_supportsTree; }
+bool SupportsTombSymbols() { return SupportsTree() && g_supportsTombSymbols; }
 
 Notification ReadLatestNotification(uintptr_t list) {
 	uintptr_t vtable = 0, count = 0;

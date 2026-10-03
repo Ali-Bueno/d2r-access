@@ -1,5 +1,10 @@
 # Level exit loops (portal sound)
 
+Tal Rasha tomb entrance names now include the fixed symbol on each entrance
+(2026-10-03); loaded warp units, existing distant presets and restored places
+share the label. The quest log names its visible matching graphic. No loop or
+interaction behavior changes. See [symbol evidence](tal-rasha-symbols.md).
+
 Implemented 2026-09-16 for the installed D2R 3.3.93787 executable. Every unit that
 takes the player to another area plays the user's `exploration/portal.ogg` loop at its world
 position, through the same spatial mixer as the ground item loops: fixed screen

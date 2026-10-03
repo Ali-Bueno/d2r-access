@@ -130,6 +130,7 @@ inline constexpr Table ptBR {
 	.cairnStoneSymbol = "%s, %s",
 	.cairnScrollOrder = "Ordem das pedras: %s",
 	.cairnSymbols = {"gota para cima", "um", "gota para baixo", "dois", "zero"},
+	.tombSymbols = {"estrela de quatro pontas", "quadrado", "lua crescente", "círculo", "duplo chevron com um losango", "triângulo", "círculo acima de uma lua crescente"},
 	.vitalsLife = "Vida %d por cento",
 	.vitalsMana = "Mana %d por cento",
 	.vitalsEnabled = "Avisos de vida e mana ativados",

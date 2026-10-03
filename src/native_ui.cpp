@@ -3,6 +3,7 @@
 #include "native_memory.h"
 #include "native_widgets.h"
 #include "quest_log.h"
+#include "tomb_symbols.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -486,6 +487,32 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	snapshot.surface = Classify(panel).surface;
 	std::unordered_set<uintptr_t> visited;
 	Walk(panel, -1, 0, snapshot, visited);
+	// The visible journal graphic is information beside the objective, not
+	// a text node. Append its plain name to our copied objective so selection,
+	// manual repeat and the ordinary 150 ms stale-pane guard share one path.
+	// Never read a persistent true-tomb global or write into a game widget.
+	if (snapshot.surface == UiText::Surface::Menu && NativeWidgets::SupportsTombSymbols()) {
+		constexpr size_t ImageFrameOffset = 0x90; // setter 0x859700
+		UiText::Node* heading = nullptr;
+		UiText::Node* objective = nullptr;
+		for (auto& node : snapshot.nodes) if (node.kind == UiText::Kind::Text) {
+			if (node.name == "ShortDescription") heading = &node;
+			if (node.name == "LongDescription") objective = &node;
+		}
+		for (const auto& node : snapshot.nodes) {
+			if (node.name != TombSymbols::WidgetName || node.type != "ImageWidget" || node.parent < 0
+				|| !heading || !objective || UiText::Clean(objective->text).empty()) continue;
+			const auto& owner = snapshot.nodes[static_cast<size_t>(node.parent)];
+			if (owner.kind != UiText::Kind::QuestButton || owner.name != TombSymbols::QuestWidget
+				|| UiText::Clean(heading->text) != UiText::Clean(owner.text)) continue;
+			int32_t frame = -1;
+			if (!Peek(node.id + ImageFrameOffset, frame) || frame < 0 || frame >= static_cast<int32_t>(TombSymbols::Count)) continue;
+			objective->text = UiText::Clean(objective->text);
+			objective->text += objective->text.ends_with('.') ? " " : ". ";
+			objective->text += Strings::Current().tombSymbols[static_cast<size_t>(frame)];
+			break;
+		}
+	}
 	return snapshot;
 }
 

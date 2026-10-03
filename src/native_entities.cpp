@@ -9,6 +9,7 @@
 #include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "cairn_stones.h"
+#include "tomb_symbols.h"
 #include "native_memory.h"
 #include "localization.h"
 #include "monster_plate.h"
@@ -480,6 +481,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		entity.destinationLevel = levelId;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+	TombSymbols::Mark(entity, Strings::Current());
 	return true;
 }
 }
@@ -590,6 +592,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
 	}

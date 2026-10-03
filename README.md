@@ -2,7 +2,8 @@
 
 A [D2RLoader](https://d2rloader.net) plugin that makes Diablo II: Resurrected playable with a
 screen reader (NVDA, JAWS, SAPI…) through [PRISM](https://github.com/ethindp/prism). Built for
-blind players using a controller; keyboard and mouse are planned.
+blind players. This checkout supports keyboard gameplay and physical controllers; see
+[keyboard play](docs/keyboard-play.md) and the [architecture guide](docs/architecture.md).
 
 ## What works today
 
@@ -357,7 +358,10 @@ is unloaded. It observes the normal update without opening the journal or
 changing quest state. Unmatched or ambiguous updates retain the generic alert.
 Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
-See [quest-log implementation and remaining work](docs/quests.md).
+The Seven Tombs also reads the visible true-tomb symbol as a plain shape name.
+Tomb entrances include their individual markings, for example "To Tal Rasha's Tomb: circle".
+See [quest-log implementation and remaining work](docs/quests.md) and
+[Tal Rasha symbol evidence](docs/tal-rasha-symbols.md).
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,

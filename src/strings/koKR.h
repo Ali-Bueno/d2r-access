@@ -130,6 +130,7 @@ inline constexpr Table koKR {
 	.cairnStoneSymbol = "%s, %s",
 	.cairnScrollOrder = "돌 순서: %s",
 	.cairnSymbols = {"위쪽 물방울", "하나", "아래쪽 물방울", "둘", "영"},
+	.tombSymbols = {"네 갈래 별", "사각형", "초승달", "원", "마름모가 있는 이중 V자", "삼각형", "초승달 위의 원"},
 	.vitalsLife = "생명력 %d퍼센트",
 	.vitalsMana = "마나 %d퍼센트",
 	.vitalsEnabled = "생명력과 마나 알림 켜짐",

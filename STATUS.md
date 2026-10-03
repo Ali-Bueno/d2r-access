@@ -2,6 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Tal Rasha symbols and architecture survey — 2026-10-03
+
+The user's latest log speaks The Seven Tombs' symbol caption at 07:26:45 and
+07:26:49 without naming the graphic. The visible `TalRashaSymbol` image frame
+now supplies a plain shape name after the objective, including repeat. Loaded
+and preset tomb entrances, plus restored fixed places, include their own
+marking (e.g. "To Tal Rasha's Tomb: circle"). Shared mapping: levels 66–72
+correspond to journal frames 0–6; vocabulary in all 13 locales.
+
+**Built/deployed with the game closed; 96/96 CTest suites pass.** Installed DLL
+SHA-256 `BB80B7CD…` matches the build. Live speech pending;
+select The Seven Tombs, then compare its shape name with the Canyon exits.
+Evidence/guards/tests: [Tal Rasha symbols](docs/tal-rasha-symbols.md).
+New [architecture guide](docs/architecture.md) maps current UI/world/native
+layers, threads, routing, discovery, persistence and RE inputs; it also
+corrects the README's obsolete statement that keyboard support is planned.
+
 ## Friend's tester ZIP v2 — 2026-09-26
 
 `../d2r-access-completo-2026-09-26-v2.zip`: the first 26/09 package with **D2RLoader 1.3.1-beta**

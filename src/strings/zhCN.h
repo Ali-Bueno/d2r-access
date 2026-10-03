@@ -130,6 +130,7 @@ inline constexpr Table zhCN {
 	.cairnStoneSymbol = "%s，%s",
 	.cairnScrollOrder = "石头顺序：%s",
 	.cairnSymbols = {"向上的水滴", "一", "向下的水滴", "二", "零"},
+	.tombSymbols = {"四角星", "正方形", "月牙", "圆形", "带菱形的双V形", "三角形", "月牙上方的圆形"},
 	.vitalsLife = "生命百分之%d",
 	.vitalsMana = "法力百分之%d",
 	.vitalsEnabled = "生命和法力播报已开启",

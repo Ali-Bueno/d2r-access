@@ -12,6 +12,7 @@
 #include "native_automap.h"
 #include "native_drlg.h"
 #include "native_entities.h"
+#include "tomb_symbols.h"
 #include "native_level_exits.h"
 #include "native_world.h"
 #include "navigation_policy.h"
@@ -412,6 +413,7 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 		entity.nameKey = place.nameKey;
 		if (auto text = NativeEntities::KeyText(place.nameKey); !text.empty()) entity.name = std::move(text);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		TombSymbols::Mark(entity, Strings::Current());
 		result.push_back(std::move(entity));
 	}
 	return result;
