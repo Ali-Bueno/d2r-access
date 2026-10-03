@@ -2,6 +2,13 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Shortcut menu — planned, 2026-10-03
+
+The collaborator's controller and keyboard schemes are adopted. The keyboard has ~60 bindings.
+Planned: one menu with every mod action, rebindable or unbound, reachable from the pad too.
+Toggles and duplicates go unbound by default. See [decisions](docs/decisions.md).
+**Next step:** after the integration's live checks, design it.
+
 ## Quest objects — 2026-10-03
 
 The objects a quest needs used now get the quest cue, a **quest** scanner

@@ -3,6 +3,18 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-03 — The collaborator's controller and keyboard schemes are adopted
+
+Integrating bladestorm360's branch, the user chose his controller scheme: BACK is a modifier
+(BACK+X life and mana, BACK+Y/A/B room, exit finder and terrain overview). Compare, legends and
+the hire list are read on demand, and tooltips have no delay anywhere. The user "always wanted
+BACK to be a modifier". This supersedes the 2026-09-23 reservation of View/Back for a settings
+menu. The user also took his keyboard keys (Ctrl+G radar, Ctrl+R retreat, Ctrl+U reach filter,
+Ctrl+V exit finder). Rejected: keeping main's pad behavior beside his under a switch.
+The keyboard is judged to have too many keys (~60). Planned: one shortcut menu listing every mod
+action, rebindable or unbound, reachable from the pad too; toggles and duplicates unbound by
+default. Main's features he had dropped were restored (STATUS, 2026-10-03).
+
 ## 2026-10-02 — Ranged attacks name every monster the auto-target picks
 
 The user, on a sorceress: enemy names were almost never spoken in combat. Of 16 names the plate
