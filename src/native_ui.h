@@ -64,6 +64,10 @@ ItemPresence EquipmentItemPresence(uintptr_t widget);
 // `item` is 0 for an empty slot. The unit is only named, never kept.
 struct BeltSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
 BeltSlot BeltItem(uintptr_t widget);
+// BeltWidget's inventory getter accepts slots 0..15 (0x3883F2): four columns of four rows.
+inline constexpr int BeltSlots = 16;
+// Same read-only getter, for a known belt cell rather than the selected one.
+BeltSlot BeltItemAt(uintptr_t widget, int slot);
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 // The tab a controller highlight is on in a tab bar, which moving along the bar

@@ -18,6 +18,7 @@
 #include "ground_item_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
+#include "interaction_reader.h"
 #include "keyboard_menu.h"
 #include "level_route.h"
 #include "map_survey.h"
@@ -1502,6 +1503,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
 		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
 		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
+		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},

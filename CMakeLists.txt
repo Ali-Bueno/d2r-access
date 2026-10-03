@@ -162,6 +162,7 @@ add_library(d2r-access SHARED
 	src/native_trade.cpp
 	src/trade.cpp
 	src/trade_service.cpp
+	src/belt_reader.cpp
 	src/native_belt.cpp
 	src/skill_bar.cpp
 	src/native_skill_bar.cpp
@@ -559,7 +560,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)

@@ -411,12 +411,11 @@ ItemPresence EquipmentItemPresence(uintptr_t widget) {
 	return CallItemAtCell(getter, widget, {});
 }
 
-BeltSlot BeltItem(uintptr_t widget) {
+namespace {
+BeltSlot QueryBelt(uintptr_t widget, Cell cell) {
 	BeltSlot result;
-	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return result;
-	const uint64_t selection = FocusSelection(widget);
-	const Cell cell{static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
-	if (cell.x < 0 || cell.x >= 16) return result;
+	if (cell.x < 0 || cell.x >= BeltSlots || !NativeWidgets::SupportsTree() || !Visible(widget)
+		|| Classify(widget).name != "BeltWidget") return result;
 	uintptr_t vtable = 0, getter = 0;
 	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
 		|| !NativeMemory::Executable(getter)) return result;
@@ -428,6 +427,15 @@ BeltSlot BeltItem(uintptr_t widget) {
 	result.known = CallItemPointer(getter, widget, cell, result.item);
 	return result;
 }
+}
+
+BeltSlot BeltItem(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return {};
+	const uint64_t selection = FocusSelection(widget);
+	return QueryBelt(widget, {static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)});
+}
+
+BeltSlot BeltItemAt(uintptr_t widget, int slot) { return QueryBelt(widget, {slot, 0}); }
 
 std::vector<uintptr_t> Panels() {
 	std::vector<uintptr_t> result;

@@ -1,3 +1,4 @@
+#include "belt_reader.h"
 #include "character_stats.h"
 #include "entity_cue_service.h"
 #include "entity_radar_service.h"
@@ -21,6 +22,8 @@
 #include "input_direction.h"
 #include "native_belt.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -62,6 +65,9 @@ int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
 int playerGold = -1, stashGold = -1;
 NativeUi::BeltSlot beltSlot;
+std::array<uintptr_t, NativeUi::BeltSlots> beltItems{};
+int unreadableBeltSlot = -1;
+uintptr_t automaticPotion = 0;
 std::string stashGoldText; // the stash's gold_amount box, at widget 60
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
@@ -96,6 +102,10 @@ ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 BeltSlot BeltItem(uintptr_t) { return beltSlot; }
+BeltSlot BeltItemAt(uintptr_t, int slot) {
+	if (slot == unreadableBeltSlot) return {};
+	return slot >= 0 && slot < static_cast<int>(beltItems.size()) ? BeltSlot{true, slot, beltItems[slot]} : BeltSlot{};
+}
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	if (panel == 40) return target;
 	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
@@ -143,7 +153,7 @@ namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeBelt {
-std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return std::nullopt; }
+std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return automaticPotion; }
 }
 // No mercenary here.
 namespace D2RAccess::MercenaryStats {
@@ -228,6 +238,10 @@ bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButto
 // Every other key here is the localized inventory title the reader caches.
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
+	if (key == "ControllerHelpBelt1") return "Casilla de cinturón 1 ";
+	if (key == "ControllerHelpBelt2") return "Casilla de cinturón 2 ";
+	if (key == "ControllerHelpBelt3") return "Casilla de cinturón 3 ";
+	if (key == "ControllerHelpBelt4") return "Casilla de cinturón 4 ";
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::UnidentifiedKey) return "Sin identificar";
@@ -579,7 +593,8 @@ int main() {
 	Check(speech == std::vector<std::string>{"Espada corta superior"}, "a lesser item keeps its own name, with no quality word");
 	gridItem = 0;
 	// A belt slot's item is named by its tooltip, now drawn at once; an empty
-	// slot, which has no tooltip, says so from the slot.
+	// slot, which has no tooltip, says so from the slot. Each says its D-pad
+	// button and row first and its column's count last.
 	ClearSpeech(); tooltip = {}; cell = {}; focus = {20, 23}; widgetType = {"BeltWidget", UiText::Kind::InventoryItem};
 	selection = 0; beltSlot = {true, 0, 77};
 	Settle();
@@ -588,20 +603,38 @@ int main() {
 	Check(!speech.empty() && speech.back().find("Poción de curación menor") != std::string::npos, "and is read with it");
 	ClearSpeech(); selection = 1; beltSlot = {true, 1, 0}; tooltip = {};
 	Settle();
-	{
-		char where[64]{};
-		std::snprintf(where, sizeof(where), Strings::Current().gridCell, 1, 2);
-		Check(speech == std::vector<std::string>{std::string(Strings::Current().slotEmpty) + ". " + where},
-			"an empty belt slot says so, and where in the belt it is");
-	}
-	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77};
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 2 Cruceta arriba. Fila 1. Vacío. 0 en esta columna"},
+		"an empty belt slot names its native D-pad direction and confirms its empty column");
+	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77}; beltItems[2] = 77;
 	Settle(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
-	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "the next slot reads its item once its tooltip is drawn");
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 3 Cruceta abajo. Fila 1. Poción de curación menor. 1 en esta columna"},
+		"the next slot reads its button, its item once its tooltip is drawn, and its column");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"}, "while its detail still reaches the right stick");
 	ClearSpeech(); selection = 3; beltSlot = {}; tooltip = {};
 	Settle();
 	Check(speech.empty(), "a slot that cannot be read waits for the tooltip, as before");
+	ClearSpeech(); selection = 7; beltSlot = {true, 7, 77}; beltItems = {}; beltItems[3] = 77; beltItems[11] = 77;
+	Settle(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
+	Check(speech.size() == 1 && speech[0].find("Cruceta derecha. Fila 2") != std::string::npos
+		&& speech[0].find("3 en esta columna") != std::string::npos,
+		"reserve rows retain the column's real button and count only that column");
+	unreadableBeltSlot = 11;
+	Check(BeltReader::Read(&context, focus.widget).summary.empty(),
+		"one unreadable reserve suppresses a misleading partial column count");
+	unreadableBeltSlot = -1;
+	Check(BeltReader::Location(-1).empty() && BeltReader::Location(NativeUi::BeltSlots).empty(),
+		"unknown selection cannot claim a controller assignment");
+	ClearSpeech(); tooltip = {}; holdingItem = true; Tick(); ClearSpeech(); holdingItem = false; Tick();
+	Check(!speech.empty() && speech[0].find("Colocado en Casilla de cinturón 4 Cruceta derecha. Fila 2") != std::string::npos,
+		"placing a potion names its button and row");
+	ClearSpeech(); selection = 0; beltSlot = {true, 0, 0}; beltItems = {}; automaticPotion = 77;
+	Settle();
+	Check(speech.size() == 1 && speech[0].find("Poción de curación menor") != std::string::npos
+		&& speech[0].find("Poción automática del inventario") != std::string::npos
+		&& speech[0].find("0 en esta columna") != std::string::npos,
+		"a native automatic potion is named without counting inventory as physical belt reserves");
+	automaticPotion = 0; beltItems = {}; holdingItem.reset();
 	beltSlot = {};
 	conversation = false; InteractionReader::Reset(); ClearSpeech();
 	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
@@ -721,10 +754,11 @@ int main() {
 	ClearSpeech(); conversation = true; Tick();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
 	conversation = false;
-	// Picking an item up or putting it down is the game's business: nothing is
-	// announced for either, in any section of the inventory (the user,
+	// With the pick-up and placement speech switched off, nothing is announced
+	// for either, in any section of the inventory (the collaborator's player,
 	// 2026-09-21: the notice came back on every move to the belt, the
 	// equipment or a shop, and "it needs to go completely").
+	InteractionReader::SetHandSpeech(false);
 	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear(); tooltip = {};
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
@@ -747,6 +781,15 @@ int main() {
 	Check(InteractionReader::Repeat() == "Inventario. Equipo. Cabeza. Vacío", "manual repeat is the readout alone");
 	ClearSpeech(); holdingItem = false; Tick();
 	Check(speech.empty(), "putting an item down announces nothing either");
+	// Switched on, the default, the hand is told.
+	InteractionReader::SetHandSpeech(true);
+	ClearSpeech(); holdingItem = true; Tick();
+	Check(!speech.empty() && speech.front() == Strings::Current().itemInHand, "with the switch on, picking up says the item is in hand");
+	Check(InteractionReader::Repeat().starts_with(Strings::Current().itemInHand), "and a manual repeat says so first");
+	ClearSpeech(); holdingItem = false; Tick();
+	Check(std::find(speech.begin(), speech.end(), std::string("Colocado en Cabeza")) != speech.end(),
+		"putting it down names where it went");
+	InteractionReader::SetHandSpeech(false);
 	InteractionReader::Reset(); ClearSpeech();
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	cell = {0, 0}; selection = 0; holdingItem = false; itemPresence = NativeUi::ItemPresence::Empty;

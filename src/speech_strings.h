@@ -60,6 +60,8 @@ struct Table {
 	const char* slotEmpty;
 	const char* slotOccupied;
 	const char* belt;
+	const char* beltRow; // %d = one-based row
+	const char* beltColumnCount; // %d = physical items across all rows of this column
 	const char* beltAutomatic;
 	const char* gridCell; // one-based row, column
 	// The cells an item takes up, %d = columns then %d = rows, by shape: one by
@@ -253,6 +255,8 @@ struct Table {
 	const char* tradeAlertsOff;
 	const char* weaponSwapAlertsOn;
 	const char* weaponSwapAlertsOff;
+	const char* handSpeechOn;  // the pick-up and placement speech switch
+	const char* handSpeechOff;
 	const char* skillGridOn;
 	const char* skillGridOff;
 	const char* explorationSoundsOn;
@@ -325,7 +329,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied,
-		t.belt, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.belt, t.beltRow, t.beltColumnCount, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
@@ -354,7 +358,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
 		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
-		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff,
+		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
 		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported};
 	for (const char* s : singles) visit(s);

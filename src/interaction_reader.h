@@ -15,6 +15,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 void Reset();
 std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality);
 std::string Repeat();
+// Whether picking an item up and putting it down are spoken ("Item in hand",
+// "Placed in Row 1, column 2"). A settings-list switch, on by default.
+bool HandSpeech();
+void SetHandSpeech(bool enabled);
 // Whether each item tooltip is written to the log ([item]). Off by default --
 // logged on every poll it filled a session's log to 12 MB (the user,
 // 2026-09-22) -- and once per change when on. Console: access-itemlog on|off.

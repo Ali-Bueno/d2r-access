@@ -331,6 +331,26 @@ int main() {
 	slot.Put<uint8_t>(0x51, 0);
 	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
+	// The belt shares that getter, numbering its slots by the selection's x.
+	Widget belt("BeltWidget", "belt");
+	belt.metadata.base = &itemBase;
+	belt.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	belt.Put<uint64_t>(0x544, 3);
+	cellItem = 123;
+	auto focused = NativeUi::BeltItem(belt.Address());
+	Check(focused.known && focused.item == cellItem && focused.slot == 3
+		&& queriedWidget == belt.Address() && queriedCell.x == 3, "a belt slot returns the unit in the selected slot");
+	belt.Put<uint64_t>(0x544, NativeUi::BeltSlots);
+	Check(!NativeUi::BeltItem(belt.Address()).known, "a selection past the last belt slot is never queried");
+	focused = NativeUi::BeltItemAt(belt.Address(), 11);
+	Check(focused.known && focused.slot == 11 && focused.item == cellItem && queriedCell.x == 11
+		&& NativeUi::FocusSelection(belt.Address()) == NativeUi::BeltSlots,
+		"reading a reserve cell leaves the native belt selection untouched");
+	Check(!NativeUi::BeltItemAt(belt.Address(), -1).known && !NativeUi::BeltItemAt(belt.Address(), NativeUi::BeltSlots).known
+		&& !NativeUi::BeltItemAt(grid.Address(), 0).known, "belt queries reject invalid slots and other widget types");
+	itemQueryFault = true;
+	Check(!NativeUi::BeltItemAt(belt.Address(), 4).known, "a failed belt reserve read remains unknown rather than empty");
+	itemQueryFault = false;
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");

@@ -1,6 +1,7 @@
 #include "advanced_stats_reader.h"
 #include "async_log.h"
 #include "auto_detail.h"
+#include "belt_reader.h"
 #include "click_words.h"
 #include "control_hints.h"
 #include "character_stats.h"
@@ -15,7 +16,6 @@
 #include "inventory_cursor.h"
 #include "item_hand.h"
 #include "native_entities.h"
-#include "native_belt.h"
 #include "ground_item_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
@@ -151,6 +151,8 @@ KeyLines g_keyLines;
 // Item tooltips in the log: off unless asked for, and each only once.
 std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
+// "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
+std::atomic<bool> g_handSpeech{true};
 
 // The equipped-item records last logged, so [compare] is written once per
 // change. Diagnosis only: what the game draws beside a held compare is not
@@ -545,6 +547,25 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	return result;
 }
 
+// Where a carried item was just put down, so releasing it is not only "item
+// released". Equipment slots, grid cells and belt cells are exact.
+std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type) {
+	if (type.kind == UiText::Kind::InventorySlot) {
+		const char* slot = SlotName(SlotLocation(context, focus.widget));
+		return slot ? slot : Strings::Current().equipment;
+	}
+	if (type.name == "BeltWidget") {
+		const auto slot = NativeUi::BeltItem(focus.widget);
+		const auto location = slot.known ? BeltReader::Location(slot.slot) : std::string{};
+		return location.empty() ? Strings::Current().belt : location;
+	}
+	const auto cell = NativeUi::GridCell(focus.widget);
+	if (cell.x < 0) return {};
+	char phrase[100]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
+	return phrase;
+}
+
 // The game goes on drawing the tooltip of the place the pointer left for a
 // while after it moves (MEASURED 2026-09-28: the helmet's, 200 ms after the
 // cursor came to the torso, read as "Torso. Skull Cap"). An item's tooltip is
@@ -686,12 +707,12 @@ std::string SocketState(const ItemHand::Under& item) {
 }
 
 // What the hand did: picked up, put down, socketed, stacked, swapped or thrown.
-std::string HandNotice(const D2RL::PluginContext* context,
+std::string HandNotice(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type,
 	const InventoryCursor::ItemState& held, uint32_t heldBefore, bool wasHolding, bool filler, uint32_t focusedId, uintptr_t focusedUnit) {
 	const auto& strings = Strings::Current();
 	if (held.id && !wasHolding) {
 		g_heldUnmet = g_itemUnmet;
-		return {}; // local preference: picking an item up is silent
+		return g_handSpeech ? strings.itemInHand : std::string{};
 	}
 	if (!wasHolding) return {};
 	ItemHand::Under after{focusedId};
@@ -719,10 +740,9 @@ std::string HandNotice(const D2RL::PluginContext* context,
 	}
 	case ItemHand::Outcome::Placed: case ItemHand::Outcome::None: break;
 	}
-	if (held.id) return {};
-	// A plain release stays silent on this branch. Only the specific outcomes
-	// above add feedback; the existing focus readout already names a placement.
-	return {};
+	if (held.id || !g_handSpeech) return {};
+	const auto destination = Destination(context, focus, type);
+	return destination.empty() ? std::string(strings.itemReleased) : Formatted(strings.itemPlacedIn, destination);
 }
 
 // The sockets of the item under a gem in hand, read once per item and hand.
@@ -734,7 +754,7 @@ std::string SocketsUnder(const D2RL::PluginContext* context, uint32_t id, uintpt
 	return g_socketRead.state;
 }
 
-std::string CursorNotice(const D2RL::PluginContext* context, bool inventory,
+std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type,
 	uint32_t focusedId, uintptr_t focusedUnit, const std::string& focusedName) {
 	// Focus may pass through another control while the same item remains held.
 	if (!inventory && !g_wasHolding.value_or(false)) return {};
@@ -747,7 +767,7 @@ std::string CursorNotice(const D2RL::PluginContext* context, bool inventory,
 		g_heldFiller = held->id && NativeGroundItems::SocketFiller(held->classId);
 		g_socketRead = {};
 	}
-	auto notice = inventory ? HandNotice(context, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
+	auto notice = inventory ? HandNotice(context, focus, type, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
 	// Recorded after the notice, which judges the hand against what lay under it before.
 	if (held->id) Hover(context, focusedId, focusedUnit, focusedName);
 	else g_hovered = {};
@@ -832,34 +852,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// at once now the controller layout's delay is gone (TooltipDelay; the
 	// user, 2026-09-22, on naming it early from the slot: "the belt fix is now
 	// unnecessary"). An empty slot has no tooltip at all, so it says so itself.
+	// Every cell is also told by its D-pad button, its row and its column's count (docs/belt.md).
 	uintptr_t beltItem = 0;
+	const auto belt = type.name == "BeltWidget" ? BeltReader::Read(context, focus.widget) : BeltReader::Readout{};
 	if (type.name == "BeltWidget") {
-		const auto belt = NativeUi::BeltItem(focus.widget);
-		if (belt.slot != g_beltSlot) {
-			g_beltSlot = belt.slot;
-			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.slot, belt.known ? 1 : 0,
-				reinterpret_cast<void*>(belt.item));
-		}
-		if (belt.known && !belt.item) {
-			readout.option = Strings::Current().slotEmpty;
-			// An empty slot says where it is, as an empty cell of a grid does. The
-			// belt's rows are counted from the bottom one, which is the row that is
-			// drunk from; its columns are the keys 1 to 4.
-			if (belt.slot >= 0) {
-				char phrase[64]{};
-				std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, belt.slot / 4 + 1, belt.slot % 4 + 1);
-				readout.coordinates = phrase;
-			}
+		if (belt.item.slot != g_beltSlot) {
+			g_beltSlot = belt.item.slot;
+			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.item.slot, belt.item.known ? 1 : 0,
+				reinterpret_cast<void*>(belt.item.item));
 		}
 		// An empty bottom cell shows, see-through, the inventory potion its
-		// D-pad button would drink (docs/belt.md): name it instead of "Empty".
-		if (belt.known && !belt.item && belt.slot >= 0 && belt.slot < 4) {
-			if (const auto automatic = NativeBelt::AutomaticItem(context, focus.widget, belt.slot); automatic && *automatic) {
-				readout.option = NativeGroundItems::ItemBaseName(*automatic);
-				Append(readout.option, Strings::Current().beltAutomatic);
-			}
-		}
-		if (belt.known) beltItem = belt.item;
+		// D-pad button would drink: name it instead of "Empty".
+		if (belt.item.known && !belt.item.item)
+			readout.option = belt.automatic ? NativeGroundItems::ItemBaseName(belt.automatic) : std::string(Strings::Current().slotEmpty);
+		if (belt.item.known) beltItem = belt.item.item;
 	} else g_beltSlot = -2;
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
@@ -1106,7 +1112,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// has had time to answer was refused (equip_attempt.h).
 	std::string cursorNotice;
 	if (inventory) {
-		cursorNotice = CursorNotice(context, inventory, itemLabel.id, focusItem, heldOver.empty() ? readout.option : heldOver);
+		cursorNotice = CursorNotice(context, inventory, focus, type, itemLabel.id, focusItem, heldOver.empty() ? readout.option : heldOver);
 		if (!cursorNotice.empty()) AsyncLog::InfoF(context, "[item] hand -> \"%s\"", cursorNotice.c_str());
 		const bool held = g_wasHolding.value_or(false);
 		const bool pressed = held && type.kind == UiText::Kind::InventorySlot
@@ -1118,6 +1124,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			D2RAccess::AsyncLog::InfoF(context, "[equip] refused -> \"%s\"", refusal.c_str());
 			ScreenReader::Speak(refusal, true);
 		}
+	}
+	// A belt cell's button and row lead what it holds; its column's count follows.
+	if (!belt.location.empty()) {
+		std::string text = belt.location;
+		Append(text, readout.option);
+		Append(text, belt.summary);
+		readout.option = std::move(text);
 	}
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
@@ -1302,11 +1315,15 @@ void Reset() {
 	ControlHints::Offer({});
 }
 
+bool HandSpeech() { return g_handSpeech; }
+void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
+
 void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
 bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }
 
 std::string Repeat() {
-	std::string text = g_reader.Repeat();
+	std::string text = g_handSpeech && g_inventory && g_wasHolding.value_or(false) ? Strings::Current().itemInHand : "";
+	Append(text, g_reader.Repeat());
 	if (ControlHints::Automatic()) Append(text, g_help);
 	return text;
 }
