@@ -24,6 +24,7 @@ OFFSETS = {
     "Name": 0x42,
     "Selectable0": 0x85,  # ... Selectable7 at 0x8C
     "HasCollision0": 0xE0,  # ... HasCollision7 at 0xE7
+    "IsAttackable0": 0xE8,  # the client copies it to flag 0x4 of unit+0x124 (0x1401CB528)
     "IsDoor": 0xFA,
     "Lockable": 0x12F,
     "PopulateFn": 0x15D,

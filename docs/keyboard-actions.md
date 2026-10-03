@@ -84,6 +84,32 @@ at 2 or 5 by a MonStats flag. The server refuses one that is too far ("Item is
 too far", "Player is too far"). The plugin walks its own route up to the unit
 and sends the command once it is near.
 
+## Attackable objects
+
+READ 2026-10-03. Objects whose `objects.txt` IsAttackable0 is set (the
+Compelling Orb, the Hellforge, the Tainted Sun altar, Jack-in-the-boxes, urns,
+barrels) are used with the same command as any object, `0x41` with type 2. The
+client never sends a skill for them.
+
+- `0x1CB528`: the client's object init copies the record's IsAttackable0 byte
+  (`+0xE8`; `tools/objects_containers.py` proves it on all 587 rows) into flag
+  `0x4` of `unit+0x124`. Getter `0x34F5A0`.
+- Click core `0x102490` tests that flag at `0x1027B6`. Set: `0x101590`, which
+  ends at `0x101705` in `PlayerCommand(0x41, player, 2, id)`. Clear: `0x101910`,
+  the same command at `0x101B83`. Shift on an attackable object does nothing.
+- The send step `0xFA180` tests the flag again (`0xFA520`), adds only a local
+  attack animation, and checks the hand: class 404 (the Orb) needs `qf2`
+  (Khalim's Will) at `0xFA641`, else an error and nothing is sent; class 376
+  (the Hellforge) in mode 2 needs `hfh` (the hammer) at `0xFA6DA`. It sends
+  `0x41(id, mode, hand item id or -1)`.
+- Server, `0x4B0F80` (13-byte message): needs the object selectable in its
+  mode, then runs its OperateFn. No IsAttackable test.
+
+So D needs no change: `NativeActions::Interact` already calls `PlayerCommand`
+with `0x41, 2, id`, and `0xFA180`, whose fingerprint the plugin checks, makes
+these checks itself. The game counts hits, so the player presses D once per hit:
+two for the Orb (`0x5E9DE0`), three for the Hellforge (classic code; not read here).
+
 ## The message path, for reference
 
 READ: all 32 message builders (`0x1400EC490`..`0x1400ED9FC`) end in a jump
@@ -113,6 +139,7 @@ break it.
 | What does controller play send? | play with the pad; the hook logs each command the game issues |
 | Does a walk work with the path in the controller's kind (`0x11`)? | `access-actions run` right after moving with the stick |
 | How far does a ranged skill carry? | not in `skills.txt`; the reach is one policy distance until measured |
+| Does D at the Orb or Hellforge play the swing and count a hit? | press D beside them with the item in hand; the log shows `[actions] interact with` and the quest advances |
 
 The working files of the two static passes are kept in the workspace, outside
 this repository, under `re/actions/`.
