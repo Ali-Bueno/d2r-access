@@ -4,7 +4,6 @@
 // Levels.txt (unmodified, no interpreted meaning) so the plugin never has to
 // infer indoor/outdoor from anything else. *IsInside is the authoritative flag;
 // drlgType is carried through for callers that need the layout generator kind.
-// town is the first level of its Act, where the act starts.
 #pragma once
 
 #include <cstddef>
@@ -16,7 +15,7 @@ struct LevelFlags {
 	int32_t id;
 	int32_t drlgType; // Levels.txt DrlgType, unmodified
 	bool inside;      // Levels.txt *IsInside
-	bool town;        // the lowest non-zero Id of its Levels.txt Act
+	bool town;        // first non-zero level of its act
 };
 
 inline constexpr LevelFlags LevelFlagsTable[] = {

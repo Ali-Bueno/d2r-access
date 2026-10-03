@@ -52,6 +52,16 @@ enum class FaceButton {
 };
 FaceButton LastFaceButton(unsigned maxAgeMs);
 
+// Whether that face button was pressed since the previous Take() for it, then
+// cleared: for a reader that acts on the press itself (the skill line reader
+// closes on B). A caller should take it once before it starts listening, so an
+// old press is not mistaken for a new one. Only B is recorded so far.
+bool TakeFacePress(FaceButton button);
+
+// Whether that face button is down on any pad, as of the last Poll(): for a
+// mode that lasts while it is held (compare, on Y).
+bool FaceButtonHeld(FaceButton button);
+
 // Right thumbstick push edges for the level scanner: a push is recorded once
 // when the stick leaves its dead zone (same threshold as the left stick), in
 // the dominant axis at that moment. Releasing below the threshold re-arms it,
@@ -76,6 +86,14 @@ StickPush TakeRightStickPush(const char* claimant);
 // with the level scanner, and must not swallow the pushes that belong to it.
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant);
 
+// Left thumbstick push edges, recorded only while Y is held: the reader for a
+// held Y (compare in the inventory, skills in the hire list) lives on the left
+// stick because Y and the right stick are both under the right thumb (the
+// user, 2026-09-22). A pending push is dropped when Y is released, so no push
+// made while walking is ever read later. Same claim rules as the right stick.
+StickPush PeekLeftStickPush();
+bool TakeLeftStickPushIf(StickPush wanted, const char* claimant);
+
 // The pending push WITHOUT claiming it, so a reader whose gate is expensive
 // can ask "is there anything for me?" before paying for the gate, and still
 // leave the push for the next reader when the gate says no. A pending push
@@ -95,12 +113,15 @@ PushRecord TakePushRecord();
 // The push's name for the log. English only: this is diagnosis, not speech.
 const char* PushName(StickPush push);
 
-// BACK (Select/View) press edges, from whichever pad reports them. Read only:
-// the button still reaches the game exactly as it did, because this samples
-// XInput in a module of the mod's own (critical rule 3 forbids speaking over a
-// real pad, not listening to it). Take() returns whether a press happened
-// since the previous Take() and clears it.
-bool TakeBackButton();
+// BACK (Select/View) held as a modifier: a face button pressed while it is
+// down (the user, 2026-09-21): BACK+X life and mana, BACK+Y the room layout,
+// BACK+A the exit finder, BACK+B the terrain overview. BACK alone does nothing
+// for the mod and still reaches the game, which does nothing with it in play.
+// The face button's press is kept from the game during play by pad_filter.h,
+// so no attack or skill fires with it. Take() returns whether one happened
+// since the previous Take() and clears it, so a caller must take it every
+// tick, in a menu too.
+bool TakeBackWith(FaceButton button);
 
 // Left thumbstick CLICK (L3): follows or releases the scanned target (beacon),
 // the mod's only stick button (R3 is the game's). The SDK's action service
@@ -122,6 +143,30 @@ TriggerHold LeftTrigger();
 // was steering when the cue fired. Zero and not connected without a pad.
 struct Stick { float x = 0, y = 0; bool connected = false; };
 Stick LeftStick();
+
+// The keyboard's twins of the gestures above. A key posts the gesture its
+// reader already listens for, so every reader serves pad and keyboard alike and
+// none has to learn a second input. The game takes no part in this: nothing
+// posted here is input to it, and no pad is imitated. Post after Poll() in the
+// same update; a left-stick push no reader claims is dropped by the next Poll,
+// as one made without Y held is.
+void PostRightStickPush(StickPush push);
+// A left-stick push is dropped by the next Poll unless Y is held, and its
+// reader looks only every third update or so: a posted one is kept for that long.
+void PostLeftStickPush(StickPush push); // as if made with Y held
+// Ctrl or Shift with an arrow key in a menu: a step through the lines of what
+// the cursor is on, up and down a line, left and right to the first and the last.
+// It is a right-stick push to every reader that walks lines already (the
+// character panel, Advanced Stats), and LineStepPending tells the reader of
+// items and skills that the keyboard made it, where the stick's four
+// directions are four different readouts. Plain is Shift's: the tooltip as the
+// game draws it with Shift held, not its own Ctrl view of an item's ranges.
+void PostLineStep(StickPush push, bool plain = false);
+bool LineStepPending();
+bool LineStepPlain();
+void PostBackWith(FaceButton button);
+void PostLeftStickClick();
+void PostFacePress(FaceButton button);  // only B has a reader so far
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.

@@ -1,5 +1,5 @@
 # Navigation radar. Restart the game after changing these defaults.
-# Ctrl+R also toggles the radar for the current run.
+# Ctrl+G also toggles the radar for the current run.
 [radar]
 enabled = true
 # Cue loudness, 0-100 percent of the compiled level.
@@ -11,11 +11,12 @@ volume = 100
 # for the current run.
 diagonals = false
 
-# Long-range guidance starts with exploration-first routes through visited
-# areas. Set true to allow the optional full-assistance route through areas
-# the character has not visited. Restart the game after changing this value.
+# Full assistance (the default on this branch): guidance and the catalogue
+# know the whole level. Set false for exploration-first routes through
+# visited areas only; access-beacon exploration|full switches for the session.
+# Restart the game after changing this value.
 [navigation]
-full_assistance = false
+full_assistance = true
 
 # Nearest unvisited dungeon room loop and a single cue on first entry.
 # Area-transition loops use the existing Ctrl+P exit-sound toggle.
@@ -50,31 +51,17 @@ range = 15
 line_of_sight = true
 
 # Synthesized proximity pulses, using the radar's fixed screen directions.
-# Separate from NPC speech. Faster nearby; nearest NPC and up to three enemy
-# classes. Restart after editing; access-entity-cues toggles live.
+# Separate from NPC speech. Faster nearby; nearest NPC and up to two priority
+# enemy classes only. Restart after editing; access-entity-cues toggles live.
 [entity_cues]
 enabled = true
 npcs = true
 enemies = true
 # Ordinary ranged enemies join bosses/elites and resurrectors when enabled.
 ranged = true
-# The nearest other enemies growl, each on its own (up to three streams in all).
-ordinary = true
 range = 15
 # 0-100 percent of the soft synthesized level, independent of radar volume.
 volume = 100
-# A ping when an enemy in sight comes within reach of your attacks.
-reach = true
-# "auto" follows the bound skills and the weapon in hand; "melee" or "ranged" fixes it.
-attack = "auto"
-# Subtiles. Melee is contact (plus the weapon's rangeadder); ranged defaults to `range`.
-melee_reach = 3
-ranged_reach = 15
-
-# A boss's life, said as it falls on the same steps as the player's own.
-# access-boss-life on|off changes it for the current run.
-[boss_life]
-enabled = true
 
 # One-shot: write the game's whole mapped image next to the plugin at startup,
 # for offline analysis (about 60-70 MB, written once and skipped if it is
@@ -118,9 +105,10 @@ enabled = true
 
 # Direct movement stops when its intended direction is blocked, instead of
 # choosing another direction along the wall. Mouse routes retain stock behavior.
-# access-movement on|off changes this for the current session.
+# Off by default on this branch. access-movement on|off changes this for the
+# current session.
 [movement]
-enabled = true
+enabled = false
 
 # Read hosting readiness and browser status changes in D2RLoader multiplayer.
 [multiplayer]

@@ -160,7 +160,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 }
 }
 
-bool Register(const D2RL::PluginContext* context) {
+bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
@@ -172,7 +172,7 @@ bool Register(const D2RL::PluginContext* context) {
 		g_listeners.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-quests", Console, "Automatic quest announcements: on|off|status.");
-	InstallNative(context);
+	if (nativeHooks) InstallNative(context);
 	AsyncLog::Info(context, "[quest] Automatic announcements registered.");
 	return true;
 }
@@ -276,4 +276,9 @@ void Reset() {
 	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);
 }
 
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 }

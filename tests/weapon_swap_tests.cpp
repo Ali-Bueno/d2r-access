@@ -45,10 +45,10 @@ void EmptySets() {
 
 void Phrases() {
 	Strings::Select(Strings::Language::esES);
-	Check(WeaponSwap::Phrase(2, {"Arco largo", "Carcaj"}) == "Armas 2: Arco largo, Carcaj", "the set and both hands are named");
-	Check(WeaponSwap::Phrase(1, {"Mandoble"}) == "Armas 1: Mandoble", "a two-handed weapon fills the phrase alone");
-	Check(WeaponSwap::Phrase(1, {}) == "Armas 1: sin armas", "an empty set says so");
-	Check(WeaponSwap::Phrase(2, {"", "Escudo"}) == "Armas 2: Escudo", "an unnamed item is left out");
+	Check(WeaponSwap::Phrase({"Arco largo", "Carcaj"}) == "Arco largo, Carcaj", "both hands are named, with no set number");
+	Check(WeaponSwap::Phrase({"Mandoble"}) == "Mandoble", "a two-handed weapon fills the phrase alone");
+	Check(WeaponSwap::Phrase({}) == "sin armas", "empty hands say so");
+	Check(WeaponSwap::Phrase({"", "Escudo"}) == "Escudo", "an unnamed item is left out");
 }
 }
 

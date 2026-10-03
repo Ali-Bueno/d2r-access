@@ -91,21 +91,5 @@ int main() {
 	f.nearRoom.At<int>(RoomTileWidth, 8);
 	Check(f.Read(exits) && exits.size() == 1, "fixture restores to the distant exit");
 	Check(!NativeLevelExits::Read(0, exits) && exits.empty(), "missing player room clears previous exits");
-
-	std::vector<NativeLevelExits::MonsterPreset> monsters;
-	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters) && monsters.empty(), "a warp preset is not a monster preset");
-	Memory<0x30> npc;
-	f.preset.At(PresetNext, npc.Address());
-	npc.At<uint32_t>(PresetType, MonsterType); npc.At<uint32_t>(PresetClass, 155);
-	npc.At<int>(PresetX, 4); npc.At<int>(PresetY, 39);
-	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters) && monsters.size() == 1
-		&& monsters[0].monster == 155 && monsters[0].room == f.farRoom.Address(),
-		"an unloaded room's monster preset keeps its MonStats row and its room");
-	Check(monsters[0].position.x == 1004 && monsters[0].position.y == 1539, "monster presets use the same subtile conversion as exits");
-	Check(f.Read(exits) && exits.size() == 1, "a monster preset beside a warp leaves the exit list unchanged");
-	npc.At<int>(PresetY, 40);
-	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters) && monsters.empty(), "a monster preset outside its room is rejected");
-	npc.At(PresetNext, f.preset.Address());
-	Check(!NativeLevelExits::ReadMonsters(f.active.Address(), monsters) && monsters.empty(), "cyclic monster presets fail closed");
 	Passed();
 }

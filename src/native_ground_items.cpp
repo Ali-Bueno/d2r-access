@@ -1,6 +1,7 @@
 #include "native_ground_items.h"
 #include "layout_check.h"
 #include "ground_item_layout.h"
+#include "entity_layout.h"
 #include "ground_item_text.h"
 #include "native_memory.h"
 #include "localization.h"
@@ -50,7 +51,8 @@ bool IsType(const Tables& tables, uint16_t index, uint32_t code) {
 	}
 	return false;
 }
-bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems::Point player, GroundItems::Item& item) {
+bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems::Point player, GroundItems::Item& item,
+	bool anyDistance = false) {
 	uint32_t type = 0, mode = 0, classId = 0;
 	uintptr_t path = 0, itemRoom = 0, data = 0;
 	int x = 0, y = 0;
@@ -60,7 +62,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		|| x < 0 || y < 0 || x > UINT16_MAX || y > UINT16_MAX) return false;
 	item.position = {static_cast<double>(x), static_cast<double>(y)};
 	const double distance = std::hypot(item.position.x - player.x, item.position.y - player.y);
-	if (distance > GroundItems::QuestAudibleRadius) return false;
+	if (!anyDistance && distance > GroundItems::QuestAudibleRadius) return false;
 	if (!Peek(unit + UnitClass, classId) || classId >= tables.itemCount || !Peek(unit + UnitId, item.id)
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, item.quality)) return false;
 	const uintptr_t row = tables.items + classId * ItemStride;
@@ -77,11 +79,22 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		: is(MakeItemCode("gem")) ? Base::Gem : Base::Equipment;
 	const bool quest = questFlag != 0 || is(MakeItemCode("ques"));
 	item.sound = GroundItems::Classify(item.quality, base, quest);
-	if (distance > GroundItems::AudibleRange(item.sound)) return false;
+	if (!anyDistance && distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0);
 	return true;
 }
+}
+std::string ItemBaseName(uintptr_t unit) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
+	uint32_t type = 0, classId = 0;
+	uint16_t nameId = 0;
+	if (!g_base || !unit || !RuntimeRoots(player, tables)
+		|| !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
+		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
+		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
+	return GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 }
 UnitLabel ItemUnitLabel(uintptr_t unit) {
 	uintptr_t data = 0;
@@ -101,28 +114,47 @@ UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemName, nameId)) return {};
 	return {GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId))), quality};
 }
-namespace {
-// The item and type tables, and the class's type, for an ancestry test.
-bool ClassType(uint32_t classId, Tables& tables, uint16_t& typeId) {
-	uintptr_t player = 0, address = 0;
-	return g_base && RuntimeRoots(player, address)
-		&& Peek(address + Items, tables.items) && tables.items
-		&& Peek(address + ItemCount, tables.itemCount) && tables.itemCount <= MaxTableRows
-		&& Peek(address + Types, tables.types) && tables.types
-		&& Peek(address + TypeCount, tables.typeCount) && tables.typeCount <= MaxTableRows
-		&& classId < tables.itemCount && Peek(tables.items + classId * ItemStride + ItemType, typeId);
+uint32_t ItemTableCode(uintptr_t unit) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
+	uint32_t type = 0, classId = 0, code = 0;
+	if (!g_base || !unit || !RuntimeRoots(player, tables)
+		|| !Peek(unit + UnitType, type) || type != ItemUnitType || !Peek(unit + UnitClass, classId)
+		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
+		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
+	return code;
 }
+uint32_t ClassCode(uint32_t classId) {
+	uintptr_t player = 0, tables = 0, items = 0;
+	uint64_t count = 0;
+	uint32_t code = 0;
+	if (!g_base || !RuntimeRoots(player, tables)
+		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
+		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
+	return code;
 }
 bool SocketFiller(uint32_t classId) {
 	Tables tables;
 	uint16_t typeId = 0;
-	return ClassType(classId, tables, typeId) && IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
+	uintptr_t player = 0, tablesAddress = 0;
+	return g_base && RuntimeRoots(player, tablesAddress)
+		&& Peek(tablesAddress + Items, tables.items) && tables.items
+		&& Peek(tablesAddress + ItemCount, tables.itemCount) && tables.itemCount <= MaxTableRows
+		&& Peek(tablesAddress + Types, tables.types) && tables.types
+		&& Peek(tablesAddress + TypeCount, tables.typeCount) && tables.typeCount <= MaxTableRows
+		&& classId < tables.itemCount && Peek(tables.items + classId * ItemStride + ItemType, typeId) && IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
 }
 std::optional<Weapon> WeaponOf(uint32_t classId) {
 	Tables tables;
+	uintptr_t player = 0, address = 0;
 	uint16_t typeId = 0;
 	uint8_t rangeAdder = 0;
-	if (!ClassType(classId, tables, typeId)
+	if (!g_base || !RuntimeRoots(player, address)
+		|| !Peek(address + Items, tables.items) || !tables.items
+		|| !Peek(address + ItemCount, tables.itemCount) || tables.itemCount > MaxTableRows
+		|| !Peek(address + Types, tables.types) || !tables.types
+		|| !Peek(address + TypeCount, tables.typeCount) || tables.typeCount > MaxTableRows
+		|| classId >= tables.itemCount || !Peek(tables.items + classId * ItemStride + ItemType, typeId)
 		|| !Peek(tables.items + classId * ItemStride + GroundItemLayout::ItemRangeAdder, rangeAdder)) return std::nullopt;
 	return Weapon{IsType(tables, typeId, D2RL::Items::MakeItemCode("miss")), rangeAdder};
 }
@@ -174,6 +206,49 @@ bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !RuntimeRoots(player, tables)) { output = {}; return false; }
 	return ReadPlayer(player, tables, playerId, session, output);
+}
+// The level a room belongs to (the entity reader's RoomLevel); 0 when unreadable.
+uintptr_t RoomLevel(uintptr_t room) {
+	uintptr_t extended = 0, level = 0;
+	if (!Peek(room + EntityLayout::RoomExtended, extended) || !extended || !Peek(extended + EntityLayout::ExtendedLevel, level)) return 0;
+	return level;
+}
+constexpr size_t MaxLoadedRooms = 256; // the entity reader's bound for its walk of loaded rooms
+bool ReadLevel(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output) {
+	uintptr_t player = 0, tablesAddress = 0, path = 0, room = 0;
+	GroundItems::Snapshot ring;
+	Tables tables;
+	// The ring's read checks the player and the tables, and gives the player's place.
+	if (!g_base || !RuntimeRoots(player, tablesAddress) || !ReadPlayer(player, tablesAddress, playerId, session, ring)
+		|| !Peek(player + UnitPath, path) || !path || !Peek(path + PlayerRoom, room) || !room
+		|| !Peek(tablesAddress + Items, tables.items) || !Peek(tablesAddress + ItemCount, tables.itemCount)
+		|| !Peek(tablesAddress + Types, tables.types) || !Peek(tablesAddress + TypeCount, tables.typeCount)) {
+		output = {};
+		return false;
+	}
+	GroundItems::Snapshot next{session, ring.player, {}};
+	const uintptr_t level = RoomLevel(room);
+	std::vector<uintptr_t> rooms{room};
+	std::unordered_set<uintptr_t> visited;
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		uintptr_t neighbors = 0, unit = 0;
+		uint32_t count = 0;
+		std::array<uintptr_t, MaxRooms> adjacent{};
+		// Rooms across a level passage belong to the other level and are left out.
+		if (Peek(rooms[i] + RoomNeighbors, neighbors) && Peek(rooms[i] + RoomNeighborCount, count) && count <= MaxRooms
+			&& (!count || NativeMemory::Copy(neighbors, adjacent.data(), count * sizeof(uintptr_t))))
+			for (size_t n = 0; n < count && rooms.size() < MaxLoadedRooms; ++n)
+				if (adjacent[n] && (!level || RoomLevel(adjacent[n]) == level)
+					&& std::find(rooms.begin(), rooms.end(), adjacent[n]) == rooms.end()) rooms.push_back(adjacent[n]);
+		if (!Peek(rooms[i] + RoomFirstUnit, unit)) continue;
+		while (unit && visited.size() < MaxUnits && visited.insert(unit).second) {
+			GroundItems::Item item;
+			if (ReadItem(unit, rooms[i], tables, next.player, item, true)) next.items.push_back(std::move(item));
+			if (!Peek(unit + UnitNext, unit)) break;
+		}
+	}
+	output = std::move(next);
+	return true;
 }
 int PlayerGold() noexcept {
 	uintptr_t player = 0, tables = 0;

@@ -23,17 +23,8 @@ struct Settings {
 	bool enabled = true; // false speaks every label, as before this gate existed
 };
 
-// The nearest entity `label` names that is in sight, or why there is none.
-// Ground items are ignored: the item proximity service owns their labels.
-struct Bearer {
-	Sight sight = Sight::Unknown;
-	EntityRadar::Kind kind = EntityRadar::Kind::Item; // meaningful only when Visible
-	bool important = false; // a boss or an elite
-	double distance = 0;
-};
-Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
-	std::string_view label, const Settings& settings = {});
 // Whether `label` names an entity with a clear terrain line of sight.
+// Ground items are ignored: the item proximity service owns their labels.
 Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	std::string_view label, const Settings& settings = {});
 

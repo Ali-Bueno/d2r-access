@@ -15,6 +15,7 @@ namespace D2RAccess::DeathPlaceService {
 void Register(const D2RL::PluginContext* context);
 // The death screen opened. Any thread.
 void NoteDeath();
+void Unregister();
 // Called with every fresh world read: records a pending death at the last
 // place the player stood, and forgets the death place once walked back to.
 void Track(uint32_t seed, int level, Radar::Position player);

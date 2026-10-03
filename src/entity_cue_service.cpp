@@ -1,8 +1,8 @@
 #include "entity_cue_service.h"
 #include "async_log.h"
-#include "attack_reach.h"
 #include "entity_cue_audio.h"
 #include "entity_cues.h"
+#include "attack_reach.h"
 #include "native_attack.h"
 #include "native_entities.h"
 #include "native_world.h"
@@ -13,9 +13,7 @@
 
 #include <windows.h>
 #include <atomic>
-#include <cstdio>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,12 +21,9 @@
 namespace D2RAccess::EntityCueService {
 namespace {
 using EventKind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Status, NpcOn, NpcOff, EnemyOn, EnemyOff, RangedOn, RangedOff,
-	OrdinaryOn, OrdinaryOff, ReachOn, ReachOff, AttackAuto, AttackMelee, AttackRanged };
+enum class Command { None, On, Off, Status, NpcOn, NpcOff, EnemyOn, EnemyOff, RangedOn, RangedOff, OrdinaryOn, OrdinaryOff, ReachOn, ReachOff, AttackAuto, AttackMelee, AttackRanged };
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0, revision = 0; int level = 0; };
 constexpr uint64_t PollMs = 100;
-// Skills and weapons change by hand, at most a few times a minute.
-constexpr uint64_t LoadoutMs = 1000;
 
 std::mutex g_mutex;
 Lifecycle g_lifecycleState;
@@ -43,8 +38,11 @@ AttackReach::Tracker g_reachTracker;
 std::optional<AttackReach::Style> g_style;
 std::optional<double> g_reach;
 std::string g_reachLogged;
-bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true, g_reachCue = true;
-uint64_t g_revision = 0, g_lastPoll = 0, g_lastLoadout = 0;
+bool g_reachCue = false;
+uint64_t g_lastLoadout = 0;
+constexpr uint64_t LoadoutMs = 1000;
+bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
+uint64_t g_revision = 0, g_lastPoll = 0;
 
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	if (g_suspended) return;
@@ -98,27 +96,6 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	return D2RL::ConsoleCommandResult::Handled;
 }
 
-std::string StatusText() {
-	const auto& strings = Strings::Current();
-	std::string result = g_enabled ? strings.entityCuesEnabled : strings.entityCuesDisabled;
-	result += ". "; result += g_settings.npcs ? strings.entityCueNpcsEnabled : strings.entityCueNpcsDisabled;
-	result += ". "; result += g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
-	result += ". "; result += g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
-	result += ". "; result += g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
-	result += ". "; result += g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
-	if (g_style && g_reach) {
-		char reach[160]{};
-		std::snprintf(reach, sizeof reach, *g_style == AttackReach::Style::Melee ? strings.attackReachMelee : strings.attackReachRanged,
-			EntityRadar::DistancePhrase(*g_reach, {}, strings).c_str());
-		result += ". "; result += reach;
-		result += ", "; result += g_reachSettings.mode == AttackReach::Mode::Auto ? strings.attackModeAuto : strings.attackModeFixed;
-	}
-	if (!g_supported) { result += ". "; result += strings.entityCueReaderUnavailable; }
-	if (!g_audioStarted || !EntityCueAudio::Available()) { result += ". "; result += strings.entityCueAudioUnavailable; }
-	return result;
-}
-
-// The reach is published even while the cues are off: the HUD name gate uses it too.
 void RefreshReach(const D2RL::PluginContext* context) {
 	const auto loadout = NativeAttack::ReadLoadout(context);
 	if (!loadout && g_reachSettings.mode == AttackReach::Mode::Auto) { g_style.reset(); g_reach.reset(); return; }
@@ -133,11 +110,36 @@ void RefreshReach(const D2RL::PluginContext* context) {
 	g_reachLogged = line;
 	AsyncLog::InfoF(context, "[attack-reach] %s", line);
 }
+
+std::string StatusText() {
+	const auto& strings = Strings::Current();
+	std::string result = g_enabled ? strings.entityCuesEnabled : strings.entityCuesDisabled;
+	result += ". "; result += g_settings.npcs ? strings.entityCueNpcsEnabled : strings.entityCueNpcsDisabled;
+	result += ". "; result += g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
+	result += ". "; result += g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
+	result += ". "; result += g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
+	result += ". "; result += g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
+	if (!g_supported) { result += ". "; result += strings.entityCueReaderUnavailable; }
+	if (!g_audioStarted || !EntityCueAudio::Available()) { result += ". "; result += strings.entityCueAudioUnavailable; }
+	return result;
 }
 
-std::optional<double> CurrentReach() { return g_reach; }
-std::optional<double> NamingReach() {
-	return g_style == AttackReach::Style::Melee ? g_reach : std::nullopt;
+// A change says only the switch it changed (the user, 2026-09-28: "just the one
+// that was toggled"); status reads them all. Also the phrase the settings list
+// holds back when it puts a saved switch back at start.
+std::string ChangeText(Command command) {
+	const auto& strings = Strings::Current();
+	switch (command) {
+	case Command::On: case Command::Off: return g_enabled ? strings.entityCuesEnabled : strings.entityCuesDisabled;
+	case Command::NpcOn: case Command::NpcOff: return g_settings.npcs ? strings.entityCueNpcsEnabled : strings.entityCueNpcsDisabled;
+	case Command::EnemyOn: case Command::EnemyOff: return g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
+	case Command::OrdinaryOn: case Command::OrdinaryOff: return g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
+	case Command::ReachOn: case Command::ReachOff: return g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
+	case Command::AttackAuto: return strings.attackModeAuto;
+	case Command::AttackMelee: case Command::AttackRanged: return strings.attackModeFixed;
+	default: return g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
+	}
+}
 }
 
 bool Register(const D2RL::PluginContext* context) {
@@ -160,20 +162,17 @@ bool Register(const D2RL::PluginContext* context) {
 	g_settings.enemies = config.enemies.value_or(g_settings.enemies);
 	g_settings.ranged = config.ranged.value_or(g_settings.ranged);
 	g_settings.range = config.range.value_or(g_settings.range);
-	g_settings.ordinary = config.ordinary.value_or(g_settings.ordinary);
-	g_reachCue = config.reach.value_or(g_reachCue);
+	g_settings.ordinary = config.ordinary.value_or(false);
+	g_reachCue = config.reach.value_or(false);
 	g_reachSettings.mode = config.attack.value_or(g_reachSettings.mode);
 	g_reachSettings.meleeReach = config.meleeReach.value_or(g_reachSettings.meleeReach);
-	g_reachSettings.rangedReach = config.rangedReach.value_or(g_settings.range);
+	g_reachSettings.rangedReach = config.rangedReach.value_or(g_reachSettings.rangedReach);
 	(void)context->RegisterConsoleCommand("access-entity-cues", Console,
-		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off"
-		"|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
+		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
 	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0);
-	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u"
-		" ordinary=%u reach=%u attack=%d melee=%.1f ranged_reach=%.1f",
+	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
 		g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
-		g_settings.npcs, g_settings.enemies, g_settings.ranged, g_settings.ordinary, g_reachCue,
-		static_cast<int>(g_reachSettings.mode), g_reachSettings.meleeReach, g_reachSettings.rangedReach);
+		g_settings.npcs, g_settings.enemies, g_settings.ranged);
 	return true;
 }
 
@@ -200,29 +199,28 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (command >= Command::AttackAuto) g_lastLoadout = 0;
 	if (changed) Suspend(context, "settings changed");
+	if (command != Command::None) {
+		ScreenReader::Speak(changed ? ChangeText(command) : StatusText(), true);
+		AsyncLog::InfoF(context, "[entity-cues] status enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
+			g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
+			g_settings.npcs, g_settings.enemies, g_settings.ranged);
+	}
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		g_tracker.Reset();
 		Suspend(context, "lifecycle changed");
-		g_lastPoll = g_lastLoadout = 0;
-	}
-	const uint64_t now = GetTickCount64();
-	if (!state.ready || !g_supported) { g_style.reset(); g_reach.reset(); }
-	else if (!g_lastLoadout || now - g_lastLoadout >= LoadoutMs) { g_lastLoadout = now; RefreshReach(context); }
-	if (command != Command::None) {
-		ScreenReader::Speak(StatusText(), true);
-		AsyncLog::InfoF(context, "[entity-cues] status enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
-			g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
-			g_settings.npcs, g_settings.enemies, g_settings.ranged);
+		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
 	}
 	if (!g_enabled || !g_supported || !g_audioStarted || !EntityCueAudio::Available() || !state.ready) {
 		Suspend(context, "disabled or unavailable"); return;
 	}
 	if (!RadarUi::InPlay()) { Suspend(context, "UI/focus"); return; }
+	const uint64_t now = GetTickCount64();
 	if (now - g_lastPoll < PollMs) return;
 	g_lastPoll = now;
+	if (g_reachCue && (!g_lastLoadout || now - g_lastLoadout >= LoadoutMs)) { g_lastLoadout = now; RefreshReach(context); }
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
@@ -249,8 +247,8 @@ void Tick(const D2RL::PluginContext* context) {
 	case EntityCues::Kind::Ranged: sound = EntityCueAudio::Sound::Ranged; break;
 	case EntityCues::Kind::Ordinary: sound = EntityCueAudio::Sound::Ordinary; break;
 	}
-	AsyncLog::InfoF(context, "[entity-cues] generated event_ms=%llu id=%u kind=%u slot=%zu distance=%.2f right=%.3f front=%.3f interval_ms=%llu",
-		static_cast<unsigned long long>(now), cue->id, static_cast<unsigned>(cue->kind), cue->slot, cue->distance,
+	AsyncLog::InfoF(context, "[entity-cues] generated event_ms=%llu id=%u kind=%u distance=%.2f right=%.3f front=%.3f interval_ms=%llu",
+		static_cast<unsigned long long>(now), cue->id, static_cast<unsigned>(cue->kind), cue->distance,
 		cue->right, cue->front, static_cast<unsigned long long>(cue->intervalMs));
 	EntityCueAudio::Play(sound, {cue->right, cue->front});
 }
@@ -264,8 +262,23 @@ void Unregister() {
 	{ std::lock_guard lock(g_mutex); g_lifecycleState = {}; }
 	g_context = nullptr; g_lifecycle = nullptr;
 	g_command = Command::None;
+	g_reachTracker.Reset(); g_reachSettings = {}; g_style.reset(); g_reach.reset(); g_reachLogged.clear(); g_reachCue = false; g_lastLoadout = 0;
 	g_settings = {}; g_enabled = true; g_supported = g_audioStarted = false; g_suspended = true;
-	g_reachSettings = {}; g_reachTracker.Reset(); g_style.reset(); g_reach.reset(); g_reachLogged.clear(); g_reachCue = true;
-	g_revision = g_lastPoll = g_lastLoadout = 0;
+	g_revision = g_lastPoll = 0;
+}
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled(Cue cue) {
+	return cue == Cue::All ? g_enabled : cue == Cue::Npcs ? g_settings.npcs
+		: cue == Cue::Enemies ? g_settings.enemies : cue == Cue::Ordinary ? g_settings.ordinary : cue == Cue::Reach ? g_reachCue : g_settings.ranged;
+}
+void SetEnabled(Cue cue, bool enabled) {
+	g_command = cue == Cue::All ? (enabled ? Command::On : Command::Off)
+		: cue == Cue::Npcs ? (enabled ? Command::NpcOn : Command::NpcOff)
+		: cue == Cue::Enemies ? (enabled ? Command::EnemyOn : Command::EnemyOff)
+		: cue == Cue::Ordinary ? (enabled ? Command::OrdinaryOn : Command::OrdinaryOff)
+		: cue == Cue::Reach ? (enabled ? Command::ReachOn : Command::ReachOff)
+		: (enabled ? Command::RangedOn : Command::RangedOff);
 }
 }

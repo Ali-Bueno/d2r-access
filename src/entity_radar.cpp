@@ -35,9 +35,29 @@ bool TraceSight(const Radar::World& world, Radar::Position from, Radar::Position
 }
 }
 
+std::string SpokenName(const Entity& entity, std::string_view separator) {
+	if (entity.enemy.plate.empty()) return entity.name;
+	std::string text = entity.name;
+	text += separator;
+	text += entity.enemy.plate;
+	return text;
+}
+
 bool SameTarget(const Entity& a, const Entity& b) {
 	if (a.kind != b.kind || a.placeId != b.placeId) return false;
 	return a.placeId || a.id == b.id;
+}
+
+bool Recreated(const Entity& known, const Entity& loaded) {
+	if (known.kind != loaded.kind || known.placeId || loaded.placeId || known.id == loaded.id
+		|| known.category != loaded.category || known.name != loaded.name) return false;
+	double within = 0;
+	switch (known.kind) {
+	case Kind::Object: case Kind::Item: within = 1; break;
+	case Kind::Enemy: case Kind::Npc: within = Settings{}.range; break;
+	default: return false;
+	}
+	return std::abs(known.position.x - loaded.position.x) <= within && std::abs(known.position.y - loaded.position.y) <= within;
 }
 
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to) {

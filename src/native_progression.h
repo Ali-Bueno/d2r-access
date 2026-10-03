@@ -6,8 +6,11 @@ namespace D2RAccess::NativeProgression {
 struct Details {
 	UiText::Readout readout;
 	bool skill = false;
-	std::string points, value, help;
-	std::string name; // a tree skill's name from the game's tables, ready before its tooltip
+	std::string name; // table name available before the skill tooltip renders
+	std::string points, value;
+	std::string help;     // part of the readout: the skill's current binding
+	std::string controls; // what the buttons do here -- a control hint (control_hints.h)
+	std::string description; // a stat's own explanation, for right stick up or autodetail
 };
 // Add companion labels/values to stat actions and identify skill button grids.
 // Uses widget archetypes and their native containers, not a panel-name whitelist.

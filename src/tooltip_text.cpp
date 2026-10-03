@@ -23,7 +23,9 @@ constexpr std::string_view Heading = "\xEE\x81\xBE" "2";
 // '5' socketed grey, and '1' red, an unmet requirement (log, 2026-09-25 07:49).
 constexpr std::string_view Red = "\xEE\x81\xBE" "1";
 
-using UiText::FontIndex;
+bool FontIndex(char c) {
+	return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u;
+}
 
 std::string StripFont(std::string line) {
 	for (size_t at = 0; (at = line.find(Font, at)) != std::string::npos;) {
@@ -125,6 +127,13 @@ Body Read(std::string_view body) {
 	return result;
 }
 
+std::string Comparison(std::span<const std::string> extras) {
+	std::string result;
+	for (const auto& extra : extras)
+		for (const auto& line : Read(extra).lines) Append(result, line);
+	return result;
+}
+
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel,
 	std::span<const std::string> requirementLabels) {
@@ -134,10 +143,9 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 		return std::any_of(labels.begin(), labels.end(),
 			[&](const std::string& prefix) { return StartsWith(line, prefix); });
 	};
+	const auto price = [&](const std::string& line) { return starts(line, priceLabels); };
 	const auto unidentified = [&](const std::string& line) { return !unidentifiedLabel.empty() && line == unidentifiedLabel; };
-	const auto labelled = [&](const std::string& line) {
-		return starts(line, statLabels) || starts(line, priceLabels) || unidentified(line);
-	};
+	const auto labelled = [&](const std::string& line) { return starts(line, statLabels) || price(line) || unidentified(line); };
 	// The styled title where there is one. Otherwise the first line that is not
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
@@ -147,15 +155,23 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 		for (size_t at = 0; at < body.lines.size(); ++at)
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
-	result.headline = body.lines[name];
-	// Status follows the name once; prices and properties keep their screen order in detail.
+	result.name = result.headline = body.lines[name];
+	// A price joins it, wherever it sits. Everything else, the base damage or
+	// defense included, keeps the order the screen drew it in and waits to be
+	// asked for.
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (unidentified(body.lines[at])) { result.unidentified = true; continue; }
 		if (at == name) continue;
-		Append(result.detail, body.lines[at]);
+		if (price(body.lines[at])) Append(result.price, body.lines[at]);
+		Append(price(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
 		if (at < body.red.size() && body.red[at] && starts(body.lines[at], requirementLabels)) Append(result.unmet, body.lines[at]);
 	}
-	if (result.unidentified && result.headline != unidentifiedLabel) Append(result.headline, unidentifiedLabel);
+	// Unidentified is the name's status, said once right after it.
+	if (result.unidentified && result.name != unidentifiedLabel) {
+		Append(result.name, unidentifiedLabel);
+		result.headline = result.name;
+		Append(result.headline, result.price);
+	}
 	return result;
 }
 

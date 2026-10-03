@@ -12,7 +12,7 @@
 
 namespace {
 uintptr_t managerAddress = 0;
-bool supported = true;
+bool supported = true, tombSupported = true;
 uintptr_t cellItem = 0, queriedWidget = 0;
 D2RAccess::NativeUi::Cell queriedCell;
 bool itemQueryFault = false;
@@ -69,6 +69,7 @@ struct Widget {
 // are the actual production implementation under test.
 namespace D2RAccess::NativeWidgets {
 bool SupportsTree() { return supported; }
+bool SupportsTombSymbols() { return supported && tombSupported; }
 uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 	const auto* widget = reinterpret_cast<Widget*>(parent);
 	for (uintptr_t child : widget->children) if (ReadName(child) == name) return child;
@@ -86,7 +87,59 @@ std::string ReadText(uintptr_t widget) {
 }
 }
 
+namespace {
+void TombJournalSymbols() {
+	using namespace D2RAccess;
+	const auto language = Strings::Selected();
+	Strings::Select(Strings::Language::enUS);
+	Widget panel("QuestLogPanel", "QuestLogPanelExpansion"), quest("QuestLogButtonWidget", "Quest11", "The Seven Tombs");
+	Widget title("TextBoxWidget", "ShortDescription", "The Seven Tombs");
+	Widget objective("TextBoxWidget", "LongDescription", "The Symbol of the True Tomb of Tal Rasha.");
+	Widget symbol("ImageWidget", "TalRashaSymbol");
+	panel.Add(quest); quest.Add(symbol); panel.Add(title); panel.Add(objective);
+	const auto read = [&] { return UiText::Describe(NativeUi::Snapshot(panel.Address(), quest.Address())); };
+	const char* labels[] = {"four-pointed star", "square", "crescent", "circle", "double chevron with a diamond", "triangle", "circle above a crescent"};
+	for (int32_t frame = 0; frame < 7; ++frame) {
+		symbol.Put(0x90, frame);
+		const auto reading = read();
+		Check(reading.body == "The Seven Tombs" && reading.option == objective.text + " " + labels[frame],
+			"each visible journal frame is plain text after the objective, with the title once");
+		UiText::Reader reader;
+		(void)reader.Update(reading, 0);
+		(void)reader.Update(reading, 200);
+		Check(reader.Repeat().find(labels[frame]) != std::string::npos,
+			"manual repeat includes the journal symbol");
+	}
+	symbol.Put<uint8_t>(0x51, 0);
+	Check(read().option == objective.text, "a hidden symbol never reveals the true tomb");
+	symbol.Put<uint8_t>(0x51, 1); quest.Put<uint8_t>(0x51, 0);
+	Check(UiText::Describe(NativeUi::Snapshot(panel.Address(), 0)).body.find("crescent") == std::string::npos,
+		"a hidden quest ancestor also withholds its graphic");
+	quest.Put<uint8_t>(0x51, 1);
+	for (int32_t frame : {-1, 7, 100}) {
+		symbol.Put(0x90, frame);
+		Check(read().option == objective.text, "invalid frames fail closed without a guessed symbol");
+	}
+	symbol.Put<int32_t>(0x90, 3);
+	tombSupported = false;
+	Check(read().option == objective.text, "failed native symbol verification preserves ordinary journal text");
+	tombSupported = true;
+	const std::string staleTitle = "Another quest";
+	title.StringAt(0x88, staleTitle);
+	Check(read().option == Strings::Current().slotEmpty, "stale details do not acquire the selected quest's symbol");
+	title.StringAt(0x88, title.text);
+	objective.StringAt(0x88, "");
+	Check(read().option == Strings::Current().questNoObjective, "a symbol never invents a missing objective");
+	objective.StringAt(0x88, objective.text);
+	Strings::Select(Strings::Language::esES);
+	Check(read().option == objective.text + " círculo", "symbol vocabulary follows the selected text language");
+	Strings::Select(language);
+	NativeUi::Reset();
+}
+}
+
 int main() {
+	TombJournalSymbols();
 	using namespace D2RAccess;
 	Strings::Select(Strings::Language::esES);
 	Widget manager("Widget", "PanelManager"), focusManager("FocusManager", "FocusManager");
@@ -189,22 +242,27 @@ int main() {
 	auto cell = NativeUi::GridCell(grid.Address());
 	Check(cell.x == 2 && cell.y == 3, "inventory coordinates use actual native selection and dimensions");
 	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
-	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Empty, "grid lookup distinguishes a confirmed empty cell");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Empty, "grid lookup distinguishes a confirmed empty cell");
 	cellItem = 123;
-	auto focused = NativeUi::FocusedItem(grid.Address());
-	Check(focused.item == cellItem && Presence(focused) == NativeUi::ItemPresence::Occupied
-		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup returns the unit, passing the native owner widget and selected coordinates");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Occupied
+		&& queriedWidget == grid.Address() && queriedCell.x == 2 && queriedCell.y == 3, "grid lookup passes the native owner widget and selected coordinates");
+	Check(NativeUi::GridItem(grid.Address()) == 123, "the grid names the item on the selected cell");
+	Check(NativeUi::EquipmentItem(grid.Address()) == 0, "and a grid is not an equipment slot");
+	Check(NativeUi::GridSize(grid.Address()).x == 10 && NativeUi::GridSize(grid.Address()).y == 4, "the grid reports its size in cells");
+	Check(NativeUi::GridItemAt(grid.Address(), {9, 0}).known && queriedCell.x == 9 && queriedCell.y == 0, "any cell of the grid can be looked up for the census");
+	Check(!NativeUi::GridItemAt(grid.Address(), {10, 0}).known, "a cell outside the grid never reaches the item getter");
 	itemQueryFault = true;
-	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "faulted item lookup is unknown rather than empty");
 	itemQueryFault = false; grid.vtable[25] = 0;
-	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "missing item getter is not called");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "missing item getter is not called");
 	grid.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
 	grid.Put<uint8_t>(0x51, 0);
-	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "hidden inventory is not queried");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "hidden inventory is not queried");
 	grid.Put<uint8_t>(0x51, 1);
+	Check(NativeUi::GridItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment does not use the grid item getter");
 	grid.Put<int32_t>(0x544, 10);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "out-of-range grid selection is ignored");
-	Check(Presence(NativeUi::FocusedItem(grid.Address())) == NativeUi::ItemPresence::Unknown, "out-of-range selection never reaches the item getter");
+	Check(NativeUi::GridItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "out-of-range selection never reaches the item getter");
 	grid.Put<int32_t>(0x628, 10000);
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "corrupt inventory dimensions are bounded");
 	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");
@@ -213,6 +271,10 @@ int main() {
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
 	tabs.Put<int32_t>(0x544, 0);
 	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "tab activation index differs from the FocusableWidget hover index");
+	Check(NativeUi::FocusedTabText(tabs.Address()) == "Personal", "the highlighted tab is read from the hover index");
+	tabs.Put<int32_t>(0x544, 7);
+	Check(NativeUi::FocusedTabText(tabs.Address()).empty(), "a hover index with no label reads nothing");
+	tabs.Put<int32_t>(0x544, 0);
 	Widget tabPanel("AnyPanel", "TabPanel"), container("Widget", "InitiallyHidden");
 	tabPanel.Add(container); container.Add(tabs); container.Put<uint8_t>(0x51, 0);
 	Check(NativeUi::FindControls(tabPanel.Address(), UiText::Kind::Tabs) == std::vector<uintptr_t>{tabs.Address()}, "discovery includes tabs whose ancestors start hidden");
@@ -254,40 +316,21 @@ int main() {
 	slot.Put<int32_t>(0x5D8, 4);
 	slot.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
 	cellItem = 123;
-	focused = NativeUi::FocusedItem(slot.Address());
-	Check(focused.item == cellItem && queriedWidget == slot.Address() && queriedCell.x == -1,
-		"equipment query uses its own native owner and getter, and passes no cell");
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Occupied
+		&& queriedWidget == slot.Address(), "equipment query uses its own native owner and getter");
+	Check(NativeUi::EquipmentItem(slot.Address()) == 123, "an equipment slot names the item it holds");
 	cellItem = 0;
-	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Empty, "native equipment lookup confirms an empty slot");
 	itemQueryFault = true;
-	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup failure never announces an empty slot");
+	Check(NativeUi::EquipmentItem(slot.Address()) == 0, "and names no item");
 	itemQueryFault = false;
+	Check(NativeUi::EquipmentItemPresence(grid.Address()) == NativeUi::ItemPresence::Unknown, "equipment lookup excludes grid widgets");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 4, "equipment slot location uses the reflected body location member");
 	Check(NativeUi::EquipmentLocation(goldButton.Address()) == 0, "button memory is never interpreted as an equipment location");
 	slot.Put<uint8_t>(0x51, 0);
-	Check(Presence(NativeUi::FocusedItem(slot.Address())) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
+	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
-	// The belt shares that getter, numbering its slots by the selection's x.
-	Widget belt("BeltWidget", "belt");
-	belt.metadata.base = &itemBase;
-	belt.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
-	belt.Put<uint64_t>(0x544, 3);
-	cellItem = 123;
-	focused = NativeUi::FocusedItem(belt.Address());
-	Check(focused.known && focused.item == cellItem && focused.slot == 3
-		&& queriedWidget == belt.Address() && queriedCell.x == 3, "a belt slot returns the unit in the selected slot");
-	belt.Put<uint64_t>(0x544, 16);
-	Check(!NativeUi::FocusedItem(belt.Address()).known, "a selection past the last belt slot is never queried");
-	Check(!NativeUi::FocusedItem(goldButton.Address()).known, "a widget with no item cell is never queried");
-	focused = NativeUi::BeltItem(belt.Address(), 11);
-	Check(focused.known && focused.slot == 11 && focused.item == cellItem && queriedCell.x == 11
-		&& NativeUi::FocusSelection(belt.Address()) == 16,
-		"reading a reserve cell leaves the native belt selection untouched");
-	Check(!NativeUi::BeltItem(belt.Address(), -1).known && !NativeUi::BeltItem(belt.Address(), 16).known
-		&& !NativeUi::BeltItem(grid.Address(), 0).known, "belt queries reject invalid slots and other widget types");
-	itemQueryFault = true;
-	Check(!NativeUi::BeltItem(belt.Address(), 4).known, "a failed belt reserve read remains unknown rather than empty");
-	itemQueryFault = false;
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");
@@ -359,6 +402,19 @@ int main() {
 	};
 	const auto uncached = benchmark(false), scoped = benchmark(true);
 	std::printf("Busy UI snapshot (%d widgets): %.3f ms uncached, %.3f ms scoped\n", BenchmarkNodes + 1, uncached, scoped);
+	Widget rowList("ListWidget", "ListContainer"), rowContainer("Widget", "Container");
+	Widget shownRow("ListItemWidget", "ListItem0"), hiddenRow("ListItemWidget", "ListItem1");
+	rowContainer.Add(shownRow); rowContainer.Add(hiddenRow); hiddenRow.Put<uint8_t>(0x51, 0);
+	rowList.Put(0xD8, rowContainer.Address());
+	Check(NativeUi::ListRows(rowList.Address()) == std::vector<uintptr_t>{shownRow.Address(), hiddenRow.Address()},
+		"a list's rows are all of its container's children, shown or not");
+	Check(NativeUi::ListRows(rowContainer.Address()).empty(), "a widget with no row container has no rows");
+	Widget otherList("ListWidget", "ListContainer"), notContainer("Widget", "View");
+	notContainer.Add(shownRow);
+	otherList.Put(0xD8, notContainer.Address());
+	Check(NativeUi::ListRows(otherList.Address()).empty(), "only a widget the list named Container is read as its rows");
+	Check(NativeUi::DescribeList(rowList.Address()).find("2 children, first \"ListItem0\" visible=1") != std::string::npos,
+		"the log line names the container's children");
 	supported = false;
 	Check(NativeUi::Panels().empty() && NativeUi::Snapshot(panel.Address(), 0).nodes.empty(), "unverified game layout disables traversal");
 	NativeUi::Reset();

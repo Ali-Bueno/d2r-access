@@ -88,6 +88,7 @@ void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
 namespace D2RAccess::InputDirection { bool TakeLeftStickClick() { return false; } }
+namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }
 Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
@@ -131,9 +132,12 @@ size_t Containing(const std::vector<Room>& rooms, Radar::Position subtile) {
 namespace D2RAccess::NativeLevelAreas {
 bool Read(uintptr_t, std::vector<Area>& output) { output = actAreas; return !actAreas.empty(); }
 }
-namespace D2RAccess::NativeGroundItems { bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; } }
+namespace D2RAccess::NativeGroundItems {
+bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
+bool ReadLevel(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
+}
 namespace D2RAccess::NativeEntities {
-bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool) { return false; }
+bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool, bool) { return false; }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
 }
 namespace D2RAccess::ZoneTransitions {
@@ -141,7 +145,8 @@ std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::
 bool Crosses(const EntityRadar::Entity&) { return false; }
 bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
-namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; } }
+namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
+bool Recreated(const Entity&, const Entity&) { return false; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
 
@@ -163,7 +168,8 @@ int main() {
 	Event(Kind::LocalPlayerReady);
 	BeaconService::Tick(&context); // consume lifecycle revision before offering a target
 	const int lifecycleSilences = silences;
-	BeaconService::OfferPoint({10, 10}, "exit", 0, GetTickCount64());
+	EntityRadar::Entity exit{.id = 7, .kind = EntityRadar::Kind::Exit, .position = {10, 10}, .name = "exit"};
+	BeaconService::Offer(exit, 0, GetTickCount64());
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == 1, "locking plays its confirmation and arms guidance");
@@ -179,7 +185,8 @@ int main() {
 	Command("clear");
 	BeaconService::Tick(&context);
 	worldReadable = true;
-	BeaconService::OfferPoint({120, 100}, "far exit", 0, GetTickCount64());
+	EntityRadar::Entity farExit{.id = 8, .kind = EntityRadar::Kind::Exit, .position = {120, 100}, .name = "far exit"};
+	BeaconService::Offer(farExit, 0, GetTickCount64());
 	int before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
@@ -195,7 +202,8 @@ int main() {
 	Check(speech.back() == strings.navigationExploration, "the exploration command releases the lock and names the mode");
 	playerAt = {10, 10};
 	visitedRooms = {levelRooms[0]};
-	BeaconService::OfferPoint({70, 10}, "gate", 0, GetTickCount64());
+	EntityRadar::Entity gate{.id = 9, .kind = EntityRadar::Kind::Exit, .position = {70, 10}, .name = "gate"};
+	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
@@ -229,7 +237,7 @@ int main() {
 	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
 		"a target outside the visited rooms for the whole grace ends the known route");
 	chartedRooms = std::vector<NativeRooms::Room>{levelRooms[1]};
-	BeaconService::OfferPoint({70, 10}, "gate", 0, GetTickCount64());
+	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
@@ -292,6 +300,20 @@ int main() {
 	Check(speech.back().find("Amiga") != std::string::npos, "the known-route limit never ends following a player");
 	Command("clear");
 	BeaconService::Tick(&context);
+	Command("sounds-off");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.beaconSoundsOff && !BeaconService::Sounds(), "the sounds command names its switch");
+	BeaconService::Offer(ally, 0, GetTickCount64());
+	before = plays;
+	Command("lock");
+	BeaconService::Tick(&context);
+	Check(plays == before && speech.back().find("Amiga") != std::string::npos, "with its sounds off the beacon locks in speech alone");
+	Command("clear");
+	BeaconService::Tick(&context);
+	Check(plays == before && speech.back() == strings.beaconCleared, "and releases in speech alone");
+	Command("sounds-on");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.beaconSoundsOn && BeaconService::Sounds(), "the beacon's sounds can be turned back on");
 	Command("full");
 	BeaconService::Tick(&context);
 	Check(speech.back() == strings.navigationFullAssistance, "the full command names full assistance");
@@ -301,7 +323,7 @@ int main() {
 	const auto status = [] { Command("status"); BeaconService::Tick(&context); return speech.back(); };
 	Event(Kind::LevelChanged, 26);
 	BeaconService::Tick(&context);
-	BeaconService::OfferPoint({70, 10}, "cloister", 26, GetTickCount64());
+	BeaconService::Offer(EntityRadar::Entity{900, EntityRadar::Kind::Exit, {70, 10}, "cloister", 900}, 26, GetTickCount64());
 	Command("lock");
 	BeaconService::Tick(&context);
 	Event(Kind::LevelChanged, 7);
@@ -317,7 +339,7 @@ int main() {
 	Event(Kind::LevelChanged, 26);
 	BeaconService::Tick(&context);
 	Check(status().find(strings.beaconNothing) != std::string::npos, "a warp to an area far away ends the lock");
-	BeaconService::OfferPoint({70, 10}, "cloister", 26, GetTickCount64());
+	BeaconService::Offer(EntityRadar::Entity{900, EntityRadar::Kind::Exit, {70, 10}, "cloister", 900}, 26, GetTickCount64());
 	Command("lock");
 	BeaconService::Tick(&context);
 	Event(Kind::LevelChanged, 7);

@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "equipment_census.h"
 #include "input_direction.h"
+#include "keyboard_menu.h"
 #include "localization.h"
 #include "native_memory.h"
 #include "native_status.h"
@@ -27,7 +28,7 @@
 namespace D2RAccess::VitalsService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Status, Report };
+enum class Command { None, On, Off, Status, Report, Life, Mana };
 
 // The game's own HUD widgets: HUDPanelHD.json declares HealthBall and ManaBall
 // as AttributeBallWidgets, each carrying the ValueDisplay text box the game
@@ -61,7 +62,6 @@ Vitals::OrbAvailability g_orbAvailability;
 Vitals::Condition g_poison;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
-Vitals::Equipping g_equipping;
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
 
@@ -122,8 +122,9 @@ void HintOrbText(unsigned missing, bool force = false) {
 
 // Life and mana on demand. The automatic announcements only speak when a
 // step is crossed, so without a key there is no way to ask "where am I now";
-// this reads the same two orbs at the moment the key is pressed.
-void Report(const D2RL::PluginContext* context) {
+// this reads the same two orbs at the moment the key is pressed. Life or Mana
+// asks for that orb alone (the keyboard's Z and X), and nothing else with it.
+void Report(const D2RL::PluginContext* context, Command what = Command::Report) {
 	const auto& strings = Strings::Current();
 	const NativeMemory::ReadScope scope;
 	if (!NativeWidgets::IsAvailable() || !NativeWidgets::FindPanel(HudPanel)) {
@@ -134,6 +135,13 @@ void Report(const D2RL::PluginContext* context) {
 	}
 	const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
 	AsyncLog::InfoF(context, "[vitals] report life=%d mana=%d", life, mana);
+	if (what == Command::Life || what == Command::Mana) {
+		const bool wantsLife = what == Command::Life;
+		const int percent = wantsLife ? life : mana;
+		if (percent >= 0) ScreenReader::Speak(FormattedPercent(wantsLife ? strings.vitalsLife : strings.vitalsMana, percent), true);
+		else HintOrbText(wantsLife ? 1U : 2U, true);
+		return;
+	}
 	const unsigned missing = (life < 0 ? 1U : 0U) | (mana < 0 ? 2U : 0U);
 	std::string text;
 	if (life >= 0) text = FormattedPercent(strings.vitalsLife, life);
@@ -192,21 +200,11 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	std::vector<Vitals::Breakage::Item> worn;
 	switch (EquipmentCensus::Read(context, worn)) {
 	case EquipmentCensus::Result::Unavailable: return;
-	case EquipmentCensus::Result::NoPlayer: g_breakage.Reset(); g_equipping.Reset(); g_worn.clear(); return;
+	case EquipmentCensus::Result::NoPlayer: g_breakage.Reset(); g_worn.clear(); return;
 	case EquipmentCensus::Result::Read: break;
 	}
 	LogWorn(context, worn);
 	const auto& labels = Strings::Current().equipmentSlots;
-	for (const auto& item : g_equipping.Sweep(worn)) {
-		const std::string name = EquipmentCensus::Name(item);
-		if (name.empty()) continue;
-		char phrase[200]{};
-		if (item.bodyLocation > 0 && static_cast<size_t>(item.bodyLocation) < labels.size())
-			std::snprintf(phrase, sizeof(phrase), Strings::Current().itemEquippedIn, labels[item.bodyLocation], name.c_str());
-		else std::snprintf(phrase, sizeof(phrase), Strings::Current().itemEquipped, name.c_str());
-		AsyncLog::InfoF(context, "[equip] equipped id=%u at body location %d", item.id, item.bodyLocation);
-		ScreenReader::Speak(phrase, false);
-	}
 	for (const int location : g_breakage.Sweep(worn)) {
 		const char* slot = location > 0 && static_cast<size_t>(location) < labels.size()
 			? labels[location] : Strings::Current().equipment;
@@ -217,12 +215,14 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	}
 }
 
-auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept
+auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void* userData) noexcept
 	-> D2RL::Input::ActionResult {
 	if (event == nullptr || event->kind != D2RL::Input::ActionEventKind::Pressed) {
 		return D2RL::Input::ActionResult::Ignored;
 	}
-	g_command = Command::Report;
+	// A letter typed into a box of text the keyboard's cursor is on is the box's.
+	if (KeyboardMenu::Typing()) return D2RL::Input::ActionResult::Ignored;
+	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	return D2RL::Input::ActionResult::Handled;
 }
 
@@ -250,13 +250,25 @@ bool Register(const D2RL::PluginContext* context) {
 	(void)context->RegisterConsoleCommand("access-vitals", Console, "Life, mana and broken equipment announcements: on|off|status|report.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
-			.logicalId = "vitals-report", .displayName = "Say life and mana", .category = "Accessibility",
-			.defaultPrimary = {D2RL::Input::Key::R, D2RL::Input::Modifier::None}, .callback = OnAction,
-			.userData = nullptr};
-		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) {
-			g_actions.push_back(handle);
+		using D2RL::Input::Key;
+		struct Entry { const char* id; const char* label; Key key; Command command; };
+		// Z and X are the keyboard's own: each orb by itself, and no key for
+		// both (the user, 2026-09-27). R is left to the game.
+		for (const Entry& entry : {
+			Entry{"vitals-life", "Say life", Key::Z, Command::Life},
+			Entry{"vitals-mana", "Say mana", Key::X, Command::Mana}}) {
+			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
+				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
+				.defaultPrimary = {entry.key, D2RL::Input::Modifier::None}, .callback = OnAction,
+				.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(entry.command))};
+			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
+			// Both keys are the game's own as well (Gordan.key: Z is its action 43); a refusal must show.
+			const auto result = g_input->registerAction(context, &action, &handle);
+			if (result == D2RL::Input::Result::Success) {
+				g_actions.push_back(handle);
+			} else {
+				AsyncLog::WarnF(context, "[vitals] %s was refused by the loader: result %u", entry.id, static_cast<unsigned>(result));
+			}
 		}
 	}
 	if (context->QueryService(&g_lifecycle) == D2RL::ServiceQueryResult::Success
@@ -296,7 +308,6 @@ void Reset() {
 	g_poison.Reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
-	g_equipping.Reset();
 	g_worn.clear();
 	g_hintedMask = 0;
 	g_lastMercSource = {};
@@ -306,28 +317,22 @@ void Reset() {
 }
 
 namespace {
-// BACK on the controller, while no menu is up. The user asked for a pad
-// button for this and reports BACK does nothing in play, so it is free. The
-// menu gate is the one c4893cf established: the game opens UISwitcher exactly
-// when the menu tree is up, so RadarUi::Playing means the player is in the
-// world and BACK belongs to us. Nothing is taken from the game -- the button
-// still reaches it exactly as before; this only listens.
+// BACK+X on the controller, while no menu is up (the user, 2026-09-21: BACK
+// alone became the modifier, "back+X: speak life+mana as it does now"). The
+// user reports BACK does nothing in play, so holding it costs the game
+// nothing; the X press is kept from the game during play by pad_filter.h.
 bool BackRequested() {
-	DWORD process = 0;
-	GetWindowThreadProcessId(GetForegroundWindow(), &process);
-	if (RadarUi::Inspect(process == GetCurrentProcessId()) != RadarUi::State::Playing) {
-		// Still claim the press, so one made in a menu cannot be heard later.
-		(void)InputDirection::TakeBackButton();
-		return false;
-	}
-	return InputDirection::TakeBackButton();
+	// Always taken, so a press made in a menu cannot be heard later.
+	const bool pressed = InputDirection::TakeBackWith(InputDirection::FaceButton::X);
+	return pressed && RadarUi::InPlay();
 }
 }
 
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
-	if (command == Command::Report || BackRequested()) Report(context);
+	if (command == Command::Life || command == Command::Mana) Report(context, command);
+	else if (command == Command::Report || BackRequested()) Report(context);
 	if (command == Command::On || command == Command::Off) {
 		g_enabled = command == Command::On;
 		Reset();
@@ -387,4 +392,9 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 }
 
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 }

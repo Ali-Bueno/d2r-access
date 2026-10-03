@@ -19,7 +19,9 @@ struct State {
 };
 
 enum class Event {
-	PartnerItems, PartnerGold, PartnerAccepted, PartnerWithdrew, WeAccepted, WeWithdrew,
+	// This player accepting is their own press, which the game shows; only the
+	// acceptance the game withdraws when an offer changes is told (WeWithdrew).
+	PartnerItems, PartnerGold, PartnerAccepted, PartnerWithdrew, WeWithdrew,
 	Completed, Cancelled, Ended // Ended: no completion signal to tell the two apart
 };
 

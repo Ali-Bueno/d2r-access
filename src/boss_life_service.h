@@ -7,4 +7,6 @@ namespace D2RAccess::BossLifeService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context);
 void Unregister();
+bool Enabled();
+void SetEnabled(bool on);
 }

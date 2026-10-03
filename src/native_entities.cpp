@@ -10,8 +10,10 @@
 #include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "cairn_stones.h"
+#include "tomb_symbols.h"
 #include "native_memory.h"
 #include "localization.h"
+#include "monster_plate.h"
 #include "speech_strings.h"
 #include "ui_text.h"
 #include "async_log.h"
@@ -33,6 +35,10 @@ using GroundItemLayout::UnitType, GroundItemLayout::UnitClass, GroundItemLayout:
 	GroundItemLayout::MaxTableRows, GroundItemLayout::PositionScale;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
+// The game's enchantment names and champion kinds, once PlateChecks has passed.
+static_assert(std::tuple_size_v<decltype(EntityRadar::EnemyTraits::enchantments)> == MonsterPlate::Slots);
+std::optional<MonsterPlate::Tables> g_plate;
+bool g_immunities = false; // ImmunityChecks passed: the reader may call UNIT_GetStat
 bool g_corpsesSupported = false;
 bool g_rosterCorpsesSupported = false;
 bool g_playersSupported = false;
@@ -130,7 +136,30 @@ uintptr_t RoomLevel(uintptr_t room) {
 	if (!Peek(room + RoomExtended, extended) || !extended || !Peek(extended + ExtendedLevel, level)) return 0;
 	return level;
 }
-bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
+int Stat(uintptr_t unit, int stat) noexcept {
+	__try { return reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GetStat)(unit, stat, 0); }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
+}
+// The player's pierce of each immunity, read once for all the monsters a read finds.
+using Pierce = std::array<int, MonsterPlate::Immunities.size()>;
+std::optional<Pierce> PlayerPierce(uintptr_t player) {
+	if (!g_immunities) return std::nullopt;
+	Pierce pierce{};
+	for (size_t i = 0; i < pierce.size(); ++i) pierce[i] = Stat(player, MonsterPlate::Immunities[i].pierce);
+	return pierce;
+}
+// A champion's, unique's or super unique's name from its string ids, as the game
+// composes it before caching it; empty for an ordinary monster.
+std::string ComposedName(uintptr_t data) {
+	std::array<uint16_t, MonNameParts> ids{};
+	if (!NativeMemory::Copy(data + MonNameIds, ids.data(), sizeof(ids)) || ids[0] == NoText) return {};
+	const auto format = Localization::Text(ids[0]);
+	if (ids[1] == NoText) return MonsterPlate::Form(format);
+	std::vector<std::string> parts;
+	for (size_t i = 1; i < ids.size() && ids[i] != NoText; ++i) parts.push_back(Localization::Text(ids[i]));
+	return MonsterPlate::Compose(format, parts);
+}
+bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
 	uintptr_t data = 0;
 	if (!Peek(unit + UnitMode, mode) || mode == MonsterDeath || mode == MonsterDead
@@ -145,11 +174,23 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// non-interact monster. Hidden helper units ("an evil force") fail it.
 	const bool hostile = align == AlignHostile && !(flagsA & FlagNpc);
 	if (hostile && !(flagsA & FlagKillable)) return false;
+	MonsterPlate::Plate plate;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
 	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
+	if (hostile && g_plate && Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, entity.enemy.flags)
+		&& NativeMemory::Copy(data + MonEnchantments, entity.enemy.enchantments.data(), entity.enemy.enchantments.size()))
+		plate = MonsterPlate::Read(entity.enemy.flags, entity.enemy.enchantments, flagsA, *g_plate);
+	if (hostile && pierce && (classId < MonsterPlate::UberFirst || classId > MonsterPlate::UberLast)) {
+		std::array<int, MonsterPlate::Immunities.size()> resist{};
+		for (size_t i = 0; i < resist.size(); ++i) resist[i] = Stat(unit, MonsterPlate::Immunities[i].resist);
+		plate.immunities = MonsterPlate::Immune(resist, *pierce);
+	}
 	if (hostile) {
 		uint8_t bossFlags = 0, rangedFlags = 0;
-		if (Peek(row + MonFlagsBoss, bossFlags)) entity.enemy.boss = entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+		if (Peek(row + MonFlagsBoss, bossFlags)) {
+			entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
 		// *hcIdx values of the FallenShaman and FetishShaman AI rows in the game's monstats.txt.
 		constexpr std::array<uint32_t, 16> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
@@ -164,7 +205,17 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRad
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
 	if (Peek(unit + UnitData, data) && data && Peek(data + MonCachedName, cached)) entity.name = UiText::Clean(CString(cached, MaxNameBytes));
+	// Built only once the game has shown it (hover, health plate): before that, and
+	// always for a super unique, it is composed here from the same string ids.
+	if (entity.name.empty() && data) entity.name = UiText::Clean(ComposedName(data));
+	const bool named = !entity.name.empty();
 	if (entity.name.empty()) entity.name = UiText::Clean(Localization::Text(nameId));
+	if (plate.rank != MonsterPlate::Rank::Normal || !plate.immunities.empty()) {
+		const auto& strings = Strings::Current();
+		entity.enemy.plate = UiText::Clean(MonsterPlate::Spoken(plate, entity.name, named, {
+			[](uint32_t id) { return Localization::Text(id); }, [](std::string_view key) { return Localization::Text(key); },
+			strings.monsterUnique, strings.listSeparator}));
+	}
 	if (entity.name.empty()) return false;
 	// Rows the game leaves unnamed all resolve to the same placeholder label
 	// ("an evil force"): decoration and helper units, never worth announcing.
@@ -392,7 +443,10 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	entity.weaponRack = entity.container && Generated::WeaponRackObject(classId);
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
+	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
+		entity.doorSpan = std::max(width, height);
 	entity.questObject = Generated::QuestItemObject(classId);
+	if (operate == TeleportPadOperateFn) entity.padClass = static_cast<uint16_t>(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
 		entity.questObject = mode == ObjectNeutral;
@@ -478,17 +532,23 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		entity.destinationLevel = levelId;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+	TombSymbols::Mark(entity, Strings::Current());
 	return true;
 }
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = false; return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_immunities = false; g_plate.reset(); return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
+	g_plate.reset();
+	if (MonsterPlate::Tables tables; LayoutCheck::Verify(context, context->exeBase, PlateChecks, "plate", "monster ranks and enchantments not spoken")
+		&& NativeMemory::Copy(g_base + EnchantmentNames, tables.enchantments.data(), sizeof(tables.enchantments))
+		&& NativeMemory::Copy(g_base + ChampionKinds, tables.champions.data(), sizeof(tables.champions))) g_plate = tables;
+	g_immunities = LayoutCheck::Verify(context, context->exeBase, ImmunityChecks, "immunities", "monster immunities not spoken");
 	AsyncLog::Info(context, "[scan] Verified native monster/object/exit reader.");
 	g_corpsesSupported = LayoutCheck::Verify(context, context->exeBase, CorpseChecks, "corpse", "player corpse target disabled");
 	if (g_corpsesSupported) AsyncLog::Info(context, "[scan] Verified player corpse ownership reader.");
@@ -504,7 +564,6 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (g_socketsSupported) AsyncLog::Info(context, "[scan] Verified socketed item reader.");
 	return true;
 }
-
 std::optional<uint32_t> FilledSockets(uintptr_t unit) {
 	const NativeMemory::ReadScope scope;
 	uint32_t type = 0, id = 0, magic = 0, ownerId = 0, count = 0;
@@ -517,7 +576,7 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit) {
 		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
 	return count;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool townNpcs) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -549,29 +608,49 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		if (level && RoomLevel(adjacent[i]) != level) continue;
 		rooms.push_back(adjacent[i]);
 	}
+	// The scanner's read goes on through every loaded room of this level, as the
+	// walk for other players does. A room past the ring that cannot be read is
+	// passed over; it never fails the ring's read.
+	const size_t ring = rooms.size();
+	for (size_t i = 0; wholeLevel && i < rooms.size(); ++i) {
+		uintptr_t list = 0;
+		uint32_t listCount = 0;
+		std::array<uintptr_t, MaxRooms> next{};
+		if (!Peek(rooms[i] + RoomNeighbors, list) || !Peek(rooms[i] + RoomNeighborCount, listCount) || listCount > MaxRooms
+			|| (listCount && !NativeMemory::Copy(list, next.data(), listCount * sizeof(uintptr_t)))) continue;
+		for (size_t n = 0; n < listCount && rooms.size() < MaxLoadedRooms; ++n)
+			if (next[n] && (!level || RoomLevel(next[n]) == level)
+				&& std::find(rooms.begin(), rooms.end(), next[n]) == rooms.end()) rooms.push_back(next[n]);
+	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
+	const auto pierce = PlayerPierce(player);
+	std::vector<std::pair<size_t, uint32_t>> liveNpcs;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
-	std::vector<std::pair<size_t, uint32_t>> liveNpcs; // entity index, MonStats row
-	for (const auto candidateRoom : rooms) {
+	for (size_t r = 0; r < rooms.size(); ++r) {
+		const uintptr_t candidateRoom = rooms[r];
+		const bool past = r >= ring;
 		uintptr_t unit = 0;
-		if (!Peek(candidateRoom + RoomFirstUnit, unit)) return false;
+		if (!Peek(candidateRoom + RoomFirstUnit, unit)) { if (past) continue; return false; }
 		while (unit) {
-			if (visited.size() >= MaxUnits || !visited.insert(unit).second) return false;
+			if (visited.size() >= MaxUnits || !visited.insert(unit).second) { if (past) break; return false; }
 			uint32_t unitType = 0;
-			if (!Peek(unit + UnitType, unitType)) return false;
+			if (!Peek(unit + UnitType, unitType)) { if (past) break; return false; }
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
-				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, entity))
+				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
-				if (uint32_t classId = 0; townNpcs && entity.kind == EntityRadar::Kind::Npc && Peek(unit + UnitClass, classId))
-					liveNpcs.emplace_back(entities.size(), classId);
+				if (unitType == MonsterType && entity.kind == EntityRadar::Kind::Npc) {
+					uint32_t classId = 0;
+					if (Peek(unit + UnitClass, classId)) liveNpcs.push_back({entities.size(), classId});
+				}
+				entity.unit = static_cast<uint8_t>(unitType);
 				entities.push_back(std::move(entity));
 			}
-			if (!Peek(unit + UnitNext, unit)) return false;
+			if (!Peek(unit + UnitNext, unit)) { if (past) break; return false; }
 		}
 	}
 	// Permanent level transitions may outlive their loaded warp units. Read
@@ -583,6 +662,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
 	}
@@ -608,19 +688,19 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
-	if (townNpcs && level) AddTownNpcs(room, level, rooms, tables, liveNpcs, entities);
+	if (townNpcs && levelStruct) AddTownNpcs(room, levelStruct, rooms, tables, liveNpcs, entities);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool townNpcs) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	uintptr_t roster = 0;
 	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, townNpcs);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, wholeLevel, townNpcs);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

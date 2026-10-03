@@ -2,7 +2,8 @@
 
 A [D2RLoader](https://d2rloader.net) plugin that makes Diablo II: Resurrected playable with a
 screen reader (NVDA, JAWS, SAPI…) through [PRISM](https://github.com/ethindp/prism). Built for
-blind players using a controller; keyboard and mouse are planned.
+blind players. This checkout supports keyboard gameplay and physical controllers; see
+[keyboard play](docs/keyboard-play.md) and the [architecture guide](docs/architecture.md).
 
 ## What works today
 
@@ -151,8 +152,8 @@ which also lists what every stock controller button does.
 
 An experimental **navigation radar** now reads the collision grids of loaded
 game rooms. It synthesizes four directional cues: a bright `tin` when a passage
-leads somewhere (another chamber of a dungeon, or a level exit), a soft breath
-for floor that leads nowhere new (rising upward, falling downward), a dull `tock` for a nearby wall and two
+leads somewhere (another chamber of a dungeon, or a level exit), a soft, lower-pitched breath
+for floor that leads nowhere new, a dull `tock` for a nearby wall and two
 knocks for a closed door ([readings](docs/radar-readings.md)),
 using fixed **up / left / right / down** directions that match the left stick;
 down has a lower pitch. `[radar] diagonals = true` or `access-radar diagonal`
@@ -357,7 +358,10 @@ is unloaded. It observes the normal update without opening the journal or
 changing quest state. Unmatched or ambiguous updates retain the generic alert.
 Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
-See [quest-log implementation and remaining work](docs/quests.md).
+The Seven Tombs also reads the visible true-tomb symbol as a plain shape name.
+Tomb entrances include their individual markings, for example "To Tal Rasha's Tomb: circle".
+See [quest-log implementation and remaining work](docs/quests.md) and
+[Tal Rasha symbol evidence](docs/tal-rasha-symbols.md).
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
@@ -365,16 +369,6 @@ stairs and portals by their own name. **Ctrl+V** reviews them one at a time, nea
 getting there (straight, around or no route). A short left-stick click, or **Ctrl+B** right after,
 guides to the one just reviewed. **Ctrl+M** toggles the feature.
 See [room exits](docs/rooms.md).
-
-**Named places (built; live validation pending):** walking into a named part of the map speaks it,
-without interrupting: a named map piece (*bridge*, *Fallen camp*, *graveyard*), an interior
-(*tavern*, *palace entrance*, *hut*, *temple*) and the landmark within a few steps (*bar*,
-*kitchen*, *fireplace*, *stairs*, *dock*, *stalls*, *throne*). Everything comes from the game's own
-HD map layouts; the landmark is the nearest one by walking distance, so it never names a room
-through its wall. In maze levels it also reads corridors from the walkable grid: *corridor*,
-*dead-end corridor*, *bend*, *junction*, and what a corridor leads to (*towards* the stairs, the
-throne). **Ctrl+U** toggles it; `access-places where` speaks the current place.
-See [named places](docs/places.md).
 
 **Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** speaks
 the level name, where you stand in it (`left edge`, `centre`…) and,
@@ -394,36 +388,20 @@ in one compact archive, limited to 4 MiB, with separate records per map seed and
 Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
 test` auditions the marked cues. See [exploration](docs/exploration.md).
 
-### NPC and enemy sounds
+### NPC and priority enemy sounds
 
-Soft synthesized pulses locate the nearest NPC and up to three enemies: the
-nearest boss/elite, resurrecting shaman and ordinary ranged enemy, then the
-nearest other enemies in the streams left, each heard on its own (as Diablo 1's
-diablo-access plays its three nearest monsters, so a pack's spread is audible). NPCs use a light wooden tap; priority enemies a low, resonant
-metallic swoop; ordinary enemies a short rough growl. Sounds follow the radar's
-fixed screen directions. A single target repeats about every 0.2 seconds nearby
-or 0.5 seconds at maximum range. Dialogue and menu/focus gating suspend the sounds.
-
-**Attack reach.** A bright rising two-note ping, placed toward the enemy, plays
-when an enemy in sight comes within reach of your attacks, once until every
-enemy is out of reach again. The reach follows the skills bound to the controller
-bars and the weapon in hand (bow or crossbow, ranged skills, melee skills,
-damaging spells), read from the game's own skill and weapon tables; ranged
-reaches as far as the enemy sounds, melee is contact plus the weapon's
-`rangeadder`. `attack-melee` / `attack-ranged` fix it by hand, `attack-auto`
-returns to the automatic choice, and `status` says the current reach.
-
-The monster health plate names a monster only once it is within that reach
-(bosses and elites from first sight), without interrupting other speech, and a
-name the auto-target keeps trading inside a pack is not repeated until it has
-been off the plate for ten seconds.
+Soft synthesized pulses locate the nearest NPC and up to two priority enemy
+types: bosses/elites, resurrecting shamans, then ordinary ranged enemies.
+NPCs use a light wooden tap; enemies use a low, resonant metallic swoop with a
+little air texture. Sounds follow the radar's fixed screen directions. A single
+target repeats about every 0.2 seconds nearby or 0.5 seconds at maximum range. Ordinary
+melee crowds remain silent. Dialogue and menu/focus gating suspend the sounds.
 
 Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
-`enemy-off`, `ranged-off`, `ordinary-off` and `reach-off` switches (and matching
-`*-on`). Persistent range, volume, switches and the attack reach live under
-`[entity_cues]` in the plugin TOML. This is independent of the existing NPC
-speech toggle. See [entity cue behavior and controls](docs/entity-cues.md) and
-[attack reach](docs/attack-reach.md).
+`enemy-off` and `ranged-off` switches (and matching `*-on`). Persistent range,
+volume and switches live under `[entity_cues]` in the plugin TOML. This is
+independent of the existing NPC speech toggle. Listening validation is pending;
+see [entity cue behavior and controls](docs/entity-cues.md).
 
 ### Character panel
 
@@ -467,17 +445,6 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
-
-### Boss life
-
-A boss's life is said as it falls, the way your own is: `Andariel, 74 por
-ciento` when it crosses 75, 50, then every 10 down to 10, then every point
-(interrupting at 10 and below), and `0` when it dies. It covers act and quest
-bosses and superuniques (Rakanishu, Blood Raven, Andariel, Mephisto, Diablo...),
-using the fill of the game's own health plate. The first sight is only a
-baseline, so nothing is said until the fight starts. `access-boss-life
-on|off|status`; `[boss_life] enabled` in the plugin TOML. See
-[boss life](docs/boss-life.md).
 ### Weapon swap, stash gold and trading
 
 A weapon swap (R3, W or the inventory's I/II tabs) names the set and the weapons
@@ -603,14 +570,6 @@ build\casc-extract\casc_extract.exe extract "<game folder>" game-data "global\ui
 python tools\layout_index.py
 python tools\gen_panel_titles.py
 python tools\gen_panel_widgets.py
-```
-
-Named places come from the HD map layouts:
-
-```powershell
-build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "hd\env\preset\"
-build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "\pf_"
-python tools\gen_places.py --hd-root <scratch>
 ```
 
 ## Layout

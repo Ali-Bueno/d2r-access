@@ -1,4 +1,5 @@
 #include "character_stats_reader.h"
+#include "control_hints.h"
 #include "modal_reader.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -24,13 +25,15 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 
 namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
 namespace D2RAccess::NativeUi {
-Focus CurrentFocus() { return {}; } // these panels open with nothing focused
+Focus GameFocus() { return {}; } // these panels open with nothing focused
 UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return tree; }
 }
 namespace D2RAccess::NativeWidgets { uintptr_t FindPanel(std::string_view) { return Panel; } }
 namespace D2RAccess::CharacterStatsReader { bool Owns(std::string_view panel) { return panel == "CharacterStatsPanel"; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); } }
 namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+bool autoDetail = false;
+namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return true; } }
 
 int main() {
 	using UiText::Kind;
@@ -69,6 +72,22 @@ int main() {
 	active = "CharacterStatsPanel";
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2, "the character panel is left to its own reader");
+
+	// Button legends are control hints: held for right stick down, and spoken
+	// unasked only last, with autodetail and control tooltips on.
+	active = "ConfirmationModal";
+	tree = {};
+	Node(-1, Kind::Other, "ConfirmationModal");
+	Node(0, Kind::Text, "Prompt", "Leave the game?");
+	Node(0, Kind::Legend, "ConfirmLegend", "A: Confirm");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 3 && speech.back().text == "Leave the game?", "with autodetail off the prompt is read without its buttons");
+	Check(ControlHints::Current() == "A: Confirm", "and the buttons wait for right stick down");
+	autoDetail = true;
+	active = "DeleteCharacterModal";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 5 && speech[3].text == "Leave the game?" && speech[4].text == "A: Confirm" && !speech[4].interrupt,
+		"with autodetail and control tooltips on the buttons follow the prompt, last and queued");
 	for (const auto kind : {Kind::InventoryGrid, Kind::InventorySlot, Kind::InventoryItem}) {
 		ModalReader::Reset(); active = "UncataloguedInventoryPanel"; tree = {};
 		Node(-1, Kind::Other, active);
@@ -78,7 +97,7 @@ int main() {
 		Node(0, Kind::Button, "gold_button", "Drop Gold");
 		Node(0, Kind::Text, "HotkeyLabel0", "\xEE\x80\x83");
 		ModalReader::Tick(nullptr);
-		Check(speech.size() == 2, "a transient focusless inventory never narrates its unrelated labels or actions");
+		Check(speech.size() == 5, "a transient focusless inventory never narrates its unrelated labels or actions");
 	}
 	active = "DeleteCharacterModal"; tree = {};
 	Node(-1, Kind::Other, active);
@@ -86,7 +105,7 @@ int main() {
 	Node(0, Kind::Legend, "GlyphOnly", "\xEE\x80\x83");
 	Node(0, Kind::Legend, "Confirm", "\xEE\x80\x81 Confirm");
 	ModalReader::Tick(nullptr);
-	Check(speech.size() == 3 && speech.back().text == "Delete this character?, Confirm",
-		"modal prompts retain their words while controller font glyphs are stripped");
+	Check(speech.size() == 7 && speech[5].text == "Delete this character?" && speech[6].text == "Confirm"
+		&& ControlHints::Current() == "Confirm", "modal prompts retain their words while controller font glyphs are stripped");
 	Passed();
 }

@@ -8,11 +8,15 @@
 #include <string>
 #include <vector>
 
-// The ways out of where the player stands, nearest first, reviewed one at a
-// time on demand: label, distance, clock bearing and the beacon's verdict on
-// getting there. Ported from grimdark's exit cycling, which reads
-// "room 190, 5 away, 4 o'clock, 1 of 3". Engine-free, so it is unit-tested
-// without the game. `docs/rooms.md`
+// The ways out of the dungeon room the player stands in, found by direction:
+// the exit finder, a right-stick mode (the user, 2026-09-21: "when on, it would
+// take priority and the right stick when pressed in a direction would announce
+// if there is an exit relative to that direction"). A room's plain passages are
+// gaps in its walls, read from the collision map, not game units, so the entity
+// scan has nothing to name for them. Built on upstream's exit review
+// (origin/main exit_review.*); spoken the way the scan speaks, the name and the
+// distance in steps, and never a position in the list (CRITICAL RULE 5).
+// Engine-free, so it is unit-tested without the game.
 namespace D2RAccess::ExitReview {
 using Radar::Position;
 
@@ -22,30 +26,30 @@ struct Item {
 	std::string label;            // the passage word, or the level exit's own name
 	Position point{};             // the opening's centre, or the exit's own position
 	double distance = 0;          // straight line to it, in collision subtiles
-	int hour = 12;                // clock bearing on screen; 12 is screen up
-	bool named = false;           // a real unit the beacon can re-locate by itself
+	bool named = false;           // a real unit guidance can re-locate by itself
 	EntityRadar::Entity entity{}; // set when `named`
-	bool unexplored = false;      // never taken: spoken with the unexplored tag, listed first
+	bool unexplored = false;      // never taken: spoken with the unexplored tag
 };
 // Whether a level exit leads somewhere never seen; the caller owns the memory.
 using UnexploredExit = bool (*)(const EntityRadar::Entity&);
 
-// Clock bearing of `target` seen from `player`, in the screen frame: 12 is
-// screen up, 3 screen right. Over the same isometric projection as the rest.
-int ClockHour(Position player, Position target);
-
-// Every way out as one list, the unexplored ones first and nearest first
-// within each half: the room's plain openings under the passage word, the
-// level exits under their own names.
+// Every way out as one list, nearest first: the room's plain openings under
+// the passage word, the level exits under their own names.
 std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& openings,
 	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings,
 	UnexploredExit unexploredExit = nullptr);
 
-// Cycles the list nearest-first, continuing from the item last reviewed.
+// The ways out on one screen side, nearest first: the quarter of the plane
+// centred on that side's screen axis.
+std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction);
+
+// Cycles a list nearest-first, continuing from the item named last: the first
+// push is the nearest, the next the second nearest, and round again, with no
+// timer. The caller resets it when the side or the room changes.
 class Cycle {
 public:
-	// The next item's index, or NoItem when there is nothing to review. Starts
-	// at the nearest whenever the item last reviewed is no longer in the list.
+	// The next item's index, or NoItem when there is nothing on that side.
+	// Starts at the nearest whenever the item named last is no longer listed.
 	size_t Next(const std::vector<Item>& items);
 	void Reset();
 private:
@@ -53,7 +57,8 @@ private:
 	Position last_{};
 };
 
-// One spoken line; `reach` is the beacon's word, or null when it proved nothing.
-std::string Describe(const Item& item, size_t index, size_t count, const char* reach,
-	const EntityRadar::Settings& scan, const Strings::Table& strings);
+// One spoken line, as the scan says it: "passage, 12 steps".
+std::string Describe(const Item& item, const EntityRadar::Settings& scan, const Strings::Table& strings);
+// Nothing on that side, as the scan says it: "Nothing to the left".
+std::string Nothing(Radar::Direction direction, const Strings::Table& strings);
 }

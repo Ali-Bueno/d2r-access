@@ -1,10 +1,10 @@
 #pragma once
 #include "attack_reach.h"
+#include <vector>
 #include <D2RLPlugin/api.h>
 #include <array>
 #include <optional>
 #include <string>
-#include <vector>
 
 // The controller skill bindings of D2R 3.3.93787, read-only. See docs/skill-bar.md.
 namespace D2RAccess::NativeSkillBar {
@@ -18,14 +18,12 @@ struct Binding { bool bound = false; int skill = -1; std::string name; };
 // game's own, "" when its table row cannot be read. UI thread only.
 std::optional<std::array<Binding, Buttons>> AlternateBar();
 
-// The Range and own-damage columns of every skill bound to either bar of the
-// current weapon set, for the attack reach. UI thread only.
-std::optional<std::vector<AttackReach::Skill>> BoundSkills();
-
-// The name of the player's class skill at a skill-tree page, row and column
-// (skilldesc.txt SkillPage/SkillRow/SkillColumn, 1-based); "" when unknown. UI thread only.
-std::string ClassSkillName(int page, int row, int column);
-
 // The game's condition for drawing the LT bar on the HUD (0x2399F0).
 bool BackBarShown() noexcept;
+
+// A skill's name in the game's language, by skill id; "" when its table row
+// cannot be read or it has no description. UI thread only.
+std::string SkillName(int skill);
+std::optional<std::vector<AttackReach::Skill>> BoundSkills();
+std::string ClassSkillName(int page, int row, int column);
 }

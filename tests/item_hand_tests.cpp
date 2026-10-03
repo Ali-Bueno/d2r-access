@@ -8,9 +8,18 @@ int main() {
 	const Under sword{Sword, 2, 0};
 	Check(Resolve(Gem, 0, sword, {Sword, 2, 1}, true, false) == Outcome::Socketed,
 		"a gem that leaves the hand onto a socketed sword that stays put was socketed");
-	// Monastery, 2026-09-28: the SDK read 0 filled sockets on a sword whose one socket held a topaz.
-	Check(Resolve(Gem, 0, sword, sword, true, false) == Outcome::Socketed,
-		"a socketing is recognised without the filled-socket count changing");
+	Check(Resolve(Gem, 0, sword, sword, true, false) == Outcome::Placed,
+		"an unchanged filled count cannot confirm a socketing");
+	Check(Resolve(Gem, 0, {Sword, 2, UnknownFilled}, {Sword, 2, 1}, true, false) == Outcome::Placed,
+		"an unknown original filled count cannot confirm a socketing");
+	Check(Resolve(Gem, 0, sword, {Sword, 2, UnknownFilled}, true, false) == Outcome::Placed,
+		"an unknown resulting filled count cannot confirm a socketing");
+	Check(Resolve(Gem, 0, sword, {Sword, 2, 3}, true, false) == Outcome::Placed,
+		"an invalid filled count cannot confirm a socketing");
+	Check(Resolve(Gem, 0, {Sword, 2, 2}, {Sword, 2, 2}, true, false) == Outcome::Placed,
+		"a full item cannot claim to accept another gem");
+	Check(Resolve(Gem, 0, sword, {Sword, 3, 1}, true, false) == Outcome::Placed,
+		"a changed socket total does not confirm the same target state");
 	Check(Resolve(Gem, 0, {Sword}, {Sword}, true, false) == Outcome::Placed,
 		"an item with no sockets never claims to have taken a gem");
 	Check(Resolve(Gem, 0, {Tome, 0, 0, 5}, {Tome, 0, 0, 6}, false, false) == Outcome::Merged,

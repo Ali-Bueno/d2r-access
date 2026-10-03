@@ -1,4 +1,4 @@
-# NPC and enemy sounds
+# NPC and priority enemy sounds
 
 Enabled by default. These short synthesized pulses use the same fixed screen
 axes as the radar: stereo gives left/right, and a lower pitch marks screen-down.
@@ -10,29 +10,13 @@ runtime dependencies are needed.
 | Friendly NPC | Light wooden tap | Nearest visible NPC |
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
 | Resurrecting shaman | Mid-register resonant swoop | Next enemy priority |
-| Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
-| Any other enemy | Short rough growl | The nearest three, in the streams left; optional |
+| Ordinary ranged enemy | Brighter resonant swoop | Lowest enemy priority; optional |
 
-There are at most three enemy streams plus the NPC. Each priority class has one
-representative, so a crowd of archers makes one stream, not one per archer.
-The streams the priority classes leave go to the nearest ordinary enemies in
-sight, each heard on its own: a pack of Fallen sounds as its three nearest
-members, so its spread is audible. Each rank (nearest, second, third) keeps its
-own cadence, so the nearest changing does not burst. An ordinary ranged enemy
-whose own cue is disabled growls instead. A special ranged enemy keeps the important-enemy sound even when
-ordinary ranged cues are disabled. Selection uses native traits, not translated
-names; classification evidence is in [entity units](entity-units-re.md).
-
-The growl (2026-10-02, after the user and a friend asked for Diablo 1-style
-monster sounds, so a ranged player stops shooting blind) follows
-[mojsior/diablo-access](https://github.com/mojsior/diablo-access), the mod the
-friend meant: one shared monster sound, the three nearest emitters, faster when
-closer (100-1000 ms over 12 tiles; `Source/utils/proximity_audio.cpp`). That mod
-shares its three emitters with items and doors and lowers volume with distance;
-here items keep their own loops and distance stays in the tempo. It is a 90 ms band-limited
-buzz falling from 175 to 125 Hz whose loudness flutters at 36 Hz: rougher and
-lower than every swoop, and tonal where the radar breath is noise. The same
-service plays the attack reach ping; see [attack reach](attack-reach.md).
+There is one representative per class, with at most two enemy classes plus the
+NPC. A crowd of archers therefore makes one stream, not one per archer. Regular
+melee enemies are silent. A special ranged enemy keeps the important-enemy sound
+even when ordinary ranged cues are disabled. Selection uses native traits, not
+translated names; classification evidence is in [entity units](entity-units-re.md).
 
 Only loaded, living entities within 15 collision subtiles are eligible, using
 the radar's terrain line-of-sight check. This has the same limitation as the
@@ -67,8 +51,7 @@ current output on suspension; there is no queue of stale targets.
 
 `access-entity-cues on|off|status` controls the feature independently of NPC
 speech (`Ctrl+N`) and the navigation radar (`Ctrl+R`). The same command accepts
-`npc-on`, `npc-off`, `enemy-on`, `enemy-off`, `ranged-on`, `ranged-off`,
-`ordinary-on`, `ordinary-off`, and the reach controls of [attack reach](attack-reach.md).
+`npc-on`, `npc-off`, `enemy-on`, `enemy-off`, `ranged-on`, and `ranged-off`.
 Status and toggle feedback are localized in all 13 game languages.
 
 Persistent settings in the plugin TOML:
@@ -79,13 +62,8 @@ enabled = true
 npcs = true
 enemies = true
 ranged = true
-ordinary = true
 range = 15
 volume = 100
-reach = true
-attack = "auto"
-melee_reach = 3
-ranged_reach = 15
 ```
 
 Restart after edits. Volume is 0–100 percent of the deliberately soft synthesized

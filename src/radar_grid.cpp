@@ -1,5 +1,8 @@
 #include "radar.h"
 
+#include <algorithm>
+#include <cstdlib>
+
 namespace D2RAccess::Radar {
 uint16_t TerrainCollisionFlags(uint16_t flags) {
 	// 0x341D70 restores MONSTER; 0x363CF0 stamps NO_PATH/PET alongside actors.
@@ -54,5 +57,51 @@ State World::Body(int x, int y, Layer layer, uint16_t* flags) const {
 		}
 	}
 	return result;
+}
+
+namespace {
+constexpr uint16_t Player = 0x80, Monster = 0x100, Missile = 0x40, NoPath = 0x1000, Pet = 0x2000;
+constexpr size_t MaxLeftMarkers = 32; // a bound on the work, far past anything seen
+}
+
+std::vector<LeftMarker> LeftMarkers(const World& world, std::span<const Position> units, bool beside) {
+	std::vector<LeftMarker> left;
+	const int px = static_cast<int>(world.player.x), py = static_cast<int>(world.player.y);
+	for (size_t index = 0; index < world.rooms.size() && left.size() < MaxLeftMarkers; ++index) {
+		const auto& room = world.rooms[index];
+		const size_t count = std::min(room.cells.size(), static_cast<size_t>(room.width) * static_cast<size_t>(room.height));
+		for (size_t cell = 0; cell < count && left.size() < MaxLeftMarkers; ++cell) {
+			const uint16_t flags = room.cells[cell];
+			if (!(flags & NoPath) || (flags & (Collision::Blank | Monster | Pet))) continue;
+			if ((flags & Player) && (flags & Missile)) continue; // 0xC0 is water, not a player
+			const int x = room.x + static_cast<int>(cell % static_cast<size_t>(room.width));
+			const int y = room.y + static_cast<int>(cell / static_cast<size_t>(room.width));
+			const int dx = std::abs(x - px), dy = std::abs(y - py);
+			if ((dx == 0 && dy == 0) || (!beside && dx <= 1 && dy <= 1)) continue;
+			if (world.RoomAt(x, y) != static_cast<int>(index)) continue; // another room's copy of the cell is the one read
+			bool owned = false;
+			for (const auto& unit : units) {
+				if (std::abs(x - static_cast<int>(unit.x)) <= 1 && std::abs(y - static_cast<int>(unit.y)) <= 1) { owned = true; break; }
+			}
+			if (!owned) left.push_back({x, y, flags});
+		}
+	}
+	return left;
+}
+
+std::vector<MarkerCell> MarkerCells(const World& world, const LeftMarker& marker) {
+	std::vector<MarkerCell> cells{{marker.x, marker.y, static_cast<uint16_t>(marker.flags & (Player | NoPath))}};
+	if (!(marker.flags & Player)) return cells;
+	const int px = static_cast<int>(world.player.x), py = static_cast<int>(world.player.y);
+	constexpr int Arms[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+	for (const auto& arm : Arms) {
+		const int x = marker.x + arm[0], y = marker.y + arm[1];
+		uint16_t flags = 0;
+		if (world.Cell(x, y, Layer::Movement, &flags) == State::Unknown) continue;
+		// An arm that is another stamp's centre, or water, or under the player's own cross, stays.
+		if (!(flags & Player) || (flags & (NoPath | Missile)) || std::abs(x - px) + std::abs(y - py) <= 1) continue;
+		cells.push_back({x, y, Player});
+	}
+	return cells;
 }
 }

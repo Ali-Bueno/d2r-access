@@ -21,7 +21,7 @@ is outside. The room service's hysteresis gate (`Rooms::BasicHysteresis`) keeps 
 chattering. The service polls every 250 ms. It is silent in menus and dialogue, and waits while
 the UI reader is speaking.
 
-**Ctrl+U** toggles it. `access-places on|off|status` does the same; `access-places where` speaks
+The keyboard settings list toggles it. Ctrl+U retains the reachability filter on this branch. `access-places on|off|status` does the same; `access-places where` speaks
 the whole place at once. Each spoken line logs one `[places]` line: the DS1 path, Def, origin,
 interior, landmark and seed.
 

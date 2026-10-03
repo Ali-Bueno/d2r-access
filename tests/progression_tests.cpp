@@ -35,6 +35,10 @@ std::vector<uintptr_t> FindControls(uintptr_t parent, UiText::Kind kind) {
 	return result;
 }
 }
+// No list of skills here: every button is read as the tree reads its own.
+namespace D2RAccess::NativeSkillIcons { bool InList(uintptr_t) { return false; } }
+// No "Tab<n>" here: a tab is called by its own text, as TabLabel falls back to.
+namespace D2RAccess::NativeUi { std::string TabLabel(uintptr_t widget) { return NativeWidgets::ReadText(widget); } }
 namespace D2RAccess::NativeControllerHelp { std::string ForFocus(NativeUi::Focus) { return "X: Asignar habilidad"; } }
 namespace D2RAccess::NativeWidgets {
 std::string ReadName(uintptr_t widget) { return widgets.contains(widget) ? widgets.at(widget).name : ""; }
@@ -68,18 +72,21 @@ int main() {
 		{7, {1, "CombinedPointsInfo", "5 puntos de estadísticas restantes", {}}},
 	};
 	const auto strength = NativeProgression::Read({1, 3}, stat);
-	Check(strength.readout.body == "Personaje", "stat action has its localized context");
-	Check(strength.readout.option == "Fuerza. 30. 5 puntos de estadísticas restantes. Aumenta el daño. Gastar punto de estadística", "stat label, live value, remaining points and help precede its generic action");
+	Check(strength.readout.body.empty(), "the panel's name is the window's to say, not every stat's");
+	Check(strength.readout.option == "Fuerza. 30", "a stat reads its label and live value, and nothing else");
+	Check(strength.description == "Aumenta el daño." && strength.points == "5 puntos de estadísticas restantes",
+		"its explanation and the points left are held apart, for right stick up and BACK");
 	Check(strength.readout.focusKey == "3" && !strength.skill, "stat focus identity is kept without classifying it as a skill");
 	for (const auto& pair : {std::pair{"Dex", "Destreza"}, {"Vitality", "Vitalidad"}, {"Energy", "Energía"}}) {
 		widgets[3].name = std::string(pair.first) + "PointButton";
 		widgets[4].name = std::string(pair.first) + "Title"; widgets[4].text = pair.second;
 		widgets[5].name = std::string(pair.first) + "Stat";
-		Check(NativeProgression::Read({1, 3}, stat).readout.option.starts_with(std::string(pair.second) + ". 30."), "every stat resolves its own companion label");
+		Check(NativeProgression::Read({1, 3}, stat).readout.option == std::string(pair.second) + ". 30", "every stat resolves its own companion label");
 	}
 	widgets[5].text = "31"; widgets[7].text = "4 puntos de estadísticas restantes";
-	const auto increased = NativeProgression::Read({1, 3}, stat).readout;
-	Check(increased.option.find("31. 4 puntos") != std::string::npos, "spending a point refreshes both live values");
+	const auto increased = NativeProgression::Read({1, 3}, stat);
+	Check(increased.readout.option.ends_with("31") && increased.points == "4 puntos de estadísticas restantes",
+		"spending a point refreshes both live values");
 	widgets[5].visible = false;
 	Check(NativeProgression::Read({1, 3}, stat).readout.option.find("31") == std::string::npos, "hidden stat values are not guessed");
 	widgets[4].visible = false;
@@ -99,11 +106,13 @@ int main() {
 	Check(skill.skill && skill.readout.body == "Habilidades de combate", "plain buttons acquire skill role from their native tab container");
 	Check(skill.readout.coordinates == "Fila 3, columna 2" && skill.points == "1 elección de habilidad restante",
 		"the generated cell and live skill points are available, with no position in the branch");
-	Check(skill.name == "Salto", "a tree cell is named from the skill tables by its page, row and column");
 	widgets[15] = {13, "HotkeyText", "\xEE\x80\x8F", {}};
-	Check(NativeProgression::Read({10, 13}, button).help == "Asignada a A. X: Asignar habilidad", "current binding and actual actions are both spoken");
+	const auto bound = NativeProgression::Read({10, 13}, button);
+	Check(bound.help == "Asignada a A" && bound.controls == "X: Asignar habilidad",
+		"the current binding is part of the readout, and the actions are a control hint of their own");
 	widgets[15].visible = false;
-	Check(NativeProgression::Read({10, 13}, button).help == "X: Asignar habilidad", "hidden former binding is omitted");
+	const auto unbound = NativeProgression::Read({10, 13}, button);
+	Check(unbound.help.empty() && unbound.controls == "X: Asignar habilidad", "hidden former binding is omitted");
 	widgets[16] = {12, "SkillButton1 0,0", "", button};
 	widgets[17] = {12, "SkillButton1 2,5", "", button, false};
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";

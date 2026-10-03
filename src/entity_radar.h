@@ -4,8 +4,10 @@
 #include "radar.h"
 #include "speech_strings.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // Shared entity types (NPC/enemy/object/item/exit/room/corpse) plus the
 // line-of-sight and spoken-distance helpers used by the level catalogue, NPC
@@ -14,8 +16,8 @@
 namespace D2RAccess::EntityRadar {
 // Exit: anything that takes the player to another area (level exits, portals, waypoints).
 // Corpse is a dead player unit, separate from Object even when numeric IDs overlap.
-// Room is not a game unit: it is a logical room of the level, catalogued so
-// a player with no map can ask where there is left to go (room_catalogue.h).
+// Room is not a game unit: a fixed place in the level's rooms, such as a
+// doorway, that guidance can lead to and never needs to re-read.
 // Player is another living player in the same game (multiplayer).
 enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse, Player };
 
@@ -35,7 +37,14 @@ struct EnemyTraits {
 	bool important = false;
 	bool resurrector = false;
 	bool ranged = false;
-	bool boss = false; // an act or quest boss, or a superunique: the fights whose life is narrated
+	// What the game shows about the monster beyond its name, spoken after it:
+	// unique, champion, minion, and the enchantments under its health plate.
+	// Empty for an ordinary monster (monster_plate.h).
+	std::string plate;
+	// MonsterData's type flags (+0x1A) and enchantment slots (+0x20) as read, for the log.
+	uint16_t flags = 0;
+	std::array<uint8_t, 9> enchantments{};
+	bool boss = false; // act/quest boss or superunique; independent of elite cue rank
 };
 
 struct Entity {
@@ -66,8 +75,27 @@ struct Entity {
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
+	uint32_t doorSpan = 0; // a shut door's long side in cells (objects.txt SizeX/SizeY), zero otherwise; not a footprint
+	// The game's own unit type of a loaded unit (1 monster, 2 object, 5 warp tile),
+	// which its commands name a target by together with `id`; NoUnit for what is
+	// not one: a preset of a room not loaded yet, an area border, a room.
+	static constexpr uint8_t NoUnit = 0xFF;
+	uint8_t unit = NoUnit;
+	// A teleport pad's objects.txt class, zero for anything else. A pad leads to
+	// the other pad of its class in its room (EntityLayout::TeleportPadOperateFn).
+	uint16_t padClass = 0;
 };
 bool SameTarget(const Entity& a, const Entity& b);
+// `loaded` is `known` made again under a new unit id: the game gives an object a
+// new id when its room is loaded again (MEASURED 2026-09-28: the Refilling Shrine
+// at 5427,4812 was id 28, then 61; a Loose Rock 30, then 63), and an item too
+// (MEASURED 10:40: five "Large Axe" and two "Bardiche, magic" listed on one spot).
+// Objects and items never move: the same name within a step is it. Whether a
+// monster keeps its id is NOT measured; one of the same name within the scan's
+// range is taken for it, which changes nothing while ids are kept.
+bool Recreated(const Entity& known, const Entity& loaded);
+// The name to say, followed by an enemy's plate when it has one.
+std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
 inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
 struct Settings {

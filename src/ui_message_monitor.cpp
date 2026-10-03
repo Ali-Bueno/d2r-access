@@ -2,16 +2,16 @@
 #include "ui_message_monitor.h"
 
 #include "quest_service.h"
-#include "death_place_service.h"
 #include "menu_navigation.h"
 
 #include "generated/panel_titles.h"
 #include "localization.h"
 #include "panel_state.h"
+#include "death_place_service.h"
 #include "screen_reader.h"
 #include "code_dump.h"
+#include "control_hints.h"
 #include "control_state.h"
-#include "character_stats_reader.h"
 #include "focus_tracker.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
@@ -33,8 +33,6 @@ namespace {
 // the SDK (widget-localization sample: "PanelManager:ClosePanel:<name>") and
 // observed in the plugin's own trace.
 constexpr const char* PanelManagerTarget        = "PanelManager";
-// The game's death screen (global/ui/layouts): the player has just died.
-constexpr const char* YouDiedPanel              = "YouDiedModal";
 constexpr const char* OpenPanelCommand          = "OpenPanel";
 constexpr const char* OpenExclusivePanelCommand = "OpenExclusivePanel";
 constexpr const char* ClosePanelCommand         = "ClosePanel";
@@ -216,7 +214,7 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 	if (std::strcmp(event.command, OpenPanelCommand) == 0 || exclusive) {
 		PanelState::Opened(panel);
 		RequestTextProbes(panel);
-		if (IsAnnouncedPanel(panel, exclusive, title) && !CharacterStatsReader::AnnouncesOpening(panel)) {
+		if (IsAnnouncedPanel(panel, exclusive, title)) {
 			Say(Strings::Current().panelOpened, spoken, true);
 			// Cleaned as the tab reader cleans a tab's text, so the switcher's
 			// report of this same panel compares equal.
@@ -233,7 +231,7 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 			ControlState::Invalidate();
 		}
 	} else if (std::strcmp(event.command, TogglePanelCommand) == 0) {
-		if (!CharacterStatsReader::AnnouncesOpening(panel)) Say(Strings::Current().panelToggled, spoken, true);
+		Say(Strings::Current().panelToggled, spoken, true);
 	}
 }
 
@@ -275,6 +273,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 	if (context == nullptr || event == nullptr || event->structSize < D2RL::SharedEvents::UiMessageEventRequiredSize) {
 		return UiMessageAction::Continue;
 	}
+	if (event->command && std::strcmp(event->command, OpenPanelCommand) == 0
+		&& std::strcmp(Safe(event->text), "YouDiedModal") == 0) DeathPlaceService::NoteDeath();
 	if (event->target == nullptr || event->command == nullptr) {
 		return UiMessageAction::Continue;
 	}
@@ -290,8 +290,6 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		FocusTracker::PanelsChanged();
 		Localization::DetectSpeechLanguage(context); // no-op once detected
 		AnnouncePanel(*event);
-		if (std::strcmp(event->command, OpenPanelCommand) == 0 && std::strcmp(Safe(event->text), YouDiedPanel) == 0)
-			DeathPlaceService::NoteDeath();
 	} else if (std::strcmp(event->target, MoviePlayerTarget) == 0 && std::strcmp(event->command, MoviePlayCommand) == 0) {
 		PanelState::MovieStarted();
 		AsyncLog::Info(context, "[ui] cinematic started: cues paused");
@@ -375,7 +373,12 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!prompt.empty()) {
 		ScreenReader::Speak(prompt, false);
 	}
-	ScreenReader::Speak(panel == ConfirmationModalPanel ? Strings::Current().modalConfirmHint : Strings::Current().modalDismissHint, false);
+	// Which button confirms is a control hint like any other: held for right
+	// stick down, and spoken unasked only last, with autodetail and control
+	// tooltips on.
+	const char* hint = panel == ConfirmationModalPanel ? Strings::Current().modalConfirmHint : Strings::Current().modalDismissHint;
+	ControlHints::Offer(hint);
+	ControlHints::SpeakAfter(context, hint);
 }
 
 void SetTraceEnabled(bool enabled) {

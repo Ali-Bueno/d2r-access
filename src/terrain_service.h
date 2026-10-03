@@ -4,7 +4,6 @@
 #include "radar.h"
 #include "native_rooms.h"
 #include <D2RLPlugin/api.h>
-#include <cstdint>
 #include <map>
 #include <vector>
 
@@ -34,11 +33,15 @@ std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeR
 std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms);
 // Keeps the fixed places among `found` (what the scanner counts as
 // discovered) with the record of the map `rooms` belong to.
-void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found);
-// The fixed places of every level of the map `seed` (NativeDrlg::MapSeed), on
-// disk or found this game, by level id. Their rooms need not be loaded.
 std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed);
+void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found);
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool RoomSounds();
+void SetRoomSounds(bool enabled);
+bool PlaceAlerts();
+void SetPlaceAlerts(bool enabled);
 }

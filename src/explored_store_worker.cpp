@@ -73,17 +73,10 @@ bool Store::Load(Key key, ExploredRooms::Memory& memory, std::vector<Place>* pla
 	if (places) *places = found->second.places;
 	return true;
 }
-std::map<uint32_t, std::vector<Place>> Store::MapPlaces(uint32_t seed) const {
+std::map<uint32_t, std::vector<Place>> Store::AllKnownPlaces(uint32_t seed) const {
 	std::lock_guard lock(mutex_);
 	std::map<uint32_t, std::vector<Place>> result;
-	std::map<uint32_t, uint64_t> touched;
-	if (!ready_) return result;
-	for (const auto& [key, record] : table_) {
-		if (key.seed != seed || record.places.empty()) continue;
-		if (const auto newer = touched.find(key.level); newer != touched.end() && newer->second > record.touched) continue;
-		touched[key.level] = record.touched;
-		result[key.level] = record.places;
-	}
+	for (const auto& [key, record] : table_) if (key.seed == seed) MergePlaces(result[key.level], record.places);
 	return result;
 }
 void Store::Submit(std::vector<Update> updates) {

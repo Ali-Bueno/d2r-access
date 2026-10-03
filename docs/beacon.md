@@ -78,34 +78,6 @@ Live log, 2026-09-25, Dark Wood → Black Marsh: the midpoint was 15640,5169 and
 the player crossed near 15623,5160. Entering the midpoint's room released the
 lock (`known-route-unavailable`) and later locks were refused (`no-route`).
 
-**Found at the crossing (2026-09-28).** Exploration lists a border once it is
-discovered, and that used to be judged at the midpoint only: in Tamoe Highland
-the Monastery Gate's midpoint (15160,5090) lay in a room the automap had not
-drawn while the player stood at the eastern entrance near 15265,5089, the
-zone-transition loop already playing, so the scanner did not list the gate until
-after the player had walked through and back. `ZoneTransitions::FoundAtCrossings`
-now also judges a border at its walkable crossing; the listed entry keeps the
-midpoint as its position.
-
-**Stepping across a border keeps the lock (2026-09-28).** A route can run along
-an area border. Monastery Gate is 18 tiles tall. Its eastern entrance opens into
-an alcove, and the only way on is a strip at y 5080–5089 along the Tamoe
-border (y 5090) back to the central gate. The route to the Outer Cloister was
-right, but one step south crossed into Tamoe, and any lifecycle change released
-the lock. That happened twice in the log. Now, when the level changes to an
-area that shares an edge with the target's level (`LevelAreas::Neighbours`), the
-lock is parked instead (`released reason=left-area`). Walking back into the
-target's level resumes it with the lock sound (`[beacon] resumed`). Guidance is
-silent while outside. These drop the parked lock:
-
-- a third level, or an area that is not a neighbour (a warp);
-- a new lock or a Clear;
-- L3 with nothing offered, which announces the release;
-- a mode change;
-- a new game.
-
-An exit target whose destination is the new level still ends there.
-
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and

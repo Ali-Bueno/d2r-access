@@ -8,6 +8,11 @@
 #include "terrain_service.h"
 
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <optional>
+#include <thread>
+#include <windows.h>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
@@ -27,23 +32,48 @@ DeathPlace::Record g_alive; // the last place the player was read standing
 // A death is only walked back to after leaving its level: the body lies on it until respawn.
 bool g_armed = true;
 
-void Save() {
+std::mutex g_diskMutex;
+std::condition_variable g_wake;
+std::thread g_worker;
+std::optional<std::string> g_pending;
+bool g_stopping = false;
+
+void Write(const std::string& snapshot) {
 	if (g_file.empty()) return;
 	std::error_code error;
 	std::filesystem::create_directories(g_file.parent_path(), error);
 	const auto temporary = g_file.parent_path() / (g_file.filename().string() + ".tmp");
 	{
 		std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-		out << g_memory.Serialize();
+		out << snapshot;
 		if (!out) {
 			AsyncLog::Warn(g_context, "[death] could not write the death places");
 			return;
 		}
 	}
-	std::filesystem::rename(temporary, g_file, error);
+	if (!MoveFileExW(temporary.c_str(), g_file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		error = std::error_code(static_cast<int>(GetLastError()), std::system_category());
 	if (error) AsyncLog::Warn(g_context, "[death] could not replace the death places file");
 }
 
+void Save() {
+	if (!g_worker.joinable()) return;
+	{ std::lock_guard lock(g_diskMutex); g_pending = g_memory.Serialize(); }
+	g_wake.notify_one();
+}
+void Run() {
+	for (;;) {
+		std::string snapshot;
+		{
+			std::unique_lock lock(g_diskMutex);
+			g_wake.wait(lock, [] { return g_stopping || g_pending.has_value(); });
+			if (!g_pending && g_stopping) return;
+			snapshot = std::move(*g_pending);
+			g_pending.reset();
+		}
+		Write(snapshot);
+	}
+}
 }
 
 void Register(const D2RL::PluginContext* context) {
@@ -52,14 +82,22 @@ void Register(const D2RL::PluginContext* context) {
 	// Beside the exploration archive: `d2r-access\explored\deaths.txt`.
 	g_file = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "explored" / "deaths.txt";
 	std::ifstream in(g_file, std::ios::binary);
-	if (!in) return;
-	std::ostringstream text;
-	text << in.rdbuf();
-	g_memory.Parse(text.str());
+	if (in) { std::ostringstream text; text << in.rdbuf(); g_memory.Parse(text.str()); }
+	g_stopping = false;
+	try { g_worker = std::thread(Run); }
+	catch (...) { AsyncLog::Warn(context, "[death] persistence worker unavailable"); }
 	AsyncLog::InfoF(context, "[death] %zu death places loaded", g_memory.Records().size());
 }
 
 void NoteDeath() { g_died = true; }
+
+void Unregister() {
+	{ std::lock_guard lock(g_diskMutex); g_stopping = true; }
+	g_wake.notify_one();
+	if (g_worker.joinable()) g_worker.join();
+	g_context = nullptr; g_file.clear();
+	g_memory = {}; g_alive = {}; g_died = false; g_armed = true; g_pending.reset();
+}
 
 void Track(uint32_t seed, int level, Radar::Position player) {
 	if (g_died.exchange(false) && g_alive.seed) {

@@ -57,11 +57,16 @@ inline constexpr std::string_view PlaceholderNameKey = "dummy";
 inline constexpr uint8_t FlagNpc = 1u << 0, FlagInteract = 1u << 1, FlagKillable = 1u << 7; // +0x3D bits
 // MonsterData (*(Unit+0x10)): the game's own composed display name, cached by 0x985A0.
 inline constexpr size_t MonCachedName = 0x40;
+// The string ids that name builder composes it from, at +0x32: a format, then
+// its parts %0 %1 %2, NoText when absent (every one of them at spawn, 0x1A2C90).
+// A super unique's own name is the format with no parts; the builder returns it
+// and never caches it at +0x40.
+inline constexpr size_t MonNameIds = 0x32, MonNameParts = 4;
+inline constexpr uint16_t NoText = 0xFFFF;
 inline constexpr size_t MonRarityFlags = 0x1A;
-inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
-// Superunique (Rakanishu, Bishibosh...): client setup 0x98FA0 stores the
-// SuperUniques row (+0x2A, via 0x38E810) only when this bit is set.
 inline constexpr uint16_t MonSuperUnique = 0x0002;
+inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
+inline constexpr size_t MonEnchantments = 0x20; // monster_plate.h
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
 inline constexpr size_t ObjNameKey = 0x42, ObjSelectable = 0x85, ObjIsDoor = 0xFA, ObjSubClass = 0x127, ObjOpenWarp = 0x163;
 // Size getters 0x3481E0/0x3482C0; all columns cross-checked by tools/objects_containers.py.
@@ -69,6 +74,10 @@ inline constexpr size_t ObjSizeX = 0x90, ObjSizeY = 0x94, ObjHasCollision = 0xE0
 // objects.txt OperateFn, the index of the game's interaction handler for the row.
 inline constexpr size_t ObjOperateFn = 0x15E;
 inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha through StoneLambda
+// objects.txt TeleportPad1-4 (classes 192, 304, 305, 306), the Arcane
+// Sanctuary's pads, and no other row. The handler (0x14058EAD0 in 3.3.93787)
+// sends the player to the other object of the pad's class in its room.
+inline constexpr uint8_t TeleportPadOperateFn = 27;
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587
@@ -116,6 +125,27 @@ inline constexpr size_t MaxWarpNodes = 64;
 inline constexpr size_t Levels = 0x1460, LevelCount = 0x1468, LevelStride = 0x18C, LevelNameKey = 0xFD, LevelWarpKey = 0x125;
 inline constexpr size_t MaxNameBytes = 128, MaxKeyBytes = 32, MaxLevelKeyBytes = LevelWarpKey - LevelNameKey;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
+// What the game shows under a monster's name (monster_plate.h). A failure here
+// leaves names and everything else as they were; only the plate goes silent.
+inline constexpr uintptr_t EnchantmentNames = 0x1CDD580, ChampionKinds = 0x1CDD4F0;
+inline constexpr Evidence PlateChecks[] = {
+	{0x38E870, 110, 0x586160E9AD4B858AULL}, // type flag test: word MonsterData+0x1A
+	{0x38E310, 89, 0x75798E11AFCA6543ULL}, // enchantment slots: MonsterData+0x20
+	{0x1DFAE0, 1492, 0xC548373152B03EC0ULL}, // enchantment names: 9 slots, 0 skipped, 45 and up never shown
+	{0x1DF6B0, 377, 0xCB49FEE4D15D7A45ULL}, // a special monster's line: nature, then enchantments
+	{0x1DF830, 325, 0x87F6F0E49BBF623FULL}, // a minion's line: nature, then "Minion"
+	{EnchantmentNames, 90, 0xFFD1840F1B59BEC2ULL}, // string id per enchantment (u16 x 45)
+	{ChampionKinds, 40, 0xDD6CBCB100035905ULL}, // champion kind word per enchantment (u32 pairs x 5)
+};
+// The immunities under a monster's name: resistances and the player's pierce
+// through UNIT_GetStat, which the reader calls.
+inline constexpr uintptr_t GetStat = 0x2F5020;
+struct CallEvidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
+inline constexpr CallEvidence ImmunityChecks[] = {
+	{0xCEA50, 4463, 0x70E3E5C8EE55E616ULL}, // plate builder: six resist/pierce/text records, 100 and up, layer 0
+	{0x92A10, 3, 0x62941518298855C4ULL}, // its second pierce stat switched off (xor al,al; ret)
+	{GetStat, 147, 0xEF955B08A436F777ULL, true}, // UNIT_GetStat: called, and detoured by 1.3.0-beta
+};
 inline constexpr Evidence Checks[] = {
 	{0x3614C0, 653, 0xA85E778CC89FCD70ULL}, // complete logical room list and tile rectangles
 	{0x361040, 33, 0x884F085CB2600C15ULL}, // RoomEx+0x98 preset list

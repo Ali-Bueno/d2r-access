@@ -135,4 +135,9 @@ void Unregister() {
 	if (g_input && g_action != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, g_action);
 	g_filter.Reset(); g_context = nullptr; g_input = nullptr; g_action = D2RL::Input::InvalidHandle;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 }

@@ -9,4 +9,6 @@ namespace D2RAccess::PlaceService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Unregister();
+bool Enabled();
+void SetEnabled(bool on);
 }

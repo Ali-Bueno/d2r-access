@@ -2,8 +2,6 @@
 #include "level_exit_layout.h"
 #include "entity_layout.h"
 #include "native_memory.h"
-#include "generated/level_flags.h"
-#include <algorithm>
 #include <cmath>
 #include <unordered_set>
 
@@ -12,11 +10,7 @@ namespace {
 using namespace LevelExitLayout;
 using namespace EntityLayout;
 using NativeMemory::Peek;
-// Levels.txt DrlgType 1 is a maze of LvlPrest cells: every way out of it is a
-// real warp, so its rooms never border another level on open ground.
-constexpr int32_t MazeDrlgType = 1;
 
-// A logical room's tile rectangle, bounded so the subtile conversion cannot overflow.
 bool ReadRect(uintptr_t room, TileRect& rect) {
 	constexpr int MaxTile = UINT16_MAX / SubtilesPerTile;
 	return Peek(room + RoomTileX, rect.x) && Peek(room + RoomTileY, rect.y)
@@ -47,7 +41,9 @@ bool Destination(uintptr_t room, uint32_t warp, uint32_t currentLevel, uint32_t&
 	}
 	return false;
 }
+}
 
+namespace {
 // A preset's level subtile position; false when it lies outside its own room.
 bool InRoom(uintptr_t preset, const TileRect& rect, Radar::Position& position) {
 	int px = 0, py = 0;
@@ -94,17 +90,41 @@ uint64_t Identity(Radar::Position position) {
 bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
+	uintptr_t room = 0, level = 0;
+	uint32_t currentLevel = 0;
+	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
+		|| !Peek(room + ExtendedLevel, level) || !level || !Peek(level + LevelId, currentLevel)
+		|| !Peek(level + LevelFirstRoom, room)) return false;
 	std::vector<Exit> exits;
-	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t level, uintptr_t preset, uint32_t type) {
-		uint32_t warp = 0;
-		Radar::Position position;
-		if (type != WarpType || !Peek(preset + PresetClass, warp) || !InRoom(preset, rect, position)) return;
-		Exit exit{warp & WarpIdMask};
-		if (Destination(room, exit.warp, level, exit.destination)) {
-			exit.position = position;
-			exits.push_back(exit);
+	std::unordered_set<uintptr_t> rooms, presets;
+	while (room) {
+		if (rooms.size() >= MaxRooms || !rooms.insert(room).second) return false;
+		uintptr_t owner = 0, preset = 0;
+		int x = 0, y = 0, width = 0, height = 0;
+		if (!Peek(room + ExtendedLevel, owner) || owner != level || !Peek(room + RoomPresets, preset)
+			|| !Peek(room + RoomTileX, x) || !Peek(room + RoomTileY, y)
+			|| !Peek(room + RoomTileWidth, width) || !Peek(room + RoomTileHeight, height)) return false;
+		constexpr int MaxTile = UINT16_MAX / SubtilesPerTile;
+		if (x < 0 || y < 0 || width <= 0 || height <= 0 || width > MaxTile || height > MaxTile
+			|| x > MaxTile - width || y > MaxTile - height) return false;
+		while (preset) {
+			if (presets.size() >= MaxPresets || !presets.insert(preset).second) return false;
+			uint32_t type = 0, warp = 0;
+			int px = 0, py = 0;
+			if (!Peek(preset + PresetType, type)) return false;
+			if (type == WarpType && Peek(preset + PresetClass, warp)
+				&& Peek(preset + PresetX, px) && Peek(preset + PresetY, py)
+				&& px >= 0 && py >= 0 && px < width * SubtilesPerTile && py < height * SubtilesPerTile) {
+				Exit exit{warp & WarpIdMask};
+				if (Destination(room, exit.warp, currentLevel, exit.destination)) {
+					exit.position = {static_cast<double>(x * SubtilesPerTile + px), static_cast<double>(y * SubtilesPerTile + py)};
+					exits.push_back(exit);
+				}
+			}
+			if (!Peek(preset + PresetNext, preset)) return false;
 		}
-	})) return false;
+		if (!Peek(room + RoomNext, room)) return false;
+	}
 	output = std::move(exits);
 	return true;
 }

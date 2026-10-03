@@ -2,6 +2,7 @@
 
 #include "async_log.h"
 #include "character_stats_reader.h"
+#include "control_hints.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -79,7 +80,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 	// A panel the player can navigate is the focus reader's job; this is only
 	// for the ones the game opens without giving anything focus.
-	if (NativeUi::CurrentFocus().widget != 0) return;
+	if (NativeUi::GameFocus().widget != 0) return;
 
 	const uintptr_t panel = NativeWidgets::FindPanel(active);
 	if (panel == 0) return;
@@ -95,15 +96,18 @@ void Tick(const D2RL::PluginContext* context) {
 	// Inventory panels briefly lose focus when tabs change; their labels are
 	// not a modal message. The shared item reader will announce the next focus.
 	if (HasInventory(snapshot)) return;
-	std::string            phrase;
+	std::string            phrase, legends;
 	for (const UiText::Node& node : snapshot.nodes) {
 		if (!Speakable(node) || UnderTabBar(snapshot, node.parent)) continue;
 		const auto text = UiText::Clean(node.text);
 		if (text.empty()) continue;
 		AsyncLog::InfoF(context, "[modal] %s/%s (%s) -> \"%s\"", active.c_str(), node.name.c_str(), node.type.c_str(), text.c_str());
-		Append(phrase, text);
+		// A button legend is a control hint: held for right stick down, and
+		// spoken unasked only last, with autodetail and control tooltips on.
+		Append(node.kind == UiText::Kind::Legend ? legends : phrase, text);
 	}
-	if (phrase.empty()) {
+	ControlHints::Offer(legends);
+	if (phrase.empty() && legends.empty()) {
 		AsyncLog::InfoF(context, "[modal] %s: %zu nodes, none with speakable text", active.c_str(), snapshot.nodes.size());
 		return;
 	}
@@ -112,7 +116,8 @@ void Tick(const D2RL::PluginContext* context) {
 	// interrupt, so nothing stale is left ahead of this -- cutting in here only
 	// ever cut the title off. MEASURED 2026-09-21: "Quest Log" was interrupted
 	// 42 ms after it began by this reader speaking the act tabs' "I".
-	ScreenReader::Speak(phrase, false);
+	if (!phrase.empty()) ScreenReader::Speak(phrase, false);
+	ControlHints::SpeakAfter(context, legends);
 }
 
 }

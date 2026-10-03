@@ -8,13 +8,16 @@
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
+#include "native_actions.h"
 #include "native_entities.h"
+#include "native_ground_items.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
 #include "native_automap.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
-#include "room_catalogue.h"
+#include "keyboard_menu.h"
+#include "keyboard_service.h"
 #include "native_world.h"
 #include "navigation_mode.h"
 #include "radar_ui.h"
@@ -60,7 +63,6 @@ std::mutex                 g_mutex;
 Lifecycle                  g_state;
 MapSurvey::Memory          g_registry;
 CorpseMemory::Memory       g_corpses;
-RoomCatalogue::Registry    g_rooms;
 // The level's logical rooms do not change while the level instance lives, so
 // the native walk happens once per instance rather than on every observation.
 std::vector<NativeRooms::Room> g_roomList;
@@ -86,10 +88,25 @@ MapSurvey::TownNpcSightings g_townNpcs;
 // rescan that adds or removes objects does not silently move the selection.
 EntityRadar::Category g_category = EntityRadar::Category::Unknown;
 uint32_t              g_selected = 0;
+// A fixed place is known by where it is: an exit's id is not its own (a warp's
+// row, a level's number, or a unit's id while its room is loaded). MEASURED
+// 2026-09-28, Cave Level 1: every step said Cold Plains, never Cave Level 2;
+// INFERRED cause, a shared or changing id, which the place does not have.
+uint64_t              g_selectedPlace = 0;
+bool Selected(const EntityRadar::Entity& entity) {
+	return g_selectedPlace ? entity.placeId == g_selectedPlace : entity.id == g_selected;
+}
 
-enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory };
+enum class Request : int { None, Repeat, PreviousObject, NextObject, PreviousCategory, NextCategory, ReachFilter };
 std::atomic<Request> g_request{ Request::None };
-bool                 g_fullAssistance = false;
+bool                 g_fullAssistance = true;
+// The filter for what cannot be reached, and its key, which is a switch and
+// works out of play too.
+std::atomic<bool>    g_reachFilter{ false };
+std::atomic<bool>    g_reachToggle{ false };
+// What the filter last left out, so the log says it once and not at every key.
+size_t               g_cutLogged = 0;
+int                  g_cutLevel = 0;
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
 
@@ -110,6 +127,7 @@ void ForgetOtherGames(const Lifecycle& state) {
 	g_townNpcs.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
+	g_selectedPlace = 0;
 }
 
 void ApplyMode() {
@@ -118,6 +136,7 @@ void ApplyMode() {
 	g_fullAssistance = fullAssistance;
 	g_registry.Clear();
 	g_selected = 0;
+	g_selectedPlace = 0;
 	g_category = EntityRadar::Category::Unknown;
 }
 
@@ -155,20 +174,9 @@ const char* CategoryName(EntityRadar::Category category) {
 }
 
 std::string Format(const char* format, auto... args) {
-	char buffer[256]{};
+	char buffer[512]{};
 	std::snprintf(buffer, sizeof(buffer), format, args...);
 	return buffer;
-}
-
-// Rooms of the level being played. Empty when they cannot be read, which
-// simply leaves the rooms category out rather than failing the catalogue.
-const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
-	if (g_roomLevel != level || g_roomSession != session) {
-		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
-		g_roomLevel = level;
-		g_roomSession = session;
-	}
-	return g_roomList;
 }
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
@@ -187,17 +195,17 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// user, 2026-09-25). Only a landmark on the player has no distance at all.
 	if (!g_fullAssistance) {
 		const std::string distance = EntityRadar::DistancePhrase(landmark.straightLine, EntityRadar::Settings{}, strings);
-		return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
+		return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 	}
 	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
 	if (!landmark.reachable && landmark.straightLine <= 0) {
-		return Format(strings.surveyBearing, landmark.entity.name.c_str(), direction);
+		return Format(strings.surveyBearing, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), direction);
 	}
 	// Spoken like the scan's distance. For a reachable landmark it is the
 	// WALKING distance -- the steps the game's own graph needs to get there --
 	// and a wall between the two makes the numbers differ.
 	const std::string distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
-	return Format(strings.surveySteps, landmark.entity.name.c_str(), distance.c_str(), direction);
+	return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 }
 
 // What the act has built around this level, once per level. The exits
@@ -226,6 +234,17 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 			crossing.level, crossing.position.x, crossing.position.y, crossing.gapTiles);
 }
 
+// Rooms of the level being played, for what the automap has charted. Empty
+// when they cannot be read, which leaves exploration to line of sight alone.
+const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
+	if (g_roomLevel != level || g_roomSession != session) {
+		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
+		g_roomLevel = level;
+		g_roomSession = session;
+	}
+	return g_roomList;
+}
+
 using MapSurvey::Scene;
 
 // The town NPCs listed from afar, whenever their number changes: whether every
@@ -248,22 +267,19 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 
 bool Collect(const Lifecycle& state, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
-	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true, true)) return false;
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }
 
 // What exploration counts as found: what came into view and, while the
-// automap can be read, anything in a room it has drawn.
-ZoneTransitions::Filter Found(const Lifecycle& state, const Radar::World& world) {
-	return [charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)), &world](const std::vector<EntityRadar::Entity>& entities) {
+// automap can be read, anything in a room it has drawn. An area border also
+// counts where it is walked across, not only at the middle of the edge.
+std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
+	const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session));
+	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
 		return charted ? MapSurvey::Charted(world, entities, *charted) : MapSurvey::Discoverable(world, entities);
 	};
-}
-
-// The landmarks found. An area border also counts where it is walked across,
-// not only at the middle of the edge.
-std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene, const ZoneTransitions::Filter& found) {
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
 		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
@@ -275,20 +291,84 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
 }
 
+// Items on the ground in every loaded room of the level, however far.
+std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
+	std::vector<EntityRadar::Entity> items;
+	GroundItems::Snapshot snapshot;
+	if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return items;
+	for (const auto& item : snapshot.items) {
+		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
+		EntityRadar::Entity entity;
+		entity.id = item.id;
+		entity.kind = EntityRadar::Kind::Item;
+		entity.category = EntityRadar::Category::Item;
+		entity.position = {item.position.x, item.position.y};
+		entity.name = item.name;
+		entity.unit = static_cast<uint8_t>(NativeActions::Unit::Item);
+		items.push_back(std::move(entity));
+	}
+	return items;
+}
+
 // Full assistance lists everything loaded. Only what was discovered is kept
 // for this map's later games, in either mode.
+// Enemies and items are remembered as every other thing is (the user,
+// 2026-09-28: everything discovered stays), and forgotten the same way: once
+// the map can see where one was and it is not there -- killed, picked up.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
 	const auto& rooms = CurrentRooms(state.level, state.session);
-	const auto found = Found(state, world);
-	const auto discovered = Discovered(state, world, scene, found);
-	g_townNpcs.Found(state.level, found(scene.townNpcs));
-	g_registry.Observe(state.level, g_fullAssistance ? scene.landmarks : discovered, grid, !g_fullAssistance, {}, &scene.landmarks);
+	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
+	const auto discovered = Discovered(state, world, scene);
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	g_townNpcs.Found(state.level, charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
+	const auto items = LoadedItems(state);
+	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
+	const auto enemies = Enemies(world, scene);
+	seen.insert(seen.end(), enemies.begin(), enemies.end());
+	const auto found = g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
+	seen.insert(seen.end(), found.begin(), found.end());
+	std::vector<EntityRadar::Entity> present = scene.landmarks;
+	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
+	present.insert(present.end(), items.begin(), items.end());
+	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
+	KeyboardService::NotePads(world, scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
+	LogTownNpcs(g_context, state, scene);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
 		return CorpseMemory::Covered(rooms, grid, world.player, position);
 	});
 	std::vector<CorpseMemory::Owner> owners;
 	if (NativeEntities::ReadRosterCorpses(state.player, owners)) g_corpses.Track(owners, Strings::Current().corpseOf);
+}
+
+// The filter for what cannot be reached. 2026-10-02, the Arcane Sanctuary: its
+// walkways are joined by teleport pads alone, and the scanner listed all twenty
+// pads loaded, 34 walks to one ending with no way. Left out: what the loaded floor
+// has no steps to and the map of the level shows cut off from where the player
+// stands. What cannot be told stays listed -- a place past ground the game has
+// not shown yet, or past a door, which can be opened.
+void LeaveOutCutOff(const Radar::World& world, std::vector<MapSurvey::Landmark>& landmarks) {
+	std::vector<const EntityRadar::Entity*> things;
+	things.reserve(landmarks.size());
+	for (const auto& landmark : landmarks) things.push_back(&landmark.entity);
+	const auto cut = KeyboardService::CutOff(world, things);
+	std::vector<MapSurvey::Landmark> listed;
+	listed.reserve(landmarks.size());
+	std::string names;
+	size_t out = 0;
+	constexpr size_t Named = 12; // enough to find a thing left out wrongly; the rest are counted
+	for (size_t i = 0; i < landmarks.size(); ++i) {
+		if (landmarks[i].reachable || !cut[i]) { listed.push_back(std::move(landmarks[i])); continue; }
+		const auto& entity = landmarks[i].entity;
+		if (out++ < Named) names += Format(" %s@%.0f,%.0f", entity.name.c_str(), entity.position.x, entity.position.y);
+	}
+	if (out != g_cutLogged || world.level != g_cutLevel) {
+		g_cutLogged = out;
+		g_cutLevel = world.level;
+		AsyncLog::InfoF(g_context, "[survey] reach filter: %zu of %zu cut off from %.0f,%.0f and left out:%s%s",
+			out, landmarks.size(), world.player.x, world.player.y, names.c_str(), out > Named ? " ..." : "");
+	}
+	landmarks = std::move(listed);
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -306,49 +386,31 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	g_registry.Select(state.level, !g_fullAssistance);
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
-	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius);
+	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Scene scene;
 	if (Collect(state, scene)) Observe(state, world, grid, scene);
-	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
-		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	// Fixed places found on this same map in an earlier game, whose rooms the
 	// game has not streamed again; the live read wins where both have one.
 	for (auto& place : TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session)))
 		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) { return EntityRadar::SameTarget(known, place); }))
 			catalogued.push_back(std::move(place));
-	const auto enemies = Enemies(world, scene);
-	catalogued.insert(catalogued.end(), enemies.begin(), enemies.end());
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
-	// Town NPCs from anywhere in town once seen, all of them with full assistance:
-	// the user asked to find them when lost, but not before seeing them (2026-09-28).
 	const auto townNpcs = g_fullAssistance ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
 	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);
 	catalogued.insert(catalogued.end(), corpses.begin(), corpses.end());
-	const Strings::Table& strings = Strings::Current();
-	// Rooms are listed whether or not the game has them loaded. Exploration keeps
-	// the rooms stood in and the unexplored ones at the edge of the known map.
-	auto entries = g_rooms.Entries();
-	if (!g_fullAssistance) {
-		const auto& levelRooms = CurrentRooms(state.level, state.session);
-		entries = RoomCatalogue::Exploration(entries, TerrainService::VisitedRooms(state.level, levelRooms),
-			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid);
-	}
-	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
-	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
-	// Where the player last died on this map, or the known way toward it.
-	const auto death = DeathPlaceService::Landmarks(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
-		state.level, world.player, catalogued);
-	catalogued.insert(catalogued.end(), death.begin(), death.end());
 	// An area border is measured to where it is walked across, where the beacon leads.
 	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
 		for (auto& entity : catalogued) ZoneTransitions::MoveToCrossing(entity, crossings);
 	}
+	const auto death = DeathPlaceService::Landmarks(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player, catalogued);
+	catalogued.insert(catalogued.end(), death.begin(), death.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
+	if (g_reachFilter) LeaveOutCutOff(world, landmarks);
 	return true;
 }
 
@@ -364,6 +426,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	if (request == Request::PreviousCategory || request == Request::NextCategory) {
 		g_category = MapSurvey::StepCategory(landmarks, g_category, request == Request::NextCategory ? 1 : -1);
 		g_selected = 0;
+	g_selectedPlace = 0;
 	} else if (g_category == EntityRadar::Category::Unknown) {
 		g_category = MapSurvey::StepCategory(landmarks, g_category, 0);
 	}
@@ -376,11 +439,12 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 
 	size_t index = 0;
 	for (size_t i = 0; i < members.size(); ++i) {
-		if (members[i].entity.id == g_selected) { index = i; break; }
+		if (Selected(members[i].entity)) { index = i; break; }
 	}
 	if (request == Request::NextObject) index = (index + 1) % members.size();
 	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
+	g_selectedPlace = members[index].entity.placeId;
 	// Hand the selection to the beacon, so the left-stick click leads to what
 	// the scanner just named. Every answer re-offers, including a plain repeat,
 	// so the offer is always the thing the player heard most recently.
@@ -405,7 +469,13 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (event == nullptr || event->kind != D2RL::Input::ActionEventKind::Pressed) {
 		return D2RL::Input::ActionResult::Ignored;
 	}
-	g_request.store(static_cast<Request>(reinterpret_cast<intptr_t>(userData)));
+	const auto request = static_cast<Request>(reinterpret_cast<intptr_t>(userData));
+	if (request == Request::ReachFilter) { g_reachToggle = true; return D2RL::Input::ActionResult::Handled; }
+	// A backslash typed into a box of text the keyboard's cursor is on is the box's.
+	if (request == Request::Repeat && KeyboardMenu::Typing()) return D2RL::Input::ActionResult::Ignored;
+	// In a menu backslash says again what the keyboard's cursor is on.
+	if (request == Request::Repeat && KeyboardMenu::Active()) KeyboardMenu::Deliver(KeyboardMenu::Act::SayAgain);
+	else g_request.store(request);
 	return D2RL::Input::ActionResult::Handled;
 }
 
@@ -430,16 +500,20 @@ void PollStick() {
 	}
 }
 
+void Repeat() { g_request.store(Request::Repeat); }
+
+bool ReachFilter() { return g_reachFilter.load(); }
+void SetReachFilter(bool on) { g_reachFilter = on; }
+
 bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context   = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	if (!g_supported) return false;
-	// The map seed sharpens room memory but nothing depends on it: a failed
-	// check leaves the room rectangles as the only identity, which is still
-	// enough to tell one layout from another.
+	// The level-area reader and the level bearings walk the act's DRLG
+	// structures; a failed check leaves both switched off, nothing else.
 	NativeDrlg::SetAvailable(LayoutCheck::Verify(context, context->exeBase, DrlgLayout::Checks, "rooms",
-		"room memory falls back to the room layout alone"));
+		"level areas and level bearings are off"));
 
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -460,12 +534,11 @@ bool Register(const D2RL::PluginContext* context) {
 		// Ctrl+Numpad mirrors the right stick for testing without a controller.
 		for (const Entry& entry : {
 			Entry{"survey-repeat", "Repeat the current map object", Key::Backslash, Modifier::None, Request::Repeat},
-			Entry{"survey-category-previous", "Previous map category", Key::Comma, Modifier::None, Request::PreviousCategory},
-			Entry{"survey-category-next", "Next map category", Key::Period, Modifier::None, Request::NextCategory},
 			Entry{"survey-stick-up", "Scanner: previous category", Key::Numpad8, Modifier::Control, Request::PreviousCategory},
 			Entry{"survey-stick-down", "Scanner: next category", Key::Numpad2, Modifier::Control, Request::NextCategory},
 			Entry{"survey-stick-left", "Scanner: previous object", Key::Numpad4, Modifier::Control, Request::PreviousObject},
-			Entry{"survey-stick-right", "Scanner: next object", Key::Numpad6, Modifier::Control, Request::NextObject}}) {
+			Entry{"survey-stick-right", "Scanner: next object", Key::Numpad6, Modifier::Control, Request::NextObject},
+			Entry{"survey-reach-filter", "Scanner: list only what can be reached", Key::U, Modifier::Control, Request::ReachFilter}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
@@ -483,10 +556,18 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_supported) return;
 	ApplyMode();
 
+	if (g_reachToggle.exchange(false)) {
+		const bool on = !g_reachFilter.load();
+		g_reachFilter = on;
+		const Strings::Table& strings = Strings::Current();
+		AsyncLog::InfoF(context, "[survey] reach filter %s", on ? "on" : "off");
+		ScreenReader::Speak(on ? strings.reachFilterOn : strings.reachFilterOff, true);
+	}
+
 	PollStick();
 
 	if (const Request request = g_request.exchange(Request::None); request != Request::None && !uiOwnsSpeech) {
-		// The backslash, comma and period keys go through the same gate as the stick.
+		// The backslash key goes through the same gate as the stick.
 		if (!RadarUi::InPlay()) {
 			AsyncLog::Info(context, "[survey] request ignored: not in play");
 			return;
@@ -514,14 +595,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	Scene scene;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world) || !Collect(state, scene)) return;
 	LogAreas(context, state);
-	const auto grid = Navigation::Build(world, SurveyRadius);
+	const auto grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Observe(state, world, grid, scene);
-	LogTownNpcs(context, state, scene);
-	// Rooms are marked explored by standing in them, so this has to keep up
-	// with the player rather than wait for the next catalogue question.
-	const uint32_t seed = NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level);
-	g_rooms.Observe(state.level, seed, CurrentRooms(state.level, state.session), world.player);
-	DeathPlaceService::Track(seed, state.level, world.player);
 }
 
 void Shutdown() {

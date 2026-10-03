@@ -85,14 +85,14 @@ int SpeechRank(Sound sound) {
 }
 }
 
-Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops, bool doorLoops) {
+Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops, bool doorLoops,
+	bool questLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
-	if (itemLoops) {
-		auto quests = snapshot.questObjects;
-		for (const auto& item : snapshot.items) if (item.sound == Sound::Quest) quests.push_back(item);
-		Emit(quests, snapshot.player, MaxQuestVoices, result);
-	}
+	std::vector<Item> quests;
+	if (questLoops) quests = snapshot.questObjects;
+	if (itemLoops) for (const auto& item : snapshot.items) if (item.sound == Sound::Quest) quests.push_back(item);
+	Emit(quests, snapshot.player, MaxQuestVoices, result);
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
 	if (doorLoops) Emit(snapshot.doors, snapshot.player, MaxDoorVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);

@@ -24,6 +24,14 @@ bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, 
 // logical room list is reached through (native_rooms.h). Zero when the player
 // cannot be resolved. Guarded reads only; nothing is retained.
 uintptr_t PlayerRoom() noexcept;
+// Takes `mask` off the one cell x,y of the client's map with the game's own
+// single-cell reset 0x366130(room, x, y, mask): the routine its stamp remover
+// 0x3636D0 calls for each cell of a footprint and for the marker at its centre.
+// It finds the cell's room among the player's room and its neighbours
+// (0x38DFB0) and does nothing when there is none. For a marker a unit left
+// behind (radar.h LeftMarkers). False when the routine is not the one this was
+// read from, or the player cannot be read. UI thread only.
+bool ClearCell(int x, int y, uint16_t mask) noexcept;
 // Factored for fault/structure tests. Performs only guarded reads.
 bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level, Radar::World& output, Diagnostics* diagnostics = nullptr);
 }

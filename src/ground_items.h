@@ -77,8 +77,9 @@ bool MatchesLabel(std::string_view label, const std::vector<std::string>& names)
 class Tracker {
 public:
 	// Quest sources reserve a share first, then landmarks, doors, containers and ordinary items.
+	// A quest item on the ground is an item; a quest object (a Cairn Stone) has its own switch.
 	Update Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops = true,
-		bool containerLoops = true, bool doorLoops = true);
+		bool containerLoops = true, bool doorLoops = true, bool questLoops = true);
 	void Reset();
 private:
 	uint64_t session_ = 0, lastSpeech_ = 0;

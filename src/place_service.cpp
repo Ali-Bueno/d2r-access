@@ -305,15 +305,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativePresetMap::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-places", Console,
-		"Named places and corridors: on|off|status, where to hear the current one, dump to log the ground around you. Ctrl+U.");
-	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
-		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
-			.logicalId = "places-toggle", .displayName = "Toggle place name announcements", .category = "Accessibility",
-			.defaultPrimary = {D2RL::Input::Key::U, D2RL::Input::Modifier::Control}, .callback = Toggle};
-		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
-	}
+		"Named places and corridors: on|off|status, where to hear the current one, dump to log the ground around you.");
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -366,6 +358,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_spots.Observe(reading.spot, static_cast<long long>(now))) return;
 	Announce(context, state, reading, Places::Compare(before, reading.spot), false);
 }
+
+bool Enabled() { return g_enabled.load(); }
+void SetEnabled(bool on) { g_command = on ? Command::On : Command::Off; }
 
 void Unregister() {
 	if (g_lifecycle) for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);

@@ -11,5 +11,12 @@ namespace D2RAccess::MapSurveyService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Shutdown();
+// Says the object the scanner stands on again, as the backslash key does.
+void Repeat();
+// The filter for what cannot be reached, Ctrl+U: on, the scanner lists only
+// what the player can get to on foot from where they stand, as far as the game
+// has shown the level (KeyboardService::CutOff). Off until switched on.
+bool ReachFilter();
+void SetReachFilter(bool on);
 
 }

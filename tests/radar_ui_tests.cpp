@@ -43,9 +43,17 @@ int main() {
 	panels[1].visible = false;
 	Check(RadarUi::Inspect(true) == State::Playing, "a hidden closing panel does not prolong suspension");
 	PanelState::Reset();
-	PanelState::Opened("PlayerInventoryExpansionLayout");
 	PanelState::Opened("AutoMap");
-	Check(RadarUi::Inspect(true) == State::Playing, "inventory and automap keep unpaused sensing active");
+	Check(RadarUi::Inspect(true) == State::Playing, "the automap keeps unpaused sensing active");
+	// In keyboard mode the game opens no menu switcher with a menu.
+	PanelState::Opened("PlayerInventoryExpansionLayout");
+	Check(RadarUi::Inspect(true) == State::Dialogue, "an open inventory is a menu with no menu switcher beside it");
+	PanelState::Closed("PlayerInventoryExpansionLayout");
+	Check(RadarUi::Inspect(true) == State::Playing, "closing it resumes gameplay");
+	Check(RadarUi::MenuPanel("DropGoldModal") && RadarUi::MenuPanel("SkillsTreePanel"), "a modal and the skill tree are menus");
+	Check(!RadarUi::MenuPanel("MiniMenuPanel") && !RadarUi::MenuPanel("HUDPanel"), "the mini menu and the HUD are not");
+	Check(!RadarUi::MenuPanel("HireablesPanel") && RadarUi::MenuPanel("HireMenuPanel"),
+		"the mercenary's portrait is open for the whole game and is not a menu; the list of mercenaries to hire is");
 	PanelState::Opened("NpcDialogPanel");
 	Check(RadarUi::Inspect(true) == State::Dialogue, "active NPC dialogue has a separate suspension reason");
 	PanelState::Closed("NpcDialogPanel");
@@ -54,13 +62,28 @@ int main() {
 	Check(RadarUi::Inspect(true) == State::Dialogue, "open narrative speech suspends cues");
 	PanelState::Closed("ScrollSpeechPanel");
 	Check(RadarUi::Inspect(true) == State::Playing, "ending narrative speech resumes gameplay");
-	// Act 2 arrival, 2026-09-28: the NPC cue kept playing through the act cinematic.
+	// MEASURED 2026-09-27, 12:19 to 12:21: every panel the game opened while the
+	// character stood in the camp with no menu up, the line of chat and the
+	// automap among them. With one of them taken for a menu the arrows do not walk.
+	PanelState::Reset();
+	panels.clear();
+	for (const char* name : {"LoadScreenPanel", "PanelBordersPanel", "TooltipsPanel", "HUDWarnings", "HUDPanel", "HUDMonsterHealth",
+		"HUDLevelNames", "InGameMoviePlayerPanel", "HireablesPanel", "HUDMessagePanel", "MiniMenuPanel", "HelpButtonPanel",
+		"ShowItemsPanel", "ChatPanel", "MessageLogPanel_800x600", "CandidateListPanel", "AutoMap"}) {
+		const std::string_view panel = name;
+		panels.push_back({name, panel == "HUDMessagePanel" ? Surface::NotificationFeed : panel == "HUDMonsterHealth" ? Surface::Target
+			: panel == "HUDLevelNames" ? Surface::Area : Surface::Other});
+		PanelState::Opened(name);
+		Check(!RadarUi::MenuPanel(name), name);
+	}
+	Check(RadarUi::Inspect(true) == State::Playing, "with every panel of play open and no menu up the game is in play");
+	PanelState::Reset();
 	PanelState::MovieStarted();
-	Check(RadarUi::Inspect(true) == State::Paused, "an act cinematic pauses every cue");
+	Check(RadarUi::Inspect(true) == RadarUi::State::Paused, "movie lifecycle pauses cues even without its transient panel");
 	PanelState::MovieEnded();
-	Check(RadarUi::Inspect(true) == State::Playing, "the cinematic's end resumes them");
+	Check(RadarUi::Inspect(true) == RadarUi::State::Playing, "cinematic completion restores play");
 	PanelState::MovieStarted();
 	PanelState::Reset();
-	Check(RadarUi::Inspect(true) == State::Playing, "leaving to the front end never leaves cues paused");
+	Check(!PanelState::MoviePlaying(), "a new session clears movie state");
 	Passed();
 }

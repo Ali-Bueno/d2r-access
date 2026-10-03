@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <deque>
 #include <numbers>
+#include <span>
 #include <vector>
 
 namespace D2RAccess::Radar {
@@ -61,8 +62,7 @@ using Events = std::array<State, DirectionCount>; // Unknown means no event.
 using Marks = std::array<bool, DirectionCount>;
 inline constexpr uint64_t PollMs = 50;
 // One cue is a short tin/tock; the gap keeps successive directions separable.
-// The floor breath is longer so its rising or falling sweep can be heard.
-inline constexpr uint64_t CueDurationMs = 120, BreathDurationMs = 180, CueGapMs = 50;
+inline constexpr uint64_t CueDurationMs = 120, CueGapMs = 50;
 // Two short pips below the tin, distinct from the beacon's single steady ping.
 // Sound-design values chosen for cue separation; docs/exploration.md.
 inline constexpr uint64_t UnexploredPipMs = 35, UnexploredPipGapMs = 30, UnexploredMarkGapMs = 30;
@@ -132,6 +132,30 @@ struct World {
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 };
 uint16_t TerrainCollisionFlags(uint16_t flags);
+// A presence marker (NO_PATH 0x1000) no unit stands on any more, in a world
+// the player's own stamp is already taken out of (NativeWorld). The game stamps
+// a player as 0x80 on a five-cell cross with the marker at its centre, and a
+// stamp can be left behind when the player moves on: 2026-09-29 two beside the
+// player, with a shrine on the third side, refused every first step; 2026-09-30
+// three more, each a cell ahead of the player with an arm or two already gone
+// (the remover of a stamp beside it clears 0x80 on every cell of its own cross),
+// and one marker with nothing left round it at all. Neither the game nor the
+// routes here cross a marker, so one in a doorway shuts the doorway.
+//
+// Two kinds are found: a player stamp's centre (0x80 with the marker, no
+// monster or missile on the cell), whatever is left of its arms, and a bare
+// marker (no player, monster or pet bit). One within a cell of a unit in
+// `units` is that unit's own and is left alone: a live stamp can sit a cell off
+// where its unit is drawn. The player's own cell is never listed; the eight
+// cells round it only when `beside` is set, which is for a player the game has
+// refused to move: there a stamp is in the way whoever's it is.
+struct LeftMarker { int x = 0, y = 0; uint16_t flags = 0; };
+std::vector<LeftMarker> LeftMarkers(const World& world, std::span<const Position> units, bool beside);
+// What to take off the game's map for one of them: the marker and the player
+// bit at its centre, and the player bit on each arm that carries nothing else
+// of a stamp and is no part of the player's own cross.
+struct MarkerCell { int x = 0, y = 0; uint16_t mask = 0; };
+std::vector<MarkerCell> MarkerCells(const World& world, const LeftMarker& marker);
 // A local geometry-only view: actors removed, and bypassable clutter too
 // while the game slides around it (World::slides).
 World StructuralWorld(const World& world, const Settings& settings);

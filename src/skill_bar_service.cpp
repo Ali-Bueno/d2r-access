@@ -79,4 +79,9 @@ void Tick(const D2RL::PluginContext* context) {
 	case SkillBar::Action::None: break;
 	}
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool enabled) { g_enabled = enabled; }
 }

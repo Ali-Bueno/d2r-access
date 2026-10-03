@@ -6,19 +6,14 @@
 #include <optional>
 
 namespace D2RAccess::EntityCues {
-// Ordinary: any other enemy, each of the nearest few heard on its own, as in Diablo 1.
 enum class Kind { Npc, Important, Resurrector, Ranged, Ordinary };
-inline constexpr size_t KindCount = 5;
-inline constexpr size_t MaxOrdinary = 3;
-// One cadence slot per class, and one per rank for ordinary enemies (Ordinary is last).
-inline constexpr size_t SlotCount = KindCount - 1 + MaxOrdinary;
+inline constexpr size_t KindCount = 5, MaxOrdinary = 3, SlotCount = KindCount - 1 + MaxOrdinary;
 struct Settings {
-	bool npcs = true, enemies = true, ranged = true, ordinary = true;
+	bool npcs = true, enemies = true, ranged = true, ordinary = false;
 	double range = EntityRadar::Settings{}.range;
 	// Listening feedback, 2026-09-22: much faster repeats, including mixed groups.
 	uint64_t nearIntervalMs = 150, farIntervalMs = 450, gapMs = 100;
 };
-// Distance and fixed-screen placement of a target from the player.
 struct Bearing { double distance = 0, right = 0, front = 1; };
 Bearing BearingOf(Radar::Position player, Radar::Position target);
 struct Cue {
@@ -26,11 +21,10 @@ struct Cue {
 	Kind kind = Kind::Npc;
 	double distance = 0, right = 0, front = 1;
 	uint64_t intervalMs = 0;
-	size_t slot = 0; // the class, or Ordinary plus the enemy's rank by distance
+	size_t slot = 0;
 };
 
-// Nearest NPC plus at most three enemy streams: the nearest of each priority
-// class first, then the nearest ordinary enemies in the streams left.
+// Nearest NPC plus at most two enemy classes; ordinary melee packs stay silent.
 std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings);
 class Tracker {
 public:

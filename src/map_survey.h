@@ -43,12 +43,17 @@ struct Settings {
 	// An object is only dropped once the map has had this many chances to show
 	// it again, so a monster stepping behind a corner does not erase it.
 	int missesBeforeForgetting = 3;
+	// And only while its place is this close to the player. The map reaches
+	// further than the things standing on it: MEASURED 2026-09-28, Charsi and
+	// Gheed left the list from across the camp, their places still on the map,
+	// and came back when walked toward. Close by, a missing thing is gone.
+	double forgetWithin = EntityRadar::Settings{}.range;
 };
 
 // What has been seen on the current level. Entities come and go as the world
 // window moves, so this accumulates them instead of trusting one frame, and
-// drops one only when the map can currently see its last known place and it is
-// no longer there. Changing level clears everything.
+// drops one only when the map can currently see its last known place, within
+// the scan's reach, and it is no longer there. Changing level clears everything.
 class Registry {
 public:
 	// `visible` is what the world reports right now; `grid` says which cells
@@ -75,8 +80,9 @@ private:
 	std::vector<EntityRadar::Entity> m_entities;
 };
 
-// Session-scoped landmark memory. Full assistance keeps the original
-// level-change reset; exploration retains fixed places until Clear.
+// Session-scoped memory of everything discovered, one registry a level. Full
+// assistance keeps every level whole until Clear; exploration keeps only the
+// fixed places of a level it leaves.
 class Memory {
 public:
 	void Select(int level, bool exploration);
@@ -108,11 +114,10 @@ private:
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
 
-// What the scanner lists: map landmarks the registry remembers, enemies and
-// other players read live because they move, and player corpses, which the
-// corpse memory keeps level-wide. Loot and ordinary containers are left to
-// their own sounds; quest containers stay, as the automap draws them. Town
-// NPCs (an NPC with a place identity) are read from anywhere in town each time.
+// What the scanner lists: map landmarks the registry remembers, chests and
+// every other container among them (the user, 2026-09-28), enemies and other
+// players read live because they move, and player corpses, which the corpse
+// memory keeps level-wide. Items on the ground are read on their own.
 struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players, corpses, townNpcs; };
 Scene Split(std::vector<EntityRadar::Entity> entities);
 

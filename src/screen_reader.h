@@ -1,5 +1,7 @@
 #pragma once
 
+#include <D2RLPlugin/api.h>
+
 #include <string_view>
 
 // Single speech sink for the whole plugin. Wraps the PRISM C API loaded
@@ -24,6 +26,16 @@ const char* BackendName();
 // interrupt=true only on context changes (new screen / panel); false for
 // incremental information so previous speech is not cut off.
 void Speak(std::string_view text, bool interrupt);
+// When anything was last given to Speak, as GetTickCount64 counts; 0 before
+// the first. For a reader of last resort that speaks only if no other did.
+unsigned long long LastSpoken();
+// One saying of exactly `text` before `untilMs` (GetTickCount64) is dropped:
+// a switch put back at start as it was saved says its own change, which is
+// not news to the player.
+void Swallow(std::string_view text, unsigned long long untilMs);
 void Stop();
+// Every phrase given to Speak is logged through this context from now on, and
+// every one Swallow held back, so a test's log says what the player heard.
+void LogTo(const D2RL::PluginContext* context);
 
 }

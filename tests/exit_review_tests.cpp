@@ -7,6 +7,8 @@
 using namespace D2RAccess;
 using Radar::Position;
 
+// Adapted from upstream's tests (origin/main tests/exit_review_tests.cpp): the
+// same list, order and cycle; the spoken line is this branch's.
 namespace {
 const Strings::Table& English = Strings::For(Strings::Language::enUS);
 const Strings::Table& Spanish = Strings::For(Strings::Language::esES);
@@ -14,27 +16,6 @@ const EntityRadar::Settings Scan{};
 
 EntityRadar::Entity Exit(uint32_t id, Position position, const char* name) {
 	return {id, EntityRadar::Kind::Exit, position, name};
-}
-
-// 12 is screen up, and the screen axes are the world diagonals (native
-// projection 0x334DB0), so each screen cardinal is a world diagonal.
-void Cardinals() {
-	const Position player{100, 100};
-	Check(ExitReview::ClockHour(player, {99, 99}) == 12, "up the screen is twelve o'clock");
-	Check(ExitReview::ClockHour(player, {101, 99}) == 3, "right on the screen is three o'clock");
-	Check(ExitReview::ClockHour(player, {101, 101}) == 6, "down the screen is six o'clock");
-	Check(ExitReview::ClockHour(player, {99, 101}) == 9, "left on the screen is nine o'clock");
-	Check(ExitReview::ClockHour(player, player) == 12, "the player's own cell reads as twelve, not as an error");
-}
-
-// The world axes fall between two hours; the rounding must stay symmetric
-// about both twelve and six instead of drifting one way.
-void Diagonals() {
-	const Position player{100, 100};
-	Check(ExitReview::ClockHour(player, {100, 99}) == 2, "world minus Y is between one and two, and rounds to two");
-	Check(ExitReview::ClockHour(player, {101, 100}) == 5, "world plus X rounds to five");
-	Check(ExitReview::ClockHour(player, {100, 101}) == 7, "world plus Y rounds to seven, mirroring five");
-	Check(ExitReview::ClockHour(player, {99, 100}) == 10, "world minus X rounds to ten, mirroring two");
 }
 
 // Openings have no name of their own; level exits keep the game's own.
@@ -45,27 +26,26 @@ void Labels() {
 	Check(items.size() == 2, "every way out is one item, opening or named exit");
 	Check(items[0].label == English.roomOpening && !items[0].named, "a plain gap is spoken as a passage");
 	Check(items[1].label == "Stairs" && items[1].named, "a level exit keeps the name the game gave it");
-	Check(items[1].entity.id == 7, "the named exit carries its own entity for the beacon");
+	Check(items[1].entity.id == 7, "the named exit carries its own entity for guidance");
 	Check(items[0].distance == 4 && items[1].distance == 10, "the distance is the straight line in subtiles");
 }
 
-// A way out never taken is listed before the ones already taken, nearest first
-// within each, and spoken with the unexplored tag.
-void UnexploredFirst() {
+// A way out never taken is tagged; the list stays nearest first.
+void UnexploredTagged() {
 	const Position player{0, 0};
 	std::vector<Rooms::Opening> openings{{{2, 2}, 3}, {{30, 30}, 3}};
 	openings[1].unexplored = true;
 	const auto unseen = [](const EntityRadar::Entity& exit) { return exit.id == 2; };
 	const auto items = ExitReview::Collect(player, openings, {Exit(1, {4, 4}, "Seen"), Exit(2, {40, 40}, "Unseen")}, English, unseen);
-	Check(items.size() == 4 && items[0].unexplored && items[1].unexplored && !items[2].unexplored && !items[3].unexplored,
-		"the unexplored ways out come first");
-	Check(items[0].point.x == 30 && items[1].label == "Unseen" && items[2].point.x == 2 && items[3].label == "Seen",
-		"nearest first within each half");
-	const auto line = ExitReview::Describe(items[0], 0, items.size(), nullptr, Scan, English);
+	Check(items.size() == 4 && !items[0].unexplored && !items[1].unexplored && items[2].unexplored && items[3].unexplored,
+		"the tag is carried without reordering");
+	Check(items[0].point.x == 2 && items[1].label == "Seen" && items[2].point.x == 30 && items[3].label == "Unseen",
+		"nearest first, tagged or not");
+	const auto line = ExitReview::Describe(items[2], Scan, English);
 	Check(line.rfind("passage, unexplored, ", 0) == 0, "the tag follows the label: " + line);
-	const auto plain = ExitReview::Describe(items[2], 2, items.size(), nullptr, Scan, English);
+	const auto plain = ExitReview::Describe(items[0], Scan, English);
 	Check(plain.rfind("passage, ", 0) == 0 && plain.find("unexplored") == std::string::npos, "a way already taken is spoken plain");
-	Check(ExitReview::Describe(items[1], 1, items.size(), nullptr, Scan, Spanish).rfind("Unseen, sin explorar, ", 0) == 0,
+	Check(ExitReview::Describe(items[3], Scan, Spanish).rfind("Unseen, sin explorar, ", 0) == 0,
 		"the tag comes from the speech table");
 	Check(!ExitReview::Collect(player, openings, {Exit(1, {4, 4}, "Seen")}, English)[1].unexplored, "no predicate means no exit is tagged");
 }
@@ -109,35 +89,48 @@ void Cycling() {
 	Check(cycle.Next(items) == 0, "and the next real list starts at the nearest");
 }
 
+// One side at a time: the scan's quarter of the plane. Screen up is world
+// (-X,-Y), so each screen side is a world diagonal.
+void Sides() {
+	const Position player{100, 100};
+	const std::vector<Rooms::Opening> openings{{{94, 94}, 3}, {{90, 90}, 3}, {{106, 106}, 3}, {{94, 106}, 3}};
+	const auto items = ExitReview::Collect(player, openings, {Exit(7, {104, 96}, "Stairs")}, English);
+	const auto ahead = ExitReview::Toward(items, player, Radar::Direction::Up);
+	Check(ahead.size() == 2 && ahead[0].point.x == 94 && ahead[1].point.x == 90,
+		"pushing up names only what is ahead, nearest first");
+	Check(ExitReview::Toward(items, player, Radar::Direction::Down).size() == 1, "behind has its own");
+	Check(ExitReview::Toward(items, player, Radar::Direction::Left).size() == 1, "and so has the left");
+	const auto right = ExitReview::Toward(items, player, Radar::Direction::Right);
+	Check(right.size() == 1 && right[0].named && right[0].label == "Stairs", "a level exit is found on its side by name");
+
+	// "1 push is the nearest exit, subsequent push is second nearest", and
+	// round again, with no timer.
+	ExitReview::Cycle cycle;
+	Check(cycle.Next(ahead) == 0 && cycle.Next(ahead) == 1 && cycle.Next(ahead) == 0,
+		"two ways out on one side alternate, nearest first");
+}
+
+// Spoken as the scan speaks: the name and the distance, never a count.
 void Spoken() {
-	// The opening is straight up the screen, the stairs six o'clock and nearer.
 	const Position player{100, 100};
 	const auto items = ExitReview::Collect(player, {{{94, 94}, 3}}, {Exit(7, {103, 103}, "Escalera")}, Spanish);
 	Check(items.size() == 2 && items[0].named && !items[1].named, "the nearer way out is the named one here");
-	const auto around = ExitReview::Describe(items[0], 0, 2, Spanish.beaconReachAround, Scan, Spanish);
-	Check(around == "Escalera, 4 pasos, a las 6, rodeando, 1 de 2", "Spanish reads the whole line naturally");
-	const auto silent = ExitReview::Describe(items[1], 1, 2, nullptr, Scan, Spanish);
-	Check(silent == "abertura, 8 pasos, a las 12, 2 de 2", "an unproved route leaves the verdict out entirely");
-
+	Check(ExitReview::Describe(items[0], Scan, Spanish) == "Escalera, 4 pasos", "a named exit reads its name and distance");
+	Check(ExitReview::Describe(items[1], Scan, Spanish) == "abertura, 8 pasos", "an opening reads as an opening");
 	const auto english = ExitReview::Collect(player, {{{94, 94}, 3}}, {}, English);
-	Check(ExitReview::Describe(english[0], 0, 1, English.beaconReachStraight, Scan, English)
-		== "passage, 8 steps, 12 o'clock, straight, 1 of 1", "English reads the same line");
-
-	// Hour one is grammatically singular in Spanish ("a la 1"), unlike every other hour.
-	const auto hourOne = ExitReview::Collect(Position{100, 100}, {{{99, 96}, 3}}, {}, Spanish);
-	Check(hourOne[0].hour == 1, "the fixture actually lands on hour one");
-	Check(ExitReview::Describe(hourOne[0], 0, 1, nullptr, Scan, Spanish) == "abertura, 4 pasos, a la 1, 1 de 1",
-		"Spanish hour one reads singular");
+	const auto line = ExitReview::Describe(english[0], Scan, English);
+	Check(line == "passage, 8 steps", "English reads the same line");
+	Check(line.find(" of ") == std::string::npos, "no position in the list is ever spoken");
+	Check(ExitReview::Nothing(Radar::Direction::Left, English) == "Nothing to the left", "an empty side says so as the scan does");
 }
 }
 
 int main() {
-	Cardinals();
-	Diagonals();
 	Labels();
-	UnexploredFirst();
+	UnexploredTagged();
 	NearestFirst();
 	Cycling();
+	Sides();
 	Spoken();
 	Passed();
 }

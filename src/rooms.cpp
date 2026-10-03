@@ -54,6 +54,25 @@ int PassableWidth(int bodyPattern) {
 	return bodyPattern == 0 ? 1 : 3;
 }
 
+void Hysteresis::Forget() {
+	current = candidate = {};
+	entered = candidateSince = -1;
+}
+
+bool Hysteresis::Observe(RoomKey observed, long long nowMs) {
+	const auto dropCandidate = [&] { candidate = {}; candidateSince = -1; };
+	// Off-grid keeps the current room: not knowing is not leaving.
+	if (observed == current || !observed.valid) { dropCandidate(); return false; }
+	if (const bool settled = !current.valid || nowMs - entered >= settleMs; !settled) {
+		if (!(observed == candidate)) { candidate = observed; candidateSince = nowMs; }
+		if (nowMs - candidateSince < dwellMs) return false;
+	}
+	current = observed;
+	dropCandidate();
+	entered = nowMs;
+	return true;
+}
+
 bool Describe(const Radar::World& world, Position position, Room& out) {
 	// A room covering a point owns it, exactly as World::Cell decides.
 	const int index = world.RoomAt(static_cast<int>(std::floor(position.x)), static_cast<int>(std::floor(position.y)));

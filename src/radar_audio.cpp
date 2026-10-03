@@ -1,5 +1,6 @@
 #include "radar_audio.h"
 #include "async_log.h"
+#include "mod_sounds.h"
 #include "radar_trace.h"
 #include "wave_out.h"
 
@@ -158,6 +159,10 @@ void Play(const Radar::Events& events, CueSource source, const Radar::Marks& mar
 	std::lock_guard lock(g_mutex);
 	if (!g_running || !g_available) {
 		Trace(events, source, "dropped", "audio-unavailable");
+		return;
+	}
+	if (!ModSounds::Enabled()) {
+		Trace(events, source, "dropped", "mod-sounds-off");
 		return;
 	}
 	// Bounded coalescing: retain the latest state of each direction, never a

@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """gen_level_flags.py -- Generates src/generated/level_flags.h, a per-level-id
-table of the Levels.txt facts the plugin needs to describe a level without
-reading game memory: DrlgType (the layout generator: maze/preset/outdoor),
+table of two Levels.txt facts the plugin needs to describe a level without
+reading game memory: DrlgType (the layout generator: maze/preset/outdoor) and
 *IsInside (whether the level has a ceiling/is indoors), read straight off the
-row so the plugin never has to guess, and whether the level is its act's town.
-
-The town is the first level of its Act (lowest non-zero Id): each act starts
-there, and the rows are Rogue Encampment, Lut Gholein, Kurast Docks, the
-Pandemonium Fortress and Harrogath. Id 0 is the "Null" row, not a level.
+row so the plugin never has to guess.
 
 Levels.txt has one non-level row, "Expansion" (all columns blank, including
 Id) -- a section separator Blizzard leaves in the sheet, not a real level; it
@@ -26,7 +22,7 @@ import argparse
 import sys
 from pathlib import Path
 
-REQUIRED_COLUMNS = ("Id", "Name", "Act", "DrlgType", "*IsInside")
+REQUIRED_COLUMNS = ("Id", "Name", "DrlgType", "*IsInside")
 
 
 def load_rows(levels_txt: Path) -> list[dict[str, str]]:
@@ -70,11 +66,11 @@ def main() -> int:
         return 1
 
     rows = load_rows(levels_txt)
-    towns: dict[int, int] = {}
+    towns = {}
     for row in rows:
-        level, act = int(row["Id"]), int(row["Act"])
-        if level and (act not in towns or level < towns[act]):
-            towns[act] = level
+        level = int(row["Id"])
+        act = int(row["Act"])
+        if level > 0: towns[act] = min(level, towns.get(act, level))
     entries = []
     for row in rows:
         entries.append({
@@ -82,7 +78,7 @@ def main() -> int:
             "name": row.get("Name", "").strip(),
             "drlgType": int(row["DrlgType"]),
             "inside": row["*IsInside"].strip() == "1",
-            "town": int(row["Id"]) in towns.values(),
+            "town": int(row["Id"]) == towns.get(int(row["Act"])),
         })
     entries.sort(key=lambda e: e["id"])
 
@@ -95,7 +91,6 @@ def main() -> int:
     lines.append("// Levels.txt (unmodified, no interpreted meaning) so the plugin never has to")
     lines.append("// infer indoor/outdoor from anything else. *IsInside is the authoritative flag;")
     lines.append("// drlgType is carried through for callers that need the layout generator kind.")
-    lines.append("// town is the first level of its Act, where the act starts.")
     lines.append("#pragma once")
     lines.append("")
     lines.append("#include <cstddef>")
@@ -146,7 +141,6 @@ def main() -> int:
     print(f"[gen-level-flags] {len(entries)} levels read from {levels_txt.relative_to(repo_root)}")
     print(f"[gen-level-flags] inside: {inside_count}, outside: {len(entries) - inside_count}")
     print(f"[gen-level-flags] DrlgType counts: {dict(sorted(drlg_counts.items()))}")
-    print(f"[gen-level-flags] towns: {[e['id'] for e in entries if e['town']]}")
     print(f"[gen-level-flags] wrote {out_header}")
 
     return 0

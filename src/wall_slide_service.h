@@ -10,4 +10,7 @@ void Unregister();
 bool Prevent(uintptr_t pathContext) noexcept;
 // True while a blocked stick direction stops the character instead of sliding.
 bool Enabled() noexcept;
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+void SetEnabled(bool enabled);
 }

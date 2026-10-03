@@ -2,6 +2,7 @@
 #include "camp_grid.h"
 #include "test_support.h"
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <limits>
 
@@ -107,6 +108,39 @@ void RoomSeamsAndIdentity() {
 	const auto saved=w.rooms[0].cells; (void)Navigation::Build(w,12);
 	Check(w.rooms[0].cells == saved, "navigation analysis never changes its physical source snapshot");
 }
+void SameAsTheWorld() {
+	// Build copies the rooms into one flat field; World::Cell and World::Body,
+	// which search the room list per cell, stay the rule it must agree with.
+	uint32_t seed = 12345;
+	const auto next = [&seed] { seed = seed * 1664525u + 1013904223u; return seed >> 8; };
+	for (int pattern = 0; pattern <= 5; ++pattern) {
+		Radar::World w; w.session = w.level = 1; w.player = {60, 60};
+		w.bodyPattern = pattern; w.walkingMask = 0x1C09;
+		// Rooms that overlap, leave gaps, and reach past the window on every side.
+		for (const auto& box : {std::array{40, 40, 30, 30}, std::array{55, 35, 40, 20}, std::array{20, 60, 45, 45},
+			std::array{70, 50, 25, 60}, std::array{0, 0, 30, 30}}) {
+			Radar::RoomGrid room{box[0], box[1], box[2], box[3], std::vector<uint16_t>(static_cast<size_t>(box[2]) * box[3])};
+			for (auto& cell : room.cells) {
+				static constexpr uint16_t Kinds[] = {0, 0, 0, 0, 0, 0x0007, 0x0020, 0x1080, 0x0080, 0x1100, 0x1000, 0x00C0, 0x0800, 0x2100, 0x8000};
+				cell = Kinds[next() % std::size(Kinds)];
+			}
+			w.rooms.push_back(std::move(room));
+		}
+		w.rooms[2].cells.resize(w.rooms[2].cells.size() - 100); // a short grid reads as unknown, not past its end
+		for (const auto layer : {Radar::Layer::Movement, Radar::Layer::Terrain}) {
+			const auto grid = Navigation::Build(w, 45, layer);
+			bool same = true;
+			for (int y = grid.y; same && y < grid.y + grid.height; ++y) for (int x = grid.x; x < grid.x + grid.width; ++x) {
+				uint16_t flags = 0, blocker = 0;
+				(void)w.Cell(x, y, layer, &flags);
+				const auto body = w.Body(x, y, layer, &blocker);
+				const auto* cell = grid.At(x, y);
+				if (cell->flags != flags || cell->body != body || cell->blocker != blocker) { same = false; break; }
+			}
+			Check(same, "the grid's cells are the world's own, for every body and both layers");
+		}
+	}
+}
 void Camp(bool dump) {
 	auto w=RecordedCampGrid(); const auto grid=Navigation::Build(w,12);
 	Check(grid.originKnown && grid.reachable > 0, "the actual camp capture supplies a connected player region");
@@ -114,6 +148,80 @@ void Camp(bool dump) {
 	Check(Reached(grid,4469,4631), "the recorded camp has a real route around the post without erasing it");
 	Check(grid.touchesUnknown, "the uncaptured map outside the camp fixture remains unknown");
 	if (dump) std::cout << "camp player=" << grid.playerX << ',' << grid.playerY << " reachable=" << grid.reachable << '\n' << grid.Dump();
+}
+// What the game's single-cell reset does to the map, for each cell a marker names.
+void TakeOff(Radar::World& w, const Radar::LeftMarker& marker) {
+	for (const auto& cell : Radar::MarkerCells(w, marker)) w.rooms[0].cells[cell.y*50+cell.x] &= static_cast<uint16_t>(~cell.mask);
+}
+bool Has(const std::vector<Radar::LeftMarker>& left, int x, int y) {
+	return std::any_of(left.begin(), left.end(), [&](const Radar::LeftMarker& m) { return m.x == x && m.y == y; });
+}
+void LeftMarkers() {
+	const std::vector<Radar::Position> nobody;
+	// The 2026-09-29 stuck line at 5851,4970, rows y-2..y+2, the player's own
+	// stamp already taken out: two left north and west, the shrine south.
+	const uint16_t boxed[5][5] = {
+		{0x0000, 0x0000, 0x8080, 0x8000, 0x8000},
+		{0x0000, 0x0080, 0x1080, 0x8080, 0x0000},
+		{0x0080, 0x1080, 0x0000, 0x0000, 0x0000},
+		{0x0000, 0x0080, 0x0400, 0x0400, 0x0400},
+		{0x0000, 0x0000, 0x0400, 0x0400, 0x0400}};
+	const auto place = [](Radar::World& w, const uint16_t rows[5][5]) {
+		for (int dy = -2; dy <= 2; ++dy) for (int dx = -2; dx <= 2; ++dx) Put(w, 20 + dx, 20 + dy, rows[dy + 2][dx + 2]);
+	};
+	auto w = Field(1);
+	place(w, boxed);
+	Check(Radar::LeftMarkers(w, nobody, false).empty(), "a stamp on the cells round the player is left alone until a move is refused");
+	auto left = Radar::LeftMarkers(w, nobody, true);
+	Check(left.size() == 2 && Has(left, 20, 19) && Has(left, 19, 20), "both stamps left beside the player are found once one is");
+	int open = 0;
+	for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) open += (dx || dy) && w.Body(20 + dx, 20 + dy) == Radar::State::Open;
+	Check(open == 0, "with them and the shrine no first step is open");
+	for (const auto& marker : left) TakeOff(w, marker);
+	Check(w.Body(20, 19) == Radar::State::Open && w.Body(19, 20) == Radar::State::Open, "taken off, north and west are open");
+	Check(w.rooms[0].cells[18*50+20] == 0x8000 && w.rooms[0].cells[19*50+21] == 0x8000, "a corpse under an arm keeps its own bit");
+	Check(w.rooms[0].cells[21*50+20] == 0x0400, "the shrine is not touched");
+	Check(Radar::LeftMarkers(w, nobody, true).empty(), "nothing is found once they are off");
+
+	// 2026-09-30 10:59:04 at 22712,6680: the stamp a cell north, its east arm
+	// already gone. The first remedy wanted a whole cross and took nothing off.
+	const uint16_t partial[5][5] = {
+		{0x0007, 0x0000, 0x0080, 0x0000, 0x0000},
+		{0x0007, 0x0080, 0x1080, 0x0000, 0x0000},
+		{0x0007, 0x0000, 0x0000, 0x0000, 0x0000},
+		{0x0007, 0x0000, 0x0000, 0x0000, 0x0000},
+		{0x0007, 0x0000, 0x0000, 0x0000, 0x0000}};
+	w = Field(1);
+	place(w, partial);
+	Check(w.Body(20, 19) == Radar::State::Blocked, "a stamp with an arm gone still refuses the step onto it");
+	left = Radar::LeftMarkers(w, nobody, true);
+	Check(left.size() == 1 && Has(left, 20, 19), "a stamp with an arm gone is found");
+	TakeOff(w, left.front());
+	Check(w.Body(20, 19) == Radar::State::Open && w.rooms[0].cells[19*50+19] == 0 && w.rooms[0].cells[18*50+20] == 0
+		&& w.rooms[0].cells[20*50+18] == 0x0007, "it comes off with what is left of its arms, and the wall stays");
+
+	// 2026-09-30 11:33:06: a marker with nothing round it, two cells from the player.
+	w = Field(1);
+	Put(w, 22, 18, 0x1000);
+	Check(w.Cell(22, 18, Radar::Layer::Terrain) == Radar::State::Blocked, "a bare marker is a wall to the routes");
+	left = Radar::LeftMarkers(w, nobody, false);
+	Check(left.size() == 1 && Has(left, 22, 18), "a bare marker away from the player is found without a refusal");
+	Check(Radar::MarkerCells(w, left.front()).size() == 1 && Radar::MarkerCells(w, left.front()).front().mask == 0x1000,
+		"only its own bit is taken off, and no cell beside it");
+	const std::vector<Radar::Position> beside{{23, 19}};
+	Check(Radar::LeftMarkers(w, beside, false).empty(), "a marker within a cell of a unit is that unit's");
+
+	// What is never a left marker.
+	w = Field(1);
+	Put(w, 30, 30, 0x1100); Put(w, 32, 30, 0x3000); Put(w, 34, 30, 0x10C0); Put(w, 36, 30, 0x1020);
+	Check(Radar::LeftMarkers(w, nobody, true).empty(), "a monster's marker, a pet's, water and an unknown cell are left alone");
+	Put(w, 20, 20, 0x1000);
+	Check(Radar::LeftMarkers(w, nobody, true).empty(), "the player's own cell is never listed");
+	w = Field(1);
+	Put(w, 30, 30, 0x1080); Put(w, 29, 30, 0x0080); Put(w, 31, 30, 0x0080); Put(w, 30, 29, 0x0080); Put(w, 30, 31, 0x0080);
+	const std::vector<Radar::Position> other{{30, 30}};
+	Check(Radar::LeftMarkers(w, other, false).empty(), "another player's stamp under that player is left alone");
+	Check(Radar::LeftMarkers(w, nobody, false).size() == 1, "the same stamp with no player on it is a left one");
 }
 void BoundsAndCost() {
 	auto w=Field();
@@ -136,6 +244,6 @@ void BoundsAndCost() {
 }
 int main(int argc, char** argv) {
 	if (argc > 1 && std::string_view(argv[1]) == "camp") { Camp(true); Passed(); return 0; }
-	WallAndDoorway(); FirstDirection(); CoarseCellTrap(); BodyAndDiagonals(); ClearanceAndCoverage(); RoomSeamsAndIdentity(); Camp(false); BoundsAndCost();
+	WallAndDoorway(); FirstDirection(); CoarseCellTrap(); BodyAndDiagonals(); ClearanceAndCoverage(); RoomSeamsAndIdentity(); SameAsTheWorld(); Camp(false); LeftMarkers(); BoundsAndCost();
 	Passed();
 }

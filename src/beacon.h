@@ -1,7 +1,6 @@
 #pragma once
 
 #include "radar.h"
-#include "speech_strings.h"
 
 #include <cstdint>
 #include <vector>
@@ -16,6 +15,7 @@ namespace D2RAccess::Beacon {
 using Radar::Position;
 
 struct Settings {
+	Radar::Layer layer = Radar::Layer::Terrain; // movement commands may also avoid live unit footprints
 	bool requireKnownRoute = false; // exploration mode must not follow partial routes or direct fallbacks
 	// Distances are collision subtiles, the unit the scanner speaks as
 	// steps. Navigation policy, not game constants.
@@ -48,21 +48,10 @@ struct Settings {
 struct Route {
 	bool known = false;     // a first leg was proved on the collision map
 	bool reachable = false; // the search reached the target itself
-	bool straight = false;  // the line to the target admits the body all the way
 	Position heading{};     // unit vector in world cells
 	double length = 0;      // route length to the sub-goal, in cells
 	std::vector<Position> path; // player cell -> sub-goal cell
 };
-
-// What the player is told about getting there, the one thing a route is for.
-enum class Reach { Unknown, Straight, Around, Unreachable };
-// `distance` is the straight-line distance to the target. Beyond the search
-// box nothing was proved, and calling that "no route" would be a lie.
-Reach Reachability(const Route& route, double distance, const Settings& settings);
-// That verdict as the word to speak, or null when nothing was proved. The one
-// place that maps Reach to speech, so the lock and the exit review agree.
-const char* ReachWord(const Radar::World& world, Position target, const Settings& settings,
-	const Strings::Table& strings);
 
 // Bounded route search on the terrain layer: monsters and players standing in
 // a doorway do not reroute the player. When the target is unreachable or its

@@ -24,6 +24,9 @@ std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
 }
 std::string SelectedTabText(uintptr_t widget) { return Visible(widget) ? labels[widget] : ""; }
 }
+namespace D2RAccess::NativeWidgets {
+std::string ReadName(uintptr_t widget) { return widget == 300 ? "UISwitcherTabs" : "TabBar"; }
+}
 
 int main() {
 	using namespace D2RAccess;
@@ -51,6 +54,15 @@ int main() {
 	Check(Tick().empty(), "controller glyphs do not become tab labels");
 	Check(Tick(true).empty() && TabReader::Selected(30).empty(), "dialogues suspend and reset tab tracking");
 	Check(Tick().empty(), "return from dialogue silently establishes current tabs");
+	// The quest log is a switcher tab that suspends this reader; the tab after
+	// it -- Options, which has no window title -- is still named.
+	Check(Tick(true).empty(), "the quest log suspends tab tracking");
+	labels[300] = "Opciones";
+	Check(Tick() == "Opciones", "the switcher tab reached from a dialogue is named on return");
+	Check(Tick().empty(), "and only once");
+	Check(Tick(true).empty(), "a dialogue suspends tracking again");
+	labels[102] = "Comp.";
+	Check(Tick().empty(), "other tab bars still return from a dialogue silently");
 	TabReader::Reset(); panels = {40}; controls[40] = {400}; labels[400] = "Unrelated";
 	const int priorWalks = walks;
 	Check(Tick().empty() && walks == priorWalks, "narrative panels are not scanned for background navigation tabs");

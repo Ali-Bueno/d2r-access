@@ -16,6 +16,7 @@ std::atomic<bool> g_enabled{true};
 uintptr_t g_panel = 0, g_selected = 0;
 bool g_gesture = false;
 
+}
 std::vector<SkillGrid::Node> Nodes(uintptr_t panel) {
 	std::vector<SkillGrid::Node> result;
 	for (const auto button : NativeUi::FindControls(panel, UiText::Kind::Button)) {
@@ -29,7 +30,6 @@ std::vector<SkillGrid::Node> Nodes(uintptr_t panel) {
 		if (cell.x >= 0 && cell.y >= 0) result.push_back({button, cell.x, cell.y});
 	}
 	return result;
-}
 }
 void Reset() {
 	NativeSkillNavigation::HoldCursor(false);
@@ -74,4 +74,8 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	NativeSkillNavigation::HoldCursor(g_gesture);
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool Enabled() { return g_enabled; }
 }

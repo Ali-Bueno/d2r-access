@@ -123,6 +123,9 @@ void Tick(const D2RL::PluginContext* context) {
 	if (const auto readings = Read(state)) Announce(context, g_tracker.Update(*readings));
 }
 
+bool Enabled() { return g_enabled; }
+void SetEnabled(bool on) { g_command = on ? Command::On : Command::Off; }
+
 void Unregister() {
 	if (g_lifecycle && g_context) for (auto handle : g_listeners)
 		(void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);

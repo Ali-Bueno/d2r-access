@@ -72,8 +72,9 @@ bool Read(uint32_t player, uint64_t session, GroundItems::Snapshot& result) {
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return supported; }
-bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits, bool levelBearings, bool) {
+bool Read(uint32_t player, uint64_t session, std::vector<EntityRadar::Entity>& result, bool distantExits, bool levelBearings, bool wholeLevel, bool) {
 	Check(!distantExits, "proximity loops never request unloaded exit presets");
+	Check(!wholeLevel, "proximity loops keep to the rooms around the player");
 	Check(!levelBearings, "proximity loops do not use approximate area bearings");
 	Check(player == 42 && session == snapshot.session, "exit reader uses active lifecycle identity");
 	result = entities;
@@ -137,8 +138,10 @@ int main() {
 	Check(Quests() == 2 && Chests() == 0 && speech.empty(), "tree and quest chest use quest audio without duplicate chest sound or speech");
 	Command("chests-off"); Check(Quests() == 2, "quest interactables remain audible with container sounds disabled");
 	Command("exits-off"); Check(Quests() == 2 && Portals() == 0, "quest interactables remain audible with exit sounds disabled");
-	Command("sound-off"); Check(voices.empty(), "item sound switch silences both quest objects");
-	Command("sound-on"); Check(Quests() == 2, "enabling item sounds refreshes quest objects without exits or containers");
+	Command("sound-off"); Check(Quests() == 2, "quest objects keep sounding with item sounds disabled");
+	Command("quests-off"); Check(voices.empty(), "quest object switch silences both quest objects");
+	Command("quests-on"); Check(Quests() == 2, "enabling quest object sounds refreshes them without items, exits or containers");
+	Command("sound-on");
 	for (auto state : {RadarUi::State::Dialogue, RadarUi::State::Paused, RadarUi::State::Inactive, RadarUi::State::Unavailable}) {
 		ui = state; Tick(); Check(voices.empty(), "quest sounds obey dialogue, pause, focus and unavailable UI gates");
 	}
@@ -204,7 +207,7 @@ int main() {
 	Check(Count(GroundItems::Sound::WeaponRack) == 0, "and follows the container switch");
 	Command("chests-on");
 	entities.pop_back();
-	// The stash is a fixed place: it loops its own sound with the exits, under their switch.
+	// The stash is a fixed place: it loops its own sound with the exits, under a switch of its own.
 	entities.push_back({37, EntityRadar::Kind::Object, {4, 4}, "Alijo", 703, false, EntityRadar::Category::Stash});
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
 	Check(Count(GroundItems::Sound::Stash) == 1 && Chests() == 0 && speech.empty(), "the stash loops its own sound, unspoken");
@@ -216,8 +219,13 @@ int main() {
 	openPanels.clear(); Tick();
 	Check(Count(GroundItems::Sound::Stash) == 1, "closing the stash brings its loop back");
 	Command("exits-off");
-	Check(Count(GroundItems::Sound::Stash) == 0, "the exit switch covers the stash");
+	Check(Count(GroundItems::Sound::Stash) == 1 && Portals() == 0, "the exit switch leaves the stash alone");
+	Command("stash-off");
+	Check(Count(GroundItems::Sound::Stash) == 0, "the stash switch silences the stash");
 	Command("exits-on");
+	Check(Count(GroundItems::Sound::Stash) == 0 && Portals() == 1, "and only the stash");
+	Command("stash-on");
+	Check(Count(GroundItems::Sound::Stash) == 1, "the stash loop can be reenabled");
 	entities.pop_back();
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Command("doors-off");
@@ -239,8 +247,8 @@ int main() {
 	entities.push_back(tome);
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); speech.clear(); Tick();
 	Check(Count(GroundItems::Sound::Scroll) == 1 && Quests() == 0 && speech.empty(), "an unread tome loops the scroll sound, unspoken");
-	Command("sound-off"); Check(Count(GroundItems::Sound::Scroll) == 0, "the item loop switch covers tomes like other quest objects");
-	Command("sound-on"); Check(Count(GroundItems::Sound::Scroll) == 1, "and brings them back");
+	Command("quests-off"); Check(Count(GroundItems::Sound::Scroll) == 0, "the quest object switch covers tomes like other quest objects");
+	Command("quests-on"); Check(Count(GroundItems::Sound::Scroll) == 1, "and brings them back");
 	entities.back().unreadTome = false;
 	Sleep(static_cast<DWORD>(GroundItems::ExitRefreshMs)); Tick();
 	Check(Count(GroundItems::Sound::Scroll) == 0, "a read tome falls silent");

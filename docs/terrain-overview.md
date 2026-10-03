@@ -35,11 +35,13 @@ layout data, which is not proof that the player has discovered that terrain.
 | Gesture | Action |
 | --- | --- |
 | **Ctrl+O** | Read the overview |
+| **BACK + B** (hold BACK, press B), no menu open | Read the overview |
 | `access-terrain` (or `access-terrain read`) | Read the overview from the console |
 
-The L3+R3 chord was removed on 2026-09-25 (the user: the scanner covers it), so
-the overview has no controller gesture; the mod's only stick button is L3, the
-beacon.
+On the `bladestorm` branch the controller gesture is BACK+B. BACK is the
+branch's modifier (`input_direction.h`); the B pressed with it is kept from the
+game during play (`pad_filter.h`). Upstream removed its L3+R3 chord on
+2026-09-25; here the mod's only stick button is L3, the beacon.
 
 Ctrl+M was taken (room exits toggle), hence Ctrl+O.
 
@@ -53,7 +55,7 @@ revealed or written.
 | Level room list, room tile rects | `Level+0x10` → `RoomEx+0x48`, `RoomEx+0x60..0x6C` (`level_exit_layout.h`) |
 | Room streamed right now | `RoomEx+0x58`, set/cleared by `0x361290` / `0x361260` |
 | Level's own tile rect | `Level+0x24..0x30`, the union the DRLG writes (`0x3267C0`, `0x327650` / `0x3EC820`) |
-| Rooms of bordering levels | the near list `RoomEx+0x10/+0x18`, the same test the border walk uses |
+| Rooms of bordering levels | the near list `RoomEx+0x10/+0x18`, the same test `ReadBorders` uses |
 | Level names | the game's own Levels table (`NativeEntities::LevelName`) |
 | Screen directions | `Radar::Axes` — each screen cardinal is a world diagonal (projection `0x334DB0`) |
 

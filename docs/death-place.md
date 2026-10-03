@@ -36,3 +36,7 @@ Log: `[death] recorded level=L at=x,y`, `[death] reached … forgotten`, `[death
 - `src/death_place_service.{h,cpp}`: death signal, the file, arrival, and the scanner entries.
 - Wiring: `ui_message_monitor.cpp` (death screen), `map_survey_service.cpp` (`Track` on every
   observe, `Landmarks` in the catalogue), `beacon_service.cpp` (the place does not move).
+
+## Local integration, 2026-10-03
+
+The UI thread owns the death memory. It submits an immutable serialized snapshot to a dedicated disk worker, joined on unload; no filesystem write runs in the UI tick. The archive remains separate from character saves. Stored exit names retain local relocalization and Tal Rasha markings.

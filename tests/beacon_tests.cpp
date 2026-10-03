@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <limits>
 #include <numbers>
 #include <vector>
 
@@ -689,60 +688,6 @@ void Probe() {
 	std::cout << "probe elbow length=" << bent.length << " steps=" << bent.path.size()
 		<< " octileLegs=" << Octile(elbow.player, elbow.corner) + Octile(elbow.corner, elbow.target) << '\n';
 }
-// The three words the beacon speaks when it locks: the player walks there, has
-// to go around, or cannot get there at all -- and says nothing when the target
-// is too far away for the search to have proved anything.
-void ReachVerdict() {
-	const Beacon::Settings s;
-
-	auto open = Field({70, 110});
-	const Position ahead{110, 110};
-	const auto clear = Beacon::FindRoute(open, ahead, s);
-	Check(clear.straight, "an open field between player and target is a straight walk");
-	Check(Beacon::Reachability(clear, Length(Minus(ahead, open.player)), s) == Beacon::Reach::Straight,
-		"a clear line is spoken as straight");
-
-	// A wall across the line with a way round one end.
-	auto detour = Field({70, 110});
-	Fill(detour, 90, 90, 91, 130, Wall);
-	const auto around = Beacon::FindRoute(detour, ahead, s);
-	Check(!around.straight, "a wall across the line is not a straight walk");
-	Check(around.reachable, "the target past the wall is still reachable");
-	Check(Beacon::Reachability(around, Length(Minus(ahead, detour.player)), s) == Beacon::Reach::Around,
-		"reachable but not in a line is spoken as around");
-
-	// Sealed: no way in at all.
-	auto sealed = Field({70, 110});
-	Fill(sealed, 106, 106, 114, 114, Wall);
-	Fill(sealed, 107, 107, 113, 113, 0);
-	const auto none = Beacon::FindRoute(sealed, ahead, s);
-	Check(!none.straight && !none.reachable, "a sealed target is neither straight nor reachable");
-	Check(Beacon::Reachability(none, Length(Minus(ahead, sealed.player)), s) == Beacon::Reach::Unreachable,
-		"a sealed target is spoken as no route");
-
-	// Beyond the search box nothing was proved, so nothing is claimed.
-	Check(Beacon::Reachability({}, s.searchRadius + 1, s) == Beacon::Reach::Unknown,
-		"a target beyond the search box says nothing rather than no route");
-	Check(Beacon::Reachability({}, std::numeric_limits<double>::quiet_NaN(), s) == Beacon::Reach::Unknown,
-		"an unreadable distance says nothing");
-
-	// A target standing on its own collision is still a straight walk up to it.
-	auto post = Field({70, 110});
-	Put(post, 110, 110, Wall);
-	const auto toPost = Beacon::FindRoute(post, ahead, s);
-	Check(!toPost.reachable, "the search never enters the target's own blocked cell");
-	Check(Beacon::Reachability(toPost, Length(Minus(ahead, post.player)), s) == Beacon::Reach::Straight,
-		"walking up to a chest in the open is straight, not unreachable");
-
-	// The word every feature speaks comes from here, so they cannot disagree.
-	const auto& english = Strings::For(Strings::Language::enUS);
-	Check(Beacon::ReachWord(open, ahead, s, english) == english.beaconReachStraight, "a clear line says straight");
-	Check(Beacon::ReachWord(detour, ahead, s, english) == english.beaconReachAround, "a wall in the way says around");
-	Check(Beacon::ReachWord(sealed, ahead, s, english) == english.beaconReachNoRoute, "a sealed target says no route");
-	Check(Beacon::ReachWord(open, {open.player.x + s.searchRadius + 10, open.player.y}, s, english) == nullptr,
-		"beyond the search box there is no word to say");
-}
-
 int main() {
 	Probe();
 	PingCadence();
@@ -751,7 +696,6 @@ int main() {
 	Doorway();
 	SealedTarget();
 	KnownRouteOnly();
-	ReachVerdict();
 	UnknownGround();
 	BodyFootprint();
 	WalkStability();

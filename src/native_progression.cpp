@@ -1,9 +1,11 @@
 #include "native_progression.h"
+
+#include "native_skill_icons.h"
 #include "native_controller_help.h"
 #include "controller_text.h"
 #include "localization.h"
-#include "native_skill_bar.h"
 #include "native_widgets.h"
+#include "native_skill_bar.h"
 #include "progression_text.h"
 #include "speech_strings.h"
 
@@ -27,6 +29,16 @@ std::string ChildText(uintptr_t widget, std::string_view child) {
 	return Text(NativeWidgets::FindChild(widget, child));
 }
 
+// "Assigned to F1": the key a skill's icon shows it is bound to; "" when none.
+std::string Binding(uintptr_t widget) {
+	const auto hotkey = NativeWidgets::FindChild(widget, "HotkeyText");
+	const auto binding = NativeUi::Visible(hotkey) ? ControllerText::Read(NativeWidgets::ReadText(hotkey)) : std::string{};
+	if (binding.empty()) return {};
+	char phrase[200]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().assignedTo, binding.c_str());
+	return phrase;
+}
+
 }
 
 Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
@@ -44,11 +56,20 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		if (result.readout.option.empty()) return result;
 		result.value = ChildText(focus.panel, stem + "Stat");
 		result.points = ChildText(focus.panel, "CombinedPointsInfo");
+		// The stat and its value, and nothing else on the move (the user,
+		// 2026-09-21: "only the statistic highlighted should be read with
+		// autodetail off"). Its explanation waits for right stick up or
+		// autodetail, the points left for right stick right, and the button's
+		// own "Spend Stat Point" is what its controls already say.
 		Append(result.readout.option, result.value);
-		Append(result.readout.option, result.points);
-		Append(result.readout.option, ChildText(title, "Tooltip"));
-		Append(result.readout.option, Text(focus.widget));
-		result.readout.body = Localization::Text("minipanelchar");
+		result.description = ChildText(title, "Tooltip");
+	} else if (type.kind == UiText::Kind::Button && NativeSkillIcons::InList(focus.widget)) {
+		// The list of skills for a hand is read as the tree is: the skill and
+		// the key bound to it, the rest for right stick up, J or autodetail
+		// (the user, 2026-09-28: the list read its tooltip whole, bottom up).
+		// Its icons carry HotkeyText in every mode (SkillSelect.json).
+		result.skill = true;
+		result.help = Binding(focus.widget);
 	} else if (type.kind == UiText::Kind::Button) {
 		// Skill-tree class buttons are plain ButtonWidget instances. Their
 		// owning containers (including granted/common skills) supply the role.
@@ -59,16 +80,10 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		const auto tab = NativeUi::Parent(container);
 		if (NativeUi::Classify(tab).kind != UiText::Kind::TabButton) return result;
 		result.skill = true;
-		result.readout.body = Text(tab);
+		result.readout.body = NativeUi::Visible(tab) ? UiText::Clean(NativeUi::TabLabel(tab)) : std::string{};
 		result.points = ChildText(focus.panel, "SkillCounter");
-		const auto hotkey = NativeWidgets::FindChild(focus.widget, "HotkeyText");
-		const auto binding = NativeUi::Visible(hotkey) ? ControllerText::Read(NativeWidgets::ReadText(hotkey)) : std::string{};
-		if (!binding.empty()) {
-			char phrase[200]{};
-			std::snprintf(phrase, sizeof(phrase), Strings::Current().assignedTo, binding.c_str());
-			result.help = phrase;
-		}
-		Append(result.help, NativeControllerHelp::ForFocus(focus));
+		result.help = Binding(focus.widget);
+		result.controls = NativeControllerHelp::ForFocus(focus);
 		const auto [tree, cell] = ProgressionText::ParseSkillButton(name);
 		if (cell.x >= 0) {
 			char phrase[100]{};

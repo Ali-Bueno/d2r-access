@@ -38,10 +38,10 @@ void JournalDetails() {
 	Check(readout.help == "Play Quest Dialogue", "journal includes its visible speech action caption");
 	Reader reader;
 	reader.Update(readout, 0);
-	Check(reader.Update(readout, 150).text == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones. Play Quest Dialogue",
-		"quest action follows the complete title and objective");
-	Check(reader.Repeat() == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones. Play Quest Dialogue",
-		"manual quest repeat retains the action caption");
+	Check(reader.Update(readout, 150).text == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones.",
+		"the quest action is a control hint, never part of the spoken details");
+	Check(reader.Repeat() == "The Search for Cain. Go to the Stony Field. Find the Cairn Stones.",
+		"and a manual repeat reads the details alone");
 	journal.nodes[7].enabled = false;
 	Check(Describe(journal).help.empty(), "an unavailable speech button does not promise an action");
 	journal.nodes[2].text = "Tools of the Trade";
@@ -127,9 +127,6 @@ int main() {
 	Check(reader.Update(transient, 1900).text.empty(), "empty snapshots restart the settling window");
 	Check(reader.Update(transient, 1980).text == "half", "stable text after a gap is delivered");
 	Check(Clean("\xEE\x80\x93").empty(), "controller-image tooltip is silent");
-	// Monster plate, 2026-09-29: "Demonio 5• 0Invoca trinchantes" kept both font indices.
-	Check(Clean("Demonio \xEE\x81\xBE" "5\xE2\x80\xA2\xEE\x81\xBE" "0Invoca") == "Demonio \xE2\x80\xA2 Invoca",
-		"a font command drops its index character");
 	Check(Clean("\xEE\x80\x93 Recoger. Daño: 2–6") == "Recoger. Daño: 2–6", "controller images do not hide real item text or Unicode punctuation");
 	reader.Reset();
 	const Readout item{"Inventory", "Inventario", "Poción", "0", "", Surface::Other};

@@ -38,6 +38,15 @@ void UpdateCursor(uintptr_t cursor, uint64_t now) {
 		reinterpret_cast<NativeCursorGesture::ResetFn>(g_base + CursorResetRva))) return;
 	if (g_original) reinterpret_cast<void(*)(uintptr_t, uint64_t)>(g_original)(cursor, now);
 }
+bool ReadRectAt(uintptr_t widget, uint64_t selection, Rect& rect) noexcept {
+	uintptr_t vtable = 0, function = 0;
+	if (!NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + FocusRectSlot, function)
+		|| !NativeMemory::Executable(function)) return false;
+	__try {
+		reinterpret_cast<Rect*(*)(uintptr_t, Rect*, uint64_t)>(function)(widget, &rect, selection);
+		return rect.width > 0 && rect.height > 0;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
 bool ReadRect(uintptr_t widget, Rect& rect) noexcept {
 	uintptr_t vtable = 0, function = 0;
 	if (!NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + FocusRectSlot, function)
@@ -108,6 +117,37 @@ std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
 		|| select != g_base + SelectRva || !ReadRect(widget, rect)) return std::nullopt;
 	return NativeUi::Rect{rect.x, rect.y, rect.width, rect.height};
 }
+std::optional<NativeUi::Rect> RectAt(uintptr_t widget, uint64_t selection) {
+	uintptr_t vtable = 0, select = 0;
+	Rect rect{};
+	if (!Available() || !NativeUi::Visible(widget)
+		|| !NativeMemory::Peek(widget, vtable) || !NativeMemory::Peek(vtable + SelectSlot, select)
+		|| select != g_base + SelectRva || !ReadRectAt(widget, selection, rect)) return std::nullopt;
+	return NativeUi::Rect{rect.x, rect.y, rect.width, rect.height};
+}
+uintptr_t Owner(uintptr_t widget) {
+	uintptr_t owner = 0;
+	if (!widget || !NativeMemory::Peek(widget + OwnerPanelOffset, owner) || !NativeUi::Visible(owner)) return 0;
+	return owner;
+}
+bool PlacePointer(NativeUi::Cell point) noexcept {
+	if (!Available()) return false;
+	// READ, 3.3.93787: out of controller mode 0x14F690 clamps nothing. It keeps the
+	// point as the game's mouse position, turns it into window pixels (0x7F210)
+	// and moves the real pointer there (0x120A280: ClientToScreen, SetCursorPos).
+	// Then hover is recomputed from it, as the stock cursor commit 0x2346C0 does:
+	// without that the game went on showing the tooltip of what the mouse was
+	// last over (MEASURED 2026-09-28 09:08: "Kashya" on the list of skills, and
+	// no skill's own tooltip, name only, the nudge sent every time).
+	uintptr_t manager = 0;
+	const auto panels = NativeWidgets::PanelManager();
+	if (panels) (void)NativeMemory::Peek(panels + FocusManagerOffset, manager);
+	__try {
+		reinterpret_cast<void(*)(Point)>(g_base + CursorPositionRva)(Point{point.x, point.y});
+		if (manager) reinterpret_cast<void(*)(uintptr_t, bool)>(g_base + RefreshHoverRva)(manager, false);
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
 std::optional<bool> TextEditing() {
 	uintptr_t editor = 0;
 	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor)) return std::nullopt;
@@ -118,6 +158,15 @@ uintptr_t ActiveTextInput(uintptr_t panel) {
 	if (!Available() || !g_activeInput || !panel || !NativeMemory::Peek(g_activeInput, editor) || !editor
 		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || owner != panel || !NativeUi::Visible(editor)) return 0;
 	return editor;
+}
+bool SelectAt(NativeUi::Focus focus, uint64_t selection) {
+	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;
+	uintptr_t owner = 0, vtable = 0, select = 0;
+	Rect rect{};
+	if (!NativeMemory::Peek(focus.widget + OwnerPanelOffset, owner) || owner != focus.panel
+		|| !NativeMemory::Peek(focus.widget, vtable) || !NativeMemory::Peek(vtable + SelectSlot, select)
+		|| select != g_base + SelectRva || !ReadRectAt(focus.widget, selection, rect)) return false;
+	return SelectNative(focus.widget, rect, selection);
 }
 bool Select(NativeUi::Focus focus) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;

@@ -15,38 +15,47 @@
 #include "entity_radar_service.h"
 #include "entity_cue_service.h"
 #include "input_direction.h"
+#include "interaction_reader.h"
+#include "keyboard_menu.h"
+#include "keyboard_service.h"
 #include "localization.h"
 #include "modal_reader.h"
 #include "multiplayer_reader.h"
 #include "menu_navigation.h"
 #include "native_widgets.h"
 #include "native_cairn.h"
+#include "native_memory.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
+#include "pad_filter.h"
 #include "skill_navigation.h"
 #include "skill_bar_service.h"
 #include "quest_service.h"
 #include "radar_config.h"
-#include "place_service.h"
-#include "room_service.h"
 #include "radar_service.h"
+#include "room_service.h"
 #include "terrain_service.h"
 #include "death_place_service.h"
+#include "place_service.h"
+#include "boss_life_service.h"
+#include "inventory_arrival_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
 #include "ui_thread_pump.h"
 #include "tab_highlight.h"
 #include "vitals_service.h"
-#include "boss_life_service.h"
 #include "weapon_swap_service.h"
-#include "inventory_arrival_service.h"
 #include "trade_service.h"
 #include "text_field.h"
 #include "widget_probe.h"
 #include "widgets.h"
 
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -79,43 +88,105 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 		record.claimant ? record.claimant : "nobody, a later push replaced it");
 }
 
+// Which part of a UI update took the time, for an update of 30 ms or more:
+// the mod's work runs on the game's own thread, so the game waits for it.
+// One line a second at most (the user, 2026-09-30: "slight lag when
+// navigating any inventory screen"; HANDOFF).
+class Laps {
+public:
+	explicit Laps(const D2RL::PluginContext* context)
+		: context_(context), checks_(D2RAccess::NativeMemory::Checks()), start_(Clock::now()), last_(start_) {}
+	Laps(const Laps&) = delete;
+	Laps& operator=(const Laps&) = delete;
+	void operator()(const char* name) {
+		const auto now = Clock::now();
+		if (count_ < parts_.size()) parts_[count_++] = {name, Ms(last_, now)};
+		last_ = now;
+	}
+	~Laps() {
+		const auto now = Clock::now();
+		const double total = Ms(start_, now);
+		if (total < SlowMs) return;
+		++slow_;
+		if (now - reported_ < std::chrono::seconds(1)) return;
+		reported_ = now;
+		std::sort(parts_.begin(), parts_.begin() + count_, [](const Part& a, const Part& b) { return a.ms > b.ms; });
+		std::string list;
+		for (size_t i = 0; i < count_ && parts_[i].ms >= 1; ++i) {
+			char part[64]{};
+			std::snprintf(part, sizeof(part), "%s%s %.1f", list.empty() ? "" : ", ", parts_[i].name, parts_[i].ms);
+			list += part;
+		}
+		const auto checks = D2RAccess::NativeMemory::Checks();
+		D2RAccess::AsyncLog::WarnF(context_, "[pump] update of %.1f ms (%u of 30 ms or more since the last line), %llu page checks taking %.1f ms: %s",
+			total, slow_, static_cast<unsigned long long>(checks.count - checks_.count), checks.ms - checks_.ms,
+			list.empty() ? "no part over 1 ms" : list.c_str());
+		slow_ = 0;
+	}
+private:
+	using Clock = std::chrono::steady_clock;
+	static double Ms(Clock::time_point from, Clock::time_point to) { return std::chrono::duration<double, std::milli>(to - from).count(); }
+	static constexpr double SlowMs = 30;
+	struct Part { const char* name = ""; double ms = 0; };
+	const D2RL::PluginContext* context_;
+	D2RAccess::NativeMemory::PageChecks checks_;
+	Clock::time_point start_, last_;
+	std::array<Part, 40> parts_{};
+	size_t count_ = 0;
+	static inline Clock::time_point reported_{};
+	static inline unsigned slow_ = 0;
+};
+
 // One UI update: sample input first so a value message arriving this update
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
-	D2RAccess::InputDirection::Poll();
+	Laps lap(context);
+	// One pass for the whole update: a page's permission is asked of Windows
+	// once, not once a read. Half the readers opened no scope of their own
+	// (the play test five services make every update, the ground items, the
+	// world snapshot), and each of their reads was a VirtualQuery of its own,
+	// 0.3-0.5 microseconds apiece (measured offline 2026-10-01). Every copy is
+	// still guarded, and a fault drops what the pass had remembered.
+	const D2RAccess::NativeMemory::ReadScope pages;
+	D2RAccess::InputDirection::Poll(); lap("InputDirection");
+	// Before every reader: a key posts the gesture a reader takes this same update.
+	D2RAccess::KeyboardService::Tick(context); lap("KeyboardService");
+	D2RAccess::KeyboardMenu::Tick(context); lap("KeyboardMenu");
 	if (!D2RAccess::MenuNavigation::Tick(context)) D2RAccess::SkillNavigation::Tick(context);
-	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context);
+	lap("MenuNavigation/SkillNavigation");
+	const bool uiOwnsSpeech = D2RAccess::GameTextReader::Tick(context); lap("GameTextReader");
 	if (!uiOwnsSpeech) D2RAccess::FocusTracker::Tick(context);
-	D2RAccess::MultiplayerReader::Tick(context);
+	lap("FocusTracker");
+	D2RAccess::MultiplayerReader::Tick(context); lap("MultiplayerReader");
 	// After the focus tracker, so landing on a strip is its announcement and
 	// only a later move along the strip is this one's.
-	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech);
-	D2RAccess::TextField::Tick(context);
-	D2RAccess::AutoDetail::Tick(context);
-	D2RAccess::ModalReader::Tick(context);
-	D2RAccess::WidgetProbe::Tick(context);
-	D2RAccess::UiMessageMonitor::Tick(context);
-	D2RAccess::NativeWidgets::Tick(context);
-	D2RAccess::QuestService::Tick(context, uiOwnsSpeech);
-	D2RAccess::RadarService::Tick(context);
-	D2RAccess::RoomService::Tick(context, uiOwnsSpeech);
-	D2RAccess::PlaceService::Tick(context, uiOwnsSpeech);
-	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech);
-	D2RAccess::FootstepService::Tick();
-	D2RAccess::WallSlideService::Tick();
-	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech);
-	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech);
-	D2RAccess::AutomapService::Tick(context);
-	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech);
-	D2RAccess::EntityCueService::Tick(context);
-	D2RAccess::BeaconService::Tick(context);
-	D2RAccess::SkillBarService::Tick(context);
-	D2RAccess::VitalsService::Tick(context);
-	D2RAccess::BossLifeService::Tick(context);
-	D2RAccess::WeaponSwapService::Tick(context);
-	D2RAccess::InventoryArrivalService::Tick(context);
-	D2RAccess::TradeService::Tick(context);
-	LogRightStickPush(context);
+	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech); lap("TabHighlight");
+	D2RAccess::TextField::Tick(context); lap("TextField");
+	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
+	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
+	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
+	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
+	D2RAccess::NativeWidgets::Tick(context); lap("NativeWidgets");
+	D2RAccess::QuestService::Tick(context, uiOwnsSpeech); lap("QuestService");
+	D2RAccess::RadarService::Tick(context); lap("RadarService");
+	D2RAccess::RoomService::Tick(context, uiOwnsSpeech); lap("RoomService");
+	D2RAccess::PlaceService::Tick(context, uiOwnsSpeech); lap("PlaceService");
+	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech); lap("TerrainService");
+	D2RAccess::FootstepService::Tick(); lap("FootstepService");
+	D2RAccess::WallSlideService::Tick(); lap("WallSlideService");
+	D2RAccess::GroundItemService::Tick(context, uiOwnsSpeech); lap("GroundItemService");
+	D2RAccess::MapSurveyService::Tick(context, uiOwnsSpeech); lap("MapSurveyService");
+	D2RAccess::AutomapService::Tick(context); lap("AutomapService");
+	D2RAccess::EntityRadarService::Tick(context, uiOwnsSpeech); lap("EntityRadarService");
+	D2RAccess::EntityCueService::Tick(context); lap("EntityCueService");
+	D2RAccess::BeaconService::Tick(context); lap("BeaconService");
+	D2RAccess::SkillBarService::Tick(context); lap("SkillBarService");
+	D2RAccess::VitalsService::Tick(context); lap("VitalsService");
+	D2RAccess::BossLifeService::Tick(context); lap("BossLifeService");
+	D2RAccess::InventoryArrivalService::Tick(context); lap("InventoryArrivalService");
+	D2RAccess::WeaponSwapService::Tick(context); lap("WeaponSwapService");
+	D2RAccess::TradeService::Tick(context); lap("TradeService");
+	LogRightStickPush(context); lap("LogRightStickPush");
 }
 
 auto TextCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -203,6 +274,25 @@ auto DumpCodeCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* comm
 	return ok ? D2RL::ConsoleCommandResult::Handled : D2RL::ConsoleCommandResult::Failed;
 }
 
+// Console: "access-itemlog on|off" writes each item tooltip to the log, once
+// per item. Off by default: it is diagnosis, and logged per poll it once filled
+// a session's log to 12 MB.
+auto ItemLogCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
+	if (command == nullptr || command->plugin == nullptr) {
+		return D2RL::ConsoleCommandResult::Failed;
+	}
+	const char* args = command->args != nullptr ? command->args : "";
+	if (std::strcmp(args, "on") == 0) {
+		D2RAccess::InteractionReader::SetItemLogging(true);
+	} else if (std::strcmp(args, "off") == 0) {
+		D2RAccess::InteractionReader::SetItemLogging(false);
+	} else {
+		return D2RL::ConsoleCommandResult::InvalidArguments;
+	}
+	command->plugin->WriteConsoleMessage(D2RAccess::InteractionReader::ItemLogging() ? "Item tooltip log on" : "Item tooltip log off");
+	return D2RL::ConsoleCommandResult::Handled;
+}
+
 // Console: "access-trace on|off" toggles logging of every UI message.
 auto TraceCommand(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (command == nullptr || command->plugin == nullptr) {
@@ -249,7 +339,10 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
 
-	if (D2RAccess::ScreenReader::Initialize(context->pluginDirectory)) {
+	// After Initialize, whose own Shutdown clears it: set before, no phrase was logged.
+	const bool speaking = D2RAccess::ScreenReader::Initialize(context->pluginDirectory);
+	D2RAccess::ScreenReader::LogTo(context);
+	if (speaking) {
 		D2RAccess::AsyncLog::InfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
 		D2RAccess::ScreenReader::Speak(D2RAccess::Strings::Current().pluginLoaded, true);
 	} else {
@@ -272,6 +365,9 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		if (!D2RAccess::NativeCairn::Register(context)) D2RAccess::AsyncLog::Warn(context, "[cairn] Scroll order capture unavailable.");
 		(void)D2RAccess::NativeTooltips::Initialize(context);
 		(void)D2RAccess::NativeSkillNavigation::Initialize(context);
+		// Not an inline hook, but it changes what the game reads, so it goes
+		// with them: the face buttons pressed with BACK kept from the game in play.
+		(void)D2RAccess::PadFilter::Install(context);
 	} else {
 		D2RAccess::AsyncLog::Warn(context, "[native] code hooks disabled by config: no tooltip, cursor, footfall or movement hook this session.");
 	}
@@ -286,18 +382,19 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::EntityCueService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[entity-cues] Entity cue lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
-	if (!D2RAccess::PlaceService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[places] Place names unavailable.");
-	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	D2RAccess::DeathPlaceService::Register(context);
+	if (!D2RAccess::PlaceService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[places] Named places unavailable.");
+	if (!D2RAccess::BossLifeService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[boss-life] Boss life unavailable.");
+	D2RAccess::InventoryArrivalService::Register(context);
+	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
-	if (!D2RAccess::QuestService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
+	if (!D2RAccess::QuestService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
 	if (!D2RAccess::MapSurveyService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[survey] Map catalogue unavailable.");
 	if (!D2RAccess::VitalsService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[vitals] Life, mana and equipment announcements unavailable.");
-	if (!D2RAccess::BossLifeService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[boss-life] Boss life announcements unavailable.");
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
 	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
-	(void)D2RAccess::InventoryArrivalService::Register(context);
-	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+D could not be registered.");
+	if (!D2RAccess::KeyboardService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[keyboard] Keyboard play unavailable.");
+	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+H could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
 	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
@@ -306,6 +403,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 	(void)context->RegisterConsoleCommand("access-say", SayCommand, "Speak text through the screen reader.");
 	(void)context->RegisterConsoleCommand("access-trace", TraceCommand, "Toggle logging of every UI message (on|off).");
+	(void)context->RegisterConsoleCommand("access-itemlog", ItemLogCommand, "Log each item tooltip once per item (on|off, off by default).");
 	(void)context->RegisterConsoleCommand("access-dump-code", DumpCodeCommand, "Write the in-memory code next to the plugin: (text)|image.");
 	(void)context->RegisterConsoleCommand("access-probe", ProbeCommand, "Log the strings inside a native widget (Panel/Child/...).");
 	(void)context->RegisterConsoleCommand("access-text", TextCommand, "In-game text: on|off|repeat|dump (visible native tree).");
@@ -331,15 +429,19 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 
 D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
-	D2RAccess::BossLifeService::Unregister();
+	D2RAccess::PadFilter::Remove();
+	D2RAccess::KeyboardMenu::Reset();
+	D2RAccess::KeyboardService::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::AutoDetail::Unregister();
 	D2RAccess::QuestService::Unregister();
 	D2RAccess::NativeCairn::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::MenuNavigation::Reset();
-	D2RAccess::TerrainService::Unregister();
+	D2RAccess::DeathPlaceService::Unregister();
 	D2RAccess::PlaceService::Unregister();
+	D2RAccess::BossLifeService::Unregister();
+	D2RAccess::TerrainService::Unregister();
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();
 	D2RAccess::EntityRadarService::Unregister();

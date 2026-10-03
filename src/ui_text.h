@@ -36,7 +36,7 @@ struct Readout {
 	std::string coordinates;
 	Surface surface = Surface::Other;
 	uint64_t contentSettleMs = 0; // dependent detail panes populate after focus moves
-	std::string help; // current action hints, separate from incremental objective changes
+	std::string help; // the game's action footer: a control hint, never part of the spoken phrase
 	bool operator==(const Readout&) const = default;
 	bool Empty() const { return body.empty() && option.empty() && coordinates.empty(); }
 };
@@ -45,9 +45,6 @@ struct Announcement {
 	bool interrupt = true;
 };
 
-// U+E07E opens the game's inline font command; one index character, '0'..'V', follows it.
-inline constexpr unsigned FontCommand = 0xE07E;
-constexpr bool FontIndex(char c) { return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u; }
 std::string Clean(std::string_view text);
 Readout Describe(const Snapshot& snapshot);
 

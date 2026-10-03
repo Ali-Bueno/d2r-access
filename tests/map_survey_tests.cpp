@@ -125,6 +125,61 @@ void AbsenceOutsideTheMapIsNotForgetting() {
 		"an object outside what the map currently knows is kept: that is what the player still has to walk to");
 }
 
+void AbsenceBeyondTheScanIsNotForgetting() {
+	Radar::World world = OpenWorld();
+	// The grid knows the whole room, but the object stood some 25 subtiles
+	// away: the game may still hold the floor there and not the thing on it.
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	registry.Observe(1, {Make(1, 38, 38)}, grid);
+	for (int i = 0; i < 10; ++i) registry.Observe(1, {}, grid);
+	Check(registry.Entities().size() == 1,
+		"an object beyond the scan's reach is kept however long it is missing, to walk back to");
+}
+
+void RecreatedObjectTakesItsOldPlace() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	auto shrine = Make(28, 38, 38, EntityRadar::Kind::Object);
+	shrine.name = "Refilling Shrine";
+	registry.Observe(1, {shrine}, grid);
+	auto again = shrine;
+	again.id = 61;
+	const std::vector<EntityRadar::Entity> present{again};
+	registry.Observe(1, present, grid, {}, &present);
+	Check(registry.Entities().size() == 1 && registry.Entities().front().id == 61,
+		"an object loaded again under a new id is one entry, with the id it has now");
+
+	Registry items;
+	auto potion = Make(4, 38, 38);
+	potion.name = "Minor Healing Potion";
+	auto other = potion;
+	other.id = 5;
+	const std::vector<EntityRadar::Entity> first{potion, other};
+	items.Observe(1, first, grid, {}, &first);
+	Check(items.Entities().size() == 2, "two items of one name on one spot are two: an item may lie on another");
+	auto potionAgain = potion, otherAgain = other;
+	potionAgain.id = 6;
+	otherAgain.id = 7;
+	const std::vector<EntityRadar::Entity> again2{potionAgain, otherAgain};
+	items.Observe(1, again2, grid, {}, &again2);
+	Check(items.Entities().size() == 2 && items.Entities().front().id != 4 && items.Entities().back().id != 5,
+		"loaded again under new ids, they are still two, not four");
+
+	Registry monsters;
+	auto fallen = Make(9, 38, 30, EntityRadar::Kind::Enemy);
+	fallen.name = "Fallen";
+	monsters.Observe(1, {fallen}, grid);
+	auto moved = fallen;
+	moved.id = 90;
+	moved.position = {36, 33};
+	const std::vector<EntityRadar::Entity> pack{moved};
+	monsters.Observe(1, pack, grid, {}, &pack);
+	Check(monsters.Entities().size() == 1 && monsters.Entities().front().id == 90,
+		"a monster of the same name near where one was lost from the loaded rooms takes its entry");
+}
+
 void ChangingLevelClears() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -286,14 +341,19 @@ void ReturningToLevelRetainsFixedLandmarks() {
 	Check(memory.Entities().empty(), "a new game or mode reset forgets session landmarks");
 }
 
-void FullAssistanceKeepsLevelChangeReset() {
+void FullAssistanceKeepsEveryLevel() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
 	Memory memory;
-	memory.Observe(1, {Make(1, 24, 20, EntityRadar::Kind::Object)}, grid, false);
+	auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
+	enemy.category = EntityRadar::Category::Enemy;
+	auto loot = Make(3, 26, 20);
+	loot.category = EntityRadar::Category::Item;
+	memory.Observe(1, {Make(1, 24, 20, EntityRadar::Kind::Object), enemy, loot}, grid, false);
 	memory.Select(2, false);
+	Check(memory.Entities().empty(), "another level shows none of this one's");
 	memory.Select(1, false);
-	Check(memory.Entities().empty(), "full assistance retains its level-change reset");
+	Check(memory.Entities().size() == 3, "full assistance keeps everything a level discovered, to walk back to");
 }
 
 }
@@ -324,35 +384,11 @@ void ScannerSplitsLandmarksFromLiveEnemies() {
 	waypoint.category = EntityRadar::Category::Waypoint;
 	auto ally = Make(6, 25, 20, EntityRadar::Kind::Player);
 	ally.category = EntityRadar::Category::Player;
-	auto npc = Make(7, 26, 20, EntityRadar::Kind::Npc);
-	npc.category = EntityRadar::Category::Npc;
-	auto townNpc = npc;
-	townNpc.id = 8; townNpc.placeId = 155;
-	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally, npc, townNpc});
+	const auto scene = Split({enemy, chest, questChest, loot, waypoint, ally});
 	Check(scene.enemies.size() == 1 && scene.enemies.front().id == 1, "enemies are kept apart to be read live");
 	Check(scene.players.size() == 1 && scene.players.front().id == 6, "other players are kept apart to be read live, never remembered");
-	Check(scene.townNpcs.size() == 1 && scene.townNpcs.front().id == 8, "a town NPC is kept apart, to be listed from anywhere in town");
-	Check(scene.landmarks.size() == 3 && scene.landmarks[0].id == 3 && scene.landmarks[1].id == 5 && scene.landmarks[2].id == 7,
-		"a quest container, a waypoint and an NPC outside town are landmarks; ordinary chests and loot are left out");
-}
-
-// A town NPC is listed from afar only once seen, then wherever it walks.
-void TownNpcsListedOnceSeen() {
-	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
-	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
-	auto atma = Make(2, 90, 90, EntityRadar::Kind::Npc);
-	atma.category = EntityRadar::Category::Npc; atma.placeId = 177;
-	TownNpcSightings sightings;
-	Check(sightings.Seen(40, {fara, atma}).empty(), "no town NPC is listed before it is seen");
-	sightings.Found(40, {fara});
-	auto walked = fara;
-	walked.id = 55; walked.position = {60, 60};
-	const auto seen = sightings.Seen(40, {walked, atma});
-	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
-		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
-	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
-	sightings.Clear();
-	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
+	Check(scene.landmarks.size() == 3 && scene.landmarks[0].id == 2 && scene.landmarks[1].id == 3 && scene.landmarks[2].id == 5,
+		"a chest, a quest container and a waypoint are landmarks; items are left to their own reader");
 }
 
 // What a later game on the same map may be told about: only what the layout places.
@@ -376,13 +412,35 @@ void FixedPlacesAreTheLayoutsOwn() {
 		"people move, and rooms have their own memory");
 }
 
+void TownNpcsListedOnceSeen() {
+	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
+	auto atma = Make(2, 90, 90, EntityRadar::Kind::Npc);
+	atma.category = EntityRadar::Category::Npc; atma.placeId = 177;
+	TownNpcSightings sightings;
+	Check(sightings.Seen(40, {fara, atma}).empty(), "no town NPC is listed before it is seen");
+	sightings.Found(40, {fara});
+	auto walked = fara;
+	walked.id = 55; walked.position = {60, 60};
+	const auto seen = sightings.Seen(40, {walked, atma});
+	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
+		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
+	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
+	sightings.Clear();
+	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
+}
+
+
 int main() {
+	TownNpcsListedOnceSeen();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
 	NearestByStepsNotByStraightLine();
 	ReachableSortsAheadOfUnreachable();
 	OutOfViewObjectsAreKept();
 	AbsenceOutsideTheMapIsNotForgetting();
+	AbsenceBeyondTheScanIsNotForgetting();
+	RecreatedObjectTakesItsOldPlace();
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();
@@ -391,9 +449,8 @@ int main() {
 	KnownLandmarkSurvivesLossOfSight();
 	ExplorationSurveyUsesOrientation();
 	ReturningToLevelRetainsFixedLandmarks();
-	FullAssistanceKeepsLevelChangeReset();
+	FullAssistanceKeepsEveryLevel();
 	ScannerSplitsLandmarksFromLiveEnemies();
-	TownNpcsListedOnceSeen();
 	ChartedRoomsAdmitLandmarksOutOfSight();
 	FixedPlacesAreTheLayoutsOwn();
 	Passed();

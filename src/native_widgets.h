@@ -36,6 +36,8 @@ bool Initialize(const D2RL::PluginContext* context);
 bool IsAvailable();
 // Extended traversal is enabled only for the code layout verified in docs/native-ui.md.
 bool SupportsTree();
+// Journal image-frame reading verified against complete stock game functions.
+bool SupportsTombSymbols();
 uintptr_t PanelManager();
 
 // Native object for a panel or for a child reached by name path; 0 when not found.

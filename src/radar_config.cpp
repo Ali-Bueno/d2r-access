@@ -103,7 +103,7 @@ Navigation ParseNavigation(std::string_view config) {
 }
 Navigation ReadNavigation(const D2RL::PluginContext* context) {
 	return ReadSection<Navigation>(context, ParseNavigation,
-		"[navigation] Invalid [navigation] settings; using exploration-first routing.");
+		"[navigation] Invalid [navigation] settings; using full assistance.");
 }
 
 std::optional<bool> ParseEnabled(std::string_view config, std::string_view section) {

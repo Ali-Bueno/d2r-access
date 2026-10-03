@@ -114,13 +114,11 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 }
 }
 
-TargetSight::Sight LabelSight(std::string_view label) { return LabelTarget(label).sight; }
-
-TargetSight::Bearer LabelTarget(std::string_view label) {
-	if (!g_sightSettings.enabled || !g_units || label.empty()) return {};
+TargetSight::Sight LabelSight(std::string_view label) {
+	if (!g_sightSettings.enabled || !g_units || label.empty()) return TargetSight::Sight::Unknown;
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
-	if (!state.ready) return {};
+	if (!state.ready) return TargetSight::Sight::Unknown;
 	const auto now = GetTickCount64();
 	// A failed read is cached like a good one: without that, `valid` being false
 	// bypassed the interval and every UI poll re-copied the collision rooms.
@@ -131,8 +129,8 @@ TargetSight::Bearer LabelTarget(std::string_view label) {
 		g_sight.valid = NativeWorld::Read(state.player, state.session, state.level, g_sight.world)
 			&& NativeEntities::Read(state.player, state.session, g_sight.entities);
 	}
-	if (!g_sight.valid) return {};
-	return TargetSight::Find(g_sight.world, g_sight.entities, label, g_sightSettings);
+	if (!g_sight.valid) return TargetSight::Sight::Unknown;
+	return TargetSight::Of(g_sight.world, g_sight.entities, label, g_sightSettings);
 }
 
 bool Register(const D2RL::PluginContext* context) {
@@ -207,4 +205,9 @@ void Unregister() {
 	g_revision = 0; g_command = Command::None; g_npcNextPoll = 0;
 	g_settings = {}; g_npcSettings = {}; g_sightSettings = {}; g_sight = {};
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool NpcEnabled() { return g_npcEnabled; }
+void SetNpcEnabled(bool enabled) { g_command = enabled ? Command::NpcOn : Command::NpcOff; }
 }

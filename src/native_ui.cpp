@@ -3,10 +3,13 @@
 #include "native_memory.h"
 #include "native_widgets.h"
 #include "quest_log.h"
+#include "tomb_symbols.h"
 
 #include <windows.h>
 #include <algorithm>
+#include <cstdio>
 #include <array>
+#include <atomic>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -42,13 +45,15 @@ constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x87
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
-constexpr int BeltSlots = 16; // the slot range BeltWidget's getter accepts, 0x227440
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusPanelOffset = 0x188, FocusWidgetOffset = 0x190; // 0x868230 / 0x876CA0
 constexpr size_t PanelVectors[] = { 0x58, 0x88, 0xA0 }; // root children + FindPanel 0x89F760
 // Bounds protect traversal from stale/corrupt pointers and cap UI-thread work.
 constexpr size_t MaxNodes = 512, MaxDepth = 32, MaxTypeName = 96;
 std::unordered_map<uintptr_t, Type> g_types;
+// Read from the tooltip draw as well as from the UI update.
+std::atomic<uintptr_t> g_cursorPanel{0}, g_cursorWidget{0};
+std::atomic<uint64_t> g_cursorSelection{UINT64_MAX};
 
 uintptr_t CallType(uintptr_t function, uintptr_t widget) noexcept {
 	__try {
@@ -56,27 +61,18 @@ uintptr_t CallType(uintptr_t function, uintptr_t widget) noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
 
+ItemPresence CallItemAtCell(uintptr_t function, uintptr_t widget, Cell cell) noexcept {
+	__try {
+		const auto item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
+		return item ? ItemPresence::Occupied : ItemPresence::Empty;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return ItemPresence::Unknown; }
+}
+
 bool CallItemPointer(uintptr_t function, uintptr_t widget, Cell cell, uintptr_t& item) noexcept {
 	__try {
 		item = reinterpret_cast<uintptr_t(*)(uintptr_t, const Cell*)>(function)(widget, &cell);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
-}
-
-// The cell each archetype's +0xC8 getter takes; false when the widget has no
-// item to read. InventoryGridWidget 0x2C49F0 queries the widget's owner/page
-// and the selected cell (0x386A00 reads the grid). InventorySlotWidget's
-// override, vtable 0x1CF3F20 -> 0x2CA060, ignores the cell and uses location
-// +0x5D8 (0x3886D0). BeltWidget's, vtable 0x1CE2FA0 -> 0x227440, takes the
-// cell's x alone as the slot -- READ 2026-09-21 in the 3.3.93787 image, not yet
-// measured live. None of them moves an item.
-bool ItemCell(uintptr_t widget, const Type& type, Cell& cell) {
-	if (type.kind == Kind::InventorySlot) return true;
-	if (type.kind == Kind::InventoryGrid) return (cell = GridCell(widget)).x >= 0;
-	if (type.name != "BeltWidget") return false;
-	const uint64_t selection = FocusSelection(widget);
-	cell = {static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
-	return cell.x >= 0 && cell.x < BeltSlots;
 }
 
 std::vector<uintptr_t> VectorAt(uintptr_t address) {
@@ -175,7 +171,7 @@ void Walk(uintptr_t widget, int parent, size_t depth, UiText::Snapshot& snapshot
 		}
 	}
 	else if (type.kind == Kind::Tabs) node.text = SelectedTabText(widget);
-	else if (type.kind == Kind::TabButton) node.text = NativeWidgets::ReadText(widget);
+	else if (type.kind == Kind::TabButton) node.text = TabLabel(widget);
 	if (type.kind == Kind::NotificationList) {
 		uint32_t source = 0;
 		if (!Peek(widget + ChatDataSourceOffset, source) || source != ChatNotificationMessages) node.kind = Kind::List;
@@ -246,16 +242,6 @@ std::string InputText(uintptr_t widget) {
 	return NativeMemory::ReadEngineString(widget + InputTextOffset, text) ? text : std::string{};
 }
 
-ItemSlot QueryItem(uintptr_t widget, Cell cell) {
-	ItemSlot result;
-	uintptr_t vtable = 0, getter = 0;
-	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
-		|| !NativeMemory::Executable(getter)) return result;
-	result.slot = cell.x;
-	result.known = CallItemPointer(getter, widget, cell, result.item);
-	return result;
-}
-
 std::optional<Rect> LocalRect(uintptr_t widget) {
 	Rect result;
 	if (!NativeWidgets::SupportsTree() || !widget || !Peek(widget + RectOffset, result)
@@ -267,7 +253,25 @@ std::vector<uintptr_t> Children(uintptr_t widget) {
 	return NativeWidgets::SupportsTree() && widget ? VectorAt(widget + ChildrenOffset) : std::vector<uintptr_t>{};
 }
 
+void SetCursor(Focus focus, uint64_t selection) {
+	g_cursorSelection = selection;
+	g_cursorPanel = focus.panel;
+	g_cursorWidget = focus.widget;
+}
+
+void ClearCursor() {
+	g_cursorWidget = 0;
+	g_cursorPanel = 0;
+	g_cursorSelection = UINT64_MAX;
+}
+
 Focus CurrentFocus() {
+	if (const Focus cursor{g_cursorPanel.load(), g_cursorWidget.load()};
+		cursor.panel && cursor.widget && Visible(cursor.panel) && Visible(cursor.widget)) return cursor;
+	return GameFocus();
+}
+
+Focus GameFocus() {
 	if (!NativeWidgets::SupportsTree()) return {};
 	uintptr_t manager = 0;
 	Focus result;
@@ -286,6 +290,7 @@ Focus CurrentFocus() {
 }
 
 uint64_t FocusSelection(uintptr_t widget) {
+	if (widget && widget == g_cursorWidget.load()) return g_cursorSelection.load();
 	uint64_t result = UINT64_MAX;
 	if (NativeWidgets::SupportsTree() && widget) (void)Peek(widget + SelectionOffset, result);
 	return result;
@@ -296,6 +301,43 @@ std::string SelectedTabText(uintptr_t widget) {
 	int32_t selected = -1;
 	if (!Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return {};
 	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(selected)));
+}
+
+int SelectedTab(uintptr_t widget) {
+	int32_t selected = -1;
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs
+		|| !Peek(widget + SelectedTabOffset, selected) || selected < 0 || selected >= 8) return -1;
+	return selected;
+}
+
+int TabCount(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return 0;
+	int count = 0;
+	// A bar names its tabs Text0 onward; one it does not show has no caption.
+	while (count < 8 && !NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(count))).empty()) ++count;
+	return count;
+}
+
+std::string TabLabel(uintptr_t widget) {
+	const std::string name = NativeWidgets::ReadName(widget);
+	bool numbered = name.size() > 3 && name.starts_with("Tab");
+	for (size_t i = 3; numbered && i < name.size(); ++i) numbered = name[i] >= '0' && name[i] <= '9';
+	if (numbered) {
+		const std::string label = "Text" + name;
+		uintptr_t parent = Parent(widget);
+		for (int depth = 0; parent && depth < 4; ++depth, parent = Parent(parent))
+			if (const uintptr_t text = NativeWidgets::FindChild(parent, label); text && Visible(text)) {
+				if (auto read = NativeWidgets::ReadText(text); !read.empty()) return read;
+			}
+	}
+	return NativeWidgets::ReadText(widget);
+}
+
+std::string FocusedTabText(uintptr_t widget) {
+	if (!Visible(widget) || Classify(widget).kind != Kind::Tabs) return {};
+	const auto x = static_cast<int32_t>(FocusSelection(widget));
+	if (x < 0 || x >= 8) return {};
+	return NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(x)));
 }
 
 Cell GridCell(uintptr_t widget) {
@@ -317,16 +359,74 @@ int EquipmentLocation(uintptr_t widget) {
 	return location; // caller maps only the verified body locations
 }
 
-ItemSlot FocusedItem(uintptr_t widget) {
-	Cell cell;
-	if (!NativeWidgets::SupportsTree() || !Visible(widget) || !ItemCell(widget, Classify(widget), cell)) return {};
-	return QueryItem(widget, cell);
+ItemPresence GridItemPresence(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return ItemPresence::Unknown;
+	const auto cell = GridCell(widget);
+	uintptr_t vtable = 0, getter = 0;
+	if (cell.x < 0 || !Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
+	// InventoryGridWidget 0x2C49F0 queries the widget's owner/page and cell;
+	// its 0x386A00 lookup reads the inventory grid, without moving any item.
+	return CallItemAtCell(getter, widget, cell);
 }
 
-ItemSlot BeltItem(uintptr_t widget, int slot) {
-	if (slot < 0 || slot >= BeltSlots || !NativeWidgets::SupportsTree()
-		|| !Visible(widget) || Classify(widget).name != "BeltWidget") return {};
-	return QueryItem(widget, {slot, 0});
+uintptr_t GridItem(uintptr_t widget) {
+	return GridItemAt(widget, GridCell(widget)).item;
+}
+
+Cell GridSize(uintptr_t widget) {
+	struct { int32_t width, height; } dimensions{};
+	if (Classify(widget).kind != Kind::InventoryGrid || !Peek(widget + GridDimensionsOffset, dimensions)
+		|| dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 64 || dimensions.height > 64) return {};
+	return {dimensions.width, dimensions.height};
+}
+
+GridSlot GridItemAt(uintptr_t widget, Cell cell) {
+	GridSlot result;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return result;
+	const auto size = GridSize(widget);
+	uintptr_t vtable = 0, getter = 0;
+	if (cell.x < 0 || cell.y < 0 || cell.x >= size.x || cell.y >= size.y || !Peek(widget, vtable) || !vtable
+		|| !Peek(vtable + ItemAtCellSlot, getter) || !NativeMemory::Executable(getter)) return result;
+	result.known = CallItemPointer(getter, widget, cell, result.item);
+	return result;
+}
+
+uintptr_t EquipmentItem(uintptr_t widget) {
+	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return 0;
+	uintptr_t vtable = 0, getter = 0, item = 0;
+	if (!Peek(widget, vtable) || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter) || !CallItemPointer(getter, widget, {}, item)) return 0;
+	return item;
+}
+
+ItemPresence EquipmentItemPresence(uintptr_t widget) {
+	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return ItemPresence::Unknown;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return ItemPresence::Unknown;
+	// InventorySlotWidget vtable 0x1CF3F20 +0xC8 -> 0x2CA060: reads the
+	// widget owner and location +0x5D8, then 0x3886D0 gets the equipped item.
+	// Unlike the grid getter, this override ignores the cell argument.
+	return CallItemAtCell(getter, widget, {});
+}
+
+BeltSlot BeltItem(uintptr_t widget) {
+	BeltSlot result;
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return result;
+	const uint64_t selection = FocusSelection(widget);
+	const Cell cell{static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
+	if (cell.x < 0 || cell.x >= 16) return result;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return result;
+	// READ 2026-09-21 in the 3.3.93787 image, not yet measured live: BeltWidget
+	// vtable 0x1CE2FA0 +0xC8 -> 0x227440 takes the cell's x alone as the belt
+	// slot, 0 to 15, and returns the item there or null. The same getter slot
+	// and calling convention the grid and equipment reads above already use.
+	result.slot = cell.x;
+	result.known = CallItemPointer(getter, widget, cell, result.item);
+	return result;
 }
 
 std::vector<uintptr_t> Panels() {
@@ -341,6 +441,43 @@ std::vector<uintptr_t> Panels() {
 	return result;
 }
 
+namespace {
+uintptr_t ListContainer(uintptr_t list) {
+	// READ, 3.3.93787: a ListWidget (a ScrollViewWidget) creates an internal
+	// widget named "Container" (0x140885C26) and keeps it at +0xD8
+	// (0x140885C38); AddItem clones the row template into it (0x140885150) and
+	// a panel fills row i as child i (AdvancedStatsPanel, 0x1414ED7C0). The
+	// name is the check that `list` really has one.
+	constexpr size_t ListContainerOffset = 0xD8;
+	uintptr_t container = 0;
+	if (!NativeWidgets::SupportsTree() || !list || !Peek(list + ListContainerOffset, container) || !container
+		|| NativeWidgets::ReadName(container) != "Container") return 0;
+	return container;
+}
+}
+
+std::vector<uintptr_t> ListRows(uintptr_t list) {
+	// No visibility filter: every child is a live row. The panel clears the list
+	// before refilling it (0x140886250, from 0x1414EDBBD) and the list keeps the
+	// hidden template outside the container, at +0xD0 (0x140885B15).
+	std::vector<uintptr_t> rows;
+	if (const uintptr_t container = ListContainer(list))
+		for (uintptr_t row : VectorAt(container + ChildrenOffset)) if (row) rows.push_back(row);
+	return rows;
+}
+
+std::string DescribeList(uintptr_t list) {
+	const uintptr_t container = ListContainer(list);
+	const auto rows = ListRows(list);
+	uint8_t visible = 0xFF;
+	if (!rows.empty()) (void)Peek(rows.front() + VisibleOffset, visible);
+	char line[256];
+	std::snprintf(line, sizeof(line), "list %llX type \"%s\", container %llX, %zu children, first \"%s\" visible=%d",
+		static_cast<unsigned long long>(list), Classify(list).name.c_str(), static_cast<unsigned long long>(container),
+		rows.size(), rows.empty() ? "" : NativeWidgets::ReadName(rows.front()).c_str(), visible);
+	return line;
+}
+
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;
@@ -350,6 +487,32 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	snapshot.surface = Classify(panel).surface;
 	std::unordered_set<uintptr_t> visited;
 	Walk(panel, -1, 0, snapshot, visited);
+	// The visible journal graphic is information beside the objective, not
+	// a text node. Append its plain name to our copied objective so selection,
+	// manual repeat and the ordinary 150 ms stale-pane guard share one path.
+	// Never read a persistent true-tomb global or write into a game widget.
+	if (snapshot.surface == UiText::Surface::Menu && NativeWidgets::SupportsTombSymbols()) {
+		constexpr size_t ImageFrameOffset = 0x90; // setter 0x859700
+		UiText::Node* heading = nullptr;
+		UiText::Node* objective = nullptr;
+		for (auto& node : snapshot.nodes) if (node.kind == UiText::Kind::Text) {
+			if (node.name == "ShortDescription") heading = &node;
+			if (node.name == "LongDescription") objective = &node;
+		}
+		for (const auto& node : snapshot.nodes) {
+			if (node.name != TombSymbols::WidgetName || node.type != "ImageWidget" || node.parent < 0
+				|| !heading || !objective || UiText::Clean(objective->text).empty()) continue;
+			const auto& owner = snapshot.nodes[static_cast<size_t>(node.parent)];
+			if (owner.kind != UiText::Kind::QuestButton || owner.name != TombSymbols::QuestWidget
+				|| UiText::Clean(heading->text) != UiText::Clean(owner.text)) continue;
+			int32_t frame = -1;
+			if (!Peek(node.id + ImageFrameOffset, frame) || frame < 0 || frame >= static_cast<int32_t>(TombSymbols::Count)) continue;
+			objective->text = UiText::Clean(objective->text);
+			objective->text += objective->text.ends_with('.') ? " " : ". ";
+			objective->text += Strings::Current().tombSymbols[static_cast<size_t>(frame)];
+			break;
+		}
+	}
 	return snapshot;
 }
 

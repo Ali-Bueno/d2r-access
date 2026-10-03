@@ -23,7 +23,7 @@ std::vector<Event> Tracker::Update(const State& state, bool completed, bool hook
 		if (state.partnerGold != last.partnerGold) events.push_back(Event::PartnerGold);
 		if (state.partnerAccepted != last.partnerAccepted)
 			events.push_back(state.partnerAccepted ? Event::PartnerAccepted : Event::PartnerWithdrew);
-		if (state.weAccepted != last.weAccepted) events.push_back(state.weAccepted ? Event::WeAccepted : Event::WeWithdrew);
+		if (last.weAccepted && !state.weAccepted) events.push_back(Event::WeWithdrew);
 	} else if (last.active && !state.active) {
 		events.push_back(completed_ ? Event::Completed : hooked ? Event::Cancelled : Event::Ended);
 		completed_ = false;
@@ -41,11 +41,10 @@ std::string Phrase(Event event, const State& state, std::string_view partner) {
 	const auto& strings = Strings::Current();
 	if (partner.empty()) partner = strings.tradePartnerUnknown;
 	switch (event) {
-	case Event::PartnerItems: return Format(strings.tradePartnerItems, partner, std::to_string(state.partnerItems));
+	case Event::PartnerItems: return Format(strings.tradePartnerItems, partner);
 	case Event::PartnerGold: return Format(strings.tradePartnerGold, partner, std::to_string(state.partnerGold));
 	case Event::PartnerAccepted: return Format(strings.tradePartnerAccepted, partner);
 	case Event::PartnerWithdrew: return Format(strings.tradePartnerWithdrew, partner);
-	case Event::WeAccepted: return strings.tradeWeAccepted;
 	case Event::WeWithdrew: return strings.tradeWeWithdrew;
 	case Event::Completed: return strings.tradeCompleted;
 	case Event::Cancelled: return strings.tradeCancelled;

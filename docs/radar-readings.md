@@ -12,12 +12,12 @@ that way" and "that way leads somewhere" are different facts.
 | Reading | Sound | Meaning |
 |---|---|---|
 | **Exit** | bright tin (1100 Hz) | the proved route leads out: into another chamber, or to a level exit |
-| **Open** | soft breath of filtered noise, 180 ms, rising up / falling down | floor you can walk, but it leads nowhere new |
+| **Open** | soft breath of filtered noise | floor you can walk, but it leads nowhere new |
 | **Blocked** | dull tock (260 Hz) | a wall within the closing depth |
 | **Door** | two knocks (180 Hz) | a closed door within the closing depth: the game's own DOOR bit is what blocks |
 
-Down is the same sound lowered by the compiled fraction, except the breath, which
-rises for up and falls for down; left and right are panned. The `test` audition of `access-radar` plays all four in every direction.
+Down is the same sound lowered by the compiled fraction; left and right are
+panned. The `test` audition of `access-radar` plays all four in every direction.
 
 ## Rays along the walls: the stick diagonals (2026-09-25)
 
@@ -51,8 +51,8 @@ the screen directions.
   one column either side, so a doorway exactly as wide as the body is still
   visible for three cells while walking past it and can be confirmed.
 - Sound: the same tin, tock, knock and breath. Every diagonal is panned to its
-  side (0.9 of the way); the two lower ones take down's pitch (`DownPitch`) and
-  down's falling breath, so left/right and up/down are two independent cues.
+  side (0.9 of the way); the two lower ones take down's pitch (`DownPitch`,
+  `BreathDownPitch`), so left/right and up/down are two independent cues.
 - Unexplored qualifier: `Frontier::Quadrants` marks both frames in one pass; a
   diagonal ray takes the frontier whose dominant world axis is its own.
 - Names: the readout and the switch use the eight screen sectors
@@ -126,24 +126,7 @@ cues as before, several openings up to 400 ms earlier; with prevention on it
 gives 76, the 17 new ones all the stone: a wall while it is ahead, floor once
 it is passed.
 
-## A rising and falling breath, from the D4 radar (2026-09-28)
-
-The user still could not tell an opening ahead from one behind: the darker
-downward breath of 2026-09-25 was not enough. They preferred the breath of our
-D4 mod (`D:\code\d4 dungeon assist`, `src/D4Assist.Audio/RadarCueSynth.cs`),
-which is copied unchanged: the same noise through a resonant band-pass (Q 3)
-whose centre sweeps 900 → 2400 Hz for an upward ray, 600 → 220 Hz for a
-downward one, and holds at 1200 Hz for the sides. It lasts 180 ms
-(`Radar::BreathDurationMs`) instead of a struck cue's 120 ms so the sweep is
-heard, and is peak-normalized to 0.7 of the struck cues' level. Diagonals follow
-their screen side. Replaces `BreathCutoffHz`, `BreathLevel` and
-`BreathDownPitch`; the tin, tock, knock and pips are unchanged. The falling
-breath shares a direction with the enemy swoop (`docs/entity-cues.md`), but that
-one is voiced, not noise; listening in the game remains the final check.
-
 ## Louder cues and a darker downward breath (2026-09-25)
-
-> Superseded for the breath by the rising and falling sweep above.
 
 The user asked for slightly louder, more pronounced cues, the breath above all,
 and a clearly graver breath downward: an opening up and one down at the same

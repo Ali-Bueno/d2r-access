@@ -1,8 +1,5 @@
 # Named places inside towns: initial findings
 
-> **Superseded 2026-10-02:** the game does name the parts of a town, in the HD layouts of its
-> presets (acoustic zones, lighting boxes, named props). See `docs/places.md`.
-
 Investigated 2026-09-15 after the user confirmed hearing Rogue Encampment on
 entry and asked about smaller places such as a forge, kitchen or central square.
 This is an investigation, not an implemented proximity reader.
@@ -31,18 +28,6 @@ Evidence comes from the installed CASC tables extracted with the existing
   player handle. The public SDK headers inspected do not supply a world-position
   or nearby-NPC enumeration service for those handles. Inventory grid x/y values
   are not world coordinates.
-
-## Act II: Lut Gholein (checked 2026-09-28)
-
-- `Levels.txt`: Lut Gholein is level 40, `Act 2 - Town`, one 56 x 56-tile level (DrlgType 2).
-- `LvlPrest.txt`: it is built from the one `Act 2 - Town` preset (Def 301). No tavern, smithy,
-  docks or palace-yard row exists.
-- The palace interior is `Harem Level 1` (level 50, its own `Act 2 - Harem` preset). It is a
-  separate area, reached through its exit like any other level.
-
-So, as in Act I, the game has no names for the parts of a town. The NPCs are the named
-landmarks. Since 2026-09-28 the scanner lists them from anywhere in town once seen
-(`docs/entity-scan.md#town-npcs`).
 
 ## Proposed accessible behavior and next implementation step
 

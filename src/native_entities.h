@@ -25,12 +25,13 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit);
 // so they belong to the catalogue and to a beacon that has locked one, and not
 // to the short-range directional scan, which answers "what is near me".
 //
-// `townNpcs` is a third: in a town, NPCs from anywhere in it, each with its
-// MonStats row as `placeId` (live unit or spawn point). Outside towns it adds nothing.
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool townNpcs = false);
+// `wholeLevel` reads every loaded room of the player's level, not only the
+// player's room and its neighbours: the scanner's reach, and the reach of what
+// follows a thing the scanner named (the user, 2026-09-28).
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool wholeLevel = false, bool townNpcs = false);
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
-bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool townNpcs = false);
+bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false);
 // Every party roster entry with the corpse ids the client lists for it; false
 // when unreadable or unverified. The second form is factored for tests.
 bool ReadRosterCorpses(uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);

@@ -28,12 +28,11 @@ int Advance(int cursor, InputDirection::StickPush push, int count);
 
 // True when the gesture was claimed, so the callers further down the tick
 // leave the stick alone. Also says the character's name once per opening of
-// the panel, queued behind the panel's title.
+// the panel, queued behind the panel's title. While a point button has focus
+// the stick is the point readout's -- up for the stat's explanation, down for
+// its controls -- except right, which reads the points left to spend; with
+// nothing focused, right jumps to the last statistic, which is that same line.
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
-
-// The advanced panel gives focus to its scroll bar while this reader owns it.
-bool OwnsFocus(NativeUi::Focus focus);
-bool AnnouncesOpening(std::string_view panel);
 
 // True for the panel this reader speaks for, so the generic readers leave it.
 bool Owns(std::string_view panel);

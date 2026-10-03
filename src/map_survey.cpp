@@ -35,8 +35,11 @@ int Round(double value) { return static_cast<int>(std::lround(value)); }
 
 // True when the map currently has an opinion about this cell. An entity whose
 // last known cell is outside the grid, or inside it but still unknown, has not
-// been shown to be gone -- it is simply out of view.
-bool Observed(const Navigation::Grid& grid, Radar::Position position) {
+// been shown to be gone -- it is simply out of view. So is one further from
+// the player than `within`, where the game may hold the map but not the thing.
+bool Observed(const Navigation::Grid& grid, Radar::Position position, double within) {
+	const double dx = position.x - grid.playerX, dy = position.y - grid.playerY;
+	if (dx * dx + dy * dy > within * within) return false;
 	const Navigation::Cell* cell = grid.At(Round(position.x), Round(position.y));
 	return cell != nullptr && cell->body != Radar::State::Unknown;
 }
@@ -72,10 +75,23 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 		m_level = level;
 	}
 
+	const auto& currentlyPresent = present ? *present : visible;
+	const auto loaded = [&currentlyPresent](const EntityRadar::Entity& known) {
+		return std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&known](const EntityRadar::Entity& entity) {
+			return EntityRadar::SameTarget(known, entity);
+		});
+	};
 	for (const EntityRadar::Entity& entity : visible) {
-		const auto found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity](const Tracked& tracked) {
+		auto found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity](const Tracked& tracked) {
 			return EntityRadar::SameTarget(tracked.entity, entity);
 		});
+		// A thing made again under a new id takes its old entry's place, rather
+		// than being listed twice with the old one unreachable. One not loaded
+		// is taken at most once, so two things alike stay two.
+		if (found == m_tracked.end())
+			found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity, &loaded](const Tracked& tracked) {
+				return EntityRadar::Recreated(tracked.entity, entity) && !loaded(tracked.entity);
+			});
 		if (found == m_tracked.end()) {
 			m_tracked.push_back({entity, 0});
 		} else {
@@ -87,12 +103,9 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	// Anything not in this frame is only a miss when the map can currently see
 	// where it was. Out-of-window objects keep their place indefinitely, which
 	// is the point: they are what the player still has to walk to.
-	const auto& currentlyPresent = present ? *present : visible;
 	for (Tracked& tracked : m_tracked) {
-		const bool stillPresent = std::any_of(currentlyPresent.begin(), currentlyPresent.end(), [&tracked](const EntityRadar::Entity& entity) {
-			return EntityRadar::SameTarget(tracked.entity, entity);
-		});
-		if (!stillPresent && Observed(grid, tracked.entity.position)) ++tracked.misses;
+		const bool stillPresent = loaded(tracked.entity);
+		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
 	m_tracked.erase(std::remove_if(m_tracked.begin(), m_tracked.end(), [&settings](const Tracked& tracked) {
 		return tracked.misses >= settings.missesBeforeForgetting;
@@ -118,9 +131,11 @@ void Registry::KeepLandmarks() {
 
 void Memory::Select(int level, bool exploration) {
 	if (level == m_level) return;
-	if (!exploration) m_levels.clear();
-	else if (const auto previous = m_levels.find(m_level); previous != m_levels.end())
-		previous->second.KeepLandmarks();
+	// Full assistance keeps every level's discoveries whole for the session, to
+	// be walked back to (the user, 2026-09-28: "if it has been discovered and
+	// loaded, I should be able to return to it using the scanner").
+	if (exploration)
+		if (const auto previous = m_levels.find(m_level); previous != m_levels.end()) previous->second.KeepLandmarks();
 	m_level = level;
 }
 
@@ -184,10 +199,8 @@ Scene Split(std::vector<EntityRadar::Entity> entities) {
 		if (entity.category == EntityRadar::Category::Enemy) scene.enemies.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Player) scene.players.push_back(std::move(entity));
 		else if (entity.category == EntityRadar::Category::Corpse) scene.corpses.push_back(std::move(entity));
-		else if (entity.category == EntityRadar::Category::Npc && entity.placeId) scene.townNpcs.push_back(std::move(entity));
-		else if (entity.category != EntityRadar::Category::Item
-			&& (entity.category != EntityRadar::Category::Treasure || entity.questObject))
-			scene.landmarks.push_back(std::move(entity));
+		else if (entity.kind == EntityRadar::Kind::Npc && entity.placeId) scene.townNpcs.push_back(std::move(entity));
+		else if (entity.category != EntityRadar::Category::Item) scene.landmarks.push_back(std::move(entity));
 	}
 	return scene;
 }

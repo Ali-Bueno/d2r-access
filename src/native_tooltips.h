@@ -6,24 +6,25 @@
 #include <vector>
 
 namespace D2RAccess::NativeTooltips {
-using DrawPanelFn = void(*)(uintptr_t);
-struct Record {
-	std::string body, footer;
-};
 struct Snapshot {
 	std::string body, footer;
-	std::vector<Record> comparisons;
 	uintptr_t panel = 0, widget = 0;
 	uint64_t selection = UINT64_MAX;
 	uint64_t seenAt = 0;
+	// The records drawn after it in the same frame: the equipped item a held
+	// compare button shows ("Currently Equipped"), and button images. Raw, as
+	// copied; the reader decides what is text.
+	std::vector<std::string> extras;
 };
 bool Initialize(const D2RL::PluginContext* context);
 // UI thread: choose the live tooltip panel, or zero to suspend capture.
 void Track(uintptr_t panel);
 void Reset();
 Snapshot Latest(uint64_t now);
+// The keyboard's cursor has moved and the pointer with it: what the game draws
+// until `until` may still be the tooltip of what the pointer was on before, and
+// is not taken for the new place's. What was captured is dropped.
+void Discard(uint64_t until);
 // Render hook delegates here; this only copies text, never speaks or changes it.
 void Capture(uintptr_t tooltip) noexcept;
-// Panel draw hook delegates here so the delay override can be tested without a live game.
-void DrawPanel(uintptr_t panel, DrawPanelFn original);
 }

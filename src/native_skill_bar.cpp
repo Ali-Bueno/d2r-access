@@ -18,12 +18,7 @@ constexpr int AlternateFirst = Buttons, NoSkill = -1;
 // skills.bin and skilldesc.bin rows in the player's table bank (0x88850).
 constexpr size_t Skills = 0x11B0, SkillCount = 0x11B8, SkillStride = 0x2EC, SkillDesc = 0x23C;
 constexpr size_t Descs = 0x1190, DescCount = 0x1198, DescStride = 300, DescName = 8;
-// skills.txt Range (u8), MinDam, EType and EMin (i32): the only offsets that
-// match all 429 rows of game-data/global/excel/skills.bin; docs/attack-reach.md.
 constexpr size_t SkillRange = 0x34, SkillMinDamage = 0x250, SkillElement = 0x284, SkillElementMin = 0x288;
-// skills.txt charclass (u8 PlayerClass row, 0xFF for none) and skilldesc.txt
-// SkillPage/SkillRow/SkillColumn (u8): the only offsets that match every row of
-// CASC skills.bin and skilldesc.bin; docs/skill-actions.md.
 constexpr size_t SkillClass = 0x2C, DescPlace = 2;
 constexpr uint16_t MissingName = 0x1506; // 0x28BCF0's id for a skill without a description
 constexpr GroundItemLayout::Evidence Checks[] = {
@@ -84,12 +79,18 @@ std::optional<std::array<Binding, Buttons>> AlternateBar() {
 	return bar;
 }
 
+std::string SkillName(int skill) {
+	uintptr_t player = 0, tables = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) return {};
+	return SkillName(tables, skill);
+}
+
 std::optional<std::vector<AttackReach::Skill>> BoundSkills() {
 	std::array<int, Buttons> bars[2]{};
 	uintptr_t player = 0, tables = 0, rows = 0;
 	uint32_t count = 0;
 	if (!g_base || !ReadSkills(bars[0], 0) || !ReadSkills(bars[1]) || !NativeGroundItems::RuntimeRoots(player, tables)
-		|| !Peek(tables + Skills, rows) || !rows || !Peek(tables + SkillCount, count)) return std::nullopt;
+		|| !Peek(tables + Skills, rows) || !rows || !Peek(tables + SkillCount, count) || count > GroundItemLayout::MaxTableRows) return std::nullopt;
 	std::vector<AttackReach::Skill> skills;
 	for (const auto& bar : bars) for (const int skill : bar) {
 		if (skill < 0 || static_cast<uint32_t>(skill) >= count) continue;
@@ -110,7 +111,7 @@ std::string ClassSkillName(int page, int row, int column) {
 		|| !Peek(player + GroundItemLayout::UnitClass, playerClass)
 		|| !Peek(tables + Skills, skills) || !skills || !Peek(tables + SkillCount, skillCount)
 		|| skillCount > GroundItemLayout::MaxTableRows
-		|| !Peek(tables + Descs, descs) || !descs || !Peek(tables + DescCount, descCount)) return {};
+		|| !Peek(tables + Descs, descs) || !descs || !Peek(tables + DescCount, descCount) || descCount > GroundItemLayout::MaxTableRows) return {};
 	const std::array<uint8_t, 3> wanted{static_cast<uint8_t>(page), static_cast<uint8_t>(row), static_cast<uint8_t>(column)};
 	int found = NoSkill;
 	for (uint32_t skill = 0; skill < skillCount; ++skill) {

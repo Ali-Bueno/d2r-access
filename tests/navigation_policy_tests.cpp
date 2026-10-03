@@ -55,7 +55,7 @@ int main() {
 	const auto unrestrictedRoute = Beacon::FindRoute(world, destination, {});
 	Check(unrestrictedRoute.reachable, "the unmasked fixture has a complete open route");
 	const auto maskedRoute = Beacon::FindRoute(NavigationPolicy::Restrict(world, visited), destination, {});
-	Check(!maskedRoute.reachable && !maskedRoute.straight,
+	Check(!maskedRoute.reachable,
 		"visited rooms separated by an unknown room never produce a complete route");
 	Check(!maskedRoute.path.empty() && maskedRoute.path.back().x < 40,
 		"a partial route stops on the visited side of the unknown boundary");

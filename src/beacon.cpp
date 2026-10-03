@@ -27,7 +27,7 @@ struct Field {
 	size_t Index(int cx, int cy) const { return static_cast<size_t>(cy-y)*width + (cx-x); }
 };
 
-Field Copy(const Radar::World& world, int left, int top, int width, int height) {
+Field Copy(const Radar::World& world, int left, int top, int width, int height, Radar::Layer layer) {
 	const size_t cells = static_cast<size_t>(width) * height;
 	Field field{left, top, width, height, std::vector<uint8_t>(cells, 0), std::vector<uint8_t>(cells, 0)};
 	for (const auto& room : world.rooms) {
@@ -44,7 +44,8 @@ Field Copy(const Radar::World& world, int left, int top, int width, int height) 
 				if (raw & Blank) continue; // unknown: never routed through, never a wall
 				// Terrain layer: a monster or another player standing in a
 				// doorway must not reroute the beacon.
-				field.open[index] = (Radar::TerrainCollisionFlags(raw) & world.walkingMask) ? 0 : 1;
+				const auto flags = layer == Radar::Layer::Terrain ? Radar::TerrainCollisionFlags(raw) : raw;
+				field.open[index] = (flags & world.walkingMask) ? 0 : 1;
 			}
 		}
 	}
@@ -73,23 +74,6 @@ Field Copy(const Radar::World& world, int left, int top, int width, int height) 
 	}
 	return field;
 }
-
-// Can the player walk the line without turning? Half-cell steps over the same
-// body-aware field the route uses, so the two answers never disagree. Both end
-// cells are skipped, as the scan's sight test does: the target itself is
-// usually an object standing in its own cell.
-bool StraightLine(const Field& field, int fromX, int fromY, int toX, int toY) {
-	const double dx = toX - fromX, dy = toY - fromY;
-	const double length = std::hypot(dx, dy);
-	if (length == 0) return true;
-	constexpr double Step = 0.5;
-	for (double depth = Step; depth < length; depth += Step) {
-		const int x = Cell(fromX + dx / length * depth), y = Cell(fromY + dy / length * depth);
-		if ((x == fromX && y == fromY) || (x == toX && y == toY)) continue;
-		if (!field.Inside(x, y) || !field.open[field.Index(x, y)]) return false;
-	}
-	return true;
-}
 }
 
 uint64_t PingIntervalMs(double remaining, const Settings& settings) {
@@ -99,35 +83,13 @@ uint64_t PingIntervalMs(double remaining, const Settings& settings) {
 	return static_cast<uint64_t>(std::llround(near + part * (far - near)));
 }
 
-Reach Reachability(const Route& route, double distance, const Settings& settings) {
-	// Straight first: the body fits up to a target whose own cell it never
-	// enters, which the search cannot call reached.
-	if (route.straight) return Reach::Straight;
-	if (route.reachable) return Reach::Around;
-	if (!std::isfinite(distance) || distance > settings.searchRadius) return Reach::Unknown;
-	return Reach::Unreachable;
-}
-
-const char* ReachWord(const Radar::World& world, Position target, const Settings& settings,
-	const Strings::Table& strings) {
-	const double distance = std::hypot(target.x - world.player.x, target.y - world.player.y);
-	switch (Reachability(FindRoute(world, target, settings), distance, settings)) {
-		case Reach::Straight: return strings.beaconReachStraight;
-		case Reach::Around: return strings.beaconReachAround;
-		case Reach::Unreachable: return strings.beaconReachNoRoute;
-		case Reach::Unknown: break;
-	}
-	return nullptr;
-}
-
 namespace {
 Route Search(const Radar::World& world, Position target, const Settings& settings, int radius) {
 	Route route;
 	const int startX = Cell(world.player.x), startY = Cell(world.player.y);
 	const int side = 2*radius + 1;
-	const Field field = Copy(world, startX - radius, startY - radius, side, side);
+	const Field field = Copy(world, startX - radius, startY - radius, side, side, settings.layer);
 	const int goalX = Cell(target.x), goalY = Cell(target.y);
-	route.straight = field.Inside(goalX, goalY) && StraightLine(field, startX, startY, goalX, goalY);
 	const size_t start = field.Index(startX, startY);
 	std::vector<int32_t> parent(field.open.size(), -1);
 	std::vector<double> length(field.open.size(), 0);
@@ -146,6 +108,8 @@ Route Search(const Radar::World& world, Position target, const Settings& setting
 			if (!field.Inside(nx, ny)) continue;
 			const size_t next = field.Index(nx, ny);
 			if (parent[next] >= 0 || !field.open[next]) continue;
+			if (settings.layer == Radar::Layer::Movement && step.x && step.y
+				&& !field.open[field.Index(nx, y)] && !field.open[field.Index(x, ny)]) continue;
 			parent[next] = static_cast<int32_t>(index);
 			length[next] = length[index] + step.length;
 			const double distance = std::hypot(static_cast<double>(nx-goalX), static_cast<double>(ny-goalY));

@@ -41,8 +41,8 @@ void PartnerChanges() {
 	Check(tracker.Update(state, false, true) == Events{Event::PartnerAccepted}, "the partner accepting is told");
 	state.partnerAccepted = false;
 	state.weAccepted = true;
-	Check(tracker.Update(state, false, true) == Events{Event::PartnerWithdrew, Event::WeAccepted},
-		"withdrawn and given acceptance are both told");
+	Check(tracker.Update(state, false, true) == Events{Event::PartnerWithdrew},
+		"a withdrawn acceptance is told, this player's own acceptance is not");
 	state.partnerGold = 900;
 	state.weAccepted = false;
 	Check(tracker.Update(state, false, true) == Events{Event::PartnerGold, Event::WeWithdrew},
@@ -70,7 +70,7 @@ void Phrases() {
 	state.partnerGold = 1000;
 	state.partnerItems = 3;
 	Check(Trade::Phrase(Event::PartnerGold, state, "canaria") == "canaria ofrece 1000 de oro", "gold is named with the partner");
-	Check(Trade::Phrase(Event::PartnerItems, state, "canaria") == "Objetos de canaria: 3", "items are counted");
+	Check(Trade::Phrase(Event::PartnerItems, state, "canaria") == "canaria ha cambiado su oferta", "a changed offer is told without a count");
 	Check(Trade::Phrase(Event::PartnerAccepted, state, "") == "el otro jugador ha aceptado el trato", "an unknown partner is still named");
 	Check(Trade::Phrase(Event::Completed, state, "canaria") == "Comercio completado", "the ending is told");
 	Check(Trade::NamedPrompt("Aceptar comerciar", "Aceptar comerciar", "Pidiendo a otro jugador que comercie", "canaria")

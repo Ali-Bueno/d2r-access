@@ -41,6 +41,14 @@ constexpr int MaxRoomSide = 1024, MaxNeighbors = 64, MaxRooms = 256; // corrupti
 constexpr size_t MaxCopiedCells = 512 * 1024; // <= 1 MiB per local snapshot
 constexpr double SnapshotRadius = 152; // default 150-subtile radar plus footprint
 uintptr_t g_indexFunction = 0, g_playerFunction = 0;
+// The single-cell reset: (room, x, y, mask) finds the cell's room among the
+// room and its neighbours (0x38DFB0) and clears the mask's bits in that one
+// cell. Not in Checks: a build where it differs loses the clearing of left
+// markers, not the radar.
+constexpr uintptr_t ClearCellRva = 0x366130;
+constexpr size_t ClearCellSize = 141;
+constexpr uint64_t ClearCellHash = 0x273A215C091C1A9DULL;
+uintptr_t g_clearCell = 0;
 
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; };
 // FNV-1a of complete recovered accessors/readers. Verify before consuming their
@@ -148,7 +156,7 @@ void RemovePlayerPresence(Radar::World& world, Diagnostics& detail) {
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	g_indexFunction = g_playerFunction = 0;
+	g_indexFunction = g_playerFunction = g_clearCell = 0;
 	if (!context) return false;
 	const auto base = context->exeBase;
 	IMAGE_DOS_HEADER dos{};
@@ -183,6 +191,10 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (target < base || target >= end) return false;
 	g_indexFunction = index;
 	g_playerFunction = player;
+	std::array<uint8_t, ClearCellSize> reset{};
+	if (NativeMemory::Copy(base + ClearCellRva, reset.data(), reset.size()) && LayoutCheck::Hash(reset) == ClearCellHash)
+		g_clearCell = base + ClearCellRva;
+	else AsyncLog::Warn(context, "[radar] The game's single-cell reset is not the one read; markers a unit leaves behind are not taken off.");
 	AsyncLog::Info(context, "[radar] Verified live room collision reader; no map generation required.");
 	return true;
 }
@@ -259,6 +271,24 @@ uintptr_t PlayerRoom() noexcept {
 	uintptr_t player = LocalPlayer(), path = 0, room = 0;
 	if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room)) return 0;
 	return room;
+}
+namespace {
+bool CallClearCell(uintptr_t room, int x, int y, uint32_t mask) noexcept {
+	__try {
+		reinterpret_cast<void(*)(uintptr_t, int, int, uint32_t)>(g_clearCell)(room, x, y, mask);
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { g_clearCell = 0; return false; }
+}
+}
+bool ClearCell(int x, int y, uint16_t mask) noexcept {
+	if (!g_clearCell || !g_indexFunction || !g_playerFunction || !mask || x < 0 || y < 0 || x > MaxCoordinate || y > MaxCoordinate) return false;
+	uintptr_t path = 0, room = 0;
+	{
+		const NativeMemory::ReadScope scope;
+		const uintptr_t player = LocalPlayer();
+		if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room) || !room) return false;
+	}
+	return CallClearCell(room, x, y, mask);
 }
 bool IsLocalPlayer(uintptr_t player) noexcept {
 	return player && g_indexFunction && g_playerFunction && player == LocalPlayer();

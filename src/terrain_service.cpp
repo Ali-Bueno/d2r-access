@@ -5,12 +5,14 @@
 #include "exploration_cue_service.h"
 #include "explored_store.h"
 #include "frontier.h"
+#include "input_direction.h"
 #include "item_audio.h"
 #include "level_exit_layout.h"
 #include "map_survey.h"
 #include "native_automap.h"
 #include "native_drlg.h"
 #include "native_entities.h"
+#include "tomb_symbols.h"
 #include "native_level_exits.h"
 #include "native_world.h"
 #include "navigation_policy.h"
@@ -304,10 +306,10 @@ bool Register(const D2RL::PluginContext* context) {
 		(void)g_store.Start(g_directory);
 	}
 	(void)context->RegisterConsoleCommand("access-terrain", Console,
-		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or press both sticks in together.");
+		"Terrain overview: how far the level reaches and what is unexplored. Ctrl+O, or BACK+B on the pad.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		// Keyboard equivalent of pressing both sticks in together.
+		// Keyboard equivalent of BACK+B.
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "terrain-overview", .displayName = "Read the terrain overview", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Control}, .callback = Action};
@@ -330,7 +332,10 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context, bool) {
-	const bool requested = g_asked.exchange(false);
+	// Both sources are consumed every tick so a latched gesture cannot fire late.
+	const bool asked = g_asked.exchange(false);
+	const bool clicked = InputDirection::TakeBackWith(InputDirection::FaceButton::B);
+	const bool requested = asked || clicked;
 	if (!g_supported) {
 		ExplorationCueService::Silence();
 		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
@@ -394,11 +399,13 @@ std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeR
 	return visited;
 }
 
-namespace {
-// Stored places as scanner landmarks, fixed places only.
-std::vector<EntityRadar::Entity> Landmarks(const std::vector<ExploredStore::Place>& places) {
+std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::lock_guard lock(g_mutex);
 	std::vector<EntityRadar::Entity> result;
-	for (const auto& place : places) {
+	const auto* key = LoadedKey(level, rooms);
+	const auto places = key ? g_places.find(*key) : g_places.end();
+	if (places == g_places.end()) return result;
+	for (const auto& place : places->second) {
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
 		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
@@ -406,26 +413,26 @@ std::vector<EntityRadar::Entity> Landmarks(const std::vector<ExploredStore::Plac
 		entity.nameKey = place.nameKey;
 		if (auto text = NativeEntities::KeyText(place.nameKey); !text.empty()) entity.name = std::move(text);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		TombSymbols::Mark(entity, Strings::Current());
 		result.push_back(std::move(entity));
 	}
 	return result;
 }
-}
-
-std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
-	std::lock_guard lock(g_mutex);
-	const auto* key = LoadedKey(level, rooms);
-	const auto places = key ? g_places.find(*key) : g_places.end();
-	return places == g_places.end() ? std::vector<EntityRadar::Entity>{} : Landmarks(places->second);
-}
 
 std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
-	auto stored = g_store.MapPlaces(seed);
 	std::lock_guard lock(g_mutex);
-	for (const auto& [key, places] : g_places)
-		if (key.seed == seed) ExploredStore::MergePlaces(stored[key.level], places); // found this game is newer than the disk
+	auto stored = g_store.AllKnownPlaces(seed);
+	for (const auto& [key, places] : g_places) if (key.seed == seed) ExploredStore::MergePlaces(stored[key.level], places);
 	std::map<int, std::vector<EntityRadar::Entity>> result;
-	for (const auto& [level, places] : stored) result[static_cast<int>(level)] = Landmarks(places);
+	for (const auto& [level, places] : stored) for (const auto& place : places) {
+		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
+			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
+		if (!MapSurvey::Fixed(entity)) continue;
+		entity.nameKey = place.nameKey;
+		if (auto name = NativeEntities::KeyText(place.nameKey); !name.empty()) entity.name = std::move(name);
+		TombSymbols::Mark(entity, Strings::Current());
+		result[static_cast<int>(level)].push_back(std::move(entity));
+	}
 	return result;
 }
 
@@ -511,4 +518,11 @@ void Unregister() {
 	g_warnedLevel = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
+
+// For the keyboard's settings list (settings_list.h): the switch as it stands,
+// and the same change the console command makes.
+bool RoomSounds() { return g_roomSounds; }
+void SetRoomSounds(bool enabled) { g_roomSounds = enabled; }
+bool PlaceAlerts() { return g_placeAlerts; }
+void SetPlaceAlerts(bool enabled) { g_placeAlerts = enabled; }
 }

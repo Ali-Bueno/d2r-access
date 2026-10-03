@@ -18,7 +18,7 @@ Result Read(const D2RL::PluginContext* context);
 
 // Full guidance across unexplored rooms is an explicit opt-in. Missing or
 // malformed [navigation] settings keep exploration-first routing.
-struct Navigation { bool fullAssistance = false; bool valid = true; };
+struct Navigation { bool fullAssistance = true; bool valid = true; };
 Navigation ParseNavigation(std::string_view config);
 Navigation ReadNavigation(const D2RL::PluginContext* context);
 

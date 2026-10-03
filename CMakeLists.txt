@@ -18,8 +18,22 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # D2RLoader picks up a companion d2rl-<id>.mpq by this file name, so keep the
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
+	src/death_place.cpp
+	src/death_place_service.cpp
+	src/boss_life.cpp
+	src/boss_life_service.cpp
+	src/native_preset_map.cpp
+	src/passages.cpp
+	src/places.cpp
+	src/place_service.cpp
+	src/inventory_arrivals.cpp
+	src/inventory_arrival_service.cpp
+	src/item_hand.cpp
+	src/attack_reach.cpp
+	src/native_attack.cpp
 	src/async_log.cpp
 	src/auto_detail.cpp
+	src/control_hints.cpp
 	src/tab_reader.cpp
 	src/tooltip_text.cpp
 	src/text_field.cpp
@@ -44,8 +58,9 @@ add_library(d2r-access SHARED
 	src/input_direction.cpp
 	src/modal_reader.cpp
 	src/interaction_reader.cpp
+	src/hire_stats.cpp
+	src/inventory_census.cpp
 	src/inventory_cursor.cpp
-	src/item_hand.cpp
 	src/plugin.cpp
 	src/localization.cpp
 	src/native_widgets.cpp
@@ -56,28 +71,13 @@ add_library(d2r-access SHARED
 	src/beacon_service.cpp
 	src/beacon_navigation.cpp
 	src/navigation_mode.cpp
+	src/mod_sounds.cpp
 	src/navigation_policy.cpp
 	src/radar.cpp
 	src/navigation_grid.cpp
 	src/radar_passage.cpp
 	src/radar_structure.cpp
 	src/radar_grid.cpp
-	src/exit_review.cpp
-	src/rooms.cpp
-	src/room_service.cpp
-	src/places.cpp
-	src/passages.cpp
-	src/place_service.cpp
-	src/native_preset_map.cpp
-	src/terrain_overview.cpp
-	src/terrain_service.cpp
-	src/explored_rooms.cpp
-	src/exploration_cues.cpp
-	src/exploration_cue_service.cpp
-	src/zone_transitions.cpp
-	src/explored_store.cpp
-	src/explored_store_worker.cpp
-	src/frontier.cpp
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
@@ -91,14 +91,10 @@ add_library(d2r-access SHARED
 	src/entity_cue_audio.cpp
 	src/entity_cue_synth.cpp
 	src/entity_cue_service.cpp
-	src/attack_reach.cpp
-	src/native_attack.cpp
-	src/monster_names.cpp
-	src/boss_life.cpp
-	src/boss_life_service.cpp
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
+	src/monster_plate.cpp
 	src/native_cairn.cpp
 	src/cairn_scroll_service.cpp
 	src/native_level_exits.cpp
@@ -107,20 +103,26 @@ add_library(d2r-access SHARED
 	src/native_drlg.cpp
 	src/native_rooms.cpp
 	src/room_graph.cpp
-	src/room_catalogue.cpp
 	src/corpse_memory.cpp
 	src/rooms.cpp
+	src/room_service.cpp
+	src/exit_review.cpp
 	src/explored_rooms.cpp
+	src/explored_store.cpp
+	src/explored_store_worker.cpp
+	src/frontier.cpp
+	src/exploration_cues.cpp
+	src/exploration_cue_service.cpp
+	src/zone_transitions.cpp
 	src/terrain_overview.cpp
 	src/terrain_service.cpp
 	src/map_survey.cpp
 	src/map_survey_service.cpp
-	src/death_place.cpp
-	src/death_place_service.cpp
 	src/automap_cells.cpp
 	src/native_automap.cpp
 	src/automap_service.cpp
 	src/native_ui.cpp
+	src/pad_filter.cpp
 	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp
@@ -133,7 +135,10 @@ add_library(d2r-access SHARED
 	src/progression_text.cpp
 	src/character_stats.cpp
 	src/character_stats_reader.cpp
+	src/mercenary_stats.cpp
+	src/advanced_stats_reader.cpp
 	src/native_tooltips.cpp
+	src/tooltip_delay.cpp
 	src/panel_state.cpp
 	src/quest_log.cpp
 	src/quest_progress.cpp
@@ -152,18 +157,38 @@ add_library(d2r-access SHARED
 	src/native_weapon_set.cpp
 	src/weapon_swap.cpp
 	src/weapon_swap_service.cpp
-	src/inventory_arrival_service.cpp
-	src/inventory_arrivals.cpp
 	src/native_trade.cpp
 	src/trade.cpp
 	src/trade_service.cpp
-	src/belt_reader.cpp
 	src/native_belt.cpp
 	src/skill_bar.cpp
 	src/native_skill_bar.cpp
 	src/skill_bar_service.cpp
 	src/native_status.cpp
 	src/widgets.cpp
+	src/auto_walk.cpp
+	src/level_route.cpp
+	src/pad_links.cpp
+	src/combat_target.cpp
+	src/explore_goal.cpp
+	src/grid_jump.cpp
+	src/menu_cursor.cpp
+	src/click_words.cpp
+	src/menu_mouse.cpp
+	src/native_sort.cpp
+	src/native_class_choice.cpp
+	src/native_list_rows.cpp
+	src/native_skill_hand.cpp
+	src/native_skill_icons.cpp
+	src/native_swap.cpp
+	src/native_value_controls.cpp
+	src/native_belt_rows.cpp
+	src/native_belt_fill.cpp
+	src/native_actions.cpp
+	src/keyboard_service.cpp
+	src/keyboard_menu.cpp
+	src/settings_list.cpp
+	src/settings_store.cpp
 	plugin.rc
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
@@ -183,8 +208,37 @@ endif()
 include(CTest)
 include(cmake/GroundItems.cmake)
 if(BUILD_TESTING)
+	add_executable(attack-reach-tests tests/attack_reach_tests.cpp src/attack_reach.cpp src/entity_cues.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(attack-reach-tests PRIVATE src)
+	target_compile_features(attack-reach-tests PRIVATE cxx_std_20)
+	add_test(NAME attack-reach COMMAND attack-reach-tests)
+	add_executable(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
+	target_include_directories(death-place-tests PRIVATE src)
+	target_compile_features(death-place-tests PRIVATE cxx_std_20)
+	target_compile_definitions(death-place-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME death-place COMMAND death-place-tests)
+	add_executable(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
+	target_include_directories(boss-life-tests PRIVATE src)
+	target_compile_features(boss-life-tests PRIVATE cxx_std_20)
+	add_test(NAME boss-life COMMAND boss-life-tests)
+	add_executable(inventory-arrivals-tests tests/inventory_arrivals_tests.cpp src/inventory_arrivals.cpp)
+	target_include_directories(inventory-arrivals-tests PRIVATE src)
+	target_compile_features(inventory-arrivals-tests PRIVATE cxx_std_20)
+	add_test(NAME inventory-arrivals COMMAND inventory-arrivals-tests)
+	add_executable(item-hand-tests tests/item_hand_tests.cpp src/item_hand.cpp)
+	target_include_directories(item-hand-tests PRIVATE src)
+	target_compile_features(item-hand-tests PRIVATE cxx_std_20)
+	add_test(NAME item-hand COMMAND item-hand-tests)
+	add_executable(passages-tests tests/passages_tests.cpp src/passages.cpp)
+	target_include_directories(passages-tests PRIVATE src)
+	target_compile_features(passages-tests PRIVATE cxx_std_20)
+	add_test(NAME passages COMMAND passages-tests)
+	add_executable(places-tests tests/places_tests.cpp src/places.cpp)
+	target_include_directories(places-tests PRIVATE src)
+	target_compile_features(places-tests PRIVATE cxx_std_20)
+	add_test(NAME places COMMAND places-tests)
 	# Full-resolution native body connectivity, shared with the reactive radar.
-	add_executable(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	add_executable(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
 	target_include_directories(beacon-tests PRIVATE src)
 	target_compile_features(beacon-tests PRIVATE cxx_std_20)
 	add_test(NAME beacon COMMAND beacon-tests)
@@ -196,30 +250,6 @@ if(BUILD_TESTING)
 	target_compile_features(beacon-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(beacon-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME beacon-service COMMAND beacon-service-tests)
-	# The native room the player stands in and the ways out of it.
-	add_executable(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
-	target_include_directories(rooms-tests PRIVATE src)
-	target_compile_features(rooms-tests PRIVATE cxx_std_20)
-	add_test(NAME rooms COMMAND rooms-tests)
-	# Named places: the piece's name, its interiors and the landmark in walking reach.
-	add_executable(places-tests tests/places_tests.cpp src/places.cpp)
-	target_include_directories(places-tests PRIVATE src)
-	target_compile_features(places-tests PRIVATE cxx_std_20)
-	add_test(NAME places COMMAND places-tests)
-	add_executable(passages-tests tests/passages_tests.cpp src/passages.cpp)
-	target_include_directories(passages-tests PRIVATE src)
-	target_compile_features(passages-tests PRIVATE cxx_std_20)
-	add_test(NAME passages COMMAND passages-tests)
-	# The ways out reviewed one at a time: labels, clock bearings and the cycle.
-	add_executable(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
-	target_include_directories(exit-review-tests PRIVATE src)
-	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
-	add_test(NAME exit-review COMMAND exit-review-tests)
-	# The terrain overview: the level's extent and what is explored.
-	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
-	target_include_directories(terrain-overview-tests PRIVATE src)
-	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
-	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	# The exploration memory (seen/visited rooms), its disk form and the open-ground frontier.
 	add_executable(exploration-tests tests/exploration_tests.cpp src/explored_rooms.cpp src/explored_store.cpp src/explored_store_worker.cpp src/frontier.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
 	target_include_directories(exploration-tests PRIVATE src)
@@ -245,6 +275,18 @@ if(BUILD_TESTING)
 	target_include_directories(navigation-grid-tests PRIVATE src)
 	target_compile_features(navigation-grid-tests PRIVATE cxx_std_20)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
+	add_executable(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
+	target_include_directories(rooms-tests PRIVATE src)
+	target_compile_features(rooms-tests PRIVATE cxx_std_20)
+	add_test(NAME rooms COMMAND rooms-tests)
+	add_executable(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(exit-review-tests PRIVATE src)
+	target_compile_features(exit-review-tests PRIVATE cxx_std_20)
+	add_test(NAME exit-review COMMAND exit-review-tests)
+	add_executable(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(terrain-overview-tests PRIVATE src)
+	target_compile_features(terrain-overview-tests PRIVATE cxx_std_20)
+	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
 	set(RADAR_ENGINE_SOURCES src/radar.cpp src/radar_passage.cpp src/navigation_grid.cpp src/radar_structure.cpp src/radar_grid.cpp src/rooms.cpp)
@@ -347,24 +389,12 @@ if(BUILD_TESTING)
 	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-audio-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
-	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/entity_cues.cpp src/attack_reach.cpp src/speech_strings.cpp src/async_log.cpp)
+	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/entity_cues.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(entity-cue-service-tests PRIVATE src)
 	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(entity-cue-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME entity-cue-service COMMAND entity-cue-service-tests)
-	add_executable(attack-reach-tests tests/attack_reach_tests.cpp src/attack_reach.cpp src/entity_cues.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
-	target_include_directories(attack-reach-tests PRIVATE src)
-	target_compile_features(attack-reach-tests PRIVATE cxx_std_20)
-	add_test(NAME attack-reach COMMAND attack-reach-tests)
-	add_executable(monster-names-tests tests/monster_names_tests.cpp src/monster_names.cpp)
-	target_include_directories(monster-names-tests PRIVATE src)
-	target_compile_features(monster-names-tests PRIVATE cxx_std_20)
-	add_test(NAME monster-names COMMAND monster-names-tests)
-	add_executable(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
-	target_include_directories(boss-life-tests PRIVATE src)
-	target_compile_features(boss-life-tests PRIVATE cxx_std_20)
-	add_test(NAME boss-life COMMAND boss-life-tests)
 	add_executable(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
@@ -383,7 +413,7 @@ if(BUILD_TESTING)
 	target_include_directories(target-sight-tests PRIVATE src)
 	target_compile_features(target-sight-tests PRIVATE cxx_std_20)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-entities-tests PRIVATE src)
 	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
@@ -410,6 +440,10 @@ if(BUILD_TESTING)
 	target_include_directories(lootables-tests PRIVATE src)
 	target_compile_features(lootables-tests PRIVATE cxx_std_20)
 	add_test(NAME lootables COMMAND lootables-tests)
+	add_executable(item-sizes-tests tests/item_sizes_tests.cpp)
+	target_include_directories(item-sizes-tests PRIVATE src)
+	target_compile_features(item-sizes-tests PRIVATE cxx_std_20)
+	add_test(NAME item-sizes COMMAND item-sizes-tests)
 	add_executable(cairn-stones-tests tests/cairn_stones_tests.cpp)
 	target_include_directories(cairn-stones-tests PRIVATE src)
 	target_compile_features(cairn-stones-tests PRIVATE cxx_std_20)
@@ -462,21 +496,11 @@ if(BUILD_TESTING)
 	target_compile_features(automap-tests PRIVATE cxx_std_20)
 	target_compile_definitions(automap-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME automap COMMAND automap-tests)
-	add_executable(room-catalogue-tests tests/room_catalogue_tests.cpp src/room_catalogue.cpp src/room_graph.cpp src/navigation_grid.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
-	target_include_directories(room-catalogue-tests PRIVATE src)
-	target_compile_features(room-catalogue-tests PRIVATE cxx_std_20)
-	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
 	add_executable(corpse-memory-tests tests/corpse_memory_tests.cpp src/corpse_memory.cpp src/room_graph.cpp src/navigation_grid.cpp src/native_rooms.cpp src/native_memory.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(corpse-memory-tests PRIVATE src)
 	target_compile_features(corpse-memory-tests PRIVATE cxx_std_20)
 	target_compile_definitions(corpse-memory-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME corpse-memory COMMAND corpse-memory-tests)
-	add_executable(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
-	target_include_directories(death-place-tests PRIVATE src)
-	target_compile_features(death-place-tests PRIVATE cxx_std_20)
-	target_compile_definitions(death-place-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-	add_test(NAME death-place COMMAND death-place-tests)
 	target_include_directories(ui-text-tests PRIVATE src)
 	target_compile_features(ui-text-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-text COMMAND ui-text-tests)
@@ -501,18 +525,34 @@ if(BUILD_TESTING)
 	target_include_directories(ui-notifications-tests PRIVATE src)
 	target_compile_features(ui-notifications-tests PRIVATE cxx_std_20)
 	add_test(NAME ui-notifications COMMAND ui-notifications-tests)
-	add_executable(native-tooltips-tests tests/native_tooltips_tests.cpp src/native_tooltips.cpp src/native_memory.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(native-tooltips-tests tests/native_tooltips_tests.cpp src/native_tooltips.cpp src/native_memory.cpp)
 	target_link_libraries(native-tooltips-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-tooltips-tests PRIVATE src)
 	target_compile_features(native-tooltips-tests PRIVATE cxx_std_20)
 	target_compile_definitions(native-tooltips-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME native-tooltips COMMAND native-tooltips-tests)
+	add_executable(tooltip-delay-tests tests/tooltip_delay_tests.cpp src/tooltip_delay.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(tooltip-delay-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(tooltip-delay-tests PRIVATE src)
+	target_compile_features(tooltip-delay-tests PRIVATE cxx_std_20)
+	target_compile_definitions(tooltip-delay-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME tooltip-delay COMMAND tooltip-delay-tests)
 	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/character_stats_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(character-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME character-stats COMMAND character-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/equip_attempt.cpp src/item_hand.cpp src/ground_item_text.cpp src/panel_state.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
+	add_executable(advanced-stats-tests tests/advanced_stats_tests.cpp src/advanced_stats_reader.cpp src/mercenary_stats.cpp src/character_stats.cpp src/character_stats_reader.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(advanced-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(advanced-stats-tests PRIVATE src)
+	target_compile_features(advanced-stats-tests PRIVATE cxx_std_20)
+	add_test(NAME advanced-stats COMMAND advanced-stats-tests)
+	add_executable(hire-stats-tests tests/hire_stats_tests.cpp src/hire_stats.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
+	target_link_libraries(hire-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	target_include_directories(hire-stats-tests PRIVATE src)
+	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
+	add_test(NAME hire-stats COMMAND hire-stats-tests)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -531,19 +571,12 @@ if(BUILD_TESTING)
 	target_include_directories(equip-attempt-tests PRIVATE src)
 	target_compile_features(equip-attempt-tests PRIVATE cxx_std_20)
 	add_test(NAME equip-attempt COMMAND equip-attempt-tests)
-	add_executable(inventory-arrivals-tests tests/inventory_arrivals_tests.cpp src/inventory_arrivals.cpp)
-	target_include_directories(inventory-arrivals-tests PRIVATE src)
-	target_compile_features(inventory-arrivals-tests PRIVATE cxx_std_20)
-	add_test(NAME inventory-arrivals COMMAND inventory-arrivals-tests)
-	add_executable(item-hand-tests tests/item_hand_tests.cpp src/item_hand.cpp)
-	target_include_directories(item-hand-tests PRIVATE src)
-	target_compile_features(item-hand-tests PRIVATE cxx_std_20)
-	add_test(NAME item-hand COMMAND item-hand-tests)
 	add_executable(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_include_directories(tooltip-text-tests PRIVATE src)
 	target_compile_features(tooltip-text-tests PRIVATE cxx_std_20)
 	add_test(NAME tooltip-text COMMAND tooltip-text-tests)
 	add_executable(tab-reader-tests tests/tab_reader_tests.cpp src/tab_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(tab-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(tab-reader-tests PRIVATE src)
 	target_compile_features(tab-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)
@@ -573,30 +606,99 @@ if(BUILD_TESTING)
 	target_compile_features(quest-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(quest-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME quest-service COMMAND quest-service-tests)
-	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp src/control_hints.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(modal-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(modal-reader-tests PRIVATE src)
 	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)
 	add_test(NAME modal-reader COMMAND modal-reader-tests)
+	add_executable(pad-filter-tests tests/pad_filter_tests.cpp src/pad_filter.cpp)
+	target_link_libraries(pad-filter-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_include_directories(pad-filter-tests PRIVATE src)
+	target_compile_features(pad-filter-tests PRIVATE cxx_std_20)
+	target_compile_definitions(pad-filter-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME pad-filter COMMAND pad-filter-tests)
+	# Keyboard play: the routes and choices behind the walking and fighting keys.
+	add_executable(auto-walk-tests tests/auto_walk_tests.cpp src/auto_walk.cpp src/beacon.cpp src/radar_grid.cpp)
+	target_include_directories(auto-walk-tests PRIVATE src)
+	target_compile_features(auto-walk-tests PRIVATE cxx_std_20)
+	add_test(NAME auto-walk COMMAND auto-walk-tests)
+	add_executable(level-route-tests tests/level_route_tests.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(level-route-tests PRIVATE src)
+	target_compile_features(level-route-tests PRIVATE cxx_std_20)
+	target_compile_definitions(level-route-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME level-route COMMAND level-route-tests)
+	add_executable(pad-links-tests tests/pad_links_tests.cpp src/pad_links.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(pad-links-tests PRIVATE src)
+	target_compile_features(pad-links-tests PRIVATE cxx_std_20)
+	target_compile_definitions(pad-links-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME pad-links COMMAND pad-links-tests)
+	add_executable(combat-target-tests tests/combat_target_tests.cpp src/combat_target.cpp src/auto_walk.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(combat-target-tests PRIVATE src)
+	target_compile_features(combat-target-tests PRIVATE cxx_std_20)
+	add_test(NAME combat-target COMMAND combat-target-tests)
+	add_executable(explore-goal-tests tests/explore_goal_tests.cpp src/explore_goal.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	target_include_directories(explore-goal-tests PRIVATE src)
+	target_compile_features(explore-goal-tests PRIVATE cxx_std_20)
+	target_compile_definitions(explore-goal-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME explore-goal COMMAND explore-goal-tests)
+	add_executable(grid-jump-tests tests/grid_jump_tests.cpp src/grid_jump.cpp)
+	target_include_directories(grid-jump-tests PRIVATE src)
+	target_compile_features(grid-jump-tests PRIVATE cxx_std_20)
+	add_test(NAME grid-jump COMMAND grid-jump-tests)
+	add_executable(menu-cursor-tests tests/menu_cursor_tests.cpp src/menu_cursor.cpp src/grid_jump.cpp)
+	target_include_directories(menu-cursor-tests PRIVATE src)
+	target_compile_features(menu-cursor-tests PRIVATE cxx_std_20)
+	add_test(NAME menu-cursor COMMAND menu-cursor-tests)
+	add_executable(click-words-tests tests/click_words_tests.cpp src/click_words.cpp src/speech_strings.cpp)
+	target_include_directories(click-words-tests PRIVATE src)
+	target_compile_features(click-words-tests PRIVATE cxx_std_20)
+	add_test(NAME click-words COMMAND click-words-tests)
+	add_executable(skill-jump-tests tests/skill_jump_tests.cpp src/skill_grid.cpp)
+	target_include_directories(skill-jump-tests PRIVATE src)
+	target_compile_features(skill-jump-tests PRIVATE cxx_std_20)
+	add_test(NAME skill-jump COMMAND skill-jump-tests)
+	add_executable(skill-attacks-tests tests/skill_attacks_tests.cpp)
+	target_include_directories(skill-attacks-tests PRIVATE src)
+	target_compile_features(skill-attacks-tests PRIVATE cxx_std_20)
+	add_test(NAME skill-attacks COMMAND skill-attacks-tests)
+	add_executable(monster-plate-tests tests/monster_plate_tests.cpp src/monster_plate.cpp)
+	target_include_directories(monster-plate-tests PRIVATE src)
+	target_compile_features(monster-plate-tests PRIVATE cxx_std_20)
+	add_test(NAME monster-plate COMMAND monster-plate-tests)
+	add_executable(settings-list-tests tests/settings_list_tests.cpp src/settings_list.cpp)
+	target_include_directories(settings-list-tests PRIVATE src)
+	target_compile_features(settings-list-tests PRIVATE cxx_std_20)
+	add_test(NAME settings-list COMMAND settings-list-tests)
+	add_executable(settings-store-tests tests/settings_store_tests.cpp src/settings_store.cpp)
+	target_include_directories(settings-store-tests PRIVATE src)
+	target_compile_features(settings-store-tests PRIVATE cxx_std_20)
+	add_test(NAME settings-store COMMAND settings-store-tests)
 	if(MSVC)
+		target_compile_options(settings-list-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(skill-attacks-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(skill-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(grid-jump-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(menu-cursor-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(click-words-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(explore-goal-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(level-route-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(attack-reach-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(monster-names-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(boss-life-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(modal-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(quest-progress-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(beacon-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(exit-review-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(terrain-overview-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(pad-filter-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(quest-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(vitals-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(character-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(hire-stats-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(quest-progress-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(beacon-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(beacon-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-grid-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-engine-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(radar-passage-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
@@ -625,10 +727,10 @@ if(BUILD_TESTING)
 		target_compile_options(native-rooms-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(room-graph-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(navigation-policy-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
-		target_compile_options(room-catalogue-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(corpse-memory-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(speech-strings-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(lootables-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(item-sizes-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(cairn-stones-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-cairn-cache-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(cairn-scroll-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
@@ -638,6 +740,7 @@ if(BUILD_TESTING)
 		target_compile_options(game-text-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(ui-notifications-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(native-tooltips-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(tooltip-delay-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(interaction-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 	endif()
 endif()
