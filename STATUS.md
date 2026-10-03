@@ -2,6 +2,29 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Main's features restored on `integrate/bladestorm` — 2026-10-03
+
+`integrate/bladestorm` is the collaborator's tree (with his controller and keyboard
+schemes) plus main's build files. Restored from `main`, one commit each (`ebd575e`..):
+- `radar.toml` and main's defaults: exploration-first, wall-slide prevention on, growls and
+  reach ping on, `[boss_life]`.
+- Radar breath rising up, falling down (`09fdf5f`).
+- Scanner categories *Rooms* and *Unexplored rooms* (`src/room_catalogue.*`).
+- Monster plate gate (reach, 10 s repeat, never interrupts, "•" as a pause) beside the
+  branch's plate words; `status` says the reach.
+- Belt cells: D-pad button, row, column count, automatic potion (`src/belt_reader.*`).
+  "Item in hand" / "Placed in" behind `hand-speech` in Ctrl+S, on by default.
+- Docs: `docs/rooms.md` back (exit finder keys), README sections back, stale keys fixed.
+
+Main's lost keys stay reachable: named places and autodetail in Ctrl+S; room exits with
+Ctrl+Y and the Ctrl+V finder (PageUp/PageDown); life and mana with Z and X. No key added.
+
+**105/105 CTest pass.** Built and deployed with the game closed; installed DLL SHA-256
+`2C65A2F5…` matches the build. Not pushed.
+
+**Next step:** user-led live check of the growls and ping defaults, the plate in a pack, the
+belt readout and hand speech, and the Rooms categories.
+
 ## Additive upstream integration, retreat and repair — 2026-10-03
 
 **Built and deployed with D2RLoader 1.3.1-beta after the user saved/closed the
@@ -18,10 +41,11 @@ obstructed order sooner. The actual anonymous collision capture is a passing
 regression; escape/survival still needs user-led live confirmation.
 
 Repair failed at quote 6919 and succeeded after reload at 7430. No plugin stat
-write was found; retail reports match, but D2RLoader is not excluded. Installed
-binaries/startup before this update were **1.3.0**, correcting the historical
-1.3.1 entry below. Official 1.3.1-beta is now installed/hash-verified;
-its item/stat fixes are not a proven repair fix.
+write was found; retail reports match, but D2RLoader is not excluded. On the
+collaborator's machine, installed binaries/startup before this update were
+**1.3.0**; the 1.3.1-beta install recorded below (2026-09-26) is ours and stands.
+Official 1.3.1-beta is now installed/hash-verified there too; its item/stat
+fixes are not a proven repair fix.
 
 New inventory names/socket/arrival feedback, town-NPC memory, death-place
 memory/guidance, named places, boss-life and faster skill names are integrated.
@@ -53,6 +77,227 @@ Evidence/guards/tests: [Tal Rasha symbols](docs/tal-rasha-symbols.md).
 New [architecture guide](docs/architecture.md) maps current UI/world/native
 layers, threads, routing, discovery, persistence and RE inputs; it also
 corrects the README's obsolete statement that keyboard support is planned.
+
+## Skill tree reads at once — installed, 2026-10-02
+
+User (sorceress): half a second before each skill in the tree is read. Log: 420–456 ms from focus
+to speech on every move; the reader waited for the game's tooltip. Now the name comes from the
+skill tables by the cell's page/row/column (offsets checked on every row of `skills.bin` /
+`skilldesc.bin`), one poll after the move; the tooltip only adds the detail. **87/87 suites
+pass**; installed DLL SHA-256 `0E4F069F…` matches the build. **Live 2026-10-02: user confirms it
+works.** `[skill-tree] … differs` in the log would mean a wrong table name. `docs/skill-actions.md`.
+
+## Named places and corridors — installed, 2026-10-02
+
+User: names for parts of the map (bridge, tavern, palace entrance), then detail inside them (the
+hall, the counter), then what the game does not name (corridors). Walking in now speaks:
+- the named piece (`RoomEx+0x74/+0x40` → LvlPrest map, `src/preset_map_layout.h`);
+- the interior and the landmark nearest by walking distance, from each preset's HD layout (props
+  and prefabs: `TOWN_2_BAR` = Atma's tavern, `barstool`, `pf_town_blacksmith01` = Charsi's forge);
+- in maze levels, corridor / dead end / bend / junction from the live grid, scaled by the maze's
+  own doorway width, plus what a corridor leads to ("pasillo, hacia Escalera a …").
+
+Toggled then by **Ctrl+U** (now `places` in the Ctrl+S list); `access-places where` asks; `access-places dump` logs the live grid. 578 pieces,
+2418 landmarks, 82 interiors (`tools/gen_places.py`). **87/87 suites pass** (new `places`,
+`passages`). Installed DLL SHA-256 `AB15AF70…` matches the build.
+
+**Live 2026-10-02.** First runs: nothing spoken. The game keeps the File column as
+`data\global\tiles\…`, the lookup missed it; fixed. Third run works:
+- Lut Gholein: mesas, puestos, taberna, barra, mesas, fuera (east door), taberna.
+- Rogue Encampment N1 (origin tile 1024,1256): forja at Charsi.
+- Blood Moor: río on the river pieces (def 26), but twice in 5 s along a chain of pieces. Now a named
+  piece's name holds within one piece size of it, and only a new kind is spoken.
+- Den of Evil: no corridor spoken. Its piece is one 24×24-tile cave preset. The real grid rebuilt
+  from `[radar-collision]` records shows caverns joined by necks, and the path stayed in the cavern.
+  Corridors are still unproven in the Catacombs, Barracks and Jail.
+
+- User: say "forja" when passing through the forge, not within 7 steps of a point. Landmarks are now
+  footprints from their prefabs (forge 31×30, tents 10–26, wagons ~17×12), at = on it or one tile off.
+  Replaying the camp walk: hoguera, forja, hoguera, carro, tiendas, carro, tiendas (was only forja).
+
+**Next step:** walk the Rogue Encampment past the forge, Akara's tent, Gheed's wagon and the bonfire;
+then the Catacombs, Barracks or Jail for corridors (`access-places dump` where one is wrong).
+`docs/places.md`.
+
+## Enemy growl, attack reach ping, quiet monster plate, boss life — installed, 2026-10-02
+
+User: the plate spammed monster names, even out of reach. Friend: Diablo 1-style monster
+sounds and a sound when an enemy is in reach (a ranged player was shooting blind). User: narrate
+boss life like their own. **85/85 suites pass**; installed DLL SHA-256 `64A98CE7…` matches the
+build. Unattended run reached only the title screen (the user was using the PC), but its startup log
+shows `monster=1` (new fingerprints match under 1.3.1-beta) and the new settings registered.
+
+- Every enemy has a cue: the three nearest growl, each on its own, after the priority classes
+  (design of mojsior/diablo-access, the D1 mod the friend meant).
+- A rising ping when an enemy in sight comes within attack reach; melee or ranged from the
+  bound skills and weapon (skills.txt `Range`/damage, weapons `rangeadder`, found by table
+  correlation). `access-entity-cues attack-melee|attack-ranged|attack-auto`.
+- Plate names only within reach (bosses/elites always), never interrupting, no repeat while
+  the target trades; the affix line's stray "5• 0" is gone.
+- Boss life (bosses, superuniques) on the player's life steps, from the game's own plate fill.
+
+**Live 2026-10-02 (sorceress, Blood Moor, Den of Evil).** Growls and 15 reach pings played.
+- Enemy names barely spoken: 11 of 16 held back as beyond the 15-subtile ranged default, while
+  Glacial Spike hit from 20–23. Ranged attacks now name what the auto-target picks; melee keeps the
+  reach rule.
+- Next run: the Fallen still unnamed. The gate admitted the name, the reader's 80 ms settle lost it
+  to the next hop, and from then on it was "just heard". Admitted names now speak at once
+  (regression test fails without the fix).
+
+**Next step:** user fights a pack and a boss (Blood Raven / Rakanishu): each kind of enemy named once,
+the ping distance for their class, the life steps. `docs/attack-reach.md`, `docs/boss-life.md`,
+`docs/entity-cues.md`.
+
+## Friend's tester ZIP v2 — 2026-10-02
+
+`../d2r-access-completo-2026-10-02-v2.zip` (the only package kept; the user wants older ZIPs and
+`.sha256` files deleted): the first 02/10 package (user confirmed it works) with the skill-tree
+plugin (`0E4F069F…`, d97041e + the uncommitted fix; matches the build and the install, tested live
+by the user; 87/87 suites). 26 entries, 58,468,395 bytes, SHA-256
+`9dae07903e7d1956fc76a6faea4aafb4863aeed5532f678f01627fccea622ebe`. Loader 1.3.1-beta, PRISM,
+licences, VC runtime and `d2r-access.toml` byte-identical to the first 02/10 package. Spanish
+LEEME with the skill-tree news first. Every entry matches its SHA-256.
+**Next step:** send it.
+
+## Radar breath rises up, falls down (D4 mod's sound) — installed, 2026-09-28
+
+User could not tell an opening ahead from one behind. The floor breath is now the D4 mod's, copied
+unchanged: band-passed noise sweeping 900→2400 Hz up, 600→220 Hz down, steady 1200 Hz sideways,
+180 ms. **82/82 suites pass.** Installed DLL SHA-256 `95251F45…` matches the build.
+
+**Next step:** walk a corridor with openings ahead and behind and judge the two breaths under the
+game's ambience; also check the falling breath is not mistaken for the enemy swoop.
+`docs/radar-readings.md`.
+
+## Way back to the last death place — installed, 2026-09-28
+
+User died to Radament (Sewers Level 3), pressed *Save and exit*, and had to find the room blind: the
+new game put the corpse in town. Now the death screen records the place where the player last stood.
+It is kept per map in `explored\deaths.txt`. The corpse category lists "donde moriste" on that level.
+On other levels it lists the known exit toward it ("camino a donde moriste, *level*: *exit*"), or the
+waypoint when no walking route is known. It is forgotten once reached. **82/82 suites pass** (new
+`death-place`). Installed DLL SHA-256 `3B06AFDC…` matches the build.
+
+**Next step:** die somewhere two levels deep, *Save and exit*, rejoin. Check the corpse category in
+town and on each level on the way, and `[death]` in the log. `docs/death-place.md`.
+
+## Seen town NPCs from anywhere in town — installed, 2026-09-28
+
+User, in Lut Gholein: the town is huge. They asked for tavern/smithy-style places and an unlimited
+NPC range, only in town, then for NPCs not yet seen to stay out. **No district names:** the game has
+none. Lut Gholein is one level from one preset (`docs/map-landmarks.md`). **Town NPCs:** in a town,
+the scanner's NPC category lists every NPC already seen, from anywhere. Seen means in range and in
+sight, or in a room the automap drew. It uses the loaded unit, or else the NPC's spawn point from the
+level's presets. The beacon follows either. Full assistance lists all of them. Outside towns nothing
+changes. **81/81 suites pass.** Installed DLL SHA-256 `50B089FA…` matches the build (it also carries
+the sockets/cinematics entry below).
+
+**Next step:** in Lut Gholein, cycle the NPC category from a far corner and follow one with L3.
+Check `[survey] town NPCs`: the total should be every town NPC, and "seen" only those met. A missing
+one points to rooms without presets. `docs/entity-scan.md#town-npcs`.
+
+## Filled sockets read natively, cues paused in cinematics — installed with the town NPC build, 2026-09-28
+
+**Sockets:** the RE found that an item's socketed gems and runes are its own inventory. The item
+count sits at `Inv+0x4C`, verified live: the topaz sword read 1, the controls 0. The reader of the
+item under a gem in hand now says one of:
+- "Huecos libres: N";
+- "Huecos llenos";
+- "Sin huecos";
+- only the total ("Con huecos: N"), if unreadable.
+
+Socketing says "Engarzado en X. Huecos libres: N". New `SocketChecks` fingerprints:
+`docs/inventory-npc-followup.md#socket-contents`.
+
+**Cinematics:** act videos (`MoviePlayerMessage:Play` … `Cinematics:MovieComplete`) now pause every
+cue, as a pause menu does. The user heard the NPC cue through the Act 2 video.
+
+**81/81 suites pass.** Installed with the town NPC build (`50B089FA…`).
+
+**Next step:** live checks. The Filo de la tormenta should say "Huecos llenos" with a
+gem in hand, and the next act video should be silent.
+
+## Socketing: the SDK's filled-socket count is wrong — built, not installed, 2026-09-28
+
+User: the Rubí would not go into a sword the reader said had "Huecos libres: 1".
+
+The sword's one socket already holds a topaz: its "Añade 1-8 p. de daño de rayos" line is the chipped
+topaz bonus. The SDK read `socketedItemCount` 0, so the game rightly refused ("No puedo" on the worn
+slot, a swap in the backpack).
+
+Changes:
+- **Hovering with a gem in hand** now says only the total ("Con huecos: N") or "Sin huecos".
+- **"Engarzado en X"** comes from the gem leaving the hand onto a socketed item that stays.
+- **A refusal** (swap or "No puedo") says "No se pudo engarzar".
+
+**81/81 suites pass**; plugin objects compile. **Not installed:** the game was running.
+
+**Next step:** `.uild.ps1` with the game closed. The filled count needs the item inventory list
+offsets (RE). `docs/inventory-npc-followup.md#third-live-session-2026-09-28-the-sdks-filled-socket-count-is-wrong`.
+
+## Bought and taken-off items say where they landed — installed, 2026-09-28
+
+User: a bought or unequipped item sometimes "is not in the inventory" until the panel is reopened.
+The log showed no stale read. The purchase was silent and the item simply went unsearched: the sword
+was in column 3, only columns 1, 2 and 4 were searched, and potions may go into the belt.
+
+While the inventory is open, items new to the backpack or belt, or moved there from the worn slots,
+are now spoken with their place. For example: "Nuevo en el inventario: X, Fila 1, columna 3" or
+"Desequipado: X, …". It uses the SDK's inventory walk every 100 ms. **81/81 suites pass.** Installed
+DLL SHA-256 `A6998DF8…` matches the build (it also carries the socketing entry below).
+
+**Next step:** buy a potion and a weapon, unequip a helm, and check `[items] arrived` in the log. If a
+row or column comes out swapped, that is the SDK's `x`/`y`.
+`docs/inventory-npc-followup.md#arrivals`.
+
+## Socketing: the item under a gem is named, the result is announced — installed, 2026-09-28
+
+User: with a gem in hand, the target sword was silent, and nothing said whether it was socketed.
+The log showed why:
+- **The sword was silent** because the game shows no tooltip while an item is in hand, and magic or
+  better names waited for one. The name now comes from the last tooltip seen for that item, or else
+  the table name and quality.
+- **There was no socketing feedback:** it was announced as "Colocado en Fila 2, columna 1". The SDK's
+  socket counts now tell it apart. It says "Engarzado en X", plus "Huecos libres: N" when sockets
+  remain. A tome or stack gets "Añadido a X". A swap gets "Intercambiado. En mano: X".
+
+**80/80 suites pass**, including the new `item-hand` suite. Installed DLL SHA-256 `7D793EA9…` matches
+the build.
+
+**Second live session:**
+- **Every swap was correct.** The target, "de electrocución Mandoble", has no sockets (`sockets=0/0`):
+  "Max Sockets: 2" is the RT range line, not sockets it has.
+- **A gem thrown with X was announced as "Añadido a"**, now fixed.
+
+Now, with a gem, rune or jewel in hand, each item under it says "Sin huecos", "Huecos libres: N" or
+"Huecos llenos". The hand filler comes from the ItemTypes `sock` ancestry. "Añadido a" needs the
+target's quantity to grow, and X is "Tirado al suelo". Installed `F2F32A41…`; 80/80 pass.
+
+**Open:**
+- Antidote, thawing and stamina potions: the game's own tooltip has only their name (price at a
+  vendor). Nothing is lost by the reader.
+- Buying: see the arrivals entry above.
+
+**Next step:** socket a gem into an item with a free socket, then try one on an item with none. Check the log for `[item] hand outcome=`. `docs/inventory-npc-followup.md#socketing`.
+
+## Monastery Gate: border found at its crossing, beacon survives a step across — installed, 2026-09-28
+
+User report from the Monastery Gate, checked against the live log:
+- **(1) Fixed: the scanner listed the gate late.** A border counted as discovered only at the middle of the
+  shared edge, in a room the automap had not drawn. It now also counts at its walkable crossing.
+- **(3) Fixed: L3 to the Outer Cloister "led back to Tamoe".** The route was right (east alcove, then the
+  strip along the Tamoe border). One step into Tamoe released the lock. Now it parks and resumes on the
+  way back.
+- **(2) No change: an opened door does not read open.** This is the cardinal frame's known limit: gates
+  are crossed on a screen diagonal, so the door posts block both rays beside it. The user found it
+  works well enough.
+
+Both fixes have a test that fails without them. **79/79 suites passed** at the time. Installed with the
+socketing build (`7D793EA9…`).
+
+**Next step:** in the east alcove, lock the Outer Cloister, then step into Tamoe and back. Expect `[beacon] resumed` in the log.
+
+`docs/beacon.md#area-borders`.
 
 ## Friend's tester ZIP v2 — 2026-09-26
 

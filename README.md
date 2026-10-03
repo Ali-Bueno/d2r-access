@@ -2,8 +2,8 @@
 
 A [D2RLoader](https://d2rloader.net) plugin that makes Diablo II: Resurrected playable with a
 screen reader (NVDA, JAWS, SAPI…) through [PRISM](https://github.com/ethindp/prism). Built for
-blind players. This checkout supports keyboard gameplay and physical controllers; see
-[keyboard play](docs/keyboard-play.md) and the [architecture guide](docs/architecture.md).
+blind players using a controller or the keyboard; see [keyboard play](docs/keyboard-play.md) and
+the [architecture guide](docs/architecture.md).
 
 ## What works today
 
@@ -46,10 +46,10 @@ selection, smooth inventory navigation, and axe descriptions in the blacksmith's
 also exposes inventory coordinates and selected stash tabs. Item grids and equipment
 announce one name and its quality, such as `Crimson Spear. magic`, or
 `Spear. Unidentified`. Magic, set, rare, unique and crafted items use the game's
-full tooltip name. The stock 400 ms controller delay is removed while the inventory
-reader is active; ordinary items still read directly from the highlighted item.
+full tooltip name. The stock 400 ms controller tooltip delay is removed everywhere
+(`TooltipDelay`), so an item is named from the game's own tooltip at once.
 Prices and properties are available with right-stick up, or automatically with
-Ctrl+D. Activating the game's **Compare** action reads the selected item's full
+autodetail (in the Ctrl+S settings list). Activating the game's **Compare** action reads the selected item's full
 visible description followed by **Currently Equipped** and the displayed equipment
 statistics. Right-stick up repeats the comparison while it is visible; closing
 the comparison restores ordinary item detail. Unidentified items expose only the text
@@ -134,7 +134,8 @@ that mode announces the placement destination when known. Brief focus gaps or
 crossing another control do not repeat the pickup instruction. While carrying
 an item, equipment destinations read immediately, including occupied slots
 whose item tooltip is still pending. Manual repeat includes the held-item
-context while in the inventory.
+context while in the inventory. Picking up and placement speech is one switch
+in the Ctrl+S settings list (`hand-speech`), on by default.
 
 The **belt** now names the D-pad direction and row of each focused cell, its
 potion, and the total items in that column. The bottom row is used first;
@@ -193,7 +194,7 @@ body graph; they are not a saved exploration map. Speed and queue length do not
 create geometry transitions. Changes require two observations, with 120 ms cues
 and 50 ms silent gaps; a cancelled cue retries only if it never started.
 
-**Ctrl+R** toggles it; **Ctrl+T** first describes actual recent screen movement
+**Ctrl+G** toggles it; **Ctrl+T** first describes actual recent screen movement
 (including diagonals), then the four straight-line clearances, and saves a local
 map snapshot. This distinguishes moving along a wall from being stationary while
 one or two straight rays are blocked. Short passages remain limited space;
@@ -365,10 +366,23 @@ See [quest-log implementation and remaining work](docs/quests.md) and
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Ctrl+V** reviews them one at a time, nearest first, with distance, clock bearing and the beacon's verdict on
-getting there (straight, around or no route). A short left-stick click, or **Ctrl+B** right after,
-guides to the one just reviewed. **Ctrl+M** toggles the feature.
+stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again. The exit
+finder, switched with **Ctrl+V** (BACK+A on the pad), names them one screen side at a time on the
+right stick (PageUp, PageDown and Ctrl+PageUp, Ctrl+PageDown on the keyboard), nearest first, with
+the distance in steps. A short left-stick click, or **Ctrl+B** right after, guides to the one just
+named. **Ctrl+M** toggles the announcements.
 See [room exits](docs/rooms.md).
+
+**Named places (built; live validation pending):** walking into a named part of the map speaks it,
+without interrupting: a named map piece (*bridge*, *Fallen camp*, *graveyard*), an interior
+(*tavern*, *palace entrance*, *hut*, *temple*) and the landmark within a few steps (*bar*,
+*kitchen*, *fireplace*, *stairs*, *dock*, *stalls*, *throne*). Everything comes from the game's own
+HD map layouts; the landmark is the nearest one by walking distance, so it never names a room
+through its wall. In maze levels it also reads corridors from the walkable grid: *corridor*,
+*dead-end corridor*, *bend*, *junction*, and what a corridor leads to (*towards* the stairs, the
+throne). `places` in the Ctrl+S settings list or `access-places on|off` toggles it;
+`access-places where` speaks the current place.
+See [named places](docs/places.md).
 
 **Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** speaks
 the level name, where you stand in it (`left edge`, `centre`…) and,
@@ -381,27 +395,46 @@ See [terrain overview](docs/terrain-overview.md).
 pips when the way leads to ground you have not covered: an opening into a chamber you have
 never stood in, stairs to a level you have never seen, open ground towards the frontier of what the
 game has streamed. The base cues are untouched and nothing new sounds on its own; the tail rides on
-the cue that was going to play. The room entry line and the exit review tag each way out never
-taken (`abertura, sin explorar`) and list those first; the terrain overview says how much of the
+the cue that was going to play. The room entry line and the exit finder tag each way out never
+taken (`abertura, sin explorar`); the terrain overview says how much of the
 level is filled in (`explorado 22 por ciento`). What you have seen and where you have stood is kept
 in one compact archive, limited to 4 MiB, with separate records per map seed and layout.
 Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
 test` auditions the marked cues. See [exploration](docs/exploration.md).
 
-### NPC and priority enemy sounds
+### NPC and enemy sounds
 
-Soft synthesized pulses locate the nearest NPC and up to two priority enemy
-types: bosses/elites, resurrecting shamans, then ordinary ranged enemies.
-NPCs use a light wooden tap; enemies use a low, resonant metallic swoop with a
-little air texture. Sounds follow the radar's fixed screen directions. A single
-target repeats about every 0.2 seconds nearby or 0.5 seconds at maximum range. Ordinary
-melee crowds remain silent. Dialogue and menu/focus gating suspend the sounds.
+Soft synthesized pulses locate the nearest NPC and up to three enemies: the
+nearest boss/elite, resurrecting shaman and ordinary ranged enemy, then the
+nearest other enemies in the streams left, each heard on its own (as Diablo 1's
+diablo-access plays its three nearest monsters, so a pack's spread is audible). NPCs use a light wooden tap; priority enemies a low, resonant
+metallic swoop; ordinary enemies a short rough growl. Sounds follow the radar's
+fixed screen directions. A single target repeats about every 0.2 seconds nearby
+or 0.5 seconds at maximum range. Dialogue and menu/focus gating suspend the sounds.
+
+**Attack reach.** A bright rising two-note ping, placed toward the enemy, plays
+when an enemy in sight comes within reach of your attacks, once until every
+enemy is out of reach again. The reach follows the skills bound to the controller
+bars (on the keyboard, the selected hand skills) and the weapon in hand (bow or
+crossbow, ranged skills, melee skills, damaging spells), read from the game's own
+skill and weapon tables; ranged reaches as far as the enemy sounds, melee is
+contact plus the weapon's `rangeadder`. `attack-melee` / `attack-ranged` fix it by
+hand, `attack-auto` returns to the automatic choice, and `status` says the current
+reach.
+
+The monster health plate names a monster only once it is within that reach
+(bosses and elites from first sight), without interrupting other speech, and a
+name the auto-target keeps trading inside a pack is not repeated until it has
+been off the plate for ten seconds. The scanner and the keyboard's target keys
+still add the monster's rank, nature, enchantments and immunities.
 
 Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
-`enemy-off` and `ranged-off` switches (and matching `*-on`). Persistent range,
-volume and switches live under `[entity_cues]` in the plugin TOML. This is
-independent of the existing NPC speech toggle. Listening validation is pending;
-see [entity cue behavior and controls](docs/entity-cues.md).
+`enemy-off`, `ranged-off`, `ordinary-off` and `reach-off` switches (and matching
+`*-on`); the growls and the ping are also `enemy-growls` and `attack-reach` in the
+Ctrl+S settings list. Persistent range, volume, switches and the attack reach live
+under `[entity_cues]` in the plugin TOML. This is independent of the existing NPC
+speech toggle. See [entity cue behavior and controls](docs/entity-cues.md) and
+[attack reach](docs/attack-reach.md).
 
 ### Character panel
 
@@ -445,9 +478,20 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
+### Boss life
+
+A boss's life is said as it falls, the way your own is: `Andariel, 74 por
+ciento` when it crosses 75, 50, then every 10 down to 10, then every point
+(interrupting at 10 and below), and `0` when it dies. It covers act and quest
+bosses and superuniques (Rakanishu, Blood Raven, Andariel, Mephisto, Diablo...),
+using the fill of the game's own health plate. The first sight is only a
+baseline, so nothing is said until the fight starts. `access-boss-life
+on|off|status`, `boss-life` in the Ctrl+S settings list; `[boss_life] enabled` in
+the plugin TOML. See [boss life](docs/boss-life.md).
+
 ### Weapon swap, stash gold and trading
 
-A weapon swap (R3, W or the inventory's I/II tabs) names the set and the weapons
+A weapon swap (R3 on the pad, Y on the keyboard, or the inventory's I/II tabs) names the set and the weapons
 now in hand ("Armas 2: Arco largo, Carcaj"); console `access-weapon-swap on|off`.
 See [weapon swap](docs/weapon-swap.md). In the stash, the withdraw button says the
 gold the open tab holds ("12345 de oro en el alijo").
@@ -570,6 +614,14 @@ build\casc-extract\casc_extract.exe extract "<game folder>" game-data "global\ui
 python tools\layout_index.py
 python tools\gen_panel_titles.py
 python tools\gen_panel_widgets.py
+```
+
+Named places come from the HD map layouts:
+
+```powershell
+build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "hd\env\preset\"
+build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "\pf_"
+python tools\gen_places.py --hd-root <scratch>
 ```
 
 ## Layout

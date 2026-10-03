@@ -3,12 +3,62 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-02 — Ranged attacks name every monster the auto-target picks
+
+The user, on a sorceress: enemy names were almost never spoken in combat. Of 16 names the plate
+showed in sight, 11 were held back as beyond the 15-subtile ranged reach, while Glacial Spike was
+killing them from 20–23. Chosen: the reach rule applies to melee only; a ranged attack names
+whatever the game targets. The repeat and wall rules stay. Rejected: deriving each spell's missile
+range from missiles.txt. That is unverified, and the game's own targeting already bounds it.
+`docs/attack-reach.md`.
+
+## 2026-10-02 — Corridors from the walkable grid, measured by the level's own doorways
+
+The user asked for what the HD layouts cannot name: corridors, bends, junctions, dead ends. Chosen:
+read them from the live collision grid, in maze levels, with every measure scaled by the maze's
+median doorway width. Rejected: one fixed width, because measured corridors run from 6 (town
+streets) to 20 subtiles (Catacombs). Rejected: corridors on open ground and in towns, where the
+room partition gives no doorway width to measure by. `docs/places.md#corridors`.
+
+## 2026-10-02 — Named places inside towns and buildings, from the HD layouts
+
+The user asked again for tavern- and palace-style names, then for detail inside them (the hall, the
+counter). This reverses the 2026-09-28 "no district names" entry: the game does name them. Every
+preset's HD layout marks interiors with acoustic and lighting volumes (`TOWN_2_BAR` is Atma's
+tavern) and names its props (`barstool`, `table_kitchen`, `anvil`). The room → LvlPrest map link
+was reversed too. Chosen: speak the named piece, the interior and the landmark nearest by
+walking distance, generated from the game's files, never drawn by hand. Rejected: hand-drawn zones
+over map images, which would not survive a patch and would cover only what we drew. Rejected:
+straight-line nearest props, which name a room through its wall. `docs/places.md`.
+
 ## 2026-09-28 — The radar breath rises up and falls down, as in the D4 mod
 
 The user could not tell an opening ahead from one behind even with the darker downward breath, and
 preferred the D4 mod's breath. Chosen: copy it unchanged — a band-passed noise sweep that rises for
 up, falls for down and holds for the sides, 180 ms long. Rejected: darkening the downward breath
 further, which already failed once. `docs/radar-readings.md`.
+
+## 2026-09-28 — The last death place is kept per map and routed to
+
+The user died to a boss, pressed *Save and exit*, and had to find the boss room blind: the new game
+moves the corpse to town. The mod now keeps the place, per map, on disk, and the corpse category
+leads there over the exits already found. The level-to-level route uses only the exploration
+memory, not `Levels.txt` `Vis`. That column holds the warp links only, not the open borders
+between outdoor areas, and it would reveal ways never found. Waypoints are a fallback only: the mod
+cannot read which ones are activated. `docs/death-place.md`.
+
+## 2026-09-28 — Town NPCs listed from anywhere in town, no district names
+
+The user found Lut Gholein too big to find the NPCs and asked for tavern/smithy-style places and an
+unlimited NPC range, **only in town**; outside, the scanner stays as it was. The game names no
+district: each town is one Levels.txt level built from one LvlPrest map (`docs/map-landmarks.md`),
+so "taberna" or "herrería" would be names the mod made up, and were turned down. The NPCs who run
+those places are the real landmarks. In towns the scanner now lists every NPC the level's presets
+place once, from anywhere, once it has been seen. It shows the loaded unit if there is one, else its
+spawn point. The user then asked that NPCs not yet seen stay out. "Seen" is the scanner's
+exploration rule: in range and in sight, or standing in a room the automap has drawn. Full
+assistance lists them all, as it does rooms. Rows placed more than once, such as guards, stay as
+before. `docs/entity-scan.md#town-npcs`.
 
 ## 2026-09-26 — Loader 1.3.1-beta adopted, PluginSDK kept at 0.2.0
 
