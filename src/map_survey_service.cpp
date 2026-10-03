@@ -20,6 +20,7 @@
 #include "keyboard_service.h"
 #include "native_world.h"
 #include "navigation_mode.h"
+#include "quest_seals.h"
 #include "radar_ui.h"
 #include "room_catalogue.h"
 #include "screen_reader.h"
@@ -475,6 +476,8 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 		text += ". ";
 	}
 	text += Describe(members[index]);
+	// A seal says how many are left to open, the count the quest is waiting on.
+	if (members[index].entity.seal) text += ". " + QuestSeals::LeftText(QuestSeals::Left(g_state.session), Strings::Current());
 	AsyncLog::InfoF(context, "[survey] category=%s %zu/%zu -> %s",
 		CategoryName(g_category), index + 1, members.size(), text.c_str());
 	ScreenReader::Speak(text, true);

@@ -85,6 +85,7 @@ struct Entity {
 	// A teleport pad's objects.txt class, zero for anything else. A pad leads to
 	// the other pad of its class in its room (EntityLayout::TeleportPadOperateFn).
 	uint16_t padClass = 0;
+	uint8_t seal = 0; // a Chaos Sanctuary seal's number (Generated::SealOrdinal), zero otherwise
 };
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a

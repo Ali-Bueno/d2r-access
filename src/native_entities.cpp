@@ -11,6 +11,7 @@
 #include "native_level_exits.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
+#include "quest_seals.h"
 #include "native_memory.h"
 #include "localization.h"
 #include "monster_plate.h"
@@ -421,11 +422,14 @@ bool IsContainer(uintptr_t row) {
 		|| !Peek(row + ObjSelectable + ObjectOpened, opened) || !shut || opened) return false;
 	return std::find(ContainerOperateFns.begin(), ContainerOperateFns.end(), operate) != ContainerOperateFns.end();
 }
-bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
+bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t session, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
 		|| !Peek(unit + UnitId, entity.id) || !StaticPosition(unit, room, entity.position)) return false;
 	const uintptr_t row = tables.objects + classId * ObjectStride;
+	// A seal is counted in every mode: the open ones are what the count is made of.
+	const uint8_t seal = Generated::SealOrdinal(classId);
+	if (seal) QuestSeals::Observe(session, seal, mode != ObjectNeutral);
 	uint8_t selectable = 0, door = 0, subClass = 0, openWarp = 0, operate = 0;
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
@@ -498,6 +502,14 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		char text[512]{};
 		std::snprintf(text, sizeof text, strings.cairnStoneSymbol, entity.worldName.c_str(),
 			strings.cairnSymbols[entity.cairnStone - 1]);
+		entity.name = text;
+	}
+	if (seal) { // the game gives all five one label
+		entity.seal = seal;
+		entity.worldName = entity.name;
+		entity.nameKey.clear();
+		char text[512]{};
+		std::snprintf(text, sizeof text, Strings::Current().sealNumbered, entity.worldName.c_str(), static_cast<int>(seal));
 		entity.name = text;
 	}
 	return !entity.name.empty();
@@ -577,7 +589,7 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit) {
 		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
 	return count;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -642,7 +654,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
-				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
+				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, session, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
 				if (unitType == MonsterType && entity.kind == EntityRadar::Kind::Npc) {
 					uint32_t classId = 0;

@@ -166,6 +166,9 @@ struct Table {
 	const char* cairnScrollOrder; // %s = spoken symbol sequence, assembled when scroll opens
 	std::array<const char*, 5> cairnSymbols; // scroll Symbol1..5: DropUp, I, DropDown, II, Zero
 	std::array<const char*, 7> tombSymbols; // TalRashaSymbol frames 0..6, shared with tomb entrance names
+	const char* sealNumbered; // %s = native seal name, %d = its number (Generated::SealOrdinal)
+	const char* sealsLeft; // %d = Chaos Sanctuary seals not yet open
+	const char* sealsAllOpen; // every Chaos Sanctuary seal is open
 	const char* vitalsLife;          // %d = whole percent of life left
 	const char* vitalsMana;          // %d = whole percent of mana left
 	const char* vitalsEnabled;
@@ -349,7 +352,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconNothing, t.beaconFollowing, t.beaconArrived, t.beaconLost,
 		t.beaconKnownRouteOnly, t.beaconKnownRouteEnded, t.corpseOwn, t.corpseOf,
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
-		t.cairnStoneSymbol, t.cairnScrollOrder,
+		t.cairnStoneSymbol, t.cairnScrollOrder, t.sealNumbered, t.sealsLeft, t.sealsAllOpen,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
 		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,

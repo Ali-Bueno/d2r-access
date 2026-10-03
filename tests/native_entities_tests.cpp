@@ -1,6 +1,8 @@
 #include "native_entities.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
+#include "quest_seals.h"
+#include "generated/lootables.h"
 #include "entity_layout.h"
 #include "level_exit_layout.h"
 #include "ground_item_layout.h"
@@ -12,6 +14,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 using namespace D2RAccess;
 using namespace EntityLayout;
@@ -41,6 +44,7 @@ std::string Text(std::string_view key) {
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
 	if (key == "Gibbet") return "Jaula de Cain";
+	if (key == "Seal") return "Sello";
 	if (key == "teleport pad") return "Plataforma de teletransporte";
 	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
 		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
@@ -446,6 +450,32 @@ void QuestMechanismModes() {
 	f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 0);
 	Check(f.Read(entities) && !f.Find(entities, 17), "one the game no longer lets be targeted is gone");
 }
+// The five Chaos Sanctuary seals (objects.txt DiabloSeal1..5) all carry the label "Seal".
+void SealNumbersAndCount() {
+	const auto language = Strings::Selected();
+	Strings::Select(Strings::Language::enUS);
+	Fixture f;
+	constexpr uint64_t session = 7; // the fixture's read
+	const uint32_t rows = Generated::SealObjects.back() + 1u;
+	std::vector<uint8_t> objects(rows * ObjectStride);
+	for (const uint32_t classId : Generated::SealObjects) {
+		std::memcpy(objects.data() + classId * ObjectStride + ObjNameKey, "Seal", sizeof "Seal");
+		objects[classId * ObjectStride + ObjSelectable + ObjectNeutral] = 1;
+	}
+	f.tables.At(Objects, reinterpret_cast<uintptr_t>(objects.data())); f.tables.At<uint64_t>(ObjectCount, rows);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, Generated::SealObjects[2]);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->seal == 3 && f.Find(entities, 17)->name == "Sello 3"
+		&& f.Find(entities, 17)->worldName == "Sello" && f.Find(entities, 17)->category == EntityRadar::Category::Quest,
+		"a shut seal is a quest object named with its number");
+	Check(QuestSeals::Left(session) == QuestSeals::Count && !QuestSeals::TakeOpening(session), "a shut seal leaves all five to open");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && !f.Find(entities, 17), "an opened seal can no longer be targeted");
+	const auto opening = QuestSeals::TakeOpening(session);
+	Check(opening && *opening == QuestSeals::Count - 1 && QuestSeals::Left(session) == QuestSeals::Count - 1,
+		"its opening is read from its mode though it is no longer listed");
+	Strings::Select(language);
+}
 void TeleportPadClass() {
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
@@ -566,6 +596,7 @@ int main() {
 	DistantPartyMembers();
 	QuestObjectModes();
 	QuestMechanismModes();
+	SealNumbersAndCount();
 	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;
