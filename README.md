@@ -252,6 +252,11 @@ and the Horadric and Khalim component chests. Every unactivated Cairn Stone is
 eligible for the cue. The scan, catalogue and beacon name its fixed symbol;
 opening the deciphered Scroll of Inifuss reads the symbol sequence. Reopen it
 to hear the sequence again, then choose which stone to touch yourself.
+Quest mechanisms also use the cue until they are used: the Compelling Orb, the
+Chaos Sanctuary seals, the Altar of the Heavens, the Hellforge, Frozen Anya, the
+Horadric Staff orifice, the Tainted Sun altar, the Gidbinn altar, Cain's Gibbet
+and the Kurast sewer lever. The seals are named Seal 1 to Seal 5, and the mod
+says how many are left. The opened sewer stairs are an exit.
 The cue repeats about every 700 ms,
 uses screen direction and reaches 45 subtiles with a gentler distance fade.
 Up to two quest sources get priority
@@ -300,7 +305,7 @@ own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
 **Scanner (right stick; live validation pending):** during play, push the
 right stick up or down to change category, and left or right to step through
 it, nearest first. It lists what a sighted player finds on the automap: exits,
-portals, waypoints, NPCs, the stash, shrines, objects, quest containers,
+portals, waypoints, NPCs, the stash, shrines, objects, quest objects (their own category),
 visited rooms and, in their own category, the unexplored rooms sharing an
 open edge with what you have explored. It also lists the enemies in sight right now and, in multiplayer,
 the other players nearby and party members anywhere on the same level, by
@@ -361,7 +366,9 @@ Announcements wait for dialogue
 or menus to close. Console `access-quests on|off|status` controls this feature.
 The Seven Tombs also reads the visible true-tomb symbol as a plain shape name.
 Tomb entrances include their individual markings, for example "To Tal Rasha's Tomb: circle".
-See [quest-log implementation and remaining work](docs/quests.md) and
+D goes to an unused quest object in reach before nearer statues, NPCs or chests.
+See [quest-log implementation and remaining work](docs/quests.md),
+[quest objects](docs/quest-objects.md) and
 [Tal Rasha symbol evidence](docs/tal-rasha-symbols.md).
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of

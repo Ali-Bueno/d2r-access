@@ -2,6 +2,14 @@
 
 How the mod names quests and reads objectives, and what is still open.
 
+## Quest objects — 2026-10-03
+
+The objects a quest needs used (the Compelling Orb, the Chaos Sanctuary seals,
+the Altar of the Heavens, the Hellforge, Anya, the orifice, the Gidbinn altar,
+Cain's Gibbet, the Kurast sewer lever and stairs) have the quest cue, their own
+scanner category and priority for D. The seals are numbered and counted. See
+[quest objects](quest-objects.md), which also lists the live checks still to do.
+
 ## Tal Rasha symbol — 2026-10-03
 
 Selecting The Seven Tombs now appends the visible journal graphic's plain

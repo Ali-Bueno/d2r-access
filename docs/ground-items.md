@@ -254,9 +254,9 @@ lifecycle suspension use the existing shared gates.
 The quest range is 45 collision subtiles in resident nearby rooms. No distant
 presets or undiscovered map positions are requested. Classification identifies
 quest-related objects, not whether the player's current quest needs them: no
-player quest flags are inferred. Other quest mechanisms (the Hellforge and the
-Ancients' altar) are outside this catalog; some stay selectable after use and
-need separate verified state handling.
+player quest flags are inferred. Quest mechanisms that hand over no item (the Orb, the
+seals, the Hellforge, the Ancients' altar and others) use the same cue in their
+quest-step modes: see [quest objects](quest-objects.md).
 
 **Quest tomes** (requested 2026-09-25): the Moldy Tome (TowerTome, OperateFn 6)
 and Horazon's journal (ArcaneTome, OperateFn 42), the books the automap draws

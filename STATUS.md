@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Quest objects — 2026-10-03
+
+The objects a quest needs used now get the quest cue, a **quest** scanner
+category and priority for D. These are the Orb, the seals, the Altar of the
+Heavens, the Hellforge, Anya, the orifice, the Tainted Sun and Gidbinn altars,
+Cain's Gibbet and the Kurast sewer lever. The seals are numbered, and "Seals
+left: N" is spoken. The opened sewer stairs are an exit. Attackable objects
+get the same use command as D sends (READ), so D is unchanged.
+**106/106 CTest pass**; built and deployed with the game closed (installed DLL `CB822E57…` matches the build); not pushed.
+**Next step:** the live checks in [quest objects](docs/quest-objects.md#live-checks-still-needed).
+
 ## Main's features restored on `integrate/bladestorm` — 2026-10-03
 
 `integrate/bladestorm` is the collaborator's tree (with his controller and keyboard
