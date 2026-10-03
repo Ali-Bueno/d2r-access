@@ -78,6 +78,10 @@ inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha thro
 // Sanctuary's pads, and no other row. The handler (0x14058EAD0 in 3.3.93787)
 // sends the player to the other object of the pad's class in its room.
 inline constexpr uint8_t TeleportPadOperateFn = 27;
+// objects.txt BeneathTheCityStairs (366), the Kurast sewer stairs, and no other row.
+// Its handler (0x1405E9DA0) warps the player through the room's warp tile, which
+// is NoInteract, once the stairs are in mode 2, the only mode they can be selected in.
+inline constexpr uint8_t RoomWarpOperateFn = 44;
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587

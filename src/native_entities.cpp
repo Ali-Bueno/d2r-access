@@ -457,11 +457,13 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	}
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
-	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
+	// SubClass, the OpenWarp stairs/trapdoors and the sewer stairs, and objects named after a level
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
-	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
+	// The sewer stairs are the way through themselves, with no OpenWarp flag (RoomWarpOperateFn).
+	const bool warp = openWarp || operate == RoomWarpOperateFn;
+	const bool exit = (subClass & SubClassExit) || warp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
-	entity.category = ObjectCategory(classId, subClass, openWarp != 0, key);
+	entity.category = ObjectCategory(classId, subClass, warp, key);
 	if (EntityRadar::QuestSource(entity)) entity.category = EntityRadar::Category::Quest;
 	// Stairs, waypoints and the stash stand where the level's layout put them.
 	if (openWarp || entity.category == EntityRadar::Category::Waypoint || entity.category == EntityRadar::Category::Stash)

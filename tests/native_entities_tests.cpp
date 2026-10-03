@@ -45,6 +45,7 @@ std::string Text(std::string_view key) {
 	if (key == "Inifuss") return "Árbol de Inifuss";
 	if (key == "Gibbet") return "Jaula de Cain";
 	if (key == "Seal") return "Sello";
+	if (key == "sewer stairs") return "Escaleras de la cloaca";
 	if (key == "teleport pad") return "Plataforma de teletransporte";
 	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
 		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
@@ -476,6 +477,22 @@ void SealNumbersAndCount() {
 		"its opening is read from its mode though it is no longer listed");
 	Strings::Select(language);
 }
+// The Kurast sewer stairs (objects.txt BeneathTheCityStairs): selectable only once the lever opens them.
+void SewerStairs() {
+	Fixture f;
+	constexpr uint32_t plainClass = 29; // a class in none of the generated object sets
+	constexpr size_t stairs = ObjectStride * plainClass;
+	f.objects.Text(stairs + ObjNameKey, "sewer stairs");
+	f.objects.At<uint8_t>(stairs + ObjSelectable + ObjectOpened, 1);
+	f.objects.At<uint8_t>(stairs + ObjOperateFn, RoomWarpOperateFn);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, plainClass);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && !f.Find(entities, 17), "shut stairs are not offered");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->kind == EntityRadar::Kind::Exit
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Exit && f.Find(entities, 17)->name == "Escaleras de la cloaca"
+		&& !f.Find(entities, 17)->placeId, "open stairs are an exit, kept to this game since a new one starts them shut");
+}
 void TeleportPadClass() {
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
@@ -597,6 +614,7 @@ int main() {
 	QuestObjectModes();
 	QuestMechanismModes();
 	SealNumbersAndCount();
+	SewerStairs();
 	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;
