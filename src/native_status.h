@@ -18,4 +18,8 @@ struct Mercenary {
 // The unit bound to the game's HirelingInventoryPanel; absent is unknown.
 std::optional<Mercenary> MercenaryLife() noexcept;
 
+// A loaded monster's life as its health plate shows it, 1-100, or 0 once dead;
+// absent when the unit is not loaded or the verified path fails.
+std::optional<int> MonsterLife(uint32_t id) noexcept;
+
 }

@@ -127,3 +127,25 @@ offset, and the fallback cannot fire while the vector read works.
 
 Still to confirm live: at the blacksmith, whether the spoken help now lists
 Buy/Sell/Repair; the `[interaction]` log line records whatever is read.
+
+## Upstream hand/socket/arrival additions — 2026-10-03
+
+Hand-ported `12f0df3` into the current tooltip and keyboard reader. Generated
+names learned from a matching tooltip are reused while a held item suppresses
+tooltips. Specific stack/tome merges, swaps, drops and confirmed socketing
+are queued after focus speech. Plain pickup and release remain silent, as
+previously requested on this branch. Existing requirement refusal, tooltip
+identity guards, autodetail, keyboard grid and physical-pad behaviour stay in
+place.
+
+Socket totals come from the SDK; filled counts come from the item's verified
+native inventory. The SDK's `socketedItemCount` was reported as zero for filled
+sockets upstream. Invalid ownership/count reads remain unknown and never
+claim a successful socket. Socketing requires a one-socket increase on the
+same item with unchanged total sockets; unchanged counts also stay quiet.
+These are reads, not equipment-stat writes.
+
+`InventoryArrivalService` polls only while the inventory is open, naming a
+bought or unequipped item and its native grid cell or belt destination.
+`access-arrivals on|off` and `[inventory_arrivals] enabled` control it.
+Pure outcome and arrival tests run without the game; live feedback is pending.

@@ -9,6 +9,10 @@ struct Exit { uint32_t warp = 0, destination = 0; Radar::Position position; };
 // No native generator, room loader, map reveal or memory write is involved.
 // Empty/unavailable presets are skipped. A malformed traversal returns no exits.
 bool Read(uintptr_t activeRoom, std::vector<Exit>& output);
+// Where the level's presets spawn a MonStats row, from the same room walk.
+// `room` is the logical room (RoomEx) holding the preset.
+struct MonsterPreset { uint32_t monster = 0; Radar::Position position; uintptr_t room = 0; };
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output);
 // Coordinate identity survives native warp-unit unloading/recreation. Zero is
 // reserved for entities that are not fixed level exits.
 uint64_t Identity(Radar::Position position);

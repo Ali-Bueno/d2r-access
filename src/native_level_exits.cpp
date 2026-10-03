@@ -43,6 +43,44 @@ bool Destination(uintptr_t room, uint32_t warp, uint32_t currentLevel, uint32_t&
 }
 }
 
+namespace {
+// A preset's level subtile position; false when it lies outside its own room.
+bool InRoom(uintptr_t preset, const TileRect& rect, Radar::Position& position) {
+	int px = 0, py = 0;
+	if (!Peek(preset + PresetX, px) || !Peek(preset + PresetY, py) || px < 0 || py < 0
+		|| px >= rect.width * SubtilesPerTile || py >= rect.height * SubtilesPerTile) return false;
+	position = {static_cast<double>(rect.x * SubtilesPerTile + px), static_cast<double>(rect.y * SubtilesPerTile + py)};
+	return true;
+}
+
+// Every logical room of the player's level, inactive ones included, and each
+// preset in it. False when the traversal is malformed.
+template<class Visit> bool WalkPresets(uintptr_t activeRoom, Visit visit) {
+	uintptr_t room = 0, level = 0;
+	uint32_t currentLevel = 0;
+	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
+		|| !Peek(room + ExtendedLevel, level) || !level || !Peek(level + LevelId, currentLevel)
+		|| !Peek(level + LevelFirstRoom, room)) return false;
+	std::unordered_set<uintptr_t> rooms, presets;
+	while (room) {
+		if (rooms.size() >= MaxRooms || !rooms.insert(room).second) return false;
+		uintptr_t owner = 0, preset = 0;
+		TileRect rect;
+		if (!Peek(room + ExtendedLevel, owner) || owner != level || !Peek(room + RoomPresets, preset)
+			|| !ReadRect(room, rect)) return false;
+		while (preset) {
+			if (presets.size() >= MaxPresets || !presets.insert(preset).second) return false;
+			uint32_t type = 0;
+			if (!Peek(preset + PresetType, type)) return false;
+			visit(room, rect, currentLevel, preset, type);
+			if (!Peek(preset + PresetNext, preset)) return false;
+		}
+		if (!Peek(room + RoomNext, room)) return false;
+	}
+	return true;
+}
+}
+
 uint64_t Identity(Radar::Position position) {
 	if (!std::isfinite(position.x) || !std::isfinite(position.y)
 		|| position.x < 0 || position.y < 0 || position.x > UINT16_MAX || position.y > UINT16_MAX) return 0;
@@ -88,6 +126,19 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 		if (!Peek(room + RoomNext, room)) return false;
 	}
 	output = std::move(exits);
+	return true;
+}
+
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
+	const NativeMemory::ReadScope scope;
+	output.clear();
+	std::vector<MonsterPreset> monsters;
+	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t, uintptr_t preset, uint32_t type) {
+		MonsterPreset monster{0, {}, room};
+		if (type == MonsterType && Peek(preset + PresetClass, monster.monster) && InRoom(preset, rect, monster.position))
+			monsters.push_back(monster);
+	})) return false;
+	output = std::move(monsters);
 	return true;
 }
 

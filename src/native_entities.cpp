@@ -1,4 +1,5 @@
 #include "native_entities.h"
+#include "generated/level_flags.h"
 #include "generated/lootables.h"
 #include "layout_check.h"
 #include "entity_layout.h"
@@ -42,11 +43,25 @@ bool g_corpsesSupported = false;
 bool g_rosterCorpsesSupported = false;
 bool g_playersSupported = false;
 bool g_rosterSupported = false;
+bool g_socketsSupported = false;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
 	const std::unordered_set<std::string>* levelKeys = nullptr; // every LevelName / LevelWarp key
 };
+// A unit's inventory as getter 0x34A360 returns it: +0x90, or +0x98 while the
+// +0xA0 owner reference counts at +8. False when a read fails; null is no inventory.
+bool InventoryOf(uintptr_t unit, uintptr_t& inventory) {
+	uintptr_t ownerRef = 0;
+	if (!Peek(unit + UnitInventoryRef, ownerRef) || !Peek(unit + UnitInventory, inventory)) return false;
+	if (!ownerRef) return true;
+	uint32_t references = 0;
+	uintptr_t owned = 0;
+	if (!Peek(ownerRef + InventoryRefCount, references)) return false;
+	if (references && !Peek(unit + UnitOwnedInventory, owned)) return false;
+	if (references && owned) inventory = owned;
+	return true;
+}
 
 // A bounded, printable C string at `address`; empty when unreadable or garbage.
 std::string CString(uintptr_t address, size_t maxBytes) {
@@ -172,15 +187,20 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	}
 	if (hostile) {
 		uint8_t bossFlags = 0, rangedFlags = 0;
-		if (Peek(row + MonFlagsBoss, bossFlags)) entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+		if (Peek(row + MonFlagsBoss, bossFlags)) {
+			entity.enemy.important = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
+		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
 		// *hcIdx values of the FallenShaman and FetishShaman AI rows in the game's monstats.txt.
 		constexpr std::array<uint32_t, 16> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
 			645, 646, 647, 662, 663, 664};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
-		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity))
+		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {
 			entity.enemy.important |= (rarity & MonEliteMask) != 0;
+			entity.enemy.boss |= (rarity & MonSuperUnique) != 0;
+		}
 	}
 	// The game's own composed name (unique/champion titles) when it has been built; base name otherwise.
 	uintptr_t cached = 0;
@@ -202,23 +222,54 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	const auto& placeholder = PlaceholderName();
 	return placeholder.empty() || entity.name != placeholder;
 }
+// A town NPC's identity is its MonStats row, so the live unit and its spawn point are one target.
+uint64_t TownNpcIdentity(uint32_t classId) { return static_cast<uint64_t>(classId) + 1; }
+// The name of a MonStats row the npc column marks, empty for any other row.
+std::string NpcName(const Tables& tables, uint32_t classId) {
+	if (classId >= tables.monsterCount) return {};
+	const uintptr_t row = tables.monsters + classId * MonStatStride;
+	uint16_t nameId = 0;
+	uint8_t flagsA = 0;
+	if (!Peek(row + MonFlagsA, flagsA) || !(flagsA & FlagNpc) || !Peek(row + MonNameId, nameId) || !nameId) return {};
+	auto name = UiText::Clean(Localization::Text(nameId));
+	return name == PlaceholderName() ? std::string{} : name;
+}
+// In a town, every NPC its presets place once is listed from anywhere in it:
+// the loaded unit where there is one, else its spawn point. A spawn point in a
+// room just walked is left out, as the NPC is not there (docs/entity-scan.md).
+void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& walked, const Tables& tables,
+	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
+	uint32_t levelId = 0;
+	std::vector<NativeLevelExits::MonsterPreset> presets;
+	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town
+		|| !NativeLevelExits::ReadMonsters(room, presets)) return;
+	std::unordered_set<uintptr_t> walkedRooms;
+	for (const auto walkedRoom : walked)
+		if (uintptr_t extended = 0; Peek(walkedRoom + RoomExtended, extended) && extended) walkedRooms.insert(extended);
+	for (const auto& preset : presets) {
+		// Several presets of one row (guards) have no single place to name.
+		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) continue;
+		auto name = NpcName(tables, preset.monster);
+		if (name.empty()) continue;
+		const uint64_t identity = TownNpcIdentity(preset.monster);
+		bool live = false;
+		for (const auto& [index, classId] : liveNpcs)
+			if (classId == preset.monster) entities[index].placeId = identity, live = true;
+		if (live || walkedRooms.contains(preset.room)) continue;
+		EntityRadar::Entity npc{static_cast<uint32_t>(identity), EntityRadar::Kind::Npc, preset.position, std::move(name), identity,
+			false, EntityRadar::Category::Npc};
+		entities.push_back(std::move(npc));
+	}
+}
 // A player's corpse, own or another's: its inventory's link ID names the owner,
 // the same test the game's corpse pickup makes (docs/player-corpse-re.md). The
 // dead owner's own unit lies on the same spot until respawn and is not one.
 bool ReadPlayerCorpse(uintptr_t unit, uintptr_t room, uint32_t playerId, bool names, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, owner = 0, magic = 0;
-	uintptr_t inventory = 0, ownerRef = 0, data = 0;
+	uintptr_t inventory = 0, data = 0;
 	if (!Peek(unit + UnitMode, mode) || mode != PlayerCorpseMode
 		|| !Peek(unit + UnitId, entity.id) || !entity.id || entity.id == playerId
-		|| !Peek(unit + UnitInventoryRef, ownerRef)
-		|| !Peek(unit + UnitInventory, inventory)) return false;
-	if (ownerRef) {
-		uint32_t references = 0;
-		uintptr_t owned = 0;
-		if (!Peek(ownerRef + InventoryRefCount, references)) return false;
-		if (references && (!Peek(unit + UnitOwnedInventory, owned))) return false;
-		if (references && owned) inventory = owned;
-	}
+		|| !InventoryOf(unit, inventory)) return false;
 	if (!inventory || !Peek(inventory, magic) || magic != InventoryMagic
 		|| !Peek(inventory + InventoryLinkId, owner) || !owner || owner == entity.id
 		|| !DynamicPosition(unit, room, entity.position)) return false;
@@ -487,10 +538,10 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_immunities = false; g_plate.reset(); return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_immunities = false; g_plate.reset(); return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
-	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = false;
+	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	g_plate.reset();
@@ -509,9 +560,23 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_rosterCorpsesSupported = g_rosterSupported
 		&& LayoutCheck::Verify(context, context->exeBase, RosterCorpseChecks, "roster-corpses", "distant corpses not placed");
 	if (g_rosterCorpsesSupported) AsyncLog::Info(context, "[scan] Verified roster corpse reader.");
+	g_socketsSupported = LayoutCheck::Verify(context, context->exeBase, SocketChecks, "sockets", "filled sockets not counted");
+	if (g_socketsSupported) AsyncLog::Info(context, "[scan] Verified socketed item reader.");
 	return true;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel) {
+std::optional<uint32_t> FilledSockets(uintptr_t unit) {
+	const NativeMemory::ReadScope scope;
+	uint32_t type = 0, id = 0, magic = 0, ownerId = 0, count = 0;
+	uintptr_t inventory = 0, owner = 0;
+	if (!g_socketsSupported || !unit || !Peek(unit + UnitType, type) || type != GroundItemLayout::ItemUnitType
+		|| !Peek(unit + UnitId, id) || !InventoryOf(unit, inventory)) return std::nullopt;
+	if (!inventory) return 0u; // an item that never held anything has no inventory
+	if (!Peek(inventory, magic) || magic != InventoryMagic || !Peek(inventory + InventoryOwner, owner) || owner != unit
+		|| !Peek(inventory + InventoryLinkId, ownerId) || ownerId != id
+		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
+	return count;
+}
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uint32_t type = 0, id = 0;
@@ -560,6 +625,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	const auto pierce = PlayerPierce(player);
+	std::vector<std::pair<size_t, uint32_t>> liveNpcs;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
 	for (size_t r = 0; r < rooms.size(); ++r) {
 		const uintptr_t candidateRoom = rooms[r];
@@ -577,6 +643,10 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
+				if (unitType == MonsterType && entity.kind == EntityRadar::Kind::Npc) {
+					uint32_t classId = 0;
+					if (Peek(unit + UnitClass, classId)) liveNpcs.push_back({entities.size(), classId});
+				}
 				entity.unit = static_cast<uint8_t>(unitType);
 				entities.push_back(std::move(entity));
 			}
@@ -618,18 +688,19 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
+	if (townNpcs && levelStruct) AddTownNpcs(room, levelStruct, rooms, tables, liveNpcs, entities);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
 	return true;
 }
-bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel) {
+bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	uintptr_t roster = 0;
 	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
-	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, wholeLevel);
+	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, wholeLevel, townNpcs);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

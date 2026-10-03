@@ -1,4 +1,5 @@
 #include "entity_cue_service.h"
+#include "native_attack.h"
 #include "entity_cue_audio.h"
 #include "entity_radar.h"
 #include "native_entities.h"
@@ -76,7 +77,7 @@ bool Read(uint32_t player, uint64_t generation, int level, Radar::World& world, 
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return nativeReady; }
-bool Read(uint32_t player, uint64_t generation, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool) {
+bool Read(uint32_t player, uint64_t generation, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool, bool) {
 	++entityReads;
 	Check(player == 42 && generation == session && !distantExits && !levelBearings,
 		"entity cues read live nearby units for the current player");
@@ -96,6 +97,8 @@ void Stop() { ++stops; }
 bool Available() { return audioReady; }
 }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
+
+namespace D2RAccess::NativeAttack { std::optional<AttackReach::Loadout> ReadLoadout(const D2RL::PluginContext*) { return std::nullopt; } }
 
 int main() {
 	using Kind = D2RL::Lifecycle::GameplayEventKind;

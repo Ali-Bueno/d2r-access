@@ -133,7 +133,15 @@ void InvalidInputsAndGain() {
 }
 
 int main() {
-	DurationAndLevels();
+
+    for (const auto sound : {Sound::Ordinary, Sound::Reach}) {
+        const auto pcm = Synthesize(sound, {});
+        Check(!pcm.empty() && pcm.size() % Channels == 0 && Peak(pcm) > 1500 && Peak(pcm) < 16000,
+            "new optional sounds are audible stereo with headroom");
+        Check(pcm.front() == 0 && pcm.back() == 0, "new optional sounds start and end at silence");
+        Check(Synthesize(sound, {1, 0}) != Synthesize(sound, {-1, 0}), "new optional sounds preserve spatial placement");
+    }
+    DurationAndLevels();
 	Spatial();
 	Timbres();
 	DifferentFromRadarBreath();

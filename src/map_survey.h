@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <vector>
 
 // A level-wide catalogue of what is on the map, with the WALKING distance to
@@ -95,6 +96,18 @@ private:
 	std::map<int, Registry> m_levels;
 };
 
+// The town NPCs the player has seen, by place identity: once found, one is
+// listed from anywhere in its town for the rest of the game.
+class TownNpcSightings {
+public:
+	void Found(int level, const std::vector<EntityRadar::Entity>& found);
+	// The ones of `townNpcs` seen on this level.
+	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;
+	void Clear() { m_seen.clear(); }
+private:
+	std::map<int, std::set<uint64_t>> m_seen;
+};
+
 // Distance and direction for everything known, nearest first: walking steps
 // with full assistance, otherwise the straight line alone. Unreachable objects
 // sort after reachable ones, by straight line.
@@ -105,7 +118,7 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 // every other container among them (the user, 2026-09-28), enemies and other
 // players read live because they move, and player corpses, which the corpse
 // memory keeps level-wide. Items on the ground are read on their own.
-struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players, corpses; };
+struct Scene { std::vector<EntityRadar::Entity> landmarks, enemies, players, corpses, townNpcs; };
 Scene Split(std::vector<EntityRadar::Entity> entities);
 
 // A landmark the level's layout puts in the same place in every game on the

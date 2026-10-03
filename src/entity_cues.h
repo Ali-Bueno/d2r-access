@@ -6,18 +6,22 @@
 #include <optional>
 
 namespace D2RAccess::EntityCues {
-enum class Kind { Npc, Important, Resurrector, Ranged };
+enum class Kind { Npc, Important, Resurrector, Ranged, Ordinary };
+inline constexpr size_t KindCount = 5, MaxOrdinary = 3, SlotCount = KindCount - 1 + MaxOrdinary;
 struct Settings {
-	bool npcs = true, enemies = true, ranged = true;
+	bool npcs = true, enemies = true, ranged = true, ordinary = false;
 	double range = EntityRadar::Settings{}.range;
 	// Listening feedback, 2026-09-22: much faster repeats, including mixed groups.
 	uint64_t nearIntervalMs = 150, farIntervalMs = 450, gapMs = 100;
 };
+struct Bearing { double distance = 0, right = 0, front = 1; };
+Bearing BearingOf(Radar::Position player, Radar::Position target);
 struct Cue {
 	uint32_t id = 0;
 	Kind kind = Kind::Npc;
 	double distance = 0, right = 0, front = 1;
 	uint64_t intervalMs = 0;
+	size_t slot = 0;
 };
 
 // Nearest NPC plus at most two enemy classes; ordinary melee packs stay silent.
@@ -31,7 +35,7 @@ private:
 	// Class cadence survives nearest-target changes to avoid rapid alternating
 	// pings when two NPCs or archers repeatedly exchange the nearest position.
 	struct Slot { bool played = false; uint64_t last = 0; };
-	std::array<Slot, 4> slots_{};
+	std::array<Slot, SlotCount> slots_{};
 	bool played_ = false;
 	uint64_t last_ = 0;
 };

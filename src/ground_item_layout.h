@@ -13,6 +13,9 @@ inline constexpr size_t StaticX = 0x10, StaticY = 0x14, ItemQuality = 0;
 inline constexpr size_t Items = 0x15A0, ItemCount = 0x15A8, ItemStride = 0x1C0,
 	ItemCode = 0x80, ItemName = 0xFC, ItemType = 0x12E, ItemQuest = 0x13A;
 inline constexpr size_t Types = 0x1348, TypeCount = 0x1350, TypeStride = 0xE8;
+// weapons.txt rangeadder (u8): the only offset matching all 306 rows of
+// game-data/global/excel/weapons.bin, whose rows share this table's 0x1C0 layout.
+inline constexpr size_t ItemRangeAdder = 0x115;
 // ItemTypes.bin stores Code at +0 and two uint16 Equiv indices at +4/+6.
 struct TypeRecord { uint32_t code; uint16_t parent1, parent2; };
 inline constexpr uint32_t PlayerType = 0, ItemUnitType = 4;

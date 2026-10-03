@@ -44,6 +44,7 @@ struct EnemyTraits {
 	// MonsterData's type flags (+0x1A) and enchantment slots (+0x20) as read, for the log.
 	uint16_t flags = 0;
 	std::array<uint8_t, 9> enchantments{};
+	bool boss = false; // act/quest boss or superunique; independent of elite cue rank
 };
 
 struct Entity {

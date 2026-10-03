@@ -77,5 +77,13 @@ int main() {
 		Check(!RadarUi::MenuPanel(name), name);
 	}
 	Check(RadarUi::Inspect(true) == State::Playing, "with every panel of play open and no menu up the game is in play");
+	PanelState::Reset();
+	PanelState::MovieStarted();
+	Check(RadarUi::Inspect(true) == RadarUi::State::Paused, "movie lifecycle pauses cues even without its transient panel");
+	PanelState::MovieEnded();
+	Check(RadarUi::Inspect(true) == RadarUi::State::Playing, "cinematic completion restores play");
+	PanelState::MovieStarted();
+	PanelState::Reset();
+	Check(!PanelState::MoviePlaying(), "a new session clears movie state");
 	Passed();
 }

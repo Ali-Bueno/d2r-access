@@ -125,6 +125,21 @@ void FastRepeatsAtRuntimeCadence() {
 }
 }
 int main() {
-	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); FastRepeatsAtRuntimeCadence();
+
+    {
+        const auto world = World();
+        const std::vector pack{Make(1, Kind::Ordinary, 31, 30), Make(2, Kind::Ordinary, 30, 33), Make(3, Kind::Ordinary, 30, 34), Make(4, Kind::Ordinary, 35, 30)};
+        Check(Select(world, pack, {}).empty(), "existing default keeps ordinary packs silent");
+        Settings optional;
+        optional.ordinary = true;
+        const auto selected = Select(world, pack, optional);
+        Check(selected.size() == 3 && selected[0].id == 1 && selected[1].id == 2 && selected[2].id == 3,
+            "optional growls select the nearest three ordinary enemies");
+        Check(selected[0].slot != selected[1].slot && selected[1].slot != selected[2].slot,
+            "ordinary ranks keep separate repeat cadences");
+        optional.enemies = false;
+        Check(Select(world, pack, optional).empty(), "enemy master switch also silences ordinary growls");
+    }
+    FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); FastRepeatsAtRuntimeCadence();
 	Passed();
 }

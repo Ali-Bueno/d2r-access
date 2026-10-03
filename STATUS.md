@@ -2,6 +2,41 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Additive upstream integration, retreat and repair — 2026-10-03
+
+**Built and deployed with D2RLoader 1.3.1-beta after the user saved/closed the
+game. Full CTest 103/103 passes, timeout 20. Live checks remain user-led.**
+The user authorized committing this reviewed work and pushing it to
+`origin/bladestorm`; local development remains on `keyboard-local`.
+Reviewed upstream through `b117bdf`, with
+current local work retained and replacement policies/sounds deferred.
+[Integration/evidence](docs/upstream-2026-10-03.md) lists the scope.
+
+The user's death log confirms Ctrl+R engaged but repeated orders through
+monsters. Retreat now routes/tests legs with live collision and changes an
+obstructed order sooner. The actual anonymous collision capture is a passing
+regression; escape/survival still needs user-led live confirmation.
+
+Repair failed at quote 6919 and succeeded after reload at 7430. No plugin stat
+write was found; retail reports match, but D2RLoader is not excluded. Installed
+binaries/startup before this update were **1.3.0**, correcting the historical
+1.3.1 entry below. Official 1.3.1-beta is now installed/hash-verified;
+its item/stat fixes are not a proven repair fix.
+
+New inventory names/socket/arrival feedback, town-NPC memory, death-place
+memory/guidance, named places, boss-life and faster skill names are integrated.
+Plain pickup/release remain silent. New ordinary growls and reach ping default
+off. Local keyboard/controller, teleport routing, filter, custom sounds,
+existing room/scan catalogues and Tal Rasha symbols remain.
+
+Installed DLL SHA-256 `2C9AD3E6…` matches the final normal build; logs and
+full deployment manifest in `../re/upstream-2026-10-03/`. Verified old runtime
+backup: `../loader-backups/pre-upstream-2026-10-03/`. Only three loader root
+runtime files and the built plugin/PRISM were installed; loader config hash is
+unchanged and no saves/settings/other plugins were copied. Normal build target
+is restored to the game install, four jobs/BelowNormal. Game remains closed.
+
+
 ## Tal Rasha symbols and architecture survey — 2026-10-03
 
 The user's latest log speaks The Seven Tombs' symbol caption at 07:26:45 and

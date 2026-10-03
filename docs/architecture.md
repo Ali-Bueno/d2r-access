@@ -199,3 +199,15 @@ or a new offset on another build. `CMakeLists.txt` registers the suites. The loc
 `build.ps1` runs four compilers at BelowNormal priority and deploys in POST_BUILD;
 check that the game is closed before building. Machine-specific scripts remain
 local. Never commit or push simply because a task has finished.
+
+## Additions integrated from upstream — 2026-10-03
+
+Named preset places/corridors (`place_service`, `places`, `passages`) supplement
+the room reader. `death_place_service` records death locations and known exits
+toward them, with disk snapshots written by a dedicated worker. Town NPC spawn
+presets supplement live units while preserving the local level-wide read and
+map memory. Boss life (`boss_life_service`) and optional growls/reach cues add
+combat information. Inventory hand/socket and arrival readers add feedback to
+the existing interaction path. Skill-tree table names can speak before the
+matching tooltip renders. [Merge review](upstream-2026-10-03.md) records scope,
+deferred replacements and validation.

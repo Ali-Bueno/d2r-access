@@ -12,6 +12,8 @@
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
+#include "item_hand.h"
+#include "native_entities.h"
 #include "native_belt.h"
 #include "ground_item_service.h"
 #include "ground_item_text.h"
@@ -42,6 +44,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace D2RAccess::InteractionReader {
 namespace {
@@ -59,6 +62,7 @@ std::string g_help, g_spokenHelp, g_helpContext;
 // The focus the last real readout described, so a hint can tell "nothing new
 // to say here" from "nothing said about here yet".
 std::string g_describedFocus;
+std::string g_skillHeadline, g_skillMismatch;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
 std::string g_hiddenLabel;
@@ -68,6 +72,13 @@ std::string g_hiddenLabel;
 std::optional<bool> g_wasHolding;
 std::string g_itemUnmet, g_heldUnmet;
 EquipAttempt::Tracker g_equipAttempt;
+uint32_t g_heldId = 0;
+bool g_heldFiller = false;
+struct Hovered { ItemHand::Under item; std::string name; bool read = false; };
+Hovered g_hovered;
+struct SocketRead { uint32_t id = 0; std::string state; };
+SocketRead g_socketRead;
+ItemHand::Names g_itemNames;
 // An equipment slot's location never changes, but the native read misses it
 // while the game rebuilds the panel, and the label would then simply vanish.
 // Widget names are stable across those rebuilds, so the last value seen under
@@ -617,6 +628,132 @@ bool NamesItem(const D2RL::PluginContext* context, const std::string& body, uint
 	}
 	return false;
 }
+// A table name with its quality: what an item is called when no tooltip names it.
+std::string TableName(const std::string& base, uint32_t quality) {
+	const auto& qualities = Strings::Current().itemQualities;
+	std::string name = base;
+	if (quality < qualities.size()) Append(name, qualities[quality]);
+	return name;
+}
+
+// The item the game handed back: the one just under the focus, or one of its own.
+std::string HeldName(const InventoryCursor::ItemState& held) {
+	if (held.id == g_hovered.item.id && !g_hovered.name.empty()) return g_hovered.name;
+	return ItemName(held.id, held.classId, held.quality);
+}
+
+ItemHand::Under UnderOf(const InventoryCursor::ItemState& item) { return {item.id, item.sockets, item.filled, item.quantity}; }
+
+// An item's sockets: the total from the SDK, the filled ones from the item's own
+// inventory, because the SDK read 0 for a filled socket. docs/inventory-npc-followup.md#socket-contents
+std::optional<ItemHand::Under> ReadUnder(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit) {
+	const auto state = id ? InventoryCursor::Find(context, id) : std::nullopt;
+	if (!state) return std::nullopt;
+	auto item = UnderOf(*state);
+	item.filled = NativeEntities::FilledSockets(unit).value_or(ItemHand::UnknownFilled);
+	return item;
+}
+
+// What the focus rests on while the hand is full, read once per item.
+void Hover(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit, const std::string& name) {
+	if (id == g_hovered.item.id) {
+		if (!name.empty()) g_hovered.name = name;
+		return;
+	}
+	g_hovered = {{id}, name};
+	if (const auto item = ReadUnder(context, id, unit)) {
+		g_hovered.item = *item;
+		g_hovered.read = true;
+	}
+}
+
+// Whether an item has room for a gem, rune or jewel; only the total when the
+// filled ones cannot be read.
+std::string SocketState(const ItemHand::Under& item) {
+	const auto& strings = Strings::Current();
+	if (!item.sockets) return strings.socketsNone;
+	char text[80]{};
+	if (item.filled == ItemHand::UnknownFilled)
+		std::snprintf(text, sizeof(text), strings.socketsCount, static_cast<int>(item.sockets));
+	else if (item.filled >= item.sockets) return strings.socketsFull;
+	else std::snprintf(text, sizeof(text), strings.socketsFree, static_cast<int>(item.sockets - item.filled));
+	return text;
+}
+
+// What the hand did: picked up, put down, socketed, stacked, swapped or thrown.
+std::string HandNotice(const D2RL::PluginContext* context,
+	const InventoryCursor::ItemState& held, uint32_t heldBefore, bool wasHolding, bool filler, uint32_t focusedId, uintptr_t focusedUnit) {
+	const auto& strings = Strings::Current();
+	if (held.id && !wasHolding) {
+		g_heldUnmet = g_itemUnmet;
+		return {}; // local preference: picking an item up is silent
+	}
+	if (!wasHolding) return {};
+	ItemHand::Under after{focusedId};
+	if (focusedId && focusedId == g_hovered.item.id)
+		if (const auto item = ReadUnder(context, focusedId, focusedUnit)) after = *item;
+	const bool dropPressed = InputDirection::LastFaceButton(EquipAttempt::AnswerMs) == InputDirection::FaceButton::X;
+	const auto outcome = ItemHand::Resolve(heldBefore, held.id, g_hovered.item, after, filler, dropPressed);
+	if (outcome != ItemHand::Outcome::Placed && outcome != ItemHand::Outcome::None)
+		AsyncLog::InfoF(context, "[item] hand outcome=%d held=%u->%u filler=%u under=%u sockets=%u/%u->%u/%u quantity=%d->%d name=\"%s\"",
+			static_cast<int>(outcome), heldBefore, held.id, filler ? 1u : 0u, g_hovered.item.id, g_hovered.item.filled,
+			g_hovered.item.sockets, after.filled, after.sockets, g_hovered.item.quantity, after.quantity, g_hovered.name.c_str());
+	switch (outcome) {
+	case ItemHand::Outcome::Swapped: {
+		// A gem handed back for the item it was put on: the game would not socket it.
+		std::string text = filler && held.id == g_hovered.item.id ? strings.socketRefused : "";
+		Append(text, Formatted(strings.itemSwapped, HeldName(held)));
+		return text;
+	}
+	case ItemHand::Outcome::Merged: return Formatted(strings.itemAddedTo, g_hovered.name);
+	case ItemHand::Outcome::Thrown: return strings.itemDropped;
+	case ItemHand::Outcome::Socketed: {
+		auto text = Formatted(strings.itemSocketedIn, g_hovered.name);
+		Append(text, SocketState(after));
+		return text;
+	}
+	case ItemHand::Outcome::Placed: case ItemHand::Outcome::None: break;
+	}
+	if (held.id) return {};
+	// A plain release stays silent on this branch. Only the specific outcomes
+	// above add feedback; the existing focus readout already names a placement.
+	return {};
+}
+
+// The sockets of the item under a gem in hand, read once per item and hand.
+std::string SocketsUnder(const D2RL::PluginContext* context, uint32_t id, uintptr_t unit) {
+	if (id != g_socketRead.id) {
+		g_socketRead = {id, {}};
+		if (const auto item = ReadUnder(context, id, unit)) g_socketRead.state = SocketState(*item);
+	}
+	return g_socketRead.state;
+}
+
+std::string CursorNotice(const D2RL::PluginContext* context, bool inventory,
+	uint32_t focusedId, uintptr_t focusedUnit, const std::string& focusedName) {
+	// Focus may pass through another control while the same item remains held.
+	if (!inventory && !g_wasHolding.value_or(false)) return {};
+	const auto held = InventoryCursor::Held(context);
+	if (!held) return {};
+	const bool wasHolding = g_wasHolding.value_or(false), wasFiller = g_heldFiller;
+	const uint32_t heldBefore = std::exchange(g_heldId, held->id);
+	g_wasHolding = held->id != 0;
+	if (held->id != heldBefore) {
+		g_heldFiller = held->id && NativeGroundItems::SocketFiller(held->classId);
+		g_socketRead = {};
+	}
+	auto notice = inventory ? HandNotice(context, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
+	// Recorded after the notice, which judges the hand against what lay under it before.
+	if (held->id) Hover(context, focusedId, focusedUnit, focusedName);
+	else g_hovered = {};
+	return notice;
+}
+}
+
+std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality) {
+	const auto label = NativeGroundItems::ClassLabel(classId, quality);
+	auto name = g_itemNames.Recall(id, label.baseName, quality);
+	return name.empty() ? TableName(label.baseName, quality) : name;
 }
 
 void OfferDetail(std::string_view owner, std::string detail) {
@@ -785,12 +922,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// The item under the cursor, for its size and, while an item is held, its name.
 	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
 		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : beltItem;
+	const auto itemLabel = inventory ? NativeGroundItems::ItemUnitLabel(focusItem) : NativeGroundItems::UnitLabel{};
 	const auto size = inventory ? SizePhrase(focusItem) : std::string{};
 	if (inventory) OfferAside(focus.widget, size);
 	else if (progression.skill) OfferAside(focus.widget, progression.points);
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
+	std::string skillAddition;
+	const std::string tableHeadline = progression.skill && !progression.name.empty()
+		? ProgressionText::SkillReadout(progression.name, AutoDetail::Enabled() ? progression.points : std::string{}, progression.help).headline
+		: std::string{};
 	// Moving on drops the lines of what the cursor was on, as it drops its detail.
 	const auto linesOwner = LinesOwner(focus.widget, selection);
 	OfferLines(linesOwner, {});
@@ -832,6 +974,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				if (quality >= static_cast<uint32_t>(D2RL::Items::Quality::Magic) && quality < qualities.size())
 					Append(split.name, qualities[quality]);
 			}
+			if (itemLabel.id) g_itemNames.Remember(itemLabel.id, itemLabel.baseName, itemLabel.quality, split.name);
 			// What a sighted player sees in red, said right after that.
 			g_itemUnmet = split.unmet;
 			if (!split.unmet.empty()) Append(split.name, Refusal(split.unmet));
@@ -880,6 +1023,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// with autodetail (the user, 2026-09-21: heard on every highlight).
 			auto split = ProgressionText::SkillReadout(description,
 				AutoDetail::Enabled() ? progression.points : std::string{}, progression.help);
+			if (!tableHeadline.empty() && split.headline == tableHeadline) {
+				if (AutoDetail::Enabled()) skillAddition = split.detail;
+			} else if (!tableHeadline.empty() && g_skillMismatch != progression.name + "|" + split.headline) {
+				g_skillMismatch = progression.name + "|" + split.headline;
+				AsyncLog::InfoF(context, "[skill-tree] table name %s differs from tooltip %s", progression.name.c_str(), split.headline.c_str());
+			}
 			readout.option = std::move(split.headline);
 			if (AutoDetail::Enabled()) Append(readout.option, split.detail);
 			OfferDetail(std::to_string(focus.widget), std::move(split.detail));
@@ -892,6 +1041,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		}
 		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
 	}
+	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
 	// An item there keeps its own lines; anywhere else on the panel, the mercenary's.
 	if (MercenaryPanel(focus.panel) && !renderedDescription) OfferLines(linesOwner, MercenaryLines(focus.panel));
@@ -905,7 +1055,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (!renderedDescription && focusItem
 		&& (type.kind == UiText::Kind::InventoryGrid || equipmentPresence == NativeUi::ItemPresence::Occupied || beltItem)
 		&& InventoryCursor::HoldingItem(context).value_or(false)) {
-		heldOver = NativeGroundItems::ItemBaseName(focusItem);
+		heldOver = g_itemNames.Recall(itemLabel.id, itemLabel.baseName, itemLabel.quality);
+		if (heldOver.empty()) heldOver = NativeGroundItems::ItemBaseName(focusItem);
+		if (g_heldFiller && itemLabel.id) Append(heldOver, SocketsUnder(context, itemLabel.id, focusItem));
 		if (heldOver.empty()) heldOver = Strings::Current().slotOccupied;
 		if (AutoDetail::Enabled()) Append(heldOver, size);
 	}
@@ -947,18 +1099,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// The game refuses an item it will not equip by leaving it in hand. An A
 	// press on an equipment slot with the same item still held once the game
 	// has had time to answer was refused (equip_attempt.h).
+	std::string cursorNotice;
 	if (inventory) {
-		const auto holding = InventoryCursor::HoldingItem(context);
-		if (holding) {
-			if (*holding && !g_wasHolding.value_or(false)) g_heldUnmet = g_itemUnmet;
-			g_wasHolding = holding;
-		}
+		cursorNotice = CursorNotice(context, inventory, itemLabel.id, focusItem, heldOver.empty() ? readout.option : heldOver);
+		if (!cursorNotice.empty()) AsyncLog::InfoF(context, "[item] hand -> \"%s\"", cursorNotice.c_str());
 		const bool held = g_wasHolding.value_or(false);
 		const bool pressed = held && type.kind == UiText::Kind::InventorySlot
 			&& InputDirection::LastFaceButton(EquipAttempt::PressWindowMs) == InputDirection::FaceButton::A;
 		const uint32_t item = held ? InventoryCursor::HeldItemId(context).value_or(0) : 0;
 		if (g_equipAttempt.Update(pressed, item, now)) {
-			const auto refusal = Refusal(g_heldUnmet);
+			const auto refusal = g_heldFiller && equipmentPresence == NativeUi::ItemPresence::Occupied
+				? std::string(Strings::Current().socketRefused) : Refusal(g_heldUnmet);
 			D2RAccess::AsyncLog::InfoF(context, "[equip] refused -> \"%s\"", refusal.c_str());
 			ScreenReader::Speak(refusal, true);
 		}
@@ -1016,19 +1167,23 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		const bool named = PanelState::TakeAnnounced(tabChange);
 		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
 		std::string text(named ? std::string_view{} : tabChange);
+		Append(text, cursorNotice);
 		if (!text.empty()) ScreenReader::Speak(text, !named);
 		return true;
 	}
 	// An occupied grid cell or equipment slot waits for the game's tooltip to
 	// name its item, without speaking its position or its slot alone first;
 	// other cells keep their quick coordinate feedback.
-	if (occupied && !renderedDescription && heldOver.empty())
-		return true; // the hints stay pending until the description arrives
-	if (progression.skill && !renderedDescription) return true;
-	if (readout.Empty() && help.empty()) { g_reader.Reset(); return inventory || button || stats; }
+	if (occupied && !renderedDescription && heldOver.empty()) {
+		if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
+		return true;
+	} // the hints stay pending until the description arrives
+	if (progression.skill && !renderedDescription && tableHeadline.empty()) return true;
+	if (readout.Empty() && help.empty()) { g_reader.Reset(); if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false); return inventory || button || stats; }
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
-	auto announcement = button ? g_reader.Update(readout, now, 0)
+	auto announcement = progression.skill && !renderedDescription ? g_reader.Update(readout, now, InventorySettleMs)
+		: button ? g_reader.Update(readout, now, 0)
 		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
@@ -1049,7 +1204,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool describedNow = !announcement.text.empty();
 	const bool describedHere = readout.focusKey.empty() || readout.focusKey == g_describedFocus;
 	const bool helpFollows = helpChanged && !awaitingDescription && (describedNow || describedHere);
-	if (describedNow) g_describedFocus = readout.focusKey;
+	bool skillDetailFollows = !skillAddition.empty() && describedNow && g_skillHeadline == readout.focusKey + "|" + tableHeadline;
+	if (skillDetailFollows) announcement.text = skillAddition;
+	if (describedNow) {
+		g_describedFocus = readout.focusKey;
+		g_skillHeadline = progression.skill && !renderedDescription ? readout.focusKey + "|" + readout.option : std::string{};
+	}
 	// Only what was actually spoken counts as spoken. An empty hint is
 	// recorded either way, so leaving a panel does not leave the last hint
 	// looking unchanged when the player comes back to it.
@@ -1064,9 +1224,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			announcement.text.erase(0, g_tabTitle.size() + 2);
 		g_tabChangedAt = 0;
 		g_readPanel = focus.panel;
-		ScreenReader::Speak(announcement.text, !behindTitle);
+		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows);
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
+	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
 	return inventory || button || stats;
 }
 
@@ -1078,6 +1239,8 @@ void Reset() {
 	g_help.clear();
 	g_spokenHelp.clear();
 	g_describedFocus.clear();
+	g_skillHeadline.clear();
+	g_skillMismatch.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
 	g_tabChangedAt = 0;
@@ -1089,6 +1252,7 @@ void Reset() {
 	g_skillLinesWidget = 0;
 	g_readPanel = 0;
 	g_wasHolding.reset();
+	g_heldId = 0; g_heldFiller = false; g_hovered = {}; g_socketRead = {}; g_itemNames.Clear();
 	g_itemUnmet.clear();
 	g_heldUnmet.clear();
 	g_equipAttempt.Reset();

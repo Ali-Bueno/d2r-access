@@ -64,6 +64,7 @@ public:
 	bool Failed() const;
 	// Cached memory only. `places`, when given, receives the map's stored places.
 	bool Load(Key key, ExploredRooms::Memory& memory, std::vector<Place>* places = nullptr) const;
+	std::map<uint32_t, std::vector<Place>> AllKnownPlaces(uint32_t seed) const;
 	void Submit(std::vector<Update> updates); // immutable snapshots; no disk I/O
 	void Stop(); // joins the worker after its final write attempt
 private:

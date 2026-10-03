@@ -1,5 +1,6 @@
 #pragma once
 #include "ground_items.h"
+#include <optional>
 #include <D2RLPlugin/api.h>
 #include <string>
 
@@ -27,10 +28,13 @@ std::string ItemBaseName(uintptr_t unit);
 uint32_t ItemTableCode(uintptr_t unit);
 // The same code for an item class id, as the loader's item records give it; 0 when unreadable.
 uint32_t ClassCode(uint32_t classId);
-struct UnitLabel { std::string baseName; uint32_t quality = 0; };
+struct UnitLabel { std::string baseName; uint32_t quality = 0; uint32_t id = 0; };
 // Table name of an item known by its class row (the SDK's ItemInfo::classId),
 // with the quality it was given.
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
+bool SocketFiller(uint32_t classId);
+struct Weapon { bool missile = false; int rangeAdder = 0; };
+std::optional<Weapon> WeaponOf(uint32_t classId);
 // The same for an item unit, with the quality its unit data holds.
 UnitLabel ItemUnitLabel(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, GroundItems::Snapshot& output);

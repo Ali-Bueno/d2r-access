@@ -4,6 +4,7 @@
 #include "radar.h"
 #include "native_rooms.h"
 #include <D2RLPlugin/api.h>
+#include <map>
 #include <vector>
 
 // Speaks the terrain overview on demand and keeps the exploration memory: the
@@ -32,6 +33,7 @@ std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeR
 std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms);
 // Keeps the fixed places among `found` (what the scanner counts as
 // discovered) with the record of the map `rooms` belong to.
+std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed);
 void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found);
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).

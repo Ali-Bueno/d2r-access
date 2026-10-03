@@ -11,6 +11,7 @@ namespace {
 // Open panels, oldest first; the last element is the active one.
 std::vector<std::string> g_open;
 std::string              g_announced;
+bool                     g_movie = false;
 
 auto Find(std::string_view panel) {
 	return std::find(g_open.begin(), g_open.end(), panel);
@@ -56,9 +57,22 @@ bool TakeAnnounced(std::string_view tab) {
 	return true;
 }
 
+void MovieStarted() {
+	g_movie = true;
+}
+
+void MovieEnded() {
+	g_movie = false;
+}
+
+bool MoviePlaying() {
+	return g_movie;
+}
+
 void Reset() {
 	g_open.clear();
 	g_announced.clear();
+	g_movie = false;
 }
 
 }

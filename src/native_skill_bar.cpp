@@ -18,6 +18,8 @@ constexpr int AlternateFirst = Buttons, NoSkill = -1;
 // skills.bin and skilldesc.bin rows in the player's table bank (0x88850).
 constexpr size_t Skills = 0x11B0, SkillCount = 0x11B8, SkillStride = 0x2EC, SkillDesc = 0x23C;
 constexpr size_t Descs = 0x1190, DescCount = 0x1198, DescStride = 300, DescName = 8;
+constexpr size_t SkillRange = 0x34, SkillMinDamage = 0x250, SkillElement = 0x284, SkillElementMin = 0x288;
+constexpr size_t SkillClass = 0x2C, DescPlace = 2;
 constexpr uint16_t MissingName = 0x1506; // 0x28BCF0's id for a skill without a description
 constexpr GroundItemLayout::Evidence Checks[] = {
 	{ControllerMode, 41, 0x290F3F607678EB67ULL},
@@ -34,11 +36,11 @@ constexpr GroundItemLayout::Evidence Checks[] = {
 };
 uintptr_t g_base = 0;
 
-bool ReadSkills(std::array<int, Buttons>& skills) noexcept {
+bool ReadSkills(std::array<int, Buttons>& skills, int first = AlternateFirst) noexcept {
 	__try {
 		if (!reinterpret_cast<bool(*)()>(g_base + ControllerMode)()) return false;
 		const auto skillAt = reinterpret_cast<int(*)(int)>(g_base + SkillAt);
-		for (int i = 0; i < Buttons; ++i) skills[i] = skillAt(AlternateFirst + i);
+		for (int i = 0; i < Buttons; ++i) skills[i] = skillAt(first + i);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
@@ -81,6 +83,49 @@ std::string SkillName(int skill) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) return {};
 	return SkillName(tables, skill);
+}
+
+std::optional<std::vector<AttackReach::Skill>> BoundSkills() {
+	std::array<int, Buttons> bars[2]{};
+	uintptr_t player = 0, tables = 0, rows = 0;
+	uint32_t count = 0;
+	if (!g_base || !ReadSkills(bars[0], 0) || !ReadSkills(bars[1]) || !NativeGroundItems::RuntimeRoots(player, tables)
+		|| !Peek(tables + Skills, rows) || !rows || !Peek(tables + SkillCount, count) || count > GroundItemLayout::MaxTableRows) return std::nullopt;
+	std::vector<AttackReach::Skill> skills;
+	for (const auto& bar : bars) for (const int skill : bar) {
+		if (skill < 0 || static_cast<uint32_t>(skill) >= count) continue;
+		const uintptr_t row = rows + static_cast<uintptr_t>(skill) * SkillStride;
+		uint8_t range = 0;
+		int32_t minimum = 0, element = 0, elementMinimum = 0;
+		if (!Peek(row + SkillRange, range) || !Peek(row + SkillMinDamage, minimum)
+			|| !Peek(row + SkillElement, element) || !Peek(row + SkillElementMin, elementMinimum)) return std::nullopt;
+		skills.push_back({static_cast<AttackReach::SkillRange>(range), element != 0 || elementMinimum > 0 || minimum > 0});
+	}
+	return skills;
+}
+
+std::string ClassSkillName(int page, int row, int column) {
+	uintptr_t player = 0, tables = 0, skills = 0, descs = 0;
+	uint32_t playerClass = 0, skillCount = 0, descCount = 0;
+	if (!g_base || page <= 0 || !NativeGroundItems::RuntimeRoots(player, tables)
+		|| !Peek(player + GroundItemLayout::UnitClass, playerClass)
+		|| !Peek(tables + Skills, skills) || !skills || !Peek(tables + SkillCount, skillCount)
+		|| skillCount > GroundItemLayout::MaxTableRows
+		|| !Peek(tables + Descs, descs) || !descs || !Peek(tables + DescCount, descCount) || descCount > GroundItemLayout::MaxTableRows) return {};
+	const std::array<uint8_t, 3> wanted{static_cast<uint8_t>(page), static_cast<uint8_t>(row), static_cast<uint8_t>(column)};
+	int found = NoSkill;
+	for (uint32_t skill = 0; skill < skillCount; ++skill) {
+		const uintptr_t record = skills + static_cast<uintptr_t>(skill) * SkillStride;
+		uint8_t owner = 0;
+		int16_t desc = -1;
+		std::array<uint8_t, 3> place{};
+		if (!Peek(record + SkillClass, owner) || owner != playerClass || !Peek(record + SkillDesc, desc)
+			|| desc < 0 || static_cast<uint32_t>(desc) >= descCount
+			|| !Peek(descs + desc * DescStride + DescPlace, place) || place != wanted) continue;
+		if (found != NoSkill) return {}; // two skills in one cell: not the table this was verified on
+		found = static_cast<int>(skill);
+	}
+	return SkillName(tables, found);
 }
 
 bool BackBarShown() noexcept {

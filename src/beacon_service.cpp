@@ -1,11 +1,14 @@
 #include "beacon_service.h"
 #include "async_log.h"
 #include "beacon.h"
+#include "death_place.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
 #include "input_direction.h"
+#include "level_areas.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
+#include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
 #include "native_world.h"
@@ -31,6 +34,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace D2RAccess::BeaconService {
@@ -56,7 +60,8 @@ std::atomic<Command> g_command{Command::None};
 Beacon::Settings g_settings;
 Beacon::Tracker g_tracker;
 struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; };
-Target g_offer, g_target;
+Target g_offer, g_target, g_parked;
+Lifecycle g_seen;
 bool g_supported = false, g_sounds = true;
 int g_revision = 0;
 uint64_t g_nextUpdate = 0, g_lastLog = 0;
@@ -161,6 +166,37 @@ void Release(const char* reason) {
 	g_target = {};
 	BeaconAudio::Silence(reason);
 }
+bool Parked() { return g_parked.entity.id != 0; }
+// Whether `to` is an area the player walks into from `from` across their shared edge.
+bool AcrossBorder(int from, int to) {
+	std::vector<NativeLevelAreas::Area> areas;
+	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return false;
+	const auto neighbours = LevelAreas::Neighbours(areas, static_cast<uint32_t>(to));
+	return std::any_of(neighbours.begin(), neighbours.end(),
+		[from](const LevelAreas::Crossing& crossing) { return crossing.level == static_cast<uint32_t>(from); });
+}
+// A lifecycle change ends the lock, except a step into a neighbouring area: a
+// route along a border may cross it, so the lock waits there for the way back.
+void OnLifecycle(const Lifecycle& state, uint64_t now) {
+	const Lifecycle before = std::exchange(g_seen, state);
+	g_offer = {};
+	const bool walked = before.ready && state.ready && before.session == state.session
+		&& before.level && state.level && before.level != state.level;
+	if (walked && Parked() && g_parked.level == state.level) {
+		g_target = std::exchange(g_parked, {});
+		g_target.seenMs = now;
+		g_tracker.Lock(now);
+		g_nextUpdate = now;
+		Cue(BeaconAudio::Sound::Locked);
+		AsyncLog::InfoF(g_context, "[beacon] resumed id=%u level=%d name=%s", g_target.entity.id, g_target.level, g_target.entity.name.c_str());
+		return;
+	}
+	g_parked = {};
+	const bool parks = walked && g_tracker.Locked() && g_target.level == before.level
+		&& g_target.entity.destinationLevel != static_cast<uint32_t>(state.level) && AcrossBorder(before.level, state.level);
+	if (parks) g_parked = g_target;
+	Release(parks ? "left-area" : "lifecycle");
+}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -195,7 +231,8 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	const bool offered = g_offer.entity.id && g_offer.level == state.level
 		&& now - g_offer.offeredMs <= OfferWindowMs;
 	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
-	if (g_tracker.Locked() && !retarget) {
+	if ((g_tracker.Locked() && !retarget) || (Parked() && !offered)) {
+		g_parked = {};
 		Release("cancelled");
 		Cue(BeaconAudio::Sound::Cleared);
 		ScreenReader::Speak(strings.beaconCleared, true);
@@ -221,6 +258,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 	}
 	// A refused retarget above keeps the old lock; an accepted one replaces it silently.
 	if (retarget) Release("retargeted");
+	g_parked = {};
 	g_target = g_offer;
 	g_target.seenMs = now;
 	g_tracker.Lock(now);
@@ -234,6 +272,7 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 // Re-reads the locked target's current position. A target that is out of the
 // loaded rooms keeps its last known place: that is still where it was.
 bool Refresh(const Lifecycle& state, uint64_t now) {
+	if (g_target.entity.placeId == DeathPlace::Identity) { g_target.seenMs = now; return true; }
 	std::vector<EntityRadar::Entity> entities;
 	// A room is not a native unit and never moves: it is exactly where the
 	// catalogue said it was, so there is nothing to re-read and nothing that
@@ -269,7 +308,8 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 	// so the beacon can still find the one it is leading to.
 	const bool exit = g_target.entity.kind == EntityRadar::Kind::Exit && g_target.entity.placeId != 0;
 	// As far as the scanner reads: what it named may be rooms away.
-	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, true)) return false;
+	const bool townNpc = g_target.entity.kind == EntityRadar::Kind::Npc && g_target.entity.placeId != 0;
+	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, true, townNpc)) return false;
 	for (const auto& entity : entities)
 		if (EntityRadar::SameTarget(entity, g_target.entity)) {
 			g_target.entity = entity;
@@ -394,12 +434,11 @@ void Tick(const D2RL::PluginContext* context) {
 	PadFilter::Claim(context, inPlay);
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		Release("lifecycle");
-		g_offer = {};
+		OnLifecycle(state, now);
 	}
 	if (command == Command::Exploration || command == Command::FullAssistance) {
 		Release("navigation-mode");
-		g_offer = {};
+		g_offer = g_parked = {};
 		NavigationMode::SetFullAssistance(command == Command::FullAssistance);
 		g_settings.requireKnownRoute = !NavigationMode::FullAssistance();
 		const auto& strings = Strings::Current();
@@ -415,7 +454,8 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
 		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "L3" : "command");
-	} else if (command == Command::Clear && g_tracker.Locked()) {
+	} else if (command == Command::Clear && (g_tracker.Locked() || Parked())) {
+		g_parked = {};
 		Release("cancelled");
 		Cue(BeaconAudio::Sound::Cleared);
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);
@@ -450,7 +490,8 @@ void Unregister() {
 	g_context = nullptr;
 	g_lifecycle = nullptr;
 	g_input = nullptr;
-	g_offer = g_target = {};
+	g_offer = g_target = g_parked = {};
+	g_seen = {};
 	g_supported = false;
 	g_sounds = true;
 	g_revision = 0;

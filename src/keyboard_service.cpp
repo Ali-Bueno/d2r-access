@@ -55,6 +55,8 @@
 #include "skill_navigation.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "place_service.h"
+#include "boss_life_service.h"
 #include "trade_service.h"
 #include "vitals_service.h"
 #include "wall_slide_service.h"
@@ -1528,6 +1530,10 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
+		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
+		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
+		{[] { return EntityCueService::Enabled(Cue::Ordinary); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ordinary, on); }, phrase(&T::entityCueOrdinaryEnabled, &T::entityCueOrdinaryDisabled), true, "enemy-growls"},
+		{[] { return EntityCueService::Enabled(Cue::Reach); }, [](bool on) { EntityCueService::SetEnabled(Cue::Reach, on); }, phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},

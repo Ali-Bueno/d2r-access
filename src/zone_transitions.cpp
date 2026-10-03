@@ -68,4 +68,15 @@ bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelE
 	entity.position = found->position;
 	return true;
 }
+
+std::vector<EntityRadar::Entity> FoundAtCrossings(const std::vector<EntityRadar::Entity>& entities,
+	const std::vector<Radar::LevelExit>& crossings, const Filter& found) {
+	std::vector<EntityRadar::Entity> result;
+	for (const auto& entity : entities) {
+		auto atCrossing = entity;
+		if (!found({entity}).empty() || (MoveToCrossing(atCrossing, crossings) && !found({atCrossing}).empty()))
+			result.push_back(entity);
+	}
+	return result;
+}
 }

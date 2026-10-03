@@ -5,6 +5,7 @@
 #include "interaction_reader.h"
 #include "mercenary_stats.h"
 #include "inventory_cursor.h"
+#include "native_entities.h"
 #include "native_tooltips.h"
 #include "native_controller_help.h"
 #include "native_ground_items.h"
@@ -155,10 +156,13 @@ std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curac
 UnitLabel ItemUnitLabel(uintptr_t unit) {
 	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3} : UnitLabel{};
 }
+UnitLabel ClassLabel(uint32_t, uint32_t quality) { return {"", quality}; }
+bool SocketFiller(uint32_t) { return false; }
 uint32_t ItemTableCode(uintptr_t unit) {
 	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
 }
 }
+namespace D2RAccess::NativeEntities { std::optional<uint32_t> FilledSockets(uintptr_t) { return std::nullopt; } }
 namespace D2RAccess::InventoryCensus {
 void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
 }
@@ -171,6 +175,8 @@ void ArmLeftStickWithY(uint64_t) { ++leftStickArms; }
 }
 namespace D2RAccess::InventoryCursor {
 std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem; }
+std::optional<ItemState> Held(const D2RL::PluginContext*) { return holdingItem ? std::optional{ItemState{holdingItem.value() ? 1u : 0u}} : std::nullopt; }
+std::optional<ItemState> Find(const D2RL::PluginContext*, uint32_t) { return std::nullopt; }
 std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
 }
 namespace D2RAccess::NativeControllerHelp {
@@ -786,5 +792,15 @@ int main() {
 	Settle(); ClearSpeech(); pendingPush = InputDirection::StickPush::Right; Tick();
 	Check(pendingPush == InputDirection::StickPush::Right, "right stick right is claimed only on the inventory");
 	pendingPush = InputDirection::StickPush::None;
-	Passed();
+
+    InteractionReader::Reset(); progression = {}; tooltip = {}; buttonSnapshot = {};
+    focus = {20, 100}; widgetType = {"SkillButtonWidget", UiText::Kind::Button};
+    progression.skill = true; progression.name = "Salto"; progression.readout.focusKey = "100";
+    ClearSpeech(); Settle();
+    Check(speech.size() == 1 && speech.front().find("Salto") != std::string::npos,
+        "a verified skill-tree table name speaks before its tooltip exists");
+    ClearSpeech(); Tooltip("Salto"); Tick();
+    Check(speech.empty(), "a matching late tooltip does not repeat a skill name already spoken");
+    progression = {}; InteractionReader::Reset();
+    Passed();
 }

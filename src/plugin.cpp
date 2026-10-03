@@ -36,6 +36,10 @@
 #include "radar_service.h"
 #include "room_service.h"
 #include "terrain_service.h"
+#include "death_place_service.h"
+#include "place_service.h"
+#include "boss_life_service.h"
+#include "inventory_arrival_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "ui_message_monitor.h"
@@ -166,6 +170,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech); lap("QuestService");
 	D2RAccess::RadarService::Tick(context); lap("RadarService");
 	D2RAccess::RoomService::Tick(context, uiOwnsSpeech); lap("RoomService");
+	D2RAccess::PlaceService::Tick(context, uiOwnsSpeech); lap("PlaceService");
 	D2RAccess::TerrainService::Tick(context, uiOwnsSpeech); lap("TerrainService");
 	D2RAccess::FootstepService::Tick(); lap("FootstepService");
 	D2RAccess::WallSlideService::Tick(); lap("WallSlideService");
@@ -177,6 +182,8 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::BeaconService::Tick(context); lap("BeaconService");
 	D2RAccess::SkillBarService::Tick(context); lap("SkillBarService");
 	D2RAccess::VitalsService::Tick(context); lap("VitalsService");
+	D2RAccess::BossLifeService::Tick(context); lap("BossLifeService");
+	D2RAccess::InventoryArrivalService::Tick(context); lap("InventoryArrivalService");
 	D2RAccess::WeaponSwapService::Tick(context); lap("WeaponSwapService");
 	D2RAccess::TradeService::Tick(context); lap("TradeService");
 	LogRightStickPush(context); lap("LogRightStickPush");
@@ -375,6 +382,10 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::EntityCueService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[entity-cues] Entity cue lifecycle unavailable.");
 	if (!D2RAccess::BeaconService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[beacon] Beacon lifecycle unavailable.");
 	if (!D2RAccess::RoomService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[room] Room exit announcements unavailable.");
+	D2RAccess::DeathPlaceService::Register(context);
+	if (!D2RAccess::PlaceService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[places] Named places unavailable.");
+	if (!D2RAccess::BossLifeService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[boss-life] Boss life unavailable.");
+	D2RAccess::InventoryArrivalService::Register(context);
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
 	if (!D2RAccess::QuestService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[quest] Quest lifecycle unavailable.");
@@ -427,6 +438,9 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::NativeCairn::Unregister();
 	D2RAccess::SkillNavigation::Reset();
 	D2RAccess::MenuNavigation::Reset();
+	D2RAccess::DeathPlaceService::Unregister();
+	D2RAccess::PlaceService::Unregister();
+	D2RAccess::BossLifeService::Unregister();
 	D2RAccess::TerrainService::Unregister();
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();

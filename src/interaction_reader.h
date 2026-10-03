@@ -13,6 +13,7 @@ bool HandlesFocus(NativeUi::Focus focus);
 void OfferDetail(std::string_view owner, std::string detail);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange = {});
 void Reset();
+std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality);
 std::string Repeat();
 // Whether each item tooltip is written to the log ([item]). Off by default --
 // logged on every poll it filled a session's log to 12 MB (the user,

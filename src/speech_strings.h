@@ -18,6 +18,9 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
+inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 24;
+
+
 
 inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 	"enUS", "deDE", "esES", "esMX", "frFR", "itIT", "jaJP", "koKR", "plPL", "ptBR", "ruRU", "zhCN", "zhTW"};
@@ -268,6 +271,44 @@ struct Table {
 	// Screen thirds, behind row first: behind-left, behind, behind-right,
 	// left, centre, right, ahead-left, ahead, ahead-right.
 	std::array<const char*, TerrainPlaceCount> terrainPlaces;
+	const char* itemInHand;
+	const char* itemReleased;
+	const char* entityCueOrdinaryEnabled;
+	const char* entityCueOrdinaryDisabled;
+	const char* entityCueReachEnabled;
+	const char* entityCueReachDisabled;
+	const char* attackModeAuto;    // the reach follows the bound skills and the weapon
+	const char* attackModeFixed;   // the reach was set by a command or the config
+	const char* deathPlace;             // where the player last died, on that level
+	const char* deathRoute;             // %s = level died on, %s = the exit toward it
+	const char* deathRouteWaypoint;     // %s = level died on, %s = waypoint, %s = level to pick
+	std::array<const char*, PresetPlaceWords> placePresets; // the first, PresetPlace::None, is never spoken
+	std::array<const char*, PlaceInteriorWords> placeInteriors;
+	std::array<const char*, PlaceFeatureWords> placeFeatures;
+	const char* placeOutside; // left an interior for open ground
+	const char* placeCorridor;
+	const char* placeDeadEnd; // a corridor shut at one end
+	const char* placeBend;
+	const char* placeJunction;
+	const char* placeTowards; // %s = what a corridor leads to: a level exit or a landmark
+	const char* placesEnabled;
+	const char* placesDisabled;
+	const char* placesUnavailable;
+	const char* bossLife; // %s = the boss's name, %d = whole percent of its life left
+	const char* bossLifeEnabled;
+	const char* bossLifeDisabled;
+	const char* itemPlacedIn;         // %s = where the carried item was just placed
+	const char* itemSocketedIn;       // %s = item the carried gem, rune or jewel went into
+	const char* itemAddedTo;          // %s = stack or tome the carried item joined
+	const char* itemSwapped;          // %s = item the game handed back in exchange
+	const char* itemDropped;          // the drop button threw the carried item on the ground
+	const char* socketsNone;          // the item under a gem in hand has no sockets
+	const char* socketsCount;         // %d = how many sockets the item under a gem in hand has
+	const char* socketsFree;          // %d = how many of them are empty
+	const char* socketsFull;          // ... every one filled
+	const char* socketRefused;        // the game kept the gem out of the item
+	const char* itemArrived;          // %s = item, %s = where it landed (bought, handed over)
+	const char* itemUnequippedTo;     // %s = item, %s = where the taken-off item landed
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -316,6 +357,11 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
+	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo}) visit(s);
+	each(t.placePresets);
+	each(t.placeInteriors);
+	each(t.placeFeatures);
+
 }
 
 // Compile-time guard: a language table that leaves a field out of its

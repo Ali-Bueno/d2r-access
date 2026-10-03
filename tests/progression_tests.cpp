@@ -53,6 +53,10 @@ uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 }
 }
 namespace D2RAccess::Localization { std::string Text(std::string_view key) { return key == "minipanelchar" ? "Personaje" : ""; } }
+// The game's skill tables, as skilldesc.txt places Salto: page 1, row 3, column 2.
+namespace D2RAccess::NativeSkillBar {
+std::string ClassSkillName(int page, int row, int column) { return page == 1 && row == 3 && column == 2 ? "Salto" : ""; }
+}
 
 int main() {
 	using namespace D2RAccess;
@@ -113,6 +117,7 @@ int main() {
 	widgets[17] = {12, "SkillButton1 2,5", "", button, false};
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill && NativeProgression::Read({10, 13}, button).readout.coordinates.empty(), "common skills remain readable without invented coordinates");
+	Check(NativeProgression::Read({10, 13}, button).name.empty(), "a skill outside the class tree has no table name and waits for its tooltip");
 	widgets[12].name = "ItemSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill, "item-granted skills use the same reader");
 	widgets[12].name = "UnrelatedButtons";
@@ -123,6 +128,9 @@ int main() {
 	for (const auto name : {"SkillButton3", "Other 0,0", "SkillButton1 -1,2", "SkillButton1 0,-1", "SkillButton1 0,3junk", "SkillButton1 0,99999999999999999"})
 		Check(ProgressionText::SkillCell(name).x == -1, "malformed or non-grid names have no inferred coordinates");
 	Check(ProgressionText::SkillCell("SkillButton2 2,5").y == 5, "last authored skill row is retained");
+	const auto blizzard = ProgressionText::ParseSkillButton("SkillButton3 0,4"); // live sorceress cell, skilldesc page 3 row 5 column 1
+	Check(blizzard.tree == 3 && blizzard.cell.x == 0 && blizzard.cell.y == 4, "the button name gives the skill page with the cell");
+	Check(ProgressionText::ParseSkillButton("SkillButton1 0,3junk").tree == -1, "a malformed name gives no page either");
 	const std::string font = "\xEE\x81\xBE";
 	const auto raw = "Grito: +5 s por nivel\n" + font + "2Aturdir recibe bonus de:" + font + "1\n\nDuración: 1.2 s\nPrimer nivel\nNivel necesario: 12\ny aumenta tu índice de ataque.\nAturde a tu objetivo\n" + font + "2Aturdir\n\nTodavía no has aprendido esta habilidad";
 	const auto description = ProgressionText::SkillDescription(raw);

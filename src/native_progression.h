@@ -6,6 +6,7 @@ namespace D2RAccess::NativeProgression {
 struct Details {
 	UiText::Readout readout;
 	bool skill = false;
+	std::string name; // table name available before the skill tooltip renders
 	std::string points, value;
 	std::string help;     // part of the readout: the skill's current binding
 	std::string controls; // what the buttons do here -- a control hint (control_hints.h)

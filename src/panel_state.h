@@ -31,6 +31,12 @@ void Announced(std::string_view title);
 // True, once, when a tab change names exactly the title just announced.
 bool TakeAnnounced(std::string_view tab);
 
+// An act cinematic covers the game without any panel the record would show.
+// Started by "MoviePlayerMessage:Play", ended by "Cinematics:MovieComplete".
+void MovieStarted();
+void MovieEnded();
+bool MoviePlaying();
+
 void Reset();
 
 }

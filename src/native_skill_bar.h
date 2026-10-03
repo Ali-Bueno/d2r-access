@@ -1,4 +1,6 @@
 #pragma once
+#include "attack_reach.h"
+#include <vector>
 #include <D2RLPlugin/api.h>
 #include <array>
 #include <optional>
@@ -22,4 +24,6 @@ bool BackBarShown() noexcept;
 // A skill's name in the game's language, by skill id; "" when its table row
 // cannot be read or it has no description. UI thread only.
 std::string SkillName(int skill);
+std::optional<std::vector<AttackReach::Skill>> BoundSkills();
+std::string ClassSkillName(int page, int row, int column);
 }

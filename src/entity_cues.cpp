@@ -15,11 +15,23 @@ std::optional<Kind> Classify(const EntityRadar::Entity& entity, const Settings& 
 	if (entity.enemy.important) return Kind::Important;
 	if (entity.enemy.resurrector) return Kind::Resurrector;
 	if (entity.enemy.ranged && settings.ranged) return Kind::Ranged;
-	return std::nullopt;
+	return settings.ordinary ? std::optional{Kind::Ordinary} : std::nullopt;
 }
+bool Nearer(const Cue& a, const Cue& b) { return a.distance < b.distance || (a.distance == b.distance && a.id < b.id); }
 }
 
-std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings) {
+Bearing BearingOf(Radar::Position player, Radar::Position target) {
+	const double dx = target.x - player.x, dy = target.y - player.y;
+	Bearing bearing{std::hypot(dx, dy)};
+	if (bearing.distance > 0 && std::isfinite(bearing.distance)) {
+		// Native isometric projection, shared with beacon and ground-item audio.
+		bearing.right = (dx / bearing.distance - dy / bearing.distance) * std::numbers::sqrt2 / 2;
+		bearing.front = -(dx / bearing.distance + dy / bearing.distance) * std::numbers::sqrt2 / 2;
+	}
+	return bearing;
+}
+
+static std::vector<Cue> LegacySelect(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings) {
 	if (!std::isfinite(world.player.x) || !std::isfinite(world.player.y)
 		|| !std::isfinite(settings.range) || settings.range <= 0) return {};
 	std::array<std::optional<Cue>, 4> nearest;
@@ -33,6 +45,7 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 		if (slot && (distance > slot->distance || (distance == slot->distance && entity.id >= slot->id))) continue;
 		if (!EntityRadar::LineOfSight(world, world.player, entity.position)) continue;
 		Cue cue{entity.id, *kind, distance};
+		cue.slot = static_cast<size_t>(*kind);
 		if (distance > 0) {
 			// Native isometric projection, shared with beacon and ground-item audio.
 			cue.right = (dx / distance - dy / distance) * std::numbers::sqrt2 / 2;
@@ -54,12 +67,53 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 	return selected;
 }
 
+std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings) {
+	if (!std::isfinite(world.player.x) || !std::isfinite(world.player.y)
+		|| !std::isfinite(settings.range) || settings.range <= 0) return {};
+	if (!settings.ordinary) return LegacySelect(world, entities, settings);
+	const auto nearMs = std::max(settings.nearIntervalMs, settings.gapMs);
+	const auto farMs = std::max(settings.farIntervalMs, nearMs);
+	std::array<std::optional<Cue>, KindCount> nearest;
+	struct Candidate { Cue cue; Radar::Position position; };
+	std::vector<Candidate> ordinary;
+	for (const auto& entity : entities) {
+		const auto kind = Classify(entity, settings);
+		if (!kind) continue;
+		const auto bearing = BearingOf(world.player, entity.position);
+		const double distance = bearing.distance;
+		if (!std::isfinite(distance) || distance > settings.range) continue;
+		Cue cue{entity.id, *kind, distance, bearing.right, bearing.front};
+		cue.intervalMs = nearMs + static_cast<uint64_t>(static_cast<double>(farMs - nearMs) * (distance / settings.range));
+		cue.slot = static_cast<size_t>(*kind);
+		// Ordinary enemies are ranked first and only the nearest few pay for a terrain ray.
+		if (*kind == Kind::Ordinary) { ordinary.push_back({cue, entity.position}); continue; }
+		auto& slot = nearest[cue.slot];
+		if (slot && !Nearer(cue, *slot)) continue;
+		if (!EntityRadar::LineOfSight(world, world.player, entity.position)) continue;
+		slot = cue;
+	}
+	std::vector<Cue> selected;
+	for (const auto kind : std::array{Kind::Important, Kind::Resurrector, Kind::Ranged})
+		if (const auto& cue = nearest[static_cast<size_t>(kind)]; cue && selected.size() < 3) selected.push_back(*cue);
+	std::sort(ordinary.begin(), ordinary.end(), [](const Candidate& a, const Candidate& b) { return Nearer(a.cue, b.cue); });
+	// One slot per rank, so the nearest enemy changing does not restart its cadence.
+	size_t rank = 0;
+	for (auto& candidate : ordinary) {
+		if (selected.size() >= 3 || rank >= MaxOrdinary) break;
+		if (!EntityRadar::LineOfSight(world, world.player, candidate.position)) continue;
+		candidate.cue.slot = static_cast<size_t>(Kind::Ordinary) + rank++;
+		selected.push_back(candidate.cue);
+	}
+	if (nearest[static_cast<size_t>(Kind::Npc)]) selected.push_back(*nearest[static_cast<size_t>(Kind::Npc)]);
+	return selected;
+}
+
 std::optional<Cue> Tracker::Update(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	uint64_t now, const Settings& settings) {
 	if (played_ && now < last_) Reset();
 	const auto selected = Select(world, entities, settings);
-	std::array<bool, 4> present{};
-	for (const auto& cue : selected) present[static_cast<size_t>(cue.kind)] = true;
+	std::array<bool, SlotCount> present{};
+	for (const auto& cue : selected) present[cue.slot] = true;
 	for (size_t i = 0; i < slots_.size(); ++i) {
 		if (!present[i]) slots_[i] = {};
 	}
@@ -67,7 +121,7 @@ std::optional<Cue> Tracker::Update(const Radar::World& world, const std::vector<
 	std::optional<Cue> next;
 	double mostOverdue = -1;
 	for (const auto& cue : selected) {
-		const auto& slot = slots_[static_cast<size_t>(cue.kind)];
+		const auto& slot = slots_[cue.slot];
 		const auto elapsed = now - slot.last;
 		if (slot.played && elapsed < cue.intervalMs) continue;
 		// Pending first cues run before repeats. Among repeats, overdue fraction
@@ -77,7 +131,7 @@ std::optional<Cue> Tracker::Update(const Radar::World& world, const std::vector<
 		if (!next || overdue > mostOverdue) { next = cue; mostOverdue = overdue; }
 	}
 	if (next) {
-		auto& slot = slots_[static_cast<size_t>(next->kind)];
+		auto& slot = slots_[next->slot];
 		slot.played = true; slot.last = now;
 		played_ = true; last_ = now;
 	}

@@ -419,6 +419,23 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 	return result;
 }
 
+std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
+	std::lock_guard lock(g_mutex);
+	auto stored = g_store.AllKnownPlaces(seed);
+	for (const auto& [key, places] : g_places) if (key.seed == seed) ExploredStore::MergePlaces(stored[key.level], places);
+	std::map<int, std::vector<EntityRadar::Entity>> result;
+	for (const auto& [level, places] : stored) for (const auto& place : places) {
+		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
+			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
+		if (!MapSurvey::Fixed(entity)) continue;
+		entity.nameKey = place.nameKey;
+		if (auto name = NativeEntities::KeyText(place.nameKey); !name.empty()) entity.name = std::move(name);
+		TombSymbols::Mark(entity, Strings::Current());
+		result[static_cast<int>(level)].push_back(std::move(entity));
+	}
+	return result;
+}
+
 void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found) {
 	struct Found { ExploredStore::Place place; bool quest; };
 	std::vector<Found> fixed;

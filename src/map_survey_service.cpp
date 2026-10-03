@@ -4,6 +4,7 @@
 #include "async_log.h"
 #include "beacon_service.h"
 #include "corpse_memory.h"
+#include "death_place_service.h"
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
@@ -77,6 +78,11 @@ uint64_t                   g_nextObserve = 0;
 // The level the area list was last logged for; diagnostics only.
 int                        g_areaLevel = 0;
 uint64_t                   g_areaSession = 0;
+// How many town NPCs were last logged, and where; diagnostics only.
+int                        g_townNpcLevel = 0;
+uint64_t                   g_townNpcSession = 0;
+size_t                     g_townNpcCount = 0, g_townNpcSeen = 0;
+MapSurvey::TownNpcSightings g_townNpcs;
 
 // What the player is currently pointed at. Kept by identity, not index, so a
 // rescan that adds or removes objects does not silently move the selection.
@@ -118,6 +124,7 @@ void ForgetOtherGames(const Lifecycle& state) {
 		static_cast<unsigned long long>(state.session), g_registry.Entities().size());
 	g_registry.Clear();
 	g_corpses.Clear();
+	g_townNpcs.Clear();
 	g_registrySession = state.session;
 	g_selected = 0;
 	g_selectedPlace = 0;
@@ -240,19 +247,43 @@ const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) 
 
 using MapSurvey::Scene;
 
+// The town NPCs listed from afar, whenever their number changes: whether every
+// NPC of the town has a spawn point the reader finds (docs/entity-scan.md).
+void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, const Scene& scene) {
+	const size_t seen = g_townNpcs.Seen(state.level, scene.townNpcs).size();
+	if (state.level == g_townNpcLevel && state.session == g_townNpcSession && scene.townNpcs.size() == g_townNpcCount
+		&& seen == g_townNpcSeen) return;
+	g_townNpcLevel = state.level; g_townNpcSession = state.session; g_townNpcCount = scene.townNpcs.size(); g_townNpcSeen = seen;
+	if (scene.townNpcs.empty()) return;
+	std::string listed;
+	for (const auto& npc : scene.townNpcs) {
+		char entry[96]{};
+		std::snprintf(entry, sizeof(entry), " %s@%.0f,%.0f/%s", npc.name.c_str(), npc.position.x, npc.position.y,
+			npc.id == npc.placeId ? "spawn" : "unit");
+		listed += entry;
+	}
+	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu, %zu seen:%s", state.level, scene.townNpcs.size(), seen, listed.c_str());
+}
+
 bool Collect(const Lifecycle& state, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
-	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true)) return false;
+	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true, true)) return false;
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }
 
 // What exploration counts as found: what came into view and, while the
-// automap can be read, anything in a room it has drawn.
+// automap can be read, anything in a room it has drawn. An area border also
+// counts where it is walked across, not only at the middle of the edge.
 std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
-	if (const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session)))
-		return MapSurvey::Charted(world, scene.landmarks, *charted);
-	return MapSurvey::Discoverable(world, scene.landmarks);
+	const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session));
+	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
+		return charted ? MapSurvey::Charted(world, entities, *charted) : MapSurvey::Discoverable(world, entities);
+	};
+	NativeLevelExits::Layout layout;
+	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
+		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
+	return ZoneTransitions::FoundAtCrossings(scene.landmarks, ZoneTransitions::Find(world, layout, Navigation::MaxRadius), found);
 }
 
 // Enemies are never charted: in range and in sight right now, or all loaded with full assistance.
@@ -286,7 +317,10 @@ std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 // the map can see where one was and it is not there -- killed, picked up.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
 	const auto& rooms = CurrentRooms(state.level, state.session);
+	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	g_townNpcs.Found(state.level, charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
 	const auto enemies = Enemies(world, scene);
@@ -299,6 +333,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
 	KeyboardService::NotePads(world, scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
+	LogTownNpcs(g_context, state, scene);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
 		return CorpseMemory::Covered(rooms, grid, world.player, position);
 	});
@@ -362,6 +397,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			catalogued.push_back(std::move(place));
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
+	const auto townNpcs = g_fullAssistance ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
+	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);
 	catalogued.insert(catalogued.end(), corpses.begin(), corpses.end());
@@ -370,6 +407,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
 		for (auto& entity : catalogued) ZoneTransitions::MoveToCrossing(entity, crossings);
 	}
+	const auto death = DeathPlaceService::Landmarks(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player, catalogued);
+	catalogued.insert(catalogued.end(), death.begin(), death.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	if (g_reachFilter) LeaveOutCutOff(world, landmarks);
 	return true;
@@ -571,6 +610,7 @@ void Shutdown() {
 	g_actions.clear();
 	g_registry.Clear();
 	g_corpses.Clear();
+	g_townNpcs.Clear();
 }
 
 }

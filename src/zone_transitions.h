@@ -5,6 +5,7 @@
 #include "native_level_exits.h"
 #include "radar.h"
 
+#include <functional>
 #include <vector>
 
 namespace D2RAccess::ZoneTransitions {
@@ -18,4 +19,9 @@ bool Crosses(const EntityRadar::Entity& entity);
 // Moves such an exit to its crossing among `crossings`, when there is one; the
 // identity stays, so it is still the same place. docs/beacon.md#area-borders
 bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelExit>& crossings);
+// The entities `found` keeps, a border also judged at its crossing among
+// `crossings`; each kept entity keeps its own position. docs/beacon.md#area-borders
+using Filter = std::function<std::vector<EntityRadar::Entity>(const std::vector<EntityRadar::Entity>&)>;
+std::vector<EntityRadar::Entity> FoundAtCrossings(const std::vector<EntityRadar::Entity>& entities,
+	const std::vector<Radar::LevelExit>& crossings, const Filter& found);
 }

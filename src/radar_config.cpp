@@ -182,19 +182,38 @@ Switch ParseChests(std::string_view config) { return ParseSwitch(config, "[chest
 Switch ReadChests(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseChests, "[chests] Invalid [chests] settings; using compiled defaults.");
 }
+Switch ParseBossLife(std::string_view config) { return ParseSwitch(config, "[boss_life]"); }
+Switch ReadBossLife(const D2RL::PluginContext* context) {
+	return ReadSection<Switch>(context, ParseBossLife, "[boss-life] Invalid [boss_life] settings; using compiled defaults.");
+}
 Switch ParseDoors(std::string_view config) { return ParseSwitch(config, "[doors]"); }
 Switch ReadDoors(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseDoors, "[doors] Invalid [doors] settings; using compiled defaults.");
 }
 
+namespace {
+std::optional<AttackReach::Mode> ParseAttackMode(std::string_view value) {
+	if (value.size() >= 2 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
+	if (value == "auto") return AttackReach::Mode::Auto;
+	if (value == "melee") return AttackReach::Mode::Melee;
+	if (value == "ranged") return AttackReach::Mode::Ranged;
+	return std::nullopt;
+}
+}
+
 EntityCueSettings ParseEntityCues(std::string_view config) {
 	EntityCueSettings result;
 	const bool valid = ForEachKey(config, "[entity_cues]", [&](std::string_view key, std::optional<std::string_view> value) {
-		if (key == "range") {
+		if (key == "range" || key == "melee_reach" || key == "ranged_reach") {
+			auto& slot = key == "range" ? result.range : key == "melee_reach" ? result.meleeReach : result.rangedReach;
 			double range = 0;
-			if (!value || result.range || !ParseNumber(*value, range) || !std::isfinite(range)
+			if (!value || slot || !ParseNumber(*value, range) || !std::isfinite(range)
 				|| range <= 0 || range > MaxEntityCueRange) return Line::Invalid;
-			result.range = range;
+			slot = range;
+		} else if (key == "attack") {
+			if (!value || result.attack) return Line::Invalid;
+			result.attack = ParseAttackMode(*value);
+			if (!result.attack) return Line::Invalid;
 		} else if (key == "volume") {
 			unsigned volume = 0;
 			if (!value || result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
@@ -205,6 +224,8 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			else if (key == "npcs") slot = &result.npcs;
 			else if (key == "enemies") slot = &result.enemies;
 			else if (key == "ranged") slot = &result.ranged;
+			else if (key == "ordinary") slot = &result.ordinary;
+			else if (key == "reach") slot = &result.reach;
 			else return Line::Ignored;
 			bool flag = false;
 			if (!value || slot->has_value() || !ParseBool(*value, flag)) return Line::Invalid;

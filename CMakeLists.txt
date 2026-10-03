@@ -18,6 +18,19 @@ set(PRISM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/prism")
 # D2RLoader picks up a companion d2rl-<id>.mpq by this file name, so keep the
 # "d2rl-" prefix and the plugin id from src/plugin.cpp in sync.
 add_library(d2r-access SHARED
+	src/death_place.cpp
+	src/death_place_service.cpp
+	src/boss_life.cpp
+	src/boss_life_service.cpp
+	src/native_preset_map.cpp
+	src/passages.cpp
+	src/places.cpp
+	src/place_service.cpp
+	src/inventory_arrivals.cpp
+	src/inventory_arrival_service.cpp
+	src/item_hand.cpp
+	src/attack_reach.cpp
+	src/native_attack.cpp
 	src/async_log.cpp
 	src/auto_detail.cpp
 	src/control_hints.cpp
@@ -195,6 +208,35 @@ endif()
 include(CTest)
 include(cmake/GroundItems.cmake)
 if(BUILD_TESTING)
+	add_executable(attack-reach-tests tests/attack_reach_tests.cpp src/attack_reach.cpp src/entity_cues.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(attack-reach-tests PRIVATE src)
+	target_compile_features(attack-reach-tests PRIVATE cxx_std_20)
+	add_test(NAME attack-reach COMMAND attack-reach-tests)
+	add_executable(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
+	target_include_directories(death-place-tests PRIVATE src)
+	target_compile_features(death-place-tests PRIVATE cxx_std_20)
+	target_compile_definitions(death-place-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME death-place COMMAND death-place-tests)
+	add_executable(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
+	target_include_directories(boss-life-tests PRIVATE src)
+	target_compile_features(boss-life-tests PRIVATE cxx_std_20)
+	add_test(NAME boss-life COMMAND boss-life-tests)
+	add_executable(inventory-arrivals-tests tests/inventory_arrivals_tests.cpp src/inventory_arrivals.cpp)
+	target_include_directories(inventory-arrivals-tests PRIVATE src)
+	target_compile_features(inventory-arrivals-tests PRIVATE cxx_std_20)
+	add_test(NAME inventory-arrivals COMMAND inventory-arrivals-tests)
+	add_executable(item-hand-tests tests/item_hand_tests.cpp src/item_hand.cpp)
+	target_include_directories(item-hand-tests PRIVATE src)
+	target_compile_features(item-hand-tests PRIVATE cxx_std_20)
+	add_test(NAME item-hand COMMAND item-hand-tests)
+	add_executable(passages-tests tests/passages_tests.cpp src/passages.cpp)
+	target_include_directories(passages-tests PRIVATE src)
+	target_compile_features(passages-tests PRIVATE cxx_std_20)
+	add_test(NAME passages COMMAND passages-tests)
+	add_executable(places-tests tests/places_tests.cpp src/places.cpp)
+	target_include_directories(places-tests PRIVATE src)
+	target_compile_features(places-tests PRIVATE cxx_std_20)
+	add_test(NAME places COMMAND places-tests)
 	# Full-resolution native body connectivity, shared with the reactive radar.
 	add_executable(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
 	target_include_directories(beacon-tests PRIVATE src)
@@ -202,7 +244,7 @@ if(BUILD_TESTING)
 	add_test(NAME beacon COMMAND beacon-tests)
 	add_executable(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp
 		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp
-		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/speech_strings.cpp src/async_log.cpp)
+		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(beacon-service-tests PRIVATE src)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(beacon-service-tests PRIVATE cxx_std_20)
@@ -347,7 +389,7 @@ if(BUILD_TESTING)
 	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-audio-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
-	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/entity_cues.cpp src/speech_strings.cpp src/async_log.cpp)
+	add_executable(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/entity_cues.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(entity-cue-service-tests PRIVATE src)
 	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_features(entity-cue-service-tests PRIVATE cxx_std_20)
@@ -510,7 +552,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)

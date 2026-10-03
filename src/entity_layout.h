@@ -27,6 +27,11 @@ inline constexpr std::string_view PlayerCorpseNameKey = "DeadPlayerCorpseName";
 inline constexpr size_t UnitInventory = 0x90, UnitOwnedInventory = 0x98, UnitInventoryRef = 0xA0;
 inline constexpr size_t InventoryRefCount = 8, InventoryLinkId = 0x48;
 inline constexpr uint32_t InventoryMagic = 0x01020304;
+// An item's socketed gems and runes are its own inventory's items. Owner unit at
+// +8 (0x3856E0), item count at +0x4C (0x3856E0 increments it, 0x38BA30 decrements).
+// Live 2026-09-28: a sword with one filled socket read 1. docs/inventory-npc-followup.md#socket-contents
+inline constexpr size_t InventoryOwner = 8, InventoryItemCount = 0x4C;
+inline constexpr uint32_t MaxSockets = 6; // ItemsTxt gemsockets tops out at 6
 inline constexpr size_t UnitFlags1 = 0x124, UnitFlags2 = 0x128;
 inline constexpr uint32_t ForcedDead = 1u << 16; // Unit+0x124, liveness test 0x34C2C0
 inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0 (inferred: set on player-owned spawns)
@@ -59,6 +64,7 @@ inline constexpr size_t MonCachedName = 0x40;
 inline constexpr size_t MonNameIds = 0x32, MonNameParts = 4;
 inline constexpr uint16_t NoText = 0xFFFF;
 inline constexpr size_t MonRarityFlags = 0x1A;
+inline constexpr uint16_t MonSuperUnique = 0x0002;
 inline constexpr uint16_t MonEliteMask = 0x000F; // native 0x38E0E0(unit, 0) special-monster test
 inline constexpr size_t MonEnchantments = 0x20; // monster_plate.h
 // Objects row: ASCII string key, per-mode Selectable bytes, door flag, SubClass byte and OpenWarp flag (objects.txt columns).
@@ -213,6 +219,12 @@ inline constexpr Evidence RosterCorpseChecks[] = {
 	{0x12E1B0, 23, 0x417C2D277B098B63ULL}, // packet 0x8E: assign or unassign
 	{0x136800, 305, 0x84D2F1F985B870FCULL}, // assign: corpse id node on the owner's +0x78
 	{0x138150, 198, 0x1ADC6CE0B4205817ULL}, // unassign
+};
+inline constexpr Evidence SocketChecks[] = {
+	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper
+	{0x388BA0, 100, 0xB5FBC7641E1D7F3AULL}, // inventory magic and link ID
+	{0x388C10, 68, 0xCF3B0CFFC3095301ULL}, // first item: magic check, then Inv+0x10
+	{0x3856E0, 378, 0x969ACF37B5669D2AULL}, // socket insert: owner Inv+8, count Inv+0x4C
 };
 inline constexpr Evidence CorpseChecks[] = {
 	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper

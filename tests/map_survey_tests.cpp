@@ -412,7 +412,27 @@ void FixedPlacesAreTheLayoutsOwn() {
 		"people move, and rooms have their own memory");
 }
 
+void TownNpcsListedOnceSeen() {
+	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
+	auto atma = Make(2, 90, 90, EntityRadar::Kind::Npc);
+	atma.category = EntityRadar::Category::Npc; atma.placeId = 177;
+	TownNpcSightings sightings;
+	Check(sightings.Seen(40, {fara, atma}).empty(), "no town NPC is listed before it is seen");
+	sightings.Found(40, {fara});
+	auto walked = fara;
+	walked.id = 55; walked.position = {60, 60};
+	const auto seen = sightings.Seen(40, {walked, atma});
+	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
+		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
+	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
+	sightings.Clear();
+	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
+}
+
+
 int main() {
+	TownNpcsListedOnceSeen();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
 	NearestByStepsNotByStraightLine();
