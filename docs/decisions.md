@@ -3,6 +3,13 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-09-28 — The radar breath rises up and falls down, as in the D4 mod
+
+The user could not tell an opening ahead from one behind even with the darker downward breath, and
+preferred the D4 mod's breath. Chosen: copy it unchanged — a band-passed noise sweep that rises for
+up, falls for down and holds for the sides, 180 ms long. Rejected: darkening the downward breath
+further, which already failed once. `docs/radar-readings.md`.
+
 ## 2026-09-26 — Loader 1.3.1-beta adopted, PluginSDK kept at 0.2.0
 
 The user asked to move to the new loader without breaking the mod. 1.3.1-beta keeps plugin ABI 4,

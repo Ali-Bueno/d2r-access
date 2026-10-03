@@ -16,6 +16,9 @@ constexpr size_t Right = Index(Radar::Direction::Right), Down = Index(Radar::Dir
 constexpr size_t CueFrames = Radar::CueDurationMs * SampleRate / 1000;
 constexpr size_t CueSamples = CueFrames * Channels;
 constexpr size_t GapSamples = SampleRate * Channels * CueGapMs / 1000;
+// The floor breath is longer than a struck cue so its sweep can be heard.
+constexpr size_t BreathFrames = Radar::BreathDurationMs * SampleRate / 1000;
+constexpr size_t BreathSamples = BreathFrames * Channels;
 
 Radar::Events One(size_t direction, Radar::State state) {
 	Radar::Events events{};
@@ -145,11 +148,11 @@ void Register() {
 void Readings() {
 	const auto exit = Synthesize(One(Up, Radar::State::Exit)), floor = Synthesize(One(Up, Radar::State::Open));
 	const auto wall = Synthesize(One(Up, Radar::State::Blocked)), door = Synthesize(One(Up, Radar::State::Door));
-	Check(floor.size() == CueSamples && door.size() == CueSamples, "every reading occupies one cue slot");
-	const double breath = Rms(floor, 0, 0, CueFrames) / Rms(exit, 0, 0, CueFrames);
+	Check(door.size() == CueSamples && floor.size() == BreathSamples, "a struck reading fills one cue slot, the breath its longer one");
+	const double breath = Rms(floor, 0, 0, BreathFrames) / Rms(exit, 0, 0, CueFrames);
 	Check(breath > 0.35 && breath < 0.8, "floor is a breath under the struck cues, but not buried by the game (2026-09-21 listening)");
 	Check(Peak(floor) < Peak(exit), "the breath never strikes harder than the tin");
-	Check(Rms(floor, 0, CueFrames / 4, 3 * CueFrames / 4) > 2 * Rms(floor, 0, 0, CueFrames / 8),
+	Check(Rms(floor, 0, BreathFrames / 4, 3 * BreathFrames / 4) > 2 * Rms(floor, 0, 0, BreathFrames / 8),
 		"the breath swells in the middle instead of striking at the start");
 	Check(Frequency(door, 0, 0, CueFrames / 8) < Frequency(wall, 0, 0, CueFrames / 8), "the door knock sits below the wall tock");
 	// Two strikes: loud, a rest, loud again, where a wall's one strike is still dying away.
@@ -159,15 +162,20 @@ void Readings() {
 	Check(Rms(wall, 0, rest, second) > between, "a wall is one strike that has not rested where the door has");
 	Check(Frequency(Synthesize(One(Down, Radar::State::Door)), 0, 0, CueFrames / 8) < Frequency(door, 0, 0, CueFrames / 8),
 		"a door is lowered for down like every other reading");
-	// Two openings at once, up and down, must not blur: down's breath is far darker, as loud.
+	// Two openings at once, up and down, must not blur: up's breath rises, down's
+	// falls and the sides hold (the D4 radar's sweep, 2026-09-28 listening).
+	constexpr size_t Half = BreathFrames / 2;
 	const auto floorDown = Synthesize(One(Down, Radar::State::Open));
-	Check(Frequency(floorDown, 0, 0, CueFrames) < 0.75 * Frequency(floor, 0, 0, CueFrames),
-		"down's breath is much darker than up's (2026-09-25 listening)");
-	Check(std::abs(Rms(floorDown, 0, 0, CueFrames) / Rms(floor, 0, 0, CueFrames) - 1) < 0.25,
-		"the darker breath keeps the same loudness");
+	const auto floorLeft = Synthesize(One(Left, Radar::State::Open));
+	Check(Frequency(floor, 0, Half, BreathFrames) > 1.3 * Frequency(floor, 0, 0, Half), "up's breath brightens as it plays");
+	Check(Frequency(floorDown, 0, Half, BreathFrames) < 0.8 * Frequency(floorDown, 0, 0, Half), "down's breath darkens as it plays");
+	const double sideDrift = Frequency(floorLeft, 0, Half, BreathFrames) / Frequency(floorLeft, 0, 0, Half);
+	Check(sideDrift > 0.8 && sideDrift < 1.25, "a side's breath holds its colour");
+	Check(Frequency(floorDown, 0, 0, BreathFrames) < 0.5 * Frequency(floor, 0, 0, BreathFrames), "down's breath is far darker than up's");
+	Check(Peak(floorDown) == Peak(floor), "every breath peaks at the same level");
 	bool mirrored = true;
 	const auto left = Synthesize(One(Left, Radar::State::Open)), right = Synthesize(One(Right, Radar::State::Open));
-	for (size_t frame = 0; frame < CueFrames; ++frame)
+	for (size_t frame = 0; frame < BreathFrames; ++frame)
 		mirrored &= left[frame * Channels] == right[frame * Channels + 1] && left[frame * Channels + 1] == right[frame * Channels];
 	Check(mirrored, "the breath is panned like the struck cues");
 	CueQueue urgent;
@@ -276,8 +284,8 @@ void UnexploredTail() {
 	const double tail = Frequency(tagged, 0, start, start + PipFrames);
 	Check(tail < Frequency(plain, 0, 0, CueFrames / 8), "and it sits below the tin");
 	const auto floor = Synthesize(One(Up, Radar::State::Open), marked);
-	Check(floor.size() == tagged.size(), "floor takes the same tail");
-	Check(std::equal(floor.begin() + static_cast<long long>(CueSamples), floor.end(), tagged.begin() + static_cast<long long>(CueSamples)),
+	Check(floor.size() == BreathSamples + TailFrames * Channels, "floor takes the same tail");
+	Check(std::equal(floor.begin() + static_cast<long long>(BreathSamples), floor.end(), tagged.begin() + static_cast<long long>(CueSamples)),
 		"one tail for both, so it is one thing to learn");
 	Check(Synthesize(One(Up, Radar::State::Blocked), marked).size() == CueSamples
 		&& Synthesize(One(Up, Radar::State::Door), marked).size() == CueSamples, "walls and doors never carry it");
