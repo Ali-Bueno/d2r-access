@@ -238,6 +238,8 @@ inline constexpr Table enUS {
 	.entityCueOrdinaryDisabled = "Ordinary enemy cues off",
 	.entityCueReachEnabled = "Attack reach cue on",
 	.entityCueReachDisabled = "Attack reach cue off",
+	.attackReachMelee = "Melee reach, %s",
+	.attackReachRanged = "Ranged reach, %s",
 	.attackModeAuto = "automatic",
 	.attackModeFixed = "set by hand",
 	.deathPlace = "where you died",

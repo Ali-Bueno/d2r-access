@@ -238,6 +238,8 @@ inline constexpr Table zhTW {
 	.entityCueOrdinaryDisabled = "普通敵人提示音已關閉",
 	.entityCueReachEnabled = "攻擊範圍提示音已開啟",
 	.entityCueReachDisabled = "攻擊範圍提示音已關閉",
+	.attackReachMelee = "近戰範圍，%s",
+	.attackReachRanged = "遠程範圍，%s",
 	.attackModeAuto = "自動",
 	.attackModeFixed = "手動設定",
 	.deathPlace = "你死亡的地點",

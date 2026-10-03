@@ -95,6 +95,7 @@ add_library(d2r-access SHARED
 	src/target_sight.cpp
 	src/native_entities.cpp
 	src/monster_plate.cpp
+	src/monster_names.cpp
 	src/native_cairn.cpp
 	src/cairn_scroll_service.cpp
 	src/native_level_exits.cpp
@@ -558,7 +559,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -671,6 +672,10 @@ if(BUILD_TESTING)
 	target_include_directories(monster-plate-tests PRIVATE src)
 	target_compile_features(monster-plate-tests PRIVATE cxx_std_20)
 	add_test(NAME monster-plate COMMAND monster-plate-tests)
+	add_executable(monster-names-tests tests/monster_names_tests.cpp src/monster_names.cpp)
+	target_include_directories(monster-names-tests PRIVATE src)
+	target_compile_features(monster-names-tests PRIVATE cxx_std_20)
+	add_test(NAME monster-names COMMAND monster-names-tests)
 	add_executable(settings-list-tests tests/settings_list_tests.cpp src/settings_list.cpp)
 	target_include_directories(settings-list-tests PRIVATE src)
 	target_compile_features(settings-list-tests PRIVATE cxx_std_20)
@@ -749,6 +754,7 @@ if(BUILD_TESTING)
 		target_compile_options(native-tooltips-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(tooltip-delay-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(interaction-reader-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(monster-names-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 	endif()
 endif()
 

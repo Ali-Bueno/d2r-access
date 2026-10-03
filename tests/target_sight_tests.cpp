@@ -112,7 +112,24 @@ void FootprintSight() {
 }
 }
 
+// The plate's name gate needs the nearest bearer the player can see, and what it is.
+void NearestBearer() {
+	auto world = OpenWorld();
+	auto boss = Make(3, 30, 38, "Rakanishu"); boss.enemy.boss = true;
+	const std::vector entities{Make(1, 30, 36, "Zombi"), Make(2, 30, 33, "Zombi"), boss};
+	const auto zombie = Find(world, entities, "Zombi. Muerto viviente");
+	Check(zombie.sight == Sight::Visible && zombie.kind == EntityRadar::Kind::Enemy && zombie.distance == 3 && !zombie.important,
+		"the nearest bearer of a pack's name is reported with its distance");
+	Check(Find(world, entities, "Rakanishu").important, "a superunique counts as important");
+	BlockRow(world, 32);
+	const auto behind = Find(world, {Make(2, 30, 33, "Zombi"), Make(4, 30, 26, "Zombi")}, "Zombi");
+	Check(behind.sight == Sight::Visible && behind.distance == 4, "a nearer bearer behind a wall gives way to one in sight");
+	Check(Find(world, {Make(2, 30, 33, "Zombi")}, "Zombi").sight == Sight::Hidden, "only hidden bearers stay hidden");
+	Check(Find(world, {}, "Zombi").sight == Sight::Unknown, "no bearer is unknown");
+}
+
 int main() {
+	NearestBearer();
 	LabelNaming();
 	SightAcrossAWall();
 	ReachAndKinds();

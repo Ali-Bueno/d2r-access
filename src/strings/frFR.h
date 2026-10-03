@@ -238,6 +238,8 @@ inline constexpr Table frFR {
 	.entityCueOrdinaryDisabled = "Signaux des ennemis ordinaires désactivés",
 	.entityCueReachEnabled = "Signal de portée d'attaque activé",
 	.entityCueReachDisabled = "Signal de portée d'attaque désactivé",
+	.attackReachMelee = "Portée de mêlée, %s",
+	.attackReachRanged = "Portée à distance, %s",
 	.attackModeAuto = "automatique",
 	.attackModeFixed = "réglée à la main",
 	.deathPlace = "là où tu es mort",

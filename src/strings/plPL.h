@@ -238,6 +238,8 @@ inline constexpr Table plPL {
 	.entityCueOrdinaryDisabled = "Sygnały zwykłych wrogów wyłączone",
 	.entityCueReachEnabled = "Sygnał zasięgu ataku włączony",
 	.entityCueReachDisabled = "Sygnał zasięgu ataku wyłączony",
+	.attackReachMelee = "Zasięg wręcz, %s",
+	.attackReachRanged = "Zasięg dystansowy, %s",
 	.attackModeAuto = "automatycznie",
 	.attackModeFixed = "ustawiony ręcznie",
 	.deathPlace = "miejsce twojej śmierci",

@@ -127,6 +127,9 @@ int main() {
 	Check(reader.Update(transient, 1900).text.empty(), "empty snapshots restart the settling window");
 	Check(reader.Update(transient, 1980).text == "half", "stable text after a gap is delivered");
 	Check(Clean("\xEE\x80\x93").empty(), "controller-image tooltip is silent");
+	// Monster plate, 2026-09-29: "Demonio 5• 0Invoca trinchantes" kept both font indices.
+	Check(Clean("Demonio \xEE\x81\xBE" "5\xE2\x80\xA2\xEE\x81\xBE" "0Invoca") == "Demonio \xE2\x80\xA2 Invoca",
+		"a font command drops its index character");
 	Check(Clean("\xEE\x80\x93 Recoger. Daño: 2–6") == "Recoger. Daño: 2–6", "controller images do not hide real item text or Unicode punctuation");
 	reader.Reset();
 	const Readout item{"Inventory", "Inventario", "Poción", "0", "", Surface::Other};

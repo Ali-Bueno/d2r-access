@@ -51,8 +51,10 @@ logged once, as `[interaction] behind a wall, not spoken -> "Zombie. Undead"`.
 
 ## Code
 
-- `src/target_sight.{h,cpp}`: `Names`, `Of`, `Settings`. Pure; tested by
-  `tests/target_sight_tests.cpp` (22 checks).
+- `src/target_sight.{h,cpp}`: `Names`, `Of`, `Settings`, and `Find`, the
+  nearest bearer in sight with its kind and distance, which the monster plate's
+  reach gate uses ([attack reach](attack-reach.md)). Pure; tested by
+  `tests/target_sight_tests.cpp`.
 - `src/entity_radar_service.cpp`: `LabelSight` — this service already owns the
   world and unit reads the answer needs, and caches one snapshot for 120 ms so
   asking on every UI poll is cheap. `src/radar_config.cpp` parses `[target]`.

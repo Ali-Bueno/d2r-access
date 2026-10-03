@@ -326,6 +326,10 @@ runs `'0'` through `'V'` -- 39 values. Three parser sites range-check it
 identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. Index 2 is the one
 a title is drawn in.
 
+`UiText::Clean` applies the same rule to every widget text (2026-10-02): the
+monster plate's affix line `\uE07E5•\uE07E0Invoca trinchantes` was spoken as
+"5• 0Invoca trinchantes".
+
 Item tooltips are drawn with index `'0'`; the index is D2's colour palette
 (see "Requirements the character does not meet" below). Stripping only `'1'` and `'2'` left
 that `'0'` in the text, so every spoken line began with a stray "0" and the

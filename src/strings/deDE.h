@@ -238,6 +238,8 @@ inline constexpr Table deDE {
 	.entityCueOrdinaryDisabled = "Signale für gewöhnliche Gegner aus",
 	.entityCueReachEnabled = "Signal für Angriffsreichweite ein",
 	.entityCueReachDisabled = "Signal für Angriffsreichweite aus",
+	.attackReachMelee = "Nahkampfreichweite, %s",
+	.attackReachRanged = "Fernkampfreichweite, %s",
 	.attackModeAuto = "automatisch",
 	.attackModeFixed = "von Hand festgelegt",
 	.deathPlace = "wo du gestorben bist",

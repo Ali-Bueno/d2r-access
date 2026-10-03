@@ -239,6 +239,8 @@ inline constexpr Table esES {
 	.entityCueOrdinaryDisabled = "Señales de enemigos comunes desactivadas",
 	.entityCueReachEnabled = "Aviso de alcance de ataque activado",
 	.entityCueReachDisabled = "Aviso de alcance de ataque desactivado",
+	.attackReachMelee = "Alcance cuerpo a cuerpo, %s",
+	.attackReachRanged = "Alcance a distancia, %s",
 	.attackModeAuto = "automático",
 	.attackModeFixed = "fijado a mano",
 	.deathPlace = "donde moriste",

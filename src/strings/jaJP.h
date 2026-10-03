@@ -238,6 +238,8 @@ inline constexpr Table jaJP {
 	.entityCueOrdinaryDisabled = "通常の敵の音の合図をオフ",
 	.entityCueReachEnabled = "攻撃範囲の合図をオン",
 	.entityCueReachDisabled = "攻撃範囲の合図をオフ",
+	.attackReachMelee = "近接の射程、%s",
+	.attackReachRanged = "遠距離の射程、%s",
 	.attackModeAuto = "自動",
 	.attackModeFixed = "手動で設定",
 	.deathPlace = "あなたが死んだ場所",

@@ -238,6 +238,8 @@ inline constexpr Table ruRU {
 	.entityCueOrdinaryDisabled = "Сигналы обычных врагов выключены",
 	.entityCueReachEnabled = "Сигнал дальности атаки включён",
 	.entityCueReachDisabled = "Сигнал дальности атаки выключен",
+	.attackReachMelee = "Дальность ближнего боя, %s",
+	.attackReachRanged = "Дальность дальнего боя, %s",
 	.attackModeAuto = "автоматически",
 	.attackModeFixed = "задано вручную",
 	.deathPlace = "место вашей гибели",

@@ -238,6 +238,8 @@ inline constexpr Table koKR {
 	.entityCueOrdinaryDisabled = "일반 적 소리 신호 꺼짐",
 	.entityCueReachEnabled = "공격 사거리 신호 켜짐",
 	.entityCueReachDisabled = "공격 사거리 신호 꺼짐",
+	.attackReachMelee = "근접 사거리, %s",
+	.attackReachRanged = "원거리 사거리, %s",
 	.attackModeAuto = "자동",
 	.attackModeFixed = "수동 설정",
 	.deathPlace = "내가 죽은 곳",

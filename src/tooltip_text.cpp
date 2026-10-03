@@ -23,9 +23,7 @@ constexpr std::string_view Heading = "\xEE\x81\xBE" "2";
 // '5' socketed grey, and '1' red, an unmet requirement (log, 2026-09-25 07:49).
 constexpr std::string_view Red = "\xEE\x81\xBE" "1";
 
-bool FontIndex(char c) {
-	return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u;
-}
+using UiText::FontIndex;
 
 std::string StripFont(std::string line) {
 	for (size_t at = 0; (at = line.find(Font, at)) != std::string::npos;) {

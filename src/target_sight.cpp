@@ -19,10 +19,11 @@ bool Names(std::string_view label, std::string_view name) {
 	return false;
 }
 
-Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
+Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	std::string_view label, const Settings& settings) {
-	if (!settings.enabled || label.empty()) return Sight::Unknown;
+	if (!settings.enabled || label.empty()) return {};
 	bool bearer = false;
+	Bearer nearest;
 	for (const auto& entity : entities) {
 		// Items are announced by their own proximity service, which decides on
 		// distance rather than sight; a level exit is a fixed landmark the scan
@@ -32,10 +33,18 @@ Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& enti
 		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
 		if (!std::isfinite(distance) || distance > settings.reach) continue;
 		bearer = true;
-		if (EntityRadar::LineOfSight(world, world.player, entity)) return Sight::Visible;
+		if (nearest.sight == Sight::Visible && distance >= nearest.distance) continue;
+		if (!EntityRadar::LineOfSight(world, world.player, entity)) continue;
+		nearest = {Sight::Visible, entity.kind, entity.enemy.important || entity.enemy.boss, distance};
 	}
 	// Every bearer of that name within reach is behind a wall: the game is
 	// naming something the player cannot see.
-	return bearer ? Sight::Hidden : Sight::Unknown;
+	if (nearest.sight == Sight::Visible) return nearest;
+	return {bearer ? Sight::Hidden : Sight::Unknown};
+}
+
+Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
+	std::string_view label, const Settings& settings) {
+	return Find(world, entities, label, settings).sight;
 }
 }

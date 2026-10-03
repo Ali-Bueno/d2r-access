@@ -45,6 +45,9 @@ struct Announcement {
 	bool interrupt = true;
 };
 
+// U+E07E opens the game's inline font command; one index character, '0'..'V', follows it.
+inline constexpr unsigned FontCommand = 0xE07E;
+constexpr bool FontIndex(char c) { return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u; }
 std::string Clean(std::string_view text);
 Readout Describe(const Snapshot& snapshot);
 

@@ -239,6 +239,8 @@ inline constexpr Table itIT {
 	.entityCueOrdinaryDisabled = "Segnali dei nemici comuni disattivi",
 	.entityCueReachEnabled = "Segnale di portata d'attacco attivo",
 	.entityCueReachDisabled = "Segnale di portata d'attacco disattivo",
+	.attackReachMelee = "Portata in mischia, %s",
+	.attackReachRanged = "Portata a distanza, %s",
 	.attackModeAuto = "automatica",
 	.attackModeFixed = "impostata a mano",
 	.deathPlace = "dove sei morto",

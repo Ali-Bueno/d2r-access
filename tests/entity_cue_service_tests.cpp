@@ -1,7 +1,7 @@
 #include "entity_cue_service.h"
-#include "native_attack.h"
 #include "entity_cue_audio.h"
 #include "entity_radar.h"
+#include "native_attack.h"
 #include "native_entities.h"
 #include "native_world.h"
 #include "radar_config.h"
@@ -86,6 +86,11 @@ bool Read(uint32_t player, uint64_t generation, std::vector<EntityRadar::Entity>
 }
 namespace D2RAccess::EntityRadar {
 bool LineOfSight(const Radar::World&, Radar::Position, Radar::Position) { return true; }
+std::string DistancePhrase(double distance, const Settings&, const Strings::Table&) { return std::to_string(static_cast<int>(distance)) + " steps"; }
+}
+int loadoutReads = 0;
+namespace D2RAccess::NativeAttack {
+std::optional<AttackReach::Loadout> ReadLoadout(const D2RL::PluginContext*) { ++loadoutReads; return AttackReach::Loadout{}; }
 }
 namespace D2RAccess::RadarConfig { EntityCueSettings ReadEntityCues(const D2RL::PluginContext*) { return {}; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
@@ -97,8 +102,6 @@ void Stop() { ++stops; }
 bool Available() { return audioReady; }
 }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
-
-namespace D2RAccess::NativeAttack { std::optional<AttackReach::Loadout> ReadLoadout(const D2RL::PluginContext*) { return std::nullopt; } }
 
 int main() {
 	using Kind = D2RL::Lifecycle::GameplayEventKind;
@@ -173,6 +176,43 @@ int main() {
 	Event(Kind::GameJoined); Event(Kind::LocalPlayerReady);
 	EntityCueService::Tick(&context);
 	Check(plays.size() == 7, "new game session starts a fresh cue cadence");
+
+	Check(loadoutReads > 0 && EntityCueService::CurrentReach() == AttackReach::Settings{}.meleeReach,
+		"the attack reach is published from the loadout");
+	const int loadouts = loadoutReads;
+	EntityCueService::Tick(&context);
+	Check(loadoutReads == loadouts, "the loadout is not reread on every tick");
+	entities = {{.id = 9, .kind = EntityRadar::Kind::Enemy, .position = {1, 1}, .name = "Zombi"}};
+	Poll();
+	Check(plays.back().sound == EntityCueAudio::Sound::Reach && plays.back().place.right == 0,
+		"an enemy coming within reach pings once, toward it");
+	Poll();
+	Check(plays.back().sound == EntityCueAudio::Sound::Ordinary, "then the ordinary enemy growls where it stands");
+	Poll();
+	Check(plays.back().sound != EntityCueAudio::Sound::Reach, "the ping is not repeated while the enemy stays in reach");
+	Command("reach-off");
+	Check(speech.back() == "Attack reach cue off", "switching the ping off says only that");
+	Command("status");
+	Check(speech.back().find("Attack reach cue off") != std::string::npos
+		&& speech.back().find("Melee reach, 3 steps, automatic") != std::string::npos,
+		"status names the reach cue, the reach and how it was chosen");
+	Poll();
+	Check(plays.back().sound == EntityCueAudio::Sound::Ordinary, "with the ping off the growl continues");
+	Command("ordinary-off");
+	const auto quiet = plays.size();
+	Poll(); Poll();
+	Check(plays.size() == quiet, "ordinary enemy cues can be switched off on their own");
+	Command("attack-ranged");
+	Check(EntityCueService::CurrentReach() == AttackReach::Settings{}.rangedReach
+		&& speech.back().find("Ranged reach, 15 steps, set by hand") != std::string::npos,
+		"a fixed ranged mode overrides the melee loadout at once");
+	Check(!EntityCueService::NamingReach(), "a ranged attack names whatever the auto-target picks, at any distance");
+	Command("attack-melee");
+	Check(EntityCueService::NamingReach() == EntityCueService::CurrentReach(), "a melee attack names only what it reaches");
+	Command("attack-auto"); Command("reach-on"); Command("ordinary-on");
+	entities = {{.id = 7, .kind = EntityRadar::Kind::Npc, .position = {1, -1}, .name = "Kashya"}};
+	Poll();
+	Check(plays.back().sound == EntityCueAudio::Sound::Npc, "restored settings return to the town NPC cue");
 
 	audioReady = false;
 	const int beforeNoAudio = worldReads;

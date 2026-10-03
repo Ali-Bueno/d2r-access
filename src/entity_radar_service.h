@@ -17,6 +17,8 @@ void Unregister();
 // The snapshot behind it is refreshed at most every few frames, so asking on
 // every UI poll is cheap.
 TargetSight::Sight LabelSight(std::string_view label);
+// The nearest entity in sight that the label names, from the same snapshot.
+TargetSight::Bearer LabelTarget(std::string_view label);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool NpcEnabled();
