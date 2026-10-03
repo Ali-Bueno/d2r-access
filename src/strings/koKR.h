@@ -89,7 +89,7 @@ inline constexpr Table koKR {
 	.entityCueRangedDisabled = "원거리 적 소리 신호 꺼짐",
 	.entityCueAudioUnavailable = "대상 소리 신호를 사용할 수 없음",
 	.entityCueReaderUnavailable = "대상 정보를 읽을 수 없음",
-	.surveyCategories = { "출구", "차원문", "경유지", "NPC", "보관함", "적", "보물", "제단", "장치", "아이템", "방", "플레이어", "미탐험 방", "시체" },
+	.surveyCategories = { "출구", "차원문", "경유지", "NPC", "보관함", "적", "보물", "제단", "장치", "아이템", "방", "플레이어", "미탐험 방", "시체", "퀘스트" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "%d번 방",

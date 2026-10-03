@@ -25,12 +25,13 @@ enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse, Player };
 // shrine", "any chests left"). Kind is too coarse for that: it files every
 // shrine, chest, lever and stash alike as Object. Assigned where the object's
 // table row is already in hand, so the map survey does not re-derive it.
-// Interactable is the deliberate catch-all: levers, seals, statues and doors
-// carry no SubClass bit of their own.
+// Interactable is the deliberate catch-all: levers, statues and doors carry no
+// SubClass bit of their own. Quest takes any object a quest still needs used.
 enum class Category : uint8_t {
 	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room, Player,
 	UnexploredRoom, // a room never stood in, kept apart from Room so the scanner can list where to explore
-	Corpse // a player's body, own or another's, listed from anywhere on its level
+	Corpse, // a player's body, own or another's, listed from anywhere on its level
+	Quest // a quest object still to be used (QuestSource), whatever else it is
 };
 
 struct EnemyTraits {

@@ -89,7 +89,7 @@ inline constexpr Table zhCN {
 	.entityCueRangedDisabled = "远程敌人提示音已关闭",
 	.entityCueAudioUnavailable = "实体提示音不可用",
 	.entityCueReaderUnavailable = "实体读取不可用",
-	.surveyCategories = { "出口", "传送门", "传送点", "NPC", "储藏箱", "敌人", "宝藏", "神殿", "机关", "物品", "房间", "玩家", "未探索房间", "尸体" },
+	.surveyCategories = { "出口", "传送门", "传送点", "NPC", "储藏箱", "敌人", "宝藏", "神殿", "机关", "物品", "房间", "玩家", "未探索房间", "尸体", "任务" },
 	.surveySteps    = "%s，%s，%s",
 	.surveyBearing  = "%s，%s",
 	.surveyRoom     = "房间 %d",

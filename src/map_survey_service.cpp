@@ -171,6 +171,7 @@ const char* CategoryName(EntityRadar::Category category) {
 	case EntityRadar::Category::Player:       return names[11];
 	case EntityRadar::Category::UnexploredRoom: return names[12];
 	case EntityRadar::Category::Corpse:       return names[13];
+	case EntityRadar::Category::Quest:        return names[14];
 	default:                                  return names[8];
 	}
 }

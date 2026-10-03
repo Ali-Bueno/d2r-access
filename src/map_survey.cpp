@@ -19,6 +19,8 @@ constexpr EntityRadar::Category CategoryOrder[] = {
 	// no map needs the shape of the level before its contents.
 	EntityRadar::Category::UnexploredRoom,
 	EntityRadar::Category::Room,
+	// What the level is for: the quest's objects, ahead of who and what else is there.
+	EntityRadar::Category::Quest,
 	EntityRadar::Category::Npc,
 	EntityRadar::Category::Player,
 	EntityRadar::Category::Corpse,

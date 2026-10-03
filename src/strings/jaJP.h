@@ -89,7 +89,7 @@ inline constexpr Table jaJP {
 	.entityCueRangedDisabled = "遠距離の敵の音の合図をオフ",
 	.entityCueAudioUnavailable = "対象の音の合図を再生できません",
 	.entityCueReaderUnavailable = "対象を読み取れません",
-	.surveyCategories = { "出口", "ポータル", "ウェイポイント", "NPC", "保管庫", "敵", "宝箱", "聖堂", "装置", "アイテム", "部屋", "プレイヤー", "未探索の部屋", "死体" },
+	.surveyCategories = { "出口", "ポータル", "ウェイポイント", "NPC", "保管庫", "敵", "宝箱", "聖堂", "装置", "アイテム", "部屋", "プレイヤー", "未探索の部屋", "死体", "クエスト" },
 	.surveySteps    = "%s、%s、%s",
 	.surveyBearing  = "%s、%s",
 	.surveyRoom     = "部屋 %d",

@@ -40,6 +40,7 @@ std::string Text(std::string_view key) {
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
+	if (key == "Gibbet") return "Jaula de Cain";
 	if (key == "teleport pad") return "Plataforma de teletransporte";
 	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
 		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
@@ -416,6 +417,7 @@ void QuestObjectModes() {
 	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
 		&& f.Find(entities, 17)->name == "Árbol de Inifuss",
 		"selectable Inifuss tree is a localized quest audio source");
+	Check(f.Find(entities, 17)->category == EntityRadar::Category::Quest, "a quest item source is listed with the quest objects");
 	Localization::available = false;
 	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
 		&& f.Find(entities, 17)->name == Strings::Current().containerUnnamed,
@@ -423,6 +425,26 @@ void QuestObjectModes() {
 	Localization::available = true;
 	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	Check(f.Read(entities) && !f.Find(entities, 17), "used Inifuss tree cannot continue emitting a quest cue");
+}
+// Cain's Gibbet (objects.txt *ID 26): a quest is advanced by using it, and it gives no item.
+void QuestMechanismModes() {
+	Fixture f;
+	constexpr uint32_t gibbet = 26;
+	constexpr size_t row = ObjectStride * gibbet;
+	f.objects.Text(row + ObjNameKey, "Gibbet");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, gibbet);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject && !f.Find(entities, 17)->container
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Quest && f.Find(entities, 17)->name == "Jaula de Cain",
+		"an unused quest mechanism is a named quest object");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->questObject
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Interactable,
+		"one used but still selectable is an ordinary object again");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 0);
+	Check(f.Read(entities) && !f.Find(entities, 17), "one the game no longer lets be targeted is gone");
 }
 void TeleportPadClass() {
 	Fixture f;
@@ -543,6 +565,7 @@ int main() {
 	PlayersLoadedBeyondTheScanRing();
 	DistantPartyMembers();
 	QuestObjectModes();
+	QuestMechanismModes();
 	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;

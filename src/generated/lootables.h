@@ -52,6 +52,7 @@
 // OperateFn 26 (container): Bookshelf1, Bookshelf2
 // OperateFn 28 (quest item): LamEsensTome
 // OperateFn 30 (container): ExplodingCow, ExplodingChest100
+// OperateFn 31 (quest item): GidBInnDecoy
 // OperateFn 39 (quest item): HoradricCubeChest
 // OperateFn 40 (quest item): HoradricScrollChest
 // OperateFn 41 (quest item): StaffOfKingsChest
@@ -67,25 +68,25 @@
 
 namespace D2RAccess::Generated {
 
-// Sorted, so a lookup is a binary search over 178 ids.
-inline constexpr std::array<uint16_t, 178> LootableObjects{
+// Sorted, so a lookup is a binary search over 179 ids.
+inline constexpr std::array<uint16_t, 179> LootableObjects{
 	1, 3, 4, 5, 6, 7, 9, 11, 28, 30, 46, 50, 51, 52, 53, 54, 55, 56, 57, 58, 79, 
 	87, 88, 89, 94, 95, 104, 105, 106, 107, 108, 125, 126, 127, 128, 139, 140, 
 	141, 142, 143, 144, 146, 147, 148, 154, 155, 158, 159, 163, 169, 171, 174, 
 	175, 176, 177, 178, 179, 180, 181, 182, 183, 193, 198, 203, 204, 205, 208, 
 	209, 222, 223, 224, 225, 233, 239, 240, 241, 242, 243, 244, 246, 247, 248, 
-	250, 266, 270, 271, 272, 274, 284, 289, 314, 315, 316, 317, 326, 329, 330, 
-	331, 332, 333, 334, 335, 336, 354, 355, 356, 360, 362, 363, 364, 365, 372, 
-	383, 384, 387, 388, 389, 390, 391, 397, 405, 406, 407, 413, 416, 418, 419, 
-	420, 424, 425, 430, 431, 432, 433, 443, 444, 445, 448, 454, 455, 463, 466, 
-	467, 468, 469, 470, 471, 477, 485, 486, 487, 500, 501, 502, 504, 505, 516, 
-	517, 518, 524, 525, 526, 529, 530, 531, 532, 533, 534, 535, 540, 541, 544, 
-	545, 548, 549, 550, 551, 556,
+	250, 252, 266, 270, 271, 272, 274, 284, 289, 314, 315, 316, 317, 326, 329, 
+	330, 331, 332, 333, 334, 335, 336, 354, 355, 356, 360, 362, 363, 364, 365, 
+	372, 383, 384, 387, 388, 389, 390, 391, 397, 405, 406, 407, 413, 416, 418, 
+	419, 420, 424, 425, 430, 431, 432, 433, 443, 444, 445, 448, 454, 455, 463, 
+	466, 467, 468, 469, 470, 471, 477, 485, 486, 487, 500, 501, 502, 504, 505, 
+	516, 517, 518, 524, 525, 526, 529, 530, 531, 532, 533, 534, 535, 540, 541, 
+	544, 545, 548, 549, 550, 551, 556,
 };
 
 // Quest interactions that grant a fixed quest item.
-inline constexpr std::array<uint16_t, 9> QuestItemObjects{
-	30, 108, 193, 354, 355, 356, 405, 406, 407
+inline constexpr std::array<uint16_t, 10> QuestItemObjects{
+	30, 108, 193, 252, 354, 355, 356, 405, 406, 407
 };
 
 constexpr bool QuestItemObject(uint32_t classId) {
@@ -131,6 +132,32 @@ constexpr bool TomeObject(uint32_t classId) {
 	if (classId > UINT16_MAX) return false;
 	return std::binary_search(TomeObjects.begin(), TomeObjects.end(),
 		static_cast<uint16_t>(classId));
+}
+
+// Quest mechanisms, used in their neutral mode: Gibbet, TaintedSunShrine,
+//     SevenTombsReceptacle, BeneathTheCityLever, SoulStoneForge,
+//     DiabloSeal1, DiabloSeal2, DiabloSeal3, DiabloSeal4, DiabloSeal5,
+//     CompellingOrb, AncientsAltar, AnyaYetAgain, ColossalAltar.
+inline constexpr std::array<uint16_t, 14> QuestMechanismObjects{
+	26, 149, 152, 367, 376, 392, 393, 394, 395, 396, 404, 546, 558, 573
+};
+
+constexpr bool QuestMechanismObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(QuestMechanismObjects.begin(), QuestMechanismObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
+// Chaos Sanctuary seals, by OperateFn: DiabloSeal1, DiabloSeal2,
+//     DiabloSeal3, DiabloSeal4, DiabloSeal5.
+inline constexpr std::array<uint16_t, 5> SealObjects{
+	392, 393, 394, 395, 396
+};
+
+// A seal's place in SealObjects counted from one, zero for any other object.
+constexpr uint8_t SealOrdinal(uint32_t classId) {
+	const auto found = std::find(SealObjects.begin(), SealObjects.end(), classId);
+	return found == SealObjects.end() ? 0 : static_cast<uint8_t>(found - SealObjects.begin() + 1);
 }
 
 // True when this object class gives the player loot.

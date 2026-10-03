@@ -120,7 +120,7 @@ struct Table {
 	// Map survey: the level-wide catalogue, cycled by category and by object.
 	// Indexed by the switch in MapSurveyService::CategoryName, not by
 	// CategoryOrder: a new category appends here and adds a case there.
-	std::array<const char*, 14> surveyCategories;
+	std::array<const char*, 15> surveyCategories;
 	const char* surveySteps;    // %s = name, %s = distance, %s = direction
 	const char* surveyBearing;  // %s = name, %s = direction; only when there is no distance at all
 	const char* surveyRoom;             // %d = room number

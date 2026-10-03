@@ -268,6 +268,16 @@ void CategoryCycling() {
 	Check(roomOrder.size() == 3 && roomOrder[0] == EntityRadar::Category::Exit
 		&& roomOrder[1] == EntityRadar::Category::UnexploredRoom && roomOrder[2] == EntityRadar::Category::Room,
 		"where is left to explore follows the ways out, before the rooms already walked");
+
+	const auto quest = Survey(world, grid, {
+		with(11, 22, 22, EntityRadar::Category::Interactable),
+		with(12, 24, 24, EntityRadar::Category::Npc),
+		with(13, 26, 26, EntityRadar::Category::Quest),
+	});
+	const auto questOrder = Categories(quest);
+	Check(questOrder.size() == 3 && questOrder[0] == EntityRadar::Category::Quest
+		&& questOrder[1] == EntityRadar::Category::Npc && questOrder[2] == EntityRadar::Category::Interactable,
+		"quest objects are their own category, ahead of the people and objects around them");
 }
 
 void ExplorationDiscoversOnlyNearbyVisibleTargets() {

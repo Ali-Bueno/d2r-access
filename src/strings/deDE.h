@@ -89,7 +89,7 @@ inline constexpr Table deDE {
 	.entityCueRangedDisabled = "Signale für Fernkampfgegner aus",
 	.entityCueAudioUnavailable = "Audio für Entitätssignale nicht verfügbar",
 	.entityCueReaderUnavailable = "Entitätsleser nicht verfügbar",
-	.surveyCategories = { "Ausgang", "Portal", "Wegpunkt", "NSC", "Lager", "Feind", "Schatz", "Schrein", "Mechanismus", "Gegenstand", "Raum", "Spieler", "unerforschter Raum", "Leiche" },
+	.surveyCategories = { "Ausgang", "Portal", "Wegpunkt", "NSC", "Lager", "Feind", "Schatz", "Schrein", "Mechanismus", "Gegenstand", "Raum", "Spieler", "unerforschter Raum", "Leiche", "Quest" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "Raum %d",

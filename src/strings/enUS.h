@@ -89,7 +89,7 @@ inline constexpr Table enUS {
 	.entityCueRangedDisabled = "Ranged enemy cues off",
 	.entityCueAudioUnavailable = "Entity cue audio unavailable",
 	.entityCueReaderUnavailable = "Entity reader unavailable",
-	.surveyCategories = { "exit", "portal", "waypoint", "NPC", "stash", "enemy", "treasure", "shrine", "object", "item", "room", "player", "unexplored room", "corpse" },
+	.surveyCategories = { "exit", "portal", "waypoint", "NPC", "stash", "enemy", "treasure", "shrine", "object", "item", "room", "player", "unexplored room", "corpse", "quest" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "room %d",

@@ -89,7 +89,7 @@ inline constexpr Table itIT {
 	.entityCueRangedDisabled = "Segnali dei nemici a distanza disattivi",
 	.entityCueAudioUnavailable = "Audio dei segnali delle entità non disponibile",
 	.entityCueReaderUnavailable = "Lettore delle entità non disponibile",
-	.surveyCategories = { "uscita", "portale", "waypoint", "PNG", "deposito", "nemico", "tesoro", "santuario", "meccanismo", "oggetto", "stanza", "giocatore", "stanza inesplorata", "cadavere" },
+	.surveyCategories = { "uscita", "portale", "waypoint", "PNG", "deposito", "nemico", "tesoro", "santuario", "meccanismo", "oggetto", "stanza", "giocatore", "stanza inesplorata", "cadavere", "missione" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "stanza %d",

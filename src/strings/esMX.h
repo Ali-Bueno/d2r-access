@@ -89,7 +89,7 @@ inline constexpr Table esMX {
 	.entityCueRangedDisabled = "Señales de enemigos a distancia desactivadas",
 	.entityCueAudioUnavailable = "Audio de señales de entidades no disponible",
 	.entityCueReaderUnavailable = "Lector de entidades no disponible",
-	.surveyCategories = { "salida", "portal", "punto de viaje", "PNJ", "alijo", "enemigo", "tesoro", "santuario", "mecanismo", "objeto", "sala", "jugador", "sala inexplorada", "cadáver" },
+	.surveyCategories = { "salida", "portal", "punto de viaje", "PNJ", "alijo", "enemigo", "tesoro", "santuario", "mecanismo", "objeto", "sala", "jugador", "sala inexplorada", "cadáver", "misión" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "sala %d",

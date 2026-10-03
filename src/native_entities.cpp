@@ -405,7 +405,7 @@ EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool op
 	if (Generated::LootableObject(classId) || (subClass & SubClassContainer)) return EntityRadar::Category::Treasure;
 	if (openWarp) return EntityRadar::Category::Exit;
 	if (key == BankNameKey) return EntityRadar::Category::Stash;
-	// Levers, seals, statues and doors carry no SubClass bit of their own.
+	// Levers, statues and doors carry no SubClass bit of their own.
 	return EntityRadar::Category::Interactable;
 }
 
@@ -445,7 +445,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
 	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
 		entity.doorSpan = std::max(width, height);
-	entity.questObject = Generated::QuestItemObject(classId);
+	entity.questObject = Generated::QuestItemObject(classId) || (mode == ObjectNeutral && Generated::QuestMechanismObject(classId));
 	if (operate == TeleportPadOperateFn) entity.padClass = static_cast<uint16_t>(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
@@ -458,6 +458,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
 	entity.category = ObjectCategory(classId, subClass, openWarp != 0, key);
+	if (EntityRadar::QuestSource(entity)) entity.category = EntityRadar::Category::Quest;
 	// Stairs, waypoints and the stash stand where the level's layout put them.
 	if (openWarp || entity.category == EntityRadar::Category::Waypoint || entity.category == EntityRadar::Category::Stash)
 		entity.placeId = NativeLevelExits::Identity(entity.position);

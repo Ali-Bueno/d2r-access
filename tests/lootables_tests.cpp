@@ -73,6 +73,22 @@ int main() {
 	for (const uint32_t id : {7u, 15u, 54u, 119u, 267u})
 		Check(!Generated::QuestItemObject(id), "ordinary object is not a quest item source");
 	Check(!Generated::QuestItemObject(0xFFFFFFFFu), "out-of-range quest object id is rejected");
+	Check(Generated::QuestItemObject(252) && Generated::LootableObject(252), "the Gidbinn's altar hands over a quest item");
+	// Quest mechanisms by objects.txt *ID: Cain's Gibbet, the Tainted Sun altar, the orifice,
+	// the sewer lever, the Hellforge, the five seals, the Compelling Orb, both Altars of the
+	// Heavens and Frozen Anya.
+	for (const uint32_t id : {26u, 149u, 152u, 367u, 376u, 392u, 393u, 394u, 395u, 396u, 404u, 546u, 558u, 573u})
+		Check(Generated::QuestMechanismObject(id) && !Generated::LootableObject(id), "a quest mechanism is told apart from loot");
+	// The sewer stairs, the Ancients' statues, the stash, a waypoint and a chest are not.
+	for (const uint32_t id : {366u, 474u, 475u, 476u, 267u, 119u, 5u, 0xFFFFFFFFu})
+		Check(!Generated::QuestMechanismObject(id), "an ordinary object is not a quest mechanism");
+	for (uint32_t ordinal = 1; ordinal <= Generated::SealObjects.size(); ++ordinal)
+		Check(Generated::SealOrdinal(391 + ordinal) == ordinal && Generated::QuestMechanismObject(391 + ordinal),
+			"DiabloSeal1 to DiabloSeal5 are numbered in class order");
+	Check(!Generated::SealOrdinal(404) && !Generated::SealOrdinal(0xFFFFFFFFu), "only a seal has a seal number");
+	const auto& mechanismIds = Generated::QuestMechanismObjects;
+	Check(std::is_sorted(mechanismIds.begin(), mechanismIds.end())
+		&& std::adjacent_find(mechanismIds.begin(), mechanismIds.end()) == mechanismIds.end(), "quest mechanism table is sorted and unique");
 
 	// The lookup is a binary search, so the table has to stay sorted, and a
 	// duplicate id would mean the generator emitted a row twice.

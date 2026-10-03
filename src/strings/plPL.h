@@ -89,7 +89,7 @@ inline constexpr Table plPL {
 	.entityCueRangedDisabled = "Sygnały wrogów dystansowych wyłączone",
 	.entityCueAudioUnavailable = "Dźwięk sygnałów obiektów niedostępny",
 	.entityCueReaderUnavailable = "Odczyt obiektów niedostępny",
-	.surveyCategories = { "wyjście", "portal", "punkt podróży", "NPC", "skrytka", "wróg", "skarb", "sanktuarium", "mechanizm", "przedmiot", "pokój", "gracz", "niezbadany pokój", "zwłoki" },
+	.surveyCategories = { "wyjście", "portal", "punkt podróży", "NPC", "skrytka", "wróg", "skarb", "sanktuarium", "mechanizm", "przedmiot", "pokój", "gracz", "niezbadany pokój", "zwłoki", "zadanie" },
 	.surveySteps    = "%s, %s, %s",
 	.surveyBearing  = "%s, %s",
 	.surveyRoom     = "pokój %d",
