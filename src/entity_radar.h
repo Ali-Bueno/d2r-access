@@ -100,6 +100,13 @@ bool Recreated(const Entity& known, const Entity& loaded);
 std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
 inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
+// Whether D, choosing what to use, takes `a` at `aSteps` over `b` at `bSteps`: a
+// quest object still to be used first (the Ancients' altar before the statues
+// around it), then the nearer on foot.
+inline bool UseBefore(const Entity& a, int aSteps, const Entity& b, int bSteps) {
+	if (QuestSource(a) != QuestSource(b)) return QuestSource(a);
+	return aSteps < bSteps;
+}
 struct Settings {
 	// Distances are collision subtiles, and a subtile is spoken as one STEP.
 	// That is the unit the pathfinder already counts in -- Navigation::Grid

@@ -1088,7 +1088,7 @@ void BeginUse(const Lifecycle& state) {
 	for (const auto& thing : things) {
 		if (chosen) break;
 		const int steps = UseSteps(scene.grid, thing);
-		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
+		if (steps < 0 || steps > UseRange || (nearest && !EntityRadar::UseBefore(thing, steps, *nearest, fewest))) continue;
 		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
 		nearest = &thing;
 		fewest = steps;

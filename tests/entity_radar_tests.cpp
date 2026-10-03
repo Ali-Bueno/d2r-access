@@ -131,6 +131,22 @@ void QuestSources() {
 	Check(!QuestSource(scroll), "only world objects count; ground quest items have their own reader");
 }
 
+// D at the Ancients' altar: the statues stand nearer, and the altar is what the quest needs.
+void UsePreference() {
+	Entity altar{1, Kind::Object, {20, 20}, "Altar of the Heavens"};
+	altar.questObject = true;
+	Entity statue{2, Kind::Object, {18, 18}, "Talic the Defender"};
+	Entity npc{3, Kind::Npc, {17, 17}, "Qual-Kehk"};
+	Check(UseBefore(altar, 9, statue, 3) && !UseBefore(statue, 3, altar, 9), "an unused quest object comes before a nearer statue");
+	Check(UseBefore(altar, 9, npc, 1), "and before a nearer NPC");
+	Check(UseBefore(statue, 3, npc, 5) && !UseBefore(npc, 5, statue, 3), "other things go by steps");
+	Entity seal{4, Kind::Object, {22, 22}, "Seal 2"};
+	seal.questObject = true;
+	Check(UseBefore(seal, 4, altar, 9) && !UseBefore(altar, 9, seal, 4), "between quest objects the nearer comes first");
+	altar.questObject = false;
+	Check(UseBefore(statue, 3, altar, 9), "a used one is ordinary again");
+}
+
 void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
@@ -149,6 +165,7 @@ int main() {
 	LevelExitIdentity();
 	CorpseIdentity();
 	QuestSources();
+	UsePreference();
 	Wording();
 	Passed();
 	return 0;
