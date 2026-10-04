@@ -2,16 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Keyboard skill hotkeys and town NPC catalogue corrections ? 2026-10-04
+## Keyboard skill hotkeys and town NPC catalogue corrections — 2026-10-04
 
 **Built to workspace stage only; full CTest 104/104 passes, timeout 20.**
 The game is still running; deployment waits for the user's close notification.
 Local build uses the default four jobs and BelowNormal priority.
 
 Keyboard skill hotkeys announce the game's localized name after native
-selection succeeds, including quick cast and remapped controls. A fresh press
-of the same skill speaks again. Release, menus, chat, settings and physical
-controller input stay silent. Hooks copy ids; PRISM/logging retain their workers.
+selection succeeds, including quick cast and remapped controls. Per the
+user's follow-up, the name is spoken once until a different skill is used.
+Repeated quick casts stay silent; switching back announces again. Native skill
+ids define changes, without speech text deduplication or a timeout. Releases,
+menus, chat, settings and physical controller input stay silent. Hooks copy
+ids; PRISM/logging retain their workers.
 All seven guarded native functions matched the current running game in a
 read-only inspection. [Evidence and policy](docs/keyboard-actions.md#skill-hotkey-announcements).
 
@@ -25,8 +28,9 @@ The user's log and a read-only Lut Gholein snapshot show known room discovery
 alongside incomplete current NPC units and existing unique NPC presets.
 [Regression evidence](docs/entity-scan.md#town-npcs-after-unloading-and-reload--2026-10-04).
 
-Staged DLL SHA-256 `4D38097F1415013F332FE9E8D666B3DC635D6443B399424A2B7073DB91F22E47`
-matches the build. Logs/evidence are in `../re/skill-hotkeys/`.
+Staged DLL SHA-256 `29FD8272820B09EF477F6445893C6BFDA6C170C68D6F1E16631A260FA4F6FB6C`
+matches the build. Follow-up records: `../re/skill-hotkeys/build-skill-changes.log`
+and `tests-skill-changes.log` (104/104 pass, timeout 20).
 Live skill speech and NPC list checks are pending after deployment. No push or
 release requested; commits remain local on `keyboard-local`.
 

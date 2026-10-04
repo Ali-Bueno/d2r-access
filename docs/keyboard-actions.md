@@ -120,9 +120,13 @@ this repository, under `re/actions/`.
 ## Skill-hotkey announcements
 
 2026-10-04: a successful native keyboard skill hotkey announces the game's
-localized skill name alone. A fresh press of the same skill speaks again;
-leaving it selected, releasing quick cast, binding a skill in its menu, and
-physical controller actions stay silent. The native selection/cast proceeds
+localized skill name alone on the first accepted skill and when its id changes.
+Repeated presses or quick casts of that skill stay silent until another skill
+is used; switching back announces it again. This tracks native skill identity,
+without a timeout or comparison of speech text. Quick cast's temporary hand
+restoration does not reset it. Binding slots, hands, and casting mode do not
+change a skill's identity. Releases, binding in menus, and physical controller
+actions stay silent. The native selection/cast proceeds
 with its original arguments and result. Remapped controls and all 16 binding
 slots follow the game's dispatcher, without registering competing mod keys.
 
@@ -141,7 +145,8 @@ queues PRISM and logging to the existing workers. It runs before vital alerts
 so urgent life/mana speech keeps priority. `[native] enabled = false` disables
 these observers along with the other hooks. Diagnostics: `[skill-hotkey]`.
 
-`skill-hotkey-service` tests cover selected names, repeated distinct presses,
-quick-cast binding identity, missing names, and menu/chat/settings suppression.
+`skill-hotkey-service` tests cover names, repeated quick casts, skill changes
+and switching back, distinct ids with matching names, missing names, queued
+transitions, and menu/chat/settings suppression without restarting speech.
 Native instruction/signature evidence is in workspace `re/skill-hotkeys/`;
 live audible selection/cast remains a user-led check after deployment.

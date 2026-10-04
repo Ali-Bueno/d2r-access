@@ -17,7 +17,7 @@ blind players. This checkout supports keyboard gameplay and physical controllers
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
-- Keyboard skill hotkeys announce the selected skill name, including quick cast and remapped keys.
+- Keyboard skill hotkeys announce the skill name when it changes, including quick cast and remapped keys.
   See [native keyboard actions](docs/keyboard-actions.md#skill-hotkey-announcements).
 - Native text in dropdown rows, character rows and confirmation prompts. Character
   selection reads the name and level/class from the selected runtime row, even
