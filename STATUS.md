@@ -4,9 +4,11 @@
 
 ## Keyboard skill hotkeys and town NPC catalogue corrections — 2026-10-04
 
-**Built to workspace stage only; full CTest 104/104 passes, timeout 20.**
-The game is still running; deployment waits for the user's close notification.
-Local build uses the default four jobs and BelowNormal priority.
+**Built and deployed; full CTest 104/104 passes, timeout 20.**
+The user authorized deployment with D2R/D2RLoader verified closed. Normal local
+`build.ps1` completed with the default four jobs and BelowNormal priority,
+restoring the detected game install as the build target. Plugin and PRISM hashes
+were verified against the build and staged runtime. The game remains closed.
 
 Keyboard skill hotkeys announce the game's localized name after native
 selection succeeds, including quick cast and remapped controls. Per the
@@ -28,11 +30,13 @@ The user's log and a read-only Lut Gholein snapshot show known room discovery
 alongside incomplete current NPC units and existing unique NPC presets.
 [Regression evidence](docs/entity-scan.md#town-npcs-after-unloading-and-reload--2026-10-04).
 
-Staged DLL SHA-256 `29FD8272820B09EF477F6445893C6BFDA6C170C68D6F1E16631A260FA4F6FB6C`
-matches the build. Follow-up records: `../re/skill-hotkeys/build-skill-changes.log`
-and `tests-skill-changes.log` (104/104 pass, timeout 20).
-Live skill speech and NPC list checks are pending after deployment. No push or
-release requested; commits remain local on `keyboard-local`.
+Installed DLL SHA-256 `7FBE2FE201CCE26D332F126B05EDE6CC3B3D46257A14EEB9CB89FF966F1C791B`
+matches the normal deployment build, which relinked the tested objects. Records
+in `../re/skill-hotkeys/`: `build-skill-changes.log`, `tests-skill-changes.log`
+(104/104 pass, timeout 20), `build-deploy.log` and `deployment.json`. Previous
+plugin/PRISM are backed up under `pre-deploy/`. Live skill speech and NPC list
+checks remain user-led and pending. No push or release requested; commits remain
+local on `keyboard-local`.
 
 ## Additive upstream integration, retreat and repair — 2026-10-03
 
