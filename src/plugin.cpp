@@ -31,6 +31,8 @@
 #include "pad_filter.h"
 #include "skill_navigation.h"
 #include "skill_bar_service.h"
+#include "native_skill_hotkeys.h"
+#include "skill_hotkey_service.h"
 #include "quest_service.h"
 #include "radar_config.h"
 #include "radar_service.h"
@@ -181,6 +183,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::EntityCueService::Tick(context); lap("EntityCueService");
 	D2RAccess::BeaconService::Tick(context); lap("BeaconService");
 	D2RAccess::SkillBarService::Tick(context); lap("SkillBarService");
+	D2RAccess::SkillHotkeyService::Tick(context, uiOwnsSpeech); lap("SkillHotkeyService");
 	D2RAccess::VitalsService::Tick(context); lap("VitalsService");
 	D2RAccess::BossLifeService::Tick(context); lap("BossLifeService");
 	D2RAccess::InventoryArrivalService::Tick(context); lap("InventoryArrivalService");
@@ -394,6 +397,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::SkillBarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[skill-bar] LT bar reading unavailable.");
 	if (!D2RAccess::WeaponSwapService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[weapon-swap] Weapon swap announcements unavailable.");
 	if (!D2RAccess::KeyboardService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[keyboard] Keyboard play unavailable.");
+	if (nativeHooks && !D2RAccess::NativeSkillHotkeys::Initialize(context))
+		D2RAccess::AsyncLog::Warn(context, "[skill-hotkey] Some keyboard skill announcements unavailable.");
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+H could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");

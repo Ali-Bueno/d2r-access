@@ -116,3 +116,32 @@ break it.
 
 The working files of the two static passes are kept in the workspace, outside
 this repository, under `re/actions/`.
+
+## Skill-hotkey announcements
+
+2026-10-04: a successful native keyboard skill hotkey announces the game's
+localized skill name alone. A fresh press of the same skill speaks again;
+leaving it selected, releasing quick cast, binding a skill in its menu, and
+physical controller actions stay silent. The native selection/cast proceeds
+with its original arguments and result. Remapped controls and all 16 binding
+slots follow the game's dispatcher, without registering competing mod keys.
+
+`NativeSkillHotkeys` observes `0x118D50` (bool selection, slot and default-attack
+flag) only when called from the keyboard dispatcher return at `0x120373`.
+For quick cast it observes `0x149550` (bool result, manager, player index, slot,
+pressed flag) only on key down from `0x122F6A`. These return sites are derived
+from complete `0x11FF30` / `0x122F30` functions. The name/hand are native binding
+getters `0x117D20` / `0x117DE0`; controller mode `0x77E10` excludes physical pad
+calls. All seven function fingerprints matched the user's running 1.3.1-beta
+session in a read-only inspection, before installing these observers.
+
+Hooks copy a bounded queue of ids. `SkillHotkeyService` resolves names on the UI
+thread, drops events during menus, text entry or the mod settings list, then
+queues PRISM and logging to the existing workers. It runs before vital alerts
+so urgent life/mana speech keeps priority. `[native] enabled = false` disables
+these observers along with the other hooks. Diagnostics: `[skill-hotkey]`.
+
+`skill-hotkey-service` tests cover selected names, repeated distinct presses,
+quick-cast binding identity, missing names, and menu/chat/settings suppression.
+Native instruction/signature evidence is in workspace `re/skill-hotkeys/`;
+live audible selection/cast remains a user-led check after deployment.
