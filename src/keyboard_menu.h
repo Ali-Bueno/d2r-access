@@ -31,8 +31,9 @@
 //                            the right hand's. The hand is said as the list opens.
 //
 // With an item in hand the cursor goes cell by cell: where the item would be
-// put down matters cell by cell. A connected pad is not touched; with one
-// connected the cursor wakes only when an arrow key is pressed.
+// put down matters cell by cell. In the game's controller mode the cursor
+// wakes only when an arrow key is pressed. An idle connected pad does not
+// prevent automatic placement in keyboard mode.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
 enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail };

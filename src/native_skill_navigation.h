@@ -5,6 +5,9 @@
 namespace D2RAccess::NativeSkillNavigation {
 bool Initialize(const D2RL::PluginContext* context);
 bool Available();
+// UI thread: the game's actual input mode, independent of device presence.
+// Null when the native getter cannot be verified or read.
+std::optional<bool> ControllerMode() noexcept;
 // UI thread: move the real cursor to the native focus rectangle, then select.
 bool Select(NativeUi::Focus focus);
 // The same for one place inside a widget that holds several, such as a cell of

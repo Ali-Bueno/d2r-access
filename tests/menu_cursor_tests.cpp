@@ -1,4 +1,5 @@
 #include "menu_cursor.h"
+#include "keyboard_menu_policy.h"
 #include "generated/skill_tree.h"
 #include "test_support.h"
 
@@ -80,6 +81,29 @@ uintptr_t Step(const std::vector<Target>& targets, uintptr_t from, Direction dir
 }
 
 int main() {
+	{
+		Check(KeyboardMenuPolicy::Automatic(false, true), "keyboard menus enter automatically with an idle connected pad");
+		Check(KeyboardMenuPolicy::Automatic(false, false), "keyboard menus enter automatically without a pad");
+		Check(!KeyboardMenuPolicy::Automatic(true, true), "controller menus keep their native focus");
+		Check(!KeyboardMenuPolicy::Automatic(true, false), "native controller mode wins over connection polling");
+		Check(!KeyboardMenuPolicy::Automatic(std::nullopt, true), "unverified input mode preserves the connected-pad fallback");
+		Check(KeyboardMenuPolicy::Automatic(std::nullopt, false), "unverified input mode still enters without a pad");
+		// Actual inventory geometry from the user's 08:15 session: Close is
+		// above every slot. Entry must still land within the item grid.
+		const std::vector<Target> inventory{{Close, {1761, 108, 41, 42}, {}},
+			{Head, {1464, 196, 98, 98}, {}}, {Items, {1270, 552, 490, 196}, {10, 4, {{0, 0, 2, 2}}}}};
+		Check(KeyboardMenuPolicy::Entry(inventory, Items) == Place{Items, {}, {}}, "inventory starts on its first item instead of Close");
+		Check(KeyboardMenuPolicy::Entry(inventory, Stash).widget == Close, "missing preferred content uses the usual menu entry");
+		const auto links = MenuCursor::Mend(inventory);
+		Check(AllReached(inventory, links), "inventory entry preserves access to equipment and Close");
+		// Actual Meshif dialogue rows: the first arrow must move away from
+		// Talk because opening the menu has already placed the cursor there.
+		const std::vector<Target> dialogue{{1, {904, 205, 113, 24}, {}},
+			{2, {904, 229, 113, 24}, {}}, {3, {904, 253, 113, 24}, {}}};
+		const auto talk = KeyboardMenuPolicy::Entry(dialogue);
+		Check(talk.widget == 1, "NPC dialogue enters directly on Talk");
+		Check(MenuCursor::Move(dialogue, talk, Direction::Down, false).widget == 2, "one Down from initial Talk goes to the next option");
+	}
 	{
 		// Columns 0..9, rows 0..3: an armour at columns 1-2, rows 0-1, a spear at column 3, rows 0-2.
 		const auto targets = Inventory({10, 4, {{1, 0, 2, 2}, {3, 0, 1, 3}}});

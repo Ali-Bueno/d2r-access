@@ -7,6 +7,7 @@
 #include "input_direction.h"
 #include "inventory_cursor.h"
 #include "keyboard_service.h"
+#include "keyboard_menu_policy.h"
 #include "menu_cursor.h"
 #include "menu_mouse.h"
 #include "native_belt_fill.h"
@@ -810,7 +811,15 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	}
 	g_beltRows = rows;
 	auto place = MenuCursor::Settle(g_targets, g_place);
-	if (!place.widget) place = MenuCursor::First(g_targets);
+	if (!place.widget) {
+		uintptr_t content = 0;
+		// The keyboard inventory opens on its items, not the Close button
+		// above the equipment or a tab chooser left under the pointer.
+		if (g_menu.starts_with("PlayerInventory"))
+			for (const auto& entry : g_entries)
+				if (entry.kind == Kind::InventoryGrid) { content = entry.widget; break; }
+		place = KeyboardMenuPolicy::Entry(g_targets, content);
+	}
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	if (place == g_place && holding == g_holding && !redrawn) return;
 	// What the menu is called is heard out first, unless an arrow asks sooner.
@@ -1248,11 +1257,11 @@ void Tick(const D2RL::PluginContext* context) {
 	HookLetters(context);
 	g_keepLetters = g_engaged && !field && g_menu.find("CharacterCreatePanel") != std::string::npos;
 	const bool typing = editing || field;
-	// With no pad the menu is the keyboard's from the moment it opens; with one
-	// connected it is the pad's until an arrow key is pressed.
-	if (!g_engaged && !InputDirection::LeftStick().connected) {
+	// Follow the game's mode: an idle connected device must not leave the
+	// keyboard pointer on the world/HUD until the first arrow press.
+	if (!g_engaged && KeyboardMenuPolicy::Automatic(NativeSkillNavigation::ControllerMode(), InputDirection::LeftStick().connected)) {
 		g_engaged = true;
-		AsyncLog::Info(context, "[cursor] taken: a menu is up and no pad is connected");
+		AsyncLog::Info(context, "[cursor] taken: a menu is up in keyboard mode");
 		g_refreshAt = 0;
 	}
 	ClickWords::SetKeyboard(g_engaged);

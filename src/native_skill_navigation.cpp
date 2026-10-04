@@ -3,6 +3,7 @@
 #include "native_cursor_gesture.h"
 #include "native_widgets.h"
 #include "async_log.h"
+#include "layout_check.h"
 #include <windows.h>
 #include <atomic>
 #include <vector>
@@ -14,6 +15,10 @@ namespace {
 constexpr uintptr_t CursorUpdateRva = 0x234820, CursorResetRva = 0x2347B0;
 constexpr uintptr_t CursorPositionRva = 0x14F690, SelectRva = 0x876CA0;
 constexpr uintptr_t RefreshHoverRva = 0x8676E0; // stock cursor commit 0x2346C0 calls this after positioning
+// Same whole-function evidence as native_skill_hotkeys.cpp; keyboard-actions.md.
+constexpr uintptr_t ControllerModeRva = 0x77E10;
+struct ModeEvidence { uintptr_t rva; size_t size; uint64_t hash; };
+constexpr ModeEvidence ModeChecks[] = {{ControllerModeRva, 41, 0x290F3F607678EB67ULL}};
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
 constexpr size_t FocusRectSlot = 0x80, SelectSlot = 0xA0, OwnerPanelOffset = 0x550;
 constexpr uint8_t UpdatePrefix[] = {0x40, 0x53, 0x57, 0x48, 0x83, 0xEC, 0x48, 0x48, 0x8B, 0xDA, 0x48, 0x8B, 0xF9};
@@ -21,6 +26,7 @@ struct Rect { int x, y, width, height; };
 struct Point { int x, y; };
 uintptr_t g_base = 0;
 uintptr_t g_activeInput = 0;
+bool g_modeVerified = false;
 void* g_original = nullptr;
 std::atomic<bool> g_hold{false};
 
@@ -73,6 +79,7 @@ bool SelectNative(uintptr_t widget, const Rect& rect, uint64_t selection) noexce
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	g_activeInput = 0;
+	g_modeVerified = false;
 	g_hold = false;
 	NativeCursorGesture::ResetTracking();
 	if (!context || !NativeWidgets::SupportsTree()) return false;
@@ -86,6 +93,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 		return false;
 	}
 	g_base = base;
+	g_modeVerified = LayoutCheck::Verify(context, base, ModeChecks, "menu-mode", "automatic menu entry uses device presence");
 	// InputTextBoxWidget's edit callback reads the active editor through this
 	// RIP-relative load. Evidence and full-function fingerprint: docs/multiplayer.md.
 	constexpr uintptr_t EditCallbackRva = 0x88C7C0;
@@ -103,6 +111,12 @@ bool Initialize(const D2RL::PluginContext* context) {
 	return true;
 }
 bool Available() { return g_base != 0 && g_original != nullptr; }
+std::optional<bool> ControllerMode() noexcept {
+	if (!Available() || !g_modeVerified) return std::nullopt;
+	__try {
+		return reinterpret_cast<bool(*)()>(g_base + ControllerModeRva)();
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+}
 void HoldCursor(bool hold) { g_hold = hold && Available(); }
 NativeUi::Cell Position(uintptr_t widget) {
 	Rect rect{};
