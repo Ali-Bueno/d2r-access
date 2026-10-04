@@ -9,6 +9,39 @@ What is not built is in `keyboard-unbuilt.md`; every key is in
 **MEASURED** means the running game or its log showed it. **READ** means the
 code or the game's data says so. **OPEN** means not established.
 
+## Automatic menu placement correction - 2026-10-04
+
+The user's 07:34 session shows keyboard menus waiting for an arrow before
+the pointer was placed. At 08:13:44 Drognan's dialogue opened and announced
+Talk, but the cursor landed on Talk only at 08:13:46 after an arrow took it.
+At 08:15:35 the inventory opened with the old Character HUD hover still being
+read; the first arrow then placed the cursor on Close. Meshif's dialogue
+repeated the same delayed placement at 08:16:23. The user's report describes
+the missing initial placement, including one Down needed to reach Talk.
+
+READ: automatic acquisition depended on `InputDirection::LeftStick().connected`,
+so any idle XInput device deferred keyboard placement. A read-only Windows
+probe during diagnosis returned success for device 0 with no buttons held.
+That is device presence, not evidence of controller use; the native mode was
+not sampled during the reported session.
+
+Automatic entry now uses the game's input-mode getter at RVA `0x77E10`,
+already established by the native skill-hotkey reader. Its separate complete
+41-byte normalized fingerprint is `0x290F3F607678EB67`; an unreadable or changed
+getter retains the previous connection-based fallback. Actual controller mode
+keeps native focus until a keyboard arrow requests it. Keyboard mode places
+the pointer when the menu opens, including with an idle connected device.
+The standalone player inventory starts at its item grid's top-left item/cell;
+equipment, weapon swap and Close remain reachable. NPC menus start on their
+first visible choice, normally Talk. Existing Alt clicks, respec setting,
+tooltip ownership, and PRISM/log workers are preserved.
+
+The menu-cursor suite covers keyboard/controller/unknown mode gates, the
+user's inventory and NPC geometry, and navigation after entry. Build and live
+validation state are tracked in STATUS and HANDOFF. Session logs and the
+independent image fingerprint are in `../../re/menu-entry-2026-10-04/` in the
+workspace parent. Audible placement remains a user-led check.
+
 ## The keys, as built
 
 In play:
@@ -815,3 +848,54 @@ when movement can occur. A completely surrounded body has no proved route.
 character and the anonymous 57x57 collision capture from 11:24:53. The capture
 is a nearby route test, not proof of survival or the complete distant entrance
 route. User-led live confirmation remains necessary.
+
+## Forest return routes and room entry - 2026-10-04
+
+Walking to a discovered outdoor exit now keeps the actual passable opening
+after moving away and after a revisit, instead of reverting to a rectangle
+midpoint. This corrects the user's Spider Forest return to Kurast Docks and
+the same shared producer in Acts 4 and 5. Ctrl+R retains its separate latest
+arrival target; scanner navigation can return to other previously found exits.
+
+H routes to reachable floor anywhere in the chosen room, including over the
+remembered map when its collision unloads. A blocked centre no longer prevents
+entering an otherwise reachable room. The route still finishes on room entry.
+Native stairs/warps keep their interaction targets, and disconnected logical
+room gaps cannot acquire false remembered floor from adjacent streamed rooms.
+
+After installation, enter Spider Forest from Kurast Docks, move several rooms
+away and select Kurast Docks with the scanner to walk back. The old archive
+keeps visits and landmarks; the exit coordinate is repaired when the opening
+is rediscovered. Test H along river bends, then repeat distant returns and
+exploration at Act 4 passages and Act 5 gates/caves as those acts are reached.
+See [evidence and coverage](exploration.md#act-3-5-routing-corrections---2026-10-04).
+
+## Meshif dock departure and H follow-up - 2026-10-04
+
+The first Act 3-5 build still refused a Docks departure while the selected exit
+held its old guessed midpoint. Exit walking now refreshes that selection before
+checking reachability. An unmeasured walking exit approaches reachable floor
+along its shared border until loaded collision identifies the actual opening.
+
+H now uses actual visits/current room in all levels and chooses the nearest
+loaded reachable entry by walking steps before speculative room-hop candidates.
+If newly loaded terrain cuts off a selected room, it chooses another candidate
+within the existing H request. Arriving still ends that request after one room.
+The beacon keeps its existing map policy and native stairs/pad behavior is intact.
+
+Full 105/105 pass, including an actual captured Spider Forest collision replay;
+deployed after user closed game/loader. User confirmed the dock-exit and H
+fixes working in game on 2026-10-04 and ended the session. [Evidence](exploration.md#dock-departure-and-h-follow-up---2026-10-04).
+
+## Unknown routes and shared outdoor borders - 2026-10-04
+
+A stopped/refused walk now says "No known route to <target>" instead of "No
+way". Further exploration may reveal a route. H still enters one new room per
+request; the existing explored-area beacon mode is unchanged.
+
+Unmeasured outdoor exits now consider every shared-border room section. One
+blocked strip no longer excludes other possible approaches. The actual opening
+must still be identified from loaded collision before the walk crosses it.
+After installation, select Flayer Jungle and walk; if the route is not known,
+use H or manual exploration, then retry. Other maps use the same message and
+border logic. [Evidence and limits](exploration.md#flayer-border-sections-and-route-uncertainty---2026-10-04).

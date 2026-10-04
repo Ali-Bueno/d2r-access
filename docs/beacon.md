@@ -254,3 +254,12 @@ sounds where this uses a word.
   presets have not yet been generated.
 - Optionally, a way to ask for the remaining distance/route length on demand
   instead of only inferring it from ping cadence.
+
+## Remembered area crossings - 2026-10-04
+
+The scanner and beacon now retain collision-measured walking exits when the
+opening unloads. A fresh area-bearing read cannot replace the measured position
+with the shared edge's midpoint. The identity remains the naming point so the
+selected exit stays selected. Only explicit area borders receive this adjustment;
+stairs and warp presets retain their native positions. Existing known-room
+guidance restrictions still apply. See [Act 3-5 corrections](exploration.md#act-3-5-routing-corrections---2026-10-04).

@@ -7,6 +7,40 @@ This is not a verified reading of native automap discovery; see the
 Design conversation of 2026-09-21; the user's rule for the radar still holds (four cardinals, the
 original cues, only changes sound).
 
+## Keyboard town exploration correction - 2026-10-04
+
+The user's Kurast Docks session (level 75) had three physically visited rooms
+by 08:23:28. H counted 30 of 48 rooms explored and 23 cut off, then said
+Nothing left to explore. At 08:23:21 it chose room 31's centre, 5300,5140,
+started a speculative map route and stopped with No way after moving six cells.
+Manual navigation subsequently reached Ormus, as reported by the user and
+recorded by the successful keyboard walk at 08:23:41.
+
+The H producer used the same visited-plus-automap union as the beacon's
+charted-route policy. `AutomapCells::RevealedRooms` marks a whole room when
+any of its floor/wall tiles is drawn. Thus a town's map scenery could exclude
+unvisited walkable ground from H, leaving only unreachable rectangles as
+candidates. The log's 30-room count is that union, not a physical visit count.
+Native automap cells were not separately captured before the game closed;
+the exact 30-room membership remains unobserved.
+
+`TerrainService::ExplorationRooms` now supplies H with physical visits plus
+the current room in towns, using the established generated town flags. Other
+levels keep their existing automap rule. `TerrainService::ExploredRooms` and
+the beacon's route restrictions retain their existing meaning. No exploration
+archive or save data is modified by this correction.
+
+`ExploreGoal::Nearest` selects the fewest-step reachable cell inside the chosen
+room when its collision is available, rather than aiming at a centre that may
+be water or wall. Unknown distant rooms retain existing map/room guidance.
+Actual collision, room-border, reachability and teleport-pad gates remain in
+force. A synthetic dock fixture reproduces the old exhausted-goals result,
+then selects reachable dock floor with the correction. The navigation-policy
+suite covers towns, visited completion, other levels and the unchanged beacon
+policy. Deployment/test state is in STATUS and the workspace HANDOFF; source
+evidence and the user's session are in workspace `re/kurast-explore-2026-10-04/`.
+Live Kurast exploration remains a user-led check.
+
 ## Supplied exploration sounds (2026-09-22)
 
 `sounds/item loop sounds/exploration` supplies three OGG recordings, converted to mono PCM
@@ -152,12 +186,13 @@ level, kind, category and the name the game gave it (and, from `D2REXP03`, its
 string key), at most 64 per entry. The
 scanner lists them in a later game on the same map, before the game streams
 their rooms again; a regenerated map has another key and starts with none
-(`docs/entity-scan.md`). One position is one place: a known place only takes a
-newer name, destination or kind, so the loaded warp and its preset (different
-id, fraction of a subtile) never rewrite the archive. A stored place whose kind
-and category are not a fixed place is skipped on use. `D2REXP01` archives still load and are
-upgraded on the next save. An older plugin cannot read `D2REXP02`; it leaves the
-archive untouched and cannot load or save exploration until updated.
+(`docs/entity-scan.md`). A normal fixed place takes a newer name, destination or kind, so the loaded
+warp and its preset (different id, fraction of a subtile) do not rewrite its
+position. Measured area borders can correct their coordinates while keeping
+their naming identity (see the version 4 correction below). A stored place whose kind
+and category are not a fixed place is skipped on use. Formats `D2REXP01` through `D2REXP03` still load and upgrade on the next save.
+An older plugin unable to read the current format leaves the archive untouched
+and cannot load or save exploration until updated.
 
 The game language is not part of the map key. Rooms are tile positions, so an
 archive explored in Spanish serves an English game. Since 2026-09-25 (format
@@ -223,3 +258,141 @@ matched every room and visited flag across all nine keys: 286 seen, 176 visited.
 No legacy text files remain in that installation. Listening in game is pending.
 - Live: `[radar] … unexplored=1` on generated cues, `[terrain] visited room=`, `[terrain] level=…
   seen=… visited=…` on load, the grid-origin warning must never appear.
+
+## Act 3-5 routing corrections - 2026-10-04
+
+The user's Spider Forest log captured entry from Kurast Docks at 5143,4999,
+but discovery stored 5160,4999, the middle of the shared border. Five later
+walks from the northern forest were refused at that midpoint. Great Marsh
+had the same error: a crossing at 5319,4589 versus the stored point 5319,4360.
+`FoundAtCrossings` tested a moved copy but returned the original entity;
+`MergePlaces` also refused position corrections. This is coordinate evidence
+from the user's own session, not a diagnosis based on the localized names.
+
+The native area reader now explicitly marks its rectangle bearings. Only a
+collision-measured opening is discovered as a walking exit. Discovery keeps
+that position and its stable naming identity; the registry, scanner, beacon
+and keyboard refresh restore it over a fresh approximate bearing after the
+opening's rooms unload. Stairs, portals and warp presets are never moved
+just because they lead to the same level as an area border.
+
+Archive `D2REXP04` adds one measured-border flag per place. Versions 1-3 still
+read, preserving all rooms, visits and other landmarks. Old midpoint records
+matching a live area bearing are not treated as measured exits. Rediscovering
+the opening corrects the old entry in place, without duplicate exits. Measured
+border positions may update; normal warp/preset positions retain their earlier
+fixed-position rule. An older plugin cannot read version 4, so retain the
+pre-deployment archive backup when rolling back to an older binary. Disk I/O
+and speech continue on the existing worker paths.
+
+Explore now routes over the remembered map to any standable floor inside the
+target room, preferring an entirely seen route. Its geometric centre can be
+water, cliff or wall, even while the room has a reachable path along its edge.
+The route ends on entering the room, as before; unseen floor can still guide
+an exploration walk. Seen walls and doors retain their existing route rules.
+Learning streamed collision no longer fills cells outside the logical room
+union, preventing false bridges through holes in irregular maps.
+
+The installed Levels.txt was audited for every level 75-132. Act 3 jungles are
+64x192 tiles; Act 4 mixes outdoor borders with City/River stairs; Act 5 includes
+240x48 Siege terrain, variable-sized barricade levels, 128x80 Snow terrain,
+and cave/summit/Worldstone stairs. Dimensions always come from native rooms;
+the memory limit remains unchanged. `../re/act3-5-routing-2026-10-04/layout-audit.json`
+records the source hash, all rows and coordinate evidence.
+
+Regressions cover measured discovery even when automap charts the guessed
+midpoint, streaming/revisit retention, archive correction and versions 1-4,
+long Act 3/4/5 return routes, blocked room centres, disconnected room holes,
+and Act 4/5 warps with a matching border destination. These use synthetic
+collision; audible gameplay and generated Act 4/5 maps remain user-led checks.
+
+## Dock departure and H follow-up - 2026-10-04
+
+The user reported that the deployed routing change still refused Spider Forest
+from Meshif's dock, and that H failed in both the Docks and Spider Forest.
+Own 10:02-10:03 log: departure from 5118,5168 was refused at the old bearing
+5160,5000. After walking closer, collision measured the opening at 5142-5145,5000,
+and the 10:03:29 walk crossed successfully. Two subsequent forest H walks chose
+rooms five hops away, then ended with no way as collision loaded.
+
+H now counts physical visits plus the current room in every level. This
+supersedes the town-only exception above; the beacon's automap policy is unchanged.
+Automap scenery is not evidence that the player entered a room. Selection first
+chooses a loaded reachable entry by actual walking steps, then uses room hops
+for candidates beyond loaded collision. If streaming proves the chosen room
+cut off, the same H request selects another candidate. It still finishes after
+entering one new room and respects doors, pads, manual cancellation and combat.
+
+Unmeasured outdoor exit bearings now approach any reachable floor in the shared
+edge's two-cell inner strip instead of testing or walking to the rectangle
+midpoint. Both levels' collision must identify the real crossing before an exit
+is taken; the approach does not write a measured place or invent floor. Exact
+measured exits and stairs/warp presets keep their existing targeting. SetOut also
+refreshes an exit before its initial reachability gate, so a stale scanner choice
+can pick up an opening already measured since that choice was made.
+
+Read-only live capture at 10:07:34: level 76, player 5191,4607, 192 logical rooms,
+36 loaded collision grids. The checked-in collision fixture and matching stored
+visits choose room 1016,912 with a complete 72-step route despite charted scenery.
+That is a replay of actual captured collision, not audible gameplay validation.
+Synthetic regressions also reproduce the Meshif-dock midpoint refusal, prove the
+edge route, check all border sides and retain exact measured/warp targets.
+
+Full CTest 105/105 pass, timeout 20. User closed game/loader and requested
+installation; verified closed, normal four-job/BelowNormal build/deploy completed.
+Installed SHA-256 `36CCEA6064679873F7CAFF4E0FEF201C6EBE9E756A2C756A8EEB9A7D896CB5CA`
+matches final build and tested staged code/data (four link timestamp bytes differ).
+PRISM/config/exploration archive unchanged; backups retained. User confirmed
+the dock-exit and H fixes working in game on 2026-10-04 and ended the session.
+Other Act 4/5 live checks are separate. Own logs/collision, archive read-only copy, build/tests, staged
+DLL and deployment helper: ../re/kurast-routing-followup-2026-10-04/.
+No save/archive editing, game input, commit, push or release.
+
+## Flayer border sections and route uncertainty - 2026-10-04
+
+The user reports that routing stopped near Flayer Jungle, then clarifies that
+unexplored-territory coverage explains the stop and the absolute "No way"
+message is misleading. Route failures now say "No known route to <target>"
+in every supported language and map. A failed search does not establish that
+the game has no passage. Existing beacon explored-area policy and keyboard
+speculative-ground policy are preserved.
+
+Own latest loader session has a remembered route toward 5160,4040, explicitly
+logged as partly unseen, then aborts at 11:06:16 from 5202,4155. A separate code
+defect is confirmed: the prior shared-edge approach searched only the first
+neighbor room for a destination. The read-only 11:12:00 logical-room capture
+has eight Flayer rooms across x=5000..5320 at the forest's y=4040 boundary, with
+1048,800,8,8 first in its near list. The chosen strip therefore covered only
+x=5240..5280. It could reject an unmeasured destination when that section was
+blocked, despite other possible openings. The precise contribution to the
+logged failure remains unproved: the actual northern crossing's collision was
+not captured, and the user's coverage explanation is retained as such.
+
+`ZoneTransitions::ApproachRegions` now returns every facing logical-room
+section for the destination. `LevelRoute::Field` seeds all sections in one
+search, preserving the preference for complete seen-floor routes. `Reach`
+reports cutoff only when every candidate section is cut off. Sections stay
+separate on irregular levels; native near-list duplicates/order cannot change
+the candidate set or cached field. Unknown floor retains its existing guess
+status. Actual collision still identifies the doorway before crossing; stairs,
+warps, pads, screen-reader/log workers and physical controllers are unchanged.
+
+Regression coverage includes the current user's actual forest/neighbor layout,
+its full Flayer and Great Marsh edges, all four sides of synthetic outdoor
+shapes across Acts 1, 3, 4 and 5, disjoint border spans, a blocked first section
+with an open later section, partial streamed terrain and route-cache changes.
+These are logical-layout replay and synthetic collision checks; they do not
+constitute live terrain validation of other maps. The existing long/variable
+Act 4/5 and prior forest collision tests remain applicable.
+
+Build/testing and deployment state: [STATUS](../STATUS.md). Records:
+../../re/spider-flayer-routing-2026-10-04/. The active game was only read;
+no gameplay input, save/archive change, commit, push or release.
+
+Deployment follow-up: user reports current behavior working as intended and
+requested deploy/commit/push. Game/loader verified closed; local build.ps1 used
+default four jobs/BelowNormal. Full 105/105 and affected 8/8 pass, timeout 20;
+installed 39BC66B833FCD963D5761D3052D43BAE62435E7D327EF20B8098FDDECB878F91
+matches the final build and tested staged code/data except four link timestamp
+bytes. PRISM, loader configuration and exploration archive unchanged; backups
+retained. Latest staged update is newly installed; no later live capture exists.

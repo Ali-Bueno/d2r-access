@@ -1,6 +1,127 @@
 # STATUS — Diablo II: Resurrected (d2r-access)
 
+## Spider Forest / Flayer route uncertainty - 2026-10-04
+
+**DEPLOYED, full 105/105 pass**, timeout 20; affected 8/8 pass. User reports
+current behavior working as intended and authorized deploy, commit and push to
+origin/bladestorm. Game/loader verified closed; normal four-job/BelowNormal
+build/deploy completed. Installed SHA-256:
+39BC66B833FCD963D5761D3052D43BAE62435E7D327EF20B8098FDDECB878F91.
+Installed DLL matches final build and tested staged code/data (only four PE
+timestamp bytes differ). PRISM/config/archive unchanged; backups retained.
+Latest staged wording/border update was installed in this task; no subsequent
+live capture was taken. Active build owner is none.
+
+User clarified that unexplored-territory coverage explained the stop and that
+"No way" was misleading. Every walking route-failure utterance now says
+"No known route to <target>" in all 13 locales. This applies to every map.
+
+Own 11:06:16 log also records the Flayer walk abort from 5202,4155. Read-only
+11:12 capture confirms eight Flayer border rooms; ApproachBounds previously
+used only the first neighbor (1048,800,8,8). The fix considers every facing room
+section with one multi-source route/reach test. Canonical sections ignore near-
+list order/duplicates and preserve holes/indented borders. This selector defect
+is confirmed in code; its contribution to that specific stop remains unproved.
+
+Existing unexplored-ground, beacon explored-area, measured-crossing, stairs,
+pad, physical-controller and UI/speech-worker policies are retained. Actual
+Flayer opening collision was not captured. New captured-layout and synthetic
+multi-act/direction, blocked-first-section, partial-map/cache checks accompany
+the existing long/variable Act 4/5 fixtures; live other-map checks remain pending.
+Records: ../re/spider-flayer-routing-2026-10-04/.
+[Details](docs/exploration.md#flayer-border-sections-and-route-uncertainty---2026-10-04).
+
+
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
+
+## Meshif dock departure and H follow-up - 2026-10-04
+
+**USER CONFIRMED WORKING, full 105/105 pass**, timeout 20. User closed game/loader and requested
+install; verified closed, normal four-job/BelowNormal build/deploy completed.
+Installed SHA-256 `36CCEA6064679873F7CAFF4E0FEF201C6EBE9E756A2C756A8EEB9A7D896CB5CA`
+matches final build and tested staged code/data (four link timestamp bytes differ).
+PRISM/config/archive unchanged; backups retained. Active build owner is none.
+User confirmed the dock-exit and H fixes working in game and ended the session
+on 2026-10-04. No further work requested.
+
+- Own log confirms midpoint refusals from Meshif dock and two speculative
+  Spider Forest H goals becoming cut off as collision loaded.
+- Exit start refreshes before the reach gate. Unmeasured outdoor bearings use
+  a shared-edge approach region until collision identifies a real opening.
+- H uses actual visits/current room for all levels, prioritizes complete loaded
+  routes by walking steps, and reselects when streaming cuts off a goal.
+- Own live forest collision replay (192 rooms/36 grids) selects a complete
+  72-step unvisited entry; synthetic dock/all-edge tests pass. This is replay
+  evidence; user subsequently confirmed the fixes in game. Beacon/warp/pad rules retained.
+
+[Evidence](docs/exploration.md#dock-departure-and-h-follow-up---2026-10-04).
+Records and guarded deployment helper: ../re/kurast-routing-followup-2026-10-04/.
+No game input, save/archive editing, commit, push or release. Prior work retained.
+
+## Act 3-5 crossing and Explore routing - 2026-10-04
+
+Built and deployed with game/loader verified closed after the user's explicit
+install request. Affected **8/8** and full CTest **105/105 pass**, timeout 20.
+Default four-job/BelowNormal build; installed SHA-256
+`9AF5840653421A3ED01185A5198162B7B590AF17C468C52A0A9E32A3142BD915` matches build and
+tested staged code/data, except four link timestamp bytes. PRISM, respec/loader
+configuration and exploration archive unchanged during deployment; backups kept.
+
+- Own Spider Forest log: actual Docks opening 5143,4999, persisted midpoint
+  5160,4999; five distant return attempts refused at that midpoint. Marsh
+  opening was also misplaced by 229 cells along the border. The discovery
+  copy and fixed-position store rules caused the confirmed coordinate error.
+- Measured crossings now survive streaming/revisits and fresh approximate
+  reads in scanner, registry, beacon and keyboard paths. Archive version 4
+  reads all previous formats and corrects legacy coordinates on rediscovery.
+- Explore routes into any standable cell of its target room over the remembered
+  map; water/wall centres no longer prevent otherwise reachable entry. Foreign
+  streamed collision cannot fill holes outside the logical-room union.
+- Act 4/5 stairs, cave/summit/Worldstone warp presets are excluded from border
+  repositioning even with a matching destination. All installed level rows
+  75-132 audited, including long and variable-size outdoor maps. The memory
+  bound is unchanged; synthetic regressions cover these cases.
+
+Live checks remain user-led: restart, enter Spider Forest from Docks, move
+several rooms away and scanner-walk back; test H at river bends. Repeat in
+Acts 4/5 when reached. No live Act 4/5 collision was captured.
+[Evidence and implementation](docs/exploration.md#act-3-5-routing-corrections---2026-10-04),
+[keyboard checks](docs/keyboard-play.md#forest-return-routes-and-room-entry---2026-10-04).
+Records/backups: ../re/act3-5-routing-2026-10-04/. Source remains local and
+uncommitted; prior menu/town changes and preexisting Duriel STATUS edits retained.
+No agent game input, save/archive editing, commit, push or release.
+Active build owner is none.
+
+## Keyboard menu entry and Kurast exploration - 2026-10-04
+
+Both corrections are built and deployed with D2R/D2RLoader verified closed,
+using local build.ps1, default four jobs and BelowNormal priority. Final full
+CTest **105/105 pass**, timeout 20. Installed plugin SHA-256
+`A3E1FFFD79817216249A47B70521DD43CBDB342ED9A029187D86BF178D50A8F0` matches
+build; tested staged code/data match the deployment relink except PE timestamps.
+PRISM and loader configuration are unchanged. Live behavior remains user-led.
+
+- Menu entry follows the verified native input mode, instead of treating any
+  connected XInput device as controller use. The user's log shows Talk being
+  placed only on the first arrow, and stale Character hover when inventory
+  opens. A Windows probe found idle device 0; native mode was not sampled then.
+  Keyboard menus now place the pointer automatically, and standalone inventory
+  starts on its item grid. Actual controller mode keeps its existing focus.
+- Kurast H used 30 automap/visited rooms as completed although only three were
+  physically visited. The remaining candidates were cut off; a speculative
+  centre-target walk aborted after six cells. Town exploration now uses visits
+  plus the current room and chooses reachable entry floor when available.
+  Other levels' map rule, beacon route policy and collision/pad gates are intact.
+
+Regression fixtures cover menu mode/entry, old precharted-town exhaustion,
+reachable dock entry with a blocked centre, town visits/completion and unchanged
+non-town/beacon policy. Details: [keyboard menus](docs/keyboard-play.md#automatic-menu-placement-correction---2026-10-04)
+and [town exploration](docs/exploration.md#keyboard-town-exploration-correction---2026-10-04).
+Records/backups: ../re/menu-entry-2026-10-04/ and ../re/kurast-explore-2026-10-04/.
+User check: restart; inventory should land in its grid, an NPC menu on Talk;
+in Kurast Docks press H repeatedly as each exploration walk completes.
+No agent game inputs, save/archive changes, commit, push or release. Existing
+Duriel STATUS edits were preserved. Active build owner is none.
 
 ## Skill prerequisite text - 2026-10-04
 
@@ -82,15 +203,28 @@ confirmation. Logs archived as `success-0633.*.log`. No agent game inputs or
 save edits. Config installation/backup remains in
 `respec-setting-candidate.json` / `d2rloader.before-loader-respec.toml`.
 
-## Gordan Normal Duriel save/map repair ? 2026-10-04
+## Gordan Normal Duriel save/map repair - repeated 2026-10-04
 
-User-authorized save-only repair installed with game/loader closed. Existing
-used-staff and unfinished Seven Tombs flags were correct and retained. Fresh
-map seed/checksum, synchronized `.map` and `.d2rl` hashes, old `.ma0` archived.
-Character/quest/item data and shared stash verified unchanged byte-for-byte;
-complete originals and manifests in `../re/duriel-save-repair-2026-10-04/`.
-No plugin/source/runtime change or launch. User-led regenerated-tomb entrance
-check pending; read the current symbol because maps changed. See HANDOFF.
+User requested another repair after reporting recurrence on death to Duriel.
+Fresh current level 25 save repaired and installed with game/loader closed.
+Only v105 map seed/checksum, matching `.map` seed and `.d2rl` integrity changed;
+old `.ma0` archived. Quests, waypoints, stats, skills, inventory, corpse and
+mercenary bytes, loader metadata, companions and shared stash verified exact.
+No old character snapshot restored. Staff `0x1C79` / Duriel `0x0004` retained.
+
+Reusable local entry: `../tools/save-repair/Repair-GordanDuriel.ps1` backs up
+CURRENT files each run, rejects running game/unrecognized layout or quest
+state, verifies staging/live hashes, installs with rollback and verifies
+preservation. Originals, own logs and reports in
+`../re/duriel-save-repair-2026-10-04-142559-597/`;
+first repair records in `../re/duriel-save-repair-2026-10-04/` retained.
+User clarified 2026-10-04: this is a known vanilla D2R game bug, reported
+without the mod. Future recurrence is a save/map recovery task: run the
+existing repair on a fresh backup of the CURRENT save and verify preservation.
+Do not pursue mod/loader diagnosis or source fixes for this bug unless the
+user explicitly requests that separate work. Runtime entrance still needs
+the user's check; read the new journal symbol before returning to the true tomb.
+No game launch/input, source implementation change, build, commit or push.
 
 ## Rune and gem stash browsing — 2026-10-04
 

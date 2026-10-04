@@ -95,6 +95,13 @@ plugin-owned cursor where the game supplies no keyboard focus, while `GameFocus`
 still reports the stock focus. Front-end `FocusTracker` additionally uses the
 generated layout catalogue and focus-indicator geometry.
 
+Keyboard menu entry follows the verified native input-mode getter; idle XInput
+presence does not defer placement in keyboard mode. Standalone player inventory
+enters its item grid. H consumes `TerrainService::ExplorationRooms`: all levels
+count physical visits/current room. The beacon still consumes `ExploredRooms`.
+`ExploreGoal` prefers loaded reachable entry floor by actual walking steps, then
+room hops for speculative candidates. Streaming cutoffs reselect within H. See keyboard-play/exploration docs.
+
 `native_tooltips.cpp` observes the verified draw path, copying rendered primary
 and comparison descriptions. `interaction_reader.cpp` combines those with grid
 occupancy, equipment location, tabs and the game's action help. A focused occupied
@@ -211,3 +218,21 @@ combat information. Inventory hand/socket and arrival readers add feedback to
 the existing interaction path. Skill-tree table names can speak before the
 matching tooltip renders. [Merge review](upstream-2026-10-03.md) records scope,
 deferred replacements and validation.
+
+## Area-crossing and room-entry routing - 2026-10-04
+
+`Entity::Border` distinguishes native area bearings from collision-measured
+crossings and ordinary warp/unit exits. `ZoneTransitions::FoundAtCrossings`
+discovers the measured copy; registry/scanner/keyboard/beacon refresh preserve
+it over later bearings. `ExploredStore` version 4 persists the measured flag,
+reads versions 1-3 and allows measured border coordinate corrections only.
+`LevelRoute::Plan::Into` uses a cached multi-source field for any standable cell
+inside an exploration room; point routes retain their existing cache and rules.
+`Memory::Learn` leaves cells outside the native logical-room union untouched.
+See [routing evidence](exploration.md#act-3-5-routing-corrections---2026-10-04).
+
+The 2026-10-04 dock/H follow-up adds `ZoneTransitions::ApproachBounds` for
+unmeasured outdoor bearings. `GoalBounds` shares that region between the whole-
+level reach gate and remembered plan. Only collision-measured exits can be taken;
+SetOut refreshes an exit before checking it. The pure H tests include the user's
+captured Spider Forest grids/layout/visits. [Follow-up evidence](exploration.md#dock-departure-and-h-follow-up---2026-10-04).
