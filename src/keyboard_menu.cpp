@@ -49,7 +49,7 @@ using MenuCursor::Target;
 using UiText::Kind;
 
 // Policy, not game constants.
-constexpr uint64_t SettleMs = 90;       // from a move of the pointer to a tooltip taken as the new place's
+constexpr uint64_t ControlTooltipSettleMs = 90; // existing guard for controls without an item's identity check
 constexpr uint64_t RefreshMs = 250;     // how often the open menu is looked at again
 constexpr uint64_t AfterClickMs = 250;  // from a click to a look at what it changed
 constexpr uint64_t RepeatDelayMs = 500; // a held arrow steps again after this long
@@ -139,6 +139,7 @@ bool g_holding = false;     // an item was in hand when the pointer was last pla
 bool g_landed = false;      // the pointer went to where the cursor is
 NativeUi::Cell g_pointerAt; // the point the pointer was last put on, and went to
 uint64_t g_refreshAt = 0;
+uint64_t g_refreshedAt = UINT64_MAX; // one menu snapshot serves every action in this UI tick
 size_t g_things = 0;        // how many things the menu had when they were last listed in the log
 uint64_t g_thingsLogged = 0;
 uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that was named
@@ -546,6 +547,11 @@ std::string Name(const Entry& entry, const Place& place) {
 		return phrase;
 	}
 	if (entry.kind == Kind::Tabs && entry.cells) return TabText(entry.widget, place.anchor.x);
+	// Stock advanced-stash layouts name each fixed slot by its item-code
+	// string key, including an empty slot (BankExpansionLayoutHD.json).
+	if (entry.type == "AdvancedStashSlotWidget") {
+		if (auto name = UiText::Clean(Localization::Text(entry.name)); !name.empty()) return name;
+	}
 	if (entry.belt) {
 		// The slot the cursor is on, which the belt is read at while the cursor stands in for the focus.
 		const auto slot = NativeUi::BeltItem(entry.widget);
@@ -605,7 +611,11 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	POINT before{};
 	(void)GetCursorPos(&before);
 	const bool placed = MenuMouse::Place(*rect);
-	NativeTooltips::Discard(now + SettleMs);
+	// Item browsing accepts the next draw immediately: its reader checks the
+	// selected unit or fixed stash identity. Other controls retain their guard
+	// against the previous control's tooltip; their own labels still read at once.
+	const bool item = entry->kind == Kind::InventoryGrid || entry->kind == Kind::InventorySlot || entry->kind == Kind::InventoryItem;
+	NativeTooltips::Discard(now + (item ? 0 : ControlTooltipSettleMs));
 	NativeUi::SetCursor({owner ? owner : entry->panel, entry->widget}, selection);
 	POINT pointer{};
 	(void)GetCursorPos(&pointer);
@@ -753,12 +763,14 @@ void SayHand(const D2RL::PluginContext* context, uint64_t now, const std::string
 // The menu as it is now, and the cursor on it: where it was if that still
 // stands, at the menu's first thing otherwise.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
+	const bool build = g_refreshedAt != now;
+	g_refreshedAt = now;
 	g_refreshAt = now + RefreshMs;
 	const auto checks = NativeMemory::Checks();
 	const auto start = Clock::now();
-	const std::string menu = Build(context);
+	const std::string menu = build ? Build(context) : g_menu;
 	const double took = Ms(start, Clock::now());
-	if (g_logBuild || (took >= SlowBuildMs && now - g_buildLogged >= 1000)) {
+	if (build && (g_logBuild || (took >= SlowBuildMs && now - g_buildLogged >= 1000))) {
 		if (!g_logBuild) g_buildLogged = now;
 		const auto after = NativeMemory::Checks();
 		AsyncLog::InfoF(context, "[cursor] read the menu again%s in %.1f ms: walk %.1f ms (grids %.1f ms, %d cells), thin %.1f ms, "
@@ -1198,12 +1210,14 @@ void Reset() {
 	g_letterHook = nullptr;
 	g_letterTried = false;
 	g_pending = 0;
+	g_refreshedAt = UINT64_MAX;
 	for (auto& arrow : g_arrows) { arrow.down = false; arrow.next = 0; }
 	for (auto& key : g_watched) { key.down = key.waiting = false; }
 }
 
 void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
+	g_refreshedAt = UINT64_MAX;
 	g_tickStart = Clock::now();
 	MenuMouse::Tick(now);
 	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()

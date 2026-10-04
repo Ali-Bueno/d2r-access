@@ -96,6 +96,14 @@ the build: SHA-256 `C0FAFD80447EE0FCE9F7BA148726CB674771D442DDC719736884C8535A69
 
 ## Inventory and target archetypes
 
+Current rune/gem fixed-slot adapters and zero cursor-settle policy:
+[stash browsing correction, 2026-10-04](navigation-latency.md#rune-and-gem-stash-browsing--2026-10-04).
+The older `FocusedItem` and temporary draw-hook implementation described below
+is historical. Current source uses the grid/equipment/belt getters and
+`ItemWidgetSlot`, one renderer capture hook, and `TooltipDelay::Apply` for the
+verified controller layout delay. Fixed stash slot names speak in the first poll;
+ordinary grid items use their matching rendered description.
+
 - `InventoryGridWidget`, `InventorySlotWidget`, and subclasses of
   `InventoryItemWidget` use one interaction reader. Item descriptions come
   from the stock tooltip body/footer. Other cells are never enumerated.

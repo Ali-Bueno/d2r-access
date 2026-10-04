@@ -71,5 +71,40 @@ int main() {
 	}
 	VirtualFree(page, 0, MEM_RELEASE);
 	{ const ReadScope pass; Check(!Copy(address, buffer.data(), 1), "freed memory is revalidated on the next pass"); }
+	// The stash's individual widgets can touch more than the old 64-region
+	// cache. Alternating protection makes distinct VirtualQuery regions.
+	constexpr size_t widgetPages = 96;
+	page = VirtualAlloc(nullptr, system.dwPageSize * widgetPages, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	Check(page != nullptr, "advanced-stash permission working set allocated");
+	const auto widgetMemory = reinterpret_cast<uintptr_t>(page);
+	for (size_t i = 1; i < widgetPages; i += 2)
+		Check(VirtualProtect(reinterpret_cast<void*>(widgetMemory + i * system.dwPageSize), system.dwPageSize, PAGE_READONLY, &previous) != 0,
+			"fixture widget pages have distinct protections");
+	const auto code = reinterpret_cast<uintptr_t>(&main);
+	{
+		const ReadScope pass;
+		const auto before = Checks();
+		for (size_t i = 0; i < widgetPages; ++i) {
+			Check(Copy(widgetMemory + i * system.dwPageSize, buffer.data(), 1), "widget data remains readable");
+			Check(Executable(code), "native getter code is executable");
+		}
+		Check(Checks().count - before.count == widgetPages + 1, "the shared getter's executable permission is queried once across every widget");
+		const auto warm = Checks();
+		{ const ReadScope nested;
+			for (size_t i = 0; i < widgetPages; ++i) {
+				Check(Copy(widgetMemory + i * system.dwPageSize, buffer.data(), 1), "nested widget read remains current");
+				Check(Executable(code), "nested native getter remains executable");
+			}
+		}
+		Check(Checks().count == warm.count, "a second rebuild in one update reuses the entire stash working set without Windows queries");
+		Check(!Executable(widgetMemory), "cached readable widget memory is never mistaken for executable code");
+	}
+	VirtualProtect(page, system.dwPageSize, PAGE_EXECUTE_READ, &previous);
+	{ const ReadScope pass;
+		Check(Copy(widgetMemory, buffer.data(), 1) && Executable(widgetMemory), "read and execute permissions share one region with their actual protection flags");
+	}
+	VirtualProtect(page, system.dwPageSize, PAGE_READWRITE, &previous);
+	{ const ReadScope pass; Check(!Executable(widgetMemory), "new UI passes revalidate changed executable permissions"); }
+	VirtualFree(page, 0, MEM_RELEASE);
 	Passed();
 }

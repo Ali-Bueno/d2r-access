@@ -21,9 +21,9 @@ bool Initialize(const D2RL::PluginContext* context);
 void Track(uintptr_t panel);
 void Reset();
 Snapshot Latest(uint64_t now);
-// The keyboard's cursor has moved and the pointer with it: what the game draws
-// until `until` may still be the tooltip of what the pointer was on before, and
-// is not taken for the new place's. What was captured is dropped.
+// Drop the previous capture. Passing the current time accepts the next draw
+// immediately after cursor movement; the reader verifies the selected item's
+// name. A future time is reserved for an action still changing the native UI.
 void Discard(uint64_t until);
 // Render hook delegates here; this only copies text, never speaks or changes it.
 void Capture(uintptr_t tooltip) noexcept;

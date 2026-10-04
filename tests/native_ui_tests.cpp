@@ -267,6 +267,21 @@ int main() {
 	Check(NativeUi::GridCell(grid.Address()).x == -1, "corrupt inventory dimensions are bounded");
 	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");
 	Widget tabs("TabBarWidget", "AnyTabs"), tab0("TextBoxWidget", "Text0", "Personal"), tab1("TextBoxWidget", "Text1", "Comp.");
+	Widget rune("AdvancedStashSlotWidget", "r07"); rune.metadata.base = &itemBase;
+	rune.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	cellItem = 123;
+	Check(NativeUi::Classify(rune.Address()).kind == UiText::Kind::InventoryItem
+		&& NativeUi::ItemWidgetSlot(rune.Address()).item == 123, "advanced stash slots inherit inventory identity and query their own item getter");
+	cellItem = 0;
+	const auto emptyRune = NativeUi::ItemWidgetSlot(rune.Address());
+	Check(emptyRune.known && emptyRune.item == 0, "an empty rune slot is distinct from an unreadable slot");
+	itemQueryFault = true;
+	Check(!NativeUi::ItemWidgetSlot(rune.Address()).known, "a fault in a stash getter is contained and never called empty");
+	itemQueryFault = false; rune.Put<uint8_t>(0x51, 0);
+	Check(!NativeUi::ItemWidgetSlot(rune.Address()).known, "hidden stash slots are not queried");
+	rune.Put<uint8_t>(0x51, 1); rune.vtable[25] = 0;
+	Check(!NativeUi::ItemWidgetSlot(rune.Address()).known, "an unavailable stash getter fails safely");
+	Check(!NativeUi::ItemWidgetSlot(slot.Address()).known, "the single-item adapter does not reinterpret equipment slots");
 	tabs.Add(tab0); tabs.Add(tab1); tabs.Put<int32_t>(0x16C4, 1);
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
 	tabs.Put<int32_t>(0x544, 0);

@@ -14,10 +14,12 @@ constexpr size_t InlineOffset = 0x18;
 constexpr size_t InlineCapacity = 15;
 constexpr size_t MaxTextBytes = 64 * 1024; // corruption guard, not a truncation limit
 // A bounded per-thread permission cache for a synchronous UI read. Saturation
-// simply falls back to VirtualQuery; no entries survive the outer scope.
-struct Region { uintptr_t begin = 0, end = 0; };
-thread_local std::array<Region, 64> g_regions;
-thread_local size_t g_regionCount = 0, g_readDepth = 0, g_lastRegion = 0;
+// replaces older regions; no entries survive the outer scope.
+struct Region { uintptr_t begin = 0, end = 0; DWORD protection = 0; };
+// The advanced stash exposes dozens of individual widgets alongside the
+// inventory. Keep their permission working set, including code, for one tick.
+thread_local std::array<Region, 256> g_regions;
+thread_local size_t g_regionCount = 0, g_readDepth = 0, g_lastRegion = 0, g_replaceRegion = 0;
 thread_local PageChecks g_checks;
 
 SIZE_T Query(const void* address, MEMORY_BASIC_INFORMATION& info) noexcept {
@@ -30,11 +32,38 @@ SIZE_T Query(const void* address, MEMORY_BASIC_INFORMATION& info) noexcept {
 	g_checks.ms += static_cast<double>(end.QuadPart - start.QuadPart) * 1000.0 / static_cast<double>(frequency.QuadPart);
 	return size;
 }
+
+bool RegionAt(uintptr_t address, Region& result) noexcept {
+	if (!address) return false;
+	if (g_readDepth) {
+		if (g_lastRegion < g_regionCount && address >= g_regions[g_lastRegion].begin && address < g_regions[g_lastRegion].end) {
+			result = g_regions[g_lastRegion];
+			return true;
+		}
+		for (size_t i = 0; i < g_regionCount; ++i) {
+			if (address >= g_regions[i].begin && address < g_regions[i].end) {
+				g_lastRegion = i;
+				result = g_regions[i];
+				return true;
+			}
+		}
+	}
+	MEMORY_BASIC_INFORMATION info{};
+	if (Query(reinterpret_cast<void*>(address), info) != sizeof(info) || info.State != MEM_COMMIT
+		|| (info.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0) return false;
+	result = {reinterpret_cast<uintptr_t>(info.BaseAddress), reinterpret_cast<uintptr_t>(info.BaseAddress) + info.RegionSize, info.Protect};
+	if (result.end <= address) return false;
+	if (g_readDepth) {
+		g_lastRegion = g_regionCount < g_regions.size() ? g_regionCount++ : g_replaceRegion++ % g_regions.size();
+		g_regions[g_lastRegion] = result;
+	}
+	return true;
+}
 }
 
 PageChecks Checks() noexcept { return g_checks; }
 
-ReadScope::ReadScope() noexcept { if (g_readDepth++ == 0) g_regionCount = 0; }
+ReadScope::ReadScope() noexcept { if (g_readDepth++ == 0) g_regionCount = g_replaceRegion = 0; }
 ReadScope::~ReadScope() { if (--g_readDepth == 0) g_regionCount = 0; }
 
 bool Readable(const void* address, size_t size) noexcept {
@@ -42,34 +71,12 @@ bool Readable(const void* address, size_t size) noexcept {
 	if (cursor == 0 || size == 0 || size > std::numeric_limits<uintptr_t>::max() - cursor) return false;
 	const uintptr_t end = cursor + size;
 	while (cursor < end) {
-		if (g_readDepth) {
-			bool found = false;
-			// The region found last first: one read is nearly always beside the one before it.
-			if (g_lastRegion < g_regionCount && cursor >= g_regions[g_lastRegion].begin && cursor < g_regions[g_lastRegion].end) {
-				cursor = g_regions[g_lastRegion].end;
-				continue;
-			}
-			for (size_t i = 0; i < g_regionCount; ++i) {
-				if (cursor >= g_regions[i].begin && cursor < g_regions[i].end) {
-					cursor = g_regions[i].end;
-					g_lastRegion = i;
-					found = true;
-					break;
-				}
-			}
-			if (found) continue;
-		}
-		MEMORY_BASIC_INFORMATION info{};
-		if (Query(reinterpret_cast<void*>(cursor), info) != sizeof(info)
-			|| info.State != MEM_COMMIT || (info.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0) return false;
+		Region region;
+		if (!RegionAt(cursor, region)) return false;
 		constexpr DWORD flags = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY
 			| PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-		if ((info.Protect & flags) == 0) return false;
-		const uintptr_t next = reinterpret_cast<uintptr_t>(info.BaseAddress) + info.RegionSize;
-		if (next <= cursor) return false;
-		if (g_readDepth && g_regionCount < g_regions.size())
-			g_regions[g_regionCount++] = {reinterpret_cast<uintptr_t>(info.BaseAddress), next};
-		cursor = next;
+		if ((region.protection & flags) == 0) return false;
+		cursor = region.end;
 	}
 	return true;
 }
@@ -86,10 +93,9 @@ bool Copy(uintptr_t address, void* output, size_t size) noexcept {
 }
 
 bool Executable(uintptr_t address) noexcept {
-	MEMORY_BASIC_INFORMATION info{};
-	return address != 0 && Query(reinterpret_cast<void*>(address), info) == sizeof(info)
-		&& info.State == MEM_COMMIT && (info.Protect & (PAGE_GUARD | PAGE_NOACCESS)) == 0
-		&& (info.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) != 0;
+	Region region;
+	return RegionAt(address, region)
+		&& (region.protection & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) != 0;
 }
 
 bool ReadEngineString(uintptr_t address, std::string& output) {

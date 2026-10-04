@@ -1,5 +1,54 @@
 # Inventory latency and controller tabs
 
+## Rune and gem stash browsing — 2026-10-04
+
+The user's own 01:31–01:42 session identifies the rune controls as
+`AdvancedStashSlotWidget`. Its 01:41–01:42 trace records menu rebuilds around
+13–30 ms, with almost all that time inside permission queries; several presses
+rebuilt twice in one tick. These are callback measurements. The asynchronous
+log's write timestamps do not measure audible latency. Empty rune slots fell
+back to internal names such as `r07` after the cursor's 450 ms fallback window.
+The trace highlights Gems but does not open that tab; its shared widget type is
+confirmed by both native mouse/controller bank layouts.
+
+These slots inherit `InventoryItemWidget`, but the reader previously obtained
+item pointers only for grids, equipment and belts. `NativeUi::ItemWidgetSlot`
+now uses the same guarded virtual getter. Offline image evidence:
+`AdvancedStashSlotWidget` metadata builder `0x2CE9B0` names
+`InventoryItemWidget` as its base; constructor `0x2CE3F0` installs vtable
+`0x1CF4678`; slot `+0xC8` points to `0x2CE900`, which returns the current item
+at `+0x608` or null. No new direct member read or game write is required.
+
+Every one of the 91 fixed slots in `BankExpansionLayoutHD.json` has an instance
+name equal to its `itemCode` and a corresponding game localization key. Runes
+use `item-runes.json`; gems use `item-names.json`. The interaction reader now
+names that visible fixed identity in its first poll, including empty slots.
+Only a successful empty native read appends Empty. A missing getter still
+permits the visible name without declaring the slot empty. Properties and
+quantities remain available through the existing tooltip detail/line commands.
+Late matching tooltips do not repeat an already spoken name. A tooltip naming
+another fixed slot stays rejected, including after the generic item's mismatch
+timeout; the correct fixed name itself has no wait.
+
+Item cursor movement clears the old tooltip capture with `Discard(now)`; the
+former 90 ms item discard window is removed. Controls without an item identity
+check retain their previous tooltip guard, which does not defer their labels.
+These slot names also bypass the 20 ms empty
+grid fallback. Menu refreshes reuse a single build within one UI tick while
+still applying cursor/title state changes. The permission cache now shares
+readable and executable flags within the existing synchronous scope, holds 256
+regions, and replaces old regions when full. It never caches game contents or
+permissions between UI updates. SEH still contains changed permissions and
+faulting native getters. PRISM and logging keep their independent workers.
+
+Regression coverage exercises immediate rune/gem names, empty/unavailable slots,
+late detail without duplicate speech, mismatched tooltip rejection, immediate
+next-draw capture, and read/execute permission distinctions and invalidation.
+A 96-region fixture proves that repeated widget/getter reads in one scope make
+no further Windows queries. Build/test/deployment records are under
+`../../re/stash-latency/`; current deployment and live-check status are in
+STATUS and HANDOFF. Audible latency remains a user-led game check.
+
 ## Evidence (2026-09-15)
 
 The user reported intermittent delays after the initial polling/cache optimization.

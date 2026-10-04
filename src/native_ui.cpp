@@ -381,6 +381,19 @@ Cell GridSize(uintptr_t widget) {
 	return {dimensions.width, dimensions.height};
 }
 
+GridSlot ItemWidgetSlot(uintptr_t widget) {
+	GridSlot result;
+	if (!NativeWidgets::SupportsTree() || Classify(widget).kind != Kind::InventoryItem || !Visible(widget)) return result;
+	uintptr_t vtable = 0, getter = 0;
+	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
+		|| !NativeMemory::Executable(getter)) return result;
+	// AdvancedStashSlotWidget inherits InventoryItemWidget (0x2CE9B0);
+	// vtable 0x1CF4678 +0xC8 -> 0x2CE900 returns the current item, or null.
+	const uint64_t selection = FocusSelection(widget);
+	result.known = CallItemPointer(getter, widget, {static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)}, result.item);
+	return result;
+}
+
 GridSlot GridItemAt(uintptr_t widget, Cell cell) {
 	GridSlot result;
 	if (!NativeWidgets::SupportsTree() || !Visible(widget)) return result;

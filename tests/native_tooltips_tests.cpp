@@ -68,6 +68,12 @@ int main() {
 	focus.widget = 201; text = "Casco"; StringAt(0, text); hook(first);
 	snapshot = NativeTooltips::Latest(GetTickCount64());
 	Check(snapshot.body == "Casco" && snapshot.widget == 201, "equipment focus changes bypass the previous slot's capture throttle");
+	NativeTooltips::Discard(GetTickCount64());
+	Check(NativeTooltips::Latest(GetTickCount64()).body.empty(), "moving the keyboard cursor clears the previous capture");
+	text = "Runa Tal"; StringAt(0, text); hook(first);
+	Check(NativeTooltips::Latest(GetTickCount64()).body == text, "the next draw after cursor movement is captured immediately without a settle window");
+	text = "Casco"; StringAt(0, text);
+	NativeTooltips::Discard(GetTickCount64());
 	std::string equipped = "Casco\nCurrently Equipped";
 	StringAt(0x2E8, equipped); focus.widget = 202; hook(first);
 	snapshot = NativeTooltips::Latest(GetTickCount64());

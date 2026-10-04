@@ -607,17 +607,15 @@ constexpr uint64_t NamesItemMs = 400;
 uintptr_t g_namingWidget = 0;
 uint64_t g_namingSelection = 0, g_namingSince = 0;
 bool g_namingLogged = false;
-bool NamesItem(const D2RL::PluginContext* context, const std::string& body, uintptr_t item, uintptr_t widget, uint64_t selection, uint64_t now) {
+bool NamesItem(const D2RL::PluginContext* context, const std::string& body, const std::string& name, uintptr_t widget, uint64_t selection, uint64_t now, bool fixedName) {
 	if (widget != g_namingWidget || selection != g_namingSelection) {
 		g_namingWidget = widget;
 		g_namingSelection = selection;
 		g_namingSince = now;
 		g_namingLogged = false;
 	}
-	if (!item) return true;
-	const std::string name = NativeGroundItems::ItemBaseName(item);
 	if (name.empty() || UiText::Clean(body).find(name) != std::string::npos) return true;
-	if (now - g_namingSince >= NamesItemMs) {
+	if (!fixedName && now - g_namingSince >= NamesItemMs) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] a tooltip without \"%s\" taken after %llu ms", name.c_str(),
 			static_cast<unsigned long long>(NamesItemMs));
 		return true;
@@ -808,6 +806,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	TooltipDelay::Apply(context, tooltips);
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
+	const bool stashSlot = type.name == "AdvancedStashSlotWidget";
+	// These fixed slots carry the game's item-code string keys even when
+	// empty. Read the visible identity now; tooltip properties remain detail.
+	const std::string stashName = stashSlot ? UiText::Clean(Localization::Text(NativeWidgets::ReadName(focus.widget))) : std::string{};
+	const auto itemSlot = stashSlot ? NativeUi::ItemWidgetSlot(focus.widget) : NativeUi::GridSlot{};
 	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
@@ -921,7 +924,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	// The item under the cursor, for its size and, while an item is held, its name.
 	const uintptr_t focusItem = type.kind == UiText::Kind::InventoryGrid ? NativeUi::GridItem(focus.widget)
-		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : beltItem;
+		: type.kind == UiText::Kind::InventorySlot ? NativeUi::EquipmentItem(focus.widget) : stashSlot ? itemSlot.item : beltItem;
+	const std::string itemName = !stashName.empty() ? stashName : stashSlot ? NativeGroundItems::ItemBaseName(focusItem) : std::string{};
 	const auto itemLabel = inventory ? NativeGroundItems::ItemUnitLabel(focusItem) : NativeGroundItems::UnitLabel{};
 	const auto size = inventory ? SizePhrase(focusItem) : std::string{};
 	if (inventory) OfferAside(focus.widget, size);
@@ -941,7 +945,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (tooltip.panel == focus.panel && tooltip.widget == focus.widget
 		&& (!inventory || tooltip.selection == selection)
 		&& equipmentPresence != NativeUi::ItemPresence::Empty
-		&& (!inventory || NamesItem(context, tooltip.body, focusItem, focus.widget, selection, now))
+		&& (!inventory || NamesItem(context, tooltip.body, stashSlot ? itemName : NativeGroundItems::ItemBaseName(focusItem), focus.widget, selection, now, stashSlot))
 		&& (!progression.skill || NamesSkill(context, tooltip.body, focus.widget))) {
 		std::string description;
 		if (progression.skill) {
@@ -1043,6 +1047,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
+	if (stashSlot && !renderedDescription) {
+		readout.option = itemName;
+	}
+	if (stashSlot && !readout.option.empty() && itemSlot.known && !itemSlot.item) Append(readout.option, Strings::Current().slotEmpty);
 	// An item there keeps its own lines; anywhere else on the panel, the mercenary's.
 	if (MercenaryPanel(focus.panel) && !renderedDescription) OfferLines(linesOwner, MercenaryLines(focus.panel));
 	// While an item is held the game draws no tooltip for what the cursor is
@@ -1094,8 +1102,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		? equipmentPresence == NativeUi::ItemPresence::Occupied
 		: type.kind == UiText::Kind::InventoryGrid
 			? NativeUi::GridItemPresence(focus.widget) != NativeUi::ItemPresence::Empty
-			: beltItem != 0;
-	const bool awaitingDescription = inventory && !renderedDescription && occupied;
+			: stashSlot ? !itemSlot.known || itemSlot.item != 0 : beltItem != 0;
+	const bool awaitingDescription = inventory && !renderedDescription && occupied && !(stashSlot && !itemName.empty());
 	// The game refuses an item it will not equip by leaving it in hand. An A
 	// press on an equipment slot with the same item still held once the game
 	// has had time to answer was refused (equip_attempt.h).
@@ -1174,7 +1182,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// An occupied grid cell or equipment slot waits for the game's tooltip to
 	// name its item, without speaking its position or its slot alone first;
 	// other cells keep their quick coordinate feedback.
-	if (occupied && !renderedDescription && heldOver.empty()) {
+	if (occupied && !renderedDescription && heldOver.empty() && !(stashSlot && !itemName.empty())) {
 		if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
 		return true;
 	} // the hints stay pending until the description arrives
@@ -1184,7 +1192,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	auto announcement = progression.skill && !renderedDescription ? g_reader.Update(readout, now, InventorySettleMs)
 		: button ? g_reader.Update(readout, now, 0)
-		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot ? 0 : InventorySettleMs)
+		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot || (stashSlot && !itemName.empty()) ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
 		std::string changed;

@@ -60,6 +60,7 @@ std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 uintptr_t gridItem = 0, equipmentItem = 0;
+NativeUi::GridSlot stashItem;
 std::optional<bool> holdingItem;
 InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 // The character panel's stick reader runs ahead of the detail readout, so
@@ -85,6 +86,7 @@ Cell GridCell(uintptr_t) { return cell; }
 ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
 uintptr_t GridItem(uintptr_t) { return gridItem; }
 uintptr_t EquipmentItem(uintptr_t) { return equipmentItem; }
+GridSlot ItemWidgetSlot(uintptr_t) { return stashItem; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
@@ -108,6 +110,8 @@ std::string FocusedTabText(uintptr_t) {
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
 std::string ReadName(uintptr_t id) {
+	if (id == 201) return "r07";
+	if (id == 202) return "gcw";
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
 	if (id == 26 || id == 29) return "gold_button";
@@ -221,6 +225,8 @@ bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButto
 // Every other key here is the localized inventory title the reader caches.
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
+	if (key == "r07") return "Runa Tal";
+	if (key == "gcw") return "Diamante fragmentado";
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::UnidentifiedKey) return "Sin identificar";
@@ -802,5 +808,27 @@ int main() {
     ClearSpeech(); Tooltip("Salto"); Tick();
     Check(speech.empty(), "a matching late tooltip does not repeat a skill name already spoken");
     progression = {}; InteractionReader::Reset();
+	InteractionReader::Reset(); ClearSpeech(); inventory.nodes.clear(); tooltip = {};
+	InputDirection::holdingY = false; autoDetail = false; holdingItem = false; controllerHelp.clear();
+	cell = {}; selection = 0; focus = {10, 201}; widgetType = {"AdvancedStashSlotWidget", UiText::Kind::InventoryItem};
+	stashItem = {true, 77};
+	Check(Tick() && speech == std::vector<std::string>{std::string(Strings::Current().stash) + ". Runa Tal"},
+		"a rune slot is named in its first poll without waiting for a tooltip or cursor settle");
+	ClearSpeech(); Tooltip("Daño: 5\nRuna Tal"); Tick();
+	Check(speech.empty(), "the matching rune tooltip supplies detail without repeating its already spoken name");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Daño: 5"}, "rune properties remain available through the existing detail command");
+	ClearSpeech(); focus.widget = 202; stashItem = {true, 0}; Tooltip("Daño: 5\nRuna Tal");
+	Check(Tick() && speech == std::vector<std::string>{"Diamante fragmentado. " + std::string(Strings::Current().slotEmpty)},
+		"an empty gem slot says its localized identity immediately and rejects the previous rune tooltip");
+	ClearSpeech(); for (int i = 0; i < 6; ++i) Tick();
+	Check(speech.empty(), "a fixed stash slot never accepts another item's tooltip after the old mismatch timeout");
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().detailNone}, "moving to a gem drops the previous rune's detail");
+	ClearSpeech(); stashItem = {true, 77}; Tooltip("Diamante fragmentado"); Tick();
+	Check(speech == std::vector<std::string>{"Diamante fragmentado"}, "a newly occupied gem slot updates without another settle delay");
+	ClearSpeech(); focus.widget = 201; stashItem = {}; tooltip = {};
+	Check(Tick() && speech == std::vector<std::string>{"Runa Tal"}, "an unavailable slot getter still names the visible fixed rune without claiming it is empty");
+	InteractionReader::Reset();
     Passed();
 }

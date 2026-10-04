@@ -54,6 +54,9 @@ uintptr_t EquipmentItem(uintptr_t widget);
 // y = height; -1 when unreadable), for the inventory census log. `known` is
 // false when the cell could not be read.
 struct GridSlot { bool known = false; uintptr_t item = 0; };
+// Single InventoryItemWidget subclasses (advanced stash slots). The native
+// getter distinguishes an empty slot from an unavailable read.
+GridSlot ItemWidgetSlot(uintptr_t widget);
 GridSlot GridItemAt(uintptr_t widget, Cell cell);
 Cell GridSize(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
