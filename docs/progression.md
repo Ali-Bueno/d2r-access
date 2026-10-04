@@ -74,6 +74,51 @@ are removed without deleting actual levels or numbers. Row/column and remaining
 points follow. Focus identity must match the render capture; pending skills wait
 without reading a prior skill or prematurely speaking just coordinates.
 
+## Textual skill prerequisites - 2026-10-04
+
+The native tooltip capture contains skill text but not the prerequisite icons
+and tree connections. The mod-side `NativeSkillBar::TreeSkill` now carries the
+skill's localized name and direct prerequisite names. `ClassSkillAt` selects
+the current player's class/page/row/column in the **active** table bank;
+`ReadClassSkill` reads the selected skills.bin record's `reqskill1..3` fields
+(signed 16-bit ids at `+0x21E`, `+0x220`, `+0x222`, row stride `0x2EC`). Each
+id follows the existing skilldesc/name-id localization path. This supports
+all current class rows without hardcoding names or depending on tooltip text.
+
+Native `DataTbls.cpp` parser RVA `0x302380..0x3074C1` explicitly maps the three
+source fields to those offsets (descriptor setup `0x305A6A..0x305BFB`). Its
+separate call-normalized fingerprint guards prerequisite reading; a mismatch
+omits those new fields while preserving the established skill-name reader.
+`-1` denotes no prerequisite. Zero is a valid skill id. Duplicate ids are
+collapsed; invalid, self-referencing or unreadable dependencies omit the list
+rather than state incomplete requirements. Only direct dependencies are
+listed; the description for each preceding skill explains its own parents.
+
+`NativeProgression::Details` copies that list for the current class-tree
+button. `ProgressionText::SkillLines` adds a localized
+`Prerequisite: 1 skill point in <name>` line for each; `SkillDescription` uses
+the same lines. Both J/right-stick detail and Ctrl+arrow line stepping use
+that representation after the existing current-tooltip ownership checks.
+The name/headline and existing native text order are preserved. No extra
+arrival speech, list positions or synthetic descriptions for pending skills.
+Starting/common/granted skills with no table dependencies add no lines.
+
+Stock Holy Fire's prerequisite is **Might** (`skills.txt` `reqskill1`), while
+Resist Fire and Salvation remain its separately rendered synergy bonuses.
+The new text does not replace or reinterpret those native synergy lines.
+
+Validation: active-memory table fixtures cover localized lookup, modified
+requirements, all three slots, absent/invalid ids, missing names and ambiguous
+cells. Reader tests cover J, Ctrl+Right/Up, current ownership and clearing on a
+new skill; formatting tests preserve native text. All 13 phrase tables are
+translated and pass placeholder/completeness checks. Full CTest **105/105**,
+timeout 20; affected suites **4/4**. Normal local four-job BelowNormal build
+and POST_BUILD deploy ran with D2R/D2RLoader closed; plugin matches final build,
+PRISM and loader config unchanged. The final relink differs from the tested
+staged DLL only in 4 PE timestamp bytes. User confirmed prerequisite descriptions work perfectly in game.
+Records, original source, native descriptors, logs, hashes and old runtime:
+`../re/skill-prerequisites-2026-10-04/`.
+
 ## Validation
 
 - `progression-tests`: 27 checks for all four attributes, live value changes,

@@ -7,6 +7,7 @@ struct Details {
 	UiText::Readout readout;
 	bool skill = false;
 	std::string name; // table name available before the skill tooltip renders
+	std::vector<std::string> prerequisites; // direct required skills, from the active game tables
 	std::string points, value;
 	std::string help;     // part of the readout: the skill's current binding
 	std::string controls; // what the buttons do here -- a control hint (control_hints.h)

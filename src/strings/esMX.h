@@ -41,6 +41,7 @@ inline constexpr Table esMX {
 	.itemSize            = {"%d columna por %d fila", "%d columna por %d filas", "%d columnas por %d fila", "%d columnas por %d filas"},
 	.detailNone         = "No hay más detalles",
 	.assignedTo          = "Asignada a %s",
+	.skillPrerequisite   = "Requisito: 1 punto de habilidad en %s",
 	.controllerButtons   = {"Pad direccional", "Pad direccional arriba", "Pad direccional abajo", "Pad direccional izquierda", "Pad direccional derecha", "Menú", "Vista", "Stick izquierdo", "Presionar stick izquierdo", "Stick derecho", "Presionar stick derecho", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Cabeza", "Cuello", "Torso", "Arma derecha", "Arma izquierda",
 		"Anillo derecho", "Anillo izquierdo", "Cinturón", "Pies", "Guantes" },

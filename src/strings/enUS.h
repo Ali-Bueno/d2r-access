@@ -41,6 +41,7 @@ inline constexpr Table enUS {
 	.itemSize            = {"%d column by %d row", "%d column by %d rows", "%d columns by %d row", "%d columns by %d rows"},
 	.detailNone         = "Nothing more to read",
 	.assignedTo          = "Assigned to %s",
+	.skillPrerequisite   = "Prerequisite: 1 skill point in %s",
 	.controllerButtons   = {"D-pad", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "Menu", "View", "Left stick", "Press left stick", "Right stick", "Press right stick", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Head", "Neck", "Torso", "Right weapon slot", "Left weapon slot",
 		"Right ring", "Left ring", "Belt", "Feet", "Gloves" },

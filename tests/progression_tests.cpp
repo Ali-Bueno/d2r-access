@@ -1,4 +1,5 @@
 #include "native_progression.h"
+#include "native_skill_bar.h"
 #include "native_controller_help.h"
 #include "native_widgets.h"
 #include "progression_text.h"
@@ -6,6 +7,7 @@
 #include "test_support.h"
 
 #include <map>
+#include <algorithm>
 
 namespace {
 using namespace D2RAccess;
@@ -55,7 +57,8 @@ uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 namespace D2RAccess::Localization { std::string Text(std::string_view key) { return key == "minipanelchar" ? "Personaje" : ""; } }
 // The game's skill tables, as skilldesc.txt places Salto: page 1, row 3, column 2.
 namespace D2RAccess::NativeSkillBar {
-std::string ClassSkillName(int page, int row, int column) { return page == 1 && row == 3 && column == 2 ? "Salto" : ""; }
+TreeSkill treeSkill{"Salto", {}};
+TreeSkill ClassSkillAt(int page, int row, int column) { return page == 1 && row == 3 && column == 2 ? treeSkill : TreeSkill{}; }
 }
 
 int main() {
@@ -102,7 +105,11 @@ int main() {
 		{13, {12, "SkillButton1 1,2", "", button}},
 		{14, {10, "SkillCounter", "1 elección de habilidad restante", {}}},
 	};
+	NativeSkillBar::treeSkill.prerequisites = {"Requisito del fixture"};
 	const auto skill = NativeProgression::Read({10, 13}, button);
+	Check(skill.name == "Salto" && skill.prerequisites == NativeSkillBar::treeSkill.prerequisites,
+		"the cell's active-table prerequisites travel with its name");
+	NativeSkillBar::treeSkill.prerequisites.clear();
 	Check(skill.skill && skill.readout.body == "Habilidades de combate", "plain buttons acquire skill role from their native tab container");
 	Check(skill.readout.coordinates == "Fila 3, columna 2" && skill.points == "1 elección de habilidad restante",
 		"the generated cell and live skill points are available, with no position in the branch");
@@ -137,6 +144,19 @@ int main() {
 	Check(description == "Aturdir. Todavía no has aprendido esta habilidad Aturde a tu objetivo y aumenta tu índice de ataque. Nivel necesario: 12 Primer nivel Duración: 1.2 s Aturdir recibe bonus de: Grito: +5 s por nivel", "skill name leads, wrapped sentences and requirements follow screen order, formatting digits are removed");
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
+	const std::vector<std::string> requirements{"Might", "Holy Bolt"};
+	const auto nativeLines = ProgressionText::SkillLines(raw);
+	const auto requiredLines = ProgressionText::SkillLines(raw, requirements);
+	Check(requiredLines.size() == nativeLines.size() + 2
+		&& requiredLines[requiredLines.size() - 2] == "Requisito: 1 punto de habilidad en Might"
+		&& requiredLines.back() == "Requisito: 1 punto de habilidad en Holy Bolt",
+		"each required skill icon becomes a localized line naming its own point requirement");
+	Check(std::equal(nativeLines.begin(), nativeLines.end(), requiredLines.begin()),
+		"prerequisites preserve every rendered level, effect and synergy line");
+	Check(ProgressionText::SkillDescription(raw, requirements).ends_with(requiredLines.back()),
+		"the full description includes the same prerequisite text as the line buffer");
+	Check(ProgressionText::SkillLines("", requirements).empty(),
+		"requirements do not manufacture a description before the current tooltip exists");
 	Check(ProgressionText::SkillDescription("Coste: 2 p.\nNivel actual: 1\n" + font + "2Aullido").starts_with("Aullido. Nivel actual: 1"), "learned skill levels are preserved");
 	const auto spoken = ProgressionText::SkillReadout("Porrazo. Descripción larga", "0 puntos", "Asignada a A. X: Asignar habilidad");
 	Check(spoken.headline == "Porrazo. 0 puntos. Asignada a A. X: Asignar habilidad", "the skill's name and the state the player can act on are what a move reads");

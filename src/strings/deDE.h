@@ -41,6 +41,7 @@ inline constexpr Table deDE {
 	.itemSize            = {"%d Spalte mal %d Zeile", "%d Spalte mal %d Zeilen", "%d Spalten mal %d Zeile", "%d Spalten mal %d Zeilen"},
 	.detailNone         = "Keine weiteren Angaben",
 	.assignedTo          = "Zugewiesen zu %s",
+	.skillPrerequisite   = "Voraussetzung: 1 Fertigkeitspunkt in %s",
 	.controllerButtons   = {"Steuerkreuz", "Steuerkreuz oben", "Steuerkreuz unten", "Steuerkreuz links", "Steuerkreuz rechts", "Menü", "Anzeige", "Linker Stick", "Linken Stick drücken", "Rechter Stick", "Rechten Stick drücken", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Kopf", "Hals", "Torso", "Rechte Waffe", "Linke Waffe",
 		"Rechter Ring", "Linker Ring", "Gürtel", "Füße", "Handschuhe" },

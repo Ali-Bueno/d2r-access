@@ -949,8 +949,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		&& (!progression.skill || NamesSkill(context, tooltip.body, focus.widget))) {
 		std::string description;
 		if (progression.skill) {
-			description = ProgressionText::SkillDescription(tooltip.body);
-			g_skillLines = ProgressionText::SkillLines(tooltip.body);
+			description = ProgressionText::SkillDescription(tooltip.body, progression.prerequisites);
+			g_skillLines = ProgressionText::SkillLines(tooltip.body, progression.prerequisites);
 			g_skillLinesWidget = focus.widget;
 			OfferLines(linesOwner, g_skillLines);
 			Append(description, UiText::Clean(tooltip.footer));

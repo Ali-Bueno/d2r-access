@@ -25,5 +25,13 @@ bool BackBarShown() noexcept;
 // cannot be read or it has no description. UI thread only.
 std::string SkillName(int skill);
 std::optional<std::vector<AttackReach::Skill>> BoundSkills();
+struct TreeSkill {
+	std::string name;
+	std::vector<std::string> prerequisites; // direct reqskill1..3, localized names
+};
+// Read a cell from a verified table bank. Copies names and prerequisite ids;
+// never retains game pointers. Unreadable/invalid requirements are omitted.
+TreeSkill ReadClassSkill(uintptr_t tables, uint32_t playerClass, int page, int row, int column);
+TreeSkill ClassSkillAt(int page, int row, int column);
 std::string ClassSkillName(int page, int row, int column);
 }

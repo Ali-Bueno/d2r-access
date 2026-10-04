@@ -2,6 +2,124 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Skill prerequisite text - 2026-10-04
+
+Implemented and deployed. Class-tree skill descriptions now add one localized
+`Prerequisite: 1 skill point in <skill>` line per direct required skill. J and
+Ctrl+arrows consume the same description/line buffer; the native tooltip's
+levels, effects and synergy lines remain intact. NativeProgression's mod-side
+TreeSkill representation reads `reqskill1..3` from the active skills table and
+resolves names through the game's localization, without a bundled graph or
+English-name matching. Holy Fire requires Might; Resist Fire is a synergy.
+
+A separate native-parser fingerprint guards the new field offsets. Corrupt,
+ambiguous or incomplete table rows omit prerequisite text; original skill-name
+reading remains available. Existing keyboard/controller focus ownership,
+pending-tooltip guards and speech/log worker split are preserved.
+
+Build/deploy used the local default four-job BelowNormal script, with game and
+loader closed. Full CTest **105/105 pass**, timeout 20; affected reader/format/
+translation suites **4/4 pass**. Installed plugin SHA-256
+`0A76346BBFAAC2F9AF3A380FE7F9033E1B98064ACF7ED64CDF3027EB5C311630` matches the final build. The deploy relink changed only PE timestamps
+(4 bytes); tested staged and final code/data are equivalent. PRISM and loader
+config hashes are unchanged. Backups/verification: `../re/skill-prerequisites-2026-10-04/`.
+No agent game launch/input/save changes or release. Commit/push now authorized.
+
+User confirmed the prerequisite descriptions work perfectly in game.
+J and Ctrl+arrow both expose the new text; skills without prerequisites
+retain their existing description. The user explicitly authorized committing
+and pushing all current project work to `origin/bladestorm`.
+[Implementation/evidence](docs/progression.md#textual-skill-prerequisites---2026-10-04).
+
+## Native offline respec argument and Alt menu clicks - 2026-10-04
+
+Follow-up: read-only inspection of the user's open character panel at
+06:10:07 confirms native respec flag bit 23 is OFF (`0x400004`). With
+0 remaining points, the game hides/disables `LevelUpInfo`; all four plus
+buttons exist but are hidden through that parent. The mod correctly omits
+them. Alt+A/Alt+D hit the stat label's `Tooltip`, which cannot reset stats.
+`-enablerespec` reaches the command line but does not activate the flag in
+this loader session. The exact loader parsing/override cause remains OPEN.
+User then authorized the loader setting. With D2R/D2RLoader verified closed,
+installed `d2rcore.player.enable_respec = true`; the existing `-enablerespec`
+argument is retained. Exact bytes/TOML values and SHA-256 verified; only the
+respec setting changed, and the previous config is backed up. The user subsequently confirmed reset success; the latest own log shows
+visible plus-button targets and Alt+A on StrengthPointButton.
+No source implementation change or rebuild was required for this config edit.
+
+Experience remains in the character buffer: stock HD `CombinedXP` displays
+current/next-level XP beside class/level; the user's 06:09:06 log reads
+`Experience. 1,620,717 of 1,640,359`. It is text rather than an arrow-key
+button target. The buffer already uses the visible tree; no removal needed.
+[Evidence and proper target](docs/keyboard-play.md#failed-reset-follow-up-users-0536-0538-session).
+
+Current installed `d2rloader/config/d2rloader.toml` has both
+`d2rloader.launch_arguments = "-enablerespec"` and
+`d2rcore.player.enable_respec = true`, following the user's explicit approval
+to use the loader setting after the argument-only check failed. Alt support
+for both menu mouse buttons is already deployed.
+
+Alt+A and Alt+D are registered for left/right menu clicks. The fallback
+watcher accepts Alt for those two keys, Alt-clicks use the native mouse path
+instead of the value-step helper, and modified character rows stay single
+clicks. Pointer guards, physical-controller paths and speech/log workers
+are preserved. Hold Alt, tap A/D, and keep Alt held while the queued click
+finishes. [Controls and native-flag setup](docs/keyboard-play.md#offline-respec-and-alt-clicks-2026-10-04).
+
+Staged build and full CTest **104/104 pass**, timeout 20. Normal local
+`build.ps1` then deployed with D2R/D2RLoader verified closed, default four
+jobs and BelowNormal priority. Installed plugin SHA-256
+`EF9F53B652A3FC258E1B708B6F8A4D1C9ABC7DEE27B620F858180440B1CEDAEA` matches the build; PRISM and config bytes verified.
+Earlier stash changes remain intact and all task source changes are local,
+uncommitted on `keyboard-local`; no push, release, save edit or game launch.
+Config/runtime backups, hashes and logs: `../re/offline-respec-2026-10-04/`.
+
+User confirmed respec works after enabling the loader setting. Their own
+06:33:37 startup log reports `enable_respec` enabled; at 06:34:11 all four
+plus buttons are menu targets, and Alt+A clicks `StrengthPointButton` at
+06:34:19. No further native flag value was sampled; reset success is user
+confirmation. Logs archived as `success-0633.*.log`. No agent game inputs or
+save edits. Config installation/backup remains in
+`respec-setting-candidate.json` / `d2rloader.before-loader-respec.toml`.
+
+## Gordan Normal Duriel save/map repair ? 2026-10-04
+
+User-authorized save-only repair installed with game/loader closed. Existing
+used-staff and unfinished Seven Tombs flags were correct and retained. Fresh
+map seed/checksum, synchronized `.map` and `.d2rl` hashes, old `.ma0` archived.
+Character/quest/item data and shared stash verified unchanged byte-for-byte;
+complete originals and manifests in `../re/duriel-save-repair-2026-10-04/`.
+No plugin/source/runtime change or launch. User-led regenerated-tomb entrance
+check pending; read the current symbol because maps changed. See HANDOFF.
+
+## Rune and gem stash browsing — 2026-10-04
+
+**Built and deployed with D2R/D2RLoader closed. Full CTest 104/104 passes
+with timeout 20; final affected UI checks 8/8 pass. Live listening pending.**
+
+Fixed stash slots now announce the game's localized item-code identity in
+their first reader poll, including empty slots. They use the same guarded
+item getter as other inventory widgets, preserve tooltip detail/lines, and
+reject a previous slot's tooltip. Late matching descriptions do not repeat
+the name. There is no 90 ms item cursor-settle window, 20 ms slot-name settle,
+or 450 ms wait for an empty slot's internal code. Other controls keep their
+existing tooltip guard while their labels continue to read immediately.
+
+The user's rune browsing trace measured rebuilds around 13–30 ms, almost all
+inside permission queries, with duplicate builds on some presses. A single
+menu build now serves each UI tick. Readable and executable permissions share
+the existing scoped cache, enlarged to 256 regions; no contents or permissions
+survive between updates. Native copies/getters remain fault-contained, and
+speech/logging stay on their workers. [Evidence and policy](docs/navigation-latency.md#rune-and-gem-stash-browsing--2026-10-04).
+
+Normal `build.ps1` used four jobs and BelowNormal priority. Installed plugin
+SHA-256 `2E785960055BE4C59BA82AA40297048E8F4E1BC81672C0FF920B7ACE613A1E75`
+matches the build; PRISM verified. Logs, original user-session log, deployment
+manifest and prior-runtime backup are in `../re/stash-latency/`. Source changes
+remain uncommitted on `keyboard-local`; no push, release or game launch.
+User-led check: browse occupied and empty slots on both Gems and Runes, then
+read an item's detail. Verify immediate correct names and no stale description.
+
 ## Keyboard skill hotkeys and town NPC catalogue corrections — 2026-10-04
 
 **Built and deployed; full CTest 104/104 passes, timeout 20.**

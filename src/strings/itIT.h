@@ -41,6 +41,7 @@ inline constexpr Table itIT {
 	.itemSize            = {"%d colonna per %d riga", "%d colonna per %d righe", "%d colonne per %d riga", "%d colonne per %d righe"},
 	.detailNone         = "Nessun altro dettaglio",
 	.assignedTo          = "Assegnato a %s",
+	.skillPrerequisite   = "Prerequisito: 1 punto abilità in %s",
 	.controllerButtons   = {"Croce direzionale", "Croce direzionale su", "Croce direzionale giù", "Croce direzionale sinistra", "Croce direzionale destra", "Menu", "Visualizza", "Levetta sinistra", "Premi levetta sinistra", "Levetta destra", "Premi levetta destra", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Testa", "Collo", "Torso", "Arma destra", "Arma sinistra",
 		"Anello destro", "Anello sinistro", "Cintura", "Piedi", "Guanti" },

@@ -41,6 +41,7 @@ inline constexpr Table zhCN {
 	.itemSize            = {"宽%d列，高%d行", "宽%d列，高%d行", "宽%d列，高%d行", "宽%d列，高%d行"},
 	.detailNone         = "没有更多内容",
 	.assignedTo          = "已分配到%s",
+	.skillPrerequisite   = "前置技能：%s投入1个技能点",
 	.controllerButtons   = {"方向键", "方向键上", "方向键下", "方向键左", "方向键右", "菜单键", "视图键", "左摇杆", "按下左摇杆", "右摇杆", "按下右摇杆", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "头部", "颈部", "身体", "右手武器栏", "左手武器栏",
 		"右手戒指", "左手戒指", "腰带", "脚部", "手套" },

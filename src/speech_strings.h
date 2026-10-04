@@ -70,6 +70,7 @@ struct Table {
 	std::array<const char*, 4> itemSize;
 	const char* detailNone;   // right stick up with nothing further to read
 	const char* assignedTo; // %s = native controller binding
+	const char* skillPrerequisite; // %s = localized name of a directly required skill
 	std::array<const char*, 19> controllerButtons; // U+E000..U+E012, native 0x872E50
 	// InventorySlotWidget location values, verified against live slots and the stock layout.
 	std::array<const char*, 11> equipmentSlots;
@@ -321,7 +322,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied,
-		t.belt, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
+		t.belt, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.skillPrerequisite, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
 		t.radarDisabled, t.radarUnavailable,
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,

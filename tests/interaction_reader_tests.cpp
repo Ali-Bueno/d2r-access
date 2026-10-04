@@ -640,6 +640,29 @@ int main() {
 	ClearSpeech();
 	Tooltip("Registra un cadáver.\nBuscar poción"); Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Buscar poción."), "next native D-pad selection reads its skill without repeating the branch");
+	// J and Ctrl+arrows both consume the description for this current owner.
+	progression.prerequisites = {"Might", "Holy Bolt"};
+	ClearSpeech(); Tick();
+	pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech.size() == 1 && speech[0].find("Requisito: 1 punto de habilidad en Might") != std::string::npos
+		&& speech[0].find("Requisito: 1 punto de habilidad en Holy Bolt") != std::string::npos,
+		"the J/right-stick detail command includes all prerequisites without an arrival announcement");
+	ClearSpeech(); InputDirection::lineStep = true;
+	pendingPush = InputDirection::StickPush::Right; Tick();
+	Check(speech == std::vector<std::string>{"Requisito: 1 punto de habilidad en Holy Bolt"},
+		"Ctrl+right reaches the last prerequisite in the same skill buffer");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Requisito: 1 punto de habilidad en Might"},
+		"Ctrl+up reads the preceding prerequisite as its own line");
+	InputDirection::lineStep = false;
+	focus.widget = 74; progression.readout.focusKey = "74"; progression.prerequisites.clear();
+	tooltip = {}; ClearSpeech(); Tick(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{Strings::Current().detailNone},
+		"moving to a pending skill clears the previous skill's prerequisite detail");
+	ClearSpeech(); Tooltip("Nueva descripción.\nNuevo skill"); Tick();
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech == std::vector<std::string>{"Nueva descripción."},
+		"a skill without prerequisites does not inherit the previous skill's requirements");
 	ClearSpeech(); progression = {}; widgetType = {"TabWidget", UiText::Kind::TabButton}; focus.widget = 73;
 	buttonSnapshot = {73, 73, "Tab1", UiText::Surface::Other, {{73, -1, UiText::Kind::TabButton, "Tab1", "", "Dominio del combate"}}};
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Dominio del combate"}, "focused branch tabs are readable through the shared interaction pipeline");

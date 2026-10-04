@@ -6,6 +6,7 @@
 #include "native_memory.h"
 #include "ui_text.h"
 #include <windows.h>
+#include <algorithm>
 
 namespace D2RAccess::NativeSkillBar {
 namespace {
@@ -20,6 +21,11 @@ constexpr size_t Skills = 0x11B0, SkillCount = 0x11B8, SkillStride = 0x2EC, Skil
 constexpr size_t Descs = 0x1190, DescCount = 0x1198, DescStride = 300, DescName = 8;
 constexpr size_t SkillRange = 0x34, SkillMinDamage = 0x250, SkillElement = 0x284, SkillElementMin = 0x288;
 constexpr size_t SkillClass = 0x2C, DescPlace = 2;
+// DataTbls.cpp maps reqskill1..3 to signed skill ids at these offsets.
+constexpr size_t RequiredSkills = 0x21E;
+constexpr GroundItemLayout::Evidence PrerequisiteChecks[] = {
+	{0x302380, 20801, 0x6DCAB8FDE6CEBB7FULL}, // skills.txt parser, reqskill1..3 descriptors
+};
 constexpr uint16_t MissingName = 0x1506; // 0x28BCF0's id for a skill without a description
 constexpr GroundItemLayout::Evidence Checks[] = {
 	{ControllerMode, 41, 0x290F3F607678EB67ULL},
@@ -35,6 +41,7 @@ constexpr GroundItemLayout::Evidence Checks[] = {
 	{0x239110, 616, 0x983A761456B6E184ULL},       // controller actions and Town Portal count
 };
 uintptr_t g_base = 0;
+bool g_prerequisites = false;
 
 bool ReadSkills(std::array<int, Buttons>& skills, int first = AlternateFirst) noexcept {
 	__try {
@@ -61,8 +68,11 @@ std::string SkillName(uintptr_t tables, int skill) {
 
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
+	g_prerequisites = false;
 	if (!context || !LayoutCheck::Verify(context, context->exeBase, Checks, "skill-bar", "LT bar reading disabled")) return false;
 	g_base = context->exeBase;
+	g_prerequisites = LayoutCheck::Verify(context, g_base, PrerequisiteChecks,
+		"skill-prerequisites", "prerequisite reading disabled");
 	return true;
 }
 
@@ -104,11 +114,11 @@ std::optional<std::vector<AttackReach::Skill>> BoundSkills() {
 	return skills;
 }
 
-std::string ClassSkillName(int page, int row, int column) {
-	uintptr_t player = 0, tables = 0, skills = 0, descs = 0;
-	uint32_t playerClass = 0, skillCount = 0, descCount = 0;
-	if (!g_base || page <= 0 || !NativeGroundItems::RuntimeRoots(player, tables)
-		|| !Peek(player + GroundItemLayout::UnitClass, playerClass)
+namespace {
+TreeSkill ReadClassSkill(uintptr_t tables, uint32_t playerClass, int page, int row, int column, bool prerequisites) {
+	uintptr_t skills = 0, descs = 0;
+	uint32_t skillCount = 0, descCount = 0;
+	if (!tables || page < 1 || page > 255 || row < 1 || row > 255 || column < 1 || column > 255
 		|| !Peek(tables + Skills, skills) || !skills || !Peek(tables + SkillCount, skillCount)
 		|| skillCount > GroundItemLayout::MaxTableRows
 		|| !Peek(tables + Descs, descs) || !descs || !Peek(tables + DescCount, descCount) || descCount > GroundItemLayout::MaxTableRows) return {};
@@ -122,10 +132,44 @@ std::string ClassSkillName(int page, int row, int column) {
 		if (!Peek(record + SkillClass, owner) || owner != playerClass || !Peek(record + SkillDesc, desc)
 			|| desc < 0 || static_cast<uint32_t>(desc) >= descCount
 			|| !Peek(descs + desc * DescStride + DescPlace, place) || place != wanted) continue;
-		if (found != NoSkill) return {}; // two skills in one cell: not the table this was verified on
+		if (found != NoSkill) return {}; // two skills in one cell: not an unambiguous tree entry
 		found = static_cast<int>(skill);
 	}
-	return SkillName(tables, found);
+	TreeSkill result;
+	result.name = SkillName(tables, found);
+	if (result.name.empty() || !prerequisites) return result;
+	std::array<int16_t, 3> required{};
+	if (!Peek(skills + static_cast<uintptr_t>(found) * SkillStride + RequiredSkills, required)) return result;
+	std::vector<std::string> names;
+	for (size_t index = 0; index < required.size(); ++index) {
+		const int skill = required[index];
+		if (skill == NoSkill) continue;
+		// A malformed row cannot provide a trustworthy partial requirement list.
+		if (skill < 0 || static_cast<uint32_t>(skill) >= skillCount || skill == found) return result;
+		if (std::find(required.begin(), required.begin() + index, skill) != required.begin() + index) continue;
+		auto name = SkillName(tables, skill);
+		if (name.empty()) return result;
+		names.push_back(std::move(name));
+	}
+	result.prerequisites = std::move(names);
+	return result;
+}
+}
+
+TreeSkill ReadClassSkill(uintptr_t tables, uint32_t playerClass, int page, int row, int column) {
+	return ReadClassSkill(tables, playerClass, page, row, column, true);
+}
+
+TreeSkill ClassSkillAt(int page, int row, int column) {
+	uintptr_t player = 0, tables = 0;
+	uint32_t playerClass = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)
+		|| !Peek(player + GroundItemLayout::UnitClass, playerClass)) return {};
+	return ReadClassSkill(tables, playerClass, page, row, column, g_prerequisites);
+}
+
+std::string ClassSkillName(int page, int row, int column) {
+	return ClassSkillAt(page, row, column).name;
 }
 
 bool BackBarShown() noexcept {

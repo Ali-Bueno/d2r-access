@@ -1,7 +1,9 @@
 #include "progression_text.h"
+#include "speech_strings.h"
 
 #include <algorithm>
 #include <charconv>
+#include <cstdio>
 #include <vector>
 
 namespace D2RAccess::ProgressionText {
@@ -43,7 +45,7 @@ SkillButton ParseSkillButton(std::string_view name) {
 
 NativeUi::Cell SkillCell(std::string_view name) { return ParseSkillButton(name).cell; }
 
-std::vector<std::string> SkillLines(std::string_view body) {
+std::vector<std::string> SkillLines(std::string_view body, std::span<const std::string> prerequisites) {
 	// U+E07E followed by 1 or 2 sets font size. Captured from the stock skill
 	// renderer during controller navigation; these are not controller glyphs.
 	constexpr std::string_view font = "\xEE\x81\xBE";
@@ -70,11 +72,20 @@ std::vector<std::string> SkillLines(std::string_view body) {
 	// The learned/unlearned state is drawn above the styled name. Speak the
 	// name first, then preserve the rest of the screen's top-to-bottom order.
 	if (title != std::string::npos) std::rotate(lines.begin(), lines.begin() + title, lines.begin() + title + 1);
+	// Do not create a description while the current skill's tooltip is pending.
+	if (!lines.empty()) for (const auto& prerequisite : prerequisites) {
+		const auto name = UiText::Clean(prerequisite);
+		if (name.empty()) continue;
+		const auto format = Strings::Current().skillPrerequisite;
+		std::string line(static_cast<size_t>(std::snprintf(nullptr, 0, format, name.c_str())), '\0');
+		std::snprintf(line.data(), line.size() + 1, format, name.c_str());
+		lines.push_back(std::move(line));
+	}
 	return lines;
 }
 
-std::string SkillDescription(std::string_view body) {
-	const auto lines = SkillLines(body);
+std::string SkillDescription(std::string_view body, std::span<const std::string> prerequisites) {
+	const auto lines = SkillLines(body, prerequisites);
 	if (lines.empty()) return {};
 	std::string result = lines.front();
 	if (lines.size() > 1) result += ".";
