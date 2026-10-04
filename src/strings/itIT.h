@@ -196,7 +196,7 @@ inline constexpr Table itIT {
 	.walkTo = "In cammino verso %s",
 	.walkStopped = "Fermo",
 	.walkBlocked = "La via verso %s è bloccata",
-	.walkNoRoute = "Nessuna via verso %s",
+	.walkNoRoute = "Nessun percorso conosciuto verso %s",
 	.walkNothing = "Nessun obiettivo selezionato",
 	.exploreTo = "In cammino verso una zona inesplorata",
 	.exploreArrived = "Zona inesplorata raggiunta",

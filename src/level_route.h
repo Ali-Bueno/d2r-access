@@ -65,6 +65,9 @@ public:
 	// thing's own cells carry its collision. `unseen` lets the way cross ground
 	// not seen yet.
 	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen);
+	// Explore reaches any standable floor in this room, not its centre.
+	Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen);
+	Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen);
 	// The cells to walk from `from`, the last of them at the place. Empty when
 	// there is no way, and when `from` is at the place already. The cell stood
 	// on need not fit the body: the game never tests the cell a move starts from.
@@ -86,11 +89,16 @@ struct Way {
 class Plan {
 public:
 	Way From(const Memory& memory, Position from, Position place, int margin, int bodyPattern);
+	Way Into(const Memory& memory, Position from, const NativeRooms::Bounds& room, int bodyPattern);
+	// One search to any floor in any section of a shared border.
+	Way Into(const Memory& memory, Position from, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern);
 	void Clear() { *this = {}; }
 private:
 	struct Key {
 		uint64_t session = 0, revision = 0;
 		int level = 0, x = 0, y = 0, margin = 0, pattern = 0;
+		bool room = false;
+		std::vector<NativeRooms::Bounds> regions;
 		bool operator==(const Key&) const = default;
 	};
 	Key key_;
@@ -129,6 +137,8 @@ public:
 	Answer To(Position place, int margin) const;
 	// A room, max exclusive: reached when any of its cells is.
 	Answer Within(const NativeRooms::Bounds& bounds) const;
+	// Cut off only when every candidate section is cut off.
+	Answer Within(const std::vector<NativeRooms::Bounds>& regions) const;
 	// The pad to use first on the shortest way to a thing or a room the search
 	// through pads reached, and the steps of that way when `steps` is given.
 	// False when the way takes no pad, or there is none.

@@ -680,6 +680,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			EntityRadar::Entity entity{crossing.level, EntityRadar::Kind::Exit, crossing.position,
 				LevelText(tables, crossing.level, LevelNameKey), NativeLevelExits::Identity(crossing.position),
 				false, EntityRadar::Category::Exit, crossing.level};
+			entity.border = EntityRadar::Entity::Border::Bearing;
 			entity.nameKey = LevelKey(tables, crossing.level, LevelNameKey);
 			if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 			if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))

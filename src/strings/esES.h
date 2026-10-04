@@ -196,7 +196,7 @@ inline constexpr Table esES {
 	.walkTo = "Caminando hacia %s",
 	.walkStopped = "Detenido",
 	.walkBlocked = "El camino hacia %s está bloqueado",
-	.walkNoRoute = "No hay camino hacia %s",
+	.walkNoRoute = "No se conoce un camino hacia %s",
 	.walkNothing = "No hay nada seleccionado adonde caminar",
 	.exploreTo = "Caminando hacia terreno sin explorar",
 	.exploreArrived = "Terreno sin explorar alcanzado",

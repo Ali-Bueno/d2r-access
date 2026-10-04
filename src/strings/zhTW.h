@@ -196,7 +196,7 @@ inline constexpr Table zhTW {
 	.walkTo = "正在前往%s",
 	.walkStopped = "已停止",
 	.walkBlocked = "通往%s的路被擋住了",
-	.walkNoRoute = "沒有通往%s的路",
+	.walkNoRoute = "沒有通往%s的已知路線",
 	.walkNothing = "未選擇目標",
 	.exploreTo = "正在前往未探索區域",
 	.exploreArrived = "已抵達未探索區域",

@@ -3,9 +3,11 @@
 #include "ground_items.h"
 #include "level_exit_layout.h"
 #include "rooms.h"
+#include "room_graph.h"
 
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 
 namespace D2RAccess::ZoneTransitions {
 namespace {
@@ -57,7 +59,64 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 }
 
 bool Crosses(const EntityRadar::Entity& entity) {
-	return entity.kind == EntityRadar::Kind::Exit && entity.destinationLevel != 0;
+	return entity.kind == EntityRadar::Kind::Exit && entity.category == EntityRadar::Category::Exit
+		&& entity.destinationLevel != 0 && entity.border != EntityRadar::Entity::Border::None;
+}
+
+std::vector<NativeRooms::Bounds> ApproachRegions(const EntityRadar::Entity& entity,
+	const NativeLevelExits::Layout& layout) {
+	std::vector<NativeRooms::Bounds> edges;
+	if (!Crosses(entity) || entity.border != EntityRadar::Entity::Border::Bearing) return edges;
+	const auto bounds = [](const NativeLevelExits::TileRect& r) {
+		return NativeRooms::Bounds{r.x * Scale, r.y * Scale, (r.x + r.width) * Scale, (r.y + r.height) * Scale};
+	};
+	// Two cells leave a centre just inside the edge with room for its footprint.
+	// NearGapTiles is the game's logical-room adjacency limit (room_graph.h).
+	constexpr int depth = 2, near = RoomGraph::NearGapTiles * Scale;
+	for (const auto& neighbour : layout.neighbours) {
+		if (neighbour.level != entity.destinationLevel) continue;
+		const auto other = bounds(neighbour.rect);
+		for (const auto& room : layout.rooms) {
+			const auto own = bounds(room.rect);
+			NativeRooms::Bounds edge;
+			if (own.maxX <= other.minX && other.minX - own.maxX < near)
+				edge = {std::max(own.minX, own.maxX - depth), std::max(own.minY, other.minY), own.maxX, std::min(own.maxY, other.maxY)};
+			else if (other.maxX <= own.minX && own.minX - other.maxX < near)
+				edge = {own.minX, std::max(own.minY, other.minY), std::min(own.maxX, own.minX + depth), std::min(own.maxY, other.maxY)};
+			else if (own.maxY <= other.minY && other.minY - own.maxY < near)
+				edge = {std::max(own.minX, other.minX), std::max(own.minY, own.maxY - depth), std::min(own.maxX, other.maxX), own.maxY};
+			else if (other.maxY <= own.minY && own.minY - other.maxY < near)
+				edge = {std::max(own.minX, other.minX), own.minY, std::min(own.maxX, other.maxX), std::min(own.maxY, own.minY + depth)};
+			if (edge.minX < edge.maxX && edge.minY < edge.maxY) edges.push_back(edge);
+		}
+	}
+	// Native near lists repeat rooms and their order depends on streaming.
+	// Canonical sections also keep the route field's cache stable.
+	std::sort(edges.begin(), edges.end(), [](const auto& a, const auto& b) {
+		return std::tie(a.minX, a.minY, a.maxX, a.maxY) < std::tie(b.minX, b.minY, b.maxX, b.maxY);
+	});
+	edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
+	return edges;
+}
+
+bool RestoreCrossing(EntityRadar::Entity& entity, const EntityRadar::Entity& known) {
+	if (!Crosses(entity) || entity.border == EntityRadar::Entity::Border::Crossing
+		|| known.border != EntityRadar::Entity::Border::Crossing
+		|| entity.kind != known.kind || entity.placeId != known.placeId
+		|| entity.destinationLevel != known.destinationLevel) return false;
+	entity.position = known.position;
+	entity.border = EntityRadar::Entity::Border::Crossing;
+	return true;
+}
+
+void MergeKnown(std::vector<EntityRadar::Entity>& entities, const std::vector<EntityRadar::Entity>& known) {
+	for (const auto& place : known) {
+		const auto live = std::find_if(entities.begin(), entities.end(), [&](const auto& entity) {
+			return entity.kind == place.kind && entity.placeId == place.placeId && (entity.placeId || entity.id == place.id);
+		});
+		if (live == entities.end()) entities.push_back(place);
+		else RestoreCrossing(*live, place);
+	}
 }
 
 bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelExit>& crossings) {
@@ -66,6 +125,7 @@ bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelE
 		[&](const auto& crossing) { return crossing.level == entity.destinationLevel; });
 	if (found == crossings.end()) return false;
 	entity.position = found->position;
+	entity.border = EntityRadar::Entity::Border::Crossing;
 	return true;
 }
 
@@ -74,8 +134,11 @@ std::vector<EntityRadar::Entity> FoundAtCrossings(const std::vector<EntityRadar:
 	std::vector<EntityRadar::Entity> result;
 	for (const auto& entity : entities) {
 		auto atCrossing = entity;
-		if (!found({entity}).empty() || (MoveToCrossing(atCrossing, crossings) && !found({atCrossing}).empty()))
-			result.push_back(entity);
+		MoveToCrossing(atCrossing, crossings);
+		// A rectangle midpoint is a bearing, even if the automap charts it.
+		// Store the actual opening, never the point that merely names the edge.
+		if (atCrossing.border == EntityRadar::Entity::Border::Bearing) continue;
+		if (!found({atCrossing}).empty()) result.push_back(std::move(atCrossing));
 	}
 	return result;
 }

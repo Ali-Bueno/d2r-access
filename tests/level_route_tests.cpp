@@ -382,6 +382,129 @@ int main() {
 			"the search through pads holds from its own cell, with the same pads");
 		Check(!pads.Holds(memory, player, 1) && !walking.Holds(memory, player, 1, 7), "and the two searches never stand in for each other");
 	}
+	// Nonrectangular Act 4/5 levels: streamed foreign floor inside the bounding
+	// box cannot fill the hole between this level's disconnected rooms.
+	{
+		LevelRoute::Memory memory;
+		const std::vector<NativeRooms::Room> own{{100, 100, 8, 8, 1}, {116, 100, 8, 8, 2}};
+		Check(memory.Begin(12, 108, own), "a disconnected room union is a valid bounded map");
+		Radar::World world;
+		world.session = 12; world.level = 108; world.walkingMask = PlayerPath;
+		world.rooms = {{500, 500, 120, 40, std::vector<uint16_t>(4800, 0)}};
+		memory.Learn(world);
+		Check(memory.At(560, 520) == Ground::Outside, "foreign collision does not create floor in a logical-room hole");
+		LevelRoute::Plan plan;
+		Check(plan.From(memory, {520, 520}, {600, 520}, 0, 0).path.empty(),
+			"a remembered route never bridges disconnected areas through a bounding-box hole");
+	}
+	// Long outdoor maps in Acts 3/4/5 have walkable edges and blocked centres.
+	// Stream them in pieces, then walk back with only the distant end loaded.
+	for (const int levelId : {76, 104, 110, 111, 112, 117}) {
+		const bool jungle = levelId == 76;
+		const int tileWidth = jungle ? 64 : levelId == 104 ? 80 : levelId == 117 ? 128 : 240;
+		const int tileHeight = jungle ? 192 : levelId == 104 ? 64 : levelId == 117 ? 80 : 48;
+		std::vector<NativeRooms::Room> rooms;
+		for (int y = 0; y < tileHeight; y += 8)
+			for (int x = 0; x < tileWidth; x += 8)
+				rooms.push_back({1000 + x, 808 + y, 8, 8, NativeRooms::Identity(1000 + x, 808 + y)});
+		LevelRoute::Memory memory;
+		Check(memory.Begin(12, levelId, rooms), "the long Act 3/4/5 room union fits the map memory");
+		const int rowY = memory.Y() + 5;
+		for (const auto& room : rooms) {
+			if (room.tileY != 808) continue;
+			Radar::World world;
+			world.session = 12; world.level = levelId; world.walkingMask = PlayerPath;
+			const auto bounds = NativeRooms::Subtiles(room);
+			Radar::RoomGrid grid{bounds.minX, bounds.minY, 40, 40, std::vector<uint16_t>(1600, Wall)};
+			for (int y = 4; y <= 6; ++y)
+				for (int x = 0; x < grid.width; ++x) grid.cells[static_cast<size_t>(y) * grid.width + x] = 0;
+			world.rooms.push_back(std::move(grid));
+			memory.Learn(world);
+		}
+		const Position from{double(memory.X() + tileWidth * 5 - 5), double(rowY)};
+		const Position opening{double(memory.X() + 5), double(rowY)};
+		LevelRoute::Plan plan;
+		const auto back = plan.From(memory, from, opening, 0, 2);
+		Check(!back.path.empty() && !back.guess && Distance(back.path.back(), opening) == 0,
+			"return to a measured gate survives every intervening room unloading");
+		const auto bounds = NativeRooms::Subtiles(rooms.front());
+		const Position centre{(bounds.minX + bounds.maxX - 1) / 2.0, (bounds.minY + bounds.maxY - 1) / 2.0};
+		Check(plan.From(memory, from, centre, 0, 2).path.empty(), "the old room-centre route fails on an outdoor wall");
+		const auto entry = plan.Into(memory, from, bounds, 2);
+		Check(!entry.path.empty() && !entry.guess && NativeRooms::Contains(bounds, int(entry.path.back().x), int(entry.path.back().y)),
+			"Explore enters reachable room floor even when its centre is blocked and unloaded");
+		Check(plan.Into(memory, entry.path.back(), bounds, 2).path.empty(), "a room-entry route is complete once inside");
+		Check(!plan.From(memory, from, opening, 0, 2).path.empty(), "switching back to a point target rebuilds the cached field");
+	}
+	{
+		// Meshif dock to the Docks/Forest edge: water at the old midpoint,
+		// floor at a different coordinate along the same shared border.
+		const NativeRooms::Room dock{1000, 1000, 64, 48, NativeRooms::Identity(1000, 1000)};
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 75, {dock}), "dock approach memory starts");
+		World world;
+		world.session = 1; world.level = 75; world.player = {5118, 5168};
+		world.bodyPattern = 1; world.walkingMask = PlayerPath;
+		world.rooms.push_back({5000, 5000, 320, 240, std::vector<uint16_t>(320 * 240, Wall)});
+		for (int y = 5000; y <= 5170; ++y)
+			for (int x = 5116; x <= 5146; ++x) world.rooms[0].cells[(y - 5000) * 320 + x - 5000] = 0;
+		Check(memory.Learn(world), "dock collision learned");
+		const LevelRoute::Reach reach(memory, world.player, world.bodyPattern);
+		Check(reach.To({5160, 5000}, 3) == LevelRoute::Reach::Answer::CutOff, "fixture reproduces refusal at the old midpoint");
+		const NativeRooms::Bounds edge{5120, 5000, 5320, 5002};
+		Check(reach.Within(edge) == LevelRoute::Reach::Answer::Reached, "shared edge has reachable floor from Meshif dock");
+		LevelRoute::Plan plan;
+		const auto way = plan.Into(memory, world.player, edge, world.bodyPattern);
+		Check(!way.path.empty() && !way.guess && way.path.back().x < 5160 && way.path.back().y == 5001,
+			"dock walk reaches real floor beside the opening instead of the water midpoint");
+	}
+	{
+		// Synthetic collision isolates the first-strip failure. A blocked first
+		// section and an open later section must still have one complete route.
+		Level level;
+		level.Fill(Left, Top, Left + Width - 1, Top + Height - 1, Wall);
+		level.Fill(Left + 2, Top, Left + 8, Top + Height - 2, 0);
+		auto world = level.Loaded({Left + 5.0, Top + Height - 4.0}, 5);
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()) && memory.Learn(world), "multi-section regression learns the floor");
+		const NativeRooms::Bounds blocked{Left + 100, Top, Left + 140, Top + 2};
+		const NativeRooms::Bounds open{Left, Top, Left + 40, Top + 2};
+		const std::vector<NativeRooms::Bounds> sections{blocked, open};
+		LevelRoute::Reach reach(memory, world.player, world.bodyPattern);
+		Check(reach.Within(blocked) == LevelRoute::Reach::Answer::CutOff,
+			"the first room alone reproduces the false refusal");
+		Check(reach.Within(sections) == LevelRoute::Reach::Answer::Reached,
+			"one reachable later section keeps the destination reachable");
+		LevelRoute::Plan plan;
+		Check(plan.Into(memory, world.player, blocked, world.bodyPattern).path.empty(), "the blocked first section has no route");
+		const auto route = plan.Into(memory, world.player, sections, world.bodyPattern);
+		Check(!route.path.empty() && !route.guess && NativeRooms::Contains(open, int(route.path.back().x), int(route.path.back().y)),
+			"multi-source routing selects real floor in another section and refreshes the cached target");
+		Check(plan.Into(memory, world.player, std::vector<NativeRooms::Bounds>{blocked}, world.bodyPattern).path.empty(),
+			"removing the open section invalidates the cached route even with the same first section");
+		Check(reach.Within(std::vector<NativeRooms::Bounds>{blocked}) == LevelRoute::Reach::Answer::CutOff,
+			"all blocked candidate sections still report cut off");
+		Check(reach.Within(std::vector<NativeRooms::Bounds>{}) == LevelRoute::Reach::Answer::Unknown,
+			"missing border data is unknown rather than proof of no passage");
+		const std::vector<NativeRooms::Bounds> duplicate{blocked, open, open};
+		Check(plan.Into(memory, world.player, duplicate, world.bodyPattern).path.size() == route.path.size(),
+			"overlapping seeds do not duplicate search work or alter the shortest path");
+	}
+	{
+		// A room that has not streamed may still contain the passage. Preserve
+		// the existing speculative routing policy and label its route as a guess.
+		Level level;
+		auto world = level.Loaded({Left + 20.0, Top + Height - 20.0}, 0);
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()) && memory.Learn(world), "partially loaded regression starts");
+		const std::vector<NativeRooms::Bounds> sections{{Left + 2, Top + 2, Left + 30, Top + 4}};
+		LevelRoute::Reach reach(memory, world.player, world.bodyPattern);
+		Check(reach.Within(sections) == LevelRoute::Reach::Answer::Reached,
+			"unstreamed ground is not evidence that a destination is impossible");
+		LevelRoute::Plan plan;
+		const auto route = plan.Into(memory, world.player, sections, world.bodyPattern);
+		Check(!route.path.empty() && route.guess, "a partial-map route retains its explicit unknown-terrain status");
+	}
 	Passed();
 	return 0;
 }

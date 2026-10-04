@@ -196,7 +196,7 @@ inline constexpr Table ruRU {
 	.walkTo = "Иду к %s",
 	.walkStopped = "Остановлено",
 	.walkBlocked = "Путь к %s заблокирован",
-	.walkNoRoute = "Нет пути к %s",
+	.walkNoRoute = "Нет известного пути к %s",
 	.walkNothing = "Цель не выбрана",
 	.exploreTo = "Иду к неисследованной местности",
 	.exploreArrived = "Неисследованная местность достигнута",

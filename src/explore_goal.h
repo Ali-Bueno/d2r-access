@@ -7,9 +7,9 @@
 #include <cstdint>
 #include <vector>
 
-// Where to walk to find new ground: the room never yet explored that is
-// fewest rooms away, which is what a sighted player reads off the automap's
-// dark edge. Pure logic over the level's room graph and the exploration
+// Where to walk to find new ground: the nearest reachable room not yet
+// entered, by actual walking steps when loaded floor provides a route,
+// otherwise by room hops through ground still unseen. Pure logic over the level's room graph and the exploration
 // memory, unit-tested without the game.
 namespace D2RAccess::ExploreGoal {
 using Radar::Position;
@@ -17,11 +17,11 @@ using Radar::Position;
 struct Choice {
 	bool found = false;
 	size_t room = NativeRooms::None; // index into the graph's rooms
-	Position position;               // the room's centre, in subtiles
+	Position position; // nearest reachable entry cell, otherwise the room centre, in subtiles
 	int hops = 0;                    // rooms between the player and it, itself included
 };
 
-// `explored` is the ground already known (TerrainService::ExploredRooms);
+// `explored` holds actual visits/current room (TerrainService::ExplorationRooms);
 // `refused` holds the ids of rooms a walk has already given up on, so the next
 // ask moves on instead of trying the same wall again. A border the grid proves
 // closed is not walked through. Nothing is found when every room that can be

@@ -105,9 +105,14 @@ Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 // An area border is walked across where both levels' floor meets, rarely at the
 // middle of the shared edge that names it. docs/beacon.md#area-borders
 bool AtCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
+	if (!ZoneTransitions::Crosses(entity)) return false;
+	if (const auto* graph = Rooms(state))
+		for (const auto& known : TerrainService::KnownPlaces(state.level, graph->rooms))
+			ZoneTransitions::RestoreCrossing(entity, known);
 	NativeLevelExits::Layout layout;
-	return ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout)
-		&& ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
+	if (NativeEntities::ReadLayout(state.player, true, layout))
+		ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
+	return entity.border == EntityRadar::Entity::Border::Crossing;
 }
 std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity) {
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));

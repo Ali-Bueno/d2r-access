@@ -196,7 +196,7 @@ inline constexpr Table koKR {
 	.walkTo = "%s(으)로 이동 중",
 	.walkStopped = "정지",
 	.walkBlocked = "%s(으)로 가는 길이 막혔습니다",
-	.walkNoRoute = "%s(으)로 가는 길이 없습니다",
+	.walkNoRoute = "%s(으)로 가는 알려진 경로가 없습니다",
 	.walkNothing = "선택된 대상이 없습니다",
 	.exploreTo = "미탐험 지역으로 이동 중",
 	.exploreArrived = "미탐험 지역 도착",

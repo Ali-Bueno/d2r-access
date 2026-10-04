@@ -22,6 +22,7 @@ Choice Nearest(const RoomGraph::Graph& graph, const Navigation::Grid& grid,
 	// room measures every room of the level.
 	const auto hops = RoomGraph::Distances(graph, from, &grid);
 	double nearest = 0;
+	int bestSteps = -1;
 	for (size_t room = 0; room < graph.rooms.size(); ++room) {
 		if (room == from || hops[room] == RoomGraph::NoRoute) continue;
 		const auto id = graph.rooms[room].id;
@@ -29,11 +30,27 @@ Choice Nearest(const RoomGraph::Graph& graph, const Navigation::Grid& grid,
 			|| std::find(refused.begin(), refused.end(), id) != refused.end()) continue;
 		const auto bounds = NativeRooms::Subtiles(graph.rooms[room]);
 		const double distance = DistanceSquared(bounds, player);
-		if (choice.found && (hops[room] > choice.hops || (hops[room] == choice.hops && distance >= nearest))) continue;
-		choice.found = true;
-		choice.room = room;
-		choice.hops = hops[room];
-		choice.position = {(bounds.minX + bounds.maxX - 1) / 2.0, (bounds.minY + bounds.maxY - 1) / 2.0};
+		Position entry{(bounds.minX + bounds.maxX - 1) / 2.0, (bounds.minY + bounds.maxY - 1) / 2.0};
+		// Enter the room at reachable floor, not its geometric centre: town
+		// rectangles include water, walls and narrow paths. When it is beyond
+		// the loaded collision window, the existing room/map guidance leads.
+		int steps = -1;
+		for (int y = std::max(bounds.minY, grid.y); y < std::min(bounds.maxY, grid.y + grid.height); ++y)
+			for (int x = std::max(bounds.minX, grid.x); x < std::min(bounds.maxX, grid.x + grid.width); ++x) {
+				const auto* cell = grid.At(x, y);
+				if (!cell || cell->body != Radar::State::Open || cell->steps < 0 || (steps >= 0 && cell->steps >= steps)) continue;
+				steps = cell->steps;
+				entry = {static_cast<double>(x), static_cast<double>(y)};
+			}
+		// A proved walking route comes before a guess through unloaded scenery.
+		// Among proved routes choose the nearest entry by actual walking steps.
+		if (choice.found) {
+			if (bestSteps >= 0 && (steps < 0 || steps >= bestSteps)) continue;
+			if (bestSteps < 0 && steps < 0
+				&& (hops[room] > choice.hops || (hops[room] == choice.hops && distance >= nearest))) continue;
+		}
+		choice = {true, room, entry, hops[room]};
+		bestSteps = steps;
 		nearest = distance;
 	}
 	return choice;

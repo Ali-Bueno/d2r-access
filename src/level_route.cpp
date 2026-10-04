@@ -8,7 +8,7 @@
 
 namespace D2RAccess::LevelRoute {
 namespace {
-// The widest level is 200x200 tiles (Levels.txt SizeX/SizeY), a million cells.
+// Bound the generated room union, including long and irregular outdoor levels.
 constexpr int64_t MaxCells = 1024 * 1024;
 // A unit's own centre marker. A live unit's is taken off with the unit's bits
 // (Radar::TerrainCollisionFlags); a bare one is a marker left behind
@@ -112,7 +112,9 @@ bool Memory::Learn(const Radar::World& world) {
 				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
 					: (shut & Radar::Collision::Door) ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
-				if (cell == ground) continue;
+				// A foreign streamed room may overlap a hole in this level's union.
+				// Collision cannot turn ground outside its logical rooms into floor.
+				if (cell == Ground::Outside || cell == ground) continue;
 				cell = ground;
 				changed = true;
 			}
@@ -129,6 +131,13 @@ Ground Memory::At(int x, int y) const {
 }
 
 Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen)
+	: Field(memory, NativeRooms::Bounds{Cell(place.x) - margin, Cell(place.y) - margin,
+		Cell(place.x) + margin + 1, Cell(place.y) + margin + 1}, bodyPattern, unseen) {}
+
+Field::Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen)
+	: Field(memory, std::vector<NativeRooms::Bounds>{room}, bodyPattern, unseen) {}
+
+Field::Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen)
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
 	// A shut door is no part of a way: the game will not walk through one.
@@ -139,13 +148,14 @@ Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, 
 	const auto index = [&](int x, int y) { return static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1); };
 	const auto row = static_cast<int64_t>(across);
 	std::vector<uint32_t> queue;
-	const int placeX = Cell(place.x), placeY = Cell(place.y);
-	for (int dy = -margin; dy <= margin; ++dy) {
-		for (int dx = -margin; dx <= margin; ++dx) {
-			const int x = placeX + dx, y = placeY + dy;
-			if (x < x_ || y < y_ || x >= x_ + width_ || y >= y_ + height_ || !stood[index(x, y)]) continue;
-			steps_[index(x, y)] = 0;
-			queue.push_back(static_cast<uint32_t>(index(x, y)));
+	for (const auto& region : regions) {
+		for (int y = std::max(y_, region.minY); y < std::min(y_ + height_, region.maxY); ++y) {
+			for (int x = std::max(x_, region.minX); x < std::min(x_ + width_, region.maxX); ++x) {
+				const auto at = index(x, y);
+				if (!stood[at] || steps_[at] == 0) continue;
+				steps_[at] = 0;
+				queue.push_back(static_cast<uint32_t>(at));
+			}
 		}
 	}
 	std::array<int64_t, 8> around{};
@@ -212,6 +222,28 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 	way.path = seen_->From(from);
 	if (!way.path.empty() || seen_->At(from)) return way;
 	if (!any_) any_.emplace(memory, place, margin, bodyPattern, true);
+	way.path = any_->From(from);
+	way.guess = !way.path.empty();
+	return way;
+}
+
+Way Plan::Into(const Memory& memory, Position from, const NativeRooms::Bounds& room, int bodyPattern) {
+	return Into(memory, from, std::vector<NativeRooms::Bounds>{room}, bodyPattern);
+}
+
+Way Plan::Into(const Memory& memory, Position from, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern) {
+	const Key key{memory.Session(), memory.Revision(), memory.Level(), 0, 0, 0, bodyPattern, true, regions};
+	if (!(key == key_)) {
+		key_ = key;
+		seen_.reset();
+		any_.reset();
+	}
+	Way way;
+	if (!memory.Revision()) return way;
+	if (!seen_) seen_.emplace(memory, regions, bodyPattern, false);
+	way.path = seen_->From(from);
+	if (!way.path.empty() || seen_->At(from)) return way;
+	if (!any_) any_.emplace(memory, regions, bodyPattern, true);
 	way.path = any_->From(from);
 	way.guess = !way.path.empty();
 	return way;
@@ -342,6 +374,17 @@ Reach::Answer Reach::To(Position place, int margin) const {
 
 Reach::Answer Reach::Within(const NativeRooms::Bounds& bounds) const {
 	return Among(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
+}
+
+Reach::Answer Reach::Within(const std::vector<NativeRooms::Bounds>& regions) const {
+	if (regions.empty()) return Answer::Unknown;
+	bool unknown = false;
+	for (const auto& region : regions) {
+		const auto answer = Within(region);
+		if (answer == Answer::Reached) return answer;
+		unknown = unknown || answer == Answer::Unknown;
+	}
+	return unknown ? Answer::Unknown : Answer::CutOff;
 }
 
 bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const {

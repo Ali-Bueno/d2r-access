@@ -1,5 +1,7 @@
 #include "explore_goal.h"
+#include "navigation_policy.h"
 #include "test_support.h"
+#include "fixtures/spider_forest_routing.h"
 
 #include <vector>
 
@@ -71,6 +73,56 @@ int main() {
 		Check(choice.found && choice.room == 4, "a border the collision proves closed is not walked through");
 		const auto none = ExploreGoal::Nearest(graph, builder.grid, {rooms[0], rooms[4]}, player);
 		Check(!none.found, "rooms behind a closed border with no other way in are not offered");
+	}
+	{
+		// A dock runs along the near edge of the next room, with water at its
+		// centre. Navigation has proved the dock reachable from this room.
+		GridBuilder dock(0, 0, 80, 40);
+		dock.Set(0, 0, 79, 39, Radar::State::Blocked);
+		dock.Set(0, 18, 44, 22, Radar::State::Open);
+		for (int x = 40; x <= 44; ++x) dock.grid.cells[static_cast<size_t>(20) * 80 + x].steps = x - 20;
+		const std::vector<NativeRooms::Room> town{rooms[0], rooms[1]};
+		const auto townGraph = RoomGraph::Build(town);
+		const auto oldKnown = NavigationPolicy::Explored({rooms[0]}, &town, town, player);
+		Check(!ExploreGoal::Nearest(townGraph, dock.grid, oldKnown, player).found,
+			"fixture: charted town scenery exhausted the old exploration goals");
+		const auto known = NavigationPolicy::ForExploration(75, {rooms[0]}, &town, town, player);
+		const auto choice = ExploreGoal::Nearest(townGraph, dock.grid, known, player);
+		Check(choice.found && choice.room == 1 && choice.position.x == 40 && choice.position.y == 20,
+			"exploration enters reachable dock floor instead of aiming at a blocked room centre");
+		Check(NativeRooms::Containing({rooms[0], rooms[1]}, choice.position) == 1,
+			"reachable entry target still lies inside the unexplored room");
+	}
+	{
+		// One hop toward unseen water is geometrically closer; a two-hop entry
+		// has a complete walking route. H must choose the actual floor first.
+		GridBuilder known(0, 0, 120, 80);
+		known.Set(0, 0, 119, 39, Radar::State::Open);
+		known.grid.cells[20 * 120 + 80].steps = 60;
+		const auto choice = ExploreGoal::Nearest(graph, known.grid, {rooms[0], rooms[1], rooms[3]}, player);
+		Check(choice.found && choice.room == 2 && choice.position.x == 80,
+			"reachable entry wins over a nearer speculative room");
+		known.grid.cells[40 * 120 + 20].body = Radar::State::Open;
+		known.grid.cells[40 * 120 + 20].steps = 100;
+		const auto nearer = ExploreGoal::Nearest(graph, known.grid, {rooms[0], rooms[1], rooms[3]}, player);
+		Check(nearer.found && nearer.room == 2,
+			"actual walking steps rank reachable rooms ahead of geometric hops");
+		const auto next = ExploreGoal::Nearest(graph, known.grid, {rooms[0], rooms[1], rooms[3]}, player, {rooms[2].id});
+		Check(next.found && next.room == 4, "a newly unavailable goal has another reachable room to choose");
+	}
+	{
+		// User's read-only 2026-10-04 Spider Forest collision capture, including
+		// actual loaded grids, full logical layout and the matching stored visits.
+		const auto captured = SpiderForestRouting::Capture();
+		const auto layout = RoomGraph::Build(captured.rooms);
+		const auto grid = Navigation::Build(captured.world, Navigation::MaxRadius, Radar::Layer::Terrain, false);
+		const auto visits = NavigationPolicy::ForExploration(76, captured.visited, &captured.rooms, captured.rooms, captured.world.player);
+		const auto choice = ExploreGoal::Nearest(layout, grid, visits, captured.world.player);
+		Check(choice.found && layout.rooms[choice.room].tileX == 1016 && layout.rooms[choice.room].tileY == 912,
+			"captured Spider Forest chooses the nearest reachable unvisited floor despite charted scenery");
+		const auto* entry = grid.At(static_cast<int>(choice.position.x), static_cast<int>(choice.position.y));
+		Check(entry && entry->steps == 72 && entry->body == Radar::State::Open,
+			"captured Spider Forest entry has a complete 72-step native-collision route");
 	}
 	Passed();
 	return 0;

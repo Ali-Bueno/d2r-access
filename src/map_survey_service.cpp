@@ -282,7 +282,8 @@ std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar:
 	};
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
-		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
+		|| !NativeEntities::ReadLayout(state.player, true, layout))
+		return ZoneTransitions::FoundAtCrossings(scene.landmarks, {}, found);
 	return ZoneTransitions::FoundAtCrossings(scene.landmarks, ZoneTransitions::Find(world, layout, Navigation::MaxRadius), found);
 }
 
@@ -319,11 +320,16 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	const auto& rooms = CurrentRooms(state.level, state.session);
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
+	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	const auto charted = NativeAutomap::RevealedRooms(rooms);
 	g_townNpcs.Found(state.level, g_fullAssistance ? scene.townNpcs
 		: charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
+	// Match legacy midpoint records against the area's naming identity before
+	// merging; a live bearing suppresses them, and measured records restore it.
+	if (g_fullAssistance)
+		ZoneTransitions::MergeKnown(seen, TerrainService::KnownPlaces(state.level, rooms));
 	const auto enemies = Enemies(world, scene);
 	seen.insert(seen.end(), enemies.begin(), enemies.end());
 	const auto found = g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
@@ -333,7 +339,6 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	present.insert(present.end(), items.begin(), items.end());
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
 	KeyboardService::NotePads(world, scene.landmarks);
-	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	LogTownNpcs(g_context, state, scene);
 	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
 		return CorpseMemory::Covered(rooms, grid, world.player, position);
@@ -393,9 +398,16 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
 	// Fixed places found on this same map in an earlier game, whose rooms the
 	// game has not streamed again; the live read wins where both have one.
-	for (auto& place : TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session)))
-		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) { return EntityRadar::SameTarget(known, place); }))
-			catalogued.push_back(std::move(place));
+	auto known = TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session));
+	// Old archives kept rectangle midpoints. Do not present those as measured
+	// exits: the live area reader identifies them by the same place identity.
+	std::erase_if(known, [&](const auto& place) {
+		return place.border == EntityRadar::Entity::Border::None
+			&& std::any_of(scene.landmarks.begin(), scene.landmarks.end(), [&](const auto& live) {
+				return ZoneTransitions::Crosses(live) && EntityRadar::SameTarget(live, place);
+			});
+	});
+	ZoneTransitions::MergeKnown(catalogued, known);
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
 	const auto townNpcs = g_townNpcs.Seen(state.level, scene.townNpcs);

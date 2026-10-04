@@ -1,4 +1,5 @@
 #include "map_survey.h"
+#include "zone_transitions.h"
 
 #include <algorithm>
 #include <cmath>
@@ -95,7 +96,9 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 		if (found == m_tracked.end()) {
 			m_tracked.push_back({entity, 0});
 		} else {
-			found->entity = entity;
+			auto refreshed = entity;
+			ZoneTransitions::RestoreCrossing(refreshed, found->entity);
+			found->entity = std::move(refreshed);
 			found->misses = 0;
 		}
 	}
@@ -222,7 +225,7 @@ std::vector<EntityRadar::Entity> Discoverable(const Radar::World& world,
 bool Fixed(const EntityRadar::Entity& entity) {
 	using EntityRadar::Category;
 	using EntityRadar::Kind;
-	if (!entity.placeId) return false;
+	if (!entity.placeId || entity.border == EntityRadar::Entity::Border::Bearing) return false;
 	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint))
 		|| (entity.kind == Kind::Object && entity.category == Category::Stash);
 }

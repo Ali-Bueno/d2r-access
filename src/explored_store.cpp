@@ -16,8 +16,8 @@ namespace D2RAccess::ExploredStore {
 namespace {
 constexpr uint64_t FnvOffset = 14695981039346656037ull, FnvPrime = 1099511628211ull;
 // Version 2 adds each map's fixed places after its rooms, version 3 each place's
-// name key; version 1 and 2 archives still read.
-constexpr char Magic[] = "D2REXP03", MagicNoKeys[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
+// name key, version 4 a measured area-border flag. All earlier versions read.
+constexpr char Magic[] = "D2REXP04", MagicNoBorders[] = "D2REXP03", MagicNoKeys[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
 using Table = Store::Table;
 using Room = ExploredRooms::Room;
 void Fnv(uint64_t& hash, uint8_t byte) { hash ^= byte; hash *= FnvPrime; }
@@ -77,6 +77,7 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 			bytes.insert(bytes.end(), place.name.begin(), place.name.end());
 			Put(bytes, place.nameKey.size(), 1);
 			bytes.insert(bytes.end(), place.nameKey.begin(), place.nameKey.end());
+			Put(bytes, place.areaBorder ? 1 : 0, 1);
 		}
 		if (bytes.size() + 8 > MaxArchiveBytes) return false;
 	}
@@ -85,7 +86,8 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 }
 bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 	if (bytes.size() < 20 || bytes.size() > MaxArchiveBytes) return false;
-	const bool withKeys = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withBorders = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withKeys = withBorders || std::equal(MagicNoBorders, MagicNoBorders + 8, bytes.begin());
 	const bool withPlaces = withKeys || std::equal(MagicNoKeys, MagicNoKeys + 8, bytes.begin());
 	if (!withPlaces && !std::equal(MagicRoomsOnly, MagicRoomsOnly + 8, bytes.begin())) return false;
 	size_t at = 8;
@@ -128,6 +130,10 @@ bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 					if (!Get(bytes, at, length, 1) || length > bytes.size() - at) return false;
 					place.nameKey.assign(reinterpret_cast<const char*>(bytes.data() + at), static_cast<size_t>(length));
 					at += static_cast<size_t>(length);
+				}
+				if (withBorders) {
+					if (!Get(bytes, at, length, 1) || length > 1) return false;
+					place.areaBorder = length != 0;
 				}
 				if (!Placeable(place)) return false;
 				record.places.push_back(std::move(place));
@@ -282,7 +288,14 @@ bool MergePlaces(std::vector<Place>& known, const std::vector<Place>& found) {
 		if (!Placeable(place)) continue;
 		const auto same = std::find_if(known.begin(), known.end(), [&](const Place& entry) { return entry.identity == place.identity; });
 		if (same != known.end()) {
-			// The position is fixed; a loaded warp and its preset differ only in id and fraction.
+			// A measured border replaces the old midpoint and retains its identity.
+			// Ordinary loaded warps/presets still keep their fixed position.
+			if (place.areaBorder && (!same->areaBorder || same->x != place.x || same->y != place.y)) {
+				same->x = place.x;
+				same->y = place.y;
+				same->areaBorder = true;
+				changed = true;
+			}
 			if (same->name != place.name || same->nameKey != place.nameKey || same->destination != place.destination
 				|| same->kind != place.kind || same->category != place.category) {
 				same->name = place.name;

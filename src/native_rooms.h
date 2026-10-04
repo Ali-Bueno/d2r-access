@@ -23,7 +23,7 @@ struct Room {
 };
 
 // Subtile rectangle, max exclusive.
-struct Bounds { int minX = 0, minY = 0, maxX = 0, maxY = 0; };
+struct Bounds { int minX = 0, minY = 0, maxX = 0, maxY = 0; bool operator==(const Bounds&) const = default; };
 Bounds Subtiles(const Room& room);
 bool   Contains(const Bounds& bounds, int x, int y);
 

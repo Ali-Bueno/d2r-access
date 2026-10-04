@@ -1,6 +1,7 @@
 #include "navigation_policy.h"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace D2RAccess::NavigationPolicy {
 
@@ -47,5 +48,11 @@ std::vector<NativeRooms::Room> Explored(std::vector<NativeRooms::Room> visited,
 	// The room the player stands in is explored even before either memory records it.
 	if (const size_t current = NativeRooms::Containing(rooms, player); current != NativeRooms::None) add(rooms[current]);
 	return visited;
+}
+std::vector<NativeRooms::Room> ForExploration(int level, std::vector<NativeRooms::Room> visited,
+	const std::vector<NativeRooms::Room>* charted, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	(void)level;
+	(void)charted;
+	return Explored(std::move(visited), nullptr, rooms, player);
 }
 }

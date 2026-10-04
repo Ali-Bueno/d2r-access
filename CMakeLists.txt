@@ -245,7 +245,7 @@ if(BUILD_TESTING)
 	target_compile_features(beacon-tests PRIVATE cxx_std_20)
 	add_test(NAME beacon COMMAND beacon-tests)
 	add_executable(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp
-		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp
+		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp src/zone_transitions.cpp src/rooms.cpp
 		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(beacon-service-tests PRIVATE src)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
@@ -412,7 +412,7 @@ if(BUILD_TESTING)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
-	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp
+	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/zone_transitions.cpp src/rooms.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp
 		src/native_rooms.cpp src/native_memory.cpp)
 	target_include_directories(map-survey-tests PRIVATE src)
 	target_compile_features(map-survey-tests PRIVATE cxx_std_20)
@@ -649,7 +649,7 @@ if(BUILD_TESTING)
 	target_include_directories(combat-target-tests PRIVATE src)
 	target_compile_features(combat-target-tests PRIVATE cxx_std_20)
 	add_test(NAME combat-target COMMAND combat-target-tests)
-	add_executable(explore-goal-tests tests/explore_goal_tests.cpp src/explore_goal.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
+	add_executable(explore-goal-tests tests/explore_goal_tests.cpp src/explore_goal.cpp src/navigation_policy.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	target_include_directories(explore-goal-tests PRIVATE src)
 	target_compile_features(explore-goal-tests PRIVATE cxx_std_20)
 	target_compile_definitions(explore-goal-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)

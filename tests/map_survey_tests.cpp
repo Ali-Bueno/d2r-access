@@ -447,6 +447,23 @@ void TownNpcsListedOnceSeen() {
 
 
 int main() {
+	// A fresh full-assistance snapshot still contains the border's bearing.
+	// It must not undo a discovered crossing when the gate unloads or we revisit.
+	{
+		auto crossing = Make(75, 5143, 4999, EntityRadar::Kind::Exit);
+		crossing.category = EntityRadar::Category::Exit; crossing.destinationLevel = 75;
+		crossing.placeId = 0x14281388;
+		crossing.border = EntityRadar::Entity::Border::Crossing;
+		auto bearing = crossing;
+		bearing.position = {5160, 4999}; bearing.border = EntityRadar::Entity::Border::Bearing;
+		Registry registry;
+		Navigation::Grid grid;
+		registry.Observe(76, {crossing}, grid);
+		registry.Observe(76, {bearing}, grid);
+		Check(registry.Entities().size() == 1 && registry.Entities()[0].position.x == 5143,
+			"a full-assistance reread cannot replace the actual Docks opening with its midpoint");
+		Check(Fixed(crossing) && !Fixed(bearing), "only a measured area border can enter the persistent map archive");
+	}
 	TownNpcsListedOnceSeen();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();

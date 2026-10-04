@@ -196,7 +196,7 @@ inline constexpr Table ptBR {
 	.walkTo = "Andando até %s",
 	.walkStopped = "Parado",
 	.walkBlocked = "O caminho até %s está bloqueado",
-	.walkNoRoute = "Nenhum caminho até %s",
+	.walkNoRoute = "Nenhum caminho conhecido até %s",
 	.walkNothing = "Nenhum alvo selecionado",
 	.exploreTo = "Andando até terreno inexplorado",
 	.exploreArrived = "Terreno inexplorado alcançado",

@@ -209,6 +209,14 @@ void Places() {
 	ExploredStore::MergePlaces(bounded, many);
 	Check(bounded.size() == ExploredStore::MaxPlaces, "a level keeps a bounded number of places");
 
+	Place measured = border;
+	measured.x = 283;
+	measured.areaBorder = true;
+	Check(ExploredStore::MergePlaces(known, {measured}) && known[1].x == 283 && known[1].areaBorder,
+		"the measured Kurast-style exit replaces a legacy midpoint without duplication");
+	Check(!ExploredStore::MergePlaces(known, {border}) && known[1].x == 283 && known[1].areaBorder,
+		"merging an old approximate record cannot move the exit back to its midpoint");
+
 	const auto directory = Directory("places");
 	const ExploredStore::Key map{0xABCD1234u, 9, 0x1111}, regenerated{0xABCD1234u, 9, 0x2222};
 	ExploredStore::Store::Table table;
@@ -256,7 +264,7 @@ void Places() {
 	in.read(magic, sizeof magic);
 	in.close();
 	read.clear();
-	Check(std::string(magic, sizeof magic) == "D2REXP03" && ExploredStore::ReadArchive(directory, map, old, &read)
+	Check(std::string(magic, sizeof magic) == "D2REXP04" && ExploredStore::ReadArchive(directory, map, old, &read)
 		&& read.size() == 1 && read[0] == stairs, "shutdown writes the places, upgrading the archive");
 
 	// An archive written before name keys were kept reads its places without one.
@@ -276,6 +284,23 @@ void Places() {
 	read.clear();
 	Check(ExploredStore::ReadArchive(directory, map, old, &read) && read.size() == 1 && read[0].name == oldName
 		&& read[0].nameKey.empty() && read[0].destination == 6, "a version 2 archive loads its places with no name key");
+	// Version 3 has localized keys, but no proof that an exit was measured.
+	bytes.resize(bytes.size() - 8);
+	bytes[7] = '3';
+	const std::string oldKey = "Black Marsh";
+	put(oldKey.size(), 1);
+	bytes.insert(bytes.end(), oldKey.begin(), oldKey.end());
+	hash = 14695981039346656037ull;
+	for (const uint8_t byte : bytes) { hash ^= byte; hash *= 1099511628211ull; }
+	put(hash, 8);
+	{
+		std::ofstream out(ExploredStore::ArchiveFile(directory), std::ios::binary);
+		out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+	}
+	read.clear();
+	Check(ExploredStore::ReadArchive(directory, map, old, &read) && read.size() == 1
+		&& read[0].nameKey == oldKey && !read[0].areaBorder,
+		"version 3 retains rooms and names without inventing a verified crossing");
 	std::filesystem::remove_all(directory);
 }
 

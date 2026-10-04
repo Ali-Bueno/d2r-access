@@ -410,6 +410,7 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
 		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
 		// The name in the language being played, whichever one it was found in.
+		entity.border = place.areaBorder ? EntityRadar::Entity::Border::Crossing : EntityRadar::Entity::Border::None;
 		entity.nameKey = place.nameKey;
 		if (auto text = NativeEntities::KeyText(place.nameKey); !text.empty()) entity.name = std::move(text);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
@@ -428,6 +429,7 @@ std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
 		if (!MapSurvey::Fixed(entity)) continue;
+		entity.border = place.areaBorder ? EntityRadar::Entity::Border::Crossing : EntityRadar::Entity::Border::None;
 		entity.nameKey = place.nameKey;
 		if (auto name = NativeEntities::KeyText(place.nameKey); !name.empty()) entity.name = std::move(name);
 		TombSymbols::Mark(entity, Strings::Current());
@@ -445,7 +447,8 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 		// A quest object is known by where it stands; a Cairn Stone by its name without the symbol.
 		fixed.push_back({{entity.id, entity.placeId ? entity.placeId : NativeLevelExits::Identity(entity.position),
 			entity.position.x, entity.position.y, entity.destinationLevel, entity.worldName.empty() ? entity.name : entity.worldName,
-			static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey}, quest});
+			static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey,
+			entity.border == EntityRadar::Entity::Border::Crossing}, quest});
 	}
 	std::vector<std::string> finds;
 	{
@@ -458,7 +461,12 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 		for (const auto& [place, quest] : fixed) {
 			const auto novelty = ExploredStore::Classify(known, place, static_cast<uint32_t>(g_cameFrom));
 			const bool namesake = quest && ExploredStore::Namesake(known, place);
-			if (!ExploredStore::MergePlaces(known, {place}) || novelty == ExploredStore::Novelty::Known) continue;
+			if (!ExploredStore::MergePlaces(known, {place})) continue;
+			if (novelty == ExploredStore::Novelty::Known) {
+				if (place.areaBorder) AsyncLog::InfoF(g_context, "[terrain] crossing remembered level=%d at=%.0f,%.0f to=%u name=%s",
+					level, place.x, place.y, place.destination, place.name.c_str());
+				continue;
+			}
 			const bool wayBack = novelty == ExploredStore::Novelty::WayBack;
 			AsyncLog::InfoF(g_context, "[terrain] place remembered level=%d at=%.0f,%.0f category=%u to=%u places=%zu name=%s%s", level,
 				place.x, place.y, place.category, place.destination, known.size(), place.name.c_str(),
@@ -479,6 +487,9 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
 	const auto charted = NativeAutomap::RevealedRooms(rooms);
 	return NavigationPolicy::Explored(VisitedRooms(level, rooms), charted ? &*charted : nullptr, rooms, player);
+}
+std::vector<NativeRooms::Room> ExplorationRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
+	return NavigationPolicy::ForExploration(level, VisitedRooms(level, rooms), nullptr, rooms, player);
 }
 
 bool Known(int level) {

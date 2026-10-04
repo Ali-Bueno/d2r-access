@@ -224,6 +224,19 @@ const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	return g_graph.Empty() ? nullptr : &g_graph;
 }
 
+std::vector<NativeRooms::Bounds> GoalRegions(const Lifecycle& state, const Entity& target) {
+	if (target.kind == EntityRadar::Kind::Room) {
+		const auto* graph = Rooms(state);
+		if (!graph) return {};
+		const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == target.placeId; });
+		if (room != graph->rooms.end()) return {NativeRooms::Subtiles(*room)};
+	} else if (target.border == Entity::Border::Bearing) {
+		NativeLevelExits::Layout layout;
+		if (NativeEntities::ReadLayout(state.player, true, layout)) return ZoneTransitions::ApproachRegions(target, layout);
+	}
+	return {};
+}
+
 // What the game has shown of the level's floor this game (level_route.h), for
 // the levels walked most lately: the game keeps a room's collision only while
 // the player is near, and a walk that knows only what is loaded plans again
@@ -306,13 +319,9 @@ const LevelRoute::Reach* Reached(const Lifecycle& state, const Radar::World& wor
 }
 bool CutOff(const LevelRoute::Reach& reach, const Lifecycle& state, const Entity& target) {
 	using Answer = LevelRoute::Reach::Answer;
-	if (target.kind == EntityRadar::Kind::Room) {
-		// A room is walked into, not up to: any of its ground will do.
-		const auto* graph = Rooms(state);
-		if (!graph) return false;
-		const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == target.placeId; });
-		return room != graph->rooms.end() && reach.Within(NativeRooms::Subtiles(*room)) == Answer::CutOff;
-	}
+	if (const auto regions = GoalRegions(state, target); !regions.empty()) return reach.Within(regions) == Answer::CutOff;
+	// An unmeasured bearing's midpoint says nothing about the opening's floor.
+	if (target.border == Entity::Border::Bearing) return false;
 	// As near as a walk counts as there (Walk: UseReach and half the footprint),
 	// which is wider than the margin a route is planned to: stairs set into a
 	// wall have no place for the body beside them, and are walked up to all the same.
@@ -384,6 +393,8 @@ bool Look(const Lifecycle& state, Scene& scene, bool exits, bool wholeLevel = fa
 	NotePads(state, scene.entities);
 	// An area border is walked across where both levels' floor meets.
 	if (NativeLevelExits::Layout layout; exits && NativeEntities::ReadLayout(state.player, true, layout)) {
+		const auto* graph = Rooms(state);
+		if (graph) ZoneTransitions::MergeKnown(scene.entities, TerrainService::KnownPlaces(state.level, graph->rooms));
 		const auto crossings = ZoneTransitions::Find(scene.world, layout, Navigation::MaxRadius);
 		for (auto& entity : scene.entities) ZoneTransitions::MoveToCrossing(entity, crossings);
 	}
@@ -726,7 +737,10 @@ bool Led(const Lifecycle& state, const Scene& scene, const Entity& target, int m
 		g_ledPlace = target.position;
 		g_ledPlaceAt = now;
 	}
-	const auto way = g_plan.From(*memory, scene.world.player, g_ledPlace, margin, scene.world.bodyPattern);
+	LevelRoute::Way way;
+	if (const auto regions = GoalRegions(state, target); !regions.empty())
+		way = g_plan.Into(*memory, scene.world.player, regions, scene.world.bodyPattern);
+	else way = g_plan.From(*memory, scene.world.player, g_ledPlace, margin, scene.world.bodyPattern);
 	if (!LevelRoute::Ahead(way.path, scene.grid, ahead)) return false;
 	if (now < g_ledLog || now - g_ledLog >= LedLogMs || way.guess != g_ledGuess) {
 		g_ledLog = now;
@@ -740,7 +754,8 @@ bool Led(const Lifecycle& state, const Scene& scene, const Entity& target, int m
 
 // One leg of a walk toward a thing, along the route the beacon would ping.
 Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& target, double reach, uint64_t now) {
-	if (Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
+	const bool bearing = target.border == Entity::Border::Bearing;
+	if (!bearing && Distance(scene.world.player, target.position) <= reach) return Progress::Arrived;
 	const int margin = Margin(target);
 	Beacon::Settings settings;
 	settings.arrivalDistance = reach;
@@ -750,7 +765,11 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 	Position destination = target.position;
 	const char* toward = "the thing itself";
 	Beacon::Route route;
-	if (Steps(scene.grid, target.position, margin) < 0 && Led(state, scene, target, margin, now, destination)) {
+	if (bearing) {
+		if (!Led(state, scene, target, margin, now, destination)) return Progress::NoRoute;
+		toward = "the shared area edge";
+		route = Beacon::FindRoute(scene.world, destination, settings);
+	} else if (Steps(scene.grid, target.position, margin) < 0 && Led(state, scene, target, margin, now, destination)) {
 		toward = "the way over the remembered map";
 		route = Beacon::FindRoute(scene.world, destination, settings);
 	} else {
@@ -806,15 +825,20 @@ bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, dou
 // interact with it with d. but it's fine if the route has to split into legs
 // accounting for each pad" (the user, 2026-10-02). The walk key again goes on
 // from where the pad put the player.
+bool Refresh(const Lifecycle& state, const Scene& scene, Entity& target);
+
 bool SetOut(const Lifecycle& state, const Entity& target, Mode mode, const char* reason) {
 	Entity leg = target;
-	if (Scene scene; Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
+	Scene scene;
+	const bool looked = Look(state, scene, target.kind == EntityRadar::Kind::Exit, target.kind == EntityRadar::Kind::Exit);
+	if (looked && target.kind == EntityRadar::Kind::Exit) (void)Refresh(state, scene, leg);
+	if (looked && NoWay(state, scene, leg, UseReach + HalfFootprint(leg))) {
 		LevelRoute::Pad pad;
 		std::optional<Entity> first;
-		if (PadWay(state, scene.world, target, pad)) first = PadThing(state, scene.entities, pad);
+		if (PadWay(state, scene.world, leg, pad)) first = PadThing(state, scene.entities, pad);
 		if (!first) {
 			End("no way", true);
-			AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
+			AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no known route on foot from %.0f,%.0f to %s at %.0f,%.0f",
 				scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
 			ScreenReader::Speak(Format(Strings::Current().walkNoRoute, target.name.c_str()), true);
 			return false;
@@ -871,7 +895,12 @@ bool Refresh(const Lifecycle& state, const Scene& scene, Entity& target) {
 		return !Near(scene.world, target.position);
 	}
 	for (const auto& entity : scene.entities)
-		if (EntityRadar::SameTarget(entity, target)) { target = entity; return true; }
+		if (EntityRadar::SameTarget(entity, target)) {
+			auto refreshed = entity;
+			ZoneTransitions::RestoreCrossing(refreshed, target);
+			target = std::move(refreshed);
+			return true;
+		}
 	for (const auto& entity : scene.entities)
 		if (EntityRadar::Recreated(target, entity)) { target = entity; return true; }
 	// Not loaded is not gone: a place keeps where it was, and a unit too until
@@ -895,6 +924,8 @@ Position Beyond(Position player, Position crossing) {
 	if (length < 1) return crossing;
 	return {std::round(crossing.x + way.x / length * CrossBy), std::round(crossing.y + way.y / length * CrossBy)};
 }
+
+void BeginExplore(const Lifecycle& state);
 
 void Walk(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
@@ -921,8 +952,15 @@ void Walk(const Lifecycle& state, uint64_t now) {
 	}
 	// Cut off, as the map now shows: said here, not from the edge nearest the thing.
 	if (g_mode != Mode::Interact && NoWay(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach)) {
-		AsyncLog::InfoF(g_context, "[keyboard] walk: no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
+		AsyncLog::InfoF(g_context, "[keyboard] walk: no known route on foot from %.0f,%.0f to %s at %.0f,%.0f",
 			scene.world.player.x, scene.world.player.y, name.c_str(), g_target.position.x, g_target.position.y);
+		if (g_mode == Mode::Explore) {
+			// Streaming proved the speculative room inaccessible. Keep the H
+			// request and choose reachable new floor instead of abandoning it.
+			End("explore room cut off", true);
+			BeginExplore(state);
+			return;
+		}
 		End("no way", true);
 		ScreenReader::Speak(Format(strings.walkNoRoute, name.c_str()), true);
 		return;
@@ -1145,7 +1183,7 @@ void BeginExplore(const Lifecycle& state) {
 	Scene scene;
 	const auto* graph = Rooms(state);
 	if (!graph || !Look(state, scene, false)) { ScreenReader::Speak(strings.terrainUnavailable, true); return; }
-	const auto explored = TerrainService::ExploredRooms(state.level, graph->rooms, scene.world.player);
+	const auto explored = TerrainService::ExplorationRooms(state.level, graph->rooms, scene.world.player);
 	// A room cut off from here is no place to walk to: 2026-10-02, the Arcane
 	// Sanctuary, H ended three times with no way to the room it chose. Looked
 	// for at each ask, since a teleport pad changes it.

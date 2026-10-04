@@ -196,7 +196,7 @@ inline constexpr Table jaJP {
 	.walkTo = "%s へ移動中",
 	.walkStopped = "停止",
 	.walkBlocked = "%s への道は塞がれています",
-	.walkNoRoute = "%s への道がありません",
+	.walkNoRoute = "%s への既知の経路がありません",
 	.walkNothing = "移動先が選択されていません",
 	.exploreTo = "未探索の場所へ移動中",
 	.exploreArrived = "未探索の場所に到着",

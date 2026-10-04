@@ -34,6 +34,7 @@ struct Place {
 	std::string name;         // as the game named it when found, in that game's language
 	uint8_t kind = 0, category = 0; // EntityRadar::Kind and Category, checked on use
 	std::string nameKey;      // the game string key of `name`, read again in the language being played
+	bool areaBorder = false; // position measured at passable floor, not a bounding-rectangle bearing
 	bool operator==(const Place&) const = default;
 };
 struct Update { Key key; std::vector<ExploredRooms::Room> rooms; std::vector<Place> places; };

@@ -232,7 +232,7 @@ struct Table {
 	const char* walkTo; // %s = what the character sets out for
 	const char* walkStopped; // a walk, a retreat or a fight ended by the player
 	const char* walkBlocked; // %s = the target; the character stopped making headway
-	const char* walkNoRoute; // %s = the target
+	const char* walkNoRoute; // %s = the target; no known route, not proof that no passage exists
 	const char* walkNothing; // the scanner has named nothing to walk to
 	const char* exploreTo;
 	const char* exploreArrived;

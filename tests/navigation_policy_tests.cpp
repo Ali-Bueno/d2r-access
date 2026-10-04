@@ -27,6 +27,21 @@ Radar::World OpenWorld() {
 }
 
 int main() {
+	{
+		const std::vector<NativeRooms::Room> town{Room(1000, 1000), Room(1008, 1000), Room(1016, 1000)};
+		const auto known = NavigationPolicy::ForExploration(75, {}, &town, town, {5005, 5005});
+		Check(known.size() == 1 && known[0].id == town[0].id, "Kurast automap scenery does not finish unvisited town rooms");
+		const auto visited = NavigationPolicy::ForExploration(75, {town[1]}, &town, town, {5005, 5005});
+		Check(visited.size() == 2, "town exploration combines actual visits and the player's current room");
+		Check(NavigationPolicy::ForExploration(75, town, &town, town, {5005, 5005}).size() == town.size(),
+			"town exploration still finishes after every room is visited");
+		Check(NavigationPolicy::ForExploration(76, {}, &town, town, {5005, 5005}).size() == 1,
+			"Spider Forest charted terrain does not finish rooms the player has never entered");
+		Check(NavigationPolicy::ForExploration(1, {}, &town, town, {5005, 5005}).size() == 1,
+			"other towns also retain unvisited exploration goals");
+		Check(NavigationPolicy::Explored({}, &town, town, {5005, 5005}).size() == town.size(),
+			"beacon known-ground policy still includes charted town rooms");
+	}
 	const auto first = Room(0, 0), middle = Room(8, 0), last = Room(16, 0);
 	const std::vector<NativeRooms::Room> visited{first, last};
 	Check(NavigationPolicy::Contains(visited, {0, 0}), "a visited room includes its first subtile");

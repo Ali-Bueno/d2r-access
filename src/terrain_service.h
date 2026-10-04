@@ -38,6 +38,9 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);
+// Rooms H should pass over: physical visits in towns, the usual known-ground
+// rule elsewhere. This does not change the beacon's charted-route policy.
+std::vector<NativeRooms::Room> ExplorationRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool RoomSounds();

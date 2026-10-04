@@ -196,7 +196,7 @@ inline constexpr Table deDE {
 	.walkTo = "Gehe zu %s",
 	.walkStopped = "Angehalten",
 	.walkBlocked = "Der Weg zu %s ist versperrt",
-	.walkNoRoute = "Kein Weg zu %s",
+	.walkNoRoute = "Kein bekannter Weg zu %s",
 	.walkNothing = "Kein Ziel zum Hingehen gewählt",
 	.exploreTo = "Gehe zu unerkundetem Gebiet",
 	.exploreArrived = "Unerkundetes Gebiet erreicht",

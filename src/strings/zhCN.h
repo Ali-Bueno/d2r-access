@@ -196,7 +196,7 @@ inline constexpr Table zhCN {
 	.walkTo = "正在前往%s",
 	.walkStopped = "已停止",
 	.walkBlocked = "通往%s的路被挡住了",
-	.walkNoRoute = "没有通往%s的路",
+	.walkNoRoute = "没有通往%s的已知路线",
 	.walkNothing = "未选择目标",
 	.exploreTo = "正在前往未探索区域",
 	.exploreArrived = "已到达未探索区域",

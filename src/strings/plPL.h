@@ -196,7 +196,7 @@ inline constexpr Table plPL {
 	.walkTo = "Idę do: %s",
 	.walkStopped = "Zatrzymano",
 	.walkBlocked = "Droga do: %s jest zablokowana",
-	.walkNoRoute = "Brak drogi do: %s",
+	.walkNoRoute = "Brak znanej drogi do: %s",
 	.walkNothing = "Nie wybrano celu",
 	.exploreTo = "Idę do niezbadanego terenu",
 	.exploreArrived = "Osiągnięto niezbadany teren",

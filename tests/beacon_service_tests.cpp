@@ -97,6 +97,7 @@ namespace D2RAccess::NativeAutomap {
 std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>&) { return chartedRooms; }
 }
 namespace D2RAccess::TerrainService {
+std::vector<EntityRadar::Entity> KnownPlaces(int, const std::vector<NativeRooms::Room>&) { return {}; }
 std::vector<NativeRooms::Room> VisitedRooms(int, const std::vector<NativeRooms::Room>&) { return visitedRooms; }
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {
 	const auto charted = NativeAutomap::RevealedRooms(rooms);
@@ -139,11 +140,6 @@ bool ReadLevel(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
 namespace D2RAccess::NativeEntities {
 bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool, bool) { return false; }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
-}
-namespace D2RAccess::ZoneTransitions {
-std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
-bool Crosses(const EntityRadar::Entity&) { return false; }
-bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
 bool Recreated(const Entity&, const Entity&) { return false; } }
