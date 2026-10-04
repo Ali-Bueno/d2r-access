@@ -2,6 +2,34 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Keyboard skill hotkeys and town NPC catalogue corrections ? 2026-10-04
+
+**Built to workspace stage only; full CTest 104/104 passes, timeout 20.**
+The game is still running; deployment waits for the user's close notification.
+Local build uses the default four jobs and BelowNormal priority.
+
+Keyboard skill hotkeys announce the game's localized name after native
+selection succeeds, including quick cast and remapped controls. A fresh press
+of the same skill speaks again. Release, menus, chat, settings and physical
+controller input stay silent. Hooks copy ids; PRISM/logging retain their workers.
+All seven guarded native functions matched the current running game in a
+read-only inspection. [Evidence and policy](docs/keyboard-actions.md#skill-hotkey-announcements).
+
+The earlier merge mistakenly removed town NPCs from the local catalogue memory:
+its replacement stored only seen ids and required a current scan entry.
+Town snapshots now survive unloading in both assistance modes. A second
+incorrect check suppressed native town presets when their room was walked but
+the client NPC unit was absent. Removing that check restores the initial list
+on a charted town after reload, preferring current live positions when present.
+The user's log and a read-only Lut Gholein snapshot show known room discovery
+alongside incomplete current NPC units and existing unique NPC presets.
+[Regression evidence](docs/entity-scan.md#town-npcs-after-unloading-and-reload--2026-10-04).
+
+Staged DLL SHA-256 `4D38097F1415013F332FE9E8D666B3DC635D6443B399424A2B7073DB91F22E47`
+matches the build. Logs/evidence are in `../re/skill-hotkeys/`.
+Live skill speech and NPC list checks are pending after deployment. No push or
+release requested; commits remain local on `keyboard-local`.
+
 ## Additive upstream integration, retreat and repair — 2026-10-03
 
 **Built and deployed with D2RLoader 1.3.1-beta after the user saved/closed the

@@ -254,7 +254,7 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 	if (state.level == g_townNpcLevel && state.session == g_townNpcSession && scene.townNpcs.size() == g_townNpcCount
 		&& seen == g_townNpcSeen) return;
 	g_townNpcLevel = state.level; g_townNpcSession = state.session; g_townNpcCount = scene.townNpcs.size(); g_townNpcSeen = seen;
-	if (scene.townNpcs.empty()) return;
+	if (!seen && scene.townNpcs.empty()) return;
 	std::string listed;
 	for (const auto& npc : scene.townNpcs) {
 		char entry[96]{};
@@ -262,7 +262,7 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 			npc.id == npc.placeId ? "spawn" : "unit");
 		listed += entry;
 	}
-	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu, %zu seen:%s", state.level, scene.townNpcs.size(), seen, listed.c_str());
+	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu available, %zu remembered:%s", state.level, scene.townNpcs.size(), seen, listed.c_str());
 }
 
 bool Collect(const Lifecycle& state, Scene& scene) {
@@ -320,7 +320,8 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
 	const auto charted = NativeAutomap::RevealedRooms(rooms);
-	g_townNpcs.Found(state.level, charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
+	g_townNpcs.Found(state.level, g_fullAssistance ? scene.townNpcs
+		: charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
 	const auto enemies = Enemies(world, scene);
@@ -397,7 +398,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			catalogued.push_back(std::move(place));
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
-	const auto townNpcs = g_fullAssistance ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
+	const auto townNpcs = g_townNpcs.Seen(state.level, scene.townNpcs);
 	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);

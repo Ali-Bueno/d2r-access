@@ -235,17 +235,15 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 	return name == PlaceholderName() ? std::string{} : name;
 }
 // In a town, every NPC its presets place once is listed from anywhere in it:
-// the loaded unit where there is one, else its spawn point. A spawn point in a
-// room just walked is left out, as the NPC is not there (docs/entity-scan.md).
-void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& walked, const Tables& tables,
+// the loaded unit where there is one, else its spawn point. Loaded collision
+// does not prove that an absent client unit is gone: Lut Gholein's distant
+// NPCs can unload while their rooms and presets remain (2026-10-04 snapshot).
+void AddTownNpcs(uintptr_t room, uintptr_t level, const Tables& tables,
 	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
 	uint32_t levelId = 0;
 	std::vector<NativeLevelExits::MonsterPreset> presets;
 	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town
 		|| !NativeLevelExits::ReadMonsters(room, presets)) return;
-	std::unordered_set<uintptr_t> walkedRooms;
-	for (const auto walkedRoom : walked)
-		if (uintptr_t extended = 0; Peek(walkedRoom + RoomExtended, extended) && extended) walkedRooms.insert(extended);
 	for (const auto& preset : presets) {
 		// Several presets of one row (guards) have no single place to name.
 		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) continue;
@@ -255,7 +253,7 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& 
 		bool live = false;
 		for (const auto& [index, classId] : liveNpcs)
 			if (classId == preset.monster) entities[index].placeId = identity, live = true;
-		if (live || walkedRooms.contains(preset.room)) continue;
+		if (live) continue;
 		EntityRadar::Entity npc{static_cast<uint32_t>(identity), EntityRadar::Kind::Npc, preset.position, std::move(name), identity,
 			false, EntityRadar::Category::Npc};
 		entities.push_back(std::move(npc));
@@ -688,7 +686,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
-	if (townNpcs && levelStruct) AddTownNpcs(room, levelStruct, rooms, tables, liveNpcs, entities);
+	if (townNpcs && levelStruct) AddTownNpcs(room, levelStruct, tables, liveNpcs, entities);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);

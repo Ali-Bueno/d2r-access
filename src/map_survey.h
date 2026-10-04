@@ -101,11 +101,11 @@ private:
 class TownNpcSightings {
 public:
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
-	// The ones of `townNpcs` seen on this level.
+	// Remembered NPCs on this level, refreshed by currently loaded units.
 	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;
 	void Clear() { m_seen.clear(); }
 private:
-	std::map<int, std::set<uint64_t>> m_seen;
+	std::map<int, std::map<uint64_t, EntityRadar::Entity>> m_seen;
 };
 
 // Distance and direction for everything known, nearest first: walking steps

@@ -238,15 +238,17 @@ std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 
 void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& found) {
 	for (const auto& npc : found)
-		if (npc.placeId) m_seen[level].insert(npc.placeId);
+		if (npc.placeId) m_seen[level][npc.placeId] = npc;
 }
 
 std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const {
 	std::vector<EntityRadar::Entity> result;
 	const auto seen = m_seen.find(level);
 	if (seen == m_seen.end()) return result;
-	for (const auto& npc : townNpcs)
-		if (seen->second.contains(npc.placeId)) result.push_back(npc);
+	for (const auto& [identity, remembered] : seen->second) {
+		const auto live = std::find_if(townNpcs.begin(), townNpcs.end(), [&](const auto& npc) { return npc.placeId == identity; });
+		result.push_back(live == townNpcs.end() ? remembered : *live);
+	}
 	return result;
 }
 

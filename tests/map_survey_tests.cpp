@@ -1,6 +1,7 @@
 #include "map_survey.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <string>
 
 using namespace D2RAccess;
@@ -425,6 +426,20 @@ void TownNpcsListedOnceSeen() {
 	const auto seen = sightings.Seen(40, {walked, atma});
 	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
 		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
+	const auto unloaded = sightings.Seen(40, {});
+	Check(unloaded.size() == 1 && unloaded.front().id == fara.id && unloaded.front().position.x == fara.position.x,
+		"a discovered NPC stays in the catalogue after its unit and preset unload");
+	sightings.Found(40, {walked});
+	const auto moved = sightings.Seen(40, {});
+	Check(moved.size() == 1 && moved.front().id == 55 && moved.front().position.x == 60,
+		"the latest discovered position replaces the old snapshot without duplication");
+	auto meshif = Make(145, 5208, 5072, EntityRadar::Kind::Npc);
+	meshif.name = "Meshif"; meshif.category = EntityRadar::Category::Npc; meshif.placeId = 211;
+	sightings.Found(40, {meshif});
+	const auto atWaypoint = sightings.Seen(40, {walked, atma});
+	Check(atWaypoint.size() == 2 && std::any_of(atWaypoint.begin(), atWaypoint.end(), [&](const auto& npc) {
+		return npc.name == "Meshif" && npc.id == 145 && npc.position.x == 5208 && npc.position.y == 5072;
+	}), "Meshif remains listed near the waypoint when the current scan no longer contains him");
 	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
 	sightings.Clear();
 	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");

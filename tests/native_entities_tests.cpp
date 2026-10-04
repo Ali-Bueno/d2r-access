@@ -760,6 +760,45 @@ int main() {
 	Check(across.Read(entities) && !across.Find(entities, 77), "a neighbour room belonging to another level contributes no entity");
 	foreignEx.At(ExtendedLevel, nearLevel.Address());
 	Check(across.Read(entities) && across.Find(entities, 77), "a neighbour room of this level is still walked");
+	// Lut Gholein reload: a room and its unique NPC preset can remain loaded
+	// while its client unit is absent. The room is no reason to hide the NPC.
+	Fixture town;
+	Memory<0x200> townLevel;
+	Memory<0x100> townEx;
+	Memory<RoomSize> townRoom;
+	Memory<0x30> townPreset, duplicatePreset;
+	town.roomEx.At(ExtendedLevel, townLevel.Address()); town.roomEx.At(RoomNext, townEx.Address());
+	townLevel.At<uint32_t>(LevelId, 40); townLevel.At(LevelFirstRoom, town.roomEx.Address());
+	townEx.At(ExtendedLevel, townLevel.Address()); townEx.At(RoomPresets, townPreset.Address());
+	townEx.At(RoomActive, townRoom.Address()); townRoom.At(RoomExtended, townEx.Address());
+	std::array<uintptr_t, 1> townNeighbors{townRoom.Address()};
+	town.room.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(townNeighbors.data()));
+	town.room.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	for (auto* logical : {&town.roomEx, &townEx}) {
+		logical->At<int>(RoomTileX, 20); logical->At<int>(RoomTileY, 20);
+		logical->At<int>(RoomTileWidth, 8); logical->At<int>(RoomTileHeight, 8);
+	}
+	townEx.At<int>(RoomTileX, 100); townEx.At<int>(RoomTileY, 200);
+	townPreset.At<uint32_t>(PresetType, MonsterType); townPreset.At<uint32_t>(PresetClass, 0);
+	townPreset.At<int>(PresetX, 20); townPreset.At<int>(PresetY, 10);
+	const auto readTown = [&] { return NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 42, 7,
+		entities, false, false, false, false, 0, true, true); };
+	Check(readTown(), "town NPC preset reader accepts the reload scene");
+	Check(std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.kind == EntityRadar::Kind::Npc; }) == 1
+		&& town.Find(entities, 7)->placeId == 1, "a live NPC wins over its distant preset without a second entry");
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 1); // no live unit of the preset's class
+	Check(readTown() && std::any_of(entities.begin(), entities.end(), [](const auto& npc) {
+		return npc.kind == EntityRadar::Kind::Npc && npc.placeId == 1 && npc.position.x == 520 && npc.position.y == 1010;
+	}), "a unique town NPC stays listed from its native preset even in a walked, loaded room with no client unit");
+	townLevel.At<uint32_t>(LevelId, 9);
+	Check(readTown() && std::none_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }),
+		"monster presets outside towns never reveal distant NPCs");
+	townLevel.At<uint32_t>(LevelId, 40);
+	townPreset.At(PresetNext, duplicatePreset.Address());
+	duplicatePreset.At<uint32_t>(PresetType, MonsterType); duplicatePreset.At<uint32_t>(PresetClass, 0);
+	duplicatePreset.At<int>(PresetX, 21); duplicatePreset.At<int>(PresetY, 10);
+	Check(readTown() && std::none_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }),
+		"repeated guard presets still do not invent one named NPC location");
 	Passed();
 	return 0;
 }

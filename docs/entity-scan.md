@@ -87,3 +87,39 @@ automap; enemies are the one live category.
   `DistancePhrase`. The native unit reader is `src/native_entities.cpp`
   (`docs/entity-units-re.md`). Unnamed placeholder units (`"dummy"`, "una
   fuerza maligna") are dropped there, before any reader sees them.
+
+## Town NPCs after unloading and reload ? 2026-10-04
+
+The 2026-10-03 integration moved town NPCs out of `MapSurvey::Memory` into
+`TownNpcSightings`, but retained only seen identities. Its query still required
+the NPC in the current native scan; full assistance bypassed even that memory.
+This regressed the local rule that a discovered target remains in the list.
+The user's current log shows Meshif at 5208,5072, then absent after returning
+toward the waypoint. `TownNpcSightings` now retains entity snapshots per town
+for the session, refreshes a known NPC from its current unit, and returns its
+stored position when no current entry exists. Full assistance feeds all current
+town entries through the same memory; exploration still requires discovery.
+
+Reload was a second suppression in `NativeEntities::AddTownNpcs`: a unique
+NPC preset was omitted when its logical room had been walked by the reader but
+its live client unit was absent. Loaded collision does not establish NPC-unit
+presence. At reload the user's log records all 49 Lut Gholein rooms explored,
+then only Warriv in the town scene. A bounded read-only snapshot of that game
+found 49 logical rooms, 25 active, with unique NPC presets including Fara,
+Deckard Cain and Meshif even in active rooms. The native reader now uses the
+current preset as a fallback regardless of room activation. A loaded unit wins;
+repeated class presets (guards) and non-town presets remain excluded.
+
+This initial list uses current game data and the existing discovery/automap
+rule. Old game unit ids and moving NPC positions are not restored from disk.
+The town memory clears at a new game; native presets repopulate it. Other
+catalogue memories, the approved Ctrl+U reachability filter and pad routes are
+unchanged. The town diagnostic now distinguishes currently available entries
+from remembered entries.
+
+Regression checks: `map-survey` retains Meshif when missing from the waypoint's
+scan, updates positions, scopes memory to a town and clears on a new game.
+`native-entities` tests a unique preset in a walked active room without its
+client unit, live/preset identity, duplicate guards and non-town exclusion.
+Workspace evidence: `re/skill-hotkeys/town-native-snapshot.json`. Live listening
+and the initial reload list remain to be confirmed after deployment.
