@@ -47,7 +47,7 @@ In a menu:
 | left, right | on a slider or an option that steps: change its value. On a box of text: move in what is typed |
 | A | left click where the cursor is |
 | D | right click where the cursor is (W until the user moved it, 2026-09-27) |
-| Shift+A, Ctrl+A, Shift+D | the same click with the key held, which the game sees: Shift + left click equips, Ctrl + left click sells, moves or drops |
+| Shift+A, Ctrl+A, Shift+D, Alt+A, Alt+D | the same click with the modifier held, which the game sees: Shift + left click equips, Ctrl + left click sells, moves or drops; Alt + left/right click uses the game's Alt action |
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand, or shut it |
 | backslash | say it again |
@@ -65,6 +65,112 @@ In a menu:
 In play PageUp, PageDown, Home and End are what they were (the user,
 2026-09-27: they are tab keys "when a menu is open. otherwise they are still
 the navigation keys"). In a menu backslash says it again: Home was its key.
+
+## Offline respec and Alt clicks (2026-10-04)
+
+In a menu, Alt+A is left click and Alt+D is right click with Alt held.
+They use the same guarded pointer placement and queued mouse press/release
+as the other menu clicks. Hold Alt, tap A or D, and keep Alt down briefly
+while the click finishes. Alt-clicks follow the game's mouse path rather
+than the plugin's value-step helper and do not double-click character rows.
+The loader bindings and the fallback menu key watcher both accept them;
+other Alt navigation combinations retain their existing behavior.
+
+For offline respec, put the game's argument in the existing loader config
+section at `<game>/d2rloader/config/d2rloader.toml`:
+
+```toml
+[d2rloader]
+launch_arguments = "-enablerespec"
+```
+
+Keep existing arguments if any, separated by spaces. The loader passes this
+argument; no shortcut edit is needed to pass it. However, the user's argument-only
+1.3.1 session had the native flag OFF despite that argument, and no plus
+buttons with zero remaining points. The user subsequently authorized the
+loader setting, now installed as:
+
+```toml
+[d2rcore.player]
+enable_respec = true
+```
+
+The existing launch argument is retained. The game was closed while changing
+the config; exact bytes, parsed values and SHA-256 were verified. The user subsequently confirmed the reset works, and the latest log shows
+plus-button access and Alt+A on StrengthPointButton.
+When native respec is enabled, select an actual spend-point plus button in the
+character panel, hold Alt and tap A. Attribute labels do not reset stats.
+The plugin sends a mouse click and does not write character statistics or
+grant Akara resets.
+
+### Failed reset follow-up (user's 05:36-05:38 session)
+
+The launch argument is now confirmed in the game's final command line:
+`D2RLoader.exe -enablerespec` at 05:36:17.736. Both Alt actions registered
+(36/36 keyboard actions). The user's 05:36:59.885 and subsequent attempts
+log `left click with Alt on Tooltip`, with ShowItemsPanel opening/closing
+around the held Alt. Modifier delivery succeeded; native reset did not.
+The reader reports `0 Stat Points Remaining` at 05:37:08.903. The menu
+contains 18 controls, with no logged `<stat>PointButton` target.
+
+Attribute labels and spend-point buttons are separate native widgets.
+The four label `Tooltip` children read the attribute/value but cannot reset
+it. `<stat>PointButton` is `CharacterStatLevelUpButtonWidget`; its native
+click handler (RVA `0x14EE3C0`, Alt test `0x14EE76F`) checks Alt and posts
+the game's stat action. `KeyboardMenu::Click` uses the selected widget's
+rectangle and does not retarget a label to its corresponding plus button.
+The progression adapter names/reads plus buttons; it is not a label-click
+redirect. When a plus button is accessible, select that spend-point control,
+hold Alt and tap A. Clicking the stat's text is insufficient.
+
+Native `CharacterStatsPanel::Draw` tests remaining points, then game flag
+bit 23 before showing/enabling `LevelUpInfo` (RVAs `0x14E5B64` through
+`0x14E5B90`; show branch `0x14E5D3A`). Thus native flag activation matters
+when no points remain. The logged argument proves transmission, not the
+flag's active value.
+
+Read-only inspection at 06:10:07 of the user's open panel (PID 15116):
+
+- Native getter RVA `0x13B310` is undetoured; flags at `0x142A4DC18`
+  are `0x400004`, with bit 23 clear.
+- `CombinedPointsInfo` reads `0 Stat Points Remaining`.
+- `LevelUpInfo` has enabled/visible bytes `0/0`.
+- All four plus buttons exist and have own enabled/visible bytes `1/1`,
+  but effective visibility is false through `LevelUpInfo`.
+
+This confirms that native respec is off and the game hides the button group;
+the menu's visibility filter correctly skips it. The exact loader argument
+parsing/override cause remains OPEN. [Loader documentation](https://d2rloader.net/docs.html)
+describes Enable Respec Shortcuts as using the built-in stat/skill reset.
+The user approved that setting after the live result. The config candidate
+setting `d2rcore.player.enable_respec = true` was then installed with the game
+closed, keeping the launch argument. Installed SHA-256 is
+`721EC8712DB8B42C2218E81A37D72731FCC28116F7106886D75109D83BC388F7`.
+The original config is backed up as `d2rloader.before-loader-respec.toml`;
+`respec-setting-candidate.json` records application and verification. Native
+reset was confirmed working by the user. Their 06:33:37 log reports the
+setting enabled, and 06:34:11 exposes the four plus-button targets;
+Alt+A targets StrengthPointButton at 06:34:19. Logs are archived as
+`success-0633.*.log`. The post-toggle native bit value was not sampled.
+
+No further implementation/build/plugin deployment, game input, process write
+or save edit in this investigation. Evidence is in `../re/offline-respec-2026-10-04/`:
+`live-native-respec.json`, archived `live-0605.*.log`, static disassembly,
+read-only inspection script, and `d2rloader.respec-setting-candidate.toml`.
+
+### Experience in the character buffer
+
+The user's 06:09:06.670 log reads `Experience. 1,620,717 of 1,640,359` from
+the panel buffer. Stock keyboard HD layout `CharacterStatsPanelHD.json`
+defines a `CombinedXP` text box beside `FullClassInfo`, with its own XP
+progress bar above; classic layout has separate current/next-level boxes.
+`CharacterStats::Lines` reads the visible snapshot's rendered `CombinedXP`
+text and adds the game's experience label. It does not synthesize XP from
+player statistics. The text has no focusable child, so ordinary menu arrows
+skip it while the character buffer can read it. Keep this rendered statistic
+in the buffer. A follow-up live XP visibility read could not run because the
+game had exited; the layout, reader and actual buffer log establish the
+current entry's source. No source change or build is needed.
 
 ## What the first live test measured
 

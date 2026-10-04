@@ -17,6 +17,7 @@ blind players. This checkout supports keyboard gameplay and physical controllers
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
+- Keyboard menu clicks support Shift, Ctrl and Alt. Alt+A and Alt+D send left and right clicks with Alt held; offline respec uses D2RLoader's built-in respec setting. See [keyboard controls](docs/keyboard-keys.md) and [setup](docs/keyboard-play.md#offline-respec-and-alt-clicks-2026-10-04).
 - Keyboard skill hotkeys announce the skill name when it changes, including quick cast and remapped keys.
   See [native keyboard actions](docs/keyboard-actions.md#skill-hotkey-announcements).
 - Native text in dropdown rows, character rows and confirmation prompts. Character

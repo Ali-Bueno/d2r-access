@@ -58,7 +58,9 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | D | right click: use, read, open, buy, drink |
 | Shift+A | left click with Shift: equip, unequip, a potion to the belt |
 | Ctrl+A | left click with Ctrl: sell, drop, move to the stash or the cube |
+| Alt+A | left click with Alt: the game's offline stat/skill reset shortcut when enabled with `-enablerespec` |
 | Shift+D | right click with Shift |
+| Alt+D | right click with Alt |
 | Ctrl+D | right click with Ctrl. Until 2026-09-28 it was autodetail's switch, which is now only in the Ctrl+S list (the user's choice) |
 | W | nothing: it is kept from the game, whose W swaps weapons |
 | Y | swap weapons |

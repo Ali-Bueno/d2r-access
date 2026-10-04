@@ -173,10 +173,10 @@ Arrow g_arrows[] = {
 };
 // The keys of the menu, watched directly beside the loader's delivery of them,
 // and what may be held with each for it still to be the menu's key.
-enum class With { Nothing, Shift, ShiftOrControl };
+enum class With { Nothing, Shift, ClickModifiers };
 struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
 Watched g_watched[] = {
-	{'A', Act::ClickLeft, With::ShiftOrControl}, {'D', Act::ClickRight, With::ShiftOrControl}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
+	{'A', Act::ClickLeft, With::ClickModifiers}, {'D', Act::ClickRight, With::ClickModifiers}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
 	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
 };
@@ -915,7 +915,7 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	const bool repeated = now - g_lastClick < ClickGapMs;
 	g_lastClick = now;
 	if (repeated) return;
-	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL);
+	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL), alt = Down(VK_MENU);
 	const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr;
 	if (entry && !g_landed) {
 		// Never a click on whatever the pointer happens to be over.
@@ -926,12 +926,13 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	// A click on a slider sets its value to where the click was, the middle of
 	// it here. The value is said instead; the arrows change it. A click on an
 	// option that steps goes to its next state, as Enter does for the game.
-	if (entry && NativeValueControls::Of(entry->widget) == NativeValueControls::Kind::Slider) {
+	if (entry && !alt && NativeValueControls::Of(entry->widget) == NativeValueControls::Kind::Slider) {
 		AsyncLog::InfoF(context, "[cursor] no click on the slider %s: its value is said", entry->name.c_str());
 		ScreenReader::Speak(NativeValueControls::Shown(entry->widget), true);
 		return;
 	}
-	if (entry && button == MenuMouse::Button::Left && Adjust(context, now, *entry, true)) return;
+	// Alt-clicks use the game's mouse path with Alt held, including stat reset.
+	if (entry && !alt && button == MenuMouse::Button::Left && Adjust(context, now, *entry, true)) return;
 	// A skill icon or a gold line of the hire list has nothing a click does, and
 	// a click inside a row the cursor has just chosen would be the second click
 	// of two on that row, which hires. It is said again; the row is what hires.
@@ -959,10 +960,10 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	// (the user, 2026-09-27, of five clicks on a character that began no game:
 	// the click "should have clicked"). A click that went to the row a moment
 	// ago is the first of the two.
-	const bool row = entry && rect && button == MenuMouse::Button::Left && !shift && !control && NativeListRows::TwoClicks(entry->widget);
+	const bool row = entry && rect && button == MenuMouse::Button::Left && !shift && !control && !alt && NativeListRows::TwoClicks(entry->widget);
 	const bool twice = row && !(g_rowClicked.widget == entry->widget && now - g_rowClicked.at < RowPairMs);
-	AsyncLog::InfoF(context, "[cursor] %s click%s%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
-		shift ? " with Shift" : "", control ? " with Ctrl" : "", twice ? ", twice" : "", entry ? entry->name.c_str() : "where the pointer is");
+	AsyncLog::InfoF(context, "[cursor] %s click%s%s%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
+		shift ? " with Shift" : "", control ? " with Ctrl" : "", alt ? " with Alt" : "", twice ? ", twice" : "", entry ? entry->name.c_str() : "where the pointer is");
 	if (rect) MenuMouse::ClickAt(*rect, button);
 	else MenuMouse::Click(button);
 	if (twice) MenuMouse::ClickAt(*rect, button);
@@ -1101,9 +1102,9 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 		key.down = down;
 		// PageUp, PageDown, Home and End with a modifier are reading keys, and
 		// the settings list steps with them while it is open.
-		const bool mine = key.with == With::ShiftOrControl || (key.with == With::Shift && !control)
+		const bool mine = key.with == With::ClickModifiers || (key.with == With::Shift && !control)
 			|| (!shift && !control && !KeyboardService::SettingsOpen());
-		if (pressed && !typing && !alt && mine) {
+		if (pressed && !typing && (!alt || key.with == With::ClickModifiers) && mine) {
 			key.waiting = true;
 			key.since = now;
 		}
