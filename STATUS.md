@@ -2,6 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Keyboard as a virtual controller — idea, 2026-10-05
+
+The user is not satisfied with the keyboard cursor and plans to replace it with keys that
+drive the game's own controller mode. Viable: a first version (2026-09-19) measured the hook
+point (`xinput9_1_0!XInputGetState`, all four slots polled) and that controller mode is one-way.
+It was withdrawn for displacing a real pad and breaking name typing; both have known fixes.
+Code recoverable from `85aac6c^`. [controller mode](docs/controller-mode.md)
+**Next step (own session):** restore the detour, inject only with no physical pad, and check
+that movement reaches the game.
+
+## Inventory lag in the keyboard build — reported 2026-10-05
+
+A tester reports lag in the inventory and shops with the controller, worse on cells
+with items. The grid census (a diagnostic) now runs only with `access-itemlog on`, and
+`[pump] worst update` logs stalls from 8 ms. Built and deployed; **106/106 CTest
+pass**; not committed. Suspects in
+[navigation latency](docs/navigation-latency.md#keyboard-build-lag-report-2026-10-05).
+The user felt no lag in their own inventory (2026-10-05 16:42; no shop opened): no tooltip held
+back, no update of 30 ms, worst updates 9-15 ms (`InputDirection`, `KeyboardService`, `MapSurveyService`).
+**Next step:** the tester tries a shop with the new zip; if it still lags, their `d2r-access.log`.
+
 ## Shortcut menu — planned, 2026-10-03
 
 The collaborator's controller and keyboard schemes are adopted. The keyboard has ~60 bindings.
