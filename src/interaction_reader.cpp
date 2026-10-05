@@ -833,7 +833,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	TooltipDelay::Apply(context, tooltips);
 	const auto type = NativeUi::Classify(focus.widget);
 	const bool inventory = IsInventory(type.kind);
-	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
+	// Diagnosis only, and it reads every cell: off unless items are logged.
+	if (type.kind == UiText::Kind::InventoryGrid && g_logItems.load(std::memory_order_relaxed)) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
 		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;

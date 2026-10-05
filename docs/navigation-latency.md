@@ -60,3 +60,34 @@ confirmed smooth inventory navigation on 2026-09-15: “la navegación ya se sie
 fluida por el inventario”. Only that performance checkbox is complete in
 `GEMINI.md`; tab announcements still await confirmation. The inventory itself
 need not contain tabs: the observed controller strip belongs to its overlay.
+
+## Keyboard build lag report (2026-10-05)
+
+A tester of `d2r-access-teclado-2026-10-05.zip` reports lag while navigating
+the inventory and shops, worse on cells with items. Read-only review of
+`f6e33c5`; nothing is measured on the tester's machine yet. Suspects, most likely first:
+
+The tester plays with the **controller**, so 1 and 2 do not apply to the
+report (the keyboard cursor is idle until an arrow key is pressed with a pad
+connected); they stay listed for keyboard play.
+
+1. `KeyboardMenu::Refresh` rebuilds the whole menu on every arrow key and every
+   250 ms (`Build`: widget walk, every grid cell, `Thin` O(n²)); a changed item
+   layout also reruns `MenuCursor::Mend`, superlinear in the cell count.
+   Each key logs `[cursor] read the menu again for a key in X ms`.
+2. Item speech waits for the game's tooltip: `Land` discards tooltips for
+   `SettleMs` (90 ms), and the fallback name comes at `SilenceMs` (450 ms).
+   Empty cells speak at once.
+3. Periodic inventory walks: arrivals (100 ms, while the inventory is open),
+   weapon swap (100 ms), vitals (1 s); `HandNotice` walks every container
+   each 33 ms poll while an item is held.
+4. `[pump]` and `Laps` reported only updates of 30 ms or more.
+5. Controller path: `NamesItem` holds an item's tooltip back up to
+   `NamesItemMs` (400 ms) when its body lacks the item's base name, and only
+   occupied cells wait for it. Logged as `held back a tooltip` / `taken after`.
+   The occupied-cell readout is also recomputed on every 33 ms poll.
+
+Done: `InventoryCensus::Log` (every cell, every 250 ms, diagnosis only) now runs
+only with `access-itemlog on`. `Laps` also logs the worst update of every 5 s
+from 8 ms (`[pump] worst update`). Next: the tester's `d2r-access.log`, looking
+for `held back a tooltip`, `taken after` and `[pump] worst update`.

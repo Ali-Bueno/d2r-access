@@ -88,7 +88,8 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 		record.claimant ? record.claimant : "nobody, a later push replaced it");
 }
 
-// Which part of a UI update took the time, for an update of 30 ms or more:
+// Which part of a UI update took the time, for an update of 30 ms or more,
+// and the worst update of every five seconds from 8 ms:
 // the mod's work runs on the game's own thread, so the game waits for it.
 // One line a second at most (the user, 2026-09-30: "slight lag when
 // navigating any inventory screen"; HANDOFF).
@@ -106,6 +107,7 @@ public:
 	~Laps() {
 		const auto now = Clock::now();
 		const double total = Ms(start_, now);
+		NoteWorst(now, total);
 		if (total < SlowMs) return;
 		++slow_;
 		if (now - reported_ < std::chrono::seconds(1)) return;
@@ -127,7 +129,24 @@ private:
 	using Clock = std::chrono::steady_clock;
 	static double Ms(Clock::time_point from, Clock::time_point to) { return std::chrono::duration<double, std::milli>(to - from).count(); }
 	static constexpr double SlowMs = 30;
+	// Half a frame at 60 fps: a shorter stall that recurs is still felt as lag.
+	static constexpr double NoticeMs = 8;
+	static constexpr auto WorstWindow = std::chrono::seconds(5);
 	struct Part { const char* name = ""; double ms = 0; };
+	// The worst update of each window, with its longest part.
+	void NoteWorst(Clock::time_point now, double total) {
+		if (total > worst_.ms) {
+			worst_ = {"", total};
+			worstPart_ = *std::max_element(parts_.begin(), parts_.begin() + count_, [](const Part& a, const Part& b) { return a.ms < b.ms; });
+		}
+		if (now - windowStart_ < WorstWindow) return;
+		if (worst_.ms >= NoticeMs)
+			D2RAccess::AsyncLog::InfoF(context_, "[pump] worst update in the last %lld s: %.1f ms, longest part %s %.1f ms",
+				static_cast<long long>(std::chrono::duration_cast<std::chrono::seconds>(now - windowStart_).count()),
+				worst_.ms, worstPart_.name, worstPart_.ms);
+		windowStart_ = now;
+		worst_ = worstPart_ = {};
+	}
 	const D2RL::PluginContext* context_;
 	D2RAccess::NativeMemory::PageChecks checks_;
 	Clock::time_point start_, last_;
@@ -135,6 +154,8 @@ private:
 	size_t count_ = 0;
 	static inline Clock::time_point reported_{};
 	static inline unsigned slow_ = 0;
+	static inline Clock::time_point windowStart_{};
+	static inline Part worst_{}, worstPart_{};
 };
 
 // One UI update: sample input first so a value message arriving this update
