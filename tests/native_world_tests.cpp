@@ -315,5 +315,26 @@ int main() {
 			Check(!parsed.valid && !parsed.enabled && !parsed.range && !parsed.volume, "invalid entity settings discard the entire section");
 		}
 	}
+	{
+		Fixture local, remote;
+		// Neither active room lists the other as a neighbor. Both are resident
+		// on the same logical level and the remote floor is inside the snapshot.
+		local.level.At(0x10, local.extended.Address());
+		local.extended.At(0x48, remote.extended.Address());
+		remote.extended.At(0x90, local.level.Address());
+		remote.extended.At(0x58, remote.room.Address());
+		remote.grid.At<int>(0, 120);
+		Radar::World copied;
+		Check(local.Read(copied) && copied.rooms.size() == 2 && copied.Cell(124, 104) == Radar::State::Open,
+			"resident floor in an isolated active room is included without relying on connected neighbor lists");
+		remote.grid.At<int>(0, 1000);
+		Check(local.Read(copied) && copied.rooms.size() == 1, "logical traversal does not expand the collision snapshot radius");
+		remote.grid.At<int>(0, 120); remote.room.At<uintptr_t>(0x38, 0);
+		Check(local.Read(copied) && copied.rooms.size() == 1, "unloaded collision remains unknown rather than invented floor");
+		remote.room.At(0x38, remote.grid.Address()); remote.extended.At(0x90, remote.level.Address());
+		Check(local.Read(copied) && copied.rooms.size() == 1, "logical collision owned by another level remains excluded");
+		remote.extended.At(0x90, local.level.Address()); remote.extended.At(0x48, local.extended.Address());
+		Check(local.Read(copied) && copied.rooms.size() == 2, "cycles in optional logical collision traversal terminate without duplicate grids");
+	}
 	Passed();
 }

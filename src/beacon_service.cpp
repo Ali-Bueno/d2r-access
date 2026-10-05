@@ -316,7 +316,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 	const bool townNpc = g_target.entity.kind == EntityRadar::Kind::Npc && g_target.entity.placeId != 0;
 	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, true, townNpc)) return false;
 	for (const auto& entity : entities)
-		if (EntityRadar::SameTarget(entity, g_target.entity)) {
+		if (EntityRadar::SameTarget(entity, g_target.entity) && (!townNpc || entity.unit != EntityRadar::Entity::NoUnit)) {
 			g_target.entity = entity;
 			g_target.seenMs = now;
 			return true;

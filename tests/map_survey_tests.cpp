@@ -415,9 +415,9 @@ void FixedPlacesAreTheLayoutsOwn() {
 
 void TownNpcsListedOnceSeen() {
 	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
-	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200; fara.unit = 1;
 	auto atma = Make(2, 90, 90, EntityRadar::Kind::Npc);
-	atma.category = EntityRadar::Category::Npc; atma.placeId = 177;
+	atma.category = EntityRadar::Category::Npc; atma.placeId = 177; atma.unit = 1;
 	TownNpcSightings sightings;
 	Check(sightings.Seen(40, {fara, atma}).empty(), "no town NPC is listed before it is seen");
 	sightings.Found(40, {fara});
@@ -427,19 +427,40 @@ void TownNpcsListedOnceSeen() {
 	Check(seen.size() == 1 && seen.front().id == 55 && seen.front().position.x == 60,
 		"a seen NPC stays listed, at its live unit's place, and an unseen one is not");
 	const auto unloaded = sightings.Seen(40, {});
-	Check(unloaded.size() == 1 && unloaded.front().id == fara.id && unloaded.front().position.x == fara.position.x,
+	Check(unloaded.size() == 1 && unloaded.front().id == walked.id && unloaded.front().position.x == walked.position.x
+		&& unloaded.front().unit == EntityRadar::Entity::NoUnit,
 		"a discovered NPC stays in the catalogue after its unit and preset unload");
 	sightings.Found(40, {walked});
 	const auto moved = sightings.Seen(40, {});
 	Check(moved.size() == 1 && moved.front().id == 55 && moved.front().position.x == 60,
 		"the latest discovered position replaces the old snapshot without duplication");
 	auto meshif = Make(145, 5208, 5072, EntityRadar::Kind::Npc);
-	meshif.name = "Meshif"; meshif.category = EntityRadar::Category::Npc; meshif.placeId = 211;
+	meshif.name = "Meshif"; meshif.category = EntityRadar::Category::Npc; meshif.placeId = 211; meshif.unit = 1;
 	sightings.Found(40, {meshif});
 	const auto atWaypoint = sightings.Seen(40, {walked, atma});
 	Check(atWaypoint.size() == 2 && std::any_of(atWaypoint.begin(), atWaypoint.end(), [&](const auto& npc) {
 		return npc.name == "Meshif" && npc.id == 145 && npc.position.x == 5208 && npc.position.y == 5072;
 	}), "Meshif remains listed near the waypoint when the current scan no longer contains him");
+	auto spawn = fara;
+	spawn.id = static_cast<uint32_t>(spawn.placeId); spawn.unit = EntityRadar::Entity::NoUnit;
+	spawn.position = {30, 30};
+	spawn.npcApproaches = {{30, 30}, {90, 90}};
+	sightings.Found(40, {spawn});
+	const auto fallback = sightings.Seen(40, {spawn});
+	Check(std::any_of(fallback.begin(), fallback.end(), [](const auto& npc) {
+		return npc.placeId == 200 && npc.position.x == 60 && npc.unit == EntityRadar::Entity::NoUnit && npc.npcApproaches.size() == 2;
+	}), "a spawn fallback cannot replace the last actual position or expose an unloaded unit id to native commands");
+	walked.id = 99; walked.position = {75, 70};
+	const auto reloaded = sightings.Seen(40, {spawn, walked});
+	Check(std::any_of(reloaded.begin(), reloaded.end(), [](const auto& npc) {
+		return npc.placeId == 200 && npc.position.x == 75 && npc.id == 99 && npc.unit == 1;
+	}), "a moved recreated unit wins even when a fallback precedes it");
+	const auto last = sightings.Seen(40, {spawn});
+	Check(std::any_of(last.begin(), last.end(), [](const auto& npc) { return npc.placeId == 200 && npc.position.x == 75; }),
+		"a refresh outside discovery view is remembered after another unload");
+	TownNpcSightings initially;
+	initially.Found(75, {spawn});
+	Check(initially.Seen(75, {spawn}).front().position.x == 30, "a current spawn is still useful before the character is located");
 	Check(sightings.Seen(1, {fara}).empty(), "a sighting belongs to its own town");
 	sightings.Clear();
 	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");

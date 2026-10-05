@@ -1,5 +1,54 @@
 # STATUS — Diablo II: Resurrected (d2r-access)
 
+## Kurast quest markers and floor exploration - 2026-10-05
+
+The prior BFE9B75C... deployment failed in the user's game. Its room-entry
+coverage assumption and missing quest-object fallbacks are now corrected.
+Hratli/Natalya originate in native quest object presets 378/379/382, decoded
+as MonStats 253/297 with alternate Hratli approaches retained. Moving live
+units supersede markers; remembered positions survive unloading without stale
+interaction types. Scanner walking refreshes/searches for the current unit.
+
+H selects uncovered walking floor inside any room, then streaming frontiers
+and door approaches. Coverage is independent of archived visits/automap reveal.
+All five acts share this policy; streaming failures reselect without refusing
+whole rooms. Native walls/body fit/level ownership remain. Doors/pads stop for D.
+Measured floor survives Blank/unloaded collision and layout growth. T's percentage
+now reports mapping, not floor exploration.
+
+DEPLOYED; affected 8/8 and final full 105/105 pass, timeout 20. Local build.ps1
+used default four jobs/BelowNormal with game/loader verified closed. Installed
+SHA-256: 99DC34E1A3030AD64D6FE4C2D09C88D7B89109FEC961F273E43F0BDC488C6D71.
+Installed plugin matches final build and tested staged code/data (only two PE
+timestamp bytes differ). PRISM, loader/access configs and exploration archive
+unchanged; backups retained. Active build owner: none. User confirmed the deployed
+NPC/exploration fixes work in game and authorized committing/pushing to
+origin/bladestorm. No game input, save/archive edit or release. Records:
+../re/kurast-routing-rootcause-2026-10-05/.
+[NPC evidence](docs/entity-scan.md#moving-town-characters---2026-10-05) and
+[exploration evidence](docs/exploration.md#resident-floor-and-exploration-reach---2026-10-05).
+
+## Kurast NPC omission investigation - 2026-10-05 (historical, superseded)
+
+Historical initial investigation; superseded above. Own then-current log listed five remembered
+named NPCs, with no Hratli/Natalya anywhere in the session. Iron Wolves account
+for the additional scanner entries. Native unit removal is not established;
+no current unit/preset snapshot was available with game/loader closed.
+
+Confirmed source gaps: stable town identity depends on a qualifying unique
+spawn preset, so other live NPCs enter ordinary memory and can be forgotten.
+A current preset also replaces a moved NPC's remembered live location.
+Existing map-survey/native-entities suites pass 2/2 (timeout 20); these cases
+are not covered. Installed SHA-256 remains 39BC66B8...; no build, deploy,
+save/archive edit, commit or push. Active build owner is none.
+
+H's 05:40:46 completion utterance accompanied 48 rooms, 25 visited and 23
+cut off (over all rooms). Automap/history seen=48 differs from visits and
+cannot prove all NPC locations were checked. Evidence, limits and next step:
+[entity scan](docs/entity-scan.md#kurast-npc-omission-investigation---2026-10-05).
+Local own-session records: ../re/kurast-npcs-2026-10-05/.
+
+
 ## Spider Forest / Flayer route uncertainty - 2026-10-04
 
 **DEPLOYED, full 105/105 pass**, timeout 20; affected 8/8 pass. User reports

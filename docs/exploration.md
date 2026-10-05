@@ -396,3 +396,66 @@ installed 39BC66B833FCD963D5761D3052D43BAE62435E7D327EF20B8098FDDECB878F91
 matches the final build and tested staged code/data except four link timestamp
 bytes. PRISM, loader configuration and exploration archive unchanged; backups
 retained. Latest staged update is newly installed; no later live capture exists.
+
+## Resident floor and exploration reach - 2026-10-05
+
+The user confirmed the previous deployment still could not explore the rest of
+Kurast and rejected ?no known route to the unexplored ground? as a substitute
+for routing. That phrase is removed. The central assumption was incorrect:
+entering a native room marked its entire rectangle visited, and H selected only
+unentered rooms. A dock or jungle rectangle can contain several walking branches
+and substantial water/scenery. Room visits and automap reveal are not floor
+coverage. This shared room policy affected every act; Act 3 geometry exposed it.
+
+H now calls `ExploreGoal::Next` for uncovered standable floor, including inside
+entered rooms. Session-scoped `Coverage` records only actual terrain walking
+cells within twelve steps and a clear body line of a player observation. It
+leaves branches across walls/corners uncovered. Nearest measured floor comes
+first, then speculative routes toward unloaded collision and openable doors.
+A failed point is deprioritized, never used to exclude its whole room or declare
+completion; failed measured points cannot hide fresh streaming frontiers. The
+same implementation is used in Acts 1 through 5. Archived room visits cannot
+pre-cover this new floor bitmap, so previously entered rooms can be surveyed
+again. The bitmap follows the existing eight-level/session routing cache and is
+not saved to the exploration archive.
+
+Walking targets a floor point, not just any room entry. It uses current movement
+collision to steer around live blockers, keeps measured collision after room
+unloading, and automatically reselects new floor when fresh streaming changes
+the route or a walk fails. There is no H room-refusal list or duplicated cropped
+border veto. A complete route in the live local grid takes precedence over a
+remembered-map cutoff. A closed door produces an approach to its actual unit;
+the walk stops beside it for D, and H continues normally after it opens. Teleport
+pads also retain their explicit D interaction and split-leg behavior. Actual
+walls, body fit, logical-room holes and native level ownership still define
+where movement can go.
+
+`NativeWorld` supplements connected active-neighbor collision traversal with
+other resident rooms in the current logical level, under the existing radius,
+copy and room bounds. `LevelRoute::Memory::Extend` follows logical layout growth
+without discarding existing measurements. A native Blank cell is absent
+collision, not a measured wall: learning skips it, preserving prior floor and
+leaving streaming frontiers unknown. Metadata never creates movement floor.
+The T percentage now says ?percent mapped? in all thirteen locales, because
+charted rooms do not prove exploration of walking branches. H completion refers
+to reachable floor/frontiers rather than total logical-room visits.
+
+The user's own 08:06-08:08 log reproduces the failed old H selection and the
+48-room/25-visit/23-cutoff outcome. Two existing Spider Forest captures each
+contain eleven rejected room rectangles with zero measured walking floor in
+those rectangles (workspace `captured-components.json`); their rejection is not
+proof that actual content lies there. A production captured-map regression
+instead finds uncovered, locally reachable floor at 5196,4609, five steps from
+5191,4607, inside rooms the old entry policy discards. This establishes the
+coverage defect without inventing a route through water.
+
+Regressions sweep both branches of a dock-shaped floor inside an already visited
+room under all five act level IDs, follow a three-room corridor as preceding
+collision unloads, approach/open a closed door, and continue to a streaming
+frontier after a failed measured point. Native-reader bounds/foreign-level
+checks and existing captured forest/border/pad tests remain. These replay and
+constructed-map results are not live validation of every Act 3-5 map. The user
+confirmed the deployed NPC/exploration fixes work in game and authorized
+commit/push to origin/bladestorm. Current build/test/deploy state is in
+[STATUS](../STATUS.md); records are under
+`../../re/kurast-routing-rootcause-2026-10-05/`.

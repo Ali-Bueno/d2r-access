@@ -90,6 +90,20 @@ bool Memory::Begin(uint64_t session, int level, const std::vector<NativeRooms::R
 	return true;
 }
 
+bool Memory::Extend(const std::vector<NativeRooms::Room>& rooms) {
+	Memory grown;
+	if (!grown.Begin(session_, level_, rooms)) return false;
+	for (int y = y_; y < y_ + height_; ++y)
+		for (int x = x_; x < x_ + width_; ++x) {
+			if (grown.At(x, y) == Ground::Outside || At(x, y) == Ground::Outside) continue;
+			grown.cells_[static_cast<size_t>(y - grown.y_) * grown.width_ + x - grown.x_] = At(x, y);
+		}
+	if (x_ == grown.x_ && y_ == grown.y_ && width_ == grown.width_ && height_ == grown.height_ && cells_ == grown.cells_) return false;
+	grown.revision_ = revision_ + 1;
+	*this = std::move(grown);
+	return true;
+}
+
 bool Memory::Learn(const Radar::World& world) {
 	if (cells_.empty() || world.session != session_ || world.level != level_) return false;
 	const uint16_t mask = static_cast<uint16_t>(world.walkingMask & ~NoPath);
@@ -103,13 +117,14 @@ bool Memory::Learn(const Radar::World& world) {
 				const size_t source = static_cast<size_t>(y - room->y) * room->width + (x - room->x);
 				if (source >= room->cells.size()) continue;
 				const uint16_t raw = room->cells[source];
+				// Blank is absent collision (World::Cell), not a measured wall.
+				// Streaming must not seal an unknown frontier or erase old floor.
+				if (raw & Radar::Collision::Blank) continue;
 				const auto shut = static_cast<uint16_t>(Radar::TerrainCollisionFlags(raw) & mask);
-				// A blank cell of a loaded room is no floor, and no route here crosses
-				// one (Beacon, Navigation): shut, or a way would be planned through it
-				// for ever. A shut door's cells carry DOOR, which opening it clears
+				// A shut door's cells carry DOOR, which opening it clears
 				// (docs/collision-semantics.md); whether they carry OBJECT too is not
 				// measured, so either counts as the door's own.
-				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
+				const Ground ground = (shut & ~DoorBits) ? Ground::Blocked
 					: (shut & Radar::Collision::Door) ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
 				// A foreign streamed room may overlap a hole in this level's union.
@@ -130,18 +145,18 @@ Ground Memory::At(int x, int y) const {
 	return cells_[static_cast<size_t>(dy) * width_ + static_cast<size_t>(dx)];
 }
 
-Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen)
+Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors)
 	: Field(memory, NativeRooms::Bounds{Cell(place.x) - margin, Cell(place.y) - margin,
-		Cell(place.x) + margin + 1, Cell(place.y) + margin + 1}, bodyPattern, unseen) {}
+		Cell(place.x) + margin + 1, Cell(place.y) + margin + 1}, bodyPattern, unseen, doors) {}
 
-Field::Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen)
-	: Field(memory, std::vector<NativeRooms::Bounds>{room}, bodyPattern, unseen) {}
+Field::Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen, bool doors)
+	: Field(memory, std::vector<NativeRooms::Bounds>{room}, bodyPattern, unseen, doors) {}
 
-Field::Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen)
+Field::Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen, bool doors)
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
 	// A shut door is no part of a way: the game will not walk through one.
-	const Floor floor = Standing(memory, bodyPattern, unseen, false);
+	const Floor floor = Standing(memory, bodyPattern, unseen, doors);
 	const size_t across = floor.across;
 	const auto& stood = floor.stood;
 	steps_.assign(stood.size(), -1);

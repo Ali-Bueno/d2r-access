@@ -9,6 +9,7 @@
 #include "native_drlg.h"
 #include "native_level_areas.h"
 #include "native_level_exits.h"
+#include "level_exit_layout.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
 #include "native_memory.h"
@@ -79,10 +80,14 @@ std::string CString(uintptr_t address, size_t maxBytes) {
 	}
 	return {}; // unterminated within the bound: not a name
 }
+uintptr_t RoomLevel(uintptr_t room);
 bool DynamicPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) {
 	uintptr_t path = 0, pathRoom = 0;
 	std::array<uint32_t, 2> packed{};
-	if (!Peek(unit + UnitPath, path) || !path || !Peek(path + PathRoom, pathRoom) || pathRoom != room || !Peek(path, packed)) return false;
+	if (!Peek(unit + UnitPath, path) || !path || !Peek(path + PathRoom, pathRoom) || !pathRoom || !Peek(path, packed)) return false;
+	// The path's room changes before all room-list links settle during a move.
+	// A different room in this same level is still a valid current position.
+	if (pathRoom != room && (!RoomLevel(room) || RoomLevel(pathRoom) != RoomLevel(room))) return false;
 	position = {packed[0] / PositionScale, packed[1] / PositionScale};
 	return true;
 }
@@ -224,13 +229,14 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 }
 // A town NPC's identity is its MonStats row, so the live unit and its spawn point are one target.
 uint64_t TownNpcIdentity(uint32_t classId) { return static_cast<uint64_t>(classId) + 1; }
-// The name of a MonStats row the npc column marks, empty for any other row.
+// A named town character from the native npc/interact flags, never a hostile row.
 std::string NpcName(const Tables& tables, uint32_t classId) {
 	if (classId >= tables.monsterCount) return {};
 	const uintptr_t row = tables.monsters + classId * MonStatStride;
 	uint16_t nameId = 0;
-	uint8_t flagsA = 0;
-	if (!Peek(row + MonFlagsA, flagsA) || !(flagsA & FlagNpc) || !Peek(row + MonNameId, nameId) || !nameId) return {};
+	uint8_t flagsA = 0, align = 0;
+	if (!Peek(row + MonFlagsA, flagsA) || !(flagsA & (FlagNpc | FlagInteract))
+		|| !Peek(row + MonAlign, align) || (align == AlignHostile && !(flagsA & FlagNpc)) || !Peek(row + MonNameId, nameId) || !nameId) return {};
 	auto name = UiText::Clean(Localization::Text(nameId));
 	return name == PlaceholderName() ? std::string{} : name;
 }
@@ -239,11 +245,27 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 // does not prove that an absent client unit is gone: Lut Gholein's distant
 // NPCs can unload while their rooms and presets remain (2026-10-04 snapshot).
 void AddTownNpcs(uintptr_t room, uintptr_t level, const Tables& tables,
-	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
+	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities, bool spawnFallbacks) {
 	uint32_t levelId = 0;
+	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town) return;
+	// A live quest/service character is itself evidence of its identity, even
+	// with no preset, several alternate presets, or a failed preset read.
+	// Mark local reads too, so walking/interaction can match scanner targets.
+	for (const auto& [index, classId] : liveNpcs) {
+		uint8_t flags = 0;
+		if (!Peek(tables.monsters + classId * MonStatStride + MonFlagsA, flags) || !(flags & FlagInteract)
+			|| NpcName(tables, classId).empty()
+			|| std::count_if(liveNpcs.begin(), liveNpcs.end(), [classId](const auto& npc) { return npc.second == classId; }) != 1) continue;
+		entities[index].placeId = TownNpcIdentity(classId);
+	}
 	std::vector<NativeLevelExits::MonsterPreset> presets;
-	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town
-		|| !NativeLevelExits::ReadMonsters(room, presets)) return;
+	if (!spawnFallbacks || !NativeLevelExits::ReadMonsters(room, presets)) return;
+	std::vector<NativeLevelExits::MonsterPreset> markers;
+	if (NativeLevelExits::ReadNpcMarkers(room, markers))
+		for (const auto& marker : markers) {
+			std::erase_if(presets, [&](const auto& preset) { return preset.monster == marker.monster; });
+			presets.push_back(marker);
+		}
 	for (const auto& preset : presets) {
 		// Several presets of one row (guards) have no single place to name.
 		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) continue;
@@ -251,11 +273,19 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const Tables& tables,
 		if (name.empty()) continue;
 		const uint64_t identity = TownNpcIdentity(preset.monster);
 		bool live = false;
+		const auto count = std::count_if(liveNpcs.begin(), liveNpcs.end(), [&](const auto& npc) { return npc.second == preset.monster; });
 		for (const auto& [index, classId] : liveNpcs)
-			if (classId == preset.monster) entities[index].placeId = identity, live = true;
+			if (classId == preset.monster) {
+				if (count == 1) entities[index].placeId = identity;
+				entities[index].npcApproaches = {preset.position};
+				entities[index].npcApproaches.insert(entities[index].npcApproaches.end(), preset.alternatives.begin(), preset.alternatives.end());
+				live = true;
+			}
 		if (live) continue;
 		EntityRadar::Entity npc{static_cast<uint32_t>(identity), EntityRadar::Kind::Npc, preset.position, std::move(name), identity,
 			false, EntityRadar::Category::Npc};
+		npc.npcApproaches = {preset.position};
+		npc.npcApproaches.insert(npc.npcApproaches.end(), preset.alternatives.begin(), preset.alternatives.end());
 		entities.push_back(std::move(npc));
 	}
 }
@@ -620,6 +650,19 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (next[n] && (!level || RoomLevel(next[n]) == level)
 				&& std::find(rooms.begin(), rooms.end(), next[n]) == rooms.end()) rooms.push_back(next[n]);
 	}
+	if (wholeLevel && level) {
+		uintptr_t logical = 0;
+		std::unordered_set<uintptr_t> walked;
+		if (Peek(level + LevelExitLayout::LevelFirstRoom, logical))
+			while (logical && walked.size() < LevelExitLayout::MaxRooms && walked.insert(logical).second) {
+				uintptr_t active = 0, owner = 0;
+				if (Peek(logical + ExtendedLevel, owner) && owner == level
+					&& Peek(logical + LevelExitLayout::RoomActive, active) && active
+					&& rooms.size() < MaxLoadedRooms && RoomLevel(active) == level
+					&& std::find(rooms.begin(), rooms.end(), active) == rooms.end()) rooms.push_back(active);
+				if (!Peek(logical + LevelExitLayout::RoomNext, logical)) break;
+			}
+	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	const auto pierce = PlayerPierce(player);
@@ -687,7 +730,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
-	if (townNpcs && levelStruct) AddTownNpcs(room, levelStruct, tables, liveNpcs, entities);
+	if (levelStruct) AddTownNpcs(room, levelStruct, tables, liveNpcs, entities, townNpcs);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);

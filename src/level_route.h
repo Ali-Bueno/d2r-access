@@ -39,6 +39,8 @@ public:
 	// game has loaded it, and ground outside them all is no part of the level.
 	// False, and nothing kept, when the rooms are none or too many cells.
 	bool Begin(uint64_t session, int level, const std::vector<NativeRooms::Room>& rooms);
+	// Incorporate newly generated rooms without forgetting learned collision.
+	bool Extend(const std::vector<NativeRooms::Room>& rooms);
 	// Copies in the rooms the game has loaded now. True when a cell changed.
 	bool Learn(const Radar::World& world);
 	Ground At(int x, int y) const;
@@ -64,15 +66,16 @@ public:
 	// `margin`: the cells round the place that count as reaching it, since a
 	// thing's own cells carry its collision. `unseen` lets the way cross ground
 	// not seen yet.
-	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen);
+	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors = false);
 	// Explore reaches any standable floor in this room, not its centre.
-	Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen);
-	Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen);
+	Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen, bool doors = false);
+	Field(const Memory& memory, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern, bool unseen, bool doors = false);
 	// The cells to walk from `from`, the last of them at the place. Empty when
 	// there is no way, and when `from` is at the place already. The cell stood
 	// on need not fit the body: the game never tests the cell a move starts from.
 	std::vector<Position> From(Position from) const;
 	bool At(Position from) const; // `from` is at the place
+	int Distance(int x, int y) const { return Steps(x, y); }
 private:
 	int Steps(int x, int y) const;
 	int x_ = 0, y_ = 0, width_ = 0, height_ = 0;

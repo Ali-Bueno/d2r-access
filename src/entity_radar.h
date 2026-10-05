@@ -88,6 +88,9 @@ struct Entity {
 	// crossing; that measured position survives streaming and map reloads.
 	enum class Border { None, Bearing, Crossing };
 	Border border = Border::None;
+	// Native approach markers for a town character with alternate quest
+	// locations. Actual unit positions remain authoritative while loaded.
+	std::vector<Radar::Position> npcApproaches;
 };
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a

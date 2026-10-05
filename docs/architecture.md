@@ -236,3 +236,27 @@ unmeasured outdoor bearings. `GoalBounds` shares that region between the whole-
 level reach gate and remembered plan. Only collision-measured exits can be taken;
 SetOut refreshes an exit before checking it. The pure H tests include the user's
 captured Spider Forest grids/layout/visits. [Follow-up evidence](exploration.md#dock-departure-and-h-follow-up---2026-10-04).
+
+## Moving town characters and resident floor - 2026-10-05
+
+`NativeLevelExits::ReadNpcMarkers` maps Kurast's HratliStart/HratliEnd and
+NatalyaStart object presets to their quest NPC classes. `NativeEntities` merges
+these approach locations with monster presets and actual live town characters,
+using stable class identity across movement/recreation. Same-level path-room
+transfers remain readable. `TownNpcSightings` keeps actual positions over marker
+fallbacks, retains alternate approaches on unloading, and exposes no stale live
+unit type. Keyboard walking searches native approaches/new floor and switches
+to the first current unit; beacon refresh ignores fallback coordinates. Existing
+discovery/session/guard policies remain. [NPC evidence](entity-scan.md#moving-town-characters---2026-10-05).
+
+Whole-level entity and local collision readers supplement the connected active
+neighbor traversal with existing resident rooms of the current logical level.
+`LevelRoute::Memory::Extend` follows layout growth, keeps floor after unloading,
+and skips absent Blank collision. Native body/wall/ownership bounds remain.
+`ExploreGoal::Coverage` is a session floor bitmap independent of room visits and
+automap visibility. `Next` routes to uncovered standable floor in any room,
+then streaming frontiers/door approaches; temporary failed points cannot remove
+whole rooms or suppress new frontiers. Keyboard H uses point goals, current
+movement collision and automatic reselection, with doors/pads stopping for D.
+All five acts use this path. T's mapped percentage is distinct from coverage.
+[Exploration evidence](exploration.md#resident-floor-and-exploration-reach---2026-10-05).

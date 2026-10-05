@@ -142,6 +142,34 @@ bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
 	return true;
 }
 
+bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
+	const NativeMemory::ReadScope scope;
+	output.clear();
+	std::vector<MonsterPreset> markers;
+	bool end = false;
+	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t level, uintptr_t preset, uint32_t type) {
+		uint32_t object = 0;
+		Radar::Position position;
+		if (level != 75 || type != ObjectType || !Peek(preset + PresetClass, object) || !InRoom(preset, rect, position)) return;
+		// Shipped objects.txt HratliStart/End (378/379, InitFn 49/50),
+		// NatalyaStart (382, InitFn 52). Installed quest handlers spawn
+		// MonStats 253/297 here (RVA 0x5EB9E0 / 0x5EBC20).
+		if (object == 378 || object == 379) {
+			std::vector<Radar::Position> alternatives;
+			for (auto& marker : markers) if (marker.monster == 253) {
+				if (object == 378 && end) { marker.alternatives.push_back(position); return; }
+				alternatives = marker.alternatives;
+				alternatives.push_back(marker.position);
+			}
+			std::erase_if(markers, [](const auto& marker) { return marker.monster == 253; });
+			markers.push_back({253, position, room, std::move(alternatives)});
+			end = object == 379;
+		} else if (object == 382) markers.push_back({297, position, room});
+	})) return false;
+	output = std::move(markers);
+	return true;
+}
+
 bool ReadLayout(uintptr_t activeRoom, bool neighbours, Layout& output) {
 	const NativeMemory::ReadScope scope;
 	output = {};

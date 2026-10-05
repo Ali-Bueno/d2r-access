@@ -102,7 +102,7 @@ class TownNpcSightings {
 public:
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
 	// Remembered NPCs on this level, refreshed by currently loaded units.
-	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;
+	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs);
 	void Clear() { m_seen.clear(); }
 private:
 	std::map<int, std::map<uint64_t, EntityRadar::Entity>> m_seen;

@@ -11,8 +11,12 @@ struct Exit { uint32_t warp = 0, destination = 0; Radar::Position position; };
 bool Read(uintptr_t activeRoom, std::vector<Exit>& output);
 // Where the level's presets spawn a MonStats row, from the same room walk.
 // `room` is the logical room (RoomEx) holding the preset.
-struct MonsterPreset { uint32_t monster = 0; Radar::Position position; uintptr_t room = 0; };
+struct MonsterPreset { uint32_t monster = 0; Radar::Position position; uintptr_t room = 0; std::vector<Radar::Position> alternatives; };
 bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output);
+// Quest NPCs placed by object initialization, rather than monster presets.
+// Kurast's Hratli end marker takes precedence over his arrival marker; live
+// units always supersede these approach locations in NativeEntities.
+bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output);
 // Coordinate identity survives native warp-unit unloading/recreation. Zero is
 // reserved for entities that are not fixed level exits.
 uint64_t Identity(Radar::Position position);

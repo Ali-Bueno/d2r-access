@@ -123,3 +123,97 @@ scan, updates positions, scopes memory to a town and clears on a new game.
 client unit, live/preset identity, duplicate guards and non-town exclusion.
 Workspace evidence: `re/skill-hotkeys/town-native-snapshot.json`. Live listening
 and the initial reload list remain to be confirmed after deployment.
+
+## Kurast NPC omission investigation - 2026-10-05
+
+The user's own 05:00-05:43 session lists only Meshif, Ormus, Asheara, Deckard
+Cain and Alkor in town memory at each Kurast entry. Hratli and Natalya never
+appear anywhere in the session log; additional NPC scanner entries are Iron
+Wolves. The installed DLL hash matches the previous deployment. These are
+reader/catalogue observations, not proof that any native game unit was removed.
+
+Two gaps are confirmed in source, and remain unfixed:
+
+- `NativeEntities::AddTownNpcs` assigns `TownNpcIdentity(classId)` only after a
+  unique monster preset passes `NpcName` (npc flag, valid localized name).
+  Loaded NPCs without that qualifying preset keep `placeId=0`. `MapSurvey::Split`
+  consequently sends them through ordinary `Registry` memory, which can forget
+  a unit when its former position is observed without it. In exploration mode,
+  ordinary NPC memory is also discarded when changing levels. The promised
+  town-NPC retention therefore covers only the preset-backed subset.
+- `TownNpcSightings::Found` overwrites its snapshot with every accepted current
+  entry; `Seen` prefers any matching current entry. Neither distinguishes a
+  loaded unit from the `NoUnit` spawn fallback. Once a moved NPC unloads, the
+  preset can replace its last observed live position with its original spawn.
+  This yields a stale target rather than removing the stable town identity.
+
+At 05:40:46 H said `Nothing left to explore here`; its diagnostic recorded
+48 rooms, 25 visited, no given-up goals and 23 cut-off rooms. Cut-off count is
+computed over all rooms, including visited ones. Earlier `seen=48` represents
+charted/history rooms, not visits. These readings cannot establish that every
+NPC location was visited, or explain either NPC's specific absence.
+
+The game and loader were already closed, so no current native unit/preset
+snapshot was available. The log lacks per-preset rejection diagnostics; the
+exact reason Hratli/Natalya fail to appear remains unproved. Next diagnosis:
+read only the user's current Kurast units/presets and their MonStats flags,
+match identities independently of localized strings, and identify their actual
+exclusion path before changing NPC identity rules. Preserve repeated guards,
+discovery policy, native commands and the worker/thread split.
+
+Existing `map-survey` and `native-entities` suites pass (2/2, timeout 20), but
+cover unique preset retention and absent-current-entry memory, not live NPCs
+without qualifying presets or live-to-preset fallback ordering. No production
+source, build, deployment, game input, save/archive edit or commit/push in this
+investigation. Own-session evidence and structured limits are retained under
+`re/kurast-npcs-2026-10-05/` in the workspace.
+
+## Moving town characters - 2026-10-05
+
+The user reports that the previous identity/reader deployment did not restore
+Hratli or Natalya. The concrete missing source is now identified without a live
+snapshot: both characters are created by quest object markers, not ordinary
+monster presets. The shipped `game-data/global/excel/objects.txt` rows 378/379
+are HratliStart/HratliEnd (InitFn 49/50); row 382 is NatalyaStart (InitFn 52).
+Installed quest handlers at RVA 0x5EB9E0 and 0x5EBC20 spawn MonStats 253 and 297
+at these markers (workspace `re/decompiled/decompiled_0012.c`). The earlier
+fallback reader ignored these object presets, so neither character had a
+fallback when their current unit was not resident. Five other named town NPCs
+remain in the user's latest own-session log; this is catalogue omission, not
+removal of native NPCs.
+
+`NativeLevelExits::ReadNpcMarkers` decodes only these native Kurast markers,
+with Hratli's vendor end location preferred and his starting location retained
+as an alternate approach. `NativeEntities` combines them with ordinary NPC
+presets. These locations are search approaches, not assertions about an
+unloaded NPC's current position. Loaded actual units always override them.
+Live interactive town characters receive stable class identities independently
+of presets, including friendly interactive rows without the npc flag; npc
+rows do not require redundant friendly alignment. Same-class simultaneous
+units remain distinct and repeated guard presets are not collapsed into one
+quest character. Whole-level reads include current-level resident logical rooms
+missing from the active neighbor ring. A dynamic path moving between room lists
+is accepted when both rooms belong to the same level.
+
+`TownNpcSightings` retains actual observations over fallback coordinates and
+refreshes discovered characters from current units outside the discovery view.
+On unloading it preserves the last actual position, carries the native alternate
+approaches, and returns `NoUnit` rather than a stale interaction type. Scanner
+walking refreshes before routing, searches the alternate approaches, then
+uncovered town floor when the NPC has moved elsewhere. Floor search uses actual
+arrival distance, not the wider unit-loading vicinity, to retain progress/stall
+tracking. The first newly loaded matching unit replaces the search position.
+An interaction whose NPC unloads returns to searching before issuing a native
+command. Beacon refresh accepts actual units and ignores fallback coordinates.
+Existing charted/in-view discovery and session reset remain; moving coordinates
+are not persisted between games.
+
+Tests reproduce a Kurast containing only Hratli/Natalya object markers and no
+client units or monster presets, retain both Hratli approaches, prefer a moved
+live unit, and accept its same-level path room. Other cases cover no/multiple
+presets, repeated guards, isolated resident units, foreign levels, current
+position precedence, unload/recreation, updates outside discovery and beacon
+refresh. Build/deployment and current validation: [STATUS](../STATUS.md).
+Records: `../../re/kurast-routing-rootcause-2026-10-05/`. The user confirmed the
+new deployed NPC/exploration fixes work in game and authorized commit/push to
+origin/bladestorm. The previous deployment's failure remains user-confirmed.

@@ -240,17 +240,33 @@ std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 }
 
 void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& found) {
-	for (const auto& npc : found)
-		if (npc.placeId) m_seen[level][npc.placeId] = npc;
+	for (const auto& npc : found) {
+		if (!npc.placeId) continue;
+		auto& seen = m_seen[level];
+		const auto old = seen.find(npc.placeId);
+		// A spawn is useful until the character has actually been located.
+		// It cannot move an observed character back to their initial position.
+		if (old == seen.end() || npc.unit != EntityRadar::Entity::NoUnit
+			|| old->second.unit == EntityRadar::Entity::NoUnit) seen[npc.placeId] = npc;
+	}
 }
 
-std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const {
+std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) {
 	std::vector<EntityRadar::Entity> result;
 	const auto seen = m_seen.find(level);
 	if (seen == m_seen.end()) return result;
-	for (const auto& [identity, remembered] : seen->second) {
-		const auto live = std::find_if(townNpcs.begin(), townNpcs.end(), [&](const auto& npc) { return npc.placeId == identity; });
-		result.push_back(live == townNpcs.end() ? remembered : *live);
+	for (auto& [identity, remembered] : seen->second) {
+		const auto live = std::find_if(townNpcs.begin(), townNpcs.end(), [&](const auto& npc) {
+			return npc.placeId == identity && npc.unit != EntityRadar::Entity::NoUnit;
+		});
+		// Refresh already discovered characters even if their new location is
+		// outside the discovery view; do not admit an undiscovered character.
+		if (live != townNpcs.end()) remembered = *live;
+		else if (const auto fallback = std::find_if(townNpcs.begin(), townNpcs.end(), [&](const auto& npc) { return npc.placeId == identity; }); fallback != townNpcs.end())
+			remembered.npcApproaches = fallback->npcApproaches;
+		auto listed = remembered;
+		if (live == townNpcs.end()) listed.unit = EntityRadar::Entity::NoUnit;
+		result.push_back(std::move(listed));
 	}
 	return result;
 }

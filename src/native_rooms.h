@@ -20,6 +20,7 @@ inline constexpr size_t None = static_cast<size_t>(-1);
 struct Room {
 	int      tileX = 0, tileY = 0, tileWidth = 0, tileHeight = 0;
 	uint64_t id = 0; // stable across visits; see Identity
+	bool operator==(const Room&) const = default;
 };
 
 // Subtile rectangle, max exclusive.

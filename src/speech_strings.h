@@ -236,7 +236,7 @@ struct Table {
 	const char* walkNothing; // the scanner has named nothing to walk to
 	const char* exploreTo;
 	const char* exploreArrived;
-	const char* exploreNothing; // every room that can be reached is explored
+	const char* exploreNothing; // reachable floor and streaming frontiers covered
 	const char* retreatTo; // %s = the way the player came into the level, by name, or retreatEntrance
 	const char* retreatEntrance; // where the player first stood in the level, when nothing they came through stands there
 	const char* targetNone; // no monster to fight or step to

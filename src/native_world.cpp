@@ -1,6 +1,7 @@
 #include "native_world.h"
 #include "core_slots.h"
 #include "entity_layout.h"
+#include "level_exit_layout.h"
 #include "layout_check.h"
 #include "native_memory.h"
 #include "async_log.h"
@@ -10,6 +11,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <unordered_set>
 
 namespace D2RAccess::NativeWorld {
 namespace {
@@ -258,6 +260,31 @@ bool ReadPlayer(uintptr_t player, uint32_t playerId, uint64_t session, int level
 			if (rooms[n] && std::find(pending.begin(), pending.end(), rooms[n]) == pending.end()) pending.push_back(rooms[n]);
 		}
 	}
+	// Active neighbor lists can be disconnected, or a room outside the snapshot
+	// radius can interrupt their traversal. Include the current level's other
+	// resident collision grids directly from its existing logical-room list.
+	// This reads no ungenerated/unloaded floor and retains the copy/radius caps.
+	uintptr_t logical = 0;
+	std::unordered_set<uintptr_t> logicalSeen;
+	if (Peek(nativeLevel + LevelExitLayout::LevelFirstRoom, logical))
+		while (logical && logicalSeen.size() < LevelExitLayout::MaxRooms && logicalSeen.insert(logical).second
+			&& output.rooms.size() < MaxRooms) {
+			uintptr_t owner = 0, active = 0, activeEx = 0, activeLevel = 0;
+			if (Peek(logical + EntityLayout::ExtendedLevel, owner) && owner == nativeLevel
+				&& Peek(logical + LevelExitLayout::RoomActive, active) && active
+				&& std::find(pending.begin(), pending.end(), active) == pending.end()
+				&& Peek(active + EntityLayout::RoomExtended, activeEx) && activeEx == logical
+				&& Peek(activeEx + EntityLayout::ExtendedLevel, activeLevel) && activeLevel == nativeLevel) {
+				Radar::RoomGrid grid;
+				if (ReadRoom(active, output.player, grid)) {
+					if (copied + grid.cells.size() > MaxCopiedCells) break;
+					copied += grid.cells.size();
+					output.rooms.push_back(std::move(grid));
+					pending.push_back(active);
+				}
+			}
+			if (!Peek(logical + LevelExitLayout::RoomNext, logical)) break;
+		}
 	RemovePlayerPresence(output, detail);
 	detail.stage = "player-cell";
 	if (output.Cell(x, y) == Radar::State::Unknown) { output = {}; return false; }

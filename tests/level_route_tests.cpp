@@ -90,13 +90,23 @@ int main() {
 		Check(memory.At(Left + 11, Top + 10) == Ground::Blocked, "a wall is ground seen shut");
 		Check(memory.At(Left + 20, Top + 10) == Ground::Open, "a marker left on the floor is not remembered as a wall");
 		Check(memory.At(Left + 22, Top + 10) == Ground::Open, "a monster is not remembered as a wall");
-		Check(memory.At(Left + 24, Top + 10) == Ground::Blocked, "a blank cell of a loaded room is no floor");
+		Check(memory.At(Left + 24, Top + 10) == Ground::Unseen, "blank collision remains unmeasured ground, not a false wall");
+		World missing = first;
+		missing.rooms[0].cells[10 * RoomCells + 5] = Blank;
+		memory.Learn(missing);
+		Check(memory.At(Left + 5, Top + 10) == Ground::Open, "a later blank collision read cannot erase walking floor already measured");
+		const auto initialRooms = level.Rooms();
+		auto grownRooms = initialRooms;
+		grownRooms.push_back({TileX + Across * RoomTiles, TileY, RoomTiles, RoomTiles, 999});
+		Check(memory.Extend(grownRooms) && memory.At(Left + 11, Top + 10) == Ground::Blocked
+			&& memory.At(Left + Width + 5, Top + 10) == Ground::Unseen,
+			"newly generated rooms enlarge route memory while preserving the collision already learned");
 		Check(memory.At(Left + RoomCells, Top) == Ground::Unseen, "a room not loaded stays unseen");
 		level.At(Left + 30, Top + 30) = Wall;
 		World changed = level.Loaded({Left + 5.0, Top + 5.0}, 0);
 		changed.level = 2;
 		Check(!memory.Learn(changed) && memory.At(Left + 30, Top + 30) == Ground::Open, "another level's rooms are not learnt");
-		Check(memory.Learn(level.Loaded({Left + 5.0, Top + 5.0}, 0)) && memory.Revision() == revision + 1,
+		Check(memory.Learn(level.Loaded({Left + 5.0, Top + 5.0}, 0)) && memory.Revision() > revision,
 			"a cell that changed is learnt, and counted once");
 	}
 	{

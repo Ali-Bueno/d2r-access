@@ -41,6 +41,7 @@ int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
 std::vector<NativeLevelAreas::Area> actAreas; // the act's built areas; none when unreadable
+std::vector<EntityRadar::Entity> currentEntities;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener,
 	D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
@@ -138,10 +139,10 @@ bool Read(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
 bool ReadLevel(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
 }
 namespace D2RAccess::NativeEntities {
-bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool, bool) { return false; }
+bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>& out, bool, bool, bool, bool) { out = currentEntities; return !out.empty(); }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
 }
-namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
+namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.kind == b.kind && a.placeId == b.placeId && (a.placeId || a.id == b.id); }
 bool Recreated(const Entity&, const Entity&) { return false; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
@@ -347,6 +348,34 @@ int main() {
 	BeaconService::Tick(&context);
 	Check(status().find(strings.beaconNothing) != std::string::npos, "a released lock does not come back");
 
+	Command("clear");
+	BeaconService::Tick(&context);
+	Event(Kind::LevelChanged, 75);
+	BeaconService::Tick(&context);
+	playerAt = {10, 10};
+	blocked = {};
+	EntityRadar::Entity movedNpc{7, EntityRadar::Kind::Npc, {70, 10}, "Ormus", 256};
+	movedNpc.category = EntityRadar::Category::Npc; movedNpc.unit = 1;
+	BeaconService::Offer(movedNpc, 75, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	auto spawn = movedNpc;
+	spawn.id = 256; spawn.position = playerAt; spawn.unit = EntityRadar::Entity::NoUnit;
+	currentEntities = {spawn};
+	Sleep(160);
+	BeaconService::Tick(&context);
+	Check(status().find("Ormus") != std::string::npos,
+		"beacon refresh does not jump a moved NPC back to an unloaded spawn fallback");
+	movedNpc.id = 99; movedNpc.position = {90, 10};
+	currentEntities = {spawn, movedNpc};
+	Sleep(160);
+	BeaconService::Tick(&context);
+	playerAt = movedNpc.position;
+	Sleep(160);
+	BeaconService::Tick(&context);
+	Check(speech.back() == Format(strings.beaconArrived, "Ormus"),
+		"beacon refresh follows the recreated live NPC to its actual new location");
+	currentEntities.clear();
 	BeaconService::Unregister();
 	Passed();
 }

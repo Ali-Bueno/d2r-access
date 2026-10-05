@@ -25,6 +25,8 @@ std::string Text(uint32_t id) {
 	case PlaceholderNameId: return english ? "an evil force" : "una fuerza maligna";
 	case 2892: return "Akara";
 	case 3013: return "Zombi";
+	case 3014: return "Hratli";
+	case 3015: return "Natalya";
 	case 2869: return "Bishibosh";
 	case 11072: return "a0n1:%1 %0"; // strChampionFormatXp, esES
 	case 3220: return "[fs]campeona[ms]campeón[fp]campeonas[mp]campeones";
@@ -799,6 +801,102 @@ int main() {
 	duplicatePreset.At<int>(PresetX, 21); duplicatePreset.At<int>(PresetY, 10);
 	Check(readTown() && std::none_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }),
 		"repeated guard presets still do not invent one named NPC location");
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 0);
+	Check(readTown() && town.Find(entities, 7)->placeId == 1
+		&& std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }) == 1,
+		"a real interactive town character keeps one live identity despite repeated alternate spawn presets");
+	{
+		Fixture moving;
+		Memory<0x200> level;
+		moving.roomEx.At(ExtendedLevel, level.Address());
+		level.At<uint32_t>(LevelId, 75); level.At(LevelFirstRoom, moving.roomEx.Address());
+		const auto read = [&](bool whole, bool fallback) {
+			return NativeEntities::ReadPlayer(moving.player.Address(), moving.tables.Address(), 42, 7,
+				entities, false, false, false, false, 0, whole, fallback);
+		};
+		Check(read(false, false) && moving.Find(entities, 7)->placeId == 1,
+			"a live town character has the same stable identity in local/keyboard reads without a spawn preset");
+		moving.npcPath.At<uint16_t>(2, 160); moving.npcPath.At<uint16_t>(6, 125);
+		Check(read(true, true) && moving.Find(entities, 7)->placeId == 1 && moving.Find(entities, 7)->position.x == 160,
+			"the level-wide scanner follows actual NPC movement independently of spawn position");
+		moving.monsters.At<uint8_t>(MonFlagsA, FlagInteract); // an interactive friendly row need not set npc
+		Check(read(false, false) && moving.Find(entities, 7)->placeId == 1,
+			"a named friendly interactive character is remembered even without the npc flag");
+		moving.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 0);
+		Check(read(true, true) && moving.Find(entities, 7)->placeId == 0 && moving.Find(entities, 8)->placeId == 0,
+			"separate simultaneous units of one class are never collapsed into one town character");
+		moving.enemy.At<uint32_t>(GroundItemLayout::UnitClass, 1);
+		Memory<RoomSize> remote;
+		Memory<0x100> logical;
+		Memory<UnitSize> character;
+		Memory<PathSize> characterPath, characterData;
+		moving.monsters.At<uint16_t>(2 * MonStatStride + MonNameId, 2892);
+		moving.monsters.At<uint8_t>(2 * MonStatStride + MonAlign, AlignFriendly);
+		moving.monsters.At<uint8_t>(2 * MonStatStride + MonFlagsA, FlagInteract);
+		moving.Monster(character, characterPath, characterData, 2, 777, 300, 310);
+		characterPath.At(PathRoom, remote.Address());
+		remote.At(RoomExtended, logical.Address()); remote.At(GroundItemLayout::RoomFirstUnit, character.Address());
+		logical.At(ExtendedLevel, level.Address()); logical.At(RoomActive, remote.Address());
+		moving.roomEx.At(RoomNext, logical.Address());
+		Check(read(false, false) && !moving.Find(entities, 777), "ordinary proximity does not gain distant units");
+		Check(read(true, true) && moving.Find(entities, 777) && moving.Find(entities, 777)->placeId == 3,
+			"all active logical rooms are scanned even when missing from the connected active-neighbor ring");
+		Memory<0x200> foreign;
+		logical.At(ExtendedLevel, foreign.Address());
+		Check(read(true, true) && !moving.Find(entities, 777), "active rooms owned by another level remain excluded");
+		level.At<uint32_t>(LevelId, 9);
+		Check(read(false, false) && moving.Find(entities, 7)->placeId == 0, "non-town NPC identity remains unchanged");
+	}
+	{
+		Fixture questTown;
+		Memory<0x200> level;
+		Memory<0x30> start, finish, natalya;
+		std::vector<uint8_t> rows(MonStatStride * 300);
+		const auto row = [&](uint32_t id, uint16_t name) {
+			std::memcpy(rows.data() + id * MonStatStride + MonNameId, &name, sizeof name);
+			rows[id * MonStatStride + MonAlign] = AlignFriendly;
+			rows[id * MonStatStride + MonFlagsA] = FlagNpc | FlagInteract;
+		};
+		row(0, 2892); row(253, 3014); row(297, 3015);
+		questTown.tables.At(MonStats, reinterpret_cast<uintptr_t>(rows.data()));
+		questTown.tables.At<uint64_t>(MonStatCount, 300);
+		questTown.roomEx.At(ExtendedLevel, level.Address());
+		level.At<uint32_t>(LevelId, 75); level.At(LevelFirstRoom, questTown.roomEx.Address());
+		questTown.roomEx.At<int>(RoomTileX, 20); questTown.roomEx.At<int>(RoomTileY, 20);
+		questTown.roomEx.At<int>(RoomTileWidth, 8); questTown.roomEx.At<int>(RoomTileHeight, 8);
+		questTown.roomEx.At(RoomPresets, start.Address());
+		start.At<uint32_t>(PresetType, ObjectType); start.At<uint32_t>(PresetClass, 378);
+		start.At<int>(PresetX, 5); start.At<int>(PresetY, 5); start.At(PresetNext, finish.Address());
+		finish.At<uint32_t>(PresetType, ObjectType); finish.At<uint32_t>(PresetClass, 379);
+		finish.At<int>(PresetX, 30); finish.At<int>(PresetY, 30); finish.At(PresetNext, natalya.Address());
+		natalya.At<uint32_t>(PresetType, ObjectType); natalya.At<uint32_t>(PresetClass, 382);
+		natalya.At<int>(PresetX, 20); natalya.At<int>(PresetY, 20);
+		const auto read = [&] { return NativeEntities::ReadPlayer(questTown.player.Address(), questTown.tables.Address(), 42, 7,
+			entities, false, false, false, false, 0, true, true); };
+		Check(read() && std::any_of(entities.begin(), entities.end(), [](const auto& npc) {
+			return npc.name == "Hratli" && npc.placeId == 254 && npc.position.x == 130 && npc.position.y == 130 && npc.unit == EntityRadar::Entity::NoUnit;
+		}), "Hratli's quest object end marker supplies one vendor approach, despite no monster preset or client unit");
+		Check(std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Hratli"; }) == 1,
+			"Hratli start/end markers are one character, not duplicate NPCs");
+		const auto hr = std::find_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Hratli"; });
+		Check(hr != entities.end() && hr->npcApproaches.size() == 2 && hr->npcApproaches.front().x == 130 && hr->npcApproaches.back().x == 105,
+			"both quest locations remain available for an unloaded Hratli search, with the vendor end tried first");
+		Check(std::any_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Natalya" && npc.placeId == 298; }),
+			"Natalya's object marker is decoded as a character, rather than discarded as dummy decoration");
+		questTown.npc.At<uint32_t>(GroundItemLayout::UnitClass, 253);
+		Check(read() && questTown.Find(entities, 7)->name == "Hratli" && questTown.Find(entities, 7)->placeId == 254
+			&& std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Hratli"; }) == 1,
+			"a moving live Hratli supersedes both quest markers with his actual unit and coordinates");
+		Memory<RoomSize> movedRoom;
+		Memory<0x100> movedEx;
+		movedRoom.At(RoomExtended, movedEx.Address()); movedEx.At(ExtendedLevel, level.Address());
+		questTown.npcPath.At(PathRoom, movedRoom.Address());
+		Check(read() && questTown.Find(entities, 7)->unit == MonsterType,
+			"a town character moving across room lists is read from its current same-level path room");
+		level.At<uint32_t>(LevelId, 9);
+		Check(read() && std::none_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Natalya"; }),
+			"quest markers in another level never invent Kurast characters");
+	}
 	Passed();
 	return 0;
 }

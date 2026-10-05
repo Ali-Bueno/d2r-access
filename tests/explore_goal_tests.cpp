@@ -1,4 +1,5 @@
 #include "explore_goal.h"
+#include <algorithm>
 #include "navigation_policy.h"
 #include "test_support.h"
 #include "fixtures/spider_forest_routing.h"
@@ -123,6 +124,159 @@ int main() {
 		const auto* entry = grid.At(static_cast<int>(choice.position.x), static_cast<int>(choice.position.y));
 		Check(entry && entry->steps == 72 && entry->body == Radar::State::Open,
 			"captured Spider Forest entry has a complete 72-step native-collision route");
+	}
+	{
+		// A closed door is a currently blocked local border, but not proof the
+		// ground behind it cannot be explored. The remembered reach gate allows
+		// doors; its answer must not be vetoed by a second cropped-border gate.
+		const std::vector<NativeRooms::Room> partition{rooms[0], rooms[1]};
+		const auto partitionGraph = RoomGraph::Build(partition);
+		Radar::World world;
+		world.session = 1; world.level = 79; world.player = {20, 20};
+		world.bodyPattern = 1; world.walkingMask = 0x1C09;
+		world.rooms.push_back({0, 0, 80, 40, std::vector<uint16_t>(80 * 40, 0)});
+		for (int y = 0; y < 40; ++y) world.rooms[0].cells[y * 80 + 39] = Radar::Collision::Door;
+		const auto grid = Navigation::Build(world, 100, Radar::Layer::Terrain, false);
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 79, partition) && memory.Learn(world), "door-partition exploration regression learns floor");
+		const LevelRoute::Reach reach(memory, world.player, world.bodyPattern);
+		const auto old = ExploreGoal::Nearest(partitionGraph, grid, {rooms[0]}, world.player);
+		Check(!old.found && !old.complete, "local closed-border filtering reproduces the remaining-ground exclusion");
+		const auto choice = ExploreGoal::Nearest(partitionGraph, grid, {rooms[0]}, world.player, {}, &reach);
+		Check(choice.found && choice.room == 1 && !choice.complete,
+			"H keeps an unexplored destination allowed by the shared whole-level reach policy");
+		const auto refused = ExploreGoal::Nearest(partitionGraph, grid, {rooms[0]}, world.player, {rooms[1].id}, &reach);
+		Check(!refused.found && !refused.complete, "giving up on a goal cannot claim all ground is explored");
+		const auto done = ExploreGoal::Nearest(partitionGraph, grid, partition, world.player, {}, &reach);
+		Check(!done.found && done.complete, "completion is distinct from a missing route to remaining rooms");
+		for (int y = 0; y < 40; ++y) world.rooms[0].cells[y * 80 + 39] = Radar::Collision::Wall;
+		(void)memory.Learn(world);
+		const LevelRoute::Reach walled(memory, world.player, world.bodyPattern);
+		Check(!ExploreGoal::Nearest(partitionGraph, grid, {rooms[0]}, world.player, {}, &walled).found,
+			"a genuine wall cut-off remains excluded even when the native room graph is connected");
+	}
+	{
+		// Every native room is already visited, but long dock branches and town
+		// interiors remain outside the player's discovery range. H must sweep
+		// the actual floor, regardless of act or archived room visitation.
+		for (const int level : {1, 40, 75, 103, 109}) {
+			Radar::World world;
+			world.session = 1; world.level = level; world.player = {10, 20}; world.bodyPattern = 1; world.walkingMask = 0x1C09;
+			world.rooms.push_back({0, 0, 120, 80, std::vector<uint16_t>(120 * 80, Radar::Collision::Wall)});
+			const auto open = [&](int x0, int y0, int x1, int y1) {
+				for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x) world.rooms[0].cells[y * 120 + x] = 0;
+			};
+			open(5, 18, 110, 22); open(78, 18, 82, 65); open(40, 60, 82, 65);
+			const std::vector<NativeRooms::Room> shape{{0, 0, 24, 16, 1}};
+			LevelRoute::Memory memory; memory.Begin(1, level, shape); memory.Learn(world);
+			ExploreGoal::Coverage coverage;
+			bool finished = false;
+			for (int tap = 0; tap < 100; ++tap) {
+				const auto grid = Navigation::Build(world, 150, Radar::Layer::Terrain, false);
+				coverage.Observe(memory, grid);
+				const auto next = ExploreGoal::Next(memory, coverage, world.player, world.bodyPattern);
+				if (!next.found) { finished = next.complete; break; }
+				const auto* target = grid.At(static_cast<int>(next.position.x), static_cast<int>(next.position.y));
+				Check(target && target->steps >= 0 && target->body == Radar::State::Open,
+					"every exploration leg has a collision-proved walking route, including bends within an entered room");
+				world.player = next.position;
+			}
+			Check(finished && coverage.Seen(105, 20) && coverage.Seen(45, 62),
+				"the same floor sweep finishes both dock branches in Acts 1 through 5 without targeting surrounding water");
+		}
+	}
+	{
+		const auto captured = SpiderForestRouting::Capture();
+		LevelRoute::Memory memory;
+		Check(memory.Begin(captured.world.session, captured.world.level, captured.rooms) && memory.Learn(captured.world),
+			"actual Spider Forest layout and native collision initialize floor exploration");
+		const auto grid = Navigation::Build(captured.world, 150, Radar::Layer::Terrain, false);
+		ExploreGoal::Coverage coverage; coverage.Observe(memory, grid);
+		const auto next = ExploreGoal::Next(memory, coverage, captured.world.player, captured.world.bodyPattern);
+		const auto* floor = grid.At(static_cast<int>(next.position.x), static_cast<int>(next.position.y));
+		Check(next.found && floor && floor->body == Radar::State::Open && floor->steps > 0
+			&& !coverage.Seen(static_cast<int>(next.position.x), static_cast<int>(next.position.y)),
+			"captured Act 3 data yields a complete route to new actual floor inside rooms the old room-entry policy discards");
+		LevelRoute::Reach reach(memory, captured.world.player, captured.world.bodyPattern);
+		for (const auto& room : captured.rooms) {
+			const auto bounds = NativeRooms::Subtiles(room);
+			if (reach.Within(bounds) != LevelRoute::Reach::Answer::CutOff) continue;
+			bool open = false;
+			for (int y = bounds.minY; y < bounds.maxY; ++y) for (int x = bounds.minX; x < bounds.maxX; ++x)
+				open = open || memory.At(x, y) == LevelRoute::Ground::Open;
+			Check(!open, "the captured rejected room rectangles contain no measured walking floor, rather than unexplored content");
+		}
+	}
+	{
+		const std::vector<NativeRooms::Room> shape{{0, 0, 8, 8, 1}, {8, 0, 8, 8, 2}, {16, 0, 8, 8, 3}};
+		Radar::World world;
+		world.session = 1; world.level = 76; world.player = {10, 20}; world.bodyPattern = 1; world.walkingMask = 0x1C09;
+		LevelRoute::Memory memory; memory.Begin(1, 76, shape);
+		ExploreGoal::Coverage coverage;
+		bool finished = false;
+		for (int tap = 0; tap < 80; ++tap) {
+			const int room = std::clamp(static_cast<int>(world.player.x) / 40, 0, 2);
+			world.rooms.clear();
+			for (int loaded = room; loaded <= std::min(2, room + 1); ++loaded) {
+				world.rooms.push_back({loaded * 40, 0, 40, 40, std::vector<uint16_t>(1600, Radar::Collision::Wall)});
+				for (int y = 18; y <= 22; ++y) for (int x = 0; x < 40; ++x) world.rooms.back().cells[y * 40 + x] = 0;
+			}
+			memory.Learn(world);
+			const auto grid = Navigation::Build(world, 150, Radar::Layer::Terrain, false);
+			coverage.Observe(memory, grid);
+			const auto next = ExploreGoal::Next(memory, coverage, world.player, world.bodyPattern);
+			if (!next.found) { finished = next.complete; break; }
+			const auto route = LevelRoute::Plan().From(memory, world.player, next.position, 0, 1);
+			Check(!route.path.empty(), "streamed exploration retains a full route after preceding room collision unloads");
+			world.player = route.path.front();
+			for (const auto point : route.path) {
+				if (memory.At(static_cast<int>(point.x), static_cast<int>(point.y)) != LevelRoute::Ground::Open) break;
+				world.player = point;
+			}
+		}
+		Check(finished && coverage.Seen(112, 20), "exploration follows streaming frontiers through all rooms and finishes their actual walking floor");
+	}
+	{
+		Radar::World world;
+		world.session = 1; world.level = 109; world.player = {10, 20}; world.bodyPattern = 1; world.walkingMask = 0x1C09;
+		world.rooms = {{0, 0, 80, 40, std::vector<uint16_t>(3200, Radar::Collision::Wall)}};
+		for (int y = 18; y <= 22; ++y) for (int x = 5; x <= 70; ++x)
+			world.rooms[0].cells[y * 80 + x] = x == 39 ? Radar::Collision::Door : 0;
+		const std::vector<NativeRooms::Room> shape{{0, 0, 16, 8, 1}};
+		LevelRoute::Memory memory; memory.Begin(1, 109, shape); memory.Learn(world);
+		ExploreGoal::Coverage coverage;
+		world.player = {25, 20};
+		coverage.Observe(memory, Navigation::Build(world, 100, Radar::Layer::Terrain, false));
+		world.player = {10, 20};
+		coverage.Observe(memory, Navigation::Build(world, 100, Radar::Layer::Terrain, false));
+		const auto door = ExploreGoal::Next(memory, coverage, world.player, 1);
+		Check(door.found && door.door && door.position.x == 39,
+			"an unexplored branch through a closed door produces a door approach, not a refusal or false completion");
+		for (int y = 18; y <= 22; ++y) world.rooms[0].cells[y * 80 + 39] = 0;
+		memory.Learn(world);
+		const auto opened = ExploreGoal::Next(memory, coverage, world.player, 1);
+		Check(opened.found && !opened.door, "opening the door makes its unexplored floor an ordinary walking destination");
+		coverage.Reject(opened.position, memory.Revision());
+		const auto another = ExploreGoal::Next(memory, coverage, world.player, 1);
+		Check(another.found && !another.complete, "one refused point never discards its room or declares that unexplored content is exhausted");
+	}
+	{
+		Radar::World world;
+		world.session = 1; world.level = 76; world.player = {25, 20}; world.bodyPattern = 1; world.walkingMask = 0x1C09;
+		world.rooms = {{0, 0, 40, 40, std::vector<uint16_t>(1600, Radar::Collision::Wall)}};
+		for (int y = 18; y <= 22; ++y) for (int x = 5; x < 40; ++x) world.rooms[0].cells[y * 40 + x] = 0;
+		LevelRoute::Memory memory; memory.Begin(1, 76, {{0, 0, 16, 8, 1}}); memory.Learn(world);
+		ExploreGoal::Coverage coverage;
+		coverage.Observe(memory, Navigation::Build(world, 100, Radar::Layer::Terrain, false));
+		world.player = {10, 20};
+		coverage.Observe(memory, Navigation::Build(world, 100, Radar::Layer::Terrain, false));
+		const auto floor = ExploreGoal::Next(memory, coverage, world.player, 1);
+		Check(floor.found && memory.At(static_cast<int>(floor.position.x), static_cast<int>(floor.position.y)) == LevelRoute::Ground::Open,
+			"partially streamed branch first chooses its remaining measured floor");
+		coverage.Reject(floor.position, memory.Revision());
+		const auto frontier = ExploreGoal::Next(memory, coverage, world.player, 1);
+		Check(frontier.found && memory.At(static_cast<int>(frontier.position.x), static_cast<int>(frontier.position.y)) == LevelRoute::Ground::Unseen,
+			"a failed measured point cannot prevent exploration of an unloaded branch");
 	}
 	Passed();
 	return 0;
