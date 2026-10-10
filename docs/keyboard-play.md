@@ -55,7 +55,7 @@ In play:
 | Tab, Shift+Tab | next / previous monster |
 | D | walk up to the nearest usable thing and use it |
 | Shift+Home | walk to what the scanner named |
-| H | walk to the nearest unexplored room |
+| H | automatically explore reachable unexplored ground until none remains; arrows, either fighting key or End stop it |
 | Ctrl+R | retreat: walk back to the way you came into the level, and stop beside it |
 | End | stop |
 | Ctrl+Y | the ways out of this room |
@@ -890,8 +890,8 @@ fixes working in game on 2026-10-04 and ended the session. [Evidence](exploratio
 ## Unknown routes and shared outdoor borders - 2026-10-04
 
 A stopped/refused walk now says "No known route to <target>" instead of "No
-way". Further exploration may reveal a route. H still enters one new room per
-request; the existing explored-area beacon mode is unchanged.
+way". Further exploration may reveal a route. At that date H stopped after each floor leg; continuous H exploration supersedes
+that behavior on 2026-10-07. The explored-area beacon mode is unchanged.
 
 Unmeasured outdoor exits now consider every shared-border room section. One
 blocked strip no longer excludes other possible approaches. The actual opening

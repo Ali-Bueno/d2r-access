@@ -40,6 +40,11 @@ private:
 	Position rejectedFrom_;
 };
 
+// A floor target is finished once a real player observation covers it.
+// Distance alone would finish a nearby target across a wall without seeing it.
+// An unloaded door approach stops within two cells for the player's D instead.
+bool Reached(const Coverage& coverage, Position player, Position target, bool doorApproach = false);
+
 // Search walking floor and streaming frontiers, including inside entered
 // rooms. Unknown collision never causes an entire room to be rejected.
 Choice Next(const LevelRoute::Memory& memory, const Coverage& coverage, Position player, int bodyPattern);

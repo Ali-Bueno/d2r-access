@@ -25,7 +25,7 @@ before adding one, and read this file first.
 | full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. **Every object counts as an item: chests, urns, barrels, dead bodies, shrines, levers, doors, the stash, and a player's corpse** (the user, 2026-09-28). D takes a corpse as it opens a chest: the game's own message for it, `0x13` (READ in the game's click code, not pressed yet). The next D picks up or opens that one and no other; if it has gone, D says so and takes nothing |
 | right bracket, left bracket | next NPC, previous one, on screen, nearest first, as full stop and comma do; the next D talks to that one (the user, 2026-09-28: an NPC close to other things D could take) |
 | D | walk up to the nearest usable thing on screen and use it |
-| H | walk to the nearest unexplored room |
+| H | automatically explore reachable unexplored ground until none remains; arrows, either fighting key or End stop it |
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
 | Ctrl+R | retreat: walk back to the way you came into the level -- the stairs, waypoint, portal or area border you arrived by, or the place you first stood if none stands there -- and stop beside it (the user, 2026-10-02: "collapse retreat to control+r"). Shift+R and Alt+R retreat no more; in play they are the game's |
 | End | stop |

@@ -1,4 +1,6 @@
 #include "explore_goal.h"
+#include "auto_walk.h"
+#include <optional>
 #include <algorithm>
 #include "navigation_policy.h"
 #include "test_support.h"
@@ -171,16 +173,32 @@ int main() {
 			LevelRoute::Memory memory; memory.Begin(1, level, shape); memory.Learn(world);
 			ExploreGoal::Coverage coverage;
 			bool finished = false;
-			for (int tap = 0; tap < 100; ++tap) {
+			AutoWalk::Walker walker;
+			AutoWalk::Settings settings;
+			settings.layer = Radar::Layer::Movement;
+			std::optional<Position> target;
+			int legs = 0;
+			// One exploration run: consume actual walking orders around the dock
+			// bends instead of teleporting directly to each selected floor point.
+			for (int tick = 0; tick < 250; ++tick) {
 				const auto grid = Navigation::Build(world, 150, Radar::Layer::Terrain, false);
 				coverage.Observe(memory, grid);
-				const auto next = ExploreGoal::Next(memory, coverage, world.player, world.bodyPattern);
-				if (!next.found) { finished = next.complete; break; }
-				const auto* target = grid.At(static_cast<int>(next.position.x), static_cast<int>(next.position.y));
-				Check(target && target->steps >= 0 && target->body == Radar::State::Open,
-					"every exploration leg has a collision-proved walking route, including bends within an entered room");
-				world.player = next.position;
+				if (!target || ExploreGoal::Reached(coverage, world.player, *target)) {
+					const auto next = ExploreGoal::Next(memory, coverage, world.player, world.bodyPattern);
+					if (!next.found) { finished = next.complete; walker.Stop(); break; }
+					Check(!next.door, "open dock branches need no manual door interaction");
+					target = next.position;
+					++legs;
+					walker.Start();
+				}
+				const auto route = LevelRoute::Plan().From(memory, world.player, *target, 0, world.bodyPattern);
+				Check(!route.path.empty(), "each successive exploration target has a proved walking route");
+				const auto step = walker.Tick(world, route.path, 1000 + tick * 300, settings);
+				Check(step.event == AutoWalk::Event::Order && AutoWalk::Straight(world, world.player, step.order, settings.layer),
+					"continuous exploration orders follow actual floor around bends without crossing water");
+				world.player = step.order;
 			}
+			Check(legs > 1 && !walker.Active(), "one run chains multiple floor targets and stops when exploration is complete");
 			Check(finished && coverage.Seen(105, 20) && coverage.Seen(45, 62),
 				"the same floor sweep finishes both dock branches in Acts 1 through 5 without targeting surrounding water");
 		}
@@ -277,6 +295,27 @@ int main() {
 		const auto frontier = ExploreGoal::Next(memory, coverage, world.player, 1);
 		Check(frontier.found && memory.At(static_cast<int>(frontier.position.x), static_cast<int>(frontier.position.y)) == LevelRoute::Ground::Unseen,
 			"a failed measured point cannot prevent exploration of an unloaded branch");
+	}
+	{
+		// A thin wall separates two nearby cells. The remaining floor is close
+		// in coordinates but requires walking around the wall's lower end.
+		Radar::World world;
+		world.session = 1; world.level = 75; world.player = {18, 20}; world.bodyPattern = 0; world.walkingMask = 0x1C09;
+		world.rooms = {{0, 0, 40, 40, std::vector<uint16_t>(1600, 0)}};
+		for (int y = 0; y <= 25; ++y) world.rooms[0].cells[y * 40 + 19] = Radar::Collision::Wall;
+		LevelRoute::Memory memory; memory.Begin(1, 75, {Room(0, 0)}); memory.Learn(world);
+		ExploreGoal::Coverage coverage;
+		coverage.Observe(memory, Navigation::Build(world, 16, Radar::Layer::Terrain, false));
+		Check(!ExploreGoal::Reached(coverage, world.player, {20, 20}),
+			"a floor target two cells away across a wall stays active until actually observed");
+		Check(ExploreGoal::Reached(coverage, world.player, {17, 20}),
+			"already observed floor completes its leg without forcing another movement order");
+		Check(ExploreGoal::Reached(coverage, world.player, {20, 20}, true),
+			"an explicit door approach retains its nearby stop for manual interaction");
+		world.player = {20, 20};
+		coverage.Observe(memory, Navigation::Build(world, 16, Radar::Layer::Terrain, false));
+		Check(ExploreGoal::Reached(coverage, world.player, {20, 20}),
+			"walking around the wall observes the target and enables automatic continuation");
 	}
 	Passed();
 	return 0;

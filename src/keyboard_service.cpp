@@ -168,6 +168,7 @@ bool g_settingsBuilt = false;
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
+bool g_exploreDoorApproach = false; // an unloaded closed door still needs D at the end of this leg
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a retreat heads for
 uint32_t g_itemPick = 0;    // the item, object or NPC comma, full stop, [ or ] chose, which the next D takes
@@ -453,6 +454,7 @@ std::string Describe(const Radar::World& world, const Entity& entity, int steps)
 void End(const char* reason, bool halt) {
 	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
 	g_mode = Mode::Idle;
+	g_exploreDoorApproach = false;
 	g_npcSearchFloor = false;
 	g_walker.Stop();
 	g_closing = g_backing = false;
@@ -964,6 +966,16 @@ Position Beyond(Position player, Position crossing) {
 
 void BeginExplore(const Lifecycle& state, bool announce = true);
 
+// A floor target is one leg of the H request, not the end of exploration.
+// Select again without halting or speaking an arrival for every patch of floor.
+// Closed doors and teleport pads retain their explicit D interaction.
+void ExploreArrived(const Lifecycle& state) {
+	if (g_exploreDoorApproach) {
+		End("explore door reached", true);
+		ScreenReader::Speak(Strings::Current().exploreArrived, true);
+	} else BeginExplore(state, false);
+}
+
 void Walk(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	Scene scene;
@@ -1021,10 +1033,12 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		}
 	}
 	const double reach = g_npcSearchFloor ? 0 : UseReach + HalfFootprint(g_target);
-	if (g_mode == Mode::Explore && Distance(scene.world.player, g_target.position) <= 2) {
-		End("explored", true);
-		ScreenReader::Speak(strings.exploreArrived, true);
-		return;
+	if (g_mode == Mode::Explore) {
+		const auto* kept = Kept(state);
+		if (kept && ExploreGoal::Reached(kept->coverage, scene.world.player, g_target.position, g_exploreDoorApproach)) {
+			ExploreArrived(state);
+			return;
+		}
 	}
 	// Cut off, as the map now shows: said here, not from the edge nearest the thing.
 	if (g_mode != Mode::Interact && NoWay(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach)) {
@@ -1043,6 +1057,10 @@ void Walk(const Lifecycle& state, uint64_t now) {
 	}
 	switch (Advance(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach, now)) {
 	case Progress::Arrived:
+		if (g_mode == Mode::Explore) {
+			ExploreArrived(state);
+			return;
+		}
 		if (g_mode == Mode::Interact) {
 			AsyncLog::InfoF(g_context, "[keyboard] use id=%u unit=%u name=%s", g_target.id, g_target.unit, name.c_str());
 			End("used", false);
@@ -1295,6 +1313,7 @@ void BeginExplore(const Lifecycle& state, bool announce) {
 	}
 	if (!choice.found && ExploreByPad(state, scene, *graph, covered)) return;
 	if (!choice.found) {
+		End("exploration complete", true);
 		AsyncLog::InfoF(g_context, "[keyboard] explore: reachable floor and streaming frontiers covered, %zu logical rooms", graph->rooms.size());
 		ScreenReader::Speak(strings.exploreNothing, true);
 		return;
@@ -1322,6 +1341,7 @@ void BeginExplore(const Lifecycle& state, bool announce) {
 	g_target.placeId = room == NativeRooms::None ? 0 : graph->rooms[room].id;
 	g_target.name = strings.surveyCategories[12];
 	g_mode = Mode::Explore;
+	g_exploreDoorApproach = choice.door;
 	g_walker.Start();
 	g_nextAct = 0;
 	AsyncLog::InfoF(g_context, "[keyboard] explore: new floor at=%.0f,%.0f room=%zu", choice.position.x, choice.position.y, room);
@@ -1438,6 +1458,9 @@ void StepTarget(const Lifecycle& state, int delta) {
 
 void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand hand, uint64_t now) {
 	if (!Ready()) return;
+	// Both fighting keys stop automatic movement even when the selected skill
+	// is a buff or summon, whose one-shot branch does not enter fighting mode.
+	if (g_mode != Mode::Idle && g_mode != Mode::Fight) End("fighting key", true);
 	const int skill = NativeActions::SelectedSkill(hand);
 	if (KindOf(hand) == Generated::SkillAttack::None) {
 		// Not an attack: a cry, an armour, a summons. Used once, where the

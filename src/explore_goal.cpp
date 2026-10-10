@@ -61,6 +61,11 @@ bool Coverage::Rejected(int x, int y, uint64_t revision) const {
 	});
 }
 
+bool Reached(const Coverage& coverage, Position player, Position target, bool doorApproach) {
+	if (doorApproach) return std::hypot(player.x - target.x, player.y - target.y) <= 2;
+	return coverage.Seen(static_cast<int>(std::lround(target.x)), static_cast<int>(std::lround(target.y)));
+}
+
 Choice Next(const LevelRoute::Memory& memory, const Coverage& coverage, Position player, int bodyPattern) {
 	Choice choice;
 	if (!memory.Revision()) return choice;

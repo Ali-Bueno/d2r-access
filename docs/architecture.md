@@ -99,8 +99,12 @@ Keyboard menu entry follows the verified native input-mode getter; idle XInput
 presence does not defer placement in keyboard mode. Standalone player inventory
 enters its item grid. H consumes `TerrainService::ExplorationRooms`: all levels
 count physical visits/current room. The beacon still consumes `ExploredRooms`.
-`ExploreGoal` prefers loaded reachable entry floor by actual walking steps, then
-room hops for speculative candidates. Streaming cutoffs reselect within H. See keyboard-play/exploration docs.
+`ExploreGoal::Next` selects uncovered walking floor, then streaming frontiers
+and door approaches, using observation coverage independent of room entry.
+One H request chains floor legs through `ExploreArrived` until exhausted;
+`ExploreGoal::Reached` finishes a floor leg only after actual observation.
+Arrows, either fighting key, End, menus and lifecycle changes cancel the run.
+Closed doors/pads retain their explicit D stops. See keyboard-play/exploration docs.
 
 `native_tooltips.cpp` observes the verified draw path, copying rendered primary
 and comparison descriptions. `interaction_reader.cpp` combines those with grid

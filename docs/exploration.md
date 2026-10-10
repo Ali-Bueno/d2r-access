@@ -1,5 +1,36 @@
 # Exploration: the unexplored mark, the two memories and their disk form
 
+## Continuous automatic exploration - 2026-10-07
+
+The user requested one H press to continue through unexplored territory until
+no reachable walking floor or streaming frontier remains. The user's latest
+local session confirms successive `ended: explored` events in the same area.
+Those were individual floor-target arrivals, not exploration completion.
+
+`KeyboardService::ExploreArrived` now selects the next leg through the existing
+`BeginExplore` path without a native halt or per-leg arrival speech. The shared
+`ExploreGoal::Reached` policy uses actual observation coverage for floor legs;
+a nearby target across a wall cannot finish merely by coordinate distance.
+The same request continues after streaming/replanning as before. Exhaustion
+ends the mode, halts movement and announces that all reachable ground has been
+explored once. No background exploration request survives cancellation.
+
+Arrow movement, either fighting key and End stop the run. Fighting-key presses
+cancel movement before the selected skill is classified, including buffs and
+summons. Menus, dialogue and lifecycle changes retain their existing stops.
+Closed doors and teleport pads still stop for explicit D interaction; press H
+after opening the door or taking the pad to start the next continuous run.
+
+The existing five-act dock regression now follows actual AutoWalk orders around
+bends, chains floor targets and finishes both branches. A thin-wall fixture
+checks observation-based completion and the explicit door-approach exception.
+Existing streaming, captured forest, collision and pad checks remain. These are
+offline policy/route checks; actual game input, cancellation and speech still
+require user gameplay confirmation. Current build/deployment/test results are
+in [STATUS](../STATUS.md); local records are under
+`../../re/exploration-continuous-2026-10-07/`.
+
+
 The mod's exploration history, in sound and in a word: which way out has not been
 taken, where the ground the game has never streamed begins, how much has streamed.
 This is not a verified reading of native automap discovery; see the
