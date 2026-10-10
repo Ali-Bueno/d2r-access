@@ -11,7 +11,7 @@ namespace {
 std::vector<std::string> records;
 }
 namespace D2RAccess::AsyncLog {
-void InfoF(const D2RL::PluginContext*, const char* format, ...) {
+void InfoF(const D2RL::PluginContext*, const char* format, ...) noexcept {
 	char text[4096]{};
 	va_list args;
 	va_start(args, format);

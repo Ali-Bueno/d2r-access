@@ -2,6 +2,7 @@
 #include "item_wave.h"
 #include "item_spatial.h"
 #include "async_log.h"
+#include "process_lifetime.h"
 #include "mod_sounds.h"
 #include <windows.h>
 #include <xaudio2.h>
@@ -27,7 +28,8 @@ constexpr DWORD PlaybackCheckMs = 250; // one progress record per source, after 
 constexpr DWORD ExplorationExpiryMs = 2 * SnapshotExpiryMs; // terrain publishes every 250 ms
 std::mutex g_mutex;
 std::condition_variable g_wake;
-std::thread g_thread;
+ProcessLifetime<std::thread> g_threadOwner;
+std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::vector<Voice> g_pending;
 uint64_t g_updated = 0;

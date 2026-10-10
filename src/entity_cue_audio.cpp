@@ -1,5 +1,6 @@
 #include "entity_cue_audio.h"
 #include "async_log.h"
+#include "process_lifetime.h"
 #include "mod_sounds.h"
 #include "wave_out.h"
 
@@ -17,7 +18,8 @@ namespace D2RAccess::EntityCueAudio {
 namespace {
 std::mutex g_mutex;
 std::condition_variable g_wake;
-std::thread g_thread;
+ProcessLifetime<std::thread> g_threadOwner;
+std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::atomic<uint64_t> g_generation{0};
 double g_gain = 1;

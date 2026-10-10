@@ -43,6 +43,14 @@ also defers ambient and quest announcements. Interaction/tooltips are handled
 within the text-reader path. World, quest, radar, catalogue and combat services
 follow in the same update.
 
+`callback_boundary.h` contains C++ exceptions at that SDK `noexcept` callback.
+An allocation failure unwinds the temporary snapshot, cancels keyboard mod
+movement/queued actions through the shared cancellation helper, and waits one
+second before retrying. It never returns a false empty/fully-explored map or
+clears learned map data. A mod-side notice is queued on a later attempt.
+Timing-destructor formatting uses fixed stack storage; `AsyncLog` enqueue is
+best effort and cannot throw during recovery or unwinding.
+
 Native widget access and gameplay commands run on this thread. Hook callbacks
 must copy bounded data and respect their producer's thread; quest packet captures
 use atomics/session epochs and a protected cache. Do not move native traversal
@@ -54,6 +62,15 @@ onto a background worker merely to reduce an update's duration.
 | `async_log.cpp` | Runtime SDK log delivery, which flushes disk | Callbacks enqueue bounded messages |
 | `item_audio.cpp`, radar/beacon/entity audio modules | Audio rendering and buffer/device management | Services submit copied sound state |
 | `explored_store.cpp` | Exploration archive I/O and migration | `TerrainService` submits room/place snapshots |
+
+All static thread owners, and the terrain service's archive-store owner, use
+`ProcessLifetime<T>` (`process_lifetime.h`). Normal service unload still stops
+and joins workers; terrain then resets the owner to release its archive cache.
+The trivially destructible wrapper performs no cleanup under the loader lock
+on forced process exit. Windows reclaims process resources. A normal DLL unload
+still requires `D2RLoaderUnloadPlugin` first; never replace that lifecycle with
+a wait/join in `DllMain`. Local/test `ExploredStore::Store` RAII is unchanged.
+See [stability repair behavior and tests](stability.md).
 
 `NativeMemory::ReadScope` shares page-permission checks for one synchronous read
 pass. It caches permission information, never game contents or pointers between

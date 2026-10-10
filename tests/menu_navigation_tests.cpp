@@ -85,8 +85,8 @@ std::optional<bool> ReadEnabled(const D2RL::PluginContext*, std::string_view) { 
 }
 namespace D2RAccess::SkillNavigation { void Reset() { ++skillResets; } }
 namespace D2RAccess::AsyncLog {
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
-void Warn(const D2RL::PluginContext*, const char*) {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
+void Warn(const D2RL::PluginContext*, const char*) noexcept {}
 }
 
 int main() {

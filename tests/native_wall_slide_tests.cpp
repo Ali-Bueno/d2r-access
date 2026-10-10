@@ -52,10 +52,10 @@ void Original(uintptr_t context, const float* start, const float* direction, int
 namespace D2RAccess::WallSlideService { bool Prevent(uintptr_t) noexcept { return prevent; } }
 namespace D2RAccess::NativeWorld { bool IsLocalPlayer(uintptr_t player) noexcept { return player == localPlayer; } }
 namespace D2RAccess::AsyncLog {
-void Info(const D2RL::PluginContext*, const char*) {}
-void Warn(const D2RL::PluginContext*, const char*) {}
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
-void WarnF(const D2RL::PluginContext*, const char*, ...) {}
+void Info(const D2RL::PluginContext*, const char*) noexcept {}
+void Warn(const D2RL::PluginContext*, const char*) noexcept {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
+void WarnF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 
 int main() {

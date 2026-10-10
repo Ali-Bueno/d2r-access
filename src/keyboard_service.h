@@ -44,6 +44,9 @@ namespace D2RAccess::KeyboardService {
 bool Register(const D2RL::PluginContext* context, bool nativeHooks);
 // Right after InputDirection::Poll: what it posts is for this update's readers.
 void Tick(const D2RL::PluginContext* context);
+// UI callback recovery: drop pending actions/selection and stop mod movement.
+// Does not allocate, speak, or discard learned map/exploration state.
+void CancelAfterFault() noexcept;
 void Unregister();
 // In a game and in play, as of the last update: the keys act on the world.
 bool Playing();

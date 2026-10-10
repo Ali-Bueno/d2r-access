@@ -451,14 +451,18 @@ std::string Describe(const Radar::World& world, const Entity& entity, int steps)
 	return Format(strings.surveySteps, EntityRadar::SpokenName(entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 }
 
-void End(const char* reason, bool halt) {
-	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
+void CancelMovement(bool halt) noexcept {
 	g_mode = Mode::Idle;
 	g_exploreDoorApproach = false;
 	g_npcSearchFloor = false;
 	g_walker.Stop();
 	g_closing = g_backing = false;
 	if (halt) (void)NativeActions::Halt();
+}
+
+void End(const char* reason, bool halt) {
+	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
+	CancelMovement(halt);
 }
 
 bool Ready() {
@@ -2176,6 +2180,22 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+void CancelAfterFault() noexcept {
+	const bool moving = g_mode != Mode::Idle || g_stepping;
+	CancelMovement(moving && g_playing.load());
+	g_command = Command::None;
+	g_deferred = Command::None;
+	g_press = nullptr;
+	g_sort = g_fill = false;
+	g_swapAsked = 0;
+	for (auto& held : g_held) held = 0;
+	for (auto& pressed : g_pressed) pressed = false;
+	g_stepping = false;
+	g_padUse.active = false;
+	g_lock.Clear();
+	g_itemPick = 0;
 }
 
 void Unregister() {

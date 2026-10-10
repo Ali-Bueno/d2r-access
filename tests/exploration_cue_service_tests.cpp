@@ -103,8 +103,8 @@ void PlayExplorationArrival(GroundItems::Voice voice) { arrivals.push_back(voice
 void SilenceExploration() { loops.clear(); ++silences; }
 }
 namespace D2RAccess::AsyncLog {
-void Info(const D2RL::PluginContext*, const char*) {}
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+void Info(const D2RL::PluginContext*, const char*) noexcept {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 
 int main() {

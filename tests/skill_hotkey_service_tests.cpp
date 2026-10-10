@@ -35,7 +35,7 @@ void Speak(std::string_view text, bool interrupt) {
 }
 }
 namespace D2RAccess::AsyncLog {
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 
 int main() {

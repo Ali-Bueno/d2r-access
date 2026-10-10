@@ -1,5 +1,55 @@
 # STATUS — Diablo II: Resurrected (d2r-access)
 
+## Allocation and shutdown stability — 2026-10-10
+
+Latest gameplay dump confirms std::bad_alloc in StepPick -> Look ->
+Navigation::Build, a normal 301-by-301 grid (2.07 MiB) allocation escaping the
+noexcept UI pump. Heavy system commit pressure observed; exact lower-level
+allocation cause and component memory attribution remain unproved. Earlier
+Oct 9 dump is a distinct process-shutdown failure: ItemAudio's joinable static
+thread destructor terminates. The initial reason for process exit is unknown.
+
+IMPLEMENTED, OFFLINE-VERIFIED AND INSTALLED; gameplay confirmation pending.
+The UI callback now contains allocation/C++ failures, safely cancels mod
+movement/queued actions, preserves map state and backs off one second. Timing
+destructor/diagnostic allocation cannot cause a secondary abort. Static workers
+use central process-lifetime ownership: ordinary unload still stops/joins and
+flushes persistence, while forced process exit performs no thread destruction
+or joining under the loader lock.
+
+Focused 4/4 and complete 108/108 tests pass, timeout 20 per test. Tests include
+the real grid allocation, actual SDK UI pump, failed logging enqueue, and an
+isolated worker DLL's normal unload/handle cleanup/forced process exit. No game
+launch/input was used. Built with the local four-job/BelowNormal entry point,
+staged for tests, then installed while the game/loader was closed; binary hash
+matches the tested staged build. No game settings or saves changed. The user
+authorized pushing the verified installed repair to origin/bladestorm.
+[Behavior, lifecycle contract and test coverage](docs/stability.md).
+
+## Continuous H exploration - 2026-10-07
+
+DEPLOYED; implemented and offline-verified, gameplay confirmation pending.
+One H request now chains uncovered walking-floor/streaming legs until exhaustion.
+No per-floor halt or arrival speech; the shared observation-based arrival helper
+avoids repeatedly selecting nearby unseen floor across a wall. Exhaustion ends
+and halts once. Arrows, either fighting key and End stop; buffs/summons cancel
+before their one-shot action. Menus/lifecycle resets stop as before. Closed doors
+and teleport pads retain explicit D stops, followed by a fresh H request.
+
+Full 105/105 and affected 8/8 pass, timeout 20; extended five-act walking-order
+sweeps and thin-wall/door arrival regressions. User confirmed game/loader closed;
+normal local build.ps1 defaults (four jobs, BelowNormal) installed the build.
+Installed SHA-256: 4EE487DBDDB7D7186F9079B8B439A17019E5FE04613D921A3CB93D3782785E4A.
+Final build matches installation and tested staged code/data (four PE timestamp
+bytes differ). PRISM, both configs and exploration archive unchanged; backups
+retained. Active build owner: none. Local/uncommitted; no push/release/game input.
+Records: ../re/exploration-continuous-2026-10-07/.
+[Behavior and validation](docs/exploration.md#continuous-automatic-exploration---2026-10-07).
+
+User check: press H once, listen for continued exploration across floor targets;
+tap an arrow, A, W or End and confirm no restart on release. Doors/pads still use D.
+
+
 ## Kurast quest markers and floor exploration - 2026-10-05
 
 The prior BFE9B75C... deployment failed in the user's game. Its room-entry

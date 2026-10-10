@@ -7,8 +7,8 @@
 #include <cstring>
 
 namespace D2RAccess::AsyncLog {
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
-void WarnF(const D2RL::PluginContext*, const char*, ...) {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
+void WarnF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 namespace D2RAccess::NativeGroundItems {
 bool RuntimeRoots(uintptr_t&, uintptr_t&) noexcept { return false; }

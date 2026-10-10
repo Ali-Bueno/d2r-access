@@ -54,7 +54,7 @@ std::optional<bool> ReadEnabled(const D2RL::PluginContext*, std::string_view sec
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
 }
-namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
 
 int main() {
 	Strings::Select(Strings::Language::enUS);
