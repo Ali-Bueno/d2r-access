@@ -1,0 +1,117 @@
+D2R ACCESS - PAQUETE COMPLETO PARA TESTERS
+Versión de prueba del {{DATE}} (commit {{COMMIT}})
+
+
+QUÉ ES
+
+Mod de accesibilidad para Diablo II: Resurrected. Lee el juego con tu lector de
+pantalla (NVDA, JAWS o, si no hay ninguno, la voz de Windows) y da sonidos de
+orientación: radar de paredes, objetos, salidas, cofres, monstruos.
+Funciona sobre D2RLoader {{LOADER}}, que viene en este paquete.
+
+
+{{NEWS}}
+REQUISITOS
+
+- Diablo II: Resurrected de Steam o Battle.net, en Windows 10 u 11 de 64 bits.
+- NVDA o JAWS abierto antes de arrancar el juego.
+
+
+INSTALACIÓN
+
+1. Cierra el juego.
+2. Extrae todo el contenido de este zip dentro de la carpeta del juego, la que
+   tiene D2R.exe. En Steam: clic derecho en el juego, Administrar, Explorar
+   archivos locales. Suele ser:
+   C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected
+   Si pregunta si reemplazar archivos, di que sí.
+3. Junto a D2R.exe tienen que quedar: D2RLoader.exe, D2RCore.dll, d2rloader.mpq,
+   cuatro DLL de Microsoft (msvcp140.dll, msvcp140_atomic_wait.dll,
+   vcruntime140.dll, vcruntime140_1.dll) y la carpeta d2rloader.
+   No renombres ni reemplaces D2R.exe.
+
+
+ACTUALIZAR
+
+La última versión siempre se descarga desde este enlace (hay que tener la
+sesión de GitHub iniciada con una cuenta que tenga acceso al repositorio):
+
+{{LATEST_URL}}
+
+Para actualizar, cierra el juego y extrae el zip nuevo encima, igual que la
+primera vez. Si después el juego vuelve a salir en inglés, repite el paso de
+IDIOMA.
+
+
+CÓMO ARRANCAR
+
+Steam (recomendado): en las Propiedades del juego, pestaña General, Opciones de
+lanzamiento, escribe la ruta de D2RLoader.exe entre comillas y después %command%.
+Por ejemplo:
+
+"C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RLoader.exe" %command%
+
+Después juega con el botón Jugar de Steam, como siempre.
+
+Battle.net: con Battle.net abierto y la sesión iniciada, abre D2RLoader.exe
+desde la carpeta del juego.
+
+Cuando el mod arranca dice "Diablo 2 accessibility loaded".
+
+Si el loader avisa que no hubo inicio de sesión en 30 días y arranca sin mods, es
+una comprobación de Blizzard que el loader mantiene a propósito. Arranca desde
+Steam como se explica arriba. Con una cuenta o instalación nueva puede hacer
+falta abrir el juego una vez sin el loader, conectado a internet.
+
+
+IDIOMA
+
+El loader puede no respetar el idioma elegido en Steam y arrancar el juego en
+inglés. Si pasa, abre con el Bloc de notas el archivo
+d2rloader\config\d2rloader.toml, busca estas dos líneas:
+
+text_locale = ""
+audio_locale = ""
+
+y pon el idioma entre las comillas, en las dos: "esES" para español de España o
+"esMX" para español latino. Guarda y vuelve a abrir el juego.
+
+
+CONTROLES
+
+Teclado: la lista completa está en COMANDOS-TECLADO.txt. Para empezar:
+- Ctrl+S: lista de interruptores del mod (Re Pág / Av Pág para moverse,
+  Espacio para cambiar).
+- Re Pág / Av Pág: escáner, objeto anterior / siguiente.
+  Ctrl+Re Pág / Ctrl+Av Pág: categoría anterior / siguiente.
+- D: ir hasta lo usable más cercano y usarlo.
+- Ctrl+G: radar, activar o desactivar. Ctrl+T: estado del radar.
+- Z y X: vida y maná.
+
+Mando: el mod también funciona con mando, en el modo de mando del juego.
+
+
+AJUSTES
+
+d2rloader\config\d2r-access.toml tiene el radar (encendido, volumen,
+diagonales). Se puede editar con el Bloc de notas; los cambios valen al volver a
+abrir el juego.
+
+
+JUGAR EN LÍNEA CON OTRA PERSONA
+
+Los dos jugadores deben usar este mismo paquete (el mismo loader, {{LOADER}}).
+
+
+SI ALGO FALLA
+
+Copia el archivo d2rloader\logs\d2r-access.log apenas pase el problema, antes de
+volver a abrir el juego, y mándalo contando qué estabas haciendo. Si el juego se
+cerró solo, manda también lo que haya en la carpeta d2rloader\crashes.
+
+
+LICENCIAS
+
+En la carpeta licencias: la del mod (MIT) y las de PRISM, la biblioteca de voz.
+D2RLoader es de d2rloader.net. Las cuatro DLL de Microsoft son el runtime de
+Visual C++ (x64), que el loader y el mod necesitan.

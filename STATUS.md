@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Test releases — 2026-10-11
+
+`tools\test-release.ps1` builds `HEAD` in a separate tree (the install is untouched), runs CTest,
+packages the complete tester ZIP and publishes it as the latest GitHub release. First one:
+`test-2026-10-11` from `df45422` (106/106 CTest, 29 entries verified). Always-latest link and
+details: [test releases](docs/test-releases.md). The installed plugin is still the
+`port/bladestorm-npcs` build, which is not in that release.
+**Next step:** pass `-NewsFile` with the Spanish news on the next one.
+
 ## Keyboard as a virtual controller — idea, 2026-10-05
 
 The user is not satisfied with the keyboard cursor and plans to replace it with keys that
@@ -11,6 +20,16 @@ It was withdrawn for displacing a real pad and breaking name typing; both have k
 Code recoverable from `85aac6c^`. [controller mode](docs/controller-mode.md)
 **Next step (own session):** restore the detour, inject only with no physical pad, and check
 that movement reaches the game.
+
+## Tester ZIP — 2026-10-05
+
+`../d2r-access-completo-2026-10-05.zip` for a new tester: plugin from `df45422` (`B3FD5BB5…`,
+matches the install; 106/106 CTest), loader 1.3.1-beta from `../loader-backups` (hashes match),
+`radar.toml` as `d2r-access.toml`, the loader's default `d2rloader.toml`, PRISM and its licences,
+four x64 VC 14.44 runtime DLLs, the Spanish keyboard list as `COMANDOS-TECLADO.txt` and a full
+Spanish LEEME (install, Steam launch option, language, logs). 29 entries, 58,906,074 bytes,
+SHA-256 `c80ac057f0c8551a659fb0e0dd9c1eb6ba08a62d4ed1db8f7d63970c98cdd29c`; every entry matches.
+**Next step:** send it.
 
 ## Inventory lag in the keyboard build — reported 2026-10-05
 

@@ -548,6 +548,11 @@ the level just left is not announced. `[discoveries]` in the settings file. See
 
 ## Build and install
 
+Testers who do not build can download the complete package (plugin, D2RLoader and the VC++
+runtime) from the [latest test release](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip)
+and follow its `LEEME.txt`. Maintainers publish one with `tools\test-release.ps1`; see
+[test releases](docs/test-releases.md).
+
 Build with the game closed. FFmpeg must be on `PATH` to convert the OGG loop
 sources to WAV. The build embeds those sounds in the plugin DLL, so there are no
 loose sound files to install or replace; FFmpeg is not needed to run the plugin.
