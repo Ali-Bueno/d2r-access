@@ -13,7 +13,9 @@
 #include <windows.h>
 #include <atomic>
 #include <charconv>
+#include <cmath>
 #include <mutex>
+#include <string>
 #include <initializer_list>
 #include <string_view>
 
@@ -115,6 +117,24 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 }
 
 TargetSight::Sight LabelSight(std::string_view label) { return LabelTarget(label).sight; }
+
+std::string NearestNpc() {
+	if (!g_units) return {};
+	Lifecycle state;
+	{ std::lock_guard lock(g_mutex); state = g_state; }
+	Radar::World world;
+	std::vector<EntityRadar::Entity> entities;
+	if (!state.ready || !NativeWorld::Read(state.player, state.session, state.level, world)
+		|| !NativeEntities::Read(state.player, state.session, entities)) return {};
+	const EntityRadar::Entity* nearest = nullptr;
+	double best = 0;
+	for (const auto& entity : entities) {
+		if (entity.kind != EntityRadar::Kind::Npc || entity.name.empty()) continue;
+		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
+		if (!nearest || distance < best) { nearest = &entity; best = distance; }
+	}
+	return nearest ? nearest->name : std::string{};
+}
 
 TargetSight::Bearer LabelTarget(std::string_view label) {
 	if (!g_sightSettings.enabled || !g_units || label.empty()) return {};

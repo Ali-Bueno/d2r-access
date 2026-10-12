@@ -1,17 +1,40 @@
 #include "ground_items.h"
 #include <D2RLPlugin/item.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <numbers>
 #include <cctype>
 #include <unordered_set>
 
 namespace D2RAccess::GroundItems {
-Sound Classify(uint32_t quality, Base base, bool quest) {
+namespace {
+std::atomic<bool> g_lastEpoch{false};
+}
+bool LastEpochSounds() { return g_lastEpoch; }
+void SetLastEpochSounds(bool on) { g_lastEpoch = on; }
+
+bool IsPotion(Sound sound) {
+	return sound == Sound::Potion || sound == Sound::EpochHealthPotion || sound == Sound::EpochManaPotion
+		|| sound == Sound::EpochRejuvenationPotion || sound == Sound::EpochOtherPotion;
+}
+bool IsGold(Sound sound) { return sound == Sound::Gold || sound == Sound::EpochGold; }
+
+int Purse::Update(int gold, bool playing) {
+	if (gold < 0) return 0;
+	const int gain = playing && known_ >= 0 && gold > known_ ? gold - known_ : 0;
+	known_ = gold;
+	return gain;
+}
+
+Sound Classify(uint32_t quality, Base base, bool quest, bool lastEpoch) {
 	if (quest) return Sound::Quest;
 	switch (base) {
-	case Base::Gold: return Sound::Gold;
-	case Base::Potion: return Sound::Potion;
+	case Base::Gold: return lastEpoch ? Sound::EpochGold : Sound::Gold;
+	case Base::HealthPotion: return lastEpoch ? Sound::EpochHealthPotion : Sound::Potion;
+	case Base::ManaPotion: return lastEpoch ? Sound::EpochManaPotion : Sound::Potion;
+	case Base::RejuvenationPotion: return lastEpoch ? Sound::EpochRejuvenationPotion : Sound::Potion;
+	case Base::Potion: return lastEpoch ? Sound::EpochOtherPotion : Sound::Potion;
 	case Base::Scroll: return Sound::Scroll;
 	case Base::Rune: return Sound::Rune;
 	case Base::Gem: return Sound::Gem;
@@ -76,17 +99,14 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 }
 // User priority for names read together: quest items, consumables, gold, then equipment last.
 int SpeechRank(Sound sound) {
-	switch (sound) {
-	case Sound::Quest: return 0;
-	case Sound::Potion: case Sound::Scroll: return 1;
-	case Sound::Gold: return 2;
-	default: return 3;
-	}
+	if (sound == Sound::Quest) return 0;
+	if (IsPotion(sound) || sound == Sound::Scroll) return 1;
+	return IsGold(sound) ? 2 : 3;
 }
 }
 
 Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops, bool doorLoops,
-	bool questLoops) {
+	bool questLoops, bool shrineLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
 	std::vector<Item> quests;
@@ -95,6 +115,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	Emit(quests, snapshot.player, MaxQuestVoices, result);
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
 	if (doorLoops) Emit(snapshot.doors, snapshot.player, MaxDoorVoices, result);
+	if (shrineLoops) Emit(snapshot.shrines, snapshot.player, MaxShrineVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;
 	std::unordered_set<uint32_t> present;

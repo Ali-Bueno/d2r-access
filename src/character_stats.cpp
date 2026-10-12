@@ -1,5 +1,6 @@
 #include "character_stats.h"
 #include "localization.h"
+#include "mercenary_stats.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 
@@ -173,6 +174,10 @@ std::vector<std::string> Lines(uintptr_t panel) {
 	const auto panelName = NativeWidgets::ReadName(panel);
 	if (auto level = panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel); !level.empty())
 		lines.push_back(std::move(level));
+	if (panelName == HirelingPanel) {
+		if (auto experience = MercenaryStats::Experience(panel); !experience.empty()) lines.push_back(std::move(experience));
+		for (auto& skill : MercenaryStats::SkillLines(panel)) lines.push_back(std::move(skill));
+	}
 	// Snapshot walks the visible tree in declaration order and omits hidden
 	// subtrees, so a row the game is not showing never reaches the list.
 	const auto snapshot = NativeUi::Snapshot(panel, 0);

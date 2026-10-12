@@ -54,7 +54,7 @@ int Meter::Update(int percent) {
 
 void Meter::Reset() { step_ = previous_ = -1; }
 
-Alert Alerts::Update(int life, int mana) {
+Alert Alerts::Update(int life, int mana, ManaAlerts manaAlerts) {
 	Alert alert;
 	if (life >= 0) {
 		const int previous = life_.Previous();
@@ -64,6 +64,8 @@ Alert Alerts::Update(int life, int mana) {
 	if (mana >= 0) {
 		const int previous = mana_.Previous();
 		alert.mana = mana_.Update(mana);
+		const bool lowFall = mana <= ManaLowPercent && previous > mana;
+		if (manaAlerts == ManaAlerts::Off || (manaAlerts == ManaAlerts::Low && !lowFall)) alert.mana = -1;
 		alert.interrupt = alert.interrupt
 			|| (alert.mana >= 0 && mana <= CriticalPercent && previous > mana);
 	}
@@ -95,8 +97,12 @@ std::optional<bool> Condition::Update(std::optional<bool> active) {
 
 void Condition::Reset() { previous_.reset(); }
 
-std::optional<Gait> GaitTracker::Observe(std::optional<Gait> moving) {
-	if (!moving) return std::nullopt;
+std::optional<Gait> GaitTracker::Observe(std::optional<Gait> moving, bool free) {
+	if (!moving || !free) {
+		pending_.reset();
+		held_ = 0;
+		return std::nullopt;
+	}
 	if (!known_) {
 		known_ = moving;
 		return std::nullopt;

@@ -23,6 +23,10 @@ struct Placement { double right = 0, front = 1, panScale = 1, pitchScale = 1; };
 
 std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain = 1);
 bool Start(const D2RL::PluginContext* context, double gain, double panScale = 1, double pitchScale = 1);
+// The settings list changes the strengths while playing.
+void SetStrength(double panScale, double pitchScale);
+double PanScale();
+double PitchScale();
 // Queues one sound. The newest ping replaces a ping that has not started yet,
 // so a slow device can never build a backlog of stale beacons.
 void Play(Sound sound, Placement placement);

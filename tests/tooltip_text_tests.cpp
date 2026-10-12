@@ -65,6 +65,16 @@ int main() {
 		"the markup diagnostic names each styled line's commands, index included");
 	Check(TooltipText::Markup("Defense: 43\nQuilted Armor").empty(), "and says nothing for plain lines");
 
+	// A throwing potion: a styled damage line under the styled name, or the only
+	// styled line, never takes the name's place (a tester heard "Throw Damage" first).
+	const std::vector<std::string> throwStats{"Throw Damage:"};
+	const auto gas = TooltipText::Read("Required Level: 6\n" + std::string(Title) + "Throw Damage: 7 to 9\n"
+		+ std::string(Title) + "Strangling Gas Potion");
+	Check(gas.headings.size() == 2 && gas.heading == 0, "every styled line is kept, the topmost first");
+	Check(TooltipText::Split(gas, throwStats).headline == "Strangling Gas Potion", "the styled name wins over a styled stat below it");
+	const auto lone = TooltipText::Read("Required Level: 6\n" + std::string(Title) + "Throw Damage: 7 to 9\nStrangling Gas Potion");
+	Check(TooltipText::Split(lone, throwStats).headline == "Strangling Gas Potion", "a styled stat alone does not name the item");
+
 	// No styling: the first line stands in, and the split says so.
 	const auto plain = TooltipText::Read("Restores Health\nMinor Healing Potion");
 	Check(!plain.Marked(), "an unstyled tooltip reports that it was unstyled");

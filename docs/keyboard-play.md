@@ -448,10 +448,12 @@ Cost, MEASURED OFFLINE: learning 25 loaded rooms 0.17 ms; one search of a
 400 x 400 level (the Far Oasis) 3.6 ms, made when the map or the place
 changes, not on every look.
 
-Not done: the beacon and the scanner's distances still know only the loaded
-floor, so the scanner says the straight line to a thing whose surroundings
-are not loaded, and that number jumps when they load (100 steps, then 250,
-in the walk above). Nothing is kept from one game to the next.
+The beacon plans on this same map since 2026-10-12
+([walkable guidance](beacon.md#walkable-guidance)). Not done: the scanner's
+distances still know only the loaded floor, so the scanner says the straight
+line to a thing whose surroundings are not loaded, and that number jumps when
+they load (100 steps, then 250, in the walk above). Nothing is kept from one
+game to the next.
 
 ## What cannot be reached: the filter and the look before a walk
 

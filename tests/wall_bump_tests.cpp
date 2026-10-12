@@ -115,6 +115,7 @@ void ContactAndPan() {
 	world.player = {10, 10};
 	world.subtileFraction = {0.5, 0.5};
 	world.walkingMask = PlayerPath;
+	world.bodyPattern = 1; // the player's cross (docs/collision-semantics.md)
 	world.rooms.push_back({0, 0, Size, Size, std::vector<uint16_t>(Size * Size)});
 	const auto put = [&](int x, int y, uint16_t flags) { world.rooms[0].cells[static_cast<size_t>(y) * Size + x] = flags; };
 	Check(!Contact(world, {1, 0}), "open ground is no contact");
@@ -135,6 +136,14 @@ void ContactAndPan() {
 	for (int x = 0; x < Size; ++x) put(x, 12, 0);
 	for (int x = 0; x < Size; ++x) put(x, 13, Wall);
 	Check(!Contact(world, {1, 1}), "a wall three cells away on that axis is not yet touching");
+	for (int x = 0; x < Size; ++x) put(x, 13, 0);
+	put(11, 9, Wall);
+	Check(Contact(world, {1, 0}), "a ragged border beside the push line still touches the body");
+	put(11, 9, 0);
+	world.player = {Size - 2, 10};
+	Check(Contact(world, {1, 0}), "the edge of the map, where no room is, is a wall as the game reads it (a tester)");
+	Check(!Contact(world, {-1, 0}), "and open ground the other way is not");
+	world.player = {10, 10};
 	Check(std::abs(Pan({1, -1}) - 1) < 1e-12 && std::abs(Pan({-1, 1}) + 1) < 1e-12, "screen right and left pan fully");
 	Check(std::abs(Pan({-1, -1})) < 1e-12 && std::abs(Pan({1, 1})) < 1e-12, "screen up and down are centred");
 	Check(std::abs(Pan({1, 0}) - 2 / std::sqrt(5.0)) < 1e-12, "a world axis pans by its screen share at the 2:1 projection");

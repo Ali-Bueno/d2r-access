@@ -39,6 +39,7 @@ std::atomic<bool>                  g_claimed { false };
 std::atomic<uint64_t>              g_holdBUntil { 0 };    // GetTickCount64 before which B is held
 std::atomic<uint64_t>              g_leftStickUntil { 0 }; // before which a held Y takes the left stick
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
+std::atomic<bool>                  g_keepBack { true };
 int                                g_retries = 0;
 uint64_t                           g_nextTry = 0;
 // Touched only on the thread the game polls from: D2R reads its pads from one
@@ -51,7 +52,8 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	if (result != ERROR_SUCCESS || state == nullptr || user >= XUSER_MAX_COUNT) return result;
 	const WORD before = state->Gamepad.wButtons;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
-	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB);
+	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB,
+		g_keepBack.load(std::memory_order_relaxed));
 	if (KeepsLeftStick(before, GetTickCount64() < g_leftStickUntil.load(std::memory_order_relaxed))) {
 		state->Gamepad.sThumbLX = 0;
 		state->Gamepad.sThumbLY = 0;
@@ -139,8 +141,9 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 }
 }
 
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB) {
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack) {
 	const bool back = (buttons & Back) != 0;
+	buttons = Keep(buttons, Back, claimed && keepBack, presses.back);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
@@ -166,6 +169,9 @@ void ReleaseB() {
 	g_holdBUntil.store(0, std::memory_order_relaxed);
 }
 
+bool KeepBack() { return g_keepBack.load(std::memory_order_relaxed); }
+void SetKeepBack(bool keep) { g_keepBack.store(keep, std::memory_order_relaxed); }
+
 bool Install(const D2RL::PluginContext* context) {
 	if (!g_slots.empty()) return true;
 	if (context == nullptr || context->exeBase == 0) return false;
@@ -187,7 +193,7 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		(void)TryInstall(context, --g_retries == 0);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s",
+		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s%s", (kept & Back) ? " BACK (the automap in play)" : "",
 			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_B) ? " B (with BACK, or closing the line reader)" : "",
 			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "",
 			(kept & XINPUT_GAMEPAD_LEFT_SHOULDER) ? " LB (with BACK)" : "", (kept & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? " RB (with BACK)" : "");

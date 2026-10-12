@@ -6,24 +6,30 @@
 #include <sstream>
 
 namespace D2RAccess::SettingsStore {
-std::string Encode(const std::map<std::string, bool>& values) {
+std::string Encode(const std::map<std::string, int>& values) {
 	std::string text;
-	for (const auto& [name, on] : values) text += name + (on ? "=1\n" : "=0\n");
+	for (const auto& [name, value] : values) text += name + "=" + std::to_string(value) + "\n";
 	return text;
 }
 
-std::map<std::string, bool> Decode(std::string_view text) {
-	std::map<std::string, bool> values;
+std::map<std::string, int> Decode(std::string_view text) {
+	std::map<std::string, int> values;
 	while (!text.empty()) {
 		const size_t end = text.find('\n');
 		std::string_view line = text.substr(0, end);
 		text = end == std::string_view::npos ? std::string_view{} : text.substr(end + 1);
 		if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
 		const size_t equals = line.find('=');
-		if (equals == 0 || equals == std::string_view::npos || equals + 2 != line.size()) continue;
-		const char value = line[equals + 1];
-		if (value != '0' && value != '1') continue;
-		values[std::string(line.substr(0, equals))] = value == '1';
+		if (equals == 0 || equals == std::string_view::npos) continue;
+		const auto digits = line.substr(equals + 1);
+		if (digits.empty() || digits.size() > MaxValueDigits) continue;
+		int value = 0;
+		bool number = true;
+		for (const char c : digits) {
+			if (c < '0' || c > '9') { number = false; break; }
+			value = value * 10 + (c - '0');
+		}
+		if (number) values[std::string(line.substr(0, equals))] = value;
 	}
 	return values;
 }

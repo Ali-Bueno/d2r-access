@@ -43,6 +43,27 @@ SkillButton ParseSkillButton(std::string_view name) {
 
 NativeUi::Cell SkillCell(std::string_view name) { return ParseSkillButton(name).cell; }
 
+namespace {
+bool EndsSentence(std::string_view line) {
+	return line.ends_with('.') || line.ends_with(':') || line.ends_with('!') || line.ends_with('?');
+}
+
+// Whether a line begins with a lowercase letter: ASCII, Latin-1, Latin
+// Extended-A (lowercase on odd code points) and Cyrillic, the game's scripts with case.
+bool StartsLowercase(std::string_view line) {
+	if (line.empty()) return false;
+	const auto a = static_cast<unsigned char>(line[0]);
+	if (a < 0x80) return a >= 'a' && a <= 'z';
+	if (line.size() < 2) return false;
+	const auto b = static_cast<unsigned char>(line[1]);
+	const unsigned point = ((a & 0x1F) << 6) | (b & 0x3F);
+	if ((a & 0xE0) != 0xC0) return false;
+	if (point >= 0xDF && point <= 0xFF) return point != 0xF7;           // ß to ÿ, not ÷
+	if (point >= 0x100 && point <= 0x17F) return (point & 1) != 0;      // ā, ą, ł...
+	return point >= 0x430 && point <= 0x45F; // а-я, ѐ-џ
+}
+}
+
 std::vector<std::string> SkillLines(std::string_view body) {
 	// U+E07E followed by 1 or 2 sets font size. Captured from the stock skill
 	// renderer during controller navigation; these are not controller glyphs.
@@ -52,17 +73,25 @@ std::vector<std::string> SkillLines(std::string_view body) {
 	size_t title = std::string::npos;
 	while (!body.empty()) {
 		const auto newline = body.rfind('\n');
-		std::string line(body.substr(newline == std::string_view::npos ? 0 : newline + 1));
+		const std::string line(body.substr(newline == std::string_view::npos ? 0 : newline + 1));
 		const bool isTitle = title == std::string::npos && line.find(heading) != std::string::npos;
-		for (size_t at = 0; (at = line.find(font, at)) != std::string::npos;) {
+		// A style command after text starts a new block on the same line (the
+		// synergies after "Mana Cost: 4", a tester): the line is cut there.
+		std::vector<std::string> parts{std::string{}};
+		for (size_t at = 0; at < line.size();) {
+			if (line.compare(at, font.size(), font) != 0) { parts.back() += line[at++]; continue; }
 			const size_t next = at + font.size();
 			const bool size = next < line.size() && (line[next] == '1' || line[next] == '2');
-			line.erase(at, font.size() + (size ? 1 : 0));
+			at = next + (size ? 1 : 0);
+			if (!UiText::Clean(parts.back()).empty()) parts.emplace_back();
 		}
-		line = UiText::Clean(line);
-		if (!line.empty()) {
-			if (isTitle) title = lines.size();
-			lines.push_back(std::move(line));
+		bool first = true;
+		for (auto& part : parts) {
+			part = UiText::Clean(part);
+			if (part.empty()) continue;
+			if (isTitle && first) title = lines.size();
+			first = false;
+			lines.push_back(std::move(part));
 		}
 		if (newline == std::string_view::npos) break;
 		body = body.substr(0, newline);
@@ -70,7 +99,14 @@ std::vector<std::string> SkillLines(std::string_view body) {
 	// The learned/unlearned state is drawn above the styled name. Speak the
 	// name first, then preserve the rest of the screen's top-to-bottom order.
 	if (title != std::string::npos) std::rotate(lines.begin(), lines.begin() + title, lines.begin() + title + 1);
-	return lines;
+	// A sentence the tooltip wrapped is one line again ("Magically splits one
+	// Arrow" / "or bolt into many."), so it is read without a pause in the middle.
+	std::vector<std::string> joined;
+	for (auto& line : lines) {
+		if (joined.size() > 1 && !EndsSentence(joined.back()) && StartsLowercase(line)) joined.back() += " " + line;
+		else joined.push_back(std::move(line));
+	}
+	return joined;
 }
 
 std::string SkillDescription(std::string_view body) {
@@ -84,7 +120,7 @@ std::string JoinLines(const std::vector<std::string>& lines) {
 	for (const auto& line : lines) {
 		if (line.empty()) continue;
 		// The same pause an item tooltip's lines get: a full stop unless the line has its own.
-		if (!result.empty()) result += result.ends_with('.') || result.ends_with(':') || result.ends_with('!') || result.ends_with('?') ? " " : ". ";
+		if (!result.empty()) result += EndsSentence(result) ? " " : ". ";
 		result += line;
 	}
 	return result;

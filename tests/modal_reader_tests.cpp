@@ -29,6 +29,7 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 }
 
 namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
+namespace D2RAccess::InputDirection { bool FaceButtonHeld(FaceButton) { return false; } }
 namespace D2RAccess::NativeUi {
 Focus GameFocus() { return {}; } // these panels open with nothing focused
 bool Visible(uintptr_t) { return promptShown; }

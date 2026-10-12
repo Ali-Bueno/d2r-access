@@ -312,6 +312,19 @@ void SealedTarget() {
 	Check(beside.known && !beside.reachable, "a target on a blocked cell is not itself reachable");
 	Check(Length(Minus(beside.path.back(), target)) <= Sqrt2 + 1e-9, "the route ends on a cell touching the blocked target");
 	Check(Dot(beside.heading, bearing) > 0.9, "the heading toward a blocked target is still its bearing");
+	Beacon::Tracker toSolid;
+	toSolid.Lock(0);
+	(void)toSolid.Tick(solid, target, 0, s);
+	const auto followed = toSolid.Tick(solid, target, s.lockDelayMs, s);
+	Check(followed.routed && followed.ping && Dot(followed.heading, bearing) > 0.9, "a route that ends beside a blocked target is followed");
+
+	// Guidance never follows the dead end at the sealed room's wall.
+	Beacon::Tracker toSealed;
+	toSealed.Lock(0);
+	(void)toSealed.Tick(world, target, 0, s);
+	const auto walled = toSealed.Tick(world, target, s.lockDelayMs, s);
+	Check(walled.valid && !walled.routed && !walled.ping && !walled.routeUnavailable,
+		"a route stopping at the wall short of the target is not followed, and the lock waits in silence");
 
 	// A player who cannot step at all proves nothing, and the tracker says so.
 	auto trapped = Field({110, 110}, 0, Wall);
@@ -320,10 +333,13 @@ void SealedTarget() {
 	Check(!nothing.known && !nothing.reachable && nothing.path.empty(), "a player with nowhere to step proves no route at all");
 	Beacon::Tracker tracker;
 	tracker.Lock(0);
-	const auto update = tracker.Tick(trapped, At(150, 110), 0, s);
-	Check(update.valid && !update.routed, "the tracker still follows a locked target with no route");
-	Check(std::abs(update.heading.x - 1) < 1e-12 && update.heading.y == 0, "with no route the heading falls back to the straight line");
-	Check(std::abs(update.remaining - update.distance) < 1e-12, "an unrouted target's remaining distance is the straight line");
+	bool silent = true;
+	for (uint64_t now = 0; now <= s.lockDelayMs + 2 * s.routeLossMs; now += Radar::PollMs) {
+		const auto update = tracker.Tick(trapped, At(150, 110), now, s);
+		silent = silent && update.valid && !update.routed && !update.ping && !update.routeUnavailable
+			&& update.heading.x == 0 && update.heading.y == 0;
+	}
+	Check(silent, "with no route nothing is played, never the straight line, and the lock is kept");
 }
 
 void KnownRouteOnly() {

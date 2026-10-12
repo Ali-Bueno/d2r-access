@@ -69,6 +69,8 @@ std::string g_skillHeadline, g_skillMismatch;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
 std::string g_hiddenLabel, g_quietMonster;
+uint32_t g_worldTargetId = 0; // the unit the world label last named, and that label
+std::string g_worldTargetBody;
 MonsterNames::Gate g_monsterNames;
 // The game's monster health plate: the panel the auto-target names its monster in.
 constexpr std::string_view MonsterPlate = "HUDMonsterHealth";
@@ -113,6 +115,10 @@ uintptr_t g_asideWidget = 0;
 // (MEASURED 2026-09-21 13:03:30). Later readouts interrupt as usual.
 uint64_t g_tabChangedAt = 0;
 constexpr uint64_t TabTitleMs = 1500;
+// The focus first read behind the title. What follows on that same focus while the
+// title may still be speaking queues too: a skill's description renders ~350 ms after
+// its name and cut the branch off when it interrupted (a tester, 2026-10-12).
+std::string g_tabFocus;
 // The title that tab change spoke, so the readout queued behind it does not
 // begin by saying it again ("Inventory", then "Inventory. Belt...").
 std::string g_tabTitle;
@@ -523,6 +529,11 @@ std::string Title(uintptr_t panel) {
 		const auto partner = TradePartner(panel);
 		return partner.empty() ? Localization::Text("NPCMenuTrade") : Formatted(Strings::Current().tradeWith, partner);
 	}
+	// A shop has no title of its own (VendorPanelLayoutHD.json): it is named by its vendor.
+	if (NativeWidgets::ReadName(panel).find("Vendor") != std::string::npos) {
+		const auto vendor = EntityRadarService::NearestNpc();
+		return vendor.empty() ? Strings::Current().shop : vendor;
+	}
 	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
 	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
 	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
@@ -635,6 +646,7 @@ std::vector<std::string> MercenaryLines(uintptr_t panel) {
 	std::vector<std::string> lines;
 	for (auto line : {MercenaryStats::Name(panel), MercenaryStats::LevelAndType(panel), MercenaryStats::Experience(panel)})
 		if (!line.empty()) lines.push_back(std::move(line));
+	for (auto& line : MercenaryStats::SkillLines(panel)) lines.push_back(std::move(line));
 	for (auto& line : MercenaryStats::Lines(panel))
 		if (!line.empty()) lines.push_back(std::move(line));
 	return lines;
@@ -1188,6 +1200,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout = {};
 		renderedDescription = false;
 	} else if (!readout.Empty()) g_hiddenLabel.clear();
+	// A barrel broken with another in reach: the target moves to a unit of the same
+	// name and the label never changes, so the new unit is what makes it news (a tester).
+	if (!focus.panel && !monsterLabel && bearer.sight == TargetSight::Sight::Visible && bearer.id) {
+		if (bearer.id != g_worldTargetId && g_worldTargetId && readout.body == g_worldTargetBody) g_reader.Reset();
+		g_worldTargetId = bearer.id;
+		g_worldTargetBody = readout.body;
+	}
 	if (!monsterLabel) g_monsterNames.Absent();
 	else {
 		const bool visible = bearer.sight == TargetSight::Sight::Visible;
@@ -1231,6 +1250,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// named. MEASURED 2026-09-21: "Character" was said twice, the second
 		// time with interrupt, which cut off what was queued behind the first.
 		g_tabChangedAt = now;
+		g_tabFocus.clear();
 		const bool named = PanelState::TakeAnnounced(tabChange);
 		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
 		std::string text(named ? std::string_view{} : tabChange);
@@ -1298,15 +1318,18 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (g_skillTab && g_skillTab != progression.tab && g_skillTabPanel == focus.panel && !readout.body.empty()) {
 				g_tabTitle = readout.body;
 				g_tabChangedAt = now;
+				g_tabFocus.clear();
 				ScreenReader::Speak(g_tabTitle, true);
 			}
 			g_skillTab = progression.tab;
 			g_skillTabPanel = focus.panel;
 		}
-		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs;
+		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs
+			&& (g_tabFocus.empty() || g_tabFocus == readout.focusKey);
 		if (behindTitle && announcement.text.starts_with(g_tabTitle + ". "))
 			announcement.text.erase(0, g_tabTitle.size() + 2);
-		g_tabChangedAt = 0;
+		if (behindTitle) g_tabFocus = readout.focusKey;
+		else g_tabChangedAt = 0;
 		g_readPanel = focus.panel;
 		// A monster name is incremental combat news, never a context change.
 		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel);
@@ -1332,6 +1355,7 @@ void Reset() {
 	g_monsterNames.Reset();
 	g_tabChangedAt = 0;
 	g_tabTitle.clear();
+	g_tabFocus.clear();
 	g_skillTab = 0;
 	g_skillTabPanel = 0;
 	if (g_lineReader.widget) PadFilter::ReleaseB();

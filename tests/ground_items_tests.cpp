@@ -281,7 +281,15 @@ int main() {
 	Check(GroundItemText::RepairSuffixOnlyName("Mace of Flame", SuffixOnlyEn) == "Mace of Flame", "headerless formats are trusted");
 	Check(GroundItemText::RepairSuffixOnlyName("de llamas [fs]Maza", "") == "de llamas [fs]Maza", "an unresolved format repairs nothing");
 	Check(GroundItemText::Describe("Hacha", 7, 0) == "Hacha, único", "Spanish equipment readout uses actual quality");
-	Check(GroundItemText::Describe("Oro", 2, 37) == "37 Oro", "gold includes native amount");
+	Check(GroundItemText::Describe("Oro", 2, 37) == "Oro", "a gold pile is named alone: its amount is said once picked up");
+	{
+		GroundItems::Purse purse;
+		Check(purse.Update(100, true) == 0, "the first sample of the purse is a baseline");
+		Check(purse.Update(137, true) == 37, "gold that comes in during play is a pickup");
+		Check(purse.Update(500, false) == 0 && purse.Update(500, true) == 0, "gold that comes in from a menu is not");
+		Check(purse.Update(400, true) == 0 && purse.Update(-1, true) == 0 && purse.Update(410, true) == 10,
+			"spending and an unreadable sample say nothing, and the next pickup counts from what is left");
+	}
 	Check(GroundItemText::Describe("Poción", 2, 0) == "Poción", "ordinary consumables stay concise");
 	Check(GroundItemText::Describe("", 4, 0).empty(), "missing names never become a quality-only announcement");
 	Strings::Select(Strings::Language::enUS);

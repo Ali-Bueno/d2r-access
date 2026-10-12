@@ -163,6 +163,47 @@ stash loop pauses while the game's stash layout is open (`BankOriginalLayout`,
 `BankExpansionLayout` in `PanelState::OpenPanels`); the log says
 `[items] stash open: its loop paused` and `closed … resumed`.
 
+2026-10-12: racks never looped. `IsContainer` took only `ContainerOperateFns`, which lacked 19
+(armor stands), 20 (weapon racks) and 26 (bookshelves), though `gen_lootables.py` lists them.
+They are added (`ContainerRowCount` 175 of 587, `tools/objects_containers.py`); armor stands and
+bookshelves loop the chest cue.
+
+## Shrine and well loops (2026-10-12)
+
+A tester noticed shrines and wells only through the scanner. Every one the player can still use
+(objects.txt SubClass shrine or well; a used one is no longer selectable) loops while in reach:
+`exploration/shrine.ogg` and `exploration/well.ogg`, the two nearest at most (`MaxShrineVoices`),
+behind `shrine-sounds` (Ctrl+S, on). Both are Diablo IV recordings chosen without listening: the
+shrines' ambience cut to 12 s with 0.3 s fades, and the healing well's activation padded to 1.8 s.
+The user may swap either file; a water ambience was too sparse to pass the loudness test.
+
+## Gold and potions from the Last Epoch mod (2026-10-12)
+
+The tester preferred the Last Epoch mod's coins and glass. `last-epoch-sounds` (Ctrl+S, off)
+swaps them in: its gold loop and the game's four potion pickups, one per kind, from the
+ItemTypes ancestry (`rpot` before `hpot`/`mpot`, its parents; other potions and elixirs share the
+fourth). Sources: `LeAccess/Sounds/Loops/gold.wav` and `LastEpoch_sonidos/candidatos/04 pociones`;
+the gold and the other potion are short clinks boosted 18 dB through the limiter.
+
+## Low-quality names (2026-10-12)
+
+A tester: "low quality" hid the game's four grades. A quality-1 item on the ground is now named
+as the game names it: its LowQualityItems row is the int32 at ItemData+0x34 (ITEMS_GetFileIndex
+0x36CE70, the field unique and set rows share), the row's prefix string id at +0x20 of a 0x22
+row at bank +0x1688 (count +0x1690, getter 0x3141C0), composed with the game's own
+`LowqualityFormat` through `MonsterPlate::Compose` ("Crude Short Sword"; "Espada corta basta"
+where the format puts the noun first). Rows in vanilla: Crude, Cracked, Damaged, Low Quality.
+Found offline in the name builder 0x1E1D80 (the quality switch, then 0x36CE70 and 0x3141C0);
+both functions are fingerprinted in `LowQualityChecks`, matched against the live dump, and a
+mismatch only keeps the old "low quality" word. Inventory headlines already read the game's own
+tooltip name; the fallback names of arrivals and held items still use the word. Unheard live.
+
+## Gold amounts (2026-10-12)
+
+A pile is named without its amount on the way past; the amount is said once it is picked up
+("Picked up 37 gold", `GroundItems::Purse`), from a rise of the gold stat during play only, so a
+sale, a withdrawal or a reward in a menu says nothing.
+
 ## Door loops
 
 Requested 2026-09-25: a door that is still shut loops a cue by what it is made

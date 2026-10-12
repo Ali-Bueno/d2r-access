@@ -15,6 +15,7 @@
 #include "tooltip_text.h"
 #include "ui_text.h"
 
+#include <cstdio>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -44,6 +45,7 @@ int g_cursor = -1;               // -1: nothing read yet for this row
 std::vector<std::vector<std::string>> g_tip; // the row's tooltip records, kept once drawn
 std::vector<std::vector<std::string>> g_records;
 size_t g_record = 0, g_line = 0;
+bool g_yHeld = false;
 
 std::string Joined(const std::vector<std::string>& lines) {
 	std::string text;
@@ -51,6 +53,22 @@ std::string Joined(const std::vector<std::string>& lines) {
 		if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
 		text += line;
 	}
+	return text;
+}
+
+// "Skills: Exploding Arrow, Fire Arrow, Inner Sight", read off a row's own icons;
+// with autodetail each skill's whole description.
+std::string SkillSummary(uintptr_t row) {
+	std::string names;
+	for (const auto& skill : MercenaryStats::Skills(row)) {
+		const auto lines = TooltipText::Read(skill.text).lines;
+		if (lines.empty()) continue;
+		if (!names.empty()) names += AutoDetail::Enabled() ? ". " : ", ";
+		names += AutoDetail::Enabled() ? Joined(lines) : lines.front();
+	}
+	if (names.empty()) return {};
+	char text[1200]{};
+	std::snprintf(text, sizeof(text), Strings::Current().mercenarySkills, names.c_str());
 	return text;
 }
 
@@ -167,6 +185,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_record = g_line = 0;
 	}
 	if (KeyboardMenu::Active()) return KeyboardTick(context, now, focus, part);
+	// Y shows the skills on screen and nothing says them (a tester: vital to choose
+	// whom to hire), so the press names them at once; the left stick then walks them.
+	const bool y = InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y);
+	if (y && !g_yHeld && part == Part::Row)
+		if (const auto summary = SkillSummary(focus.widget); !summary.empty()) {
+			AsyncLog::InfoF(context, "[hire] Y -> \"%s\"", summary.c_str());
+			ScreenReader::Speak(summary, true);
+		}
+	g_yHeld = y;
 	// MEASURED 2026-09-22: the hire list draws no tooltip for a highlighted
 	// row; holding Y draws the mercenary's skills (ui-controller.json "Show
 	// Mercenary Skills"), one tooltip per skill -- Exploding Arrow first, then

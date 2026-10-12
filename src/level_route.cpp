@@ -122,17 +122,33 @@ bool Memory::Learn(const Radar::World& world) {
 	return changed;
 }
 
+Memory Memory::Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const {
+	Memory copy = *this;
+	copy.revision_ = revision;
+	if (!rooms || cells_.empty()) return copy;
+	std::fill(copy.cells_.begin(), copy.cells_.end(), Ground::Outside);
+	for (const auto& room : *rooms) {
+		const auto bounds = NativeRooms::Subtiles(room);
+		const int x0 = std::max(bounds.minX, x_), x1 = std::min(bounds.maxX, x_ + width_);
+		for (int y = std::max(bounds.minY, y_); y < std::min(bounds.maxY, y_ + height_) && x0 < x1; ++y) {
+			const size_t row = static_cast<size_t>(y - y_) * width_;
+			std::copy(cells_.begin() + row + (x0 - x_), cells_.begin() + row + (x1 - x_), copy.cells_.begin() + row + (x0 - x_));
+		}
+	}
+	return copy;
+}
+
 Ground Memory::At(int x, int y) const {
 	const int64_t dx = int64_t(x) - x_, dy = int64_t(y) - y_;
 	if (dx < 0 || dy < 0 || dx >= width_ || dy >= height_) return Ground::Outside;
 	return cells_[static_cast<size_t>(dy) * width_ + static_cast<size_t>(dx)];
 }
 
-Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen)
+Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors)
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
-	// A shut door is no part of a way: the game will not walk through one.
-	const Floor floor = Standing(memory, bodyPattern, unseen, false);
+	// Unless asked, a shut door is no part of a way: the game will not walk through one.
+	const Floor floor = Standing(memory, bodyPattern, unseen, doors);
 	const size_t across = floor.across;
 	const auto& stood = floor.stood;
 	steps_.assign(stood.size(), -1);
@@ -199,8 +215,8 @@ std::vector<Position> Field::From(Position from) const {
 	return path;
 }
 
-Way Plan::From(const Memory& memory, Position from, Position place, int margin, int bodyPattern) {
-	const Key key{memory.Session(), memory.Revision(), memory.Level(), Cell(place.x), Cell(place.y), margin, bodyPattern};
+Way Plan::From(const Memory& memory, Position from, Position place, int margin, int bodyPattern, bool doors) {
+	const Key key{memory.Session(), memory.Revision(), memory.Level(), Cell(place.x), Cell(place.y), margin, bodyPattern, doors};
 	if (!(key == key_)) {
 		key_ = key;
 		seen_.reset();
@@ -208,10 +224,10 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 	}
 	Way way;
 	if (!memory.Revision()) return way;
-	if (!seen_) seen_.emplace(memory, place, margin, bodyPattern, false);
+	if (!seen_) seen_.emplace(memory, place, margin, bodyPattern, false, doors);
 	way.path = seen_->From(from);
 	if (!way.path.empty() || seen_->At(from)) return way;
-	if (!any_) any_.emplace(memory, place, margin, bodyPattern, true);
+	if (!any_) any_.emplace(memory, place, margin, bodyPattern, true, doors);
 	way.path = any_->From(from);
 	way.guess = !way.path.empty();
 	return way;

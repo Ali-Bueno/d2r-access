@@ -7,7 +7,10 @@
 #include <fstream>
 
 using namespace D2RAccess;
-namespace D2RAccess::Localization { std::string Text(uint32_t id) { return id == 100 ? "Poción" : "Hacha"; } }
+namespace D2RAccess::Localization {
+std::string Text(uint32_t id) { return id == 100 ? "Poción" : "Hacha"; }
+std::string Text(std::string_view) { return {}; }
+}
 namespace {
 template<size_t N> struct Memory {
 	std::array<uint8_t, N> data{};
@@ -72,6 +75,8 @@ int main(int argc, char** argv) {
 	f.itemTable.At<uint16_t>(0x12E, 1);
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("none"), 1, 2});
 	Check(f.Read(snapshot) && snapshot.items.size() == 1, "cyclic item type inheritance is bounded");
+	// The item's own type no longer a healing potion, which is now told apart before its ancestry.
+	f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("tstx"), 2, 0});
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("scro"), 0, 0});
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Scroll, "scrolls use their own audio regardless of quality");
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("rune"), 0, 0});
@@ -84,6 +89,19 @@ int main(int argc, char** argv) {
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("ques"), 0, 0});
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,
 		"quest ancestry takes priority over consumable and unique item sounds");
+	{
+		f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("poti"), 0, 0});
+		GroundItems::SetLastEpochSounds(true);
+		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::EpochHealthPotion,
+			"with the Last Epoch sounds a healing potion has its own glass sound");
+		f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("rpot"), 2, 0});
+		f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("hpot"), 0, 0});
+		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::EpochRejuvenationPotion,
+			"a rejuvenation potion, a child of the healing one in ItemTypes.txt, keeps its own");
+		GroundItems::SetLastEpochSounds(false);
+		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Potion, "the Diablo sounds keep one potion loop");
+		f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("hpot"), 2, 0});
+	}
 	f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("hamm"), 0, 0});
 	f.itemTable.At<uint8_t>(GroundItemLayout::ItemQuest, 4);
 	Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Quest,

@@ -30,6 +30,7 @@ struct Bearer {
 	EntityRadar::Kind kind = EntityRadar::Kind::Item; // meaningful only when Visible
 	bool important = false; // a boss or an elite
 	double distance = 0;
+	uint32_t id = 0; // the unit, when Visible: two barrels share a label but not an id
 };
 Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	std::string_view label, const Settings& settings = {});

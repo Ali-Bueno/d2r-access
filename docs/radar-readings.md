@@ -252,6 +252,25 @@ diagonal reaches only 1.4 cells on either axis; it now walks until two cells on 
 wall stay muted by the stalled-footstep filter (`footsteps`), which keys on the
 same frozen position.
 
+2026-10-12, a tester: Act 1 borders and the Rogue Encampment's edge did not thud. Contact now
+also counts a cell outside every room or BLANK (the game reads it as 0x27, WALL included,
+`docs/collision-semantics.md`), and tests the body one cell along the push, so a ragged border
+beside the line touches too. The radar itself still treats those cells as unknown. Small obstacle
+off gives the plain tock: no code path silences it (the tester heard nothing), so the radar level
+was raised instead (below); a log from a rock with the switch off would settle it.
+
+## Levels and wall tones (2026-10-12)
+
+The radar sat 6-9 dB under the item loops (the tester and the user: a bit quiet). `CueLevel` is
+0.24 (was 0.17, +3 dB); the door's double knock plays 1.4 times that with an 18 ms decay (was
+12 ms), the faintest cue before ("Sound-Radar-Door inaudible").
+
+**Wall tones** (`wall-tones`, off by default; `[wall_tones]` in `d2r-access.toml`): a soft band of
+noise per screen direction, louder as terrain closes in within 12 subtiles, (1 - d/range)^2, bands
+800/450/450/250 Hz, ported from the Last Epoch mod's `WallSonar` (Grimdark's walltones). Three
+lanes across the body, the farthest winning; off the map counts as a wall. Its own XAudio2 voices
+(`wall_tone_audio.cpp`), silent in menus, dialogue and pause. Unheard in game so far.
+
 ## Queue
 
 `CueQueue::Take` plays the most urgent pending direction first: walls and

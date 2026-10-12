@@ -12,6 +12,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "vitals.h"
+#include "wall_slide_service.h"
 #include "weapon_swap.h"
 
 #include <D2RLPlugin/context.h>
@@ -54,6 +55,7 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
 bool g_movementAlerts = true, g_ammoAlerts = true;
+Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
 std::string_view g_lastMercSource;
@@ -68,6 +70,7 @@ Vitals::GaitTracker g_gait;
 Vitals::StaminaMeter g_stamina;
 Vitals::AmmoMeter g_ammo;
 bool g_runToggled = false; // L3 pressed in play since the last orb sample
+uint64_t g_refusedSeen = 0; // the wall-slide hook's refused pushes, at the last orb sample
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
 
@@ -122,19 +125,27 @@ std::string AmmoReport(const D2RL::PluginContext* context) {
 	return text;
 }
 
-// Walking or running, from the game's L3 toggle at once and from the
-// character's movement after; stamina as it falls while running.
+// Walking or running when the game's L3 toggle is pressed; stamina as it falls
+// while running. The character's steps only keep the toggle in sync (vitals.h).
 void AnnounceMovement(const D2RL::PluginContext* context, bool toggled) {
 	const auto movement = NativeStatus::PlayerMovement();
 	std::optional<Vitals::Gait> gait = toggled ? g_gait.Toggle() : std::nullopt;
 	int stamina = -1;
+	// A refused push since the last sample: the game may be forcing a walk against the wall.
+	const uint64_t refused = WallSlideService::LastBlocked().attempts;
+	const bool pushing = refused != g_refusedSeen;
+	g_refusedSeen = refused;
 	if (movement) {
 		const auto observed = movement->running ? std::optional(Vitals::Gait::Run)
 			: movement->walking ? std::optional(Vitals::Gait::Walk) : std::nullopt;
+		const int percent = StaminaPercent(*movement);
+		// Low stamina makes the game walk as well; at full or unknown it is the toggle.
+		const bool rested = percent < 0 || percent > Vitals::StaminaRearm;
 		// The game applies the toggle a frame or more later: this sample still shows the old gait.
 		if (!toggled)
-			if (const auto changed = g_gait.Observe(observed)) gait = changed;
-		stamina = g_stamina.Update(StaminaPercent(*movement));
+			if (const auto synced = g_gait.Observe(observed, !pushing && rested))
+				AsyncLog::InfoF(context, "[vitals] movement re-synced to %s", *synced == Vitals::Gait::Run ? "run" : "walk");
+		stamina = g_stamina.Update(percent);
 	}
 	if (!gait && stamina < 0) return;
 	const auto& strings = Strings::Current();
@@ -448,7 +459,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_lastMercId = 0;
 		} else {
 			const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
-			const auto playerAlert = g_alerts.Update(life, mana);
+			const auto playerAlert = g_alerts.Update(life, mana, g_manaAlerts);
 			Vitals::MercenaryMeter::Alert mercenaryAlert;
 			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));
 			if (g_statusSupported) {
@@ -497,4 +508,8 @@ void SetMovementAlerts(bool enabled) {
 }
 bool AmmoAlerts() { return g_ammoAlerts; }
 void SetAmmoAlerts(bool enabled) { g_ammoAlerts = enabled; }
+int ManaAlerts() { return static_cast<int>(g_manaAlerts); }
+void SetManaAlerts(int level) {
+	g_manaAlerts = static_cast<Vitals::ManaAlerts>(std::clamp(level, 0, Vitals::ManaAlertLevels - 1));
+}
 }

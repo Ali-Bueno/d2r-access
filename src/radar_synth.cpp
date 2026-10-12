@@ -8,8 +8,11 @@ namespace D2RAccess::RadarAudio {
 namespace {
 constexpr double Release = 0.015;
 // Sound-design values shared by every radar sound: the struck cues' peak level,
-// and left/right sitting just inside the stereo edges.
-constexpr double CueLevel = 0.17, PanWidth = 0.9, PcmPeak = 32767;
+// and left/right sitting just inside the stereo edges. The user and a tester,
+// 2026-10-12: the radar sat 6-9 dB under the item loops; raised 3 dB from 0.17.
+constexpr double CueLevel = 0.24, PanWidth = 0.9, PcmPeak = 32767;
+// The door's low, short knock was the faintest cue (a tester: "inaudible"); the user asked for a little more.
+constexpr double DoorLevel = 1.4;
 // A fixed noise sequence keeps every cue reproducible.
 double Noise(uint32_t& seed) {
 	seed = seed * 1664525u + 1013904223u;
@@ -104,7 +107,7 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003;
 	constexpr double ExitHz = 1100, BlockedHz = 260, SmallHz = 640, DoorHz = 180, DownPitch = 0.86;
 	constexpr double ExitHarmonic = 2.7, BlockedHarmonic = 1.5, SmallHarmonic = 2.4, DoorHarmonic = 2.0, HarmonicLevel = 0.2;
-	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, SmallDecay = 0.012, KnockDecay = 0.012, KnockGap = 0.06;
+	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, SmallDecay = 0.012, KnockDecay = 0.018, KnockGap = 0.06;
 	constexpr double BreathPeak = 0.7; // of the struck cues' level, as in the D4 radar
 	constexpr double MarkHz = Radar::UnexploredMarkHz, PipDuration = Radar::UnexploredPipMs / 1000.0;
 	constexpr double MarkDecay = 0.03, MarkHarmonic = 2.0;
@@ -142,7 +145,8 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 				const double struck = state == Radar::State::Door && time >= KnockGap ? time - KnockGap : time;
 				const double phase = 2 * std::numbers::pi * hz * time;
 				const double envelope = std::min(1.0, struck / Attack) * fade * std::exp(-struck / decay);
-				tone = level * envelope * (std::sin(phase) + HarmonicLevel * std::sin(phase * harmonic));
+				const double strike = state == Radar::State::Door ? level * DoorLevel : level;
+				tone = strike * envelope * (std::sin(phase) + HarmonicLevel * std::sin(phase * harmonic));
 			}
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * left, -1.0, 1.0) * PcmPeak));
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * right, -1.0, 1.0) * PcmPeak));

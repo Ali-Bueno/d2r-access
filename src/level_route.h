@@ -41,6 +41,10 @@ public:
 	bool Begin(uint64_t session, int level, const std::vector<NativeRooms::Room>& rooms);
 	// Copies in the rooms the game has loaded now. True when a cell changed.
 	bool Learn(const Radar::World& world);
+	// A copy to plan on while this map goes on learning, with only the ground
+	// inside `rooms` when given. A Plan tells maps apart by revision, so
+	// `revision` must be one no other map planned on has had.
+	Memory Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const;
 	Ground At(int x, int y) const;
 	const std::vector<Ground>& Cells() const { return cells_; } // Width() to a row, from X(), Y()
 	uint64_t Session() const { return session_; }
@@ -63,8 +67,8 @@ class Field {
 public:
 	// `margin`: the cells round the place that count as reaching it, since a
 	// thing's own cells carry its collision. `unseen` lets the way cross ground
-	// not seen yet.
-	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen);
+	// not seen yet, `doors` a shut door, for a way the player opens as they go.
+	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors = false);
 	// The cells to walk from `from`, the last of them at the place. Empty when
 	// there is no way, and when `from` is at the place already. The cell stood
 	// on need not fit the body: the game never tests the cell a move starts from.
@@ -85,12 +89,14 @@ struct Way {
 // a search of the whole level is too much to make five times a second.
 class Plan {
 public:
-	Way From(const Memory& memory, Position from, Position place, int margin, int bodyPattern);
+	// `doors`: the way may pass a shut door (Field).
+	Way From(const Memory& memory, Position from, Position place, int margin, int bodyPattern, bool doors = false);
 	void Clear() { *this = {}; }
 private:
 	struct Key {
 		uint64_t session = 0, revision = 0;
 		int level = 0, x = 0, y = 0, margin = 0, pattern = 0;
+		bool doors = false;
 		bool operator==(const Key&) const = default;
 	};
 	Key key_;

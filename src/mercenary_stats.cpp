@@ -4,6 +4,7 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
+#include "tooltip_text.h"
 #include "ui_text.h"
 
 #include <cstdio>
@@ -121,6 +122,19 @@ std::vector<Skill> Skills(uintptr_t panel) {
 		skills.push_back(SkillOf(widget));
 	}
 	return skills;
+}
+
+std::vector<std::string> SkillLines(uintptr_t panel) {
+	std::vector<std::string> lines;
+	for (const auto& skill : Skills(panel)) {
+		std::string line;
+		for (const auto& part : TooltipText::Read(skill.text).lines) {
+			if (!line.empty()) line += line.ends_with('.') || line.ends_with(':') ? " " : ". ";
+			line += part;
+		}
+		if (!line.empty()) lines.push_back(std::move(line));
+	}
+	return lines;
 }
 
 Skill SkillOf(uintptr_t icon) {

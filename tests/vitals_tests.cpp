@@ -72,6 +72,25 @@ void SimultaneousAlerts() {
 	Check(!alerts.Update(2, 2).Any(), "a new game takes fresh critical baselines");
 }
 
+void ManaVerbosity() {
+	using Vitals::ManaAlerts;
+	Vitals::Alerts low;
+	(void)low.Update(100, 100, ManaAlerts::Low);
+	Check(low.Update(100, 60, ManaAlerts::Low).mana < 0, "low mana alerts keep quiet above the low mark");
+	Check(low.Update(100, 75, ManaAlerts::Low).mana < 0, "and while mana comes back");
+	Check(low.Update(100, 18, ManaAlerts::Low).mana == 18, "a fall to the low mark is spoken");
+	Check(low.Update(100, 30, ManaAlerts::Low).mana < 0, "a recovery out of it is not");
+	const auto both = low.Update(50, 8, ManaAlerts::Low);
+	Check(both.life == 50 && both.mana == 8 && both.interrupt, "a critical fall still interrupts beside life");
+	Vitals::Alerts off;
+	(void)off.Update(100, 100, ManaAlerts::Off);
+	const auto alert = off.Update(40, 5, ManaAlerts::Off);
+	Check(alert.life == 40 && alert.mana < 0 && !alert.interrupt, "with mana alerts off only life speaks, and empty mana does not interrupt");
+	Vitals::Alerts all;
+	(void)all.Update(100, 100);
+	Check(all.Update(100, 70).mana == 70 && all.Update(100, 100).mana == 100, "all mana alerts keep every step both ways");
+}
+
 void MissingOrbs() {
 	Vitals::OrbAvailability availability;
 	for (int sample = 1; sample < Vitals::MissingConfirmationSamples; ++sample)
@@ -195,6 +214,12 @@ void Gaits() {
 	Check(gait.Observe(Gait::Walk) == Gait::Walk, "steps that contradict the prediction correct it");
 	gait.Reset();
 	Check(!gait.Observe(Gait::Run), "a new game starts from a fresh baseline");
+	// Against a wall the game walks on its own: those steps never re-sync the toggle.
+	for (int i = 0; i < 10; ++i) Check(!gait.Observe(Gait::Walk, false), "a forced walk is not the toggle");
+	Check(gait.Toggle() == Gait::Walk, "so the next press still flips what the toggle was");
+	(void)gait.Toggle();
+	Check(!gait.Observe(Gait::Walk) && !gait.Observe(std::nullopt) && !gait.Observe(Gait::Walk) && !gait.Observe(Gait::Walk, false)
+		&& !gait.Observe(Gait::Walk), "a re-sync needs its samples in a row, free of any stop or push");
 }
 
 void Stamina() {
@@ -232,7 +257,7 @@ void Ammo() {
 }
 
 int main() {
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();
 }

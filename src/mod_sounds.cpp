@@ -3,6 +3,7 @@
 #include "entity_cue_audio.h"
 #include "item_audio.h"
 #include "radar_audio.h"
+#include "wall_tone_audio.h"
 
 #include <atomic>
 
@@ -18,5 +19,6 @@ void SetEnabled(bool on) {
 	EntityCueAudio::Silence();
 	ItemAudio::Silence();
 	ItemAudio::SilenceExploration();
+	WallToneAudio::Silence();
 }
 }

@@ -14,7 +14,9 @@
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "mod_sounds.h"
 #include "wall_bump.h"
+#include "wall_tone_service.h"
 #include "wall_slide_service.h"
 
 #include <windows.h>
@@ -268,8 +270,9 @@ void Tick(const D2RL::PluginContext* context) {
 	g_lastPoll = now;
 	const bool gate = g_supported && g_ready && g_enabled;
 	const bool bumping = g_supported && g_ready && g_wallBump; // the bump has its own switch
-	// The widget-tree walk is only worth its cost while the radar or the bump can run.
-	const auto ui = gate || bumping || command != Command::None ? UiState() : RadarUi::State::Playing;
+	const bool tones = g_supported && g_ready && WallTones::Enabled() && ModSounds::Enabled(); // so do the wall tones
+	// The widget-tree walk is only worth its cost while the radar, the bump or the tones can run.
+	const auto ui = gate || bumping || tones || command != Command::None ? UiState() : RadarUi::State::Playing;
 	const bool blocked = ui != RadarUi::State::Playing;
 	if (g_testStep >= 0 && !blocked) {
 		if (now >= g_testDue) {
@@ -290,7 +293,7 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	Radar::World world;
 	NativeWorld::Diagnostics detail;
-	const bool read = (gate || bumping) && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world, &detail);
+	const bool read = (gate || bumping || tones) && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world, &detail);
 	const bool available = gate && read;
 	constexpr const char* UiReasons[] = {"playing", "inactive-window", "ui-unavailable", "dialogue", "pause"};
 	const char* reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
@@ -329,6 +332,7 @@ void Tick(const D2RL::PluginContext* context) {
 		}
 	}
 	TickBump(bumping && read ? &world : nullptr, now);
+	WallTones::Update(tones && read ? &world : nullptr);
 	if (command == Command::Status || command == Command::Dump) {
 		Describe(available, ui);
 		if (available) { LogSensors(now); Dump(world); }

@@ -6,9 +6,11 @@
 #include "focus_tracker.h"
 #include "auto_walk.h"
 #include "beacon.h"
+#include "beacon_audio.h"
 #include "beacon_navigation.h"
 #include "beacon_service.h"
 #include "combat_target.h"
+#include "entity_cue_audio.h"
 #include "entity_cue_service.h"
 #include "entity_radar.h"
 #include "entity_radar_service.h"
@@ -18,6 +20,7 @@
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
 #include "ground_item_service.h"
+#include "ground_items.h"
 #include "grid_edge_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
@@ -45,8 +48,10 @@
 #include "native_weapon_set.h"
 #include "native_world.h"
 #include "navigation_grid.h"
+#include "pad_filter.h"
 #include "navigation_mode.h"
 #include "quest_service.h"
+#include "radar_config.h"
 #include "radar_readout.h"
 #include "radar_service.h"
 #include "radar_ui.h"
@@ -63,8 +68,10 @@
 #include "place_service.h"
 #include "boss_life_service.h"
 #include "trade_service.h"
+#include "vitals.h"
 #include "vitals_service.h"
 #include "wall_slide_service.h"
+#include "wall_tone_service.h"
 #include "weapon_swap.h"
 #include "weapon_swap_service.h"
 #include "zone_transitions.h"
@@ -104,6 +111,9 @@ enum class Command : uint32_t {
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
 	Settings, SettingsChange,
+	// The pad's right stick left and right on the settings list: a setting of
+	// several values goes down or up, a switch flips.
+	SettingsLower, SettingsRaise,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
 	// In play and in a menu: the list of skills for the left hand. The game's
@@ -1499,6 +1509,56 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // ---- the settings list ----
 
+// Pan and pitch strength in quarters, from none to RadarConfig::MaxStrengthPercent.
+constexpr int StrengthStepPercent = 25;
+constexpr int StrengthLevels = static_cast<int>(RadarConfig::MaxStrengthPercent) / StrengthStepPercent + 1;
+
+// A strength of a sound family as a setting of several values: `get` and `set`
+// trade the scale the audio module uses (1 = as compiled).
+SettingsList::Entry Strength(const char* key, const char* Strings::Table::* format,
+	std::function<double()> get, std::function<void(double)> set) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = StrengthLevels;
+	entry.level = [get] {
+		const double percent = get() * RadarConfig::NeutralStrengthPercent;
+		return std::clamp(static_cast<int>(std::lround(percent / StrengthStepPercent)), 0, StrengthLevels - 1);
+	};
+	entry.setLevel = [set](int level) {
+		set(static_cast<double>(level * StrengthStepPercent) / RadarConfig::NeutralStrengthPercent);
+	};
+	entry.sayLevel = [format](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, level * StrengthStepPercent);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+std::vector<SettingsList::Entry> Strengths() {
+	return {
+		Strength("enemy-pan-strength", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
+			[](double scale) { EntityCueAudio::SetStrength(scale, EntityCueAudio::PitchScale()); }),
+		Strength("enemy-pitch-strength", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
+			[](double scale) { EntityCueAudio::SetStrength(EntityCueAudio::PanScale(), scale); }),
+		Strength("beacon-pan-strength", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
+			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
+		Strength("beacon-pitch-strength", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
+			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
+	};
+}
+
+SettingsList::Entry ManaAlerts() {
+	static_assert(Strings::ManaAlertWords == Vitals::ManaAlertLevels, "a phrase for every mana alert level");
+	SettingsList::Entry entry;
+	entry.key = "mana-alerts";
+	entry.levels = Vitals::ManaAlertLevels;
+	entry.level = VitalsService::ManaAlerts;
+	entry.setLevel = VitalsService::SetManaAlerts;
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().manaAlerts[static_cast<size_t>(level)]); };
+	return entry;
+}
+
 std::vector<SettingsList::Entry> SettingEntries() {
 	using SettingsList::Entry;
 	using Cue = EntityCueService::Cue;
@@ -1535,6 +1595,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
 		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
+		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
 		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
 		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
@@ -1558,7 +1619,21 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
 		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
+		{GroundItems::LastEpochSounds, GroundItems::SetLastEpochSounds, phrase(&T::lastEpochSoundsOn, &T::lastEpochSoundsOff), false, "last-epoch-sounds"},
+		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
+		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
 	};
+	// The settings of several values sit beside the switch they tune.
+	const auto after = [&entries](std::string_view key, Entry entry) {
+		const auto at = std::find_if(entries.begin(), entries.end(), [key](const Entry& e) { return e.key && e.key == key; });
+		entries.insert(at == entries.end() ? at : at + 1, std::move(entry));
+	};
+	after("vitals", ManaAlerts());
+	auto strengths = Strengths();
+	after("beacon-sounds", std::move(strengths[3]));
+	after("beacon-sounds", std::move(strengths[2]));
+	after("enemy-growls", std::move(strengths[1]));
+	after("enemy-growls", std::move(strengths[0]));
 	return entries;
 }
 
@@ -1581,11 +1656,11 @@ constexpr uint64_t SettingQuietMs = 5000;  // how long its own announcement is l
 constexpr uint64_t SettingCheckMs = 1000;  // how often the switches are looked at for a change
 std::filesystem::path g_settingsFile;
 std::vector<SettingsList::Entry> g_switches;
-std::map<std::string, bool> g_saved;
-std::vector<std::pair<size_t, bool>> g_restore;
+std::map<std::string, int> g_saved;
+std::vector<std::pair<size_t, int>> g_restore;
 size_t g_restoreAt = 0;
 uint64_t g_restoreSince = 0, g_settingsCheck = 0;
-std::vector<bool> g_seen;
+std::vector<int> g_seen;
 bool g_settingsLoaded = false;
 
 void Persist(uint64_t now) {
@@ -1596,7 +1671,7 @@ void Persist(uint64_t now) {
 		if (const auto text = SettingsStore::Load(g_settingsFile)) g_saved = SettingsStore::Decode(*text);
 		for (size_t i = 0; i < g_switches.size(); ++i)
 			if (const auto found = g_switches[i].key ? g_saved.find(g_switches[i].key) : g_saved.end();
-				found != g_saved.end() && g_switches[i].on() != found->second) g_restore.push_back({i, found->second});
+				found != g_saved.end() && g_switches[i].Value() != found->second) g_restore.push_back({i, found->second});
 		AsyncLog::InfoF(g_context, "[settings] %zu saved, %zu to put back, file %s", g_saved.size(), g_restore.size(),
 			g_settingsFile.string().c_str());
 	}
@@ -1604,14 +1679,14 @@ void Persist(uint64_t now) {
 		const auto [index, value] = g_restore[g_restoreAt];
 		const auto& entry = g_switches[index];
 		if (!g_restoreSince) {
-			ScreenReader::Swallow(entry.say(value), now + SettingQuietMs);
-			entry.set(value);
+			ScreenReader::Swallow(entry.Say(value), now + SettingQuietMs);
+			entry.Put(value);
 			g_restoreSince = now;
-			AsyncLog::InfoF(g_context, "[settings] put back %s=%u", entry.key, value ? 1u : 0u);
+			AsyncLog::InfoF(g_context, "[settings] put back %s=%d", entry.key, value);
 			return;
 		}
-		if (entry.on() != value && now - g_restoreSince < SettingTakeMs) return;
-		if (entry.on() != value) AsyncLog::InfoF(g_context, "[settings] %s did not take", entry.key);
+		if (entry.Value() != value && now - g_restoreSince < SettingTakeMs) return;
+		if (entry.Value() != value) AsyncLog::InfoF(g_context, "[settings] %s did not take", entry.key);
 		++g_restoreAt;
 		g_restoreSince = 0;
 		return;
@@ -1620,14 +1695,14 @@ void Persist(uint64_t now) {
 	g_settingsCheck = now + SettingCheckMs;
 	bool changed = false;
 	if (g_seen.empty()) {
-		for (const auto& entry : g_switches) g_seen.push_back(entry.on());
+		for (const auto& entry : g_switches) g_seen.push_back(entry.Value());
 		return;
 	}
 	for (size_t i = 0; i < g_switches.size(); ++i) {
-		const bool on = g_switches[i].on();
-		if (on == g_seen[i]) continue;
-		g_seen[i] = on;
-		if (g_switches[i].key) { g_saved[g_switches[i].key] = on; changed = true; }
+		const int value = g_switches[i].Value();
+		if (value == g_seen[i]) continue;
+		g_seen[i] = value;
+		if (g_switches[i].key) { g_saved[g_switches[i].key] = value; changed = true; }
 	}
 	if (!changed) return;
 	const bool saved = SettingsStore::Save(g_settingsFile, SettingsStore::Encode(g_saved));
@@ -1648,6 +1723,8 @@ bool Settings(Command command, uint64_t now) {
 	if (command == Command::Settings) text = g_settings.Toggle(now);
 	else if (!g_settings.Open()) spent = false;
 	else if (command == Command::SettingsChange) text = g_settings.Change(now);
+	else if (command == Command::SettingsLower || command == Command::SettingsRaise)
+		text = g_settings.Change(now, command == Command::SettingsLower ? -1 : 1);
 	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
 	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
 	else spent = false;
@@ -1673,8 +1750,8 @@ Command PadSettings(bool inPlay) {
 	switch (InputDirection::TakeRightStickPush("settings")) {
 	case StickPush::Up:   return Command::ReadPrevious;
 	case StickPush::Down: return Command::ReadNext;
-	case StickPush::Left:
-	case StickPush::Right: return Command::SettingsChange;
+	case StickPush::Left:  return Command::SettingsLower;
+	case StickPush::Right: return Command::SettingsRaise;
 	default: return Command::None;
 	}
 }
@@ -2043,6 +2120,13 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	return Remember(state, world);
 }
 
 void CancelAfterFault() noexcept {

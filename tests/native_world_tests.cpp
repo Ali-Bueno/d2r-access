@@ -316,6 +316,12 @@ int main() {
 		Check(beacon.valid && beacon.panStrength == 0u && beacon.pitchStrength == RadarConfig::MaxStrengthPercent, "beacon strengths parse in their own section");
 		Check(!RadarConfig::ParseBeacon("[beacon]\npan_strength = -1\n").valid && RadarConfig::ParseBeacon("").valid
 			&& !RadarConfig::ParseBeacon("").panStrength, "bad beacon strengths are rejected, absent ones keep defaults");
+		const auto tones = RadarConfig::ParseWallTones("[wall_tones]\nenabled = true\nvolume = 40\nrange = 8.5\n");
+		Check(tones.valid && tones.enabled == true && tones.volume == 40u && tones.range == 8.5, "wall tone settings parse");
+		Check(RadarConfig::ParseWallTones("").valid && !RadarConfig::ParseWallTones("").enabled && !RadarConfig::ParseWallTones("[radar]\nvolume = 5\n").volume,
+			"absent wall tone settings keep defaults");
+		for (const auto invalid : {"range = 1", "range = 41", "range = nan", "volume = 101", "volume = -1", "enabled = 1", "enabled", "range = 8\nrange = 9"})
+			Check(!RadarConfig::ParseWallTones(std::string("[wall_tones]\n") + invalid + "\n").valid, "invalid wall tone settings are rejected");
 		for (const auto invalid : {"range = nan", "max_voices = -1", "pan_strength = 1.5", "on_screen = 1", "pan_strength = 1\npan_strength = 2", "range = inf", "range = 0", "range = -1", "range = 101",
 			"volume = -1", "volume = 101", "volume = 1.5", "enabled = yes", "npcs = 1", "ranged", "enemies = false\nenemies = true",
 			"volume = 0\nvolume = 1", "range = 15\nrange = 15"}) {

@@ -4,6 +4,7 @@
 
 #include <xinput.h>
 
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 
@@ -51,6 +52,10 @@ struct PadEdgeState {
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
+// Microsoft's XInput guidance: asking an empty slot is slow, so do it every few
+// seconds, not every frame (a tester's machine spent 5-8 ms an update on it).
+constexpr uint64_t EmptySlotProbeMs = 2000;
+uint64_t g_nextProbe[XUSER_MAX_COUNT] {}; // when an empty slot is asked again; 0 while a pad answers
 bool         g_keyLeftHeld  = false;
 bool         g_keyRightHeld = false;
 bool         g_keyUpHeld    = false;
@@ -147,15 +152,19 @@ void Poll() {
 	g_leftStick = {};
 	g_leftTrigger = {};
 	if (g_xInputGetState != nullptr) {
+		const uint64_t now = GetTickCount64();
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
 			PadEdgeState& edges = g_padState[padIndex];
+			if (g_nextProbe[padIndex] && now < g_nextProbe[padIndex]) continue;
 			XINPUT_STATE  state {};
 			if (g_xInputGetState(padIndex, &state) != ERROR_SUCCESS) {
 				// Not connected: clear held flags so a later reconnect starts
 				// from a clean edge instead of replaying a stale press.
 				edges = {};
+				g_nextProbe[padIndex] = now + EmptySlotProbeMs;
 				continue;
 			}
+			g_nextProbe[padIndex] = 0;
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			dpadButtons |= pad.wButtons & DpadMask;
@@ -443,6 +452,7 @@ void Shutdown() {
 	for (PadEdgeState& edges : g_padState) {
 		edges = {};
 	}
+	for (auto& probe : g_nextProbe) probe = 0;
 	g_keyLeftHeld  = false;
 	g_keyRightHeld = false;
 	g_keyUpHeld    = false;

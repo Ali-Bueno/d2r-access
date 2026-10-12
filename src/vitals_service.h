@@ -20,4 +20,7 @@ bool MovementAlerts();
 void SetMovementAlerts(bool enabled);
 bool AmmoAlerts();
 void SetAmmoAlerts(bool enabled);
+// How much mana is spoken unasked, a Vitals::ManaAlerts level.
+int ManaAlerts();
+void SetManaAlerts(int level);
 }

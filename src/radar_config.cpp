@@ -187,6 +187,31 @@ Switch ParseBossLife(std::string_view config) { return ParseSwitch(config, "[bos
 Switch ReadBossLife(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseBossLife, "[boss-life] Invalid [boss_life] settings; using compiled defaults.");
 }
+WallToneSettings ParseWallTones(std::string_view config) {
+	WallToneSettings result;
+	const bool valid = ForEachKey(config, "[wall_tones]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled" && key != "volume" && key != "range") return Line::Ignored;
+		if (!value) return Line::Invalid;
+		if (key == "enabled") {
+			bool flag = false;
+			if (result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
+			result.enabled = flag;
+		} else if (key == "volume") {
+			unsigned volume = 0;
+			if (result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
+			result.volume = volume;
+		} else {
+			double range = 0;
+			if (result.range || !ParseNumber(*value, range) || !(range >= WallTones::MinRange && range <= WallTones::MaxRange)) return Line::Invalid;
+			result.range = range;
+		}
+		return Line::Accepted;
+	});
+	return valid ? result : WallToneSettings{.valid = false};
+}
+WallToneSettings ReadWallTones(const D2RL::PluginContext* context) {
+	return ReadSection<WallToneSettings>(context, ParseWallTones, "[wall-tones] Invalid [wall_tones] settings; using compiled defaults.");
+}
 Switch ParseDoors(std::string_view config) { return ParseSwitch(config, "[doors]"); }
 Switch ReadDoors(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseDoors, "[doors] Invalid [doors] settings; using compiled defaults.");

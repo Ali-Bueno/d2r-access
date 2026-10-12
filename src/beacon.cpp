@@ -188,8 +188,7 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 	if (!locked_) return update;
 	update.valid = true;
 	const auto player = Exact(world);
-	const Position straight{target.x - player.x, target.y - player.y};
-	update.distance = Length(straight);
+	update.distance = Length({target.x - player.x, target.y - player.y});
 	update.arrived = update.distance <= settings.arrivalDistance;
 	if (first_) { first_ = false; nextPingMs_ = now + settings.lockDelayMs; } // room for the spoken name
 	// Work per second stays bounded as the lead gets longer: the search box
@@ -202,27 +201,30 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 	const Position destination = waypoint != nullptr ? *waypoint : target;
 	const bool moved = Length({world.player.x - routeOrigin_.x, world.player.y - routeOrigin_.y}) >= rerouteAt
 		|| Length({destination.x - routeTarget_.x, destination.y - routeTarget_.y}) >= rerouteAt;
-	// A lost route is proved again on every update, so it resumes as soon as it exists.
-	if (!routeMs_ || moved || lost_ || now < routeMs_ || now - routeMs_ >= intervalMs) {
+	// While exploration's grace runs a lost route is proved again on every
+	// update, so it resumes as soon as it exists; otherwise at the usual cadence.
+	if (!routeMs_ || moved || (lost_ && settings.requireKnownRoute) || now < routeMs_ || now - routeMs_ >= intervalMs) {
 		route_ = FindRoute(world, destination, settings);
 		routeOrigin_ = world.player;
 		routeTarget_ = destination;
 		routeMs_ = std::max<uint64_t>(now, 1);
 	}
-	if (settings.requireKnownRoute && !update.arrived && !Reaches(world, route_, destination, settings)) {
-		update.routeUnavailable = RouteLost(now, settings);
-		return update; // no ping while the route is unproved
+	// Only a route that gets there is followed: the straight line, or a dead
+	// end short of the target, would lead through a wall. docs/beacon.md#walkable-guidance
+	if (!update.arrived && !Reaches(world, route_, destination, settings)) {
+		update.routeUnavailable = RouteLost(now, settings) && settings.requireKnownRoute;
+		return update; // no ping while no walkable route is known
 	}
 	lost_ = false;
 	routed_ = route_.known;
 	update.routed = route_.known;
 	update.heading = route_.known ? route_.heading : Position{};
-	if (!update.routed && update.distance > 0) update.heading = {straight.x / update.distance, straight.y / update.distance};
 	// Reaching a waypoint is not reaching the target, so the cadence keeps
 	// speaking of the whole journey exactly as it does for any target the
 	// collision cannot reach.
 	update.remaining = route_.reachable && waypoint == nullptr ? route_.length : update.distance;
-	if (now >= nextPingMs_) {
+	// Standing on the waypoint leaves no leg to point along until the next one is proved.
+	if (update.routed && now >= nextPingMs_) {
 		update.ping = true;
 		nextPingMs_ = now + PingIntervalMs(update.remaining, settings);
 	}

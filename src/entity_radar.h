@@ -73,6 +73,7 @@ struct Entity {
 	std::string nameKey; // the game string key `name` was read from; empty when composed or unknown
 	bool corpse = false; // a container that is a dead body: it loops the corpse cue, not the chest one
 	bool weaponRack = false; // a container that is a weapon rack: it loops its own cue, not the chest one
+	bool well = false; // a shrine-category object that is a well (objects.txt SubClass): its own loop
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;

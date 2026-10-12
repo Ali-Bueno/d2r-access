@@ -35,6 +35,7 @@ void NoteWorldTarget(std::string_view) {}
 }
 
 namespace D2RAccess::EntityRadarService {
+std::string NearestNpc() { return "Charsi"; }
 std::string hiddenLabel;
 std::optional<TargetSight::Bearer> bearer; // what every other label names, when set
 TargetSight::Bearer LabelTarget(std::string_view label) {
@@ -164,6 +165,7 @@ std::string LevelAndType(uintptr_t) { return {}; }
 std::string Experience(uintptr_t) { return {}; }
 std::vector<std::string> Lines(uintptr_t) { return {}; }
 std::vector<Skill> Skills(uintptr_t) { return {}; }
+std::vector<std::string> SkillLines(uintptr_t) { return {}; }
 }
 // No skill named here: every skill tooltip is taken, as before the check.
 namespace D2RAccess::NativeSkillIcons { std::string Name(uintptr_t) { return {}; } }

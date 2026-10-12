@@ -3,6 +3,11 @@
 Why the beacon needed a coarse map, where the adjacency rule came from, and
 what is still unmeasured.
 
+Since 2026-10-12 the beacon is led by the remembered map instead
+([walkable guidance](beacon.md#walkable-guidance)): rooms that touch are not
+proof of a way. The sub-goal below still leads keyboard walks the map has no
+way for, and the beacon only when no map is kept.
+
 ## The problem
 
 `native_world.cpp` sets `SnapshotRadius = 152`. That is not a tuning choice:

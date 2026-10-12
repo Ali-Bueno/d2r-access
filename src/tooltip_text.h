@@ -27,7 +27,8 @@ namespace D2RAccess::TooltipText {
 struct Body {
 	std::vector<std::string> lines;  // as drawn, top first, cleaned, empties dropped
 	std::vector<bool> red;           // per line: drawn in the game's red (unmet requirements)
-	size_t heading = static_cast<size_t>(-1); // the line the renderer styled as the title
+	size_t heading = static_cast<size_t>(-1); // the topmost line the renderer styled as the title
+	std::vector<size_t> headings;             // every styled line, top first
 	bool Marked() const { return heading != static_cast<size_t>(-1); }
 };
 

@@ -60,7 +60,8 @@ bool SilverEnabled() { return g_silver.load(std::memory_order_relaxed); }
 void SetSilverEnabled(bool enabled) { g_silver.store(enabled, std::memory_order_relaxed); }
 std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags) {
 	if (name.empty()) return {};
-	if (goldAmount > 0) return std::to_string(goldAmount) + " " + std::string(name);
+	// A pile's amount is said when it is picked up (GroundItems::Purse), not on every pass.
+	if (goldAmount > 0) return std::string(name);
 	std::string result(name);
 	const auto& labels = Strings::Current().itemQualities;
 	if (quality < labels.size() && *labels[quality]) { result += ", "; result += labels[quality]; }
