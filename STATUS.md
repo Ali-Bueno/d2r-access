@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## New tester's report — 2026-10-11 (overnight, not committed)
+## New tester's report — 2026-10-11 (released as test-2026-10-12)
 
 A new collaborator's list (controller, English game) was worked through; what changed and the
 defaults kept for the user are in [decisions](docs/decisions.md#2026-10-11--a-new-testers-report-what-changed-and-what-stays-the-users-choice).
@@ -30,7 +30,7 @@ Every item is built and unit-tested only (112/112 CTest): no live check. Install
 SHA-256 `F96726AC…` matches the build. An independent review found no crash or
 hang; its four behaviour bugs and two minor ones are fixed. **Next step:** the user (or the tester)
 checks BACK+LB and BACK+RB, the walk/run speech and stamina values in `[vitals] movement`, the growl range in
-a pack, the title prompt and the text echo; then commit and publish a test release.
+a pack, the title prompt and the text echo. Committed as `f6c7431` and released as `test-2026-10-12`.
 
 ## Test releases — 2026-10-11
 
@@ -38,8 +38,8 @@ a pack, the title prompt and the text echo; then commit and publish a test relea
 packages the complete tester ZIP and publishes it as the latest GitHub release. First one:
 `test-2026-10-11` from `df45422` (106/106 CTest, 29 entries verified). Always-latest link and
 details: [test releases](docs/test-releases.md). The installed plugin is still the
-`port/bladestorm-npcs` build, which is not in that release.
-**Next step:** pass `-NewsFile` with the Spanish news on the next one.
+`port/bladestorm-npcs` build, which is not in that release. Second: `test-2026-10-12` from
+`f6c7431` (112/112 CTest, 29 entries verified, English package and news).
 
 ## Keyboard as a virtual controller — idea, 2026-10-05
 
