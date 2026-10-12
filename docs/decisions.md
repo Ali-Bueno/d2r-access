@@ -3,6 +3,41 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-12 — The tester's third report: what changed and what was left
+
+A thirty-item list, read with the user's notes. The user's calls: Charsi is said as the game
+spells it; the pickup click per item type waits; doors sound only while shut. Chosen:
+
+- **Wall tones**, Grimdark's and the Last Epoch mod's continuous tone per direction, as an
+  optional companion to the radar (`wall-tones`, off by default). The tester asked for a tone
+  while pushing a wall instead of a thud with a pause; the user asked for the whole system. The
+  2026-09-16 rejection of a continuous bed stands for the default.
+- **Off the map is a wall** for the bump and the tones: the game reads a cell outside every room
+  as 0x27, WALL included. The radar keeps "unknown is never a wall" (2026-09-16 precision rule).
+- **Walking/Running is said only for an L3 press.** The game walks by itself against a wall and
+  out of stamina (`forceWalk*` in controllerskillsettings), which the mod announced as a toggle.
+- **BACK is kept from the game in play** (`pad-back-to-mod`, on): the game only toggled its
+  automap with it. Rejected: injecting the automap on LT+RT, whose triggers are the game's.
+- **The beacon follows walkable ground** or stays silent; the straight-line fallback that pointed
+  through walls is gone (`docs/beacon.md#walkable-guidance`). The scanner keeps straight-line
+  distances (2026-09-24), now always nearest first, and a flick after 10 s starts at the nearest.
+- **Settings of several values** in the Ctrl+S list: mana alerts (every change, low only, off)
+  and the pan and pitch strengths, saved like the switches.
+- **Gold and potions from the Last Epoch mod** as a switch (`last-epoch-sounds`, off): the
+  project's own sounds stay Diablo IV's, the user's rule; one glass sound per potion kind.
+- **Shrines and wells loop** (`shrine-sounds`, on) with Diablo IV placeholders the user may swap.
+- Radar cues +3 dB and the door's knock +3 dB more; the version is said at start.
+
+Not done: entrance hints for Act 1 cottages; an update check (the repository is private, so an
+unsigned request cannot see its releases).
+
+Follow-up: in a multiplayer game the host heard the tabs past Party misnamed and "Character"
+never said. Her log showed correct captions: the tab reader, held while the quest log (a
+dialogue) was open, woke after Character opened with the bar still on the quest log and said
+"Quest Log" over the window's "Character". The switcher's selection seen during the hold is now
+adopted silently when it is still there afterwards. Rejected: trusting any panel opened within
+500 ms over the caption, which would also swallow a fast Character-to-Inventory move.
+
 ## 2026-10-12 — "Silver" for white names the game draws gray
 
 A socketed or ethereal normal, low quality or superior item has a gray name on screen and the

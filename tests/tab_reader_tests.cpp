@@ -62,6 +62,17 @@ int main() {
 	labels[300] = "Opciones";
 	Check(Tick() == "Opciones", "the switcher tab reached from a dialogue is named on return");
 	Check(Tick().empty(), "and only once");
+	// A host's log, 2026-10-12: Party, then the quest log (a dialogue), then
+	// Character. The bar still showed the quest log a poll after Character opened,
+	// and "Quest Log" cut off the window's "Character".
+	labels[300] = "Grupo"; indices[300] = 0;
+	(void)Tick();
+	labels[300] = "Reg. de búsquedas"; indices[300] = 1;
+	Check(Tick(true).empty(), "the quest log holds the switcher");
+	Check(Tick().empty(), "the bar still on the quest log once it closed is not named");
+	labels[300] = "Personaje"; indices[300] = 2;
+	Check(Tick() == "Personaje", "the tab the bar really moves to next is");
+	indices[300] = 0;
 	Check(Tick(true).empty(), "a dialogue suspends tracking again");
 	labels[102] = "Comp.";
 	Check(Tick() == "Comp.", "other tab bars are still read after a dialogue (vendor tabs)");

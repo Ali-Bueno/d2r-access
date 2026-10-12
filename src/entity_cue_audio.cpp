@@ -115,6 +115,14 @@ bool Start(const D2RL::PluginContext* context, double gain, double panScale, dou
 	return true;
 }
 
+void SetStrength(double panScale, double pitchScale) {
+	std::lock_guard lock(g_mutex);
+	g_panScale = panScale; g_pitchScale = pitchScale;
+}
+
+double PanScale() { std::lock_guard lock(g_mutex); return g_panScale; }
+double PitchScale() { std::lock_guard lock(g_mutex); return g_pitchScale; }
+
 void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);

@@ -70,6 +70,13 @@ int main() {
 		Check(!Copy(address + system.dwPageSize - 1, buffer.data(), 2), "cached permission does not authorize a copy into an unreadable next page");
 	}
 	VirtualFree(page, 0, MEM_RELEASE);
-	{ const ReadScope pass; Check(!Copy(address, buffer.data(), 1), "freed memory is revalidated on the next pass"); }
+	{ const ReadScope pass; Check(!Copy(address, buffer.data(), 1), "freed memory is never copied, though its region was cached"); }
+	// Permissions found by one pass serve the passes after it for a while.
+	page = VirtualAlloc(nullptr, system.dwPageSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	const uintptr_t fresh = reinterpret_cast<uintptr_t>(page);
+	{ const ReadScope pass; (void)Copy(fresh, buffer.data(), 1); }
+	const auto before = Checks().count;
+	{ const ReadScope pass; Check(Copy(fresh, buffer.data(), 1) && Checks().count == before, "the next pass asks Windows nothing again"); }
+	VirtualFree(page, 0, MEM_RELEASE);
 	Passed();
 }

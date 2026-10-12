@@ -19,6 +19,10 @@ struct Placement { double right = 0, front = 1, panScale = 1, pitchScale = 1; };
 
 std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain = 1);
 bool Start(const D2RL::PluginContext* context, double gain, double panScale = 1, double pitchScale = 1);
+// The settings list changes the strengths while playing.
+void SetStrength(double panScale, double pitchScale);
+double PanScale();
+double PitchScale();
 // A pending Reach, Pickup or Edge cue is never replaced by a presence pulse.
 void Play(Sound sound, Placement placement);
 void Silence();

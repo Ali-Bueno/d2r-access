@@ -5,6 +5,7 @@
 #include "ground_item_text.h"
 #include "native_memory.h"
 #include "localization.h"
+#include "monster_plate.h"
 #include "ui_text.h"
 #include "async_log.h"
 #include <D2RLPlugin/item.h>
@@ -19,7 +20,8 @@ namespace {
 using namespace GroundItemLayout;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
-struct Tables { uintptr_t items = 0, types = 0; uint64_t itemCount = 0, typeCount = 0; };
+bool g_lowQualityNames = false; // LowQualityChecks verified
+struct Tables { uintptr_t items = 0, types = 0; uint64_t itemCount = 0, typeCount = 0; uintptr_t bank = 0; };
 }
 bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept {
 	__try {
@@ -51,6 +53,23 @@ bool IsType(const Tables& tables, uint16_t index, uint32_t code) {
 	}
 	return false;
 }
+// A low-quality item named as the game names it ("Crude Short Sword"; a tester heard only
+// "low quality"): its row's prefix in the game's LowqualityFormat, which in some languages
+// puts the prefix after the noun and makes it agree. Empty when anything is unreadable.
+std::string LowQualityName(uintptr_t data, const Tables& tables, uint16_t nameId) {
+	int32_t row = -1;
+	uintptr_t rows = 0;
+	uint64_t count = 0;
+	uint16_t textId = 0;
+	if (!g_lowQualityNames || !tables.bank || !Peek(data + ItemFileIndex, row) || row < 0
+		|| !Peek(tables.bank + LowQualityRows, rows) || !rows || !Peek(tables.bank + LowQualityCount, count)
+		|| count > MaxTableRows || static_cast<uint64_t>(row) >= count
+		|| !Peek(rows + static_cast<uintptr_t>(row) * LowQualityStride + LowQualityText, textId) || !textId) return {};
+	const auto format = Localization::Text("LowqualityFormat");
+	if (format.empty()) return {};
+	const std::array<std::string, 2> parts{Localization::Text(textId), Localization::Text(nameId)};
+	return GroundItemText::BaseName(UiText::Clean(MonsterPlate::Compose(format, parts)));
+}
 bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems::Point player, GroundItems::Item& item,
 	bool anyDistance = false) {
 	uint32_t type = 0, mode = 0, classId = 0;
@@ -74,16 +93,22 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	using D2RL::Items::MakeItemCode; // space padded, as the game stores "gem "
 	const auto is = [&](uint32_t code) { return IsType(tables, typeId, code); };
 	const bool gold = is(MakeItemCode("gold"));
-	const Base base = gold ? Base::Gold : is(MakeItemCode("poti")) || is(MakeItemCode("elix")) ? Base::Potion
+	// ItemTypes.txt: rpot's parents are hpot and mpot, so it is asked first.
+	const Base base = gold ? Base::Gold : is(MakeItemCode("rpot")) ? Base::RejuvenationPotion
+		: is(MakeItemCode("hpot")) ? Base::HealthPotion : is(MakeItemCode("mpot")) ? Base::ManaPotion
+		: is(MakeItemCode("poti")) || is(MakeItemCode("elix")) ? Base::Potion
 		: is(MakeItemCode("scro")) ? Base::Scroll : is(MakeItemCode("rune")) ? Base::Rune
 		: is(MakeItemCode("gem")) ? Base::Gem : Base::Equipment;
 	const bool quest = questFlag != 0 || is(MakeItemCode("ques"));
-	item.sound = GroundItems::Classify(item.quality, base, quest);
+	item.sound = GroundItems::Classify(item.quality, base, quest, GroundItems::LastEpochSounds());
 	if (!anyDistance && distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	uint32_t flags = 0;
 	if (!Peek(data + ItemFlags, flags)) flags = 0;
-	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags);
+	// The prefix says the quality, so the quality word is left out: described as a normal item.
+	const auto lowQuality = item.quality == LowQuality ? LowQualityName(data, tables, nameId) : std::string{};
+	item.name = lowQuality.empty() ? GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags)
+		: GroundItemText::Describe(lowQuality, static_cast<uint32_t>(D2RL::Items::Quality::Normal), 0, flags);
 	return true;
 }
 }
@@ -136,7 +161,7 @@ uint32_t ClassCode(uint32_t classId) {
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
 	return code;
 }
-bool SocketFiller(uint32_t classId) {
+bool ClassIsType(uint32_t classId, uint32_t typeCode) {
 	Tables tables;
 	uint16_t typeId = 0;
 	uintptr_t player = 0, tablesAddress = 0;
@@ -145,8 +170,9 @@ bool SocketFiller(uint32_t classId) {
 		&& Peek(tablesAddress + ItemCount, tables.itemCount) && tables.itemCount <= MaxTableRows
 		&& Peek(tablesAddress + Types, tables.types) && tables.types
 		&& Peek(tablesAddress + TypeCount, tables.typeCount) && tables.typeCount <= MaxTableRows
-		&& classId < tables.itemCount && Peek(tables.items + classId * ItemStride + ItemType, typeId) && IsType(tables, typeId, D2RL::Items::MakeItemCode("sock"));
+		&& classId < tables.itemCount && Peek(tables.items + classId * ItemStride + ItemType, typeId) && IsType(tables, typeId, typeCode);
 }
+bool SocketFiller(uint32_t classId) { return ClassIsType(classId, D2RL::Items::MakeItemCode("sock")); }
 std::optional<Weapon> WeaponOf(uint32_t classId) {
 	Tables tables;
 	uintptr_t player = 0, address = 0;
@@ -165,6 +191,8 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
 	if (!context) return false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "items", "ground items disabled")) return false;
+	g_lowQualityNames = LayoutCheck::Verify(context, context->exeBase, LowQualityChecks, "low-quality names",
+		"low-quality items keep the plain quality word");
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[items] Verified native ground item reader.");
 	return true;
@@ -182,6 +210,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		|| !Peek(tablesAddress + ItemCount, tables.itemCount) || tables.itemCount > MaxTableRows
 		|| !Peek(tablesAddress + Types, tables.types) || !tables.types
 		|| !Peek(tablesAddress + TypeCount, tables.typeCount) || tables.typeCount > MaxTableRows) return false;
+	tables.bank = tablesAddress;
 	GroundItems::Snapshot next{session, {position[0] / PositionScale, position[1] / PositionScale}, {}};
 	std::vector<uintptr_t> rooms{room};
 	uintptr_t neighbors = 0;
@@ -229,6 +258,7 @@ bool ReadLevel(uint32_t playerId, uint64_t session, GroundItems::Snapshot& outpu
 		output = {};
 		return false;
 	}
+	tables.bank = tablesAddress;
 	GroundItems::Snapshot next{session, ring.player, {}};
 	const uintptr_t level = RoomLevel(room);
 	std::vector<uintptr_t> rooms{room};

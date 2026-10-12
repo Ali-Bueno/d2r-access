@@ -1,8 +1,10 @@
 #include "inventory_arrival_service.h"
 #include "async_log.h"
+#include "input_direction.h"
 #include "interaction_reader.h"
 #include "inventory_arrivals.h"
 #include "inventory_cursor.h"
+#include "native_ground_items.h"
 #include "panel_state.h"
 #include "radar_config.h"
 #include "screen_reader.h"
@@ -76,6 +78,32 @@ bool InventoryOpen() {
 	const auto& open = PanelState::OpenPanels();
 	return std::find(open.begin(), open.end(), InventoryPanel) != open.end();
 }
+// The expansion stash has the gem, rune and materials tabs Y sorts into (BankExpansionLayoutHD.json).
+constexpr std::string_view ExpansionStash = "BankExpansionLayout";
+// A Y press this recent explains an item leaving the backpack: the poll is SampleMs.
+constexpr unsigned SortPressMs = 4 * SampleMs;
+bool StashOpen() {
+	const auto& open = PanelState::OpenPanels();
+	return std::find(open.begin(), open.end(), ExpansionStash) != open.end();
+}
+// The tab the game sorts an item into: gems and runes their own, the rest materials.
+const char* StashTab(uint32_t classId) {
+	using D2RL::Items::MakeItemCode;
+	const auto& strings = Strings::Current();
+	if (NativeGroundItems::ClassIsType(classId, MakeItemCode("gem"))) return strings.stashGems;
+	if (NativeGroundItems::ClassIsType(classId, MakeItemCode("rune"))) return strings.stashRunes;
+	return strings.stashMaterials;
+}
+void AnnounceSorted(const D2RL::PluginContext* context, const std::vector<Item>& before, const std::vector<Item>& now, uint32_t held) {
+	if (!StashOpen() || InputDirection::LastFaceButton(SortPressMs) != InputDirection::FaceButton::Y) return;
+	for (const auto& item : InventoryArrivals::Departures(before, now, held)) {
+		const auto name = InteractionReader::ItemName(item.id, item.classId, item.quality);
+		char text[300]{};
+		std::snprintf(text, sizeof(text), Strings::Current().itemMovedToStash, name.c_str(), StashTab(item.classId));
+		AsyncLog::InfoF(context, "[items] sorted into the stash id=%u class=%u -> \"%s\"", item.id, item.classId, text);
+		ScreenReader::Speak(text, false);
+	}
+}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command || !command->plugin) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -113,6 +141,7 @@ void Tick(const D2RL::PluginContext* context) {
 		// News about the backpack, behind whatever the focus is saying.
 		ScreenReader::Speak(text, false);
 	}
+	if (g_baseline) AnnounceSorted(context, *g_baseline, *items, *held);
 	g_baseline = std::move(*items);
 	g_heldBefore = *held;
 }

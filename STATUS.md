@@ -2,6 +2,39 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Tester's third report — 2026-10-12 (built, not committed, not released)
+
+Thirty items with the user's notes; choices in [decisions](docs/decisions.md). Done:
+- Movement: walk/run only on L3 ([vitals](docs/vitals.md)); bump contact off the map and beside
+  the line; footsteps muted while a push is refused ([footsteps](docs/footsteps.md)); radar +3 dB,
+  door +3 dB; **wall tones** (`wall-tones`, off) ([radar readings](docs/radar-readings.md)).
+- Beacon on walkable ground only, no straight fallback ([beacon](docs/beacon.md#walkable-guidance));
+  scanner nearest first, fresh after 10 s ([scanner](docs/entity-scan.md)).
+- Inventory: knock only on grids and between backpack and vendor/stash; shop named by its vendor;
+  Y-sort says the stash tab; Strangling Gas name; gold amount on pickup; merc skills on Y and in
+  the merc panel; death screen read; skill tooltips join wrapped sentences and split style blocks.
+- Sounds: racks (and armor stands, bookshelves) loop; shrines and wells loop (placeholders);
+  Last Epoch gold/potions switch; cows and camels named.
+- Ctrl+S: mana alerts and pan/pitch strengths (settings of several values), BACK kept from the
+  game's automap (`pad-back-to-mod`, on). Version spoken at start (`-Release` / test tag).
+- Title screen: a pad press the title ignores for 1 s gets a Space in its place (`[modal]` log).
+
+- Follow-up the same day: skill-tree LT/RT branch names were cut off by the skill's description
+  (it rendered ~350 ms later and interrupted); what follows on the same focus within 1.5 s of a
+  title now queues. Multiplayer (Raine's log): the captions were right; the tab reader, held while
+  the quest log was open, woke a poll after Character opened with the bar still on Quest Log and
+  said it over "Character". That stale caption is now adopted in silence (`TabReader`). Her log
+  also showed 3651 slow updates in 70 min (VirtualQuery 0.2-0.3 ms there): page permissions are
+  now kept for 1 s, empty pad slots asked every 2 s, and the scanner's pass skips menus and slows
+  when standing ([latency](docs/navigation-latency.md)); `[survey] slow pass` names its parts.
+- Low-quality ground items named as the game does ("Crude Short Sword"): ItemData+0x34 row,
+  table bank +0x1688, fingerprinted and matched against the live dump ([ground items](docs/ground-items.md#low-quality-names-2026-10-12)).
+
+116/116 CTest; installed by the build. Unverified live: all of it. Left: Act 1 cottage entrance
+hints; update check (private repo).
+**Next step:** the user or the tester tries it; logs to read: `[wall-bump]`, `[footsteps] summary
+pushing=`, `[beacon] lead=`, `[modal]`, `[items] sorted into the stash`, `[vitals] movement re-synced`.
+
 ## Tester's second report — 2026-10-12 (released as test-2026-10-12-2 from fe4d171)
 
 - Town NPCs everywhere listed only loaded units: unbuilt rooms' presets (`DrlgMap+0x58`) are

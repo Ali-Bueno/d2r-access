@@ -25,5 +25,12 @@ int main() {
 	Check(Diff({ruby}, {equipped}, 0).empty(), "an item put on is not an arrival in the backpack");
 	Item stashed{30, 6, 2, Place::Other};
 	Check(Diff({}, {stashed}, 0).empty(), "a new item outside the backpack and belt is not announced");
+
+	// Y with the stash open sorts a gem away (a tester).
+	const auto gone = Departures({ruby, gem, helm}, {ruby, helm}, 0);
+	Check(gone.size() == 1 && gone[0].id == 12, "a gem that left the backpack departed");
+	Check(Departures({ruby, gem}, {ruby}, 12).empty(), "one picked up into the hand did not");
+	Check(Departures({ruby, helm}, {ruby}, 0).empty() && Departures({ruby}, {sorted}, 0).empty(),
+		"neither does a worn item nor one moved within the backpack");
 	Passed();
 }

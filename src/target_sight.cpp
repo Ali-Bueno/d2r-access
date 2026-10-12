@@ -35,7 +35,7 @@ Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& e
 		bearer = true;
 		if (nearest.sight == Sight::Visible && distance >= nearest.distance) continue;
 		if (!EntityRadar::LineOfSight(world, world.player, entity)) continue;
-		nearest = {Sight::Visible, entity.kind, entity.enemy.important || entity.enemy.boss, distance};
+		nearest = {Sight::Visible, entity.kind, entity.enemy.important || entity.enemy.boss, distance, entity.id};
 	}
 	// Every bearer of that name within reach is behind a wall: the game is
 	// naming something the player cannot see.

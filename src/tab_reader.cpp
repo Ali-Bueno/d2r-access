@@ -11,6 +11,11 @@ std::vector<Panel> g_panels;
 // A bar's selection is its index plus caption: two tabs may share a caption.
 struct Selection { int index = -1; std::string text; };
 std::unordered_map<uintptr_t, Selection> g_selected;
+// The switcher's selection while a dialogue tab (the quest log) held the reader:
+// once it is over, the bar still shows that tab for a poll or two after the next
+// panel opened, and naming it then cut off that panel's title ("Character", a
+// tester's log, 2026-10-12). Matching it is adopted in silence.
+std::unordered_map<uintptr_t, Selection> g_dialogueTab;
 bool g_observing = false;
 std::string g_detail;
 constexpr std::string_view SwitcherTabs = "UISwitcherTabs";
@@ -51,7 +56,16 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 			// old baseline so the tab after them is named on return.
 			if (suspended && isSwitcher && prior != g_selected.end()) {
 				next.emplace(tab, prior->second);
+				g_dialogueTab[tab] = now;
 				continue;
+			}
+			if (const auto dialogue = g_dialogueTab.find(tab); dialogue != g_dialogueTab.end()) {
+				const bool stale = dialogue->second.index == now.index && dialogue->second.text == now.text;
+				g_dialogueTab.erase(dialogue);
+				if (stale) {
+					next.emplace(tab, std::move(now));
+					continue;
+				}
 			}
 			const bool differs = prior == g_selected.end() || prior->second.index != now.index || prior->second.text != now.text;
 			if (g_observing && differs) {
@@ -79,5 +93,5 @@ std::string Selected(uintptr_t panel) {
 	return result;
 }
 
-void Reset() { g_panels.clear(); g_selected.clear(); g_observing = false; g_detail.clear(); }
+void Reset() { g_panels.clear(); g_selected.clear(); g_dialogueTab.clear(); g_observing = false; g_detail.clear(); }
 }

@@ -86,14 +86,15 @@ inline constexpr uint8_t RoomWarpOperateFn = 44;
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587
 // rows): 1 caskets and sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7
-// barrels, 14 crates/coffins/corpses/hollow logs, 30 the exploding chest,
-// 39-41 and 57-59 the act-specific special chests, 68 the evil urn.
-inline constexpr std::array<uint8_t, 14> ContainerOperateFns{1, 3, 4, 5, 7, 14, 30, 39, 40, 41, 57, 58, 59, 68};
-// Together with "selectable while shut, not once open" these select 165 of the
-// 587 rows (78 distinct keys). Both counts are the tripwire `access-items
-// chests-dump` checks against the live table: if a patch moves either, rerun
-// the tool before trusting the cue.
-inline constexpr size_t ContainerRowCount = 165, ObjectRowCount = 587;
+// barrels, 14 crates/coffins/corpses/hollow logs, 19 armor stands, 20 weapon
+// racks, 26 bookshelves, 30 the exploding chest, 39-41 and 57-59 the
+// act-specific special chests, 68 the evil urn.
+inline constexpr std::array<uint8_t, 17> ContainerOperateFns{1, 3, 4, 5, 7, 14, 19, 20, 26, 30, 39, 40, 41, 57, 58, 59, 68};
+// Together with "selectable while shut, not once open" these select 175 of the
+// 587 rows. Both counts are the tripwire `access-items chests-dump` checks
+// against the live table: if a patch moves either, rerun the tool before
+// trusting the cue.
+inline constexpr size_t ContainerRowCount = 175, ObjectRowCount = 587;
 // objects.txt SubClass bits the game's label builder (0xC17E0) and 0x34C470 branch on:
 // shrine, town/permanent portal, arcane sanctuary portal / hell gate, waypoint.
 // Bit meanings derived from the game's own global/excel/objects.txt (D2R 3.3,

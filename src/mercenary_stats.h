@@ -48,6 +48,10 @@ struct Skill {
 // The skills the panel's icons show, in icon order (Skill0 to Skill2); icons
 // the game has hidden -- a mercenary with fewer skills -- are left out.
 std::vector<Skill> Skills(uintptr_t panel);
+// One line per skill, its name first and then its description, for the
+// panel's stick reader: the icons beside the experience bar are focusable
+// only by the mouse (a tester could not hear them).
+std::vector<std::string> SkillLines(uintptr_t panel);
 // The skill one icon shows (a HirelingSkillIconWidget); its text is empty
 // when it could not be read.
 Skill SkillOf(uintptr_t icon);

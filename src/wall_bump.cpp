@@ -49,10 +49,15 @@ bool Contact(const Radar::World& world, Radar::Position push) {
 	// ContactCells away on an axis and so farther than that along the push.
 	const double reach = ContactCells / std::max(std::abs(ux), std::abs(uy));
 	const double x = world.player.x + world.subtileFraction.x, y = world.player.y + world.subtileFraction.y;
+	// Off the map is a wall too: the game reads a cell outside every room as 0x27,
+	// WALL included (docs/collision-semantics.md), the borders of the outdoor areas.
+	const auto blocks = [](Radar::State state) { return state != Radar::State::Open; };
 	for (double along = ContactStep; along <= reach; along += ContactStep) {
 		const int cellX = static_cast<int>(std::floor(x + along * ux));
 		const int cellY = static_cast<int>(std::floor(y + along * uy));
-		if (world.Cell(cellX, cellY, Radar::Layer::Terrain) == Radar::State::Blocked) return true;
+		if (blocks(world.Cell(cellX, cellY, Radar::Layer::Terrain))) return true;
+		// The body one step on, a cell narrower: a ragged border can refuse it beside the line.
+		if (along >= 1 && along <= reach - 1 && blocks(world.Body(cellX, cellY, Radar::Layer::Terrain))) return true;
 	}
 	return false;
 }

@@ -3,6 +3,8 @@
 #include "async_log.h"
 #include "character_stats_reader.h"
 #include "control_hints.h"
+#include "controller_text.h"
+#include "input_direction.h"
 #include "localization.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -32,6 +34,66 @@ constexpr std::string_view ControllerGlyph = "\xEE\x80\x93"; // U+E013, stripped
 constexpr uint64_t TitlePollMs = 250;
 bool g_titleSpoken = false;
 uint64_t g_titlePolled = 0;
+
+// A tester: the title took only the keyboard, never the pad. A pad press the
+// title has not answered within this long gets a key press in its place; one the
+// game did take has changed the panel by then, and nothing is sent.
+constexpr uint64_t TitlePadAnswerMs = 1000;
+uint64_t g_titlePadPress = 0;
+bool g_titlePadHeld = false;
+
+void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
+	using InputDirection::FaceButton;
+	bool held = false;
+	for (const auto button : {FaceButton::A, FaceButton::B, FaceButton::X, FaceButton::Y})
+		held |= InputDirection::FaceButtonHeld(button);
+	if (held && !g_titlePadHeld && !g_titlePadPress) g_titlePadPress = now;
+	g_titlePadHeld = held;
+	if (!g_titlePadPress || now - g_titlePadPress < TitlePadAnswerMs) return;
+	g_titlePadPress = 0;
+	DWORD process = 0;
+	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	if (process != GetCurrentProcessId()) return;
+	INPUT keys[2]{};
+	keys[0].type = keys[1].type = INPUT_KEYBOARD;
+	keys[0].ki.wVk = keys[1].ki.wVk = VK_SPACE;
+	keys[1].ki.dwFlags = KEYEVENTF_KEYUP;
+	const UINT sent = SendInput(2, keys, sizeof(INPUT));
+	AsyncLog::InfoF(context, "[modal] the title did not take a pad press in %llu ms: a key sent in its place (%u events)",
+		static_cast<unsigned long long>(TitlePadAnswerMs), sent);
+}
+
+// The death screen fills its two boxes after it opens (YouDiedModalHD.json):
+// "You have died / Press <button> to continue." and "Death takes its toll of N
+// Gold". Its Continue button holds the focus, so it is read here, not left to
+// the focus reader, and polled like the title prompt.
+constexpr std::string_view DeathPanel = "YouDiedModal";
+constexpr std::string_view DeathBoxes[] = {"MainText", "SubText", "ContinueButton"};
+bool g_deathSpoken = false;
+uint64_t g_deathPolled = 0;
+
+void PollDeath(const D2RL::PluginContext* context, const std::string& active) {
+	const uint64_t now = GetTickCount64();
+	if (now - g_deathPolled < TitlePollMs) return;
+	g_deathPolled = now;
+	const uintptr_t panel = NativeWidgets::FindPanel(active);
+	if (!panel) return;
+	std::string text;
+	for (const auto box : DeathBoxes) {
+		const uintptr_t child = NativeWidgets::FindChild(panel, box);
+		std::string raw = child ? NativeWidgets::ReadText(child) : std::string{};
+		for (size_t at = raw.find('\n'); at != std::string::npos; at = raw.find('\n', at + 2)) raw.replace(at, 1, ". ");
+		const auto part = ControllerText::Read(raw);
+		if (box == DeathBoxes[0] && part.empty()) return; // not filled in yet
+		if (part.empty()) continue;
+		if (!text.empty() && text.back() != '.') text += '.';
+		if (!text.empty()) text += ' ';
+		text += part;
+	}
+	g_deathSpoken = true;
+	AsyncLog::InfoF(context, "[modal] %s -> \"%s\"", active.c_str(), text.c_str());
+	ScreenReader::Speak(text, true);
+}
 
 bool Speakable(const UiText::Node& node) {
 	if (node.text.empty() || !node.enabled) return false;
@@ -96,17 +158,24 @@ void PollTitlePrompt(const D2RL::PluginContext* context, const std::string& acti
 	ScreenReader::Speak(text, false);
 }
 
-void Reset() { g_lastPanel.clear(); g_titleSpoken = false; }
+void Reset() { g_lastPanel.clear(); g_titleSpoken = g_deathSpoken = false; }
 
 void Tick(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
 	if (active == g_lastPanel) {
 		if (active == TitlePanel && !g_titleSpoken) PollTitlePrompt(context, active);
+		if (active == TitlePanel) PassTitle(context, GetTickCount64());
+		if (active == DeathPanel && !g_deathSpoken) PollDeath(context, active);
 		return;
 	}
 	g_lastPanel = active;
-	g_titleSpoken = false;
+	g_titleSpoken = g_deathSpoken = false;
+	g_deathPolled = g_titlePadPress = 0;
 	if (active.empty()) return;
+	if (active == DeathPanel) {
+		PollDeath(context, active);
+		return;
+	}
 
 	// The character panel has its own reader, which names the character behind
 	// the title and keeps every statistic on the right stick. Read from here it

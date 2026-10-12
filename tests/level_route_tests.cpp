@@ -1,4 +1,5 @@
 #include "beacon.h"
+#include "level_fixture.h"
 #include "level_route.h"
 #include "navigation_grid.h"
 #include "test_support.h"
@@ -7,53 +8,13 @@
 #include <vector>
 
 using namespace D2RAccess;
+using namespace LevelFixture;
 using LevelRoute::Ground;
 using Radar::Position;
 using Radar::World;
 
 namespace {
-constexpr uint16_t PlayerPath = 0x1C09; // observed native player walking mask
 constexpr uint16_t Wall = 0x0001, Blank = 0x0020, Monster = 0x0100, NoPath = 0x1000;
-constexpr int RoomTiles = 8, RoomCells = RoomTiles * 5;
-// A level of Across x Down rooms whose first tile is not the map's origin.
-constexpr int Across = 5, Down = 5, TileX = 100, TileY = 100;
-constexpr int Left = TileX * 5, Top = TileY * 5, Width = Across * RoomCells, Height = Down * RoomCells;
-
-struct Level {
-	std::vector<uint16_t> cells = std::vector<uint16_t>(static_cast<size_t>(Width) * Height, 0);
-	uint16_t& At(int x, int y) { return cells[static_cast<size_t>(y - Top) * Width + (x - Left)]; }
-	void Fill(int x0, int y0, int x1, int y1, uint16_t flags) { // inclusive, level cells
-		for (int y = y0; y <= y1; ++y)
-			for (int x = x0; x <= x1; ++x) At(x, y) = flags;
-	}
-	std::vector<NativeRooms::Room> Rooms() const {
-		std::vector<NativeRooms::Room> rooms;
-		for (int row = 0; row < Down; ++row)
-			for (int column = 0; column < Across; ++column) {
-				const int x = TileX + column * RoomTiles, y = TileY + row * RoomTiles;
-				rooms.push_back({x, y, RoomTiles, RoomTiles, NativeRooms::Identity(x, y)});
-			}
-		return rooms;
-	}
-	// What the game would have loaded: the rooms within `reach` rooms of the player's.
-	World Loaded(Position player, int reach, int pattern = 1) const {
-		World world;
-		world.session = world.level = 1;
-		world.player = player;
-		world.bodyPattern = pattern;
-		world.walkingMask = PlayerPath;
-		const int column = (static_cast<int>(player.x) - Left) / RoomCells, row = (static_cast<int>(player.y) - Top) / RoomCells;
-		for (int r = std::max(0, row - reach); r <= std::min(Down - 1, row + reach); ++r)
-			for (int c = std::max(0, column - reach); c <= std::min(Across - 1, column + reach); ++c) {
-				Radar::RoomGrid room{Left + c * RoomCells, Top + r * RoomCells, RoomCells, RoomCells, {}};
-				for (int y = 0; y < RoomCells; ++y)
-					for (int x = 0; x < RoomCells; ++x)
-						room.cells.push_back(cells[static_cast<size_t>(room.y - Top + y) * Width + (room.x - Left + x)]);
-				world.rooms.push_back(std::move(room));
-			}
-		return world;
-	}
-};
 
 double Distance(Position a, Position b) { return std::hypot(a.x - b.x, a.y - b.y); }
 bool Reached(const Navigation::Grid& grid, Position place, int margin) {
@@ -98,6 +59,25 @@ int main() {
 		Check(!memory.Learn(changed) && memory.At(Left + 30, Top + 30) == Ground::Open, "another level's rooms are not learnt");
 		Check(memory.Learn(level.Loaded({Left + 5.0, Top + 5.0}, 0)) && memory.Revision() == revision + 1,
 			"a cell that changed is learnt, and counted once");
+	}
+	{
+		// A copy to plan on: the whole map, or the rooms given, under the revision it is given.
+		Level level;
+		level.Fill(Left + 10, Top + 10, Left + 12, Top + 10, Wall);
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		(void)memory.Learn(level.Loaded({Left + 5.0, Top + 5.0}, 1));
+		const auto whole = memory.Copy(nullptr, 77);
+		Check(whole.Revision() == 77 && whole.Session() == memory.Session() && whole.Level() == memory.Level()
+			&& whole.Cells() == memory.Cells(), "a whole copy is the same ground of the same level, under its own revision");
+		const auto rooms = level.Rooms();
+		const std::vector<NativeRooms::Room> kept{rooms[0]};
+		const auto part = memory.Copy(&kept, 78);
+		Check(part.At(Left + 11, Top + 10) == Ground::Blocked && part.At(Left + 5, Top + 5) == Ground::Open,
+			"ground inside a room kept is as the map has it");
+		Check(part.At(Left + RoomCells + 5, Top + 5) == Ground::Outside && memory.At(Left + RoomCells + 5, Top + 5) == Ground::Open,
+			"ground outside them is no part of the copy, and the map itself keeps it");
+		Check(part.X() == memory.X() && part.Width() == memory.Width(), "the copy covers the same level");
 	}
 	{
 		// The body: a five-cell cross needs three cells of width, a point one.
@@ -321,6 +301,10 @@ int main() {
 		const Position player{Left + 51.0, Top + 100.0}, place{Left + 51.0, Top + 20.0};
 		Check(LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "no way is planned through a shut door");
 		Check(LevelRoute::Reach(memory, player, 1).To(place, 1) == Answer::Reached, "what lies past a shut door is not cut off");
+		const auto opened = LevelRoute::Plan().From(memory, player, place, 1, 1, true).path;
+		bool byDoor = false;
+		for (const auto point : opened) byDoor = byDoor || memory.At(static_cast<int>(point.x), static_cast<int>(point.y)) == Ground::Door;
+		Check(!opened.empty() && byDoor, "a way the player opens as they go passes the shut door");
 		level.Fill(Left + 50, Top + 60, Left + 52, Top + 62, 0); // the door opened
 		(void)memory.Learn(level.Loaded({Left + 51.0, Top + 61.0}, 0));
 		Check(!LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "an opened door is a way");

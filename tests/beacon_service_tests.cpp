@@ -2,6 +2,8 @@
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "input_direction.h"
+#include "keyboard_service.h"
+#include "level_route.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_areas.h"
@@ -41,6 +43,8 @@ int roomReads = 0;
 int silences = 0, plays = 0;
 std::vector<std::string> speech;
 std::vector<NativeLevelAreas::Area> actAreas; // the act's built areas; none when unreadable
+bool remembering = false; // the keyboard keeps a map of the level
+LevelRoute::Memory remembered;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener,
 	D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
@@ -88,6 +92,14 @@ void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
 namespace D2RAccess::InputDirection { bool TakeBackWithLb() { return false; } }
+namespace D2RAccess::KeyboardService {
+const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
+	if (!remembering) return nullptr;
+	if (!remembered.Revision()) (void)remembered.Begin(world.session, world.level, levelRooms);
+	(void)remembered.Learn(world);
+	return &remembered;
+}
+}
 namespace D2RAccess::MapSurveyService { bool TownNpcsEverywhere() { return false; } }
 namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig {
@@ -193,10 +205,37 @@ int main() {
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before + 1, "full assistance locks while the first room-graph read fails");
-	Check(roomReads == 2, "a failed room-graph read is retried by the next use in the same level instance");
+	Check(roomReads == 1, "fixture: the lock's first update made the failing read");
 	Sleep(160); // the service's 150 ms target refresh cadence
 	BeaconService::Tick(&context);
+	Check(roomReads == 2, "a failed room-graph read is retried by the next use in the same level instance");
+	Sleep(160);
+	BeaconService::Tick(&context);
 	Check(roomReads == 2, "a successfully built room graph is cached");
+
+	// Walled off as far as the level has been seen: no ping points through the wall.
+	Command("clear");
+	BeaconService::Tick(&context);
+	remembering = true;
+	playerAt = {10, 10};
+	blocked = {60, 0, 62, 49};
+	BeaconService::Offer(EntityRadar::Entity{.id = 10, .kind = EntityRadar::Kind::Exit, .position = {80, 10}, .name = "walled exit"},
+		0, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	const int locked = plays;
+	for (int i = 0; i < 8; ++i) { Sleep(160); BeaconService::Tick(&context); }
+	Command("status");
+	BeaconService::Tick(&context);
+	Check(plays == locked && speech.back().find("walled exit") != std::string::npos,
+		"full assistance keeps the lock and plays no ping while no walkable way is known");
+	blocked = {60, 0, 62, 39}; // a way round below the wall
+	for (int i = 0; i < 8; ++i) { Sleep(160); BeaconService::Tick(&context); }
+	Check(plays > locked, "the ping resumes once a way round is seen");
+	Command("clear");
+	BeaconService::Tick(&context);
+	blocked = {};
+	remembering = false;
 
 	const auto& strings = Strings::Current();
 	Command("exploration");

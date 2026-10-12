@@ -89,6 +89,9 @@ add_library(d2r-access SHARED
 	src/radar_synth.cpp
 	src/radar_service.cpp
 	src/wall_bump.cpp
+	src/wall_tones.cpp
+	src/wall_tone_audio.cpp
+	src/wall_tone_service.cpp
 	src/radar_ui.cpp
 	src/radar_config.cpp
 	src/entity_radar.cpp
@@ -212,6 +215,9 @@ set_target_properties(d2r-access PROPERTIES
 	OUTPUT_NAME "d2rl-d2r-access"
 )
 target_compile_definitions(d2r-access PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+# The test release name spoken at start (tools/test-release.ps1 passes its tag); empty for a local build.
+set(D2R_ACCESS_RELEASE "" CACHE STRING "Release name spoken at start; empty for a local build")
+set_property(SOURCE src/plugin.cpp APPEND PROPERTY COMPILE_DEFINITIONS "D2R_ACCESS_RELEASE=\"${D2R_ACCESS_RELEASE}\"")
 if(MSVC)
 	target_compile_options(d2r-access PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
@@ -277,7 +283,7 @@ if(BUILD_TESTING)
 	target_compile_features(beacon-tests PRIVATE cxx_std_20)
 	add_test(NAME beacon COMMAND beacon-tests)
 	add_executable(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp
-		src/beacon_navigation.cpp src/navigation_mode.cpp src/navigation_policy.cpp
+		src/beacon_navigation.cpp src/level_route.cpp src/navigation_mode.cpp src/navigation_policy.cpp
 		src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_include_directories(beacon-service-tests PRIVATE src)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
@@ -355,6 +361,10 @@ if(BUILD_TESTING)
 	target_include_directories(wall-bump-tests PRIVATE src)
 	target_compile_features(wall-bump-tests PRIVATE cxx_std_20)
 	add_test(NAME wall-bump COMMAND wall-bump-tests)
+	add_executable(wall-tones-tests tests/wall_tones_tests.cpp src/wall_tones.cpp src/radar_grid.cpp)
+	target_include_directories(wall-tones-tests PRIVATE src)
+	target_compile_features(wall-tones-tests PRIVATE cxx_std_20)
+	add_test(NAME wall-tones COMMAND wall-tones-tests)
 	add_executable(controller-help-tests tests/controller_help_tests.cpp src/native_controller_help.cpp src/controller_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(controller-help-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(controller-help-tests PRIVATE src)
@@ -531,7 +541,7 @@ if(BUILD_TESTING)
 	target_compile_definitions(room-catalogue-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME room-catalogue COMMAND room-catalogue-tests)
 	add_executable(navigation-policy-tests tests/navigation_policy_tests.cpp src/navigation_policy.cpp src/beacon_navigation.cpp
-		src/beacon.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
+		src/level_route.cpp src/beacon.cpp src/room_graph.cpp src/native_rooms.cpp src/native_memory.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	target_include_directories(navigation-policy-tests PRIVATE src)
 	target_compile_features(navigation-policy-tests PRIVATE cxx_std_20)
 	target_compile_definitions(navigation-policy-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -588,7 +598,7 @@ if(BUILD_TESTING)
 	target_compile_features(tooltip-delay-tests PRIVATE cxx_std_20)
 	target_compile_definitions(tooltip-delay-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME tooltip-delay COMMAND tooltip-delay-tests)
-	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/character_stats_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(character-stats-tests tests/character_stats_tests.cpp src/character_stats.cpp src/character_stats_reader.cpp src/mercenary_stats.cpp src/native_memory.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(character-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(character-stats-tests PRIVATE src)
 	target_compile_features(character-stats-tests PRIVATE cxx_std_20)
@@ -671,7 +681,7 @@ if(BUILD_TESTING)
 	target_compile_features(quest-service-tests PRIVATE cxx_std_20)
 	target_compile_definitions(quest-service-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME quest-service COMMAND quest-service-tests)
-	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp src/control_hints.cpp src/ui_text.cpp src/speech_strings.cpp)
+	add_executable(modal-reader-tests tests/modal_reader_tests.cpp src/modal_reader.cpp src/control_hints.cpp src/controller_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(modal-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_include_directories(modal-reader-tests PRIVATE src)
 	target_compile_features(modal-reader-tests PRIVATE cxx_std_20)
@@ -692,6 +702,13 @@ if(BUILD_TESTING)
 	target_compile_features(level-route-tests PRIVATE cxx_std_20)
 	target_compile_definitions(level-route-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 	add_test(NAME level-route COMMAND level-route-tests)
+	# The beacon's guidance over walkable ground: the window's route, the remembered map's way, or none.
+	add_executable(beacon-guidance-tests tests/beacon_guidance_tests.cpp src/beacon_navigation.cpp src/level_route.cpp
+		src/beacon.cpp src/navigation_policy.cpp src/room_graph.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
+	target_include_directories(beacon-guidance-tests PRIVATE src)
+	target_compile_features(beacon-guidance-tests PRIVATE cxx_std_20)
+	target_compile_definitions(beacon-guidance-tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+	add_test(NAME beacon-guidance COMMAND beacon-guidance-tests)
 	add_executable(pad-links-tests tests/pad_links_tests.cpp src/pad_links.cpp src/native_rooms.cpp src/native_memory.cpp)
 	target_include_directories(pad-links-tests PRIVATE src)
 	target_compile_features(pad-links-tests PRIVATE cxx_std_20)
@@ -753,6 +770,7 @@ if(BUILD_TESTING)
 		target_compile_options(combat-target-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(auto-walk-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(level-route-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+		target_compile_options(beacon-guidance-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cues-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-audio-tests PRIVATE /W4 /permissive- /EHsc /utf-8)
 		target_compile_options(entity-cue-service-tests PRIVATE /W4 /permissive- /EHsc /utf-8)

@@ -114,8 +114,11 @@ Body Read(std::string_view body) {
 		const bool  red = raw.find(Red) != std::string::npos;
 		std::string line = UiText::Clean(StripFont(std::move(raw)));
 		if (!line.empty()) {
-			// Reading upwards, the last styled line seen is the topmost one.
-			if (heading) result.heading = result.lines.size();
+			// Walking down from the title, the first styled line seen is the topmost one.
+			if (heading) {
+				if (!result.Marked()) result.heading = result.lines.size();
+				result.headings.push_back(result.lines.size());
+			}
 			result.lines.push_back(std::move(line));
 			result.red.push_back(red);
 		}
@@ -149,8 +152,12 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
 	// labelled there is nothing better than the first.
-	size_t name = body.Marked() ? body.heading : 0;
-	if (!body.Marked()) {
+	// A labelled styled line is not the name either (a throwing potion's damage, a tester).
+	size_t name = body.lines.size();
+	for (const size_t at : body.headings)
+		if (at < body.lines.size() && !labelled(body.lines[at])) { name = at; break; }
+	if (name == body.lines.size()) {
+		name = 0;
 		for (size_t at = 0; at < body.lines.size(); ++at)
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}

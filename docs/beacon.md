@@ -161,6 +161,59 @@ helps the player return, but never discovers for them.
   (read at startup), or `access-beacon full` for the session. Switching mode
   releases any lock and clears the catalogue.
 
+## Walkable guidance
+
+Added 2026-10-12, after a blind tester's report: "In dungeons, the tracker
+leads through walls". An item "56 steps right" really lay down, right, up and
+right. When the loaded window had no complete route, the ping followed the
+search's nearest reachable cell, often a dead end at the wall on the target's
+side. With no route at all it fell back to the straight line. Now the ping
+follows walkable ground or stays silent:
+
+1. **The window's route.** When the loaded floor reaches the target
+   (`BeaconNavigation::Prepare`, `ReachableNow`), the route search below leads
+   there, as before.
+2. **The remembered map.** Otherwise guidance plans over the level's floor as
+   the game has shown it this game. This is the same `LevelRoute::Memory` the
+   keyboard walks use, shared through `KeyboardService::RememberedMap` and
+   learnt from each look. The waypoint is the last cell of that way still on
+   the loaded floor (`LevelRoute::Ahead`). The route search leads there, so the
+   ping turns where the corridor turns, not toward the target. The plan crosses
+   ground seen open first, then ground not seen yet. It never crosses ground
+   seen shut.
+3. **Nothing.** When the map has no way either, no waypoint is guessed: the
+   room graph's sub-goal is used only when no map is kept. A route search that
+   stops short of the target is never followed (`Beacon::Reaches`, now in every
+   mode). Without a proved route the beacon plays no ping.
+
+The modes keep their rules:
+
+- **Exploration** plans only over explored rooms (`Memory::Copy` keeps their
+  ground alone). It refuses a lock with no route, and releases one after
+  `routeLossMs` without a route, with the same strings as before.
+- **Full assistance** and unrestricted targets (other players, unseen town
+  NPCs) plan over the whole map. When no walkable route is known they keep the
+  lock in silence, never releasing it, until a route appears.
+
+**Shut doors.** A walking plan never passes a shut door: the game will not walk
+through one. Guidance plans past it (`Plan::From(..., doors)`), because the
+player opens it. The waypoint is the floor in front of the door. The ping stops
+there, where the radar names the door, and goes on once it is open.
+
+**Cost.** The plan is a search of the whole level (3.6 ms on 400 x 400, see
+[keyboard play](keyboard-play.md#a-far-walk-the-remembered-map)). It runs only
+when the loaded floor does not reach the target. `RememberedWay` plans on a
+copy of the map, refreshed at most every `RefreshMs` (1 s). A moving target is
+planned to where it was until it is 1 s old or `PlaceDrift` (10 cells) away.
+New explored rooms or another level refresh the copy at once. Outside
+exploration's grace, a lock without a route is searched again only at the usual
+interval. Log, on change only: `[beacon] lead=direct|room-graph|remembered-map|remembered-map-guess|no-way way_cells=N to=x,y name=NAME`.
+
+**Not verified in the game:** the tester's case itself, the ping stopping at
+a shut door, how often the plan is rebuilt on a large level (the Arcane
+Sanctuary), and whether full assistance's silence without a route needs
+spoken feedback. Tests: `tests/beacon_guidance_tests.cpp`.
+
 ## Route search
 
 `Beacon::FindRoute` (`src/beacon.cpp`) runs per tick, not per frame:
@@ -183,11 +236,10 @@ helps the player return, but never discovers for them.
   lead is re-proved on roughly the work per second a short one costs instead
   of running the widest search several times a second. Near targets keep the
   original 3-cell / 400 ms cadence exactly.
-- A target beyond the box, or in a room that is not loaded, is not abandoned:
-  the search heads for the reachable cell nearest it and re-proves as the
-  player advances, so the box slides along the route until the target falls
-  inside it. That is greedy, and it can still be fooled by a detour longer
-  than the box.
+- A target beyond the box, or in a room that is not loaded, is led to along
+  the remembered map ([walkable guidance](#walkable-guidance)). Before
+  2026-10-12 the search headed for the reachable cell nearest it, which a
+  detour longer than the box fooled.
 - Only the **terrain layer** is read (`TerrainCollisionFlags(raw) &
   walkingMask`), the same layer the sonar radar uses: a monster or another
   player standing in a doorway does not make the beacon reroute around them.
@@ -195,9 +247,9 @@ helps the player return, but never discovers for them.
   native footprint patterns: 1/3/5 are a five-cell cross, 2/4 a 3x3 square,
   0 a single point.
 - A breadth-first search from the player's cell finds the target cell. If it
-  cannot be reached (unknown/blocked cell, or an unloaded room with only a
-  last-known position), the search instead keeps the reachable cell nearest
-  to the target as a sub-goal — walking toward an unseen destination.
+  cannot be reached, the search keeps the reachable cell nearest to the
+  target. Guidance follows that route only when it ends within
+  `arrivalDistance` of the target, as beside a chest on its own blocked cell.
 - The spoken heading aims at the point `lookAhead` cells along the found
   route, not the very next cell, so the ping turns a corner early instead of
   hugging it.
@@ -252,6 +304,8 @@ sounds where this uses a word.
 | `lockDelayMs` | 600 | `Beacon::Settings`, silence after a lock so the spoken name is not stepped on |
 | `routeLossMs` | 3000 | `Beacon::Settings`, how long exploration waits, silent, for an unproved route before releasing |
 | `UpdateMs` | 150 | `beacon_service.cpp`, how often the locked target is re-read and ticked |
+| `RefreshMs` | 1000 | `BeaconNavigation::RememberedWay`, most often the remembered map is copied anew to plan on |
+| `PlaceDrift` | 10 | `BeaconNavigation::RememberedWay`, cells a moving target may move before it is planned to afresh |
 | `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scan announcement stays lockable |
 | ping tone | 620 Hz, 80 ms notes | `beacon_audio.cpp` `Synthesize`, `PingHz`/`NoteMs` |
 | rear pitch | 0.94 | `beacon_audio.cpp` `RearPitch`; shared with the ground-item loops' rear factor |
@@ -265,6 +319,7 @@ sounds where this uses a word.
 - `[beacon] released reason=<cancelled|retargeted|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
 - `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
+- `[beacon] lead=<direct|room-graph|remembered-map|remembered-map-guess|no-way> way_cells=<n> to=<x>,<y> name=<name>` — when the way guidance takes changes ([walkable guidance](#walkable-guidance)).
 - `[beacon-audio]` — output device ready/unavailable/reopening, and `silenced reason=<reason>`.
   A buffer not returned one second after its length counts as a failed device and is reopened.
 
@@ -278,9 +333,10 @@ sounds where this uses a word.
   takes over the lock when it loads (same identity, `docs/entity-scan.md#town-npcs`).
   If the spawn comes around the player without the NPC, the lock keeps that
   place and says the NPC is gone on arrival.
-- The route is only as good as the collision copied into the search box: an
-  unloaded or unknown cell is never routed through, so a target behind
-  unloaded terrain falls back to heading for the nearest reachable cell.
+- The route is only as good as the collision copied into the search box and
+  the remembered map: an unloaded or unknown cell is never routed through. A
+  target behind ground never seen is led toward over it as a guess (full
+  assistance), and nothing is played where no way is known.
 - Ordinary unit-id reuse after death remains unverified. Fixed level exits use
   coordinate identity, including when represented by an unloaded-room preset.
 

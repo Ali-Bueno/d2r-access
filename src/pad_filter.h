@@ -40,19 +40,25 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press a, b, x, y, lb, rb; };
+struct Presses { Press a, b, x, y, lb, rb, back; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: the
 // face buttons and the bumpers pressed while BACK is held, the mod's BACK+A,
 // B, X, Y, LB and RB actions (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
-// while it is held. BACK itself always passes.
+// while it is held.
 //
-// `holdB` keeps a B press from the game in a menu too, while a mod reader that
-// closes on B is open (HoldB below), decided on the press's first frame like
-// the rest.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false);
+// `keepBack` keeps BACK itself from the game during play, where the game only
+// opens and zooms its automap with it (a tester: every mod readout toggled the
+// map); in a menu BACK is the game's. `holdB` keeps a B press from the game in
+// a menu too, while a mod reader that closes on B is open (HoldB below),
+// decided on the press's first frame like the rest.
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false);
+
+// The switch behind `keepBack`, on by default; the keyboard's Tab still opens the automap.
+bool KeepBack();
+void SetKeepBack(bool keep);
 
 // Keeps B from the game while the skill line reader is open, so closing it
 // with B does not also close the skill tree (the user, 2026-09-21: "right

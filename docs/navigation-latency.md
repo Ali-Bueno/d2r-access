@@ -21,6 +21,24 @@ at 256 messages; saturation drops older diagnostics, and shutdown discards the
 remaining backlog before joining the worker. SDK log timestamps reflect write time,
 so navigation timing should use the durations recorded inside `[pump]` messages.
 
+## A slow machine's log (2026-10-12)
+
+A tester's wife, hosting a multiplayer game, logged 3651 updates over 30 ms in 70 minutes, about
+one a second, 3303 led by `MapSurveyService` (25-53 ms) and each paying 46-63 page checks for
+8-14 ms: one `VirtualQuery` took 0.2-0.3 ms there, against microseconds here (same build, no slow
+update in the user's log). `InputDirection` took 5-8 ms, `GameTextReader` and `KeyboardService`
+3-7 ms. Three changes, none verified on her machine yet:
+
+- `NativeMemory::ReadScope` keeps the regions it found readable for a second (`RegionCacheMs`)
+  instead of forgetting them at the end of each update; contents are never cached, a fault in a
+  copy clears the regions, and SEH still guards every copy.
+- `InputDirection::Poll` asks an empty XInput slot every 2 s (`EmptySlotProbeMs`), Microsoft's
+  guidance for that slow call, not on every update.
+- The scanner's catalogue pass (`MapSurveyService::Tick`) skips menus, dialogue and pause, and
+  while the player stands within one subtile of the last pass it runs every 2 s instead of 0.5 s.
+  A pass of 30 ms or more logs its parts at most every 5 s: `[survey] slow pass N ms: world,
+  entities, grid, catalogue`. A question to the scanner always reads the world afresh.
+
 ## Tabs outside controller focus
 
 The same session showed `BankPanelMessage:SelectTab` while focus remained in

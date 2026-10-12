@@ -72,9 +72,10 @@ still requires `D2RLoaderUnloadPlugin` first; never replace that lifecycle with
 a wait/join in `DllMain`. Local/test `ExploredStore::Store` RAII is unchanged.
 See [stability repair behavior and tests](stability.md).
 
-`NativeMemory::ReadScope` shares page-permission checks for one synchronous read
-pass. It caches permission information, never game contents or pointers between
-updates. `NativeMemory::Copy` still contains access faults. The `[pump]` timing
+`NativeMemory::ReadScope` shares page-permission checks across synchronous read
+passes for about a second (`RegionCacheMs`; [latency](navigation-latency.md)). It
+caches permission information, never game contents or pointers between updates.
+`NativeMemory::Copy` still contains access faults, and a fault clears the cache. The `[pump]` timing
 report names slow services and page checks, making it the first place to look
 for UI stalls. See [navigation latency](navigation-latency.md).
 
@@ -181,7 +182,9 @@ The local navigation grid is bounded by `Navigation::MaxRadius` (150 subtiles).
 `LevelRoute::Memory` learns streamed ground inside logical room bounds; unseen,
 open, blocked and door cells remain distinct. `Reach` can pass a door when asking
 whether a destination can eventually be reached; walking plans still treat a
-closed door as blocking. Pad links participate in reachability and planning;
+closed door as blocking, while the beacon's guidance plans past one and leads
+up to it (`KeyboardService::RememberedMap` shares the map; see
+[walkable guidance](beacon.md#walkable-guidance)). Pad links participate in reachability and planning;
 the player stops at a pad and uses D to take it. Ctrl+U's optional scanner filter
 and the mandatory checks before walking use the same reachability policy.
 See [keyboard routing and pads](keyboard-play.md).

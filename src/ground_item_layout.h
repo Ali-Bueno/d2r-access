@@ -51,4 +51,16 @@ inline constexpr Evidence Checks[] = {
 	{0x34A0E0, 47, 0x05F93D9EFDC375A1ULL},
 	{0x2F5020, 147, 0xEF955B08A436F777ULL, true}, // UNIT_GetStat: called, and detoured by 1.3.0-beta
 };
+// A low-quality item's LowQualityItems row: the int32 ITEMS_GetFileIndex (0x36CE70) reads
+// at [ItemData + 0x34], -1 for none; the same field holds a unique's or a set item's row.
+// The table: rows at bank +0x1688, count at +0x1690, 0x22 bytes each, the prefix's string
+// id at +0x20 (row getter 0x3141C0; name builder 0x1E1D80 then formats LowqualityFormat).
+// Rows in vanilla: Crude, Cracked, Damaged, Low Quality. docs/ground-items.md
+inline constexpr size_t ItemFileIndex = 0x34;
+inline constexpr size_t LowQualityRows = 0x1688, LowQualityCount = 0x1690, LowQualityStride = 0x22, LowQualityText = 0x20;
+inline constexpr uint32_t LowQuality = 1; // D2RL::Items::Quality::Low
+inline constexpr Evidence LowQualityChecks[] = {
+	{0x36CE70, 119, 0x1968B631994368E0ULL},
+	{0x3141C0, 102, 0xD8A8CC2087C546B6ULL},
+};
 }

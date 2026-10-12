@@ -28,7 +28,8 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
-inline constexpr std::size_t GlossarySoundCount = 42;
+inline constexpr std::size_t GlossarySoundCount = 49;
+inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 
 struct Table {
 	const char* pluginLoaded;
@@ -358,6 +359,27 @@ struct Table {
 	const char* screenHintsOff;
 	const char* hintNewCharacter;     // %s = the button that creates a character
 	const char* hintRandomName;       // %s = the button that picks a random name
+	const char* developmentBuild;     // said after "loaded" by a local build, where a release says its tag
+	const char* shop;                 // a vendor's window when its vendor cannot be named
+	const char* goldPickedUp;         // %d = the gold a pile brought in
+	const char* itemMovedToStash;     // %s = item, %s = the stash tab Y sorted it into
+	const char* stashGems;
+	const char* stashRunes;
+	const char* stashMaterials;
+	const char* mercenarySkills;      // %s = the mercenary's skills, as a list
+	const char* lastEpochSoundsOn;
+	const char* lastEpochSoundsOff;
+	const char* enemyPanStrength;     // %d = percent of the compiled stereo spread
+	const char* enemyPitchStrength;   // %d = percent of the compiled rear pitch drop
+	const char* beaconPanStrength;
+	const char* beaconPitchStrength;
+	const char* backToModOn;
+	const char* backToModOff;
+	const char* shrineSoundsOn;
+	const char* shrineSoundsOff;
+	const char* wallTonesOn;
+	const char* wallTonesOff;
+	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -407,7 +429,11 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
-	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName}) visit(s);
+	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName,
+		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.mercenarySkills,
+		t.lastEpochSoundsOn, t.lastEpochSoundsOff, t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,
+		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff}) visit(s);
+	each(t.manaAlerts);
 	each(t.placePresets);
 	each(t.placeInteriors);
 	each(t.placeFeatures);

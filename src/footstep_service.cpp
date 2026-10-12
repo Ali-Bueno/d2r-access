@@ -1,5 +1,6 @@
 #include "footstep_service.h"
 #include "native_footsteps.h"
+#include "wall_slide_service.h"
 #include "async_log.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -32,16 +33,18 @@ std::array<uint64_t, static_cast<size_t>(Footsteps::Reason::Count)> g_reasons{};
 Footsteps::Sample g_lastSample{};
 Footsteps::Decision g_lastDecision{};
 uint64_t g_reportAt = 0, g_maxStationary = 0, g_unresolvedForeign = 0;
+uint64_t g_refusedSeen = 0; // the wall-slide hook's refused pushes at the last local footfall
 double g_travel = 0, g_netX = 0, g_netY = 0;
 bool g_dirty = false;
 
 void Report(uint64_t now, bool force = false) {
 	if (!g_dirty || (!force && now < g_reportAt)) return;
 	const auto count = [](Footsteps::Reason reason) { return static_cast<unsigned long long>(g_reasons[static_cast<size_t>(reason)]); };
-	AsyncLog::InfoF(g_context, "[footsteps] summary mode=%u last_reason=%s position_raw=%016llX travel=%.6f net=%.6f,%.6f max_stationary_ms=%llu baseline=%llu moved=%llu settling=%llu stalled=%llu animation=%llu unavailable=%llu unrelated=%llu unresolved_foreign=%llu allowed=%llu suppressed=%llu",
+	AsyncLog::InfoF(g_context, "[footsteps] summary mode=%u last_reason=%s position_raw=%016llX travel=%.6f net=%.6f,%.6f max_stationary_ms=%llu baseline=%llu moved=%llu settling=%llu stalled=%llu pushing=%llu animation=%llu unavailable=%llu unrelated=%llu unresolved_foreign=%llu allowed=%llu suppressed=%llu",
 		g_lastSample.mode, Footsteps::ReasonName(g_lastDecision.reason), static_cast<unsigned long long>(g_lastSample.position),
 		g_travel, g_netX, g_netY, static_cast<unsigned long long>(g_maxStationary),
 		count(Footsteps::Reason::Baseline), count(Footsteps::Reason::Moved), count(Footsteps::Reason::Settling), count(Footsteps::Reason::Stalled),
+		count(Footsteps::Reason::Pushing),
 		count(Footsteps::Reason::Animation), count(Footsteps::Reason::Unavailable), count(Footsteps::Reason::Unrelated),
 		static_cast<unsigned long long>(g_unresolvedForeign), static_cast<unsigned long long>(g_allowed), static_cast<unsigned long long>(g_suppressed));
 	g_reasons = {}; g_maxStationary = g_unresolvedForeign = 0;
@@ -108,9 +111,14 @@ void Tick() {
 bool Suppress(uint32_t entity) noexcept {
 	if (!g_enabled) return false;
 	try {
-		const auto sample = NativeFootsteps::Read(entity);
+		auto sample = NativeFootsteps::Read(entity);
 		std::lock_guard lock(g_mutex);
 		if (!g_enabled) return false;
+		if (sample.valid && sample.local) {
+			const uint64_t refused = WallSlideService::LastBlocked().attempts;
+			sample.pushing = refused != g_refusedSeen;
+			g_refusedSeen = refused;
+		}
 		const uint64_t now = GetTickCount64();
 		const bool muted = g_filter.Suppress(sample, now);
 		const auto& decision = g_filter.LastDecision();

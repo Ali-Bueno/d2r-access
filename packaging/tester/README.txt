@@ -101,10 +101,11 @@ In play:
   right changes the setting (or plays the sound again in the glossary). It
   closes by itself after 30 seconds unused.
 - Holding LT for a moment: reads the skill bar shown with LT.
-- L3 is the game's walk/run toggle: the mod says "Walking" or "Running", and
-  warns as stamina runs low. R3 is the game's weapon swap: the mod names the
-  weapons in hand.
-BACK alone and every other button do what the game does.
+- L3 is the game's walk/run toggle: the mod says "Walking" or "Running" when
+  you press it, and warns as stamina runs low. R3 is the game's weapon swap:
+  the mod names the weapons in hand.
+During play BACK alone does nothing (the game's map stays shut; see the
+settings list). Every other button does what the game does.
 
 In menus:
 - Right stick up: detail of what has focus (an item's full description, a
@@ -173,14 +174,27 @@ sessions. New ones worth knowing:
   footsteps also go quiet while you push (the footstep filter, Ctrl+F).
 - Small obstacle sound (on): the radar gives rocks, trees, pillars and other
   clutter you can walk around their own knock, unlike a wall.
+- Wall tones (off): a soft continuous sound for each direction, louder as a
+  wall gets closer, as in the Grim Dawn and Last Epoch mods.
+- Mana alerts: every change, low mana only, or off. Left and right on the
+  right stick (Space on the keyboard) step through the three.
+- Enemy sound panning and pitch, guidance panning and pitch: 0 to 200 percent
+  in steps of 25; 100 is the default.
+- Potion and gold sounds: Diablo or Last Epoch (each potion kind has its own
+  glass sound in the Last Epoch set).
+- Shrine and well sounds (on): a sound for each shrine or well you can still
+  use, while it is in reach.
+- Back button for the mod only (on): during play the game no longer opens or
+  zooms its map with BACK. Turn it off to give BACK back to the map.
 
 d2rloader\config\d2r-access.toml holds the numbers: the radar (on, volume,
 diagonals), and for enemy sounds [entity_cues]: on_screen (growls start when
 an enemy is on screen), range (used when on_screen is false), max_voices (how
 many enemies can growl, 1 to 8), pan_strength and pitch_strength (percent,
 100 is the default, up to 200), and the same two strengths under [beacon] for
-the guidance ping. Edit it with Notepad; changes apply the next time you start
-the game.
+the guidance ping; [wall_tones] sets the wall tones' volume and range. Edit it
+with Notepad; changes apply the next time you start the game. A strength
+changed in the Ctrl+S list wins over the file.
 
 
 SOUND GLOSSARY

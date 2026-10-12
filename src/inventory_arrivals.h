@@ -19,4 +19,9 @@ struct Arrival { Item item; bool unequipped = false; };
 // the item that was in hand (`heldBefore`): its placing is already spoken.
 std::vector<Arrival> Diff(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldBefore);
 
+// What left the backpack between `before` and `now` without going to the hand
+// (`heldNow`): with the stash open and Y just pressed, an item the game sorted
+// into its gem, rune or materials tab (a tester).
+std::vector<Item> Departures(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldNow);
+
 }

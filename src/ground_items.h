@@ -9,9 +9,17 @@
 
 namespace D2RAccess::GroundItems {
 enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legendary, Portal, Chest, Quest, Corpse,
-	WeaponRack, Stash, WoodenDoor, MetalDoor, StoneDoor, SlimeDoor, UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered, Count };
+	WeaponRack, Stash, WoodenDoor, MetalDoor, StoneDoor, SlimeDoor,
+	// The Last Epoch mod's gold and potions, one glass sound per kind of potion (a tester's choice, behind a switch).
+	EpochGold, EpochHealthPotion, EpochManaPotion, EpochRejuvenationPotion, EpochOtherPotion,
+	Shrine, Well,
+	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered, Count };
 // What an item is by its ItemTypes.txt ancestry; equipment is told apart by quality instead.
-enum class Base { Equipment, Gold, Potion, Scroll, Rune, Gem };
+// Potion is any other potion or elixir (stamina, antidote, thawing).
+enum class Base { Equipment, Gold, Potion, HealthPotion, ManaPotion, RejuvenationPotion, Scroll, Rune, Gem };
+// Gold and potions with the Last Epoch mod's sounds instead of the Diablo IV ones.
+bool LastEpochSounds();
+void SetLastEpochSounds(bool on);
 enum class SourceKind { Item, Object };
 struct Point { double x = 0, y = 0; };
 struct Item {
@@ -21,8 +29,8 @@ struct Item {
 	std::string name, baseName;
 	SourceKind source = SourceKind::Item;
 };
-// Landmarks, containers, quest objects and shut doors only loop; proximity speech is for items.
-struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors; };
+// Landmarks, containers, quest objects, shut doors, shrines and wells only loop; proximity speech is for items.
+struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines; };
 struct Voice {
 	uint32_t id = 0; Sound sound{}; float right = 0, front = 0, gain = 0, pitch = 1;
 	SourceKind source = SourceKind::Item;
@@ -44,6 +52,8 @@ inline constexpr size_t MaxContainerVoices = 3;
 inline constexpr size_t MaxDoorVoices = 2;
 // Reserve quest cues before ordinary sources without exhausting the exit/item mix.
 inline constexpr size_t MaxQuestVoices = 2;
+// A shrine and a well can stand together; the nearest two are what a passer-by needs.
+inline constexpr size_t MaxShrineVoices = 2;
 // Spacing for the rest of a pile; an item that has just come within reach speaks at once.
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
 // Exits never move, so their list is refreshed slowly; only the listener position is polled fast.
@@ -65,13 +75,30 @@ inline constexpr SoundFile SoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potio
 	{"loot", "weapon rack.wav"}, {"loot", "stash.wav", StashLevelDb},
 	{"exploration", "wooden door.wav"}, {"exploration", "metal door.wav"}, {"exploration", "stone door.wav"},
 	{"exploration", "slime door.wav"},
+	{"last epoch", "gold.wav"}, {"last epoch", "health potion.wav"}, {"last epoch", "mana potion.wav"},
+	{"last epoch", "rejuvenation potion.wav"}, {"last epoch", "other potion.wav"},
+	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
 	{"exploration", "discovered.wav"}};
 inline constexpr size_t ItemSoundCount = static_cast<size_t>(Sound::UnexploredRoom);
 // The file list is indexed by Sound; a missing entry would be read past the end.
 static_assert(std::size(SoundFiles) == static_cast<size_t>(Sound::Count));
 
-Sound Classify(uint32_t quality, Base base, bool quest = false);
+// The gold carried, to say what a pile brought in once it is picked up (a tester:
+// the amount on the ground was heard on every pass). Only a rise in play counts:
+// a sale, a withdrawal or a reward happens in a menu.
+class Purse {
+public:
+	// The gold picked up since the last sample, 0 for none; `gold` below 0 is unreadable.
+	int Update(int gold, bool playing);
+	void Reset() { known_ = -1; }
+private:
+	int known_ = -1;
+};
+
+Sound Classify(uint32_t quality, Base base, bool quest = false, bool lastEpoch = false);
+bool IsPotion(Sound sound);
+bool IsGold(Sound sound);
 Voice Spatialize(const Item& item, Point player);
 bool MatchesLabel(std::string_view label, const std::vector<std::string>& names);
 class Tracker {
@@ -79,7 +106,7 @@ public:
 	// Quest sources reserve a share first, then landmarks, doors, containers and ordinary items.
 	// A quest item on the ground is an item; a quest object (a Cairn Stone) has its own switch.
 	Update Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops = true,
-		bool containerLoops = true, bool doorLoops = true, bool questLoops = true);
+		bool containerLoops = true, bool doorLoops = true, bool questLoops = true, bool shrineLoops = true);
 	void Reset();
 private:
 	uint64_t session_ = 0, lastSpeech_ = 0;

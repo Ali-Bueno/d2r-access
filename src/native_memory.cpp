@@ -13,11 +13,16 @@ constexpr uint64_t BorrowedBit = uint64_t{1} << 63;
 constexpr size_t InlineOffset = 0x18;
 constexpr size_t InlineCapacity = 15;
 constexpr size_t MaxTextBytes = 64 * 1024; // corruption guard, not a truncation limit
-// A bounded per-thread permission cache for a synchronous UI read. Saturation
-// simply falls back to VirtualQuery; no entries survive the outer scope.
+// A bounded per-thread permission cache for synchronous UI reads. Saturation
+// simply falls back to VirtualQuery. Entries outlive the outer scope for
+// RegionCacheMs: on a tester's machine one VirtualQuery took 0.2-0.3 ms, so the
+// same ~60 regions cost 14 ms every update (log, 2026-10-12). Contents are never
+// cached; a fault in a copy clears the regions and SEH still guards every copy.
+constexpr uint64_t RegionCacheMs = 1000;
 struct Region { uintptr_t begin = 0, end = 0; };
 thread_local std::array<Region, 64> g_regions;
 thread_local size_t g_regionCount = 0, g_readDepth = 0, g_lastRegion = 0;
+thread_local uint64_t g_regionsSince = 0;
 thread_local PageChecks g_checks;
 
 SIZE_T Query(const void* address, MEMORY_BASIC_INFORMATION& info) noexcept {
@@ -34,8 +39,15 @@ SIZE_T Query(const void* address, MEMORY_BASIC_INFORMATION& info) noexcept {
 
 PageChecks Checks() noexcept { return g_checks; }
 
-ReadScope::ReadScope() noexcept { if (g_readDepth++ == 0) g_regionCount = 0; }
-ReadScope::~ReadScope() { if (--g_readDepth == 0) g_regionCount = 0; }
+ReadScope::ReadScope() noexcept {
+	if (g_readDepth++ != 0) return;
+	const uint64_t now = GetTickCount64();
+	if (now < g_regionsSince || now - g_regionsSince >= RegionCacheMs) {
+		g_regionCount = 0;
+		g_regionsSince = now;
+	}
+}
+ReadScope::~ReadScope() { --g_readDepth; }
 
 bool Readable(const void* address, size_t size) noexcept {
 	uintptr_t cursor = reinterpret_cast<uintptr_t>(address);

@@ -11,12 +11,14 @@
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_strings.h"
 #include "async_log.h"
 #include "zone_transitions.h"
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -42,12 +44,14 @@ bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = fals
 bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors = true, g_quests = true, g_stash = true, g_suspended = true, g_stashOpen = false;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
-std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors;
+std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines;
+std::atomic<bool> g_shrineSounds{true};
 std::vector<std::string> g_nearbyLabels;
 uint64_t g_labelsUpdated = 0;
 // Every loaded ground item's name, for the pickup click, and the target last clicked for.
 std::vector<std::string> g_itemLabels;
 std::string g_pickupLabel;
+GroundItems::Purse g_purse;
 bool g_pickupClick = true;
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -156,6 +160,20 @@ std::vector<GroundItems::Item> ObjectSources(const std::vector<EntityRadar::Enti
 	}
 	return result;
 }
+// Shrines and wells the player can still use: a used one is no longer selectable
+// and leaves the entity read (a tester: noticed only through the scanner).
+std::vector<GroundItems::Item> ShrineSources(const std::vector<EntityRadar::Entity>& entities) {
+	std::vector<GroundItems::Item> result;
+	for (const auto& entity : entities) {
+		if (entity.kind != EntityRadar::Kind::Object || entity.category != EntityRadar::Category::Shrine) continue;
+		GroundItems::Item source;
+		source.id = entity.id; source.position = {entity.position.x, entity.position.y};
+		source.sound = entity.well ? GroundItems::Sound::Well : GroundItems::Sound::Shrine;
+		source.source = GroundItems::SourceKind::Object;
+		result.push_back(std::move(source));
+	}
+	return result;
+}
 // The user's door recordings for the game's five opening sounds: its "gate" sound belongs
 // to the great wooden double doors (docs/ground-items.md#door-loops).
 std::optional<GroundItems::Sound> DoorLoop(Generated::DoorSound sound) {
@@ -185,7 +203,7 @@ std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	ItemAudio::Silence();
 	g_nearbyLabels.clear();
-	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_entitiesRead = 0;
+	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear(); g_entitiesRead = 0;
 	if (!g_suspended) AsyncLog::InfoF(context, "[items] suspended: %s", reason);
 	g_suspended = true;
 }
@@ -253,7 +271,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	if (command == Command::DoorsOn || command == Command::DoorsOff) {
 		g_doors = command == Command::DoorsOn;
-		if (!g_doors) g_shutDoors.clear();
+		if (!g_doors) g_shutDoors.clear(); g_shrines.clear();
 		g_entitiesRead = 0;
 		ScreenReader::Speak(GroundItemText::DoorSoundEnabled(g_doors), true);
 	}
@@ -272,7 +290,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	{ std::lock_guard lock(g_mutex); state = g_state; }
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		g_tracker.Reset(); g_nearbyLabels.clear(); g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear();
+		g_purse.Reset();
+		g_tracker.Reset(); g_nearbyLabels.clear(); g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear();
 		g_entitiesRead = 0;
 	}
 	if (command == Command::Status) {
@@ -318,8 +337,15 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_lastPoll = now;
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
+	const bool playing = RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
+	if (const int gain = g_purse.Update(g_supported && state.ready ? NativeGroundItems::PlayerGold() : -1, playing); gain > 0 && g_speech) {
+		char phrase[100]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().goldPickedUp, gain);
+		AsyncLog::InfoF(context, "[items] gold picked up: %d", gain);
+		ScreenReader::Speak(phrase, false);
+	}
 	if (!g_supported || !state.ready || (!g_speech && !g_sound && !g_exits && !g_chests && !g_doors && !g_quests && !g_stash)) { Suspend(context, "lifecycle/disabled"); return; }
-	if (RadarUi::Inspect(process == GetCurrentProcessId()) != RadarUi::State::Playing) { Suspend(context, "UI/focus"); return; }
+	if (!playing) { Suspend(context, "UI/focus"); return; }
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) { Suspend(context, "world unavailable"); return; }
 	if (g_suspended) AsyncLog::Info(context, "[items] resumed");
@@ -327,7 +353,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_nearbyLabels.clear();
 	g_labelsUpdated = now;
 	// Fixed exits, containers, quest objects and doors share one slower unit read.
-	if ((g_exits || g_chests || g_quests || g_doors || g_stash) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
+	const bool shrines = g_shrineSounds.load();
+	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
 		g_entitiesRead = now;
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
@@ -350,6 +377,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		auto doors = read && g_doors ? DoorSources(entities) : std::vector<GroundItems::Item>{};
 		if (doors.size() != g_shutDoors.size()) AsyncLog::InfoF(context, "[items] shut doors nearby: %zu", doors.size());
 		g_shutDoors = std::move(doors);
+		auto wells = read && shrines ? ShrineSources(entities) : std::vector<GroundItems::Item>{};
+		if (wells.size() != g_shrines.size()) AsyncLog::InfoF(context, "[items] shrines and wells nearby: %zu", wells.size());
+		g_shrines = std::move(wells);
 	}
 	snapshot.landmarks = g_landmarks;
 	if (const bool stashOpen = StashOpen(); stashOpen != g_stashOpen) {
@@ -360,14 +390,15 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	snapshot.containers = g_containers;
 	snapshot.questObjects = g_questObjects;
 	snapshot.doors = g_shutDoors;
+	if (shrines) snapshot.shrines = g_shrines;
 	g_itemLabels.clear();
 	for (const auto& item : snapshot.items)
 		if (!item.baseName.empty()) g_itemLabels.push_back(item.baseName);
 	if (g_speech && !uiOwnsSpeech) for (const auto& item : snapshot.items)
 		if (!item.name.empty() && std::hypot(item.position.x - snapshot.player.x, item.position.y - snapshot.player.y) <= GroundItems::SpeakRadius)
 			g_nearbyLabels.push_back(item.baseName);
-	auto update = g_tracker.Tick(snapshot, now, g_speech && !uiOwnsSpeech && command == Command::None, g_sound, g_chests, g_doors, g_quests);
-	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash) ItemAudio::Update(std::move(update.voices));
+	auto update = g_tracker.Tick(snapshot, now, g_speech && !uiOwnsSpeech && command == Command::None, g_sound, g_chests, g_doors, g_quests, shrines);
+	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines) ItemAudio::Update(std::move(update.voices));
 	if (!update.speech.empty()) {
 		AsyncLog::InfoF(context, "[items] nearby: %s", update.speech.c_str());
 		ScreenReader::Speak(update.speech, false);
@@ -385,7 +416,7 @@ void Unregister() {
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 	g_supported = g_exitsSupported = g_boundariesSupported = false;
 	g_speech = g_sound = g_exits = g_chests = g_quests = g_stash = true; g_suspended = true; g_stashOpen = false;
-	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear();
+	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear();
 	g_nearbyLabels.clear(); g_labelsUpdated = 0; g_itemLabels.clear(); g_pickupLabel.clear();
 }
 void NoteWorldTarget(std::string_view label) {
@@ -394,6 +425,8 @@ void NoteWorldTarget(std::string_view label) {
 	if (item && label != g_pickupLabel) EntityCueAudio::Play(EntityCueAudio::Sound::Pickup, {});
 	g_pickupLabel = item ? std::string(label) : std::string{};
 }
+bool ShrineSounds() { return g_shrineSounds.load(); }
+void SetShrineSounds(bool enabled) { g_shrineSounds = enabled; }
 bool PickupClick() { return g_pickupClick; }
 void SetPickupClick(bool enabled) { g_pickupClick = enabled; }
 

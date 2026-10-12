@@ -5,6 +5,7 @@
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
 #include "input_direction.h"
+#include "keyboard_service.h"
 #include "level_areas.h"
 #include "map_survey_service.h"
 #include "native_entities.h"
@@ -75,6 +76,11 @@ bool g_wasPlaying = false;
 RoomGraph::Graph g_graph;
 int g_graphLevel = 0;
 uint64_t g_graphSession = 0;
+// The locked target's way over the remembered map, kept between updates.
+BeaconNavigation::RememberedWay g_way;
+// How guidance leads, for the log line written when it changes.
+enum class Lead { Direct, Rooms, Map, Guess, None };
+std::optional<Lead> g_lead;
 
 // The room graph for the level being played, or nothing when the level's
 // rooms cannot be read. Never a stale level's graph.
@@ -113,14 +119,17 @@ bool AtCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::
 	return ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout)
 		&& ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
 }
-std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity) {
+std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now,
+	BeaconNavigation::RememberedWay& way) {
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
 	const bool crossing = AtCrossing(state, world, entity);
 	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
-	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin);
+	// The walks' own map, learnt from the whole world before exploration masks it.
+	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now};
+	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin, nullptr, recall);
 	if (!graph) return std::nullopt;
 	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
 	if (current == NativeRooms::None) return std::nullopt;
@@ -131,7 +140,17 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Entit
 	if (enterable && !NavigationPolicy::Contains(explored, target))
 		if (const size_t room = NativeRooms::Containing(graph->rooms, target); room != NativeRooms::None)
 			explored.push_back(graph->rooms[room]);
-	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin);
+	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin, nullptr, recall);
+}
+void LogLead(const D2RL::PluginContext* context, const BeaconNavigation::Guidance& guidance) {
+	const Lead lead = !guidance.remembered ? (guidance.hasWaypoint ? Lead::Rooms : Lead::Direct)
+		: !guidance.hasWaypoint ? Lead::None : guidance.guess ? Lead::Guess : Lead::Map;
+	if (g_lead == lead) return;
+	g_lead = lead;
+	constexpr const char* Names[] = {"direct", "room-graph", "remembered-map", "remembered-map-guess", "no-way"};
+	const auto to = guidance.hasWaypoint ? guidance.waypoint : guidance.target;
+	AsyncLog::InfoF(context, "[beacon] lead=%s way_cells=%zu to=%.0f,%.0f name=%s", Names[static_cast<int>(lead)],
+		guidance.wayCells, to.x, to.y, g_target.entity.name.c_str());
 }
 // An unexplored room is reached by stepping into it: its centre may lie inside a wall.
 bool InTargetRoom(const Lifecycle& state, Radar::Position player) {
@@ -168,6 +187,8 @@ void Release(const char* reason) {
 	if (g_tracker.Locked()) AsyncLog::InfoF(g_context, "[beacon] released reason=%s id=%u name=%s", reason, g_target.entity.id, g_target.entity.name.c_str());
 	g_tracker.Clear();
 	g_target = {};
+	g_way.Clear();
+	g_lead.reset();
 	BeaconAudio::Silence(reason);
 }
 bool Parked() { return g_parked.entity.id != 0; }
@@ -247,9 +268,11 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(strings.beaconNothing, true);
 		return;
 	}
-	const auto guidance = Guidance(state, g_offer.entity);
-	const auto settings = SettingsFor(g_offer.entity);
 	if (!Unrestricted(g_offer.entity)) {
+		// Its own way: a refused offer must not cost the locked target its plan.
+		BeaconNavigation::RememberedWay probe;
+		const auto guidance = Guidance(state, g_offer.entity, now, probe);
+		const auto settings = SettingsFor(g_offer.entity);
 		const bool known = guidance && guidance->available;
 		const auto destination = !known ? g_offer.entity.position : guidance->hasWaypoint ? guidance->waypoint : guidance->target;
 		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, settings),
@@ -332,7 +355,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	if (!Playing()) return; // dialogue, pause or another window: keep the lock, stay quiet
 	const bool seen = Refresh(state, now);
-	const auto prepared = Guidance(state, g_target.entity);
+	const auto prepared = Guidance(state, g_target.entity, now, g_way);
 	if (!prepared) return;
 	const auto& guidance = *prepared;
 	if (!guidance.available) {
@@ -363,6 +386,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		return;
 	}
 	if (update.arrived) { arrive(); return; }
+	LogLead(context, guidance);
 	if (update.ping) Cue(BeaconAudio::Sound::Ping, Place(update.heading));
 	if (!g_lastLog || now - g_lastLog >= LogIntervalMs) {
 		g_lastLog = now;
@@ -370,7 +394,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 			world.player.x, world.player.y, guidance.target.x, guidance.target.y, seen ? 1u : 0u,
 			update.distance, update.remaining, update.routed ? 1u : 0u, update.heading.x, update.heading.y,
 			g_tracker.CurrentRoute().path.size(), g_target.entity.name.c_str());
-		if (waypoint != nullptr) {
+		if (waypoint != nullptr && !guidance.remembered) {
 			// Room size is the open question the first dungeon answers: the
 			// doorway case needs the next room inside the 152-subtile window.
 			const auto& room = guidance.waypointRoom;

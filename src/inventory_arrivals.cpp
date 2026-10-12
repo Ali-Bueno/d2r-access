@@ -15,4 +15,13 @@ std::vector<Arrival> Diff(const std::vector<Item>& before, const std::vector<Ite
 	return result;
 }
 
+std::vector<Item> Departures(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldNow) {
+	std::vector<Item> result;
+	for (const auto& item : before) {
+		if (item.place != Place::Backpack || item.id == heldNow) continue;
+		if (std::none_of(now.begin(), now.end(), [&](const Item& known) { return known.id == item.id; })) result.push_back(item);
+	}
+	return result;
+}
+
 }

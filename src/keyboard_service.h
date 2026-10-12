@@ -7,6 +7,8 @@
 
 #include <vector>
 
+namespace D2RAccess::LevelRoute { class Memory; }
+
 // Keyboard play: the keys that walk, fight, retreat and explore, and the keys
 // that stand in for the pad's reading gestures. The character acts through the
 // game's own player command (native_actions.h), never through an imitated
@@ -59,4 +61,8 @@ std::vector<bool> CutOff(const Radar::World& world, const std::vector<const Enti
 // The teleport pads among `entities`, read in the level `world` is of, are kept
 // with that level's map, to work out where each leads (pad_links.h).
 void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+// The map of the level `world` is of that the walks plan on (level_route.h),
+// learnt from `world` first, for the beacon to plan on too. Null when it is not
+// kept. Valid until the next call into this service.
+const LevelRoute::Memory* RememberedMap(const Radar::World& world);
 }

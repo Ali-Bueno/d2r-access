@@ -11,6 +11,17 @@ volume = 100
 # for the current run.
 diagonals = false
 
+# Wall tones: one soft continuous sound per screen direction (up, left, right,
+# down), louder as the nearest wall, rock or other obstacle that way comes closer
+# and silent when it is far. An optional companion to the radar. The settings
+# list (Ctrl+S) and access-wall-tones on|off switch it for the current run.
+[wall_tones]
+enabled = false
+# 0-100 percent of the compiled level.
+volume = 100
+# Subtiles (about one metre each); beyond it a wall is silent. 2-40.
+range = 12
+
 # Long-range guidance starts with exploration-first routes through visited
 # areas. Set true to allow the optional full-assistance route through areas
 # the character has not visited. Restart the game after changing this value.

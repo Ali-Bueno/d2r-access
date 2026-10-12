@@ -2,6 +2,7 @@
 #include "test_support.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace D2RAccess;
@@ -69,6 +70,31 @@ int main() {
 	Check(glossary.Toggle(0) == "Settings. Sound: wall" && played == 1, "opening on a sound names it and plays it");
 	Check(glossary.Step(1, 10) == "Sound: wall" && played == 2, "stepping onto a sound plays it");
 	Check(glossary.Change(20).empty() && played == 3, "a change plays it again and says nothing over it");
+
+	// A setting of several values steps one value at a time.
+	int level = 1;
+	SettingsList::Entry strength;
+	strength.levels = 3;
+	strength.level = [&level] { return level; };
+	strength.setLevel = [&level](int value) { level = value; };
+	strength.sayLevel = [](int value) { return std::string("Pan ") + std::to_string(value); };
+	SettingsList::Menu levels({strength}, "Settings", "Settings closed");
+	(void)levels.Toggle(0);
+	Check(levels.Change(10, 1) == "Pan 2" && level == 2, "right raises a setting by one");
+	Check(levels.Change(20, 1) == "Pan 2" && level == 2, "and stops at the top");
+	Check(levels.Change(30, -1) == "Pan 1" && levels.Change(40, -1) == "Pan 0" && levels.Change(50, -1) == "Pan 0",
+		"left lowers it and stops at the bottom");
+	Check(levels.Change(60) == "Pan 1" && levels.Change(70) == "Pan 2" && levels.Change(80) == "Pan 0",
+		"the single change key raises it and wraps to the first");
+	Check(strength.Value() == 0, "a setting is saved as its level");
+	strength.Put(9);
+	Check(level == 2, "a saved level beyond the setting is held to its last value");
+	SettingsList::Entry flip{[] { return g_switches[1].on; }, [](bool on) { g_switches[1].on = on; },
+		[](bool on) { return std::string(on ? "Trade on" : "Trade off"); }};
+	SettingsList::Menu switches({flip}, "Settings", "Settings closed");
+	(void)switches.Toggle(0);
+	const bool before = g_switches[1].on;
+	Check(!switches.Change(10, -1).empty() && g_switches[1].on != before, "left flips a switch as well");
 	Passed();
 	return 0;
 }

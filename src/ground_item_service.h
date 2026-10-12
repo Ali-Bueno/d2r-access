@@ -14,6 +14,9 @@ bool OwnsWorldLabel(std::string_view label);
 void NoteWorldTarget(std::string_view label);
 bool PickupClick();
 void SetPickupClick(bool enabled);
+// A loop for every usable shrine and well nearby (a tester), on by default.
+bool ShrineSounds();
+void SetShrineSounds(bool enabled);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 enum class Switch { Speech, Sounds, Exits, Chests, Doors, Quests, Stash };

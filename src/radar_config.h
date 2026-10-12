@@ -2,6 +2,7 @@
 
 #include "attack_reach.h"
 #include "entity_cues.h"
+#include "wall_tones.h"
 #include <D2RLPlugin/api.h>
 #include <optional>
 #include <string_view>
@@ -95,6 +96,16 @@ struct BeaconSettings {
 };
 BeaconSettings ParseBeacon(std::string_view config);
 BeaconSettings ReadBeacon(const D2RL::PluginContext* context);
+// [wall_tones]: the continuous wall sounds. volume is 0-100 percent of the compiled level,
+// range in collision subtiles within WallTones::MinRange..MaxRange.
+struct WallToneSettings {
+	std::optional<bool> enabled;
+	std::optional<unsigned> volume;
+	std::optional<double> range;
+	bool valid = true;
+};
+WallToneSettings ParseWallTones(std::string_view config);
+WallToneSettings ReadWallTones(const D2RL::PluginContext* context);
 // Local proximity only; bound configured scans to avoid long terrain rays.
 inline constexpr double MaxEntityCueRange = 100;
 EntityCueSettings ParseEntityCues(std::string_view config);

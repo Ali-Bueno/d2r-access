@@ -70,6 +70,7 @@ bool Initialize(const D2RL::PluginContext*) { return supported; }
 bool Read(uint32_t player, uint64_t session, GroundItems::Snapshot& result) {
 	++reads; Check(player == 42 && session == snapshot.session, "reader uses active lifecycle identity"); result = snapshot; return readable;
 }
+int PlayerGold() noexcept { return -1; }
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return supported; }

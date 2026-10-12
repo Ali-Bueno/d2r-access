@@ -35,6 +35,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <mutex>
 #include <string>
@@ -53,6 +55,17 @@ using Kind = D2RL::Lifecycle::GameplayEventKind;
 constexpr int SurveyRadius = Navigation::MaxRadius;
 // The registry is fed from the ordinary update, which must stay cheap.
 constexpr uint64_t ObserveIntervalMs = 500;
+// Standing within StillDistance subtiles of the last pass, the next waits StillObserveMs:
+// what is in sight changes little, and enemies and items are re-read then.
+constexpr double StillDistance = 1;
+constexpr uint64_t StillObserveMs = 2000;
+// A pass this slow names its parts in the log, at most every SlowLogMs (the pump's own threshold and pace).
+constexpr double SlowPassMs = 30;
+constexpr uint64_t SlowLogMs = 5000;
+int g_observedLevel = 0;
+uint64_t g_observedSession = 0;
+Radar::Position g_observedAt{};
+uint64_t g_observedTime = 0, g_nextSlowLog = 0;
 
 struct Lifecycle {
 	uint32_t player = 0;
@@ -96,6 +109,9 @@ uint32_t              g_selected = 0;
 // 2026-09-28, Cave Level 1: every step said Cold Plains, never Cave Level 2;
 // INFERRED cause, a shared or changing id, which the place does not have.
 uint64_t              g_selectedPlace = 0;
+// Design value: after this long without a scanner answer the list starts again at the nearest.
+constexpr uint64_t    StaleSelectionMs = 10000;
+uint64_t              g_answeredAt = 0;
 bool Selected(const EntityRadar::Entity& entity) {
 	return g_selectedPlace ? entity.placeId == g_selectedPlace : entity.id == g_selected;
 }
@@ -139,6 +155,7 @@ void ApplyMode() {
 	if (fullAssistance == g_fullAssistance) return;
 	g_fullAssistance = fullAssistance;
 	g_registry.Clear();
+	g_observedTime = 0; // refill the cleared catalogue at once, standing still or not
 	g_selected = 0;
 	g_selectedPlace = 0;
 	g_category = EntityRadar::Category::Unknown;
@@ -457,12 +474,19 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 		return;
 	}
 
+	// A selection left alone for a while is forgotten: the next flick starts again
+	// from the nearest, wherever the player has walked since (a tester).
+	const uint64_t now = GetTickCount64();
+	const bool flick = request == Request::NextObject || request == Request::PreviousObject;
+	const bool stale = flick && g_answeredAt && now - g_answeredAt >= StaleSelectionMs;
+	g_answeredAt = now;
+	bool found = false;
 	size_t index = 0;
-	for (size_t i = 0; i < members.size(); ++i) {
-		if (Selected(members[i].entity)) { index = i; break; }
+	for (size_t i = 0; i < members.size() && !stale; ++i) {
+		if (Selected(members[i].entity)) { index = i; found = true; break; }
 	}
-	if (request == Request::NextObject) index = (index + 1) % members.size();
-	else if (request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
+	if (found && request == Request::NextObject) index = (index + 1) % members.size();
+	else if (found && request == Request::PreviousObject) index = (index + members.size() - 1) % members.size();
 	g_selected = members[index].entity.id;
 	g_selectedPlace = members[index].entity.placeId;
 	// Hand the selection to the beacon, so the left-stick click leads to what
@@ -601,8 +625,10 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 
 	// Keep the catalogue fed while walking, so an object seen once is still
-	// known after it leaves the window. Cheap enough at two hertz; the grid
-	// here is the small one the registry needs to tell absence from ignorance.
+	// known after it leaves the window. Not in a menu, where the scanner cannot
+	// be asked, and less often standing still: on a slow machine one pass took
+	// 25-53 ms of the game's update (a tester's log, 2026-10-12). A question
+	// always reads the world afresh (CurrentSurvey).
 	const uint64_t now = GetTickCount64();
 	if (now < g_nextObserve) return;
 	g_nextObserve = now + ObserveIntervalMs;
@@ -612,19 +638,40 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		std::lock_guard lock(g_mutex);
 		state = g_state;
 	}
-	if (!Playing(state)) return;
+	if (!Playing(state) || !RadarUi::InPlay()) return;
+	using Clock = std::chrono::steady_clock;
+	const auto start = Clock::now();
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
+	const bool still = state.level == g_observedLevel && state.session == g_observedSession
+		&& std::hypot(world.player.x - g_observedAt.x, world.player.y - g_observedAt.y) < StillDistance;
+	if (still && now - g_observedTime < StillObserveMs) return;
+	g_observedLevel = state.level;
+	g_observedSession = state.session;
+	g_observedAt = world.player;
+	g_observedTime = now;
 	ForgetOtherGames(state);
 	g_registry.Select(state.level, !g_fullAssistance);
-	Radar::World world;
+	const auto read = Clock::now();
 	Scene scene;
-	if (!NativeWorld::Read(state.player, state.session, state.level, world) || !Collect(state, scene)) return;
+	if (!Collect(state, scene)) return;
 	LogAreas(context, state);
+	const auto collected = Clock::now();
 	const auto grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
+	const auto built = Clock::now();
 	Observe(state, world, grid, scene);
 	// Rooms are marked explored by standing in them, so this has to keep up
 	// with the player rather than wait for the next catalogue question.
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
 		CurrentRooms(state.level, state.session), world.player);
+	const auto done = Clock::now();
+	const auto ms = [](Clock::duration span) { return std::chrono::duration<double, std::milli>(span).count(); };
+	// Which part of a slow pass took the time, at most once per SlowLogMs.
+	if (ms(done - start) >= SlowPassMs && now >= g_nextSlowLog) {
+		g_nextSlowLog = now + SlowLogMs;
+		AsyncLog::InfoF(context, "[survey] slow pass %.1f ms: world %.1f, entities %.1f, grid %.1f, catalogue %.1f",
+			ms(done - start), ms(read - start), ms(collected - read), ms(built - collected), ms(done - built));
+	}
 }
 
 void Shutdown() {

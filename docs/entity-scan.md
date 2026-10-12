@@ -12,7 +12,10 @@ automap; enemies are the one live category.
   through the categories that have something in them (the category name is
   spoken first), **left/right** step through that category, nearest first.
   One dominant axis per push (`InputDirection::TakeRightStickPush`), so a
-  diagonal push never changes both at once.
+  diagonal push never changes both at once. Nearest by the distance each is
+  spoken with (walking steps when known, else the straight line), one key for
+  all, and a flick ten seconds after the last answer starts again at the nearest
+  (`StaleSelectionMs`; a tester heard far ones first, 2026-10-12).
 - In a menu, dialogue or pause the stick belongs to the menu (`RadarUi::InPlay`).
   While the settings list is open (BACK+RB) it steps the list instead.
 - **BACK+LB**, or **Ctrl+B**, follows what the scanner last named

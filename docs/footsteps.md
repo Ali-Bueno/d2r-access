@@ -119,6 +119,16 @@ capture was made. The foreign-reset correction was not exercised in this run.
 An orientation limitation remains: Ctrl+T reports straight directional clearance
 without describing the character's actual deflected movement.
 
+## 2026-10-12: treading into a wall
+
+A tester still heard steps against walls. The stall rule mutes only a footfall at the exact same
+position for 150 ms, so a walk restarted between retries (a non-walking footfall reset the
+baseline) or a creep along a ragged border stayed audible. Now a footfall the game made while
+refusing a stick push (the wall-slide hook's attempt count rose since the last local footfall)
+is muted at once when it advanced under a quarter subtile from the previous local footfall of
+any animation (`Reason::Pushing`, `PushStepMinimum`); a real slide along the wall still sounds.
+The `[footsteps] summary` counts it as `pushing=`. Unverified live.
+
 ## Verification scope
 
 Thirty-seven pure policy checks cover a sustained stall, immediate subcell resumption, slow

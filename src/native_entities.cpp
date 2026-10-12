@@ -115,6 +115,12 @@ const std::unordered_set<std::string>& LevelKeys(uintptr_t levels, uint64_t coun
 	cachedTable = levels; cachedCount = count;
 	return keys;
 }
+// *hcIdx of the cow and camel rows in the game's monstats.txt (NameStr "dummy"),
+// and the string keys that name them: objects.json "cowa", monsters.json "Camel".
+const char* AnimalNameKey(uint32_t classId) {
+	constexpr uint32_t CowClass = 179, CamelClass = 185;
+	return classId == CowClass ? "cowa" : classId == CamelClass ? "Camel" : nullptr;
+}
 // The placeholder label every unnamed MonStats row shares, in the player's
 // language. The string tables load after the plugin and reload when the text
 // language changes in the menus, so it is resolved again after either.
@@ -232,6 +238,14 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			strings.monsterUnique, strings.listSeparator}));
 	}
 	if (entity.name.empty()) return false;
+	// Town animals share that unnamed row name, but the game names a cow and a
+	// camel in other tables (a tester liked the camp's tents and wagons and asked for its cows).
+	if (const char* key = AnimalNameKey(classId); key && !hostile) {
+		if (auto animal = UiText::Clean(Localization::Text(key)); !animal.empty()) {
+			entity.name = std::move(animal);
+			return true;
+		}
+	}
 	// Rows the game leaves unnamed all resolve to the same placeholder label
 	// ("an evil force"): decoration and helper units, never worth announcing.
 	const auto& placeholder = PlaceholderName();
@@ -447,6 +461,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	entity.container = IsContainer(row);
 	entity.corpse = entity.container && Generated::CorpseObject(classId);
 	entity.weaponRack = entity.container && Generated::WeaponRackObject(classId);
+	entity.well = (subClass & SubClassWell) != 0;
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
 	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)

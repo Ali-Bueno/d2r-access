@@ -33,6 +33,8 @@ struct UnitLabel { std::string baseName; uint32_t quality = 0; uint32_t id = 0; 
 // with the quality it was given.
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 bool SocketFiller(uint32_t classId);
+// Whether an item class descends from an ItemTypes.txt code ("gem ", "rune"), parents included.
+bool ClassIsType(uint32_t classId, uint32_t typeCode);
 struct Weapon { bool missile = false; int rangeAdder = 0; };
 std::optional<Weapon> WeaponOf(uint32_t classId);
 // The same for an item unit, with the quality its unit data holds.

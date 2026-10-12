@@ -54,11 +54,17 @@ struct Alert {
 	bool Any() const { return life >= 0 || mana >= 0; }
 };
 
+// How much mana is spoken unasked: every step as for life, only a fall to
+// ManaLowPercent or under, or nothing (a tester: casting drowned out life).
+enum class ManaAlerts { All, Low, Off };
+inline constexpr int ManaAlertLevels = 3;
+inline constexpr int ManaLowPercent = 20; // one of Steps
+
 // Produces at most one announcement per HUD sample. A critical value interrupts
 // only when it has fallen, so mana recovery cannot erase a life warning.
 class Alerts {
 public:
-	Alert Update(int life, int mana);
+	Alert Update(int life, int mana, ManaAlerts manaAlerts = ManaAlerts::All);
 	void Reset();
 private:
 	Meter life_, mana_;
@@ -76,17 +82,20 @@ private:
 };
 
 // The character's gait as the game moves it. The run toggle itself is not
-// read: a press of the game's toggle predicts the flip, and the next observed
-// step confirms or corrects it.
+// read: a press of the game's toggle says the flip, and only that is spoken.
+// The game also walks on its own, out of stamina or pushing into a wall
+// (controllerskillsettings forceWalk*), so an observed step only re-syncs the
+// toggle silently, and only from free running or walking (a tester heard
+// "Walking" and "Running" against walls with no press).
 enum class Gait { Walk, Run };
-// Samples a new gait must hold before it is announced, so a character flickering
-// between walk and run (stamina at its edge) does not repeat itself.
+// Samples in a row a new gait must hold before the toggle is taken to be it.
 inline constexpr int GaitConfirmSamples = 3;
 class GaitTracker {
 public:
-	// One sample: the gait while walking or running, nothing otherwise. The gait
-	// to announce once a new one has held; the first is a baseline.
-	std::optional<Gait> Observe(std::optional<Gait> moving);
+	// One sample: the gait while walking or running, nothing otherwise; `free`
+	// is false while the game may be forcing the walk. Returns the gait the
+	// toggle was re-synced to, for the log; the first is a baseline.
+	std::optional<Gait> Observe(std::optional<Gait> moving, bool free = true);
 	// The game's run toggle was pressed: the flipped gait, nothing before a baseline.
 	std::optional<Gait> Toggle();
 	void Reset();

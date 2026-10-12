@@ -9,6 +9,7 @@
 #include "focus_tracker.h"
 #include "footstep_service.h"
 #include "wall_slide_service.h"
+#include "wall_tone_service.h"
 #include "game_text_reader.h"
 #include "ground_item_service.h"
 #include "beacon_service.h"
@@ -63,6 +64,12 @@
 #include <vector>
 
 namespace {
+
+// The test release this was built as ("test-2026-10-13"), empty for a local build.
+#ifndef D2R_ACCESS_RELEASE
+#define D2R_ACCESS_RELEASE ""
+#endif
+constexpr const char* D2RAccessRelease = D2R_ACCESS_RELEASE;
 
 constexpr D2RL::PluginInfo PluginInfo {
 	.infoSize    = D2RL::PluginInfoSize,
@@ -367,7 +374,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	// to reconstruct afterwards.
 	const char* build = D2RL::GetBuildVersion(context);
 	const char* name  = D2RL::GetBuildName(context);
-	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
+	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s (%s) on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
+		*D2RAccessRelease ? D2RAccessRelease : "local build",
 		build != nullptr ? build : "of unknown build", name != nullptr ? " " : "", name != nullptr ? name : "",
 		D2RAccess::CoreSlots::LoaderVersion(), static_cast<unsigned>(PluginInfo.abiVersion));
 
@@ -381,7 +389,12 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::ScreenReader::LogTo(context);
 	if (speaking) {
 		D2RAccess::AsyncLog::InfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
-		D2RAccess::ScreenReader::Speak(D2RAccess::Strings::Current().pluginLoaded, true);
+		// The release it is, so a tester knows which build they run (CMake: D2R_ACCESS_RELEASE).
+		const auto& strings = D2RAccess::Strings::Current();
+		char loaded[200]{};
+		std::snprintf(loaded, sizeof(loaded), "%s. %s", strings.pluginLoaded,
+			*D2RAccessRelease ? D2RAccessRelease : strings.developmentBuild);
+		D2RAccess::ScreenReader::Speak(loaded, true);
 	} else {
 		D2RAccess::AsyncLog::ErrorF(context, "%s: %s", D2RAccess::Strings::Current().screenReaderMissing, D2RAccess::ScreenReader::LastError());
 	}
@@ -410,6 +423,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 	if (!D2RAccess::TradeService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[trade] Trade announcements unavailable.");
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
+	if (!D2RAccess::WallTones::Register(context)) D2RAccess::AsyncLog::Warn(context, "[wall-tones] Wall tones unavailable.");
 	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	D2RAccess::WallSlideService::Register(context, nativeHooks);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
@@ -487,6 +501,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::AutomapService::Unregister();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::WallSlideService::Unregister();
+	D2RAccess::WallTones::Unregister();
 	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();
 	D2RAccess::MultiplayerReader::Reset();

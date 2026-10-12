@@ -41,8 +41,14 @@ try {
 		ForEach-Object { Get-ChildItem (Join-Path $_.FullName "x64") -Directory -Filter "Microsoft.VC*.CRT" }
 	if (-not $crt) { throw "No x64 VC++ runtime found under $vcRedist." }
 
+	# The tag is chosen first: the plugin speaks it at start.
+	$date = Get-Date -Format "yyyy-MM-dd"
+	$tag = "test-$date"
+	$n = 1
+	while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
+
 	# A separate build tree whose deploy step points away from the game install.
-	& (Join-Path $root "build.ps1") -BuildDir $buildDir -GameDir (Join-Path $out "deploy")
+	& (Join-Path $root "build.ps1") -BuildDir $buildDir -GameDir (Join-Path $out "deploy") -Release $tag
 	if ($LASTEXITCODE) { throw "Build failed." }
 	ctest --test-dir $buildDir --output-on-failure
 	if ($LASTEXITCODE) { throw "Tests failed." }
@@ -84,10 +90,6 @@ try {
 	Write-Host "$zip`n$entryCount entries, $((Get-Item $zip).Length) bytes, SHA-256 $zipHash"
 	if ($NoPublish) { return }
 
-	$date = Get-Date -Format "yyyy-MM-dd"
-	$tag = "test-$date"
-	$n = 1
-	while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
 	$notes = @(
 		"Test build with the complete package: the mod (commit $short), D2RLoader $loaderVersion and the Visual C++ runtime."
 		if ($news) { "", "## What's new", "", $news }

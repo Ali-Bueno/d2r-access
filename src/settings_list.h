@@ -22,6 +22,17 @@ struct Entry {
 	// A sound of the glossary, not a switch: played when the list lands on it and
 	// again on a change, which then says nothing over it.
 	std::function<void()> preview;
+	// A setting of `levels` values (0 to levels - 1) instead of a switch; `on`,
+	// `set` and `say` are then unused.
+	int levels = 0;
+	std::function<int()> level;
+	std::function<void(int)> setLevel;
+	std::function<std::string(int)> sayLevel;
+
+	// The value as saved: a switch is 0 or 1, a setting its level.
+	int Value() const;
+	void Put(int value) const;
+	std::string Say(int value) const;
 };
 
 class Menu {
@@ -33,7 +44,10 @@ public:
 	// returns to the switch the list was left on.
 	std::string Toggle(uint64_t now);
 	std::string Step(int delta, uint64_t now); // wraps both ways
-	std::string Change(uint64_t now);
+	// A switch flips whatever the direction. A setting of several values moves one
+	// value down (delta < 0) or up (delta > 0) and stops at either end; delta 0
+	// moves up and wraps to the first, for a single change key.
+	std::string Change(uint64_t now, int delta = 0);
 	// Closes a list left open and unused for `idleMs`; returns what to say.
 	std::string Expire(uint64_t now, uint64_t idleMs);
 private:

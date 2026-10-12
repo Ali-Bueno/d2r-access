@@ -198,14 +198,12 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		landmark.direction    = Radar::ScreenSector({entity.position.x - player.x, entity.position.y - player.y});
 		result.push_back(std::move(landmark));
 	}
-	// Reachable first, then fewest steps. Unreachable objects keep their place
-	// in the list by straight line, so they can still be named as "no route".
-	std::sort(result.begin(), result.end(), [](const Landmark& a, const Landmark& b) {
-		if (a.reachable != b.reachable) return a.reachable;
-		if (a.reachable) {
-			return std::tie(a.steps, a.straightLine, a.entity.id) < std::tie(b.steps, b.straightLine, b.entity.id);
-		}
-		return std::tie(a.straightLine, a.entity.id) < std::tie(b.straightLine, b.entity.id);
+	// Nearest first, by the distance each one is spoken with: its walking steps
+	// when known, else its straight line (a tester: always the closest first, never
+	// a reachable one across the zone before an unreachable one beside the player).
+	const auto spoken = [](const Landmark& landmark) { return landmark.reachable ? landmark.steps : landmark.straightLine; };
+	std::sort(result.begin(), result.end(), [&](const Landmark& a, const Landmark& b) {
+		return std::tuple(spoken(a), a.straightLine, a.entity.id) < std::tuple(spoken(b), b.straightLine, b.entity.id);
 	});
 	return result;
 }

@@ -33,11 +33,13 @@ permits both on the UI thread, which is where the plugin's tick runs.
 A tester: running drops defense to zero, so the walk/run state is tactical, and stamina was never
 mentioned. Behind the `movement-alerts` switch (Ctrl+S, on by default):
 
-- **Gait.** L3 (the game's toggle) predicts the flip and speaks "Running"/"Walking" at once, with
-  interrupt. The player unit's mode then confirms or corrects it: walk 2 and town-walk 6 are
-  walking, run 3 running (`GroundItemLayout::Walk/Run/TownWalk`). The first step of a game is a
-  silent baseline; the toggle flag itself is not read, so a toggle before any step says nothing,
-  and the keyboard's run key is only heard through the next step.
+- **Gait.** L3 (the game's toggle) flips it and speaks "Running"/"Walking" at once, with
+  interrupt; nothing else speaks it. The player unit's mode (walk 2 and town-walk 6 walking, run 3
+  running, `GroundItemLayout::Walk/Run/TownWalk`) only re-syncs the toggle in silence, after three
+  samples in a row, never while the wall-slide hook counts refused pushes or stamina is at or under
+  10 percent: the game walks by itself against a wall and when tired (`controllerskillsettings`
+  `forceWalk*`), which a tester heard as the game toggling (2026-10-12). The toggle flag itself is
+  not read, so a toggle before any step says nothing.
 - **Stamina** is `GetStat` 10 over 11 (`NativeStatus::PlayerMovement`); the ratio holds whatever
   the fixed-point scale. Falling through 50, 25 and 10 percent is spoken, and "Out of stamina" at
   zero; a step re-arms once stamina recovers 10 points above it (`Vitals::StaminaMeter`). BACK+X
@@ -47,6 +49,12 @@ mentioned. Behind the `movement-alerts` switch (Ctrl+S, on by default):
   loader's `ItemInfo.quantity`). BACK+X adds every stack in hand.
 
 Live checks pending: the gait mapping in town and with stamina exhausted, and the stamina values.
+
+## Mana alerts (2026-10-12)
+
+A tester: casting made mana spammy and it drowned out life. `mana-alerts` in the Ctrl+S list has
+three values (`Vitals::ManaAlerts`): every change (as life, the default), low mana only (a fall to
+20 percent or under, `ManaLowPercent`, never a recovery) and off. BACK+X still reads mana.
 
 ## What is announced
 
