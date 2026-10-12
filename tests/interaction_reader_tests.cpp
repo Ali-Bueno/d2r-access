@@ -263,7 +263,9 @@ bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
 void Reset() {}
 }
+std::string statPointsFor; // what the stats reader hands the Strength button's announcement
 namespace D2RAccess::CharacterStatsReader {
+std::string PointsFor(uintptr_t, uint64_t) { return statPointsFor; }
 bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
 	if (!characterStatsClaims) return false;
 	pendingPush = InputDirection::StickPush::None;
@@ -645,6 +647,10 @@ int main() {
 	progression.readout = {"Stats", "", "Fuerza. 30", "61"};
 	progression.value = "30"; progression.points = "5 puntos"; progression.description = "Aumenta el daño.";
 	controllerHelp = "A: Asignar un punto. Vista: Ver estadísticas avanzadas. B: Cerrar menú";
+	statPointsFor = "5 puntos";
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Fuerza. 30. 5 puntos"},
+		"opened onto Strength with points to spend, the button's announcement ends with them");
+	statPointsFor.clear(); InteractionReader::Reset(); ClearSpeech();
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Fuerza. 30"},
 		"with autodetail off a stat reads its label and value, and nothing else");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
@@ -660,6 +666,8 @@ int main() {
 	ClearSpeech(); progression.value = "31"; progression.points = "4 puntos";
 	progression.readout.option = "Fuerza. 31"; Tick();
 	Check(speech == std::vector<std::string>{"31"}, "spending a stat point reads only the new value: right stick right has the points left");
+	ClearSpeech(); progression.value = "32"; progression.points = "3 puntos"; Tick();
+	Check(speech == std::vector<std::string>{"32"}, "a new value is said even when the readout's own text has not caught up");
 	autoDetail = true; ClearSpeech(); focus.widget = 62; progression.readout.focusKey = "62";
 	buttonSnapshot = {62, 62, "DexPointButton", UiText::Surface::Other, {{62, -1, UiText::Kind::StatButton, "DexPointButton", "", "Gastar punto"}}};
 	progression.readout.option = "Destreza. 20"; progression.value = "20"; progression.description = "Aumenta la precisión."; Tick();

@@ -240,11 +240,15 @@ the local player's directional move, prevented or not, with the direction the
 solver tried first (its desired probe, return `0x3AB24C`).
 `WallBump::Detector` thuds when, in one radar poll, attempts rose, the exact
 position did not move (a slide is no contact) and terrain blocks within two
-cells along the push (a creature is not a wall). It thuds once per contact and
+cells on either axis along the push (a creature is not a wall). It thuds once per contact and
 re-arms after a step of one subtile, a push turned past 45 degrees, or 300 ms
 without a refused attempt; never twice within the radar's cue interval.
 It needs the native movement hook; it runs while the radar's world can be read,
-the radar itself on or off. Each thud logs `[wall-bump]`. Footsteps against the
+the radar itself on or off. Each thud logs `[wall-bump]`; a refused push it leaves silent logs
+`[wall-bump] silent refusal: slid` or `no terrain along the push`, at most every 2 s. Live
+2026-10-12 (Lut Gholein): a push screen-up was silent where sideways thudded. Screen directions
+are world diagonals, and the contact test stepped two cells along the push, which on a
+diagonal reaches only 1.4 cells on either axis; it now walks until two cells on either axis. Footsteps against the
 wall stay muted by the stalled-footstep filter (`footsteps`), which keys on the
 same frozen position.
 

@@ -16,6 +16,20 @@ namespace {
 constexpr double EdgePan = 0.8;
 bool g_enabled = true;
 GridEdge::Detector g_detector;
+// The panel of the grid last focused. Its other buttons and slots (the gold
+// button, equipment, the belt) are one-cell grids: a push that leaves focus on
+// them went nowhere (the user, 2026-10-12: no knock below the gold).
+uintptr_t g_gridPanel = 0;
+
+bool OneCell(const NativeUi::Focus& focus) {
+	if (!focus.widget || focus.panel != g_gridPanel) return false;
+	switch (NativeUi::Classify(focus.widget).kind) {
+	case UiText::Kind::Button:
+	case UiText::Kind::InventorySlot:
+	case UiText::Kind::InventoryItem: return true;
+	default: return false; // tabs, toggles and value controls take a push without moving focus
+	}
+}
 
 // The direction the D-pad, the arrow keys or the left stick push, on its dominant axis.
 std::pair<int, int> Push() {
@@ -44,7 +58,11 @@ void Tick(const D2RL::PluginContext* context) {
 	const auto focus = NativeUi::GameFocus();
 	if (const auto cell = focus.widget ? NativeUi::GridCell(focus.widget) : NativeUi::Cell{}; cell.x >= 0) {
 		const auto size = NativeUi::GridSize(focus.widget);
+		g_gridPanel = focus.panel;
 		sample = {focus.widget, cell.x, cell.y, size.x, size.y, 0, 0, sample.now};
+		std::tie(sample.dx, sample.dy) = Push();
+	} else if (OneCell(focus)) {
+		sample = {focus.widget, 0, 0, 1, 1, 0, 0, sample.now};
 		std::tie(sample.dx, sample.dy) = Push();
 	}
 	const auto outcome = g_detector.Update(sample);

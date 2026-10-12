@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Tester's second report — 2026-10-12 (on top of test-2026-10-12, not committed)
+## Tester's second report — 2026-10-12 (committed f0e043b; live fixes below not committed)
 
 - Town NPCs everywhere listed only loaded units: unbuilt rooms' presets (`DrlgMap+0x58`) are
   now read, and a spawn is dropped only near the player ([scanner](docs/entity-scan.md#town-npcs)).
@@ -13,7 +13,12 @@
 - Inventory edge knock judged taps too (a pad tap is shorter than the old 150 ms hold);
   `[grid-edge]` logs say whether focus stayed or left the grid.
 
-114/114 CTest; installed DLL SHA-256 `A1546FEB…` matches the build. Live checks: `[scan] Verified
+- Live 2026-10-12: wall bump contact now reaches two cells on either axis (screen directions
+  are world diagonals); `[wall-bump] silent refusal` logs what stays silent. Inventory buttons
+  (gold) knock as one-cell grids. Stat points end the Strength button's announcement; a spent
+  point's new value is said without leaving the button ([progression](docs/progression.md)).
+
+114/114 CTest; installed DLL SHA-256 `8CAC2D96…` matches the build. Live checks: `[scan] Verified
 unbuilt-room preset reader.`, `[survey] town NPCs on level 1`, `[stash] slot ->`, `[grid-edge]`,
 tome headline in `[item]`.
 

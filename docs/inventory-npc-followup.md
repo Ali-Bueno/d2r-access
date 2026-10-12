@@ -164,3 +164,7 @@ against the grid's edge (`grid_edge.*` detector, `grid_edge_service.*`).
   up to `slot_belt` and down to `gold_button`, and that move is spoken by the focus tracker.
 - `[grid-edge] push dx,dy from cell x,y of WxH: ...` logs each knock and each press on the edge
   cell that left the grid, so a live test shows what the game does at the right and left columns.
+- Live 2026-10-12: sides and the bottom row knock; from the middle columns down goes to
+  `gold_button`, and down from there was silent. A button or slot in the panel of the grid last
+  focused is now a one-cell grid (`1x1` in the log): a push that leaves focus on it knocks. Tabs,
+  toggles and value controls are left out, since a push changes them in place.

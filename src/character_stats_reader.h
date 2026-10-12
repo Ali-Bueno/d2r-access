@@ -5,6 +5,9 @@
 
 #include <D2RLPlugin/api.h>
 
+#include <cstdint>
+#include <string>
+
 // Character and hireling panel statistics, on the right stick. The hireling
 // reader is active during its observed no-focus controller state, or with focus
 // on the menu tab strip, and yields to any other focused widget. The character panel shows
@@ -38,6 +41,12 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
 bool Owns(std::string_view panel);
 
 void Reset();
+
+// The points left, for the Strength button's own announcement to end with when
+// the panel opened onto it: said on a line of their own they were cut off by
+// that announcement (a tester, 2026-10-12). Empty for any other widget, and
+// once the points have been attached for a while.
+std::string PointsFor(uintptr_t widget, uint64_t now);
 
 // Whether opening the character panel with points to spend moves the focus to
 // the Strength "+" button.

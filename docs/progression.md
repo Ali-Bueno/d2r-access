@@ -25,7 +25,13 @@ convention. It also reads the title's `Tooltip` child and `CombinedPointsInfo`
 (observed: five points remaining). Values are never hardcoded. Stat actions
 have a distinct archetype, including inherited subclasses. Missing companions
 fall through to the existing native action reader; unavailable state is retained.
-After allocating a point, only the changed value and remaining-point count read.
+After allocating a point, only the changed value reads (right stick right: the points left).
+2026-10-12 (tester): the new value was silent until focus left and came back, because the
+announcement waited for the readout's text to change; the value change is now spoken on its
+own. Opening the panel with points focuses Strength's "+" (`stat-points-focus`), and the
+points left now end that button's announcement (`CharacterStatsReader::PointsFor`); a separate
+line 600 ms later was cut off by it. Alone only if no announcement comes within 2 s
+(`[stats] points alone`).
 
 ## Skills and tabs
 

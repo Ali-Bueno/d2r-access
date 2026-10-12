@@ -39,10 +39,13 @@ private:
 	Radar::Position previous_{}, anchor_{}, direction_{};
 };
 // The farthest edge of the widest native footprint (3x3) is one cell from its
-// centre, so the wall it presses against is at most two cells along the push.
+// centre, so the wall it presses against is at most two cells away on either
+// axis: two cells along a straight push, its corner's diagonal along a slanted one.
 inline constexpr int ContactCells = 2;
-// Whether terrain (never a creature) blocks the push within ContactCells of
-// the player's exact position.
+// A quarter cell: the walk along the push enters every cell it crosses but a corner clip.
+inline constexpr double ContactStep = 0.25;
+// Whether terrain (never a creature) blocks the push within ContactCells, on
+// either axis, of the player's exact position.
 bool Contact(const Radar::World& world, Radar::Position push);
 // The push's screen-horizontal share, -1 (left) to 1 (right).
 double Pan(Radar::Position push);

@@ -128,6 +128,13 @@ void ContactAndPan() {
 	Check(!Contact(world, {1, 0}), "a creature in the way is not terrain");
 	put(11, 11, Wall);
 	Check(Contact(world, {1, 1}), "a diagonal push meets the wall on its diagonal");
+	put(11, 11, 0);
+	for (int x = 0; x < Size; ++x) put(x, 12, Wall);
+	Check(Contact(world, {1, 1}), "a diagonal push (screen down) meets a wall two cells away on one axis");
+	Check(Contact(world, {-1, 1}), "and so does the other diagonal (screen left)");
+	for (int x = 0; x < Size; ++x) put(x, 12, 0);
+	for (int x = 0; x < Size; ++x) put(x, 13, Wall);
+	Check(!Contact(world, {1, 1}), "a wall three cells away on that axis is not yet touching");
 	Check(std::abs(Pan({1, -1}) - 1) < 1e-12 && std::abs(Pan({-1, 1}) + 1) < 1e-12, "screen right and left pan fully");
 	Check(std::abs(Pan({-1, -1})) < 1e-12 && std::abs(Pan({1, 1})) < 1e-12, "screen up and down are centred");
 	Check(std::abs(Pan({1, 0}) - 2 / std::sqrt(5.0)) < 1e-12, "a world axis pans by its screen share at the 2:1 projection");

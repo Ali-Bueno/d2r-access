@@ -1261,7 +1261,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// The new value alone: right stick right says the points left.
 			if (g_stat.value != progression.value) Append(changed, progression.value);
 		}
-		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
+		// A point spent changes the value under a focus that stays put, which the
+		// reader need not re-announce: the change is said either way (a tester,
+		// 2026-10-12: only moving away and back read the new value).
+		if (!changed.empty()) {
+			announcement.text = std::move(changed);
+			announcement.interrupt = true;
+		} else if (!announcement.text.empty()) Append(announcement.text, CharacterStatsReader::PointsFor(focus.widget, now));
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
 	// A control hint follows the thing it acts on and never leads. While the

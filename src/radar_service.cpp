@@ -63,6 +63,11 @@ uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
 std::atomic<bool> g_wallBump{true}, g_smallObstacles{true};
 WallBump::Detector g_bump;
+// A refused push the thud leaves silent (a slide, or no terrain found along it),
+// logged at most this often so a live test can tell which: design, not the game's.
+constexpr uint64_t SilentRefusalLogMs = 2000;
+uint64_t g_refusedAttempts = 0, g_silentLoggedAt = 0;
+Radar::Position g_refusedAt{};
 
 // The level's exits for the passage scan; a failed read keeps the last list.
 void RefreshExits(const Radar::World& world, uint64_t now) {
@@ -167,7 +172,19 @@ void TickBump(const Radar::World* world, uint64_t now) {
 	const auto blocked = WallSlideService::LastBlocked();
 	const Radar::Position push{blocked.x, blocked.y};
 	const Radar::Position exact{world->player.x + world->subtileFraction.x, world->player.y + world->subtileFraction.y};
-	if (!g_bump.Tick({.attempts = blocked.attempts, .position = exact, .push = push, .contact = WallBump::Contact(*world, push), .now = now})) return;
+	const bool contact = WallBump::Contact(*world, push);
+	const bool refused = g_refusedAttempts && blocked.attempts > g_refusedAttempts;
+	const double moved = std::hypot(exact.x - g_refusedAt.x, exact.y - g_refusedAt.y);
+	g_refusedAttempts = blocked.attempts;
+	g_refusedAt = exact;
+	if (!g_bump.Tick({.attempts = blocked.attempts, .position = exact, .push = push, .contact = contact, .now = now})) {
+		if (refused && (moved > 0 || !contact) && now - g_silentLoggedAt >= SilentRefusalLogMs) {
+			g_silentLoggedAt = now;
+			AsyncLog::InfoF(g_context, "[wall-bump] silent refusal: %s position=%.2f,%.2f push=%.2f,%.2f moved=%.3f level=%d",
+				moved > 0 ? "slid" : "no terrain along the push", exact.x, exact.y, push.x, push.y, moved, world->level);
+		}
+		return;
+	}
 	const double pan = WallBump::Pan(push);
 	AsyncLog::InfoF(g_context, "[wall-bump] position=%.2f,%.2f push=%.2f,%.2f pan=%.2f attempts=%llu level=%d",
 		exact.x, exact.y, push.x, push.y, pan, static_cast<unsigned long long>(blocked.attempts), world->level);

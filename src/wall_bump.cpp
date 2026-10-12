@@ -1,5 +1,7 @@
 #include "wall_bump.h"
 
+#include <algorithm>
+
 namespace D2RAccess::WallBump {
 void Detector::Reset() { *this = Detector(settings_); }
 
@@ -42,10 +44,14 @@ bool Detector::Tick(const Sample& sample) {
 bool Contact(const Radar::World& world, Radar::Position push) {
 	const double length = std::hypot(push.x, push.y);
 	if (!(length > 0)) return false;
+	const double ux = push.x / length, uy = push.y / length;
+	// Screen up, down, left and right are world diagonals, whose wall can be
+	// ContactCells away on an axis and so farther than that along the push.
+	const double reach = ContactCells / std::max(std::abs(ux), std::abs(uy));
 	const double x = world.player.x + world.subtileFraction.x, y = world.player.y + world.subtileFraction.y;
-	for (int step = 1; step <= ContactCells; ++step) {
-		const int cellX = static_cast<int>(std::floor(x + step * push.x / length));
-		const int cellY = static_cast<int>(std::floor(y + step * push.y / length));
+	for (double along = ContactStep; along <= reach; along += ContactStep) {
+		const int cellX = static_cast<int>(std::floor(x + along * ux));
+		const int cellY = static_cast<int>(std::floor(y + along * uy));
 		if (world.Cell(cellX, cellY, Radar::Layer::Terrain) == Radar::State::Blocked) return true;
 	}
 	return false;

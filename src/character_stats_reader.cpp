@@ -20,16 +20,18 @@ constexpr std::string_view HirelingPanel = "HirelingInventoryPanel";
 constexpr std::string_view StrengthButton = "StrengthPointButton";
 
 std::atomic<bool> g_focusPoints { true };
-// Policy: the points text renders with the values, well within PointsWaitMs; the
-// Strength button's own announcement interrupts, so the points wait to follow it.
-constexpr uint64_t PointsWaitMs = 2000, PointsAfterFocusMs = 600;
+// Policy: the points text renders with the values, well within PointsWaitMs. The
+// Strength button's announcement carries them (PointsFor), re-announced too
+// within PointsWaitMs; alone only if no announcement came by then.
+constexpr uint64_t PointsWaitMs = 2000;
 
 uintptr_t g_panel = 0; // the panel the cursor belongs to
 int g_cursor = -1;
 bool g_named = false;  // the subject's name has been said for this opening
 bool g_pointsDone = false; // the points left have been offered for this opening
-uint64_t g_openedAt = 0, g_pointsDueAt = 0;
+uint64_t g_openedAt = 0, g_pointsDueAt = 0, g_pointsAttachedAt = 0;
 std::string g_pendingPoints;
+uintptr_t g_pointsWidget = 0; // the button whose announcement carries them
 
 uintptr_t VisiblePanel(std::string_view name) {
 	const auto panel = NativeWidgets::FindPanel(name);
@@ -56,7 +58,9 @@ void OfferPoints(const D2RL::PluginContext* context, uintptr_t panel, uint64_t n
 	const auto button = g_focusPoints.load() ? NativeWidgets::FindChild(panel, StrengthButton) : 0;
 	if (button && NativeSkillNavigation::Select({panel, button})) {
 		g_pendingPoints = points;
-		g_pointsDueAt = now + PointsAfterFocusMs;
+		g_pointsWidget = button;
+		g_pointsAttachedAt = 0;
+		g_pointsDueAt = now + PointsWaitMs;
 		return;
 	}
 	if (g_focusPoints.load()) D2RAccess::AsyncLog::InfoF(context, "[stats] could not focus %s", std::string(StrengthButton).c_str());
@@ -99,7 +103,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (panel != g_panel) {
 		g_panel = panel; g_cursor = -1; g_named = false;
 		g_pointsDone = NativeWidgets::ReadName(panel) != CharacterPanel; // a mercenary has no points to spend
-		g_openedAt = now; g_pointsDueAt = 0; g_pendingPoints.clear();
+		g_openedAt = now; g_pointsDueAt = 0; g_pendingPoints.clear(); g_pointsWidget = 0; g_pointsAttachedAt = 0;
 	}
 	// The window announcer has already said the panel's title; the name
 	// queues behind it. It is read until the game has rendered it -- MEASURED
@@ -115,7 +119,9 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (g_named && !g_pointsDone) OfferPoints(context, panel, now);
 	if (g_pointsDueAt && now >= g_pointsDueAt) {
 		g_pointsDueAt = 0;
+		D2RAccess::AsyncLog::InfoF(context, "[stats] points alone, no button announcement -> \"%s\"", g_pendingPoints.c_str());
 		ScreenReader::Speak(g_pendingPoints, false);
+		g_pendingPoints.clear();
 	}
 	// While a point button has focus the stick belongs to the point readout --
 	// up for the stat's explanation, down for its controls -- except right,
@@ -147,7 +153,18 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 
 bool Owns(std::string_view panel) { return panel == CharacterPanel || panel == HirelingPanel; }
 
-void Reset() { g_panel = 0; g_cursor = -1; g_named = false; g_pointsDone = false; g_pointsDueAt = 0; g_pendingPoints.clear(); }
+void Reset() {
+	g_panel = 0; g_cursor = -1; g_named = false; g_pointsDone = false; g_pointsDueAt = 0; g_pendingPoints.clear();
+	g_pointsWidget = 0; g_pointsAttachedAt = 0;
+}
+
+std::string PointsFor(uintptr_t widget, uint64_t now) {
+	if (!widget || widget != g_pointsWidget || g_pendingPoints.empty()) return {};
+	if (!g_pointsAttachedAt) g_pointsAttachedAt = now;
+	else if (now - g_pointsAttachedAt >= PointsWaitMs) { g_pendingPoints.clear(); return {}; }
+	g_pointsDueAt = 0; // said with the button, never alone as well
+	return g_pendingPoints;
+}
 
 bool FocusPoints() { return g_focusPoints.load(); }
 void SetFocusPoints(bool enabled) { g_focusPoints.store(enabled); }
