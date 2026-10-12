@@ -20,7 +20,8 @@ publish while build inputs (`src`, `cmake`, `sounds`, `third_party`, …) have u
 or `HEAD` is not pushed. Every ZIP entry is checked against its source before publishing.
 
 Each run creates a normal release tagged `test-YYYY-MM-DD` (`-2`, `-3`… on the same day) and marks
-it latest. They are not prereleases on purpose: GitHub's `releases/latest` link skips
+it latest. The tag is chosen before the build and compiled in (`build.ps1 -Release`), so the
+plugin says it at start; a local build says "development build". They are not prereleases on purpose: GitHub's `releases/latest` link skips
 prereleases. The asset name never changes, so the link above stays valid.
 
 ## Package contents
