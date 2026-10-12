@@ -126,6 +126,17 @@ int main() {
 	const auto beyond = TooltipText::Read(std::string(Title).substr(0, 3) + "WShort Sword");
 	Check(beyond.lines.size() == 1 && beyond.lines[0] == "WShort Sword", "a character past that range is text, as the renderer reads it");
 
+	// A tome's count is read with its name, ahead of any price.
+	const std::vector<std::string> quantity{"Quantity:"};
+	const auto tome = TooltipText::Split(TooltipText::Read("Quantity: 20 of 20\nTome of Identify"), BaseStats, {}, {}, {}, quantity);
+	Check(tome.name == "Tome of Identify" && tome.headline == "Tome of Identify. Quantity: 20 of 20" && tome.detail.empty(),
+		"a tome's quantity joins the name in the headline");
+	const std::vector<std::string> costs{"Cost:"};
+	const auto stack = TooltipText::Split(TooltipText::Read("Quantity: 5 of 60\nCost: 30\nThrowing Knife"), BaseStats, costs, {}, {}, quantity);
+	Check(stack.name == "Throwing Knife" && stack.headline == "Throwing Knife. Quantity: 5 of 60. Cost: 30", "the quantity precedes the price");
+	Check(TooltipText::Split(TooltipText::Read("Quantity: 5 of 60\nThrowing Knife"), BaseStats).detail == "Quantity: 5 of 60",
+		"without quantity labels the line stays detail");
+
 	Check(TooltipText::Read("").lines.empty(), "an empty tooltip has no lines");
 	Check(TooltipText::Split(TooltipText::Read(""), BaseStats).Empty(), "and nothing to say");
 	Check(TooltipText::Read("\n\n\n").lines.empty(), "blank lines are not content");

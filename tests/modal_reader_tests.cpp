@@ -1,3 +1,6 @@
+#define NOMINMAX
+#include <windows.h>
+
 #include "character_stats_reader.h"
 #include "control_hints.h"
 #include "modal_reader.h"
@@ -17,6 +20,8 @@ std::vector<Spoken> speech;
 std::string active;
 UiText::Snapshot tree;
 constexpr uintptr_t Panel = 1;
+bool promptShown = false;
+std::string promptText;
 
 void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}) {
 	tree.nodes.push_back({static_cast<uintptr_t>(tree.nodes.size() + 1), parent, kind, std::move(name), {}, std::move(text)});
@@ -26,12 +31,18 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
 namespace D2RAccess::NativeUi {
 Focus GameFocus() { return {}; } // these panels open with nothing focused
+bool Visible(uintptr_t) { return promptShown; }
 UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return tree; }
 }
-namespace D2RAccess::NativeWidgets { uintptr_t FindPanel(std::string_view) { return Panel; } }
+namespace D2RAccess::NativeWidgets {
+uintptr_t FindPanel(std::string_view) { return Panel; }
+uintptr_t FindChild(uintptr_t, std::string_view name) { return name == "InputPrompt" ? 7 : 0; }
+std::string ReadText(uintptr_t) { return promptText; }
+}
+namespace D2RAccess::Localization { std::string Text(std::string_view key) { return key == "KeyboardTitleScreenPrompt" ? "Press Any Key to Begin" : ""; } }
 namespace D2RAccess::CharacterStatsReader { bool Owns(std::string_view panel) { return panel == "CharacterStatsPanel"; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); } }
-namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
 bool autoDetail = false;
 namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return true; } }
 
@@ -107,5 +118,25 @@ int main() {
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 7 && speech[5].text == "Delete this character?" && speech[6].text == "Confirm"
 		&& ControlHints::Current() == "Confirm", "modal prompts retain their words while controller font glyphs are stripped");
+	// The title screen's prompt appears after the panel does and is read once.
+	active = "TitleScreenPanel"; tree = {};
+	Node(-1, Kind::Other, active);
+	speech.clear();
+	ModalReader::Tick(nullptr);
+	Check(speech.empty(), "no prompt yet, nothing to say");
+	promptShown = true; promptText = "Press \xEE\x80\x93 to Begin";
+	Sleep(300);
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1 && speech[0].text == "Press Any Key to Begin" && !speech[0].interrupt,
+		"a controller prompt whose button is a glyph reads the whole keyboard string, queued");
+	Sleep(300);
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1, "and only once");
+	ModalReader::Reset();
+	ModalReader::Tick(nullptr);
+	promptText = "Press Any Key to Begin";
+	Sleep(300);
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 2 && speech[1].text == "Press Any Key to Begin", "a plain prompt is spoken as shown");
 	Passed();
 }

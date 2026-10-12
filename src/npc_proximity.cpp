@@ -48,7 +48,7 @@ void Tracker::Reset() { inRange_.clear(); }
 
 std::string Describe(const Announcement& announcement, const EntityRadar::Settings& scan, const Strings::Table& strings) {
 	std::string text = announcement.entity.name + ", " + EntityRadar::DistancePhrase(announcement.distance, scan, strings);
-	if (std::lround(announcement.distance * scan.stepsPerSubtile) >= 1)
+	if (!EntityRadar::UnderPlayer(announcement.distance, scan))
 		text += std::string(", ") + strings.scanDirections[static_cast<size_t>(announcement.direction)];
 	return text;
 }

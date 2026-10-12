@@ -6,6 +6,8 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
+#include "speech_strings.h"
+#include "text_field_edit.h"
 
 #include <cstdint>
 #include <iterator>
@@ -73,19 +75,17 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string current = Read(g_widget);
 	if (current == g_text) return;
 
-	const bool deleted  = current.size() < g_text.size() && g_text.compare(0, current.size(), current) == 0;
-	const bool appended = current.size() > g_text.size() && current.compare(0, g_text.size(), g_text) == 0;
-	if (deleted) {
-		// Exactly what the backspace took, which is the one thing the player
-		// has no other way to know. Interrupting, not queued: while editing,
-		// what was just deleted matters more than finishing the previous
+	const Edit edit = Classify(g_text, current);
+	if (edit.kind == EditKind::Removed) {
+		// Interrupting: what was just deleted matters more than the previous
 		// announcement, and a backlog lags behind the cursor.
-		const std::string removed = g_text.substr(current.size());
-		AsyncLog::InfoF(context, "[field] removed \"%s\"", removed.c_str());
-		ScreenReader::Speak(removed, true);
-	} else if (!appended) {
-		// Neither a clean insertion nor a clean deletion: the box was replaced
-		// wholesale, so read the result rather than trying to describe an edit.
+		AsyncLog::InfoF(context, "[field] removed \"%s\"", edit.text.c_str());
+		ScreenReader::Speak(edit.text, true);
+	} else if (edit.kind == EditKind::Added) {
+		AsyncLog::InfoF(context, "[field] added \"%s\"", edit.text.c_str());
+		ScreenReader::Speak(edit.text == " " ? Strings::Current().spaceKey : edit.text, true);
+	} else {
+		// The box was replaced wholesale: read the result, not the edit.
 		AsyncLog::InfoF(context, "[field] now \"%s\"", current.c_str());
 		ScreenReader::Speak(current, true);
 	}

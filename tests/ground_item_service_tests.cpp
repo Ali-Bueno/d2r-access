@@ -1,4 +1,5 @@
 #include "ground_item_service.h"
+#include "entity_cue_audio.h"
 #include "ground_items.h"
 #include "entity_layout.h"
 #include "item_audio.h"
@@ -107,6 +108,8 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 	return includeBoundaries ? boundaries : std::vector<Radar::LevelExit>{};
 }
 }
+int pickupClicks = 0;
+namespace D2RAccess::EntityCueAudio { void Play(Sound sound, Placement) { if (sound == Sound::Pickup) ++pickupClicks; } }
 namespace D2RAccess::ItemAudio {
 bool Start(const D2RL::PluginContext*) { return true; }
 void Update(std::vector<GroundItems::Voice> value) { voices = std::move(value); }
@@ -128,6 +131,14 @@ int main() {
 	Check(speech[0] == "Poción", "exits are never spoken by the proximity reader");
 	Check(GroundItemService::OwnsWorldLabel("Poción"), "nearby world tooltip defers to the proximity announcement");
 	Check(!GroundItemService::OwnsWorldLabel("Charsi"), "NPC labels are not suppressed");
+	GroundItemService::NoteWorldTarget("Poción");
+	GroundItemService::NoteWorldTarget("Poción");
+	Check(pickupClicks == 1, "the pickup prompt naming a ground item clicks once while it stays up");
+	GroundItemService::NoteWorldTarget("Charsi");
+	GroundItemService::NoteWorldTarget("");
+	Check(pickupClicks == 1, "a target that is no ground item, or none, does not click");
+	GroundItemService::NoteWorldTarget("Poción");
+	Check(pickupClicks == 2, "the prompt coming back clicks again");
 	speech.clear(); Tick(); Check(speech.empty(), "continuous updates do not repeat the item");
 	EntityRadar::Entity tree{70, EntityRadar::Kind::Object, {3, 4}, "Árbol de Inifuss"};
 	tree.questObject = true;

@@ -41,18 +41,21 @@ constexpr Evidence MercenaryChecks[] = {
 	{0x14F3400, 6346, 0x60012C081091103AULL}, // panel uses the getter for displayed life
 	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
 };
+constexpr Evidence MovementChecks[] = {
+	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
+};
 constexpr Evidence MonsterChecks[] = {
 	{UnitById, 33, 0x673F574CCEEDB47EULL},
 	{PlateFill, 304, 0x8A29F8B8A06D6F20ULL},
 	{UnitLifePercent, 228, 0x76BB3F5F993669AAULL},
 };
 uintptr_t g_base = 0;
-bool g_poisonSupported = false, g_mercenarySupported = false, g_monsterSupported = false;
+bool g_poisonSupported = false, g_mercenarySupported = false, g_monsterSupported = false, g_movementSupported = false;
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
-	g_poisonSupported = g_mercenarySupported = g_monsterSupported = false;
+	g_poisonSupported = g_mercenarySupported = g_monsterSupported = g_movementSupported = false;
 	if (!context) return false;
 	g_poisonSupported = LayoutCheck::Verify(context, context->exeBase, PoisonChecks,
 		"status", "poison condition disabled");
@@ -60,10 +63,12 @@ bool Initialize(const D2RL::PluginContext* context) {
 		"status", "mercenary condition disabled");
 	g_monsterSupported = LayoutCheck::Verify(context, context->exeBase, MonsterChecks,
 		"status", "boss life disabled");
+	g_movementSupported = LayoutCheck::Verify(context, context->exeBase, MovementChecks,
+		"status", "gait and stamina disabled");
 	g_base = context->exeBase;
-	AsyncLog::InfoF(context, "[status] Native condition readers: poison=%d mercenary=%d monster=%d.",
-		g_poisonSupported, g_mercenarySupported, g_monsterSupported);
-	return g_poisonSupported || g_mercenarySupported || g_monsterSupported;
+	AsyncLog::InfoF(context, "[status] Native condition readers: poison=%d mercenary=%d monster=%d movement=%d.",
+		g_poisonSupported, g_mercenarySupported, g_monsterSupported, g_movementSupported);
+	return g_poisonSupported || g_mercenarySupported || g_monsterSupported || g_movementSupported;
 }
 
 std::optional<bool> PlayerPoisoned() noexcept {
@@ -79,6 +84,26 @@ std::optional<bool> PlayerPoisoned() noexcept {
 	__try {
 		return reinterpret_cast<int(*)(uintptr_t, int)>(g_base + StateChecker)(player, PoisonState) != 0;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+}
+
+std::optional<Movement> PlayerMovement() noexcept {
+	if (!g_base || !g_movementSupported) return std::nullopt;
+	uintptr_t player = 0, tables = 0;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return std::nullopt;
+	uint32_t type = 0, mode = 0;
+	if (!NativeMemory::Peek(player + GroundItemLayout::UnitType, type)
+		|| type != GroundItemLayout::PlayerType
+		|| !NativeMemory::Peek(player + GroundItemLayout::UnitMode, mode)
+		|| mode == GroundItemLayout::Death || mode == GroundItemLayout::Dead) return std::nullopt;
+	Movement movement;
+	movement.walking = mode == GroundItemLayout::Walk || mode == GroundItemLayout::TownWalk;
+	movement.running = mode == GroundItemLayout::Run;
+	__try {
+		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
+		movement.stamina = stat(player, GroundItemLayout::StaminaStat, 0);
+		movement.maxStamina = stat(player, GroundItemLayout::MaxStaminaStat, 0);
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+	return movement;
 }
 
 std::optional<Mercenary> MercenaryLife() noexcept {

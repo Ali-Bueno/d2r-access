@@ -62,6 +62,8 @@ public:
 		const Navigation::Grid& grid, const Settings& settings = {},
 		const std::vector<EntityRadar::Entity>* present = nullptr);
 
+	// Enemies the game now holds dead, wherever they lay.
+	void ForgetEnemies(const std::vector<uint32_t>& dead);
 	void Clear();
 	// A return visit retains fixed places; enemies and loot are transient.
 	void KeepLandmarks();
@@ -90,6 +92,8 @@ public:
 		const Navigation::Grid& grid, bool exploration, const Settings& settings = {},
 		const std::vector<EntityRadar::Entity>* present = nullptr);
 	const std::vector<EntityRadar::Entity>& Entities() const;
+	// Enemies the game now holds dead, on every level kept.
+	void ForgetEnemies(const std::vector<uint32_t>& dead);
 	void Clear();
 private:
 	int m_level = 0;

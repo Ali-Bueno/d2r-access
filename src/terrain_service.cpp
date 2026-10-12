@@ -1,5 +1,6 @@
 #include "terrain_service.h"
 #include "async_log.h"
+#include "process_lifetime.h"
 #include "entity_radar.h"
 #include "explored_rooms.h"
 #include "exploration_cue_service.h"
@@ -70,7 +71,10 @@ bool g_supported = false, g_roomSounds = true, g_placeAlerts = true;
 int g_surveyedLevel = 0, g_cameFrom = 0;
 // The store worker owns archive I/O; gameplay only submits room snapshots.
 std::filesystem::path g_directory;
-ExploredStore::Store g_store;
+// Explicit Unregister stops/flushes the store; forced process exit must not
+// run its joining destructor under the Windows loader lock.
+ProcessLifetime<ExploredStore::Store> g_storeOwner;
+ExploredStore::Store& g_store = g_storeOwner.Get();
 std::map<uint32_t, ExploredStore::Key> g_keys;
 // Fixed places found per map; stored ones join when the level's record loads.
 std::map<ExploredStore::Key, std::vector<ExploredStore::Place>> g_places;
@@ -498,6 +502,7 @@ void Unregister() {
 	}
 	g_store.Stop(); // final worker write before the plugin context goes away
 	if (g_store.Failed()) AsyncLog::Warn(g_context, "[terrain] exploration archive write failed; legacy and last good archive remain intact.");
+	g_storeOwner.Reset(); // archive cache is released during normal unload, not DLL detach
 	std::lock_guard lock(g_mutex);
 	g_explored.Forget();
 	g_keys.clear();

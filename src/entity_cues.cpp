@@ -8,8 +8,6 @@
 namespace D2RAccess::EntityCues {
 namespace {
 constexpr size_t MaxEnemyClasses = 2; // leave room for combat, speech and the navigation radar
-// With growls, three enemy streams at once, as Diablo 1's diablo-access plays its three nearest emitters.
-constexpr size_t MaxEnemyStreams = 3;
 constexpr std::array Priorities{Kind::Important, Kind::Resurrector, Kind::Ranged};
 constexpr std::array Order{Kind::Important, Kind::Resurrector, Kind::Ranged, Kind::Npc};
 std::optional<Kind> Classify(const EntityRadar::Entity& entity, const Settings& settings) {
@@ -19,6 +17,23 @@ std::optional<Kind> Classify(const EntityRadar::Entity& entity, const Settings& 
 	if (entity.enemy.resurrector) return Kind::Resurrector;
 	if (entity.enemy.ranged && settings.ranged) return Kind::Ranged;
 	return settings.ordinary ? std::optional{Kind::Ordinary} : std::nullopt;
+}
+// The distance at which pacing reaches its slowest: the farthest point of the screen, or the range.
+double Extent(const Settings& settings) {
+	if (!settings.onScreen) return settings.range;
+	const auto& screen = settings.screen;
+	return std::hypot((screen.halfWidth + screen.halfHeight) / 2, (screen.halfHeight - screen.halfWidth) / 2) + RangedMargin;
+}
+bool InArea(Radar::Position player, Radar::Position at, double distance, Kind kind, const Settings& settings) {
+	if (!settings.onScreen) return distance <= settings.range;
+	auto screen = settings.screen;
+	if (kind == Kind::Ranged) { screen.halfWidth += RangedMargin; screen.halfHeight += RangedMargin; }
+	return CombatTarget::OnScreen(player, at, screen);
+}
+uint64_t IntervalMs(double distance, const Settings& settings) {
+	const auto nearMs = std::max(settings.nearIntervalMs, settings.gapMs);
+	const auto farMs = std::max(settings.farIntervalMs, nearMs);
+	return nearMs + static_cast<uint64_t>(static_cast<double>(farMs - nearMs) * std::min(1.0, distance / Extent(settings)));
 }
 bool Nearer(const Cue& a, const Cue& b) { return a.distance < b.distance || (a.distance == b.distance && a.id < b.id); }
 }
@@ -43,7 +58,7 @@ static std::vector<Cue> LegacySelect(const Radar::World& world, const std::vecto
 		if (!kind) continue;
 		const double dx = entity.position.x - world.player.x, dy = entity.position.y - world.player.y;
 		const double distance = std::hypot(dx, dy);
-		if (!std::isfinite(distance) || distance > settings.range) continue;
+		if (!std::isfinite(distance) || !InArea(world.player, entity.position, distance, *kind, settings)) continue;
 		auto& slot = nearest[static_cast<size_t>(*kind)];
 		if (slot && (distance > slot->distance || (distance == slot->distance && entity.id >= slot->id))) continue;
 		if (!EntityRadar::LineOfSight(world, world.player, entity.position)) continue;
@@ -54,9 +69,7 @@ static std::vector<Cue> LegacySelect(const Radar::World& world, const std::vecto
 			cue.right = (dx / distance - dy / distance) * std::numbers::sqrt2 / 2;
 			cue.front = -(dx / distance + dy / distance) * std::numbers::sqrt2 / 2;
 		}
-		const auto nearMs = std::max(settings.nearIntervalMs, settings.gapMs);
-		const auto farMs = std::max(settings.farIntervalMs, nearMs);
-		cue.intervalMs = nearMs + static_cast<uint64_t>(static_cast<double>(farMs - nearMs) * (distance / settings.range));
+		cue.intervalMs = IntervalMs(distance, settings);
 		slot = cue;
 	}
 	std::vector<Cue> selected;
@@ -74,8 +87,7 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 	if (!std::isfinite(world.player.x) || !std::isfinite(world.player.y)
 		|| !std::isfinite(settings.range) || settings.range <= 0) return {};
 	if (!settings.ordinary) return LegacySelect(world, entities, settings);
-	const auto nearMs = std::max(settings.nearIntervalMs, settings.gapMs);
-	const auto farMs = std::max(settings.farIntervalMs, nearMs);
+	const size_t maxVoices = std::clamp<size_t>(settings.maxVoices, 1, MaxVoices);
 	std::array<std::optional<Cue>, KindCount> nearest;
 	struct Candidate { Cue cue; Radar::Position position; };
 	std::vector<Candidate> ordinary;
@@ -84,9 +96,9 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 		if (!kind) continue;
 		const auto bearing = BearingOf(world.player, entity.position);
 		const double distance = bearing.distance;
-		if (!std::isfinite(distance) || distance > settings.range) continue;
+		if (!std::isfinite(distance) || !InArea(world.player, entity.position, distance, *kind, settings)) continue;
 		Cue cue{entity.id, *kind, distance, bearing.right, bearing.front};
-		cue.intervalMs = nearMs + static_cast<uint64_t>(static_cast<double>(farMs - nearMs) * (distance / settings.range));
+		cue.intervalMs = IntervalMs(distance, settings);
 		cue.slot = static_cast<size_t>(*kind);
 		// Ordinary enemies are ranked first and only the nearest few pay for a terrain ray.
 		if (*kind == Kind::Ordinary) { ordinary.push_back({cue, entity.position}); continue; }
@@ -97,12 +109,12 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 	}
 	std::vector<Cue> selected;
 	for (const auto kind : Priorities)
-		if (const auto& cue = nearest[static_cast<size_t>(kind)]; cue && selected.size() < MaxEnemyStreams) selected.push_back(*cue);
+		if (const auto& cue = nearest[static_cast<size_t>(kind)]; cue && selected.size() < maxVoices) selected.push_back(*cue);
 	std::sort(ordinary.begin(), ordinary.end(), [](const Candidate& a, const Candidate& b) { return Nearer(a.cue, b.cue); });
 	// One slot per rank, so the nearest enemy changing does not restart its cadence.
 	size_t rank = 0;
 	for (auto& candidate : ordinary) {
-		if (selected.size() >= MaxEnemyStreams || rank >= MaxOrdinary) break;
+		if (selected.size() >= maxVoices || rank >= MaxOrdinary) break;
 		if (!EntityRadar::LineOfSight(world, world.player, candidate.position)) continue;
 		candidate.cue.slot = static_cast<size_t>(Kind::Ordinary) + rank++;
 		selected.push_back(candidate.cue);

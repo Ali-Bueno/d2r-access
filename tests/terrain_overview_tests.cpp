@@ -69,10 +69,10 @@ void Spoken() {
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
 	Check(summary.valid && summary.place == 4, "the fixture puts the player in the centre");
 	const std::string text = TerrainOverview::Speak(summary, "Blood Moor", Scan, English);
-	Check(text == "Blood Moor, centre, 22 percent explored. ahead: edge at 49 steps, explored."
+	Check(text == "Blood Moor, centre, 22 percent explored. up: edge at 49 steps, explored."
 		" to the left: edge at 42 steps, unexplored from 14 steps."
 		" to the right: edge at 42 steps, unexplored from 14 steps."
-		" behind: Rogue Encampment at 42 steps, unexplored from 14 steps",
+		" down: Rogue Encampment at 42 steps, unexplored from 14 steps",
 		"the overview names the level, the place, the share seen and each direction");
 	Check(summary.percent == 22, "two of nine rooms seen is 22 percent, rounded down");
 	Check(TerrainOverview::Describe(Level({}), At(106, 106)).percent == 0, "nothing seen is 0 percent");

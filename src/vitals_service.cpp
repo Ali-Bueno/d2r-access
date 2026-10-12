@@ -12,6 +12,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "vitals.h"
+#include "weapon_swap.h"
 
 #include <D2RLPlugin/context.h>
 #include <D2RLPlugin/input.h>
@@ -52,6 +53,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
+bool g_movementAlerts = true, g_ammoAlerts = true;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
 std::string_view g_lastMercSource;
@@ -62,6 +64,10 @@ Vitals::OrbAvailability g_orbAvailability;
 Vitals::Condition g_poison;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
+Vitals::GaitTracker g_gait;
+Vitals::StaminaMeter g_stamina;
+Vitals::AmmoMeter g_ammo;
+bool g_runToggled = false; // L3 pressed in play since the last orb sample
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
 
@@ -80,6 +86,66 @@ void Append(std::string& text, std::string_view phrase) {
 	if (phrase.empty()) return;
 	if (!text.empty()) text += ". ";
 	text += phrase;
+}
+
+int StaminaPercent(const NativeStatus::Movement& movement) {
+	return Vitals::Percent(movement.stamina, movement.maxStamina);
+}
+
+// The stacks among the weapons in hand, with the items they came from.
+std::vector<std::pair<Vitals::AmmoMeter::Stack, const Vitals::Breakage::Item*>> InHand(
+	const std::vector<Vitals::Breakage::Item>& worn) {
+	std::vector<std::pair<Vitals::AmmoMeter::Stack, const Vitals::Breakage::Item*>> hands;
+	for (const auto& item : worn)
+		if (item.bodyLocation == WeaponSwap::RightHand || item.bodyLocation == WeaponSwap::LeftHand)
+			hands.push_back({{item.id, item.quantity}, &item});
+	return hands;
+}
+
+std::string AmmoPhrase(const Vitals::Breakage::Item& item, int quantity) {
+	char phrase[200]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().ammoLeft, EquipmentCensus::Name(item).c_str(), quantity);
+	return phrase;
+}
+
+// The stacks in hand right now, "Arrows: 120 left", for the on-demand report.
+std::string AmmoReport(const D2RL::PluginContext* context) {
+	std::vector<Vitals::Breakage::Item> worn;
+	if (EquipmentCensus::Read(context, worn) != EquipmentCensus::Result::Read) return {};
+	const auto hands = InHand(worn);
+	std::vector<Vitals::AmmoMeter::Stack> stacks;
+	for (const auto& [stack, item] : hands) stacks.push_back(stack);
+	std::string text;
+	for (const auto& stack : g_ammo.Known(stacks))
+		for (const auto& [held, item] : hands)
+			if (held.id == stack.id) Append(text, AmmoPhrase(*item, stack.quantity));
+	return text;
+}
+
+// Walking or running, from the game's L3 toggle at once and from the
+// character's movement after; stamina as it falls while running.
+void AnnounceMovement(const D2RL::PluginContext* context, bool toggled) {
+	const auto movement = NativeStatus::PlayerMovement();
+	std::optional<Vitals::Gait> gait = toggled ? g_gait.Toggle() : std::nullopt;
+	int stamina = -1;
+	if (movement) {
+		const auto observed = movement->running ? std::optional(Vitals::Gait::Run)
+			: movement->walking ? std::optional(Vitals::Gait::Walk) : std::nullopt;
+		// The game applies the toggle a frame or more later: this sample still shows the old gait.
+		if (!toggled)
+			if (const auto changed = g_gait.Observe(observed)) gait = changed;
+		stamina = g_stamina.Update(StaminaPercent(*movement));
+	}
+	if (!gait && stamina < 0) return;
+	const auto& strings = Strings::Current();
+	std::string text;
+	if (stamina == 0) Append(text, strings.staminaOut);
+	else if (stamina > 0) Append(text, FormattedPercent(strings.staminaPercent, stamina));
+	if (gait) Append(text, *gait == Vitals::Gait::Run ? strings.gaitRunning : strings.gaitWalking);
+	AsyncLog::InfoF(context, "[vitals] movement gait=%d stamina_alert=%d toggled=%d raw=%d/%d", gait ? static_cast<int>(*gait) : -1,
+		stamina, toggled, movement ? movement->stamina : -1, movement ? movement->maxStamina : -1);
+	// The toggle answers the button just pressed; the rest waits its turn.
+	ScreenReader::Speak(text, toggled);
 }
 
 std::string MercenaryLevel(int level) {
@@ -153,6 +219,11 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		if (!text.empty()) text += ". ";
 		text += strings.playerPoisoned;
 	}
+	if (const auto movement = g_statusSupported ? NativeStatus::PlayerMovement() : std::nullopt) {
+		const int stamina = StaminaPercent(*movement);
+		if (stamina >= 0 && stamina < 100) Append(text, FormattedPercent(strings.staminaPercent, stamina));
+	}
+	Append(text, AmmoReport(context));
 	if (g_statusSupported) {
 		const auto mercenary = NativeStatus::MercenaryLife();
 		if (mercenary) {
@@ -204,6 +275,15 @@ void SweepDurability(const D2RL::PluginContext* context) {
 	case EquipmentCensus::Result::Read: break;
 	}
 	LogWorn(context, worn);
+	const auto hands = InHand(worn);
+	std::vector<Vitals::AmmoMeter::Stack> stacks;
+	for (const auto& [stack, item] : hands) stacks.push_back(stack);
+	if (const auto low = g_ammo.Update(stacks); low && g_ammoAlerts)
+		for (const auto& [held, item] : hands)
+			if (held.id == low->id) {
+				AsyncLog::InfoF(context, "[vitals] stack in hand low: id=%u quantity=%d", low->id, low->quantity);
+				ScreenReader::Speak(AmmoPhrase(*item, low->quantity), false);
+			}
 	const auto& labels = Strings::Current().equipmentSlots;
 	for (const int location : g_breakage.Sweep(worn)) {
 		const char* slot = location > 0 && static_cast<size_t>(location) < labels.size()
@@ -308,6 +388,9 @@ void Reset() {
 	g_poison.Reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
+	g_gait.Reset();
+	g_stamina.Reset();
+	g_ammo.Reset();
 	g_worn.clear();
 	g_hintedMask = 0;
 	g_lastMercSource = {};
@@ -331,6 +414,8 @@ bool BackRequested() {
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
+	// Always taken, so a press made in a menu is never heard later.
+	if (InputDirection::TakeLeftStickClick() && RadarUi::InPlay()) g_runToggled = true;
 	if (command == Command::Life || command == Command::Mana) Report(context, command);
 	else if (command == Command::Report || BackRequested()) Report(context);
 	if (command == Command::On || command == Command::Off) {
@@ -341,7 +426,10 @@ void Tick(const D2RL::PluginContext* context) {
 	// the automatic announcements are on.
 	if (command == Command::On || command == Command::Off || command == Command::Status)
 		ScreenReader::Speak(g_enabled ? Strings::Current().vitalsEnabled : Strings::Current().vitalsDisabled, true);
-	if (!g_enabled || !NativeWidgets::IsAvailable()) return;
+	if (!g_enabled || !NativeWidgets::IsAvailable()) {
+		g_runToggled = false;
+		return;
+	}
 	const uint64_t now = GetTickCount64();
 	if (now >= g_nextOrb) {
 		g_nextOrb = now + OrbSampleMs;
@@ -353,6 +441,8 @@ void Tick(const D2RL::PluginContext* context) {
 			g_orbAvailability.Reset();
 			g_poison.Reset();
 			g_mercenary.Reset();
+			g_gait.Reset();
+			g_stamina.Reset();
 			g_hintedMask = 0;
 			g_lastMercSource = {};
 			g_lastMercId = 0;
@@ -382,6 +472,8 @@ void Tick(const D2RL::PluginContext* context) {
 				const auto changed = g_poison.Update(NativeStatus::PlayerPoisoned());
 				if (changed) ScreenReader::Speak(*changed ? Strings::Current().playerPoisoned
 					: Strings::Current().playerPoisonCleared, false);
+				if (g_movementAlerts) AnnounceMovement(context, g_runToggled);
+				g_runToggled = false;
 			}
 		}
 	}
@@ -397,4 +489,12 @@ void Tick(const D2RL::PluginContext* context) {
 // and the same change the console command makes.
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
+bool MovementAlerts() { return g_movementAlerts; }
+void SetMovementAlerts(bool enabled) {
+	g_movementAlerts = enabled;
+	g_gait.Reset();
+	g_stamina.Reset();
+}
+bool AmmoAlerts() { return g_ammoAlerts; }
+void SetAmmoAlerts(bool enabled) { g_ammoAlerts = enabled; }
 }

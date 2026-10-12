@@ -24,6 +24,9 @@ inline constexpr uint32_t OnGround = 3, Dropping = 5;
 inline constexpr int GoldStat = 14; // ItemStatCost.txt 'gold'; also native 0x370C90
 inline constexpr int StashGoldStat = 15; // ItemStatCost.txt 'goldbank', the row after 'gold'
 inline constexpr uint32_t Death = 0, Dead = 17; // native player modes
+// D2C_PlayerModes (D2MOO Units/Player.h); native 0x7D96D0 tests run == 3 (docs/footsteps.md).
+inline constexpr uint32_t Walk = 2, Run = 3, TownWalk = 6;
+inline constexpr int StaminaStat = 10, MaxStaminaStat = 11; // ItemStatCost.txt 'stamina', 'maxstamina'
 inline constexpr size_t MaxRooms = 64, MaxUnits = 4096, MaxTableRows = 65536, MaxTypeDepth = 16;
 inline constexpr double PositionScale = 65536; // native unsigned 16.16 position
 // `mayBeDetoured` marks a function the reader only ever calls, never reads for

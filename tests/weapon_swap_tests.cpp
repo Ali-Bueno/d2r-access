@@ -49,6 +49,9 @@ void Phrases() {
 	Check(WeaponSwap::Phrase({"Mandoble"}) == "Mandoble", "a two-handed weapon fills the phrase alone");
 	Check(WeaponSwap::Phrase({}) == "sin armas", "empty hands say so");
 	Check(WeaponSwap::Phrase({"", "Escudo"}) == "Escudo", "an unnamed item is left out");
+	Strings::Select(Strings::Language::enUS);
+	Check(WeaponSwap::Phrase({"Long Bow", "Quiver"}, 2) == "Weapon set 2, Long Bow, Quiver", "the set number leads when asked for");
+	Check(WeaponSwap::Phrase({}, 1) == "Weapon set 1, no weapons", "even with empty hands");
 }
 }
 

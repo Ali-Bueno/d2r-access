@@ -2,6 +2,8 @@
 
 #include "async_log.h"
 #include "auto_detail.h"
+#include "character_stats_reader.h"
+#include "focus_tracker.h"
 #include "auto_walk.h"
 #include "beacon.h"
 #include "beacon_navigation.h"
@@ -16,6 +18,7 @@
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
 #include "ground_item_service.h"
+#include "grid_edge_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
 #include "interaction_reader.h"
@@ -51,6 +54,7 @@
 #include "room_service.h"
 #include "screen_reader.h"
 #include "settings_list.h"
+#include "sound_glossary.h"
 #include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
@@ -160,8 +164,8 @@ std::atomic<int> g_testX{0}, g_testY{0};
 // act on the world are left to the game, so A still opens the character screen
 // from a menu and Tab is the game's own there.
 std::atomic<bool> g_playing{false};
-// While the settings list is open the reading keys step through it and Space
-// changes a switch; closed, Space is the game's.
+// While the settings list is open the reading keys (or the pad's right stick)
+// step through it and Space changes a switch; closed, Space is the game's.
 std::atomic<bool> g_settingsOpen{false};
 SettingsList::Menu g_settings;
 Strings::Language g_settingsLanguage{};
@@ -426,12 +430,16 @@ std::string Describe(const Radar::World& world, const Entity& entity, int steps)
 	return Format(strings.surveySteps, EntityRadar::SpokenName(entity, strings.listSeparator).c_str(), distance.c_str(), direction);
 }
 
-void End(const char* reason, bool halt) {
-	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
+void CancelMovement(bool halt) noexcept {
 	g_mode = Mode::Idle;
 	g_walker.Stop();
 	g_closing = g_backing = false;
 	if (halt) (void)NativeActions::Halt();
+}
+
+void End(const char* reason, bool halt) {
+	if (g_mode != Mode::Idle) AsyncLog::InfoF(g_context, "[keyboard] ended: %s", reason);
+	CancelMovement(halt);
 }
 
 bool Ready() {
@@ -1525,12 +1533,20 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
+		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
+		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
 		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
 		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
 		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
+		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
+		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
+		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
+		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
+		{GroundItemService::PickupClick, GroundItemService::SetPickupClick, phrase(&T::pickupClickOn, &T::pickupClickOff), false, "pickup-click"},
+		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
 		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
@@ -1539,12 +1555,17 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
+		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
+		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
 	};
 	return entries;
 }
 
+// The switches, then the sound glossary: sounds to hear, nothing to save.
 SettingsList::Menu BuildSettings() {
-	return SettingsList::Menu(SettingEntries(), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	auto entries = SettingEntries();
+	for (auto& sound : SoundGlossary::Entries()) entries.push_back(std::move(sound));
+	return SettingsList::Menu(std::move(entries), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
 }
 
 // ---- the switches kept between sessions ----
@@ -1637,6 +1658,24 @@ bool Settings(Command command, uint64_t now) {
 		ScreenReader::Speak(text, true);
 	}
 	return spent;
+}
+
+// The pad's Ctrl+S, Page Up/Down and Space: BACK+RB opens and shuts the list,
+// in play (where the pad filter keeps that RB from the game) or to shut it
+// anywhere, and while it is open the right stick steps through it (up, down)
+// and changes the switch (left, right) before the scanner or a menu can take
+// the push. BACK+RB is taken every update, so an old press is never acted on.
+Command PadSettings(bool inPlay) {
+	using InputDirection::StickPush;
+	if (InputDirection::TakeBackWithRb() && (inPlay || g_settingsOpen.load())) return Command::Settings;
+	if (!g_settingsOpen.load() || InputDirection::PeekRightStickPush() == StickPush::None) return Command::None;
+	switch (InputDirection::TakeRightStickPush("settings")) {
+	case StickPush::Up:   return Command::ReadPrevious;
+	case StickPush::Down: return Command::ReadNext;
+	case StickPush::Left:
+	case StickPush::Right: return Command::SettingsChange;
+	default: return Command::None;
+	}
 }
 
 // ---- console: the first live tests ----
@@ -1891,6 +1930,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (g_sort.exchange(false) && !KeyboardMenu::Sort(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (g_fill.exchange(false) && !KeyboardMenu::FillBelt(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
+	if (const Command pad = PadSettings(inPlay); command == Command::None) command = pad;
 	if (Settings(command, now)) command = Command::None;
 	if (command == Command::Swap && state.ready) Swap(context, now);
 	SwapAnswer(context, now);
@@ -2002,6 +2042,22 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+void CancelAfterFault() noexcept {
+	const bool moving = g_mode != Mode::Idle || g_stepping;
+	CancelMovement(moving && g_playing.load());
+	g_command = Command::None;
+	g_deferred = Command::None;
+	g_press = nullptr;
+	g_sort = g_fill = false;
+	g_swapAsked = 0;
+	for (auto& held : g_held) held = 0;
+	for (auto& pressed : g_pressed) pressed = false;
+	g_stepping = false;
+	g_padUse.active = false;
+	g_lock.Clear();
+	g_itemPick = 0;
 }
 
 void Unregister() {

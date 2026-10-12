@@ -2,6 +2,36 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## New tester's report — 2026-10-11 (overnight, not committed)
+
+A new collaborator's list (controller, English game) was worked through; what changed and the
+defaults kept for the user are in [decisions](docs/decisions.md#2026-10-11--a-new-testers-report-what-changed-and-what-stays-the-users-choice).
+- Pad: beacon moved to **BACK+LB** (L3 is the game's walk/run toggle). Walk/run, stamina and
+  ammunition announcements ([vitals](docs/vitals.md)); weapon set number as a switch.
+- Beacon arrival at 3 subtiles from the exact position; a target that vanishes on arrival is
+  reached. Scanner enemies follow their unit and are dropped when dead ([scanner](docs/entity-scan.md)).
+  "Right here" under 1.5 subtiles. English: up/down, "passages" between rooms.
+- Growls from the screen edge, 6 voices; pan/pitch strength settings ([entity cues](docs/entity-cues.md)).
+- UI: title prompt, typed-text echo, skill-tree branch first, vendor LT/RT tabs, stat points and
+  Strength focus, tome quantity, no more "scroll controller", screen hints.
+- Pickup-range click, inventory edge knock; town NPCs everywhere and the weapon set number are
+  switches, on by default (the user, 2026-10-12).
+- Wall bump thud (Last Epoch's design, from the wall-slide hook's refused moves) and a small
+  obstacle knock on the radar ([radar readings](docs/radar-readings.md)); sound glossary at the
+  end of the Ctrl+S list (`src/sound_glossary.cpp`).
+- Tester package docs are English (`packaging/tester/README.txt`, `KEYBOARD.txt`); the published
+  release notes were rewritten in English.
+- The settings list (and its sound glossary) on the pad: **BACK+RB**, then the right stick
+  (up/down step, left/right change); see [decisions](docs/decisions.md) 2026-10-12.
+- bladestorm360's stability fix (`4c88812`, allocation containment and worker teardown) is
+  applied on main ([stability](docs/stability.md)).
+
+Every item is built and unit-tested only (112/112 CTest): no live check. Installed DLL
+SHA-256 `F96726AC…` matches the build. An independent review found no crash or
+hang; its four behaviour bugs and two minor ones are fixed. **Next step:** the user (or the tester)
+checks BACK+LB and BACK+RB, the walk/run speech and stamina values in `[vitals] movement`, the growl range in
+a pack, the title prompt and the text echo; then commit and publish a test release.
+
 ## Test releases — 2026-10-11
 
 `tools\test-release.ps1` builds `HEAD` in a separate tree (the install is untouched), runs CTest,

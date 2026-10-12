@@ -23,8 +23,10 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <mutex>
 #include <optional>
 #include <unordered_set>
+#include <utility>
 
 namespace D2RAccess::NativeEntities {
 namespace {
@@ -159,6 +161,15 @@ std::string ComposedName(uintptr_t data) {
 	std::vector<std::string> parts;
 	for (size_t i = 1; i < ids.size() && ids[i] != NoText; ++i) parts.push_back(Localization::Text(ids[i]));
 	return MonsterPlate::Compose(format, parts);
+}
+std::mutex g_deadMutex;
+std::vector<uint32_t> g_deadMonsters;
+void NoteDead(uintptr_t unit) {
+	uint32_t mode = 0, id = 0;
+	if (!Peek(unit + UnitMode, mode) || (mode != MonsterDeath && mode != MonsterDead) || !Peek(unit + UnitId, id)) return;
+	std::lock_guard lock(g_deadMutex);
+	if (g_deadMonsters.size() < MaxUnits && std::find(g_deadMonsters.begin(), g_deadMonsters.end(), id) == g_deadMonsters.end())
+		g_deadMonsters.push_back(id);
 }
 bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
@@ -653,6 +664,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (!Peek(unit + UnitType, unitType)) { if (past) break; return false; }
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
+			if (unitType == MonsterType) NoteDead(unit);
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
@@ -710,6 +722,11 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	output = std::move(entities);
 	return true;
 }
+std::vector<uint32_t> TakeDeadMonsters() {
+	std::lock_guard lock(g_deadMutex);
+	return std::exchange(g_deadMonsters, {});
+}
+
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }

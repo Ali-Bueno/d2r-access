@@ -179,17 +179,20 @@ bool Register(const D2RL::PluginContext* context) {
 	g_settings.enemies = config.enemies.value_or(g_settings.enemies);
 	g_settings.ranged = config.ranged.value_or(g_settings.ranged);
 	g_settings.range = config.range.value_or(g_settings.range);
+	g_settings.onScreen = config.onScreen.value_or(g_settings.onScreen);
+	g_settings.maxVoices = config.maxVoices.value_or(g_settings.maxVoices);
 	g_settings.ordinary = config.ordinary.value_or(g_settings.ordinary);
 	g_reachCue = config.reach.value_or(g_reachCue);
 	g_reachSettings.mode = config.attack.value_or(g_reachSettings.mode);
 	g_reachSettings.meleeReach = config.meleeReach.value_or(g_reachSettings.meleeReach);
-	g_reachSettings.rangedReach = config.rangedReach.value_or(g_settings.range);
+	g_reachSettings.rangedReach = config.rangedReach.value_or(g_reachSettings.rangedReach);
 	(void)context->RegisterConsoleCommand("access-entity-cues", Console,
 		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
-	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0);
-	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
+	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0,
+		RadarConfig::StrengthScale(config.panStrength), RadarConfig::StrengthScale(config.pitchStrength));
+	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f on_screen=%u voices=%zu npc=%u enemy=%u ranged=%u",
 		g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
-		g_settings.npcs, g_settings.enemies, g_settings.ranged);
+		g_settings.onScreen, g_settings.maxVoices, g_settings.npcs, g_settings.enemies, g_settings.ranged);
 	return true;
 }
 

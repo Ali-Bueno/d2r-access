@@ -8,6 +8,18 @@
 namespace D2RAccess::Radar {
 namespace {
 double Distance(Position a, Position b) { return std::hypot(a.x-b.x, a.y-b.y); }
+// A body stopped at a footprint position meets small clutter when every
+// blocked cell under it is clutter.
+bool SmallAhead(const World& structure, int x, int y) {
+	const int reach = structure.bodyPattern == 0 ? 0 : 1;
+	bool blocked = false;
+	for (int dy = -reach; dy <= reach; ++dy) for (int dx = -reach; dx <= reach; ++dx) {
+		if (structure.Cell(x + dx, y + dy) != State::Blocked) continue;
+		if (!SmallObstacle(structure, x + dx, y + dy)) return false;
+		blocked = true;
+	}
+	return blocked;
+}
 }
 void Engine::Reset() {
 	const uint64_t nextRevision = revision_ + 1;
@@ -80,6 +92,7 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		sensor.baseline = true;
 		sensor.state = passage.observed;
 		sensor.unexplored = passage.unexplored;
+		sensor.small = passage.small;
 	} else if (passage.observed == sensor.state && passage.unexplored == sensor.unexplored) {
 		sensor.candidate = State::Unknown;
 	} else if (sensor.candidate != passage.observed || sensor.candidateUnexplored != passage.unexplored) {
@@ -93,6 +106,7 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		if (travelled || stationary) {
 			sensor.state = passage.observed;
 			sensor.unexplored = passage.unexplored;
+			sensor.small = passage.small;
 			sensor.candidate = State::Unknown;
 			sensor.deferred = sensor.state; // replaces any older change still waiting
 			sensor.deferredUnexplored = sensor.unexplored;
@@ -169,9 +183,10 @@ bool Engine::Qualify(const Passage& passage, const World& world, size_t directio
 	}
 	return direction < world.frontier.size() && world.frontier[direction];
 }
-Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
+Events Engine::Tick(const World& world, uint64_t now, Marks* marks, Marks* small) {
 	Events events{};
 	if (marks) *marks = {};
+	if (small) *small = {};
 	// Preserve subcell movement for confirmation and the actual-motion readout.
 	// The collision adapter still supplies the native integer footprint origin.
 	const Position motion{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
@@ -205,10 +220,14 @@ Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
 	const auto& rays = RaysOf(settings_.frame);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		query.committed = sensors_[i].state;
-		sensors_[i].passage = ScanPassage(grid, rays[i].world, query);
-		sensors_[i].passage.unexplored = Qualify(sensors_[i].passage, world, i);
+		auto& passage = sensors_[i].passage;
+		passage = ScanPassage(grid, rays[i].world, query);
+		passage.unexplored = Qualify(passage, world, i);
+		passage.small = world.smallObstacles && passage.available && passage.observed == State::Blocked
+			&& passage.obstacle && SmallAhead(structure, passage.obstacleX, passage.obstacleY);
 		events[i] = Observe(sensors_[i], rays[i].world, motion, now);
 		if (marks && events[i] != State::Unknown) (*marks)[i] = sensors_[i].lastCueUnexplored;
+		if (small && events[i] == State::Blocked) (*small)[i] = sensors_[i].small;
 	}
 	return events;
 }

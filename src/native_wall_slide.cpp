@@ -11,6 +11,8 @@ namespace {
 constexpr uintptr_t ProbeRva = 0x3AA030;
 // Two 45-degree snapped retries followed by the eight-direction fallback.
 constexpr uintptr_t SnappedReturn = 0x3AB2A1, CenteredReturn = 0x3AB2F6, AlternateReturn = 0x3AB6B4;
+// The solver's first probe, along the stick's own direction; it always precedes the fallbacks.
+constexpr uintptr_t DesiredReturn = 0x3AB24C;
 constexpr size_t ContextPath = 0x38, PathType = 0x50, PathOwner = 0x40;
 constexpr size_t UnitType = 0, UnitPath = 0x38;
 // Set by the native directional input handlers 0x429860 and 0xFB370.
@@ -27,6 +29,9 @@ constexpr Evidence Checks[] = {
 };
 ProbeFn g_original = nullptr;
 uintptr_t g_base = 0;
+// The desired direction of the solver call under way on this thread.
+thread_local float t_desired[2]{};
+thread_local bool t_haveDesired = false;
 void ProbeMovement(uintptr_t context, const float* start, const float* direction, int distance,
 	uint32_t* point, float* travel, float* alignment, int16_t* collision) {
 	Dispatch({context, start, direction, distance, point, travel, alignment, collision},
@@ -57,8 +62,13 @@ bool IsLocalDirectionalAttempt(uintptr_t pathContext) noexcept {
 }
 
 void Dispatch(const Probe& probe, uintptr_t returnRva, ProbeFn original) {
+	if (returnRva == DesiredReturn && probe.direction) {
+		t_desired[0] = probe.direction[0];
+		t_desired[1] = probe.direction[1];
+		t_haveDesired = true;
+	}
 	const bool fallback = returnRva == SnappedReturn || returnRva == CenteredReturn || returnRva == AlternateReturn;
-	const bool prevent = fallback && WallSlideService::Prevent(probe.context);
+	const bool prevent = fallback && WallSlideService::Prevent(probe.context, t_haveDesired ? t_desired : nullptr);
 	original(probe.context, probe.start, probe.direction, prevent ? 0 : probe.distance,
 		probe.point, probe.travel, probe.alignment, probe.collision);
 }

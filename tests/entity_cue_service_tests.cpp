@@ -95,7 +95,7 @@ std::optional<AttackReach::Loadout> ReadLoadout(const D2RL::PluginContext*) { ++
 namespace D2RAccess::RadarConfig { EntityCueSettings ReadEntityCues(const D2RL::PluginContext*) { return {}; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
 namespace D2RAccess::EntityCueAudio {
-bool Start(const D2RL::PluginContext*, double) { ++starts; return audioStartSucceeds; }
+bool Start(const D2RL::PluginContext*, double, double, double) { ++starts; return audioStartSucceeds; }
 void Play(Sound sound, Placement place) { plays.push_back({sound, place}); }
 void Silence() { ++silences; }
 void Stop() { ++stops; }

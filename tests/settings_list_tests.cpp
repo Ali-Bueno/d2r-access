@@ -57,6 +57,18 @@ int main() {
 
 	SettingsList::Menu empty;
 	Check(empty.Toggle(0).empty() && !empty.Open(), "a list with no switches does not open");
+
+	// The sound glossary rides on the list: a sound plays where the list lands on it.
+	int played = 0;
+	SettingsList::Entry sound;
+	sound.on = [] { return false; };
+	sound.set = [](bool) {};
+	sound.say = [](bool) { return std::string("Sound: wall"); };
+	sound.preview = [&played] { ++played; };
+	SettingsList::Menu glossary({sound}, "Settings", "Settings closed");
+	Check(glossary.Toggle(0) == "Settings. Sound: wall" && played == 1, "opening on a sound names it and plays it");
+	Check(glossary.Step(1, 10) == "Sound: wall" && played == 2, "stepping onto a sound plays it");
+	Check(glossary.Change(20).empty() && played == 3, "a change plays it again and says nothing over it");
 	Passed();
 	return 0;
 }

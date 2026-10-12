@@ -20,7 +20,7 @@ constexpr SHORT kThumbstickMaxMagnitude = std::numeric_limits<SHORT>::max();
 // Intentionally much larger than the small anti-drift deadzone XInput itself
 // recommends (XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE): this one has to signal a
 // deliberate directional push, not just that the stick is off-center.
-constexpr float kThumbstickDirectionDeadzoneFraction = 0.5f;
+constexpr float kThumbstickDirectionDeadzoneFraction = StickPushFraction;
 constexpr SHORT kThumbstickDirectionThreshold         = static_cast<SHORT>(kThumbstickMaxMagnitude * kThumbstickDirectionDeadzoneFraction);
 
 // Per GetAsyncKeyState's documented contract: the high bit of the return
@@ -46,6 +46,8 @@ struct PadEdgeState {
 	bool yHeld          = false;
 	bool rightStickHeld = false;
 	bool leftThumbHeld  = false;
+	bool lbHeld         = false;
+	bool rbHeld         = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -57,7 +59,7 @@ DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
-bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
+bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
@@ -216,9 +218,9 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
-				g_leftStickClick = true;
-			}
+			if (UpdateEdge(edges.lbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0) && backDown) g_backWithLb = true;
+			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0) && backDown) g_backWithRb = true;
+			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) g_leftStickClick = true;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
 				// is about to be overwritten. Record that before it goes.
@@ -272,6 +274,16 @@ bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;
 	g_leftStickClick = false;
 	return clicked;
+}
+bool TakeBackWithLb() {
+	const bool pressed = g_backWithLb;
+	g_backWithLb = false;
+	return pressed;
+}
+bool TakeBackWithRb() {
+	const bool pressed = g_backWithRb;
+	g_backWithRb = false;
+	return pressed;
 }
 bool TakeBackWith(FaceButton button) {
 	bool* pressed = button == FaceButton::A ? &g_backWithA : button == FaceButton::B ? &g_backWithB
@@ -341,7 +353,7 @@ void PostBackWith(FaceButton button) {
 	else if (button == FaceButton::X) g_backWithX = true;
 	else if (button == FaceButton::Y) g_backWithY = true;
 }
-void PostLeftStickClick() { g_leftStickClick = true; }
+void PostBackWithLb() { g_backWithLb = true; }
 void PostFacePress(FaceButton button) {
 	if (button == FaceButton::B) g_pressedB = true;
 }

@@ -32,7 +32,7 @@ private:
 	std::optional<Pending> pending_;
 };
 
-// "Arco largo, Carcaj" or "sin armas": the weapons now in hand, with no set
-// number (the user, 2026-09-27).
-std::string Phrase(const std::vector<std::string>& weapons);
+// "Arco largo, Carcaj" or "sin armas": the weapons now in hand. The set number
+// leads when its switch is on, as it is by default (the user, 2026-10-12).
+std::string Phrase(const std::vector<std::string>& weapons, std::optional<int> set = std::nullopt);
 }

@@ -54,7 +54,7 @@ std::optional<bool> ReadEnabled(const D2RL::PluginContext*, std::string_view sec
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
 }
-namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
 
 int main() {
 	Strings::Select(Strings::Language::enUS);
@@ -69,12 +69,22 @@ int main() {
 	Check(Command("off") == D2RL::ConsoleCommandResult::Handled && speech.back() == Strings::Current().movementDisabled,
 		"off disables prevention and announces the state");
 	directionalCalls = 0;
-	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "disabled prevention passes through without native reads");
+	const auto before = WallSlideService::LastBlocked().attempts;
+	const float push[2]{0.6f, 0.8f};
+	Check(!WallSlideService::Prevent(0x1234, push) && directionalCalls == 1, "disabled prevention passes through");
+	const auto blocked = WallSlideService::LastBlocked();
+	Check(blocked.attempts == before + 1 && blocked.x == 0.6f && blocked.y == 0.8f,
+		"a refused attempt is counted with its push even when sliding is allowed (the wall bump)");
+	directional = false;
+	Check(!WallSlideService::Prevent(0x1234) && WallSlideService::LastBlocked().attempts == before + 1,
+		"another unit's attempt is never counted");
+	directional = true;
 	Check(!WallSlideService::Enabled(), "with prevention off the radar is told the game slides again");
 	Check(Command("on") == D2RL::ConsoleCommandResult::Handled && WallSlideService::Prevent(0x1234), "on restores supported prevention");
 	Check(Command("bad") == D2RL::ConsoleCommandResult::InvalidArguments, "invalid movement command is rejected");
 	WallSlideService::Unregister(); directionalCalls = 0;
 	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "shutdown restores pass-through behavior");
+	Check(WallSlideService::LastBlocked().attempts == 0, "and forgets the attempts counted");
 
 	Reset(); configured = false;
 	WallSlideService::Register(&context, true);

@@ -95,6 +95,88 @@ std::optional<bool> Condition::Update(std::optional<bool> active) {
 
 void Condition::Reset() { previous_.reset(); }
 
+std::optional<Gait> GaitTracker::Observe(std::optional<Gait> moving) {
+	if (!moving) return std::nullopt;
+	if (!known_) {
+		known_ = moving;
+		return std::nullopt;
+	}
+	if (*moving == *known_) {
+		pending_.reset();
+		return std::nullopt;
+	}
+	held_ = pending_ == moving ? held_ + 1 : 1;
+	pending_ = moving;
+	if (held_ < GaitConfirmSamples) return std::nullopt;
+	known_ = moving;
+	pending_.reset();
+	return moving;
+}
+
+std::optional<Gait> GaitTracker::Toggle() {
+	if (!known_) return std::nullopt;
+	known_ = *known_ == Gait::Run ? Gait::Walk : Gait::Run;
+	pending_.reset();
+	return known_;
+}
+
+void GaitTracker::Reset() {
+	known_.reset();
+	pending_.reset();
+	held_ = 0;
+}
+
+namespace {
+// How many steps a value sits at or below, one more once it is empty.
+template<size_t N> int Depth(const int (&steps)[N], int value) {
+	int depth = value <= 0 ? 1 : 0;
+	for (const int step : steps) depth += value <= step ? 1 : 0;
+	return depth;
+}
+}
+
+int StaminaMeter::Update(int percent) {
+	if (percent < 0) return -1;
+	const int depth = Depth(StaminaSteps, percent);
+	if (depth_ < 0 || depth < depth_) {
+		const int rearmed = Depth(StaminaSteps, percent - StaminaRearm);
+		if (depth_ < 0 || rearmed < depth_) depth_ = depth_ < 0 ? depth : rearmed;
+		return -1;
+	}
+	if (depth == depth_) return -1;
+	depth_ = depth;
+	return percent;
+}
+
+void StaminaMeter::Reset() { depth_ = -1; }
+
+std::optional<AmmoMeter::Stack> AmmoMeter::Update(const std::vector<Stack>& inHand) {
+	std::optional<Stack> fell;
+	std::vector<Tracked> tracked;
+	for (const auto& stack : inHand) {
+		const auto known = std::find_if(tracked_.begin(), tracked_.end(), [&](const Tracked& t) { return t.id == stack.id; });
+		const int depth = Depth(AmmoSteps, stack.quantity);
+		if (known == tracked_.end()) {
+			if (stack.quantity > 1) tracked.push_back({stack.id, depth});
+			continue;
+		}
+		if (depth > known->depth && !fell) fell = stack;
+		tracked.push_back({stack.id, depth});
+	}
+	tracked_ = std::move(tracked);
+	return fell;
+}
+
+std::vector<AmmoMeter::Stack> AmmoMeter::Known(const std::vector<Stack>& inHand) const {
+	std::vector<Stack> stacks;
+	for (const auto& stack : inHand)
+		if (stack.quantity > 1 || std::any_of(tracked_.begin(), tracked_.end(), [&](const Tracked& t) { return t.id == stack.id; }))
+			stacks.push_back(stack);
+	return stacks;
+}
+
+void AmmoMeter::Reset() { tracked_.clear(); }
+
 MercenaryMeter::Alert MercenaryMeter::Update(std::optional<uint32_t> id, int percent, int level) {
 	Alert alert;
 	if (!id) return alert;

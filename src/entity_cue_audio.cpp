@@ -1,5 +1,6 @@
 #include "entity_cue_audio.h"
 #include "async_log.h"
+#include "process_lifetime.h"
 #include "mod_sounds.h"
 #include "wave_out.h"
 
@@ -17,10 +18,11 @@ namespace D2RAccess::EntityCueAudio {
 namespace {
 std::mutex g_mutex;
 std::condition_variable g_wake;
-std::thread g_thread;
+ProcessLifetime<std::thread> g_threadOwner;
+std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::atomic<uint64_t> g_generation{0};
-double g_gain = 1;
+double g_gain = 1, g_panScale = 1, g_pitchScale = 1;
 struct Request { bool pending = false; Sound sound = Sound::Npc; Placement placement; };
 Request g_pending;
 constexpr auto ReopenDelay = std::chrono::seconds(2);
@@ -103,9 +105,10 @@ void Worker(const D2RL::PluginContext* context) {
 }
 }
 
-bool Start(const D2RL::PluginContext* context, double gain) {
+bool Start(const D2RL::PluginContext* context, double gain, double panScale, double pitchScale) {
 	if (g_thread.joinable()) return false;
 	g_gain = std::isfinite(gain) ? std::clamp(gain, 0.0, 1.0) : 0;
+	g_panScale = panScale; g_pitchScale = pitchScale;
 	g_running = true;
 	try { g_thread = std::thread(Worker, context); }
 	catch (...) { g_running = false; return false; }
@@ -116,7 +119,9 @@ void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available || !ModSounds::Enabled()) return;
-		if (g_pending.pending && g_pending.sound == Sound::Reach && sound != Sound::Reach) return;
+		const auto feedback = [](Sound cue) { return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge; };
+		if (g_pending.pending && feedback(g_pending.sound) && !feedback(sound)) return;
+		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

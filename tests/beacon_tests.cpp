@@ -515,6 +515,16 @@ void TrackerLifecycle() {
 		arrival &= arriving.Tick(near, target, 10000 + static_cast<uint64_t>(step), s).arrived == (gap <= s.arrivalDistance);
 	}
 	Check(arrival, "arrival is announced inside the arrival distance and never before it");
+
+	// A tester stood beside Akara and on a chest's edge without "reached".
+	Beacon::Tracker beside;
+	beside.Lock(0);
+	auto side = Field({102, 101});
+	Check(beside.Tick(side, At(100, 100), 20000, s).arrived, "a target standing beside the player's body is reached");
+	auto edge = Field({103, 100});
+	edge.subtileFraction = At(0.9, 0.9);
+	Check(!beside.Tick(edge, At(100, 100), 20100, s).arrived,
+		"arrival is measured from the exact position (4 away), not the collision cell (3 away)");
 }
 
 void TrackerCadence() {

@@ -27,6 +27,8 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
+// The sound glossary's entries, in the order sound_glossary.cpp plays them.
+inline constexpr std::size_t GlossarySoundCount = 42;
 
 struct Table {
 	const char* pluginLoaded;
@@ -98,6 +100,10 @@ struct Table {
 	const char* radarStationary;
 	const char* radarMotionUnknown;
 	const char* radarStraight;
+	const char* wallBumpEnabled;
+	const char* wallBumpDisabled;
+	const char* smallObstaclesEnabled;
+	const char* smallObstaclesDisabled;
 	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
 	const char* navigationExploration; // mode status: guidance uses explored areas
 	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
@@ -273,6 +279,28 @@ struct Table {
 	const char* reachFilterOn; // the scanner lists only what can be got to on foot (map_survey_service.h)
 	const char* reachFilterOff;
 	const char* teleported; // a teleport pad D used has sent the player (keyboard_service.cpp)
+	const char* weaponSet; // %d = the weapon set now in use, 1 or 2
+	const char* weaponSetNumberOn;
+	const char* weaponSetNumberOff;
+	const char* gaitWalking; // the game now walks the character
+	const char* gaitRunning; // the game now runs the character
+	const char* staminaPercent; // %d = whole percent of stamina left
+	const char* staminaOut;
+	const char* movementAlertsOn;
+	const char* movementAlertsOff;
+	const char* ammoLeft; // %s = a stack in hand (arrows, javelins), %d = how many it holds
+	const char* ammoAlertsOn;
+	const char* ammoAlertsOff;
+	const char* townNpcsEverywhereOn;
+	const char* townNpcsEverywhereOff;
+	const char* pickupClickOn;
+	const char* pickupClickOff;
+	const char* gridEdgeOn;
+	const char* gridEdgeOff;
+	const char* glossarySound; // %s = what a sound of the glossary means
+	const char* faultMemory; // the UI update ran out of memory; the mod stopped its own movement
+	const char* faultAction; // the UI update failed; the mod stopped its own movement
+	std::array<const char*, GlossarySoundCount> glossarySounds;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
 	// 6 rare, 7 unique, 8 crafted); empty entries are never spoken.
@@ -320,6 +348,13 @@ struct Table {
 	const char* socketRefused;        // the game kept the gem out of the item
 	const char* itemArrived;          // %s = item, %s = where it landed (bought, handed over)
 	const char* itemUnequippedTo;     // %s = item, %s = where the taken-off item landed
+	const char* spaceKey;             // what a typed space is called when echoed
+	const char* statPointsFocusOn;
+	const char* statPointsFocusOff;
+	const char* screenHintsOn;
+	const char* screenHintsOff;
+	const char* hintNewCharacter;     // %s = the button that creates a character
+	const char* hintRandomName;       // %s = the button that picks a random name
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -338,6 +373,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight,
+		t.wallBumpEnabled, t.wallBumpDisabled, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
 		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
@@ -363,15 +399,16 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.glossarySound, t.faultMemory, t.faultAction};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
-	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo}) visit(s);
+	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName}) visit(s);
 	each(t.placePresets);
 	each(t.placeInteriors);
 	each(t.placeFeatures);
+	each(t.glossarySounds);
 
 }
 

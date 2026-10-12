@@ -5,6 +5,7 @@
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_world.h"
+#include "entity_cue_audio.h"
 #include "item_audio.h"
 #include "panel_state.h"
 #include "radar_config.h"
@@ -44,6 +45,10 @@ uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors;
 std::vector<std::string> g_nearbyLabels;
 uint64_t g_labelsUpdated = 0;
+// Every loaded ground item's name, for the pickup click, and the target last clicked for.
+std::vector<std::string> g_itemLabels;
+std::string g_pickupLabel;
+bool g_pickupClick = true;
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);
@@ -355,6 +360,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	snapshot.containers = g_containers;
 	snapshot.questObjects = g_questObjects;
 	snapshot.doors = g_shutDoors;
+	g_itemLabels.clear();
+	for (const auto& item : snapshot.items)
+		if (!item.baseName.empty()) g_itemLabels.push_back(item.baseName);
 	if (g_speech && !uiOwnsSpeech) for (const auto& item : snapshot.items)
 		if (!item.name.empty() && std::hypot(item.position.x - snapshot.player.x, item.position.y - snapshot.player.y) <= GroundItems::SpeakRadius)
 			g_nearbyLabels.push_back(item.baseName);
@@ -378,8 +386,17 @@ void Unregister() {
 	g_supported = g_exitsSupported = g_boundariesSupported = false;
 	g_speech = g_sound = g_exits = g_chests = g_quests = g_stash = true; g_suspended = true; g_stashOpen = false;
 	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear();
-	g_nearbyLabels.clear(); g_labelsUpdated = 0;
+	g_nearbyLabels.clear(); g_labelsUpdated = 0; g_itemLabels.clear(); g_pickupLabel.clear();
 }
+void NoteWorldTarget(std::string_view label) {
+	const bool item = g_pickupClick && !g_suspended && !label.empty()
+		&& GetTickCount64() - g_labelsUpdated <= GroundItems::SnapshotExpiryMs && GroundItems::MatchesLabel(label, g_itemLabels);
+	if (item && label != g_pickupLabel) EntityCueAudio::Play(EntityCueAudio::Sound::Pickup, {});
+	g_pickupLabel = item ? std::string(label) : std::string{};
+}
+bool PickupClick() { return g_pickupClick; }
+void SetPickupClick(bool enabled) { g_pickupClick = enabled; }
+
 bool OwnsWorldLabel(std::string_view label) {
 	return g_speech && !g_suspended && GetTickCount64() - g_labelsUpdated <= GroundItems::SnapshotExpiryMs
 		&& GroundItems::MatchesLabel(label, g_nearbyLabels);

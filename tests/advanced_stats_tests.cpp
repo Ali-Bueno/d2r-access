@@ -154,9 +154,10 @@ namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool) { speech.emplace_back(text); }
 }
 namespace D2RAccess::AsyncLog {
-void Info(const D2RL::PluginContext*, const char*) {}
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+void Info(const D2RL::PluginContext*, const char*) noexcept {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
+namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;

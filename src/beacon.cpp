@@ -167,8 +167,16 @@ bool Tracker::RouteLost(uint64_t now, const Settings& settings) {
 	return now >= lostMs_ && now - lostMs_ >= settings.routeLossMs;
 }
 
+namespace {
+// Where the player stands, with the fraction of a subtile the collision cell drops.
+Position Exact(const Radar::World& world) {
+	return {world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
+}
+}
+
 bool Reaches(const Radar::World& world, const Route& route, Position target, const Settings& settings) {
-	if (Length({target.x - world.player.x, target.y - world.player.y}) <= settings.arrivalDistance) return true;
+	const auto player = Exact(world);
+	if (Length({target.x - player.x, target.y - player.y}) <= settings.arrivalDistance) return true;
 	if (!route.known || route.path.empty()) return false;
 	const auto end = route.path.back();
 	return Length({target.x - end.x, target.y - end.y}) <= settings.arrivalDistance;
@@ -179,7 +187,8 @@ Update Tracker::Tick(const Radar::World& world, Position target, uint64_t now, c
 	Update update;
 	if (!locked_) return update;
 	update.valid = true;
-	const Position straight{target.x - world.player.x, target.y - world.player.y};
+	const auto player = Exact(world);
+	const Position straight{target.x - player.x, target.y - player.y};
 	update.distance = Length(straight);
 	update.arrived = update.distance <= settings.arrivalDistance;
 	if (first_) { first_ = false; nextPingMs_ = now + settings.lockDelayMs; } // room for the spoken name

@@ -6,8 +6,13 @@ namespace D2RAccess::WallSlideService {
 void Register(const D2RL::PluginContext* context, bool nativeHooks);
 void Tick();
 void Unregister();
-// Called only when the native movement code attempts to redirect a blocked target.
-bool Prevent(uintptr_t pathContext) noexcept;
+// Called only when the native movement code attempts to redirect a blocked
+// target; `push` is the world direction it tried first, when known.
+bool Prevent(uintptr_t pathContext, const float* push = nullptr) noexcept;
+// The local player's refused stick attempts so far, prevented or not, and the
+// direction of the latest: the wall bump's evidence of contact.
+struct Blocked { uint64_t attempts = 0; float x = 0, y = 0; };
+Blocked LastBlocked() noexcept;
 // True while a blocked stick direction stops the character instead of sliding.
 bool Enabled() noexcept;
 // For the keyboard's settings list (settings_list.h): the switch as it stands,

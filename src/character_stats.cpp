@@ -203,6 +203,14 @@ std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
 std::string Points(uintptr_t panel) { return ChildText(panel, "CombinedPointsInfo"); }
 
+bool HasPoints(std::string_view points) {
+	const auto first = points.find_first_of("0123456789");
+	if (first == std::string_view::npos) return false;
+	const auto last = points.find_first_not_of("0123456789", first);
+	const auto digits = points.substr(first, last == std::string_view::npos ? last : last - first);
+	return digits.find_first_not_of('0') != std::string_view::npos;
+}
+
 void Reset() {}
 
 }

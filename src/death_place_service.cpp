@@ -1,4 +1,5 @@
 #include "death_place_service.h"
+#include "process_lifetime.h"
 
 #include "async_log.h"
 #include "beacon.h"
@@ -34,7 +35,8 @@ bool g_armed = true;
 
 std::mutex g_diskMutex;
 std::condition_variable g_wake;
-std::thread g_worker;
+ProcessLifetime<std::thread> g_workerOwner;
+std::thread& g_worker = g_workerOwner.Get();
 std::optional<std::string> g_pending;
 bool g_stopping = false;
 

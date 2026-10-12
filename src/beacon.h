@@ -27,7 +27,9 @@ struct Settings {
 	// distance, so a near target searches a small one and pays a small cost.
 	double searchRadius = 158;
 	double lookAhead = 8;       // route length that chooses the heading
-	double arrivalDistance = 2; // within this the target counts as reached
+	// Within this the target counts as reached: the keyboard's use reach. Two bodies
+	// side by side stand sqrt(5) apart, so a smaller one never sees an NPC reached.
+	double arrivalDistance = 3;
 	// How stale a route may get before it is proved again. Both are stretched
 	// in proportion once the target is further off than farDistance: the box
 	// grows with the distance, while a long route changes more slowly, so

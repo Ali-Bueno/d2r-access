@@ -29,6 +29,8 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit);
 // player's room and its neighbours: the scanner's reach, and the reach of what
 // follows a thing the scanner named (the user, 2026-09-28).
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool wholeLevel = false, bool townNpcs = false);
+// Ids of the monsters every Read since the last call found dying or dead.
+std::vector<uint32_t> TakeDeadMonsters();
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false);

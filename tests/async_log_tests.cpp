@@ -1,5 +1,6 @@
 #include "async_log.h"
 #include "test_support.h"
+#include "allocation_failure.h"
 
 #include <algorithm>
 #include <chrono>
@@ -39,6 +40,10 @@ int main() {
 	Check(AsyncLog::Initialize(), "initialization is idempotent");
 	AsyncLog::Info(&context, "block");
 	Check(entered.get_future().wait_for(2s) == std::future_status::ready, "SDK sink is blocked in the worker");
+	TestAllocation::fail = true;
+	AsyncLog::Warn(&context, "diagnostic text requiring an allocation must be safely dropped under memory pressure");
+	TestAllocation::fail = false;
+	Check(TestAllocation::rejected != 0, "diagnostic allocation failure does not escape into the caller");
 	const auto producerId = std::this_thread::get_id();
 	auto producer = std::async(std::launch::async, [] {
 		for (int i = 0; i < 1000; ++i) AsyncLog::InfoF(&context, "item %d", i);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "attack_reach.h"
+#include "entity_cues.h"
 #include <D2RLPlugin/api.h>
 #include <optional>
 #include <string_view>
@@ -73,12 +74,27 @@ Switch ParseBossLife(std::string_view config);
 Switch ReadBossLife(const D2RL::PluginContext* context);
 
 struct EntityCueSettings {
-	std::optional<bool> enabled, npcs, enemies, ranged, ordinary, reach;
+	std::optional<bool> enabled, npcs, enemies, ranged, ordinary, reach, onScreen;
 	std::optional<AttackReach::Mode> attack;
 	std::optional<double> range, meleeReach, rangedReach;
 	std::optional<unsigned> volume;
+	std::optional<size_t> maxVoices;                  // clamped to 1..EntityCues::MaxVoices
+	std::optional<unsigned> panStrength, pitchStrength; // percent, clamped to 0..MaxStrengthPercent
 	bool valid = true;
 };
+// Pan and pitch strength as a percent of the compiled behavior; 100 keeps it.
+inline constexpr unsigned NeutralStrengthPercent = 100, MaxStrengthPercent = 200;
+// A strength setting as a factor of the compiled behavior, unchanged when unset.
+inline double StrengthScale(std::optional<unsigned> percent) {
+	return static_cast<double>(percent.value_or(NeutralStrengthPercent)) / NeutralStrengthPercent;
+}
+// [beacon]: how strongly the beacon ping is panned and pitched toward its target.
+struct BeaconSettings {
+	std::optional<unsigned> panStrength, pitchStrength;
+	bool valid = true;
+};
+BeaconSettings ParseBeacon(std::string_view config);
+BeaconSettings ReadBeacon(const D2RL::PluginContext* context);
 // Local proximity only; bound configured scans to avoid long terrain rays.
 inline constexpr double MaxEntityCueRange = 100;
 EntityCueSettings ParseEntityCues(std::string_view config);

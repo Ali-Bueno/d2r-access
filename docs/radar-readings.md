@@ -14,10 +14,11 @@ that way" and "that way leads somewhere" are different facts.
 | **Exit** | bright tin (1100 Hz) | the proved route leads out: into another chamber, or to a level exit |
 | **Open** | soft breath of filtered noise, 180 ms, rising up / falling down | floor you can walk, but it leads nowhere new |
 | **Blocked** | dull tock (260 Hz) | a wall within the closing depth |
+| **Blocked**, small | short hollow knock (640 Hz) | a small obstacle you can step round (switch `small-obstacles`) |
 | **Door** | two knocks (180 Hz) | a closed door within the closing depth: the game's own DOOR bit is what blocks |
 
 Down is the same sound lowered by the compiled fraction, except the breath, which
-rises for up and falls for down; left and right are panned. The `test` audition of `access-radar` plays all four in every direction.
+rises for up and falls for down; left and right are panned. The `test` audition of `access-radar` plays every reading in every direction, the small obstacle and the wall bump included.
 
 ## Rays along the walls: the stick diagonals (2026-09-25)
 
@@ -209,10 +210,49 @@ as read (`hold = "way-back"`, `lastCue = Exit`) and not sounded. Any other
 confirmation, the next room change, or walking a doorway's width
 (`wayThrough`) from the crossing clears the mark.
 
+## Small obstacles and the wall bump (2026-10-11)
+
+Both are radar sounds on the radar's device, volume and `mod-sounds` switch,
+each with its own switch in the settings list (on by default).
+
+**Small obstacle** (`small-obstacles`). Collision cannot tell a rock or pillar
+from a wall (both are baked `WALL|PRESET`), so the shape decides: the passage
+scan records the blocked body position nearest the ray's axis within the
+closing depth (`Passage::obstacle`), and `SmallObstacle` (`radar_structure.cpp`)
+tests the blocked cells under it with the clutter filter's own rule: an
+8-connected WALL/OBJECT group, fully loaded, at most one map tile (5x5) across,
+standing alone with a way round it. The search stops as soon as the group
+outgrows the tile. It runs whatever the sliding switch says; while the game
+slides, such clutter is filtered out of the scan and never heard at all. The
+flag rides on the wall cue like the unexplored mark (`Sensor::small`, set when
+the wall is confirmed) and changes only the timbre: a short (12 ms decay),
+higher knock with an inharmonic partial, between the tock and the tin. With the
+switch off the radar is unchanged.
+
+**Wall bump** (`wall-bump`). A 90 ms thud when the stick pushes into terrain,
+ported from the Last Epoch mod (`BumpCueSynthesizer`, `WallBumpDetector`): a
+sine falling 150 → 70 Hz (30 ms decay) under a one-pole low-passed noise click
+(1800 Hz, 6 ms decay, half the body's level), 2 ms attack, 12 ms release, at
+1.4 × the tock's level, panned by the push's screen-horizontal share. The
+evidence is the game's own refusal: the wall-slide hook
+(`native_wall_slide.cpp`, `docs/wall-sliding.md`) counts every fallback probe of
+the local player's directional move, prevented or not, with the direction the
+solver tried first (its desired probe, return `0x3AB24C`).
+`WallBump::Detector` thuds when, in one radar poll, attempts rose, the exact
+position did not move (a slide is no contact) and terrain blocks within two
+cells along the push (a creature is not a wall). It thuds once per contact and
+re-arms after a step of one subtile, a push turned past 45 degrees, or 300 ms
+without a refused attempt; never twice within the radar's cue interval.
+It needs the native movement hook; it runs while the radar's world can be read,
+the radar itself on or off. Each thud logs `[wall-bump]`. Footsteps against the
+wall stay muted by the stalled-footstep filter (`footsteps`), which keys on the
+same frozen position.
+
 ## Queue
 
 `CueQueue::Take` plays the most urgent pending direction first: walls and
-doors, then exits, then floor, round robin among equals. Cues held for the
+doors, then exits, then floor, round robin among equals. A wall bump plays
+before any of them, a newer one replacing an unplayed one. Cues held for the
 interval are retained, never dropped; an opening withheld by the retreat gate
 is dropped on purpose (see the 2026-09-25 review above).
 
@@ -224,5 +264,6 @@ is dropped on purpose (see the 2026-09-25 review above).
 - Its pitch encoding is ours already.
 
 Tests: `radar-passage` (door, band, chamber exit, level exit), `radar-engine`
-(door cue, way back), `radar-audio` (four timbres, urgency), `rooms`
+(door cue, way back, small obstacle), `radar-audio` (timbres, urgency, bump),
+`radar-structure` (small obstacle), `wall-bump` (contact, re-arming), `rooms`
 (typical width).

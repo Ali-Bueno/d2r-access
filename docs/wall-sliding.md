@@ -62,6 +62,9 @@ default; `[native] enabled = false` prevents hook installation. No per-collision
 speech. `[movement] blocked_alternatives=` counts rejected candidate probes,
 aggregated at most once per five seconds. Several candidates can be rejected in
 one movement attempt; this counter is not proof of a stationary character.
+The hook also counts the local player's refused attempts with prevention off,
+and passes on the direction of the solver's first probe (return `0x3AB24C`):
+the wall bump's evidence (`docs/radar-readings.md`).
 
 Build/deploy completed 2026-09-22 with the game closed. All 61 CTest suites in the
 shared workspace pass; the two new suites contain 50 checks. An isolated copy

@@ -2,11 +2,14 @@
 
 #include "async_log.h"
 #include "character_stats.h"
+#include "native_skill_navigation.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 
+#include <windows.h>
 #include <algorithm>
+#include <atomic>
 #include <string>
 #include <string_view>
 
@@ -14,10 +17,19 @@ namespace D2RAccess::CharacterStatsReader {
 namespace {
 constexpr std::string_view CharacterPanel = "CharacterStatsPanel";
 constexpr std::string_view HirelingPanel = "HirelingInventoryPanel";
+constexpr std::string_view StrengthButton = "StrengthPointButton";
+
+std::atomic<bool> g_focusPoints { true };
+// Policy: the points text renders with the values, well within PointsWaitMs; the
+// Strength button's own announcement interrupts, so the points wait to follow it.
+constexpr uint64_t PointsWaitMs = 2000, PointsAfterFocusMs = 600;
 
 uintptr_t g_panel = 0; // the panel the cursor belongs to
 int g_cursor = -1;
 bool g_named = false;  // the subject's name has been said for this opening
+bool g_pointsDone = false; // the points left have been offered for this opening
+uint64_t g_openedAt = 0, g_pointsDueAt = 0;
+std::string g_pendingPoints;
 
 uintptr_t VisiblePanel(std::string_view name) {
 	const auto panel = NativeWidgets::FindPanel(name);
@@ -29,6 +41,26 @@ uintptr_t VisiblePanel(std::string_view name) {
 bool OnTabStrip(NativeUi::Focus focus) {
 	const auto kind = NativeUi::Classify(focus.widget).kind;
 	return kind == UiText::Kind::Tabs || kind == UiText::Kind::TabButton;
+}
+
+// Once per opening: the focus onto the first "+" button, then the points left.
+void OfferPoints(const D2RL::PluginContext* context, uintptr_t panel, uint64_t now) {
+	const auto points = CharacterStats::Points(panel);
+	if (points.empty()) { // not rendered yet
+		g_pointsDone = now - g_openedAt >= PointsWaitMs;
+		return;
+	}
+	g_pointsDone = true;
+	if (!CharacterStats::HasPoints(points)) return;
+	D2RAccess::AsyncLog::InfoF(context, "[stats] points available -> \"%s\"", points.c_str());
+	const auto button = g_focusPoints.load() ? NativeWidgets::FindChild(panel, StrengthButton) : 0;
+	if (button && NativeSkillNavigation::Select({panel, button})) {
+		g_pendingPoints = points;
+		g_pointsDueAt = now + PointsAfterFocusMs;
+		return;
+	}
+	if (g_focusPoints.load()) D2RAccess::AsyncLog::InfoF(context, "[stats] could not focus %s", std::string(StrengthButton).c_str());
+	ScreenReader::Speak(points, false);
 }
 }
 
@@ -63,7 +95,12 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	// and navigation behavior. The stat cursor is for the observed no-focus
 	// controller state of this panel.
 	if (NativeWidgets::ReadName(panel) == HirelingPanel && focus.panel == panel && focus.widget && !onTabs) return false;
-	if (panel != g_panel) { g_panel = panel; g_cursor = -1; g_named = false; }
+	const uint64_t now = GetTickCount64();
+	if (panel != g_panel) {
+		g_panel = panel; g_cursor = -1; g_named = false;
+		g_pointsDone = NativeWidgets::ReadName(panel) != CharacterPanel; // a mercenary has no points to spend
+		g_openedAt = now; g_pointsDueAt = 0; g_pendingPoints.clear();
+	}
 	// The window announcer has already said the panel's title; the name
 	// queues behind it. It is read until the game has rendered it -- MEASURED
 	// 2026-09-21, the first opening of a session shows the labels a moment
@@ -74,6 +111,11 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 			D2RAccess::AsyncLog::InfoF(context, "[stats] name -> \"%s\"", name.c_str());
 			ScreenReader::Speak(name, false);
 		}
+	}
+	if (g_named && !g_pointsDone) OfferPoints(context, panel, now);
+	if (g_pointsDueAt && now >= g_pointsDueAt) {
+		g_pointsDueAt = 0;
+		ScreenReader::Speak(g_pendingPoints, false);
 	}
 	// While a point button has focus the stick belongs to the point readout --
 	// up for the stat's explanation, down for its controls -- except right,
@@ -105,6 +147,9 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 
 bool Owns(std::string_view panel) { return panel == CharacterPanel || panel == HirelingPanel; }
 
-void Reset() { g_panel = 0; g_cursor = -1; g_named = false; }
+void Reset() { g_panel = 0; g_cursor = -1; g_named = false; g_pointsDone = false; g_pointsDueAt = 0; g_pendingPoints.clear(); }
+
+bool FocusPoints() { return g_focusPoints.load(); }
+void SetFocusPoints(bool enabled) { g_focusPoints.store(enabled); }
 
 }

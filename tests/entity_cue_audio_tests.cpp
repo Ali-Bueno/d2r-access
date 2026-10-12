@@ -81,6 +81,25 @@ void Spatial() {
 		"rear placement lowers the tap's resonance by a meaningful interval");
 }
 
+void Strengths() {
+	const Placement side{0.5, -1};
+	Placement flat = side, wide = side, none = side;
+	flat.panScale = 0; flat.pitchScale = 0; wide.panScale = 2; none.panScale = 1;
+	const auto mono = Synthesize(Sound::Ordinary, flat);
+	bool equal = true;
+	for (size_t i = 0; i + 1 < mono.size(); i += Channels) equal &= mono[i] == mono[i + 1];
+	Check(equal, "zero pan strength centers the sound");
+	Check(Synthesize(Sound::Ordinary, none) == Synthesize(Sound::Ordinary, side), "strength 1 is today's sound");
+	const auto normal = Synthesize(Sound::Ordinary, side), doubled = Synthesize(Sound::Ordinary, wide);
+	Check(Rms(doubled, 1) / Rms(doubled, 0) > Rms(normal, 1) / Rms(normal, 0), "doubled pan strength widens the spread");
+	Placement full = {1, 1, 2, 1};
+	Check(Synthesize(Sound::Ordinary, full) == Synthesize(Sound::Ordinary, {1, 1}), "panning stays within the valid range");
+	Placement noPitch = {0, -1, 1, 0};
+	Check(Synthesize(Sound::Ordinary, noPitch) == Synthesize(Sound::Ordinary, {0, 1}), "zero pitch strength removes the rear drop");
+	Placement deeper = {0, -1, 1, 2};
+	Check(Synthesize(Sound::Ordinary, deeper) != Synthesize(Sound::Ordinary, {0, -1}), "doubled pitch strength deepens the rear drop");
+}
+
 void Timbres() {
 	const auto npc = Synthesize(Sound::Npc, {});
 	const auto important = Synthesize(Sound::Important, {});
@@ -161,6 +180,7 @@ int main() {
 	DurationAndLevels();
 	Spatial();
 	Timbres();
+	Strengths();
 	NewCues();
 	DifferentFromRadarBreath();
 	InvalidInputsAndGain();

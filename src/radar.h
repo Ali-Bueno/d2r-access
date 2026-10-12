@@ -34,8 +34,10 @@ inline constexpr std::array<ScreenVector, DirectionCount> ScreenAxes{{{0, -1}, {
 // Eight screen sectors clockwise from up (radarMovementDirections order) for a
 // world offset, through the same projection at its 2:1 ratio; 0 when zero.
 inline constexpr int ScreenSectors = 8;
+// A world offset on the screen (x right, y down), at the projection's 2:1 ratio.
+inline Position ScreenOffset(Position offset) { return {2 * (offset.x - offset.y), offset.x + offset.y}; }
 inline int ScreenSector(Position offset) {
-	const double x = 2 * (offset.x - offset.y), y = offset.x + offset.y;
+	const auto [x, y] = ScreenOffset(offset);
 	const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / ScreenSectors));
 	return static_cast<int>((sector + ScreenSectors) % ScreenSectors);
 }
@@ -128,6 +130,9 @@ struct World {
 	// screen quadrant, so floor that way is unexplored. Stamped by the terrain
 	// service from the exploration memory; false everywhere else.
 	Marks frontier{};
+	// Tell a small obstacle (bypassable clutter) from a wall in the rays' cues:
+	// the small-obstacles switch, stamped by the radar service.
+	bool smallObstacles = false;
 	int RoomAt(int x, int y) const; // index into rooms, or -1
 	State Cell(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
 	State Body(int x, int y, Layer layer = Layer::Movement, uint16_t* flags = nullptr) const;
@@ -161,6 +166,10 @@ std::vector<MarkerCell> MarkerCells(const World& world, const LeftMarker& marker
 // while the game slides around it (World::slides).
 World StructuralWorld(const World& world, const Settings& settings);
 int StructuralRadius(const Settings& settings, int bodyPattern);
+// Whether a blocked cell belongs to bypassable clutter: an 8-connected WALL or
+// OBJECT group, fully loaded, at most one map tile across, standing alone with
+// a way round it. Explores no further than that bound; `explored` counts cells.
+bool SmallObstacle(const World& world, int x, int y, size_t* explored = nullptr);
 
 struct Passage {
 	double depth = 0; // proved connected route along the axis, in cells (up to the scan window)
@@ -172,6 +181,10 @@ struct Passage {
 	int exit = -1; // index into the query's level exits when the route arrives at one
 	bool door = false; // a closed door stands on the route within the closing depth
 	bool unexplored = false; // the qualifier of a passable reading, see Engine::Qualify
+	// The blocked body position nearest the axis within the closing depth: what
+	// the body meets head-on. `small` when it is clutter (World::smallObstacles).
+	bool obstacle = false, small = false;
+	int obstacleX = 0, obstacleY = 0; // world cell
 };
 // A wall the player has been warned about stays where it is. Backing away
 // from it makes the route ahead longer again, but nothing opened: an opening
@@ -185,6 +198,7 @@ struct Sensor {
 	Passage passage;
 	State state = State::Unknown; // confirmed verdict, Unknown until the baseline
 	bool unexplored = false; // qualifier of `state`; a change of it alone is a change too
+	bool small = false; // the confirmed obstacle is small clutter: rides on its cue, never a change of its own
 	bool baseline = false; // the first observation after a reset is silent, dead band included
 	State candidate = State::Unknown;
 	bool candidateUnexplored = false;
@@ -205,8 +219,9 @@ struct Sensor {
 class Engine {
 public:
 	explicit Engine(Settings settings = {}) : settings_(settings) {}
-	// `marks`, when given, receives the unexplored qualifier of each event.
-	Events Tick(const World& world, uint64_t now, Marks* marks = nullptr);
+	// `marks`, when given, receives the unexplored qualifier of each event;
+	// `small`, whether each wall event is a small obstacle.
+	Events Tick(const World& world, uint64_t now, Marks* marks = nullptr, Marks* small = nullptr);
 	// Confirmed qualifiers, one per direction, for the audio queue's retention.
 	Marks Unexplored() const;
 	// The qualifier of a passable reading: an exit into a chamber never stood

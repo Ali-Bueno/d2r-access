@@ -4,9 +4,11 @@
 #include "native_weapon_set.h"
 #include "radar_config.h"
 #include "screen_reader.h"
+#include "speech_strings.h"
 #include "weapon_swap.h"
 #include <windows.h>
 #include <atomic>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -14,6 +16,7 @@ namespace D2RAccess::WeaponSwapService {
 namespace {
 constexpr uint64_t SampleMs = 100; // a swap answers a button press
 std::atomic<bool> g_enabled = true;
+std::atomic<bool> g_setNumber = true;
 bool g_supported = false;
 uint64_t g_nextSample = 0;
 WeaponSwap::Tracker g_tracker;
@@ -58,15 +61,26 @@ void Tick(const D2RL::PluginContext* context) {
 	const auto set = g_tracker.Update(now, second, hands);
 	if (!set) return;
 	std::vector<std::string> weapons;
-	for (const auto* item : inHand)
-		if (item) weapons.push_back(EquipmentCensus::Name(*item));
+	for (const auto* item : inHand) {
+		if (!item) continue;
+		auto name = EquipmentCensus::Name(*item);
+		// A stack in hand (arrows, throwing weapons) says how many it holds.
+		if (item->quantity > 1 && !name.empty()) {
+			char counted[200]{};
+			std::snprintf(counted, sizeof(counted), Strings::Current().ammoLeft, name.c_str(), item->quantity);
+			name = counted;
+		}
+		weapons.push_back(std::move(name));
+	}
 	AsyncLog::InfoF(context, "[weapon-swap] set=%d right=%u left=%u", *set, hands.right, hands.left);
 	// It answers the button just pressed, so it takes over from older speech.
-	ScreenReader::Speak(WeaponSwap::Phrase(weapons), true);
+	ScreenReader::Speak(WeaponSwap::Phrase(weapons, g_setNumber ? std::optional(*set) : std::nullopt), true);
 }
 
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_enabled = enabled; }
+bool SetNumber() { return g_setNumber; }
+void SetSetNumber(bool enabled) { g_setNumber = enabled; }
 }

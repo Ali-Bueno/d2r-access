@@ -3,20 +3,35 @@
 #include "async_log.h"
 #include "character_stats_reader.h"
 #include "control_hints.h"
+#include "localization.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "ui_text.h"
 
+#include <windows.h>
+
 #include <algorithm>
+#include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace D2RAccess::ModalReader {
 
 namespace {
 
 std::string g_lastPanel;
+
+// The title screen shows "Press Any Key to Begin" some time after the panel
+// opens, so it is polled for until it appears or the panel changes.
+constexpr std::string_view TitlePanel = "TitleScreenPanel";
+constexpr std::string_view TitlePrompt = "InputPrompt";
+constexpr const char* TitleKeyboardKey = "KeyboardTitleScreenPrompt";
+constexpr std::string_view ControllerGlyph = "\xEE\x80\x93"; // U+E013, stripped by UiText::Clean
+constexpr uint64_t TitlePollMs = 250;
+bool g_titleSpoken = false;
+uint64_t g_titlePolled = 0;
 
 bool Speakable(const UiText::Node& node) {
 	if (node.text.empty() || !node.enabled) return false;
@@ -61,12 +76,36 @@ void Append(std::string& phrase, const std::string& part) {
 
 }
 
-void Reset() { g_lastPanel.clear(); }
+void PollTitlePrompt(const D2RL::PluginContext* context, const std::string& active) {
+	const uint64_t now = GetTickCount64();
+	if (now - g_titlePolled < TitlePollMs) return;
+	g_titlePolled = now;
+	const uintptr_t panel = NativeWidgets::FindPanel(active);
+	const uintptr_t prompt = panel ? NativeWidgets::FindChild(panel, TitlePrompt) : 0;
+	if (!prompt || !NativeUi::Visible(prompt)) return;
+	const std::string raw = NativeWidgets::ReadText(prompt);
+	std::string text = UiText::Clean(raw);
+	if (text.empty()) return;
+	// The controller prompt's button is a glyph the cleaner drops; the keyboard
+	// string reads whole.
+	if (raw.find(ControllerGlyph) != std::string::npos) {
+		if (const std::string whole = UiText::Clean(Localization::Text(TitleKeyboardKey)); !whole.empty()) text = whole;
+	}
+	g_titleSpoken = true;
+	AsyncLog::InfoF(context, "[modal] %s/%s -> \"%s\"", active.c_str(), std::string(TitlePrompt).c_str(), text.c_str());
+	ScreenReader::Speak(text, false);
+}
+
+void Reset() { g_lastPanel.clear(); g_titleSpoken = false; }
 
 void Tick(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
-	if (active == g_lastPanel) return;
+	if (active == g_lastPanel) {
+		if (active == TitlePanel && !g_titleSpoken) PollTitlePrompt(context, active);
+		return;
+	}
 	g_lastPanel = active;
+	g_titleSpoken = false;
 	if (active.empty()) return;
 
 	// The character panel has its own reader, which names the character behind

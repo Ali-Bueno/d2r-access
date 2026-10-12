@@ -106,6 +106,16 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	// where it was. Out-of-window objects keep their place indefinitely, which
 	// is the point: they are what the player still has to walk to.
 	for (Tracked& tracked : m_tracked) {
+		// A discovered enemy follows its live unit while the game has it loaded, so
+		// it is never listed where it no longer stands; missing within reach, it is gone.
+		if (present && tracked.entity.kind == EntityRadar::Kind::Enemy) {
+			const auto live = std::find_if(present->begin(), present->end(), [&tracked](const EntityRadar::Entity& entity) {
+				return EntityRadar::SameTarget(tracked.entity, entity);
+			});
+			if (live != present->end()) tracked.entity.position = live->position;
+			else if (Observed(grid, tracked.entity.position, settings.forgetWithin)) tracked.misses = settings.missesBeforeForgetting;
+			continue;
+		}
 		const bool stillPresent = loaded(tracked.entity);
 		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
@@ -116,6 +126,20 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	m_entities.clear();
 	m_entities.reserve(m_tracked.size());
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Registry::ForgetEnemies(const std::vector<uint32_t>& dead) {
+	if (dead.empty()) return;
+	std::erase_if(m_tracked, [&dead](const Tracked& tracked) {
+		return tracked.entity.kind == EntityRadar::Kind::Enemy
+			&& std::find(dead.begin(), dead.end(), tracked.entity.id) != dead.end();
+	});
+	m_entities.clear();
+	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Memory::ForgetEnemies(const std::vector<uint32_t>& dead) {
+	for (auto& [level, registry] : m_levels) registry.ForgetEnemies(dead);
 }
 
 void Registry::Clear() {
@@ -168,8 +192,10 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		landmark.entity       = entity;
 		landmark.steps        = fullAssistance ? StepsTo(grid, entity.position) : -1;
 		landmark.reachable    = landmark.steps >= 0;
-		landmark.straightLine = StraightLine(world.player, entity.position);
-		landmark.direction    = Radar::ScreenSector({entity.position.x - world.player.x, entity.position.y - world.player.y});
+		// From where the player stands, not the collision cell, which drops up to a subtile on each axis.
+		const Radar::Position player{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
+		landmark.straightLine = StraightLine(player, entity.position);
+		landmark.direction    = Radar::ScreenSector({entity.position.x - player.x, entity.position.y - player.y});
 		result.push_back(std::move(landmark));
 	}
 	// Reachable first, then fewest steps. Unreachable objects keep their place

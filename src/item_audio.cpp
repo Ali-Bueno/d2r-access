@@ -2,6 +2,7 @@
 #include "item_wave.h"
 #include "item_spatial.h"
 #include "async_log.h"
+#include "process_lifetime.h"
 #include "mod_sounds.h"
 #include <windows.h>
 #include <xaudio2.h>
@@ -27,7 +28,8 @@ constexpr DWORD PlaybackCheckMs = 250; // one progress record per source, after 
 constexpr DWORD ExplorationExpiryMs = 2 * SnapshotExpiryMs; // terrain publishes every 250 ms
 std::mutex g_mutex;
 std::condition_variable g_wake;
-std::thread g_thread;
+ProcessLifetime<std::thread> g_threadOwner;
+std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::vector<Voice> g_pending;
 uint64_t g_updated = 0;
@@ -49,9 +51,10 @@ struct Playing {
 	bool checked = false;
 	void Stop() { if (source) { source->DestroyVoice(); source = nullptr; } gain = 0; }
 };
+// A one-shot channel plays even a loop's sample once (the glossary previews them there).
 bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>& sample,
-	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context) {
-	const bool loop = !IsOneShot(target.sound);
+	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context, bool once = false) {
+	const bool loop = !once && !IsOneShot(target.sound);
 	const HRESULT created = engine->CreateSourceVoice(&active.source, &format);
 	if (FAILED(created)) {
 		AsyncLog::WarnF(context, "[item-audio] source failed HRESULT=%08lx", created);
@@ -115,7 +118,7 @@ void ServeOneShot(Playing& playing, const std::optional<OneShotRequest>& request
 	if (requested && requested->generation == channel.generation.load()) {
 		playing.Stop();
 		const auto& sample = samples[static_cast<size_t>(requested->voice.sound)];
-		if (!sample.empty()) (void)StartVoice(playing, requested->voice, sample, requested->generation, engine, format, context);
+		if (!sample.empty()) (void)StartVoice(playing, requested->voice, sample, requested->generation, engine, format, context, true);
 	}
 	if (!g_running || !playing.source) return;
 	XAUDIO2_VOICE_STATE state{};
@@ -258,6 +261,11 @@ void PlayExplorationArrival(Voice voice) {
 void PlayDiscovery() {
 	Voice voice{0, Sound::Discovered};
 	voice.gain = LoopVolume; // centered and as near as a source can be, like the room arrival
+	Request(g_discovery, voice);
+}
+void Preview(Sound sound) {
+	Voice voice{0, sound};
+	voice.gain = LoopVolume;
 	Request(g_discovery, voice);
 }
 void SilenceExploration() {

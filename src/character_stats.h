@@ -42,6 +42,9 @@ std::string Name(uintptr_t panel);
 // Remaining"); empty when it cannot be read.
 std::string Points(uintptr_t panel);
 
+// True when a points line ("5 Stat Points Remaining") names a count above zero.
+bool HasPoints(std::string_view points);
+
 void Reset();
 
 }

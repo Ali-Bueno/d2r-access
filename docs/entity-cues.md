@@ -11,13 +11,13 @@ runtime dependencies are needed.
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
 | Resurrecting shaman | Mid-register resonant swoop | Next enemy priority |
 | Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
-| Any other enemy | Short rough growl | The nearest three, in the streams left; optional |
+| Any other enemy | Short rough growl | The nearest few, in the voices left; optional |
 
-There are at most three enemy streams plus the NPC. Each priority class has one
+There are at most `max_voices` (default 6, 1-8) enemy streams plus the NPC. Each priority class has one
 representative, so a crowd of archers makes one stream, not one per archer.
 The streams the priority classes leave go to the nearest ordinary enemies in
-sight, each heard on its own: a pack of Fallen sounds as its three nearest
-members, so its spread is audible. Each rank (nearest, second, third) keeps its
+sight, each heard on its own: a pack of Fallen sounds as its nearest
+members, so its spread is audible. Each rank (nearest, second, ...) keeps its
 own cadence, so the nearest changing does not burst. An ordinary ranged enemy
 whose own cue is disabled growls instead. A special ranged enemy keeps the important-enemy sound even when
 ordinary ranged cues are disabled. Selection uses native traits, not translated
@@ -34,13 +34,15 @@ buzz falling from 175 to 125 Hz whose loudness flutters at 36 Hz: rougher and
 lower than every swoop, and tonal where the radar breath is noise. The same
 service plays the attack reach ping; see [attack reach](attack-reach.md).
 
-Only loaded, living entities within 15 collision subtiles are eligible, using
-the radar's terrain line-of-sight check. This has the same limitation as the
+Only loaded, living entities on screen are eligible (`on_screen = true`), using
+`CombatTarget::OnScreen` (the extent the Tab key uses) widened by 3 subtiles for
+ranged enemies, so archers and casters sound as they appear; `on_screen = false`
+restores the `range` circle (15 subtiles). Both use the radar's terrain line-of-sight check. This has the same limitation as the
 entity scan: walk-blocking fences may hide a target. An ordinary target in
 another room behind a wall does not get a cue. These are direct bearings, not
 routes around obstacles.
 
-Pulse intervals shorten continuously from 450 ms at the range edge to 150 ms
+Pulse intervals shorten continuously from 600 ms at the screen's far corner (or the range edge) to 150 ms
 at contact. The scheduler leaves 100 ms between starts, with an 84 ms NPC tap
 or 90 ms enemy swoop. Due targets take turns, so the nearest boss cannot starve
 the shaman or NPC. The 100 ms snapshot cadence gives one isolated target about
@@ -80,7 +82,11 @@ npcs = true
 enemies = true
 ranged = true
 ordinary = true
+on_screen = true
 range = 15
+max_voices = 6
+pan_strength = 100
+pitch_strength = 100
 volume = 100
 reach = true
 attack = "auto"
@@ -88,7 +94,10 @@ melee_reach = 3
 ranged_reach = 15
 ```
 
-Restart after edits. Volume is 0–100 percent of the deliberately soft synthesized
+Restart after edits. `pan_strength` and `pitch_strength` are percent (0-200, clamped,
+100 = the compiled sound) of the stereo spread and the rear pitch drop; the cues are
+synthesized live, not samples. `range` is used only with `on_screen = false`;
+`ranged_reach` no longer follows it. Volume is 0–100 percent of the deliberately soft synthesized
 level, independent of radar volume. Range is in collision subtiles, greater than
 zero and at most 100; the upper bound keeps this a local proximity scan.
 Malformed or duplicate recognized keys discard this section and retain defaults.

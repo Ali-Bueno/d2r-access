@@ -26,6 +26,9 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, const PassageQu
 	// One native cell of lateral tolerance: the staircase of a diagonal line
 	// alternates component steps, each 0.707 off the axis, never further.
 	constexpr double NativeCell = 1;
+	// Rounding between two cells at the same raster offset from the axis.
+	constexpr double RasterNoise = 1e-9;
+	double obstacleAside = 0, obstacleAhead = 0;
 	const int home = grid.At(grid.playerX, grid.playerY)->room;
 	std::vector<Position> queue{{}};
 	std::vector<bool> visited(grid.cells.size());
@@ -50,7 +53,18 @@ Passage ScanPassage(const Navigation::Grid& grid, Position axis, const PassageQu
 			if (cell->body != State::Open) {
 				// The obstacle the body pushes against within the closing depth
 				// is a closed door when the game's own DOOR bit blocks it.
-				if ((cell->blocker & Collision::Door) && projection(next) <= query.closeDepth + MaxStep) result.door = true;
+				const double ahead = projection(next), aside = std::abs(lateral(next));
+				if (ahead > query.closeDepth + MaxStep) continue;
+				if (cell->blocker & Collision::Door) result.door = true;
+				// The one it meets head-on lies nearest the axis, then nearest the player.
+				if (!result.obstacle || aside < obstacleAside - RasterNoise
+					|| (aside <= obstacleAside + RasterNoise && ahead < obstacleAhead)) {
+					result.obstacle = true;
+					result.obstacleX = grid.playerX + static_cast<int>(next.x);
+					result.obstacleY = grid.playerY + static_cast<int>(next.y);
+					obstacleAside = aside;
+					obstacleAhead = ahead;
+				}
 				continue;
 			}
 			if (visited[index(next)]) continue;

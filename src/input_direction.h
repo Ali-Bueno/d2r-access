@@ -123,11 +123,20 @@ const char* PushName(StickPush push);
 // tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
-// Left thumbstick CLICK (L3): follows or releases the scanned target (beacon),
-// the mod's only stick button (R3 is the game's). The SDK's action service
-// binds keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad
-// button is read here with the rest of the XInput state. Take() returns
-// whether a press happened since the previous Take() and clears it.
+// BACK+LB: follows or releases the scanned target (beacon). L3 and R3 are the
+// game's (run/walk, weapon swap); pad_filter.h keeps this LB press from the
+// game during play, as it does the face buttons. Take() returns whether a
+// press happened since the previous Take() and clears it.
+bool TakeBackWithLb();
+
+// BACK+RB: opens and closes the mod's settings list, the pad's Ctrl+S
+// (keyboard_service.cpp). pad_filter.h keeps this RB press from the game
+// during play, as it does LB's. Same Take() rules as BACK+LB.
+bool TakeBackWithRb();
+
+// L3, the game's own run/walk toggle, which still reaches it: read only to
+// announce the new gait. Take() returns whether a press happened since the
+// previous Take() and clears it.
 bool TakeLeftStickClick();
 
 // Left trigger (LT/L2), the game's skill-bar toggle, as sampled by the last
@@ -143,6 +152,8 @@ TriggerHold LeftTrigger();
 // was steering when the cue fired. Zero and not connected without a pad.
 struct Stick { float x = 0, y = 0; bool connected = false; };
 Stick LeftStick();
+// The share of a stick's travel that counts as a deliberate push, not drift.
+inline constexpr float StickPushFraction = 0.5f;
 
 // The keyboard's twins of the gestures above. A key posts the gesture its
 // reader already listens for, so every reader serves pad and keyboard alike and
@@ -165,7 +176,7 @@ void PostLineStep(StickPush push, bool plain = false);
 bool LineStepPending();
 bool LineStepPlain();
 void PostBackWith(FaceButton button);
-void PostLeftStickClick();
+void PostBackWithLb();
 void PostFacePress(FaceButton button);  // only B has a reader so far
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll

@@ -8,15 +8,11 @@ namespace D2RAccess::TabReader {
 namespace {
 struct Panel { uintptr_t id; std::vector<uintptr_t> tabs; };
 std::vector<Panel> g_panels;
-std::unordered_map<uintptr_t, std::string> g_selected;
+// A bar's selection is its index plus caption: two tabs may share a caption.
+struct Selection { int index = -1; std::string text; };
+std::unordered_map<uintptr_t, Selection> g_selected;
 bool g_observing = false;
-// The menu switcher's label as last seen, kept while a dialogue suspends this
-// reader. The quest log is one of the switcher's tabs and suspends it, so the
-// tab after it came back as a silent baseline -- and the Options tab has no
-// window title to name it instead (the user, 2026-09-21: Options was heard
-// only as its first button, "Save and Exit").
-struct Held { uintptr_t tab = 0; std::string text; };
-Held g_switcher;
+std::string g_detail;
 constexpr std::string_view SwitcherTabs = "UISwitcherTabs";
 
 void Append(std::string& text, const std::string& part) {
@@ -27,10 +23,8 @@ void Append(std::string& text, const std::string& part) {
 }
 
 std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, bool suspended) {
-	if (suspended || !focus.panel) {
-		const Held kept = g_switcher;
+	if (!focus.panel) {
 		Reset();
-		if (suspended) g_switcher = kept;
 		return {};
 	}
 	std::vector<uintptr_t> visible;
@@ -45,38 +39,45 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 			g_panels.push_back({panel, NativeUi::FindControls(panel, UiText::Kind::Tabs)});
 		}
 	}
-	std::unordered_map<uintptr_t, std::string> next;
+	std::unordered_map<uintptr_t, Selection> next;
 	std::string changed;
-	bool switcherSeen = false;
 	for (const auto& panel : g_panels) {
 		for (uintptr_t tab : panel.tabs) {
-			const auto text = UiText::Clean(NativeUi::SelectedTabText(tab));
-			if (text.empty() || !next.emplace(tab, text).second) continue;
+			Selection now { NativeUi::SelectedTab(tab), UiText::Clean(NativeUi::SelectedTabText(tab)) };
+			if (now.text.empty() || next.contains(tab)) continue;
 			const auto prior = g_selected.find(tab);
-			if (g_observing && (prior == g_selected.end() || prior->second != text)) Append(changed, text);
-			if (NativeWidgets::ReadName(tab) != SwitcherTabs) continue;
-			// Back from a dialogue: the switcher moved on while this was not looking.
-			if (!g_observing && g_switcher.tab == tab && !g_switcher.text.empty() && g_switcher.text != text) Append(changed, text);
-			g_switcher = {tab, text};
-			switcherSeen = true;
+			const bool isSwitcher = NativeWidgets::ReadName(tab) == SwitcherTabs;
+			// The switcher's dialogue tabs (quest log) name themselves; keep the
+			// old baseline so the tab after them is named on return.
+			if (suspended && isSwitcher && prior != g_selected.end()) {
+				next.emplace(tab, prior->second);
+				continue;
+			}
+			const bool differs = prior == g_selected.end() || prior->second.index != now.index || prior->second.text != now.text;
+			if (g_observing && differs) {
+				Append(changed, now.text);
+				g_detail = "bar " + NativeWidgets::ReadName(tab) + " idx=" + std::to_string(now.index) + " text=" + now.text;
+			}
+			next.emplace(tab, std::move(now));
 		}
 	}
-	if (!switcherSeen) g_switcher = {};
 	g_selected = std::move(next);
 	g_observing = true; // entering a menu already has a title/item announcement
 	return changed;
 }
+
+std::string Detail() { return g_detail; }
 
 std::string Selected(uintptr_t panel) {
 	std::string result;
 	for (const auto& entry : g_panels) if (entry.id == panel) {
 		for (uintptr_t tab : entry.tabs) {
 			const auto it = g_selected.find(tab);
-			if (it != g_selected.end()) Append(result, it->second);
+			if (it != g_selected.end()) Append(result, it->second.text);
 		}
 	}
 	return result;
 }
 
-void Reset() { g_panels.clear(); g_selected.clear(); g_observing = false; g_switcher = {}; }
+void Reset() { g_panels.clear(); g_selected.clear(); g_observing = false; g_detail.clear(); }
 }

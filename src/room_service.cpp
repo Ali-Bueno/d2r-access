@@ -184,7 +184,7 @@ bool SideOf(InputDirection::StickPush push, Radar::Direction& side) {
 // One push of the right stick, taken before the level scanner sees it -- but
 // only in a dungeon room. Anywhere else the finder does nothing and the push is
 // left for the scanner (the user: "no-op the mode outside of a dungeon").
-// The way out named is offered to guidance, so L3 or Ctrl+B leads to it.
+// The way out named is offered to guidance, so BACK+LB or Ctrl+B leads to it.
 void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	Radar::Direction side = Radar::Direction::Up;
 	if (!SideOf(InputDirection::PeekRightStickPush(), side)) return;

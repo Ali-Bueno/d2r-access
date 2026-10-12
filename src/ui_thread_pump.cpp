@@ -11,6 +11,8 @@ namespace {
 
 const D2RL::ThreadService* g_threads = nullptr;
 TickFn                       g_tick    = nullptr;
+RecoveryFn                   g_recover = nullptr;
+CallbackBoundary             g_boundary;
 std::atomic<bool>            g_enabled = false; // Start() called, Stop() not yet
 std::atomic<bool>            g_queued  = false; // a tick is waiting in the UI queue
 
@@ -44,19 +46,29 @@ void __cdecl OnUiTick(const D2RL::PluginContext* context, void*) noexcept {
 	if (!g_enabled.load() || context == nullptr) {
 		return;
 	}
-	LogTickStats(context);
-	if (g_tick != nullptr) {
-		const auto start = GetTickCount64();
-		g_tick(context);
-		const auto elapsed = GetTickCount64() - start;
-		// Separate accessibility work from gaps between root-widget updates.
-		// Limit reports so diagnostics cannot turn a slow tick into log spam.
-		constexpr ULONGLONG SlowTickMs = 30;
-		static ULONGLONG lastReport = 0;
-		if (elapsed >= SlowTickMs && (!lastReport || start - lastReport >= StatsIntervalMs)) {
-			D2RAccess::AsyncLog::WarnF(context, "[pump] slow accessibility tick: %llu ms", elapsed);
-			lastReport = start;
+	const auto failures = g_boundary.Failures();
+	(void)g_boundary.Run(GetTickCount64(), [&] {
+		LogTickStats(context);
+		if (g_tick != nullptr) {
+			const auto start = GetTickCount64();
+			g_tick(context);
+			const auto elapsed = GetTickCount64() - start;
+			// Separate accessibility work from gaps between root-widget updates.
+			// Limit reports so diagnostics cannot turn a slow tick into log spam.
+			constexpr ULONGLONG SlowTickMs = 30;
+			static ULONGLONG lastReport = 0;
+			if (elapsed >= SlowTickMs && (!lastReport || start - lastReport >= StatsIntervalMs)) {
+				D2RAccess::AsyncLog::WarnF(context, "[pump] slow accessibility tick: %llu ms", elapsed);
+				lastReport = start;
+			}
 		}
+	}, [context](CallbackFault fault) noexcept {
+		if (g_recover) g_recover(context, fault);
+	});
+	if (g_boundary.Failures() != failures) {
+		D2RAccess::AsyncLog::WarnF(context, "[pump] %s; pending mod actions cancelled, retry in one second (failure %llu).",
+			g_boundary.Fault() == CallbackFault::Allocation ? "allocation failed" : "accessibility callback threw",
+			static_cast<unsigned long long>(g_boundary.Failures()));
 	}
 	(void)Queue(context);
 }
@@ -87,7 +99,7 @@ bool Queue(const D2RL::PluginContext* context) {
 
 }
 
-bool Start(const D2RL::PluginContext* context, TickFn tick) {
+bool Start(const D2RL::PluginContext* context, TickFn tick, RecoveryFn recover) {
 	if (context == nullptr || tick == nullptr || g_enabled.load()) {
 		return false;
 	}
@@ -98,6 +110,8 @@ bool Start(const D2RL::PluginContext* context, TickFn tick) {
 		return false;
 	}
 	g_tick = tick;
+	g_recover = recover;
+	g_boundary.Reset();
 	g_enabled.store(true);
 	(void)Queue(context);
 	return true;
@@ -112,6 +126,7 @@ void Kick(const D2RL::PluginContext* context) {
 void Stop() {
 	g_enabled.store(false);
 	g_tick    = nullptr;
+	g_recover = nullptr;
 	g_threads = nullptr;
 }
 

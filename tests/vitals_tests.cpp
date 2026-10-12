@@ -176,7 +176,63 @@ void Equipping() {
 }
 }
 
+void Gaits() {
+	using Vitals::Gait;
+	Vitals::GaitTracker gait;
+	Check(!gait.Toggle(), "a toggle before any step has nothing to flip");
+	Check(!gait.Observe(Gait::Walk), "the first step is a baseline");
+	Check(!gait.Observe(std::nullopt), "standing still says nothing");
+	Check(!gait.Observe(Gait::Run) && !gait.Observe(Gait::Run), "a new gait waits until it has held");
+	Check(gait.Observe(Gait::Run) == Gait::Run, "starting to run is announced once it holds");
+	Check(!gait.Observe(Gait::Run), "and only once");
+	bool flicker = false;
+	for (int i = 0; i < 10; ++i) flicker |= gait.Observe(i % 2 ? Gait::Run : Gait::Walk).has_value();
+	Check(!flicker, "a character flickering between walk and run at stamina's edge says nothing");
+	Check(gait.Toggle() == Gait::Walk, "the game's toggle predicts walking at once");
+	Check(!gait.Observe(Gait::Walk), "the step that confirms it says nothing more");
+	Check(gait.Toggle() == Gait::Run, "toggling again predicts running");
+	for (int i = 1; i < Vitals::GaitConfirmSamples; ++i) gait.Observe(Gait::Walk);
+	Check(gait.Observe(Gait::Walk) == Gait::Walk, "steps that contradict the prediction correct it");
+	gait.Reset();
+	Check(!gait.Observe(Gait::Run), "a new game starts from a fresh baseline");
+}
+
+void Stamina() {
+	Vitals::StaminaMeter stamina;
+	Check(stamina.Update(100) < 0, "the first reading is a baseline");
+	Check(stamina.Update(60) < 0, "above the first step stays silent");
+	Check(stamina.Update(49) == 49, "falling through 50 speaks the real percentage");
+	Check(stamina.Update(45) < 0, "within the same step stays silent");
+	Check(stamina.Update(55) < 0 && stamina.Update(49) < 0, "a small recovery does not re-arm the step");
+	Check(stamina.Update(61) < 0 && stamina.Update(48) == 48, "recovering past the margin re-arms it");
+	Check(stamina.Update(24) == 24 && stamina.Update(9) == 9, "each lower step is announced");
+	Check(stamina.Update(0) == 0, "running out is announced as zero");
+	Check(stamina.Update(-1) < 0 && stamina.Update(0) < 0, "an unreadable sample keeps the state");
+	stamina.Reset();
+	Check(stamina.Update(5) < 0, "a new game starts from a fresh baseline");
+}
+
+void Ammo() {
+	Vitals::AmmoMeter ammo;
+	using Stack = Vitals::AmmoMeter::Stack;
+	Check(!ammo.Update({{1, 1}, {2, 120}}), "the first sight of a stack is a baseline");
+	Check(!ammo.Update({{1, 1}, {2, 51}}), "above the first step stays silent");
+	const auto fifty = ammo.Update({{1, 1}, {2, 50}});
+	Check(fifty && fifty->id == 2 && fifty->quantity == 50, "falling to 50 names the stack and its count");
+	Check(!ammo.Update({{1, 1}, {2, 30}}), "within a step stays silent");
+	Check(ammo.Update({{1, 1}, {2, 5}})->quantity == 5, "a big drop speaks once, at the count");
+	Check(ammo.Update({{1, 1}, {2, 0}})->quantity == 0, "running out is announced");
+	Check(!ammo.Update({{1, 1}, {2, 200}}), "a refill is silent");
+	Check(ammo.Update({{1, 1}, {2, 20}})->quantity == 20, "and re-arms the steps");
+	Check(ammo.Known({{1, 1}, {2, 20}}).size() == 1, "a single sword is not a stack");
+	Check(ammo.Known({{2, 1}}).size() == 1, "a stack down to one is still a stack");
+	Check(!ammo.Update({{3, 4}}), "a stack equipped low is a baseline, not an alarm");
+	ammo.Reset();
+	Check(ammo.Known({{2, 1}}).empty(), "a new game forgets the stacks");
+}
+
 int main() {
 	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
+	Gaits(); Stamina(); Ammo();
 	Passed();
 }

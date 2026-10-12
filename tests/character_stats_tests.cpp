@@ -79,9 +79,10 @@ namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 }
 namespace D2RAccess::AsyncLog {
-void Info(const D2RL::PluginContext*, const char*) {}
-void InfoF(const D2RL::PluginContext*, const char*, ...) {}
+void Info(const D2RL::PluginContext*, const char*) noexcept {}
+void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
+namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;
@@ -125,6 +126,8 @@ std::string Text(std::string_view key) {
 
 int main() {
 	using namespace D2RAccess;
+	Check(CharacterStats::HasPoints("5 Stat Points Remaining") && CharacterStats::HasPoints("Puntos: 12"), "a count above zero is points to spend");
+	Check(!CharacterStats::HasPoints("0 Stat Points Remaining") && !CharacterStats::HasPoints("") && !CharacterStats::HasPoints("none"), "zero, empty or no number is not");
 	Strings::Select(Strings::Language::esES);
 	widgets[Panel] = {"CharacterStatsPanel", "", 0};
 	Add(2, "CharacterName", "Ulfr");

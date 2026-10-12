@@ -7,7 +7,7 @@ complete unexplored routing remains unavailable.
 
 Lets a blind player walk to a specific thing instead of only sensing walls
 around them. The level scanner on the right stick (`docs/entity-scan.md`,
-`src/map_survey.h`) names the target; a short left-stick click (L3), or
+`src/map_survey.h`) names the target; **BACK+LB**, or
 **Ctrl+B**, locks what it spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
@@ -18,13 +18,18 @@ releases it on its own.
 
 ## Controls and console
 
-- Short left-stick click (`InputDirection::TakeLeftStickClick`) or **Ctrl+B**:
+- **BACK+LB** (`InputDirection::TakeBackWithLb`) or **Ctrl+B**:
   lock the last thing the entity scan or the exit review announced. With a lock
   active, a still-fresh offer of a *different* target (`EntityRadar::SameTarget`)
   replaces it in one press, silently releasing the old one (`retargeted`); a
   refused retarget keeps the old lock. Otherwise the press releases the lock.
-  Moved from R3 on 2026-09-25: R3 also opens the game's emote wheel. L3 is the
-  mod's only stick button, reported on press; R3 belongs to the game again.
+  Moved from R3 on 2026-09-25 (R3 opens the emote wheel), then from L3 on
+  2026-10-11: L3 is the game's walk/run toggle, so each beacon press also toggled
+  running. `pad_filter.h` keeps LB from the game while BACK is held in play.
+- Arrival: within 3 subtiles of the exact player position (the keyboard's use
+  reach), plus half a large object's footprint. A target that vanishes as it is
+  reached (a chest opened, an item picked up, read within the last 2 s) is
+  announced as arrived, not lost.
 - Console `access-beacon lock|clear|status|exploration|full` (`lock` also accepts
   `toggle`, `clear` also accepts `off`); `status` speaks the navigation mode,
   then whether something is locked and, if so, its name. `exploration` and
@@ -100,7 +105,7 @@ silent while outside. These drop the parked lock:
 
 - a third level, or an area that is not a neighbour (a warp);
 - a new lock or a Clear;
-- L3 with nothing offered, which announces the release;
+- BACK+LB with nothing offered, which announces the release;
 - a mode change;
 - a new game.
 
@@ -250,6 +255,7 @@ sounds where this uses a word.
 | `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scan announcement stays lockable |
 | ping tone | 620 Hz, 80 ms notes | `beacon_audio.cpp` `Synthesize`, `PingHz`/`NoteMs` |
 | rear pitch | 0.94 | `beacon_audio.cpp` `RearPitch`; shared with the ground-item loops' rear factor |
+| `pan_strength` / `pitch_strength` | 100 % | `radar.toml [beacon]`, 0-200 %, scale the stereo spread and the rear pitch drop |
 | level | 0.15 | `beacon_audio.cpp` `Level`, peak gain before the user's volume setting |
 | stereo/front placement | native projection `0x334DB0` | `beacon_service.cpp` `Place`; same screen-axis convention as the ground-item loops |
 

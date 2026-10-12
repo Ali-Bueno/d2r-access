@@ -15,4 +15,9 @@ void Reset();
 // and the same change the console command makes.
 bool Enabled();
 void SetEnabled(bool enabled);
+// Walk/run changes and falling stamina; stacks in hand running low.
+bool MovementAlerts();
+void SetMovementAlerts(bool enabled);
+bool AmmoAlerts();
+void SetAmmoAlerts(bool enabled);
 }

@@ -14,6 +14,7 @@
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "wall_bump.h"
 #include "wall_slide_service.h"
 
 #include <windows.h>
@@ -37,10 +38,12 @@ constexpr uint64_t SnapshotIntervalMs = 1000;
 // Level exits do not move; rooms stream in at walking pace, so a second is enough.
 constexpr uint64_t ExitsRefreshMs = 1000;
 // The audition plays every reading in every direction, the marked exit and
-// floor (unexplored tail) right after their plain form.
-struct AuditionStep { Radar::State state; bool unexplored; };
-constexpr AuditionStep Audition[] = {{Radar::State::Exit, false}, {Radar::State::Exit, true}, {Radar::State::Open, false},
-	{Radar::State::Open, true}, {Radar::State::Blocked, false}, {Radar::State::Door, false}};
+// floor (unexplored tail) right after their plain form, the small obstacle
+// after the wall, and last the wall bump panned to each side.
+struct AuditionStep { Radar::State state; bool unexplored = false, small = false, bump = false; };
+constexpr AuditionStep Audition[] = {{Radar::State::Exit}, {Radar::State::Exit, true}, {Radar::State::Open},
+	{Radar::State::Open, true}, {Radar::State::Blocked}, {Radar::State::Blocked, false, true}, {Radar::State::Door},
+	{Radar::State::Blocked, false, false, true}};
 constexpr int AuditionSteps = static_cast<int>(std::size(Audition) * Radar::DirectionCount);
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
@@ -58,6 +61,8 @@ std::string g_lastReason;
 std::vector<Radar::LevelExit> g_exits;
 uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
+std::atomic<bool> g_wallBump{true}, g_smallObstacles{true};
+WallBump::Detector g_bump;
 
 // The level's exits for the passage scan; a failed read keeps the last list.
 void RefreshExits(const Radar::World& world, uint64_t now) {
@@ -156,17 +161,29 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
 	return D2RL::Input::ActionResult::Handled;
 }
-void LogGenerated(const Radar::World& world, const Radar::Events& events, const Radar::Marks& marks, uint64_t now) {
+// The thud when the game refuses a push into a wall; null when the world is unreadable.
+void TickBump(const Radar::World* world, uint64_t now) {
+	if (!world) { g_bump.Reset(); return; }
+	const auto blocked = WallSlideService::LastBlocked();
+	const Radar::Position push{blocked.x, blocked.y};
+	const Radar::Position exact{world->player.x + world->subtileFraction.x, world->player.y + world->subtileFraction.y};
+	if (!g_bump.Tick({.attempts = blocked.attempts, .position = exact, .push = push, .contact = WallBump::Contact(*world, push), .now = now})) return;
+	const double pan = WallBump::Pan(push);
+	AsyncLog::InfoF(g_context, "[wall-bump] position=%.2f,%.2f push=%.2f,%.2f pan=%.2f attempts=%llu level=%d",
+		exact.x, exact.y, push.x, push.y, pan, static_cast<unsigned long long>(blocked.attempts), world->level);
+	RadarAudio::Bump(pan, {.eventMs = now, .session = world->session, .level = world->level, .position = world->player, .frame = g_frame});
+}
+void LogGenerated(const Radar::World& world, const Radar::Events& events, const Radar::Marks& marks, const Radar::Marks& small, uint64_t now) {
 	for (size_t i = 0; i < events.size(); ++i) {
 		if (events[i] == Radar::State::Unknown) continue;
 		const auto& sensor = g_engine.Sensors()[i];
 		const auto velocity = g_engine.Velocity();
 		const auto stick = InputDirection::LeftStick();
-		AsyncLog::InfoF(g_context, "[radar] direction=%zu state=%u unexplored=%u position=%.0f,%.0f axes=screen depth=%.1f open=%.1f close=%.1f speed=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f stick=%.2f,%.2f trigger=passage",
+		AsyncLog::InfoF(g_context, "[radar] direction=%zu state=%u unexplored=%u position=%.0f,%.0f axes=screen depth=%.1f open=%.1f close=%.1f speed=%.1f event_ms=%llu stage=generated direction_name=%s state_name=%s session=%llu level=%d velocity=%.1f,%.1f stick=%.2f,%.2f trigger=passage small=%u",
 			i, static_cast<unsigned>(events[i]), marks[i] ? 1u : 0u, world.player.x, world.player.y, sensor.passage.depth, sensor.passage.openDepth,
 			sensor.passage.closeDepth, g_engine.Speed(), static_cast<unsigned long long>(now), RadarTrace::DirectionName(i, g_engine.Configuration().frame),
 			RadarTrace::StateName(events[i]), static_cast<unsigned long long>(world.session), world.level, velocity.x, velocity.y,
-			stick.connected ? stick.x : 0.0f, stick.connected ? stick.y : 0.0f);
+			stick.connected ? stick.x : 0.0f, stick.connected ? stick.y : 0.0f, small[i] ? 1u : 0u);
 	}
 }
 }
@@ -233,25 +250,31 @@ void Tick(const D2RL::PluginContext* context) {
 	if (command == Command::None && now - g_lastPoll < Radar::PollMs) return;
 	g_lastPoll = now;
 	const bool gate = g_supported && g_ready && g_enabled;
-	// The widget-tree walk is only worth its cost while the radar can run.
-	const auto ui = gate || command != Command::None ? UiState() : RadarUi::State::Playing;
+	const bool bumping = g_supported && g_ready && g_wallBump; // the bump has its own switch
+	// The widget-tree walk is only worth its cost while the radar or the bump can run.
+	const auto ui = gate || bumping || command != Command::None ? UiState() : RadarUi::State::Playing;
 	const bool blocked = ui != RadarUi::State::Playing;
 	if (g_testStep >= 0 && !blocked) {
 		if (now >= g_testDue) {
 			if (g_testStep == AuditionSteps) { g_testStep = -1; return; }
 			Radar::Events events{};
-			Radar::Marks marks{};
-			const size_t step = static_cast<size_t>(g_testStep++);
-			events[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].state;
-			marks[step % Radar::DirectionCount] = Audition[step / Radar::DirectionCount].unexplored;
-			RadarAudio::Play(events, {.eventMs = now, .session = g_session, .level = g_level, .audition = true, .frame = g_frame}, marks);
+			Radar::Marks marks{}, small{};
+			const size_t step = static_cast<size_t>(g_testStep++), direction = step % Radar::DirectionCount;
+			const auto& sound = Audition[step / Radar::DirectionCount];
+			events[direction] = sound.state;
+			marks[direction] = sound.unexplored;
+			small[direction] = sound.small;
+			const RadarAudio::CueSource source{.eventMs = now, .session = g_session, .level = g_level, .audition = true, .frame = g_frame};
+			if (sound.bump) RadarAudio::Bump(Radar::RaysOf(g_frame)[direction].screen.x, source);
+			else RadarAudio::Play(events, source, marks, small);
 			g_testDue = now + TestStepMs;
 		}
 		return;
 	}
 	Radar::World world;
 	NativeWorld::Diagnostics detail;
-	const bool available = gate && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world, &detail);
+	const bool read = (gate || bumping) && !blocked && NativeWorld::Read(g_playerId, g_session, g_level, world, &detail);
+	const bool available = gate && read;
 	constexpr const char* UiReasons[] = {"playing", "inactive-window", "ui-unavailable", "dialogue", "pause"};
 	const char* reason = !g_supported ? "reader-unavailable" : !g_enabled ? "disabled" : !g_ready ? "waiting-player"
 		: blocked ? UiReasons[static_cast<size_t>(ui)] : detail.stage;
@@ -267,26 +290,28 @@ void Tick(const D2RL::PluginContext* context) {
 	} else {
 		world.maze = RoomService::Maze(world.level);
 		world.slides = !WallSlideService::Enabled();
+		world.smallObstacles = g_smallObstacles;
 		RefreshExits(world, now);
 		world.exits = g_exits;
 		TerrainService::Qualify(world, g_frame);
 		if (g_suspended) AsyncLog::InfoF(context, "[radar] Live terrain ready: level=%d position=%.0f,%.0f rooms=%zu pattern=%d maze=%u slides=%u frame=%s exits=%zu; silent baseline.", world.level, world.player.x, world.player.y, world.rooms.size(), world.bodyPattern, world.maze ? 1u : 0u, world.slides ? 1u : 0u, g_frame == Radar::Frame::Diagonal ? "diagonal" : "cardinal", world.exits.size());
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
-		Radar::Marks marks{};
-		const auto events = g_engine.Tick(world, now, &marks);
+		Radar::Marks marks{}, small{};
+		const auto events = g_engine.Tick(world, now, &marks, &small);
 		if (revision != g_engine.Revision()) RadarAudio::Silence("world-rebased");
 		Radar::Events states{};
 		for (size_t i = 0; i < states.size(); ++i) states[i] = g_engine.Sensors()[i].state;
 		RadarAudio::Retain(states, g_engine.Unexplored());
-		LogGenerated(world, events, marks, now);
-		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player, .frame = g_frame}, marks);
+		LogGenerated(world, events, marks, small, now);
+		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player, .frame = g_frame}, marks, small);
 		const bool generated = std::any_of(events.begin(), events.end(), [](auto state) { return state != Radar::State::Unknown; });
 		if (generated && (!g_lastSnapshot || now - g_lastSnapshot >= SnapshotIntervalMs)) {
 			RadarTrace::Snapshot(context, world, g_engine, now);
 			g_lastSnapshot = now;
 		}
 	}
+	TickBump(bumping && read ? &world : nullptr, now);
 	if (command == Command::Status || command == Command::Dump) {
 		Describe(available, ui);
 		if (available) { LogSensors(now); Dump(world); }
@@ -312,4 +337,8 @@ bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 bool Diagonal() { return g_frame == Radar::Frame::Diagonal; }
 void SetDiagonal(bool diagonal) { g_command = diagonal ? Command::Diagonal : Command::Cardinal; }
+bool BumpEnabled() { return g_wallBump; }
+void SetBumpEnabled(bool enabled) { g_wallBump = enabled; }
+bool SmallObstaclesEnabled() { return g_smallObstacles; }
+void SetSmallObstaclesEnabled(bool enabled) { g_smallObstacles = enabled; }
 }

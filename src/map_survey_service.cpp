@@ -106,6 +106,7 @@ bool                 g_fullAssistance = true;
 // The filter for what cannot be reached, and its key, which is a switch and
 // works out of play too.
 std::atomic<bool>    g_reachFilter{ false };
+std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
 size_t               g_cutLogged = 0;
@@ -319,6 +320,7 @@ std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 // Enemies and items are remembered as every other thing is (the user,
 // 2026-09-28: everything discovered stays), and forgotten the same way: once
 // the map can see where one was and it is not there -- killed, picked up.
+// An enemy is also forgotten the moment the game holds it dead, wherever it lay.
 void Observe(const Lifecycle& state, const Radar::World& world, const Navigation::Grid& grid, const Scene& scene) {
 	const auto& rooms = CurrentRooms(state.level, state.session);
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
@@ -335,6 +337,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
 	present.insert(present.end(), items.begin(), items.end());
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
+	g_registry.ForgetEnemies(NativeEntities::TakeDeadMonsters());
 	KeyboardService::NotePads(world, scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	LogTownNpcs(g_context, state, scene);
@@ -403,7 +406,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			catalogued.push_back(std::move(place));
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
-	const auto townNpcs = g_fullAssistance ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
+	const auto townNpcs = g_fullAssistance || g_townNpcsEverywhere ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
 	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);
@@ -522,6 +525,8 @@ void PollStick() {
 void Repeat() { g_request.store(Request::Repeat); }
 
 bool ReachFilter() { return g_reachFilter.load(); }
+bool TownNpcsEverywhere() { return g_townNpcsEverywhere.load(); }
+void SetTownNpcsEverywhere(bool on) { g_townNpcsEverywhere = on; }
 void SetReachFilter(bool on) { g_reachFilter = on; }
 
 bool Register(const D2RL::PluginContext* context) {

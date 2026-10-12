@@ -151,10 +151,12 @@ void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
 	Check(DistancePhrase(8.2, settings, es) == "8 pasos", "steps distance");
-	Check(DistancePhrase(1.2, settings, es) == "1 paso", "the singular step");
+	Check(DistancePhrase(1.2, settings, es) == "aquí mismo", "a thing beside the body is under the player");
+	Check(DistancePhrase(1.4, settings, es) == "aquí mismo", "diagonally beside too");
 	Check(DistancePhrase(0.4, settings, es) == "aquí mismo", "adjacent targets have no distance");
 	settings.stepsPerSubtile = 0.5;
 	Check(DistancePhrase(8.2, settings, es) == "4 pasos", "the spoken unit follows the calibration factor");
+	Check(DistancePhrase(2.2, settings, es) == "1 paso", "the singular step");
 	Check(DistancePhrase(8.2, settings, Strings::For(Strings::Language::enUS)) == "4 steps", "english wording");
 }
 }

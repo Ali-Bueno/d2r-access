@@ -1,4 +1,5 @@
 #include "screen_reader.h"
+#include "process_lifetime.h"
 #include "async_log.h"
 
 #include <prism.h>
@@ -59,7 +60,8 @@ struct Request {
 };
 
 State                   g_state {};
-std::thread             g_thread;
+ProcessLifetime<std::thread> g_threadOwner;
+std::thread&            g_thread = g_threadOwner.Get();
 std::mutex              g_mutex;
 std::condition_variable g_wake;
 std::deque<Request>     g_queue;

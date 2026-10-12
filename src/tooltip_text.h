@@ -55,9 +55,11 @@ struct Description {
 // `unidentifiedLabel` is the game's "Unidentified" line: it follows the name
 // and leaves the detail. `requirementLabels` begin the lines the game draws red
 // when unmet; those red lines also go to `unmet`, and stay in the detail.
+// `quantityLabels` begin a stack's count line, which moves into the headline
+// between the name and the price.
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
-	std::span<const std::string> requirementLabels = {});
+	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {});
 
 // What a held compare button adds, as the screen draws it: each extra record's
 // lines ("Currently Equipped", then the equipped item), joined for speech.
@@ -100,6 +102,10 @@ inline constexpr const char* PriceKey = "cost"; // Cost: %d
 // VERIFIED against local/lng/strings/ui.json. Unknown to the splitter before,
 // so it was read as the item's name (MEASURED 2026-09-21).
 inline constexpr const char* SellKey = "Sell"; // Sell value: %d
+
+// A stack's count ("Quantity: 20 of 20") joins the name in the headline, as
+// does a tome's: stackables use ItemStats1i, tomes scrollbooktext.
+inline constexpr const char* QuantityKeys[] = {"ItemStats1i", "scrollbooktext"};
 
 // Verified in local/lng/strings/item-modifiers.json for all game locales.
 inline constexpr const char* UnidentifiedKey = "ItemStats1b";

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <set>
 
 using namespace D2RAccess;
 using namespace EntityCues;
@@ -30,9 +31,10 @@ void FilteringAndPriority() {
 	auto melee = Make(1, Kind::Ranged, 31, 30); melee.enemy = {};
 	auto object = Make(2, Kind::Important, 31, 30); object.kind = EntityRadar::Kind::Object;
 	Check(Select(world, {object}, {}).empty(), "objects have no cue even with hostile-looking flags");
+	Settings threeVoices; threeVoices.maxVoices = 3;
 	const auto ordinary = Select(world, {Make(9, Kind::Ordinary, 35, 30), melee, Make(10, Kind::Ordinary, 30, 34),
-		Make(11, Kind::Ordinary, 30, 33), Make(12, Kind::Ordinary, 26, 30)}, {});
-	Check(ordinary.size() == MaxOrdinary && ordinary[0].id == 1 && ordinary[1].id == 11 && ordinary[2].id == 10
+		Make(11, Kind::Ordinary, 30, 33), Make(12, Kind::Ordinary, 26, 30)}, threeVoices);
+	Check(ordinary.size() == 3 && ordinary[0].id == 1 && ordinary[1].id == 11 && ordinary[2].id == 10
 		&& ordinary[0].kind == Kind::Ordinary,
 		"the nearest ordinary enemies of a pack each sound, nearest first, as in Diablo 1");
 	Check(ordinary[0].slot != ordinary[1].slot && ordinary[1].slot != ordinary[2].slot,
@@ -47,10 +49,10 @@ void FilteringAndPriority() {
 	const std::vector entities{Make(3, Kind::Npc, 32, 30), Make(4, Kind::Npc, 34, 30),
 		Make(5, Kind::Important, 38, 30), Make(6, Kind::Resurrector, 36, 30), Make(7, Kind::Ranged, 31, 30),
 		Make(8, Kind::Ordinary, 31, 31)};
-	const auto selected = Select(world, entities, {});
+	const auto selected = Select(world, entities, threeVoices);
 	Check(selected.size() == 4 && selected[0].id == 5 && selected[1].id == 6 && selected[2].id == 7 && selected[3].id == 3,
 		"three priority enemy classes fill the enemy slots before the ordinary one, with one nearest NPC independently");
-	const auto mixed = Select(world, {entities[2], entities[3], entities[5], Make(13, Kind::Ordinary, 32, 32)}, {});
+	const auto mixed = Select(world, {entities[2], entities[3], entities[5], Make(13, Kind::Ordinary, 32, 32)}, threeVoices);
 	Check(mixed.size() == 3 && mixed[2].id == 8 && mixed[2].kind == Kind::Ordinary,
 		"beside a boss and a shaman only the nearest ordinary enemy fits in the three streams");
 	Check(Select(world, {entities[0], entities[1]}, {}).size() == 1, "a town never creates one stream per NPC");
@@ -74,9 +76,10 @@ void VisibilityAndPlacement() {
 	for (int x = 0; x < Size; ++x) world.rooms[0].cells[34 * Size + x] = 1;
 	Check(Select(world, {npc}, {}).empty(), "known walls hide cues like the directional radar");
 	world = World();
-	const auto edge = Select(world, {Make(2, Kind::Npc, 45, 30)}, {});
+	Settings circle; circle.onScreen = false;
+	const auto edge = Select(world, {Make(2, Kind::Npc, 45, 30)}, circle);
 	Check(edge.size() == 1 && edge[0].intervalMs == Settings{}.farIntervalMs, "range boundary has the slowest pulse");
-	Check(Select(world, {Make(2, Kind::Npc, 45.01, 30)}, {}).empty(), "outside proximity range stays silent");
+	Check(Select(world, {Make(2, Kind::Npc, 45.01, 30)}, circle).empty(), "outside proximity range stays silent");
 	const auto here = Select(world, {Make(3, Kind::Npc, 30, 30)}, {});
 	Check(here.size() == 1 && here[0].right == 0 && here[0].front == 1
 		&& here[0].intervalMs == Settings{}.nearIntervalMs, "coincident positions are centered without division by zero");
@@ -166,7 +169,55 @@ void GrowlsOff() {
 	Check(selected.size() == 3 && selected[0].id == 5 && selected[1].id == 6 && selected[2].id == 3,
 		"with growls off, boss and shaman take the two enemy slots, with one nearest NPC independently");
 }
+void ScreenArea() {
+	Radar::World world;
+	world.player = {100, 100}; world.walkingMask = 1;
+	world.rooms.push_back({0, 0, 200, 200, std::vector<uint16_t>(200 * 200, 0)});
+	const Settings screen; // on_screen is the default
+	Settings circle; circle.onScreen = false;
+	Check(Select(world, {Make(1, Kind::Ordinary, 120, 100)}, screen).size() == 1,
+		"an enemy 20 subtiles off, past the old 15-subtile circle, growls once on screen");
+	Check(Select(world, {Make(1, Kind::Ordinary, 100, 130)}, screen).size() == 1, "straight down 30 is still on screen");
+	Check(Select(world, {Make(1, Kind::Ordinary, 100, 140)}, screen).empty(), "past the bottom of the screen stays silent");
+	Check(Select(world, {Make(1, Kind::Ordinary, 100 + 40, 100)}, screen).empty(), "past the right of the screen stays silent");
+	// Diagonal offset t: |dx+dy| = 2t, so the plain screen ends at 18.5 and the ranged margin at 20.
+	Check(Select(world, {Make(2, Kind::Ordinary, 119, 119)}, screen).empty(), "an ordinary enemy just past the screen edge is silent");
+	Check(Select(world, {Make(3, Kind::Ranged, 119, 119)}, screen).size() == 1, "an archer just past the screen edge already sounds");
+	Check(Select(world, {Make(3, Kind::Ranged, 121, 121)}, screen).empty(), "the archer margin is small");
+	Check(Select(world, {Make(1, Kind::Ordinary, 120, 100)}, circle).empty() && Select(world, {Make(1, Kind::Ordinary, 114, 100)}, circle).size() == 1,
+		"with on_screen off the range circle applies again");
+	auto walled = world;
+	for (int x = 0; x < 200; ++x) walled.rooms[0].cells[110 * 200 + x] = 1;
+	Check(Select(walled, {Make(1, Kind::Ordinary, 100, 125)}, screen).empty(), "line of sight still hides an on-screen enemy");
+	const auto far = Select(world, {Make(1, Kind::Ordinary, 100, 130)}, screen)[0];
+	const auto near = Select(world, {Make(1, Kind::Ordinary, 100, 101)}, screen)[0];
+	Check(far.intervalMs > near.intervalMs && far.intervalMs < screen.farIntervalMs,
+		"pacing is scaled over the screen extent, so a far enemy is slower but not at the maximum");
+}
+void BigPack() {
+	Radar::World world;
+	world.player = {100, 100}; world.walkingMask = 1;
+	world.rooms.push_back({0, 0, 200, 200, std::vector<uint16_t>(200 * 200, 0)});
+	std::vector<EntityRadar::Entity> pack;
+	for (uint32_t i = 0; i < 20; ++i) pack.push_back(Make(100 + i, Kind::Ordinary, 100 + 2 + static_cast<double>(i), 100));
+	pack.push_back(Make(1, Kind::Important, 100, 118));
+	for (const size_t voices : {size_t{1}, size_t{3}, size_t{6}, MaxVoices}) {
+		Settings settings; settings.maxVoices = voices;
+		const auto selected = Select(world, pack, settings);
+		Check(selected.size() == voices, "a big pack fills exactly the configured voices");
+		Check(selected[0].id == 1 && selected[0].kind == Kind::Important, "the elite always keeps a voice");
+		if (voices > 1) Check(selected[1].id == 100, "the nearest ordinary enemy follows the elite");
+		std::set<size_t> slots;
+		for (const auto& cue : selected) slots.insert(cue.slot);
+		Check(slots.size() == selected.size(), "every voice has its own cadence slot");
+	}
+	Settings oversize; oversize.maxVoices = 50;
+	Check(Select(world, pack, oversize).size() == MaxVoices, "the voice count is bounded by the slot array");
+	Settings none; none.maxVoices = 0;
+	Check(Select(world, pack, none).size() == 1, "a zero voice count still allows one voice");
+}
 int main() {
+	ScreenArea(); BigPack();
 	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); PackCadence(); FastRepeatsAtRuntimeCadence();
 	GrowlsOff();
 	Passed();

@@ -81,17 +81,19 @@ std::string Format(const char* format, const char* name) {
 
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
 namespace D2RAccess::BeaconAudio {
-bool Start(const D2RL::PluginContext*, double) { return true; }
+bool Start(const D2RL::PluginContext*, double, double, double) { return true; }
 void Stop() {}
 bool Available() { return true; }
 void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
-namespace D2RAccess::InputDirection { bool TakeLeftStickClick() { return false; } }
+namespace D2RAccess::InputDirection { bool TakeBackWithLb() { return false; } }
+namespace D2RAccess::MapSurveyService { bool TownNpcsEverywhere() { return false; } }
 namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }
 Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
+BeaconSettings ReadBeacon(const D2RL::PluginContext*) { return {}; }
 }
 namespace D2RAccess::NativeAutomap {
 std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>&) { return chartedRooms; }

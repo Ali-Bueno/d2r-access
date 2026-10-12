@@ -14,9 +14,10 @@ automap; enemies are the one live category.
   One dominant axis per push (`InputDirection::TakeRightStickPush`), so a
   diagonal push never changes both at once.
 - In a menu, dialogue or pause the stick belongs to the menu (`RadarUi::InPlay`).
-- A short left-stick click (L3), or **Ctrl+B**, follows what the scanner last
-  named (`docs/beacon.md`); on a newly named target it switches in one press.
-  R3 and the L3+R3 chord have no mod gesture since 2026-09-25.
+  While the settings list is open (BACK+RB) it steps the list instead.
+- **BACK+LB**, or **Ctrl+B**, follows what the scanner last named
+  (`docs/beacon.md`); on a newly named target it switches in one press.
+  L3, R3 and the L3+R3 chord are the game's.
 - Keyboard: Ctrl+Numpad 8/2 previous/next category, Ctrl+Numpad 4/6
   previous/next object, `,`/`.` step categories, `\` repeats.
 
@@ -36,8 +37,13 @@ automap; enemies are the one live category.
   portals are not kept: what they are, or whether they are there, changes
   between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
   `docs/exploration.md#on-disk`).
-- **Enemies** are never remembered: each answer lists the enemies in range and
-  in sight right now, nearest first.
+- **Enemies** are discovered in range and in sight (all loaded ones with full
+  assistance) and then remembered. A remembered enemy follows its live unit
+  while the game has it loaded, is forgotten as soon as the game holds it dying
+  or dead anywhere it is loaded (`NativeEntities::TakeDeadMonsters`), and at once
+  when its place is within reach and it is not there. One that unloads alive
+  stays at its last live position. This fixed a tester's phantom Fallen and
+  Zombie in the Den of Evil (2026-10-11).
 - **Players** (multiplayer) are the other living characters in the game, read
   live like enemies but not filtered by sight, by name, nearest first, so a
   teammate can be found and followed with the beacon. Anyone standing in the

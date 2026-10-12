@@ -311,6 +311,33 @@ void RecordedAlcove() {
 		"clutter with a clear body reach all round it is still absent from structural geometry");
 }
 
+void SmallObstacles() {
+	// The small-obstacle cue's own test, on the physical map: the same island
+	// rule as the clutter filter, whatever the game does about sliding.
+	constexpr int Tile = 5;
+	for (const bool slides : {true, false}) {
+		auto world = Field();
+		world.slides = slides;
+		Rectangle(world, 110, 110, 2, 2, Wall);
+		Check(SmallObstacle(world, 110, 110) && SmallObstacle(world, 111, 111), "a 2x2 island is a small obstacle");
+		Check(!SmallObstacle(world, 100, 100), "open ground is no obstacle at all");
+		Rectangle(world, 80, 120, 50, 1, Wall);
+		Check(!SmallObstacle(world, 100, 120), "a long wall is not");
+		Rectangle(world, 100, 118, 2, 2, Object);
+		Check(!SmallObstacle(world, 100, 118), "an island touching a wall is part of it");
+		Rectangle(world, 104, 117, 2, 2, Object);
+		Check(!SmallObstacle(world, 104, 117), "an island within a body reach of a wall cannot be stepped round");
+	}
+	auto world = Field();
+	Rectangle(world, 100, 100, 20, 20, Wall);
+	size_t explored = 0;
+	Check(!SmallObstacle(world, 110, 110, &explored), "a block of twenty cells is no small obstacle");
+	Check(explored > 0 && explored <= (2 * Tile + 1) * (2 * Tile + 1), "the search stops once the group outgrows one map tile");
+	Rectangle(world, 100, 100, 20, 20, 0);
+	Rectangle(world, 100, 100, Tile, Tile, Object);
+	Check(SmallObstacle(world, 100, 100), "a group of exactly one map tile is still small");
+}
+
 void WindowAndCost() {
 	auto world = Field();
 	Put(world, 100, 110, Object);
@@ -342,6 +369,7 @@ int main() {
 	RecordedReturn();
 	RecordedStone();
 	RecordedAlcove();
+	SmallObstacles();
 	WindowAndCost();
 	Passed();
 }

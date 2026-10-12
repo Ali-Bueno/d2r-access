@@ -180,6 +180,37 @@ void RecreatedObjectTakesItsOldPlace() {
 		"a monster of the same name near where one was lost from the loaded rooms takes its entry");
 }
 
+// A tester's Den of Evil: a Fallen and a Zombie stayed listed where nothing stood.
+void EnemiesFollowTheirUnitAndDie() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	auto fallen = Make(8, 30, 30, EntityRadar::Kind::Enemy);
+	const std::vector<EntityRadar::Entity> first{fallen};
+	registry.Observe(1, first, grid, {}, &first);
+	auto fled = fallen;
+	fled.position = {38, 38};
+	const std::vector<EntityRadar::Entity> loaded{fled};
+	registry.Observe(1, {}, grid, {}, &loaded);
+	Check(registry.Entities().size() == 1 && registry.Entities().front().position.x == 38,
+		"a discovered enemy out of sight but still loaded is listed where it stands now");
+	const std::vector<EntityRadar::Entity> nothing;
+	auto near = fallen;
+	near.id = 9;
+	const std::vector<EntityRadar::Entity> second{near};
+	Registry dying;
+	dying.Observe(1, second, grid, {}, &second);
+	dying.Observe(1, {}, grid, {}, &nothing);
+	Check(dying.Entities().empty(), "an enemy missing from its place within reach is gone at once");
+	registry.ForgetEnemies({8});
+	Check(registry.Entities().empty(), "an enemy the game holds dead is forgotten wherever it lay");
+	Registry items;
+	const std::vector<EntityRadar::Entity> potion{Make(8, 38, 38)};
+	items.Observe(1, potion, grid, {}, &potion);
+	items.ForgetEnemies({8});
+	Check(items.Entities().size() == 1, "a dead monster's id never removes an item that shares it");
+}
+
 void ChangingLevelClears() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -451,6 +482,7 @@ int main() {
 	AbsenceOutsideTheMapIsNotForgetting();
 	AbsenceBeyondTheScanIsNotForgetting();
 	RecreatedObjectTakesItsOldPlace();
+	EnemiesFollowTheirUnitAndDie();
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();

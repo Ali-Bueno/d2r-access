@@ -31,6 +31,7 @@
 namespace D2RAccess::GroundItemService {
 bool ownsLabel = false;
 bool OwnsWorldLabel(std::string_view label) { return ownsLabel && label.starts_with("Poción"); }
+void NoteWorldTarget(std::string_view) {}
 }
 
 namespace D2RAccess::EntityRadarService {
@@ -251,6 +252,7 @@ std::string Text(std::string_view key) {
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	if (key == "ItemStats1e") return "Fuerza necesaria: %d";
 	for (const char* requirement : TooltipText::RequirementKeys) if (key == requirement) return {};
+	for (const char* quantity : TooltipText::QuantityKeys) if (key == quantity) return {};
 	++titleLookups;
 	return {};
 }

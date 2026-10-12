@@ -219,7 +219,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	// later, which is the interruption the queueing was supposed to stop.
 	const auto tabChange = TabReader::Update(panels, focus, owns);
 	if (!tabChange.empty()) {
-		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s: %s", tabChange.c_str(), TabReader::Detail().c_str());
 		g_tabQueuesNext = true;
 	}
 	if (owns) {

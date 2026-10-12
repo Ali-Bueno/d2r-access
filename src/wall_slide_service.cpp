@@ -14,9 +14,10 @@ namespace {
 enum class Command { None, On, Off, Status };
 std::atomic<Command> g_command{Command::None};
 std::atomic<bool> g_enabled{false};
-std::atomic<uint64_t> g_prevented{0};
+std::atomic<uint64_t> g_prevented{0}, g_attempts{0};
+std::atomic<float> g_pushX{0}, g_pushY{0};
 const D2RL::PluginContext* g_context = nullptr;
-bool g_supported = false;
+std::atomic<bool> g_supported{false};
 uint64_t g_reported = 0, g_reportAt = 0;
 // Diagnostics are aggregated on the UI thread, at most once per five seconds.
 constexpr uint64_t ReportIntervalMs = 5000;
@@ -58,10 +59,20 @@ void Tick() {
 	}
 }
 
-bool Prevent(uintptr_t pathContext) noexcept {
-	if (!g_enabled || !NativeWallSlide::IsLocalDirectionalAttempt(pathContext)) return false;
+bool Prevent(uintptr_t pathContext, const float* push) noexcept {
+	if (!g_supported || !NativeWallSlide::IsLocalDirectionalAttempt(pathContext)) return false;
+	if (push) {
+		g_pushX.store(push[0], std::memory_order_relaxed);
+		g_pushY.store(push[1], std::memory_order_relaxed);
+	}
+	g_attempts.fetch_add(1, std::memory_order_relaxed);
+	if (!g_enabled) return false;
 	g_prevented.fetch_add(1, std::memory_order_relaxed);
 	return true;
+}
+
+Blocked LastBlocked() noexcept {
+	return {g_attempts.load(std::memory_order_relaxed), g_pushX.load(std::memory_order_relaxed), g_pushY.load(std::memory_order_relaxed)};
 }
 
 bool Enabled() noexcept { return g_enabled; }
@@ -71,7 +82,8 @@ void Unregister() {
 	g_command = Command::None;
 	g_context = nullptr;
 	g_supported = false;
-	g_prevented = 0;
+	g_prevented = g_attempts = 0;
+	g_pushX = g_pushY = 0;
 	g_reported = g_reportAt = 0;
 }
 

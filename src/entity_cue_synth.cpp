@@ -30,6 +30,12 @@ constexpr unsigned ChimeMs = 96;
 constexpr double ChimeLowHz = 1320, ChimeHighHz = 1760, ChimeSplit = 0.42;
 constexpr double ChimeDecaySeconds = 0.03, ChimeLevel = 0.26, ChimeOvertone = 0.22;
 
+// Pickup range (a tester, 2026-10-11): a dry high tick, the shortest cue, like a
+// prompt appearing. Inventory edge: a dull wooden knock, panned to the side hit.
+constexpr unsigned ClickMs = 30, KnockMs = 70;
+constexpr double ClickHz = 2400, ClickDecaySeconds = 0.006, ClickLevel = 0.30, ClickNoise = 0.5;
+constexpr double KnockStartHz = 230, KnockEndHz = 150, KnockDecaySeconds = 0.022, KnockLevel = 0.42, KnockNoise = 0.25;
+
 struct WhooshTimbre { double startHz, endHz, shimmerRatio; };
 WhooshTimbre Voice(Sound sound) {
 	switch (sound) {
@@ -64,6 +70,8 @@ double SafeAxis(double value, double fallback) {
 	return std::isfinite(value) ? std::clamp(value, -1.0, 1.0) : fallback;
 }
 
+double Scale(double value) { return std::isfinite(value) ? std::max(value, 0.0) : 1; }
+
 double Noise(size_t frame) {
 	uint32_t hash = static_cast<uint32_t>(frame) * 1664525u + 1013904223u;
 	hash ^= hash >> 16;
@@ -97,18 +105,31 @@ double Chime(double seconds, double pitch) {
 	const double tone = std::sin(phase) + ChimeOvertone * std::sin(2 * phase);
 	return ChimeLevel * Envelope(local, length) * std::exp(-local / ChimeDecaySeconds) * tone;
 }
+
+double Click(double seconds, double noise) {
+	const double tone = std::sin(2 * std::numbers::pi * ClickHz * seconds);
+	return ClickLevel * Envelope(seconds, static_cast<double>(ClickMs) / 1000) * std::exp(-seconds / ClickDecaySeconds)
+		* (tone + ClickNoise * noise);
+}
+
+double Knock(double& phase, double seconds, double noise) {
+	constexpr double Total = static_cast<double>(KnockMs) / 1000;
+	phase += 2 * std::numbers::pi * KnockStartHz * std::pow(KnockEndHz / KnockStartHz, seconds / Total) / SampleRate;
+	return KnockLevel * Envelope(seconds, Total) * std::exp(-seconds / KnockDecaySeconds) * (std::sin(phase) + KnockNoise * noise);
+}
 }
 
 std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	const double safeGain = std::isfinite(gain) ? std::clamp(gain, 0.0, 1.0) : 0;
-	const double pan = SafeAxis(placement.right, 0);
+	const double pan = std::clamp(SafeAxis(placement.right, 0) * Scale(placement.panScale), -1.0, 1.0);
 	const double front = SafeAxis(placement.front, 1);
-	const double pitch = 1 + (RearPitch - 1) * std::clamp(-front, 0.0, 1.0);
+	const double pitch = 1 + (RearPitch - 1) * std::clamp(-front, 0.0, 1.0) * Scale(placement.pitchScale);
 	const double left = std::sqrt((1 - pan) / 2);
 	const double right = std::sqrt((1 + pan) / 2);
 	const auto timbre = Voice(sound);
 	const bool npc = sound == Sound::Npc;
-	const unsigned milliseconds = npc ? NpcCueMs : sound == Sound::Ordinary ? GrowlMs : sound == Sound::Reach ? ChimeMs : WhooshMs;
+	const unsigned milliseconds = npc ? NpcCueMs : sound == Sound::Ordinary ? GrowlMs : sound == Sound::Reach ? ChimeMs
+		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : WhooshMs;
 	const size_t frames = milliseconds * SampleRate / 1000;
 	double growlPhase = 0;
 	const double textureBlend = 1 - std::exp(-2 * std::numbers::pi * TextureCutoffHz * pitch / SampleRate);
@@ -131,6 +152,9 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 			sample = Growl(growlPhase, static_cast<double>(frame) / static_cast<double>(frames - 1), seconds, pitch);
 		} else if (sound == Sound::Reach) {
 			sample = Chime(seconds, pitch);
+		} else if (sound == Sound::Pickup || sound == Sound::Edge) {
+			texture += textureBlend * (Noise(frame) - texture);
+			sample = sound == Sound::Pickup ? Click(seconds, texture) : Knock(growlPhase, seconds, texture);
 		} else {
 			sample = Whoosh(whoosh, timbre, static_cast<double>(frame) / static_cast<double>(frames - 1), pitch);
 		}

@@ -10,6 +10,7 @@ std::vector<uintptr_t> panels{10, 20, 30}; // stash, focused inventory, controll
 std::unordered_map<uintptr_t, std::vector<uintptr_t>> controls{{10, {100, 101}}, {20, {}}, {30, {300}}};
 std::unordered_map<uintptr_t, std::string> labels{{100, "Personal"}, {101, "1"}, {300, "Inventario"}};
 std::unordered_set<uintptr_t> hidden{101};
+std::unordered_map<uintptr_t, int> indices;
 int walks = 0;
 std::string Tick(bool suspended = false) { return TabReader::Update(panels, {20, 21}, suspended); }
 }
@@ -22,6 +23,7 @@ std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
 	Check(kind == UiText::Kind::Tabs, "shared discovery requests the tab archetype");
 	return controls[panel];
 }
+int SelectedTab(uintptr_t widget) { return indices[widget]; }
 std::string SelectedTabText(uintptr_t widget) { return Visible(widget) ? labels[widget] : ""; }
 }
 namespace D2RAccess::NativeWidgets {
@@ -52,8 +54,8 @@ int main() {
 	Check(Tick() == "Personal" && TabReader::Selected(10) == "Personal", "reopening a rebuilt panel discovers its new controls");
 	labels[102] = "\xEE\x80\x93";
 	Check(Tick().empty(), "controller glyphs do not become tab labels");
-	Check(Tick(true).empty() && TabReader::Selected(30).empty(), "dialogues suspend and reset tab tracking");
-	Check(Tick().empty(), "return from dialogue silently establishes current tabs");
+	Check(Tick(true).empty() && TabReader::Selected(30) == "Inventario", "a dialogue keeps the tab baseline");
+	Check(Tick().empty(), "return from dialogue with nothing changed stays silent");
 	// The quest log is a switcher tab that suspends this reader; the tab after
 	// it -- Options, which has no window title -- is still named.
 	Check(Tick(true).empty(), "the quest log suspends tab tracking");
@@ -62,7 +64,12 @@ int main() {
 	Check(Tick().empty(), "and only once");
 	Check(Tick(true).empty(), "a dialogue suspends tracking again");
 	labels[102] = "Comp.";
-	Check(Tick().empty(), "other tab bars still return from a dialogue silently");
+	Check(Tick() == "Comp.", "other tab bars are still read after a dialogue (vendor tabs)");
+	labels[102] = "Weapon"; indices[102] = 1;
+	Check(Tick(true) == "Weapon", "a bar changed while a readout owns speech is still announced");
+	labels[102] = "Weapon"; indices[102] = 2;
+	Check(Tick(true) == "Weapon", "a repeated caption on another index is announced");
+	Check(Tick(true).empty() && TabReader::Detail().find("idx=2") != std::string::npos, "an unchanged bar stays silent and logs its index");
 	TabReader::Reset(); panels = {40}; controls[40] = {400}; labels[400] = "Unrelated";
 	const int priorWalks = walks;
 	Check(Tick().empty() && walks == priorWalks, "narrative panels are not scanned for background navigation tabs");

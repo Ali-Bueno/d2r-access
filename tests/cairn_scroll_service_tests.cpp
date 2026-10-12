@@ -44,7 +44,7 @@ void Speak(std::string_view text, bool interrupt) {
 	interrupted = interrupt;
 }
 }
-namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) {} }
+namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
 
 int main() {
 	Strings::Select(Strings::Language::esES);

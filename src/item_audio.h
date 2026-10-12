@@ -16,6 +16,8 @@ void UpdateExploration(std::vector<GroundItems::Voice> voices);
 void PlayExplorationArrival(GroundItems::Voice voice);
 // One centered cue for a find the radar has just announced; its own voice, apart from exploration.
 void PlayDiscovery();
+// One sound, centred and played once, for the sound glossary.
+void Preview(GroundItems::Sound sound);
 void SilenceExploration();
 void Stop();
 bool Available();

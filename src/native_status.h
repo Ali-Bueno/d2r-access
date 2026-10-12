@@ -10,6 +10,14 @@ bool Initialize(const D2RL::PluginContext* context);
 // No reading when the player is absent, dead, or the verified native path fails.
 std::optional<bool> PlayerPoisoned() noexcept;
 
+// The local player's gait and stamina; absent when the player is absent,
+// dead, or the verified path fails. The gait is known only while moving.
+struct Movement {
+	bool walking = false, running = false;
+	int stamina = -1, maxStamina = -1; // the game's own fixed-point units
+};
+std::optional<Movement> PlayerMovement() noexcept;
+
 struct Mercenary {
 	uint32_t id = 0;
 	int lifePercent = -1;

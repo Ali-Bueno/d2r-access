@@ -115,6 +115,10 @@ constexpr uint64_t TabTitleMs = 1500;
 // The title that tab change spoke, so the readout queued behind it does not
 // begin by saying it again ("Inventory", then "Inventory. Belt...").
 std::string g_tabTitle;
+// The skill-tree branch last read: its tabs are separate widgets, so TabReader
+// never sees a branch change and the skill readout has to name it itself.
+uintptr_t g_skillTab = 0;
+uintptr_t g_skillTabPanel = 0;
 // The panel the last readout was about, to tell a tab change that moved focus
 // to another panel from one that left it where it was.
 uintptr_t g_readPanel = 0;
@@ -198,6 +202,12 @@ const std::vector<std::string>& StatLabels() {
 const std::vector<std::string>& RequirementLabels() {
 	static Labels cache;
 	return cache.For(TooltipText::RequirementKeys);
+}
+
+// Quantity labels, so a stack or tome says how many it holds with its name.
+const std::vector<std::string>& QuantityLabels() {
+	static Labels cache;
+	return cache.For(TooltipText::QuantityKeys);
 }
 
 // A tooltip body with any magic name the game composed with a broken grammar
@@ -975,7 +985,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				OfferLines(linesOwner, std::move(lines));
 			}
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels());
 			// Magic and better, the quality the screen shows only by colour
 			// ("Crimson Spear. magic"); an unidentified item says so instead
 			// (Split). A lesser item's own name already says it ("Superior Short
@@ -1139,6 +1149,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel(MonsterPlate), 0);
 		if (target.surface == UiText::Surface::Target) readout = UiText::Describe(target);
 	}
+	if (!focus.panel) GroundItemService::NoteWorldTarget(readout.body);
 	if (!focus.panel && GroundItemService::OwnsWorldLabel(readout.body)) {
 		readout = {};
 		renderedDescription = false;
@@ -1262,6 +1273,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
+		if (progression.skill && progression.tab) {
+			if (g_skillTab && g_skillTab != progression.tab && g_skillTabPanel == focus.panel && !readout.body.empty()) {
+				g_tabTitle = readout.body;
+				g_tabChangedAt = now;
+				ScreenReader::Speak(g_tabTitle, true);
+			}
+			g_skillTab = progression.tab;
+			g_skillTabPanel = focus.panel;
+		}
 		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs;
 		if (behindTitle && announcement.text.starts_with(g_tabTitle + ". "))
 			announcement.text.erase(0, g_tabTitle.size() + 2);
@@ -1291,6 +1311,8 @@ void Reset() {
 	g_monsterNames.Reset();
 	g_tabChangedAt = 0;
 	g_tabTitle.clear();
+	g_skillTab = 0;
+	g_skillTabPanel = 0;
 	if (g_lineReader.widget) PadFilter::ReleaseB();
 	g_lineReader = {};
 	g_keyLines = {};

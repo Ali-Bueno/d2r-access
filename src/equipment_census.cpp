@@ -13,7 +13,7 @@ auto __cdecl CollectWorn(const D2RL::PluginContext*, const D2RL::Items::ItemInfo
 	auto* worn = static_cast<std::vector<Vitals::Breakage::Item>*>(userData);
 	if (worn && item && item->structSize >= D2RL::Items::ItemInfoRequiredSize)
 		worn->push_back({item->runtimeId, item->durability, item->maximumDurability, item->bodyLocation,
-			item->classId, static_cast<uint32_t>(item->quality)});
+			item->classId, static_cast<uint32_t>(item->quality), item->quantity});
 	return D2RL::Inventory::IterationAction::Continue;
 }
 }

@@ -3,6 +3,38 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-12 — The settings list on the pad: BACK+RB and the right stick
+
+The new tester plays with a pad only, and the settings list (with the sound glossary) was
+keyboard-only. BACK+RB opens and shuts it in play; RB with BACK is kept from the game like LB.
+While it is open the right stick steps it (up, down) and changes the entry (left or right),
+claimed before the scanner and the menu readers. Rejected: A to change (it attacks in play) and
+the D-pad (the game's). In a menu BACK+RB only shuts the list, since RB there is the game's.
+
+## 2026-10-11 — A new tester's report: what changed and what stays the user's choice
+
+A new collaborator (controller, bow and melee characters, English game) sent a bug and
+suggestion list. The user asked to fix the urgent items and to put optional ones behind switches.
+
+- **Beacon on BACK+LB.** L3 is the game's walk/run toggle, so every beacon press also toggled
+  running (and running drops defense to zero). Rejected: BACK+L3, both on the left thumb; R3
+  stays the game's weapon swap. LB with BACK is kept from the game like the face buttons.
+- **English words.** The scanner's "ahead/behind" were screen up/down, unlike the radar's
+  "Up/Down"; English now says up/down everywhere. Openings between rooms are "passages"; "exit"
+  is left for ways out of an area. Only the English table changed.
+- **The weapon set number and town NPCs listed unseen are switches, on by default.** First
+  shipped off, keeping the user's 2026-09-27 and 2026-09-28 choices; the user turned both on
+  by default on 2026-10-12 (`weapon-set-number`, `town-npcs-everywhere`).
+- **Remembered enemies follow their unit and are dropped when the game holds them dead**,
+  keeping the 2026-09-28 "everything discovered stays" rule without phantoms.
+- **Growls on screen.** Enemies growl from the screen's edge (plus a margin for ranged ones), six
+  voices by default; range, voices, pan and pitch strength are settings in `d2r-access.toml`.
+
+- **Sound glossary in the Ctrl+S list**, after the switches, rather than a new key: the keyboard
+  already has too many (2026-10-03). The pad reaches both with BACK+RB since 2026-10-12.
+
+Not done: a precision targeting mode for the pad (the keyboard has Tab/Shift+Tab).
+
 ## 2026-10-03 — The collaborator's controller and keyboard schemes are adopted
 
 Integrating bladestorm360's branch, the user chose his controller scheme: BACK is a modifier

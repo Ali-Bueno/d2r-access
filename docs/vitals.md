@@ -28,6 +28,26 @@ unavailable display immediately.
 `bodyLocation` (`external/PluginSDK/include/D2RLPlugin/item.h`). `inventory.h`
 permits both on the UI thread, which is where the plugin's tick runs.
 
+## Walking, running, stamina and ammunition (2026-10-11)
+
+A tester: running drops defense to zero, so the walk/run state is tactical, and stamina was never
+mentioned. Behind the `movement-alerts` switch (Ctrl+S, on by default):
+
+- **Gait.** L3 (the game's toggle) predicts the flip and speaks "Running"/"Walking" at once, with
+  interrupt. The player unit's mode then confirms or corrects it: walk 2 and town-walk 6 are
+  walking, run 3 running (`GroundItemLayout::Walk/Run/TownWalk`). The first step of a game is a
+  silent baseline; the toggle flag itself is not read, so a toggle before any step says nothing,
+  and the keyboard's run key is only heard through the next step.
+- **Stamina** is `GetStat` 10 over 11 (`NativeStatus::PlayerMovement`); the ratio holds whatever
+  the fixed-point scale. Falling through 50, 25 and 10 percent is spoken, and "Out of stamina" at
+  zero; a step re-arms once stamina recovers 10 points above it (`Vitals::StaminaMeter`). BACK+X
+  adds stamina when it is not full. `[vitals] movement` logs the raw values on each alert.
+- **Ammunition** (`ammo-alerts`, on): a stack in hand (seen holding more than one) falling to
+  50, 20, 10, 5 or 0 is spoken as "Arrows: 20 left" (`Vitals::AmmoMeter`, quantity from the
+  loader's `ItemInfo.quantity`). BACK+X adds every stack in hand.
+
+Live checks pending: the gait mapping in town and with stamina exhausted, and the stamina values.
+
 ## What is announced
 
 `src/vitals.cpp` holds all of it, free of game and speech dependencies, and

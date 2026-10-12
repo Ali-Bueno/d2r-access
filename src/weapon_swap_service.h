@@ -10,4 +10,7 @@ void Tick(const D2RL::PluginContext* context);
 // and the same change the console command makes.
 bool Enabled();
 void SetEnabled(bool enabled);
+// Whether the swap leads with "Weapon set 1/2"; on by default (the user, 2026-10-12).
+bool SetNumber();
+void SetSetNumber(bool enabled);
 }

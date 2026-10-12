@@ -6,6 +6,7 @@
 #include "beacon_navigation.h"
 #include "input_direction.h"
 #include "level_areas.h"
+#include "map_survey_service.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_areas.h"
@@ -47,6 +48,8 @@ constexpr uint64_t UpdateMs = 150;
 // A scan result can be locked while it is still what the player heard last.
 constexpr uint64_t OfferWindowMs = 15000;
 constexpr uint64_t LogIntervalMs = 1000;
+// Policy: a target last read this recently counts as reached when it vanishes at arrival.
+constexpr uint64_t VanishedOnArrivalMs = 2000;
 
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0; int level = 0, revision = 0; };
 std::mutex g_mutex;
@@ -92,9 +95,10 @@ double HalfFootprint(const EntityRadar::Entity& entity) {
 	return side > 1 ? (side - 1) / 2.0 : 0;
 }
 // Following another player leads through rooms this player has not explored, as full
-// assistance does: the user asked for it on 2026-09-26.
+// assistance does: the user asked for it on 2026-09-26. So does a town NPC listed unseen.
 bool Unrestricted(const EntityRadar::Entity& entity) {
-	return NavigationMode::FullAssistance() || entity.category == EntityRadar::Category::Player;
+	return NavigationMode::FullAssistance() || entity.category == EntityRadar::Category::Player
+		|| (MapSurveyService::TownNpcsEverywhere() && entity.kind == EntityRadar::Kind::Npc && entity.placeId);
 }
 Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 	Beacon::Settings settings = g_settings;
@@ -339,11 +343,14 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		return;
 	}
 	const auto& world = guidance.world;
-	const auto arrive = [seen] {
+	// A target that vanished as the player reached it (a chest opened, an item
+	// picked up) was reached; one gone for longer was lost before the player came.
+	const bool reached = seen || (g_target.seenMs && now - g_target.seenMs <= VanishedOnArrivalMs);
+	const auto arrive = [reached] {
 		const auto name = g_target.entity.name;
 		Release("arrived");
 		Cue(BeaconAudio::Sound::Arrived);
-		Announce(seen ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
+		Announce(reached ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
 	};
 	if (InTargetRoom(state, world.player)) { arrive(); return; }
 	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
@@ -400,7 +407,7 @@ bool Register(const D2RL::PluginContext* context) {
 	}
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
-		// Keyboard equivalent of the left-stick click, for testing without a pad.
+		// Keyboard equivalent of BACK+LB.
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "beacon-toggle", .displayName = "Follow or release the scanned target", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::B, D2RL::Input::Modifier::Control}, .callback = Action,
@@ -409,8 +416,10 @@ bool Register(const D2RL::PluginContext* context) {
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
-		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off. L3 or Ctrl+B requests a route; exploration uses visited areas only.");
-	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume);
+		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off. BACK+LB or Ctrl+B requests a route; exploration uses visited areas only.");
+	const auto tuning = RadarConfig::ReadBeacon(context);
+	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume,
+		RadarConfig::StrengthScale(tuning.panStrength), RadarConfig::StrengthScale(tuning.pitchStrength));
 	AsyncLog::InfoF(context, "[beacon] Registered; audio=%u full_assistance=%u.", g_supported ? 1u : 0u,
 		NavigationMode::FullAssistance() ? 1u : 0u);
 	return true;
@@ -419,11 +428,11 @@ bool Register(const D2RL::PluginContext* context) {
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
-	const bool clicked = InputDirection::TakeLeftStickClick();
+	const bool clicked = InputDirection::TakeBackWithLb();
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
-	// Guidance's controls are play's alone: in a menu the L3 click is the menu's
+	// Guidance's controls are play's alone: in a menu BACK+LB is the menu's
 	// and guidance ignores it, as it ignores Ctrl+B and the console's lock and
 	// clear (the user, 2026-09-21: "ignore guidance while menu is open").
 	const bool playing = Playing();
@@ -453,7 +462,7 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::InfoF(context, "[beacon] sounds=%u", g_sounds ? 1u : 0u);
 	}
 	if (!inPlay && (clicked || command == Command::Toggle || command == Command::Clear)) {
-		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "L3" : "command");
+		AsyncLog::InfoF(context, "[beacon] %s ignored: not in play", clicked ? "BACK+LB" : "command");
 	} else if (command == Command::Clear && (g_tracker.Locked() || Parked())) {
 		g_parked = {};
 		Release("cancelled");

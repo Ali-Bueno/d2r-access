@@ -570,6 +570,37 @@ void RockInTheWay() {
 	}
 }
 
+void SmallObstacleAhead() {
+	// The wall cue says what it met: a lone stone is a small obstacle, with the
+	// switch off it is a wall as before; a long wall never is.
+	for (const bool classify : {true, false}) {
+		Run run;
+		run.world.slides = false;
+		run.world.smallObstacles = classify;
+		for (int y = 110; y <= 112; ++y) for (int x = 120; x <= 122; ++x) Put(run.world, x, y, Wall);
+		run.Begin();
+		Marks heard{};
+		State state = State::Unknown;
+		for (int step = 0; step < 8; ++step) {
+			run.world.player.x += 1;
+			run.world.player.y += 1;
+			run.now += PollMs;
+			Marks small{};
+			const auto events = run.engine.Tick(run.world, run.now, nullptr, &small);
+			if (events[Down] != State::Unknown) { state = events[Down]; heard = small; }
+		}
+		Check(state == State::Blocked, "the stone ahead is announced as an obstacle either way");
+		Check(heard[Down] == classify && run.Ahead().small == classify,
+			classify ? "with the switch on, a lone stone is a small obstacle" : "with it off, the cue is the wall's as before");
+	}
+	Run wall;
+	wall.world.smallObstacles = true;
+	Barrier(wall.world, WallSum, Wall);
+	wall.Begin();
+	wall.Approach();
+	Check(!wall.Ahead().small, "a wall across the window is never a small obstacle");
+}
+
 void DoorAhead() {
 	Run run;
 	Barrier(run.world, WallSum, Collision::Door);
@@ -770,6 +801,7 @@ int main() {
 	FrontierFollowsTheLatestWall();
 	AlongAnAxisWall();
 	RockInTheWay();
+	SmallObstacleAhead();
 	CorridorAlongAWorldAxis();
 	DoorAhead();
 	WayBackTakenAsRead();

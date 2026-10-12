@@ -308,7 +308,15 @@ int main() {
 		Check(absent.valid && !absent.enabled && !absent.range && !absent.volume && !absent.ranged,
 			"absent entity section keeps compiled defaults");
 		Check(RadarConfig::ParseEntityCues("[entity_cues]\nvolume = 0\n").volume == 0u, "entity cues accept explicit silence");
-		for (const auto invalid : {"range = nan", "range = inf", "range = 0", "range = -1", "range = 101",
+		const auto tuned = RadarConfig::ParseEntityCues("[entity_cues]\non_screen = false\nmax_voices = 20\npan_strength = 150\npitch_strength = 500\n");
+		Check(tuned.valid && tuned.onScreen == false && tuned.maxVoices == EntityCues::MaxVoices && tuned.panStrength == 150u
+			&& tuned.pitchStrength == RadarConfig::MaxStrengthPercent, "growl voices and strengths parse and clamp");
+		Check(RadarConfig::ParseEntityCues("[entity_cues]\nmax_voices = 0\n").maxVoices == 1u, "at least one voice");
+		const auto beacon = RadarConfig::ParseBeacon("[entity_cues]\npan_strength = 5\n[beacon]\npan_strength = 0\npitch_strength = 250\n");
+		Check(beacon.valid && beacon.panStrength == 0u && beacon.pitchStrength == RadarConfig::MaxStrengthPercent, "beacon strengths parse in their own section");
+		Check(!RadarConfig::ParseBeacon("[beacon]\npan_strength = -1\n").valid && RadarConfig::ParseBeacon("").valid
+			&& !RadarConfig::ParseBeacon("").panStrength, "bad beacon strengths are rejected, absent ones keep defaults");
+		for (const auto invalid : {"range = nan", "max_voices = -1", "pan_strength = 1.5", "on_screen = 1", "pan_strength = 1\npan_strength = 2", "range = inf", "range = 0", "range = -1", "range = 101",
 			"volume = -1", "volume = 101", "volume = 1.5", "enabled = yes", "npcs = 1", "ranged", "enemies = false\nenemies = true",
 			"volume = 0\nvolume = 1", "range = 15\nrange = 15"}) {
 			const auto parsed = RadarConfig::ParseEntityCues(std::string("[entity_cues]\n") + invalid + "\n");

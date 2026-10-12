@@ -106,7 +106,9 @@ void Wording() {
 	Announcement kashya{Make(1, 42, 30, "Kashya"), 12, Direction::Right};
 	Check(Describe(kashya, scan, strings) == "Kashya, 12 pasos, a la derecha", "name, distance and direction");
 	Announcement akara{Make(2, 30, 29, "Akara"), 1, Direction::Up};
-	Check(Describe(akara, scan, strings) == "Akara, 1 paso, adelante", "the singular step keeps the direction");
+	Check(Describe(akara, scan, strings) == "Akara, aquí mismo", "an NPC beside the player has no distance or direction");
+	akara.distance = 2;
+	Check(Describe(akara, scan, strings) == "Akara, 2 pasos, adelante", "one step further keeps the direction");
 	Announcement close{Make(3, 30, 30.2, "Charsi"), 0.2, Direction::Down};
 	Check(Describe(close, scan, strings) == "Charsi, aquí mismo", "under one step drops the direction");
 	Strings::Select(Strings::Language::enUS);

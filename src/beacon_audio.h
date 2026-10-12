@@ -17,10 +17,12 @@ enum class Sound {
 };
 // right: -1 fully left, +1 fully right. front: +1 ahead, -1 behind, matching
 // the ground-item loops' screen convention and their rear pitch.
-struct Placement { double right = 0, front = 1; };
+// panScale and pitchScale (1 = compiled behavior) scale the stereo spread and
+// the rear pitch drop; the audio layer fills them from the settings.
+struct Placement { double right = 0, front = 1, panScale = 1, pitchScale = 1; };
 
 std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain = 1);
-bool Start(const D2RL::PluginContext* context, double gain);
+bool Start(const D2RL::PluginContext* context, double gain, double panScale = 1, double pitchScale = 1);
 // Queues one sound. The newest ping replaces a ping that has not started yet,
 // so a slow device can never build a backlog of stale beacons.
 void Play(Sound sound, Placement placement);

@@ -39,4 +39,9 @@ bool Owns(std::string_view panel);
 
 void Reset();
 
+// Whether opening the character panel with points to spend moves the focus to
+// the Strength "+" button.
+bool FocusPoints();
+void SetFocusPoints(bool enabled);
+
 }

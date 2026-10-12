@@ -1,6 +1,7 @@
 #include "radar_config.h"
 #include "async_log.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <string>
@@ -192,6 +193,13 @@ Switch ReadDoors(const D2RL::PluginContext* context) {
 }
 
 namespace {
+// Percent strengths clamp rather than reject, so a typo of 500 still works.
+bool ParseStrength(std::string_view value, std::optional<unsigned>& slot) {
+	unsigned percent = 0;
+	if (slot || !ParseNumber(value, percent)) return false;
+	slot = std::min(percent, MaxStrengthPercent);
+	return true;
+}
 std::optional<AttackReach::Mode> ParseAttackMode(std::string_view value) {
 	if (value.size() >= 2 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
 	if (value == "auto") return AttackReach::Mode::Auto;
@@ -214,6 +222,12 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			if (!value || result.attack) return Line::Invalid;
 			result.attack = ParseAttackMode(*value);
 			if (!result.attack) return Line::Invalid;
+		} else if (key == "pan_strength" || key == "pitch_strength") {
+			if (!value || !ParseStrength(*value, key == "pan_strength" ? result.panStrength : result.pitchStrength)) return Line::Invalid;
+		} else if (key == "max_voices") {
+			size_t voices = 0;
+			if (!value || result.maxVoices || !ParseNumber(*value, voices)) return Line::Invalid;
+			result.maxVoices = std::clamp<size_t>(voices, 1, EntityCues::MaxVoices);
 		} else if (key == "volume") {
 			unsigned volume = 0;
 			if (!value || result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
@@ -226,6 +240,7 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			else if (key == "ranged") slot = &result.ranged;
 			else if (key == "ordinary") slot = &result.ordinary;
 			else if (key == "reach") slot = &result.reach;
+			else if (key == "on_screen") slot = &result.onScreen;
 			else return Line::Ignored;
 			bool flag = false;
 			if (!value || slot->has_value() || !ParseBool(*value, flag)) return Line::Invalid;
@@ -237,5 +252,18 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 }
 EntityCueSettings ReadEntityCues(const D2RL::PluginContext* context) {
 	return ReadSection<EntityCueSettings>(context, ParseEntityCues, "[entity-cues] Invalid [entity_cues] settings; using compiled defaults.");
+}
+
+BeaconSettings ParseBeacon(std::string_view config) {
+	BeaconSettings result;
+	const bool valid = ForEachKey(config, "[beacon]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "pan_strength" && key != "pitch_strength") return Line::Ignored;
+		return value && ParseStrength(*value, key == "pan_strength" ? result.panStrength : result.pitchStrength)
+			? Line::Accepted : Line::Invalid;
+	});
+	return valid ? result : BeaconSettings{.valid = false};
+}
+BeaconSettings ReadBeacon(const D2RL::PluginContext* context) {
+	return ReadSection<BeaconSettings>(context, ParseBeacon, "[beacon] Invalid [beacon] settings; using compiled defaults.");
 }
 }

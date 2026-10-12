@@ -6,6 +6,7 @@
 #include "generated/panel_widgets.h"
 #include "character_saves.h"
 #include "control_state.h"
+#include "controller_text.h"
 #include "display_modes.h"
 #include "frontend_native_fallback.h"
 #include "input_direction.h"
@@ -24,6 +25,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -142,6 +144,54 @@ constexpr LegendAction CharacterRowActions[] = {
 	{ "X", "strDelete" },
 };
 
+// Screen hints, spoken once per visit. The glyphs are font codes: the index in
+// Strings::Table::controllerButtons ("Menu" 5, "Y" 18) added to the first one.
+constexpr uint32_t FirstControlGlyph = 0xE000;
+constexpr uint32_t MenuGlyph         = FirstControlGlyph + 5;
+constexpr uint32_t YGlyph            = FirstControlGlyph + 18;
+constexpr const char* CharacterCreatePanelName = "CharacterCreatePanel";
+// The list's first row is announced as the panel opens; the hint waits behind it.
+constexpr uint64_t SelectHintDelayMs = 1500;
+
+std::atomic<bool> g_screenHints { true };
+std::string       g_hintPanel;
+uint64_t          g_selectHintAt = 0; // when the character-select hint falls due, 0 when none
+bool              g_nameHintSpoken = false;
+
+std::string HintText(const char* format, uint32_t glyph) {
+	const std::string_view button = ControllerText::Button(glyph);
+	char                   phrase[200] {};
+	std::snprintf(phrase, sizeof(phrase), format, std::string(button).c_str());
+	return button.empty() ? std::string {} : std::string(phrase);
+}
+
+// Called every tick: arms the character-select hint on entry, speaks it when due.
+void TickScreenHints(const D2RL::PluginContext* context) {
+	const std::string active(PanelState::Active());
+	if (active != g_hintPanel) {
+		g_hintPanel = active;
+		g_selectHintAt = active == CharacterSelectPanelName ? GetTickCount64() + SelectHintDelayMs : 0;
+		if (active != CharacterCreatePanelName) g_nameHintSpoken = false;
+	}
+	if (g_selectHintAt == 0 || GetTickCount64() < g_selectHintAt) return;
+	g_selectHintAt = 0;
+	if (!g_screenHints.load()) return;
+	if (const std::string hint = HintText(Strings::Current().hintNewCharacter, MenuGlyph); !hint.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[hint] %s", hint.c_str());
+		ScreenReader::Speak(hint, false);
+	}
+}
+
+// The name box on the create screen gets its hint the first time it has focus.
+void NameFieldHint(const D2RL::PluginContext* context, const char* panel) {
+	if (g_nameHintSpoken || !g_screenHints.load() || std::strcmp(panel, CharacterCreatePanelName) != 0) return;
+	g_nameHintSpoken = true;
+	if (const std::string hint = HintText(Strings::Current().hintRandomName, YGlyph); !hint.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[hint] %s", hint.c_str());
+		ScreenReader::Speak(hint, false);
+	}
+}
+
 
 // Widgets the game announces itself through a UI message that carries the
 // selection (CharacterCreate:Hover <ClassKey>), so the focus tracker stays
@@ -154,6 +204,8 @@ constexpr const char* TextInputWidgetType = "InputTextBoxWidget";
 // standing on when focus lands there is a tab, so its text is the name --
 // read live, the same way TabReader reads it.
 constexpr const char* TabBarWidgetType    = "TabBarWidget";
+// Scroll plumbing: its layout name is not something to say aloud.
+constexpr const char* InternalWidgetTypes[] = { "ScrollControllerWidget", "ScrollViewWidget", "ScrollSpeechWidget", "ScrollingSpeechWidget" };
 
 // Controls the game disables depending on another control's state. The SDK
 // cannot read the enabled flag, so the dependency observed in the game is
@@ -450,6 +502,10 @@ std::string TextForKey(const char* key) {
 	return key != nullptr ? Localization::Text(key) : std::string {};
 }
 
+bool IsInternalWidget(const Generated::WidgetEntry& widget) {
+	return std::any_of(std::begin(InternalWidgetTypes), std::end(InternalWidgetTypes), [&](const char* type) { return std::strcmp(widget.type, type) == 0; });
+}
+
 // Own text, else the row label next to it, else a literal, else the tooltip
 // (icon-only buttons such as DeleteCharacter carry nothing else), else the name.
 std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget = 0) {
@@ -470,7 +526,7 @@ std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget =
 	if (text.empty() && nativeWidget != 0 && std::strcmp(widget.type, TabBarWidgetType) == 0) {
 		text = UiText::Clean(NativeUi::SelectedTabText(nativeWidget));
 	}
-	if (text.empty()) {
+	if (text.empty() && !IsInternalWidget(widget)) {
 		text = widget.name;
 	}
 	return text;
@@ -773,8 +829,11 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	const std::string label  = Label(*match.widget, nativeWidget);
 	std::string       phrase = label;
 	if (const char* role = Role(*match.widget); role != nullptr) {
-		phrase += ", ";
+		phrase += phrase.empty() ? "" : ", ";
 		phrase += role;
+	}
+	if (phrase.empty()) {
+		return;
 	}
 	// A text box is named, then its role, then what it holds, in one phrase.
 	if (std::strcmp(match.widget->type, TextInputWidgetType) == 0) {
@@ -814,6 +873,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 
 	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\"%s coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), extra ? (options ? " +detail" : " +tooltip") : "", match.score);
 	ScreenReader::Speak(phrase, true);
+	if (std::strcmp(match.widget->type, TextInputWidgetType) == 0) NameFieldHint(context, match.panel->panel);
 	if (options) {
 		InteractionReader::OfferDetail(WidgetId(*match.panel, *match.widget), extra ? tooltip : std::string {});
 		if (extra && AutoDetail::Enabled()) ScreenReader::Speak(tooltip, false);
@@ -828,6 +888,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (context == nullptr || !Widgets::IsAvailable()) {
 		return;
 	}
+	TickScreenHints(context);
 	LARGE_INTEGER tickStart;
 	QueryPerformanceCounter(&tickStart);
 	struct SlowTickReport {
@@ -1084,6 +1145,9 @@ void NoteScrollInput() {
 	++g_scrollInputs;
 	InvalidateRects();
 }
+
+bool ScreenHints() { return g_screenHints.load(); }
+void SetScreenHints(bool enabled) { g_screenHints.store(enabled); }
 
 void SetDiagnosticsEnabled(bool enabled) {
 	g_diagnostics = enabled;

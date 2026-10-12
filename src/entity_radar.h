@@ -126,4 +126,6 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& 
 // "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
+// Whether a thing this far away is under the player, spoken without distance or direction.
+bool UnderPlayer(double distance, const Settings& settings);
 }

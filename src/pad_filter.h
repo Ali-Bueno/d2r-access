@@ -18,8 +18,9 @@ struct PluginContext;
 // reader is open, and the left stick while Y is held on a compare screen).
 // The pad is never reported absent, idle or on another slot, and no slot is
 // ever occupied: every other button, stick and trigger passes through byte for
-// byte (CRITICAL RULE 3). R3 is the game's again since 2026-09-27: the beacon
-// moved to L3 (the user: R3 kept swapping weapons with the filter on).
+// byte (CRITICAL RULE 3). R3 and L3 are the game's (weapon swap, run/walk):
+// the beacon is BACK+LB since 2026-10-11, so LB with BACK is kept too, and
+// RB with BACK since 2026-10-12 (the settings list).
 namespace D2RAccess::PadFilter {
 
 // Swaps the slot. When the game has not filled it yet, Claim looks
@@ -39,11 +40,11 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press a, b, x, y; };
+struct Presses { Press a, b, x, y, lb, rb; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: the
-// face buttons pressed while BACK is held, the mod's BACK+A, B, X and Y
-// readouts (input_direction.h). A press is decided on its first frame
+// face buttons and the bumpers pressed while BACK is held, the mod's BACK+A,
+// B, X, Y, LB and RB actions (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
 // while it is held. BACK itself always passes.

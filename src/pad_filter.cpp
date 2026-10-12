@@ -145,6 +145,8 @@ uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB) {
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_LEFT_SHOULDER, claimed && back, presses.lb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_RIGHT_SHOULDER, claimed && back, presses.rb);
 	return buttons;
 }
 
@@ -185,9 +187,10 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		(void)TryInstall(context, --g_retries == 0);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s",
+		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s",
 			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_B) ? " B (with BACK, or closing the line reader)" : "",
-			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
+			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "",
+			(kept & XINPUT_GAMEPAD_LEFT_SHOULDER) ? " LB (with BACK)" : "", (kept & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? " RB (with BACK)" : "");
 	}
 }
 

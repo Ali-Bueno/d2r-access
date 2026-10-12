@@ -75,6 +75,63 @@ private:
 	int missing_[2]{};
 };
 
+// The character's gait as the game moves it. The run toggle itself is not
+// read: a press of the game's toggle predicts the flip, and the next observed
+// step confirms or corrects it.
+enum class Gait { Walk, Run };
+// Samples a new gait must hold before it is announced, so a character flickering
+// between walk and run (stamina at its edge) does not repeat itself.
+inline constexpr int GaitConfirmSamples = 3;
+class GaitTracker {
+public:
+	// One sample: the gait while walking or running, nothing otherwise. The gait
+	// to announce once a new one has held; the first is a baseline.
+	std::optional<Gait> Observe(std::optional<Gait> moving);
+	// The game's run toggle was pressed: the flipped gait, nothing before a baseline.
+	std::optional<Gait> Toggle();
+	void Reset();
+private:
+	std::optional<Gait> known_, pending_;
+	int held_ = 0;
+};
+
+// Stamina falling through each step, and running out. A step is armed again
+// only once stamina has recovered StaminaRearm points above it, so the drain
+// and regeneration of running in short bursts does not repeat it.
+inline constexpr int StaminaSteps[] = {50, 25, 10};
+inline constexpr int StaminaRearm = 10;
+class StaminaMeter {
+public:
+	// The percentage to announce, 0 when stamina ran out, -1 for nothing; the
+	// first reading is a baseline.
+	int Update(int percent);
+	void Reset();
+private:
+	int depth_ = -1;
+};
+
+// A stack held in hand (arrows, bolts, throwing weapons) falling through each
+// step. An item counts as a stack once it has been seen holding more than one.
+inline constexpr int AmmoSteps[] = {50, 20, 10, 5};
+class AmmoMeter {
+public:
+	struct Stack {
+		uint32_t id = 0;
+		int quantity = 0;
+	};
+	// The stack to announce, if one fell through a step; a stack first seen is a baseline.
+	std::optional<Stack> Update(const std::vector<Stack>& inHand);
+	// The stacks among the items in hand.
+	std::vector<Stack> Known(const std::vector<Stack>& inHand) const;
+	void Reset();
+private:
+	struct Tracked {
+		uint32_t id = 0;
+		int depth = 0;
+	};
+	std::vector<Tracked> tracked_;
+};
+
 // Diff-gates a verified player condition. Missing reads preserve the last
 // state; entering a game takes a silent baseline.
 class Condition {
@@ -108,6 +165,7 @@ public:
 		uint32_t id = 0;
 		int durability = 0, maximumDurability = 0, bodyLocation = 0;
 		uint32_t classId = 0, quality = 0; // for naming it
+		int quantity = 1; // one for an item that does not stack
 	};
 	// The body locations of the items that broke since the previous sweep, in
 	// the order they were reported.

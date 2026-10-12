@@ -7,6 +7,14 @@
 namespace D2RAccess::RadarAudio {
 namespace {
 constexpr double Release = 0.015;
+// Sound-design values shared by every radar sound: the struck cues' peak level,
+// and left/right sitting just inside the stereo edges.
+constexpr double CueLevel = 0.17, PanWidth = 0.9, PcmPeak = 32767;
+// A fixed noise sequence keeps every cue reproducible.
+double Noise(uint32_t& seed) {
+	seed = seed * 1664525u + 1013904223u;
+	return (seed >> 8) / 8388608.0 - 1;
+}
 // Floor: noise through a resonant band-pass whose centre rises for an upward
 // ray, falls for a downward one and holds for the sides, as in the D4 radar.
 // Peak-normalized; a fixed noise sequence keeps the cue reproducible. docs/radar-readings.md
@@ -22,8 +30,7 @@ std::vector<double> Breath(double screenY, double peak) {
 		const double time = static_cast<double>(frame) / SampleRate;
 		const double centreHz = startHz * std::pow(endHz / startHz, time / Duration);
 		const double tuning = 2 * std::sin(std::numbers::pi * centreHz / SampleRate); // Chamberlin state-variable filter
-		seed = seed * 1664525u + 1013904223u;
-		const double high = (seed >> 8) / 8388608.0 - 1 - low - band / Q;
+		const double high = Noise(seed) - low - band / Q;
 		band += tuning * high;
 		low += tuning * band;
 		const double swell = std::sin(std::numbers::pi * time / Duration);
@@ -35,17 +42,32 @@ std::vector<double> Breath(double screenY, double peak) {
 	return breath;
 }
 }
-void CueQueue::Push(const Radar::Events& events, CueSource source, const Radar::Marks& marks) {
+void CueQueue::Push(const Radar::Events& events, CueSource source, const Radar::Marks& marks, const Radar::Marks& small) {
 	for (size_t i = 0; i < events.size(); ++i) {
 		if (events[i] == Radar::State::Unknown) continue;
 		pending_[i] = events[i];
 		sources_[i] = source;
 		sources_[i].unexplored = marks[i];
+		sources_[i].small = small[i];
 	}
 }
+void CueQueue::PushBump(double pan, CueSource source) {
+	bump_ = true;
+	bumpPan_ = pan;
+	bumpSource_ = source;
+}
+bool CueQueue::TakeBump(double* pan, CueSource* source) {
+	if (!bump_) return false;
+	if (pan) *pan = bumpPan_;
+	if (source) *source = bumpSource_;
+	bump_ = false;
+	return true;
+}
 void CueQueue::Retain(const Radar::Events& states, const Radar::Marks& marks) {
+	// An audition (the sound test, the glossary) describes no reading, so none outdates it.
 	for (size_t i = 0; i < pending_.size(); ++i)
-		if (pending_[i] != states[i] || sources_[i].unexplored != marks[i]) pending_[i] = Radar::State::Unknown;
+		if (!sources_[i].audition && (pending_[i] != states[i] || sources_[i].unexplored != marks[i]))
+			pending_[i] = Radar::State::Unknown;
 }
 Radar::Events CueQueue::Take(CueSource* source) {
 	Radar::Events result{};
@@ -67,23 +89,23 @@ Radar::Events CueQueue::Take(CueSource* source) {
 	return result;
 }
 bool CueQueue::Empty() const {
-	return std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
+	return !bump_ && std::all_of(pending_.begin(), pending_.end(), [](auto state) { return state == Radar::State::Unknown; });
 }
-std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain, Radar::Frame frame) {
+std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks& marks, double gain, Radar::Frame frame,
+	const Radar::Marks& small) {
 	// Sound-design values, deliberately separate from collision constants.
-	// Bright tin = exit, dull tock = wall, a double knock = door, a soft breath
-	// of filtered noise = floor that leads nowhere new; stereo position follows
-	// the screen x component; down is the same sound slightly lower, and the
-	// breath rises up and falls down. A marked (unexplored) exit or floor ends
-	// in a double pip after a short gap: the base cue is untouched, the tail is
-	// the same for both. `docs/exploration.md`
+	// Bright tin = exit, dull tock = wall, a short hollow wooden knock = small
+	// obstacle, a double knock = door, a soft breath of filtered noise = floor
+	// that leads nowhere new; stereo position follows the screen x component;
+	// down is the same sound slightly lower, and the breath rises up and falls
+	// down. A marked (unexplored) exit or floor ends in a double pip after a
+	// short gap: the base cue is untouched, the tail is the same for both.
+	// `docs/exploration.md`, `docs/radar-readings.md`
 	constexpr double Duration = Radar::CueDurationMs / 1000.0, Attack = 0.003;
-	constexpr double ExitHz = 1100, BlockedHz = 260, DoorHz = 180, DownPitch = 0.86;
-	constexpr double ExitHarmonic = 2.7, BlockedHarmonic = 1.5, DoorHarmonic = 2.0, HarmonicLevel = 0.2;
-	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, KnockDecay = 0.012, KnockGap = 0.06;
+	constexpr double ExitHz = 1100, BlockedHz = 260, SmallHz = 640, DoorHz = 180, DownPitch = 0.86;
+	constexpr double ExitHarmonic = 2.7, BlockedHarmonic = 1.5, SmallHarmonic = 2.4, DoorHarmonic = 2.0, HarmonicLevel = 0.2;
+	constexpr double ExitDecay = 0.045, BlockedDecay = 0.025, SmallDecay = 0.012, KnockDecay = 0.012, KnockGap = 0.06;
 	constexpr double BreathPeak = 0.7; // of the struck cues' level, as in the D4 radar
-	constexpr double PanWidth = 0.9; // left/right sit just inside the stereo edges
-	constexpr double Level = 0.17, PcmPeak = 32767;
 	constexpr double MarkHz = Radar::UnexploredMarkHz, PipDuration = Radar::UnexploredPipMs / 1000.0;
 	constexpr double MarkDecay = 0.03, MarkHarmonic = 2.0;
 	constexpr size_t MarkGapFrames = Radar::UnexploredMarkGapMs * SampleRate / 1000;
@@ -91,7 +113,7 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 	constexpr size_t PipGapFrames = Radar::UnexploredPipGapMs * SampleRate / 1000;
 	const size_t frames = static_cast<size_t>(Duration * SampleRate);
 	constexpr size_t MarkFrames = MarkGapFrames + 2 * PipFrames + PipGapFrames;
-	const double level = Level * std::clamp(gain, 0.0, 1.0);
+	const double level = CueLevel * std::clamp(gain, 0.0, 1.0);
 	std::vector<int16_t> pcm;
 	for (size_t direction = 0; direction < events.size(); ++direction) {
 		const auto state = events[direction];
@@ -101,9 +123,12 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 		const double pan = PanWidth * screen.x, pitch = screen.y > 0 ? DownPitch : 1;
 		const double left = std::sqrt((1 - pan) / 2), right = std::sqrt((1 + pan) / 2);
 		const bool marked = marks[direction] && Radar::Passable(state);
-		const double hz = (state == Radar::State::Exit ? ExitHz : state == Radar::State::Door ? DoorHz : BlockedHz) * pitch;
-		const double harmonic = state == Radar::State::Exit ? ExitHarmonic : state == Radar::State::Door ? DoorHarmonic : BlockedHarmonic;
-		const double decay = state == Radar::State::Exit ? ExitDecay : state == Radar::State::Door ? KnockDecay : BlockedDecay;
+		const bool clutter = small[direction] && state == Radar::State::Blocked;
+		const double hz = (state == Radar::State::Exit ? ExitHz : state == Radar::State::Door ? DoorHz : clutter ? SmallHz : BlockedHz) * pitch;
+		const double harmonic = state == Radar::State::Exit ? ExitHarmonic : state == Radar::State::Door ? DoorHarmonic
+			: clutter ? SmallHarmonic : BlockedHarmonic;
+		const double decay = state == Radar::State::Exit ? ExitDecay : state == Radar::State::Door ? KnockDecay
+			: clutter ? SmallDecay : BlockedDecay;
 		const bool breathing = state == Radar::State::Open;
 		const auto breath = breathing ? Breath(screen.y, level * BreathPeak) : std::vector<double>{};
 		for (size_t frame = 0; frame < (breathing ? breath.size() : frames); ++frame) {
@@ -138,6 +163,35 @@ std::vector<int16_t> Synthesize(const Radar::Events& events, const Radar::Marks&
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * left, -1.0, 1.0) * PcmPeak));
 			pcm.push_back(static_cast<int16_t>(std::clamp(tone * right, -1.0, 1.0) * PcmPeak));
 		}
+	}
+	return pcm;
+}
+std::vector<int16_t> SynthesizeBump(double pan, double gain) {
+	// Sound design, ported from the Last Epoch mod's BumpCueSynthesizer: a
+	// falling sub-bass body under a short muffled noise click.
+	constexpr size_t DurationMs = 90, Frames = DurationMs * SampleRate / 1000;
+	constexpr double Duration = DurationMs / 1000.0, Attack = 0.002, BumpRelease = 0.012;
+	constexpr double StartHz = 150, EndHz = 70, BodyDecay = 0.030;
+	constexpr double ClickDecay = 0.006, ClickLevel = 0.5, ClickCutoffHz = 1800;
+	// Low frequencies sound quieter at the same peak: this matches the tock's loudness.
+	constexpr double LevelOverKnock = 1.4;
+	constexpr uint32_t NoiseSeed = 7;
+	const double level = CueLevel * LevelOverKnock * std::clamp(gain, 0.0, 1.0);
+	const double side = std::clamp(pan, -1.0, 1.0) * PanWidth;
+	const double left = std::sqrt((1 - side) / 2), right = std::sqrt((1 + side) / 2);
+	const double smoothing = 1 - std::exp(-2 * std::numbers::pi * ClickCutoffHz / SampleRate); // one-pole low-pass
+	std::vector<int16_t> pcm;
+	pcm.reserve(Frames * Channels);
+	double phase = 0, noise = 0;
+	uint32_t seed = NoiseSeed;
+	for (size_t frame = 0; frame < Frames; ++frame) {
+		const double time = static_cast<double>(frame) / SampleRate;
+		phase += 2 * std::numbers::pi * StartHz * std::pow(EndHz / StartHz, time / Duration) / SampleRate;
+		noise += smoothing * (Noise(seed) - noise);
+		const double gate = std::min(1.0, time / Attack) * std::min(1.0, (Duration - time) / BumpRelease);
+		const double value = level * gate * (std::sin(phase) * std::exp(-time / BodyDecay) + ClickLevel * noise * std::exp(-time / ClickDecay));
+		pcm.push_back(static_cast<int16_t>(std::clamp(value * left, -1.0, 1.0) * PcmPeak));
+		pcm.push_back(static_cast<int16_t>(std::clamp(value * right, -1.0, 1.0) * PcmPeak));
 	}
 	return pcm;
 }

@@ -12,4 +12,9 @@ bool Enabled();
 void SetEnabled(bool enabled);
 bool Diagonal();
 void SetDiagonal(bool diagonal);
+// The thud of pushing into a wall, and the small obstacle's own knock.
+bool BumpEnabled();
+void SetBumpEnabled(bool enabled);
+bool SmallObstaclesEnabled();
+void SetSmallObstaclesEnabled(bool enabled);
 }

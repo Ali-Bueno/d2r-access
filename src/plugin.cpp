@@ -49,6 +49,7 @@
 #include "weapon_swap_service.h"
 #include "trade_service.h"
 #include "text_field.h"
+#include "grid_edge_service.h"
 #include "widget_probe.h"
 #include "widgets.h"
 
@@ -113,16 +114,17 @@ public:
 		if (now - reported_ < std::chrono::seconds(1)) return;
 		reported_ = now;
 		std::sort(parts_.begin(), parts_.begin() + count_, [](const Part& a, const Part& b) { return a.ms > b.ms; });
-		std::string list;
+		char list[2048]{};
+		size_t used = 0;
 		for (size_t i = 0; i < count_ && parts_[i].ms >= 1; ++i) {
-			char part[64]{};
-			std::snprintf(part, sizeof(part), "%s%s %.1f", list.empty() ? "" : ", ", parts_[i].name, parts_[i].ms);
-			list += part;
+			const int written = std::snprintf(list + used, sizeof(list) - used, "%s%s %.1f", used ? ", " : "", parts_[i].name, parts_[i].ms);
+			if (written < 0 || static_cast<size_t>(written) >= sizeof(list) - used) break;
+			used += static_cast<size_t>(written);
 		}
 		const auto checks = D2RAccess::NativeMemory::Checks();
 		D2RAccess::AsyncLog::WarnF(context_, "[pump] update of %.1f ms (%u of 30 ms or more since the last line), %llu page checks taking %.1f ms: %s",
 			total, slow_, static_cast<unsigned long long>(checks.count - checks_.count), checks.ms - checks_.ms,
-			list.empty() ? "no part over 1 ms" : list.c_str());
+			used ? list : "no part over 1 ms");
 		slow_ = 0;
 	}
 private:
@@ -158,6 +160,12 @@ private:
 	static inline Part worst_{}, worstPart_{};
 };
 
+D2RAccess::CallbackFault g_notice = D2RAccess::CallbackFault::None;
+void OnUiFault(const D2RL::PluginContext*, D2RAccess::CallbackFault fault) noexcept {
+	D2RAccess::KeyboardService::CancelAfterFault();
+	g_notice = fault;
+}
+
 // One UI update: sample input first so a value message arriving this update
 // can be attributed to the press that caused it, then read focus.
 void OnUiTick(const D2RL::PluginContext* context) {
@@ -169,6 +177,13 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	// 0.3-0.5 microseconds apiece (measured offline 2026-10-01). Every copy is
 	// still guarded, and a fault drops what the pass had remembered.
 	const D2RAccess::NativeMemory::ReadScope pages;
+	// Speak on a later attempt, after the failed snapshot has unwound. Failure
+	// to allocate this message leaves it pending and is contained by the pump.
+	if (g_notice != D2RAccess::CallbackFault::None) {
+		const auto& strings = D2RAccess::Strings::Current();
+		D2RAccess::ScreenReader::Speak(g_notice == D2RAccess::CallbackFault::Allocation ? strings.faultMemory : strings.faultAction, true);
+		g_notice = D2RAccess::CallbackFault::None;
+	}
 	D2RAccess::InputDirection::Poll(); lap("InputDirection");
 	// Before every reader: a key posts the gesture a reader takes this same update.
 	D2RAccess::KeyboardService::Tick(context); lap("KeyboardService");
@@ -183,6 +198,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	// only a later move along the strip is this one's.
 	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech); lap("TabHighlight");
 	D2RAccess::TextField::Tick(context); lap("TextField");
+	D2RAccess::GridEdgeService::Tick(); lap("GridEdgeService");
 	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
 	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
@@ -418,7 +434,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+H could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
-	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick)) {
+	} else if (!D2RAccess::UiThreadPump::Start(context, OnUiTick, OnUiFault)) {
 		D2RAccess::AsyncLog::Warn(context, "Thread service unavailable; focus tracking disabled.");
 	}
 

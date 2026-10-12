@@ -114,6 +114,7 @@ std::string Repeat() { return {}; }
 namespace D2RAccess::TabReader {
 std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return tabChange; }
 void Reset() {}
+std::string Detail() { return {}; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus current) {

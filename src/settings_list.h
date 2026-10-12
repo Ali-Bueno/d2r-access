@@ -19,6 +19,9 @@ struct Entry {
 	std::function<std::string(bool)> say; // the phrase for a state
 	bool announces = false;               // the switch says its own change when set
 	const char* key = nullptr;            // the name it is saved under between sessions (settings_store.h)
+	// A sound of the glossary, not a switch: played when the list lands on it and
+	// again on a change, which then says nothing over it.
+	std::function<void()> preview;
 };
 
 class Menu {
@@ -35,6 +38,7 @@ public:
 	std::string Expire(uint64_t now, uint64_t idleMs);
 private:
 	std::string Current() const;
+	void Preview() const;
 	std::vector<Entry> entries_;
 	std::string opened_, closed_;
 	size_t at_ = 0;

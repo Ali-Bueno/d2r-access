@@ -170,7 +170,9 @@ footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
 markers. It separates creature occupancy from terrain and keeps the original
 movement mask as the final opening check. With wall-slide prevention on (the
 default), a direct move stops at stones, trees and furniture, so the radar
-announces them like walls. With prevention off the game steers round them, so
+announces them as obstacles: a lone one up to a map tile across, with a way
+round it, has its own short, higher knock instead of the wall's tock
+(`small-obstacles` in the Ctrl+S settings list). With prevention off the game steers round them, so
 isolated furniture and small clutter are excluded from automatic space changes
 when a full-body check proves a route around them. Walls, doors, enclosed
 spaces and objects cutting off a corridor remain structural barriers either way.
@@ -222,6 +224,15 @@ by default; `access-movement on|off|status` controls it for the current session.
 Mouse routes retain their normal pathfinding. The hook is restricted to the
 local player's directional path and checks the game code before installation.
 Controller validation is pending; see [behavior and evidence](docs/wall-sliding.md).
+Pushing the stick into a wall the game refuses to cross sounds one low **wall
+bump** thud, panned by the push; it repeats only after a step, a turn of more
+than 45 degrees or a release of the stick (`wall-bump` in the Ctrl+S settings
+list). See [radar readings](docs/radar-readings.md).
+
+**Sound glossary:** the last entries of the Ctrl+S settings list are the mod's
+sounds (radar readings, wall bump, guidance, enemy and NPC cues, the pickup
+click, the inventory edge knock, every loot and place loop): landing on one
+names it and plays it once, Space plays it again (`src/sound_glossary.cpp`).
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking
@@ -315,8 +326,8 @@ a regenerated map starts with none. Ground loot and
 ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
 and 4/6 (object). See [scanner](docs/entity-scan.md).
 
-**Target guidance (built; live validation pending):** click the left stick (L3) or
-press **Ctrl+B** to follow what the scanner last named with directional pings.
+**Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
+game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.
 After naming another target, one click switches to it; clicking again on the
 same target cancels. See [distant exits](docs/distant-exits.md) and
 [target guidance](docs/beacon.md).

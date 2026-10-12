@@ -6,6 +6,7 @@ namespace D2RAccess::NativeProgression {
 struct Details {
 	UiText::Readout readout;
 	bool skill = false;
+	uintptr_t tab = 0; // a skill's branch (its TabWidget)
 	std::string name; // table name available before the skill tooltip renders
 	std::string points, value;
 	std::string help;     // part of the readout: the skill's current binding

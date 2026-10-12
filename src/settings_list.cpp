@@ -12,11 +12,16 @@ std::string Menu::Current() const {
 	return entry.say(entry.on());
 }
 
+void Menu::Preview() const {
+	if (!entries_.empty() && entries_[at_].preview) entries_[at_].preview();
+}
+
 std::string Menu::Toggle(uint64_t now) {
 	if (entries_.empty()) return {};
 	open_ = !open_;
 	usedMs_ = now;
 	if (!open_) return closed_;
+	Preview();
 	const auto current = Current();
 	return current.empty() ? opened_ : opened_ + ". " + current;
 }
@@ -25,6 +30,7 @@ std::string Menu::Step(int delta, uint64_t now) {
 	if (!open_ || entries_.empty() || delta == 0) return {};
 	usedMs_ = now;
 	at_ = delta > 0 ? (at_ + 1) % entries_.size() : (at_ + entries_.size() - 1) % entries_.size();
+	Preview();
 	return Current();
 }
 
@@ -32,6 +38,10 @@ std::string Menu::Change(uint64_t now) {
 	if (!open_ || entries_.empty()) return {};
 	usedMs_ = now;
 	const auto& entry = entries_[at_];
+	if (entry.preview) {
+		entry.preview();
+		return {};
+	}
 	const bool next = !entry.on();
 	entry.set(next);
 	return entry.announces ? std::string{} : entry.say(next);
