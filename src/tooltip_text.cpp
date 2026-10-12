@@ -158,7 +158,7 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 	// A stack's quantity and a price join it, wherever they sit. Everything
 	// else, the base damage or defense included, keeps the order the screen drew
 	// it in and waits to be asked for.
-	std::string stack;
+	std::string& stack = result.stack;
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (unidentified(body.lines[at])) { result.unidentified = true; continue; }
 		if (at == name) continue;
@@ -170,10 +170,15 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 	}
 	// Unidentified is the name's status, said once right after it.
 	if (result.unidentified && result.name != unidentifiedLabel) Append(result.name, unidentifiedLabel);
-	result.headline = result.name;
-	Append(result.headline, stack);
-	Append(result.headline, result.price);
+	result.headline = Headline(result);
 	return result;
+}
+
+std::string Headline(const Description& description) {
+	std::string headline = description.name;
+	Append(headline, description.stack);
+	Append(headline, description.price);
+	return headline;
 }
 
 }

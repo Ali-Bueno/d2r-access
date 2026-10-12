@@ -10,6 +10,9 @@ inline constexpr size_t UnitType = 0, UnitClass = 4, UnitId = 8, UnitMode = 0xC,
 	UnitData = 0x10, UnitPath = 0x38, UnitNext = 0x160, UnitBank = 0x1BD;
 inline constexpr size_t PlayerRoom = 0x20, RoomNeighbors = 0, RoomNeighborCount = 0x40, RoomFirstUnit = 0xA8;
 inline constexpr size_t StaticX = 0x10, StaticY = 0x14, ItemQuality = 0;
+// ItemData flags dword: the tests in the name-colour function 0x2BD360 and its siblings
+// (socketed 0x800 at 0x37A731, runeword 0x4000000 at 0x379A44) read [ItemData + 0x18]. docs/silver-items.md
+inline constexpr size_t ItemFlags = 0x18;
 inline constexpr size_t Items = 0x15A0, ItemCount = 0x15A8, ItemStride = 0x1C0,
 	ItemCode = 0x80, ItemName = 0xFC, ItemType = 0x12E, ItemQuest = 0x13A;
 inline constexpr size_t Types = 0x1348, TypeCount = 0x1350, TypeStride = 0xE8;

@@ -278,6 +278,10 @@ std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::ve
 	return result;
 }
 
+std::vector<EntityRadar::Entity> TownNpcSightings::Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere) const {
+	return everywhere ? townNpcs : Seen(level, townNpcs);
+}
+
 std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category) {
 	std::vector<Landmark> result;
 	for (const Landmark& landmark : landmarks) {

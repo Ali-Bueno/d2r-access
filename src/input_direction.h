@@ -31,6 +31,10 @@ void Poll();
 struct DpadInput { int x = 0, y = 0; bool pressed = false, held = false; };
 DpadInput Dpad();
 
+// The arrow keys, as sampled by the last Poll(): one direction held, with no Ctrl or
+// Shift (those step through lines). Only `held` is meaningful.
+DpadInput ArrowKeys();
+
 // The most recent left/right press edge, if it happened within the last
 // `maxAgeMs` milliseconds (measured via GetTickCount64); Horizontal::None
 // otherwise, or if no edge has been recorded yet.

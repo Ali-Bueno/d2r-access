@@ -198,7 +198,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	// only a later move along the strip is this one's.
 	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech); lap("TabHighlight");
 	D2RAccess::TextField::Tick(context); lap("TextField");
-	D2RAccess::GridEdgeService::Tick(); lap("GridEdgeService");
+	D2RAccess::GridEdgeService::Tick(context); lap("GridEdgeService");
 	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
 	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");

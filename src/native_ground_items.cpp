@@ -81,7 +81,9 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	item.sound = GroundItems::Classify(item.quality, base, quest);
 	if (!anyDistance && distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
-	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0);
+	uint32_t flags = 0;
+	if (!Peek(data + ItemFlags, flags)) flags = 0;
+	item.name = GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags);
 	return true;
 }
 }
@@ -103,6 +105,7 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 		|| !Peek(unit + UnitData, data) || !data || !Peek(data + ItemQuality, quality)) return {};
 	auto label = ClassLabel(classId, quality);
 	if (!Peek(unit + UnitId, label.id)) label.id = 0;
+	if (!Peek(data + ItemFlags, label.flags)) label.flags = 0;
 	return label;
 }
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality) {

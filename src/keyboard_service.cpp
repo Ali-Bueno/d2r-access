@@ -1547,6 +1547,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
 		{GroundItemService::PickupClick, GroundItemService::SetPickupClick, phrase(&T::pickupClickOn, &T::pickupClickOff), false, "pickup-click"},
 		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
+		{GroundItemText::SilverEnabled, GroundItemText::SetSilverEnabled, phrase(&T::silverItemsOn, &T::silverItemsOff), true, "silver-items"},
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
 		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},

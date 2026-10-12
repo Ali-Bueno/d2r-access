@@ -40,6 +40,7 @@ add_library(d2r-access SHARED
 	src/text_field_edit.cpp
 	src/grid_edge.cpp
 	src/grid_edge_service.cpp
+	src/stash_count.cpp
 	src/sound_glossary.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
@@ -99,6 +100,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
+	src/town_npcs.cpp
 	src/monster_plate.cpp
 	src/monster_names.cpp
 	src/native_cairn.cpp
@@ -435,6 +437,10 @@ if(BUILD_TESTING)
 	target_include_directories(entity-radar-tests PRIVATE src)
 	target_compile_features(entity-radar-tests PRIVATE cxx_std_20)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
+	add_executable(town-npcs-tests tests/town_npcs_tests.cpp src/town_npcs.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_include_directories(town-npcs-tests PRIVATE src)
+	target_compile_features(town-npcs-tests PRIVATE cxx_std_20)
+	add_test(NAME town-npcs COMMAND town-npcs-tests)
 	add_executable(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp
 		src/native_rooms.cpp src/native_memory.cpp)
 	target_include_directories(map-survey-tests PRIVATE src)
@@ -449,7 +455,7 @@ if(BUILD_TESTING)
 	target_include_directories(target-sight-tests PRIVATE src)
 	target_compile_features(target-sight-tests PRIVATE cxx_std_20)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	add_executable(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/town_npcs.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(native-entities-tests PRIVATE src)
 	target_compile_features(native-entities-tests PRIVATE cxx_std_20)
@@ -599,7 +605,7 @@ if(BUILD_TESTING)
 	target_include_directories(hire-stats-tests PRIVATE src)
 	target_compile_features(hire-stats-tests PRIVATE cxx_std_20)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp)
+	add_executable(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp src/stash_count.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	target_include_directories(interaction-reader-tests PRIVATE src)
 	target_compile_features(interaction-reader-tests PRIVATE cxx_std_20)
@@ -635,6 +641,10 @@ if(BUILD_TESTING)
 	target_include_directories(grid-edge-tests PRIVATE src)
 	target_compile_features(grid-edge-tests PRIVATE cxx_std_20)
 	add_test(NAME grid-edge COMMAND grid-edge-tests)
+	add_executable(stash-count-tests tests/stash_count_tests.cpp src/stash_count.cpp)
+	target_include_directories(stash-count-tests PRIVATE src)
+	target_compile_features(stash-count-tests PRIVATE cxx_std_20)
+	add_test(NAME stash-count COMMAND stash-count-tests)
 	add_executable(quest-log-tests tests/quest_log_tests.cpp src/quest_log.cpp)
 	target_include_directories(quest-log-tests PRIVATE src)
 	target_compile_features(quest-log-tests PRIVATE cxx_std_20)

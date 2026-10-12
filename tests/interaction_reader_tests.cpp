@@ -100,6 +100,7 @@ ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
 uintptr_t GridItem(uintptr_t) { return gridItem; }
 uintptr_t EquipmentItem(uintptr_t) { return equipmentItem; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
+StashSlotCount StashSlotStackCount(uintptr_t) { return {}; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 BeltSlot BeltItem(uintptr_t) { return beltSlot; }
@@ -680,7 +681,7 @@ int main() {
 	Check(Tick() && speech == std::vector<std::string>{"X: Asignar habilidad"}, "what the buttons do waits for right stick down");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
 	pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "right stick up reads what the skill does");
+	Check(Tick() && speech == std::vector<std::string>{"Sin aprender. Huyen aterrorizados."}, "right stick up reads what the skill does, a pause between its lines");
 	// Right stick left opens the skill line by line; up and down move, and
 	// right stick left or B closes it and reads the skill again.
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Left;
@@ -695,7 +696,7 @@ int main() {
 	ClearSpeech(); InputDirection::pressB = true; Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Gritos de guerra. Aullido") && PadFilter::holds == 0, "B closes it, lets B go, and reads the skill again");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
-	Check(speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "closed, up is the detail again");
+	Check(speech == std::vector<std::string>{"Sin aprender. Huyen aterrorizados."}, "closed, up is the detail again");
 	ClearSpeech(); InputDirection::pressB = true; pendingPush = InputDirection::StickPush::Left; Tick();
 	Check(speech == std::vector<std::string>{"Aullido"}, "reopening ignores a B pressed before it opened");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Left; Tick();

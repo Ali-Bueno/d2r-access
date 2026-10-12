@@ -1,4 +1,5 @@
 #include "grid_edge_service.h"
+#include "async_log.h"
 #include "entity_cue_audio.h"
 #include "grid_edge.h"
 #include "input_direction.h"
@@ -16,19 +17,27 @@ constexpr double EdgePan = 0.8;
 bool g_enabled = true;
 GridEdge::Detector g_detector;
 
-// The direction the D-pad or the left stick pushes, on its dominant axis.
+// The direction the D-pad, the arrow keys or the left stick push, on its dominant axis.
 std::pair<int, int> Push() {
-	const auto dpad = InputDirection::Dpad();
-	if (dpad.held && (dpad.x || dpad.y)) return {dpad.x, dpad.y};
+	for (const auto& pad : {InputDirection::Dpad(), InputDirection::ArrowKeys()})
+		if (pad.held && (pad.x || pad.y)) return {pad.x, pad.y};
 	const auto stick = InputDirection::LeftStick();
 	if (!stick.connected) return {0, 0};
 	const float ax = std::abs(stick.x), ay = std::abs(stick.y);
 	if (std::max(ax, ay) < InputDirection::StickPushFraction) return {0, 0};
 	return ax >= ay ? std::pair{stick.x > 0 ? 1 : -1, 0} : std::pair{0, stick.y > 0 ? 1 : -1};
 }
+
+const char* OutcomeName(GridEdge::Outcome::Kind kind) {
+	switch (kind) {
+	case GridEdge::Outcome::Kind::Knock: return "stayed, knock";
+	case GridEdge::Outcome::Kind::Left: return "focus left the grid";
+	default: return "";
+	}
+}
 }
 
-void Tick() {
+void Tick(const D2RL::PluginContext* context) {
 	if (!g_enabled) return;
 	GridEdge::Sample sample;
 	sample.now = GetTickCount64();
@@ -38,8 +47,13 @@ void Tick() {
 		sample = {focus.widget, cell.x, cell.y, size.x, size.y, 0, 0, sample.now};
 		std::tie(sample.dx, sample.dy) = Push();
 	}
-	if (const auto edge = g_detector.Update(sample))
-		EntityCueAudio::Play(EntityCueAudio::Sound::Edge, {edge->first * EdgePan, 1});
+	const auto outcome = g_detector.Update(sample);
+	if (outcome.kind == GridEdge::Outcome::Kind::None) return;
+	// Logged with every outcome: what the game does at the edge is what the knock rests on.
+	AsyncLog::InfoF(context, "[grid-edge] push %d,%d from cell %d,%d of %dx%d: %s", outcome.dx, outcome.dy, outcome.x, outcome.y,
+		sample.width, sample.height, OutcomeName(outcome.kind));
+	if (outcome.kind == GridEdge::Outcome::Kind::Knock)
+		EntityCueAudio::Play(EntityCueAudio::Sound::Edge, {outcome.dx * EdgePan, 1});
 }
 
 bool Enabled() { return g_enabled; }

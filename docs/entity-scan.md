@@ -93,3 +93,43 @@ automap; enemies are the one live category.
   `DistancePhrase`. The native unit reader is `src/native_entities.cpp`
   (`docs/entity-units-re.md`). Unnamed placeholder units (`"dummy"`, "una
   fuerza maligna") are dropped there, before any reader sees them.
+
+## Town NPCs
+
+In a town (`Levels.txt` town flag) the NPC category lists every NPC row
+(MonStats `npc` column) the level's presets place exactly once; a row placed
+more than once, such as a guard, is left out. The loaded unit is listed where
+there is one, else a stand-in at its spawn point with the same identity
+(`TownNpcs::Identity`, the row + 1), so a beacon on one follows the other. A
+spawn in the player's room or a neighbour with no unit there is left out: the
+NPC is not there. Other loaded rooms prove nothing: in a Lut Gholein snapshot
+(bladestorm360, `bdb7e91`, branch `port/bladestorm-npcs`) 25 of 49 rooms were
+loaded, with Fara, Cain and Meshif presets in them and no unit read. Switch
+`town-npcs-everywhere` (Ctrl+S, on by default) or full assistance lists them
+all; off, only those seen (`TownNpcSightings::Listed`). NPCs that wander
+(Warriv, Gheed, Ormus) are found near their spawn. Code: `src/town_npcs.{h,cpp}`,
+`NativeEntities::AddTownNpcs`.
+
+### Presets of rooms not built yet (fixed 2026-10-12)
+
+A tester at Charsi, in the Rogue Encampment, heard only Charsi, Warriv and
+Kashya. The reader took presets from the rooms (`RoomEx+0x98`), which the game
+fills only when it builds a room. Until then the map holds them. Evidence: D2R
+3.3.93787, Ghidra `re/ghidra` `D2R_live`; fingerprints in
+`preset_map_layout.h` `PendingChecks`.
+
+| Native function | Fact |
+|---|---|
+| `0x3DE0E0` (a room's preset setup) | The first room of a map to be set up loads the DS1 (`map+0x10`) and calls `0x3DF600` once, for the whole map. |
+| `0x3DF600`, 813 bytes | Copies the DS1's presets (`file+0x98`) onto `map+0x58`, through `0x3DBB60`. |
+| `0x3DBB60`, 393 bytes | The copy: class `+4`, type `+0x20`, X `+8` / Y `+0x24` plus the map origin (`map+0x18/+0x1C` tiles x5), so level subtiles. |
+| `0x3DE420`, 692 bytes (room build `0x3F38D0`) | Moves each `map+0x58` preset inside the room's subtile rectangle to `RoomEx+0x98`, minus the room origin. |
+| `0x3DDBB0`, 634 bytes | Frees `map+0x58` only with the level's maps (next `+0x88`). |
+
+The two lists never share a preset and together hold all of the map's.
+`NativeLevelExits::ReadMonsters(..., unbuilt)` reads both. A map preset goes to
+the room whose rectangle holds it, where the build will put it. The map is
+`RoomEx+0x40 -> +0x08` (`docs/places.md`). A malformed map list drops only the
+map presets. Live check: `[scan] Verified unbuilt-room preset reader.` at
+startup, and `[survey] town NPCs on level <n>: <total>, ...` naming every town
+NPC, the far ones as `/spawn`.

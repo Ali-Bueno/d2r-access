@@ -57,6 +57,10 @@ struct GridSlot { bool known = false; uintptr_t item = 0; };
 GridSlot GridItemAt(uintptr_t widget, Cell cell);
 Cell GridSize(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
+// The stack count drawn on a gem, rune or material stash slot, and whether the slot shows it
+// (the game hides an empty slot's); empty text when the widget is not such a slot or it cannot be read.
+struct StashSlotCount { std::string text; bool shown = false; };
+StashSlotCount StashSlotStackCount(uintptr_t widget);
 // The belt slot the controller is on and the item in it, read straight from
 // the belt rather than waiting for the game's tooltip, which the controller
 // layout shows 400 ms late (Controller/TooltipsPanelHD.json

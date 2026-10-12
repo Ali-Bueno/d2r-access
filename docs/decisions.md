@@ -3,6 +3,15 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-12 — "Silver" for white names the game draws gray
+
+A socketed or ethereal normal, low quality or superior item has a gray name on screen and the
+tester heard no colour for it, unlike magic and better. The word is "silver" only (never
+socketed or ethereal, which would spoil), on the ground and in the inventory headline, behind
+the `silver-items` switch (Ctrl+S, default on). Rule and evidence: `docs/silver-items.md`.
+The tome count was lost when the reader rebuilt the headline; it now follows the name, and with
+autodetail the size still follows it (the tester only remarked on the size, kept).
+
 ## 2026-10-12 — The settings list on the pad: BACK+RB and the right stick
 
 The new tester plays with a pad only, and the settings list (with the sound glossary) was

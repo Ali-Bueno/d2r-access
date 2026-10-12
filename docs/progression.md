@@ -62,6 +62,10 @@ stored Aturdir text ends with its wrapped description, `U+E07E2Aturdir`, then
 `Todavía no has aprendido esta habilidad`. The old generic glyph cleaner removed
 the marker but left the size digit attached to the name.
 
+Skill tooltip lines are joined for speech with a full stop between them
+(`ProgressionText::JoinLines`), the same pause an item tooltip's lines get, so
+stats no longer run into each other; a line ending in `. : ! ?` is not given a second one.
+
 Synergies are drawn only on the skill that receives them: `skilldesc.txt`
 `dsc3` lines, headed by string `Sksyn` ("%s recibe bonus de:"). Resist Fire has
 none; Holy Fire lists Resist Fire (+`Param8` = 21 % fire damage per level) and

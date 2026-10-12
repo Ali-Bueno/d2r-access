@@ -2,6 +2,7 @@
 #include "speech_strings.h"
 #include <D2RLPlugin/item.h>
 #include <algorithm>
+#include <atomic>
 
 namespace D2RAccess::GroundItemText {
 namespace {
@@ -9,6 +10,7 @@ namespace {
 constexpr std::string_view GenderTags[]{"[fs]", "[ms]", "[fp]", "[mp]", "[ns]", "[pl]", "[nl]"};
 // A name format may open with the grammar header "a<adjective arg>n<noun arg>:".
 constexpr size_t HeaderSize = 5, NounDigit = 3;
+std::atomic<bool> g_silver{true};
 constexpr std::string_view BaseArg = "%0", SuffixArg = "%1";
 
 size_t FirstTag(std::string_view text) {
@@ -49,12 +51,20 @@ std::string BaseName(std::string_view localized) {
 	for (auto tag : GenderTags) end = std::min(end, localized.find(tag));
 	return std::string(localized.substr(0, end));
 }
-std::string Describe(std::string_view name, uint32_t quality, int goldAmount) {
+bool IsSilver(uint32_t quality, uint32_t flags) {
+	if (quality >= FirstColouredQuality && quality <= LastColouredQuality) return false;
+	if (flags & (FlagBroken | FlagRuneword)) return false;
+	return (flags & (FlagSocketed | FlagEthereal)) != 0;
+}
+bool SilverEnabled() { return g_silver.load(std::memory_order_relaxed); }
+void SetSilverEnabled(bool enabled) { g_silver.store(enabled, std::memory_order_relaxed); }
+std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags) {
 	if (name.empty()) return {};
 	if (goldAmount > 0) return std::to_string(goldAmount) + " " + std::string(name);
 	std::string result(name);
 	const auto& labels = Strings::Current().itemQualities;
 	if (quality < labels.size() && *labels[quality]) { result += ", "; result += labels[quality]; }
+	if (SilverEnabled() && IsSilver(quality, itemFlags)) { result += ", "; result += Strings::Current().silverItem; }
 	return result;
 }
 const char* Enabled(bool enabled) {

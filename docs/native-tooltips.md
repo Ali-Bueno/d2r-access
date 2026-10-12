@@ -114,6 +114,11 @@ the build: SHA-256 `C0FAFD80447EE0FCE9F7BA148726CB674771D442DDC719736884C8535A69
   status replaces quality. Prices and properties remain in right-stick-up detail;
   automatic detail still includes them. Delayed tooltips for ordinary items do
   not repeat the name. Controller hints follow the completed item announcement.
+- A stack's or tome's count line (`ItemStats1i` / `scrollbooktext`) joins the headline
+  after the name (`TooltipText::Headline`: name, count, price), with or without autodetail.
+  With autodetail the size follows the count, ahead of the price (bladestorm360's
+  2026-09-21 design, kept); otherwise Ctrl+PageDown or right stick right. A white
+  name drawn gray also gets the word "silver" ([silver-items.md](silver-items.md)).
 - Controller selection is the `FocusableWidget` pair of signed integers at
   `+0x544`/`+0x548`; `InventoryItemWidget` function `0x2A89C0` reads this pair
   and uses it to look up the selected item. Grid width/height at `+0x628` and
@@ -224,6 +229,24 @@ the box's own text, which follows the open tab; when the box cannot be read, the
 `goldbank` stat (ItemStatCost row 15, `UNIT_GetStat` `0x2F5020`) is used, which is the personal
 stash only. `[stash] gold box=… text=… stat=…` logs both on each change. Live check pending on a
 shared tab.
+
+## Stash stack counts {#stash-stack-counts}
+
+The gem, rune and material tabs (`advancedstash_gems/_runes/_materials` in `BankExpansionLayout`)
+are `AdvancedStashSlotWidget`s; the tooltip names the item, the count is drawn on the slot. Static RE
+of the live image (test 2026-10-12, no live check yet), RVAs:
+
+- Creator `0x2CE3F0` (size `0x848`, vtable `0x1CF4678`), type `0x2A9A198`, field table `0x2CE9B0`;
+  a sibling of `InventorySlotWidget` under `InventoryItemWidget`, so `+0x5D8` is its `itemCode`,
+  not a slot location.
+- `+0x618` embeds the `countText` TextBoxWidget (text at `+0x6A0`, the usual `+0x88`). Update
+  `0x2CF990` sets its text to the count and shows it only when the count is not zero.
+- The count is one item unit per class in a hidden proxy unit's inventory, `uint8` at
+  `ItemData(+0x10)+0x9C` (getter `0x46D9A0`, max 99), not stat 70; the SDK reports quantity 1.
+
+`NativeUi::StashSlotStackCount` reads the displayed text and visibility, and the item reader says
+`<name>, <count>` (`StashCount::WithCount`, the list separator); an empty slot hides its count and
+reads its name alone, as drawn. `[stash] slot -> ...` logs name, text and visibility on each change.
 
 ## Inventory action labels and equipment locations
 

@@ -128,6 +128,12 @@ int main() {
 
 	// A tome's count is read with its name, ahead of any price.
 	const std::vector<std::string> quantity{"Quantity:"};
+	{
+		auto described = TooltipText::Split(TooltipText::Read("Quantity: 20 of 20\nTome of Town Portal"), BaseStats, {}, {}, {}, quantity);
+		Check(described.stack == "Quantity: 20 of 20", "the count line is kept apart for the reader");
+		described.name += ". magic"; // the reader adds words to the name after Split
+		Check(TooltipText::Headline(described) == "Tome of Town Portal. magic. Quantity: 20 of 20", "a rebuilt headline keeps the count");
+	}
 	const auto tome = TooltipText::Split(TooltipText::Read("Quantity: 20 of 20\nTome of Identify"), BaseStats, {}, {}, {}, quantity);
 	Check(tome.name == "Tome of Identify" && tome.headline == "Tome of Identify. Quantity: 20 of 20" && tome.detail.empty(),
 		"a tome's quantity joins the name in the headline");

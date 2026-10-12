@@ -286,6 +286,20 @@ int main() {
 	Check(GroundItemText::Describe("", 4, 0).empty(), "missing names never become a quality-only announcement");
 	Strings::Select(Strings::Language::enUS);
 	Check(GroundItemText::Describe("Axe", 4, 0) == "Axe, magic", "English quality is available");
+	{
+		using namespace GroundItemText;
+		Check(IsSilver(2, FlagSocketed) && IsSilver(2, FlagEthereal) && IsSilver(1, FlagSocketed) && IsSilver(3, FlagEthereal), "socketed or ethereal white qualities are gray");
+		Check(!IsSilver(2, 0) && !IsSilver(2, FlagBroken), "a plain white item is not silver");
+		for (uint32_t q = FirstColouredQuality; q <= LastColouredQuality; ++q)
+			Check(!IsSilver(q, FlagSocketed | FlagEthereal), "magic and better keep their own colour");
+		Check(!IsSilver(2, FlagSocketed | FlagBroken) && !IsSilver(2, FlagSocketed | FlagRuneword), "broken is red and a runeword is not silver");
+		Check(Describe("Leather Armor", 2, 0, FlagEthereal) == "Leather Armor, silver", "silver is the colour word only");
+		Check(Describe("Leather Armor", 4, 0, FlagEthereal) == "Leather Armor, magic", "a magic item is not silver");
+		Check(Describe("Leather Armor", 3, 0, FlagSocketed) == "Leather Armor, superior, silver", "superior keeps its word");
+		SetSilverEnabled(false);
+		Check(Describe("Leather Armor", 2, 0, FlagEthereal) == "Leather Armor", "the switch silences it");
+		SetSilverEnabled(true);
+	}
 	Check(MatchesLabel("Hacha\nDaño: 1-5", {"Hacha"}), "nearby tooltip duplicates are recognized");
 	Check(!MatchesLabel("Hachazo", {"Hacha"}) && !MatchesLabel("Charsi", {"Hacha"}), "different names and NPCs keep their speech");
 	Passed();

@@ -43,6 +43,7 @@ constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC7
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
+constexpr size_t StashCountTextOffset = 0x618; // AdvancedStashSlotWidget countText (TextBoxWidget), field table 0x2CE9B0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
@@ -390,6 +391,12 @@ GridSlot GridItemAt(uintptr_t widget, Cell cell) {
 		|| !Peek(vtable + ItemAtCellSlot, getter) || !NativeMemory::Executable(getter)) return result;
 	result.known = CallItemPointer(getter, widget, cell, result.item);
 	return result;
+}
+
+StashSlotCount StashSlotStackCount(uintptr_t widget) {
+	if (!widget || !Visible(widget) || Classify(widget).name != "AdvancedStashSlotWidget") return {};
+	const uintptr_t count = widget + StashCountTextOffset;
+	return {NativeWidgets::ReadText(count), Visible(count)}; // update 0x2CF990 hides it at zero
 }
 
 uintptr_t EquipmentItem(uintptr_t widget) {

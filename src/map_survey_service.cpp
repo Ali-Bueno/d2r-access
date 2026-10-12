@@ -406,7 +406,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			catalogued.push_back(std::move(place));
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());
-	const auto townNpcs = g_fullAssistance || g_townNpcsEverywhere ? scene.townNpcs : g_townNpcs.Seen(state.level, scene.townNpcs);
+	const auto townNpcs = g_townNpcs.Listed(state.level, scene.townNpcs, g_fullAssistance || g_townNpcsEverywhere);
 	catalogued.insert(catalogued.end(), townNpcs.begin(), townNpcs.end());
 	// Corpses from anywhere on the level: once seen, one stays until its place is seen without it.
 	const auto corpses = g_corpses.Entities(state.level);

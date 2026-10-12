@@ -471,9 +471,27 @@ void TownNpcsListedOnceSeen() {
 	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
 }
 
+void TownNpcSwitchListsEveryoneOrTheSeen() {
+	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
+	auto standIn = Make(178, 900, 900, EntityRadar::Kind::Npc); // an unloaded NPC at its spawn point
+	standIn.category = EntityRadar::Category::Npc; standIn.placeId = 178;
+	TownNpcSightings sightings;
+	sightings.Found(40, {fara});
+	Check(sightings.Listed(40, {fara, standIn}, true).size() == 2, "switch on: every town NPC is listed, unseen stand-ins included");
+	const auto seen = sightings.Listed(40, {fara, standIn}, false);
+	Check(seen.size() == 1 && seen.front().placeId == 200, "switch off: only the NPCs already seen");
+	sightings.Found(40, {standIn});
+	auto loaded = standIn;
+	loaded.id = 4242; loaded.position = {905, 896};
+	const auto later = sightings.Listed(40, {fara, loaded}, false);
+	Check(later.size() == 2 && later.back().id == 4242, "a stand-in seen stays seen once its live unit replaces it");
+}
+
 
 int main() {
 	TownNpcsListedOnceSeen();
+	TownNpcSwitchListsEveryoneOrTheSeen();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
 	NearestByStepsNotByStraightLine();

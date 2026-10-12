@@ -164,6 +164,8 @@ sessions. New ones worth knowing:
   and followed from anywhere in town, even before you have seen them.
 - Pickup range click (on): a click when the game's pickup prompt shows an item.
 - Inventory edge bump (on): a knock when the inventory cursor hits the edge.
+- Silver items (on): items whose name the game draws in silver (socketed or
+  ethereal) say "silver" after the name, as magic items say "magic".
 - Focus on stat points (on): the character screen starts on Strength's plus
   button when you have points to spend.
 - Screen hints (on): short hints on character select and the name box.

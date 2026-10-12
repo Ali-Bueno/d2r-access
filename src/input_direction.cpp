@@ -423,6 +423,13 @@ Vertical LastVertical(unsigned maxAgeMs) {
 
 DpadInput Dpad() { return g_dpad; }
 
+DpadInput ArrowKeys() {
+	const bool modified = (GetAsyncKeyState(VK_CONTROL) & kKeyDownFlag) != 0 || (GetAsyncKeyState(VK_SHIFT) & kKeyDownFlag) != 0;
+	const int x = (g_keyRightHeld ? 1 : 0) - (g_keyLeftHeld ? 1 : 0), y = (g_keyDownHeld ? 1 : 0) - (g_keyUpHeld ? 1 : 0);
+	if (modified || (x && y) || (!x && !y)) return {};
+	return {x, y, false, true};
+}
+
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;

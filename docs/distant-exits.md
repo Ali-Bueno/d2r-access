@@ -56,7 +56,8 @@ this preset walk (already level-safe by construction, per the guards above) — 
 
 ## Coverage and validation
 
-A never-generated room may have no preset data and remains unknown. This is not
+A never-generated room may have no preset data and remains unknown (its presets
+wait on its map, read so far for town NPCs only: `docs/entity-scan.md#town-npcs`). This is not
 full-map generation or full-map pathfinding. Unloaded OpenWarp objects without
 a verified preset destination have no inferred location; whether a border is
 walkable is unknown, so the reach verdict answers around / no route / nothing.

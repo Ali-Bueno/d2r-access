@@ -29,4 +29,14 @@ inline constexpr Evidence Checks[] = {
 	{0x3DDE30, 209, 0x467380D7D63AF3D4ULL}, // preset room data: +0x08 map
 	{0x192B20, 5, 0x718E401FF86D81A2ULL},   // Room+0x18 -> RoomEx
 };
+
+// The presets of the map's rooms not built yet, in level subtiles; building a
+// room moves those inside it to RoomEx+0x98. docs/entity-scan.md#town-npcs
+inline constexpr size_t MapPendingPresets = 0x58;
+inline constexpr Evidence PendingChecks[] = {
+	{0x3DE420, 692, 0x8DCD5BA4A9199D4CULL}, // room build: map+0x58 presets inside the room -> RoomEx+0x98, minus its origin
+	{0x3DF600, 813, 0xCA807086ED553A43ULL}, // map+0x58 filled from the DS1's presets (file+0x98) at the map origin
+	{0x3DBB60, 393, 0x87527537E2819BE6ULL}, // that copy: class +4, type +0x20, X +8 / Y +0x24 plus origin x5
+	{0x3DDBB0, 634, 0x6036CF88D50976A8ULL}, // the level's maps (next +0x88) free map+0x58 only with the level
+};
 }

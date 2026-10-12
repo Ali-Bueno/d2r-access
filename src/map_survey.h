@@ -107,6 +107,8 @@ public:
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
 	// The ones of `townNpcs` seen on this level.
 	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;
+	// What the scanner lists: all of `townNpcs` when `everywhere`, else the seen ones.
+	std::vector<EntityRadar::Entity> Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere) const;
 	void Clear() { m_seen.clear(); }
 private:
 	std::map<int, std::set<uint64_t>> m_seen;

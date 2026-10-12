@@ -37,6 +37,7 @@ struct Description {
 	std::string headline; // the name, and in a shop the price
 	// The name and the price apart, so something can be read between them.
 	std::string name, price;
+	std::string stack;    // a stack's or tome's count line ("Quantity: 20 of 20"); also in the headline
 	std::string detail;   // base damage or defense, requirements, properties, flavour text
 	std::string unmet;    // the red requirement lines: what this character cannot meet
 	bool unidentified = false; // the tooltip's "Unidentified" line, said after the name, not in the detail
@@ -57,6 +58,9 @@ struct Description {
 // when unmet; those red lines also go to `unmet`, and stay in the detail.
 // `quantityLabels` begin a stack's count line, which moves into the headline
 // between the name and the price.
+// The spoken headline of a description: name, then the stack's count, then the price.
+std::string Headline(const Description& description);
+
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
 	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {});

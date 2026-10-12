@@ -274,6 +274,10 @@ sounds where this uses a word.
   use the current level's logical-room presets, with no range/visibility cutoff.
   Their room list, rectangles and presets now have whole-function guards.
   Rooms with no generated preset data remain unknown; see [coverage](distant-exits.md).
+- A town NPC whose unit is not loaded is led to as its spawn point; its unit
+  takes over the lock when it loads (same identity, `docs/entity-scan.md#town-npcs`).
+  If the spawn comes around the player without the NPC, the lock keeps that
+  place and says the NPC is gone on arrival.
 - The route is only as good as the collision copied into the search box: an
   unloaded or unknown cell is never routed through, so a target behind
   unloaded terrain falls back to heading for the nearest reachable cell.

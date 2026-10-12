@@ -164,6 +164,52 @@ struct Fixture {
 	}
 };
 
+// Lut Gholein: a unique NPC's spawn stands in for its unit while the unit is not
+// read, unless the spawn is around the player, where the unit would be read.
+void TownNpcStandIns() {
+	using namespace LevelExitLayout;
+	Fixture town;
+	Memory<0x200> townLevel;
+	Memory<0x100> nearEx, farEx;
+	Memory<RoomSize> nearRoom, farRoom;
+	Memory<0x30> spawn;
+	std::vector<EntityRadar::Entity> entities;
+	town.roomEx.At(ExtendedLevel, townLevel.Address()); town.roomEx.At(RoomNext, nearEx.Address()); nearEx.At(RoomNext, farEx.Address());
+	townLevel.At<uint32_t>(LevelId, 40); townLevel.At(LevelFirstRoom, town.roomEx.Address());
+	int tileX = 20;
+	for (auto* logical : {&town.roomEx, &nearEx, &farEx}) {
+		logical->At(ExtendedLevel, townLevel.Address());
+		logical->At<int>(RoomTileX, tileX); logical->At<int>(RoomTileY, 20);
+		logical->At<int>(RoomTileWidth, 8); logical->At<int>(RoomTileHeight, 8);
+		tileX += 8;
+	}
+	nearRoom.At(RoomExtended, nearEx.Address()); farRoom.At(RoomExtended, farEx.Address());
+	// The player's room has one neighbour; the far room is loaded one hop further.
+	std::array<uintptr_t, 1> aroundPlayer{nearRoom.Address()}, nextHop{farRoom.Address()};
+	town.room.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(aroundPlayer.data()));
+	town.room.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	nearRoom.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(nextHop.data()));
+	nearRoom.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	spawn.At<uint32_t>(PresetType, MonsterType); spawn.At<uint32_t>(PresetClass, 0);
+	spawn.At<int>(PresetX, 20); spawn.At<int>(PresetY, 10);
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 1); // Akara's unit is not read
+	const auto read = [&] { return NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 42, 7,
+		entities, false, false, false, false, 0, true, true); };
+	const auto standIn = [&]() -> const EntityRadar::Entity* {
+		const auto found = std::find_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; });
+		return found == entities.end() ? nullptr : &*found;
+	};
+	farEx.At(RoomPresets, spawn.Address());
+	Check(read() && standIn() && standIn()->position.x == 200 && standIn()->position.y == 110 && standIn()->name == "Akara",
+		"a spawn in a loaded room past the player's neighbours stands in for an unread unit");
+	farEx.At<uintptr_t>(RoomPresets, 0); nearEx.At(RoomPresets, spawn.Address());
+	Check(read() && !standIn(), "a spawn in a neighbour of the player's room without its unit is left out");
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 0);
+	Check(read() && town.Find(entities, 7) && town.Find(entities, 7)->placeId == 1
+		&& std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }) == 1,
+		"a live unit takes its row's identity and no stand-in is added");
+}
+
 void PlayerCorpseOwnership() {
 	Fixture f;
 	Memory<UnitSize> body;
@@ -832,6 +878,7 @@ int main() {
 	Check(across.Read(entities) && !across.Find(entities, 77), "a neighbour room belonging to another level contributes no entity");
 	foreignEx.At(ExtendedLevel, nearLevel.Address());
 	Check(across.Read(entities) && across.Find(entities, 77), "a neighbour room of this level is still walked");
+	TownNpcStandIns();
 	Passed();
 	return 0;
 }

@@ -76,9 +76,17 @@ std::vector<std::string> SkillLines(std::string_view body) {
 std::string SkillDescription(std::string_view body) {
 	const auto lines = SkillLines(body);
 	if (lines.empty()) return {};
-	std::string result = lines.front();
-	if (lines.size() > 1) result += ".";
-	for (size_t i = 1; i < lines.size(); ++i) result += " " + lines[i];
+	return JoinLines(lines);
+}
+
+std::string JoinLines(const std::vector<std::string>& lines) {
+	std::string result;
+	for (const auto& line : lines) {
+		if (line.empty()) continue;
+		// The same pause an item tooltip's lines get: a full stop unless the line has its own.
+		if (!result.empty()) result += result.ends_with('.') || result.ends_with(':') || result.ends_with('!') || result.ends_with('?') ? " " : ". ";
+		result += line;
+	}
 	return result;
 }
 }

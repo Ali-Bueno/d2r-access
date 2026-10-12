@@ -149,3 +149,18 @@ These are reads, not equipment-stat writes.
 bought or unequipped item and its native grid cell or belt destination.
 `access-arrivals on|off` and `[inventory_arrivals] enabled` control it.
 Pure outcome and arrival tests run without the game; live feedback is pending.
+
+## Grid edge knock {#grid-edge}
+
+Switch `inventory-edge` (Ctrl+S): a knock, panned to the side, when the inventory cursor is pushed
+against the grid's edge (`grid_edge.*` detector, `grid_edge_service.*`).
+
+- Test 2026-10-12 (pad): silent. The detector needed the button still down 150 ms after the
+  press, and a D-pad tap is shorter, so every tap was dropped; the keyboard's arrows were not a
+  push source at all. Now a press on the edge cell is judged 100 ms later even if released, and
+  the arrow keys (no Ctrl/Shift) count as a push beside D-pad and left stick.
+- A press that moves the cursor is no edge. If focus leaves the grid instead, there is no
+  knock: the controller layout sends the grid's left to `panelBoundary` (stash, vendor, cube),
+  up to `slot_belt` and down to `gold_button`, and that move is spoken by the focus tracker.
+- `[grid-edge] push dx,dy from cell x,y of WxH: ...` logs each knock and each press on the edge
+  cell that left the grid, so a live test shows what the game does at the right and left columns.

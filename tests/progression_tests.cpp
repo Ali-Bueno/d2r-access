@@ -134,7 +134,8 @@ int main() {
 	const std::string font = "\xEE\x81\xBE";
 	const auto raw = "Grito: +5 s por nivel\n" + font + "2Aturdir recibe bonus de:" + font + "1\n\nDuración: 1.2 s\nPrimer nivel\nNivel necesario: 12\ny aumenta tu índice de ataque.\nAturde a tu objetivo\n" + font + "2Aturdir\n\nTodavía no has aprendido esta habilidad";
 	const auto description = ProgressionText::SkillDescription(raw);
-	Check(description == "Aturdir. Todavía no has aprendido esta habilidad Aturde a tu objetivo y aumenta tu índice de ataque. Nivel necesario: 12 Primer nivel Duración: 1.2 s Aturdir recibe bonus de: Grito: +5 s por nivel", "skill name leads, wrapped sentences and requirements follow screen order, formatting digits are removed");
+	Check(description == "Aturdir. Todavía no has aprendido esta habilidad. Aturde a tu objetivo. y aumenta tu índice de ataque. Nivel necesario: 12. Primer nivel. Duración: 1.2 s. Aturdir recibe bonus de: Grito: +5 s por nivel", "skill name leads, every line is set off by a pause, formatting digits are removed");
+	Check(ProgressionText::JoinLines({"Damage 5 to 10", "Mana Cost: 3.", "", "Level 2"}) == "Damage 5 to 10. Mana Cost: 3. Level 2", "lines get a full stop unless they end in punctuation, empty ones are skipped");
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
 	Check(ProgressionText::SkillDescription("Coste: 2 p.\nNivel actual: 1\n" + font + "2Aullido").starts_with("Aullido. Nivel actual: 1"), "learned skill levels are preserved");

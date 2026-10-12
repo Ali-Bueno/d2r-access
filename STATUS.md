@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Tester's second report — 2026-10-12 (on top of test-2026-10-12, not committed)
+
+- Town NPCs everywhere listed only loaded units: unbuilt rooms' presets (`DrlgMap+0x58`) are
+  now read, and a spawn is dropped only near the player ([scanner](docs/entity-scan.md#town-npcs)).
+- Tome/stack count was lost when the headline was rebuilt (`TooltipText::Headline`); the size
+  under autodetail is kept after it. Skill tooltip lines are joined with a full stop.
+- "Silver" for socketed/ethereal white names (`silver-items`, [evidence](docs/silver-items.md)).
+- Gem/rune stash slots say their drawn count (`AdvancedStashSlotWidget+0x618`, static RE only).
+- Inventory edge knock judged taps too (a pad tap is shorter than the old 150 ms hold);
+  `[grid-edge]` logs say whether focus stayed or left the grid.
+
+114/114 CTest; installed DLL SHA-256 `A1546FEB…` matches the build. Live checks: `[scan] Verified
+unbuilt-room preset reader.`, `[survey] town NPCs on level 1`, `[stash] slot ->`, `[grid-edge]`,
+tome headline in `[item]`.
+
 ## New tester's report — 2026-10-11 (released as test-2026-10-12)
 
 A new collaborator's list (controller, English game) was worked through; what changed and the

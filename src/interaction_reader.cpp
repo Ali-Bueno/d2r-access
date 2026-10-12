@@ -31,6 +31,7 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "stash_count.h"
 #include "tab_reader.h"
 #include "tooltip_delay.h"
 #include "tooltip_text.h"
@@ -991,17 +992,29 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// (Split). A lesser item's own name already says it ("Superior Short
 			// Sword"), and a runeword's name is its own, so the name is kept.
 			if (!split.unidentified && !split.name.empty()) {
-				const uint32_t quality = NativeGroundItems::ItemUnitLabel(focusItem).quality;
+				const uint32_t quality = itemLabel.quality;
 				const auto& qualities = Strings::Current().itemQualities;
 				if (quality >= static_cast<uint32_t>(D2RL::Items::Quality::Magic) && quality < qualities.size())
 					Append(split.name, qualities[quality]);
+				// A white name the game draws gray (socketed or ethereal): the colour only.
+				if (GroundItemText::SilverEnabled() && GroundItemText::IsSilver(quality, itemLabel.flags))
+					Append(split.name, Strings::Current().silverItem);
 			}
 			if (itemLabel.id) g_itemNames.Remember(itemLabel.id, itemLabel.baseName, itemLabel.quality, split.name);
+			// Gem, rune and material tabs draw a stack's count on its slot, not in the tooltip.
+			if (const auto stack = NativeUi::StashSlotStackCount(focus.widget); !stack.text.empty() && !split.name.empty()) {
+				split.name = StashCount::WithCount(split.name, stack.text, stack.shown, Strings::Current().listSeparator);
+				static std::string logged;
+				if (const auto line = split.name + "|" + stack.text + (stack.shown ? "|shown" : "|hidden"); line != logged) {
+					logged = line;
+					D2RAccess::AsyncLog::InfoF(context, "[stash] slot -> \"%s\" count text=\"%s\" %s", split.name.c_str(), stack.text.c_str(),
+						stack.shown ? "shown" : "hidden");
+				}
+			}
 			// What a sighted player sees in red, said right after that.
 			g_itemUnmet = split.unmet;
 			if (!split.unmet.empty()) Append(split.name, Refusal(split.unmet));
-			split.headline = split.name;
-			Append(split.headline, split.price);
+			split.headline = TooltipText::Headline(split);
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
@@ -1022,10 +1035,12 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				g_compareLogged = comparison;
 				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
 			}
-			// With autodetail the cells the item takes up come right after the
-			// name, ahead of any price; otherwise they wait for right stick right.
+			// With autodetail the cells the item takes up follow the name and a
+			// stack's or tome's count, ahead of any price; otherwise they wait for
+			// right stick right.
 			if (AutoDetail::Enabled()) {
 				description = std::move(split.name);
+				Append(description, split.stack);
 				Append(description, size);
 				Append(description, split.price);
 				Append(description, split.detail);
