@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Tester's second report — 2026-10-12 (committed f0e043b; live fixes below not committed)
+## Tester's second report — 2026-10-12 (released as test-2026-10-12-2 from fe4d171)
 
 - Town NPCs everywhere listed only loaded units: unbuilt rooms' presets (`DrlgMap+0x58`) are
   now read, and a spawn is dropped only near the player ([scanner](docs/entity-scan.md#town-npcs)).
@@ -59,7 +59,8 @@ packages the complete tester ZIP and publishes it as the latest GitHub release. 
 `test-2026-10-11` from `df45422` (106/106 CTest, 29 entries verified). Always-latest link and
 details: [test releases](docs/test-releases.md). The installed plugin is still the
 `port/bladestorm-npcs` build, which is not in that release. Second: `test-2026-10-12` from
-`f6c7431` (112/112 CTest, 29 entries verified, English package and news).
+`f6c7431` (112/112 CTest, 29 entries verified, English package and news). Third:
+`test-2026-10-12-2` from `fe4d171` (114/114 CTest, 29 entries verified).
 
 ## Keyboard as a virtual controller — idea, 2026-10-05
 
