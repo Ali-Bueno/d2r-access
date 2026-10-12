@@ -10,8 +10,8 @@ The repository is private, so the link works only for a signed-in GitHub account
 ## Publishing one
 
 ```powershell
-.\tools\test-release.ps1 -NewsFile <spanish-news.txt>   # build, test, package, publish
-.\tools\test-release.ps1 -NoPublish                      # same, but stop at the local ZIP
+.\tools\test-release.ps1 -NewsFile <news.txt>   # build, test, package, publish
+.\tools\test-release.ps1 -NoPublish              # same, but stop at the local ZIP
 ```
 
 The script builds `HEAD` in `build/test-release/cmake`, whose deploy step points at
@@ -31,9 +31,12 @@ prereleases. The asset name never changes, so the link above stays valid.
 | `msvcp140.dll`, `msvcp140_atomic_wait.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` | newest `VC/Redist/MSVC/<version>/x64/Microsoft.VC*.CRT` of Build Tools 2022 |
 | `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/prism.dll` | the build, `third_party/prism/bin` |
 | `d2rloader/config/d2r-access.toml` | `radar.toml` |
-| `LEEME.txt`, `COMANDOS-TECLADO.txt` | `packaging/tester/` (Spanish; `-NewsFile` becomes the LEEME's NOVEDADES section and the release notes) |
-| `licencias/` | `LICENSE`, `third_party/prism/LICENSES` |
+| `README.txt`, `KEYBOARD.txt` | `packaging/tester/` (English; `-NewsFile` becomes the README's WHAT'S NEW section and the release notes) |
+| `licenses/` | `LICENSE`, `third_party/prism/LICENSES` |
 | empty `mods/`, `d2rloader/{crashes,data,logs}` | the loader's own layout |
 
 Extracting over an existing install replaces `d2rloader.toml`, which resets `text_locale` and
-`audio_locale`; the LEEME tells testers to set the language again.
+`audio_locale`; the README tells testers to set the language again.
+
+The package text is English since 2026-10-11, for testers who do not read Spanish. The asset
+keeps its original `d2r-access-completo.zip` name so the always-latest link stays valid.

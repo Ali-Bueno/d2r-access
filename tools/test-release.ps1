@@ -54,20 +54,20 @@ try {
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	Copy-Into "third_party\prism\bin\prism.dll" (Join-Path $stage "d2rloader\plugins\d2r-access\prism.dll")
 	Copy-Into "radar.toml" (Join-Path $stage "d2rloader\config\d2r-access.toml")
-	Copy-Into "packaging\tester\COMANDOS-TECLADO.txt" (Join-Path $stage "COMANDOS-TECLADO.txt")
-	Copy-Into "LICENSE" (Join-Path $stage "licencias\d2r-access-LICENSE.txt")
-	Copy-Item "third_party\prism\LICENSES" (Join-Path $stage "licencias\prism") -Recurse
+	Copy-Into "packaging\tester\KEYBOARD.txt" (Join-Path $stage "KEYBOARD.txt")
+	Copy-Into "LICENSE" (Join-Path $stage "licenses\d2r-access-LICENSE.txt")
+	Copy-Item "third_party\prism\LICENSES" (Join-Path $stage "licenses\prism") -Recurse
 
 	$repo = gh repo view --json nameWithOwner -q .nameWithOwner
 	$latestUrl = "https://github.com/$repo/releases/latest/download/$(Split-Path $zip -Leaf)"
 	$news = if ($NewsFile) { (Get-Content $NewsFile -Raw -Encoding utf8).Trim() -replace "`r`n", "`n" } else { "" }
-	$spanishDate = (Get-Date).ToString("d 'de' MMMM 'de' yyyy", [Globalization.CultureInfo]::GetCultureInfo("es-ES"))
-	$readme = (Get-Content "packaging\tester\LEEME.txt" -Raw -Encoding utf8) -replace "`r`n", "`n"
-	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "NOVEDADES`n`n$news`n`n`n" } else { "" }))
-	$readme = $readme.Replace("{{DATE}}", $spanishDate).Replace("{{COMMIT}}", $short)
+	$readmeDate = (Get-Date).ToString("MMMM d, yyyy", [Globalization.CultureInfo]::GetCultureInfo("en-US"))
+	$readme = (Get-Content "packaging\tester\README.txt" -Raw -Encoding utf8) -replace "`r`n", "`n"
+	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "WHAT'S NEW`n`n$news`n`n`n" } else { "" }))
+	$readme = $readme.Replace("{{DATE}}", $readmeDate).Replace("{{COMMIT}}", $short)
 	$readme = $readme.Replace("{{LOADER}}", $loaderVersion).Replace("{{LATEST_URL}}", $latestUrl)
 	# Notepad-friendly: CRLF with a BOM.
-	[IO.File]::WriteAllText((Join-Path $stage "LEEME.txt"), ($readme -replace "`n", "`r`n"), [Text.UTF8Encoding]::new($true))
+	[IO.File]::WriteAllText((Join-Path $stage "README.txt"), ($readme -replace "`n", "`r`n"), [Text.UTF8Encoding]::new($true))
 
 	Add-Type -AssemblyName System.IO.Compression.FileSystem
 	[IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
@@ -89,16 +89,16 @@ try {
 	$n = 1
 	while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
 	$notes = @(
-		"Versión de prueba con el paquete completo: el mod (commit $short), D2RLoader $loaderVersion y el runtime de Visual C++."
-		if ($news) { "", "## Novedades", "", $news }
-		"", "## Instalar o actualizar", ""
-		"Cierra el juego, descarga ``$(Split-Path $zip -Leaf)`` y extrae todo dentro de la carpeta del juego (la que tiene ``D2R.exe``). Las instrucciones completas están en ``LEEME.txt``, dentro del zip."
-		"", "Enlace directo que siempre baja la última versión:", "", $latestUrl
-		"", "SHA-256 del zip: ``$zipHash``"
+		"Test build with the complete package: the mod (commit $short), D2RLoader $loaderVersion and the Visual C++ runtime."
+		if ($news) { "", "## What's new", "", $news }
+		"", "## Install or update", ""
+		"Close the game, download ``$(Split-Path $zip -Leaf)`` and extract everything into the game folder (the one with ``D2R.exe``). The full instructions are in ``README.txt``, inside the zip."
+		"", "Direct link that always downloads the latest version:", "", $latestUrl
+		"", "Zip SHA-256: ``$zipHash``"
 	) -join "`n"
 	$releaseNotes = Join-Path $out "notes.md"
 	[IO.File]::WriteAllText($releaseNotes, $notes, [Text.UTF8Encoding]::new($false))
-	gh release create $tag $zip --target $commit --title "Versión de prueba $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
+	gh release create $tag $zip --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {
