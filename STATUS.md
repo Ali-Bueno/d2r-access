@@ -2,7 +2,11 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Tester's third report — 2026-10-12 (built, not committed, not released)
+## Tester's third report — 2026-10-12 (released as test-2026-10-12-3 from cd03aa1)
+
+Release: 116/116 CTest, 29 entries, 60,255,237 bytes, SHA-256 `8fb17af8…100c`; the plugin says
+"test-2026-10-12-3" at start.
+
 
 Thirty items with the user's notes; choices in [decisions](docs/decisions.md). Done:
 - Movement: walk/run only on L3 ([vitals](docs/vitals.md)); bump contact off the map and beside
