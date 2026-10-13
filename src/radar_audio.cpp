@@ -3,6 +3,7 @@
 #include "process_lifetime.h"
 #include "mod_sounds.h"
 #include "radar_trace.h"
+#include "sound_volume.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -137,6 +138,7 @@ void Worker(const D2RL::PluginContext* context) {
 				continue;
 			}
 			auto pcm = bump ? SynthesizeBump(pan, g_gain) : Cue(events, source);
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Radar).Factor());
 			const bool ok = PlayOne(device, done, pcm, events, source, generation);
 			{
 				std::lock_guard lock(g_mutex);

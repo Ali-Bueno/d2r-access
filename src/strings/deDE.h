@@ -326,8 +326,6 @@ inline constexpr Table deDE {
 	.stashMaterials = "Materialfach",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "Fertigkeiten: %s",
-	.lastEpochSoundsOn = "Trank- und Goldklänge: Last Epoch",
-	.lastEpochSoundsOff = "Trank- und Goldklänge: Diablo",
 	.enemyPanStrength = "Stereobreite der Gegnerklänge %d Prozent",
 	.enemyPitchStrength = "Tonhöhe der Gegnerklänge %d Prozent",
 	.beaconPanStrength = "Stereobreite der Führung %d Prozent",
@@ -349,11 +347,14 @@ inline constexpr Table deDE {
 	.mercenaryBarkOff = "Söldnersätze benannt aus",
 	.npcAlertOn = "Ausrufezeichen-Klang bei NPCs an",
 	.npcAlertOff = "Ausrufezeichen-Klang bei NPCs aus",
-	.dropSoundsOn = "Gegenstandsklänge: Diablo-II-Fallgeräusche",
-	.dropSoundsOff = "Gegenstandsklänge: Diablo IV",
 	.dropSoundSpeed = "Tempo der Fallgeräusche %d Prozent",
+	.radarVolume = "Lautstärke Radar und Wände %d Prozent",
+	.enemyVolume = "Lautstärke Gegner und NPCs %d Prozent",
+	.itemVolume = "Lautstärke Gegenstände und Orte %d Prozent",
+	.guidanceVolume = "Lautstärke Führung %d Prozent",
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
-	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar"},
+	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
+	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken"},
 };
 
 }

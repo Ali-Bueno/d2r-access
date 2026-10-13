@@ -62,6 +62,7 @@
 #include "screen_reader.h"
 #include "settings_list.h"
 #include "sound_glossary.h"
+#include "sound_volume.h"
 #include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
@@ -112,12 +113,11 @@ enum class Command : uint32_t {
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
-	Settings, SettingsChange,
-	// The pad's right stick left and right on the settings list: right opens a
-	// group or changes what it stands on, left goes back to the groups.
+	// Space and the right stick right on the settings list: open a group, or change
+	// what the list stands on; Backspace and the stick left: back to the groups.
+	Settings, SettingsChange, SettingsBack,
+	// LB and RB (Shift+Space) on the settings list: a setting one value down or up.
 	SettingsLower, SettingsRaise,
-	// Backspace on the settings list: back to the groups.
-	SettingsBack,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
 	// In play and in a menu: the list of skills for the left hand. The game's
@@ -1570,6 +1570,32 @@ SettingsList::Entry ManaAlerts() {
 	return entry;
 }
 
+SettingsList::Entry ItemSoundSet() {
+	static_assert(Strings::ItemSoundSetCount == static_cast<size_t>(GroundItems::SoundSet::Count), "a phrase for every item sound set");
+	SettingsList::Entry entry;
+	entry.key = "item-sound-set";
+	entry.levels = static_cast<int>(GroundItems::SoundSet::Count);
+	entry.level = GroundItems::ItemSoundSet;
+	entry.setLevel = GroundItems::SetItemSoundSet;
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().itemSoundSets[static_cast<size_t>(level)]); };
+	return entry;
+}
+
+// A family's volume (sound_volume.h), from silent to double its configured level.
+SettingsList::Entry Volume(const char* key, const char* Strings::Table::* format, SoundVolume::Family family) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = static_cast<int>(SoundVolume::Percents.size());
+	entry.level = [family] { return SoundVolume::Of(family).Get(); };
+	entry.setLevel = [family](int level) { SoundVolume::Of(family).Set(level); };
+	entry.sayLevel = [format](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, SoundVolume::Percents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
 SettingsList::Entry DropSoundSpeed() {
 	SettingsList::Entry entry;
 	entry.key = "drop-sound-speed";
@@ -1600,7 +1626,7 @@ SettingsList::Entry FootstepVolume() {
 
 // The groups of the settings list (a tester, 2026-10-13), in the order of
 // Strings::Table::settingsGroups; the glossary is the last.
-enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Count };
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
 
 std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
@@ -1624,8 +1650,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Sounds), {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
 		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
-		{GroundItems::LastEpochSounds, GroundItems::SetLastEpochSounds, phrase(&T::lastEpochSoundsOn, &T::lastEpochSoundsOff), false, "last-epoch-sounds"},
-		{GroundItems::DropSounds, GroundItems::SetDropSounds, phrase(&T::dropSoundsOn, &T::dropSoundsOff), false, "drop-sounds"},
+		ItemSoundSet(),
 		DropSoundSpeed(),
 		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
 		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
@@ -1636,6 +1661,13 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
 		FootstepVolume(),
+	}});
+	using F = SoundVolume::Family;
+	groups.push_back({GroupName(G::Volumes), {
+		Volume("radar-volume", &T::radarVolume, F::Radar),
+		Volume("enemy-volume", &T::enemyVolume, F::Enemies),
+		Volume("item-volume", &T::itemVolume, F::Items),
+		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
 	}});
 	groups.push_back({GroupName(G::Enemies), {
 		{cue(Cue::All), setCue(Cue::All), phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
@@ -1740,6 +1772,11 @@ void Persist(uint64_t now) {
 		g_settingsLoaded = true;
 		g_switches = SettingEntries();
 		if (const auto text = SettingsStore::Load(g_settingsFile)) g_saved = SettingsStore::Decode(*text);
+		// The two item sound switches became one set (2026-10-13): a file saved before keeps its choice.
+		if (!g_saved.contains("item-sound-set")) {
+			if (g_saved["last-epoch-sounds"] == 1) g_saved["item-sound-set"] = static_cast<int>(GroundItems::SoundSet::LastEpoch);
+			g_saved.erase("last-epoch-sounds");
+		}
 		for (size_t i = 0; i < g_switches.size(); ++i)
 			if (const auto found = g_switches[i].key ? g_saved.find(g_switches[i].key) : g_saved.end();
 				found != g_saved.end() && g_switches[i].Value() != found->second) g_restore.push_back({i, found->second});
@@ -1793,13 +1830,16 @@ bool Settings(Command command, uint64_t now) {
 	bool spent = true;
 	if (command == Command::Settings) text = g_settings.Toggle(now);
 	else if (!g_settings.Open()) spent = false;
-	else if (command == Command::SettingsChange || command == Command::SettingsRaise) text = g_settings.Enter(now);
-	else if (command == Command::SettingsLower || command == Command::SettingsBack) text = g_settings.Back(now);
+	else if (command == Command::SettingsChange) text = g_settings.Enter(now);
+	else if (command == Command::SettingsBack) text = g_settings.Back(now);
+	else if (command == Command::SettingsLower || command == Command::SettingsRaise)
+		text = g_settings.Change(now, command == Command::SettingsLower ? -1 : 1);
 	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
 	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
 	else spent = false;
 	if (!spent) text = g_settings.Expire(now, SettingsIdleMs);
 	g_settingsOpen = g_settings.Open();
+	PadFilter::SetSettingsOpen(g_settingsOpen);
 	Persist(now);
 	if (!text.empty()) {
 		AsyncLog::InfoF(g_context, "[keyboard] settings: %s", text.c_str());
@@ -1808,20 +1848,25 @@ bool Settings(Command command, uint64_t now) {
 	return spent;
 }
 
-// The pad's Ctrl+S, Page Up/Down, Space and Backspace: BACK+RB opens and shuts
-// the list, in play (where the pad filter keeps that RB from the game) or to shut
-// it anywhere, and while it is open the right stick steps through it (up, down),
-// opens a group or changes a switch (right) and goes back to the groups (left)
-// before the scanner or a menu can take the push. BACK+RB is taken every update, so an old press is never acted on.
+// The pad's Ctrl+S, Page Up/Down, Space, Backspace and Shift+Space: BACK+RB opens
+// and shuts the list, in play (where the pad filter keeps that RB from the game)
+// or to shut it anywhere, and while it is open the right stick steps through it
+// (up, down), opens a group or changes a switch (right) and goes back to the
+// groups (left) before the scanner or a menu can take the push; LB and RB, kept
+// from the game while it is open, lower and raise a setting. Every press is taken
+// every update, so an old one is never acted on.
 Command PadSettings(bool inPlay) {
 	using InputDirection::StickPush;
 	if (InputDirection::TakeBackWithRb() && (inPlay || g_settingsOpen.load())) return Command::Settings;
-	if (!g_settingsOpen.load() || InputDirection::PeekRightStickPush() == StickPush::None) return Command::None;
+	const bool lower = InputDirection::TakeShoulder(false), raise = InputDirection::TakeShoulder(true);
+	if (!g_settingsOpen.load()) return Command::None;
+	if (lower != raise) return lower ? Command::SettingsLower : Command::SettingsRaise;
+	if (InputDirection::PeekRightStickPush() == StickPush::None) return Command::None;
 	switch (InputDirection::TakeRightStickPush("settings")) {
 	case StickPush::Up:   return Command::ReadPrevious;
 	case StickPush::Down: return Command::ReadNext;
-	case StickPush::Left:  return Command::SettingsLower;
-	case StickPush::Right: return Command::SettingsRaise;
+	case StickPush::Left:  return Command::SettingsBack;
+	case StickPush::Right: return Command::SettingsChange;
 	default: return Command::None;
 	}
 }
@@ -1882,7 +1927,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
-	if ((command == Command::SettingsChange || command == Command::SettingsBack) && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
+	if ((command == Command::SettingsChange || command == Command::SettingsBack || command == Command::SettingsLower)
+		&& !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
 	// With the keyboard's cursor on a box of text the keys that type are the
 	// box's: a letter alone or with Shift, and the keys that move in the text.
 	if (KeyboardMenu::Typing() && !g_settingsOpen.load()
@@ -1931,7 +1977,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
-		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange || command == Command::SettingsBack;
+		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange || command == Command::SettingsBack
+		|| command == Command::SettingsLower;
 	if (!reading && !g_playing.load()) {
 		// A release still has to end a hold begun in play.
 		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
@@ -2030,6 +2077,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
 			Entry{"keyboard-settings-change", "Open the group or change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-settings-back", "Back to the groups (settings list open)", Key::Backspace, Modifier::None, Command::SettingsBack},
+			Entry{"keyboard-settings-lower", "Lower the setting (settings list open)", Key::Space, Modifier::Shift, Command::SettingsLower},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},

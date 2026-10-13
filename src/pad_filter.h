@@ -54,7 +54,11 @@ struct Presses { Press a, b, x, y, lb, rb, back; };
 // map); in a menu BACK is the game's. `holdB` keeps a B press from the game in
 // a menu too, while a mod reader that closes on B is open (HoldB below),
 // decided on the press's first frame like the rest.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false);
+// `shoulders` keeps LB and RB alone too, while the mod's settings list is open
+// (they lower and raise a setting there; the user, 2026-10-13), in a menu as well.
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false, bool shoulders = false);
+// While the settings list is open, LB and RB are the list's.
+void SetSettingsOpen(bool open);
 
 // The switch behind `keepBack`, on by default; the keyboard's Tab still opens the automap.
 bool KeepBack();

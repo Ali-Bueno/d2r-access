@@ -1,6 +1,7 @@
 #include "entity_cue_audio.h"
 #include "entity_cues.h"
 #include "radar_audio.h"
+#include "sound_volume.h"
 #include "test_support.h"
 
 #include <algorithm>
@@ -214,6 +215,11 @@ int main() {
 	Spatial();
 	Timbres();
 	LayeredClasses();
+	std::vector<int16_t> pcm{1000, -1000, 30000, -30000};
+	D2RAccess::SoundVolume::Scale(pcm, 2);
+	Check(pcm[0] == 2000 && pcm[1] == -2000 && pcm[2] == 32767 && pcm[3] == -32767, "a family's volume doubles and saturates at full scale");
+	Check(D2RAccess::SoundVolume::Factor(D2RAccess::SoundVolume::NeutralLevel) == 1 && D2RAccess::SoundVolume::Factor(0) == 0
+		&& D2RAccess::SoundVolume::Factor(99) == 2, "a volume level is a factor from silence to double");
 	Strengths();
 	NewCues();
 	DifferentFromRadarBreath();

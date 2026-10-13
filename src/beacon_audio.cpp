@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
+#include "sound_volume.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -85,6 +86,7 @@ void Worker(const D2RL::PluginContext* context) {
 				generation = g_generation;
 			}
 			auto pcm = Synthesize(request.sound, request.placement, g_gain);
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Guidance).Factor());
 			if (generation != g_generation) continue;
 			failed = !PlayOne(device, done, pcm, generation);
 		}

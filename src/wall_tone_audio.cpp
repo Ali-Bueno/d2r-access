@@ -2,6 +2,7 @@
 #include "wall_tones.h"
 #include "async_log.h"
 #include "process_lifetime.h"
+#include "sound_volume.h"
 
 #include <windows.h>
 #include <xaudio2.h>
@@ -80,7 +81,7 @@ void Worker(const D2RL::PluginContext* context) {
 				const auto now = Clock::now();
 				const double dtMs = std::chrono::duration<double, std::milli>(now - last).count();
 				last = now;
-				const float level = g_level.load();
+				const float level = g_level.load() * static_cast<float>(SoundVolume::Of(SoundVolume::Family::Radar).Factor());
 				for (size_t i = 0; i < voices.size(); ++i) {
 					auto& voice = voices[i];
 					voice.gain = WallTones::Glide(voice.gain, targets[i], dtMs, GlideMs);

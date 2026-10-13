@@ -40,6 +40,7 @@ std::atomic<uint64_t>              g_holdBUntil { 0 };    // GetTickCount64 befo
 std::atomic<uint64_t>              g_leftStickUntil { 0 }; // before which a held Y takes the left stick
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
 std::atomic<bool>                  g_keepBack { true };
+std::atomic<bool>                  g_settingsOpen { false };
 int                                g_retries = 0;
 uint64_t                           g_nextTry = 0;
 // Touched only on the thread the game polls from: D2R reads its pads from one
@@ -53,7 +54,7 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	const WORD before = state->Gamepad.wButtons;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
 	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB,
-		g_keepBack.load(std::memory_order_relaxed));
+		g_keepBack.load(std::memory_order_relaxed), g_settingsOpen.load(std::memory_order_relaxed));
 	if (KeepsLeftStick(before, GetTickCount64() < g_leftStickUntil.load(std::memory_order_relaxed))) {
 		state->Gamepad.sThumbLX = 0;
 		state->Gamepad.sThumbLY = 0;
@@ -141,15 +142,15 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 }
 }
 
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack) {
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack, bool shoulders) {
 	const bool back = (buttons & Back) != 0;
 	buttons = Keep(buttons, Back, claimed && keepBack, presses.back);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
-	buttons = Keep(buttons, XINPUT_GAMEPAD_LEFT_SHOULDER, claimed && back, presses.lb);
-	buttons = Keep(buttons, XINPUT_GAMEPAD_RIGHT_SHOULDER, claimed && back, presses.rb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_LEFT_SHOULDER, (claimed && back) || shoulders, presses.lb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_RIGHT_SHOULDER, (claimed && back) || shoulders, presses.rb);
 	return buttons;
 }
 
@@ -170,6 +171,7 @@ void ReleaseB() {
 }
 
 bool KeepBack() { return g_keepBack.load(std::memory_order_relaxed); }
+void SetSettingsOpen(bool open) { g_settingsOpen.store(open, std::memory_order_relaxed); }
 void SetKeepBack(bool keep) { g_keepBack.store(keep, std::memory_order_relaxed); }
 
 bool Install(const D2RL::PluginContext* context) {

@@ -326,8 +326,6 @@ inline constexpr Table enUS {
 	.stashMaterials = "materials stash",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "Skills: %s",
-	.lastEpochSoundsOn = "Potion and gold sounds: Last Epoch",
-	.lastEpochSoundsOff = "Potion and gold sounds: Diablo",
 	.enemyPanStrength = "Enemy sound panning %d percent",
 	.enemyPitchStrength = "Enemy sound pitch %d percent",
 	.beaconPanStrength = "Guidance panning %d percent",
@@ -349,11 +347,14 @@ inline constexpr Table enUS {
 	.mercenaryBarkOff = "Mercenary's lines named off",
 	.npcAlertOn = "NPC exclamation mark chime on",
 	.npcAlertOff = "NPC exclamation mark chime off",
-	.dropSoundsOn = "Item sounds: Diablo II drops",
-	.dropSoundsOff = "Item sounds: Diablo IV",
 	.dropSoundSpeed = "Drop sound speed %d percent",
+	.radarVolume = "Radar and wall volume %d percent",
+	.enemyVolume = "Enemy and NPC volume %d percent",
+	.itemVolume = "Item and place volume %d percent",
+	.guidanceVolume = "Guidance volume %d percent",
 	.manaAlerts = {"Mana alerts: every change", "Mana alerts: low mana only", "Mana alerts off"},
-	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary"},
+	.itemSoundSets = {"Item sounds: Diablo IV", "Item sounds: Last Epoch gold and potions", "Item sounds: Diablo II drops"},
+	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes"},
 };
 
 }

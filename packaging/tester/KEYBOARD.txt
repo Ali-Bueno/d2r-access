@@ -75,7 +75,7 @@ up and down leave the box; keys with Ctrl or Alt still belong to the mod.
 
 Ctrl+S: list of the mod's switches, open and close (BACK+RB on the controller).
 With that list open: Page Up / Page Down previous / next, Space opens a group
-or changes the value, Backspace goes back to the groups.
+or changes the value, Shift+Space lowers it, Backspace goes back to the groups.
 Ctrl+H: read the controls with autodetail, on or off.
 Ctrl+G: radar.
 Ctrl+F: footstep filter.

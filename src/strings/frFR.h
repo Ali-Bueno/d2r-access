@@ -326,8 +326,6 @@ inline constexpr Table frFR {
 	.stashMaterials = "le coffre à matériaux",
 	.stashSlotEmpty = "%s : 0",
 	.mercenarySkills = "Compétences : %s",
-	.lastEpochSoundsOn = "Sons des potions et de l'or : Last Epoch",
-	.lastEpochSoundsOff = "Sons des potions et de l'or : Diablo",
 	.enemyPanStrength = "Panoramique des sons ennemis : %d pour cent",
 	.enemyPitchStrength = "Hauteur des sons ennemis : %d pour cent",
 	.beaconPanStrength = "Panoramique du guidage : %d pour cent",
@@ -349,11 +347,14 @@ inline constexpr Table frFR {
 	.mercenaryBarkOff = "Nom du mercenaire avant ses répliques : désactivé",
 	.npcAlertOn = "Carillon du point d'exclamation des PNJ : activé",
 	.npcAlertOff = "Carillon du point d'exclamation des PNJ : désactivé",
-	.dropSoundsOn = "Sons des objets : chutes de Diablo II",
-	.dropSoundsOff = "Sons des objets : Diablo IV",
 	.dropSoundSpeed = "Vitesse des sons de chute : %d pour cent",
+	.radarVolume = "Volume du radar et des murs : %d pour cent",
+	.enemyVolume = "Volume des ennemis et PNJ : %d pour cent",
+	.itemVolume = "Volume des objets et lieux : %d pour cent",
+	.guidanceVolume = "Volume du guidage : %d pour cent",
 	.manaAlerts = {"Alertes de mana : chaque changement", "Alertes de mana : mana faible seulement", "Alertes de mana : désactivées"},
-	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons"},
+	.itemSoundSets = {"Sons des objets : Diablo IV", "Sons des objets : or et potions de Last Epoch", "Sons des objets : chutes de Diablo II"},
+	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes"},
 };
 
 }

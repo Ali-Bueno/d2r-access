@@ -326,8 +326,6 @@ inline constexpr Table jaJP {
 	.stashMaterials = "素材の保管箱",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "スキル：%s",
-	.lastEpochSoundsOn = "ポーションとゴールドの音：Last Epoch",
-	.lastEpochSoundsOff = "ポーションとゴールドの音：Diablo",
 	.enemyPanStrength = "敵の音のパン %d パーセント",
 	.enemyPitchStrength = "敵の音のピッチ %d パーセント",
 	.beaconPanStrength = "誘導のパン %d パーセント",
@@ -349,11 +347,14 @@ inline constexpr Table jaJP {
 	.mercenaryBarkOff = "傭兵のセリフに名前 オフ",
 	.npcAlertOn = "NPCの！マークのチャイム オン",
 	.npcAlertOff = "NPCの！マークのチャイム オフ",
-	.dropSoundsOn = "アイテムの音 Diablo IIの落下音",
-	.dropSoundsOff = "アイテムの音 Diablo IV",
 	.dropSoundSpeed = "落下音の速さ %d パーセント",
+	.radarVolume = "レーダーと壁の音量 %d パーセント",
+	.enemyVolume = "敵とNPCの音量 %d パーセント",
+	.itemVolume = "アイテムと場所の音量 %d パーセント",
+	.guidanceVolume = "ガイドの音量 %d パーセント",
 	.manaAlerts = {"マナ通知：変化ごと", "マナ通知：マナ不足のみ", "マナ通知 オフ"},
-	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集"},
+	.itemSoundSets = {"アイテムの音 Diablo IV", "アイテムの音 Last Epochのゴールドとポーション", "アイテムの音 Diablo IIの落下音"},
+	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集", "音量"},
 };
 
 }

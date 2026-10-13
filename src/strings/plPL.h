@@ -326,8 +326,6 @@ inline constexpr Table plPL {
 	.stashMaterials = "skrytka na materiały",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "Umiejętności: %s",
-	.lastEpochSoundsOn = "Dźwięki mikstur i złota: Last Epoch",
-	.lastEpochSoundsOff = "Dźwięki mikstur i złota: Diablo",
 	.enemyPanStrength = "Panorama dźwięków wrogów: %d procent",
 	.enemyPitchStrength = "Wysokość dźwięków wrogów: %d procent",
 	.beaconPanStrength = "Panorama prowadzenia: %d procent",
@@ -349,11 +347,14 @@ inline constexpr Table plPL {
 	.mercenaryBarkOff = "Imię najemnika przy jego kwestiach: wyłączone",
 	.npcAlertOn = "Dzwonek wykrzyknika postaci: włączony",
 	.npcAlertOff = "Dzwonek wykrzyknika postaci: wyłączony",
-	.dropSoundsOn = "Dźwięki przedmiotów: upadki z Diablo II",
-	.dropSoundsOff = "Dźwięki przedmiotów: Diablo IV",
 	.dropSoundSpeed = "Tempo dźwięków upadku: %d procent",
+	.radarVolume = "Głośność radaru i ścian: %d procent",
+	.enemyVolume = "Głośność wrogów i postaci: %d procent",
+	.itemVolume = "Głośność przedmiotów i miejsc: %d procent",
+	.guidanceVolume = "Głośność prowadzenia: %d procent",
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
-	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków"},
+	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
+	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność"},
 };
 
 }

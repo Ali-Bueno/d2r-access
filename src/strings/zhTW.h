@@ -326,8 +326,6 @@ inline constexpr Table zhTW {
 	.stashMaterials = "材料儲物箱",
 	.stashSlotEmpty = "%s：0",
 	.mercenarySkills = "技能：%s",
-	.lastEpochSoundsOn = "藥水和金幣音效：Last Epoch",
-	.lastEpochSoundsOff = "藥水和金幣音效：Diablo",
 	.enemyPanStrength = "敵人音效聲像 %d 百分比",
 	.enemyPitchStrength = "敵人音效音高 %d 百分比",
 	.beaconPanStrength = "引導聲像 %d 百分比",
@@ -349,11 +347,14 @@ inline constexpr Table zhTW {
 	.mercenaryBarkOff = "傭兵台詞標示名字已關閉",
 	.npcAlertOn = "NPC驚嘆號提示音已開啟",
 	.npcAlertOff = "NPC驚嘆號提示音已關閉",
-	.dropSoundsOn = "物品音效：暗黑破壞神II掉落聲",
-	.dropSoundsOff = "物品音效：暗黑破壞神IV",
 	.dropSoundSpeed = "掉落音效速度 %d 百分比",
+	.radarVolume = "雷達和牆壁音量 %d 百分比",
+	.enemyVolume = "敵人與NPC音量 %d 百分比",
+	.itemVolume = "物品與地點音量 %d 百分比",
+	.guidanceVolume = "引導音量 %d 百分比",
 	.manaAlerts = {"法力提示：每次變化", "法力提示：僅法力不足時", "法力提示已關閉"},
-	.settingsGroups = {"音效", "敵人與NPC", "導航", "物品與選單", "提示", "控制器", "音效詞彙表"},
+	.itemSoundSets = {"物品音效：暗黑破壞神IV", "物品音效：Last Epoch的金幣和藥水", "物品音效：暗黑破壞神II掉落聲"},
+	.settingsGroups = {"音效", "敵人與NPC", "導航", "物品與選單", "提示", "控制器", "音效詞彙表", "音量"},
 };
 
 }

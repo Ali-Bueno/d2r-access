@@ -91,14 +91,14 @@ int main(int argc, char** argv) {
 		"quest ancestry takes priority over consumable and unique item sounds");
 	{
 		f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("poti"), 0, 0});
-		GroundItems::SetLastEpochSounds(true);
+		GroundItems::SetItemSoundSet(static_cast<int>(GroundItems::SoundSet::LastEpoch));
 		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::EpochHealthPotion,
 			"with the Last Epoch sounds a healing potion has its own glass sound");
 		f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("rpot"), 2, 0});
 		f.types.At<GroundItemLayout::TypeRecord>(0xE8 * 2, {D2RL::Items::MakeItemCode("hpot"), 0, 0});
 		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::EpochRejuvenationPotion,
 			"a rejuvenation potion, a child of the healing one in ItemTypes.txt, keeps its own");
-		GroundItems::SetLastEpochSounds(false);
+		GroundItems::SetItemSoundSet(static_cast<int>(GroundItems::SoundSet::DiabloIV));
 		Check(f.Read(snapshot) && snapshot.items[0].sound == GroundItems::Sound::Potion, "the Diablo sounds keep one potion loop");
 		f.types.At<GroundItemLayout::TypeRecord>(0xE8, {D2RL::Items::MakeItemCode("hpot"), 2, 0});
 	}

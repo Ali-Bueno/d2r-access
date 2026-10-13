@@ -65,6 +65,7 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
+bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
@@ -227,8 +228,8 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			if (UpdateEdge(edges.lbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0) && backDown) g_backWithLb = true;
-			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0) && backDown) g_backWithRb = true;
+			if (UpdateEdge(edges.lbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0)) (backDown ? g_backWithLb : g_lbAlone) = true;
+			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0)) (backDown ? g_backWithRb : g_rbAlone) = true;
 			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) g_leftStickClick = true;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// A push still pending here is one no reader has wanted, and it
@@ -293,6 +294,12 @@ bool TakeBackWithRb() {
 	const bool pressed = g_backWithRb;
 	g_backWithRb = false;
 	return pressed;
+}
+bool TakeShoulder(bool right) {
+	bool& pressed = right ? g_rbAlone : g_lbAlone;
+	const bool taken = pressed;
+	pressed = false;
+	return taken;
 }
 bool TakeBackWith(FaceButton button) {
 	bool* pressed = button == FaceButton::A ? &g_backWithA : button == FaceButton::B ? &g_backWithB
