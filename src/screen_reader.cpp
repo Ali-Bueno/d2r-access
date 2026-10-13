@@ -254,7 +254,10 @@ void Swallow(std::string_view text, unsigned long long untilMs) {
 	g_swallow.emplace_back(std::string(text), untilMs);
 }
 
+namespace { std::atomic<unsigned long long> g_leadUntil{0}; } // see Lead
+
 void Speak(std::string_view text, bool interrupt) {
+	if (interrupt && GetTickCount64() < g_leadUntil.load()) interrupt = false;
 	if (!text.empty()) {
 		std::lock_guard<std::mutex> lock(g_swallowMutex);
 		const unsigned long long now = GetTickCount64();
@@ -282,8 +285,13 @@ void Speak(std::string_view text, bool interrupt) {
 	g_wake.notify_one();
 }
 
+void Lead(std::string_view text, unsigned long long untilMs) {
+	Speak(text, false);
+	g_leadUntil = untilMs;
+}
+
 void Stop() {
-	if (!g_available) {
+	if (!g_available || GetTickCount64() < g_leadUntil.load()) {
 		return;
 	}
 	{

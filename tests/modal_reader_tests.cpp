@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <windows.h>
 
 #include "character_stats_reader.h"

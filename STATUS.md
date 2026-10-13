@@ -25,6 +25,8 @@ Sixteen items; choices in [decisions](docs/decisions.md). Done, built and unit-t
 - Volumes group: radar and walls, enemies and NPCs, items and places, guidance (0-200 %).
   LB/RB (Shift+Space) lower and raise a setting while the list is open.
 
+- Cairn scroll: the order was read but cut off by the inventory the game reopens beside it
+  (tester's log); it now leads for 1.5 s (`ScreenReader::Lead`, [Cairn](docs/cairn-stones-re.md)).
 - Build: each shared `src` file compiles once for all tests (556 -> 121 test compiles), and
   `build.ps1` runs below normal priority on all but two logical processors.
 
