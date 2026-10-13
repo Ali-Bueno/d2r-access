@@ -427,4 +427,6 @@ reach, the quest items' longer reach and priority, and the speech order, and ove
 Epoch gold and potions. A drop sound repeats once a second at 100 percent; `drop-sound-speed`
 (50-300 percent) shortens or lengthens the pass, cutting a long sound with a 10 ms fade
 (`ItemWave::Pass`); a change restarts the playing loops. Quality is no longer heard in the
-sound with this set: the speech names it. Not in the sound glossary.
+sound with this set: the speech names it. The glossary has a group of its own for them (the
+user, 2026-10-13), each named after one item that makes it (`DropSoundExamples`: the first item
+of the commonest non-quest type), in the game's own words for the player's language.

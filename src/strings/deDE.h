@@ -354,7 +354,7 @@ inline constexpr Table deDE {
 	.guidanceVolume = "Lautstärke Führung %d Prozent",
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
 	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
-	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken"},
+	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche"},
 };
 
 }

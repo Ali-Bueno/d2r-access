@@ -1626,7 +1626,7 @@ SettingsList::Entry FootstepVolume() {
 
 // The groups of the settings list (a tester, 2026-10-13), in the order of
 // Strings::Table::settingsGroups; the glossary is the last.
-enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, Count };
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
 
 std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
@@ -1744,6 +1744,7 @@ std::vector<SettingsList::Entry> SettingEntries() {
 SettingsList::Menu BuildSettings() {
 	auto groups = SettingGroups();
 	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries()});
+	groups.push_back({GroupName(SettingsGroup::DropGlossary), SoundGlossary::DropEntries()});
 	return SettingsList::Menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
 }
 

@@ -354,7 +354,7 @@ inline constexpr Table plPL {
 	.guidanceVolume = "Głośność prowadzenia: %d procent",
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
 	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
-	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność"},
+	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II"},
 };
 
 }

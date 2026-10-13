@@ -19,6 +19,7 @@ extract them first with
 The excel tables come from the same storage into game-data/global/excel/.
 """
 import argparse
+import collections
 import csv
 import io
 import subprocess
@@ -58,9 +59,11 @@ def main():
 
     sounds = {row["Sound"]: row for row in rows(args.excel / "sounds.txt")}
     drops = {}
+    types = {}
     for table in TABLES:
         for row in rows(args.excel / table):
             code, key = row["code"].strip(), row["dropsound"].strip()
+            types[code] = row["type"].strip()
             if not code:
                 continue  # the "Expansion" separator rows
             if len(code) != 3 or not code.isascii():
@@ -78,6 +81,15 @@ def main():
     if len(names) != len(files):
         raise SystemExit("two drop sounds share a file name")
     index = {key: names.index(name) for key, (name, _) in files.items()}
+
+    # The glossary names each sound after one item that makes it, in the game's own words:
+    # the first item of the commonest type among them, a quest type only when nothing else is.
+    examples = {}
+    for key, (name, _) in files.items():
+        codes = [code for code, drop in drops.items() if drop == key]
+        counts = collections.Counter(types[code] for code in codes)
+        common = max(counts, key=lambda kind: (kind != "ques", counts[kind], -codes.index(next(c for c in codes if types[c] == kind))))
+        examples[name] = next(code for code in codes if types[code] == common)
 
     if args.casc:
         SOUND_DIR.mkdir(parents=True, exist_ok=True)
@@ -108,6 +120,12 @@ def main():
     out.append("inline constexpr std::array<const char*, %d> DropSoundFiles{" % len(names))
     for name in names:
         out.append('\t"%s.wav",' % name)
+    out.append("};")
+    out.append("")
+    out.append("// One item that makes each sound, whose name the sound glossary says.")
+    out.append("inline constexpr std::array<uint32_t, %d> DropSoundExamples{" % len(names))
+    for name in names:
+        out.append('\tItemCode("%s"), // %s' % (examples[name], name))
     out.append("};")
     out.append("")
     out.append("struct DropSound { uint32_t code; uint8_t sound; };")

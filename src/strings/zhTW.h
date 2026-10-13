@@ -354,7 +354,7 @@ inline constexpr Table zhTW {
 	.guidanceVolume = "引導音量 %d 百分比",
 	.manaAlerts = {"法力提示：每次變化", "法力提示：僅法力不足時", "法力提示已關閉"},
 	.itemSoundSets = {"物品音效：暗黑破壞神IV", "物品音效：Last Epoch的金幣和藥水", "物品音效：暗黑破壞神II掉落聲"},
-	.settingsGroups = {"音效", "敵人與NPC", "導航", "物品與選單", "提示", "控制器", "音效詞彙表", "音量"},
+	.settingsGroups = {"音效", "敵人與NPC", "導航", "物品與選單", "提示", "控制器", "音效詞彙表", "音量", "暗黑破壞神II掉落聲"},
 };
 
 }

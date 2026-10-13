@@ -9,4 +9,6 @@
 // after the Last Epoch mod's glossary). Each sound comes from its own player.
 namespace D2RAccess::SoundGlossary {
 std::vector<SettingsList::Entry> Entries();
+// The game's own drop sounds (the Diablo II item set), each named after an item that makes it.
+std::vector<SettingsList::Entry> DropEntries();
 }

@@ -355,7 +355,7 @@ inline constexpr Table esMX {
 	.guidanceVolume = "Volumen de la guía: %d por ciento",
 	.manaAlerts = {"Avisos de maná: cada cambio", "Avisos de maná: solo maná bajo", "Avisos de maná desactivados"},
 	.itemSoundSets = {"Sonidos de objetos: Diablo IV", "Sonidos de objetos: oro y pociones de Last Epoch", "Sonidos de objetos: caídas de Diablo II"},
-	.settingsGroups = {"Sonidos", "Enemigos y PNJ", "Navegación", "Objetos y menús", "Avisos", "Control", "Glosario de sonidos", "Volúmenes"},
+	.settingsGroups = {"Sonidos", "Enemigos y PNJ", "Navegación", "Objetos y menús", "Avisos", "Control", "Glosario de sonidos", "Volúmenes", "Sonidos de caída de Diablo II"},
 };
 
 }

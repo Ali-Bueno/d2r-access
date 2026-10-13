@@ -355,7 +355,7 @@ inline constexpr Table itIT {
 	.guidanceVolume = "Volume della guida: %d per cento",
 	.manaAlerts = {"Avvisi del mana: ogni cambiamento", "Avvisi del mana: solo mana basso", "Avvisi del mana: disattivi"},
 	.itemSoundSets = {"Suoni degli oggetti: Diablo IV", "Suoni degli oggetti: oro e pozioni di Last Epoch", "Suoni degli oggetti: cadute di Diablo II"},
-	.settingsGroups = {"Suoni", "Nemici e PNG", "Navigazione", "Oggetti e menu", "Avvisi", "Controller", "Glossario dei suoni", "Volumi"},
+	.settingsGroups = {"Suoni", "Nemici e PNG", "Navigazione", "Oggetti e menu", "Avvisi", "Controller", "Glossario dei suoni", "Volumi", "Suoni di caduta di Diablo II"},
 };
 
 }

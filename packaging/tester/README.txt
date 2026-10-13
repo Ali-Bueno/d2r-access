@@ -218,9 +218,10 @@ changed in the Ctrl+S list wins over the file.
 
 SOUND GLOSSARY
 
-The last group of the Ctrl+S list holds the mod's sounds, one per entry:
-moving onto one names it and plays it, Space (right on the controller) plays
-it again.
+The Sound glossary group of the Ctrl+S list holds the mod's sounds, one per
+entry: moving onto one names it and plays it, Space (right on the controller)
+plays it again. The Diablo II drop sounds group does the same for each drop
+sound, named after an item that makes it.
 
 
 PLAYING ONLINE WITH SOMEONE ELSE

@@ -354,7 +354,7 @@ inline constexpr Table enUS {
 	.guidanceVolume = "Guidance volume %d percent",
 	.manaAlerts = {"Mana alerts: every change", "Mana alerts: low mana only", "Mana alerts off"},
 	.itemSoundSets = {"Item sounds: Diablo IV", "Item sounds: Last Epoch gold and potions", "Item sounds: Diablo II drops"},
-	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes"},
+	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes", "Diablo II drop sounds"},
 };
 
 }
