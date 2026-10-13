@@ -30,7 +30,7 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
 inline constexpr std::size_t GlossarySoundCount = 50;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
-inline constexpr std::size_t SettingsGroupCount = 8; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SettingsGroupCount = 9; // keyboard_service.cpp's SettingsGroup
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
 
 struct Table {

@@ -3,10 +3,12 @@
 #include "entity_cue_audio.h"
 #include "ground_items.h"
 #include "item_audio.h"
+#include "native_ground_items.h"
 #include "radar_audio.h"
 #include "speech_strings.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <cstdio>
 #include <functional>
 #include <string>
@@ -66,6 +68,31 @@ std::vector<SettingsList::Entry> Entries() {
 			return std::string(phrase);
 		};
 		entry.preview = players[i];
+		entries.push_back(std::move(entry));
+	}
+	return entries;
+}
+
+std::vector<SettingsList::Entry> DropEntries() {
+	std::vector<SettingsList::Entry> entries;
+	for (size_t i = 0; i < Generated::DropSoundFiles.size(); ++i) {
+		SettingsList::Entry entry;
+		entry.on = [] { return false; };
+		entry.set = [](bool) {};
+		// The game's name of the example item, in the game's language once its tables are read.
+		entry.say = [i](bool) {
+			const auto classId = NativeGroundItems::ClassOfCode(Generated::DropSoundExamples[i]);
+			std::string name = classId ? NativeGroundItems::ClassLabel(*classId, 0).baseName : std::string{};
+			if (name.empty()) {
+				name = Generated::DropSoundFiles[i];
+				name = name.substr(0, name.rfind('.'));
+				std::replace(name.begin(), name.end(), '_', ' ');
+			}
+			char phrase[200]{};
+			std::snprintf(phrase, sizeof(phrase), Strings::Current().glossarySound, name.c_str());
+			return std::string(phrase);
+		};
+		entry.preview = Loot(GroundItems::DropSound(i));
 		entries.push_back(std::move(entry));
 	}
 	return entries;

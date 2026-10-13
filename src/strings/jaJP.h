@@ -354,7 +354,7 @@ inline constexpr Table jaJP {
 	.guidanceVolume = "ガイドの音量 %d パーセント",
 	.manaAlerts = {"マナ通知：変化ごと", "マナ通知：マナ不足のみ", "マナ通知 オフ"},
 	.itemSoundSets = {"アイテムの音 Diablo IV", "アイテムの音 Last Epochのゴールドとポーション", "アイテムの音 Diablo IIの落下音"},
-	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集", "音量"},
+	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集", "音量", "Diablo IIの落下音"},
 };
 
 }

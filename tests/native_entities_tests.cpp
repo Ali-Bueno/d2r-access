@@ -704,7 +704,7 @@ int main() {
 	Check(f.Read(entities) && f.Find(entities, 8)->enemy.important, "prime evil bit also marks an important enemy");
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsBoss, 0);
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsRanged, 0);
-	for (uint16_t rarity : {1u, 2u, 4u, 8u}) {
+	for (const uint16_t rarity : {uint16_t{1}, uint16_t{2}, uint16_t{4}, uint16_t{8}}) {
 		f.enemyData.At<uint16_t>(MonRarityFlags, rarity);
 		Check(f.Read(entities) && f.Find(entities, 8)->enemy.important,
 			"each native special-monster rarity bit marks an elite");

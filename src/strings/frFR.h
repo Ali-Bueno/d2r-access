@@ -354,7 +354,7 @@ inline constexpr Table frFR {
 	.guidanceVolume = "Volume du guidage : %d pour cent",
 	.manaAlerts = {"Alertes de mana : chaque changement", "Alertes de mana : mana faible seulement", "Alertes de mana : désactivées"},
 	.itemSoundSets = {"Sons des objets : Diablo IV", "Sons des objets : or et potions de Last Epoch", "Sons des objets : chutes de Diablo II"},
-	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes"},
+	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes", "Sons de chute de Diablo II"},
 };
 
 }

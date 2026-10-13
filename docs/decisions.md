@@ -32,8 +32,9 @@ Volumes in four families (radar and walls, enemies and NPCs, items and places, g
 0-200 percent over each config level, scaling the finished samples so the synthesizers stay
 as tested (`src/sound_volume.h`). A setting of several values could not be lowered on the pad:
 the user chose LB/RB, taken from the game only while the list is open (Shift+Space lowers on
-the keyboard). Rejected: wrapping a volume from 200 to silence; the D-pad (the belt). Quest items keep their reach and priority but sound as they land; the
-drop sounds are not in the glossary (45 names in 13 languages for little gain).
+the keyboard). Rejected: wrapping a volume from 200 to silence; the D-pad (the belt). Quest items keep their reach and priority but sound as they land. The
+user wanted them in the glossary: a group of their own, each named after an item that makes it
+with the game's own localized name, so 45 names needed no translation.
 
 Not done: the alternate potion/gold sounds already had a switch ("Potion and gold sounds", now
 in the Sounds group); nothing was found that would keep the old sounds once it is on.

@@ -20,7 +20,8 @@ Sixteen items; choices in [decisions](docs/decisions.md). Done, built and unit-t
   gem/rune/material slots say "<name>: 0"; gold says personal or shared stash.
 - Hire window: skill names follow the row, Y says them or the game's tooltips ([character panel](docs/character-panel.md)).
 - Item sound sets (`item-sound-set`: Diablo IV, Last Epoch gold and potions, Diablo II drops)
-  and the drop loops' pace (`drop-sound-speed`, 50-300 %) ([ground items](docs/ground-items.md#the-games-own-drop-sounds-2026-10-13)).
+  and the drop loops' pace (`drop-sound-speed`, 50-300 %), with a glossary group of the 45 drop
+  sounds named by the game ([ground items](docs/ground-items.md#the-games-own-drop-sounds-2026-10-13)).
 - Volumes group: radar and walls, enemies and NPCs, items and places, guidance (0-200 %).
   LB/RB (Shift+Space) lower and raise a setting while the list is open.
 

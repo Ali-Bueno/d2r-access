@@ -61,6 +61,55 @@ inline constexpr std::array<const char*, 45> DropSoundFiles{
 	"worldstone_shard.wav",
 };
 
+// One item that makes each sound, whose name the sound glossary says.
+inline constexpr std::array<uint32_t, 45> DropSoundExamples{
+	ItemCode("amu"), // amulet
+	ItemCode("bey"), // baals_eye
+	ItemCode("vbl"), // belt
+	ItemCode("wa1"), // book
+	ItemCode("lbt"), // boots
+	ItemCode("mbt"), // bootschain
+	ItemCode("tbt"), // bootsmetal
+	ItemCode("sbw"), // bow
+	ItemCode("cap"), // cap
+	ItemCode("rng"), // chainarmor
+	ItemCode("cm1"), // charm
+	ItemCode("lxb"), // crossbow
+	ItemCode("dhn"), // diablos_horn
+	ItemCode("gcv"), // gem
+	ItemCode("lgl"), // gloves
+	ItemCode("mgl"), // gloveschain
+	ItemCode("tgl"), // glovesmetal
+	ItemCode("gld"), // gold
+	ItemCode("ne1"), // head
+	ItemCode("skp"), // helm
+	ItemCode("hrb"), // herb
+	ItemCode("jav"), // javelins
+	ItemCode("jew"), // jewel
+	ItemCode("key"), // key
+	ItemCode("2hs"), // largemetalweapon
+	ItemCode("qui"), // lightarmor
+	ItemCode("mbr"), // mephistos_brain
+	ItemCode("lrg"), // metalshield
+	ItemCode("skc"), // monsterbone
+	ItemCode("hrt"), // monsterguts
+	ItemCode("ob1"), // orb
+	ItemCode("brs"), // platearmor
+	ItemCode("hpo"), // potion
+	ItemCode("aqv"), // quiver
+	ItemCode("sol"), // rare
+	ItemCode("rin"), // ring
+	ItemCode("r01"), // rune
+	ItemCode("tsc"), // scroll
+	ItemCode("dgr"), // smallmetalweapon
+	ItemCode("sst"), // staff
+	ItemCode("ssd"), // sword
+	ItemCode("wnd"), // wand
+	ItemCode("buc"), // woodshield
+	ItemCode("bar"), // woodweaponlarge
+	ItemCode("xa1"), // worldstone_shard
+};
+
 struct DropSound { uint32_t code; uint8_t sound; };
 
 // Sorted by code, so a lookup is a binary search over 692 items.
