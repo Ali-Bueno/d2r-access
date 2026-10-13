@@ -11,6 +11,7 @@ namespace {
 // from the radar's filtered-noise breath. Both fit the faster 100 ms spacing.
 constexpr unsigned NpcCueMs = 84, WhooshMs = 90;
 constexpr double RearPitch = 0.80; // a major-third drop makes rear audible without changing the cue identity
+constexpr double MinPitch = 0.25;  // two octaves down: the strongest pitch strength still leaves a tone
 constexpr double AttackSeconds = 0.0035, ReleaseSeconds = 0.012;
 constexpr double Level = 0.32, PcmPeak = 32767, TextureCutoffHz = 1800;
 constexpr double BodyLevel = 0.75, UpperLevel = 0.30, TopLevel = 0.14;
@@ -25,10 +26,32 @@ constexpr unsigned GrowlMs = 90;
 constexpr double GrowlStartHz = 175, GrowlEndHz = 125, GrowlLevel = 0.36;
 constexpr double GrowlFlutterHz = 36, GrowlFlutterDepth = 0.55;
 constexpr int GrowlHarmonics = 5;
+// Enemy classes by timbre (a tester, 2026-10-13): pitch already says up or down,
+// so every enemy growls in the same register and its class adds a layer over it,
+// tuned from the growl's middle frequency. Each swells with the growl, so an enemy never
+// strikes like the NPC tap or the reach ping, at about half the growl's level (RMS) so the
+// growl stays the base. See docs/entity-cues.md.
+constexpr double LayerBaseHz = (GrowlStartHz + GrowlEndHz) / 2;
+// Elite: a raspy snarl, a bright buzz chattering like teeth; tonal, never the radar's noise.
+constexpr double TeethRatio = 2, TeethChatterHz = 62, TeethLevel = 0.15;
+constexpr int TeethHarmonics = 8;
+// Boss: a metallic ring, a struck bar's inharmonic partials above the growl.
+constexpr double RingRatios[] = {2.76, 5.40, 8.93}, RingWeights[] = {1, 0.55, 0.3};
+constexpr double RingLevel = 0.08;
+// Raiser of the dead: a wailing chant, a tone with a fast vibrato.
+constexpr double ChantRatio = 4, ChantVibratoHz = 22, ChantVibratoDepth = 0.06, ChantLevel = 0.1;
+// Ranged: a thin high whistle, far above the chant and with no vibrato.
+constexpr double WhistleRatio = 11, WhistleLevel = 0.07;
 // Attack reach: a bright rising two-note ping, far above every other cue.
 constexpr unsigned ChimeMs = 96;
 constexpr double ChimeLowHz = 1320, ChimeHighHz = 1760, ChimeSplit = 0.42;
 constexpr double ChimeDecaySeconds = 0.03, ChimeLevel = 0.26, ChimeOvertone = 0.22;
+
+// The "!" over a town NPC (a tester, 2026-10-13): a small bell struck once,
+// one note unlike the attack reach's rising two.
+constexpr unsigned DingMs = 180;
+constexpr double DingHz = 1046.5, DingDecaySeconds = 0.06, DingLevel = 0.24;
+constexpr double DingRatios[] = {1, 2.0, 2.76}, DingWeights[] = {1, 0.35, 0.2};
 
 // Pickup range (a tester, 2026-10-11): a dry high tick, the shortest cue, like a
 // prompt appearing. Inventory edge: a dull wooden knock, panned to the side hit.
@@ -96,6 +119,31 @@ double Growl(double& phase, double progress, double seconds, double pitch) {
 	return GrowlLevel * swell * swell * flutter * body / norm;
 }
 
+// The layer a class adds over the growl; zero for an ordinary enemy.
+double ClassLayer(Sound sound, double progress, double seconds, double pitch) {
+	const double base = LayerBaseHz * pitch, rise = std::sin(std::numbers::pi * progress), swell = rise * rise; // the growl's own
+	const auto tone = [&](double ratio) { return std::sin(2 * std::numbers::pi * base * ratio * seconds); };
+	switch (sound) {
+	case Sound::Important: {
+		const double chatter = std::max(0.0, std::sin(2 * std::numbers::pi * TeethChatterHz * seconds));
+		double buzz = 0;
+		for (int harmonic = 1; harmonic <= TeethHarmonics; ++harmonic) buzz += tone(TeethRatio * harmonic) / harmonic;
+		return TeethLevel * swell * chatter * chatter * buzz;
+	}
+	case Sound::Boss: {
+		double ring = 0;
+		for (size_t i = 0; i < std::size(RingRatios); ++i) ring += RingWeights[i] * tone(RingRatios[i]);
+		return RingLevel * swell * ring;
+	}
+	case Sound::Resurrector: {
+		const double wobble = ChantVibratoDepth / (2 * std::numbers::pi * ChantVibratoHz) * std::sin(2 * std::numbers::pi * ChantVibratoHz * seconds);
+		return ChantLevel * swell * std::sin(2 * std::numbers::pi * base * ChantRatio * (seconds + wobble));
+	}
+	case Sound::Ranged: return WhistleLevel * swell * tone(WhistleRatio);
+	default: return 0;
+	}
+}
+
 double Chime(double seconds, double pitch) {
 	constexpr double Total = static_cast<double>(ChimeMs) / 1000, Split = Total * ChimeSplit;
 	const bool high = seconds >= Split;
@@ -104,6 +152,14 @@ double Chime(double seconds, double pitch) {
 	const double phase = 2 * std::numbers::pi * (high ? ChimeHighHz : ChimeLowHz) * pitch * local;
 	const double tone = std::sin(phase) + ChimeOvertone * std::sin(2 * phase);
 	return ChimeLevel * Envelope(local, length) * std::exp(-local / ChimeDecaySeconds) * tone;
+}
+
+double Ding(double seconds, double pitch) {
+	double bell = 0;
+	for (size_t i = 0; i < std::size(DingRatios); ++i)
+		bell += DingWeights[i] * std::sin(2 * std::numbers::pi * DingHz * DingRatios[i] * pitch * seconds)
+			* std::exp(-seconds * (i + 1) / DingDecaySeconds);
+	return DingLevel * Envelope(seconds, static_cast<double>(DingMs) / 1000) * bell;
 }
 
 double Click(double seconds, double noise) {
@@ -123,13 +179,16 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	const double safeGain = std::isfinite(gain) ? std::clamp(gain, 0.0, 1.0) : 0;
 	const double pan = std::clamp(SafeAxis(placement.right, 0) * Scale(placement.panScale), -1.0, 1.0);
 	const double front = SafeAxis(placement.front, 1);
-	const double pitch = 1 + (RearPitch - 1) * std::clamp(-front, 0.0, 1.0) * Scale(placement.pitchScale);
+	const double pitch = std::max(MinPitch, 1 + (RearPitch - 1) * std::clamp(-front, 0.0, 1.0) * Scale(placement.pitchScale));
 	const double left = std::sqrt((1 - pan) / 2);
 	const double right = std::sqrt((1 + pan) / 2);
 	const auto timbre = Voice(sound);
 	const bool npc = sound == Sound::Npc;
-	const unsigned milliseconds = npc ? NpcCueMs : sound == Sound::Ordinary ? GrowlMs : sound == Sound::Reach ? ChimeMs
-		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : WhooshMs;
+	const bool enemy = sound == Sound::Important || sound == Sound::Boss || sound == Sound::Resurrector
+		|| sound == Sound::Ranged || sound == Sound::Ordinary;
+	const bool growl = sound == Sound::Ordinary || (enemy && placement.classLayers);
+	const unsigned milliseconds = npc ? NpcCueMs : growl ? GrowlMs : sound == Sound::Reach ? ChimeMs
+		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : sound == Sound::NpcAlert ? DingMs : WhooshMs;
 	const size_t frames = milliseconds * SampleRate / 1000;
 	double growlPhase = 0;
 	const double textureBlend = 1 - std::exp(-2 * std::numbers::pi * TextureCutoffHz * pitch / SampleRate);
@@ -148,10 +207,13 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 			const double envelope = Envelope(seconds, static_cast<double>(NpcCueMs) / 1000)
 				* std::exp(-seconds / NpcDecaySeconds);
 			sample = Level * envelope * (body + NpcTexture * texture);
-		} else if (sound == Sound::Ordinary) {
-			sample = Growl(growlPhase, static_cast<double>(frame) / static_cast<double>(frames - 1), seconds, pitch);
+		} else if (growl) {
+			const double progress = static_cast<double>(frame) / static_cast<double>(frames - 1);
+			sample = Growl(growlPhase, progress, seconds, pitch) + ClassLayer(sound, progress, seconds, pitch);
 		} else if (sound == Sound::Reach) {
 			sample = Chime(seconds, pitch);
+		} else if (sound == Sound::NpcAlert) {
+			sample = Ding(seconds, pitch);
 		} else if (sound == Sound::Pickup || sound == Sound::Edge) {
 			texture += textureBlend * (Noise(frame) - texture);
 			sample = sound == Sound::Pickup ? Click(seconds, texture) : Knock(growlPhase, seconds, texture);

@@ -8,7 +8,6 @@
 #include <windows.h>
 #include <algorithm>
 #include <cmath>
-#include <tuple>
 
 namespace D2RAccess::GridEdgeService {
 namespace {
@@ -16,11 +15,10 @@ namespace {
 constexpr double EdgePan = 0.8;
 bool g_enabled = true;
 GridEdge::Detector g_detector;
-// The panel of the grid last focused. Only grids knock: the backpack, a vendor's,
-// the stash's and the cube's (a tester, 2026-10-12: equipment slots must not).
-// A push from one panel's grid into another's, the border between the backpack
-// and a vendor or the stash, knocks as well, beside the panel's callout.
-uintptr_t g_gridPanel = 0;
+// Only grids knock: the backpack, a vendor's, the stash's and the cube's (a tester,
+// 2026-10-12: equipment slots must not). A push from one panel's grid into another's,
+// the border between the backpack and a vendor or the stash, knocks as well.
+GridEdge::CrossingTracker g_crossings;
 
 // The direction the D-pad, the arrow keys or the left stick push, on its dominant axis.
 std::pair<int, int> Push() {
@@ -47,21 +45,26 @@ void Tick(const D2RL::PluginContext* context) {
 	GridEdge::Sample sample;
 	sample.now = GetTickCount64();
 	const auto focus = NativeUi::GameFocus();
-	const uintptr_t previousPanel = g_gridPanel;
-	bool crossed = false;
+	uintptr_t panel = 0;
+	const auto [pushX, pushY] = Push();
 	if (const auto cell = focus.widget ? NativeUi::GridCell(focus.widget) : NativeUi::Cell{}; cell.x >= 0) {
 		const auto size = NativeUi::GridSize(focus.widget);
-		crossed = previousPanel && focus.panel != previousPanel;
-		g_gridPanel = focus.panel;
+		panel = focus.panel;
 		sample = {focus.widget, cell.x, cell.y, size.x, size.y, 0, 0, sample.now};
-		std::tie(sample.dx, sample.dy) = Push();
+		sample.dx = pushX;
+		sample.dy = pushY;
+	}
+	// The crossing is judged on its own: the game may switch grids within one frame or via a blank focus.
+	if (const auto crossing = g_crossings.Update(panel, pushX, pushY, sample.now); crossing.crossed) {
+		AsyncLog::InfoF(context, "[grid-edge] crossed %p -> %p", reinterpret_cast<void*>(crossing.from), reinterpret_cast<void*>(crossing.to));
+		EntityCueAudio::Play(EntityCueAudio::Sound::Edge, {crossing.dx * EdgePan, 1});
 	}
 	const auto outcome = g_detector.Update(sample);
 	if (outcome.kind == GridEdge::Outcome::Kind::None) return;
 	// Logged with every outcome: what the game does at the edge is what the knock rests on.
-	AsyncLog::InfoF(context, "[grid-edge] push %d,%d from cell %d,%d of %dx%d: %s%s", outcome.dx, outcome.dy, outcome.x, outcome.y,
-		sample.width, sample.height, OutcomeName(outcome.kind), crossed ? " into another panel's grid" : "");
-	if (outcome.kind == GridEdge::Outcome::Kind::Knock || (outcome.kind == GridEdge::Outcome::Kind::Left && crossed))
+	AsyncLog::InfoF(context, "[grid-edge] push %d,%d from cell %d,%d of %dx%d: %s", outcome.dx, outcome.dy, outcome.x, outcome.y,
+		sample.width, sample.height, OutcomeName(outcome.kind));
+	if (outcome.kind == GridEdge::Outcome::Kind::Knock)
 		EntityCueAudio::Play(EntityCueAudio::Sound::Edge, {outcome.dx * EdgePan, 1});
 }
 
@@ -69,5 +72,6 @@ bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) {
 	g_enabled = enabled;
 	g_detector.Reset();
+	g_crossings.Reset();
 }
 }

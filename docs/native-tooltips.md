@@ -246,7 +246,9 @@ of the live image (test 2026-10-12, no live check yet), RVAs:
 
 `NativeUi::StashSlotStackCount` reads the displayed text and visibility, and the item reader says
 `<name>, <count>` (`StashCount::WithCount`, the list separator); an empty slot hides its count and
-reads its name alone, as drawn. `[stash] slot -> ...` logs name, text and visibility on each change.
+reads `<name>: 0` (`stashSlotEmpty`). With no tooltip at all, the name comes from the widget's layout name,
+which is the item code (`gcw`, `r01`), through `NativeGroundItems::ClassOfCode`; `[stash] empty slot` logs it.
+The gold line names the selected tab (`personal` / `shared` labels); `[stash] gold tab=` logs it. `[stash] slot -> ...` logs name, text and visibility on each change.
 
 ## Inventory action labels and equipment locations
 

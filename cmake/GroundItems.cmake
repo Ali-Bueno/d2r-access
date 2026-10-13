@@ -25,6 +25,10 @@ set(D2R_CORPSE_BOOST_DB 42)
 # their loudest 100 ms level with it (measured 2026-10-12). The other three need nothing.
 set(D2R_EPOCH_CLICKS "last epoch/gold" "last epoch/other potion")
 set(D2R_EPOCH_BOOST_DB 18)
+# The game's drop sounds are short clinks and thuds as well; peak-normalized alone the
+# herb, quiver and key sat at the near-item floor (measured 2026-10-13). 9 dB through the
+# limiter lifts their bodies and leaves the loud ones at full scale.
+set(D2R_DROP_BOOST_DB 9)
 # `group` is the folder under sounds/: "item loop sounds" or "one shot sounds".
 function(d2r_sounds group folder)
 	foreach(name IN LISTS ARGN)
@@ -35,6 +39,8 @@ function(d2r_sounds group folder)
 			set(loop_filter -af "apad=whole_dur=${D2R_QUEST_LOOP_SECONDS},atrim=duration=${D2R_QUEST_LOOP_SECONDS},afade=t=in:d=${D2R_QUEST_ATTACK_SECONDS},afade=t=out:st=${D2R_QUEST_RELEASE_START_SECONDS}:d=${D2R_QUEST_RELEASE_SECONDS}")
 		elseif(name STREQUAL "stash")
 			set(loop_filter -af "apad=whole_dur=${D2R_STASH_LOOP_SECONDS}")
+		elseif(folder STREQUAL "d2 drops")
+			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_DROP_BOOST_DB}dB,alimiter=limit=0.9:level=false")
 		elseif("${folder}/${name}" IN_LIST D2R_EPOCH_CLICKS)
 			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_EPOCH_BOOST_DB}dB,alimiter=limit=0.9:level=false")
 		elseif(name IN_LIST D2R_CLICK_SOUNDS)
@@ -67,6 +73,9 @@ d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "s
 # four potion pickups, one per kind; each file is one pass of the loop.
 d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")
 d2r_sounds("one shot sounds" exploration "discovered")
+# The game's own drop sounds, the alternative item set (tools/gen_drop_sounds.py).
+include("${CMAKE_CURRENT_LIST_DIR}/DropSounds.cmake")
+d2r_sounds("item loop sounds" "d2 drops" ${D2R_DROP_SOUNDS})
 add_custom_target(d2r-item-sounds DEPENDS ${D2R_ITEM_WAVS})
 set(D2R_ITEM_RC "${CMAKE_CURRENT_BINARY_DIR}/item-sounds.rc")
 file(CONFIGURE OUTPUT "${D2R_ITEM_RC}" CONTENT "${D2R_ITEM_RESOURCES}" @ONLY)

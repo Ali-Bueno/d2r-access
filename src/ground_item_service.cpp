@@ -52,7 +52,7 @@ uint64_t g_labelsUpdated = 0;
 std::vector<std::string> g_itemLabels;
 std::string g_pickupLabel;
 GroundItems::Purse g_purse;
-bool g_pickupClick = true;
+bool g_pickupClick = false; // out of the list until the user's clicks per item type (decisions, 2026-10-13)
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);

@@ -4,6 +4,7 @@
 #include "input_direction.h"
 #include "keyboard_menu.h"
 #include "localization.h"
+#include "mercenary_stats.h"
 #include "native_memory.h"
 #include "native_status.h"
 #include "native_ui.h"
@@ -54,7 +55,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
-bool g_movementAlerts = true, g_ammoAlerts = true;
+bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -235,6 +236,13 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		if (stamina >= 0 && stamina < 100) Append(text, FormattedPercent(strings.staminaPercent, stamina));
 	}
 	Append(text, AmmoReport(context));
+	// The bar between the orbs a sighted player always sees (a tester, 2026-10-13).
+	if (const auto experience = g_statusSupported && g_experienceReport ? NativeStatus::PlayerExperience() : std::nullopt) {
+		AsyncLog::InfoF(context, "[vitals] experience level=%d total=%llu start=%llu next=%llu percent=%d maximum=%d",
+			experience->level, static_cast<unsigned long long>(experience->total), static_cast<unsigned long long>(experience->levelStart),
+			static_cast<unsigned long long>(experience->nextLevel), experience->percent, experience->maximum);
+		if (!experience->maximum && experience->percent >= 0) Append(text, FormattedPercent(strings.experiencePercent, experience->percent));
+	}
 	if (g_statusSupported) {
 		const auto mercenary = NativeStatus::MercenaryLife();
 		if (mercenary) {
@@ -338,6 +346,11 @@ bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
 	g_statusSupported = NativeStatus::Initialize(context);
+	// The controller's mercenary panel draws its experience as a bar only.
+	MercenaryStats::SetExperienceSource([] {
+		const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt;
+		return mercenary ? mercenary->experiencePercent : -1;
+	});
 	(void)context->RegisterConsoleCommand("access-vitals", Console, "Life, mana and broken equipment announcements: on|off|status|report.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
@@ -508,6 +521,8 @@ void SetMovementAlerts(bool enabled) {
 }
 bool AmmoAlerts() { return g_ammoAlerts; }
 void SetAmmoAlerts(bool enabled) { g_ammoAlerts = enabled; }
+bool ExperienceReport() { return g_experienceReport; }
+void SetExperienceReport(bool enabled) { g_experienceReport = enabled; }
 int ManaAlerts() { return static_cast<int>(g_manaAlerts); }
 void SetManaAlerts(int level) {
 	g_manaAlerts = static_cast<Vitals::ManaAlerts>(std::clamp(level, 0, Vitals::ManaAlertLevels - 1));

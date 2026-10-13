@@ -87,9 +87,20 @@ std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
 std::string LevelAndType(uintptr_t panel) { return ChildText(panel, "HireTypeText"); }
 
+namespace { int (*g_experienceSource)() = nullptr; }
+
+void SetExperienceSource(int (*source)()) { g_experienceSource = source; }
+
 std::string Experience(uintptr_t panel) {
 	const auto current = ChildText(panel, "CurrentXP");
 	const auto next = ChildText(panel, "NextLevelXP");
+	if (current.empty() && g_experienceSource) {
+		const int percent = g_experienceSource();
+		if (percent < 0) return {};
+		char phrase[100]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().experiencePercent, percent);
+		return phrase;
+	}
 	if (current.empty() || next.empty()) return current;
 	char phrase[100]{};
 	std::snprintf(phrase, sizeof(phrase), Strings::Current().currentOfMaximum, current.c_str(), next.c_str());

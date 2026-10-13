@@ -507,6 +507,39 @@ std::string StashGold(const D2RL::PluginContext* context, uintptr_t panel) {
 	return digits;
 }
 
+// The stash tab the open panel shows, from its tab bars' selected labels.
+StashCount::GoldTab StashTab(const D2RL::PluginContext* context, uintptr_t panel) {
+	std::vector<std::string> selected;
+	for (uintptr_t bar : NativeUi::FindControls(panel, UiText::Kind::Tabs))
+		if (auto label = UiText::Clean(NativeUi::SelectedTabText(bar)); !label.empty()) selected.push_back(std::move(label));
+	const auto tab = StashCount::TabOf(selected, UiText::Clean(Localization::Text("personal")), UiText::Clean(Localization::Text("shared")));
+	static StashCount::GoldTab logged = StashCount::GoldTab::Unknown;
+	static bool any = false;
+	if (!any || tab != logged) {
+		any = true;
+		logged = tab;
+		AsyncLog::InfoF(context, "[stash] gold tab=%s selected=\"%s\"", tab == StashCount::GoldTab::Personal ? "personal"
+			: tab == StashCount::GoldTab::Shared ? "shared" : "unknown", selected.empty() ? "" : selected.front().c_str());
+	}
+	return tab;
+}
+
+// An empty stash slot named from its widget, whose layout name is the item code, as "Chipped Amethyst: 0".
+std::string EmptyStashSlot(const D2RL::PluginContext* context, uintptr_t widget) {
+	const auto stack = NativeUi::StashSlotStackCount(widget);
+	if (!stack.slot || stack.shown) return {};
+	const auto code = StashCount::CodeOfWidgetName(NativeWidgets::ReadName(widget));
+	const auto classId = code ? NativeGroundItems::ClassOfCode(code) : std::nullopt;
+	const auto name = classId ? NativeGroundItems::ClassLabel(*classId, 0).baseName : std::string{};
+	if (name.empty()) return {};
+	static uintptr_t logged = 0;
+	if (logged != widget) {
+		logged = widget;
+		AsyncLog::InfoF(context, "[stash] empty slot code=%s name=\"%s\"", NativeWidgets::ReadName(widget).c_str(), name.c_str());
+	}
+	return StashCount::Empty(name, Strings::Current().stashSlotEmpty);
+}
+
 bool IsInventory(UiText::Kind kind) {
 	return kind == UiText::Kind::InventoryGrid || kind == UiText::Kind::InventorySlot || kind == UiText::Kind::InventoryItem;
 }
@@ -945,10 +978,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// withdraw button says the amount it acts on, the same way.
 		else if (focusName == StashGoldButton) {
 			std::string gold = StashGold(context, focus.panel);
-			if (const int stat = NativeGroundItems::PlayerStashGold(); gold.empty() && stat >= 0) gold = std::to_string(stat);
+			const auto tab = StashTab(context, focus.panel);
+			// The gold stat is the personal stash's amount only.
+			if (const int stat = NativeGroundItems::PlayerStashGold();
+				gold.empty() && stat >= 0 && tab == StashCount::GoldTab::Personal) gold = std::to_string(stat);
 			if (!gold.empty()) {
 				char phrase[96]{};
-				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldStashed, gold.c_str());
+				const auto& strings = Strings::Current();
+				const char* format = tab == StashCount::GoldTab::Personal ? strings.goldPersonalStash
+					: tab == StashCount::GoldTab::Shared ? strings.goldSharedStash : strings.goldStashed;
+				std::snprintf(phrase, sizeof(phrase), format, gold.c_str());
 				readout.option = phrase;
 				goldAmount = true;
 			}
@@ -1014,7 +1053,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			}
 			if (itemLabel.id) g_itemNames.Remember(itemLabel.id, itemLabel.baseName, itemLabel.quality, split.name);
 			// Gem, rune and material tabs draw a stack's count on its slot, not in the tooltip.
-			if (const auto stack = NativeUi::StashSlotStackCount(focus.widget); !stack.text.empty() && !split.name.empty()) {
+			if (const auto stack = NativeUi::StashSlotStackCount(focus.widget); stack.slot && !split.name.empty()) {
 				split.name = StashCount::WithCount(split.name, stack.text, stack.shown, Strings::Current().listSeparator);
 				static std::string logged;
 				if (const auto line = split.name + "|" + stack.text + (stack.shown ? "|shown" : "|hidden"); line != logged) {
@@ -1114,6 +1153,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout.option = heldOver;
 		readout.coordinates.clear();
 		renderedDescription = true;
+	}
+	// An empty gem, rune or material slot draws no tooltip: its item, with a zero count.
+	if (type.kind == UiText::Kind::InventoryItem && !renderedDescription && readout.option.empty()) {
+		readout.option = EmptyStashSlot(context, focus.widget);
+		renderedDescription = !readout.option.empty();
 	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
 		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
@@ -1331,8 +1375,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (behindTitle) g_tabFocus = readout.focusKey;
 		else g_tabChangedAt = 0;
 		g_readPanel = focus.panel;
-		// A monster name is incremental combat news, never a context change.
-		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel);
+		// A monster name is incremental combat news, never a context change; so is an
+		// inventory cell whose item left under the cursor (Y's stash notice goes first).
+		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel && !(inventory && announcement.sameFocus));
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);

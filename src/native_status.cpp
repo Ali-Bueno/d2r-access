@@ -5,6 +5,7 @@
 #include "native_ground_items.h"
 #include "native_memory.h"
 #include "async_log.h"
+#include "vitals.h"
 
 #include <windows.h>
 
@@ -27,6 +28,12 @@ constexpr int PlateScale = 100, PlateMinimum = 1;
 constexpr int HirelingRelationType = 7;
 // HirelingInventoryPanel 0x14F2B6A calls GetStat(unit, 12, 0) for its level.
 constexpr int LevelStat = 12;
+// Experience and the mercenary's next-level threshold: the panel 0x14F3400 asks
+// GetStat for 13 (current) and 30 (next) beside 12. The HUD's experience bar
+// 0x14CC8C0 takes the player's thresholds from experience.txt through
+// 0x300920(expansion, class, level - 1 or level) below its cap 0x300C70.
+constexpr int ExperienceStat = 13, NextExperienceStat = 30;
+constexpr uintptr_t ExperienceThreshold = 0x300920, LevelCap = 0x300C70, UnitClassOf = 0x349860, UnitExpansion = 0x34A0E0;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
 constexpr Evidence PoisonChecks[] = {
 	{0x14C9D5A, 1355, 0x171692F1DDA383FCULL}, // health-orb poison branch
@@ -41,6 +48,14 @@ constexpr Evidence MercenaryChecks[] = {
 	{0x14F3400, 6346, 0x60012C081091103AULL}, // panel uses the getter for displayed life
 	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
 };
+constexpr Evidence ExperienceChecks[] = {
+	{0x14CC8C0, 390, 0x5C18BEDE839C7CA2ULL}, // the HUD experience bar's own computation
+	{ExperienceThreshold, 176, 0x22AD2A01FA40348DULL},
+	{LevelCap, 167, 0x7625E9434149CB54ULL},
+	{UnitClassOf, 46, 0xA487037EF27A3BC8ULL},
+	{UnitExpansion, 47, 0x05F93D9EFDC375A1ULL},
+	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
+};
 constexpr Evidence MovementChecks[] = {
 	{GroundItemLayout::GetStat, 147, 0xEF955B08A436F777ULL, true},
 };
@@ -51,11 +66,12 @@ constexpr Evidence MonsterChecks[] = {
 };
 uintptr_t g_base = 0;
 bool g_poisonSupported = false, g_mercenarySupported = false, g_monsterSupported = false, g_movementSupported = false;
+bool g_experienceSupported = false;
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
 	g_base = 0;
-	g_poisonSupported = g_mercenarySupported = g_monsterSupported = g_movementSupported = false;
+	g_poisonSupported = g_mercenarySupported = g_monsterSupported = g_movementSupported = g_experienceSupported = false;
 	if (!context) return false;
 	g_poisonSupported = LayoutCheck::Verify(context, context->exeBase, PoisonChecks,
 		"status", "poison condition disabled");
@@ -65,10 +81,12 @@ bool Initialize(const D2RL::PluginContext* context) {
 		"status", "boss life disabled");
 	g_movementSupported = LayoutCheck::Verify(context, context->exeBase, MovementChecks,
 		"status", "gait and stamina disabled");
+	g_experienceSupported = LayoutCheck::Verify(context, context->exeBase, ExperienceChecks,
+		"status", "experience disabled");
 	g_base = context->exeBase;
-	AsyncLog::InfoF(context, "[status] Native condition readers: poison=%d mercenary=%d monster=%d movement=%d.",
-		g_poisonSupported, g_mercenarySupported, g_monsterSupported, g_movementSupported);
-	return g_poisonSupported || g_mercenarySupported || g_monsterSupported || g_movementSupported;
+	AsyncLog::InfoF(context, "[status] Native condition readers: poison=%d mercenary=%d monster=%d movement=%d experience=%d.",
+		g_poisonSupported, g_mercenarySupported, g_monsterSupported, g_movementSupported, g_experienceSupported);
+	return g_poisonSupported || g_mercenarySupported || g_monsterSupported || g_movementSupported || g_experienceSupported;
 }
 
 std::optional<bool> PlayerPoisoned() noexcept {
@@ -106,6 +124,30 @@ std::optional<Movement> PlayerMovement() noexcept {
 	return movement;
 }
 
+std::optional<Experience> PlayerExperience() noexcept {
+	if (!g_base || !g_experienceSupported) return std::nullopt;
+	uintptr_t player = 0, tables = 0;
+	uint32_t type = 0;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player
+		|| !NativeMemory::Peek(player + GroundItemLayout::UnitType, type) || type != GroundItemLayout::PlayerType) return std::nullopt;
+	Experience experience;
+	__try {
+		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
+		const auto threshold = reinterpret_cast<uint32_t(*)(uint8_t, uint32_t, int)>(g_base + ExperienceThreshold);
+		experience.level = stat(player, LevelStat, 0);
+		experience.total = static_cast<uint32_t>(stat(player, ExperienceStat, 0));
+		const uint32_t characterClass = reinterpret_cast<uint32_t(*)(uintptr_t)>(g_base + UnitClassOf)(player);
+		const uint8_t expansion = reinterpret_cast<uint8_t(*)(uintptr_t)>(g_base + UnitExpansion)(player);
+		const int cap = static_cast<int>(reinterpret_cast<uint32_t(*)(uint8_t, uint32_t)>(g_base + LevelCap)(expansion, characterClass));
+		if (experience.level < 1) return std::nullopt;
+		if (experience.level >= cap) { experience.maximum = true; return experience; }
+		experience.levelStart = threshold(expansion, characterClass, experience.level - 1);
+		experience.nextLevel = threshold(expansion, characterClass, experience.level);
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+	experience.percent = Vitals::ExperiencePercent(experience.total, experience.levelStart, experience.nextLevel);
+	return experience;
+}
+
 std::optional<Mercenary> MercenaryLife() noexcept {
 	if (!g_base || !g_mercenarySupported) return std::nullopt;
 	uintptr_t player = 0, tables = 0, unit = 0;
@@ -122,14 +164,19 @@ std::optional<Mercenary> MercenaryLife() noexcept {
 		|| !NativeMemory::Peek(unit + GroundItemLayout::UnitMode, mode)) return std::nullopt;
 	const bool dead = mode == EntityLayout::MonsterDeath || mode == EntityLayout::MonsterDead;
 	int level = -1, lifePercent = -1;
+	uint32_t total = 0, next = 0;
 	__try {
 		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
 		level = stat(unit, LevelStat, 0);
+		total = static_cast<uint32_t>(stat(unit, ExperienceStat, 0));
+		next = static_cast<uint32_t>(stat(unit, NextExperienceStat, 0));
 		if (!dead) lifePercent = reinterpret_cast<int(*)(uint32_t)>(g_base + HirelingLifePercent)(actualId);
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
 	if (dead) lifePercent = 0;
 	if (lifePercent < 0 || lifePercent > 100) lifePercent = -1;
-	return Mercenary{actualId, lifePercent, level};
+	const uint64_t start = Vitals::MercenaryLevelStart(level, next);
+	const int experiencePercent = start ? Vitals::ExperiencePercent(total, start, next) : -1;
+	return Mercenary{actualId, lifePercent, level, experiencePercent};
 }
 
 std::optional<int> MonsterLife(uint32_t id) noexcept {

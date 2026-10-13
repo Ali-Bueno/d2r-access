@@ -29,6 +29,7 @@ Bearing BearingOf(Radar::Position player, Radar::Position target);
 struct Cue {
 	uint32_t id = 0;
 	Kind kind = Kind::Npc;
+	bool boss = false; // an Important enemy that is an act boss or super unique, not a champion
 	double distance = 0, right = 0, front = 1;
 	uint64_t intervalMs = 0;
 	size_t slot = 0;
@@ -36,6 +37,15 @@ struct Cue {
 
 // The nearest NPC plus up to `maxVoices` enemies: specials first, then the nearest ordinary ones.
 std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings);
+// The town NPCs whose "!" has just appeared, nearest first: each once, again
+// only after it was seen gone (talking to any NPC clears every one).
+class AlertTracker {
+public:
+	std::vector<Cue> Raised(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+	void Reset() { shown_.clear(); }
+private:
+	std::vector<uint32_t> shown_;
+};
 class Tracker {
 public:
 	std::optional<Cue> Update(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,

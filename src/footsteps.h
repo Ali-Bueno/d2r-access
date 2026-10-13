@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstdint>
 
 namespace D2RAccess::Footsteps {
@@ -20,6 +21,13 @@ struct Decision {
 	int64_t dx = 0, dy = 0; // signed change in native 16.16 coordinates
 };
 const char* ReasonName(Reason reason);
+// The player's own footsteps as a percent of the game's. A sound instance keeps
+// its volume in 0-255, so a step grows only while it fits (docs/footsteps.md).
+inline constexpr std::array VolumePercents{25, 50, 75, 100, 150, 200, 300};
+inline constexpr int NeutralVolumePercent = 100, NeutralVolumeLevel = 3, MaxInstanceVolume = 255;
+static_assert(VolumePercents[NeutralVolumeLevel] == NeutralVolumePercent);
+// A stock instance volume scaled by `percent`, kept within 1 and MaxInstanceVolume.
+int ScaleVolume(int stock, int percent);
 class Filter {
 public:
 	bool Suppress(const Sample& sample, uint64_t now);

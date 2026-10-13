@@ -17,4 +17,8 @@ std::optional<double> NamingReach();
 enum class Cue { All, Npcs, Enemies, Ranged, Ordinary, Reach };
 bool Enabled(Cue cue);
 void SetEnabled(Cue cue, bool enabled);
+// A bell when a town NPC's "!" appears, and after its name wherever it is said.
+bool NpcAlerts();
+void SetNpcAlerts(bool on);
+void PlayNpcAlert();
 }

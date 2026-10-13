@@ -24,6 +24,7 @@
 #include "radar_ui.h"
 #include "room_catalogue.h"
 #include "screen_reader.h"
+#include "entity_cue_service.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
 #include "zone_transitions.h"
@@ -508,6 +509,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	AsyncLog::InfoF(context, "[survey] category=%s %zu/%zu -> %s",
 		CategoryName(g_category), index + 1, members.size(), text.c_str());
 	ScreenReader::Speak(text, true);
+	if (members[index].entity.npcAlert) EntityCueService::PlayNpcAlert();
 }
 
 auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void* userData) noexcept

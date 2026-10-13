@@ -44,4 +44,26 @@ Outcome Detector::Update(const Sample& sample) {
 	sounded_ = true;
 	return {Outcome::Kind::Knock, sample.dx, sample.dy, sample.x, sample.y};
 }
+
+Crossing CrossingTracker::Update(uintptr_t panel, int dx, int dy, uint64_t now) {
+	if (dx || dy) {
+		dx_ = dx;
+		dy_ = dy;
+		pushAt_ = now;
+		pushed_ = true;
+	}
+	if (!panel) return {};
+	Crossing result;
+	const bool remembered = panel_ && now - panelAt_ <= PanelMemoryMs;
+	const bool pushedRecently = pushed_ && now - pushAt_ <= PushWindowMs;
+	const bool cooled = !crossedBefore_ || now - crossedAt_ >= CrossingCooldownMs;
+	if (remembered && panel != panel_ && pushedRecently && cooled) {
+		result = {true, dx_, dy_, panel_, panel};
+		crossedAt_ = now;
+		crossedBefore_ = true;
+	}
+	panel_ = panel;
+	panelAt_ = now;
+	return result;
+}
 }

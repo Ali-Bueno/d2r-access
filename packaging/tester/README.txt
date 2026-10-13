@@ -97,9 +97,11 @@ In play:
   screen side instead of scanning).
 - BACK+B: terrain overview.
 - BACK+RB: the mod's settings list, open or close (the keyboard's Ctrl+S).
-  While it is open the right stick moves through it: up and down step, left or
-  right changes the setting (or plays the sound again in the glossary). It
-  closes by itself after 30 seconds unused.
+  It is made of groups (Sounds, Enemies and NPCs, Navigation, Items and menus,
+  Alerts, Controller, Sound glossary). While it is open the right stick moves
+  through it: up and down step, right opens a group and then changes the
+  setting (or plays the sound again in the glossary), left goes back to the
+  groups. It closes by itself after 30 seconds unused.
 - Holding LT for a moment: reads the skill bar shown with LT.
 - L3 is the game's walk/run toggle: the mod says "Walking" or "Running" when
   you press it, and warns as stamina runs low. R3 is the game's weapon swap:
@@ -155,15 +157,29 @@ cave necks); the room announcements and the exit finder use that word.
 
 SETTINGS
 
-The in-game switches are in the Ctrl+S list (BACK+RB on the controller), each
-spoken as it stands ("Radar enabled"), and they are remembered between
-sessions. New ones worth knowing:
+The in-game switches are in the Ctrl+S list (BACK+RB on the controller), in
+groups, each spoken as it stands ("Radar enabled"), and they are remembered
+between sessions. A setting of several values steps up and wraps round to the
+lowest. New ones worth knowing:
+- Enemy class sounds: layered (the default) or classic. Every enemy now
+  growls at the same pitch, so pitch only tells up or down; a champion adds a
+  raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.
+- NPC exclamation mark chime (on): a small bell when the "!" appears over a
+  town NPC, and after its name from the scanner or the NPC announcer. The
+  game only shows the mark within about 15 steps of the NPC.
+- Footstep volume: your own footsteps from 25 to 300 percent of the game's.
+- Item sounds: Diablo IV (the default) or Diablo II drops. With Diablo II
+  drops every item on the ground repeats the sound the game makes when it
+  lands (a sword, a ring, a potion...). Drop sound speed, 50 to 300 percent,
+  sets how often they repeat.
+- Experience in the life report (on): BACK+X also says how far you are into
+  your level, as the bar between the orbs shows.
+- Mercenary's lines named (on): "Mercenary says: I feel much stronger now".
 - Walk, run and stamina alerts (on).
 - Ammunition alerts (on): arrows, bolts or throwing weapons running low.
 - Weapon set number (on): the weapon swap also says "Weapon set 1" or "2".
 - Town NPCs listed from anywhere in town (on): every town NPC can be scanned
   and followed from anywhere in town, even before you have seen them.
-- Pickup range click (on): a click when the game's pickup prompt shows an item.
 - Inventory edge bump (on): a knock when the inventory cursor hits the edge.
 - Silver items (on): items whose name the game draws in silver (socketed or
   ethereal) say "silver" after the name, as magic items say "magic".
@@ -178,8 +194,8 @@ sessions. New ones worth knowing:
   wall gets closer, as in the Grim Dawn and Last Epoch mods.
 - Mana alerts: every change, low mana only, or off. Left and right on the
   right stick (Space on the keyboard) step through the three.
-- Enemy sound panning and pitch, guidance panning and pitch: 0 to 200 percent
-  in steps of 25; 100 is the default.
+- Enemy sound panning and pitch, guidance panning and pitch: 0 to 400 percent;
+  100 is the default.
 - Potion and gold sounds: Diablo or Last Epoch (each potion kind has its own
   glass sound in the Last Epoch set).
 - Shrine and well sounds (on): a sound for each shrine or well you can still
@@ -191,7 +207,7 @@ d2rloader\config\d2r-access.toml holds the numbers: the radar (on, volume,
 diagonals), and for enemy sounds [entity_cues]: on_screen (growls start when
 an enemy is on screen), range (used when on_screen is false), max_voices (how
 many enemies can growl, 1 to 8), pan_strength and pitch_strength (percent,
-100 is the default, up to 200), and the same two strengths under [beacon] for
+100 is the default, up to 400), and the same two strengths under [beacon] for
 the guidance ping; [wall_tones] sets the wall tones' volume and range. Edit it
 with Notepad; changes apply the next time you start the game. A strength
 changed in the Ctrl+S list wins over the file.
@@ -199,9 +215,9 @@ changed in the Ctrl+S list wins over the file.
 
 SOUND GLOSSARY
 
-At the end of the Ctrl+S list are the mod's sounds, one per entry: moving
-onto one names it and plays it, Space plays it again. Page Up from the top of
-the list jumps straight to the last sounds.
+The last group of the Ctrl+S list holds the mod's sounds, one per entry:
+moving onto one names it and plays it, Space (right on the controller) plays
+it again.
 
 
 PLAYING ONLINE WITH SOMEONE ELSE

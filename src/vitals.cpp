@@ -34,6 +34,19 @@ int Percent(int current, int maximum) {
 	return static_cast<int>(std::clamp<long long>(percent, 0, 100));
 }
 
+int ExperiencePercent(uint64_t experience, uint64_t levelStart, uint64_t nextLevel) {
+	if (nextLevel <= levelStart) return -1;
+	if (experience <= levelStart) return 0;
+	return static_cast<int>(std::min<uint64_t>((experience - levelStart) * 100 / (nextLevel - levelStart), 99));
+}
+
+uint64_t MercenaryLevelStart(int level, uint64_t nextLevel) {
+	if (level < 1) return 0;
+	const uint64_t l = static_cast<uint64_t>(level), nextFactor = (l + 1) * (l + 1) * (l + 2);
+	if (nextLevel == 0 || nextLevel % nextFactor != 0) return 0;
+	return nextLevel / nextFactor * l * l * (l + 1);
+}
+
 std::optional<Orb> ParseOrb(std::string_view text) {
 	const auto split = text.find('/');
 	if (split == std::string_view::npos) return std::nullopt;

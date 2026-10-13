@@ -138,6 +138,14 @@ int main() {
 	reader.Reset();
 	Check(reader.Update(item, 2100, 20).text.empty(), "coordinate-only selection allows one poll for item capture");
 	Check(reader.Update(item, 2119, 20).text.empty() && reader.Update(item, 2120, 20).text == "Inventario. Poción", "short inventory settle has an explicit latency bound");
+	// An item sent away leaves the cell empty under the same focus: the new readout is news, not a new place.
+	const Readout vacated{"Inventory", "Inventario", "", "0", "Fila 1, columna 1", Surface::Other};
+	const auto emptied = reader.Update(vacated, 2200, 0);
+	Check(!emptied.text.empty() && emptied.sameFocus, "a cell emptied under the cursor is the same focus");
+	const Readout moved{"Inventory", "Inventario", "", "1", "Fila 1, columna 2", Surface::Other};
+	const auto next = reader.Update(moved, 2300, 0);
+	Check(!next.sameFocus && next.interrupt, "a real focus move still interrupts");
+	reader.Reset();
 	Snapshot journal{30, 31, "QuestLogPanelExpansion", Surface::Menu, {
 		{30, -1, Kind::Other, "Root", "QuestLogPanel", ""},
 		{31, 0, Kind::QuestButton, "Quest0", "QuestLogButtonWidget", "Guarida del mal"},

@@ -396,7 +396,7 @@ GridSlot GridItemAt(uintptr_t widget, Cell cell) {
 StashSlotCount StashSlotStackCount(uintptr_t widget) {
 	if (!widget || !Visible(widget) || Classify(widget).name != "AdvancedStashSlotWidget") return {};
 	const uintptr_t count = widget + StashCountTextOffset;
-	return {NativeWidgets::ReadText(count), Visible(count)}; // update 0x2CF990 hides it at zero
+	return {NativeWidgets::ReadText(count), Visible(count), true}; // update 0x2CF990 hides it at zero
 }
 
 uintptr_t EquipmentItem(uintptr_t widget) {

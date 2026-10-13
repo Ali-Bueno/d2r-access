@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 using namespace D2RAccess::EntityCueAudio;
 
@@ -38,7 +39,7 @@ int Crossings(const std::vector<int16_t>& pcm, size_t fromFrame, size_t toFrame)
 }
 
 void DurationAndLevels() {
-	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Resurrector, Sound::Ranged, Sound::Ordinary, Sound::Reach}) {
+	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Boss, Sound::Resurrector, Sound::Ranged, Sound::Ordinary, Sound::Reach}) {
 		const auto pcm = Synthesize(sound, {});
 		Check(!pcm.empty() && pcm.size() % Channels == 0, "every cue contains interleaved stereo PCM");
 		Check(pcm.size() / Channels <= SampleRate * 120 / 1000, "every cue is at most 120 ms");
@@ -100,23 +101,55 @@ void Strengths() {
 	Check(Synthesize(Sound::Ordinary, deeper) != Synthesize(Sound::Ordinary, {0, -1}), "doubled pitch strength deepens the rear drop");
 }
 
+// The older swoops, kept behind the class-layer switch.
+constexpr Placement Classic{0, 1, 1, 1, false};
+
 void Timbres() {
-	const auto npc = Synthesize(Sound::Npc, {});
-	const auto important = Synthesize(Sound::Important, {});
-	const auto resurrector = Synthesize(Sound::Resurrector, {});
-	const auto ranged = Synthesize(Sound::Ranged, {});
+	const auto npc = Synthesize(Sound::Npc, Classic);
+	const auto important = Synthesize(Sound::Important, Classic);
+	const auto resurrector = Synthesize(Sound::Resurrector, Classic);
+	const auto ranged = Synthesize(Sound::Ranged, Classic);
 	Check(npc != important, "friendly and enemy signatures differ");
 	Check(important != resurrector && important != ranged && resurrector != ranged,
 		"important, resurrector and ranged signatures differ");
+	Check(Synthesize(Sound::Boss, Classic) == important, "without the layers a boss swoops like an elite");
 	for (Sound sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
-		const auto sweep = Synthesize(sound, {});
+		const auto sweep = Synthesize(sound, Classic);
 		const size_t frames = sweep.size() / Channels;
 		Check(Crossings(sweep, frames / 6, frames / 3) > Crossings(sweep, frames * 2 / 3, frames * 5 / 6),
 			"enemy whoosh sweeps down in brightness");
-		const auto rear = Synthesize(sound, {0, -1});
+		const auto rear = Synthesize(sound, {0, -1, 1, 1, false});
 		Check(Crossings(rear, frames / 3, frames * 2 / 3) < Crossings(sweep, frames / 3, frames * 2 / 3),
 			"rear whoosh remains audibly lower than front");
 	}
+}
+
+// Pitch says up or down, so the classes share the growl and differ by a layer over it.
+void LayeredClasses() {
+	const auto growl = Synthesize(Sound::Ordinary, {});
+	const double growlRms = Rms(growl, 0);
+	std::vector<std::vector<int16_t>> layered;
+	for (const auto sound : {Sound::Important, Sound::Boss, Sound::Resurrector, Sound::Ranged}) {
+		const auto pcm = Synthesize(sound, {});
+		Check(pcm.size() == growl.size(), "a layered enemy lasts as long as the growl");
+		std::vector<int16_t> layer(pcm.size());
+		for (size_t i = 0; i < pcm.size(); ++i) layer[i] = static_cast<int16_t>(pcm[i] - growl[i]);
+		const double level = Rms(layer, 0);
+		Check(level > 0.2 * growlRms && level < 1.2 * growlRms, "each class adds a layer over the same growl, neither lost nor drowning it");
+		for (const auto& other : layered) Check(pcm != other, "every class has a layer of its own");
+		layered.push_back(pcm);
+		const size_t frames = pcm.size() / Channels;
+		const auto rear = Synthesize(sound, {0, -1});
+		Check(Crossings(rear, frames / 3, frames * 2 / 3) < Crossings(pcm, frames / 3, frames * 2 / 3),
+			"a layered enemy behind is lower than one ahead");
+	}
+	const auto bell = Synthesize(Sound::NpcAlert, {});
+	const size_t frames = bell.size() / Channels;
+	Check(Peak(bell) > 1500 && Peak(bell) < 14000 && bell.front() == 0 && bell.back() == 0, "the NPC bell is audible and starts and ends at silence");
+	Check(Rms(bell, 0, 0, frames / 4) > 3 * Rms(bell, 0, frames * 3 / 4, frames), "the NPC bell is struck and rings down");
+	const double bellRate = static_cast<double>(Crossings(bell, 0, frames / 4)) / (frames / 4);
+	const double growlRate = static_cast<double>(Crossings(growl, 0, growl.size() / Channels)) / (growl.size() / Channels);
+	Check(bellRate > 4 * growlRate, "the NPC bell rings far above every enemy");
 }
 
 void NewCues() {
@@ -180,6 +213,7 @@ int main() {
 	DurationAndLevels();
 	Spatial();
 	Timbres();
+	LayeredClasses();
 	Strengths();
 	NewCues();
 	DifferentFromRadarBreath();

@@ -20,7 +20,7 @@ std::mutex g_mutex;
 std::condition_variable g_wake;
 ProcessLifetime<std::thread> g_threadOwner;
 std::thread& g_thread = g_threadOwner.Get();
-std::atomic<bool> g_running{false}, g_available{false};
+std::atomic<bool> g_running{false}, g_available{false}, g_classLayers{true};
 std::atomic<uint64_t> g_generation{0};
 double g_gain = 1, g_panScale = 1, g_pitchScale = 1;
 struct Request { bool pending = false; Sound sound = Sound::Npc; Placement placement; };
@@ -122,14 +122,16 @@ void SetStrength(double panScale, double pitchScale) {
 
 double PanScale() { std::lock_guard lock(g_mutex); return g_panScale; }
 double PitchScale() { std::lock_guard lock(g_mutex); return g_pitchScale; }
+bool ClassLayers() { return g_classLayers; }
+void SetClassLayers(bool on) { g_classLayers = on; }
 
 void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available || !ModSounds::Enabled()) return;
-		const auto feedback = [](Sound cue) { return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge; };
+		const auto feedback = [](Sound cue) { return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge || cue == Sound::NpcAlert; };
 		if (g_pending.pending && feedback(g_pending.sound) && !feedback(sound)) return;
-		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale;
+		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale; placement.classLayers = g_classLayers;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

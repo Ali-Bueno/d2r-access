@@ -44,6 +44,8 @@ bool g_reachCue = true;
 uint64_t g_lastLoadout = 0;
 constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
+std::atomic<bool> g_npcAlerts{true};
+EntityCues::AlertTracker g_alerts;
 uint64_t g_revision = 0, g_lastPoll = 0;
 
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
@@ -223,7 +225,7 @@ void Tick(const D2RL::PluginContext* context) {
 	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		g_tracker.Reset();
+		g_tracker.Reset(); g_alerts.Reset();
 		Suspend(context, "lifecycle changed");
 		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
 	}
@@ -258,12 +260,18 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
+	// The moment a sighted player sees a "!" appear over an NPC (a tester, 2026-10-13).
+	if (const auto raised = g_alerts.Raised(world, entities); !raised.empty() && g_npcAlerts.load() && g_settings.npcs) {
+		AsyncLog::InfoF(context, "[npc] exclamation mark id=%u distance=%.1f (%zu raised)", raised.front().id, raised.front().distance, raised.size());
+		EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {raised.front().right, raised.front().front});
+		return;
+	}
 	const auto cue = g_tracker.Update(world, entities, now, g_settings);
 	if (!cue) return;
 	EntityCueAudio::Sound sound = EntityCueAudio::Sound::Npc;
 	switch (cue->kind) {
 	case EntityCues::Kind::Npc: sound = EntityCueAudio::Sound::Npc; break;
-	case EntityCues::Kind::Important: sound = EntityCueAudio::Sound::Important; break;
+	case EntityCues::Kind::Important: sound = cue->boss ? EntityCueAudio::Sound::Boss : EntityCueAudio::Sound::Important; break;
 	case EntityCues::Kind::Resurrector: sound = EntityCueAudio::Sound::Resurrector; break;
 	case EntityCues::Kind::Ranged: sound = EntityCueAudio::Sound::Ranged; break;
 	case EntityCues::Kind::Ordinary: sound = EntityCueAudio::Sound::Ordinary; break;
@@ -306,5 +314,10 @@ void SetEnabled(Cue cue, bool enabled) {
 		: cue == Cue::Ordinary ? (enabled ? Command::OrdinaryOn : Command::OrdinaryOff)
 		: cue == Cue::Reach ? (enabled ? Command::ReachOn : Command::ReachOff)
 		: (enabled ? Command::RangedOn : Command::RangedOff);
+}
+bool NpcAlerts() { return g_npcAlerts.load(); }
+void SetNpcAlerts(bool on) { g_npcAlerts = on; }
+void PlayNpcAlert() {
+	if (g_npcAlerts.load() && g_enabled && g_settings.npcs) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
 }
 }

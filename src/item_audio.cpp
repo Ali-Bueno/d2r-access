@@ -31,6 +31,7 @@ std::condition_variable g_wake;
 ProcessLifetime<std::thread> g_threadOwner;
 std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
+std::atomic<int> g_dropSpeed{NeutralDropSpeedLevel};
 std::vector<Voice> g_pending;
 uint64_t g_updated = 0;
 std::vector<Voice> g_explorationPending;
@@ -49,12 +50,19 @@ struct Playing {
 	uint64_t generation = 0;
 	Voice target;
 	bool checked = false;
+	std::vector<int16_t> pass; // a drop sound's loop, kept while its voice plays
+	size_t passSamples = 0;
 	void Stop() { if (source) { source->DestroyVoice(); source = nullptr; } gain = 0; }
 };
 // A one-shot channel plays even a loop's sample once (the glossary previews them there).
 bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>& sample,
-	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context, bool once = false) {
+	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context, bool once = false,
+	size_t passSamples = 0) {
 	const bool loop = !once && !IsOneShot(target.sound);
+	const bool paced = loop && IsDrop(target.sound) && passSamples;
+	active.passSamples = paced ? passSamples : 0;
+	if (paced) active.pass = ItemWave::Pass(sample, passSamples, size_t{ItemWave::SampleRate} * DropFadeMs / 1000);
+	const auto& data = paced ? active.pass : sample;
 	const HRESULT created = engine->CreateSourceVoice(&active.source, &format);
 	if (FAILED(created)) {
 		AsyncLog::WarnF(context, "[item-audio] source failed HRESULT=%08lx", created);
@@ -65,8 +73,8 @@ bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>
 	active.started = GetTickCount64(); active.checked = false; active.generation = generation;
 	HRESULT submitted = active.source->SetVolume(0);
 	XAUDIO2_BUFFER buffer{};
-	buffer.AudioBytes = static_cast<UINT32>(sample.size() * sizeof(int16_t));
-	buffer.pAudioData = reinterpret_cast<const BYTE*>(sample.data());
+	buffer.AudioBytes = static_cast<UINT32>(data.size() * sizeof(int16_t));
+	buffer.pAudioData = reinterpret_cast<const BYTE*>(data.data());
 	buffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
 	if (SUCCEEDED(submitted)) submitted = active.source->SubmitSourceBuffer(&buffer);
 	if (SUCCEEDED(submitted)) submitted = active.source->Start();
@@ -187,10 +195,12 @@ void Worker(const D2RL::PluginContext* context) {
 				totalGain += OneShotGain(arrival, requestedArrival, g_arrival) + OneShotGain(discovery, requestedDiscovery, g_discovery);
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
 				if (FAILED(master->SetVolume(mixVolume))) { g_running = false; break; }
+				const size_t passSamples = DropPassSamples(g_dropSpeed.load());
 				for (auto& active : playing) {
 					if (!active.source) continue;
 					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return SameSource(active.target, target); });
-					if (found == targets.end()) {
+					// A new speed restarts the drop loops at their new pace.
+					if (found == targets.end() || (active.passSamples && active.passSamples != passSamples)) {
 						AsyncLog::InfoF(context, "[item-audio] stopped id=%u", active.id);
 						active.Stop();
 					}
@@ -202,7 +212,7 @@ void Worker(const D2RL::PluginContext* context) {
 					if (active == playing.end()) {
 						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
 						if (active == playing.end()) break;
-						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context)) break;
+						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context, false, passSamples)) break;
 					}
 					active->target = target;
 					ApplySpatial(*active, master, context);
@@ -248,6 +258,8 @@ void Update(std::vector<Voice> voices) {
 	g_wake.notify_one();
 }
 void Silence() { Update({}); }
+int DropSpeedLevel() { return g_dropSpeed.load(); }
+void SetDropSpeedLevel(int level) { g_dropSpeed = std::clamp(level, 0, static_cast<int>(DropSpeedPercents.size()) - 1); }
 void UpdateExploration(std::vector<Voice> voices) {
 	if (!ModSounds::Enabled()) voices.clear();
 	std::lock_guard lock(g_mutex);

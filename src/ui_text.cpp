@@ -202,9 +202,10 @@ Announcement Reader::Update(const Readout& readout, uint64_t now, uint64_t settl
 	if (contextChanged || readout.option != spoken_.option || readout.focusKey != spoken_.focusKey) Append(phrase, readout.option);
 	if (contextChanged || readout.coordinates != spoken_.coordinates || readout.focusKey != spoken_.focusKey)
 		Append(phrase, readout.coordinates);
-	const bool interrupt = !readout.contentSettleMs || contextChanged || readout.focusKey != spoken_.focusKey;
+	const bool sameFocus = !contextChanged && readout.focusKey == spoken_.focusKey;
+	const bool interrupt = !readout.contentSettleMs || !sameFocus;
 	spoken_ = readout;
-	return { std::move(phrase), interrupt };
+	return { std::move(phrase), interrupt, sameFocus };
 }
 
 void Reader::Reset() {

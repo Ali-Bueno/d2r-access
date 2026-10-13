@@ -28,8 +28,9 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
-inline constexpr std::size_t GlossarySoundCount = 49;
+inline constexpr std::size_t GlossarySoundCount = 50;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
+inline constexpr std::size_t SettingsGroupCount = 7; // keyboard_service.cpp's SettingsGroup
 
 struct Table {
 	const char* pluginLoaded;
@@ -191,6 +192,8 @@ struct Table {
 	const char* equipRefusedBecause;  // %s = the requirements drawn red
 	const char* goldCarried;          // %s = how much gold the player is carrying
 	const char* goldStashed;          // %s = how much gold the open stash tab holds
+	const char* goldPersonalStash;    // %s = gold in the personal stash tab
+	const char* goldSharedStash;      // %s = gold in the shared stash tab
 	const char* handsEmpty;           // a weapon swap to empty hands
 	// Player-to-player trade (docs/trade.md). %s = the partner's name throughout.
 	const char* tradeRequested;       // %s asked this player to trade
@@ -366,6 +369,7 @@ struct Table {
 	const char* stashGems;
 	const char* stashRunes;
 	const char* stashMaterials;
+	const char* stashSlotEmpty;       // %s = the item of an empty gem, rune or material slot, named with a zero count
 	const char* mercenarySkills;      // %s = the mercenary's skills, as a list
 	const char* lastEpochSoundsOn;
 	const char* lastEpochSoundsOff;
@@ -379,7 +383,22 @@ struct Table {
 	const char* shrineSoundsOff;
 	const char* wallTonesOn;
 	const char* wallTonesOff;
+	const char* enemyClassSoundsOn;
+	const char* enemyClassSoundsOff;
+	const char* footstepVolume;       // %d = percent of the game's own footstep volume
+	const char* experiencePercent;    // %d = how far into the level, as the experience bar
+	const char* experienceReportOn;
+	const char* experienceReportOff;
+	const char* mercenarySays;        // %s = the line the mercenary says over its head
+	const char* mercenaryBarkOn;
+	const char* mercenaryBarkOff;
+	const char* npcAlertOn;
+	const char* npcAlertOff;
+	const char* dropSoundsOn;
+	const char* dropSoundsOff;
+	const char* dropSoundSpeed;       // %d = percent of the drop loops' once-a-second pace
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
+	std::array<const char*, SettingsGroupCount> settingsGroups;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -415,7 +434,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder, t.sealNumbered, t.sealsLeft, t.sealsAllOpen,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.goldPersonalStash, t.goldSharedStash, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.finderNothing,
@@ -430,10 +449,14 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
 	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName,
-		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.mercenarySkills,
+		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.stashSlotEmpty, t.mercenarySkills,
 		t.lastEpochSoundsOn, t.lastEpochSoundsOff, t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,
-		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff}) visit(s);
+		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
+		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
+		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
+		t.dropSoundsOn, t.dropSoundsOff, t.dropSoundSpeed}) visit(s);
 	each(t.manaAlerts);
+	each(t.settingsGroups);
 	each(t.placePresets);
 	each(t.placeInteriors);
 	each(t.placeFeatures);

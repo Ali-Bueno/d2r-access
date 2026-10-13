@@ -104,7 +104,7 @@ game's code, not pressed in a test).
 
 | key | what |
 |---|---|
-| Ctrl+S | the list of the mod's switches, open and shut. The pad's is BACK+RB, then the right stick: up and down step, left or right changes (2026-10-12) |
+| Ctrl+S | the list of the mod's switches, in groups, open and shut: Page Up/Down step, Space opens a group or changes, Backspace returns to the groups. The pad's is BACK+RB, then the right stick: up and down step, right opens or changes, left returns (2026-10-13) |
 | PageUp, PageDown, Space | with that list open: previous, next, change. The arrows are not the list's: in play they still walk the character. The user, 2026-09-28, once told PageUp and PageDown step the list: no change wanted |
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |

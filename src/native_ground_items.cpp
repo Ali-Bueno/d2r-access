@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace D2RAccess::NativeGroundItems {
@@ -101,6 +102,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		: is(MakeItemCode("gem")) ? Base::Gem : Base::Equipment;
 	const bool quest = questFlag != 0 || is(MakeItemCode("ques"));
 	item.sound = GroundItems::Classify(item.quality, base, quest, GroundItems::LastEpochSounds());
+	if (GroundItems::DropSounds()) item.play = GroundItems::DropSoundOf(item.code);
 	if (!anyDistance && distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	uint32_t flags = 0;
@@ -160,6 +162,19 @@ uint32_t ClassCode(uint32_t classId) {
 		|| !Peek(tables + Items, items) || !items || !Peek(tables + ItemCount, count) || count > MaxTableRows
 		|| classId >= count || !Peek(items + classId * ItemStride + ItemCode, code)) return 0;
 	return code;
+}
+std::optional<uint32_t> ClassOfCode(uint32_t code) {
+	static std::unordered_map<uint32_t, uint32_t> classes; // the table is fixed for the process
+	if (classes.empty()) {
+		uintptr_t player = 0, tables = 0;
+		uint64_t count = 0;
+		if (!g_base || !RuntimeRoots(player, tables) || !Peek(tables + ItemCount, count) || count > MaxTableRows) return std::nullopt;
+		for (uint32_t classId = 0; classId < count; ++classId)
+			if (const uint32_t rowCode = ClassCode(classId)) classes.emplace(rowCode, classId);
+	}
+	const auto it = classes.find(code);
+	if (it == classes.end()) return std::nullopt;
+	return it->second;
 }
 bool ClassIsType(uint32_t classId, uint32_t typeCode) {
 	Tables tables;

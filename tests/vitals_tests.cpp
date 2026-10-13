@@ -256,7 +256,17 @@ void Ammo() {
 	Check(ammo.Known({{2, 1}}).empty(), "a new game forgets the stacks");
 }
 
+void Experience() {
+	Check(Vitals::ExperiencePercent(0, 0, 500) == 0 && Vitals::ExperiencePercent(250, 0, 500) == 50, "experience fills its level as the bar does");
+	Check(Vitals::ExperiencePercent(1499, 500, 1500) == 99 && Vitals::ExperiencePercent(1500, 500, 1500) == 99, "a full bar is not yet the next level");
+	Check(Vitals::ExperiencePercent(400, 500, 1500) == 0 && Vitals::ExperiencePercent(10, 500, 500) == -1, "below the level or no span says nothing wrong");
+	// hireling.txt ExpPerLvl 100 at level 10: the level began at 100*10*10*11 and ends at 100*11*11*12.
+	Check(Vitals::MercenaryLevelStart(10, 100 * 11 * 11 * 12) == 100 * 10 * 10 * 11, "a mercenary's level start follows from its next threshold");
+	Check(Vitals::MercenaryLevelStart(10, 145201) == 0 && Vitals::MercenaryLevelStart(0, 1200) == 0, "a threshold off the rule is unknown");
+}
+
 int main() {
+	Experience();
 	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();

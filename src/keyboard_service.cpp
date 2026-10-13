@@ -17,10 +17,12 @@
 #include "equipment_census.h"
 #include "explore_goal.h"
 #include "footstep_service.h"
+#include "footsteps.h"
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
 #include "ground_item_service.h"
 #include "ground_items.h"
+#include "item_audio.h"
 #include "grid_edge_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
@@ -111,9 +113,11 @@ enum class Command : uint32_t {
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
 	Settings, SettingsChange,
-	// The pad's right stick left and right on the settings list: a setting of
-	// several values goes down or up, a switch flips.
+	// The pad's right stick left and right on the settings list: right opens a
+	// group or changes what it stands on, left goes back to the groups.
 	SettingsLower, SettingsRaise,
+	// Backspace on the settings list: back to the groups.
+	SettingsBack,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
 	// In play and in a menu: the list of skills for the left hand. The game's
@@ -1509,9 +1513,11 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // ---- the settings list ----
 
-// Pan and pitch strength in quarters, from none to RadarConfig::MaxStrengthPercent.
-constexpr int StrengthStepPercent = 25;
-constexpr int StrengthLevels = static_cast<int>(RadarConfig::MaxStrengthPercent) / StrengthStepPercent + 1;
+// Pan and pitch strength steps, from none to RadarConfig::MaxStrengthPercent: quarters up to
+// the compiled 100, then wider, so a single change key cycles through few of them.
+constexpr int StrengthPercents[] = {0, 25, 50, 75, 100, 150, 200, 300, 400};
+constexpr int StrengthLevels = static_cast<int>(std::size(StrengthPercents));
+static_assert(StrengthPercents[StrengthLevels - 1] == static_cast<int>(RadarConfig::MaxStrengthPercent));
 
 // A strength of a sound family as a setting of several values: `get` and `set`
 // trade the scale the audio module uses (1 = as compiled).
@@ -1522,28 +1528,33 @@ SettingsList::Entry Strength(const char* key, const char* Strings::Table::* form
 	entry.levels = StrengthLevels;
 	entry.level = [get] {
 		const double percent = get() * RadarConfig::NeutralStrengthPercent;
-		return std::clamp(static_cast<int>(std::lround(percent / StrengthStepPercent)), 0, StrengthLevels - 1);
+		int nearest = 0;
+		for (int i = 1; i < StrengthLevels; ++i)
+			if (std::abs(StrengthPercents[i] - percent) < std::abs(StrengthPercents[nearest] - percent)) nearest = i;
+		return nearest;
 	};
 	entry.setLevel = [set](int level) {
-		set(static_cast<double>(level * StrengthStepPercent) / RadarConfig::NeutralStrengthPercent);
+		set(static_cast<double>(StrengthPercents[std::clamp(level, 0, StrengthLevels - 1)]) / RadarConfig::NeutralStrengthPercent);
 	};
 	entry.sayLevel = [format](int level) {
 		char phrase[160]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, level * StrengthStepPercent);
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, StrengthPercents[std::clamp(level, 0, StrengthLevels - 1)]);
 		return std::string(phrase);
 	};
 	return entry;
 }
 
+// Saved as a step: the keys changed with the steps (2026-10-13), so a step of
+// the old quarters is not read as one of the new ones.
 std::vector<SettingsList::Entry> Strengths() {
 	return {
-		Strength("enemy-pan-strength", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
+		Strength("enemy-pan", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
 			[](double scale) { EntityCueAudio::SetStrength(scale, EntityCueAudio::PitchScale()); }),
-		Strength("enemy-pitch-strength", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
+		Strength("enemy-pitch", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
 			[](double scale) { EntityCueAudio::SetStrength(EntityCueAudio::PanScale(), scale); }),
-		Strength("beacon-pan-strength", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
+		Strength("beacon-pan", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
 			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
-		Strength("beacon-pitch-strength", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
+		Strength("beacon-pitch", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
 			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
 	};
 }
@@ -1559,89 +1570,149 @@ SettingsList::Entry ManaAlerts() {
 	return entry;
 }
 
-std::vector<SettingsList::Entry> SettingEntries() {
+SettingsList::Entry DropSoundSpeed() {
+	SettingsList::Entry entry;
+	entry.key = "drop-sound-speed";
+	entry.levels = static_cast<int>(ItemAudio::DropSpeedPercents.size());
+	entry.level = ItemAudio::DropSpeedLevel;
+	entry.setLevel = ItemAudio::SetDropSpeedLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().dropSoundSpeed, ItemAudio::DropSpeedPercents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+SettingsList::Entry FootstepVolume() {
+	SettingsList::Entry entry;
+	entry.key = "footstep-volume";
+	entry.levels = static_cast<int>(Footsteps::VolumePercents.size());
+	entry.level = FootstepService::VolumeLevel;
+	entry.setLevel = FootstepService::SetVolumeLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().footstepVolume, Footsteps::VolumePercents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// The groups of the settings list (a tester, 2026-10-13), in the order of
+// Strings::Table::settingsGroups; the glossary is the last.
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Count };
+static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
+
+std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
+
+// Every switch and setting kept between sessions, by group.
+std::vector<SettingsList::Group> SettingGroups() {
 	using SettingsList::Entry;
 	using Cue = EntityCueService::Cue;
 	using Item = GroundItemService::Switch;
 	using T = Strings::Table;
+	using G = SettingsGroup;
 	const auto phrase = [](const char* T::* on, const char* T::* off) {
 		return [on, off](bool state) { return std::string(Strings::Current().*(state ? on : off)); };
 	};
-	std::vector<Entry> entries{
+	const auto cue = [](Cue which) { return [which] { return EntityCueService::Enabled(which); }; };
+	const auto setCue = [](Cue which) { return [which](bool on) { EntityCueService::SetEnabled(which, on); }; };
+	const auto item = [](Item which) { return [which] { return GroundItemService::Enabled(which); }; };
+	const auto setItem = [](Item which) { return [which](bool on) { GroundItemService::SetEnabled(which, on); }; };
+	auto strengths = Strengths(); // enemy pan, enemy pitch, beacon pan, beacon pitch
+	std::vector<SettingsList::Group> groups;
+	groups.push_back({GroupName(G::Sounds), {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
-		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
-		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
-		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
+		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
+		{GroundItems::LastEpochSounds, GroundItems::SetLastEpochSounds, phrase(&T::lastEpochSoundsOn, &T::lastEpochSoundsOff), false, "last-epoch-sounds"},
+		{GroundItems::DropSounds, GroundItems::SetDropSounds, phrase(&T::dropSoundsOn, &T::dropSoundsOff), false, "drop-sounds"},
+		DropSoundSpeed(),
+		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
+		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
+		{item(Item::Exits), setItem(Item::Exits), [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
+		{item(Item::Stash), setItem(Item::Stash), [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
+		{item(Item::Chests), setItem(Item::Chests), [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
+		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
+		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
+		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
+		FootstepVolume(),
+	}});
+	groups.push_back({GroupName(G::Enemies), {
+		{cue(Cue::All), setCue(Cue::All), phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
+		{cue(Cue::Enemies), setCue(Cue::Enemies), phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
+		{cue(Cue::Ordinary), setCue(Cue::Ordinary), phrase(&T::entityCueOrdinaryEnabled, &T::entityCueOrdinaryDisabled), true, "enemy-growls"},
+		{EntityCueAudio::ClassLayers, EntityCueAudio::SetClassLayers, phrase(&T::enemyClassSoundsOn, &T::enemyClassSoundsOff), false, "enemy-class-sounds"},
+		std::move(strengths[0]),
+		std::move(strengths[1]),
+		{cue(Cue::Ranged), setCue(Cue::Ranged), phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
+		{cue(Cue::Reach), setCue(Cue::Reach), phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
+		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
+		{cue(Cue::Npcs), setCue(Cue::Npcs), phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
+		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
+		{EntityCueService::NpcAlerts, EntityCueService::SetNpcAlerts, phrase(&T::npcAlertOn, &T::npcAlertOff), false, "npc-alerts"},
+	}});
+	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
-		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
-		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
-		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
-		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
-		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
-		{[] { return EntityCueService::Enabled(Cue::All); }, [](bool on) { EntityCueService::SetEnabled(Cue::All, on); }, phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
-		{[] { return EntityCueService::Enabled(Cue::Npcs); }, [](bool on) { EntityCueService::SetEnabled(Cue::Npcs, on); }, phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
-		{[] { return EntityCueService::Enabled(Cue::Enemies); }, [](bool on) { EntityCueService::SetEnabled(Cue::Enemies, on); }, phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
-		{[] { return EntityCueService::Enabled(Cue::Ranged); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ranged, on); }, phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
-		{[] { return GroundItemService::Enabled(Item::Speech); }, [](bool on) { GroundItemService::SetEnabled(Item::Speech, on); }, [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
-		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Quests); }, [](bool on) { GroundItemService::SetEnabled(Item::Quests, on); }, [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Stash); }, [](bool on) { GroundItemService::SetEnabled(Item::Stash, on); }, [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
-		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
-		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
-		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
 		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
 		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
-		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
-		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
-		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
+		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
+		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
+		std::move(strengths[2]),
+		std::move(strengths[3]),
+		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
+		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
+		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
+		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
+		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
+		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
+		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
+	}});
+	groups.push_back({GroupName(G::Items), {
+		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
+		{GroundItemText::SilverEnabled, GroundItemText::SetSilverEnabled, phrase(&T::silverItemsOn, &T::silverItemsOff), true, "silver-items"},
+		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
+		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
+		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
+		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
+		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
+		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
+		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
+		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
+	}});
+	groups.push_back({GroupName(G::Alerts), {
+		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
+		ManaAlerts(),
+		{VitalsService::ExperienceReport, VitalsService::SetExperienceReport, phrase(&T::experienceReportOn, &T::experienceReportOff), false, "experience-report"},
+		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
+		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
+		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
+		{GameTextReader::MercenaryBark, GameTextReader::SetMercenaryBark, phrase(&T::mercenaryBarkOn, &T::mercenaryBarkOff), false, "mercenary-bark"},
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
-		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
-		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
-		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
-		{GroundItemService::PickupClick, GroundItemService::SetPickupClick, phrase(&T::pickupClickOn, &T::pickupClickOff), false, "pickup-click"},
-		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
-		{GroundItemText::SilverEnabled, GroundItemText::SetSilverEnabled, phrase(&T::silverItemsOn, &T::silverItemsOff), true, "silver-items"},
-		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
-		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
-		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
-		{[] { return EntityCueService::Enabled(Cue::Ordinary); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ordinary, on); }, phrase(&T::entityCueOrdinaryEnabled, &T::entityCueOrdinaryDisabled), true, "enemy-growls"},
-		{[] { return EntityCueService::Enabled(Cue::Reach); }, [](bool on) { EntityCueService::SetEnabled(Cue::Reach, on); }, phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
-		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
-		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
-		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
-		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
-		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
-		{GroundItems::LastEpochSounds, GroundItems::SetLastEpochSounds, phrase(&T::lastEpochSoundsOn, &T::lastEpochSoundsOff), false, "last-epoch-sounds"},
-		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
+	}});
+	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
-	};
-	// The settings of several values sit beside the switch they tune.
-	const auto after = [&entries](std::string_view key, Entry entry) {
-		const auto at = std::find_if(entries.begin(), entries.end(), [key](const Entry& e) { return e.key && e.key == key; });
-		entries.insert(at == entries.end() ? at : at + 1, std::move(entry));
-	};
-	after("vitals", ManaAlerts());
-	auto strengths = Strengths();
-	after("beacon-sounds", std::move(strengths[3]));
-	after("beacon-sounds", std::move(strengths[2]));
-	after("enemy-growls", std::move(strengths[1]));
-	after("enemy-growls", std::move(strengths[0]));
+	}});
+	return groups;
+}
+
+// The same switches as one list, for keeping them between sessions.
+std::vector<SettingsList::Entry> SettingEntries() {
+	std::vector<SettingsList::Entry> entries;
+	for (auto& group : SettingGroups()) for (auto& entry : group.entries) entries.push_back(std::move(entry));
 	return entries;
 }
 
 // The switches, then the sound glossary: sounds to hear, nothing to save.
 SettingsList::Menu BuildSettings() {
-	auto entries = SettingEntries();
-	for (auto& sound : SoundGlossary::Entries()) entries.push_back(std::move(sound));
-	return SettingsList::Menu(std::move(entries), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	auto groups = SettingGroups();
+	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries()});
+	return SettingsList::Menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
 }
 
 // ---- the switches kept between sessions ----
@@ -1722,9 +1793,8 @@ bool Settings(Command command, uint64_t now) {
 	bool spent = true;
 	if (command == Command::Settings) text = g_settings.Toggle(now);
 	else if (!g_settings.Open()) spent = false;
-	else if (command == Command::SettingsChange) text = g_settings.Change(now);
-	else if (command == Command::SettingsLower || command == Command::SettingsRaise)
-		text = g_settings.Change(now, command == Command::SettingsLower ? -1 : 1);
+	else if (command == Command::SettingsChange || command == Command::SettingsRaise) text = g_settings.Enter(now);
+	else if (command == Command::SettingsLower || command == Command::SettingsBack) text = g_settings.Back(now);
 	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
 	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
 	else spent = false;
@@ -1738,11 +1808,11 @@ bool Settings(Command command, uint64_t now) {
 	return spent;
 }
 
-// The pad's Ctrl+S, Page Up/Down and Space: BACK+RB opens and shuts the list,
-// in play (where the pad filter keeps that RB from the game) or to shut it
-// anywhere, and while it is open the right stick steps through it (up, down)
-// and changes the switch (left, right) before the scanner or a menu can take
-// the push. BACK+RB is taken every update, so an old press is never acted on.
+// The pad's Ctrl+S, Page Up/Down, Space and Backspace: BACK+RB opens and shuts
+// the list, in play (where the pad filter keeps that RB from the game) or to shut
+// it anywhere, and while it is open the right stick steps through it (up, down),
+// opens a group or changes a switch (right) and goes back to the groups (left)
+// before the scanner or a menu can take the push. BACK+RB is taken every update, so an old press is never acted on.
 Command PadSettings(bool inPlay) {
 	using InputDirection::StickPush;
 	if (InputDirection::TakeBackWithRb() && (inPlay || g_settingsOpen.load())) return Command::Settings;
@@ -1812,7 +1882,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
-	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
+	if ((command == Command::SettingsChange || command == Command::SettingsBack) && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
 	// With the keyboard's cursor on a box of text the keys that type are the
 	// box's: a letter alone or with Shift, and the keys that move in the text.
 	if (KeyboardMenu::Typing() && !g_settingsOpen.load()
@@ -1861,7 +1931,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
-		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
+		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange || command == Command::SettingsBack;
 	if (!reading && !g_playing.load()) {
 		// A release still has to end a hold begun in play.
 		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
@@ -1958,7 +2028,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},
 			Entry{"keyboard-left-skill", "Choose the skill of the left hand", Key::S, Modifier::Shift, Command::LeftSkill},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
-			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
+			Entry{"keyboard-settings-change", "Open the group or change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
+			Entry{"keyboard-settings-back", "Back to the groups (settings list open)", Key::Backspace, Modifier::None, Command::SettingsBack},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},

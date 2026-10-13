@@ -84,7 +84,8 @@ struct EntityCueSettings {
 	bool valid = true;
 };
 // Pan and pitch strength as a percent of the compiled behavior; 100 keeps it.
-inline constexpr unsigned NeutralStrengthPercent = 100, MaxStrengthPercent = 200;
+// A tester asked for more than double (2026-10-13): pan saturates sooner, the rear drop deepens.
+inline constexpr unsigned NeutralStrengthPercent = 100, MaxStrengthPercent = 400;
 // A strength setting as a factor of the compiled behavior, unchanged when unset.
 inline double StrengthScale(std::optional<unsigned> percent) {
 	return static_cast<double>(percent.value_or(NeutralStrengthPercent)) / NeutralStrengthPercent;
