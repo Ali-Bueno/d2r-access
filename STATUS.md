@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Tester's fourth report — 2026-10-13 (b97178e..5234d50, pushed; no release yet)
+## Tester's fourth report — 2026-10-13 (released as test-2026-10-13 from ebc58d6)
+
+Release: 116/116 CTest, 29 entries, 61,745,440 bytes, SHA-256 `ac816e15…efeb`; the plugin says
+"test-2026-10-13" at start.
 
 Sixteen items; choices in [decisions](docs/decisions.md). Done, built and unit-tested only:
 - Sounds: shrine/well swapped (well = the game's drink sound); enemy classes as layers over one
@@ -32,10 +35,8 @@ Sixteen items; choices in [decisions](docs/decisions.md). Done, built and unit-t
 
 116/116 CTest; installed by the build. An independent review's findings are fixed (the stash
 notice now really queues: the reader ignored its own interrupt flag). Unverified live: all of it;
-every new game address is static RE. The user held the release back: more fixes come first
-(release notes ready in `../tester-news-draft-2026-10-13.txt`). **Next step:** the user's next
-fixes; then `tools/test-release.ps1 -NewsFile ../tester-news-draft-2026-10-13.txt`. Live, the user listens to the glossary (enemy layers, NPC bell) and checks
-the logs: `[npc] exclamation mark`, `[vitals] experience`, `[footsteps] volume stock=`,
+every new game address is static RE. **Next step:** the user or the tester tries it; they listen
+to the glossary (enemy layers, NPC bell, drop sounds) and check the logs: `[npc] exclamation mark`, `[vitals] experience`, `[footsteps] volume stock=`,
 `[hire] Y ->`, `[stash] empty slot`, `[stash] gold tab=`, `[grid-edge] crossed`.
 
 ## Tester's third report — 2026-10-12 (released as test-2026-10-12-3 from cd03aa1)
