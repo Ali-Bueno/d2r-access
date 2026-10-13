@@ -27,12 +27,13 @@ constexpr bool IsDrop(Sound sound) { return sound >= Sound::DropFirst && sound <
 // What an item is by its ItemTypes.txt ancestry; equipment is told apart by quality instead.
 // Potion is any other potion or elixir (stamina, antidote, thawing).
 enum class Base { Equipment, Gold, Potion, HealthPotion, ManaPotion, RejuvenationPotion, Scroll, Rune, Gem };
-// Gold and potions with the Last Epoch mod's sounds instead of the Diablo IV ones.
+// The item sounds to choose from (the user, 2026-10-13): the project's Diablo IV set, the
+// same with the Last Epoch mod's gold and potions, or the sound each item makes as it lands.
+enum class SoundSet { DiabloIV, LastEpoch, DiabloIIDrops, Count };
+int ItemSoundSet();
+void SetItemSoundSet(int set);
 bool LastEpochSounds();
-void SetLastEpochSounds(bool on);
-// Every item with the sound the game plays when it lands, instead of the sets above.
 bool DropSounds();
-void SetDropSounds(bool on);
 // An item's drop sound by its code; none for a code the item tables do not know.
 std::optional<Sound> DropSoundOf(uint32_t code);
 enum class SourceKind { Item, Object };

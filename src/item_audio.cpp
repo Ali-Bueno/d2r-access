@@ -4,6 +4,7 @@
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
+#include "sound_volume.h"
 #include <windows.h>
 #include <xaudio2.h>
 #include <algorithm>
@@ -194,7 +195,8 @@ void Worker(const D2RL::PluginContext* context) {
 				if (room) totalGain += std::max(room->gain, exploration.source ? exploration.gain : 0.0f);
 				totalGain += OneShotGain(arrival, requestedArrival, g_arrival) + OneShotGain(discovery, requestedDiscovery, g_discovery);
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
-				if (FAILED(master->SetVolume(mixVolume))) { g_running = false; break; }
+				const auto volume = static_cast<float>(SoundVolume::Of(SoundVolume::Family::Items).Factor());
+				if (FAILED(master->SetVolume(mixVolume * volume))) { g_running = false; break; }
 				const size_t passSamples = DropPassSamples(g_dropSpeed.load());
 				for (auto& active : playing) {
 					if (!active.source) continue;

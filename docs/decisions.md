@@ -26,8 +26,13 @@ Chosen:
   and the NPC bell are switches, on (optional suggestions, the user's 2026-10-11 rule).
 
 Follow-up the same day: the game's own drop sounds as an alternative item set, with a speed
-setting (`docs/ground-items.md#the-games-own-drop-sounds-2026-10-13`). Off by default: the Diablo
-IV set stays the user's. Quest items keep their reach and priority but sound as they land; the
+setting (`docs/ground-items.md#the-games-own-drop-sounds-2026-10-13`). The user asked for sets
+to choose from: Diablo IV (default), Last Epoch gold and potions, Diablo II drops, one setting.
+Volumes in four families (radar and walls, enemies and NPCs, items and places, guidance),
+0-200 percent over each config level, scaling the finished samples so the synthesizers stay
+as tested (`src/sound_volume.h`). A setting of several values could not be lowered on the pad:
+the user chose LB/RB, taken from the game only while the list is open (Shift+Space lowers on
+the keyboard). Rejected: wrapping a volume from 200 to silence; the D-pad (the belt). Quest items keep their reach and priority but sound as they land; the
 drop sounds are not in the glossary (45 names in 13 languages for little gain).
 
 Not done: the alternate potion/gold sounds already had a switch ("Potion and gold sounds", now

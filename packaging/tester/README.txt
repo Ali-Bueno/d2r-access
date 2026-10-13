@@ -97,11 +97,13 @@ In play:
   screen side instead of scanning).
 - BACK+B: terrain overview.
 - BACK+RB: the mod's settings list, open or close (the keyboard's Ctrl+S).
-  It is made of groups (Sounds, Enemies and NPCs, Navigation, Items and menus,
-  Alerts, Controller, Sound glossary). While it is open the right stick moves
-  through it: up and down step, right opens a group and then changes the
-  setting (or plays the sound again in the glossary), left goes back to the
-  groups. It closes by itself after 30 seconds unused.
+  It is made of groups (Sounds, Volumes, Enemies and NPCs, Navigation, Items
+  and menus, Alerts, Controller, Sound glossary). While it is open the right
+  stick moves through it: up and down step, right opens a group and then
+  changes the setting (or plays the sound again in the glossary), left goes
+  back to the groups. LB and RB lower and raise a setting of several values
+  (they are the list's while it is open). It closes by itself after 30
+  seconds unused.
 - Holding LT for a moment: reads the skill bar shown with LT.
 - L3 is the game's walk/run toggle: the mod says "Walking" or "Running" when
   you press it, and warns as stamina runs low. R3 is the game's weapon swap:
@@ -159,8 +161,9 @@ SETTINGS
 
 The in-game switches are in the Ctrl+S list (BACK+RB on the controller), in
 groups, each spoken as it stands ("Radar enabled"), and they are remembered
-between sessions. A setting of several values steps up and wraps round to the
-lowest. New ones worth knowing:
+between sessions. A setting of several values goes up with right (wrapping
+round to the lowest) or one step down or up with LB and RB. New ones worth
+knowing:
 - Enemy class sounds: layered (the default) or classic. Every enemy now
   growls at the same pitch, so pitch only tells up or down; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.
@@ -168,10 +171,12 @@ lowest. New ones worth knowing:
   town NPC, and after its name from the scanner or the NPC announcer. The
   game only shows the mark within about 15 steps of the NPC.
 - Footstep volume: your own footsteps from 25 to 300 percent of the game's.
-- Item sounds: Diablo IV (the default) or Diablo II drops. With Diablo II
-  drops every item on the ground repeats the sound the game makes when it
-  lands (a sword, a ring, a potion...). Drop sound speed, 50 to 300 percent,
-  sets how often they repeat.
+- Item sounds: Diablo IV (the default), Last Epoch gold and potions (the rest
+  stays Diablo IV), or Diablo II drops: every item on the ground repeats the
+  sound the game makes when it lands (a sword, a ring, a potion...). Drop
+  sound speed, 50 to 300 percent, sets how often they repeat.
+- Volumes: radar and walls (with the wall bump and wall tones), enemies and
+  NPCs, items and places, guidance; each from 0 to 200 percent.
 - Experience in the life report (on): BACK+X also says how far you are into
   your level, as the bar between the orbs shows.
 - Mercenary's lines named (on): "Mercenary says: I feel much stronger now".
@@ -196,8 +201,6 @@ lowest. New ones worth knowing:
   right stick (Space on the keyboard) step through the three.
 - Enemy sound panning and pitch, guidance panning and pitch: 0 to 400 percent;
   100 is the default.
-- Potion and gold sounds: Diablo or Last Epoch (each potion kind has its own
-  glass sound in the Last Epoch set).
 - Shrine and well sounds (on): a sound for each shrine or well you can still
   use, while it is in reach.
 - Back button for the mod only (on): during play the game no longer opens or

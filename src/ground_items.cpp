@@ -9,12 +9,12 @@
 
 namespace D2RAccess::GroundItems {
 namespace {
-std::atomic<bool> g_lastEpoch{false}, g_drops{false};
+std::atomic<int> g_set{static_cast<int>(SoundSet::DiabloIV)};
 }
-bool LastEpochSounds() { return g_lastEpoch; }
-void SetLastEpochSounds(bool on) { g_lastEpoch = on; }
-bool DropSounds() { return g_drops; }
-void SetDropSounds(bool on) { g_drops = on; }
+int ItemSoundSet() { return g_set; }
+void SetItemSoundSet(int set) { g_set = std::clamp(set, 0, static_cast<int>(SoundSet::Count) - 1); }
+bool LastEpochSounds() { return g_set == static_cast<int>(SoundSet::LastEpoch); }
+bool DropSounds() { return g_set == static_cast<int>(SoundSet::DiabloIIDrops); }
 std::optional<Sound> DropSoundOf(uint32_t code) {
 	const int index = Generated::DropSoundFor(code);
 	return index < 0 ? std::nullopt : std::optional{DropSound(static_cast<size_t>(index))};

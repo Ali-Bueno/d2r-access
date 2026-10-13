@@ -30,7 +30,8 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
 inline constexpr std::size_t GlossarySoundCount = 50;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
-inline constexpr std::size_t SettingsGroupCount = 7; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SettingsGroupCount = 8; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
 
 struct Table {
 	const char* pluginLoaded;
@@ -371,8 +372,6 @@ struct Table {
 	const char* stashMaterials;
 	const char* stashSlotEmpty;       // %s = the item of an empty gem, rune or material slot, named with a zero count
 	const char* mercenarySkills;      // %s = the mercenary's skills, as a list
-	const char* lastEpochSoundsOn;
-	const char* lastEpochSoundsOff;
 	const char* enemyPanStrength;     // %d = percent of the compiled stereo spread
 	const char* enemyPitchStrength;   // %d = percent of the compiled rear pitch drop
 	const char* beaconPanStrength;
@@ -394,10 +393,13 @@ struct Table {
 	const char* mercenaryBarkOff;
 	const char* npcAlertOn;
 	const char* npcAlertOff;
-	const char* dropSoundsOn;
-	const char* dropSoundsOff;
 	const char* dropSoundSpeed;       // %d = percent of the drop loops' once-a-second pace
+	const char* radarVolume;          // %d = percent of each family's configured level
+	const char* enemyVolume;
+	const char* itemVolume;
+	const char* guidanceVolume;
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
+	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
 };
 
@@ -450,12 +452,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
 	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName,
 		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.stashSlotEmpty, t.mercenarySkills,
-		t.lastEpochSoundsOn, t.lastEpochSoundsOff, t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,
+		t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundsOn, t.dropSoundsOff, t.dropSoundSpeed}) visit(s);
+		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume}) visit(s);
 	each(t.manaAlerts);
+	each(t.itemSoundSets);
 	each(t.settingsGroups);
 	each(t.placePresets);
 	each(t.placeInteriors);

@@ -138,6 +138,10 @@ bool TakeBackWithLb();
 // during play, as it does LB's. Same Take() rules as BACK+LB.
 bool TakeBackWithRb();
 
+// LB or RB pressed without BACK: lower or raise a setting while the settings
+// list is open, when pad_filter.h keeps them from the game. Same Take() rules.
+bool TakeShoulder(bool right);
+
 // L3, the game's own run/walk toggle, which still reaches it: read only to
 // announce the new gait. Take() returns whether a press happened since the
 // previous Take() and clears it.

@@ -326,8 +326,6 @@ inline constexpr Table ruRU {
 	.stashMaterials = "тайник для материалов",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "Умения: %s",
-	.lastEpochSoundsOn = "Звуки зелий и золота: Last Epoch",
-	.lastEpochSoundsOff = "Звуки зелий и золота: Diablo",
 	.enemyPanStrength = "Панорама звуков врагов: %d процентов",
 	.enemyPitchStrength = "Высота звуков врагов: %d процентов",
 	.beaconPanStrength = "Панорама наведения: %d процентов",
@@ -349,11 +347,14 @@ inline constexpr Table ruRU {
 	.mercenaryBarkOff = "Имя наёмника перед репликами: выключено",
 	.npcAlertOn = "Звон восклицательного знака NPC: включено",
 	.npcAlertOff = "Звон восклицательного знака NPC: выключено",
-	.dropSoundsOn = "Звуки предметов: падение из Diablo II",
-	.dropSoundsOff = "Звуки предметов: Diablo IV",
 	.dropSoundSpeed = "Скорость звуков падения: %d процентов",
+	.radarVolume = "Громкость радара и стен: %d процентов",
+	.enemyVolume = "Громкость врагов и NPC: %d процентов",
+	.itemVolume = "Громкость предметов и мест: %d процентов",
+	.guidanceVolume = "Громкость навигации: %d процентов",
 	.manaAlerts = {"Оповещения о мане: каждое изменение", "Оповещения о мане: только мало маны", "Оповещения о мане: выключено"},
-	.settingsGroups = {"Звуки", "Враги и NPC", "Навигация", "Предметы и меню", "Оповещения", "Контроллер", "Глоссарий звуков"},
+	.itemSoundSets = {"Звуки предметов: Diablo IV", "Звуки предметов: золото и зелья из Last Epoch", "Звуки предметов: падение из Diablo II"},
+	.settingsGroups = {"Звуки", "Враги и NPC", "Навигация", "Предметы и меню", "Оповещения", "Контроллер", "Глоссарий звуков", "Громкость"},
 };
 
 }

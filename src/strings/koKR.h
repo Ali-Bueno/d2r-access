@@ -326,8 +326,6 @@ inline constexpr Table koKR {
 	.stashMaterials = "재료 보관함",
 	.stashSlotEmpty = "%s: 0",
 	.mercenarySkills = "기술: %s",
-	.lastEpochSoundsOn = "물약과 골드 소리: Last Epoch",
-	.lastEpochSoundsOff = "물약과 골드 소리: Diablo",
 	.enemyPanStrength = "적 소리 패닝 %d퍼센트",
 	.enemyPitchStrength = "적 소리 음높이 %d퍼센트",
 	.beaconPanStrength = "안내 패닝 %d퍼센트",
@@ -349,11 +347,14 @@ inline constexpr Table koKR {
 	.mercenaryBarkOff = "용병 대사에 이름 표시 꺼짐",
 	.npcAlertOn = "NPC 느낌표 차임 켜짐",
 	.npcAlertOff = "NPC 느낌표 차임 꺼짐",
-	.dropSoundsOn = "아이템 소리: 디아블로 II 떨어지는 소리",
-	.dropSoundsOff = "아이템 소리: 디아블로 IV",
 	.dropSoundSpeed = "떨어지는 소리 속도 %d퍼센트",
+	.radarVolume = "레이더와 벽 음량 %d퍼센트",
+	.enemyVolume = "적과 NPC 음량 %d퍼센트",
+	.itemVolume = "아이템과 장소 음량 %d퍼센트",
+	.guidanceVolume = "안내 음량 %d퍼센트",
 	.manaAlerts = {"마나 알림: 모든 변화", "마나 알림: 마나 부족 시만", "마나 알림 꺼짐"},
-	.settingsGroups = {"소리", "적과 NPC", "길 안내", "아이템과 메뉴", "알림", "컨트롤러", "소리 용어집"},
+	.itemSoundSets = {"아이템 소리: 디아블로 IV", "아이템 소리: Last Epoch 골드와 물약", "아이템 소리: 디아블로 II 떨어지는 소리"},
+	.settingsGroups = {"소리", "적과 NPC", "길 안내", "아이템과 메뉴", "알림", "컨트롤러", "소리 용어집", "음량"},
 };
 
 }
