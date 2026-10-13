@@ -129,6 +129,9 @@ void SpeakAfter(const D2RL::PluginContext*, std::string_view text) {
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::NpcSpeech { bool AudioOnly() { return npcAudioOnly; } }
+namespace D2RAccess::Localization {
+std::string Text(std::string_view key) { return key == "merclevelup" ? "I feel much stronger now" : std::string{}; }
+}
 namespace D2RAccess::TradeService {
 void NamePrompt(UiText::Readout&) {}
 std::string FixNotice(std::string notice) { return notice; }
@@ -203,6 +206,15 @@ int main() {
 	panels.push_back(Menu()); focus = {1, 2}; Settle(); speech.clear();
 	panels[0].nodes.back().text = "A new system message";
 	Check(Settle() && speech.size() == 1 && speech.back().text == "A new system message" && !speech.back().interrupt, "notifications coexist with an NPC conversation without stealing focus");
+	speech.clear();
+	panels[0].nodes.back().text = "I feel much stronger now";
+	Check(Settle() && speech.size() == 1 && speech.back().text.find("I feel much stronger now") != std::string::npos
+		&& speech.back().text != "I feel much stronger now", "the mercenary's level-up line says who speaks");
+	speech.clear(); GameTextReader::SetMercenaryBark(false);
+	panels[0].nodes.back().text = "A newer system message"; Settle();
+	panels[0].nodes.back().text = "I feel much stronger now"; speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "I feel much stronger now", "and only the line itself with the switch off");
+	GameTextReader::SetMercenaryBark(true);
 	panels.pop_back(); focus = {};
 	panels[0].nodes.clear(); Settle(); speech.clear();
 	panels.push_back({50, 0, "NotificationPanel", UiText::Surface::Notice, {{51, -1, UiText::Kind::Text, "Prompt", "TextBoxWidget", "An informative notice"}}});

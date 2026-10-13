@@ -95,6 +95,33 @@ int main() {
 	(void)switches.Toggle(0);
 	const bool before = g_switches[1].on;
 	Check(!switches.Change(10, -1).empty() && g_switches[1].on != before, "left flips a switch as well");
+	Check(switches.Back(20).empty() && switches.Enter(30) == (g_switches[1].on ? "Trade off" : "Trade on"),
+		"without groups Back does nothing and Enter changes the switch");
+
+	// Named groups: the list steps through the groups, Enter opens one, Back returns.
+	g_switches = {{"Radar", true, true}, {"Trade", true, false}, {"Doors", false, false}};
+	SettingsList::Entry radar{[] { return g_switches[0].on; }, [](bool on) { g_switches[0].on = on; },
+		[](bool on) { return std::string(on ? "Radar on" : "Radar off"); }};
+	SettingsList::Entry trade{[] { return g_switches[1].on; }, [](bool on) { g_switches[1].on = on; },
+		[](bool on) { return std::string(on ? "Trade on" : "Trade off"); }};
+	SettingsList::Entry doors{[] { return g_switches[2].on; }, [](bool on) { g_switches[2].on = on; },
+		[](bool on) { return std::string(on ? "Doors on" : "Doors off"); }};
+	SettingsList::Menu grouped({{"Navigation", {radar, doors}}, {"Empty", {}}, {"Alerts", {trade}}}, "Settings", "Settings closed");
+	Check(grouped.Toggle(0) == "Settings. Navigation", "a grouped list opens on its first group");
+	Check(grouped.Change(10).empty() && g_switches[0].on, "a change among the groups changes nothing");
+	Check(grouped.Step(1, 20) == "Alerts" && grouped.Step(1, 30) == "Navigation", "steps go group to group, an empty group left out");
+	Check(grouped.Back(40).empty(), "Back among the groups has nowhere to go");
+	Check(grouped.Enter(50) == "Radar on", "Enter opens the group on its first switch");
+	Check(grouped.Step(1, 60) == "Doors off" && grouped.Step(1, 70) == "Radar on", "steps wrap within the group");
+	(void)grouped.Step(1, 80);
+	Check(grouped.Enter(90) == "Doors on" && g_switches[2].on, "Enter within a group changes the switch");
+	Check(grouped.Back(100) == "Navigation", "Back returns to the groups and names the group");
+	Check(grouped.Step(1, 110) == "Alerts" && grouped.Enter(120) == "Trade on", "another group opens on its own switch");
+	(void)grouped.Back(130);
+	(void)grouped.Step(-1, 140);
+	Check(grouped.Enter(150) == "Doors on", "a group reopens on the switch it was left on");
+	Check(grouped.Toggle(160) == "Settings closed" && grouped.Toggle(170) == "Settings. Doors on",
+		"the list reopens where it was left, inside a group too");
 	Passed();
 	return 0;
 }

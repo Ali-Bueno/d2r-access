@@ -5,6 +5,7 @@
 #include "keyboard_menu.h"
 #include "localization.h"
 #include "mercenary_stats.h"
+#include "native_skill_bar.h"
 #include "native_tooltips.h"
 #include "native_widgets.h"
 #include "pad_filter.h"
@@ -60,6 +61,7 @@ bool Enabled() { return autoDetail; }
 namespace D2RAccess::KeyboardMenu {
 bool Active() { return keyboard; }
 }
+namespace D2RAccess::NativeSkillBar { std::string SkillName(int) { return {}; } }
 namespace D2RAccess::MercenaryStats {
 std::vector<Skill> Skills(uintptr_t) { return {}; }
 // An icon's text as the engine keeps a tooltip: bottom-up.

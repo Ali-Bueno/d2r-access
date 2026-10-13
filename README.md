@@ -229,9 +229,9 @@ bump** thud, panned by the push; it repeats only after a step, a turn of more
 than 45 degrees or a release of the stick (`wall-bump` in the Ctrl+S settings
 list). See [radar readings](docs/radar-readings.md).
 
-**Sound glossary:** the last entries of the Ctrl+S settings list are the mod's
-sounds (radar readings, wall bump, guidance, enemy and NPC cues, the pickup
-click, the inventory edge knock, every loot and place loop): landing on one
+**Sound glossary:** the last group of the Ctrl+S settings list holds the mod's
+sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
+exclamation mark chime, the inventory edge knock, every loot and place loop): landing on one
 names it and plays it once, Space plays it again (`src/sound_glossary.cpp`).
 
 An experimental **stalled-footstep filter** suppresses repeated local HD

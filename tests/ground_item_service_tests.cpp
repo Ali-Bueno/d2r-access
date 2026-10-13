@@ -133,6 +133,9 @@ int main() {
 	Check(GroundItemService::OwnsWorldLabel("Poción"), "nearby world tooltip defers to the proximity announcement");
 	Check(!GroundItemService::OwnsWorldLabel("Charsi"), "NPC labels are not suppressed");
 	GroundItemService::NoteWorldTarget("Poción");
+	Check(pickupClicks == 0, "the pickup click is off until the user's own clicks exist");
+	GroundItemService::SetPickupClick(true);
+	GroundItemService::NoteWorldTarget("Poción");
 	GroundItemService::NoteWorldTarget("Poción");
 	Check(pickupClicks == 1, "the pickup prompt naming a ground item clicks once while it stays up");
 	GroundItemService::NoteWorldTarget("Charsi");

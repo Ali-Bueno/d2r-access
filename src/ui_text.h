@@ -43,6 +43,7 @@ struct Readout {
 struct Announcement {
 	std::string text;
 	bool interrupt = true;
+	bool sameFocus = false; // only the content under an unchanged focus changed
 };
 
 // U+E07E opens the game's inline font command; one index character, '0'..'V', follows it.

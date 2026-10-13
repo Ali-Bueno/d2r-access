@@ -173,8 +173,10 @@ bookshelves loop the chest cue.
 A tester noticed shrines and wells only through the scanner. Every one the player can still use
 (objects.txt SubClass shrine or well; a used one is no longer selectable) loops while in reach:
 `exploration/shrine.ogg` and `exploration/well.ogg`, the two nearest at most (`MaxShrineVoices`),
-behind `shrine-sounds` (Ctrl+S, on). Both are Diablo IV recordings chosen without listening: the
-shrines' ambience cut to 12 s with 0.3 s fades, and the healing well's activation padded to 1.8 s.
+behind `shrine-sounds` (Ctrl+S, on). 2026-10-13, the tester: the shrine sounded like a monster.
+The shrine now loops the Diablo IV healing well's activation (padded to 1.8 s), the old well
+sound; the well loops the game's own drink sound (`object_well_hd`, `object_fountain_hd.flac`
+from CASC, +5 dB through a 0.9 limiter, padded to 1.8 s).
 The user may swap either file; a water ambience was too sparse to pass the loudness test.
 
 ## Gold and potions from the Last Epoch mod (2026-10-12)
@@ -409,3 +411,19 @@ User-led check: approach a potion, scroll, gold and equipment; stop beside each;
 walk away and return; collect one; open dialogue and inventory; leave/rejoin.
 Use `[items]` and `[item-audio]` in the latest plugin log. No per-frame audio
 logging or computer-control inputs are needed for this listening check.
+
+## The game's own drop sounds (2026-10-13)
+
+The tester suggested, and the user asked for, a set for players who do not want the Diablo IV
+sounds: every item loops the sound the game plays when it lands (`drop-sounds`, Ctrl+S Sounds,
+off). The dropsound column of weapons.txt, armor.txt and misc.txt names a sounds.txt row whose
+Redirect is the HD file; `tools/gen_drop_sounds.py` maps the 692 item codes to 45 sounds
+(`src/generated/drop_sounds.h`, `cmake/DropSounds.cmake`) and converts the HD files from CASC
+into `sounds/item loop sounds/d2 drops/`, embedded with +9 dB through the 0.9 limiter.
+
+The drop sound only replaces what plays (`Item::play`): the item's category still sets its
+reach, the quest items' longer reach and priority, and the speech order, and overrides the Last
+Epoch gold and potions. A drop sound repeats once a second at 100 percent; `drop-sound-speed`
+(50-300 percent) shortens or lengthens the pass, cutting a long sound with a 10 ms fade
+(`ItemWave::Pass`); a change restarts the playing loops. Quality is no longer heard in the
+sound with this set: the speech names it. Not in the sound glossary.

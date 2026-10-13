@@ -18,10 +18,19 @@ struct Movement {
 };
 std::optional<Movement> PlayerMovement() noexcept;
 
+// The local player's experience within its level, as the HUD's bar fills.
+struct Experience {
+	int level = 0, percent = -1;
+	uint64_t total = 0, levelStart = 0, nextLevel = 0;
+	bool maximum = false; // at the level cap there is nothing to reach
+};
+std::optional<Experience> PlayerExperience() noexcept;
+
 struct Mercenary {
 	uint32_t id = 0;
 	int lifePercent = -1;
 	int level = -1;
+	int experiencePercent = -1; // within its level, -1 unknown
 };
 // The unit bound to the game's HirelingInventoryPanel; absent is unknown.
 std::optional<Mercenary> MercenaryLife() noexcept;

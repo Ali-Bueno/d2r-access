@@ -62,7 +62,7 @@ static std::vector<Cue> LegacySelect(const Radar::World& world, const std::vecto
 		auto& slot = nearest[static_cast<size_t>(*kind)];
 		if (slot && (distance > slot->distance || (distance == slot->distance && entity.id >= slot->id))) continue;
 		if (!EntityRadar::LineOfSight(world, world.player, entity.position)) continue;
-		Cue cue{entity.id, *kind, distance};
+		Cue cue{entity.id, *kind, entity.enemy.boss, distance};
 		cue.slot = static_cast<size_t>(*kind);
 		if (distance > 0) {
 			// Native isometric projection, shared with beacon and ground-item audio.
@@ -97,7 +97,7 @@ std::vector<Cue> Select(const Radar::World& world, const std::vector<EntityRadar
 		const auto bearing = BearingOf(world.player, entity.position);
 		const double distance = bearing.distance;
 		if (!std::isfinite(distance) || !InArea(world.player, entity.position, distance, *kind, settings)) continue;
-		Cue cue{entity.id, *kind, distance, bearing.right, bearing.front};
+		Cue cue{entity.id, *kind, entity.enemy.boss, distance, bearing.right, bearing.front};
 		cue.intervalMs = IntervalMs(distance, settings);
 		cue.slot = static_cast<size_t>(*kind);
 		// Ordinary enemies are ranked first and only the nearest few pay for a terrain ray.
@@ -153,4 +153,20 @@ std::optional<Cue> Tracker::Update(const Radar::World& world, const std::vector<
 	return next;
 }
 void Tracker::Reset() { slots_ = {}; played_ = false; last_ = 0; }
+
+std::vector<Cue> AlertTracker::Raised(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	std::vector<Cue> raised;
+	for (const auto& entity : entities) {
+		if (entity.kind != EntityRadar::Kind::Npc) continue;
+		const auto known = std::find(shown_.begin(), shown_.end(), entity.id);
+		// An NPC out of this read keeps its place: only one seen without the mark is forgotten.
+		if (!entity.npcAlert) { if (known != shown_.end()) shown_.erase(known); continue; }
+		if (known != shown_.end()) continue;
+		shown_.push_back(entity.id);
+		const auto bearing = BearingOf(world.player, entity.position);
+		raised.push_back(Cue{entity.id, Kind::Npc, false, bearing.distance, bearing.right, bearing.front});
+	}
+	std::sort(raised.begin(), raised.end(), Nearer);
+	return raised;
+}
 }

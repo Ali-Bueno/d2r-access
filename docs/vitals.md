@@ -112,3 +112,20 @@ announced with its equipment slot. An item with no maximum durability never
 breaks, an item worn already broken is not a break, and an item that stays
 broken is announced once. Repairing and breaking again is announced again.
 Breakage speech queues so it cannot erase a critical life alert from the same tick.
+
+## Experience (2026-10-13)
+
+A tester: the bar between the orbs is always in a sighted player's view. The
+life report (BACK+X, Mod+X) ends with "Experience N percent", how far into the
+level as the bar fills (`experience-report`, Ctrl+S, on). Static RE of the HUD
+bar's updater 0x14CC8C0: experience is stat 13, the thresholds come from
+experience.txt through 0x300920(expansion 0x34A0E0, class 0x349860, level - 1
+and level), below the cap 0x300C70. At the cap nothing is said.
+
+The controller's mercenary panel draws only a bar (its CurrentXP/NextLevelXP
+boxes are commented out in `Controller/HirelingInventoryPanelHD.json`), so the
+panel's experience line is the same percent: the hireling panel 0x14F3400 reads
+stat 13 and the next threshold stat 30, and a level starts at
+ExpPerLvl * L^2 * (L + 1), so ExpPerLvl = next / ((L + 1)^2 * (L + 2))
+(`Vitals::MercenaryLevelStart`). Live check: `[vitals] experience level=1
+total=... start=0 next=500` for a new character; the percent matches the bar.

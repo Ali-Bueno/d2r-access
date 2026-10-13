@@ -8,6 +8,7 @@
 #include "radar_trace.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "entity_cue_service.h"
 #include "speech_strings.h"
 
 #include <windows.h>
@@ -113,6 +114,7 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 		announcement->entity.id, announcement->entity.position.x, announcement->entity.position.y, announcement->distance,
 		RadarTrace::DirectionName(static_cast<size_t>(announcement->direction)), text.c_str());
 	ScreenReader::Speak(text, false);
+	if (announcement->entity.npcAlert) EntityCueService::PlayNpcAlert();
 }
 }
 

@@ -231,6 +231,19 @@ inline constexpr Evidence SocketChecks[] = {
 	{0x388C10, 68, 0xCF3B0CFFC3095301ULL}, // first item: magic check, then Inv+0x10
 	{0x3856E0, 378, 0x969ACF37B5669D2AULL}, // socket insert: owner Inv+8, count Inv+0x4C
 };
+// The "!" over a town NPC (Overlay.txt row 72, npcalert). Packet 0x8A's handler adds
+// it to the unit's overlay list within 15 subtiles of a pending quest; packet 0x27
+// (any NPC's dialogue) removes it from every NPC. The game's own test 0x152650 walks
+// the graphics data (Unit+0x78, 0x9A600) from +0x440: an id at +4, the next at +0xB0.
+inline constexpr size_t UnitGraphics = 0x78, GraphicsOverlays = 0x440, OverlayId = 4, OverlayNext = 0xB0;
+inline constexpr int32_t NpcAlertOverlay = 72;
+inline constexpr size_t MaxOverlays = 32; // a bound on the walk, not a game limit
+inline constexpr Evidence NpcAlertChecks[] = {
+	{0x9A600, 13, 0x1B97936E36D88934ULL}, // Unit+0x78 graphics data
+	{0x152650, 68, 0x620012C0175D4061ULL}, // has overlay: list +0x440, id +4, next +0xB0
+	{0x10F190, 340, 0x0FB5AA7F198F0466ULL}, // packet 0x8A adds overlay 72, skipping the NPC being talked to
+	{0x10B2B0, 93, 0xE6FEA295123E3FDBULL}, // packet 0x27 removes it from every NPC-flagged unit
+};
 inline constexpr Evidence CorpseChecks[] = {
 	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper
 	{0x388BA0, 100, 0xB5FBC7641E1D7F3AULL}, // inventory magic and link ID

@@ -2,6 +2,32 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Tester's fourth report — 2026-10-13 (not committed)
+
+Sixteen items; choices in [decisions](docs/decisions.md). Done, built and unit-tested only:
+- Sounds: shrine/well swapped (well = the game's drink sound); enemy classes as layers over one
+  growl, boss apart from elite (`enemy-class-sounds`, on) ([entity cues](docs/entity-cues.md));
+  pan/pitch strengths 0-400 % (new keys, so a strength saved in the old steps starts over from
+  the TOML once); pickup click out of the glossary and the list, and off.
+- Settings list in seven groups; right/Space opens or changes, left/Backspace returns.
+- NPC "!" bell (`npc-alerts`): overlay 72 read live, rings when it appears and after the NPC's
+  name ([NPC proximity](docs/npc-proximity.md#the--over-an-npc-2026-10-13)).
+- Experience percent in BACK+X (`experience-report`) and in the controller's mercenary panel
+  (stats 13/30, [vitals](docs/vitals.md#experience-2026-10-13)); "Mercenary says:" (`mercenary-bark`).
+- Footstep volume 25-300 % on the game's own footfall ([footsteps](docs/footsteps.md#footstep-volume-2026-10-13)).
+- Inventory (worked in a worktree, branch `report4-inventory` `34de7b1`, applied here): the stash
+  notice no longer cut by the cell; the backpack-to-vendor/stash knock judged per crossing; empty
+  gem/rune/material slots say "<name>: 0"; gold says personal or shared stash.
+- Hire window: skill names follow the row, Y says them or the game's tooltips ([character panel](docs/character-panel.md)).
+- The game's own drop sounds as an item set (`drop-sounds`, off) and their pace
+  (`drop-sound-speed`, 50-300 %) ([ground items](docs/ground-items.md#the-games-own-drop-sounds-2026-10-13)).
+
+116/116 CTest; installed by the build. An independent review's findings are fixed (the stash
+notice now really queues: the reader ignored its own interrupt flag). Unverified live: all of it;
+every new game address is static RE. **Next step:** the user listens to the glossary (enemy layers, NPC bell) and checks
+the logs: `[npc] exclamation mark`, `[vitals] experience`, `[footsteps] volume stock=`,
+`[hire] Y ->`, `[stash] empty slot`, `[stash] gold tab=`, `[grid-edge] crossed`.
+
 ## Tester's third report — 2026-10-12 (released as test-2026-10-12-3 from cd03aa1)
 
 Release: 116/116 CTest, 29 entries, 60,255,237 bytes, SHA-256 `8fb17af8…100c`; the plugin says

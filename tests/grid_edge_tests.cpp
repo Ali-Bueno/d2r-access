@@ -76,9 +76,38 @@ void LeavingTheGrid() {
 	tapped.Update(At(9, 1, 0, 0, 30));
 	Check(tapped.Update({0, -1, -1, -1, -1, 0, 0, 60}).kind == Kind::Left, "a tap is followed past the release");
 }
+
+void Crossings() {
+	constexpr uintptr_t Pack = 1, Vendor = 2;
+	CrossingTracker tracker;
+	Check(!tracker.Update(Pack, 1, 0, 1000).crossed, "staying on a panel is no crossing");
+	const auto crossing = tracker.Update(Vendor, 0, 0, 1000 + PushWindowMs - 1);
+	Check(crossing.crossed && crossing.dx == 1 && crossing.from == Pack && crossing.to == Vendor,
+		"another panel's cell right after a push crosses, toward the push");
+	Check(!tracker.Update(Pack, 0, 0, 1100).crossed, "going back inside the cool-down is not sounded");
+	constexpr uint64_t firstCrossing = 1000 + PushWindowMs - 1;
+	tracker.Update(Pack, -1, 0, firstCrossing + CrossingCooldownMs - 100);
+	Check(tracker.Update(Vendor, -1, 0, firstCrossing + CrossingCooldownMs).crossed, "once the cool-down passed, the next crossing is");
+
+	CrossingTracker blank;
+	blank.Update(Pack, 1, 0, 0);
+	blank.Update(0, 1, 0, PanelMemoryMs - 50);
+	Check(blank.Update(Vendor, 0, 0, PanelMemoryMs).crossed, "a blank gap within the memory keeps the previous panel");
+	CrossingTracker forgotten;
+	forgotten.Update(Pack, 1, 0, 0);
+	Check(!forgotten.Update(Vendor, 1, 0, PanelMemoryMs + 1).crossed, "a longer gap forgets it");
+	CrossingTracker idle;
+	idle.Update(Pack, 0, 0, 0);
+	Check(!idle.Update(Vendor, 0, 0, 100).crossed, "a panel change with no push (the mouse, a tab) is no crossing");
+	CrossingTracker stale;
+	stale.Update(Pack, 1, 0, 0);
+	stale.Update(Pack, 0, 0, PushWindowMs);
+	stale.Update(Pack, 0, 0, PushWindowMs * 2);
+	Check(!stale.Update(Vendor, 0, 0, PushWindowMs * 2 + 100).crossed, "a push long before is no crossing");
+}
 }
 
 int main() {
-	FreshPress(); Tap(); Moving(); LeavingTheGrid();
+	FreshPress(); Tap(); Moving(); LeavingTheGrid(); Crossings();
 	Passed();
 }

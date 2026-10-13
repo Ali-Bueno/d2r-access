@@ -20,6 +20,9 @@ bool MovementAlerts();
 void SetMovementAlerts(bool enabled);
 bool AmmoAlerts();
 void SetAmmoAlerts(bool enabled);
+// Experience within the level, said by the life report (BACK+X, Mod+X).
+bool ExperienceReport();
+void SetExperienceReport(bool enabled);
 // How much mana is spoken unasked, a Vitals::ManaAlerts level.
 int ManaAlerts();
 void SetManaAlerts(int level);

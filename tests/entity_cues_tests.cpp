@@ -216,8 +216,29 @@ void BigPack() {
 	Settings none; none.maxVoices = 0;
 	Check(Select(world, pack, none).size() == 1, "a zero voice count still allows one voice");
 }
+// The "!" over an NPC rings once when it appears, again only after it went away.
+void NpcAlerts() {
+	const auto world = World();
+	auto akara = Make(1, Kind::Npc, 40, 30), warriv = Make(2, Kind::Npc, 33, 30), boss = Make(3, Kind::Important, 31, 30);
+	akara.npcAlert = warriv.npcAlert = boss.npcAlert = true;
+	AlertTracker alerts;
+	const auto first = alerts.Raised(world, {akara, warriv, boss});
+	Check(first.size() == 2 && first[0].id == 2 && first[1].id == 1, "both marks ring, nearest first, and never an enemy's");
+	Check(first[0].right > 0, "the bell is placed toward the NPC");
+	Check(alerts.Raised(world, {akara, warriv}).empty(), "a mark still shown does not ring again");
+	akara.npcAlert = false;
+	Check(alerts.Raised(world, {akara, warriv}).empty(), "a mark that went away is silent");
+	akara.npcAlert = true;
+	const auto again = alerts.Raised(world, {akara, warriv});
+	Check(again.size() == 1 && again[0].id == 1, "a mark that comes back rings again");
+	Check(alerts.Raised(world, {warriv}).empty() && alerts.Raised(world, {akara, warriv}).empty(),
+		"an NPC missing from one read and back with its mark does not ring again");
+	alerts.Reset();
+	Check(alerts.Raised(world, {akara}).size() == 1, "a new game rings for the marks already shown");
+}
+
 int main() {
-	ScreenArea(); BigPack();
+	ScreenArea(); BigPack(); NpcAlerts();
 	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); PackCadence(); FastRepeatsAtRuntimeCadence();
 	GrowlsOff();
 	Passed();

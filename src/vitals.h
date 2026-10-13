@@ -27,6 +27,14 @@ int Step(int percent);
 // up into a safer number; -1 when the maximum is unusable.
 int Percent(int current, int maximum);
 
+// How far into its level an experience total is, floored to 0-99, as the
+// game's experience bar fills between the two thresholds; -1 when they make no sense.
+int ExperiencePercent(uint64_t experience, uint64_t levelStart, uint64_t nextLevel);
+// Where a mercenary's level began, from its next-level threshold: the hireling
+// panel (0x14F3400) uses ExpPerLvl * L * L * (L + 1), so the next one is
+// ExpPerLvl * (L + 1)^2 * (L + 2). 0 when the threshold does not fit that rule.
+uint64_t MercenaryLevelStart(int level, uint64_t nextLevel);
+
 // The two numbers an orb's value display shows ("45/120"), digit grouping and
 // surrounding text ignored. Nothing when the text carries no such pair.
 struct Orb {

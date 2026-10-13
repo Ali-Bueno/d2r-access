@@ -61,6 +61,17 @@ std::vector<int16_t> Parse(std::span<const uint8_t> bytes) {
 	std::memcpy(result.data(), bytes.data() + data, dataSize);
 	return result;
 }
+std::vector<int16_t> Pass(std::span<const int16_t> sound, size_t length, size_t fade) {
+	std::vector<int16_t> pass(length);
+	const size_t kept = std::min(sound.size(), length);
+	std::copy_n(sound.begin(), kept, pass.begin());
+	if (kept < sound.size()) {
+		fade = std::min(fade, kept);
+		for (size_t i = 0; i < fade; ++i)
+			pass[kept - 1 - i] = static_cast<int16_t>(pass[kept - 1 - i] * static_cast<float>(i) / static_cast<float>(fade));
+	}
+	return pass;
+}
 std::vector<int16_t> LoadEmbedded(HMODULE module, std::string_view folder, std::string_view file) {
 	const HRSRC info = FindResourceW(module, ResourceName(folder, file).c_str(), reinterpret_cast<LPCWSTR>(RT_RCDATA)); // integer ID, UNICODE or not
 	const HGLOBAL handle = info ? LoadResource(module, info) : nullptr;

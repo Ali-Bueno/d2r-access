@@ -1,4 +1,5 @@
 #include "footsteps.h"
+#include <algorithm>
 
 namespace D2RAccess::Footsteps {
 const char* ReasonName(Reason reason) {
@@ -53,5 +54,9 @@ bool Filter::Suppress(const Sample& sample, uint64_t now) {
 	previous_ = sample;
 	lastSeen_ = now;
 	return decision_.reason == Reason::Stalled;
+}
+int ScaleVolume(int stock, int percent) {
+	const long long scaled = (static_cast<long long>(stock) * percent + NeutralVolumePercent / 2) / NeutralVolumePercent;
+	return static_cast<int>(std::clamp<long long>(scaled, 1, MaxInstanceVolume));
 }
 }

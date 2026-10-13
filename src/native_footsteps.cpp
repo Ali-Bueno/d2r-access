@@ -16,12 +16,17 @@ constexpr size_t UnitType = 0, UnitMode = 0xC, UnitPath = 0x38, PathPosition = 0
 // D2C_PlayerModes (D2MOO Units/Player.h); native 0x7D96D0 also tests run == 3.
 constexpr uint32_t Walk = 2, Run = 3, TownWalk = 6;
 constexpr uint8_t PlayPrefix[] = {0x40, 0x55, 0x56, 0x41, 0x55, 0x48, 0x8D, 0x6C, 0x24, 0xB9, 0x48, 0x81, 0xEC, 0xA0, 0, 0, 0};
-uintptr_t g_resolve = 0;
+// A sound instance's volume (0-255, the instance's +0x24): the caller sets the
+// footfall's after this returns, then the game's sliders scale it. See docs/footsteps.md.
+constexpr uintptr_t GetVolumeRva = 0x19E9D0, SetVolumeRva = 0x19F900;
+uintptr_t g_resolve = 0, g_getVolume = 0, g_setVolume = 0;
 void* g_original = nullptr;
 
 uintptr_t Play(uint32_t entity) {
 	if (FootstepService::Suppress(entity)) return 0;
-	return reinterpret_cast<uintptr_t(*)(uint32_t)>(g_original)(entity);
+	const auto handle = reinterpret_cast<uintptr_t(*)(uint32_t)>(g_original)(entity);
+	if (handle) FootstepService::Played(entity, handle);
+	return handle;
 }
 uintptr_t Resolve(uint32_t entity) noexcept {
 	__try { return g_resolve ? reinterpret_cast<uintptr_t(*)(uint32_t)>(g_resolve)(entity) : 0; }
@@ -46,10 +51,23 @@ bool Initialize(const D2RL::PluginContext* context) {
 		return false;
 	}
 	g_resolve = base + ResolveRva;
+	if (Verify(base, GetVolumeRva, 57, 0x018164D7729BD324ULL) && Verify(base, SetVolumeRva, 56, 0x988923A1DB8C994AULL)) {
+		g_getVolume = base + GetVolumeRva;
+		g_setVolume = base + SetVolumeRva;
+	} else AsyncLog::Warn(context, "[footsteps] Sound volume code mismatch; footstep volume unavailable.");
 	const bool installed = context->InstallInlineHook(PlayRva, PlayPrefix, sizeof(PlayPrefix), reinterpret_cast<void*>(&Play), &g_original);
 	if (installed) AsyncLog::Info(context, "[footsteps] Verified HD footfall hook installed; local stalled steps only.");
-	else { g_resolve = 0; AsyncLog::Warn(context, "[footsteps] Hook unavailable; normal game sounds retained."); }
+	else { g_resolve = g_getVolume = g_setVolume = 0; AsyncLog::Warn(context, "[footsteps] Hook unavailable; normal game sounds retained."); }
 	return installed;
+}
+bool VolumeSupported() { return g_getVolume && g_setVolume; }
+int Volume(uintptr_t handle) noexcept {
+	__try { return g_getVolume ? reinterpret_cast<int(*)(uintptr_t)>(g_getVolume)(handle) : -1; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return -1; }
+}
+void SetVolume(uintptr_t handle, int volume) noexcept {
+	__try { if (g_setVolume) reinterpret_cast<void(*)(uintptr_t, int)>(g_setVolume)(handle, volume); }
+	__except (EXCEPTION_EXECUTE_HANDLER) {}
 }
 Footsteps::Sample Read(uint32_t entity) noexcept {
 	Footsteps::Sample result{.entity = entity};

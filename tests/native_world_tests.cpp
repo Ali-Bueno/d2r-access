@@ -312,7 +312,7 @@ int main() {
 		Check(tuned.valid && tuned.onScreen == false && tuned.maxVoices == EntityCues::MaxVoices && tuned.panStrength == 150u
 			&& tuned.pitchStrength == RadarConfig::MaxStrengthPercent, "growl voices and strengths parse and clamp");
 		Check(RadarConfig::ParseEntityCues("[entity_cues]\nmax_voices = 0\n").maxVoices == 1u, "at least one voice");
-		const auto beacon = RadarConfig::ParseBeacon("[entity_cues]\npan_strength = 5\n[beacon]\npan_strength = 0\npitch_strength = 250\n");
+		const auto beacon = RadarConfig::ParseBeacon("[entity_cues]\npan_strength = 5\n[beacon]\npan_strength = 0\npitch_strength = 900\n");
 		Check(beacon.valid && beacon.panStrength == 0u && beacon.pitchStrength == RadarConfig::MaxStrengthPercent, "beacon strengths parse in their own section");
 		Check(!RadarConfig::ParseBeacon("[beacon]\npan_strength = -1\n").valid && RadarConfig::ParseBeacon("").valid
 			&& !RadarConfig::ParseBeacon("").panStrength, "bad beacon strengths are rejected, absent ones keep defaults");

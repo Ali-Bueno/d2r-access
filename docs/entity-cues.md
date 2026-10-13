@@ -122,3 +122,18 @@ find a Fallen shaman and a ranged pack outdoors, and compare against an elite.
 Move closer/farther, kill the enemy, open dialogue/pause, and change areas.
 Confirm cue loudness and identity alongside the radar and game combat audio.
 `[entity-cues]` logs selection and suspension; `[entity-audio]` logs device state.
+
+## Enemy classes by layer (2026-10-13)
+
+A tester: elite, boss, shaman and archer cues were the same swoop at different
+pitches, and pitch already says up or down, so a boss above sounded like an
+ordinary enemy below. Now every enemy growls in the same register and its class
+adds a layer, at about half the growl's level and swelling with it:
+champion/unique/minion a bright buzz chattering at 62 Hz, act boss or super
+unique a metallic ring (a struck bar's partials), raiser of the dead a wailing
+tone with vibrato, ordinary ranged a thin whistle. Elite and boss are now two
+sounds (`Cue::boss`, from `EnemyTraits::boss`). `enemy-class-sounds` (Ctrl+S,
+on, the user's choice) brings back the swoops. The pan and pitch strengths go up
+to 400 percent; the pitch never drops below a quarter. The NPC "!" bell is in
+[NPC proximity](npc-proximity.md). Not yet heard by the user: the glossary
+plays each one.

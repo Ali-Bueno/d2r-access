@@ -1,8 +1,23 @@
 #pragma once
 #include "ground_items.h"
+#include "item_wave.h"
 #include <D2RLPlugin/api.h>
+#include <array>
+#include <cstdint>
 
 namespace D2RAccess::ItemAudio {
+// A drop sound repeats once a second at 100 percent speed; faster cuts a long one
+// short with a brief fade, slower leaves more silence (a tester, 2026-10-13).
+inline constexpr std::array DropSpeedPercents{50, 75, 100, 150, 200, 300};
+inline constexpr int NeutralDropSpeedLevel = 2;
+inline constexpr uint32_t DropPassMs = 1000, DropFadeMs = 10;
+static_assert(DropSpeedPercents[NeutralDropSpeedLevel] == 100);
+// One pass of a drop sound's loop, in samples, at a speed level.
+constexpr size_t DropPassSamples(int level) {
+	return size_t{ItemWave::SampleRate} * DropPassMs * 100 / static_cast<size_t>(DropSpeedPercents[static_cast<size_t>(level)]) / 1000;
+}
+int DropSpeedLevel();
+void SetDropSpeedLevel(int level);
 constexpr bool IsOneShot(GroundItems::Sound sound) {
 	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered;
 }

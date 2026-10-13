@@ -259,8 +259,22 @@ void QuestSources() {
 	Check(total <= MixGainLimit + 0.0001f, "quest sources share the pile gain limit");
 }
 }
+// The game's own drop sounds play in place of an item's category, which keeps its reach.
+void DropSoundSet() {
+	using D2RL::Items::MakeItemCode;
+	const auto gold = DropSoundOf(MakeItemCode("gld")), sword = DropSoundOf(MakeItemCode("ssd")), axe = DropSoundOf(MakeItemCode("hax"));
+	Check(gold && sword && IsDrop(*gold) && IsDrop(*sword) && *gold != *sword, "gold and a sword have drop sounds of their own");
+	Check(axe && SoundFiles[static_cast<size_t>(*axe)].folder == DropFolder, "a drop sound is one of the game's files");
+	Check(!DropSoundOf(MakeItemCode("zzz")) && !DropSoundOf(0), "an unknown code has no drop sound");
+	Check(DropSoundOf(MakeItemCode('g', 'l', 'd', '\0')) == gold, "a short code padded with NUL is found too");
+	auto quest = Make(1, {AudibleRadius * 0.9, 0});
+	quest.sound = Sound::Quest; quest.play = sword;
+	const auto voice = Spatialize(quest, {});
+	Check(voice.sound == *sword && voice.gain > 0, "the drop sound plays where the quest bell would, still at the quest's reach");
+}
+
 int main() {
-	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); Doors(); QuestSources();
+	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); Doors(); QuestSources(); DropSoundSet();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");

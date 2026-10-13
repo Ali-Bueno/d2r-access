@@ -66,5 +66,11 @@ int main() {
 	Check(!filter.Suppress(wall, 10400), "a whole subtile of sliding along the wall is a step");
 	wall.pushing = false;
 	Check(!filter.Suppress(wall, 10500) && filter.LastDecision().reason != Reason::Pushing, "without a refused push the stall rule decides");
+
+	Check(ScaleVolume(128, 100) == 128 && ScaleVolume(128, 50) == 64 && ScaleVolume(100, 150) == 150,
+		"the footstep volume scales the game's own value");
+	Check(ScaleVolume(200, 300) == MaxInstanceVolume && ScaleVolume(255, 200) == MaxInstanceVolume,
+		"a louder step stops at the most a sound instance holds");
+	Check(ScaleVolume(1, 25) == 1, "a quieter step never falls silent");
 	Passed();
 }

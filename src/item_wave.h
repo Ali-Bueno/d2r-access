@@ -15,4 +15,7 @@ std::vector<int16_t> Parse(std::span<const uint8_t> bytes);
 std::vector<int16_t> LoadEmbedded(HMODULE module, std::string_view folder, std::string_view file);
 // Returns the applied multiplier, or zero for an empty/silent recording.
 float Normalize(std::vector<int16_t>& samples);
+// One pass of a loop `length` samples long: the sound padded with silence, or cut
+// with a linear fade over its last `fade` samples.
+std::vector<int16_t> Pass(std::span<const int16_t> sound, size_t length, size_t fade);
 }

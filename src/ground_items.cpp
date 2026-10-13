@@ -9,10 +9,16 @@
 
 namespace D2RAccess::GroundItems {
 namespace {
-std::atomic<bool> g_lastEpoch{false};
+std::atomic<bool> g_lastEpoch{false}, g_drops{false};
 }
 bool LastEpochSounds() { return g_lastEpoch; }
 void SetLastEpochSounds(bool on) { g_lastEpoch = on; }
+bool DropSounds() { return g_drops; }
+void SetDropSounds(bool on) { g_drops = on; }
+std::optional<Sound> DropSoundOf(uint32_t code) {
+	const int index = Generated::DropSoundFor(code);
+	return index < 0 ? std::nullopt : std::optional{DropSound(static_cast<size_t>(index))};
+}
 
 bool IsPotion(Sound sound) {
 	return sound == Sound::Potion || sound == Sound::EpochHealthPotion || sound == Sound::EpochManaPotion
@@ -51,14 +57,14 @@ Sound Classify(uint32_t quality, Base base, bool quest, bool lastEpoch) {
 Voice Spatialize(const Item& item, Point player) {
 	const double dx = item.position.x - player.x, dy = item.position.y - player.y;
 	const double distance = std::hypot(dx, dy);
-	Voice voice{item.id, item.sound};
+	Voice voice{item.id, item.play.value_or(item.sound)};
 	voice.source = item.source;
 	if (!std::isfinite(distance)) return voice;
 	// Native projection 0x334DB0: +X down/right, +Y down/left.
 	voice.right = static_cast<float>((dx - dy) / std::numbers::sqrt2);
 	voice.front = static_cast<float>(-(dx + dy) / std::numbers::sqrt2);
 	const double proximity = std::clamp(1 - distance / AudibleRange(item.sound), 0.0, 1.0);
-	const double level = std::pow(10.0, SoundFiles[static_cast<size_t>(item.sound)].levelDb / 20);
+	const double level = std::pow(10.0, SoundFiles[static_cast<size_t>(voice.sound)].levelDb / 20);
 	voice.gain = static_cast<float>(LoopVolume * level * proximity * (item.sound == Sound::Quest ? 1 : proximity));
 	// Blend the rear pitch across one subtile to avoid chatter at the side axis.
 	voice.pitch = 1 + (RearPitch - 1) * std::clamp(-voice.front, 0.0f, 1.0f);

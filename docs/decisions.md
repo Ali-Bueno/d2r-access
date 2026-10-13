@@ -3,6 +3,36 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-13 — The tester's fourth report
+
+Sixteen items. The user's calls: the layered enemy sounds are the default, the swoops stay a
+switch (`enemy-class-sounds`); the settings groups navigate as the tester proposed; the pickup
+click leaves the glossary and the list until the user's own clicks per item type exist (the
+2026-10-12 note: items are picked up by walking over them, when the reader already names them).
+Chosen:
+
+- **Enemy classes by timbre, not pitch**: one growl register for every enemy, a layer per class,
+  elite and boss apart (`docs/entity-cues.md`). Noise was avoided for the elite's "teeth": the
+  user found an earlier enemy cue too like the radar's noise breath.
+- **Settings in groups**: right (Space) opens a group or changes, left (Backspace) returns. A
+  setting of several values wraps when raised, so it is never lowered directly; the strengths
+  have nine steps (0-400 percent, wider above 100) to keep the cycle short.
+- **Shrine and well**: the shrine takes the old well sound, the well the game's own drink sound.
+- **The NPC "!"** is read from the game (overlay 72), not guessed from quest state; it exists only
+  within 15 subtiles, so the scanner can ding only for an NPC the player has come near.
+- **Footstep volume** scales the game's own footfall instance, not synthesized steps: the steps
+  keep their floor type and timing. Above the game's own value it may not grow (0-255 clamp).
+- Experience in the life report, the mercenary's experience as a percent, "Mercenary says:",
+  and the NPC bell are switches, on (optional suggestions, the user's 2026-10-11 rule).
+
+Follow-up the same day: the game's own drop sounds as an alternative item set, with a speed
+setting (`docs/ground-items.md#the-games-own-drop-sounds-2026-10-13`). Off by default: the Diablo
+IV set stays the user's. Quest items keep their reach and priority but sound as they land; the
+drop sounds are not in the glossary (45 names in 13 languages for little gain).
+
+Not done: the alternate potion/gold sounds already had a switch ("Potion and gold sounds", now
+in the Sounds group); nothing was found that would keep the old sounds once it is on.
+
 ## 2026-10-12 — The tester's third report: what changed and what was left
 
 A thirty-item list, read with the user's notes. The user's calls: Charsi is said as the game

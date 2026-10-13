@@ -70,6 +70,7 @@ NativeUi::BeltSlot beltSlot;
 std::array<uintptr_t, NativeUi::BeltSlots> beltItems{};
 int unreadableBeltSlot = -1;
 uintptr_t automaticPotion = 0;
+std::string stashTabLabel; // the selected label of the stash's tab bar, widget 900
 std::string stashGoldText; // the stash's gold_amount box, at widget 60
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
@@ -115,7 +116,9 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	++inventoryWalks;
 	return inventory;
 }
+std::vector<uintptr_t> FindControls(uintptr_t, UiText::Kind) { return stashTabLabel.empty() ? std::vector<uintptr_t>{} : std::vector<uintptr_t>{900}; }
 std::string SelectedTabText(uintptr_t widget) {
+	if (widget == 900) return stashTabLabel;
 	for (const auto& node : inventory.nodes) if (node.id == widget) return node.text;
 	return {};
 }
@@ -131,7 +134,7 @@ std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
 	if (id == 26 || id == 29) return "gold_button";
-	if (id == 31 || id == 32) return "gold_withdraw";
+	if (id >= 31 && id <= 33) return "gold_withdraw";
 	return "widget" + std::to_string(id);
 }
 uintptr_t FindChild(uintptr_t parent, std::string_view name) { return parent == 10 && name == "gold_amount" ? 60 : 0; }
@@ -178,6 +181,7 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3} : UnitLabel{};
 }
 UnitLabel ClassLabel(uint32_t, uint32_t quality) { return {"", quality}; }
+std::optional<uint32_t> ClassOfCode(uint32_t) { return std::nullopt; }
 bool SocketFiller(uint32_t) { return false; }
 uint32_t ItemTableCode(uintptr_t unit) {
 	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
@@ -242,6 +246,8 @@ bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButto
 // Every other key here is the localized inventory title the reader caches.
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
+	if (key == "personal") return "Personal";
+	if (key == "shared") return "Compartido";
 	if (key == "ControllerHelpBelt1") return "Casilla de cinturón 1 ";
 	if (key == "ControllerHelpBelt2") return "Casilla de cinturón 2 ";
 	if (key == "ControllerHelpBelt3") return "Casilla de cinturón 3 ";
@@ -487,9 +493,19 @@ int main() {
 	tooltip = {}; focus = {10, 31}; stashGoldText = "12.345";
 	buttonSnapshot = {31, 31, "gold_withdraw", UiText::Surface::Other, {{31, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
 	Check(Tick() && speech == std::vector<std::string>{"12345 de oro en el alijo"}, "the withdraw button speaks the stash's gold box");
-	ClearSpeech(); stashGoldText.clear(); stashGold = 700; focus.widget = 32;
+	ClearSpeech(); stashTabLabel = "Compartido"; focus.widget = 31; Tick();
+	Check(!speech.empty() && speech.back() == "12345 de oro en el alijo compartido", "on the shared tab the gold box is the shared stash's");
+	ClearSpeech(); stashTabLabel = "Personal"; focus.widget = 31; Tick();
+	Check(!speech.empty() && speech.back() == "12345 de oro en el alijo personal", "on the personal tab, the personal stash's");
+	ClearSpeech(); stashGoldText.clear(); stashGold = 700; focus.widget = 32; stashTabLabel = "Compartido";
 	buttonSnapshot = {32, 32, "gold_withdraw", UiText::Surface::Other, {{32, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
-	Check(Tick() && speech == std::vector<std::string>{"700 de oro en el alijo"}, "an unreadable gold box falls back to the stash gold stat");
+	Tick();
+	Check(std::none_of(speech.begin(), speech.end(), [](const std::string& line) { return line.find("700") != std::string::npos; }),
+		"the personal stash's stat is not the shared stash's gold");
+	ClearSpeech(); stashTabLabel = "Personal"; focus.widget = 33;
+	buttonSnapshot = {33, 33, "gold_withdraw", UiText::Surface::Other, {{33, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
+	Check(Tick() && speech == std::vector<std::string>{"700 de oro en el alijo personal"}, "an unreadable gold box falls back to the stash gold stat");
+	stashTabLabel.clear();
 	stashGold = -1; focus.panel = savedPanel; ClearSpeech();
 	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
 	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";

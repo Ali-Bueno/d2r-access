@@ -27,6 +27,31 @@ struct Outcome {
 	int dx = 0, dy = 0, x = -1, y = -1;
 };
 
+// Policy: a push or tap within PushWindowMs before a cell of another panel's grid
+// is focused took the cursor across; the previous panel is remembered across a
+// blank-focus gap of PanelMemoryMs, and crossings are CrossingCooldownMs apart at
+// least. Values are tuning for the game's one-frame focus switch, from tester logs.
+inline constexpr uint64_t PushWindowMs = 300, PanelMemoryMs = 400, CrossingCooldownMs = 500;
+
+// The cursor moved from one panel's grid into another's (backpack to vendor or stash).
+struct Crossing {
+	bool crossed = false;
+	int dx = 0, dy = 0;           // the direction last pushed
+	uintptr_t from = 0, to = 0;   // the panels
+};
+
+class CrossingTracker {
+public:
+	// panel: the panel of the focused grid cell, 0 when focus is not on a grid cell.
+	Crossing Update(uintptr_t panel, int dx, int dy, uint64_t now);
+	void Reset() { *this = {}; }
+private:
+	uintptr_t panel_ = 0;
+	uint64_t panelAt_ = 0, pushAt_ = 0, crossedAt_ = 0;
+	int dx_ = 0, dy_ = 0;
+	bool pushed_ = false, crossedBefore_ = false;
+};
+
 class Detector {
 public:
 	// Once per press against the edge, or per held push that stopped there.

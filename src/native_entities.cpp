@@ -50,6 +50,7 @@ bool g_playersSupported = false;
 bool g_rosterSupported = false;
 bool g_socketsSupported = false;
 bool g_unbuiltSupported = false; // PresetMapLayout checks passed: presets of rooms not built yet are read
+bool g_npcAlertsSupported = false; // NpcAlertChecks passed: the "!" over town NPCs is read
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -180,6 +181,17 @@ void NoteDead(uintptr_t unit) {
 	if (g_deadMonsters.size() < MaxUnits && std::find(g_deadMonsters.begin(), g_deadMonsters.end(), id) == g_deadMonsters.end())
 		g_deadMonsters.push_back(id);
 }
+bool HasOverlay(uintptr_t unit, int32_t id) {
+	uintptr_t graphics = 0, node = 0;
+	if (!Peek(unit + UnitGraphics, graphics) || !graphics || !Peek(graphics + GraphicsOverlays, node)) return false;
+	for (size_t i = 0; node && i < MaxOverlays; ++i) {
+		int32_t overlay = 0;
+		if (!Peek(node + OverlayId, overlay)) return false;
+		if (overlay == id) return true;
+		if (!Peek(node + OverlayNext, node)) return false;
+	}
+	return false;
+}
 bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
 	uintptr_t data = 0;
@@ -198,6 +210,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	MonsterPlate::Plate plate;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
 	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
+	if (!hostile && (flagsA & FlagNpc) && g_npcAlertsSupported) entity.npcAlert = HasOverlay(unit, NpcAlertOverlay);
 	if (hostile && g_plate && Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, entity.enemy.flags)
 		&& NativeMemory::Copy(data + MonEnchantments, entity.enemy.enchantments.data(), entity.enemy.enchantments.size()))
 		plate = MonsterPlate::Read(entity.enemy.flags, entity.enemy.enchantments, flagsA, *g_plate);
@@ -570,7 +583,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_immunities = false; g_plate.reset(); return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = false; g_plate.reset(); return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = false;
@@ -598,6 +611,8 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_unbuiltSupported = LayoutCheck::Verify(context, context->exeBase, PresetMapLayout::Checks, "town-npcs", NoUnbuilt)
 		&& LayoutCheck::Verify(context, context->exeBase, PresetMapLayout::PendingChecks, "town-npcs", NoUnbuilt);
 	if (g_unbuiltSupported) AsyncLog::Info(context, "[scan] Verified unbuilt-room preset reader.");
+	g_npcAlertsSupported = LayoutCheck::Verify(context, context->exeBase, NpcAlertChecks, "npc-alerts", "the NPC exclamation mark not read");
+	if (g_npcAlertsSupported) AsyncLog::Info(context, "[scan] Verified NPC exclamation mark reader.");
 	return true;
 }
 std::optional<uint32_t> FilledSockets(uintptr_t unit) {

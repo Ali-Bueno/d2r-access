@@ -4,6 +4,7 @@
 #include "control_hints.h"
 #include "focus_tracker.h"
 #include "interaction_reader.h"
+#include "localization.h"
 #include "native_controller_help.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
@@ -21,6 +22,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <cstdio>
 #include <vector>
 
 namespace D2RAccess::GameTextReader {
@@ -30,7 +32,9 @@ constexpr uint64_t PollMs = 33; // match the existing 30 Hz controller focus rea
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
-std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
+std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false}, g_mercenaryBark{true};
+// The mercenary's level-up line (ui.json "merclevelup"), drawn over its head.
+constexpr const char* MercenaryLevelUpKey = "merclevelup";
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
 bool g_interactionFocus = false;
 // A tab switch is announced at the END of a tick, but the panel readout is
@@ -144,6 +148,17 @@ void Unregister() {
 	NativeUi::Reset();
 }
 
+// A sighted player sees who says a line drawn over a head; the mercenary's
+// level-up line names it (a tester, 2026-10-13).
+static std::string NameSpeaker(std::string text) {
+	if (!g_mercenaryBark.load()) return text;
+	const auto bark = UiText::Clean(Localization::Text(MercenaryLevelUpKey));
+	if (bark.empty() || text.find(bark) == std::string::npos) return text;
+	char phrase[300]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().mercenarySays, text.c_str());
+	return phrase;
+}
+
 bool Tick(const D2RL::PluginContext* context) {
 	const bool enabled = g_enabled.load();
 	if (enabled != g_wasEnabled) {
@@ -248,7 +263,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
 	else g_areaReader.Reset();
 	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
-		const auto text = TradeService::FixNotice(notice);
+		const auto text = NameSpeaker(TradeService::FixNotice(notice));
 		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}
@@ -267,4 +282,6 @@ void RequestDump() { g_dump.store(true); }
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool Enabled() { return g_enabled.load(); }
+bool MercenaryBark() { return g_mercenaryBark.load(); }
+void SetMercenaryBark(bool on) { g_mercenaryBark = on; }
 }

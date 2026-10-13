@@ -150,3 +150,17 @@ recorded. The filter remains unchanged; Ctrl+T now describes actual recent
 screen movement before its straight-ray readings. See [the map analysis and
 replayed regression](radar-map-fidelity.md). Live stationary suppression remains
 unverified.
+
+## Footstep volume (2026-10-13)
+
+A tester asked for the player's own footsteps louder or quieter than the game's
+sounds. `footstep-volume` (Ctrl+S, Sounds) scales them from 25 to 300 percent.
+A sound instance keeps its volume at `+0x24` (0-255, 0xFF at creation by
+0x1A0780); the event caller 0x7D9800 sets the footfall's after 0x7D9390 returns
+(SetSoundVolume 0x19F900, GetSoundVolume 0x19E9D0, both fingerprinted), and the
+game's sliders multiply later. So the detour keeps the local player's handle
+and the next `FootstepService::Tick` scales it, clamped to 255: a louder step is
+possible only while the game's own value leaves room. Only the floor step is
+scaled, not the armour's `footstep_foley`. Static RE only; live check:
+`[footsteps] volume stock=... percent=... set=... read_back=...` (logged for
+the first three steps after a change); if stock is always 255, only lowering works.

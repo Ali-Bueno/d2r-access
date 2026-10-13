@@ -1,7 +1,12 @@
 #pragma once
 
+#include "generated/drop_sounds.h"
+
+#include <array>
 #include <cstdint>
 #include <iterator>
+#include <optional>
+#include <string_view>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -13,19 +18,30 @@ enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legenda
 	// The Last Epoch mod's gold and potions, one glass sound per kind of potion (a tester's choice, behind a switch).
 	EpochGold, EpochHealthPotion, EpochManaPotion, EpochRejuvenationPotion, EpochOtherPotion,
 	Shrine, Well,
-	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered, Count };
+	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered,
+	// The game's own drop sounds (Generated::DropSoundFiles), an alternative to the
+	// Diablo IV set behind a switch (a tester, 2026-10-13).
+	DropFirst, Count = DropFirst + static_cast<int>(Generated::DropSoundFiles.size()) };
+constexpr Sound DropSound(size_t index) { return static_cast<Sound>(static_cast<size_t>(Sound::DropFirst) + index); }
+constexpr bool IsDrop(Sound sound) { return sound >= Sound::DropFirst && sound < Sound::Count; }
 // What an item is by its ItemTypes.txt ancestry; equipment is told apart by quality instead.
 // Potion is any other potion or elixir (stamina, antidote, thawing).
 enum class Base { Equipment, Gold, Potion, HealthPotion, ManaPotion, RejuvenationPotion, Scroll, Rune, Gem };
 // Gold and potions with the Last Epoch mod's sounds instead of the Diablo IV ones.
 bool LastEpochSounds();
 void SetLastEpochSounds(bool on);
+// Every item with the sound the game plays when it lands, instead of the sets above.
+bool DropSounds();
+void SetDropSounds(bool on);
+// An item's drop sound by its code; none for a code the item tables do not know.
+std::optional<Sound> DropSoundOf(uint32_t code);
 enum class SourceKind { Item, Object };
 struct Point { double x = 0, y = 0; };
 struct Item {
 	uint32_t id = 0, code = 0, quality = 0;
 	Point position;
-	Sound sound = Sound::Normal;
+	Sound sound = Sound::Normal; // what the item is: its reach, priority and speech order follow it
+	std::optional<Sound> play;   // a sound played in its place (a drop sound)
 	std::string name, baseName;
 	SourceKind source = SourceKind::Item;
 };
@@ -68,7 +84,7 @@ inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops p
 struct SoundFile { const char* folder; const char* name; float levelDb = 0; };
 // User listening, 2026-09-26: the chest sat about 4 LU under the loot loops, the stash too loud.
 inline constexpr float ChestLevelDb = 4, StashLevelDb = -4;
-inline constexpr SoundFile SoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potion.wav"},
+inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potion.wav"},
 	{"loot", "scroll.wav"}, {"loot", "rune.wav"}, {"loot", "gem.wav"}, {"loot", "normal equipment.wav"},
 	{"loot", "magic equipment.wav"}, {"loot", "rare equipment.wav"}, {"loot", "legendary equipment.wav"},
 	{"exploration", "portal.wav"}, {"loot", "chest.wav", ChestLevelDb}, {"loot", "quest item.wav"}, {"loot", "corpse.wav"},
@@ -80,9 +96,17 @@ inline constexpr SoundFile SoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potio
 	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
 	{"exploration", "discovered.wav"}};
+static_assert(std::size(BaseSoundFiles) == static_cast<size_t>(Sound::DropFirst));
+inline constexpr std::string_view DropFolder = "d2 drops";
+// Indexed by Sound: the files above, then the drop sounds.
+inline constexpr auto SoundFiles = [] {
+	std::array<SoundFile, static_cast<size_t>(Sound::Count)> files{};
+	size_t at = 0;
+	for (const auto& file : BaseSoundFiles) files[at++] = file;
+	for (const char* name : Generated::DropSoundFiles) files[at++] = {DropFolder.data(), name};
+	return files;
+}();
 inline constexpr size_t ItemSoundCount = static_cast<size_t>(Sound::UnexploredRoom);
-// The file list is indexed by Sound; a missing entry would be read past the end.
-static_assert(std::size(SoundFiles) == static_cast<size_t>(Sound::Count));
 
 // The gold carried, to say what a pile brought in once it is picked up (a tester:
 // the amount on the ground was heard on every pass). Only a rise in play counts:
