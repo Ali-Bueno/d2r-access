@@ -618,6 +618,9 @@ Ground item commands: `access-items on|off|sound-on|sound-off|status`.
 `on/off` controls proximity speech; `sound-on/sound-off` controls the loops.
 
 Run automated checks after building: `ctest --test-dir build --output-on-failure`.
+The build runs at below-normal priority on all but two logical processors, so the PC stays
+usable, and each shared `src` file is compiled once for every test (`d2r_test` in
+`CMakeLists.txt`, one object library per source) instead of once per test.
 Test executables are not installed into the game.
 
 ## Local computer-use testing
