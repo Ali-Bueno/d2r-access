@@ -36,3 +36,13 @@ getter 0x349890 returns 0x400 for the Cairn rows. Rectangle setter 0x363C80 uses
 Their complete-function fingerprints are recorded in `EntityLayout::Checks`.
 
 The wrapper passes a 15-byte stack copy to dispatcher `0x232EA0`, whose decompiled signature is `void (packet*)` and whose quest-4 case calls the order setter before returning. The dispatcher provides a normal 283-byte function entry for the inline hook, while the setter is only 30 bytes long. The hook copies the packet before calling the original, then accepts it only if the same lifecycle epoch is still ready. Its `void(const uint8_t*)` callback preserves the stock x64 calling convention and return type.
+
+## The order was read, then cut off — 2026-10-13
+
+A tester (controller) heard no order. His log shows it read on all four openings and queued
+behind "Scroll of Inifuss", then cut off within 20 ms: the game reopens the inventory beside the
+scroll and moves its cursor to another item ("Viridian Small Charm"), which the interaction
+reader announces as a new focus, interrupting. That cursor move is also the "jump to another
+slot" he reported. The order now goes through `ScreenReader::Lead`: for 1.5 s an interrupting
+phrase queues behind it and Stop waits. On the pad the scroll opens on a held press ("Hold ? to
+Read", ui-controller.json `ReadScrollController`); a short one picks the scroll up.
