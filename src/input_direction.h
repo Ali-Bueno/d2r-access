@@ -133,6 +133,11 @@ bool TakeBackWith(FaceButton button);
 // press happened since the previous Take() and clears it.
 bool TakeBackWithLb();
 
+// A right-stick push made with BACK held, which no scanner or menu reader ever
+// sees: BACK+down describes the route to the scanned target (beacon_service.cpp).
+// Same Take() rules as BACK+LB.
+StickPush TakeBackWithRightStick();
+
 // BACK+RB: opens and closes the mod's settings list, the pad's Ctrl+S
 // (keyboard_service.cpp). pad_filter.h keeps this RB press from the game
 // during play, as it does LB's. Same Take() rules as BACK+LB.

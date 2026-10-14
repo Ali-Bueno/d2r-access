@@ -195,7 +195,7 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		// From where the player stands, not the collision cell, which drops up to a subtile on each axis.
 		const Radar::Position player{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
 		landmark.straightLine = StraightLine(player, entity.position);
-		landmark.direction    = Radar::ScreenSector({entity.position.x - player.x, entity.position.y - player.y});
+		landmark.offset       = {entity.position.x - player.x, entity.position.y - player.y};
 		result.push_back(std::move(landmark));
 	}
 	// Nearest first, by the distance each one is spoken with: its walking steps

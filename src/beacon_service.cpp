@@ -21,8 +21,10 @@
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
+#include "route_legs.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "spoken_direction.h"
 #include "terrain_service.h"
 #include "zone_transitions.h"
 
@@ -42,7 +44,7 @@
 namespace D2RAccess::BeaconService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, SoundsOn, SoundsOff };
+enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, SoundsOn, SoundsOff, Route };
 // The locked target is re-read on this cadence: fast enough to follow a
 // walking monster, far cheaper than the 50 ms UI poll.
 constexpr uint64_t UpdateMs = 150;
@@ -119,6 +121,21 @@ bool AtCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::
 	return ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout)
 		&& ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
 }
+// The rooms a way to `entity` may cross in exploration: the explored ones, and
+// the target's own room when it may be entered unexplored. Nothing when the
+// player stands in no room of the level.
+std::optional<std::vector<NativeRooms::Room>> ExploredFor(const Lifecycle& state, const RoomGraph::Graph& graph,
+	Radar::Position player, const EntityRadar::Entity& entity, bool crossing) {
+	if (NativeRooms::Containing(graph.rooms, player) == NativeRooms::None) return std::nullopt;
+	auto explored = TerrainService::ExploredRooms(state.level, graph.rooms, player);
+	// The room holding the target may be entered unexplored, never crossed: an
+	// unexplored room at the edge of the known map, or where a known border is crossed.
+	const bool enterable = entity.category == EntityRadar::Category::UnexploredRoom || crossing;
+	if (enterable && !NavigationPolicy::Contains(explored, entity.position))
+		if (const size_t room = NativeRooms::Containing(graph.rooms, entity.position); room != NativeRooms::None)
+			explored.push_back(graph.rooms[room]);
+	return explored;
+}
 std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now,
 	BeaconNavigation::RememberedWay& way) {
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
@@ -131,16 +148,9 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Entit
 	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now};
 	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin, nullptr, recall);
 	if (!graph) return std::nullopt;
-	const size_t current = NativeRooms::Containing(graph->rooms, world.player);
-	if (current == NativeRooms::None) return std::nullopt;
-	auto explored = TerrainService::ExploredRooms(state.level, graph->rooms, world.player);
-	// The room holding the target may be entered unexplored, never crossed: an
-	// unexplored room at the edge of the known map, or where a known border is crossed.
-	const bool enterable = entity.category == EntityRadar::Category::UnexploredRoom || crossing;
-	if (enterable && !NavigationPolicy::Contains(explored, target))
-		if (const size_t room = NativeRooms::Containing(graph->rooms, target); room != NativeRooms::None)
-			explored.push_back(graph->rooms[room]);
-	return BeaconNavigation::Prepare(std::move(world), target, graph, &explored, margin, nullptr, recall);
+	auto explored = ExploredFor(state, *graph, world.player, entity, crossing);
+	if (!explored) return std::nullopt;
+	return BeaconNavigation::Prepare(std::move(world), target, graph, &*explored, margin, nullptr, recall);
 }
 void LogLead(const D2RL::PluginContext* context, const BeaconNavigation::Guidance& guidance) {
 	const Lead lead = !guidance.remembered ? (guidance.hasWaypoint ? Lead::Rooms : Lead::Direct)
@@ -232,6 +242,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	else if (arg == "full") g_command = Command::FullAssistance;
 	else if (arg == "sounds-on") g_command = Command::SoundsOn;
 	else if (arg == "sounds-off") g_command = Command::SoundsOff;
+	else if (arg == "route") g_command = Command::Route;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
 }
@@ -404,6 +415,73 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		}
 	}
 }
+// Where a way to `entity` ends: where guidance would say it has arrived, or
+// well inside a room, any of whose ground will do (the largest square centred in it).
+std::pair<Radar::Position, int> WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity) {
+	const int margin = std::max(1 + static_cast<int>(std::ceil(HalfFootprint(entity))),
+		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
+	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
+	if (!graph) return {entity.position, margin};
+	const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == entity.placeId; });
+	if (room == graph->rooms.end()) return {entity.position, margin};
+	const auto bounds = NativeRooms::Subtiles(*room);
+	const int half = std::max(1, std::min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 2 - 1);
+	return {{(bounds.minX + bounds.maxX) / 2.0, (bounds.minY + bounds.maxY) / 2.0}, half};
+}
+// The whole way to what guidance follows, else to what was named last, said as
+// legs: what a sighted player plans off the map. docs/route-description.md
+void DescribeRoute(const Lifecycle& state, uint64_t now) {
+	const auto& strings = Strings::Current();
+	EntityRadar::Entity entity;
+	if (g_tracker.Locked()) entity = g_target.entity;
+	else if (g_offer.entity.id && g_offer.level == state.level) entity = g_offer.entity;
+	else { ScreenReader::Speak(strings.beaconNothing, true); return; }
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) {
+		AsyncLog::InfoF(g_context, "[route] world unreadable name=%s", entity.name.c_str());
+		Announce(strings.routeNone, entity.name);
+		return;
+	}
+	const bool crossing = AtCrossing(state, world, entity);
+	const auto [place, margin] = WayEnd(state, entity);
+	const auto* memory = KeyboardService::RememberedMap(world);
+	const auto* graph = Rooms(state);
+	const bool restricted = !Unrestricted(entity);
+	std::optional<std::vector<NativeRooms::Room>> explored;
+	if (restricted && graph) explored = ExploredFor(state, *graph, world.player, entity, crossing);
+	LevelRoute::Way way;
+	if (memory && (!restricted || explored)) {
+		BeaconNavigation::RememberedWay planner;
+		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, place, margin, world.bodyPattern, now);
+	}
+	if (way.path.empty()) {
+		const bool here = std::max(std::abs(place.x - world.player.x), std::abs(place.y - world.player.y)) <= margin;
+		AsyncLog::InfoF(g_context, "[route] none name=%s here=%u map=%u restricted=%u", entity.name.c_str(), here ? 1u : 0u,
+			memory ? 1u : 0u, restricted ? 1u : 0u);
+		if (!here) { Announce(restricted ? strings.beaconKnownRouteOnly : strings.routeNone, entity.name); return; }
+		char text[256]{};
+		std::snprintf(text, sizeof text, strings.surveyBearing, entity.name.c_str(), strings.scanAdjacent);
+		ScreenReader::Speak(text, true);
+		return;
+	}
+	const auto cell = [](double coordinate) { return static_cast<int>(std::lround(coordinate)); };
+	std::vector<size_t> doors;
+	for (size_t i = 0; i < way.path.size(); ++i)
+		if (memory->At(cell(way.path[i].x), cell(way.path[i].y)) == LevelRoute::Ground::Door) doors.push_back(i);
+	// A leg is straightened only over ground the way itself may cross.
+	const auto passable = [&](int x, int y) {
+		const auto ground = memory->At(x, y);
+		const bool floor = ground == LevelRoute::Ground::Open || ground == LevelRoute::Ground::Door
+			|| (way.guess && ground == LevelRoute::Ground::Unseen);
+		return floor && (!explored || NavigationPolicy::Contains(*explored, {static_cast<double>(x), static_cast<double>(y)}));
+	};
+	const auto legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle());
+	const auto text = RouteLegs::Speak(entity.name, legs, way.guess, strings);
+	ScreenReader::Speak(text, true);
+	AsyncLog::InfoF(g_context, "[route] from=%.0f,%.0f to=%.0f,%.0f cells=%zu doors=%zu legs=%zu guess=%u restricted=%u -> %s",
+		world.player.x, world.player.y, place.x, place.y, way.path.size(), doors.size(), legs.size(), way.guess ? 1u : 0u,
+		restricted ? 1u : 0u, text.c_str());
+}
 }
 
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
@@ -438,9 +516,16 @@ bool Register(const D2RL::PluginContext* context) {
 			.userData = reinterpret_cast<void*>(Command::Toggle)};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		// Keyboard equivalent of BACK + right stick down.
+		const D2RL::Input::ActionRegistration route{.structSize = D2RL::Input::ActionRegistrationSize,
+			.logicalId = "route-describe", .displayName = "Describe the route to the scanned target", .category = "Accessibility",
+			.defaultPrimary = {D2RL::Input::Key::E, D2RL::Input::Modifier::Control}, .callback = Action,
+			.userData = reinterpret_cast<void*>(Command::Route)};
+		handle = D2RL::Input::InvalidHandle;
+		if (g_input->registerAction(context, &route, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
-		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off. BACK+LB or Ctrl+B requests a route; exploration uses visited areas only.");
+		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off|route. BACK+LB or Ctrl+B requests a route; exploration uses visited areas only.");
 	const auto tuning = RadarConfig::ReadBeacon(context);
 	g_supported = BeaconAudio::Start(context, static_cast<double>(RadarConfig::Read(context).volume) / RadarConfig::MaxVolume,
 		RadarConfig::StrengthScale(tuning.panStrength), RadarConfig::StrengthScale(tuning.pitchStrength));
@@ -453,6 +538,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
 	const bool clicked = InputDirection::TakeBackWithLb();
+	const auto chord = InputDirection::TakeBackWithRightStick();
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
@@ -494,6 +580,12 @@ void Tick(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(Strings::Current().beaconCleared, true);
 	} else if (command == Command::Toggle || clicked) {
 		Toggle(state, now);
+	}
+	if (command == Command::Route || chord == InputDirection::StickPush::Down) {
+		if (!inPlay) AsyncLog::InfoF(context, "[route] %s ignored: not in play", chord != InputDirection::StickPush::None ? "BACK+down" : "command");
+		else DescribeRoute(state, now);
+	} else if (chord != InputDirection::StickPush::None) {
+		AsyncLog::InfoF(context, "[route] BACK+right stick %s: nothing bound", InputDirection::PushName(chord));
 	}
 	if (command == Command::Status) {
 		const auto& strings = Strings::Current();

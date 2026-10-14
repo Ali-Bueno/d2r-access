@@ -1,5 +1,6 @@
 #include "explored_rooms.h"
 #include "level_exit_layout.h"
+#include "spoken_direction.h"
 #include "terrain_overview.h"
 #include "test_support.h"
 
@@ -69,19 +70,23 @@ void Spoken() {
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
 	Check(summary.valid && summary.place == 4, "the fixture puts the player in the centre");
 	const std::string text = TerrainOverview::Speak(summary, "Blood Moor", Scan, English);
-	Check(text == "Blood Moor, centre, 22 percent explored. up: edge at 49 steps, explored."
-		" to the left: edge at 42 steps, unexplored from 14 steps."
-		" to the right: edge at 42 steps, unexplored from 14 steps."
-		" down: Rogue Encampment at 42 steps, unexplored from 14 steps",
+	Check(text == "Blood Moor, centre, 22 percent explored. north: edge at 49 units, explored."
+		" west: edge at 42 units, unexplored from 14 units."
+		" east: edge at 42 units, unexplored from 14 units."
+		" south: Rogue Encampment at 42 units, unexplored from 14 units",
 		"the overview names the level, the place, the share seen and each direction");
 	Check(summary.percent == 22, "two of nine rooms seen is 22 percent, rounded down");
 	Check(TerrainOverview::Describe(Level({}), At(106, 106)).percent == 0, "nothing seen is 0 percent");
 	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish)
-		== "Blood Moor, centro, explorado 22 por ciento. adelante: borde a 49 pasos, explorado."
-		" a la izquierda: borde a 42 pasos, sin explorar desde 14 pasos."
-		" a la derecha: borde a 42 pasos, sin explorar desde 14 pasos."
-		" atrás: Rogue Encampment a 42 pasos, sin explorar desde 14 pasos",
+		== "Blood Moor, centro, explorado 22 por ciento. norte: borde a 49 unidades, explorado."
+		" oeste: borde a 42 unidades, sin explorar desde 14 unidades."
+		" este: borde a 42 unidades, sin explorar desde 14 unidades."
+		" sur: Rogue Encampment a 42 unidades, sin explorar desde 14 unidades",
 		"the wording comes from the speech table, not the logic");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Clock);
+	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish).find(". a las 12: borde a 49 unidades, explorado. a las 9: borde")
+		!= std::string::npos, "the clock style names the sides by their hours");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Compass);
 }
 
 void Directions() {
@@ -113,7 +118,7 @@ void Borders() {
 		"the level beyond the edge is named where the game has generated it");
 	Check(summary.legs[static_cast<size_t>(Radar::Direction::Up)].border.empty(),
 		"the opposite edge names nothing");
-	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 42 steps")
+	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 42 units")
 		!= std::string::npos, "a named border replaces the plain edge");
 }
 

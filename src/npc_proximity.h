@@ -28,11 +28,7 @@ struct Settings {
 	bool requireLineOfSight = true;
 	uint64_t intervalMs = 500; // poll period; announcements are diff-gated, not periodic
 };
-struct Announcement { EntityRadar::Entity entity; double distance = 0; Radar::Direction direction = Radar::Direction::Up; };
-
-// The screen direction whose axis is closest to the target (the scan's four
-// sectors; ties on a diagonal go to the earlier direction in Radar::Direction order).
-Radar::Direction DirectionOf(Radar::Position player, Radar::Position target);
+struct Announcement { EntityRadar::Entity entity; double distance = 0; Radar::Position offset; };
 
 class Tracker {
 public:
@@ -45,6 +41,6 @@ private:
 	std::map<uint32_t, bool> inRange_; // unit id -> already announced
 };
 
-// "Kashya, 12 pasos, a la izquierda"; the direction is dropped under one step.
+// "Kashya, 12 units, west"; the direction is dropped under one unit.
 std::string Describe(const Announcement& announcement, const EntityRadar::Settings& scan, const Strings::Table& strings);
 }

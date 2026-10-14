@@ -1,4 +1,5 @@
 #include "exit_review.h"
+#include "spoken_direction.h"
 
 #include <algorithm>
 #include <cmath>
@@ -75,7 +76,7 @@ std::string Describe(const Item& item, const EntityRadar::Settings& scan, const 
 
 std::string Nothing(Radar::Direction direction, const Strings::Table& strings) {
 	char text[128]{};
-	std::snprintf(text, sizeof text, strings.finderNothing, strings.scanDirections[static_cast<size_t>(direction)]);
+	std::snprintf(text, sizeof text, strings.finderNothing, SpokenDirection::OfSide(direction, strings));
 	return text;
 }
 }

@@ -29,6 +29,7 @@ Home or backslash: repeat the scanner's object.
 Ctrl+Numpad 4 / Ctrl+Numpad 6: scanner, previous / next object.
 Ctrl+Numpad 8 / Ctrl+Numpad 2: scanner, previous / next category.
 Ctrl+B: follow or release what the scanner named (beacon; BACK+LB on the controller).
+Ctrl+E: the route to what the beacon follows or the scanner named (BACK + right stick down).
 Ctrl+Y: the passages out of this room.
 Ctrl+O: terrain overview.
 Ctrl+T: radar status.

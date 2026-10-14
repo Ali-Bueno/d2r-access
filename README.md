@@ -326,6 +326,17 @@ a regenerated map starts with none. Ground loot and
 ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
 and 4/6 (object). See [scanner](docs/entity-scan.md).
 
+**Directions and distances:** directions are screen directions said as compass points (north
+is the top of the screen, "northeast" its upper right) or, with the `direction-style` setting
+in the Ctrl+S list, as clock hours (twelve is the top). Distances are in units: one unit is
+the game's smallest map cell (a subtile). See [spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13).
+
+**Route description (built; live validation pending):** **BACK + right stick down**, or
+**Ctrl+E**, says the way to what the beacon follows, else to what the scanner named last, as
+a sighted player plans it off the minimap: "Route to Akara, 85 units: north, 20; then door;
+then east, 30". Nothing walks for you; ask again on the way for the rest. It plans over
+explored ground only in exploration mode. See [route description](docs/route-description.md).
+
 **Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
 game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.
 After naming another target, one click switches to it; clicking again on the
@@ -387,7 +398,7 @@ Evil and the rest), walking into a room speaks its ways out — plain openings a
 stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again. The exit
 finder, switched with **Ctrl+V** (BACK+A on the pad), names them one screen side at a time on the
 right stick (PageUp, PageDown and Ctrl+PageUp, Ctrl+PageDown on the keyboard), nearest first, with
-the distance in steps. A short left-stick click, or **Ctrl+B** right after, guides to the one just
+the distance in units. A short left-stick click, or **Ctrl+B** right after, guides to the one just
 named. **Ctrl+M** toggles the announcements.
 See [room exits](docs/rooms.md).
 

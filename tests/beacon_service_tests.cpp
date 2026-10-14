@@ -91,7 +91,11 @@ bool Available() { return true; }
 void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
-namespace D2RAccess::InputDirection { bool TakeBackWithLb() { return false; } }
+namespace D2RAccess::InputDirection {
+bool TakeBackWithLb() { return false; }
+StickPush TakeBackWithRightStick() { return StickPush::None; }
+const char* PushName(StickPush) { return ""; }
+}
 namespace D2RAccess::KeyboardService {
 const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
 	if (!remembering) return nullptr;
@@ -160,7 +164,8 @@ bool Crosses(const EntityRadar::Entity&) { return false; }
 bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
-bool Recreated(const Entity&, const Entity&) { return false; } }
+bool Recreated(const Entity&, const Entity&) { return false; }
+std::string DistancePhrase(double, const Settings&, const Strings::Table&) { return {}; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
 
@@ -232,6 +237,10 @@ int main() {
 	blocked = {60, 0, 62, 39}; // a way round below the wall
 	for (int i = 0; i < 8; ++i) { Sleep(160); BeaconService::Tick(&context); }
 	Check(plays > locked, "the ping resumes once a way round is seen");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back().starts_with("Route to walled exit") && speech.back().find("; then ") != std::string::npos,
+		"the route to the followed target is said as legs, round the wall");
 	Command("clear");
 	BeaconService::Tick(&context);
 	blocked = {};
@@ -250,6 +259,9 @@ int main() {
 	BeaconService::Tick(&context);
 	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
 		"exploration refuses a target in a room never entered");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back() == Format(strings.beaconKnownRouteOnly, "gate"), "and has no route to describe there either");
 	visitedRooms = {};
 	Command("lock");
 	BeaconService::Tick(&context);

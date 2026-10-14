@@ -9,11 +9,11 @@
 #include "native_entities.h"
 #include "native_level_exits.h"
 #include "native_world.h"
-#include "npc_proximity.h"
 #include "radar_ui.h"
 #include "rooms.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "spoken_direction.h"
 #include "terrain_service.h"
 
 #include <windows.h>
@@ -80,7 +80,12 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	Forget();
 }
 const char* Where(Radar::Position player, Radar::Position target) {
-	return Strings::Current().scanDirections[static_cast<size_t>(NpcProximity::DirectionOf(player, target))];
+	return SpokenDirection::Of({target.x - player.x, target.y - player.y}, Strings::Current());
+}
+// A finder side in the log, which is English diagnosis, not speech.
+const char* SideName(Radar::Direction side) {
+	constexpr const char* Names[] = {"up", "left", "right", "down"};
+	return Names[static_cast<size_t>(side)];
 }
 // A way out never taken is tagged: an opening into a chamber never stood in,
 // an exit into a level with no room seen yet. `docs/exploration.md`
@@ -208,7 +213,7 @@ void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t n
 	if (index == ExitReview::NoItem) {
 		const auto text = ExitReview::Nothing(side, strings);
 		ScreenReader::Speak(text, true);
-		AsyncLog::InfoF(context, "[room] finder %s: none of %zu openings -> %s", strings.scanDirections[static_cast<size_t>(side)],
+		AsyncLog::InfoF(context, "[room] finder %s: none of %zu openings -> %s", SideName(side),
 			room.openings.size(), text.c_str());
 		return;
 	}
@@ -217,7 +222,7 @@ void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t n
 	ScreenReader::Speak(text, true);
 	BeaconService::Offer(item.named ? item.entity : Place(item), state.level, now);
 	AsyncLog::InfoF(context, "[room] finder %s: %zu of %zu at=%.0f,%.0f named=%u unexplored=%u -> %s",
-		strings.scanDirections[static_cast<size_t>(side)], index + 1, items.size(),
+		SideName(side), index + 1, items.size(),
 		item.point.x, item.point.y, item.named ? 1u : 0u, item.unexplored ? 1u : 0u, text.c_str());
 }
 auto FinderToggle(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {

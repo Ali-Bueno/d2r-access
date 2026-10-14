@@ -1,19 +1,9 @@
 #include "npc_proximity.h"
+#include "spoken_direction.h"
 
 #include <cmath>
 
 namespace D2RAccess::NpcProximity {
-Radar::Direction DirectionOf(Radar::Position player, Radar::Position target) {
-	const double dx = target.x - player.x, dy = target.y - player.y;
-	size_t best = 0;
-	double bestDot = -INFINITY;
-	for (size_t index = 0; index < Radar::DirectionCount; ++index) {
-		const double dot = dx * Radar::Axes[index].x + dy * Radar::Axes[index].y;
-		if (dot > bestDot) { bestDot = dot; best = index; }
-	}
-	return static_cast<Radar::Direction>(best);
-}
-
 std::optional<Announcement> Tracker::Update(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, const Settings& settings) {
 	std::map<uint32_t, std::pair<const EntityRadar::Entity*, double>> present;
 	for (const auto& entity : entities) {
@@ -41,7 +31,8 @@ std::optional<Announcement> Tracker::Update(const Radar::World& world, const std
 	}
 	if (!nearest || inRange_[nearestId]) return std::nullopt;
 	inRange_[nearestId] = true;
-	return Announcement{*nearest->first, nearest->second, DirectionOf(world.player, nearest->first->position)};
+	const auto& position = nearest->first->position;
+	return Announcement{*nearest->first, nearest->second, {position.x - world.player.x, position.y - world.player.y}};
 }
 
 void Tracker::Reset() { inRange_.clear(); }
@@ -49,7 +40,7 @@ void Tracker::Reset() { inRange_.clear(); }
 std::string Describe(const Announcement& announcement, const EntityRadar::Settings& scan, const Strings::Table& strings) {
 	std::string text = announcement.entity.name + ", " + EntityRadar::DistancePhrase(announcement.distance, scan, strings);
 	if (!EntityRadar::UnderPlayer(announcement.distance, scan))
-		text += std::string(", ") + strings.scanDirections[static_cast<size_t>(announcement.direction)];
+		text += std::string(", ") + SpokenDirection::Of(announcement.offset, strings);
 	return text;
 }
 }

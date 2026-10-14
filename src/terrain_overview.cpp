@@ -1,4 +1,5 @@
 #include "terrain_overview.h"
+#include "spoken_direction.h"
 
 #include "level_exit_layout.h"
 
@@ -137,7 +138,8 @@ std::string Speak(const Summary& summary, const std::string& levelName,
 		} else if (leg.hasUnexplored) state = strings.terrainUnexplored;
 		if (!state.empty()) state.insert(0, strings.listSeparator);
 		char line[320]{};
-		std::snprintf(line, sizeof line, strings.terrainDirection, strings.scanDirections[d], reach, state.c_str());
+		std::snprintf(line, sizeof line, strings.terrainDirection, SpokenDirection::OfSide(static_cast<Radar::Direction>(d), strings),
+			reach, state.c_str());
 		if (!directions.empty()) directions += strings.terrainSeparator;
 		directions += line;
 	}

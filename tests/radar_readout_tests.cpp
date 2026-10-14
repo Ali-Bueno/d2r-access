@@ -41,7 +41,7 @@ std::string Depth(double cells) {
 	return text;
 }
 std::string Entry(Direction direction, const std::string& body) {
-	return std::string(Text.radarDirections[Index(direction)]) + ": " + body;
+	return std::string(RadarReadout::DirectionName(Frame::Cardinal, Index(direction), Text)) + ": " + body;
 }
 bool Contains(const std::string& text, const std::string& part) { return text.find(part) != std::string::npos; }
 
@@ -68,7 +68,7 @@ void Passages() {
 	Check(Contains(readout, Text.radarStraight), "the passage list is introduced as straight-line travel");
 	size_t previous = 0;
 	for (size_t i = 0; i < DirectionCount; ++i) {
-		const size_t at = readout.find(std::string(Text.radarDirections[i]) + ": ");
+		const size_t at = readout.find(std::string(RadarReadout::DirectionName(Frame::Cardinal, i, Text)) + ": ");
 		Check(at != std::string::npos && at > previous, "the four directions are named once, in the engine's own order");
 		previous = at;
 	}
@@ -93,7 +93,7 @@ void DiagonalNames() {
 	const auto list = RadarReadout::DirectionList(Frame::Diagonal, Text);
 	size_t previous = 0, listed = 0;
 	for (const auto& ray : RaysOf(Frame::Diagonal)) {
-		const std::string name = Text.radarMovementDirections[static_cast<size_t>(ray.sector)];
+		const std::string name = Text.compassPoints[static_cast<size_t>(ray.sector)];
 		const size_t at = readout.find(name + ": ");
 		Check(at != std::string::npos && at > previous, "each diagonal is named after its screen sector, in the engine's order");
 		previous = at;
@@ -101,7 +101,7 @@ void DiagonalNames() {
 		Check(inList != std::string::npos && inList >= listed, "the spoken list names the four diagonals in the same order");
 		listed = inList + name.size();
 	}
-	Check(RadarReadout::DirectionList(Frame::Cardinal, Text).starts_with(Text.radarDirections[0]),
+	Check(RadarReadout::DirectionList(Frame::Cardinal, Text).starts_with(Text.compassPoints[0]),
 		"the cardinal list keeps the radar's own direction words");
 }
 
@@ -128,7 +128,7 @@ void Motion() {
 	world.player = {111, 101}; // world down-right and down-left: screen down
 	(void)engine.Tick(world, 1100);
 	char moving[160]{};
-	std::snprintf(moving, sizeof(moving), Text.radarMoving, Text.radarMovementDirections[4]);
+	std::snprintf(moving, sizeof(moving), Text.radarMoving, Text.compassPoints[4]);
 	Check(RadarReadout::Describe(engine, Text).starts_with(moving),
 		"actual movement is described by the screen sector the player is crossing");
 }
