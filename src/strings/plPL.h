@@ -361,6 +361,9 @@ inline constexpr Table plPL {
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
 	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
 	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II"},
+	.goldMovedPersonal = "%s złota przeniesiono do skrytki osobistej",
+	.goldMovedShared = "%s złota przeniesiono do skrytki wspólnej",
+	.goldMovedStash = "%s złota przeniesiono do skrytki",
 };
 
 }

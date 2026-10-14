@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace D2RAccess::ModalReader {
 
@@ -34,11 +35,14 @@ constexpr std::string_view ControllerGlyph = "\xEE\x80\x93"; // U+E013, stripped
 constexpr uint64_t TitlePollMs = 250;
 bool g_titleSpoken = false;
 uint64_t g_titlePolled = 0;
+// Said once, queued right behind the title's own announcement (the plugin's version).
+std::string g_titleAnnouncement;
 
 // A tester: the title took only the keyboard, never the pad. A pad press the
-// title has not answered within this long gets a key press in its place; one the
-// game did take has changed the panel by then, and nothing is sent.
-constexpr uint64_t TitlePadAnswerMs = 1000;
+// title has not answered within this long (a few frames) gets a key press in
+// its place; one the game did take has changed the panel by then, and nothing
+// is sent. docs/controller-mode.md#the-title-and-the-pad
+constexpr uint64_t TitlePadAnswerMs = 400;
 uint64_t g_titlePadPress = 0;
 bool g_titlePadHeld = false;
 
@@ -47,7 +51,10 @@ void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
 	bool held = false;
 	for (const auto button : {FaceButton::A, FaceButton::B, FaceButton::X, FaceButton::Y})
 		held |= InputDirection::FaceButtonHeld(button);
-	if (held && !g_titlePadHeld && !g_titlePadPress) g_titlePadPress = now;
+	if (held && !g_titlePadHeld && !g_titlePadPress) {
+		g_titlePadPress = now;
+		AsyncLog::InfoF(context, "[modal] title: pad press seen (prompt spoken=%d)", g_titleSpoken ? 1 : 0);
+	}
 	g_titlePadHeld = held;
 	if (!g_titlePadPress || now - g_titlePadPress < TitlePadAnswerMs) return;
 	g_titlePadPress = 0;
@@ -160,6 +167,8 @@ void PollTitlePrompt(const D2RL::PluginContext* context, const std::string& acti
 
 void Reset() { g_lastPanel.clear(); g_titleSpoken = g_deathSpoken = false; }
 
+void SetTitleAnnouncement(std::string text) { g_titleAnnouncement = std::move(text); }
+
 void Tick(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
 	if (active == g_lastPanel) {
@@ -168,10 +177,17 @@ void Tick(const D2RL::PluginContext* context) {
 		if (active == DeathPanel && !g_deathSpoken) PollDeath(context, active);
 		return;
 	}
+	if (g_lastPanel == TitlePanel && g_titlePadPress)
+		AsyncLog::InfoF(context, "[modal] title: the game took the pad press in %llu ms (now %s)",
+			static_cast<unsigned long long>(GetTickCount64() - g_titlePadPress), active.c_str());
 	g_lastPanel = active;
 	g_titleSpoken = g_deathSpoken = false;
 	g_deathPolled = g_titlePadPress = 0;
 	if (active.empty()) return;
+	if (active == TitlePanel && !g_titleAnnouncement.empty()) {
+		AsyncLog::InfoF(context, "[modal] title: plugin announcement \"%s\"", g_titleAnnouncement.c_str());
+		ScreenReader::Speak(std::exchange(g_titleAnnouncement, {}), false);
+	}
 	if (active == DeathPanel) {
 		PollDeath(context, active);
 		return;

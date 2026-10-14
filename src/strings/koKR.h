@@ -361,6 +361,9 @@ inline constexpr Table koKR {
 	.manaAlerts = {"마나 알림: 모든 변화", "마나 알림: 마나 부족 시만", "마나 알림 꺼짐"},
 	.itemSoundSets = {"아이템 소리: 디아블로 IV", "아이템 소리: Last Epoch 골드와 물약", "아이템 소리: 디아블로 II 떨어지는 소리"},
 	.settingsGroups = {"소리", "적과 NPC", "길 안내", "아이템과 메뉴", "알림", "컨트롤러", "소리 용어집", "음량", "디아블로 II 떨어지는 소리"},
+	.goldMovedPersonal = "골드 %s을(를) 개인 보관함으로 이동",
+	.goldMovedShared = "골드 %s을(를) 공유 보관함으로 이동",
+	.goldMovedStash = "골드 %s을(를) 보관함으로 이동",
 };
 
 }

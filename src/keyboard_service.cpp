@@ -1514,11 +1514,12 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // ---- the settings list ----
 
-// Pan and pitch strength steps, from none to RadarConfig::MaxStrengthPercent: quarters up to
-// the compiled 100, then wider, so a single change key cycles through few of them.
-constexpr int StrengthPercents[] = {0, 25, 50, 75, 100, 150, 200, 300, 400};
-constexpr int StrengthLevels = static_cast<int>(std::size(StrengthPercents));
-static_assert(StrengthPercents[StrengthLevels - 1] == static_cast<int>(RadarConfig::MaxStrengthPercent));
+// Pan and pitch strength steps: a quarter of the compiled 100 from none to
+// RadarConfig::MaxStrengthPercent (the tester's request, 2026-10-13).
+constexpr int StrengthStepPercent = 25;
+constexpr int StrengthLevels = static_cast<int>(RadarConfig::MaxStrengthPercent) / StrengthStepPercent + 1;
+constexpr int StrengthPercent(int level) { return std::clamp(level, 0, StrengthLevels - 1) * StrengthStepPercent; }
+static_assert(RadarConfig::MaxStrengthPercent % StrengthStepPercent == 0);
 
 // A strength of a sound family as a setting of several values: `get` and `set`
 // trade the scale the audio module uses (1 = as compiled).
@@ -1529,33 +1530,28 @@ SettingsList::Entry Strength(const char* key, const char* Strings::Table::* form
 	entry.levels = StrengthLevels;
 	entry.level = [get] {
 		const double percent = get() * RadarConfig::NeutralStrengthPercent;
-		int nearest = 0;
-		for (int i = 1; i < StrengthLevels; ++i)
-			if (std::abs(StrengthPercents[i] - percent) < std::abs(StrengthPercents[nearest] - percent)) nearest = i;
-		return nearest;
+		return std::clamp(static_cast<int>(std::lround(percent / StrengthStepPercent)), 0, StrengthLevels - 1);
 	};
-	entry.setLevel = [set](int level) {
-		set(static_cast<double>(StrengthPercents[std::clamp(level, 0, StrengthLevels - 1)]) / RadarConfig::NeutralStrengthPercent);
-	};
+	entry.setLevel = [set](int level) { set(static_cast<double>(StrengthPercent(level)) / RadarConfig::NeutralStrengthPercent); };
 	entry.sayLevel = [format](int level) {
 		char phrase[160]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, StrengthPercents[std::clamp(level, 0, StrengthLevels - 1)]);
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, StrengthPercent(level));
 		return std::string(phrase);
 	};
 	return entry;
 }
 
-// Saved as a step: the keys changed with the steps (2026-10-13), so a step of
-// the old quarters is not read as one of the new ones.
+// Saved as a step: the keys change with the steps (-25 = quarters), so a step of
+// an older grid is not read as one of these.
 std::vector<SettingsList::Entry> Strengths() {
 	return {
-		Strength("enemy-pan", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
+		Strength("enemy-pan-25", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
 			[](double scale) { EntityCueAudio::SetStrength(scale, EntityCueAudio::PitchScale()); }),
-		Strength("enemy-pitch", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
+		Strength("enemy-pitch-25", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
 			[](double scale) { EntityCueAudio::SetStrength(EntityCueAudio::PanScale(), scale); }),
-		Strength("beacon-pan", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
+		Strength("beacon-pan-25", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
 			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
-		Strength("beacon-pitch", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
+		Strength("beacon-pitch-25", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
 			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
 	};
 }
@@ -1672,7 +1668,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
-		FootstepVolume(),
 	}});
 	using F = SoundVolume::Family;
 	groups.push_back({GroupName(G::Volumes), {
@@ -1680,6 +1675,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Volume("enemy-volume", &T::enemyVolume, F::Enemies),
 		Volume("item-volume", &T::itemVolume, F::Items),
 		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
+		FootstepVolume(),
 	}});
 	groups.push_back({GroupName(G::Enemies), {
 		{cue(Cue::All), setCue(Cue::All), phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},

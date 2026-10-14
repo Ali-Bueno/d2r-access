@@ -361,6 +361,9 @@ inline constexpr Table itIT {
 	.manaAlerts = {"Avvisi del mana: ogni cambiamento", "Avvisi del mana: solo mana basso", "Avvisi del mana: disattivi"},
 	.itemSoundSets = {"Suoni degli oggetti: Diablo IV", "Suoni degli oggetti: oro e pozioni di Last Epoch", "Suoni degli oggetti: cadute di Diablo II"},
 	.settingsGroups = {"Suoni", "Nemici e PNG", "Navigazione", "Oggetti e menu", "Avvisi", "Controller", "Glossario dei suoni", "Volumi", "Suoni di caduta di Diablo II"},
+	.goldMovedPersonal = "%s oro spostato nel forziere personale",
+	.goldMovedShared = "%s oro spostato nel forziere condiviso",
+	.goldMovedStash = "%s oro spostato nel forziere",
 };
 
 }

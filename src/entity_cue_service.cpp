@@ -46,6 +46,7 @@ constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
 std::atomic<bool> g_npcAlerts{true};
 EntityCues::AlertTracker g_alerts;
+std::mutex g_alertMutex; // the announcer reads the tracker too
 uint64_t g_revision = 0, g_lastPoll = 0;
 
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
@@ -225,7 +226,7 @@ void Tick(const D2RL::PluginContext* context) {
 	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		g_tracker.Reset(); g_alerts.Reset();
+		g_tracker.Reset(); { std::lock_guard lock(g_alertMutex); g_alerts.Reset(); }
 		Suspend(context, "lifecycle changed");
 		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
 	}
@@ -260,10 +261,10 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
-	// The moment a sighted player sees a "!" appear over an NPC (a tester, 2026-10-13).
-	if (const auto raised = g_alerts.Raised(world, entities); !raised.empty() && g_npcAlerts.load() && g_settings.npcs) {
-		AsyncLog::InfoF(context, "[npc] exclamation mark id=%u distance=%.1f (%zu raised)", raised.front().id, raised.front().distance, raised.size());
-		EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {raised.front().right, raised.front().front});
+	// The moment a sighted player sees a "!" appear over an NPC (a tester, 2026-10-13); the
+	// announcer reads the same tracker, so a mark rings once whoever sees it first.
+	if (const auto raised = RaisedAlerts(world, entities); !raised.empty() && g_npcAlerts.load()) {
+		RingAlert(raised.front());
 		return;
 	}
 	const auto cue = g_tracker.Update(world, entities, now, g_settings);
@@ -318,6 +319,15 @@ void SetEnabled(Cue cue, bool enabled) {
 bool NpcAlerts() { return g_npcAlerts.load(); }
 void SetNpcAlerts(bool on) { g_npcAlerts = on; }
 void PlayNpcAlert() {
-	if (g_npcAlerts.load() && g_enabled && g_settings.npcs) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
+	if (g_npcAlerts.load() && g_enabled) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
+}
+std::vector<EntityCues::Cue> RaisedAlerts(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	std::lock_guard lock(g_alertMutex);
+	return g_alerts.Raised(world, entities);
+}
+void RingAlert(const EntityCues::Cue& cue) {
+	if (!g_npcAlerts.load() || !g_enabled) return;
+	AsyncLog::InfoF(g_context, "[npc] exclamation mark id=%u distance=%.1f", cue.id, cue.distance);
+	EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {cue.right, cue.front});
 }
 }

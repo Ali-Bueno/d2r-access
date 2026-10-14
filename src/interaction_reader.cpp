@@ -489,6 +489,7 @@ std::string SizePhrase(uintptr_t item) {
 constexpr std::string_view GoldButton = "gold_button";
 // The stash's withdraw button and the text box beside it that shows the open tab's gold.
 constexpr std::string_view StashGoldButton = "gold_withdraw";
+constexpr std::string_view StashPanel = "BankExpansionLayout";
 constexpr std::string_view StashGoldBox = "gold_amount", StashGoldContainer = "basicstash_container";
 
 // The digits of the stash's gold box, "" when it cannot be read.
@@ -1428,6 +1429,10 @@ void Reset() {
 	ControlHints::Offer({});
 }
 
+StashCount::GoldTab OpenStashTab(const D2RL::PluginContext* context) {
+	const uintptr_t panel = NativeWidgets::FindPanel(StashPanel);
+	return panel ? StashTab(context, panel) : StashCount::GoldTab::Unknown;
+}
 bool HandSpeech() { return g_handSpeech; }
 void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
 

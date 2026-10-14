@@ -412,6 +412,9 @@ struct Table {
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
+	const char* goldMovedPersonal;    // %s = gold the deposit moved into the personal stash
+	const char* goldMovedShared;      // %s = gold moved into the shared stash
+	const char* goldMovedStash;       // %s = gold moved into a stash tab the mod could not name
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -468,7 +471,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume}) visit(s);
+		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume,
+		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash}) visit(s);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
 	each(t.settingsGroups);
