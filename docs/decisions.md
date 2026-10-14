@@ -3,6 +3,22 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-13 — Compass words, units and the route description (the user)
+
+- **Compass points instead of up/down/left/right**, with **clock hours** as a setting
+  (`direction-style`, compass by default). They stay screen directions: north is the top of the
+  screen. Rejected: the game world's own axes as north (the world is drawn turned 45 degrees,
+  so "north" would not be where the stick pushes). The clock bearing has twelve hours, finer
+  than the eight points; a side (radar ray, finder, overview) is 12, 9, 3 or 6.
+- **Units instead of steps**: a step of the character covers several subtiles, so "steps" was
+  wrong; a unit is one collision subtile, the measure every readout already used.
+- **Route description** on request (BACK + right stick down, Ctrl+E): the way to the beacon's
+  or scanner's target as straight legs with doors. This reverses the 2026-09-20 rule against a
+  dictated step sequence: a tester could not plan the way to quest places as a sighted player
+  does from the minimap. The user's limit: **no autowalk**; nothing is said unasked, and it plans
+  by the navigation mode's rules (explored ground only in exploration). One level only.
+  `docs/route-description.md`.
+
 ## 2026-10-13 — The tester's fourth report
 
 Sixteen items. The user's calls: the layered enemy sounds are the default, the swoops stay a
