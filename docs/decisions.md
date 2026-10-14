@@ -3,13 +3,13 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
-## 2026-10-14 — Passages by the map's sides, a switch (a tester)
+## 2026-10-14 — Passages by the map's sides, on by default (a tester, the user)
 
 A tester asked for the finder's input turned 45 degrees clockwise (flick up-right for the passages at
 2 o'clock) and for the finder and the room line to say the room's walls: northeast, southeast,
 southwest, northwest (2, 4, 8, 10 o'clock). It reverses the 2026-09-25 scope "every other feature
-keeps its screen directions", so it is a switch, `passage-map-sides`, **off** until the user says
-otherwise. Chosen: a passage named by its wall, not by its bearing from the player, so it does not
+keeps its screen directions"; the user chose it as the default, and the screen sides stay a switch
+away (`passage-map-sides` off). Chosen: a passage named by its wall, not by its bearing from the player, so it does not
 change side as the player moves through the room; the stick read by its quarter, not its dominant
 axis, so a diagonal flick is not split between two sides. Not changed: the scanner, the radar and
 every other readout keep their eight compass points or twelve hours. `docs/rooms.md`.

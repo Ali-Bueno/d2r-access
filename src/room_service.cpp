@@ -51,9 +51,8 @@ std::atomic<bool> g_enabled{true}, g_asked{false}, g_finderToggle{false};
 // ways out on that side. Off by default, for the session.
 std::atomic<bool> g_finder{false};
 // Ways out told by the map's sides, the room's own walls, instead of the
-// screen's: a tester's request of 2026-10-14, a switch, off by default (the
-// user's 2026-09-25 rule: features other than the radar keep screen sides).
-std::atomic<bool> g_mapSides{false};
+// screen's: a tester's request of 2026-10-14, on by default (the user).
+std::atomic<bool> g_mapSides{true};
 ExitReview::Sides Sides() { return g_mapSides.load(std::memory_order_relaxed) ? ExitReview::Sides::Map : ExitReview::Sides::Screen; }
 bool g_supported = false;
 Rooms::Hysteresis g_rooms;
@@ -374,7 +373,7 @@ void Unregister() {
 	std::lock_guard lock(g_mutex);
 	Forget();
 	g_state = {};
-	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_mapSides = false; g_supported = false; g_nextPoll = 0;
+	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_mapSides = true; g_supported = false; g_nextPoll = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
 
