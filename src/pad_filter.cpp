@@ -47,11 +47,22 @@ uint64_t                           g_nextTry = 0;
 // call site (MEASURED offline 2026-09-20, build 3.3.93787).
 std::array<Presses, XUSER_MAX_COUNT> g_press {};
 std::array<uint16_t, XUSER_MAX_COUNT> g_keptLast {}; // what the previous frame kept, so each press is logged once
+// The first presses the game itself polls outside play, for the UI tick's log.
+constexpr uint32_t SeenLogMax = 12;
+constexpr uint32_t SeenSlotShift = 16;
+constexpr uint32_t SeenSet = 1u << 24; // keeps a pending value non-zero for slot 0
+std::array<WORD, XUSER_MAX_COUNT> g_seenLast {};
+std::atomic<uint32_t>             g_seenCount { 0 };
+std::atomic<uint32_t>             g_seenPending { 0 };
 
 DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	const DWORD result = g_original(user, state);
 	if (result != ERROR_SUCCESS || state == nullptr || user >= XUSER_MAX_COUNT) return result;
 	const WORD before = state->Gamepad.wButtons;
+	if (before != 0 && g_seenLast[user] == 0 && !g_claimed.load(std::memory_order_relaxed)
+		&& g_seenCount.load(std::memory_order_relaxed) < SeenLogMax)
+		g_seenPending.store((user << SeenSlotShift) | before | SeenSet, std::memory_order_relaxed);
+	g_seenLast[user] = before;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
 	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB,
 		g_keepBack.load(std::memory_order_relaxed), g_settingsOpen.load(std::memory_order_relaxed));
@@ -193,6 +204,11 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 	if (g_retries > 0 && context != nullptr && GetTickCount64() >= g_nextTry) {
 		g_nextTry = GetTickCount64() + RetryMs;
 		(void)TryInstall(context, --g_retries == 0);
+	}
+	if (const uint32_t seen = g_seenPending.exchange(0, std::memory_order_relaxed)) {
+		const uint32_t count = g_seenCount.fetch_add(1, std::memory_order_relaxed) + 1;
+		AsyncLog::InfoF(context, "[pad] the game polled slot %u with buttons 0x%04x outside play (%u of %u logged)",
+			(seen >> SeenSlotShift) & 0xFF, seen & 0xFFFF, count, SeenLogMax);
 	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
 		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s%s", (kept & Back) ? " BACK (the automap in play)" : "",

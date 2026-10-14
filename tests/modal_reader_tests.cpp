@@ -122,8 +122,10 @@ int main() {
 	active = "TitleScreenPanel"; tree = {};
 	Node(-1, Kind::Other, active);
 	speech.clear();
+	ModalReader::SetTitleAnnouncement("loaded. test");
 	ModalReader::Tick(nullptr);
-	Check(speech.empty(), "no prompt yet, nothing to say");
+	Check(speech.size() == 1 && speech[0].text == "loaded. test" && !speech[0].interrupt, "the plugin version is queued behind the title announcement, once");
+	speech.clear();
 	promptShown = true; promptText = "Press \xEE\x80\x93 to Begin";
 	Sleep(300);
 	ModalReader::Tick(nullptr);

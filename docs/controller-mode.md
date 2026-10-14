@@ -241,3 +241,15 @@ From the live log, before the mod touched XInput itself:
 The game reads the pad through **`xinput9_1_0.dll`**, and that module does
 **not** export the undocumented ordinal 100, so hooking the named
 `XInputGetState` alone reaches every call the game makes.
+
+## The title and the pad (2026-10-13) {#the-title-and-the-pad}
+
+Tester: a pad press does not pass "Press Any Key to Begin" in the modded game. Static reading found no
+cause in our pad path: the XInput filter (`pad_filter.cpp`) changes nothing outside play (`claimed` is
+false), and the mod's own poll uses xinput1_4 while the game reads xinput9_1_0. The fallback Space
+(`modal_reader.cpp`) now waits 400 ms, not 1000, so a press the game takes is never followed by it, and
+logs `[modal] title: pad press seen`, `... the game took the pad press in N ms`. New: `[pad] the game
+polled slot N with buttons 0x... outside play`: if the title ignores the pad and that line is missing, the
+game never saw the button (slot or device problem); if present, the game saw it and ignored it.
+The version announcement is queued behind the title's own (`ModalReader::SetTitleAnnouncement`), not
+spoken at load where the game's window read cut it off.
