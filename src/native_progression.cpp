@@ -81,6 +81,7 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		if (NativeUi::Classify(tab).kind != UiText::Kind::TabButton) return result;
 		result.skill = true;
 		result.tab = tab;
+		result.classTree = containerName == "SkillButtonContainer";
 		result.readout.body = NativeUi::Visible(tab) ? UiText::Clean(NativeUi::TabLabel(tab)) : std::string{};
 		result.points = ChildText(focus.panel, "SkillCounter");
 		result.help = Binding(focus.widget);

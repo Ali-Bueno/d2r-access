@@ -125,6 +125,7 @@ std::string g_tabFocus;
 std::string g_tabTitle;
 // The skill-tree branch last read: its tabs are separate widgets, so TabReader
 // never sees a branch change and the skill readout has to name it itself.
+// Forgotten once the focus leaves the tree's panel, so a reopened tree names it again.
 uintptr_t g_skillTab = 0;
 uintptr_t g_skillTabPanel = 0;
 // The panel the last readout was about, to tell a tab change that moved focus
@@ -874,6 +875,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// Focus that has been anywhere else since, even back in the same panel
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;
+	if (focus.panel != g_skillTabPanel) g_skillTab = g_skillTabPanel = 0;
 	// The character panel's own stick reader goes first: it claims all four
 	// directions, and ReadDetail below would otherwise take up from it. Nothing
 	// is lost by that order -- the character panel holds neither items nor
@@ -1360,11 +1362,18 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		if (progression.skill && progression.tab) {
-			if (g_skillTab && g_skillTab != progression.tab && g_skillTabPanel == focus.panel && !readout.body.empty()) {
+			// The branch leads, as the tree opens and on each LT/RT change, with the skill
+			// choices left in a class tree (a tester, 2026-10-13: "Defensive Auras, 1 Skill
+			// choice"); General Skills has none of its own. Queued behind the window's title.
+			if (g_skillTab != progression.tab && !readout.body.empty()) {
+				const bool opened = !g_skillTab;
 				g_tabTitle = readout.body;
 				g_tabChangedAt = now;
 				g_tabFocus.clear();
-				ScreenReader::Speak(g_tabTitle, true);
+				std::string title = g_tabTitle;
+				if (progression.classTree && CharacterStats::HasPoints(progression.points)) Append(title, progression.points);
+				AsyncLog::InfoF(context, "[skill-tree] branch %s -> \"%s\"", opened ? "opened" : "changed", title.c_str());
+				ScreenReader::Speak(title, !opened);
 			}
 			g_skillTab = progression.tab;
 			g_skillTabPanel = focus.panel;
