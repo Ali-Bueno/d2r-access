@@ -32,9 +32,10 @@ constexpr int GrowlHarmonics = 5;
 // strikes like the NPC tap or the reach ping, at about half the growl's level (RMS) so the
 // growl stays the base. See docs/entity-cues.md.
 constexpr double LayerBaseHz = (GrowlStartHz + GrowlEndHz) / 2;
-// Elite: a raspy snarl, a bright buzz chattering like teeth; tonal, never the radar's noise.
-constexpr double TeethRatio = 2, TeethChatterHz = 62, TeethLevel = 0.15;
-constexpr int TeethHarmonics = 8;
+// Elite: a raspy snarl, a bright buzz chattering like teeth; tonal, never the radar's noise. 750 Hz and
+// harmonic phases spread to keep the crest low (1.8 kHz centroid) so it cuts through six growls; docs/entity-cues.md.
+constexpr double TeethRatio = 5, TeethChatterHz = 62, TeethLevel = 0.28, TeethRolloff = 1, TeethPhaseSpread = 1.3;
+constexpr int TeethHarmonics = 6;
 // Boss: a metallic ring, a struck bar's inharmonic partials above the growl.
 constexpr double RingRatios[] = {2.76, 5.40, 8.93}, RingWeights[] = {1, 0.55, 0.3};
 constexpr double RingLevel = 0.08;
@@ -127,7 +128,8 @@ double ClassLayer(Sound sound, double progress, double seconds, double pitch) {
 	case Sound::Important: {
 		const double chatter = std::max(0.0, std::sin(2 * std::numbers::pi * TeethChatterHz * seconds));
 		double buzz = 0;
-		for (int harmonic = 1; harmonic <= TeethHarmonics; ++harmonic) buzz += tone(TeethRatio * harmonic) / harmonic;
+		for (int harmonic = 1; harmonic <= TeethHarmonics; ++harmonic)
+			buzz += std::sin(2 * std::numbers::pi * base * TeethRatio * harmonic * seconds + TeethPhaseSpread * harmonic * harmonic) / std::pow(harmonic, TeethRolloff);
 		return TeethLevel * swell * chatter * chatter * buzz;
 	}
 	case Sound::Boss: {
