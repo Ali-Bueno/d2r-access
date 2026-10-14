@@ -209,6 +209,8 @@ inline constexpr Table esES {
 	.roomsUnavailable = "Salidas de sala no disponibles",
 	.finderEnabled = "Buscador de salidas activado",
 	.finderDisabled = "Buscador de salidas desactivado",
+	.mapSidesOn = "Salidas según los lados del mapa: noreste, sureste, suroeste, noroeste",
+	.mapSidesOff = "Salidas según los lados de la pantalla",
 	.finderNothing = "%s: nada",
 	.automapLogged = "Automapa escrito en el registro",
 	.automapWatchOn = "Vigilancia del automapa activada",

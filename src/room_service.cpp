@@ -50,6 +50,11 @@ std::atomic<bool> g_enabled{true}, g_asked{false}, g_finderToggle{false};
 // The exit finder: while on, in a dungeon room, a right-stick push names the
 // ways out on that side. Off by default, for the session.
 std::atomic<bool> g_finder{false};
+// Ways out told by the map's sides, the room's own walls, instead of the
+// screen's: a tester's request of 2026-10-14, a switch, off by default (the
+// user's 2026-09-25 rule: features other than the radar keep screen sides).
+std::atomic<bool> g_mapSides{false};
+ExitReview::Sides Sides() { return g_mapSides.load(std::memory_order_relaxed) ? ExitReview::Sides::Map : ExitReview::Sides::Screen; }
 bool g_supported = false;
 Rooms::Hysteresis g_rooms;
 // Distances are spoken by the same rule as the entity scan and the catalogue.
@@ -58,6 +63,7 @@ const EntityRadar::Settings g_scan;
 // the next way out, until the side, the room or the level changes.
 ExitReview::Cycle g_cycle;
 Radar::Direction g_cycleSide = Radar::Direction::Up;
+ExitReview::Sides g_cycleSides = ExitReview::Sides::Screen;
 Rooms::RoomKey g_cycleRoom;
 int g_cycleLevel = 0;
 uint64_t g_nextPoll = 0;
@@ -80,7 +86,13 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 	Forget();
 }
 const char* Where(Radar::Position player, Radar::Position target) {
-	return SpokenDirection::Of({target.x - player.x, target.y - player.y}, Strings::Current());
+	const Radar::Position offset{target.x - player.x, target.y - player.y};
+	return SpokenDirection::Of(Sides() == ExitReview::Sides::Map ? ExitReview::MapSide(offset) : offset, Strings::Current());
+}
+// A passage is said by its wall on the map's sides, by its bearing on the screen's.
+const char* Where(Radar::Position player, const Rooms::Opening& opening) {
+	return Sides() == ExitReview::Sides::Map ? SpokenDirection::Of(ExitReview::Wall(opening), Strings::Current())
+		: Where(player, opening.centre);
 }
 // A finder side in the log, which is English diagnosis, not speech.
 const char* SideName(Radar::Direction side) {
@@ -128,7 +140,7 @@ void Announce(const Lifecycle& state, const Radar::World& world, const Rooms::Ro
 	std::string line;
 	for (const auto& opening : room.openings) {
 		if (!line.empty()) line += strings.listSeparator;
-		line += Tagged(Where(world.player, opening.centre), opening.unexplored);
+		line += Tagged(Where(world.player, opening), opening.unexplored);
 	}
 	AppendWarps(state, room, world.player, line);
 	char text[512]{};
@@ -192,7 +204,10 @@ bool SideOf(InputDirection::StickPush push, Radar::Direction& side) {
 // The way out named is offered to guidance, so BACK+LB or Ctrl+B leads to it.
 void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	Radar::Direction side = Radar::Direction::Up;
-	if (!SideOf(InputDirection::PeekRightStickPush(), side)) return;
+	const auto sides = Sides();
+	// On the map's sides the stick is read turned: a flick up-right asks for the northeast wall.
+	if (!SideOf(sides == ExitReview::Sides::Map ? InputDirection::PeekTurnedRightStickPush()
+		: InputDirection::PeekRightStickPush(), side)) return;
 	Radar::World world;
 	Rooms::Room room;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
@@ -201,28 +216,29 @@ void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t n
 	TagOpenings(world, state.level, room);
 	const auto& strings = Strings::Current();
 	const Rooms::RoomKey key{room.x, room.y, true};
-	if (!(key == g_cycleRoom) || state.level != g_cycleLevel || side != g_cycleSide) {
+	if (!(key == g_cycleRoom) || state.level != g_cycleLevel || side != g_cycleSide || sides != g_cycleSides) {
+		g_cycleSides = sides;
 		g_cycle.Reset();
 		g_cycleRoom = key;
 		g_cycleLevel = state.level;
 		g_cycleSide = side;
 	}
 	const auto items = ExitReview::Toward(
-		ExitReview::Collect(world.player, room.openings, ExitsIn(state, room), strings, UnexploredExit), world.player, side);
+		ExitReview::Collect(world.player, room.openings, ExitsIn(state, room), strings, UnexploredExit), world.player, side, sides);
 	const size_t index = g_cycle.Next(items);
 	if (index == ExitReview::NoItem) {
-		const auto text = ExitReview::Nothing(side, strings);
+		const auto text = ExitReview::Nothing(side, strings, sides);
 		ScreenReader::Speak(text, true);
-		AsyncLog::InfoF(context, "[room] finder %s: none of %zu openings -> %s", SideName(side),
-			room.openings.size(), text.c_str());
+		AsyncLog::InfoF(context, "[room] finder %s%s: none of %zu openings -> %s", SideName(side),
+			sides == ExitReview::Sides::Map ? " (map)" : "", room.openings.size(), text.c_str());
 		return;
 	}
 	const auto& item = items[index];
 	const auto text = ExitReview::Describe(item, g_scan, strings);
 	ScreenReader::Speak(text, true);
 	BeaconService::Offer(item.named ? item.entity : Place(item), state.level, now);
-	AsyncLog::InfoF(context, "[room] finder %s: %zu of %zu at=%.0f,%.0f named=%u unexplored=%u -> %s",
-		SideName(side), index + 1, items.size(),
+	AsyncLog::InfoF(context, "[room] finder %s%s: %zu of %zu at=%.0f,%.0f named=%u unexplored=%u -> %s",
+		SideName(side), sides == ExitReview::Sides::Map ? " (map)" : "", index + 1, items.size(),
 		item.point.x, item.point.y, item.named ? 1u : 0u, item.unexplored ? 1u : 0u, text.c_str());
 }
 auto FinderToggle(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {
@@ -358,7 +374,7 @@ void Unregister() {
 	std::lock_guard lock(g_mutex);
 	Forget();
 	g_state = {};
-	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_supported = false; g_nextPoll = 0;
+	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_mapSides = false; g_supported = false; g_nextPoll = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
 
@@ -367,5 +383,7 @@ void Unregister() {
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 bool Finder() { return g_finder; }
+bool MapSides() { return g_mapSides.load(std::memory_order_relaxed); }
+void SetMapSides(bool enabled) { g_mapSides.store(enabled, std::memory_order_relaxed); }
 void SetFinder(bool enabled) { if (g_finder != enabled) g_finderToggle = true; }
 }

@@ -54,14 +54,40 @@ player stands in and keeps the runs of cells that are open **on both sides**:
 ## What is spoken
 
 Directions are **screen directions** from the player, in the entity scan's own
-vocabulary (`scanDirections`: adelante / a la izquierda / a la derecha / atrás).
-They are not the room's world-axis sides: D2's screen axes are the world
-diagonals, so "north" would name a direction the player cannot walk.
+vocabulary: eight compass points, north the top of the screen, or twelve clock
+hours ([spoken directions](radar-readings.md#spoken-directions-2026-10-13)).
+By default they are not the room's world-axis sides; the switch below says
+those, as the screen diagonals they are drawn at.
 
 Level exits standing inside the room — stairs, portals, waypoints — are spoken
 with the game's own destination name, which `NativeEntities` already resolves.
 Every other opening is a direction alone, because a gap between two maze cells
 leads to more dungeon and has nothing to be named after.
+
+### The map's sides (2026-10-14, a switch)
+
+A tester working the finder through the Underground Passage asked for the
+room's own layout: D2 draws the world axes, along which every wall runs, at
+the screen diagonals, at 2, 4, 8 and 10 o'clock on its 2:1 projection. With
+`passage-map-sides` on (Ctrl+S, Navigation; off by default, since the user's
+2026-09-25 rule keeps every feature but the radar on screen sides):
+
+- **The room line** says each passage by its wall: northeast (world -Y),
+  southeast (+X), southwest (+Y), northwest (-X), or 2, 4, 8 and 10 o'clock.
+  A level exit standing in the room is said by the wall it lies toward.
+- **The finder's input is turned 45 degrees clockwise**: a flick up-right asks
+  for the northeast wall, down-right the southeast, down-left the southwest,
+  up-left the northwest. The stick's quarter decides, not its dominant axis
+  (`InputDirection::PeekTurnedRightStickPush`). The keyboard's four keys turn
+  the same way: up is northeast, right southeast, down southwest, left
+  northwest. A passage belongs to its wall's side wherever the player stands in
+  the room; a level exit to the quarter of world-axis directions it lies in
+  (`ExitReview::Sides::Map`). "northeast: nothing" when the wall has none.
+
+The game turns the left stick the same 45 degrees into the world
+([decisions 2026-09-25](decisions.md)), so the stick diagonal that names a wall
+is also the one that walks toward it. Tests: `tests/exit_review_tests.cpp`
+(`MapSides`). Log: `[room] finder up (map): ...`.
 
 ## Exit review
 

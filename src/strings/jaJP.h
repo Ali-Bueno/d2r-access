@@ -209,6 +209,8 @@ inline constexpr Table jaJP {
 	.roomsUnavailable = "ルーム出口を利用できません",
 	.finderEnabled = "出口検索 オン",
 	.finderDisabled = "出口検索 オフ",
+	.mapSidesOn = "出口をマップの辺で: 北東、南東、南西、北西",
+	.mapSidesOff = "出口を画面の辺で",
 	.finderNothing = "%sには何もありません",
 	.automapLogged = "オートマップをログに書き込みました",
 	.automapWatchOn = "オートマップ監視オン",

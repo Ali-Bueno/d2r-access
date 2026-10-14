@@ -1,4 +1,5 @@
 #include "exit_review.h"
+#include "spoken_direction.h"
 #include "test_support.h"
 
 #include <string>
@@ -123,6 +124,44 @@ void Spoken() {
 	Check(line.find(" of ") == std::string::npos, "no position in the list is ever spoken");
 	Check(ExitReview::Nothing(Radar::Direction::Left, English) == "west: nothing", "an empty side says so as the scan does");
 }
+// The map's sides (a tester, 2026-10-14): the room's own walls, which D2 draws
+// at the screen diagonals, and the stick turned to them.
+void MapSides() {
+	using ExitReview::Sides;
+	const Position player{100, 100};
+	// A room from 80,80 to 119,119 with a passage in each wall.
+	const std::vector<Rooms::Opening> openings{
+		{{110, 80}, 3, {110, 79}},  // top wall, world -Y
+		{{119, 85}, 3, {120, 85}},  // right wall, +X
+		{{90, 119}, 3, {90, 120}},  // bottom wall, +Y
+		{{80, 112}, 3, {79, 112}}}; // left wall, -X
+	const auto items = ExitReview::Collect(player, openings, {Exit(7, {100, 90}, "Stairs")}, English);
+	const auto northeast = ExitReview::Toward(items, player, Radar::Direction::Up, Sides::Map);
+	Check(northeast.size() == 2 && northeast[0].label == "Stairs" && northeast[1].point.x == 110,
+		"up is the northeast wall's passage, and a level exit toward it");
+	const auto southeast = ExitReview::Toward(items, player, Radar::Direction::Right, Sides::Map);
+	Check(southeast.size() == 1 && southeast[0].point.x == 119, "right is the southeast wall");
+	const auto southwest = ExitReview::Toward(items, player, Radar::Direction::Down, Sides::Map);
+	Check(southwest.size() == 1 && southwest[0].point.y == 119, "down the southwest wall");
+	const auto northwest = ExitReview::Toward(items, player, Radar::Direction::Left, Sides::Map);
+	Check(northwest.size() == 1 && northwest[0].point.x == 80, "left the northwest wall");
+	const Position corner{115, 84};
+	const auto fromCorner = ExitReview::Collect(corner, openings, {}, English);
+	Check(ExitReview::Toward(fromCorner, corner, Radar::Direction::Up, Sides::Map).size() == 1,
+		"a passage is on its wall's side wherever the player stands in the room");
+	Check(ExitReview::Nothing(Radar::Direction::Up, English, Sides::Map) == "northeast: nothing"
+		&& ExitReview::Nothing(Radar::Direction::Left, English, Sides::Map) == "northwest: nothing",
+		"the sides are said as the screen diagonals");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Clock);
+	Check(ExitReview::Nothing(Radar::Direction::Up, English, Sides::Map) == "2 o'clock: nothing"
+		&& ExitReview::Nothing(Radar::Direction::Right, English, Sides::Map) == "4 o'clock: nothing"
+		&& ExitReview::Nothing(Radar::Direction::Down, English, Sides::Map) == "8 o'clock: nothing"
+		&& ExitReview::Nothing(Radar::Direction::Left, English, Sides::Map) == "10 o'clock: nothing",
+		"and as the hours the walls are drawn at: 2, 4, 8 and 10");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Compass);
+	const auto side = ExitReview::MapSide({3, -10});
+	Check(side.x == 0 && side.y == -1 && ExitReview::Wall(openings[1]).x == 1, "an offset and a wall each name one world axis");
+}
 }
 
 int main() {
@@ -132,5 +171,6 @@ int main() {
 	Cycling();
 	Sides();
 	Spoken();
+	MapSides();
 	Passed();
 }

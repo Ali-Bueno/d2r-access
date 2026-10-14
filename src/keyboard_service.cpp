@@ -1707,6 +1707,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
 		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
 		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
+		{RoomService::MapSides, RoomService::SetMapSides, phrase(&T::mapSidesOn, &T::mapSidesOff), false, "passage-map-sides"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},

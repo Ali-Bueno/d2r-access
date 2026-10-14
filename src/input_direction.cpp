@@ -4,9 +4,11 @@
 
 #include <xinput.h>
 
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <numbers>
 
 namespace D2RAccess::InputDirection {
 
@@ -82,6 +84,7 @@ Vertical   g_lastVertical         = Vertical::None;
 ULONGLONG  g_lastVerticalTickMs   = 0;
 FaceButton g_lastFaceButton       = FaceButton::None;
 StickPush  g_rightStickPush       = StickPush::None;
+StickPush  g_rightStickTurned     = StickPush::None; // the same push in the turned frame
 ULONGLONG  g_lastFaceButtonTickMs = 0;
 
 // The last push to be resolved, waiting to be logged. A claimant name means a
@@ -244,6 +247,11 @@ void Poll() {
 					ResolvePush(g_rightStickPush, nullptr);
 					g_lineStep = false;
 					g_rightStickPush = push;
+					// Clockwise from up, the quarter the stick is in: up-right is Up.
+					const double quarter = std::atan2(static_cast<double>(pad.sThumbRX), static_cast<double>(pad.sThumbRY))
+						/ (std::numbers::pi / 2);
+					constexpr StickPush Quarters[] = {StickPush::Up, StickPush::Right, StickPush::Down, StickPush::Left};
+					g_rightStickTurned = Quarters[static_cast<int>(std::floor(quarter) + 4) % 4];
 				}
 			}
 		}
@@ -346,6 +354,7 @@ StickPush TakeRightStickPush(const char* claimant) {
 	return push;
 }
 StickPush PeekRightStickPush() { return g_rightStickPush; }
+StickPush PeekTurnedRightStickPush() { return g_rightStickPush == StickPush::None ? StickPush::None : g_rightStickTurned; }
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
 	if (wanted == StickPush::None || g_rightStickPush != wanted) {
 		return false;
@@ -358,7 +367,7 @@ void PostRightStickPush(StickPush push) {
 	if (push == StickPush::None) return;
 	// A push still pending is about to be replaced, as a pad's would be.
 	ResolvePush(g_rightStickPush, nullptr);
-	g_rightStickPush = push;
+	g_rightStickPush = g_rightStickTurned = push;
 	g_lineStep = false;
 }
 void PostLeftStickPush(StickPush push) {

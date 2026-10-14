@@ -209,6 +209,8 @@ inline constexpr Table deDE {
 	.roomsUnavailable = "Raumausgänge nicht verfügbar",
 	.finderEnabled = "Ausgangssuche an",
 	.finderDisabled = "Ausgangssuche aus",
+	.mapSidesOn = "Ausgänge nach den Seiten der Karte: Nordost, Südost, Südwest, Nordwest",
+	.mapSidesOff = "Ausgänge nach den Seiten des Bildschirms",
 	.finderNothing = "%s: nichts",
 	.automapLogged = "Automap ins Protokoll geschrieben",
 	.automapWatchOn = "Automap-Überwachung an",
