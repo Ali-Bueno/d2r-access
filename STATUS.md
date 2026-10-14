@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Radar wording, route description and the tester's fifth report — 2026-10-13 (not released)
+
+The user's radar requests ([decisions](docs/decisions.md)):
+- Directions as **compass points** (north = top of the screen) or **clock hours** (`direction-style`,
+  Ctrl+S Navigation); distances in **units**, not steps ([spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13)).
+- **Route description**: BACK + right stick down / Ctrl+E says the way to the beacon's or scanner's
+  target as legs with doors; no autowalk ([route description](docs/route-description.md)).
+
+Tester's fifth list (two worktree agents, merged): version said behind the title; title pad press
+logged, Space fallback 400 ms and only on the title (root cause not found: test D2RLoader without
+this plugin); strengths in 25 % steps (keys `-25`, old saves start over); footstep volume in Volumes,
+above 100 % the footfall is replayed (the stock step is already 255); brighter elite layer; "N gold
+moved to the stash" leads; NPC bell without the tap switch and from the announcer; knock leaving the
+gloves/right weapon; sheet pages on a "+" button; skill branch + choices left on opening and LT/RT;
+last point's new value; hire window pad path (`KeyboardMenu::Engaged`); "Mercenary says" on the world
+target line; `compare-aloud` switch (**off**: the user's 2026-10-03 choice). The cow stays (easter egg).
+
+117/117 CTest; installed by the build. Unverified live: all of it. **Next step:** the user or the
+tester tries it; logs: `[route]`, `[modal] title:`, `[pad] the game polled`, `[footsteps] boost`,
+`[items] gold deposited`, `[npc] exclamation mark`, `[skill-tree] branch`, `[stats] value after its
+button went`, `[hire] list entered, pad`, `[compare] aloud`.
+
 ## Tester's fourth report — 2026-10-13 (released as test-2026-10-13 from ebc58d6)
 
 Release: 116/116 CTest, 29 entries, 61,745,440 bytes, SHA-256 `ac816e15…efeb`; the plugin says
