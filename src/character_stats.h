@@ -45,6 +45,12 @@ std::string Points(uintptr_t panel);
 // True when a points line ("5 Stat Points Remaining") names a count above zero.
 bool HasPoints(std::string_view points);
 
+// The attribute a "+" button raises (StrengthPointButton: StrengthTitle and
+// StrengthStat), read whether or not the button is showing; it hides with the
+// last point spent. Empty parts when they cannot be read.
+struct Attribute { std::string label, value; };
+Attribute AttributeOf(uintptr_t panel, std::string_view button);
+
 void Reset();
 
 }

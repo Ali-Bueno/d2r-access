@@ -208,6 +208,13 @@ std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
 std::string Points(uintptr_t panel) { return ChildText(panel, "CombinedPointsInfo"); }
 
+Attribute AttributeOf(uintptr_t panel, std::string_view button) {
+	constexpr std::string_view ButtonSuffix = "PointButton"; // the layouts' <stat>PointButton
+	if (!button.ends_with(ButtonSuffix)) return {};
+	const std::string stem(button.substr(0, button.size() - ButtonSuffix.size()));
+	return {ChildText(panel, stem + std::string(TitleSuffix)), ChildText(panel, stem + "Stat")};
+}
+
 bool HasPoints(std::string_view points) {
 	const auto first = points.find_first_of("0123456789");
 	if (first == std::string_view::npos) return false;
