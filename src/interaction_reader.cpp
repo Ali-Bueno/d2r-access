@@ -1375,7 +1375,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (progression.skill && progression.tab) {
 			// The branch leads, as the tree opens and on each LT/RT change, with the skill
 			// choices left in a class tree (a tester, 2026-10-13: "Defensive Auras, 1 Skill
-			// choice"); General Skills has none of its own. Queued behind the window's title.
+			// choice"); General Skills has none of its own. On opening it queues behind the
+			// window's title; a change interrupts.
 			if (g_skillTab != progression.tab && !readout.body.empty()) {
 				const bool opened = !g_skillTab;
 				g_tabTitle = readout.body;
