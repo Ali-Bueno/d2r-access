@@ -164,3 +164,15 @@ possible only while the game's own value leaves room. Only the floor step is
 scaled, not the armour's `footstep_foley`. Static RE only; live check:
 `[footsteps] volume stock=... percent=... set=... read_back=...` (logged for
 the first three steps after a change); if stock is always 255, only lowering works.
+
+### Louder steps (2026-10-13, tester: "no discernible difference")
+
+The user's log showed `[footsteps] volume stock=255 percent=300 set=255 read_back=255`: the floor step
+sits at the instance's maximum, 255, from creation (the caller 0x7D9800 sets a value only when the
+animation event carries one), so scaling that field upward can never be heard; only lowering could.
+Now a level above 100 plays the game's own footfall (the original 0x7D9390) again for the local player
+from the hook: `percent/100 - 1` whole extra instances plus one at the remainder (150 = one at half,
+200 = one, 300 = two). Lowering is unchanged (scaling the instance's volume). Live check:
+`[footsteps] boost whole= partial= played= partial_stock=` (first three steps); `played` below the
+expected count means the engine dropped the extra instance (instance limit) and louder is not possible.
+The setting is in the Volumes group.

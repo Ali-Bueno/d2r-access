@@ -59,4 +59,9 @@ int ScaleVolume(int stock, int percent) {
 	const long long scaled = (static_cast<long long>(stock) * percent + NeutralVolumePercent / 2) / NeutralVolumePercent;
 	return static_cast<int>(std::clamp<long long>(scaled, 1, MaxInstanceVolume));
 }
+Extras ExtraVoices(int percent) {
+	if (percent <= NeutralVolumePercent) return {};
+	const int extra = percent - NeutralVolumePercent;
+	return {extra / NeutralVolumePercent, extra % NeutralVolumePercent};
+}
 }

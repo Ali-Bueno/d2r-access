@@ -22,10 +22,35 @@ constexpr uintptr_t GetVolumeRva = 0x19E9D0, SetVolumeRva = 0x19F900;
 uintptr_t g_resolve = 0, g_getVolume = 0, g_setVolume = 0;
 void* g_original = nullptr;
 
+const D2RL::PluginContext* g_context = nullptr;
+constexpr int BoostLogs = 3; // the first boosted steps are logged, for the live check
+int g_boostLogs = 0;
+
+uintptr_t PlayOriginal(uint32_t entity) { return reinterpret_cast<uintptr_t(*)(uint32_t)>(g_original)(entity); }
+
+// A louder step is further footfalls of the same sound, the last one quieter (an instance caps at 255).
+void PlayExtras(uint32_t entity, const Footsteps::Extras& extras) {
+	int played = 0, stock = -1;
+	for (int i = 0; i < extras.whole; ++i) played += PlayOriginal(entity) != 0;
+	if (extras.partialPercent > 0) {
+		if (const auto handle = PlayOriginal(entity)) {
+			++played;
+			stock = Volume(handle);
+			if (stock > 0) SetVolume(handle, Footsteps::ScaleVolume(stock, extras.partialPercent));
+		}
+	}
+	if (g_boostLogs < BoostLogs) {
+		++g_boostLogs;
+		AsyncLog::InfoF(g_context, "[footsteps] boost whole=%d partial=%d%% played=%d partial_stock=%d", extras.whole, extras.partialPercent, played, stock);
+	}
+}
+
 uintptr_t Play(uint32_t entity) {
 	if (FootstepService::Suppress(entity)) return 0;
-	const auto handle = reinterpret_cast<uintptr_t(*)(uint32_t)>(g_original)(entity);
-	if (handle) FootstepService::Played(entity, handle);
+	const auto handle = PlayOriginal(entity);
+	if (!handle) return handle;
+	const auto extras = FootstepService::Played(entity, handle);
+	if (extras.whole > 0 || extras.partialPercent > 0) PlayExtras(entity, extras);
 	return handle;
 }
 uintptr_t Resolve(uint32_t entity) noexcept {
@@ -43,6 +68,7 @@ bool Verify(uintptr_t base, uintptr_t rva, size_t size, uint64_t expected) {
 }
 bool Initialize(const D2RL::PluginContext* context) {
 	if (!context) return false;
+	g_context = context;
 	const uintptr_t base = context->exeBase;
 	if (!Verify(base, PlayRva, 926, 0x23C50C43C505B306ULL)
 		|| !Verify(base, ResolveRva, 90, 0xE8700C4429FA18D7ULL)

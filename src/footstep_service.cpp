@@ -171,12 +171,15 @@ void Unregister() {
 // and the same change the console command makes.
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
-void Played(uint32_t entity, uintptr_t sound) noexcept {
-	if (g_volumeLevel.load() == Footsteps::NeutralVolumeLevel || !NativeFootsteps::VolumeSupported()) return;
+Footsteps::Extras Played(uint32_t entity, uintptr_t sound) noexcept {
+	if (g_volumeLevel.load() == Footsteps::NeutralVolumeLevel || !NativeFootsteps::VolumeSupported()) return {};
 	const auto sample = NativeFootsteps::Read(entity);
-	if (!sample.valid || !sample.local) return;
+	if (!sample.valid || !sample.local) return {};
 	g_pendingAt = GetTickCount64();
+	const int percent = Footsteps::VolumePercents[static_cast<size_t>(g_volumeLevel.load())];
+	if (percent > Footsteps::NeutralVolumePercent) return Footsteps::ExtraVoices(percent);
 	g_pendingSound = sound;
+	return {};
 }
 int VolumeLevel() { return g_volumeLevel.load(); }
 void SetVolumeLevel(int level) {
