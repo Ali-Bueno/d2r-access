@@ -113,6 +113,14 @@ tooltips the game draws while it is held. `[hire] row skills ->` and
 `[hire] Y -> "..." (n icons)` tell which path worked; the icons' offsets were
 read from the character panel's setter and are unverified on hire rows.
 
+2026-10-13, the tester again: still nothing. The pad path above was dead code:
+`HireStats::Tick` sent every tick to the keyboard path when `KeyboardMenu::Active()`,
+which is true for any menu in front, a pad player's too. The tester's log shows
+only the keyboard path's `[hire] record 0` lines, which already held the icons'
+skill texts (so +0x698 reads on hire rows). The gate is now `KeyboardMenu::Engaged()`,
+the keyboard cursor's own state (no pad connected, or an arrow key took the menu);
+`[hire] list entered, pad|keyboard cursor` says which path a session takes.
+
 The user confirms that the hiring list already reads. The extracted HD layout
 `game-data/global/ui/Layouts/HireMenuPanelHD.json` defines `HireName`, `HireLevel`,
 `HireCost` and three `HirelingSkillIconWidget` children. Its controller variant

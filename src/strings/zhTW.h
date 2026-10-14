@@ -364,6 +364,8 @@ inline constexpr Table zhTW {
 	.goldMovedPersonal = "%s 金幣已移入個人儲物箱",
 	.goldMovedShared = "%s 金幣已移入共用儲物箱",
 	.goldMovedStash = "%s 金幣已移入儲物箱",
+	.compareAloudOn = "朗讀與已裝備物品的比較已開啟",
+	.compareAloudOff = "朗讀與已裝備物品的比較已關閉",
 };
 
 }

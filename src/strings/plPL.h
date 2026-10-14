@@ -364,6 +364,8 @@ inline constexpr Table plPL {
 	.goldMovedPersonal = "%s złota przeniesiono do skrytki osobistej",
 	.goldMovedShared = "%s złota przeniesiono do skrytki wspólnej",
 	.goldMovedStash = "%s złota przeniesiono do skrytki",
+	.compareAloudOn = "Odczyt porównania z założonym przedmiotem: włączone",
+	.compareAloudOff = "Odczyt porównania z założonym przedmiotem: wyłączone",
 };
 
 }

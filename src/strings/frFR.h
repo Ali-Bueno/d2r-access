@@ -364,6 +364,8 @@ inline constexpr Table frFR {
 	.goldMovedPersonal = "%s pièces d'or déposées dans le coffre personnel",
 	.goldMovedShared = "%s pièces d'or déposées dans le coffre partagé",
 	.goldMovedStash = "%s pièces d'or déposées dans le coffre",
+	.compareAloudOn = "Lecture de la comparaison avec l'objet équipé : activé",
+	.compareAloudOff = "Lecture de la comparaison avec l'objet équipé : désactivé",
 };
 
 }

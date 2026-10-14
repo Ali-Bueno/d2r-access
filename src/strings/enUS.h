@@ -364,6 +364,8 @@ inline constexpr Table enUS {
 	.goldMovedPersonal = "%s gold moved to the personal stash",
 	.goldMovedShared = "%s gold moved to the shared stash",
 	.goldMovedStash = "%s gold moved to the stash",
+	.compareAloudOn = "Equipped item comparison read aloud on",
+	.compareAloudOff = "Equipped item comparison read aloud off",
 };
 
 }

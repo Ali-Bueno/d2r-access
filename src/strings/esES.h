@@ -364,6 +364,8 @@ inline constexpr Table esES {
 	.goldMovedPersonal = "%s de oro movido al alijo personal",
 	.goldMovedShared = "%s de oro movido al alijo compartido",
 	.goldMovedStash = "%s de oro movido al alijo",
+	.compareAloudOn = "Lectura de la comparación con lo equipado activada",
+	.compareAloudOff = "Lectura de la comparación con lo equipado desactivada",
 };
 
 }

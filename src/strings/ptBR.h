@@ -364,6 +364,8 @@ inline constexpr Table ptBR {
 	.goldMovedPersonal = "%s de ouro movido para o baú pessoal",
 	.goldMovedShared = "%s de ouro movido para o baú compartilhado",
 	.goldMovedStash = "%s de ouro movido para o baú",
+	.compareAloudOn = "Leitura da comparação com o item equipado: ligado",
+	.compareAloudOff = "Leitura da comparação com o item equipado: desligado",
 };
 
 }

@@ -1112,6 +1112,7 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 }
 
 bool Active() { return g_active.load(); }
+bool Engaged() { return g_active.load() && g_engaged; }
 bool Typing() { return g_typing.load(); }
 
 void Deliver(Act act) {

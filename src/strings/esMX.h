@@ -364,6 +364,8 @@ inline constexpr Table esMX {
 	.goldMovedPersonal = "%s de oro movido al arcón personal",
 	.goldMovedShared = "%s de oro movido al arcón compartido",
 	.goldMovedStash = "%s de oro movido al arcón",
+	.compareAloudOn = "Lectura de la comparación con lo equipado activada",
+	.compareAloudOff = "Lectura de la comparación con lo equipado desactivada",
 };
 
 }

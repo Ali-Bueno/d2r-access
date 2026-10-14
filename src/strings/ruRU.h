@@ -364,6 +364,8 @@ inline constexpr Table ruRU {
 	.goldMovedPersonal = "%s золота перемещено в личный тайник",
 	.goldMovedShared = "%s золота перемещено в общий тайник",
 	.goldMovedStash = "%s золота перемещено в тайник",
+	.compareAloudOn = "Чтение сравнения с надетым предметом: включено",
+	.compareAloudOff = "Чтение сравнения с надетым предметом: выключено",
 };
 
 }

@@ -150,7 +150,7 @@ void Unregister() {
 
 // A sighted player sees who says a line drawn over a head; the mercenary's
 // level-up line names it (a tester, 2026-10-13).
-static std::string NameSpeaker(std::string text) {
+std::string NameSpeaker(std::string text) {
 	if (!g_mercenaryBark.load()) return text;
 	const auto bark = UiText::Clean(Localization::Text(MercenaryLevelUpKey));
 	if (bark.empty() || text.find(bark) == std::string::npos) return text;

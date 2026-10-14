@@ -43,6 +43,9 @@ void Tick(const D2RL::PluginContext* context);
 void Reset();
 // True while a menu is up and the keys above are the menu's.
 bool Active();
+// True while the keyboard's cursor has the menu: no pad is connected, or an
+// arrow key took it. A pad player's menus are up (Active) but never engaged. UI thread.
+bool Engaged();
 // True while the cursor is on a box of text. The keys that type, alone or with
 // Shift, are the box's then, and so are the left and right arrows; up and down
 // leave the box. Any thread.

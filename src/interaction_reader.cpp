@@ -11,6 +11,7 @@
 #include "hire_stats.h"
 #include "generated/item_sizes.h"
 #include "equip_attempt.h"
+#include "game_text_reader.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
@@ -124,6 +125,7 @@ std::string g_tabFocus;
 std::string g_tabTitle;
 // The skill-tree branch last read: its tabs are separate widgets, so TabReader
 // never sees a branch change and the skill readout has to name it itself.
+// Forgotten once the focus leaves the tree's panel, so a reopened tree names it again.
 uintptr_t g_skillTab = 0;
 uintptr_t g_skillTabPanel = 0;
 // The panel the last readout was about, to tell a tab change that moved focus
@@ -164,6 +166,7 @@ std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
 // "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
 std::atomic<bool> g_handSpeech{true};
+std::atomic<bool> g_compareAloud{false}; // see CompareAloud
 
 // The equipped-item records last logged, so [compare] is written once per
 // change. Diagnosis only: what the game draws beside a held compare is not
@@ -379,6 +382,15 @@ std::string CompareText(std::span<const std::string> records) {
 			result += line;
 		}
 	return result;
+}
+
+// What compare draws beside the highlighted item, headed by the game's
+// "Currently Equipped" (ui.json currentEquip).
+std::string Equipped(std::span<const std::string> extras) {
+	const auto text = CompareText(extras);
+	const auto label = UiText::Clean(Localization::Text("currentEquip"));
+	if (text.empty() || label.empty() || text.starts_with(label)) return text;
+	return label + ". " + text;
 }
 
 // The same records' lines, one entry each, for the line keys.
@@ -874,6 +886,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// Focus that has been anywhere else since, even back in the same panel
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;
+	if (focus.panel != g_skillTabPanel) g_skillTab = g_skillTabPanel = 0;
 	// The character panel's own stick reader goes first: it claims all four
 	// directions, and ReadDetail below would otherwise take up from it. Nothing
 	// is lost by that order -- the character panel holds neither items nor
@@ -1004,7 +1017,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
-	std::string skillAddition;
+	std::string skillAddition, comparisonNow;
 	const std::string tableHeadline = progression.skill && !progression.name.empty()
 		? ProgressionText::SkillReadout(progression.name, AutoDetail::Enabled() ? progression.points : std::string{}, progression.help).headline
 		: std::string{};
@@ -1086,6 +1099,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (const auto comparison = TooltipText::Comparison(tooltip.extras); comparison != g_compareLogged) {
 				g_compareLogged = comparison;
 				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
+				if (!comparison.empty() && g_compareAloud.load(std::memory_order_relaxed)) comparisonNow = Equipped(tooltip.extras);
 			}
 			// With autodetail the cells the item takes up follow the name and a
 			// stack's or tome's count, ahead of any price; otherwise they wait for
@@ -1128,7 +1142,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
 			Append(readout.option, description);
 		}
-		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
+		else if (!focus.panel) { readout.context = "World target"; readout.body = GameTextReader::NameSpeaker(description); }
 	}
 	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
@@ -1360,11 +1374,19 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		if (progression.skill && progression.tab) {
-			if (g_skillTab && g_skillTab != progression.tab && g_skillTabPanel == focus.panel && !readout.body.empty()) {
+			// The branch leads, as the tree opens and on each LT/RT change, with the skill
+			// choices left in a class tree (a tester, 2026-10-13: "Defensive Auras, 1 Skill
+			// choice"); General Skills has none of its own. On opening it queues behind the
+			// window's title; a change interrupts.
+			if (g_skillTab != progression.tab && !readout.body.empty()) {
+				const bool opened = !g_skillTab;
 				g_tabTitle = readout.body;
 				g_tabChangedAt = now;
 				g_tabFocus.clear();
-				ScreenReader::Speak(g_tabTitle, true);
+				std::string title = g_tabTitle;
+				if (progression.classTree && CharacterStats::HasPoints(progression.points)) Append(title, progression.points);
+				AsyncLog::InfoF(context, "[skill-tree] branch %s -> \"%s\"", opened ? "opened" : "changed", title.c_str());
+				ScreenReader::Speak(title, !opened);
 			}
 			g_skillTab = progression.tab;
 			g_skillTabPanel = focus.panel;
@@ -1379,6 +1401,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// A monster name is incremental combat news, never a context change; so is an
 		// inventory cell whose item left under the cursor (Y's stash notice goes first).
 		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel && !(inventory && announcement.sameFocus));
+	}
+	if (!comparisonNow.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[compare] aloud -> \"%s\"", comparisonNow.c_str());
+		ScreenReader::Speak(comparisonNow, announcement.text.empty());
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
@@ -1435,6 +1461,8 @@ StashCount::GoldTab OpenStashTab(const D2RL::PluginContext* context) {
 }
 bool HandSpeech() { return g_handSpeech; }
 void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
+bool CompareAloud() { return g_compareAloud; }
+void SetCompareAloud(bool enabled) { g_compareAloud = enabled; }
 
 void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
 bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }
