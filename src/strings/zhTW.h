@@ -209,6 +209,8 @@ inline constexpr Table zhTW {
 	.roomsUnavailable = "房間出口無法使用",
 	.finderEnabled = "出口搜尋已啟用",
 	.finderDisabled = "出口搜尋已停用",
+	.mapSidesOn = "出口按地圖的邊：東北、東南、西南、西北",
+	.mapSidesOff = "出口按螢幕的邊",
 	.finderNothing = "%s沒有目標",
 	.automapLogged = "自動地圖已寫入日誌",
 	.automapWatchOn = "自動地圖監視已開啟",

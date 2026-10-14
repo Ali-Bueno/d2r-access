@@ -209,6 +209,8 @@ inline constexpr Table plPL {
 	.roomsUnavailable = "Wyjścia pomieszczeń niedostępne",
 	.finderEnabled = "Wyszukiwanie wyjść włączone",
 	.finderDisabled = "Wyszukiwanie wyjść wyłączone",
+	.mapSidesOn = "Wyjścia według boków mapy: północny wschód, południowy wschód, południowy zachód, północny zachód",
+	.mapSidesOff = "Wyjścia według boków ekranu",
 	.finderNothing = "%s: nic",
 	.automapLogged = "Automapa zapisana w dzienniku",
 	.automapWatchOn = "Śledzenie automapy włączone",

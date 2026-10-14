@@ -209,6 +209,8 @@ inline constexpr Table ruRU {
 	.roomsUnavailable = "Выходы из комнат недоступны",
 	.finderEnabled = "Поиск выходов включён",
 	.finderDisabled = "Поиск выходов выключен",
+	.mapSidesOn = "Выходы по сторонам карты: северо-восток, юго-восток, юго-запад, северо-запад",
+	.mapSidesOff = "Выходы по сторонам экрана",
 	.finderNothing = "%s: ничего",
 	.automapLogged = "Автокарта записана в журнал",
 	.automapWatchOn = "Наблюдение за автокартой включено",

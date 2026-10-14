@@ -209,6 +209,8 @@ inline constexpr Table zhCN {
 	.roomsUnavailable = "房间出口不可用",
 	.finderEnabled = "出口查找已启用",
 	.finderDisabled = "出口查找已禁用",
+	.mapSidesOn = "出口按地图的边：东北、东南、西南、西北",
+	.mapSidesOff = "出口按屏幕的边",
 	.finderNothing = "%s没有目标",
 	.automapLogged = "自动地图已写入日志",
 	.automapWatchOn = "自动地图监视已开启",

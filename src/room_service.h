@@ -21,4 +21,8 @@ bool Enabled();
 void SetEnabled(bool enabled);
 bool Finder();
 void SetFinder(bool enabled); // in play only, as BACK+A is
+// Ways out told by the map's sides (the room's walls, NE/SE/SW/NW) instead of
+// the screen's, in the room line and the finder. Off by default. docs/rooms.md
+bool MapSides();
+void SetMapSides(bool enabled);
 }

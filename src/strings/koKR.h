@@ -209,6 +209,8 @@ inline constexpr Table koKR {
 	.roomsUnavailable = "방 출구를 사용할 수 없습니다",
 	.finderEnabled = "출구 찾기 켜짐",
 	.finderDisabled = "출구 찾기 꺼짐",
+	.mapSidesOn = "출구를 지도의 변으로: 북동, 남동, 남서, 북서",
+	.mapSidesOff = "출구를 화면의 변으로",
 	.finderNothing = "%s에 아무것도 없음",
 	.automapLogged = "자동 지도를 로그에 기록했습니다",
 	.automapWatchOn = "자동 지도 감시 켜짐",

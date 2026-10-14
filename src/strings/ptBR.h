@@ -209,6 +209,8 @@ inline constexpr Table ptBR {
 	.roomsUnavailable = "Saídas de ambiente indisponíveis",
 	.finderEnabled = "Localizador de saídas ativado",
 	.finderDisabled = "Localizador de saídas desativado",
+	.mapSidesOn = "Saídas pelos lados do mapa: nordeste, sudeste, sudoeste, noroeste",
+	.mapSidesOff = "Saídas pelos lados da tela",
 	.finderNothing = "%s: nada",
 	.automapLogged = "Automapa gravado no registro",
 	.automapWatchOn = "Monitoramento do automapa ativado",

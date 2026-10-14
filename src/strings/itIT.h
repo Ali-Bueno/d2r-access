@@ -209,6 +209,8 @@ inline constexpr Table itIT {
 	.roomsUnavailable = "Uscite delle stanze non disponibili",
 	.finderEnabled = "Ricerca uscite attivata",
 	.finderDisabled = "Ricerca uscite disattivata",
+	.mapSidesOn = "Uscite secondo i lati della mappa: nord-est, sud-est, sud-ovest, nord-ovest",
+	.mapSidesOff = "Uscite secondo i lati dello schermo",
 	.finderNothing = "%s: niente",
 	.automapLogged = "Automappa scritta nel registro",
 	.automapWatchOn = "Monitoraggio dell'automappa attivo",

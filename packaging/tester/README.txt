@@ -101,7 +101,10 @@ In play:
   weapons left in hand.
 - BACK+Y: the passages out of the room you are in.
 - BACK+A: passage finder on or off (then the right stick names passages by
-  screen side instead of scanning).
+  screen side instead of scanning). With "Passages by the map's sides" on
+  (Ctrl+S, Navigation), the finder and the room's exit line use the room's own
+  walls instead: flick up-right for the northeast wall (2 o'clock),
+  down-right southeast (4), down-left southwest (8), up-left northwest (10).
 - BACK+B: terrain overview.
 - BACK+RB: the mod's settings list, open or close (the keyboard's Ctrl+S).
   It is made of groups (Sounds, Volumes, Enemies and NPCs, Navigation, Items
@@ -187,6 +190,9 @@ knowing:
   every direction the mod says.
 - Route turn prompts (Navigation, on): the next leg of a route you asked for,
   said at each turn.
+- Passages by the map's sides (Navigation, off): the passage finder and the
+  room's exit line by the room's walls, northeast, southeast, southwest and
+  northwest, and the finder's stick turned to match.
 - Enemy class sounds: layered (the default) or classic. Every enemy now
   growls at the same pitch, so pitch only tells north or south; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.

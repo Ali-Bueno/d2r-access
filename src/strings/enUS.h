@@ -209,6 +209,8 @@ inline constexpr Table enUS {
 	.roomsUnavailable = "Room passages unavailable",
 	.finderEnabled = "Passage finder on",
 	.finderDisabled = "Passage finder off",
+	.mapSidesOn = "Passages by the map's sides: northeast, southeast, southwest, northwest",
+	.mapSidesOff = "Passages by the screen's sides",
 	.finderNothing = "%s: nothing",
 	.automapLogged = "Automap written to the log",
 	.automapWatchOn = "Automap watch on",

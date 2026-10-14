@@ -209,6 +209,8 @@ inline constexpr Table frFR {
 	.roomsUnavailable = "Sorties des salles indisponibles",
 	.finderEnabled = "Recherche des sorties activée",
 	.finderDisabled = "Recherche des sorties désactivée",
+	.mapSidesOn = "Sorties selon les côtés de la carte : nord-est, sud-est, sud-ouest, nord-ouest",
+	.mapSidesOff = "Sorties selon les côtés de l'écran",
 	.finderNothing = "%s : rien",
 	.automapLogged = "Carte automatique écrite dans le journal",
 	.automapWatchOn = "Surveillance de la carte automatique activée",
