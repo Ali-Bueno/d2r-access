@@ -66,6 +66,17 @@ navigation is implemented in the [controller follow-up](controller-navigation.md
 same description reader. Their names lack coordinates, so none are invented.
 The owning tab supplies branch context; `SkillCounter` supplies remaining points.
 
+2026-10-13 (tester: "no longer announces available skill points"): no code path ever said them
+on entering with autodetail off. Since 2026-09-21 (`e54f4c6`, the user: heard on every highlight)
+they are right stick right's. The tester had heard them from `ModalReader`'s whole-panel fallback
+("5, 6, 1 Skill Choice Remaining, Javelin and Spear, ..."), which runs only when the game has not
+focused a skill yet on the first poll: 2 of 14 openings in the tester's log (16:49:25, 18:07:39).
+The 1.5 s queue behind a title (`cd03aa1`) removed nothing. Now the branch leads as the tree opens
+(queued behind "Skill Tree") and on each LT/RT change (interrupting), with the choices left when
+the branch is a class tree (`SkillButtonContainer`) and the count is above zero: "Defensive
+Auras. 1 Skill Choice Remaining". General Skills (`CommonSkillsContainer`, `ItemSkillsContainer`)
+is named alone. Log: `[skill-tree] branch opened|changed -> "..."`.
+
 ## Description order
 
 Despite its name, the visible `TooltipTextBox` widget remained empty during

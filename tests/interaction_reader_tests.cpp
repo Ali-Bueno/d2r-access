@@ -268,6 +268,7 @@ std::string Text(std::string_view key) {
 }
 namespace D2RAccess::CharacterStats {
 bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
+bool HasPoints(std::string_view points) { return points.find_first_of("123456789") != std::string_view::npos; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
 void Reset() {}
 }
@@ -910,6 +911,33 @@ int main() {
 	Settle(); ClearSpeech(); pendingPush = InputDirection::StickPush::Right; Tick();
 	Check(pendingPush == InputDirection::StickPush::Right, "right stick right is claimed only on the inventory");
 	pendingPush = InputDirection::StickPush::None;
+
+	// The branch leads with the skill choices left as the tree opens and on LT/RT,
+	// queued behind the window's title on opening (a tester, 2026-10-13).
+	InteractionReader::Reset(); ClearSpeech(); interrupts.clear(); progression = {}; tooltip = {};
+	focus = {75, 76}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
+	progression.skill = true; progression.classTree = true; progression.tab = 500; progression.points = "1 punto";
+	progression.readout = {"Skills", "Gritos de guerra", "", "76"};
+	Tooltip("\xEE\x81\xBE" "2Aullido"); Tick();
+	Check(speech == std::vector<std::string>{"Gritos de guerra. 1 punto", "Aullido"} && interrupts == std::vector<bool>{false, false},
+		"an opened tree names its branch and the choices left, queued, before its first skill");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 77; progression.tab = 501; progression.readout = {"Skills", "Maestrías", "", "77"};
+	Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(speech == std::vector<std::string>{"Maestrías. 1 punto", "Golpe"} && interrupts == std::vector<bool>{true, false},
+		"LT/RT to another tree names it with the choices left, as a change of context");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 78; progression.tab = 502; progression.classTree = false; progression.readout = {"Skills", "Habilidades generales", "", "78"};
+	Tooltip("\xEE\x81\xBE" "2Portal"); Tick();
+	Check(speech == std::vector<std::string>{"Habilidades generales", "Portal"}, "General Skills is named without the class's choices");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 79; progression.tab = 501; progression.classTree = true; progression.points = "0 puntos";
+	progression.readout = {"Skills", "Maestrías", "", "79"};
+	Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(speech == std::vector<std::string>{"Maestrías", "Golpe"}, "with no choices left the branch is said alone");
+	ClearSpeech(); interrupts.clear();
+	focus = {}; Tick(); focus = {75, 79}; Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(!speech.empty() && speech.front() == "Maestrías" && !interrupts.front(), "a tree reopened on the same branch names it again");
 
     InteractionReader::Reset(); progression = {}; tooltip = {}; buttonSnapshot = {};
     focus = {20, 100}; widgetType = {"SkillButtonWidget", UiText::Kind::Button};

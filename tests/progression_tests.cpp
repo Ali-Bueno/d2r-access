@@ -118,6 +118,8 @@ int main() {
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill && NativeProgression::Read({10, 13}, button).readout.coordinates.empty(), "common skills remain readable without invented coordinates");
 	Check(NativeProgression::Read({10, 13}, button).name.empty(), "a skill outside the class tree has no table name and waits for its tooltip");
+	Check(skill.classTree && !NativeProgression::Read({10, 13}, button).classTree,
+		"a class tree's branch carries the skill choices, General Skills does not");
 	widgets[12].name = "ItemSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill, "item-granted skills use the same reader");
 	widgets[12].name = "UnrelatedButtons";
