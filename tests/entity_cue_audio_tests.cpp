@@ -163,7 +163,7 @@ void NewCues() {
 	const size_t importantFrames = important.size() / Channels;
 	const double importantRate = static_cast<double>(Crossings(important, importantFrames / 3, importantFrames * 2 / 3)) / importantFrames;
 	const double pingRate = static_cast<double>(Crossings(ping, 0, pingFrames / 3)) / pingFrames;
-	Check(pingRate > 4 * growlRate && pingRate > 4 * importantRate, "the ping sits far above every enemy cue");
+	Check(pingRate > 4 * growlRate && pingRate > 2 * importantRate, "the ping sits above every enemy cue, far above the growl");
 	const size_t split = pingFrames * 42 / 100;
 	Check(Crossings(ping, split + 50, split + 650) > Crossings(ping, 50, 650), "the ping rises to its second note");
 	const auto rearGrowl = Synthesize(Sound::Ordinary, {0, -1});

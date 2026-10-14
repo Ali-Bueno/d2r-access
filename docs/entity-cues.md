@@ -137,3 +137,13 @@ on, the user's choice) brings back the swoops. The pan and pitch strengths go up
 to 400 percent; the pitch never drops below a quarter. The NPC "!" bell is in
 [NPC proximity](npc-proximity.md). Not yet heard by the user: the glossary
 plays each one.
+
+### Elite layer louder and higher (2026-10-13)
+
+Tester: the champion buzz was too soft or low against six growls (the archer's 1.65 kHz whistle was fine).
+Fundamental 300 -> 750 Hz (ratio 5 over the 150 Hz layer base), six harmonics at 1/h with spread phases
+(1.3 rad per harmonic squared, which keeps the crest at 0.41 of full scale for the 14000 peak test),
+level 0.15 -> 0.28; layer RMS 0.035 -> 0.064 (1.8x, now equal to the growl's), spectral centroid
+880 -> 1830 Hz, still tonal and chattering at 62 Hz, never noise. The ping test now asks for twice,
+not four times, the elite's zero-crossing rate (a buzz this bright crosses zero more often); the
+growl still sits four times below. Static modelling only (numpy replica of the synth); listen in the glossary.
