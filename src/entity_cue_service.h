@@ -2,6 +2,8 @@
 
 #include <D2RLPlugin/api.h>
 #include <optional>
+#include <vector>
+#include "entity_cues.h"
 
 namespace D2RAccess::EntityCueService {
 bool Register(const D2RL::PluginContext* context);
@@ -21,4 +23,7 @@ void SetEnabled(Cue cue, bool enabled);
 bool NpcAlerts();
 void SetNpcAlerts(bool on);
 void PlayNpcAlert();
+// The town NPCs whose "!" has just appeared, nearest first, each once whoever asks; RingAlert rings one, panned to it.
+std::vector<EntityCues::Cue> RaisedAlerts(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+void RingAlert(const EntityCues::Cue& cue);
 }
