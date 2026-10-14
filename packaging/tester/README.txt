@@ -168,9 +168,12 @@ knowing:
   growls at the same pitch, so pitch only tells up or down; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.
 - NPC exclamation mark chime (on): a small bell when the "!" appears over a
-  town NPC, and after its name from the scanner or the NPC announcer. The
+  town NPC, also when it appears while you stand near, and after its name from the
+  scanner or the NPC announcer. The
   game only shows the mark within about 15 steps of the NPC.
-- Footstep volume: your own footsteps from 25 to 300 percent of the game's.
+- Footstep volume (in Volumes): your own footsteps from 25 to 300 percent of the game's; above 100
+  percent the game's step is played again on top of itself.
+- Pan and pitch strengths (enemies, guidance): 0 to 400 percent in steps of 25.
 - Item sounds: Diablo IV (the default), Last Epoch gold and potions (the rest
   stays Diablo IV), or Diablo II drops: every item on the ground repeats the
   sound the game makes when it lands (a sword, a ring, a potion...). Drop
@@ -185,7 +188,8 @@ knowing:
 - Weapon set number (on): the weapon swap also says "Weapon set 1" or "2".
 - Town NPCs listed from anywhere in town (on): every town NPC can be scanned
   and followed from anywhere in town, even before you have seen them.
-- Inventory edge bump (on): a knock when the inventory cursor hits the edge.
+- Inventory edge bump (on): a knock when the inventory cursor hits the edge, or leaves the
+  backpack or its equipment slots for the vendor or stash.
 - Silver items (on): items whose name the game draws in silver (socketed or
   ethereal) say "silver" after the name, as magic items say "magic".
 - Focus on stat points (on): the character screen starts on Strength's plus
