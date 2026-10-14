@@ -58,8 +58,8 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 		result.points = ChildText(focus.panel, "CombinedPointsInfo");
 		// The stat and its value, and nothing else on the move (the user,
 		// 2026-09-21: "only the statistic highlighted should be read with
-		// autodetail off"). Its explanation waits for right stick up or
-		// autodetail, the points left for right stick right, and the button's
+		// autodetail off"). Its explanation waits for autodetail (the right
+		// stick pages the statistics, the points left last), and the button's
 		// own "Spend Stat Point" is what its controls already say.
 		Append(result.readout.option, result.value);
 		result.description = ChildText(title, "Tooltip");

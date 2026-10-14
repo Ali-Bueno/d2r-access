@@ -275,21 +275,46 @@ int main() {
 		"and a panel that is not showing leaves the stick alone, push and all");
 	panelVisible = true;
 
-	// A point button with focus has the stick: up describes the stat, down
-	// reads its controls (interaction_reader.cpp), right says the points left.
+	// A point button with focus pages the statistics as well (a tester,
+	// 2026-10-13: the level-up sheet read the button's controls instead).
 	Add(90, "CombinedPointsInfo", "5 puntos de estadísticas restantes");
 	Add(91, "StrengthPointButton", "", Panel);
 	statButton = 91;
+	CharacterStatsReader::Reset();
+	pending = Push::Down; speech.clear();
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && speech.back() == "Ulfr",
+		"while a point button has focus the stick still pages the statistics");
 	pending = Push::Up;
-	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::Up,
-		"while a point button has focus up is left to the point readout");
-	pending = Push::Right; speech.clear();
-	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && !speech.empty()
-		&& speech.back() == "5 puntos de estadísticas restantes", "right says the points left to spend");
-	// With nothing focused, right jumps to the last statistic -- the same line.
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && speech.back() == "Ulfr",
+		"up included");
+	pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && speech.back() == "5 puntos de estadísticas restantes",
+		"and right, the last statistic, is the points left to spend");
 	statButton = 0; pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "5 puntos de estadísticas restantes",
-		"and with nothing focused the last statistic is the points left");
+		"the same as with nothing focused");
+
+	// The last point spent hides every "+" and the focus with it: the value is
+	// said from here, with its label; a value changing under a showing "+" is
+	// the interaction reader's (a tester, 2026-10-13).
+	CharacterStatsReader::Reset();
+	statButton = 91;
+	CharacterStatsReader::Tick(nullptr, On(91)); // the opening's own name and points
+	speech.clear();
+	widgets[12].text = "31";
+	CharacterStatsReader::Tick(nullptr, On(91));
+	Check(speech.empty(), "a value that changes under its showing button is left to the interaction reader");
+	const auto button = widgets[91];
+	widgets.erase(91);
+	widgets[12].text = "32";
+	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && speech == std::vector<std::string>{"Fuerza. 32"},
+		"once its button has gone, the attribute's new value is said with its label");
+	widgets[12].text = "33"; speech.clear();
+	CharacterStatsReader::Tick(nullptr, {});
+	Check(speech.empty(), "and only once");
+	widgets[91] = button;
+	widgets[12].text = "30";
+	statButton = 0;
 	// MEASURED 2026-09-24: a left-stick push up from the top row puts the game's
 	// focus on the menu switcher's tab strip, outside this panel.
 	constexpr uintptr_t Overlay = 200, SwitcherTabs = 201;
