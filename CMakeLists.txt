@@ -198,6 +198,7 @@ add_library(d2r-access SHARED
 	src/native_skill_hand.cpp
 	src/native_skill_icons.cpp
 	src/native_swap.cpp
+	src/native_hover.cpp
 	src/native_value_controls.cpp
 	src/native_belt_rows.cpp
 	src/native_belt_fill.cpp

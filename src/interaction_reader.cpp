@@ -1265,6 +1265,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		if (bearer.id != g_worldTargetId && g_worldTargetId && readout.body == g_worldTargetBody) g_reader.Reset();
 		g_worldTargetId = bearer.id;
 		g_worldTargetBody = readout.body;
+		// The scan's name says which one of a shared label: "Cairn Stone, downward drop" (a tester, 2026-10-14).
+		readout.body = TargetSight::Spoken(readout.body, bearer);
 	}
 	if (!monsterLabel) g_monsterNames.Absent();
 	else {
