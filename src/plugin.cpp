@@ -394,7 +394,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		char loaded[200]{};
 		std::snprintf(loaded, sizeof(loaded), "%s. %s", strings.pluginLoaded,
 			*D2RAccessRelease ? D2RAccessRelease : strings.developmentBuild);
-		D2RAccess::ScreenReader::Speak(loaded, true);
+		// Said behind the title's announcement, which the game's own window read would cut off here.
+		D2RAccess::ModalReader::SetTitleAnnouncement(loaded);
 	} else {
 		D2RAccess::AsyncLog::ErrorF(context, "%s: %s", D2RAccess::Strings::Current().screenReaderMissing, D2RAccess::ScreenReader::LastError());
 	}

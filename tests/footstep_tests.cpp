@@ -72,5 +72,10 @@ int main() {
 	Check(ScaleVolume(200, 300) == MaxInstanceVolume && ScaleVolume(255, 200) == MaxInstanceVolume,
 		"a louder step stops at the most a sound instance holds");
 	Check(ScaleVolume(1, 25) == 1, "a quieter step never falls silent");
+	const auto extras = [](int percent) { return ExtraVoices(percent); };
+	Check(extras(100).whole == 0 && extras(100).partialPercent == 0 && extras(25).whole == 0 && extras(25).partialPercent == 0,
+		"the game's volume or less adds no footfall");
+	Check(extras(150).whole == 0 && extras(150).partialPercent == 50, "150 percent is one extra footfall at half");
+	Check(extras(200).whole == 1 && extras(200).partialPercent == 0 && extras(300).whole == 2, "each hundred above is a whole extra footfall");
 	Passed();
 }

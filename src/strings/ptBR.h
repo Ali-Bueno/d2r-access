@@ -361,6 +361,9 @@ inline constexpr Table ptBR {
 	.manaAlerts = {"Alertas de mana: cada mudança", "Alertas de mana: só mana baixa", "Alertas de mana: desligados"},
 	.itemSoundSets = {"Sons dos itens: Diablo IV", "Sons dos itens: ouro e poções do Last Epoch", "Sons dos itens: quedas do Diablo II"},
 	.settingsGroups = {"Sons", "Inimigos e NPCs", "Navegação", "Itens e menus", "Alertas", "Controle", "Glossário de sons", "Volumes", "Sons de queda do Diablo II"},
+	.goldMovedPersonal = "%s de ouro movido para o baú pessoal",
+	.goldMovedShared = "%s de ouro movido para o baú compartilhado",
+	.goldMovedStash = "%s de ouro movido para o baú",
 };
 
 }

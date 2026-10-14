@@ -168,3 +168,14 @@ against the grid's edge (`grid_edge.*` detector, `grid_edge_service.*`).
   `gold_button`, and down from there was silent. A button or slot in the panel of the grid last
   focused is now a one-cell grid (`1x1` in the log): a push that leaves focus on it knocks. Tabs,
   toggles and value controls are left out, since a push changes them in place.
+
+## Gold into the stash, and the knock from the equipment slots (2026-10-13)
+
+- Gold that leaves the backpack while the expansion stash is open says "N gold moved to the
+  personal/shared stash" (`InventoryArrivalService`, the tab from `InteractionReader::OpenStashTab`). It
+  leads (`ScreenReader::Lead`, 2 s), so the gold row's re-read of what is left, spoken as the focus
+  returns to it, queues behind instead of cutting it off. Log: `[items] gold deposited A -> B tab=`.
+  No such sentence existed before: the nearest was "N gold in personal stash" on the stash's gold button.
+- The crossing knock (`grid_edge_service`) counts a focused equipment slot as part of the backpack's
+  panel, so pushing left from the gloves or right-weapon slot into the stash or vendor knocks like a
+  cell does (`[grid-edge] crossed`).

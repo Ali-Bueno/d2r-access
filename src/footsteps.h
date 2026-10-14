@@ -28,6 +28,10 @@ inline constexpr int NeutralVolumePercent = 100, NeutralVolumeLevel = 3, MaxInst
 static_assert(VolumePercents[NeutralVolumeLevel] == NeutralVolumePercent);
 // A stock instance volume scaled by `percent`, kept within 1 and MaxInstanceVolume.
 int ScaleVolume(int stock, int percent);
+// The floor step is already at MaxInstanceVolume, so a louder one is made of extra
+// footfalls: `whole` at the game's volume plus one at `partialPercent` of it.
+struct Extras { int whole = 0, partialPercent = 0; };
+Extras ExtraVoices(int percent);
 class Filter {
 public:
 	bool Suppress(const Sample& sample, uint64_t now);

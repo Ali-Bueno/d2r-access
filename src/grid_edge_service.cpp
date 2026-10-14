@@ -17,7 +17,7 @@ bool g_enabled = true;
 GridEdge::Detector g_detector;
 // Only grids knock: the backpack, a vendor's, the stash's and the cube's (a tester,
 // 2026-10-12: equipment slots must not). A push from one panel's grid into another's,
-// the border between the backpack and a vendor or the stash, knocks as well.
+// the border between the backpack (or its equipment slots) and a vendor or the stash, knocks as well.
 GridEdge::CrossingTracker g_crossings;
 
 // The direction the D-pad, the arrow keys or the left stick push, on its dominant axis.
@@ -53,6 +53,10 @@ void Tick(const D2RL::PluginContext* context) {
 		sample = {focus.widget, cell.x, cell.y, size.x, size.y, 0, 0, sample.now};
 		sample.dx = pushX;
 		sample.dy = pushY;
+	} else if (focus.widget && NativeUi::Classify(focus.widget).kind == UiText::Kind::InventorySlot) {
+		// An equipment slot is no grid cell, but it stands at the panel's edge: leaving it into
+		// another panel is a crossing all the same (a tester, 2026-10-13: gloves, right weapon).
+		panel = focus.panel;
 	}
 	// The crossing is judged on its own: the game may switch grids within one frame or via a blank focus.
 	if (const auto crossing = g_crossings.Update(panel, pushX, pushY, sample.now); crossing.crossed) {
