@@ -88,4 +88,6 @@ Tester: the bell did not reliably ring when the mark appeared after the name was
 only at the name; the mark appearing later is the entity cue service's `AlertTracker`, which required the
 NPC cue switch (`entity-cues-npcs`) on as well as `npc-alerts` and consumed a mark while it was off. The bell
 (`RingAlert`, `PlayNpcAlert`) now depends on `npc-alerts` and the master cue switch only, and the tracker
-state advances either way. Live check: `[npc] exclamation mark id=...` when the mark appears while standing near.
+state advances either way. The NPC announcer's poll asks the same tracker (`RaisedAlerts`), so a
+mark rings within its poll even while the cue service is quiet, and still once. Live check: `[npc] exclamation
+mark id=...` when the mark appears while standing near.
