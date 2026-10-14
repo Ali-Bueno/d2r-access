@@ -69,8 +69,8 @@ leads to more dungeon and has nothing to be named after.
 A tester working the finder through the Underground Passage asked for the
 room's own layout: D2 draws the world axes, along which every wall runs, at
 the screen diagonals, at 2, 4, 8 and 10 o'clock on its 2:1 projection. With
-`passage-map-sides` on (Ctrl+S, Navigation; off by default, since the user's
-2026-09-25 rule keeps every feature but the radar on screen sides):
+`passage-map-sides` on (Ctrl+S, Navigation; on by default, the user's choice
+of 2026-10-14; off gives the screen sides below):
 
 - **The room line** says each passage by its wall: northeast (world -Y),
   southeast (+X), southwest (+Y), northwest (-X), or 2, 4, 8 and 10 o'clock.

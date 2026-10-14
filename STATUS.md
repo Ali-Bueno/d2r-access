@@ -17,7 +17,7 @@ in the Cold Plains, 129 to 334 units away, after the tester had walked across it
 border's middle, in its trees. Crossings seen are now kept for the game (`CrossingMemory`); an unseen
 border is led to within 20 units of its middle ([area borders](docs/beacon.md#area-borders)).
 
-Tester's finder request: `passage-map-sides` (off, the user's 2026-09-25 scope) turns the finder's
+Tester's finder request: `passage-map-sides` (on, the user's choice) turns the finder's
 stick 45 degrees clockwise and says passages by the room's walls, NE/SE/SW/NW = 2/4/8/10 o'clock
 ([rooms](docs/rooms.md)). Log: `[room] finder up (map)`.
 
