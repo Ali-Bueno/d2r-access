@@ -9,6 +9,7 @@
 #include "radar_config.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "stash_count.h"
 #include <D2RLPlugin/context.h>
 #include <D2RLPlugin/inventory.h>
 #include <D2RLPlugin/item.h>
@@ -17,6 +18,7 @@
 #include <atomic>
 #include <cstdio>
 #include <optional>
+#include <utility>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -82,6 +84,8 @@ bool InventoryOpen() {
 constexpr std::string_view ExpansionStash = "BankExpansionLayout";
 // A Y press this recent explains an item leaving the backpack: the poll is SampleMs.
 constexpr unsigned SortPressMs = 4 * SampleMs;
+// How long the gold deposit notice keeps interrupting speech behind it: the length of the sentence.
+constexpr uint64_t GoldLeadMs = 2000;
 bool StashOpen() {
 	const auto& open = PanelState::OpenPanels();
 	return std::find(open.begin(), open.end(), ExpansionStash) != open.end();
@@ -104,6 +108,24 @@ void AnnounceSorted(const D2RL::PluginContext* context, const std::vector<Item>&
 		ScreenReader::Speak(text, false);
 	}
 }
+// Gold that leaves the backpack while the stash is open went into it. The notice leads, so the gold row's
+// re-read of what is left (the focus is still on it) waits behind it instead of cutting it off.
+int g_gold = -1;
+void AnnounceGoldDeposit(const D2RL::PluginContext* context) {
+	if (!StashOpen()) { g_gold = -1; return; }
+	const int gold = NativeGroundItems::PlayerGold();
+	if (gold < 0) return;
+	const int before = std::exchange(g_gold, gold);
+	if (before < 0 || gold >= before) return;
+	const auto& strings = Strings::Current();
+	const auto tab = InteractionReader::OpenStashTab(context);
+	const char* format = tab == StashCount::GoldTab::Personal ? strings.goldMovedPersonal
+		: tab == StashCount::GoldTab::Shared ? strings.goldMovedShared : strings.goldMovedStash;
+	char text[160]{};
+	std::snprintf(text, sizeof(text), format, std::to_string(before - gold).c_str());
+	AsyncLog::InfoF(context, "[items] gold deposited %d -> %d tab=%d -> \"%s\"", before, gold, static_cast<int>(tab), text);
+	ScreenReader::Lead(text, GetTickCount64() + GoldLeadMs);
+}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command || !command->plugin) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -122,7 +144,7 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context) {
-	if (!g_enabled || !InventoryOpen()) { g_baseline.reset(); return; }
+	if (!g_enabled || !InventoryOpen()) { g_baseline.reset(); g_gold = -1; return; }
 	const uint64_t now = GetTickCount64();
 	if (now < g_nextSample) return;
 	g_nextSample = now + SampleMs;
@@ -142,6 +164,7 @@ void Tick(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(text, false);
 	}
 	if (g_baseline) AnnounceSorted(context, *g_baseline, *items, *held);
+	AnnounceGoldDeposit(context);
 	g_baseline = std::move(*items);
 	g_heldBefore = *held;
 }
