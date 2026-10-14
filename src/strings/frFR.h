@@ -355,6 +355,9 @@ inline constexpr Table frFR {
 	.manaAlerts = {"Alertes de mana : chaque changement", "Alertes de mana : mana faible seulement", "Alertes de mana : désactivées"},
 	.itemSoundSets = {"Sons des objets : Diablo IV", "Sons des objets : or et potions de Last Epoch", "Sons des objets : chutes de Diablo II"},
 	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes", "Sons de chute de Diablo II"},
+	.goldMovedPersonal = "%s pièces d'or déposées dans le coffre personnel",
+	.goldMovedShared = "%s pièces d'or déposées dans le coffre partagé",
+	.goldMovedStash = "%s pièces d'or déposées dans le coffre",
 };
 
 }

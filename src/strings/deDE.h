@@ -355,6 +355,9 @@ inline constexpr Table deDE {
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
 	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
 	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche"},
+	.goldMovedPersonal = "%s Gold in den persönlichen Schatz gelegt",
+	.goldMovedShared = "%s Gold in den gemeinsamen Schatz gelegt",
+	.goldMovedStash = "%s Gold in den Schatz gelegt",
 };
 
 }

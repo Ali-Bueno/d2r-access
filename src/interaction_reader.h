@@ -1,6 +1,7 @@
 #pragma once
 
 #include "native_ui.h"
+#include "stash_count.h"
 #include <D2RLPlugin/api.h>
 #include <string>
 
@@ -14,6 +15,8 @@ void OfferDetail(std::string_view owner, std::string detail);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange = {});
 void Reset();
 std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality);
+// The stash tab the open expansion stash shows, Unknown when it is closed or unreadable.
+StashCount::GoldTab OpenStashTab(const D2RL::PluginContext* context);
 std::string Repeat();
 // Whether picking an item up and putting it down are spoken ("Item in hand",
 // "Placed in Row 1, column 2"). A settings-list switch, on by default.
