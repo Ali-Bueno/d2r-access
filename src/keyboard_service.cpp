@@ -1701,6 +1701,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
 		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
+		{BeaconService::RoutePrompts, BeaconService::SetRoutePrompts, phrase(&T::routePromptsOn, &T::routePromptsOff), false, "route-prompts"},
 		std::move(strengths[2]),
 		std::move(strengths[3]),
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},

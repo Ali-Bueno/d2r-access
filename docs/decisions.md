@@ -3,6 +3,27 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-14 — Exploration is room by room, and what the scanner lists can be routed to (the user)
+
+A route to the unexplored room next to a player failed: the way was planned to the room's centre,
+which can be wall. The user's rules:
+
+- **A room is explored on stepping into it**, anywhere, not at its centre: a sighted player sees
+  the room whole on arriving. A room target (explored or not) is reached at its first step inside.
+  The scanner lists every landmark in an explored room (stood in, drawn on the automap or
+  underfoot), seen or not; enemies and loot in the room underfoot too. Before, a landmark needed
+  range and a clear line of sight unless the automap had drawn its room.
+- **What the scanner lists can be routed to.** The target's own room is always admitted. A way
+  over explored rooms is still preferred; when there is none, the way guesses across rooms never
+  stood in as ground not seen yet (the route says so), and the first such room is followed into
+  as the target's own is. Rejected: keeping the refusal ("No route through explored areas") for
+  a listed target, which is what the tester hit for Stony Field. Exploration still refuses a target
+  no known or guessable way reaches.
+- **Turn prompts** for a route asked for: the next leg at each turn, "Off the route" once if the
+  player leaves it. A switch (`route-prompts`), on: the user asked for the getting-lost to be
+  improved; nothing is said for a route never asked for, and still no autowalk.
+  `docs/route-description.md#following-it`.
+
 ## 2026-10-13 — Compass words, units and the route description (the user)
 
 - **Compass points instead of up/down/left/right**, with **clock hours** as a setting

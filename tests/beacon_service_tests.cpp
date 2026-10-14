@@ -252,25 +252,23 @@ int main() {
 	Check(speech.back() == strings.navigationExploration, "the exploration command releases the lock and names the mode");
 	playerAt = {10, 10};
 	visitedRooms = {levelRooms[0]};
+	const Box border{50, 0, 50, 49}; // a wall all along the border between the two rooms
+	blocked = border;
 	EntityRadar::Entity gate{.id = 9, .kind = EntityRadar::Kind::Exit, .position = {70, 10}, .name = "gate"};
 	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
-		"exploration refuses a target in a room never entered");
+		"exploration refuses a target no known way leads to");
 	Command("route");
 	BeaconService::Tick(&context);
 	Check(speech.back() == Format(strings.beaconKnownRouteOnly, "gate"), "and has no route to describe there either");
+	blocked = {};
 	visitedRooms = {};
 	Command("lock");
 	BeaconService::Tick(&context);
-	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
-		"without history only the room underfoot counts as visited");
-	visitedRooms = levelRooms;
-	Command("lock");
-	BeaconService::Tick(&context);
-	Check(plays == before + 1, "exploration locks a target reached through visited rooms");
+	Check(plays == before + 1, "what the scanner lists is led to, in a room never entered (the user, 2026-10-14)");
 
 	worldReadable = false;
 	const int silenced = silences;
@@ -282,19 +280,22 @@ int main() {
 		&& speech.back().find("gate") != std::string::npos, "an unreadable world keeps the exploration lock");
 	worldReadable = true;
 	visitedRooms = {levelRooms[0]};
-	Sleep(160);
+	blocked = border;
+	// Past the route's own recompute interval (Settings::routeIntervalMs, longer for a far target).
+	Sleep(700);
 	BeaconService::Tick(&context);
-	Check(silences == silenced, "a target briefly outside the visited rooms keeps the lock in silence");
+	Check(silences == silenced, "a target briefly cut off keeps the lock in silence");
 	Sleep(static_cast<DWORD>(Beacon::Settings{}.routeLossMs) + 160);
 	BeaconService::Tick(&context);
 	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
-		"a target outside the visited rooms for the whole grace ends the known route");
+		"a target cut off for the whole grace ends the known route");
+	blocked = {};
 	chartedRooms = std::vector<NativeRooms::Room>{levelRooms[1]};
 	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
-	Check(plays == before + 1, "a room the automap has drawn counts as explored");
+	Check(plays == before + 1, "with the automap readable the gate is led to again once a way is seen");
 	EntityRadar::Entity lever{901, EntityRadar::Kind::Object, {70, 10}, "lever"};
 	BeaconService::Offer(lever, 0, GetTickCount64());
 	before = plays;

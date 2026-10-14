@@ -13,7 +13,6 @@
 #include "native_ground_items.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
-#include "native_automap.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
 #include "keyboard_menu.h"
@@ -295,13 +294,26 @@ bool Collect(const Lifecycle& state, Scene& scene) {
 	return true;
 }
 
-// What exploration counts as found: what came into view and, while the
-// automap can be read, anything in a room it has drawn. An area border also
-// counts where it is walked across, not only at the middle of the edge.
+// The rooms whose landmarks exploration has found: those stood in, those the
+// automap has drawn, and the one the player stands in. A sighted player sees a
+// room whole on stepping into it, not only from its middle (the user, 2026-10-14).
+std::vector<NativeRooms::Room> Explored(const Lifecycle& state, const Radar::World& world) {
+	return TerrainService::ExploredRooms(state.level, CurrentRooms(state.level, state.session), world.player);
+}
+// The room the player stands in, whose live contents are all in sight.
+std::vector<NativeRooms::Room> Here(const Lifecycle& state, const Radar::World& world) {
+	const auto& rooms = CurrentRooms(state.level, state.session);
+	const size_t room = NativeRooms::Containing(rooms, world.player);
+	return room == NativeRooms::None ? std::vector<NativeRooms::Room>{} : std::vector<NativeRooms::Room>{rooms[room]};
+}
+
+// What exploration counts as found: what came into view and anything in an
+// explored room. An area border also counts where it is walked across, not
+// only at the middle of the edge.
 std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
-	const auto charted = NativeAutomap::RevealedRooms(CurrentRooms(state.level, state.session));
+	const auto explored = Explored(state, world);
 	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
-		return charted ? MapSurvey::Charted(world, entities, *charted) : MapSurvey::Discoverable(world, entities);
+		return MapSurvey::Charted(world, entities, explored);
 	};
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
@@ -309,9 +321,10 @@ std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar:
 	return ZoneTransitions::FoundAtCrossings(scene.landmarks, ZoneTransitions::Find(world, layout, Navigation::MaxRadius), found);
 }
 
-// Enemies are never charted: in range and in sight right now, or all loaded with full assistance.
-std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene) {
-	return g_fullAssistance ? scene.enemies : MapSurvey::Discoverable(world, scene.enemies);
+// Enemies are never charted: in range and in sight right now, or in the room the
+// player stands in, or all loaded with full assistance.
+std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene, const std::vector<NativeRooms::Room>& here) {
+	return g_fullAssistance ? scene.enemies : MapSurvey::Charted(world, scene.enemies, here);
 }
 
 // Items on the ground in every loaded room of the level, however far.
@@ -343,13 +356,13 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	const auto& rooms = CurrentRooms(state.level, state.session);
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
-	const auto charted = NativeAutomap::RevealedRooms(rooms);
-	g_townNpcs.Found(state.level, charted ? MapSurvey::Charted(world, scene.townNpcs, *charted) : MapSurvey::Discoverable(world, scene.townNpcs));
+	g_townNpcs.Found(state.level, MapSurvey::Charted(world, scene.townNpcs, Explored(state, world)));
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
-	const auto enemies = Enemies(world, scene);
+	const auto here = Here(state, world);
+	const auto enemies = Enemies(world, scene, here);
 	seen.insert(seen.end(), enemies.begin(), enemies.end());
-	const auto found = g_fullAssistance ? items : MapSurvey::Discoverable(world, items);
+	const auto found = g_fullAssistance ? items : MapSurvey::Charted(world, items, here);
 	seen.insert(seen.end(), found.begin(), found.end());
 	std::vector<EntityRadar::Entity> present = scene.landmarks;
 	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());

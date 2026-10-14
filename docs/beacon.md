@@ -116,19 +116,27 @@ An exit target whose destination is the new level still ends there.
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
 helps the player return, but never discovers for them.
 
-- **Scanner.** Something enters the scanner only once it has been
-  within the scan's range (`EntityRadar::Settings::range`) on known terrain with
-  a clear line of sight (`MapSurvey::Discoverable`); it then stays while out of
-  sight. Rooms are listed once stood in. Readouts give straight-line distance and
+- **Scanner.** Something enters the scanner once it stands in an explored
+  room (stood in, drawn on the automap, or underfoot: a room is seen whole on
+  stepping into it, the user's rule of 2026-10-14), or once it has been within
+  the scan's range (`EntityRadar::Settings::range`) on known terrain with a
+  clear line of sight (`MapSurvey::Discoverable`); it then stays while out of
+  sight. Enemies and loot count in the room underfoot only. Rooms are listed
+  once stood in. Readouts give straight-line distance and
   direction (`surveyOrientation`), never walking steps. Exits and objects
   (waypoints, stones, doors) are kept per level for the whole game, so they are
   still there after a town trip (`MapSurvey::Memory`). Enemies are never
   remembered: they are read live, within range and in sight.
 - **Beacon.** Routes use only the collision of explored logical rooms: those
   the player has stood in (`TerrainService::VisitedRooms`), those the automap
-  has drawn in (`NativeAutomap::RevealedRooms`), and the current room. Everything
-  else is masked unknown (`NavigationPolicy::Restrict`), and the room graph is
-  rebuilt from explored rooms (`BeaconNavigation::Prepare`).
+  has drawn in (`NativeAutomap::RevealedRooms`), and the current room, plus the
+  target's own room: what the scanner lists can be routed to (2026-10-14).
+  Everything else is masked unknown (`NavigationPolicy::Restrict`; on the
+  remembered map, ground not seen yet), and the room graph is rebuilt from
+  explored rooms (`BeaconNavigation::Prepare`). A way over explored rooms is
+  preferred; without one the way guesses across rooms never stood in, and the
+  first of them joins the floor followed, so the ping leads into it. Stepping
+  in explores it and the plan is made again.
   A lock needs a route whose end reaches the target or the next waypoint
   (`Beacon::Reaches`); otherwise it says "No route through explored areas to X",
   stays silent and logs `[beacon] refused reason=unreadable|outside-explored|no-route`.
@@ -141,13 +149,13 @@ helps the player return, but never discovers for them.
   `routeLossMs`. The ping is silent meanwhile and resumes when the route returns;
   before 2026-09-25 a single failed update released the lock. A failed world or
   room read only skips that update.
-- **Unexplored rooms.** The scanner's unexplored-room entries share an edge
-  with explored ground, so the beacon admits that one room besides the
-  explored ones: the route may enter it but never crosses it. The waypoint is
-  the room's doorway, the nearest reachable cell inside it
-  (`docs/room-routing.md`). It arrives as soon as the player
-  steps into the room, since its centre may be inside a wall. Once entered,
-  the room is explored, and what the automap draws there joins the scanner.
+- **Rooms.** A room target, explored or not, is reached at the first step
+  inside it: the remembered way ends there (`Recall::room`,
+  `LevelRoute::Area`), its last loaded cell is the waypoint, and the lock
+  arrives as soon as the player steps in (`InTargetRoom`), since its centre may
+  be inside a wall. Before 2026-10-14 the way was planned to the centre, and a
+  route to the unexplored room next door failed when the centre was wall. Once
+  entered, the room is explored, and everything in it joins the scanner.
 - **Other players** are followed as in full assistance, through rooms this
   player has not explored: the lock is never refused and never ends for lack of
   an explored route (`Unrestricted` in `src/beacon_service.cpp`, user's request

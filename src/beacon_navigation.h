@@ -4,6 +4,7 @@
 #include "room_graph.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace D2RAccess::BeaconNavigation {
@@ -32,9 +33,14 @@ class RememberedWay {
 public:
 	static constexpr uint64_t RefreshMs = 1000;
 	static constexpr double PlaceDrift = 10; // cells a place may move before it is planned to afresh
-	// `explored` keeps the way to those rooms; null for the whole map.
+	// `explored` keeps the way to those rooms; null for the whole map. Past
+	// them the way may only guess, over ground not known yet.
 	LevelRoute::Way From(const LevelRoute::Memory& memory, const std::vector<NativeRooms::Room>* explored,
-		Radar::Position from, Radar::Position place, int margin, int bodyPattern, uint64_t now);
+		Radar::Position from, const LevelRoute::Area& goal, int bodyPattern, uint64_t now);
+	LevelRoute::Way From(const LevelRoute::Memory& memory, const std::vector<NativeRooms::Room>* explored,
+		Radar::Position from, Radar::Position place, int margin, int bodyPattern, uint64_t now) {
+		return From(memory, explored, from, LevelRoute::Area::Around(place, margin), bodyPattern, now);
+	}
 	void Clear() { *this = {}; }
 private:
 	LevelRoute::Memory view_;
@@ -42,7 +48,7 @@ private:
 	std::vector<uint64_t> rooms_; // the explored rooms' ids the view keeps, sorted
 	bool restricted_ = false;
 	uint64_t copies_ = 0, copiedRevision_ = 0, copiedMs_ = 0, placedMs_ = 0;
-	Radar::Position place_{};
+	LevelRoute::Area goal_{};
 };
 
 // The level's remembered map and the guidance's way over it.
@@ -50,9 +56,15 @@ struct Recall {
 	const LevelRoute::Memory* memory = nullptr;
 	RememberedWay* way = nullptr;
 	uint64_t now = 0;
+	// A room target: its way ends at the first step inside the room, not at
+	// `target` (its centre, which can be in a wall) and the margin.
+	std::optional<LevelRoute::Area> room;
 };
 
 // A null visited list retains full assistance; an empty list grants no exploration route.
+// With a visited list the remembered way prefers explored ground and may guess
+// past it; the first unexplored room it crosses joins the floor followed, as
+// the target's own room does, so the ping leads into it.
 // `margin` is how many cells around the target count as reaching it.
 // `built` is the terrain grid of this same `world` at the full radius when the
 // caller has one already; with full assistance it is used instead of building

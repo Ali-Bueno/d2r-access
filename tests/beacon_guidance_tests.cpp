@@ -171,6 +171,59 @@ void ExploredOnly() {
 	Check(!path.empty() && !inside, "no cell of the explored way is in the unexplored room");
 }
 
+// A room is reached at its first step inside: its centre can be wall (the
+// user, 2026-10-14: a route to the unexplored room next door did not work).
+void RoomWithAWalledCentre() {
+	Level level;
+	const auto rooms = level.Rooms();
+	const auto& target = rooms[2 * Across + 3];
+	const auto bounds = NativeRooms::Subtiles(target);
+	level.Fill(bounds.minX + 10, bounds.minY + 10, bounds.maxX - 11, bounds.maxY - 11, Wall);
+	const auto graph = RoomGraph::Build(rooms);
+	auto memory = Seen(level);
+	const Position player{Left + 2 * RoomCells + 20.0, Top + 2 * RoomCells + 20.0};
+	const Position centre{(bounds.minX + bounds.maxX - 1) / 2.0, (bounds.minY + bounds.maxY - 1) / 2.0};
+	// The player's room and the target's own, as exploration admits it.
+	const std::vector<NativeRooms::Room> explored{rooms[2 * Across + 2], target};
+	BeaconNavigation::RememberedWay toCentre;
+	const auto point = BeaconNavigation::Prepare(level.Loaded(player, 1), centre, &graph, &explored, Margin, nullptr, {&memory, &toCentre, 0});
+	Check(!point.hasWaypoint, "fixture: no way ends at the walled centre");
+	BeaconNavigation::RememberedWay toRoom;
+	const auto room = BeaconNavigation::Prepare(level.Loaded(player, 1), centre, &graph, &explored, Margin, nullptr,
+		{&memory, &toRoom, 0, LevelRoute::Area::Of(target)});
+	Check(room.available && room.hasWaypoint && room.waypoint.x == bounds.minX
+		&& NativeRooms::Contains(bounds, static_cast<int>(room.waypoint.x), static_cast<int>(room.waypoint.y)),
+		"the room's way ends at its first step inside");
+	const auto update = Settled(room, Beacon::Settings{});
+	Check(update.routed && Dot(update.heading, PlusX) > 0.9, "and the ping leads straight into it");
+	const Position inside{bounds.minX + 2.0, player.y};
+	BeaconNavigation::RememberedWay there;
+	const auto arrived = BeaconNavigation::Prepare(level.Loaded(inside, 1), centre, &graph, &explored, Margin, nullptr,
+		{&memory, &there, 0, LevelRoute::Area::Of(target)});
+	Check(arrived.hasWaypoint && arrived.waypoint.x == inside.x && arrived.waypoint.y == inside.y,
+		"inside it, where the player stands is the place");
+}
+
+// A target past a room never stood in: the way guesses across it, and that room
+// is followed into as the target's own is (the user, 2026-10-14: what the
+// scanner lists can be routed to).
+void PastAnUnexploredRoom() {
+	Level level;
+	const auto rooms = level.Rooms();
+	const auto graph = RoomGraph::Build(rooms);
+	auto memory = Seen(level);
+	const Position player{Left + 20.0, Top + 2 * RoomCells + 20.0};
+	const Position target{Left + 2 * RoomCells + 20.0, Top + 2 * RoomCells + 20.0};
+	const std::vector<NativeRooms::Room> explored{rooms[2 * Across], rooms[2 * Across + 2]};
+	BeaconNavigation::RememberedWay way;
+	const auto guidance = BeaconNavigation::Prepare(level.Loaded(player, 1), target, &graph, &explored, Margin, nullptr, {&memory, &way, 0});
+	const auto middle = NativeRooms::Subtiles(rooms[2 * Across + 1]);
+	Check(guidance.available && guidance.remembered && guidance.guess, "the way guesses across the room never stood in");
+	Check(guidance.hasWaypoint && NativeRooms::Contains(middle, static_cast<int>(guidance.waypoint.x), static_cast<int>(guidance.waypoint.y)),
+		"and leads into it, as far as its floor is loaded");
+	Check(Settled(guidance, Beacon::Settings{}).routed, "the ping follows a proved route there");
+}
+
 // A shut door is opened, not walked round: guidance leads up to it.
 void DoorOnTheWay() {
 	Level level;
@@ -215,8 +268,8 @@ void BoundedReplanning() {
 	Check(!crosses(way.From(memory, nullptr, player, place, Margin, 1, start + refresh).path), "and is once it has passed");
 	std::vector<NativeRooms::Room> explored = rooms;
 	explored.erase(explored.begin() + 2 * Across, explored.begin() + 2 * Across + 2); // the rooms the way now goes round by
-	const auto restricted = way.From(memory, &explored, player, place, Margin, 1, start + refresh + 1).path;
-	Check(restricted.empty(), "other rooms to keep to are planned on at once");
+	const auto restricted = way.From(memory, &explored, player, place, Margin, 1, start + refresh + 1);
+	Check(restricted.guess, "other rooms to keep to are planned on at once: past them the way only guesses");
 	const auto at = [&](Position moved, uint64_t now) {
 		const auto path = way.From(memory, nullptr, player, moved, Margin, 1, now).path;
 		return path.empty() ? Position{} : path.back();
@@ -236,6 +289,8 @@ int main() {
 	NoKnownRoute();
 	BeyondTheWindow();
 	ExploredOnly();
+	RoomWithAWalledCentre();
+	PastAnUnexploredRoom();
 	DoorOnTheWay();
 	BoundedReplanning();
 	Passed();

@@ -57,7 +57,10 @@ std::vector<Leg> Fold(std::vector<Leg> legs) {
 	for (size_t i = 0; i < legs.size();) {
 		const bool before = i > 0 && !legs[i - 1].door, after = i + 1 < legs.size() && !legs[i + 1].door;
 		if (legs[i].door || legs[i].length >= MinLegUnits || (!before && !after)) { ++i; continue; }
-		(before ? legs[i - 1] : legs[i + 1]).length += legs[i].length;
+		// Its way too, so the legs still end where the way turns (RouteFollow walks them).
+		auto& into = before ? legs[i - 1] : legs[i + 1];
+		into.delta = {into.delta.x + legs[i].delta.x, into.delta.y + legs[i].delta.y};
+		into.length += legs[i].length;
 		legs.erase(legs.begin() + static_cast<std::ptrdiff_t>(i));
 	}
 	return legs;
@@ -90,16 +93,20 @@ double Length(const std::vector<Leg>& legs) {
 	return length;
 }
 
+std::string Say(const Leg& leg, const Strings::Table& strings) {
+	if (leg.door) return strings.routeDoor;
+	char text[160]{};
+	std::snprintf(text, sizeof text, strings.routeLeg, SpokenDirection::Of(leg.delta, strings),
+		std::max(1, static_cast<int>(std::lround(leg.length))));
+	return text;
+}
+
 std::string Speak(const std::string& name, const std::vector<Leg>& legs, bool unseen, const Strings::Table& strings) {
 	std::string said;
 	const size_t shown = std::min(legs.size(), SpokenLegs);
 	for (size_t i = 0; i < shown; ++i) {
 		if (i) said += strings.routeThen;
-		if (legs[i].door) { said += strings.routeDoor; continue; }
-		char leg[160]{};
-		std::snprintf(leg, sizeof leg, strings.routeLeg, SpokenDirection::Of(legs[i].delta, strings),
-			std::max(1, static_cast<int>(std::lround(legs[i].length))));
-		said += leg;
+		said += Say(legs[i], strings);
 	}
 	if (legs.size() > shown) {
 		char more[96]{};

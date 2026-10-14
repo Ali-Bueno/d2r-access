@@ -33,6 +33,18 @@ using Radar::Position;
 // be opened, so what lies past one is not cut off (Reach).
 enum class Ground : uint8_t { Outside, Unseen, Open, Blocked, Door };
 
+// Where a way ends: the cells, bounds included, the body may stand on to be there.
+// A thing is reached from round it (its own cells carry its collision), a room
+// as soon as the body is anywhere inside it.
+struct Area {
+	int minX = 0, minY = 0, maxX = 0, maxY = 0;
+	static Area Around(Position place, int margin);
+	static Area Of(const NativeRooms::Room& room);
+	bool Contains(Position at) const;
+	Position Centre() const;
+	bool operator==(const Area&) const = default;
+};
+
 class Memory {
 public:
 	// The level's logical rooms bound it: ground inside one is unseen until the
@@ -42,8 +54,9 @@ public:
 	// Copies in the rooms the game has loaded now. True when a cell changed.
 	bool Learn(const Radar::World& world);
 	// A copy to plan on while this map goes on learning, with only the ground
-	// inside `rooms` when given. A Plan tells maps apart by revision, so
-	// `revision` must be one no other map planned on has had.
+	// inside `rooms` known when given: the rest of the level is ground not seen
+	// yet, which a way may cross only as a guess. A Plan tells maps apart by
+	// revision, so `revision` must be one no other map planned on has had.
 	Memory Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const;
 	Ground At(int x, int y) const;
 	const std::vector<Ground>& Cells() const { return cells_; } // Width() to a row, from X(), Y()
@@ -69,6 +82,7 @@ public:
 	// thing's own cells carry its collision. `unseen` lets the way cross ground
 	// not seen yet, `doors` a shut door, for a way the player opens as they go.
 	Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors = false);
+	Field(const Memory& memory, const Area& goal, int bodyPattern, bool unseen, bool doors = false);
 	// The cells to walk from `from`, the last of them at the place. Empty when
 	// there is no way, and when `from` is at the place already. The cell stood
 	// on need not fit the body: the game never tests the cell a move starts from.
@@ -91,11 +105,13 @@ class Plan {
 public:
 	// `doors`: the way may pass a shut door (Field).
 	Way From(const Memory& memory, Position from, Position place, int margin, int bodyPattern, bool doors = false);
+	Way From(const Memory& memory, Position from, const Area& goal, int bodyPattern, bool doors = false);
 	void Clear() { *this = {}; }
 private:
 	struct Key {
 		uint64_t session = 0, revision = 0;
-		int level = 0, x = 0, y = 0, margin = 0, pattern = 0;
+		int level = 0, pattern = 0;
+		Area goal;
 		bool doors = false;
 		bool operator==(const Key&) const = default;
 	};

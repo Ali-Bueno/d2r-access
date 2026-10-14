@@ -29,6 +29,8 @@ using Passable = std::function<bool(int x, int y)>;
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
 	const Passable& passable, SpokenDirection::Style style);
 double Length(const std::vector<Leg>& legs);
+// One leg: "north, 20", or "door".
+std::string Say(const Leg& leg, const Strings::Table& strings);
 // "Route to Akara, 85 units: north, 20; then door; then east, 30". `unseen`:
 // part of the way crosses ground not seen yet.
 std::string Speak(const std::string& name, const std::vector<Leg>& legs, bool unseen, const Strings::Table& strings);

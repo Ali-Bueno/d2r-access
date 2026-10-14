@@ -122,11 +122,29 @@ bool Memory::Learn(const Radar::World& world) {
 	return changed;
 }
 
+Area Area::Around(Position place, int margin) {
+	const int x = Cell(place.x), y = Cell(place.y);
+	return {x - margin, y - margin, x + margin, y + margin};
+}
+
+Area Area::Of(const NativeRooms::Room& room) {
+	const auto bounds = NativeRooms::Subtiles(room);
+	return {bounds.minX, bounds.minY, bounds.maxX - 1, bounds.maxY - 1};
+}
+
+bool Area::Contains(Position at) const {
+	const int x = Cell(at.x), y = Cell(at.y);
+	return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
+Position Area::Centre() const { return {(minX + maxX) / 2.0, (minY + maxY) / 2.0}; }
+
 Memory Memory::Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const {
 	Memory copy = *this;
 	copy.revision_ = revision;
 	if (!rooms || cells_.empty()) return copy;
-	std::fill(copy.cells_.begin(), copy.cells_.end(), Ground::Outside);
+	// What the rooms kept do not cover is the level still, only not known.
+	std::replace_if(copy.cells_.begin(), copy.cells_.end(), [](Ground ground) { return ground != Ground::Outside; }, Ground::Unseen);
 	for (const auto& room : *rooms) {
 		const auto bounds = NativeRooms::Subtiles(room);
 		const int x0 = std::max(bounds.minX, x_), x1 = std::min(bounds.maxX, x_ + width_);
@@ -145,6 +163,9 @@ Ground Memory::At(int x, int y) const {
 }
 
 Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors)
+	: Field(memory, Area::Around(place, margin), bodyPattern, unseen, doors) {}
+
+Field::Field(const Memory& memory, const Area& goal, int bodyPattern, bool unseen, bool doors)
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
 	// Unless asked, a shut door is no part of a way: the game will not walk through one.
@@ -155,11 +176,9 @@ Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, 
 	const auto index = [&](int x, int y) { return static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1); };
 	const auto row = static_cast<int64_t>(across);
 	std::vector<uint32_t> queue;
-	const int placeX = Cell(place.x), placeY = Cell(place.y);
-	for (int dy = -margin; dy <= margin; ++dy) {
-		for (int dx = -margin; dx <= margin; ++dx) {
-			const int x = placeX + dx, y = placeY + dy;
-			if (x < x_ || y < y_ || x >= x_ + width_ || y >= y_ + height_ || !stood[index(x, y)]) continue;
+	for (int y = std::max(goal.minY, y_); y <= std::min(goal.maxY, y_ + height_ - 1); ++y) {
+		for (int x = std::max(goal.minX, x_); x <= std::min(goal.maxX, x_ + width_ - 1); ++x) {
+			if (!stood[index(x, y)]) continue;
 			steps_[index(x, y)] = 0;
 			queue.push_back(static_cast<uint32_t>(index(x, y)));
 		}
@@ -216,7 +235,11 @@ std::vector<Position> Field::From(Position from) const {
 }
 
 Way Plan::From(const Memory& memory, Position from, Position place, int margin, int bodyPattern, bool doors) {
-	const Key key{memory.Session(), memory.Revision(), memory.Level(), Cell(place.x), Cell(place.y), margin, bodyPattern, doors};
+	return From(memory, from, Area::Around(place, margin), bodyPattern, doors);
+}
+
+Way Plan::From(const Memory& memory, Position from, const Area& goal, int bodyPattern, bool doors) {
+	const Key key{memory.Session(), memory.Revision(), memory.Level(), bodyPattern, goal, doors};
 	if (!(key == key_)) {
 		key_ = key;
 		seen_.reset();
@@ -224,10 +247,10 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 	}
 	Way way;
 	if (!memory.Revision()) return way;
-	if (!seen_) seen_.emplace(memory, place, margin, bodyPattern, false, doors);
+	if (!seen_) seen_.emplace(memory, goal, bodyPattern, false, doors);
 	way.path = seen_->From(from);
 	if (!way.path.empty() || seen_->At(from)) return way;
-	if (!any_) any_.emplace(memory, place, margin, bodyPattern, true, doors);
+	if (!any_) any_.emplace(memory, goal, bodyPattern, true, doors);
 	way.path = any_->From(from);
 	way.guess = !way.path.empty();
 	return way;

@@ -75,9 +75,25 @@ int main() {
 		const auto part = memory.Copy(&kept, 78);
 		Check(part.At(Left + 11, Top + 10) == Ground::Blocked && part.At(Left + 5, Top + 5) == Ground::Open,
 			"ground inside a room kept is as the map has it");
-		Check(part.At(Left + RoomCells + 5, Top + 5) == Ground::Outside && memory.At(Left + RoomCells + 5, Top + 5) == Ground::Open,
-			"ground outside them is no part of the copy, and the map itself keeps it");
+		Check(part.At(Left + RoomCells + 5, Top + 5) == Ground::Unseen && memory.At(Left + RoomCells + 5, Top + 5) == Ground::Open,
+			"ground outside them is not known to the copy, only guessed at, and the map itself keeps it");
+		Check(part.At(Left - 1, Top) == Ground::Outside, "ground outside the level stays outside it");
 		Check(part.X() == memory.X() && part.Width() == memory.Width(), "the copy covers the same level");
+	}
+	{
+		// A room is reached at its first step inside, wherever its centre is.
+		Level level;
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		(void)memory.Learn(level.Loaded({Left + 5.0, Top + 5.0}, Down));
+		const auto rooms = level.Rooms();
+		const auto way = LevelRoute::Plan().From(memory, {Left + 20.0, Top + 20.0}, LevelRoute::Area::Of(rooms[1]), 1);
+		Check(way.path.size() == RoomCells - 20 && way.path.back().x == Left + RoomCells && !way.guess,
+			"the way to the next room ends at its first cell");
+		Check(LevelRoute::Area::Of(rooms[1]).Contains(way.path.back()) && !LevelRoute::Area::Of(rooms[1]).Contains({Left + RoomCells - 1.0, Top + 20.0}),
+			"a room's area is its own cells");
+		Check(LevelRoute::Plan().From(memory, {Left + 20.0, Top + 20.0}, LevelRoute::Area::Of(rooms[0]), 1).path.empty(),
+			"standing in it, there is no way left to walk");
 	}
 	{
 		// The body: a five-cell cross needs three cells of width, a point one.
