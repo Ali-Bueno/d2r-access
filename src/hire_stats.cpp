@@ -88,7 +88,7 @@ Part PartOf(NativeUi::Focus focus) {
 	if (!focus.widget || NativeWidgets::ReadName(focus.panel) != Panel) return Part::None;
 	const auto type = NativeUi::Classify(focus.widget);
 	if (type.kind == UiText::Kind::ListItem) return Part::Row;
-	if (!KeyboardMenu::Active()) return Part::None;
+	if (!KeyboardMenu::Engaged()) return Part::None;
 	if (type.name == SkillIcon) return Part::Skill;
 	const std::string name = NativeWidgets::ReadName(focus.widget);
 	return name == YourGold || name == GoldCost ? Part::Gold : Part::None;
@@ -188,6 +188,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	NativeTooltips::Track(NativeWidgets::FindPanel("TooltipsPanel"));
 	if (part == Part::Row) PadFilter::ArmLeftStickWithY(now);
 	if (focus.widget != g_row) {
+		// Active() is true for any menu, a pad's too: only the keyboard's own cursor
+		// takes the keyboard's path (the controller path was never reached, 2026-10-13).
+		if (!g_row) AsyncLog::InfoF(context, "[hire] list entered, %s", KeyboardMenu::Engaged() ? "keyboard cursor" : "pad");
 		g_row = focus.widget;
 		g_lines.clear();
 		g_cursor = -1;
@@ -196,7 +199,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_record = g_line = 0;
 		g_namesDue = part == Part::Row ? now + SkillNamesDelayMs : 0;
 	}
-	if (KeyboardMenu::Active()) return KeyboardTick(context, now, focus, part);
+	if (KeyboardMenu::Engaged()) return KeyboardTick(context, now, focus, part);
 	if (g_namesDue && now >= g_namesDue) {
 		g_namesDue = 0;
 		const auto names = SkillSummary(focus.widget, false);
