@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Exploration room by room, routes to what is listed, turn prompts, Cairn symbol on focus — 2026-10-14 (not released)
+## Exploration room by room, routes to what is listed, turn prompts, Cairn symbol on focus — 2026-10-14 (released as test-2026-10-14 from 9c26f72)
+
+Release: 119/119 CTest, 29 entries, 61,770,968 bytes, SHA-256 `b3e1a48b…2b9c`; also carries the 2026-10-13
+section below. News: `../tester-news-draft-2026-10-14.txt`.
 
 The user's rules ([decisions](docs/decisions.md)): a room is explored on stepping into it and the
 scanner lists everything in it; what the scanner lists can be routed to (the target's room always
@@ -26,7 +29,7 @@ unexplored room next door and to a far listed exit (Stony Field from Cold Plains
 prompts, and focus each Cairn Stone with the pad and the mouse. Logs: `[hover] Verified.`,
 `[route] follow`, `[beacon] lead=remembered-map-guess`, `[interaction] World target`.
 
-## Radar wording, route description and the tester's fifth report — 2026-10-13 (not released)
+## Radar wording, route description and the tester's fifth report — 2026-10-13 (released in test-2026-10-14)
 
 The user's radar requests ([decisions](docs/decisions.md)):
 - Directions as **compass points** (north = top of the screen) or **clock hours** (`direction-style`,
