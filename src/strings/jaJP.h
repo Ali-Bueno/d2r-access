@@ -61,6 +61,7 @@ inline constexpr Table jaJP {
 		"会話中はレーダーを停止します", "ポーズメニュー中はレーダーを停止します"},
 	.radarAudioUnavailable = "レーダーの音を利用できません",
 	.radarTest = "レーダー音のテスト。%s。出口、未探索の出口、通れる、未探索の通路、ふさがった、小さな障害物、扉、そして壁にぶつかる音",
+	.radarRays = "レーダーの方向: %s",
 	.radarDepth = "%.0fマス分の空き",
 	.radarNearbyObstacle = "障害物が近い",
 	.radarLimited = "狭い空間",

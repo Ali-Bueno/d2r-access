@@ -97,6 +97,7 @@ struct Table {
 	std::array<const char*, 4> radarUiStates; // inactive, unavailable, dialogue, paused
 	const char* radarAudioUnavailable;
 	const char* radarTest; // %s = the four radar directions
+	const char* radarRays; // %s = the four radar directions: the frame setting, named as the radar's
 	const char* radarDepth; // %.0f = clear depth in units (collision subtiles)
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
@@ -438,7 +439,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.belt, t.beltRow, t.beltColumnCount, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.radarEnabled, t.footstepsEnabled,
 		t.footstepsDisabled, t.footstepsUnavailable, t.movementEnabled, t.movementDisabled, t.movementUnavailable,
 		t.radarDisabled, t.radarUnavailable,
-		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarDepth,
+		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarRays, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight,
 		t.wallBumpEnabled, t.wallBumpDisabled, t.smallObstaclesEnabled, t.smallObstaclesDisabled,

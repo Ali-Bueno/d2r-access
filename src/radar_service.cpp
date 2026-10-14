@@ -258,7 +258,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_frame = command == Command::Diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal;
 		g_engine = Radar::Engine({.frame = g_frame});
 		AsyncLog::InfoF(context, "[radar] frame=%s", g_frame == Radar::Frame::Diagonal ? "diagonal" : "cardinal");
-		ScreenReader::Speak(RadarReadout::DirectionList(g_frame, Strings::Current()), true);
+		ScreenReader::Speak(RadarReadout::RaysPhrase(g_frame, Strings::Current()), true);
 	}
 	if (command == Command::Test && RadarAudio::Available()) {
 		Suspend("audition");

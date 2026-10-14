@@ -103,6 +103,8 @@ void DiagonalNames() {
 	}
 	Check(RadarReadout::DirectionList(Frame::Cardinal, Text).starts_with(Text.compassPoints[0]),
 		"the cardinal list keeps the radar's own direction words");
+	Check(RadarReadout::RaysPhrase(Frame::Cardinal, Text) == "Radar rays: " + RadarReadout::DirectionList(Frame::Cardinal, Text),
+		"the frame setting says it is the radar's rays, not how a target's direction is told");
 }
 
 void UnknownCoverage() {

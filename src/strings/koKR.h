@@ -61,6 +61,7 @@ inline constexpr Table koKR {
 		"대화 중 레이더 일시 중단", "일시 정지 메뉴에서 레이더 일시 중단"},
 	.radarAudioUnavailable = "레이더 소리를 사용할 수 없습니다",
 	.radarTest = "레이더 소리 테스트: %s; 출구, 미탐사 출구, 열림, 미탐사 열림, 막힘, 작은 장애물, 문, 다음 벽 충돌",
+	.radarRays = "레이더 방향: %s",
 	.radarDepth = "%.0f칸 비어 있음",
 	.radarNearbyObstacle = "장애물 근접",
 	.radarLimited = "공간 좁음",

@@ -61,6 +61,7 @@ inline constexpr Table deDE {
 		"Radar während eines Dialogs ausgesetzt", "Radar im Pausenmenü ausgesetzt"},
 	.radarAudioUnavailable = "Radar-Audio nicht verfügbar",
 	.radarTest = "Radar-Tontest: %s; Ausgang, Ausgang unerforscht, offen, offen unerforscht, blockiert, kleines Hindernis, Tür, dann Wandstoß",
+	.radarRays = "Radarstrahlen: %s",
 	.radarDepth = "%.0f Einheiten frei",
 	.radarNearbyObstacle = "Hindernis in der Nähe",
 	.radarLimited = "wenig Platz",
