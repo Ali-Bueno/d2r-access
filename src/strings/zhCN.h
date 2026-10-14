@@ -364,6 +364,8 @@ inline constexpr Table zhCN {
 	.goldMovedPersonal = "%s 金币已移入个人储藏箱",
 	.goldMovedShared = "%s 金币已移入共享储藏箱",
 	.goldMovedStash = "%s 金币已移入储藏箱",
+	.compareAloudOn = "朗读与已装备物品的比较已开启",
+	.compareAloudOff = "朗读与已装备物品的比较已关闭",
 };
 
 }

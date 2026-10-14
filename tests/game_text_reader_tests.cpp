@@ -215,6 +215,9 @@ int main() {
 	panels[0].nodes.back().text = "I feel much stronger now"; speech.clear();
 	Check(Settle() && speech.size() == 1 && speech.back().text == "I feel much stronger now", "and only the line itself with the switch off");
 	GameTextReader::SetMercenaryBark(true);
+	const auto named = GameTextReader::NameSpeaker("I feel much stronger now");
+	Check(named != "I feel much stronger now" && named.find("I feel much stronger now") != std::string::npos
+		&& GameTextReader::NameSpeaker("Akara") == "Akara", "the same naming serves the world target's tooltip");
 	panels.pop_back(); focus = {};
 	panels[0].nodes.clear(); Settle(); speech.clear();
 	panels.push_back({50, 0, "NotificationPanel", UiText::Surface::Notice, {{51, -1, UiText::Kind::Text, "Prompt", "TextBoxWidget", "An informative notice"}}});

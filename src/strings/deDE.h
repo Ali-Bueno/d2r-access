@@ -364,6 +364,8 @@ inline constexpr Table deDE {
 	.goldMovedPersonal = "%s Gold in den persönlichen Schatz gelegt",
 	.goldMovedShared = "%s Gold in den gemeinsamen Schatz gelegt",
 	.goldMovedStash = "%s Gold in den Schatz gelegt",
+	.compareAloudOn = "Vergleich mit ausgerüstetem Gegenstand vorlesen an",
+	.compareAloudOff = "Vergleich mit ausgerüstetem Gegenstand vorlesen aus",
 };
 
 }

@@ -33,6 +33,14 @@ uint64_t g_openedAt = 0, g_pointsDueAt = 0, g_pointsAttachedAt = 0;
 std::string g_pendingPoints;
 uintptr_t g_pointsWidget = 0; // the button whose announcement carries them
 
+// The "+" that last had focus and its attribute's value then. The last point
+// spent hides every "+" and the focus with them, so that value is watched from
+// here (a tester, 2026-10-13). Policy: the game's answer renders well within
+// SpentWaitMs of the focus leaving the button.
+constexpr uint64_t SpentWaitMs = 2000;
+std::string g_spentButton, g_spentValue;
+uint64_t g_spentLeftAt = 0;
+
 uintptr_t VisiblePanel(std::string_view name) {
 	const auto panel = NativeWidgets::FindPanel(name);
 	return panel && NativeUi::Visible(panel) ? panel : 0;
@@ -66,6 +74,30 @@ void OfferPoints(const D2RL::PluginContext* context, uintptr_t panel, uint64_t n
 	if (g_focusPoints.load()) D2RAccess::AsyncLog::InfoF(context, "[stats] could not focus %s", std::string(StrengthButton).c_str());
 	ScreenReader::Speak(points, false);
 }
+
+void ForgetSpent() { g_spentButton.clear(); g_spentValue.clear(); g_spentLeftAt = 0; }
+
+// A value that changes under a showing "+" is the interaction reader's to say;
+// one that changes after its "+" went away is said here, with its label.
+void WatchSpent(const D2RL::PluginContext* context, uintptr_t panel, NativeUi::Focus focus, uint64_t now) {
+	if (focus.widget && NativeUi::Visible(focus.widget) && NativeUi::Classify(focus.widget).kind == UiText::Kind::StatButton) {
+		g_spentButton = NativeWidgets::ReadName(focus.widget);
+		g_spentValue = CharacterStats::AttributeOf(panel, g_spentButton).value;
+		g_spentLeftAt = 0;
+		return;
+	}
+	if (g_spentButton.empty()) return;
+	if (!g_spentLeftAt) g_spentLeftAt = now;
+	const auto attribute = CharacterStats::AttributeOf(panel, g_spentButton);
+	if (!attribute.value.empty() && attribute.value != g_spentValue) {
+		std::string text = attribute.label;
+		if (!text.empty()) text += ". ";
+		text += attribute.value;
+		D2RAccess::AsyncLog::InfoF(context, "[stats] value after its button went -> \"%s\"", text.c_str());
+		ScreenReader::Speak(text, true);
+		ForgetSpent();
+	} else if (now - g_spentLeftAt >= SpentWaitMs) ForgetSpent();
+}
 }
 
 int Advance(int cursor, InputDirection::StickPush push, int count) {
@@ -94,7 +126,12 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		panel = VisiblePanel(CharacterPanel);
 		if (!panel) panel = VisiblePanel(HirelingPanel);
 	}
-	if (!panel || !NativeUi::Visible(panel)) { Reset(); return false; }
+	if (!panel || !NativeUi::Visible(panel)) {
+		if (!g_spentButton.empty() && g_spentLeftAt)
+			D2RAccess::AsyncLog::InfoF(context, "[stats] %s left unwatched: focus went to %s", g_spentButton.c_str(), focusedPanelName.c_str());
+		Reset();
+		return false;
+	}
 	// A focused hireling equipment slot keeps the stick's normal item-detail
 	// and navigation behavior. The stat cursor is for the observed no-focus
 	// controller state of this panel.
@@ -104,6 +141,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		g_panel = panel; g_cursor = -1; g_named = false;
 		g_pointsDone = NativeWidgets::ReadName(panel) != CharacterPanel; // a mercenary has no points to spend
 		g_openedAt = now; g_pointsDueAt = 0; g_pendingPoints.clear(); g_pointsWidget = 0; g_pointsAttachedAt = 0;
+		ForgetSpent();
 	}
 	// The window announcer has already said the panel's title; the name
 	// queues behind it. It is read until the game has rendered it -- MEASURED
@@ -123,18 +161,10 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		ScreenReader::Speak(g_pendingPoints, false);
 		g_pendingPoints.clear();
 	}
-	// While a point button has focus the stick belongs to the point readout --
-	// up for the stat's explanation, down for its controls -- except right,
-	// which reads the points left to spend (the user, 2026-09-21: "right stick
-	// right can be used to read remaining stat points"). BACK stays the game's
-	// View Advanced Stats.
-	if (focus.widget && NativeUi::Classify(focus.widget).kind == UiText::Kind::StatButton) {
-		if (!InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Right, "stats")) return false;
-		const auto points = CharacterStats::Points(panel);
-		D2RAccess::AsyncLog::InfoF(context, "[stats] points -> \"%s\"", points.c_str());
-		ScreenReader::Speak(points.empty() ? Strings::Current().detailNone : points, true);
-		return true;
-	}
+	if (NativeWidgets::ReadName(panel) == CharacterPanel) WatchSpent(context, panel, focus, now);
+	// A "+" with focus keeps the stick on the statistics too (a tester,
+	// 2026-10-13: the level-up sheet read controls instead); right still ends on
+	// the points left, CombinedPointsInfo being the layouts' last row.
 	// Read the panel only once a push is pending: the walk costs a tree
 	// traversal, and the stick is idle for all but a few of these ticks.
 	InputDirection::StickPush push = InputDirection::StickPush::None;
@@ -156,6 +186,7 @@ bool Owns(std::string_view panel) { return panel == CharacterPanel || panel == H
 void Reset() {
 	g_panel = 0; g_cursor = -1; g_named = false; g_pointsDone = false; g_pointsDueAt = 0; g_pendingPoints.clear();
 	g_pointsWidget = 0; g_pointsAttachedAt = 0;
+	ForgetSpent();
 }
 
 std::string PointsFor(uintptr_t widget, uint64_t now) {

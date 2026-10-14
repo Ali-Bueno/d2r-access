@@ -129,3 +129,11 @@ stat 13 and the next threshold stat 30, and a level starts at
 ExpPerLvl * L^2 * (L + 1), so ExpPerLvl = next / ((L + 1)^2 * (L + 2))
 (`Vitals::MercenaryLevelStart`). Live check: `[vitals] experience level=1
 total=... start=0 next=500` for a new character; the percent matches the bar.
+
+### "Mercenary says:" (2026-10-13)
+
+The mercenary's level-up line (`merclevelup`, "I feel much stronger now") was named
+only in the notices, but the tester's log has it three times as `[interaction] World
+target -> "I feel much stronger now"`: the game draws it as the world target's tooltip.
+`GameTextReader::NameSpeaker` now names it on both paths (`mercenary-bark`, on); the
+log line to check is the same `World target` one, now starting with "Mercenary says:".

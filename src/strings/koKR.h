@@ -364,6 +364,8 @@ inline constexpr Table koKR {
 	.goldMovedPersonal = "골드 %s을(를) 개인 보관함으로 이동",
 	.goldMovedShared = "골드 %s을(를) 공유 보관함으로 이동",
 	.goldMovedStash = "골드 %s을(를) 보관함으로 이동",
+	.compareAloudOn = "착용 중인 아이템과의 비교 읽기 켜짐",
+	.compareAloudOff = "착용 중인 아이템과의 비교 읽기 꺼짐",
 };
 
 }

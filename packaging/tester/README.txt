@@ -122,7 +122,9 @@ In menus:
   own button legend). Right stick right: extra text; on a skill, left opens
   its lines one by one (B or left again closes them).
 - On an inventory item, hold Y and move the left stick: left reads the item,
-  right the equipped one it compares with, up detail, down controls.
+  right the equipped one it compares with, up detail, down controls. To hear
+  the equipped one as soon as Y shows it, turn on "Equipped item comparison
+  read aloud" in the settings list (Items and menus).
 - In the skill tree the D-pad moves one skill at a time.
 - On the character screen with points to spend, focus starts on Strength's
   plus button; the right stick reads the statistics.

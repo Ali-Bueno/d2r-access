@@ -1717,6 +1717,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
 		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
 		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
+		{InteractionReader::CompareAloud, InteractionReader::SetCompareAloud, phrase(&T::compareAloudOn, &T::compareAloudOff), false, "compare-aloud"},
 		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
 		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},

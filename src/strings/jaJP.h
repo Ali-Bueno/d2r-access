@@ -364,6 +364,8 @@ inline constexpr Table jaJP {
 	.goldMovedPersonal = "%s ゴールドを個人保管箱に移動",
 	.goldMovedShared = "%s ゴールドを共有保管箱に移動",
 	.goldMovedStash = "%s ゴールドを保管箱に移動",
+	.compareAloudOn = "装備中のアイテムとの比較の読み上げ オン",
+	.compareAloudOff = "装備中のアイテムとの比較の読み上げ オフ",
 };
 
 }

@@ -364,6 +364,8 @@ inline constexpr Table itIT {
 	.goldMovedPersonal = "%s oro spostato nel forziere personale",
 	.goldMovedShared = "%s oro spostato nel forziere condiviso",
 	.goldMovedStash = "%s oro spostato nel forziere",
+	.compareAloudOn = "Lettura del confronto con l'oggetto equipaggiato: attivo",
+	.compareAloudOff = "Lettura del confronto con l'oggetto equipaggiato: disattivo",
 };
 
 }

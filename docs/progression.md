@@ -33,6 +33,18 @@ points left now end that button's announcement (`CharacterStatsReader::PointsFor
 line 600 ms later was cut off by it. Alone only if no announcement comes within 2 s
 (`[stats] points alone`).
 
+2026-10-13 (tester, still silent): the fix above only covered a value that changes under a
+showing "+". The last point spent hides every `CharacterStatLevelUpButtonWidget` (all four sit in
+`LevelUpInfo` in `Controller/CharacterStatsPanelHD.json`, held with A per `controllerRequireHold`; a sheet with no
+points has none; the tester's 14:42:27 log: `UseSkillPoint` on Energy with five left, likely X's
+five, then nothing; at 17:50:30 ten left, five spent, "42" said), the focus goes
+with it, and `NativeProgression::Read` returns nothing for a hidden focus. `CharacterStatsReader`
+now remembers the last "+" and its value, and says "Energy. 27" when it changes after the button
+went (`[stats] value after its button went`; `[stats] … left unwatched` if focus left the panel
+first). Same day: a "+" with focus no longer gives the right stick to the stat's explanation and
+controls; it pages the statistics as everywhere on the sheet (`CombinedPointsInfo`, the last
+row, is still right's).
+
 ## Skills and tabs
 
 Controller `TabWidget` objects inherit `FocusableWidget`, not `TabBarWidget`.
@@ -54,6 +66,17 @@ navigation is implemented in the [controller follow-up](controller-navigation.md
 (`SkillSelectButtonWidget`, also derived from `ButtonWidget`). These use the
 same description reader. Their names lack coordinates, so none are invented.
 The owning tab supplies branch context; `SkillCounter` supplies remaining points.
+
+2026-10-13 (tester: "no longer announces available skill points"): no code path ever said them
+on entering with autodetail off. Since 2026-09-21 (`e54f4c6`, the user: heard on every highlight)
+they are right stick right's. The tester had heard them from `ModalReader`'s whole-panel fallback
+("5, 6, 1 Skill Choice Remaining, Javelin and Spear, ..."), which runs only when the game has not
+focused a skill yet on the first poll: 2 of 14 openings in the tester's log (16:49:25, 18:07:39).
+The 1.5 s queue behind a title (`cd03aa1`) removed nothing. Now the branch leads as the tree opens
+(queued behind "Skill Tree") and on each LT/RT change (interrupting), with the choices left when
+the branch is a class tree (`SkillButtonContainer`) and the count is above zero: "Defensive
+Auras. 1 Skill Choice Remaining". General Skills (`CommonSkillsContainer`, `ItemSkillsContainer`)
+is named alone. Log: `[skill-tree] branch opened|changed -> "..."`.
 
 ## Description order
 
