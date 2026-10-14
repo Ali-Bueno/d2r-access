@@ -21,6 +21,7 @@
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_ui.h"
+#include "route_follow.h"
 #include "route_legs.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -83,6 +84,13 @@ BeaconNavigation::RememberedWay g_way;
 // How guidance leads, for the log line written when it changes.
 enum class Lead { Direct, Rooms, Map, Guess, None };
 std::optional<Lead> g_lead;
+// The route described last, followed on foot while its level lasts.
+constexpr uint64_t FollowMs = 250;
+// `ofLock`: the route leads to the locked target, and ends when the lock does.
+struct Followed { std::string name; int level = 0; uint64_t session = 0, nextMs = 0; bool ofLock = false; };
+Followed g_followed;
+RouteFollow::Follower g_follower;
+std::atomic<bool> g_routePrompts{true};
 
 // The room graph for the level being played, or nothing when the level's
 // rooms cannot be read. Never a stale level's graph.
@@ -116,39 +124,48 @@ Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 }
 // An area border is walked across where both levels' floor meets, rarely at the
 // middle of the shared edge that names it. docs/beacon.md#area-borders
-bool AtCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
+void ToCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
 	NativeLevelExits::Layout layout;
-	return ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout)
-		&& ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
+	if (ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout))
+		(void)ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
 }
 // The rooms a way to `entity` may cross in exploration: the explored ones, and
-// the target's own room when it may be entered unexplored. Nothing when the
-// player stands in no room of the level.
+// the target's own room. Nothing when the player stands in no room of the level.
+// What the scanner lists has been found, so a way to it can be planned even
+// where its room was never stood in (the user, 2026-10-14): an unexplored room
+// at the edge of the known map, an exit seen from the doorway, a border crossed
+// where a known one is. docs/beacon.md#exploration-mode
 std::optional<std::vector<NativeRooms::Room>> ExploredFor(const Lifecycle& state, const RoomGraph::Graph& graph,
-	Radar::Position player, const EntityRadar::Entity& entity, bool crossing) {
+	Radar::Position player, const EntityRadar::Entity& entity) {
 	if (NativeRooms::Containing(graph.rooms, player) == NativeRooms::None) return std::nullopt;
 	auto explored = TerrainService::ExploredRooms(state.level, graph.rooms, player);
-	// The room holding the target may be entered unexplored, never crossed: an
-	// unexplored room at the edge of the known map, or where a known border is crossed.
-	const bool enterable = entity.category == EntityRadar::Category::UnexploredRoom || crossing;
-	if (enterable && !NavigationPolicy::Contains(explored, entity.position))
+	if (!NavigationPolicy::Contains(explored, entity.position))
 		if (const size_t room = NativeRooms::Containing(graph.rooms, entity.position); room != NativeRooms::None)
 			explored.push_back(graph.rooms[room]);
 	return explored;
+}
+// A room target's own rectangle: it is reached at the first step inside, and
+// its centre may be in a wall.
+std::optional<LevelRoute::Area> RoomArea(const Lifecycle& state, const EntityRadar::Entity& entity) {
+	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
+	if (!graph) return std::nullopt;
+	const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == entity.placeId; });
+	if (room == graph->rooms.end()) return std::nullopt;
+	return LevelRoute::Area::Of(*room);
 }
 std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now,
 	BeaconNavigation::RememberedWay& way) {
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
-	const bool crossing = AtCrossing(state, world, entity);
+	ToCrossing(state, world, entity);
 	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
 	// The walks' own map, learnt from the whole world before exploration masks it.
-	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now};
+	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now, RoomArea(state, entity)};
 	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin, nullptr, recall);
 	if (!graph) return std::nullopt;
-	auto explored = ExploredFor(state, *graph, world.player, entity, crossing);
+	auto explored = ExploredFor(state, *graph, world.player, entity);
 	if (!explored) return std::nullopt;
 	return BeaconNavigation::Prepare(std::move(world), target, graph, &*explored, margin, nullptr, recall);
 }
@@ -162,9 +179,10 @@ void LogLead(const D2RL::PluginContext* context, const BeaconNavigation::Guidanc
 	AsyncLog::InfoF(context, "[beacon] lead=%s way_cells=%zu to=%.0f,%.0f name=%s", Names[static_cast<int>(lead)],
 		guidance.wayCells, to.x, to.y, g_target.entity.name.c_str());
 }
-// An unexplored room is reached by stepping into it: its centre may lie inside a wall.
+// A room is reached by stepping into it, anywhere: its centre may lie inside a
+// wall, and what is in it is in sight from its doorway (the user, 2026-10-14).
 bool InTargetRoom(const Lifecycle& state, Radar::Position player) {
-	if (g_target.entity.category != EntityRadar::Category::UnexploredRoom) return false;
+	if (g_target.entity.kind != EntityRadar::Kind::Room) return false;
 	const auto* graph = Rooms(state);
 	const size_t room = graph ? NativeRooms::Containing(graph->rooms, player) : NativeRooms::None;
 	return room != NativeRooms::None && graph->rooms[room].id == g_target.entity.placeId;
@@ -198,6 +216,7 @@ void Release(const char* reason) {
 	g_tracker.Clear();
 	g_target = {};
 	g_way.Clear();
+	if (g_follower.Active() && g_followed.ofLock) g_follower.Stop();
 	g_lead.reset();
 	BeaconAudio::Silence(reason);
 }
@@ -416,17 +435,12 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	}
 }
 // Where a way to `entity` ends: where guidance would say it has arrived, or
-// well inside a room, any of whose ground will do (the largest square centred in it).
-std::pair<Radar::Position, int> WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity) {
+// at the first step into a room.
+LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity) {
+	if (const auto room = RoomArea(state, entity)) return *room;
 	const int margin = std::max(1 + static_cast<int>(std::ceil(HalfFootprint(entity))),
 		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
-	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
-	if (!graph) return {entity.position, margin};
-	const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == entity.placeId; });
-	if (room == graph->rooms.end()) return {entity.position, margin};
-	const auto bounds = NativeRooms::Subtiles(*room);
-	const int half = std::max(1, std::min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 2 - 1);
-	return {{(bounds.minX + bounds.maxX) / 2.0, (bounds.minY + bounds.maxY) / 2.0}, half};
+	return LevelRoute::Area::Around(entity.position, margin);
 }
 // The whole way to what guidance follows, else to what was named last, said as
 // legs: what a sighted player plans off the map. docs/route-description.md
@@ -442,20 +456,21 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		Announce(strings.routeNone, entity.name);
 		return;
 	}
-	const bool crossing = AtCrossing(state, world, entity);
-	const auto [place, margin] = WayEnd(state, entity);
+	ToCrossing(state, world, entity);
+	const auto end = WayEnd(state, entity);
+	const auto place = end.Centre();
 	const auto* memory = KeyboardService::RememberedMap(world);
 	const auto* graph = Rooms(state);
 	const bool restricted = !Unrestricted(entity);
 	std::optional<std::vector<NativeRooms::Room>> explored;
-	if (restricted && graph) explored = ExploredFor(state, *graph, world.player, entity, crossing);
+	if (restricted && graph) explored = ExploredFor(state, *graph, world.player, entity);
 	LevelRoute::Way way;
 	if (memory && (!restricted || explored)) {
 		BeaconNavigation::RememberedWay planner;
-		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, place, margin, world.bodyPattern, now);
+		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, end, world.bodyPattern, now);
 	}
 	if (way.path.empty()) {
-		const bool here = std::max(std::abs(place.x - world.player.x), std::abs(place.y - world.player.y)) <= margin;
+		const bool here = end.Contains(world.player);
 		AsyncLog::InfoF(g_context, "[route] none name=%s here=%u map=%u restricted=%u", entity.name.c_str(), here ? 1u : 0u,
 			memory ? 1u : 0u, restricted ? 1u : 0u);
 		if (!here) { Announce(restricted ? strings.beaconKnownRouteOnly : strings.routeNone, entity.name); return; }
@@ -464,16 +479,21 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(text, true);
 		return;
 	}
+	// The ground as the way knew it: past the explored rooms only guessed at, as ground not seen yet.
+	const auto groundAt = [&](int x, int y) {
+		const auto ground = memory->At(x, y);
+		const bool known = !explored || NavigationPolicy::Contains(*explored, {static_cast<double>(x), static_cast<double>(y)});
+		return known || ground == LevelRoute::Ground::Outside ? ground : LevelRoute::Ground::Unseen;
+	};
 	const auto cell = [](double coordinate) { return static_cast<int>(std::lround(coordinate)); };
 	std::vector<size_t> doors;
 	for (size_t i = 0; i < way.path.size(); ++i)
-		if (memory->At(cell(way.path[i].x), cell(way.path[i].y)) == LevelRoute::Ground::Door) doors.push_back(i);
+		if (groundAt(cell(way.path[i].x), cell(way.path[i].y)) == LevelRoute::Ground::Door) doors.push_back(i);
 	// A leg is straightened only over ground the way itself may cross.
 	const auto passable = [&](int x, int y) {
-		const auto ground = memory->At(x, y);
-		const bool floor = ground == LevelRoute::Ground::Open || ground == LevelRoute::Ground::Door
+		const auto ground = groundAt(x, y);
+		return ground == LevelRoute::Ground::Open || ground == LevelRoute::Ground::Door
 			|| (way.guess && ground == LevelRoute::Ground::Unseen);
-		return floor && (!explored || NavigationPolicy::Contains(*explored, {static_cast<double>(x), static_cast<double>(y)}));
 	};
 	const auto legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle());
 	const auto text = RouteLegs::Speak(entity.name, legs, way.guess, strings);
@@ -481,6 +501,42 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 	AsyncLog::InfoF(g_context, "[route] from=%.0f,%.0f to=%.0f,%.0f cells=%zu doors=%zu legs=%zu guess=%u restricted=%u -> %s",
 		world.player.x, world.player.y, place.x, place.y, way.path.size(), doors.size(), legs.size(), way.guess ? 1u : 0u,
 		restricted ? 1u : 0u, text.c_str());
+	if (!g_routePrompts.load(std::memory_order_relaxed)) return;
+	g_followed = {entity.name, state.level, state.session, now, g_tracker.Locked()};
+	g_follower.Start(world.player, legs);
+}
+// The route asked for last, its next leg said at each turn. docs/route-description.md#following-it
+void FollowRoute(const Lifecycle& state, uint64_t now) {
+	if (!g_follower.Active() || now < g_followed.nextMs) return;
+	g_followed.nextMs = now + FollowMs;
+	if (!g_routePrompts.load(std::memory_order_relaxed) || !state.ready || state.level != g_followed.level
+		|| state.session != g_followed.session) {
+		AsyncLog::InfoF(g_context, "[route] follow stopped name=%s", g_followed.name.c_str());
+		g_follower.Stop();
+		return;
+	}
+	if (!Playing()) return;
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
+	const auto legs = g_follower.Legs();
+	const auto step = g_follower.Tick(world.player, now);
+	const auto& strings = Strings::Current();
+	char text[320]{};
+	if (step.event == RouteFollow::Event::Turn) {
+		std::string leg = RouteLegs::Say(legs[step.leg], strings);
+		if (legs[step.leg].door && step.leg + 1 < legs.size()) leg += strings.routeThen + RouteLegs::Say(legs[step.leg + 1], strings);
+		std::snprintf(text, sizeof text, strings.routeNow, leg.c_str());
+	} else if (step.event == RouteFollow::Event::Off) {
+		std::snprintf(text, sizeof text, strings.routeOff, g_followed.name.c_str());
+	} else if (step.event == RouteFollow::Event::End && !g_tracker.Locked()) {
+		// A locked beacon says its own arrival.
+		std::snprintf(text, sizeof text, strings.beaconArrived, g_followed.name.c_str());
+	}
+	if (step.event != RouteFollow::Event::None)
+		AsyncLog::InfoF(g_context, "[route] follow %s leg=%zu at=%.0f,%.0f name=%s -> %s",
+			step.event == RouteFollow::Event::Turn ? "turn" : step.event == RouteFollow::Event::Off ? "off" : "end", step.leg,
+			world.player.x, world.player.y, g_followed.name.c_str(), text);
+	if (*text) ScreenReader::Speak(text, true);
 }
 }
 
@@ -599,6 +655,7 @@ void Tick(const D2RL::PluginContext* context) {
 		}
 		ScreenReader::Speak(text, true);
 	}
+	FollowRoute(state, now);
 	if (!g_tracker.Locked() || !state.ready || now < g_nextUpdate) return;
 	g_nextUpdate = now + UpdateMs;
 	Update(context, state, now);
@@ -626,6 +683,9 @@ void Unregister() {
 	g_graph = {};
 	g_graphLevel = 0;
 	g_graphSession = 0;
+	g_follower.Stop();
+	g_followed = {};
+	g_routePrompts = true;
 	NavigationMode::SetFullAssistance(false);
 }
 
@@ -633,5 +693,7 @@ void Unregister() {
 // and the same change the console command makes.
 void SetFullAssistance(bool enabled) { g_command = enabled ? Command::FullAssistance : Command::Exploration; }
 bool Sounds() { return g_sounds; }
+bool RoutePrompts() { return g_routePrompts.load(std::memory_order_relaxed); }
+void SetRoutePrompts(bool enabled) { g_routePrompts.store(enabled, std::memory_order_relaxed); }
 void SetSounds(bool enabled) { g_command = enabled ? Command::SoundsOn : Command::SoundsOff; }
 }

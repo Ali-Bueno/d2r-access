@@ -30,10 +30,13 @@ beacon's refusal), full assistance "No known way to X".
 
 `BeaconService::DescribeRoute` plans exactly as guidance does
 ([walkable guidance](beacon.md#walkable-guidance)): `LevelRoute` over the
-remembered map, past shut doors, over explored rooms only in exploration mode
-(the same `ExploredFor`), whole map for other players and unseen town NPCs. A
-room target ends as soon as the way steps into the largest square centred in
-the room.
+remembered map, past shut doors, whole map for other players and unseen town
+NPCs. In exploration mode it prefers explored rooms (the same `ExploredFor`,
+which always admits the target's own room: what the scanner lists can be
+routed to); when they hold no way it guesses across rooms never stood in, as
+ground not seen yet, and says so. A room target ends at the way's first step
+inside the room (`LevelRoute::Area::Of`): its centre can be wall, and that was
+why a route to the unexplored room next door failed (2026-10-14).
 
 `RouteLegs` (pure, `tests/route_legs_tests.cpp`) turns the cells into legs:
 
@@ -49,6 +52,28 @@ the room.
 
 Lengths are straight lines in units (collision subtiles), the scanner's own
 measure.
+
+## Following it
+
+Added 2026-10-14: the user reported players getting lost on a route. Once a
+route is said, `RouteFollow::Follower` (pure, `tests/route_follow_tests.cpp`)
+walks its legs with the player, polled every 250 ms:
+
+- **At each turn** (3 units before it, `TurnUnits`), the leg to walk now:
+  "Now east, 21". A shut door ahead is said with the leg past it: "Now door;
+  then north, 16". A turn already walked past moves on to the leg the player
+  is nearest.
+- **Off the route**: further than 8 units (`OffRouteUnits`) from every leg
+  still to walk for 2 seconds, it says "Off the route to X" once and stops.
+  Asking again plans from where the player stands.
+- **The end**: within 3 units of the way's end. Without a beacon lock it says
+  "Arrived at X"; a locked beacon says its own arrival.
+- It stops with the level or game, when its locked target is released, and
+  with the `route-prompts` switch (Ctrl+S, Navigation, on by default). It never
+  walks and never pings.
+
+Log: `[route] follow turn|off|end leg=N at=x,y name=X -> <text>`,
+`[route] follow stopped name=X`.
 
 ## Limits
 

@@ -21,4 +21,7 @@ bool Offered(EntityRadar::Entity& entity, int level);
 void SetFullAssistance(bool enabled);
 bool Sounds();
 void SetSounds(bool enabled);
+// The next leg said at each turn of a route asked for (docs/route-description.md).
+bool RoutePrompts();
+void SetRoutePrompts(bool enabled);
 }

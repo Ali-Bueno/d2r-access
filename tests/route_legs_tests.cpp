@@ -73,6 +73,7 @@ void Jogs() {
 	walk.Go(North, 20).Go(East, 1).Go(North, 20);
 	const auto legs = Legs(walk, walk.Corridor());
 	Check(legs.size() == 1 && Bucket(legs[0]) == 0, "a one-cell jog round a corner is not a turn");
+	Check(legs[0].delta.x == walk.at.x && legs[0].delta.y == walk.at.y, "the leg still ends where the way does");
 	Walk first;
 	first.Go(East, 1).Go(North, 20);
 	const auto start = Legs(first, first.Corridor());

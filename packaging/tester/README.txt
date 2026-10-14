@@ -93,6 +93,8 @@ In play:
   the scanner named last, as a sighted player plans it off the minimap:
   "Route to Akara, 85 units: north, 20; then door; then east, 30". Nothing
   walks for you; ask again on the way and it starts from where you stand.
+  While you walk it, the next leg is said as you come to each turn ("Now
+  east, 30"), and "Off the route" once if you leave it.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full) and the arrows or throwing
@@ -154,8 +156,16 @@ full tile is five subtiles), not a step of your character. Distances are
 straight lines from your character to the thing's position, so a large object
 can be a few units away while you stand at its edge.
 
+A room counts as explored as soon as you step into it, anywhere: everything
+in it joins the scanner, as a sighted player sees a whole room on arriving.
+Whatever the scanner lists can be routed to and followed with the beacon, even
+in a room you never entered; when the way has to cross rooms you have not
+explored, the route says "Part of it crosses ground not seen yet", and the
+beacon leads you into the first of them. A room is reached at your first step
+inside it.
+
 The scanner lists a monster once it has been within 15 units of you with
-nothing blocking the view. It stays listed after it leaves the screen,
+nothing blocking the view, or once it is in the room you stand in. It stays listed after it leaves the screen,
 follows the monster while the game has it loaded, and is dropped when it dies.
 Monsters you never came near are not listed, unless the Ctrl+S list is set to
 "Full assistance": then every monster the game has loaded around you is listed,
@@ -175,6 +185,8 @@ round to the lowest) or one step down or up with LB and RB. New ones worth
 knowing:
 - Directions (Navigation): compass points (the default) or clock hours, for
   every direction the mod says.
+- Route turn prompts (Navigation, on): the next leg of a route you asked for,
+  said at each turn.
 - Enemy class sounds: layered (the default) or classic. Every enemy now
   growls at the same pitch, so pitch only tells north or south; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.

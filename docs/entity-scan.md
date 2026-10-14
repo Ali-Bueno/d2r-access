@@ -79,13 +79,16 @@ automap; enemies are the one live category.
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
   (`MapSurvey::Split`).
-- In exploration mode (the default) a landmark is listed once it stands in a
-  logical room the stock automap has drawn in, meaning at least one floor or
-  wall cell (`NativeAutomap::RevealedRooms`, `MapSurvey::Charted`). Drawn
-  terrain is saved with the character, so these landmarks are listed from the
-  start of a later game. A landmark that has been in range and in sight
-  (`MapSurvey::Discoverable`) is listed too. That test is also the whole rule
-  whenever the automap cannot be read (`docs/automap-reader.md`).
+- In exploration mode (the default) a landmark is listed once it stands in an
+  explored logical room: one stood in, the one underfoot, or one the stock
+  automap has drawn in, meaning at least one floor or wall cell
+  (`TerrainService::ExploredRooms`, `MapSurvey::Charted`). A sighted player sees
+  a room whole on stepping into it (the user, 2026-10-14). Drawn terrain is
+  saved with the character, so these landmarks are listed from the start of a
+  later game. A landmark that has been in range and in sight
+  (`MapSurvey::Discoverable`) is listed too. Enemies and loot are listed in
+  sight or in the room underfoot. Whatever is listed can be routed to
+  ([exploration mode](beacon.md#exploration-mode)).
   Readouts give straight-line distance in units and a screen direction as one of eight compass
   points or twelve clock hours ([spoken directions](radar-readings.md#spoken-directions-2026-10-13)). Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
