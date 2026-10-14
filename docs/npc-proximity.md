@@ -81,3 +81,11 @@ announcer and from the scanner. Switch `npc-alerts` (Ctrl+S, on).
 Live check: a fresh Act 1 game, walk to Akara and Warriv: `[npc] exclamation
 mark id=...`; after talking to anyone the bell rings again only for NPCs that
 still have something to say.
+
+### The "!" appearing while the NPC is near (2026-10-13)
+
+Tester: the bell did not reliably ring when the mark appeared after the name was said. The announcer rings
+only at the name; the mark appearing later is the entity cue service's `AlertTracker`, which required the
+NPC cue switch (`entity-cues-npcs`) on as well as `npc-alerts` and consumed a mark while it was off. The bell
+(`RingAlert`, `PlayNpcAlert`) now depends on `npc-alerts` and the master cue switch only, and the tracker
+state advances either way. Live check: `[npc] exclamation mark id=...` when the mark appears while standing near.
