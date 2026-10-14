@@ -92,6 +92,19 @@ after the player had walked through and back. `ZoneTransitions::FoundAtCrossings
 now also judges a border at its walkable crossing; the listed entry keeps the
 midpoint as its position.
 
+**Crossings seen are kept for the game (2026-10-14).** A tester crossed from
+the Cold Plains into the Stony Field at 5400,5222, came back by waypoint, and
+the beacon refused the Stony Field eight times from 129 to 334 units away
+(`refused reason=no-route`): with the crossing not loaded, the way was planned
+to the edge's middle, 5400,5240, inside the border's trees. It locked at 97
+units, once the crossing loaded. Every crossing `ZoneTransitions::Find` gives
+(scanner passes, beacon updates) is now kept per area for the game
+(`CrossingMemory`), and the beacon, the route and the scanner's distance use
+the one seen nearest the player when none is loaded. A border never seen
+loaded is led to anywhere within 20 units of its edge's middle
+(`BorderReach`, a `Recall::area`), moved into this area when the middle falls
+just outside it; the crossing loads before the player gets there.
+
 **Stepping across a border keeps the lock (2026-09-28).** A route can run along
 an area border. Monastery Gate is 18 tiles tall. Its eastern entrance opens into
 an alcove, and the only way on is a strip at y 5080–5089 along the Tamoe

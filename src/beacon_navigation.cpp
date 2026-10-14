@@ -61,7 +61,7 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	Guidance result;
 	result.target = target;
 	const bool remembered = recall.memory && recall.way;
-	const auto arrival = recall.room ? *recall.room : LevelRoute::Area::Around(target, margin);
+	const auto arrival = recall.area ? *recall.area : LevelRoute::Area::Around(target, margin);
 	LevelRoute::Way way;
 	RoomGraph::Graph restricted;
 	if (visited) {
@@ -92,8 +92,8 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	Navigation::Grid own;
 	if (!built || visited) own = Navigation::Build(result.world, Navigation::MaxRadius, Radar::Layer::Terrain, false);
 	const auto& grid = built && !visited ? *built : own;
-	// A room's centre may be in a wall: its way, to the first step inside, decides.
-	if (!(remembered && recall.room) && ReachableNow(grid, target, margin)) return result;
+	// A room's centre or the middle of a border may be in a wall: the way to its area decides.
+	if (!(remembered && recall.area) && ReachableNow(grid, target, margin)) return result;
 	if (remembered) {
 		// The map's way turns where the floor turns; the room graph only knows which rooms touch.
 		if (!visited) way = recall.way->From(*recall.memory, nullptr, result.world.player, arrival, result.world.bodyPattern, recall.now);

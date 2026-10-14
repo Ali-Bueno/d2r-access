@@ -12,7 +12,12 @@ its first step inside (the way to a walled centre failed). Route **turn prompts*
 entry (`NativeHover`, RVA 0x2A41630, READ not measured) or a clearly nearest stone
 ([target sight](docs/target-sight.md#the-games-own-target-2026-10-14)); Tal Rasha's entrances untouched.
 
-118/118 CTest; installed by the build. Unverified live: all of it. **Next step:** try a route to the
+Tester's log of 2026-10-14 ("the beacon loses the route"): the Stony Field was refused eight times
+in the Cold Plains, 129 to 334 units away, after the tester had walked across it: the way went to the
+border's middle, in its trees. Crossings seen are now kept for the game (`CrossingMemory`); an unseen
+border is led to within 20 units of its middle ([area borders](docs/beacon.md#area-borders)).
+
+119/119 CTest; installed by the build. Unverified live: all of it. **Next step:** try a route to the
 unexplored room next door and to a far listed exit (Stony Field from Cold Plains), walk one with the
 prompts, and focus each Cairn Stone with the pad and the mouse. Logs: `[hover] Verified.`,
 `[route] follow`, `[beacon] lead=remembered-map-guess`, `[interaction] World target`.

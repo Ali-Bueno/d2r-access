@@ -56,9 +56,10 @@ struct Recall {
 	const LevelRoute::Memory* memory = nullptr;
 	RememberedWay* way = nullptr;
 	uint64_t now = 0;
-	// A room target: its way ends at the first step inside the room, not at
-	// `target` (its centre, which can be in a wall) and the margin.
-	std::optional<LevelRoute::Area> room;
+	// Where the way ends instead of round `target`: a room's own rectangle (its
+	// centre can be in a wall), or the stretch of an area border whose crossing
+	// is not known yet.
+	std::optional<LevelRoute::Area> area;
 };
 
 // A null visited list retains full assistance; an empty list grants no exploration route.

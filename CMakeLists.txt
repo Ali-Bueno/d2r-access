@@ -89,6 +89,7 @@ add_library(d2r-access SHARED
 	src/spoken_direction.cpp
 	src/route_legs.cpp
 	src/route_follow.cpp
+	src/crossing_memory.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
 	src/wall_bump.cpp
@@ -300,7 +301,7 @@ if(BUILD_TESTING)
 	# Full-resolution native body connectivity, shared with the reactive radar.
 	d2r_test(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
 	add_test(NAME beacon COMMAND beacon-tests)
-	d2r_test(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/route_legs.cpp src/route_follow.cpp src/spoken_direction.cpp src/beacon.cpp src/beacon_navigation.cpp src/level_route.cpp src/navigation_mode.cpp src/navigation_policy.cpp src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
+	d2r_test(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/crossing_memory.cpp src/route_legs.cpp src/route_follow.cpp src/spoken_direction.cpp src/beacon.cpp src/beacon_navigation.cpp src/level_route.cpp src/navigation_mode.cpp src/navigation_policy.cpp src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME beacon-service COMMAND beacon-service-tests)
 	# The exploration memory (seen/visited rooms), its disk form and the open-ground frontier.
@@ -520,6 +521,8 @@ if(BUILD_TESTING)
 	add_test(NAME route-legs COMMAND route-legs-tests)
 	d2r_test(route-follow-tests tests/route_follow_tests.cpp src/route_follow.cpp)
 	add_test(NAME route-follow COMMAND route-follow-tests)
+	d2r_test(crossing-memory-tests tests/crossing_memory_tests.cpp src/crossing_memory.cpp)
+	add_test(NAME crossing-memory COMMAND crossing-memory-tests)
 	d2r_test(level-route-tests tests/level_route_tests.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
 	add_test(NAME level-route COMMAND level-route-tests)
 	# The beacon's guidance over walkable ground: the window's route, the remembered map's way, or none.

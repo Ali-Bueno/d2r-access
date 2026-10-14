@@ -4,6 +4,7 @@
 #include "async_log.h"
 #include "beacon_service.h"
 #include "corpse_memory.h"
+#include "crossing_memory.h"
 #include "death_place_service.h"
 #include "map_survey.h"
 #include "layout_check.h"
@@ -318,7 +319,9 @@ std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar:
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
 		|| !NativeEntities::ReadLayout(state.player, true, layout)) return found(scene.landmarks);
-	return ZoneTransitions::FoundAtCrossings(scene.landmarks, ZoneTransitions::Find(world, layout, Navigation::MaxRadius), found);
+	const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
+	CrossingMemory::Note(state.session, state.level, crossings);
+	return ZoneTransitions::FoundAtCrossings(scene.landmarks, crossings, found);
 }
 
 // Enemies are never charted: in range and in sight right now, or in the room the
@@ -453,10 +456,15 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	const Strings::Table& strings = Strings::Current();
 	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
-	// An area border is measured to where it is walked across, where the beacon leads.
+	// An area border is measured to where it is walked across, where the beacon
+	// leads: the crossing loaded now, else one seen this game.
 	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
-		for (auto& entity : catalogued) ZoneTransitions::MoveToCrossing(entity, crossings);
+		CrossingMemory::Note(state.session, state.level, crossings);
+		for (auto& entity : catalogued)
+			if (!ZoneTransitions::MoveToCrossing(entity, crossings) && ZoneTransitions::Crosses(entity))
+				if (const auto known = CrossingMemory::Find(state.session, state.level, entity.destinationLevel, world.player))
+					entity.position = *known;
 	}
 	const auto death = DeathPlaceService::Landmarks(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player, catalogued);
 	catalogued.insert(catalogued.end(), death.begin(), death.end());

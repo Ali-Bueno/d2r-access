@@ -4,6 +4,7 @@
 #include "death_place.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
+#include "crossing_memory.h"
 #include "input_direction.h"
 #include "keyboard_service.h"
 #include "level_areas.h"
@@ -34,6 +35,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <mutex>
 #include <numbers>
 #include <optional>
@@ -122,12 +124,53 @@ Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 	settings.requireKnownRoute = !Unrestricted(entity);
 	return settings;
 }
+// Whether `to` is an area the player walks into from `from` across their shared edge.
+bool AcrossBorder(int from, int to) {
+	std::vector<NativeLevelAreas::Area> areas;
+	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return false;
+	const auto neighbours = LevelAreas::Neighbours(areas, static_cast<uint32_t>(to));
+	return std::any_of(neighbours.begin(), neighbours.end(),
+		[from](const LevelAreas::Crossing& crossing) { return crossing.level == static_cast<uint32_t>(from); });
+}
+// Policy: an area border whose crossing has not been seen is led to anywhere this
+// near the middle of its edge, which is often in the trees or cliffs lining it.
+// The crossing loads long before (the game keeps two rooms round the player),
+// and the target then moves to it.
+constexpr int BorderReach = 20;
+enum class Border { None, Crossing, Unknown };
 // An area border is walked across where both levels' floor meets, rarely at the
-// middle of the shared edge that names it. docs/beacon.md#area-borders
-void ToCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
-	NativeLevelExits::Layout layout;
-	if (ZoneTransitions::Crosses(entity) && NativeEntities::ReadLayout(state.player, true, layout))
-		(void)ZoneTransitions::MoveToCrossing(entity, ZoneTransitions::Find(world, layout, Navigation::MaxRadius));
+// middle of the shared edge that names it: the crossing loaded now, else one seen
+// this game (CrossingMemory). docs/beacon.md#area-borders
+Border ToCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
+	if (!ZoneTransitions::Crosses(entity)) return Border::None;
+	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
+		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
+		CrossingMemory::Note(state.session, state.level, crossings);
+		if (ZoneTransitions::MoveToCrossing(entity, crossings)) return Border::Crossing;
+	}
+	if (const auto known = CrossingMemory::Find(state.session, state.level, entity.destinationLevel, world.player)) {
+		entity.position = *known;
+		return Border::Crossing;
+	}
+	// A warp unit is where it is; only an edge between two areas is walked across anywhere along it.
+	if (entity.unit != EntityRadar::Entity::NoUnit || !AcrossBorder(state.level, static_cast<int>(entity.destinationLevel)))
+		return Border::None;
+	// The middle of the edge can fall just inside the other area: the nearest cell of this one stands for it.
+	const auto* graph = Rooms(state);
+	if (graph && NativeRooms::Containing(graph->rooms, entity.position) == NativeRooms::None) {
+		double best = std::numeric_limits<double>::infinity();
+		const auto from = entity.position;
+		for (const auto& room : graph->rooms) {
+			const auto bounds = NativeRooms::Subtiles(room);
+			const Radar::Position inside{std::clamp(from.x, static_cast<double>(bounds.minX), bounds.maxX - 1.0),
+				std::clamp(from.y, static_cast<double>(bounds.minY), bounds.maxY - 1.0)};
+			if (const double distance = std::hypot(inside.x - from.x, inside.y - from.y); distance < best) {
+				best = distance;
+				entity.position = inside;
+			}
+		}
+	}
+	return Border::Unknown;
 }
 // The rooms a way to `entity` may cross in exploration: the explored ones, and
 // the target's own room. Nothing when the player stands in no room of the level.
@@ -144,9 +187,11 @@ std::optional<std::vector<NativeRooms::Room>> ExploredFor(const Lifecycle& state
 			explored.push_back(graph.rooms[room]);
 	return explored;
 }
-// A room target's own rectangle: it is reached at the first step inside, and
-// its centre may be in a wall.
-std::optional<LevelRoute::Area> RoomArea(const Lifecycle& state, const EntityRadar::Entity& entity) {
+// Where a way to `entity` may end other than round it: a room's own rectangle,
+// reached at the first step inside since its centre may be in a wall, or the
+// stretch of a border whose crossing is not known yet.
+std::optional<LevelRoute::Area> GoalArea(const Lifecycle& state, const EntityRadar::Entity& entity, Border border) {
+	if (border == Border::Unknown) return LevelRoute::Area::Around(entity.position, BorderReach);
 	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
 	if (!graph) return std::nullopt;
 	const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == entity.placeId; });
@@ -158,11 +203,11 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Entit
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
-	ToCrossing(state, world, entity);
+	const auto border = ToCrossing(state, world, entity);
 	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
 	// The walks' own map, learnt from the whole world before exploration masks it.
-	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now, RoomArea(state, entity)};
+	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now, GoalArea(state, entity, border)};
 	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin, nullptr, recall);
 	if (!graph) return std::nullopt;
 	auto explored = ExploredFor(state, *graph, world.player, entity);
@@ -221,14 +266,6 @@ void Release(const char* reason) {
 	BeaconAudio::Silence(reason);
 }
 bool Parked() { return g_parked.entity.id != 0; }
-// Whether `to` is an area the player walks into from `from` across their shared edge.
-bool AcrossBorder(int from, int to) {
-	std::vector<NativeLevelAreas::Area> areas;
-	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return false;
-	const auto neighbours = LevelAreas::Neighbours(areas, static_cast<uint32_t>(to));
-	return std::any_of(neighbours.begin(), neighbours.end(),
-		[from](const LevelAreas::Crossing& crossing) { return crossing.level == static_cast<uint32_t>(from); });
-}
 // A lifecycle change ends the lock, except a step into a neighbouring area: a
 // route along a border may cross it, so the lock waits there for the way back.
 void OnLifecycle(const Lifecycle& state, uint64_t now) {
@@ -434,10 +471,10 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		}
 	}
 }
-// Where a way to `entity` ends: where guidance would say it has arrived, or
-// at the first step into a room.
-LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity) {
-	if (const auto room = RoomArea(state, entity)) return *room;
+// Where a way to `entity` ends: where guidance would say it has arrived, at the
+// first step into a room, or near a border whose crossing is not known yet.
+LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity, Border border) {
+	if (const auto area = GoalArea(state, entity, border)) return *area;
 	const int margin = std::max(1 + static_cast<int>(std::ceil(HalfFootprint(entity))),
 		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
 	return LevelRoute::Area::Around(entity.position, margin);
@@ -456,8 +493,7 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		Announce(strings.routeNone, entity.name);
 		return;
 	}
-	ToCrossing(state, world, entity);
-	const auto end = WayEnd(state, entity);
+	const auto end = WayEnd(state, entity, ToCrossing(state, world, entity));
 	const auto place = end.Centre();
 	const auto* memory = KeyboardService::RememberedMap(world);
 	const auto* graph = Rooms(state);
