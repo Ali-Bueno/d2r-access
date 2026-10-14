@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Exploration room by room, routes to what is listed, turn prompts, Cairn symbol on focus — 2026-10-14 (not released)
+
+The user's rules ([decisions](docs/decisions.md)): a room is explored on stepping into it and the
+scanner lists everything in it; what the scanner lists can be routed to (the target's room always
+admitted, a guess across rooms never stood in when explored ones hold no way). A room target ends at
+its first step inside (the way to a walled centre failed). Route **turn prompts** ("Now east, 21",
+"Off the route to X"; `route-prompts`, on). Focusing a Cairn Stone says its symbol: the game's hover
+entry (`NativeHover`, RVA 0x2A41630, READ not measured) or a clearly nearest stone
+([target sight](docs/target-sight.md#the-games-own-target-2026-10-14)); Tal Rasha's entrances untouched.
+
+118/118 CTest; installed by the build. Unverified live: all of it. **Next step:** try a route to the
+unexplored room next door and to a far listed exit (Stony Field from Cold Plains), walk one with the
+prompts, and focus each Cairn Stone with the pad and the mouse. Logs: `[hover] Verified.`,
+`[route] follow`, `[beacon] lead=remembered-map-guess`, `[interaction] World target`.
+
 ## Radar wording, route description and the tester's fifth report — 2026-10-13 (not released)
 
 The user's radar requests ([decisions](docs/decisions.md)):

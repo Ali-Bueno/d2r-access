@@ -43,6 +43,14 @@ TargetSight::Bearer LabelTarget(std::string_view label) {
 	return bearer.value_or(TargetSight::Bearer{});
 }
 }
+namespace D2RAccess::TargetSight {
+// The scan's name in place of the label's, as target_sight.cpp has it (tested there).
+std::string Spoken(std::string_view label, const Bearer& bearer) {
+	std::string spoken(label);
+	const size_t at = bearer.name.empty() ? std::string::npos : spoken.find(bearer.worldName);
+	return at == std::string::npos ? spoken : spoken.replace(at, bearer.worldName.size(), bearer.name);
+}
+}
 namespace D2RAccess::EntityCueService {
 std::optional<double> reach;
 std::optional<double> NamingReach() { return reach; }

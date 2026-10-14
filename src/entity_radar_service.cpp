@@ -2,6 +2,7 @@
 #include "entity_radar.h"
 #include "async_log.h"
 #include "native_entities.h"
+#include "native_hover.h"
 #include "native_world.h"
 #include "npc_proximity.h"
 #include "radar_config.h"
@@ -158,7 +159,9 @@ TargetSight::Bearer LabelTarget(std::string_view label) {
 			&& NativeEntities::Read(state.player, state.session, g_sight.entities);
 	}
 	if (!g_sight.valid) return {};
-	return TargetSight::Find(g_sight.world, g_sight.entities, label, g_sightSettings);
+	std::optional<TargetSight::Aim> aim;
+	if (const auto hovered = NativeHover::Read()) aim = TargetSight::Aim{static_cast<uint8_t>(hovered->type), hovered->id};
+	return TargetSight::Find(g_sight.world, g_sight.entities, label, g_sightSettings, aim);
 }
 
 bool Register(const D2RL::PluginContext* context) {

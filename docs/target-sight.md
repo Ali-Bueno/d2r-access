@@ -37,6 +37,31 @@ NPC or object is named only when a ray from the player reaches it.
 - The friendly NPC announcer ([npc-proximity.md](npc-proximity.md)) now
   requires the same line of sight by default, for the same reason.
 
+## The game's own target (2026-10-14)
+
+A tester: focusing a Cairn Stone said "Cairn Stone", never its symbol. The five
+stones share the game's label; the scan names each by its symbol
+("Cairn Stone, downward drop"), and a seal by its number. The world target now
+says the scan's name (`Bearer::name`, `TargetSight::Spoken`) when the label
+stands for one unit:
+
+- **The game's target**, when it can be read (`NativeHover`): the world target
+  nameplates (0x880550) name the unit `GetHoveredUnit` (0xF1900) gives, entry
+  `LocalIndex()` of an array of eight at RVA 0x2A41630, 0x10 bytes each: +0
+  hovered (set to 1 only by 0xF2B40 after it writes the type at +4 and the id at
+  +8; cleared alone by 0xF24F0), +4 unit type, +8 unit id. READ in
+  `re/D2R.rebuilt.exe`, not measured in the game; whether the controller's
+  auto-target fills it as the mouse does is the open question. Fingerprints of
+  0xF1900, 0xF2B40, 0xF24F0 and 0x8B2D0 guard it (`[hover] Verified.`).
+- **Otherwise the nearest bearer in sight, when clearly nearer** than any other
+  bearer of the label (`DistinctUnits`, 4 units: the stones stand about eight
+  apart). Two stones about as near leave the label as the game says it: a
+  wrong symbol would be worse than none.
+
+Tal Rasha's tomb entrances are exits, which this gate skips; their marking is
+in their own name ([tal-rasha-symbols.md](tal-rasha-symbols.md)), unchanged.
+Live check: focus each stone and compare the spoken symbol with the scanner's.
+
 ## Configuration
 
 `radar.toml` `[target]`, read once at `Register`:
