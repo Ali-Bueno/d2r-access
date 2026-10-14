@@ -36,6 +36,7 @@ before adding one, and read this file first.
 | Ctrl+Numpad 4, Ctrl+Numpad 6 | scanner: previous object, next object |
 | Ctrl+Numpad 8, Ctrl+Numpad 2 | scanner: previous category, next category |
 | Ctrl+B | follow or release what the scanner named |
+| Ctrl+E | the route to what the beacon follows or the scanner named (docs/route-description.md) |
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |

@@ -358,9 +358,9 @@ void ExplorationSurveyUsesOrientation() {
 	Check(!exploration.front().reachable && exploration.front().steps < 0 && exploration.front().straightLine < 5,
 		"exploration reports only direct distance and direction");
 	// Screen sectors clockwise from up: 1 is up and to the right, 7 up and to the left.
-	Check(exploration.front().direction == 1, "a target up the world Y axis is up and to the right on screen");
+	Check(Radar::ScreenSector(exploration.front().offset) == 1, "a target up the world Y axis is up and to the right on screen");
 	const auto diagonal = Survey(world, grid, {Make(2, 16, 20)}, false);
-	Check(diagonal.front().direction == 7, "a target up the world X axis is up and to the left on screen");
+	Check(Radar::ScreenSector(diagonal.front().offset) == 7, "a target up the world X axis is up and to the left on screen");
 }
 
 void ReturningToLevelRetainsFixedLandmarks() {

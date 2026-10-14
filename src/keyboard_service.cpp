@@ -38,6 +38,7 @@
 #include "native_list_rows.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
+#include "spoken_direction.h"
 #include "native_ground_items.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
@@ -438,7 +439,7 @@ int UseSteps(const Navigation::Grid& grid, const Entity& entity) {
 std::string Describe(const Radar::World& world, const Entity& entity, int steps) {
 	const auto& strings = Strings::Current();
 	const Position offset{entity.position.x - world.player.x, entity.position.y - world.player.y};
-	const char* direction = strings.radarMovementDirections[static_cast<size_t>(Radar::ScreenSector(offset))];
+	const char* direction = SpokenDirection::Of(offset, strings);
 	const double reach = steps >= 0 ? static_cast<double>(steps) : Distance(world.player, entity.position);
 	const auto distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
 	return Format(strings.surveySteps, EntityRadar::SpokenName(entity, strings.listSeparator).c_str(), distance.c_str(), direction);
@@ -1570,6 +1571,17 @@ SettingsList::Entry ManaAlerts() {
 	return entry;
 }
 
+// Compass points or clock hours for every spoken direction (spoken_direction.h).
+SettingsList::Entry DirectionStyle() {
+	SettingsList::Entry entry;
+	entry.key = "direction-style";
+	entry.levels = static_cast<int>(SpokenDirection::Style::Count);
+	entry.level = [] { return static_cast<int>(SpokenDirection::CurrentStyle()); };
+	entry.setLevel = [](int level) { SpokenDirection::SetStyle(static_cast<SpokenDirection::Style>(level)); };
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().directionStyles[static_cast<size_t>(level)]); };
+	return entry;
+}
+
 SettingsList::Entry ItemSoundSet() {
 	static_assert(Strings::ItemSoundSetCount == static_cast<size_t>(GroundItems::SoundSet::Count), "a phrase for every item sound set");
 	SettingsList::Entry entry;
@@ -1685,6 +1697,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	}});
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
+		DirectionStyle(),
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},

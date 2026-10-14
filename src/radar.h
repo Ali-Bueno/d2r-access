@@ -31,7 +31,7 @@ inline constexpr std::array<Position, DirectionCount> Axes{{{-Diagonal, -Diagona
 // Screen components of each direction (x right, y down), for stereo position.
 struct ScreenVector { int x = 0, y = 0; };
 inline constexpr std::array<ScreenVector, DirectionCount> ScreenAxes{{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}};
-// Eight screen sectors clockwise from up (radarMovementDirections order) for a
+// Eight screen sectors clockwise from up (compassPoints order) for a
 // world offset, through the same projection at its 2:1 ratio; 0 when zero.
 inline constexpr int ScreenSectors = 8;
 // A world offset on the screen (x right, y down), at the projection's 2:1 ratio.

@@ -32,6 +32,9 @@ inline constexpr std::size_t GlossarySoundCount = 50;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 inline constexpr std::size_t SettingsGroupCount = 9; // keyboard_service.cpp's SettingsGroup
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
+inline constexpr std::size_t CompassPointCount = 8; // Radar::ScreenSectors
+inline constexpr std::size_t ClockHourCount = 12;
+inline constexpr std::size_t DirectionStyleCount = 2; // SpokenDirection::Style
 
 struct Table {
 	const char* pluginLoaded;
@@ -93,11 +96,10 @@ struct Table {
 	const char* radarWaitingPlayer;
 	std::array<const char*, 4> radarUiStates; // inactive, unavailable, dialogue, paused
 	const char* radarAudioUnavailable;
-	const char* radarTest;
-	const char* radarDepth; // %.0f = clear depth in collision subtiles
+	const char* radarTest; // %s = the four radar directions
+	const char* radarDepth; // %.0f = clear depth in units (collision subtiles)
 	const char* radarNearbyObstacle;
 	const char* radarLimited;
-	std::array<const char*, 4> radarDirections; // Radar::Direction order: up, left, right, down
 	std::array<const char*, 5> radarStates; // Radar::State order: unknown, open, blocked, exit, door
 	const char* radarMoving; // %s = actual recent screen displacement direction
 	const char* radarStationary;
@@ -107,13 +109,22 @@ struct Table {
 	const char* wallBumpDisabled;
 	const char* smallObstaclesEnabled;
 	const char* smallObstaclesDisabled;
-	std::array<const char*, 8> radarMovementDirections; // clockwise from screen up
+	// Clockwise from north, the top of the screen (Radar::ScreenSector order); spoken_direction.h.
+	std::array<const char*, CompassPointCount> compassPoints;
 	const char* navigationExploration; // mode status: guidance uses explored areas
 	const char* navigationFullAssistance; // mode status: guidance includes unexplored areas
-	std::array<const char*, 4> scanDirections; // Radar::Direction order: up, left, right, down
-	const char* scanStep; // exactly one step
-	const char* scanSteps; // %d = whole steps
-	const char* scanAdjacent; // under one step away
+	std::array<const char*, ClockHourCount> clockHours; // twelve o'clock (the top of the screen) first, then one to eleven
+	std::array<const char*, DirectionStyleCount> directionStyles; // the setting: compass points, clock hours
+	const char* scanStep; // exactly one unit (a collision subtile)
+	const char* scanSteps; // %d = whole units
+	const char* scanAdjacent; // under one unit away
+	const char* routeTo;     // %s = name, %s = whole length, %s = the legs joined by routeThen
+	const char* routeLeg;    // %s = direction, %d = units
+	const char* routeThen;   // joins two legs
+	const char* routeDoor;   // a shut door on the way, said as a leg
+	const char* routeMore;   // %d = legs left unsaid
+	const char* routeUnseen; // the way crosses ground not seen yet
+	const char* routeNone;   // %s = name: no way to it is known
 	const char* npcEnabled; // friendly NPC announcer toggles
 	const char* npcDisabled;
 	const char* entityCuesEnabled;
@@ -240,7 +251,7 @@ struct Table {
 	const char* roomsUnavailable;
 	const char* finderEnabled;  // the exit finder, BACK+A: ways out by side on the right stick
 	const char* finderDisabled;
-	const char* finderNothing;  // %s = a side (scanDirections): no way out on that side
+	const char* finderNothing;  // %s = a side (SpokenDirection::OfSide): no way out on that side
 	const char* automapLogged;         // the automap diagnostic finished; details are in the log
 	const char* automapWatchOn;        // the automap watch logs every change from now on
 	const char* automapWatchOff;
@@ -421,7 +432,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarStraight,
 		t.wallBumpEnabled, t.wallBumpDisabled, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
 		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
-		t.scanSteps, t.scanAdjacent, t.npcEnabled, t.npcDisabled,
+		t.scanSteps, t.scanAdjacent, t.routeTo, t.routeLeg, t.routeThen, t.routeDoor, t.routeMore, t.routeUnseen,
+		t.routeNone, t.npcEnabled, t.npcDisabled,
 		t.entityCuesEnabled, t.entityCuesDisabled, t.entityCueNpcsEnabled, t.entityCueNpcsDisabled,
 		t.entityCueEnemiesEnabled, t.entityCueEnemiesDisabled, t.entityCueRangedEnabled,
 		t.entityCueRangedDisabled, t.entityCueAudioUnavailable, t.entityCueReaderUnavailable,
@@ -448,8 +460,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.beaconSoundsOn, t.beaconSoundsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
-	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates); each(t.radarDirections);
-	each(t.radarStates); each(t.radarMovementDirections); each(t.scanDirections); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
+	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);
+	each(t.radarStates); each(t.compassPoints); each(t.clockHours); each(t.directionStyles); each(t.itemQualities); each(t.terrainPlaces); each(t.cairnSymbols); each(t.tombSymbols);
 	for (const char* s : {t.itemInHand, t.itemReleased, t.entityCueOrdinaryEnabled, t.entityCueOrdinaryDisabled, t.entityCueReachEnabled, t.entityCueReachDisabled, t.attackReachMelee, t.attackReachRanged, t.attackModeAuto, t.attackModeFixed, t.deathPlace, t.deathRoute, t.deathRouteWaypoint, t.placeOutside, t.placeCorridor, t.placeDeadEnd, t.placeBend, t.placeJunction, t.placeTowards, t.placesEnabled, t.placesDisabled, t.placesUnavailable, t.bossLife, t.bossLifeEnabled, t.bossLifeDisabled, t.itemPlacedIn, t.itemSocketedIn, t.itemAddedTo, t.itemSwapped, t.itemDropped, t.socketsNone, t.socketsCount, t.socketsFree, t.socketsFull, t.socketRefused, t.itemArrived, t.itemUnequippedTo, t.spaceKey, t.statPointsFocusOn, t.statPointsFocusOff, t.screenHintsOn, t.screenHintsOff, t.hintNewCharacter, t.hintRandomName,
 		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.stashSlotEmpty, t.mercenarySkills,
 		t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,

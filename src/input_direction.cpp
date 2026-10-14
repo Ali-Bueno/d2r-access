@@ -68,6 +68,7 @@ bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY 
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
+StickPush g_backWithRightStick = StickPush::None;
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
 bool g_lineStep = false;                      // the pending right-stick push is the keyboard's line step
@@ -232,14 +233,18 @@ void Poll() {
 			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0)) (backDown ? g_backWithRb : g_rbAlone) = true;
 			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) g_leftStickClick = true;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
-				// A push still pending here is one no reader has wanted, and it
-				// is about to be overwritten. Record that before it goes.
-				ResolvePush(g_rightStickPush, nullptr);
-				g_lineStep = false;
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
-				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
+				const StickPush push = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
 					: (pad.sThumbRX > 0 ? StickPush::Right : StickPush::Left);
+				if (backDown) g_backWithRightStick = push; // the mod's chord, never a scanner step
+				else {
+					// A push still pending here is one no reader has wanted, and it
+					// is about to be overwritten. Record that before it goes.
+					ResolvePush(g_rightStickPush, nullptr);
+					g_lineStep = false;
+					g_rightStickPush = push;
+				}
 			}
 		}
 	}
@@ -284,6 +289,11 @@ bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;
 	g_leftStickClick = false;
 	return clicked;
+}
+StickPush TakeBackWithRightStick() {
+	const StickPush push = g_backWithRightStick;
+	g_backWithRightStick = StickPush::None;
+	return push;
 }
 bool TakeBackWithLb() {
 	const bool pressed = g_backWithLb;

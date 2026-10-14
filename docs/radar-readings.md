@@ -271,6 +271,23 @@ noise per screen direction, louder as terrain closes in within 12 subtiles, (1 -
 lanes across the body, the farthest winning; off the map counts as a wall. Its own XAudio2 voices
 (`wall_tone_audio.cpp`), silent in menus, dialogue and pause. Unheard in game so far.
 
+## Spoken directions (2026-10-13)
+
+Every direction the mod says goes through `SpokenDirection` (`src/spoken_direction.h`): the
+scanner, the NPC announcer, room exits, the exit finder, the terrain overview, the radar
+readout and its sound test, the keyboard's target lines and the route description. They are
+still screen directions, named two ways (Ctrl+S, Navigation, `direction-style`):
+
+- **Compass points** (default): north is the top of the screen, east its right. Eight points
+  for a bearing (`Radar::ScreenSector`), four for a side (radar rays, finder, overview).
+- **Clock hours**: twelve is the top, three the right. A bearing is one of twelve hours
+  (30 degrees, finer than the eight points); a side is 12, 9, 3 or 6.
+
+The tester asked for compass words instead of up/down/left/right and the user added the clock
+as an alternative. Distances are **units** (one collision subtile), no longer "steps": a step of
+the character covers several subtiles. Per language the twelve hours are written out
+(`clockHours`), so each grammar ("a la 1", "на 2 часа") is right.
+
 ## Queue
 
 `CueQueue::Take` plays the most urgent pending direction first: walls and

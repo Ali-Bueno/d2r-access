@@ -86,6 +86,8 @@ add_library(d2r-access SHARED
 	src/radar_audio.cpp
 	src/radar_trace.cpp
 	src/radar_readout.cpp
+	src/spoken_direction.cpp
+	src/route_legs.cpp
 	src/radar_synth.cpp
 	src/radar_service.cpp
 	src/wall_bump.cpp
@@ -296,7 +298,7 @@ if(BUILD_TESTING)
 	# Full-resolution native body connectivity, shared with the reactive radar.
 	d2r_test(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
 	add_test(NAME beacon COMMAND beacon-tests)
-	d2r_test(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/beacon.cpp src/beacon_navigation.cpp src/level_route.cpp src/navigation_mode.cpp src/navigation_policy.cpp src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
+	d2r_test(beacon-service-tests tests/beacon_service_tests.cpp src/beacon_service.cpp src/route_legs.cpp src/spoken_direction.cpp src/beacon.cpp src/beacon_navigation.cpp src/level_route.cpp src/navigation_mode.cpp src/navigation_policy.cpp src/navigation_grid.cpp src/radar_grid.cpp src/room_graph.cpp src/level_areas.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(beacon-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME beacon-service COMMAND beacon-service-tests)
 	# The exploration memory (seen/visited rooms), its disk form and the open-ground frontier.
@@ -313,9 +315,9 @@ if(BUILD_TESTING)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
 	d2r_test(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
 	add_test(NAME rooms COMMAND rooms-tests)
-	d2r_test(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	d2r_test(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME exit-review COMMAND exit-review-tests)
-	d2r_test(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	d2r_test(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/spoken_direction.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,
 	# the cue synthesizer and the spoken readout.
@@ -333,7 +335,7 @@ if(BUILD_TESTING)
 	d2r_test(radar-audio-tests tests/radar_audio_tests.cpp src/radar_synth.cpp)
 	target_link_libraries(radar-audio-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME radar-audio COMMAND radar-audio-tests)
-	d2r_test(radar-readout-tests tests/radar_readout_tests.cpp src/radar_readout.cpp ${RADAR_ENGINE_SOURCES})
+	d2r_test(radar-readout-tests tests/radar_readout_tests.cpp src/radar_readout.cpp src/spoken_direction.cpp ${RADAR_ENGINE_SOURCES})
 	add_test(NAME radar-readout COMMAND radar-readout-tests)
 	d2r_test(wall-bump-tests tests/wall_bump_tests.cpp src/wall_bump.cpp src/radar_grid.cpp)
 	add_test(NAME wall-bump COMMAND wall-bump-tests)
@@ -389,9 +391,9 @@ if(BUILD_TESTING)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
 	d2r_test(town-npcs-tests tests/town_npcs_tests.cpp src/town_npcs.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME town-npcs COMMAND town-npcs-tests)
-	d2r_test(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/native_rooms.cpp src/native_memory.cpp)
+	d2r_test(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/spoken_direction.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/native_rooms.cpp src/native_memory.cpp)
 	add_test(NAME map-survey COMMAND map-survey-tests)
-	d2r_test(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	d2r_test(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME npc-proximity COMMAND npc-proximity-tests)
 	d2r_test(target-sight-tests tests/target_sight_tests.cpp src/target_sight.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME target-sight COMMAND target-sight-tests)
@@ -512,6 +514,8 @@ if(BUILD_TESTING)
 	# Keyboard play: the routes and choices behind the walking and fighting keys.
 	d2r_test(auto-walk-tests tests/auto_walk_tests.cpp src/auto_walk.cpp src/beacon.cpp src/radar_grid.cpp)
 	add_test(NAME auto-walk COMMAND auto-walk-tests)
+	d2r_test(route-legs-tests tests/route_legs_tests.cpp src/route_legs.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	add_test(NAME route-legs COMMAND route-legs-tests)
 	d2r_test(level-route-tests tests/level_route_tests.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
 	add_test(NAME level-route COMMAND level-route-tests)
 	# The beacon's guidance over walkable ground: the window's route, the remembered map's way, or none.

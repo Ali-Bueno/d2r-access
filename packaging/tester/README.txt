@@ -87,7 +87,12 @@ the mod adds these:
 In play:
 - Right stick up / down: scanner, previous / next category (exits, NPCs,
   enemies, chests, items, rooms...). Right stick left / right: previous / next
-  thing in that category, with its distance and direction.
+  thing in that category, with its distance and direction (north, northeast...,
+  or clock hours: see HOW THE MOD DESCRIBES THE MAP).
+- BACK + right stick down: the route to what the beacon follows, else to what
+  the scanner named last, as a sighted player plans it off the minimap:
+  "Route to Akara, 85 units: north, 20; then door; then east, 30". Nothing
+  walks for you; ask again on the way and it starts from where you stand.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full) and the arrows or throwing
@@ -134,18 +139,20 @@ Keyboard: the full list is in KEYBOARD.txt. To begin with:
 
 HOW THE MOD DESCRIBES THE MAP
 
-Directions are always screen directions, never compass points: up is the top
-of the screen, down the bottom, left and right the screen's sides. Diablo II
+Directions are screen directions said as compass points: north is the top of
+the screen, south the bottom, east and west its right and left sides, and
+northeast, southeast, southwest and northwest the corners between. Diablo II
 draws its world turned 45 degrees, so a straight corridor on screen can run
-diagonally on the game's own map; the mod always follows the screen.
+diagonally on the game's own map; the mod always follows the screen. In the
+Ctrl+S list (Navigation) "Directions" can say clock hours instead: 12 o'clock
+is the top of the screen, 3 o'clock the right, 6 the bottom, 9 the left.
 
-A step is the game's smallest map unit (a subtile; a full tile is five
-subtiles). Distances are straight lines from your character to the thing's
-position, so a large object can be a few steps away while you stand at its
-edge. Running covers more steps per second than walking; the count of steps
-does not change.
+Distances are in units. A unit is the game's smallest map cell (a subtile; a
+full tile is five subtiles), not a step of your character. Distances are
+straight lines from your character to the thing's position, so a large object
+can be a few units away while you stand at its edge.
 
-The scanner lists a monster once it has been within 15 steps of you with
+The scanner lists a monster once it has been within 15 units of you with
 nothing blocking the view. It stays listed after it leaves the screen,
 follows the monster while the game has it loaded, and is dropped when it dies.
 Monsters you never came near are not listed, unless the Ctrl+S list is set to
@@ -164,12 +171,14 @@ groups, each spoken as it stands ("Radar enabled"), and they are remembered
 between sessions. A setting of several values goes up with right (wrapping
 round to the lowest) or one step down or up with LB and RB. New ones worth
 knowing:
+- Directions (Navigation): compass points (the default) or clock hours, for
+  every direction the mod says.
 - Enemy class sounds: layered (the default) or classic. Every enemy now
-  growls at the same pitch, so pitch only tells up or down; a champion adds a
+  growls at the same pitch, so pitch only tells north or south; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.
 - NPC exclamation mark chime (on): a small bell when the "!" appears over a
   town NPC, and after its name from the scanner or the NPC announcer. The
-  game only shows the mark within about 15 steps of the NPC.
+  game only shows the mark within about 15 units of the NPC.
 - Footstep volume: your own footsteps from 25 to 300 percent of the game's.
 - Item sounds: Diablo IV (the default), Last Epoch gold and potions (the rest
   stays Diablo IV), or Diablo II drops: every item on the ground repeats the

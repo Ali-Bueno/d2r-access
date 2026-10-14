@@ -21,6 +21,9 @@ automap; enemies are the one live category.
 - **BACK+LB**, or **Ctrl+B**, follows what the scanner last named
   (`docs/beacon.md`); on a newly named target it switches in one press.
   L3, R3 and the L3+R3 chord are the game's.
+- **BACK + right stick down**, or **Ctrl+E**, describes the way there as legs
+  ([route description](route-description.md)). With BACK held the stick never
+  steps the scanner.
 - Keyboard: Ctrl+Numpad 8/2 previous/next category, Ctrl+Numpad 4/6
   previous/next object, `,`/`.` step categories, `\` repeats.
 
@@ -83,7 +86,8 @@ automap; enemies are the one live category.
   start of a later game. A landmark that has been in range and in sight
   (`MapSurvey::Discoverable`) is listed too. That test is also the whole rule
   whenever the automap cannot be read (`docs/automap-reader.md`).
-  Readouts give straight-line distance and one of eight screen directions (diagonals such as "arriba y a la izquierda" included, `Radar::ScreenSector`). Full assistance
+  Readouts give straight-line distance in units and a screen direction as one of eight compass
+  points or twelve clock hours ([spoken directions](radar-readings.md#spoken-directions-2026-10-13)). Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
 
 ## Code

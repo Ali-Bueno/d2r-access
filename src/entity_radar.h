@@ -110,12 +110,10 @@ inline bool UseBefore(const Entity& a, int aSteps, const Entity& b, int bSteps) 
 	return aSteps < bSteps;
 }
 struct Settings {
-	// Distances are collision subtiles, and a subtile is spoken as one STEP.
-	// That is the unit the pathfinder already counts in -- Navigation::Grid
-	// reports the shortest count of the game's own neighbouring-destination
-	// steps -- so the catalogue and this scan name the same thing the same
-	// way, and neither has to claim a real-world distance it never measured.
-	double stepsPerSubtile = 1;
+	// Distances are collision subtiles, and a subtile is spoken as one UNIT:
+	// not a footstep of the character (the tester, 2026-10-13), but the cell the
+	// pathfinder counts in, so every readout names the same measure the same way.
+	double unitsPerSubtile = 1;
 	double range = 15; // subtiles; the user asked for roughly fifteen steps
 };
 
@@ -125,7 +123,7 @@ struct Settings {
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 // An object's own OBJECT bits within its footprint do not hide it; other barriers still do.
 bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target);
-// "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
+// "8 units" / "1 unit" / "right here" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
 // Whether a thing this far away is under the player, spoken without distance or direction.

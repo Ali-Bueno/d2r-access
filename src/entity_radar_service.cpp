@@ -5,7 +5,6 @@
 #include "native_world.h"
 #include "npc_proximity.h"
 #include "radar_config.h"
-#include "radar_trace.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "entity_cue_service.h"
@@ -110,9 +109,8 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 	const auto announcement = g_npcTracker.Update(world, entities, g_npcSettings);
 	if (!announcement) return;
 	const auto text = NpcProximity::Describe(*announcement, g_settings, Strings::Current());
-	AsyncLog::InfoF(context, "[npc] position=%.0f,%.0f id=%u at=%.0f,%.0f distance=%.1f direction=%s text=%s", world.player.x, world.player.y,
-		announcement->entity.id, announcement->entity.position.x, announcement->entity.position.y, announcement->distance,
-		RadarTrace::DirectionName(static_cast<size_t>(announcement->direction)), text.c_str());
+	AsyncLog::InfoF(context, "[npc] position=%.0f,%.0f id=%u at=%.0f,%.0f distance=%.1f text=%s", world.player.x, world.player.y,
+		announcement->entity.id, announcement->entity.position.x, announcement->entity.position.y, announcement->distance, text.c_str());
 	ScreenReader::Speak(text, false);
 	if (announcement->entity.npcAlert) EntityCueService::PlayNpcAlert();
 }

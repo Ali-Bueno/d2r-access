@@ -26,6 +26,7 @@
 #include "screen_reader.h"
 #include "entity_cue_service.h"
 #include "speech_strings.h"
+#include "spoken_direction.h"
 #include "terrain_service.h"
 #include "zone_transitions.h"
 
@@ -204,9 +205,8 @@ std::string Format(const char* format, auto... args) {
 
 std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
-	// Eight screen bearings, diagonals included (the user, 2026-09-25: "arriba y a
-	// la izquierda", not only straight lines). Distances are real step counts.
-	const char* direction = strings.radarMovementDirections[static_cast<size_t>(landmark.direction)];
+	// Eight compass points or twelve hours, diagonals included (the user, 2026-09-25).
+	const char* direction = SpokenDirection::Of(landmark.offset, strings);
 	// Nothing here is out of reach. The grid only covers the collision window
 	// the game keeps around the player, so a landmark it cannot route to is
 	// almost always one the catalogue can see and the grid cannot -- the

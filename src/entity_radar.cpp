@@ -72,15 +72,15 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& 
 constexpr double AdjacentSubtiles = 1.5;
 
 bool UnderPlayer(double distance, const Settings& settings) {
-	return distance < AdjacentSubtiles || std::lround(distance * settings.stepsPerSubtile) < 1;
+	return distance < AdjacentSubtiles || std::lround(distance * settings.unitsPerSubtile) < 1;
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
-	const long steps = std::lround(distance * settings.stepsPerSubtile);
+	const long units = std::lround(distance * settings.unitsPerSubtile);
 	if (UnderPlayer(distance, settings)) return strings.scanAdjacent;
-	if (steps == 1) return strings.scanStep;
+	if (units == 1) return strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(steps));
+	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(units));
 	return buffer;
 }
 }

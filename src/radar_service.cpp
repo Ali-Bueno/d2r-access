@@ -264,7 +264,9 @@ void Tick(const D2RL::PluginContext* context) {
 		Suspend("audition");
 		g_testStep = 0;
 		g_testDue = now + TestStepMs * 3; // let the introductory speech begin first
-		ScreenReader::Speak(Strings::Current().radarTest, true);
+		char test[512]{};
+		std::snprintf(test, sizeof test, Strings::Current().radarTest, RadarReadout::DirectionList(g_frame, Strings::Current()).c_str());
+		ScreenReader::Speak(test, true);
 	}
 	if (command == Command::None && now - g_lastPoll < Radar::PollMs) return;
 	g_lastPoll = now;
