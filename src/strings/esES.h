@@ -61,6 +61,7 @@ inline constexpr Table esES {
 		"Radar suspendido durante el diálogo", "Radar suspendido en el menú de pausa"},
 	.radarAudioUnavailable = "Sonidos del radar no disponibles",
 	.radarTest = "Prueba de radar: %s; salida, salida sin explorar, abierto, abierto sin explorar, bloqueado, obstáculo pequeño, puerta y después choque con la pared",
+	.radarRays = "Rayos del radar: %s",
 	.radarDepth = "%.0f unidades libres",
 	.radarNearbyObstacle = "obstáculo cercano",
 	.radarLimited = "espacio limitado",

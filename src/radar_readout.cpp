@@ -18,6 +18,11 @@ std::string DirectionList(Radar::Frame frame, const Strings::Table& text) {
 	for (size_t i = 0; i < Radar::DirectionCount; ++i) result += std::string(i ? text.listSeparator : "") + DirectionName(frame, i, text);
 	return result;
 }
+std::string RaysPhrase(Radar::Frame frame, const Strings::Table& text) {
+	char phrase[256]{};
+	std::snprintf(phrase, sizeof phrase, text.radarRays, DirectionList(frame, text).c_str());
+	return phrase;
+}
 std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	const int direction = MovementDirection(engine.Velocity());
 	std::string result;

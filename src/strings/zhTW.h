@@ -61,6 +61,7 @@ inline constexpr Table zhTW {
 		"對話期間雷達已暫停", "暫停選單中雷達已暫停"},
 	.radarAudioUnavailable = "雷達音效無法使用",
 	.radarTest = "雷達音效測試：%s；出口、未探索出口、暢通、未探索暢通、阻擋、小障礙物、門、然後撞牆",
+	.radarRays = "雷達方向：%s",
 	.radarDepth = "%.0f 格暢通",
 	.radarNearbyObstacle = "附近有障礙物",
 	.radarLimited = "空間有限",

@@ -61,6 +61,7 @@ inline constexpr Table zhCN {
 		"对话期间雷达已暂停", "暂停菜单中雷达已暂停"},
 	.radarAudioUnavailable = "雷达音效不可用",
 	.radarTest = "雷达声音测试：%s；出口、未探索出口、开阔、未探索开阔、阻挡、小障碍物、门、然后撞墙",
+	.radarRays = "雷达方向：%s",
 	.radarDepth = "%.0f格畅通",
 	.radarNearbyObstacle = "附近有障碍",
 	.radarLimited = "空间狭窄",

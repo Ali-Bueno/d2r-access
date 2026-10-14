@@ -61,6 +61,7 @@ inline constexpr Table enUS {
 		"Radar suspended during dialogue", "Radar suspended in the pause menu"},
 	.radarAudioUnavailable = "Radar audio unavailable",
 	.radarTest = "Radar sound test: %s; passage, passage unexplored, open, open unexplored, blocked, small obstacle, door, then wall bump",
+	.radarRays = "Radar rays: %s",
 	.radarDepth = "%.0f units clear",
 	.radarNearbyObstacle = "obstacle nearby",
 	.radarLimited = "limited space",
