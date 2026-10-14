@@ -34,7 +34,8 @@ line 600 ms later was cut off by it. Alone only if no announcement comes within 
 (`[stats] points alone`).
 
 2026-10-13 (tester, still silent): the fix above only covered a value that changes under a
-showing "+". The last point spent hides every `CharacterStatLevelUpButtonWidget` (a sheet with no
+showing "+". The last point spent hides every `CharacterStatLevelUpButtonWidget` (all four sit in
+`LevelUpInfo` in `Controller/CharacterStatsPanelHD.json`, held with A per `controllerRequireHold`; a sheet with no
 points has none; the tester's 14:42:27 log: `UseSkillPoint` on Energy with five left, likely X's
 five, then nothing; at 17:50:30 ten left, five spent, "42" said), the focus goes
 with it, and `NativeProgression::Read` returns nothing for a hidden focus. `CharacterStatsReader`
