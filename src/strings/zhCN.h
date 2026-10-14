@@ -355,6 +355,8 @@ inline constexpr Table zhCN {
 	.manaAlerts = {"法力提示：每次变化", "法力提示：仅法力不足时", "法力提示已关闭"},
 	.itemSoundSets = {"物品音效：暗黑破坏神IV", "物品音效：Last Epoch的金币和药剂", "物品音效：暗黑破坏神II掉落声"},
 	.settingsGroups = {"音效", "敌人和NPC", "导航", "物品和菜单", "提示", "手柄", "音效词汇表", "音量", "暗黑破坏神II掉落声"},
+	.compareAloudOn = "朗读与已装备物品的比较已开启",
+	.compareAloudOff = "朗读与已装备物品的比较已关闭",
 };
 
 }

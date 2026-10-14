@@ -55,6 +55,14 @@ even with automatic detail disabled. Right-stick up and manual repeat retain it
 while visible; closing comparison removes it without another announcement. Focus/selection,
 conversation and lifecycle guards also apply to comparison text.
 
+Superseded on 2026-09-22 (`b444ee3`): holding Y reads nothing by itself, left stick
+right reads the equipped item, and the user kept compare on demand (decisions, 2026-10-03).
+2026-10-13, a tester: "pressing on an unequipped item brings up the comparison, which isn't
+read". Their log has 62 `[compare] drawn` lines (each a compare opening) and no left-stick
+compare read at all. Switch `compare-aloud` (Ctrl+S, Items and menus, off by default to keep the
+user's choice) reads it as it appears: the game's `currentEquip` heading, then each equipped
+record (`[compare] aloud -> "..."`).
+
 The user's unidentified Leather Armor log at 13:48:42 contains defense 17,
 durability 24/24, maximum sockets 2 and required strength 15, with the stock
 unidentified marker. Those are rendered game text; no hidden item-affix query is

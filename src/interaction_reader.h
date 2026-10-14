@@ -19,6 +19,11 @@ std::string Repeat();
 // "Placed in Row 1, column 2"). A settings-list switch, on by default.
 bool HandSpeech();
 void SetHandSpeech(bool enabled);
+// Whether the equipped item the game draws beside the highlighted one (compare,
+// Y held) is read as it appears. A settings-list switch, off by default: the
+// user chose compare on demand, hold Y and the left stick (2026-10-03).
+bool CompareAloud();
+void SetCompareAloud(bool enabled);
 // Whether each item tooltip is written to the log ([item]). Off by default --
 // logged on every poll it filled a session's log to 12 MB (the user,
 // 2026-09-22) -- and once per change when on. Console: access-itemlog on|off.

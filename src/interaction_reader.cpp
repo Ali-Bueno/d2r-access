@@ -166,6 +166,7 @@ std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
 // "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
 std::atomic<bool> g_handSpeech{true};
+std::atomic<bool> g_compareAloud{false}; // see CompareAloud
 
 // The equipped-item records last logged, so [compare] is written once per
 // change. Diagnosis only: what the game draws beside a held compare is not
@@ -381,6 +382,15 @@ std::string CompareText(std::span<const std::string> records) {
 			result += line;
 		}
 	return result;
+}
+
+// What compare draws beside the highlighted item, headed by the game's
+// "Currently Equipped" (ui.json currentEquip).
+std::string Equipped(std::span<const std::string> extras) {
+	const auto text = CompareText(extras);
+	const auto label = UiText::Clean(Localization::Text("currentEquip"));
+	if (text.empty() || label.empty() || text.starts_with(label)) return text;
+	return label + ". " + text;
 }
 
 // The same records' lines, one entry each, for the line keys.
@@ -1006,7 +1016,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
-	std::string skillAddition;
+	std::string skillAddition, comparisonNow;
 	const std::string tableHeadline = progression.skill && !progression.name.empty()
 		? ProgressionText::SkillReadout(progression.name, AutoDetail::Enabled() ? progression.points : std::string{}, progression.help).headline
 		: std::string{};
@@ -1088,6 +1098,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (const auto comparison = TooltipText::Comparison(tooltip.extras); comparison != g_compareLogged) {
 				g_compareLogged = comparison;
 				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
+				if (!comparison.empty() && g_compareAloud.load(std::memory_order_relaxed)) comparisonNow = Equipped(tooltip.extras);
 			}
 			// With autodetail the cells the item takes up follow the name and a
 			// stack's or tome's count, ahead of any price; otherwise they wait for
@@ -1389,6 +1400,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// inventory cell whose item left under the cursor (Y's stash notice goes first).
 		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel && !(inventory && announcement.sameFocus));
 	}
+	if (!comparisonNow.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[compare] aloud -> \"%s\"", comparisonNow.c_str());
+		ScreenReader::Speak(comparisonNow, announcement.text.empty());
+	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
 	return inventory || button || stats;
@@ -1440,6 +1455,8 @@ void Reset() {
 
 bool HandSpeech() { return g_handSpeech; }
 void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
+bool CompareAloud() { return g_compareAloud; }
+void SetCompareAloud(bool enabled) { g_compareAloud = enabled; }
 
 void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
 bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }

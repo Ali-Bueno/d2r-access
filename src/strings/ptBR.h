@@ -356,6 +356,8 @@ inline constexpr Table ptBR {
 	.manaAlerts = {"Alertas de mana: cada mudança", "Alertas de mana: só mana baixa", "Alertas de mana: desligados"},
 	.itemSoundSets = {"Sons dos itens: Diablo IV", "Sons dos itens: ouro e poções do Last Epoch", "Sons dos itens: quedas do Diablo II"},
 	.settingsGroups = {"Sons", "Inimigos e NPCs", "Navegação", "Itens e menus", "Alertas", "Controle", "Glossário de sons", "Volumes", "Sons de queda do Diablo II"},
+	.compareAloudOn = "Leitura da comparação com o item equipado: ligado",
+	.compareAloudOff = "Leitura da comparação com o item equipado: desligado",
 };
 
 }

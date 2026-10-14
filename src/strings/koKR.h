@@ -355,6 +355,8 @@ inline constexpr Table koKR {
 	.manaAlerts = {"마나 알림: 모든 변화", "마나 알림: 마나 부족 시만", "마나 알림 꺼짐"},
 	.itemSoundSets = {"아이템 소리: 디아블로 IV", "아이템 소리: Last Epoch 골드와 물약", "아이템 소리: 디아블로 II 떨어지는 소리"},
 	.settingsGroups = {"소리", "적과 NPC", "길 안내", "아이템과 메뉴", "알림", "컨트롤러", "소리 용어집", "음량", "디아블로 II 떨어지는 소리"},
+	.compareAloudOn = "착용 중인 아이템과의 비교 읽기 켜짐",
+	.compareAloudOff = "착용 중인 아이템과의 비교 읽기 꺼짐",
 };
 
 }

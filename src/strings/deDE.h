@@ -355,6 +355,8 @@ inline constexpr Table deDE {
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
 	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
 	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche"},
+	.compareAloudOn = "Vergleich mit ausgerüstetem Gegenstand vorlesen an",
+	.compareAloudOff = "Vergleich mit ausgerüstetem Gegenstand vorlesen aus",
 };
 
 }
