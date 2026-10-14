@@ -355,6 +355,8 @@ inline constexpr Table plPL {
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
 	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
 	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II"},
+	.compareAloudOn = "Odczyt porównania z założonym przedmiotem: włączone",
+	.compareAloudOff = "Odczyt porównania z założonym przedmiotem: wyłączone",
 };
 
 }

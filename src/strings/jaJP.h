@@ -355,6 +355,8 @@ inline constexpr Table jaJP {
 	.manaAlerts = {"マナ通知：変化ごと", "マナ通知：マナ不足のみ", "マナ通知 オフ"},
 	.itemSoundSets = {"アイテムの音 Diablo IV", "アイテムの音 Last Epochのゴールドとポーション", "アイテムの音 Diablo IIの落下音"},
 	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集", "音量", "Diablo IIの落下音"},
+	.compareAloudOn = "装備中のアイテムとの比較の読み上げ オン",
+	.compareAloudOff = "装備中のアイテムとの比較の読み上げ オフ",
 };
 
 }

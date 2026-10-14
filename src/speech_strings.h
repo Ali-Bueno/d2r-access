@@ -401,6 +401,8 @@ struct Table {
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
+	const char* compareAloudOn;        // the equipped item read as the game draws it beside the highlighted one
+	const char* compareAloudOff;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -456,7 +458,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume}) visit(s);
+		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume, t.compareAloudOn, t.compareAloudOff}) visit(s);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
 	each(t.settingsGroups);

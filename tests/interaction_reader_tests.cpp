@@ -247,6 +247,7 @@ bool TakeFacePress(FaceButton button) { const bool pressed = button == FaceButto
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "personal") return "Personal";
+	if (key == "currentEquip") return "Actualmente equipado";
 	if (key == "shared") return "Compartido";
 	if (key == "ControllerHelpBelt1") return "Casilla de cinturón 1 ";
 	if (key == "ControllerHelpBelt2") return "Casilla de cinturón 2 ";
@@ -886,6 +887,18 @@ int main() {
 	Check(PadFilter::leftStickArms > 0, "an inventory item arms the left stick for a held Y");
 	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; InputDirection::holdingY = true; Settle();
 	Check(speech.empty(), "holding compare reads nothing by itself");
+	// With compare-aloud on, the equipped item is read as the game draws it (a tester, 2026-10-13).
+	InteractionReader::SetCompareAloud(true);
+	tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"},
+		"with compare-aloud on, the equipped item is read as it appears, under the game's own heading");
+	ClearSpeech(); Settle();
+	Check(speech.empty(), "and once");
+	tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "a heading already drawn is not said twice");
+	InteractionReader::SetCompareAloud(false); ClearSpeech();
 	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Right;
 	Check(Tick() && speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "left stick right reads the equipped item");
 	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Left;
