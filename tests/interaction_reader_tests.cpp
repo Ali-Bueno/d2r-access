@@ -286,6 +286,10 @@ bool controlTooltips = true;
 bool inPlay = false;
 namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return controlTooltips; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return inPlay; } }
+// The mercenary's level-up line, named by the game text reader's switch.
+namespace D2RAccess::GameTextReader {
+std::string NameSpeaker(std::string text) { return text == "Me siento mucho mas fuerte" ? "Mercenario dice: " + text : text; }
+}
 std::vector<bool> interrupts;
 int stops = 0;
 namespace D2RAccess::ScreenReader {
@@ -315,6 +319,9 @@ int main() {
 	Check(speech.empty() && tracked == 0 && InteractionReader::Repeat().empty(), "NPC conversations suspend tooltip capture and clear old world labels");
 	conversation = false; Tooltip("Akara"); Settle();
 	Check(speech == std::vector<std::string>{"Akara"}, "NPC name can use the native target tooltip");
+	ClearSpeech(); Tooltip("Me siento mucho mas fuerte"); Settle();
+	Check(speech == std::vector<std::string>{"Mercenario dice: Me siento mucho mas fuerte"},
+		"the mercenary's level-up line, drawn as the world target, says who speaks");
 	ClearSpeech();
 	EntityRadarService::hiddenLabel = "Zombi"; Tooltip("Zombi"); Settle();
 	Check(speech.empty(), "a world target the walls hide is not spoken");

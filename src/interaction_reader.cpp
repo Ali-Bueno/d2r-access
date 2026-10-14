@@ -11,6 +11,7 @@
 #include "hire_stats.h"
 #include "generated/item_sizes.h"
 #include "equip_attempt.h"
+#include "game_text_reader.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
@@ -1127,7 +1128,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
 			Append(readout.option, description);
 		}
-		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
+		else if (!focus.panel) { readout.context = "World target"; readout.body = GameTextReader::NameSpeaker(description); }
 	}
 	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }

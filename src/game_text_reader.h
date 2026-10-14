@@ -2,6 +2,8 @@
 
 #include <D2RLPlugin/api.h>
 
+#include <string>
+
 namespace D2RAccess::GameTextReader {
 bool Register(const D2RL::PluginContext* context);
 void Unregister();
@@ -17,4 +19,7 @@ bool Enabled();
 // "Mercenary says:" before the mercenary's level-up line.
 bool MercenaryBark();
 void SetMercenaryBark(bool on);
+// `text` with "Mercenary says:" before it when it holds that line and the switch is on.
+// The line reaches the notices and, live, the world target tooltip (2026-10-13 log).
+std::string NameSpeaker(std::string text);
 }
