@@ -422,6 +422,8 @@ inline constexpr Table zhTW {
 	.waypointLocked = "未解鎖",
 	.hintDeleteCharacter = "%s 刪除所選角色",
 	.hintNoCharacters = "沒有角色。按 %s 建立一個",
+	.padTypingOn = "右搖桿輸入 開",
+	.padTypingOff = "右搖桿輸入 關",
 };
 
 }

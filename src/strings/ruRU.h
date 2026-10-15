@@ -422,6 +422,8 @@ inline constexpr Table ruRU {
 	.waypointLocked = "закрыто",
 	.hintDeleteCharacter = "%s удаляет выбранного персонажа",
 	.hintNoCharacters = "Нет персонажей. Нажмите %s, чтобы создать",
+	.padTypingOn = "Ввод правым стиком включён",
+	.padTypingOff = "Ввод правым стиком выключен",
 };
 
 }

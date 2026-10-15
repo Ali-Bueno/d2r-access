@@ -20,13 +20,15 @@ live run). Choices in [decisions](docs/decisions.md); news draft `../tester-news
 - Chat: panel visibility opens/closes the announcement, InputBox echoed without focus (`[field] chat panel`).
 - Captionless tabs as "Page N" (shared stash); locked waypoint rows say "locked" (layout heuristic);
   character select says Start/X or "No characters"; lobby list rows reachable with the D-pad.
+- Pad typing in the lobby (`pad-typing`, `src/pad_typing.cpp`): A clicks a box the game does not
+  edit, the right stick picks and sends characters ([multiplayer](docs/multiplayer.md)).
 
 Built and unit-tested only (see the build line below); **unverified live: all of it.** Not done:
-main menu left-from-list order (the game's own cursor; no mod code moves it), pad typing into the
-loader's host/direct-join boxes, the pentagram (needs `[scan] fire` from a Tower Cellar log).
+main menu left-from-list order (the game's own cursor; no mod code moves it), the pentagram
+(needs `[scan] fire` from a Tower Cellar log).
 **Next step:** the user builds a test release and the tester tries it; logs: `[terrain] ...
 landmarks=`, `[vitals] BACK+RT`, `[skill-tree] branch shown`, `[corpses]`, `[items] loot filter`,
-`[field] chat panel`, `[tabs]`, `[hint]`, `[terrain] place remembered ... (quest)`.
+`[field] chat panel`, `[tabs]`, `[hint]`, `[terrain] place remembered ... (quest)`, `[typing]`.
 
 ## The tester's eighth list — 2026-10-14 (released as test-2026-10-14-2 from 3c33430)
 

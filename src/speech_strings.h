@@ -476,6 +476,8 @@ struct Table {
 	const char* waypointLocked; // a waypoint not yet activated
 	const char* hintDeleteCharacter; // %s = the button that deletes the selected character
 	const char* hintNoCharacters; // %s = the button that creates a character, with an empty list
+	const char* padTypingOn; // typing into a text box with the right stick (pad_typing.h)
+	const char* padTypingOff;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -536,7 +538,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.burningCorpse, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointLocked,
-		t.hintDeleteCharacter, t.hintNoCharacters}) visit(s);
+		t.hintDeleteCharacter, t.hintNoCharacters, t.padTypingOn, t.padTypingOff}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

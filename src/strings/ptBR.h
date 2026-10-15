@@ -422,6 +422,8 @@ inline constexpr Table ptBR {
 	.waypointLocked = "bloqueado",
 	.hintDeleteCharacter = "%s exclui o personagem selecionado",
 	.hintNoCharacters = "Nenhum personagem. Pressione %s para criar um",
+	.padTypingOn = "Digitar com o analógico direito ligado",
+	.padTypingOff = "Digitar com o analógico direito desligado",
 };
 
 }

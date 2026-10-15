@@ -422,6 +422,8 @@ inline constexpr Table esMX {
 	.waypointLocked = "bloqueado",
 	.hintDeleteCharacter = "%s borra el personaje seleccionado",
 	.hintNoCharacters = "No hay personajes. Presiona %s para crear uno",
+	.padTypingOn = "Escribir con el stick derecho activado",
+	.padTypingOff = "Escribir con el stick derecho desactivado",
 };
 
 }

@@ -175,6 +175,30 @@ visible, enabled control inside the current modal when focus fell back to an
 input. New D-pad presses and active text editing take precedence. It never
 dispatches or repeats the original action.
 
+### Typing with the controller (2026-10-15, built, unverified)
+
+A tester (2026-10-15): the host boxes (game name, password, description) and
+the direct-join boxes take nothing from the pad, and the browser's game list
+could not be entered. Two things, `src/pad_typing.cpp`, switch `pad-typing`
+(Controller group, on):
+
+- **A on a text box** that does not start the game's own editing within 250 ms
+  (`NativeSkillNavigation::TextEditing` stays false) gets a mouse click on its
+  focus rectangle (`MenuMouse::ClickAt`), the keyboard mode's own way into a
+  box, so a keyboard then types there. Log: `[typing] A did not start editing`.
+- **While a box is being edited**, the right stick picks characters: up and
+  down step through `PadTyping::Charset` (lower case, digits, space, `-_.:`,
+  upper case), each said as it is reached; right sends the one reached as a
+  keystroke (`SendInput`, `KEYEVENTF_UNICODE`) and left sends Backspace, so the
+  text field reader echoes them as typing. Log: `[typing] 'a' sent`. The game's
+  own B ends editing as before.
+
+The game list's rows (`Kind::ListItem`) are now among the D-pad navigation
+nodes (`menu_navigation.cpp`). None of this has been tried live: the first
+log of pressing A on a loader box will say whether the loader starts editing
+by itself (`[field] focus ... editable=1` followed by typing) or needs the
+click.
+
 ### Text boxes name the box being typed into (2026-09-25)
 
 The user heard the game-name box named while typing a password, and a box's

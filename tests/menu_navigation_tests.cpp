@@ -46,6 +46,10 @@ void Press(int dx, int dy) {
 }
 
 namespace D2RAccess::InputDirection { DpadInput Dpad() { return dpad; } }
+namespace D2RAccess::PadTyping {
+void Tick(const D2RL::PluginContext*, NativeUi::Focus, std::optional<bool>, uint64_t) {}
+void Reset() {}
+}
 namespace D2RAccess::NativeSkillNavigation {
 bool Available() { return available; }
 void HoldCursor(bool hold) { cursorHeld = hold; }

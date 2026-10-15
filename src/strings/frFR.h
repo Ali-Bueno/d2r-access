@@ -422,6 +422,8 @@ inline constexpr Table frFR {
 	.waypointLocked = "verrouillé",
 	.hintDeleteCharacter = "%s supprime le personnage sélectionné",
 	.hintNoCharacters = "Aucun personnage. Appuyez sur %s pour en créer un",
+	.padTypingOn = "Saisie avec le stick droit activée",
+	.padTypingOff = "Saisie avec le stick droit désactivée",
 };
 
 }
