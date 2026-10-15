@@ -70,6 +70,11 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 		state->Gamepad.sThumbLX = 0;
 		state->Gamepad.sThumbLY = 0;
 	}
+	const bool back = (before & Back) != 0, claimed = g_claimed.load(std::memory_order_relaxed);
+	if (KeepsTrigger(state->Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, back, claimed, g_press[user].lt))
+		state->Gamepad.bLeftTrigger = 0;
+	if (KeepsTrigger(state->Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, back, claimed, g_press[user].rt))
+		state->Gamepad.bRightTrigger = 0;
 	const uint16_t kept = static_cast<uint16_t>(before & ~state->Gamepad.wButtons);
 	if (const uint16_t fresh = static_cast<uint16_t>(kept & ~g_keptLast[user]))
 		g_keptPresses.fetch_or(fresh, std::memory_order_relaxed);
@@ -175,6 +180,12 @@ void ArmLeftStickWithY(uint64_t now) {
 
 bool KeepsLeftStick(uint16_t buttons, bool armed) {
 	return armed && (buttons & XINPUT_GAMEPAD_Y) != 0;
+}
+
+bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press) {
+	if (pulled && !press.down) press.kept = claimed && back;
+	press.down = pulled;
+	return pulled && press.kept;
 }
 
 void ReleaseB() {

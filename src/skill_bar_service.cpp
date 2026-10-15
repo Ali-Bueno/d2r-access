@@ -33,11 +33,13 @@ int HudQuantity(int slot) {
 	return error == std::errc{} && end == text.data() + text.size() ? quantity : 0;
 }
 
-void Read(const D2RL::PluginContext* context) {
-	const auto bar = NativeSkillBar::AlternateBar();
-	if (!bar) { AsyncLog::Info(context, "[skill-bar] LT bar unreadable."); return; }
-	// Counts are only the LT bar's while the HUD itself shows that bar.
-	const bool counts = NativeSkillBar::BackBarShown();
+// The LT bar, or with `main` the bar the HUD shows without LT (BACK+LT, a tester, 2026-10-14).
+void Read(const D2RL::PluginContext* context, bool main = false) {
+	const auto bar = NativeSkillBar::AlternateBar(main);
+	const char* which = main ? "main" : "LT";
+	if (!bar) { AsyncLog::InfoF(context, "[skill-bar] %s bar unreadable.", which); return; }
+	// The HUD's counts belong to the bar it shows.
+	const bool counts = NativeSkillBar::BackBarShown() != main;
 	std::array<SkillBar::Slot, NativeSkillBar::Buttons> slots;
 	for (int i = 0; i < NativeSkillBar::Buttons; ++i) {
 		// ControllerHelpSkill1..6 name SkillButton1..6's control (controllersettings.json variant 0).
@@ -46,7 +48,7 @@ void Read(const D2RL::PluginContext* context) {
 		slots[i].skill = (*bar)[i].name;
 		slots[i].quantity = counts && slots[i].bound ? HudQuantity(i) : 0;
 	}
-	AsyncLog::InfoF(context, "[skill-bar] LT bar skills=%d,%d,%d,%d,%d,%d hud=%d.", (*bar)[0].skill, (*bar)[1].skill,
+	AsyncLog::InfoF(context, "[skill-bar] %s bar skills=%d,%d,%d,%d,%d,%d hud=%d.", which, (*bar)[0].skill, (*bar)[1].skill,
 		(*bar)[2].skill, (*bar)[3].skill, (*bar)[4].skill, (*bar)[5].skill, counts ? 1 : 0);
 	if (const auto text = SkillBar::Compose(slots); !text.empty()) ScreenReader::Speak(text, true);
 }
@@ -69,7 +71,9 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context) {
+	const bool mainBar = InputDirection::TakeBackWithTrigger(false); // taken every tick, so an old press is never read
 	if (!g_supported || !g_enabled) return;
+	if (mainBar && RadarUi::InPlay()) Read(context, true);
 	const auto trigger = InputDirection::LeftTrigger();
 	// InPlay walks the open panels, so it is only asked while LT is down.
 	const bool playing = trigger.held && RadarUi::InPlay();

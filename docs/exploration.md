@@ -129,7 +129,9 @@ Directional lowering applies to both pips. Live listening remains pending.
   the sources of the quest and tome loops -- Tree of Inifuss, Malus, the quest chests, neutral Cairn
   Stones, the Moldy Tome, Horazon's journal) says `El radar ha registrado un objeto de misión nuevo:
   Árbol de Inifuss`. It has no place identity of its own, so it is kept with the map's places under
-  `NativeLevelExits::Identity` of its position; `KnownPlaces` still offers only fixed ones. A Cairn
+  `NativeLevelExits::Identity` of its position. Since 2026-10-14 (a tester: the Cairn Stones were
+  gone from the scanner after a restart while the automap still showed them) `KnownPlaces` offers
+  them again, as quest objects; a loaded object standing on the same spot replaces it. A Cairn
   Stone goes by its plain name, and a second place of the same kind, category and name is silent
   (`ExploredStore::Namesake`), so the five stones are one find. `placeFoundQuest`.
 - **Discovery sound** (2026-09-26): each scan that announces anything plays

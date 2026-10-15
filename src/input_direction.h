@@ -143,6 +143,16 @@ bool TakeBackWithLb();
 // Same Take() rules as BACK+LB.
 StickPush TakeBackWithRightStick();
 
+// BACK+LT (`right` false): the main skill bar; BACK+RT: the next of the mercenary,
+// summons and party members (a tester, 2026-10-14). pad_filter.h keeps that
+// trigger from the game during play. Same Take() rules as BACK+LB.
+bool TakeBackWithTrigger(bool right);
+
+// BACK+A and BACK+down trade places (a tester, 2026-10-14, switch `pad-route-on-a`):
+// BACK+A then gives the route and BACK+down the exit finder, to whichever reads them.
+bool RouteOnA();
+void SetRouteOnA(bool on);
+
 // BACK+RB: opens and closes the mod's settings list, the pad's Ctrl+S
 // (keyboard_service.cpp). pad_filter.h keeps this RB press from the game
 // during play, as it does LB's. Same Take() rules as BACK+LB.

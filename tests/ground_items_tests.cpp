@@ -3,6 +3,8 @@
 #include "item_audio.h"
 #include "speech_strings.h"
 #include "test_support.h"
+
+#include <algorithm>
 #include <D2RLPlugin/item.h>
 #include <cmath>
 #include <limits>
@@ -106,6 +108,27 @@ void Tracking() {
 
 Item Make(uint32_t id, Sound sound, std::string name, Point position = {}) {
 	Item result = Make(id, position, std::move(name)); result.sound = sound; return result;
+}
+// Health and mana potions wait for the voices the rest of the loot leaves (a tester, 2026-10-14).
+void PotionsAfterLoot() {
+	Tracker tracker;
+	Snapshot scene{1, {}};
+	for (uint32_t i = 0; i < MaxVoices; ++i) {
+		auto potion = Make(i, Sound::Potion, "Poción", {1.0 + i, 0});
+		potion.common = true;
+		scene.items.push_back(potion);
+	}
+	scene.items.push_back(Make(100, Sound::Rare, "Anillo", {20, 0}));
+	auto batch = tracker.Tick(scene, 1000, false);
+	Check(batch.voices.size() == MaxVoices && std::any_of(batch.voices.begin(), batch.voices.end(), [](const Voice& voice) { return voice.id == 100; }),
+		"a far ring is heard over the nearer potions");
+	GroundItems::SetPotionsLast(false);
+	batch = tracker.Tick(scene, 2000, false);
+	Check(std::none_of(batch.voices.begin(), batch.voices.end(), [](const Voice& voice) { return voice.id == 100; }),
+		"with the switch off the nearest are heard, as before");
+	GroundItems::SetPotionsLast(true);
+	scene.items.pop_back();
+	Check(tracker.Tick(scene, 3000, false).voices.size() == MaxVoices, "with nothing else near, the potions take every voice");
 }
 void SpeechPriority() {
 	Tracker tracker;
@@ -274,7 +297,7 @@ void DropSoundSet() {
 }
 
 int main() {
-	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); Doors(); QuestSources(); DropSoundSet();
+	Classification(); Position(); Tracking(); SpeechPriority(); PotionsAfterLoot(); Containers(); Doors(); QuestSources(); DropSoundSet();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");

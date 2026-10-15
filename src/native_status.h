@@ -1,14 +1,18 @@
 #pragma once
 
 #include <D2RLPlugin/api.h>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
+#include <vector>
 
 namespace D2RAccess::NativeStatus {
 
 bool Initialize(const D2RL::PluginContext* context);
-// No reading when the player is absent, dead, or the verified native path fails.
-std::optional<bool> PlayerPoisoned() noexcept;
+// Which of `states` (states.txt rows) are on the local player, as indexes into
+// `states`. No reading when the player is absent, dead, or the verified native path fails.
+std::optional<std::vector<size_t>> PlayerStates(std::span<const int> states);
 
 // The local player's gait and stamina; absent when the player is absent,
 // dead, or the verified path fails. The gait is known only while moving.

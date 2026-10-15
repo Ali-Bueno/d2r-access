@@ -59,4 +59,6 @@ hireling identification now that the panel's relation call is known.
 
 Before adding further player-effect speech, tie any additional state id to
 the game's own rendered effect. Announcing freeze or other effects from
-unverified state ids would risk false alerts.
+unverified state ids would risk false alerts. 2026-10-14: freeze, chill, stun,
+slowing and the monster curses are now spoken by their `states.txt` rows, the
+game's own state ids for the same checker ([status effects](status-effects.md)).

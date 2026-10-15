@@ -34,6 +34,10 @@ int ItemSoundSet();
 void SetItemSoundSet(int set);
 bool LastEpochSounds();
 bool DropSounds();
+// When more items lie near than there are voices, health and mana potions sound
+// only in the voices the rest of the loot leaves (a tester, 2026-10-14).
+bool PotionsLast();
+void SetPotionsLast(bool on);
 // An item's drop sound by its code; none for a code the item tables do not know.
 std::optional<Sound> DropSoundOf(uint32_t code);
 enum class SourceKind { Item, Object };
@@ -45,6 +49,7 @@ struct Item {
 	std::optional<Sound> play;   // a sound played in its place (a drop sound)
 	std::string name, baseName;
 	SourceKind source = SourceKind::Item;
+	bool common = false; // a health or mana potion: heard after the rest of the loot (PotionsLast)
 };
 // Landmarks, containers, quest objects, shut doors, shrines and wells only loop; proximity speech is for items.
 struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines; };

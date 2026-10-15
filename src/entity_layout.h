@@ -34,7 +34,7 @@ inline constexpr size_t InventoryOwner = 8, InventoryItemCount = 0x4C;
 inline constexpr uint32_t MaxSockets = 6; // ItemsTxt gemsockets tops out at 6
 inline constexpr size_t UnitFlags1 = 0x124, UnitFlags2 = 0x128;
 inline constexpr uint32_t ForcedDead = 1u << 16; // Unit+0x124, liveness test 0x34C2C0
-inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0 (inferred: set on player-owned spawns)
+inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0: on the client the hireling alone (docs/summons-and-corpses-re.md)
 // Dynamic path (players/monsters): packed 16.16 X/Y at +0, room at +0x20 (native_world.cpp).
 // Static path (items/objects): room at +0, integer X/Y at +0x10/+0x14 (ground_item_layout.h).
 inline constexpr size_t PathRoom = 0x20;
@@ -252,4 +252,25 @@ inline constexpr Evidence CorpseChecks[] = {
 	{0x12D7E0, 66, 0x8C76B7E4ADFCAF4FULL}, // packet 0x74: owner and corpse ids
 	{0xFF910, 431, 0x00E34CF334B2272AULL}, // 0x74 sets the corpse inventory's link ID
 };
+// A dead monster's corpse a Necromancer's skills can take (core rule 0x33FBE0):
+// mode 12, MonStats2 corpseSel, and no udead state (a raised or exploded corpse
+// carries one). docs/summons-and-corpses-re.md §4, §8.
+inline constexpr size_t MonStatsExtra = 0x4C; // int16 monstats2 row (MonStatsEx)
+inline constexpr size_t MonStats2 = 0xF98, MonStats2Count = 0xFA0, MonStats2Stride = 0x128, MonStats2Flags = 4;
+inline constexpr uint8_t CorpseSelectable = 1u << 7;
+// The udead states' mask (a pointer to a dword bit array) and the states row count in the table bank.
+inline constexpr size_t UdeadStateMask = 0x3D8, StateCount = 0x298;
+// A unit's stat list (0x34B870); its active-state bits at +0xAF0 exist only when +0x1C is negative (0x2F6370).
+inline constexpr size_t UnitStats = 0x88, StatsExtended = 0x1C, StatsActiveStates = 0xAF0;
+inline constexpr uint64_t MaxStates = 1024; // a bound on the read: states.txt has 232 rows
+inline constexpr Evidence UsableCorpseChecks[] = {
+	{0x33FBE0, 177, 0xAAB1ED1B6CE1192CULL}, // core rule: mode 12, !udead, corpseSel
+	{0x975B0, 300, 0x58E2457EEE069F89ULL},  // MonStats2 row: MonStats +0x4C, bank +0xF98/+0xFA0
+	{0x336300, 42, 0x5033F280CDEB4295ULL},  // udead mask pointer at bank+0x3D8
+	{0x336440, 159, 0x7458FBC20E6C1529ULL}, // mask AND the active states, (bank+0x298 + 31) >> 5 words
+	{0x2F6370, 96, 0x5854EA1B418EE4BAULL},  // active states at stat list +0xAF0 when +0x1C < 0
+	{0x34B870, 59, 0xF5A91004595DA706ULL},  // stat list Unit+0x88
+};
+// charstats.txt row of the Necromancer, the class whose skills use corpses.
+inline constexpr uint32_t NecromancerClass = 2;
 }

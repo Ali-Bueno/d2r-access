@@ -31,8 +31,10 @@ using Container = D2RL::Items::ItemContainer;
 constexpr uint64_t SampleMs = 100; // a purchase answers a button press
 constexpr std::string_view InventoryPanel = "PlayerInventoryExpansionLayout";
 std::atomic<bool> g_enabled = true;
+std::atomic<bool> g_stashNotice = true;
 uint64_t g_nextSample = 0;
 std::optional<std::vector<Item>> g_baseline; // what the player held at the last sample, while the inventory is open
+bool g_baselineStash = false;                // the baseline holds the stashes too
 uint32_t g_heldBefore = 0;
 
 Place PlaceOf(Container container) {
@@ -40,6 +42,8 @@ Place PlaceOf(Container container) {
 	case Container::Inventory: return Place::Backpack;
 	case Container::Belt: return Place::Belt;
 	case Container::Equipment: return Place::Worn;
+	case Container::PersonalStash: return Place::PersonalStash;
+	case Container::SharedStash: return Place::SharedStash;
 	default: return Place::Other;
 	}
 }
@@ -50,7 +54,8 @@ auto __cdecl Collect(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* in
 		items->push_back({info->runtimeId, info->classId, static_cast<uint32_t>(info->quality), PlaceOf(info->container), info->x, info->y});
 	return D2RL::Inventory::IterationAction::Continue;
 }
-std::optional<std::vector<Item>> Read(const D2RL::PluginContext* context) {
+// The stashes are read only while the stash is open, the one time their items can move.
+std::optional<std::vector<Item>> Read(const D2RL::PluginContext* context, bool stash) {
 	using D2RL::Items::ContainerBit;
 	const D2RL::InventoryService* inventory = nullptr;
 	if (!context || context->QueryService(&inventory) != D2RL::ServiceQueryResult::Success
@@ -62,7 +67,8 @@ std::optional<std::vector<Item>> Read(const D2RL::PluginContext* context) {
 	const D2RL::Inventory::ItemFilter filter{
 		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
 		.flags = 0,
-		.containerMask = ContainerBit(Container::Inventory) | ContainerBit(Container::Belt) | ContainerBit(Container::Equipment),
+		.containerMask = ContainerBit(Container::Inventory) | ContainerBit(Container::Belt) | ContainerBit(Container::Equipment)
+			| (stash ? ContainerBit(Container::PersonalStash) | ContainerBit(Container::SharedStash) : 0U),
 		.reserved = 0};
 	std::vector<Item> items;
 	if (inventory->forEachInventoryItem(context, player, &filter, Collect, &items) != D2RL::Inventory::Result::Success)
@@ -86,6 +92,8 @@ constexpr std::string_view ExpansionStash = "BankExpansionLayout";
 constexpr unsigned SortPressMs = 4 * SampleMs;
 // How long the gold deposit notice keeps interrupting speech behind it: the length of the sentence.
 constexpr uint64_t GoldLeadMs = 2000;
+// The same for an item sent into the stash, whose name comes with it.
+constexpr uint64_t StashedLeadMs = 2500;
 bool StashOpen() {
 	const auto& open = PanelState::OpenPanels();
 	return std::find(open.begin(), open.end(), ExpansionStash) != open.end();
@@ -106,6 +114,20 @@ void AnnounceSorted(const D2RL::PluginContext* context, const std::vector<Item>&
 		std::snprintf(text, sizeof(text), Strings::Current().itemMovedToStash, name.c_str(), StashTab(item.classId));
 		AsyncLog::InfoF(context, "[items] sorted into the stash id=%u class=%u -> \"%s\"", item.id, item.classId, text);
 		ScreenReader::Speak(text, false);
+	}
+}
+// An item sent from the backpack straight into a stash, named with the stash as gold is,
+// and leading for the same reason: the focus re-reads the cell it left.
+void AnnounceStashed(const D2RL::PluginContext* context, const std::vector<Item>& before, const std::vector<Item>& now, uint32_t held) {
+	if (!g_stashNotice.load()) return;
+	for (const auto& item : InventoryArrivals::Stashed(before, now, held)) {
+		const auto name = InteractionReader::ItemName(item.id, item.classId, item.quality);
+		const auto& strings = Strings::Current();
+		char text[300]{};
+		std::snprintf(text, sizeof(text), item.place == Place::SharedStash ? strings.itemMovedToSharedStash
+			: strings.itemMovedToPersonalStash, name.c_str());
+		AsyncLog::InfoF(context, "[items] stashed id=%u place=%d -> \"%s\"", item.id, static_cast<int>(item.place), text);
+		ScreenReader::Lead(text, GetTickCount64() + StashedLeadMs);
 	}
 }
 // Gold that leaves the backpack while the stash is open went into it. The notice leads, so the gold row's
@@ -148,7 +170,11 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	if (now < g_nextSample) return;
 	g_nextSample = now + SampleMs;
-	auto items = Read(context);
+	// A baseline read with the stash closed has no stash items to compare, and the other way round.
+	const bool stash = StashOpen();
+	if (stash != g_baselineStash) g_baseline.reset();
+	g_baselineStash = stash;
+	auto items = Read(context, stash);
 	const auto held = InventoryCursor::HeldItemId(context);
 	if (!items || !held) return;
 	if (g_baseline) for (const auto& arrival : InventoryArrivals::Diff(*g_baseline, *items, g_heldBefore)) {
@@ -164,8 +190,12 @@ void Tick(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(text, false);
 	}
 	if (g_baseline) AnnounceSorted(context, *g_baseline, *items, *held);
+	if (g_baseline) AnnounceStashed(context, *g_baseline, *items, g_heldBefore);
 	AnnounceGoldDeposit(context);
 	g_baseline = std::move(*items);
 	g_heldBefore = *held;
 }
+
+bool StashNotice() { return g_stashNotice.load(); }
+void SetStashNotice(bool on) { g_stashNotice = on; }
 }

@@ -15,6 +15,7 @@
 #include "tomb_symbols.h"
 #include "quest_seals.h"
 #include "native_memory.h"
+#include "native_pets.h"
 #include "localization.h"
 #include "monster_plate.h"
 #include "speech_strings.h"
@@ -24,7 +25,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <unordered_set>
@@ -51,6 +54,20 @@ bool g_rosterSupported = false;
 bool g_socketsSupported = false;
 bool g_unbuiltSupported = false; // PresetMapLayout checks passed: presets of rooms not built yet are read
 bool g_npcAlertsSupported = false; // NpcAlertChecks passed: the "!" over town NPCs is read
+bool g_usableCorpsesSupported = false; // UsableCorpseChecks passed: a Necromancer's corpses are counted
+std::mutex g_usableMutex;
+UsableCorpses g_usable;
+const D2RL::PluginContext* g_context = nullptr;
+// The game's flames (objects.txt Name "fire": FireSmall/Medium/Large, braziers, the camp
+// bonfire) cannot be targeted. One within the reach of a body's footprint sets it alight
+// (a tester, 2026-10-14: "Burning Dead Rogue" in the Tower Cellar). MEASURED nothing yet:
+// each fire is logged once so a crypt's pentagram and its corpses can be told apart.
+constexpr std::string_view FireKey = "fire";
+constexpr double BurningReach = 3;
+constexpr size_t MaxLoggedFires = 64;
+struct Fire { uint32_t id = 0, classId = 0; Radar::Position at; };
+std::mutex g_fireMutex;
+std::unordered_set<uint32_t> g_loggedFires;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -92,6 +109,66 @@ bool DynamicPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) 
 	if (!Peek(unit + UnitPath, path) || !path || !Peek(path + PathRoom, pathRoom) || pathRoom != room || !Peek(path, packed)) return false;
 	position = {packed[0] / PositionScale, packed[1] / PositionScale};
 	return true;
+}
+// A corpse that has been raised, exploded or otherwise used carries a udead state.
+bool UsedCorpse(uintptr_t unit, uintptr_t tablesAddress) {
+	uintptr_t stats = 0, mask = 0;
+	int32_t extended = 0;
+	uint64_t states = 0;
+	if (!Peek(unit + UnitStats, stats)) return true;
+	if (!stats) return false;
+	if (!Peek(stats + StatsExtended, extended)) return true;
+	if (extended >= 0) return false; // no active states at all
+	if (!Peek(tablesAddress + UdeadStateMask, mask) || !mask || !Peek(tablesAddress + StateCount, states) || states > MaxStates) return true;
+	constexpr size_t MaxWords = (MaxStates + 31) >> 5;
+	const size_t words = static_cast<size_t>((states + 31) >> 5);
+	std::array<uint32_t, MaxWords> udead{}, active{};
+	if (!NativeMemory::Copy(mask, udead.data(), words * sizeof(uint32_t))
+		|| !NativeMemory::Copy(stats + StatsActiveStates, active.data(), words * sizeof(uint32_t))) return true;
+	for (size_t i = 0; i < words; ++i) if (udead[i] & active[i]) return true;
+	return false;
+}
+// The player's table bank, as ReadMonster reads every monster's row: a monster and the
+// player it is near share the game's bank (Unit+0x1BD, docs/summons-and-corpses-re.md §8).
+bool UsableCorpse(uintptr_t unit, uintptr_t tablesAddress, uint64_t monsterCount, uintptr_t monsters) {
+	uint32_t mode = 0, classId = 0;
+	int16_t extra = -1;
+	uintptr_t rows = 0;
+	uint64_t count = 0;
+	uint8_t flags = 0;
+	return Peek(unit + UnitMode, mode) && mode == MonsterDead && Peek(unit + UnitClass, classId) && classId < monsterCount
+		&& Peek(monsters + classId * MonStatStride + MonStatsExtra, extra) && extra >= 0
+		&& Peek(tablesAddress + MonStats2, rows) && rows && Peek(tablesAddress + MonStats2Count, count)
+		&& static_cast<uint64_t>(extra) < count && Peek(rows + static_cast<uintptr_t>(extra) * MonStats2Stride + MonStats2Flags, flags)
+		&& (flags & CorpseSelectable) && !UsedCorpse(unit, tablesAddress);
+}
+bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position);
+void NoteFire(uintptr_t unit, uintptr_t room, const Tables& tables, std::vector<Fire>& fires) {
+	Fire fire;
+	if (!Peek(unit + UnitClass, fire.classId) || fire.classId >= tables.objectCount || !Peek(unit + UnitId, fire.id)
+		|| CString(tables.objects + fire.classId * ObjectStride + ObjNameKey, MaxKeyBytes) != FireKey
+		|| !StaticPosition(unit, room, fire.at)) return;
+	fires.push_back(fire);
+}
+// A body with a fire on it is said burning, and each fire is logged once with the nearest body.
+void MarkBurning(std::vector<EntityRadar::Entity>& entities, const std::vector<Fire>& fires) {
+	for (const auto& fire : fires) {
+		double nearest = std::numeric_limits<double>::infinity();
+		for (auto& entity : entities) {
+			if (!entity.corpse) continue;
+			const double distance = std::hypot(entity.position.x - fire.at.x, entity.position.y - fire.at.y);
+			nearest = std::min(nearest, distance);
+			if (distance > BurningReach || entity.burning) continue;
+			entity.burning = true;
+			char name[MaxNameBytes + 64]{};
+			std::snprintf(name, sizeof(name), Strings::Current().burningCorpse, entity.name.c_str());
+			entity.name = name;
+		}
+		std::lock_guard lock(g_fireMutex);
+		if (g_context && g_loggedFires.size() < MaxLoggedFires && g_loggedFires.insert(fire.id).second)
+			AsyncLog::InfoF(g_context, "[scan] fire id=%u class=%u at=%.0f,%.0f nearest body %.1f", fire.id, fire.classId,
+				fire.at.x, fire.at.y, nearest);
+	}
 }
 bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) {
 	uintptr_t path = 0, pathRoom = 0;
@@ -192,13 +269,18 @@ bool HasOverlay(uintptr_t unit, int32_t id) {
 	}
 	return false;
 }
-bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce, EntityRadar::Entity& entity) {
+// A player's pet -- a summon, the hireling, a bound demon -- is neither an NPC nor an
+// enemy: every summon is Align 1, a bound demon keeps its hostile class, and the
+// hireling's own flag marks no summon (docs/summons-and-corpses-re.md §3).
+bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce,
+	const std::unordered_set<uint32_t>& pets, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
 	uintptr_t data = 0;
 	if (!Peek(unit + UnitMode, mode) || mode == MonsterDeath || mode == MonsterDead
 		|| !Peek(unit + UnitFlags1, flags) || (flags & (ForcedDead | PlayerMinion))
 		|| !Peek(unit + UnitClass, classId) || classId >= tables.monsterCount
-		|| !Peek(unit + UnitId, entity.id) || !DynamicPosition(unit, room, entity.position)) return false;
+		|| !Peek(unit + UnitId, entity.id) || pets.contains(entity.id) || NativePets::PlayerOwned(unit)
+		|| !DynamicPosition(unit, room, entity.position)) return false;
 	const uintptr_t row = tables.monsters + classId * MonStatStride;
 	uint16_t nameId = 0;
 	uint8_t align = 0, flagsA = 0;
@@ -583,7 +665,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = false; g_plate.reset(); return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = false;
@@ -613,6 +695,10 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (g_unbuiltSupported) AsyncLog::Info(context, "[scan] Verified unbuilt-room preset reader.");
 	g_npcAlertsSupported = LayoutCheck::Verify(context, context->exeBase, NpcAlertChecks, "npc-alerts", "the NPC exclamation mark not read");
 	if (g_npcAlertsSupported) AsyncLog::Info(context, "[scan] Verified NPC exclamation mark reader.");
+	(void)NativePets::Initialize(context);
+	g_context = context;
+	g_usableCorpsesSupported = LayoutCheck::Verify(context, context->exeBase, UsableCorpseChecks, "corpses", "a Necromancer's corpses not counted");
+	if (g_usableCorpsesSupported) AsyncLog::Info(context, "[scan] Verified usable corpse reader.");
 	return true;
 }
 std::optional<uint32_t> FilledSockets(uintptr_t unit) {
@@ -678,6 +764,15 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	const auto pierce = PlayerPierce(player);
 	std::vector<TownNpcs::Live> liveNpcs;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
+	std::unordered_set<uint32_t> pets;
+	if (const auto all = NativePets::All()) for (const auto& pet : *all) pets.insert(pet.id);
+	std::vector<Fire> fires;
+	UsableCorpses usable;
+	uint32_t playerClass = 0;
+	usable.necromancer = g_usableCorpsesSupported && Peek(player + UnitClass, playerClass) && playerClass == NecromancerClass
+		&& DynamicPosition(player, room, usable.player);
+	usable.playerId = playerId;
+	usable.readMs = GetTickCount64();
 	for (size_t r = 0; r < rooms.size(); ++r) {
 		const uintptr_t candidateRoom = rooms[r];
 		const bool past = r >= ring;
@@ -690,9 +785,13 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
 			if (unitType == MonsterType) NoteDead(unit);
+			if (Radar::Position at; usable.necromancer && !past && unitType == MonsterType
+				&& UsableCorpse(unit, tablesAddress, tables.monsterCount, tables.monsters) && DynamicPosition(unit, candidateRoom, at))
+				usable.corpses.push_back(at);
+			if (unitType == ObjectType && !past) NoteFire(unit, candidateRoom, tables, fires);
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
-				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
+				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, pets, entity))
 				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, session, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
 				if (unitType == MonsterType && entity.kind == EntityRadar::Kind::Npc) {
@@ -705,6 +804,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (!Peek(unit + UnitNext, unit)) { if (past) break; return false; }
 		}
 	}
+	MarkBurning(entities, fires);
 	// Permanent level transitions may outlive their loaded warp units. Read
 	// the existing presets across this level, then merge by exact position.
 	std::vector<NativeLevelExits::Exit> exits;
@@ -746,11 +846,19 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
+	{
+		std::lock_guard lock(g_usableMutex);
+		g_usable = std::move(usable);
+	}
 	return true;
 }
 std::vector<uint32_t> TakeDeadMonsters() {
 	std::lock_guard lock(g_deadMutex);
 	return std::exchange(g_deadMonsters, {});
+}
+UsableCorpses LastUsableCorpses() {
+	std::lock_guard lock(g_usableMutex);
+	return g_usable;
 }
 
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {

@@ -6,13 +6,26 @@
 #include "localization.h"
 #include "mercenary_stats.h"
 #include "native_memory.h"
+#include "entity_cue_service.h"
+#include "entity_cues.h"
+#include "entity_layout.h"
+#include "ground_item_layout.h"
+#include "minion_report.h"
+#include "native_entities.h"
+#include "native_ground_items.h"
+#include "native_pets.h"
+#include "native_skill_bar.h"
 #include "native_status.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "status_effects.h"
 #include "vitals.h"
+#include "corpse_memory.h"
+#include "entity_radar.h"
+#include "spoken_direction.h"
 #include "wall_slide_service.h"
 #include "weapon_swap.h"
 
@@ -23,6 +36,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <span>
 #include <string>
@@ -55,7 +69,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
-bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true;
+bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -64,7 +78,8 @@ uint32_t g_lastMercId = 0;
 uint64_t g_nextOrb = 0, g_nextDurability = 0;
 Vitals::Alerts g_alerts;
 Vitals::OrbAvailability g_orbAvailability;
-Vitals::Condition g_poison;
+StatusEffects::Tracker g_effects;
+MinionReport::Stepper g_companions;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
 Vitals::GaitTracker g_gait;
@@ -90,6 +105,44 @@ void Append(std::string& text, std::string_view phrase) {
 	if (phrase.empty()) return;
 	if (!text.empty()) text += ". ";
 	text += phrase;
+}
+
+// What the game's state checker is asked, in StatusEffects::Effects order.
+constexpr auto EffectStates = [] {
+	std::array<int, StatusEffects::Effects.size()> states{};
+	for (size_t i = 0; i < states.size(); ++i) states[i] = StatusEffects::Effects[i].state;
+	return states;
+}();
+
+// An effect's words as it begins or ends: a condition in the mod's own, a curse by its name.
+std::string EffectWords(size_t index, bool started) {
+	const auto& effect = StatusEffects::Effects[index];
+	const auto& strings = Strings::Current();
+	if (!effect.Curse()) {
+		const auto condition = static_cast<size_t>(effect.condition);
+		return started ? strings.conditionsStarted[condition] : strings.conditionsEnded[condition];
+	}
+	std::string name = effect.skill >= 0 ? NativeSkillBar::SkillName(effect.skill)
+		: strings.curseNames[static_cast<size_t>(effect.curseName)];
+	if (name.empty()) name = strings.curseUnnamed;
+	char text[200]{};
+	std::snprintf(text, sizeof(text), started ? strings.curseStarted : strings.curseEnded, name.c_str());
+	return text;
+}
+
+// A harmful state's beginning comes first, cutting in; its end waits its turn (a tester, 2026-10-14).
+void AnnounceEffects(const D2RL::PluginContext* context, const StatusEffects::Change& change) {
+	std::string started, ended;
+	for (const auto index : change.started) Append(started, EffectWords(index, true));
+	for (const auto index : change.ended) Append(ended, EffectWords(index, false));
+	if (!started.empty()) {
+		AsyncLog::InfoF(context, "[vitals] effect began -> \"%s\"", started.c_str());
+		ScreenReader::Speak(started, true);
+	}
+	if (!ended.empty()) {
+		AsyncLog::InfoF(context, "[vitals] effect ended -> \"%s\"", ended.c_str());
+		ScreenReader::Speak(ended, false);
+	}
 }
 
 int StaminaPercent(const NativeStatus::Movement& movement) {
@@ -202,6 +255,112 @@ void HintOrbText(unsigned missing, bool force = false) {
 // step is crossed, so without a key there is no way to ask "where am I now";
 // this reads the same two orbs at the moment the key is pressed. Life or Mana
 // asks for that orb alone (the keyboard's Z and X), and nothing else with it.
+MinionReport::Kind PetKind(int type) {
+	const auto shown = NativePets::KindOf(type);
+	if (!shown || shown->iconType < 0 || shown->iconType > static_cast<int>(MinionReport::IconType::Each)) return {};
+	return {static_cast<MinionReport::IconType>(shown->iconType), shown->drawHp, shown->name};
+}
+
+// The local player's summons as the party portraits show them, each with the
+// pet it names; `ids` holds the pets' unit ids. docs/summons-and-corpses-re.md
+std::vector<MinionReport::Entry> Summons(uint32_t player, std::vector<uint32_t>& ids) {
+	ids.clear();
+	const auto all = NativePets::All();
+	if (!all) return {};
+	std::vector<MinionReport::Pet> pets;
+	for (const auto& pet : *all) if (pet.owner == player && !pet.deadHireling) {
+		pets.push_back({pet.classId, pet.type, pet.life});
+		ids.push_back(pet.id);
+	}
+	const auto& strings = Strings::Current();
+	return MinionReport::Entries(pets, PetKind, NativePets::ClassName, {strings.minionCount, strings.minionLife, strings.minionNumbered});
+}
+
+bool LocalPlayer(uint32_t& id) {
+	uintptr_t player = 0, tables = 0;
+	return NativeGroundItems::RuntimeRoots(player, tables) && NativeMemory::Peek(player + GroundItemLayout::UnitId, id);
+}
+
+// The summons, when switched into the report (a long list for a summoner: BACK+RT
+// steps through them instead), then a Necromancer's usable corpses nearby.
+std::string Minions(const D2RL::PluginContext* context) {
+	const auto& strings = Strings::Current();
+	std::string text;
+	uint32_t id = 0;
+	if (!LocalPlayer(id)) return {};
+	if (g_minionReport) {
+		std::vector<uint32_t> ids;
+		for (const auto& entry : Summons(id, ids)) {
+			if (!text.empty()) text += strings.listSeparator;
+			text += entry.text;
+		}
+		AsyncLog::InfoF(context, "[vitals] minions: %zu pets -> \"%s\"", ids.size(), text.c_str());
+	}
+	if (const auto usable = NativeEntities::LastUsableCorpses(); usable.necromancer && usable.playerId == id
+		&& usable.readMs + EntityCues::CorpsesFreshMs >= GetTickCount64()) {
+		const auto count = EntityCues::CorpsesWithin(usable.player, usable.corpses, EntityCueService::Range());
+		Append(text, FormattedPercent(strings.usableCorpses, static_cast<int>(count)));
+	}
+	return text;
+}
+
+// "<entry>, 12 units, northeast", as the NPC announcer says where one stands.
+std::string Whereabouts(std::string text, std::optional<Radar::Position> at, std::optional<Radar::Position> player) {
+	if (!at || !player) return text;
+	const Radar::Position offset{at->x - player->x, at->y - player->y};
+	const double distance = std::hypot(offset.x, offset.y);
+	const auto& strings = Strings::Current();
+	const EntityRadar::Settings scan;
+	text += ", " + EntityRadar::DistancePhrase(distance, scan, strings);
+	if (!EntityRadar::UnderPlayer(distance, scan)) text += std::string(", ") + SpokenDirection::Of(offset, strings);
+	return text;
+}
+
+// What BACK+RT steps through (a tester, 2026-10-14): the mercenary, each summon
+// entry, each party member, with life and where each stands when known.
+std::vector<std::string> Companions() {
+	constexpr uint32_t PlayerUnit = GroundItemLayout::PlayerType, MonsterUnit = EntityLayout::MonsterType;
+	std::vector<std::string> entries;
+	uint32_t id = 0;
+	if (!LocalPlayer(id)) return entries;
+	const auto& strings = Strings::Current();
+	const auto here = NativePets::PositionOf(id, PlayerUnit);
+	if (const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt; mercenary && mercenary->lifePercent >= 0)
+		entries.push_back(Whereabouts(FormattedPercent(strings.mercenaryLife, mercenary->lifePercent),
+			NativePets::PositionOf(mercenary->id, MonsterUnit), here));
+	std::vector<uint32_t> ids;
+	for (const auto& entry : Summons(id, ids))
+		entries.push_back(entry.pet < 0 ? entry.text
+			: Whereabouts(entry.text, NativePets::PositionOf(ids[static_cast<size_t>(entry.pet)], MonsterUnit), here));
+	std::vector<CorpseMemory::Owner> roster;
+	if (!NativeEntities::ReadRosterCorpses(id, roster)) return entries;
+	const auto self = std::find_if(roster.begin(), roster.end(), [&](const auto& member) { return member.id == id; });
+	for (const auto& member : roster) {
+		if (!member.partyMember || member.name.empty()) continue;
+		char text[300]{};
+		std::snprintf(text, sizeof(text), strings.minionLife, member.name.c_str(), static_cast<int>(member.life));
+		if (self != roster.end() && member.level != self->level) {
+			char area[300]{};
+			std::snprintf(area, sizeof(area), strings.inArea, NativeEntities::LevelName(member.level).c_str());
+			entries.push_back(std::string(text) + ", " + area);
+			continue;
+		}
+		auto at = NativePets::PositionOf(member.id, PlayerUnit);
+		if (!at && member.located) at = member.position;
+		entries.push_back(Whereabouts(text, at, here));
+	}
+	return entries;
+}
+
+void StepCompanions(const D2RL::PluginContext* context) {
+	const NativeMemory::ReadScope scope;
+	const auto entries = Companions();
+	const int at = g_companions.Next(entries.size(), GetTickCount64());
+	const std::string text = at < 0 ? Strings::Current().noCompanions : entries[static_cast<size_t>(at)];
+	AsyncLog::InfoF(context, "[vitals] BACK+RT %d of %zu -> \"%s\"", at + 1, entries.size(), text.c_str());
+	ScreenReader::Speak(text, true);
+}
+
 void Report(const D2RL::PluginContext* context, Command what = Command::Report) {
 	const auto& strings = Strings::Current();
 	const NativeMemory::ReadScope scope;
@@ -227,10 +386,9 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		if (!text.empty()) text += ". ";
 		text += FormattedPercent(strings.vitalsMana, mana);
 	}
-	if (g_statusSupported && NativeStatus::PlayerPoisoned() == true) {
-		if (!text.empty()) text += ". ";
-		text += strings.playerPoisoned;
-	}
+	// Read now, not from the tracker: the report answers with the announcements off too.
+	if (const auto active = g_statusSupported ? NativeStatus::PlayerStates(EffectStates) : std::nullopt)
+		for (const auto index : *active) Append(text, EffectWords(index, true));
 	if (const auto movement = g_statusSupported ? NativeStatus::PlayerMovement() : std::nullopt) {
 		const int stamina = StaminaPercent(*movement);
 		if (stamina >= 0 && stamina < 100) Append(text, FormattedPercent(strings.staminaPercent, stamina));
@@ -253,6 +411,7 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 			if (mercenary->level > 0) Append(text, MercenaryLevel(mercenary->level));
 		}
 	}
+	Append(text, Minions(context));
 	// Asked for, so it interrupts: the player is waiting for this answer.
 	if (!text.empty()) ScreenReader::Speak(text, true);
 	HintOrbText(missing, true);
@@ -409,7 +568,7 @@ void Unregister() {
 void Reset() {
 	g_alerts.Reset();
 	g_orbAvailability.Reset();
-	g_poison.Reset();
+	g_effects.Reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
 	g_gait.Reset();
@@ -440,6 +599,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const auto command = g_command.exchange(Command::None);
 	// Always taken, so a press made in a menu is never heard later.
 	if (InputDirection::TakeLeftStickClick() && RadarUi::InPlay()) g_runToggled = true;
+	if (InputDirection::TakeBackWithTrigger(true) && RadarUi::InPlay()) StepCompanions(context);
 	if (command == Command::Life || command == Command::Mana) Report(context, command);
 	else if (command == Command::Report || BackRequested()) Report(context);
 	if (command == Command::On || command == Command::Off) {
@@ -463,7 +623,7 @@ void Tick(const D2RL::PluginContext* context) {
 			// the next character instead of comparing against the last one.
 			g_alerts.Reset();
 			g_orbAvailability.Reset();
-			g_poison.Reset();
+			g_effects.Reset();
 			g_mercenary.Reset();
 			g_gait.Reset();
 			g_stamina.Reset();
@@ -491,11 +651,14 @@ void Tick(const D2RL::PluginContext* context) {
 					mercenary ? std::optional<uint32_t>(mercenary->id) : std::nullopt,
 					mercenary ? mercenary->lifePercent : -1, mercenary ? mercenary->level : -1);
 			}
+			// A state that begins cuts in, so it goes first: the life alert of the same hit queues behind it.
+			if (g_statusSupported)
+				if (const auto active = NativeStatus::PlayerStates(EffectStates)) {
+					const auto change = g_effects.Update(*active, now);
+					if (g_statusAlerts) AnnounceEffects(context, change);
+				}
 			Announce(playerAlert, mercenaryAlert);
 			if (g_statusSupported) {
-				const auto changed = g_poison.Update(NativeStatus::PlayerPoisoned());
-				if (changed) ScreenReader::Speak(*changed ? Strings::Current().playerPoisoned
-					: Strings::Current().playerPoisonCleared, false);
 				if (g_movementAlerts) AnnounceMovement(context, g_runToggled);
 				g_runToggled = false;
 			}
@@ -523,6 +686,10 @@ bool AmmoAlerts() { return g_ammoAlerts; }
 void SetAmmoAlerts(bool enabled) { g_ammoAlerts = enabled; }
 bool ExperienceReport() { return g_experienceReport; }
 void SetExperienceReport(bool enabled) { g_experienceReport = enabled; }
+bool StatusAlerts() { return g_statusAlerts; }
+void SetStatusAlerts(bool enabled) { g_statusAlerts = enabled; }
+bool MinionsReported() { return g_minionReport; }
+void SetMinionsReported(bool enabled) { g_minionReport = enabled; }
 int ManaAlerts() { return static_cast<int>(g_manaAlerts); }
 void SetManaAlerts(int level) {
 	g_manaAlerts = static_cast<Vitals::ManaAlerts>(std::clamp(level, 0, Vitals::ManaAlertLevels - 1));

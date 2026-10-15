@@ -1,4 +1,5 @@
 #pragma once
+#include "percent_steps.h"
 #include <array>
 #include <cstdint>
 
@@ -23,8 +24,9 @@ struct Decision {
 const char* ReasonName(Reason reason);
 // The player's own footsteps as a percent of the game's. A sound instance keeps
 // its volume in 0-255, so a step grows only while it fits (docs/footsteps.md).
-inline constexpr std::array VolumePercents{25, 50, 75, 100, 150, 200, 300};
-inline constexpr int NeutralVolumePercent = 100, NeutralVolumeLevel = 3, MaxInstanceVolume = 255;
+inline constexpr auto VolumePercents = PercentSteps::Quarters<25, 300>();
+inline constexpr int NeutralVolumePercent = 100, MaxInstanceVolume = 255;
+inline constexpr int NeutralVolumeLevel = PercentSteps::LevelOf(VolumePercents, NeutralVolumePercent);
 static_assert(VolumePercents[NeutralVolumeLevel] == NeutralVolumePercent);
 // A stock instance volume scaled by `percent`, kept within 1 and MaxInstanceVolume.
 int ScaleVolume(int stock, int percent);

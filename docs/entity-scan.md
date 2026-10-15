@@ -39,9 +39,9 @@ automap; enemies are the one live category.
   layout. A later game on the same map lists them from anywhere on the level,
   before the game streams their rooms again. A regenerated map has another key,
   so its places appear only once discovered again. Only what exploration counts
-  as discovered is kept, in either mode. Shrines, chests, quest objects and
-  portals are not kept: what they are, or whether they are there, changes
-  between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
+  as discovered is kept, in either mode, and so are quest objects (2026-10-14:
+  the automap keeps showing them). Shrines, chests and portals are not kept:
+  what they are, or whether they are there, changes between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
   `docs/exploration.md#on-disk`).
 - **Enemies** are discovered in range and in sight (all loaded ones with full
   assistance) and then remembered. A remembered enemy follows its live unit

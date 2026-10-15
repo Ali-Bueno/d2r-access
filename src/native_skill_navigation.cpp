@@ -159,6 +159,13 @@ uintptr_t ActiveTextInput(uintptr_t panel) {
 		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || owner != panel || !NativeUi::Visible(editor)) return 0;
 	return editor;
 }
+uintptr_t AnyActiveTextInput(uintptr_t& owner) {
+	uintptr_t editor = 0;
+	owner = 0;
+	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor) || !editor
+		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || !owner || !NativeUi::Visible(editor)) return 0;
+	return editor;
+}
 bool SelectAt(NativeUi::Focus focus, uint64_t selection) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;
 	uintptr_t owner = 0, vtable = 0, select = 0;

@@ -32,5 +32,25 @@ int main() {
 	Check(Departures({ruby, gem}, {ruby}, 12).empty(), "one picked up into the hand did not");
 	Check(Departures({ruby, helm}, {ruby}, 0).empty() && Departures({ruby}, {sorted}, 0).empty(),
 		"neither does a worn item nor one moved within the backpack");
+
+	// The stashes, read while the stash is open (a tester, 2026-10-14).
+	const Item topaz{40, 7, 2, Place::PersonalStash, 3, 3}, amethyst{41, 8, 2, Place::SharedStash, 0, 0};
+	const auto fromStash = Departures({ruby, topaz, amethyst}, {ruby, amethyst}, 0);
+	Check(fromStash.size() == 1 && fromStash[0].id == 40, "a gem Y sorts out of the personal stash departed");
+	Check(Departures({amethyst}, {}, 0).size() == 1, "and one out of the shared stash");
+	Item intoStash = gem;
+	intoStash.place = Place::SharedStash;
+	Check(Departures({ruby, gem}, {ruby, intoStash}, 0).empty(), "an item that went into a stash has not left for a tab");
+	const auto sent = Stashed({ruby, gem}, {ruby, intoStash}, 0);
+	Check(sent.size() == 1 && sent[0].id == 12 && sent[0].place == Place::SharedStash, "the backpack's item sent to a stash is named there");
+	Check(Stashed({ruby, gem}, {ruby, intoStash}, 12).empty(), "one placed from the hand is the hand's own notice");
+	Item moved = topaz;
+	moved.x = 0;
+	Check(Stashed({topaz, helm}, {moved, helm}, 0).empty() && Stashed({}, {topaz}, 0).empty(),
+		"neither a stash item moved within the stash nor one first seen there is news");
+	Item takenOut = topaz;
+	takenOut.place = Place::Backpack;
+	found = Diff({ruby, topaz}, {ruby, takenOut}, 0);
+	Check(found.size() == 1 && found[0].item.id == 40 && !found[0].unequipped, "an item sent from a stash to the backpack arrives there");
 	Passed();
 }

@@ -50,7 +50,7 @@ std::vector<std::function<void()>> Players() {
 		Loot(Item::StoneDoor), Loot(Item::SlimeDoor), Loot(Item::UnexploredRoom), Loot(Item::ZoneTransition),
 		Loot(Item::Discovered),
 		Loot(Item::EpochGold), Loot(Item::EpochHealthPotion), Loot(Item::EpochManaPotion), Loot(Item::EpochRejuvenationPotion),
-		Loot(Item::EpochOtherPotion), Loot(Item::Shrine), Loot(Item::Well),
+		Loot(Item::EpochOtherPotion), Loot(Item::Shrine), Loot(Item::Well), Cue(ES::Corpse),
 	};
 }
 }

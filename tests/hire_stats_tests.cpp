@@ -230,13 +230,14 @@ int main() {
 	Check(HireStats::Tick(&context, 2000, fifth) && speech.empty(), "a row's skills wait for the menu reader to say the row");
 	HireStats::Tick(&context, 2400, fifth);
 	Check(speech == std::vector<std::string>{"Skills: Jab, Defiance"}, "then follow it, names only");
+	// Y shows the whole tooltips: the press says them whole, autodetail or not (the tester, 2026-10-14).
 	speech.clear(); holdingY = true;
 	HireStats::Tick(&context, 2500, fifth);
-	Check(speech == std::vector<std::string>{"Skills: Jab, Defiance"}, "Y says them at once");
-	autoDetail = true; holdingY = false; HireStats::Tick(&context, 2600, fifth);
-	speech.clear(); holdingY = true; HireStats::Tick(&context, 2700, fifth);
-	Check(speech == std::vector<std::string>{"Skills: Jab. Mana Cost: 3. Defiance. Radius: 14.6 yards"},
-		"in full with autodetail");
-	autoDetail = false; holdingY = false;
+	Check(speech == std::vector<std::string>{"Skills: Jab. Mana Cost: 3. Defiance. Radius: 14.6 yards"}, "Y says them in full at once");
+	holdingY = false; HireStats::Tick(&context, 2600, fifth);
+	speech.clear(); holdingY = true; keyboard = true; HireStats::Tick(&context, 2700, fifth);
+	Check(!speech.empty() && speech.front() == "Skills: Jab. Mana Cost: 3. Defiance. Radius: 14.6 yards",
+		"and on the keyboard cursor's path as well");
+	keyboard = false; holdingY = false;
 	Passed();
 }

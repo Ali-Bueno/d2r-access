@@ -107,6 +107,7 @@ add_library(d2r-access SHARED
 	src/npc_proximity.cpp
 	src/target_sight.cpp
 	src/native_entities.cpp
+	src/native_pets.cpp
 	src/town_npcs.cpp
 	src/monster_plate.cpp
 	src/monster_names.cpp
@@ -170,6 +171,9 @@ add_library(d2r-access SHARED
 	src/ui_notifications.cpp
 	src/vitals.cpp
 	src/vitals_service.cpp
+	src/status_effects.cpp
+	src/minion_report.cpp
+	src/party_reader.cpp
 	src/equipment_census.cpp
 	src/native_weapon_set.cpp
 	src/weapon_swap.cpp
@@ -400,7 +404,7 @@ if(BUILD_TESTING)
 	add_test(NAME npc-proximity COMMAND npc-proximity-tests)
 	d2r_test(target-sight-tests tests/target_sight_tests.cpp src/target_sight.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	d2r_test(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/town_npcs.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
+	d2r_test(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_pets.cpp src/town_npcs.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME native-entities COMMAND native-entities-tests)
 	d2r_test(radar-ui-tests tests/radar_ui_tests.cpp src/radar_ui.cpp src/panel_state.cpp)
@@ -501,6 +505,10 @@ if(BUILD_TESTING)
 	add_test(NAME quest-progress COMMAND quest-progress-tests)
 	d2r_test(vitals-tests tests/vitals_tests.cpp src/vitals.cpp)
 	add_test(NAME vitals COMMAND vitals-tests)
+	d2r_test(status-effects-tests tests/status_effects_tests.cpp src/status_effects.cpp)
+	add_test(NAME status-effects COMMAND status-effects-tests)
+	d2r_test(minion-report-tests tests/minion_report_tests.cpp src/minion_report.cpp)
+	add_test(NAME minion-report COMMAND minion-report-tests)
 	d2r_test(weapon-swap-tests tests/weapon_swap_tests.cpp src/weapon_swap.cpp src/speech_strings.cpp)
 	add_test(NAME weapon-swap COMMAND weapon-swap-tests)
 	d2r_test(trade-tests tests/trade_tests.cpp src/trade.cpp src/speech_strings.cpp)

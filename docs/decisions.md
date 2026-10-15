@@ -3,6 +3,73 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-14 — The tester's eighth list (after a Countess run)
+
+- **BACK+RT steps through the mercenary, the summons and the party members**, one per press,
+  with life and where each stands (distance and direction, or the area a party member is in);
+  after a 10 s pause it starts again at the mercenary. The tester found the summons too long for
+  BACK+X, so `minion-report` (BACK+X) is now **off** by default; a Necromancer's usable corpse
+  count stays in BACK+X. Party members come from the party roster the scanner already reads.
+- **BACK+LT reads the main skill bar**, as holding LT reads the other. The pad filter keeps a
+  trigger pulled with BACK from the game during play, as it does the face buttons.
+- **Party panel** on the right stick, as the character sheet (`src/party_reader.cpp`).
+- **Mercenary sheet**: with an item focused on it or in the backpack beside it, right stick
+  down and left keep walking the mercenary's statistics; up (the item's tooltip) and right stay
+  the item's. Down read the control hints there; that is the hint switch's asked-for gesture,
+  not a fault of the switch.
+- **Chat**: the chat's autocomplete box is a text box like any other; "Text chat" as it opens
+  and "Text chat closed" as it shuts, typed text echoed as in the name box.
+- **Town exits from anywhere in town**, with the town NPCs (`town-npcs-everywhere`, its phrase
+  now says "NPCs and exits"): a fresh game's empty automap hid the camp's exit from a player who
+  had not walked near it. Open: a joining client may not have the next area built at all; its
+  log (`[areas] level 1, N built`) would tell.
+- **Potions last** (`potions-last`, on): when more items lie near than there are voices, health
+  and mana potions sound only in what the rest leaves. Rejected: more voices.
+- **Burning bodies**: a body with one of the game's fires (objects.txt Name "fire") within 3
+  subtiles is "Burning Dead Rogue". The pentagram is no object the game names; every fire is
+  logged once (`[scan] fire id=`) so a crypt can show what it is before anything is named.
+
+## 2026-10-14 — The tester's sixth and seventh lists
+
+Two lists (builds 2026-10-13 and 2026-10-14), worked through while the user was away; the
+optional suggestions are switches, on unless they reverse a choice of the user's (the 2026-10-11 rule).
+
+- **Settings list**: the Diablo II drop sounds are a group inside the sound glossary (the list
+  takes groups within groups). At either end a step goes round with a click (the old wrap, now
+  heard) or, with `settings-list-stops`, stays and knocks and says the entry again. Every percent
+  setting moves in quarters: volumes 0-200, footsteps 25-300, drop sound speed 50-300; a saved
+  level of the old grids keeps its percent (`quarter-steps` in the settings file).
+- **BACK+A and BACK+down trade places** with `pad-route-on-a` (off: the user placed them).
+- **Nothing to spend**: the character sheet and the skill tree say "0 Stat Points Remaining" /
+  "0 Skill Choices Remaining" in the game's own words on opening (`zero-points`, on). Rejected:
+  inferring zero from an empty line at once; the line must stay empty for 2 s.
+- **Stash**: the stash grids are now read while the stash is open, so Y on a gem in a stash grid
+  says the tab it went to, a backpack item Y sends into a stash is no longer taken for one sorted
+  into a tab, and an item sent straight from the backpack says "moved to the personal/shared
+  stash" (`stash-notice`, on; not for one placed from the hand, which has its own notice).
+- **Harmful states** (poison, freeze, chill, stun, slowing, curses) interrupt as they begin; their
+  end waits 1 s, so a chill renewed by each hit is one chill (`status-alerts`, on).
+  `docs/status-effects.md`.
+- **Hire window**: Y says the skills' whole descriptions, autodetail or not: the names alone
+  already followed the row, so Y added nothing. Rejected: waiting for the game's own tooltips,
+  which the icons already hold.
+- **Quest objects** kept from an earlier game (Cairn Stones, the Moldy Tome) are listed again, as
+  the automap still shows them; a loaded object on the same spot replaces the kept one.
+- **Release ZIP keeps its fixed name** (`d2r-access-completo.zip`): the tester asked for the version
+  in the name, the user kept the always-latest download link instead.
+- **Summons** (the game's pet list, `docs/summons-and-corpses-re.md`): every player's pets are
+  neither NPCs nor enemies any more (the flag the mod used marks only the hireling; a Warlock's
+  bound demon was listed as an enemy). Chosen: left out, not a scanner category of their own (the
+  tester: there is no need to target one's own summon). BACK+X ends with them as the party
+  portraits group them: a count per counted type, life for each single one, the Warlock's demons
+  one by one, numbered where a name repeats (`minion-report`; off since the eighth list). Names are the monsters' own
+  ("Spirit Wolf"), singular: the game has no plural strings, so "Spirit Wolf: 2".
+- **A Necromancer's corpses**: a short bone rattle toward the nearest when usable corpses come
+  within the cue radius after none were (`corpse-cue`, on), and "Usable corpses nearby: N" in
+  BACK+X. Usable is the game's own core rule (dead, corpseSel, no udead state). Rejected: a cue
+  per corpse (a pack's death would be a burst), and a loop per corpse like the ground items.
+  Only the Necromancer: a Barbarian's Find Item has a rule of its own, not established.
+
 ## 2026-10-14 — Passages by the map's sides, on by default (a tester, the user)
 
 A tester asked for the finder's input turned 45 degrees clockwise (flick up-right for the passages at

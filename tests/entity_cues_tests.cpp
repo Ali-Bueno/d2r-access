@@ -237,9 +237,28 @@ void NpcAlerts() {
 	Check(alerts.Raised(world, {akara}).size() == 1, "a new game rings for the marks already shown");
 }
 
+void Corpses() {
+	CorpseTracker corpses;
+	const Radar::Position player{30, 30};
+	constexpr double Range = 20;
+	auto result = corpses.Update(player, {}, Range);
+	Check(result.count == 0 && !result.cue, "no corpse, no cue");
+	result = corpses.Update(player, {{40, 30}, {33, 30}, {90, 90}}, Range);
+	Check(result.count == 2 && result.cue && std::abs(result.cue->distance - 3) < 1e-9,
+		"corpses coming into range cue once, toward the nearest, and the far one is not counted");
+	Check(!corpses.Update(player, {{40, 30}, {33, 30}}, Range).cue, "and not again while they stay");
+	result = corpses.Update(player, {{30 + Range * 1.1, 30}}, Range);
+	Check(result.count == 0 && !result.cue, "one just past the range is not counted");
+	Check(!corpses.Update(player, {{30 + Range * 0.9, 30}}, Range).cue, "nor announced again on coming back across the edge");
+	(void)corpses.Update(player, {}, Range);
+	Check(corpses.Update(player, {{35, 30}}, Range).cue.has_value(), "once all were gone, the next ones cue again");
+	corpses.Reset();
+	Check(corpses.Update(player, {{35, 30}}, Range).cue.has_value(), "a reset forgets they were available");
+}
+
 int main() {
 	ScreenArea(); BigPack(); NpcAlerts();
 	FilteringAndPriority(); VisibilityAndPlacement(); CadenceAndLifecycle(); FairScheduling(); PackCadence(); FastRepeatsAtRuntimeCadence();
-	GrowlsOff();
+	GrowlsOff(); Corpses();
 	Passed();
 }

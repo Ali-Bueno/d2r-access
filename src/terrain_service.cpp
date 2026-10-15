@@ -412,7 +412,10 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 	for (const auto& place : places->second) {
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
-		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
+		// A quest object found in an earlier game is listed again, as the automap still shows
+		// it (a tester, 2026-10-14); it was kept only to be announced once before.
+		entity.questObject = entity.kind == EntityRadar::Kind::Object && entity.category == EntityRadar::Category::Quest;
+		if (!entity.questObject && !MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
 		// The name in the language being played, whichever one it was found in.
 		entity.nameKey = place.nameKey;
 		if (auto text = NativeEntities::KeyText(place.nameKey); !text.empty()) entity.name = std::move(text);

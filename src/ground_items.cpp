@@ -11,7 +11,10 @@ namespace D2RAccess::GroundItems {
 namespace {
 std::atomic<int> g_set{static_cast<int>(SoundSet::DiabloIV)};
 }
+std::atomic<bool> g_potionsLast{true};
 int ItemSoundSet() { return g_set; }
+bool PotionsLast() { return g_potionsLast; }
+void SetPotionsLast(bool on) { g_potionsLast = on; }
 void SetItemSoundSet(int set) { g_set = std::clamp(set, 0, static_cast<int>(SoundSet::Count) - 1); }
 bool LastEpochSounds() { return g_set == static_cast<int>(SoundSet::LastEpoch); }
 bool DropSounds() { return g_set == static_cast<int>(SoundSet::DiabloIIDrops); }
@@ -136,12 +139,14 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	std::sort(nearby.begin(), nearby.end(), [](const auto& a, const auto& b) {
 		return a.first == b.first ? a.second->id < b.second->id : a.first < b.first;
 	});
-	std::vector<const Item*> reachable;
-	for (const auto& [distance, item] : nearby) {
+	auto heard = nearby;
+	if (PotionsLast()) std::stable_partition(heard.begin(), heard.end(), [](const auto& entry) { return !entry.second->common; });
+	for (const auto& [distance, item] : heard)
 		if (itemLoops && item->sound != Sound::Quest && result.voices.size() < MaxVoices && distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
+	std::vector<const Item*> reachable;
+	for (const auto& [distance, item] : nearby)
 		if (distance <= SpeakRadius && !item->name.empty() && !spoken_.contains(item->id)) reachable.push_back(item);
-	}
 	std::stable_sort(reachable.begin(), reachable.end(), [](const Item* a, const Item* b) {
 		return SpeechRank(a->sound) < SpeechRank(b->sound);
 	});

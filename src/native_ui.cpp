@@ -231,8 +231,10 @@ uintptr_t Parent(uintptr_t widget) {
 
 std::string InputText(uintptr_t widget) {
 	if (!NativeWidgets::SupportsTree() || !widget) return {};
-	const auto type = Classify(widget).name;
-	if (type != "InputTextBoxWidget" && type != "NumericInputTextBoxWidget") return {};
+	// Any text box but the masked one, the chat's autocomplete box included; the getter
+	// check below refuses a subtype whose getter is not the verified one.
+	const auto type = Classify(widget);
+	if (type.kind != Kind::TextInput || type.name == "MaskedInputTextBoxWidget") return {};
 	uintptr_t vtable = 0, getter = 0;
 	std::array<uint8_t, InputTextGetterBytes.size()> instruction{};
 	if (!Peek(widget, vtable) || !Peek(vtable + InputTextGetterSlot, getter)

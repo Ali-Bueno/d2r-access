@@ -4,11 +4,13 @@
 
 #include <xinput.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <numbers>
+#include <utility>
 
 namespace D2RAccess::InputDirection {
 
@@ -51,6 +53,8 @@ struct PadEdgeState {
 	bool leftThumbHeld  = false;
 	bool lbHeld         = false;
 	bool rbHeld         = false;
+	bool ltHeld         = false;
+	bool rtHeld         = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -67,10 +71,12 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
+bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
 StickPush g_backWithRightStick = StickPush::None;
+std::atomic<bool> g_routeOnA{false};          // BACK+A and BACK+down trade places
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
 bool g_lineStep = false;                      // the pending right-stick push is the keyboard's line step
@@ -215,7 +221,8 @@ void Poll() {
 			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
 				RecordEdge(FaceButton::A);
-				if (backDown) g_backWithA = true;
+				if (backDown && g_routeOnA.load()) g_backWithRightStick = StickPush::Down;
+				else if (backDown) g_backWithA = true;
 			}
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
@@ -234,13 +241,17 @@ void Poll() {
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
 			if (UpdateEdge(edges.lbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0)) (backDown ? g_backWithLb : g_lbAlone) = true;
 			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0)) (backDown ? g_backWithRb : g_rbAlone) = true;
+			// The triggers count as pulled past XInput's threshold, as the game's own poll reads them.
+			if (UpdateEdge(edges.ltHeld, pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) && backDown) g_backWithLt = true;
+			if (UpdateEdge(edges.rtHeld, pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) && backDown) g_backWithRt = true;
 			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) g_leftStickClick = true;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
 				const StickPush push = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
 					: (pad.sThumbRX > 0 ? StickPush::Right : StickPush::Left);
-				if (backDown) g_backWithRightStick = push; // the mod's chord, never a scanner step
+				if (backDown && g_routeOnA.load() && push == StickPush::Down) g_backWithA = true;
+				else if (backDown) g_backWithRightStick = push; // the mod's chord, never a scanner step
 				else {
 					// A push still pending here is one no reader has wanted, and it
 					// is about to be overwritten. Record that before it goes.
@@ -313,6 +324,12 @@ bool TakeBackWithRb() {
 	g_backWithRb = false;
 	return pressed;
 }
+bool TakeBackWithTrigger(bool right) {
+	bool& pressed = right ? g_backWithRt : g_backWithLt;
+	return std::exchange(pressed, false);
+}
+bool RouteOnA() { return g_routeOnA.load(); }
+void SetRouteOnA(bool on) { g_routeOnA = on; }
 bool TakeShoulder(bool right) {
 	bool& pressed = right ? g_rbAlone : g_lbAlone;
 	const bool taken = pressed;

@@ -2,6 +2,41 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's eighth list — 2026-10-14 (uncommitted, not released)
+
+BACK+RT steps through mercenary, summons and party (life, place); BACK+LT reads the main skill
+bar (triggers kept from the game with BACK in play); party panel and mercenary sheet on the
+right stick; chat box read; town exits listed from anywhere in town; potions after other loot;
+burning bodies named; `minion-report` now off. Choices in [decisions](docs/decisions.md).
+121/121 CTest, installed. Unverified live: all of it. **Open:** the joiner's missing camp exit
+may also be an unbuilt next area (needs that player's log); the crypt pentagram needs the
+`[scan] fire` lines from a Tower Cellar run. Logs: `[vitals] BACK+RT`, `[skill-bar] main bar`,
+`[party]`, `[stats]`, `[field] focus name="InputBox"`, `[scan] fire`.
+
+## The tester's sixth and seventh lists — 2026-10-14 (uncommitted, not released)
+
+Fifteen items, worked through while the user was away; choices in [decisions](docs/decisions.md),
+news draft `../tester-news-draft-2026-10-14b.txt`.
+- Settings list: groups within groups (drop sounds inside the glossary), ends wrap with a click or
+  stop with a knock (`settings-list-stops`), every percent setting in quarters (saved levels kept).
+- `pad-route-on-a` swaps BACK+A and BACK+down; `zero-points` says "0 Stat Points Remaining".
+- Stash grids read while the stash is open: Y-sort from a stash grid named, `stash-notice`.
+- Harmful states and curses by `states.txt` row, interrupting ([status effects](docs/status-effects.md)).
+- Summons from the game's pet list (RVA `0x2A4DC10`, [summons and corpses](docs/summons-and-corpses-re.md)):
+  kept out of NPCs and enemies (the 0x200 flag is the hireling's alone), listed in BACK+X
+  (`minion-report`); a Necromancer's usable corpses: rattle (`corpse-cue`) and count.
+- Hire window Y says the skills in full; kept quest objects listed again. ZIP name kept (the user).
+
+121/121 CTest; installed by the build. An independent review's findings are fixed (a state's start
+cut off the same hit's life alert; BACK+X lost the states with `vitals` off; a stale corpse read was
+reused; the count and the rattle used different radii). Unverified live: all of it, and every new
+game address is static RE (live checks open in the summons doc §7); also whether the stash listing
+covers every shared page (if not, a page change within 400 ms of Y would be taken for a sort).
+**Next step:** commit, then the user or the
+tester tries it; logs: `[pets] Native readers`, `[scan] Verified usable corpse reader.`,
+`[vitals] minions:`, `[corpses]`, `[vitals] effect began`, `[items] stashed`, `[items] sorted into
+the stash`, `[stats] nothing to spend`, `[hire] Y ->`.
+
 ## Exploration room by room, routes to what is listed, turn prompts, Cairn symbol on focus — 2026-10-14 (released as test-2026-10-14 from 9c26f72)
 
 Release: 119/119 CTest, 29 entries, 61,770,968 bytes, SHA-256 `b3e1a48b…2b9c`; also carries the 2026-10-13

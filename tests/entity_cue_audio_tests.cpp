@@ -151,6 +151,12 @@ void LayeredClasses() {
 	const double bellRate = static_cast<double>(Crossings(bell, 0, frames / 4)) / (frames / 4);
 	const double growlRate = static_cast<double>(Crossings(growl, 0, growl.size() / Channels)) / (growl.size() / Channels);
 	Check(bellRate > 4 * growlRate, "the NPC bell rings far above every enemy");
+
+	const auto rattle = Synthesize(Sound::Corpse, {}), knock = Synthesize(Sound::Edge, {});
+	Check(Peak(rattle) > 1500 && Peak(rattle) < 14000 && rattle.front() == 0, "the corpse rattle is audible and starts at silence");
+	Check(rattle != knock && rattle.size() != knock.size(), "the corpse rattle is not the inventory knock");
+	const auto rattleRight = Synthesize(Sound::Corpse, {1, 1});
+	Check(Rms(rattleRight, 1) > 2 * Rms(rattleRight, 0), "the corpse rattle pans toward the corpse");
 }
 
 void NewCues() {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "percent_steps.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -11,8 +13,8 @@
 // items and places, guidance. Header only, so the synthesizers stay untouched:
 // the finished samples are scaled, saturating at full scale.
 namespace D2RAccess::SoundVolume {
-inline constexpr std::array Percents{0, 25, 50, 75, 100, 125, 150, 200};
-inline constexpr int NeutralLevel = 4;
+inline constexpr auto Percents = PercentSteps::Quarters<0, 200>();
+inline constexpr int NeutralLevel = PercentSteps::LevelOf(Percents, 100);
 static_assert(Percents[NeutralLevel] == 100);
 
 constexpr double Factor(int level) {

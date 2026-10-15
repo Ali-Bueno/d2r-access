@@ -45,6 +45,8 @@ uint64_t g_lastLoadout = 0;
 constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
 std::atomic<bool> g_npcAlerts{true};
+std::atomic<bool> g_corpseCue{true};
+EntityCues::CorpseTracker g_corpses;
 EntityCues::AlertTracker g_alerts;
 std::mutex g_alertMutex; // the announcer reads the tracker too
 uint64_t g_revision = 0, g_lastPoll = 0;
@@ -226,7 +228,7 @@ void Tick(const D2RL::PluginContext* context) {
 	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
-		g_tracker.Reset(); { std::lock_guard lock(g_alertMutex); g_alerts.Reset(); }
+		g_tracker.Reset(); g_corpses.Reset(); { std::lock_guard lock(g_alertMutex); g_alerts.Reset(); }
 		Suspend(context, "lifecycle changed");
 		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
 	}
@@ -253,6 +255,16 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (g_suspended) AsyncLog::Info(context, "[entity-cues] resumed");
 	g_suspended = false;
+	// A Necromancer's usable corpses (a tester, 2026-10-14): a rattle toward the nearest as some become available.
+	if (const auto usable = NativeEntities::LastUsableCorpses(); usable.necromancer && usable.playerId == state.player
+		&& usable.readMs + EntityCues::CorpsesFreshMs >= now) {
+		const auto corpses = g_corpses.Update(usable.player, usable.corpses, g_settings.range);
+		if (corpses.cue && g_corpseCue.load()) {
+			AsyncLog::InfoF(context, "[corpses] %zu usable within %.0f, nearest %.1f", corpses.count, g_settings.range, corpses.cue->distance);
+			EntityCueAudio::Play(EntityCueAudio::Sound::Corpse, {corpses.cue->right, corpses.cue->front});
+			return;
+		}
+	}
 	if (g_reachCue && g_reach) {
 		if (const auto target = g_reachTracker.Update(world, entities, *g_reach, g_reachSettings.release)) {
 			AsyncLog::InfoF(context, "[attack-reach] in reach id=%u distance=%.2f reach=%.1f",
@@ -318,6 +330,9 @@ void SetEnabled(Cue cue, bool enabled) {
 }
 bool NpcAlerts() { return g_npcAlerts.load(); }
 void SetNpcAlerts(bool on) { g_npcAlerts = on; }
+bool CorpseCue() { return g_corpseCue.load(); }
+double Range() { return g_settings.range; }
+void SetCorpseCue(bool on) { g_corpseCue = on; }
 void PlayNpcAlert() {
 	if (g_npcAlerts.load() && g_enabled) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
 }

@@ -149,16 +149,6 @@ private:
 	std::vector<Tracked> tracked_;
 };
 
-// Diff-gates a verified player condition. Missing reads preserve the last
-// state; entering a game takes a silent baseline.
-class Condition {
-public:
-	std::optional<bool> Update(std::optional<bool> active);
-	void Reset();
-private:
-	std::optional<bool> previous_;
-};
-
 class MercenaryMeter {
 public:
 	struct Alert {

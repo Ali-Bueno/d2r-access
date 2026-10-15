@@ -59,4 +59,24 @@ private:
 	bool played_ = false;
 	uint64_t last_ = 0;
 };
+// A Necromancer's usable corpses (a tester, 2026-10-14): a cue toward the nearest
+// when some come within `range` after none were. They count as gone only once
+// none is within CorpseLeaveFactor of the range, so one at the edge is not
+// announced again with every step across it.
+inline constexpr double CorpseLeaveFactor = 1.25;
+// A usable-corpse read older than this, or of another player, is not used: a read
+// that fails (a crowded area, a level change) leaves the last one in place.
+inline constexpr uint64_t CorpsesFreshMs = 2000;
+size_t CorpsesWithin(Radar::Position player, const std::vector<Radar::Position>& corpses, double range);
+class CorpseTracker {
+public:
+	struct Result {
+		size_t count = 0;            // within range
+		std::optional<Bearing> cue;  // toward the nearest, when they have just become available
+	};
+	Result Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range);
+	void Reset() { available_ = false; }
+private:
+	bool available_ = false;
+};
 }

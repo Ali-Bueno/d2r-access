@@ -169,4 +169,24 @@ std::vector<Cue> AlertTracker::Raised(const Radar::World& world, const std::vect
 	std::sort(raised.begin(), raised.end(), Nearer);
 	return raised;
 }
+
+size_t CorpsesWithin(Radar::Position player, const std::vector<Radar::Position>& corpses, double range) {
+	return static_cast<size_t>(std::count_if(corpses.begin(), corpses.end(),
+		[&](const Radar::Position& corpse) { return BearingOf(player, corpse).distance <= range; }));
+}
+
+CorpseTracker::Result CorpseTracker::Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range) {
+	Result result;
+	std::optional<Bearing> nearest;
+	bool near = false;
+	for (const auto& corpse : corpses) {
+		const auto bearing = BearingOf(player, corpse);
+		if (bearing.distance <= range) ++result.count;
+		if (bearing.distance <= range * CorpseLeaveFactor) near = true;
+		if (!nearest || bearing.distance < nearest->distance) nearest = bearing;
+	}
+	if (result.count && !available_) result.cue = nearest;
+	available_ = result.count || (available_ && near);
+	return result;
+}
 }

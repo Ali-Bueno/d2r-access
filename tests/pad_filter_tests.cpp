@@ -71,5 +71,14 @@ int main() {
 	Check(KeepsLeftStick(Y, true), "armed, a held Y keeps the left stick from the game");
 	Check(!KeepsLeftStick(0, true), "armed, without Y the left stick is the game's");
 	Check(!KeepsLeftStick(Y, false), "unarmed, Y leaves the left stick alone");
+
+	// BACK+LT and BACK+RT are the mod's in play (2026-10-14).
+	Press trigger;
+	Check(KeepsTrigger(true, true, true, trigger), "a trigger pulled with BACK in play is kept");
+	Check(KeepsTrigger(true, false, true, trigger), "and stays kept to its release, BACK let go first");
+	Check(!KeepsTrigger(false, false, true, trigger) && !KeepsTrigger(true, false, true, trigger), "a new pull without BACK is the game's");
+	Check(!KeepsTrigger(true, true, true, trigger), "one already pulled stays the game's when BACK comes after");
+	(void)KeepsTrigger(false, false, false, trigger);
+	Check(!KeepsTrigger(true, true, false, trigger), "with BACK in a menu, the game's");
 	Passed();
 }
