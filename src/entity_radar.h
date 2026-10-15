@@ -102,7 +102,18 @@ bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
-inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
+// Levels whose way in is a quest location, by Levels.txt Id: 21 is Tower Cellar
+// Level 1, the way into the Forgotten Tower of the Act I quest of that name (a
+// tester, 2026-10-14: the quest sound and the quest list, before and after the quest).
+inline constexpr uint32_t QuestDestinations[] = {21};
+inline bool QuestDestination(uint32_t level) {
+	for (const auto quest : QuestDestinations) if (quest == level) return true;
+	return false;
+}
+inline bool QuestSource(const Entity& entity) {
+	return (entity.kind == Kind::Object && (entity.questObject || entity.unreadTome))
+		|| (entity.kind == Kind::Exit && entity.category == Category::Quest);
+}
 // Whether D, choosing what to use, takes `a` at `aSteps` over `b` at `bSteps`: a
 // quest object still to be used first (the Ancients' altar before the statues
 // around it), then the nearer on foot.

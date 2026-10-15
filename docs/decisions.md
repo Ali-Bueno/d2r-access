@@ -3,6 +3,48 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-15 — The tester's ninth and tenth lists (worked alone, no live check)
+
+- **Area overview by the level's own sides** (BACK+B): the tester heard screen sides where Diablo's
+  areas are diamonds. Legs now walk the world axes, named northeast/southeast/southwest/northwest
+  (compass or clock per `direction-style`), the place is the third along each axis ("northeast
+  edge", "south corner"), and the places the scanner has logged in the level follow, nearest first,
+  with distance and direction. Rejected: a second gesture for the landmarks (the tester asked for
+  one readout, as the automap is one glance).
+- **Mercenary out of BACK+X** (`mercenary-report`, off): BACK+RT says it, now with its level
+  ("Mercenary life: 80 percent, Level 12, 6 units, north"), what BACK+X used to say.
+- **Skill tree branch read from the tree itself**: the tab whose skill container is visible, so
+  LT/RT with the cursor on no node is read too. Rejected (the tester's own caution): snapping the
+  cursor to a node.
+- **Settings list**: every group says "... sub menu"; a **Settings list** group holds the list's own
+  switches (`settings-list-stops`, new `settings-list-restart`, off: the default keeps opening where
+  it was left, as before).
+- **Usable corpse rattle repeats** while corpses stay near (`corpse-repeat`: once, or every 2, 3, 5
+  or 8 s; 3 s by default), as a drop loop does; still a cue, not a voice of the item mixer, so it
+  never takes a loot voice.
+- **Audible loot filter**: LB alone in play flips it (the game's own item-label button, so the tap
+  reaches the game too); a **Loot filter** group chooses what keeps looping (potions, gems and
+  runes, equipment from a least quality up); silver items loop at every level but off; gold,
+  scrolls and quest items always loop. Off by default, as the tester asked. The initial drop sound
+  is the game's and untouched.
+- **The Forgotten Tower's entrance is a quest place**: an exit to Tower Cellar Level 1 (Levels.txt
+  Id 21, `EntityRadar::QuestDestinations`) gets the quest loop, the scanner's quest category and
+  "a new quest object" wording, before and after the quest. **Exits are found from twice the scan
+  range**, seen or not (`MapSurvey::ExitSightFactor`): the tower's door stands inside ruin walls.
+- **Chat box**: the panel's own visibility says "Text chat" and "Text chat closed", and its InputBox
+  is echoed when the game gives nothing focus with it. The tester's build said nothing on Enter; the
+  log line `[field] chat panel shown focus=` will tell which path the game takes.
+- **Captionless tabs are said by their number** ("Page 2"): the shared stash's pages are icons.
+- **Locked waypoints**: a waypoint row without the layout's SelectableButton/CurrentButton image is
+  "locked" (WaypointsPanelExpansionHD.json templates). Heuristic from the layout, not measured live.
+- **Character select hints**: Start to create and X to delete, or "No characters. Press Start to
+  create one" with an empty save folder.
+- **Lobby browser**: list rows join the D-pad navigation nodes, so the game list can be entered.
+- **Not done, needs the tester's log or a controller session**: the main menu's left-from-list order
+  (no mod code moves that focus; the game's own travelling cursor under the loader's layout does),
+  typing into the loader's host and direct-join boxes with the pad, and the crypt pentagram
+  (`[scan] fire` lines).
+
 ## 2026-10-14 — The tester's eighth list (after a Countess run)
 
 - **BACK+RT steps through the mercenary, the summons and the party members**, one per press,

@@ -234,8 +234,10 @@ sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
 exclamation mark chime, the inventory edge knock, every loot and place loop, the
 Necromancer's corpse rattle): landing on one names it and plays it once, Space plays it again
 (`src/sound_glossary.cpp`). Its last entry is a group of its own with the game's Diablo II drop
-sounds. At either end the list goes round with a click, or with `settings-list-stops` stays
-there with a knock.
+sounds. Landing on a group says it is a sub menu ("Sounds sub menu"). The list's own switches live
+in the **Settings list** group: at either end it goes round with a click, or with `settings-list-stops`
+stays there with a knock; `settings-list-restart` opens it at its first entry instead of where it was
+left.
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking
@@ -418,11 +420,13 @@ throne). `places` in the Ctrl+S settings list or `access-places on|off` toggles 
 `access-places where` speaks the current place.
 See [named places](docs/places.md).
 
-**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** speaks
-the level name, where you stand in it (`left edge`, `centre`…) and,
-for each screen direction, how far the level reaches, where unexplored terrain starts, or the name of
-a neighbouring level from available native layout data. It can describe undiscovered terrain;
-it does not calculate a route.
+**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** (BACK+B)
+speaks the level name, where you stand in it (`northeast edge`, `centre`, `south corner`…), how much
+of it you have seen and, for each side of the level (northeast, southeast, southwest, northwest: the
+level's rectangle lies along the world axes, a diamond on screen), how far the level reaches, where
+unexplored terrain starts, or the name of a neighbouring level from available native layout data.
+Then the places the scanner has logged in this level, nearest first, with distance and direction
+("Waypoint, 40 units, northeast"). It can describe undiscovered terrain; it does not calculate a route.
 See [terrain overview](docs/terrain-overview.md).
 
 **Unexplored mark (built; listening pass pending):** the radar's exit and floor cues end in two short
@@ -514,12 +518,22 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
-The vitals report ends with the player's summons, read from the game's own pet
+The vitals report can end with the mercenary (`mercenary-report`, off: BACK+RT says it, with its
+level) and the player's summons (`minion-report`, off), read from the game's own pet
 list and grouped as its party portraits show them (a count per counted type,
 life for single summons, the Warlock's demons one by one), and for a
-Necromancer the usable corpses nearby; a short bone rattle sounds as usable
-corpses come near. Every player's pets are kept out of the NPC and enemy lists.
-Switches `minion-report` and `corpse-cue`; see [summons and corpses](docs/summons-and-corpses-re.md).
+Necromancer the usable corpses nearby; a short bone rattle sounds toward the nearest as usable
+corpses come near and repeats while they stay (`corpse-repeat`: once, or every 2, 3, 5 or 8
+seconds; 3 by default). Every player's pets are kept out of the NPC and enemy lists.
+Switches `corpse-cue` and `corpse-repeat`; see [summons and corpses](docs/summons-and-corpses-re.md).
+
+**Audible loot filter:** **LB** in play turns it on and off ("Loot filter on"), as sighted players
+tap LB to filter the floor. While it is on, only the drop loops the **Loot filter** group of the
+Ctrl+S list keeps sound: potions (`loot-potions`), gems and runes (`loot-gems`), and equipment from
+a least quality up (`loot-equipment`: all, magic and better, rare and better, set and unique, off);
+a white item the game draws gray (socketed or ethereal, "silver") loops at every level but off.
+Gold, scrolls and quest items always loop, and every item still makes the game's own sound as it
+lands. Off by default (`loot-filter`); the four are kept between sessions.
 
 ### Boss life
 

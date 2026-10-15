@@ -98,10 +98,11 @@ In play:
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full), the arrows or throwing
-  weapons left in hand, any poison, freezing, chill, stun or curse on you,
-  and your mercenary. A Necromancer also hears how many usable corpses are
-  nearby.
-- BACK+RT: one press at a time, your mercenary, then each of your summons as
+  weapons left in hand, any poison, freezing, chill, stun or curse on you.
+  A Necromancer also hears how many usable corpses are nearby. The mercenary
+  is BACK+RT's now ("Mercenary in the life report", Alerts, brings it back).
+- BACK+RT: one press at a time, your mercenary ("Mercenary life: 80 percent,
+  Level 12, 6 units, north"), then each of your summons as
   the game's portraits group them ("Raven: 5", "Oak Sage: life 35 percent",
   a Warlock's demons one by one, "Tainted 2: life 75 percent"), then each
   party member ("Dani: life 80 percent"), with how far and where each one is,
@@ -115,10 +116,20 @@ In play:
   (8), up-left northwest (10). The room's exit line names passages by the same
   walls. "Passages by the map's sides" (Ctrl+S, Navigation, on) turned off
   gives the screen's sides instead.
-- BACK+B: terrain overview.
+- BACK+B: area overview: the area, where you stand in it ("northeast edge",
+  "centre", "south corner"), how much you have seen, then each side of the
+  area (northeast, southeast, southwest, northwest: Diablo's areas are
+  diamonds on screen) with how far it reaches, where unexplored ground
+  starts or the area beyond it, then the places the radar has logged here,
+  nearest first ("Waypoint, 40 units, northeast").
+- LB (alone, in play): the audible loot filter on or off ("Loot filter on").
+  While it is on, only the drop loops you keep in the Loot filter group of
+  the settings sound (see SETTINGS); the game still plays each item's own
+  drop sound as it lands.
 - BACK+RB: the mod's settings list, open or close (the keyboard's Ctrl+S).
   It is made of groups (Sounds, Volumes, Enemies and NPCs, Navigation, Items
-  and menus, Alerts, Controller, Sound glossary). While it is open the right
+  and menus, Alerts, Controller, Settings list, Loot filter, Sound glossary),
+  each said as a sub menu ("Sounds sub menu"). While it is open the right
   stick moves through it: up and down step, right opens a group and then
   changes the setting (or plays the sound again in the glossary), left goes
   back to the groups. LB and RB lower and raise a setting of several values
@@ -222,9 +233,20 @@ knowing:
   NPCs, items and places, guidance; each from 0 to 200 percent in steps of 25.
 - Usable corpse rattle (Enemies and NPCs, on, Necromancer only): a short
   bone rattle toward the nearest corpse when corpses you can raise or explode
-  come near after there were none. Corpses already raised or exploded do not
-  count.
+  come near. Corpses already raised or exploded do not count. "Usable corpse
+  rattle every 3 seconds" below it repeats it while they stay near: once,
+  or every 2, 3, 5 or 8 seconds.
 - Minions in the life report (Alerts, off): BACK+X also lists your summons.
+- Mercenary in the life report (Alerts, off): BACK+X also says the mercenary.
+- Settings list (its own group): "Settings list ends" (wrap with a click, or
+  stop with a knock) and "Settings list opens at its first entry" (off: it
+  opens where you left it).
+- Loot filter (its own group): "Loot filter" (off; LB in play flips it),
+  "Potion loops" (on), "Gem and rune loops" (on) and "Equipment loops: all /
+  magic and better / rare and better / set and unique / off". With the
+  filter on, only those loops sound; gold, scrolls and quest items always
+  do, and a white item the game draws gray (socketed or ethereal, "silver")
+  loops at every level but off.
 - Health and mana potions after other loot (Sounds, on): when more items lie
   near than can sound at once, health and mana potions sound only once the
   rest of the loot has its sound.
@@ -247,9 +269,6 @@ knowing:
 - Items moved to the stash named (Items and menus, on): an item sent from the
   backpack into the stash says "Short Sword moved to the personal stash" or
   "... to the shared stash", as gold does.
-- Settings list ends (Items and menus): wraps around with a click (the
-  default) or stops at the first and last entries with a knock, saying the
-  entry again.
 - Route on BACK+A (Controller, off): swaps them: BACK+A says the route and
   BACK + right stick down turns the passage finder on or off.
 - Experience in the life report (on): BACK+X also says how far you are into

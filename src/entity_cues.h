@@ -67,6 +67,11 @@ inline constexpr double CorpseLeaveFactor = 1.25;
 // A usable-corpse read older than this, or of another player, is not used: a read
 // that fails (a crowded area, a level change) leaves the last one in place.
 inline constexpr uint64_t CorpsesFreshMs = 2000;
+// How often the rattle repeats while corpses stay within range, in seconds; 0 is
+// once as they come near (a tester, 2026-10-14: a loop, like a drop sound). The
+// settings list offers these; the mod starts at every 3 seconds.
+inline constexpr std::array<int, 5> CorpseRepeatSeconds{0, 2, 3, 5, 8};
+inline constexpr int DefaultCorpseRepeatLevel = 2;
 size_t CorpsesWithin(Radar::Position player, const std::vector<Radar::Position>& corpses, double range);
 class CorpseTracker {
 public:
@@ -74,9 +79,12 @@ public:
 		size_t count = 0;            // within range
 		std::optional<Bearing> cue;  // toward the nearest, when they have just become available
 	};
-	Result Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range);
-	void Reset() { available_ = false; }
+	// `repeatMs` above 0 cues again toward the nearest every so often while some stay within range.
+	Result Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range,
+		uint64_t now = 0, uint64_t repeatMs = 0);
+	void Reset() { available_ = false; cuedMs_ = 0; }
 private:
 	bool available_ = false;
+	uint64_t cuedMs_ = 0;
 };
 }

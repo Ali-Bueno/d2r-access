@@ -12,6 +12,7 @@
 #include "combat_target.h"
 #include "entity_cue_audio.h"
 #include "entity_cue_service.h"
+#include "entity_cues.h"
 #include "entity_radar.h"
 #include "entity_radar_service.h"
 #include "equipment_census.h"
@@ -121,6 +122,8 @@ enum class Command : uint32_t {
 	Settings, SettingsChange, SettingsBack,
 	// LB and RB (Shift+Space) on the settings list: a setting one value down or up.
 	SettingsLower, SettingsRaise,
+	// LB alone in play, with the list shut: the audible loot filter on or off (a tester, 2026-10-14).
+	LootFilter,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
 	// In play and in a menu: the list of skills for the left hand. The game's
@@ -189,6 +192,7 @@ Strings::Language g_settingsLanguage{};
 bool g_settingsBuilt = false;
 // A step past the list's end stops there with a knock instead of going round with a click.
 std::atomic<bool> g_settingsStop{false};
+std::atomic<bool> g_settingsRestart{false};
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
@@ -1636,9 +1640,38 @@ SettingsList::Entry FootstepVolume() {
 	return entry;
 }
 
+// How often the usable-corpse rattle repeats while corpses stay near (a tester, 2026-10-14).
+SettingsList::Entry CorpseRepeat() {
+	SettingsList::Entry entry;
+	entry.key = "corpse-repeat";
+	entry.levels = static_cast<int>(EntityCues::CorpseRepeatSeconds.size());
+	entry.level = EntityCueService::CorpseRepeatLevel;
+	entry.setLevel = EntityCueService::SetCorpseRepeatLevel;
+	entry.sayLevel = [](int level) {
+		const int seconds = EntityCues::CorpseRepeatSeconds[static_cast<size_t>(level)];
+		if (!seconds) return std::string(Strings::Current().corpseRepeatOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().corpseRepeatEvery, seconds);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// The least equipment quality whose drop loop the loot filter keeps.
+SettingsList::Entry LootEquipment() {
+	static_assert(Strings::LootEquipmentCount == static_cast<size_t>(GroundItems::EquipmentLoops::Count), "a phrase for every equipment level");
+	SettingsList::Entry entry;
+	entry.key = "loot-equipment";
+	entry.levels = static_cast<int>(GroundItems::EquipmentLoops::Count);
+	entry.level = [] { return static_cast<int>(GroundItems::LootFilter::Equipment()); };
+	entry.setLevel = [](int level) { GroundItems::LootFilter::SetEquipment(static_cast<GroundItems::EquipmentLoops>(level)); };
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().lootEquipment[static_cast<size_t>(level)]); };
+	return entry;
+}
+
 // The groups of the settings list (a tester, 2026-10-13), in the order of
 // Strings::Table::settingsGroups; the glossary is the last, the drop sounds a group inside it.
-enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, Count };
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
 
 std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
@@ -1696,6 +1729,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
 		{EntityCueService::NpcAlerts, EntityCueService::SetNpcAlerts, phrase(&T::npcAlertOn, &T::npcAlertOff), false, "npc-alerts"},
 		{EntityCueService::CorpseCue, EntityCueService::SetCorpseCue, phrase(&T::corpseCueOn, &T::corpseCueOff), false, "corpse-cue"},
+		CorpseRepeat(),
 	}});
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
@@ -1733,7 +1767,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
 		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
-		{[] { return g_settingsStop.load(); }, [](bool on) { g_settingsStop = on; }, phrase(&T::settingsEndsStop, &T::settingsEndsWrap), false, "settings-list-stops"},
 		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
 	}});
 	groups.push_back({GroupName(G::Alerts), {
@@ -1742,6 +1775,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{VitalsService::ExperienceReport, VitalsService::SetExperienceReport, phrase(&T::experienceReportOn, &T::experienceReportOff), false, "experience-report"},
 		{VitalsService::StatusAlerts, VitalsService::SetStatusAlerts, phrase(&T::statusAlertsOn, &T::statusAlertsOff), false, "status-alerts"},
 		{VitalsService::MinionsReported, VitalsService::SetMinionsReported, phrase(&T::minionReportOn, &T::minionReportOff), false, "minion-report"},
+		{VitalsService::MercenaryReported, VitalsService::SetMercenaryReported, phrase(&T::mercenaryReportOn, &T::mercenaryReportOff), false, "mercenary-report"},
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
 		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
@@ -1753,6 +1787,19 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
 		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
+	}});
+	// The list's own behaviour, in a group of its own (a tester, 2026-10-14).
+	groups.push_back({GroupName(G::SettingsMenu), {
+		{[] { return g_settingsStop.load(); }, [](bool on) { g_settingsStop = on; }, phrase(&T::settingsEndsStop, &T::settingsEndsWrap), false, "settings-list-stops"},
+		{[] { return g_settingsRestart.load(); }, [](bool on) { g_settingsRestart = on; }, phrase(&T::settingsRestartOn, &T::settingsRestartOff), false, "settings-list-restart"},
+	}});
+	// Which drop loops the audible loot filter keeps while it is on (LB in play; a tester, 2026-10-14).
+	namespace Loot = GroundItems::LootFilter;
+	groups.push_back({GroupName(G::LootFilter), {
+		{Loot::Active, Loot::SetActive, phrase(&T::lootFilterOn, &T::lootFilterOff), false, "loot-filter"},
+		{Loot::Potions, Loot::SetPotions, phrase(&T::lootPotionsOn, &T::lootPotionsOff), false, "loot-potions"},
+		{Loot::Gems, Loot::SetGems, phrase(&T::lootGemsOn, &T::lootGemsOff), false, "loot-gems"},
+		LootEquipment(),
 	}});
 	return groups;
 }
@@ -1769,7 +1816,9 @@ SettingsList::Menu BuildSettings() {
 	auto groups = SettingGroups();
 	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries(),
 		{{GroupName(SettingsGroup::DropGlossary), SoundGlossary::DropEntries(), {}}}});
-	return SettingsList::Menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	SettingsList::Menu menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	menu.SetGroupFormat(Strings::Current().settingsSubmenu);
+	return menu;
 }
 
 // ---- the switches kept between sessions ----
@@ -1878,6 +1927,7 @@ bool Settings(Command command, uint64_t now) {
 	}
 	std::string text;
 	bool spent = true;
+	g_settings.SetRestart(g_settingsRestart.load());
 	if (command == Command::Settings) text = g_settings.Toggle(now);
 	else if (!g_settings.Open()) spent = false;
 	else if (command == Command::SettingsChange) text = g_settings.Enter(now);
@@ -1914,7 +1964,8 @@ Command PadSettings(bool inPlay) {
 	using InputDirection::StickPush;
 	if (InputDirection::TakeBackWithRb() && (inPlay || g_settingsOpen.load())) return Command::Settings;
 	const bool lower = InputDirection::TakeShoulder(false), raise = InputDirection::TakeShoulder(true);
-	if (!g_settingsOpen.load()) return Command::None;
+	// With the list shut, LB in play is the loot filter's, as sighted players tap it to filter the floor.
+	if (!g_settingsOpen.load()) return lower && inPlay ? Command::LootFilter : Command::None;
 	if (lower != raise) return lower ? Command::SettingsLower : Command::SettingsRaise;
 	if (InputDirection::PeekRightStickPush() == StickPush::None) return Command::None;
 	switch (InputDirection::TakeRightStickPush("settings")) {
@@ -2184,6 +2235,12 @@ void Tick(const D2RL::PluginContext* context) {
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
 	if (const Command pad = PadSettings(inPlay); command == Command::None) command = pad;
 	if (Settings(command, now)) command = Command::None;
+	if (command == Command::LootFilter) {
+		const bool on = !GroundItems::LootFilter::Active();
+		GroundItems::LootFilter::SetActive(on);
+		AsyncLog::InfoF(context, "[items] loot filter %s (LB)", on ? "on" : "off");
+		ScreenReader::Speak(on ? Strings::Current().lootFilterOn : Strings::Current().lootFilterOff, true);
+	}
 	if (command == Command::Swap && state.ready) Swap(context, now);
 	SwapAnswer(context, now);
 	if (command == Command::LeftSkill && !(state.ready && KeyboardMenu::LeftSkillList(context)))

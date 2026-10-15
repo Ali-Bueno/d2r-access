@@ -30,7 +30,8 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
 inline constexpr std::size_t GlossarySoundCount = 51;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
-inline constexpr std::size_t SettingsGroupCount = 9; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SettingsGroupCount = 11; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t LootEquipmentCount = 5; // GroundItems::EquipmentLoops
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
 inline constexpr std::size_t CompassPointCount = 8; // Radar::ScreenSectors
 inline constexpr std::size_t ClockHourCount = 12;
@@ -457,6 +458,24 @@ struct Table {
 	const char* burningCorpse; // %s = a body with one of the game's fires on it
 	const char* potionsLastOn; // health and mana potions sound after the rest of the loot
 	const char* potionsLastOff;
+	const char* settingsSubmenu; // %s = a group of the settings list, as the list lands on it
+	const char* settingsRestartOn; // the list opens at its first entry
+	const char* settingsRestartOff;
+	const char* mercenaryReportOn; // the mercenary in the life report (BACK+X)
+	const char* mercenaryReportOff;
+	const char* corpseRepeatOnce; // the usable-corpse rattle: once as corpses come near
+	const char* corpseRepeatEvery; // %d = seconds between rattles while corpses stay near
+	const char* lootFilterOn; // the audible loot filter (LB in play)
+	const char* lootFilterOff;
+	const char* lootPotionsOn; // potion drop loops with the filter on
+	const char* lootPotionsOff;
+	const char* lootGemsOn; // gem and rune drop loops with the filter on
+	const char* lootGemsOff;
+	std::array<const char*, LootEquipmentCount> lootEquipment; // GroundItems::EquipmentLoops order
+	const char* tabPage; // %d = a tab shown with no caption, by its number
+	const char* waypointLocked; // a waypoint not yet activated
+	const char* hintDeleteCharacter; // %s = the button that deletes the selected character
+	const char* hintNoCharacters; // %s = the button that creates a character, with an empty list
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -514,7 +533,11 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
 		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume,
-		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.burningCorpse, t.potionsLastOn, t.potionsLastOff}) visit(s);
+		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.burningCorpse, t.potionsLastOn, t.potionsLastOff,
+		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
+		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointLocked,
+		t.hintDeleteCharacter, t.hintNoCharacters}) visit(s);
+	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
 	each(t.settingsGroups);

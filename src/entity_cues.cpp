@@ -175,7 +175,8 @@ size_t CorpsesWithin(Radar::Position player, const std::vector<Radar::Position>&
 		[&](const Radar::Position& corpse) { return BearingOf(player, corpse).distance <= range; }));
 }
 
-CorpseTracker::Result CorpseTracker::Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range) {
+CorpseTracker::Result CorpseTracker::Update(Radar::Position player, const std::vector<Radar::Position>& corpses, double range,
+	uint64_t now, uint64_t repeatMs) {
 	Result result;
 	std::optional<Bearing> nearest;
 	bool near = false;
@@ -185,7 +186,11 @@ CorpseTracker::Result CorpseTracker::Update(Radar::Position player, const std::v
 		if (bearing.distance <= range * CorpseLeaveFactor) near = true;
 		if (!nearest || bearing.distance < nearest->distance) nearest = bearing;
 	}
-	if (result.count && !available_) result.cue = nearest;
+	const bool due = repeatMs > 0 && now >= cuedMs_ + repeatMs;
+	if (result.count && (!available_ || due)) {
+		result.cue = nearest;
+		cuedMs_ = now;
+	}
 	available_ = result.count || (available_ && near);
 	return result;
 }

@@ -46,6 +46,7 @@ constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
 std::atomic<bool> g_npcAlerts{true};
 std::atomic<bool> g_corpseCue{true};
+std::atomic<int> g_corpseRepeat{EntityCues::DefaultCorpseRepeatLevel};
 EntityCues::CorpseTracker g_corpses;
 EntityCues::AlertTracker g_alerts;
 std::mutex g_alertMutex; // the announcer reads the tracker too
@@ -258,7 +259,8 @@ void Tick(const D2RL::PluginContext* context) {
 	// A Necromancer's usable corpses (a tester, 2026-10-14): a rattle toward the nearest as some become available.
 	if (const auto usable = NativeEntities::LastUsableCorpses(); usable.necromancer && usable.playerId == state.player
 		&& usable.readMs + EntityCues::CorpsesFreshMs >= now) {
-		const auto corpses = g_corpses.Update(usable.player, usable.corpses, g_settings.range);
+		const auto repeatMs = static_cast<uint64_t>(EntityCues::CorpseRepeatSeconds[static_cast<size_t>(g_corpseRepeat.load())]) * 1000;
+		const auto corpses = g_corpses.Update(usable.player, usable.corpses, g_settings.range, now, repeatMs);
 		if (corpses.cue && g_corpseCue.load()) {
 			AsyncLog::InfoF(context, "[corpses] %zu usable within %.0f, nearest %.1f", corpses.count, g_settings.range, corpses.cue->distance);
 			EntityCueAudio::Play(EntityCueAudio::Sound::Corpse, {corpses.cue->right, corpses.cue->front});
@@ -333,6 +335,10 @@ void SetNpcAlerts(bool on) { g_npcAlerts = on; }
 bool CorpseCue() { return g_corpseCue.load(); }
 double Range() { return g_settings.range; }
 void SetCorpseCue(bool on) { g_corpseCue = on; }
+int CorpseRepeatLevel() { return g_corpseRepeat.load(); }
+void SetCorpseRepeatLevel(int level) {
+	if (level >= 0 && level < static_cast<int>(EntityCues::CorpseRepeatSeconds.size())) g_corpseRepeat = level;
+}
 void PlayNpcAlert() {
 	if (g_npcAlerts.load() && g_enabled) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
 }

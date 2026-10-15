@@ -60,6 +60,12 @@ public:
 	// Groups with no entry are left out.
 	Menu(std::vector<Group> groups, std::string opened, std::string closed);
 	bool Open() const { return open_; }
+	// How a group is said as the list lands on it ("%s sub menu"); a tester,
+	// 2026-10-14: a group should say it is one. Its name alone without it.
+	void SetGroupFormat(std::string format) { groupFormat_ = std::move(format); }
+	// Opening starts over at the first entry of the top list instead of returning
+	// to where the list was left (a tester, 2026-10-14; off by default).
+	void SetRestart(bool restart) { restart_ = restart; }
 	// Each returns what to say, empty when there is nothing to say. Opening
 	// returns to the switch (or group) the list was left on.
 	std::string Toggle(uint64_t now);
@@ -92,7 +98,8 @@ private:
 	std::string Current() const;
 	void Preview() const;
 	std::vector<List> lists_; // the top first
-	std::string opened_, closed_;
+	std::string opened_, closed_, groupFormat_;
+	bool restart_ = false;
 	size_t list_ = 0;         // the list the player is in
 	Edge edge_ = Edge::None;
 	bool open_ = false;

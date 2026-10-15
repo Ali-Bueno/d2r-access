@@ -254,6 +254,12 @@ void Corpses() {
 	Check(corpses.Update(player, {{35, 30}}, Range).cue.has_value(), "once all were gone, the next ones cue again");
 	corpses.Reset();
 	Check(corpses.Update(player, {{35, 30}}, Range).cue.has_value(), "a reset forgets they were available");
+	CorpseTracker loop;
+	constexpr uint64_t Repeat = 3000;
+	Check(loop.Update(player, {{35, 30}}, Range, 1000, Repeat).cue.has_value(), "with a repeat the first cue comes as before");
+	Check(!loop.Update(player, {{35, 30}}, Range, 2000, Repeat).cue, "and nothing until the repeat is due");
+	Check(loop.Update(player, {{35, 30}}, Range, 4000, Repeat).cue.has_value(), "then it rattles again while they stay");
+	Check(!loop.Update(player, {}, Range, 8000, Repeat).cue, "but never with none within range");
 }
 
 int main() {

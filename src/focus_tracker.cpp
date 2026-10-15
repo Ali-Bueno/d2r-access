@@ -148,6 +148,7 @@ constexpr LegendAction CharacterRowActions[] = {
 // Strings::Table::controllerButtons ("Menu" 5, "Y" 18) added to the first one.
 constexpr uint32_t FirstControlGlyph = 0xE000;
 constexpr uint32_t MenuGlyph         = FirstControlGlyph + 5;
+constexpr uint32_t XGlyph            = FirstControlGlyph + 17;
 constexpr uint32_t YGlyph            = FirstControlGlyph + 18;
 constexpr const char* CharacterCreatePanelName = "CharacterCreatePanel";
 // The list's first row is announced as the panel opens; the hint waits behind it.
@@ -176,7 +177,16 @@ void TickScreenHints(const D2RL::PluginContext* context) {
 	if (g_selectHintAt == 0 || GetTickCount64() < g_selectHintAt) return;
 	g_selectHintAt = 0;
 	if (!g_screenHints.load()) return;
-	if (const std::string hint = HintText(Strings::Current().hintNewCharacter, MenuGlyph); !hint.empty()) {
+	// Create and delete (a tester, 2026-10-14: nothing said what X and Start do);
+	// with no character saved, only how to make one.
+	const auto& strings = Strings::Current();
+	const bool none = CharacterSaves::Load(context).empty();
+	std::string hint = HintText(none ? strings.hintNoCharacters : strings.hintNewCharacter, MenuGlyph);
+	if (const std::string remove = none ? std::string{} : HintText(strings.hintDeleteCharacter, XGlyph); !remove.empty()) {
+		if (!hint.empty()) hint += ". ";
+		hint += remove;
+	}
+	if (!hint.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[hint] %s", hint.c_str());
 		ScreenReader::Speak(hint, false);
 	}

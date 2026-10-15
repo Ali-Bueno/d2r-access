@@ -4,6 +4,8 @@
 #include <span>
 
 namespace D2RAccess::TabReader {
+// "Page 2" for a tab shown with no caption, by its index in the bar; "" for none.
+std::string PageName(int index);
 // Observe visible tab bars, including bars outside the panel holding focus.
 // Returns only changed tab labels, never their unselected siblings.
 std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, bool suspended);

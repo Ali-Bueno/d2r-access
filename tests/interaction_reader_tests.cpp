@@ -125,6 +125,10 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
 	return inventory;
 }
 std::vector<uintptr_t> FindControls(uintptr_t, UiText::Kind) { return stashTabLabel.empty() ? std::vector<uintptr_t>{} : std::vector<uintptr_t>{900}; }
+// The skill tree's branch poll finds no tree in these fixtures.
+bool Visible(uintptr_t widget) { return widget != 0; }
+std::vector<uintptr_t> Children(uintptr_t) { return {}; }
+std::string TabLabel(uintptr_t) { return {}; }
 std::string SelectedTabText(uintptr_t widget) {
 	if (widget == 900) return stashTabLabel;
 	for (const auto& node : inventory.nodes) if (node.id == widget) return node.text;
@@ -137,6 +141,7 @@ std::string FocusedTabText(uintptr_t) {
 }
 }
 namespace D2RAccess::NativeWidgets {
+bool IsAvailable() { return true; }
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
 std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";

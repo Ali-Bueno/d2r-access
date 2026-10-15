@@ -130,6 +130,42 @@ void PotionsAfterLoot() {
 	scene.items.pop_back();
 	Check(tracker.Tick(scene, 3000, false).voices.size() == MaxVoices, "with nothing else near, the potions take every voice");
 }
+// The audible loot filter keeps only some drop loops while it is on.
+void LootFiltering() {
+	using GroundItems::EquipmentLoops;
+	namespace Filter = GroundItems::LootFilter;
+	Tracker tracker;
+	Snapshot scene{1, {}};
+	scene.items.push_back(Make(1, Sound::Potion, "Poción", {2, 0}));
+	scene.items.push_back(Make(2, Sound::Gem, "Rubí", {3, 0}));
+	scene.items.push_back(Make(3, Sound::Normal, "Daga", {4, 0}));
+	auto silver = Make(4, Sound::Normal, "Daga", {5, 0});
+	silver.silver = true;
+	scene.items.push_back(silver);
+	scene.items.push_back(Make(5, Sound::Rare, "Anillo", {6, 0}));
+	scene.items.push_back(Make(6, Sound::Gold, "Oro", {7, 0}));
+	const auto heard = [&](uint64_t now) {
+		std::vector<uint32_t> ids;
+		for (const auto& voice : tracker.Tick(scene, now, false).voices) ids.push_back(voice.id);
+		std::sort(ids.begin(), ids.end());
+		return ids;
+	};
+	Check(heard(1000) == std::vector<uint32_t>{1, 2, 3, 4, 5, 6}, "with the filter off every drop loops");
+	Filter::SetActive(true);
+	Filter::SetEquipment(EquipmentLoops::RareUp);
+	Check(heard(2000) == std::vector<uint32_t>{1, 2, 4, 5, 6},
+		"rare and better keeps the rare, the silver white and the rest of the loot, not the plain white");
+	Filter::SetPotions(false);
+	Filter::SetGems(false);
+	Filter::SetEquipment(EquipmentLoops::Off);
+	Check(heard(3000) == std::vector<uint32_t>{6}, "with everything off only the gold loops");
+	Filter::SetActive(false);
+	Filter::SetPotions(true);
+	Filter::SetGems(true);
+	Filter::SetEquipment(EquipmentLoops::All);
+	Check(heard(4000).size() == 6, "off again, every drop loops");
+}
+
 void SpeechPriority() {
 	Tracker tracker;
 	Snapshot scene{1, {}, {Make(1, Sound::Normal, "Gorro", {0.5, 0}), Make(2, Sound::Potion, "Poción", {1, 0}),
@@ -297,7 +333,7 @@ void DropSoundSet() {
 }
 
 int main() {
-	Classification(); Position(); Tracking(); SpeechPriority(); PotionsAfterLoot(); Containers(); Doors(); QuestSources(); DropSoundSet();
+	Classification(); Position(); Tracking(); SpeechPriority(); PotionsAfterLoot(); LootFiltering(); Containers(); Doors(); QuestSources(); DropSoundSet();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");
