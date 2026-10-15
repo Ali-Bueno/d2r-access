@@ -116,7 +116,8 @@ std::vector<GroundItems::Item> Landmarks(const std::vector<EntityRadar::Entity>&
 		landmark.id = entity.id; landmark.position = {entity.position.x, entity.position.y};
 		// Loaded exit units require interaction, including dungeon stairs.
 		// Walkable crossings come separately from ZoneTransitions::Find.
-		landmark.sound = stash ? GroundItems::Sound::Stash : GroundItems::Sound::Portal;
+		landmark.sound = stash ? GroundItems::Sound::Stash
+			: entity.category == EntityRadar::Category::Quest ? GroundItems::Sound::Quest : GroundItems::Sound::Portal;
 		landmark.source = GroundItems::SourceKind::Object;
 		result.push_back(std::move(landmark));
 	}

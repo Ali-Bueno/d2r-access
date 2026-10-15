@@ -70,6 +70,8 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
 bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
+// The mercenary in BACK+X, off since BACK+RT says it (a tester, 2026-10-14).
+bool g_mercenaryReport = false;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -213,11 +215,17 @@ void AnnounceMovement(const D2RL::PluginContext* context, bool toggled) {
 	ScreenReader::Speak(text, toggled);
 }
 
+// "Level 12", in the game's own words; "" when the label cannot be read.
+std::string LevelWords(int level) {
+	const auto levelLabel = Localization::Text("strchrlvl");
+	return levelLabel.empty() ? std::string{} : levelLabel + " " + std::to_string(level);
+}
+
 std::string MercenaryLevel(int level) {
 	const auto mercenary = Localization::Text("MiniPanelHireinv");
-	const auto levelLabel = Localization::Text("strchrlvl");
-	if (mercenary.empty() || levelLabel.empty()) return {};
-	return mercenary + ". " + levelLabel + " " + std::to_string(level);
+	const auto words = LevelWords(level);
+	if (mercenary.empty() || words.empty()) return {};
+	return mercenary + ". " + words;
 }
 
 void Announce(const Vitals::Alert& alert, const Vitals::MercenaryMeter::Alert& mercenary) {
@@ -325,9 +333,12 @@ std::vector<std::string> Companions() {
 	if (!LocalPlayer(id)) return entries;
 	const auto& strings = Strings::Current();
 	const auto here = NativePets::PositionOf(id, PlayerUnit);
-	if (const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt; mercenary && mercenary->lifePercent >= 0)
-		entries.push_back(Whereabouts(FormattedPercent(strings.mercenaryLife, mercenary->lifePercent),
-			NativePets::PositionOf(mercenary->id, MonsterUnit), here));
+	if (const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt; mercenary && mercenary->lifePercent >= 0) {
+		// Life then level, what BACK+X used to say of it (a tester, 2026-10-14).
+		std::string text = FormattedPercent(strings.mercenaryLife, mercenary->lifePercent);
+		if (mercenary->level > 0) Append(text, LevelWords(mercenary->level));
+		entries.push_back(Whereabouts(std::move(text), NativePets::PositionOf(mercenary->id, MonsterUnit), here));
+	}
 	std::vector<uint32_t> ids;
 	for (const auto& entry : Summons(id, ids))
 		entries.push_back(entry.pet < 0 ? entry.text
@@ -401,7 +412,7 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 			static_cast<unsigned long long>(experience->nextLevel), experience->percent, experience->maximum);
 		if (!experience->maximum && experience->percent >= 0) Append(text, FormattedPercent(strings.experiencePercent, experience->percent));
 	}
-	if (g_statusSupported) {
+	if (g_statusSupported && g_mercenaryReport) {
 		const auto mercenary = NativeStatus::MercenaryLife();
 		if (mercenary) {
 			if (mercenary->lifePercent >= 0) {
@@ -690,6 +701,8 @@ bool StatusAlerts() { return g_statusAlerts; }
 void SetStatusAlerts(bool enabled) { g_statusAlerts = enabled; }
 bool MinionsReported() { return g_minionReport; }
 void SetMinionsReported(bool enabled) { g_minionReport = enabled; }
+bool MercenaryReported() { return g_mercenaryReport; }
+void SetMercenaryReported(bool enabled) { g_mercenaryReport = enabled; }
 int ManaAlerts() { return static_cast<int>(g_manaAlerts); }
 void SetManaAlerts(int level) {
 	g_manaAlerts = static_cast<Vitals::ManaAlerts>(std::clamp(level, 0, Vitals::ManaAlertLevels - 1));

@@ -50,57 +50,65 @@ void Extent() {
 	Check(TerrainOverview::Describe(layout, At(Origin, Origin)).valid, "a player inside a room has one");
 }
 
-// Screen thirds, over the same axes the radar and the exit review use: the
-// level's tile rectangle is a diamond on screen, so its corners are its poles.
+// Thirds along each world axis: the level's rectangle is a diamond on screen,
+// its sides face the screen diagonals and its corners the screen cardinals.
 void Places() {
 	const auto layout = Level({});
 	constexpr int Last = Origin + Rooms * RoomTiles - 1;
 	Check(Place(layout, At(Origin + 6, Origin + 6)) == 4, "the middle of the level is the centre");
-	Check(Place(layout, At(Origin, Origin)) == 7, "the world origin corner is the ahead edge on screen");
-	Check(Place(layout, At(Last, Last)) == 1, "the far world corner is the edge behind");
-	Check(Place(layout, At(Last, Origin)) == 5, "growing X alone is the right edge");
-	Check(Place(layout, At(Origin, Last)) == 3, "growing Y alone is the left edge");
+	Check(Place(layout, At(Origin, Origin)) == 0, "the world origin corner is the north corner on screen");
+	Check(Place(layout, At(Last, Last)) == 8, "the far world corner is the south corner");
+	Check(Place(layout, At(Last, Origin)) == 6, "growing X alone is the east corner");
+	Check(Place(layout, At(Origin, Last)) == 2, "growing Y alone is the west corner");
+	Check(Place(layout, At(Origin + 6, Origin)) == 3, "the middle of the near Y side is the northeast edge");
+	Check(Place(layout, At(Origin, Origin + 6)) == 1, "the middle of the near X side is the northwest edge");
+	Check(std::string(English.terrainPlaces[3]) == "northeast edge" && std::string(English.terrainPlaces[1]) == "northwest edge",
+		"the place words follow that order");
 }
 
-// One utterance: where the player stands, then each screen direction with how
-// far the level reaches and where the unwalked part starts.
+// One utterance: where the player stands, then each side of the level with how
+// far it reaches and where the unwalked part starts, then the places found.
 void Spoken() {
 	auto layout = Level({{104, 104}, {100, 100}});
-	layout.neighbours.push_back({{112, 112, RoomTiles, RoomTiles}, "Rogue Encampment"});
+	layout.neighbours.push_back({{104, 112, RoomTiles, RoomTiles}, "Rogue Encampment"});
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
 	Check(summary.valid && summary.place == 4, "the fixture puts the player in the centre");
 	const std::string text = TerrainOverview::Speak(summary, "Blood Moor", Scan, English);
-	Check(text == "Blood Moor, centre, 22 percent explored. north: edge at 49 units, explored."
-		" west: edge at 42 units, unexplored from 14 units."
-		" east: edge at 42 units, unexplored from 14 units."
-		" south: Rogue Encampment at 42 units, unexplored from 14 units",
-		"the overview names the level, the place, the share seen and each direction");
+	Check(text == "Blood Moor, centre, 22 percent explored. northeast: edge at 35 units, unexplored from 15 units."
+		" southeast: edge at 30 units, unexplored from 10 units."
+		" southwest: Rogue Encampment at 30 units, unexplored from 10 units."
+		" northwest: edge at 35 units, unexplored from 15 units",
+		"the overview names the level, the place, the share seen and each side");
 	Check(summary.percent == 22, "two of nine rooms seen is 22 percent, rounded down");
 	Check(TerrainOverview::Describe(Level({}), At(106, 106)).percent == 0, "nothing seen is 0 percent");
 	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish)
-		== "Blood Moor, centro, explorado 22 por ciento. norte: borde a 49 unidades, explorado."
-		" oeste: borde a 42 unidades, sin explorar desde 14 unidades."
-		" este: borde a 42 unidades, sin explorar desde 14 unidades."
-		" sur: Rogue Encampment a 42 unidades, sin explorar desde 14 unidades",
+		== "Blood Moor, centro, explorado 22 por ciento. noreste: borde a 35 unidades, sin explorar desde 15 unidades."
+		" sureste: borde a 30 unidades, sin explorar desde 10 unidades."
+		" suroeste: Rogue Encampment a 30 unidades, sin explorar desde 10 unidades."
+		" noroeste: borde a 35 unidades, sin explorar desde 15 unidades",
 		"the wording comes from the speech table, not the logic");
 	SpokenDirection::SetStyle(SpokenDirection::Style::Clock);
-	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish).find(". a las 12: borde a 49 unidades, explorado. a las 9: borde")
+	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, Spanish).find(". a las 2: borde a 35 unidades, sin explorar desde 15 unidades. a las 4: borde")
 		!= std::string::npos, "the clock style names the sides by their hours");
 	SpokenDirection::SetStyle(SpokenDirection::Style::Compass);
+	const std::string found = TerrainOverview::Speak(summary, "Blood Moor", Scan, English,
+		{{"Waypoint", {0, -20}}, {"Forgotten Tower", {10, 10}}, {"", {1, 1}}});
+	Check(found.ends_with(" northwest: edge at 35 units, unexplored from 15 units. Forgotten Tower, 14 units, south. Waypoint, 20 units, northeast"),
+		"the places found follow the sides, nearest first, with their distance and direction; a nameless one is left out");
 }
 
 void Directions() {
-	const auto layout = Level({{104, 104}, {100, 100}});
+	const auto layout = Level({{104, 104}, {100, 104}});
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
-	const auto& ahead = summary.legs[static_cast<size_t>(Radar::Direction::Up)];
-	const auto& behind = summary.legs[static_cast<size_t>(Radar::Direction::Down)];
+	const auto& ahead = summary.legs[static_cast<size_t>(TerrainOverview::Side::Northwest)];
+	const auto& behind = summary.legs[static_cast<size_t>(TerrainOverview::Side::Southeast)];
 	Check(ahead.exploredToEdge && !ahead.hasUnexplored, "walked rooms all the way out read as explored");
 	Check(ahead.edge > behind.edge, "the level reaches further towards the world origin from here");
 	Check(behind.hasUnexplored && !behind.exploredToEdge, "a room never streamed is unexplored terrain");
 	Check(behind.border.empty(), "no neighbour level is named where none was generated");
 	// Only the first unwalked room counts: what lies behind it is unknown too.
 	const auto fresh = TerrainOverview::Describe(Level({}), At(106, 106));
-	const auto& first = fresh.legs[static_cast<size_t>(Radar::Direction::Up)];
+	const auto& first = fresh.legs[static_cast<size_t>(TerrainOverview::Side::Northwest)];
 	Check(first.hasUnexplored && first.unexplored < 10, "an unexplored stretch can start at the first step");
 	Check(TerrainOverview::Speak(fresh, "Blood Moor", Scan, English).find("unexplored from") == std::string::npos,
 		"a stretch unexplored from the player's feet is spoken without a distance");
@@ -112,13 +120,13 @@ void Directions() {
 // names it; an ungenerated one is simply the edge.
 void Borders() {
 	auto layout = Level({});
-	layout.neighbours.push_back({{112, 112, RoomTiles, RoomTiles}, "Rogue Encampment"});
+	layout.neighbours.push_back({{104, 112, RoomTiles, RoomTiles}, "Rogue Encampment"});
 	const auto summary = TerrainOverview::Describe(layout, At(106, 106));
-	Check(summary.legs[static_cast<size_t>(Radar::Direction::Down)].border == "Rogue Encampment",
+	Check(summary.legs[static_cast<size_t>(TerrainOverview::Side::Southwest)].border == "Rogue Encampment",
 		"the level beyond the edge is named where the game has generated it");
-	Check(summary.legs[static_cast<size_t>(Radar::Direction::Up)].border.empty(),
+	Check(summary.legs[static_cast<size_t>(TerrainOverview::Side::Northeast)].border.empty(),
 		"the opposite edge names nothing");
-	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 42 units")
+	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 30 units")
 		!= std::string::npos, "a named border replaces the plain edge");
 }
 

@@ -2,6 +2,32 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's ninth and tenth lists — 2026-10-15 (not yet released)
+
+Eighteen items from `../D2R Access test build 2026-10-14-2 bug list and improvements.txt` and
+`../d2r Access Build 2026-10-15 bug list part II.txt`, worked alone (weekly limit; no agents, no
+live run). Choices in [decisions](docs/decisions.md); news draft `../tester-news-draft-2026-10-15.txt`.
+- BACK+B: the level's own sides (NE/SE/SW/NW), place by world thirds, logged landmarks listed
+  ([terrain overview](docs/terrain-overview.md)).
+- BACK+X without the mercenary (`mercenary-report`, off); BACK+RT's mercenary entry adds its level.
+- Skill tree branch read from the visible container, cursor on a node or not (`[skill-tree] branch shown`).
+- Settings list: "<group> sub menu", **Settings list** group (`settings-list-stops`, `settings-list-restart`).
+- `corpse-repeat` (3 s): the rattle repeats while corpses stay near.
+- Audible loot filter: LB in play, **Loot filter** group (`loot-filter`, `loot-potions`, `loot-gems`,
+  `loot-equipment`); `Item::silver` from `IsSilver`.
+- Forgotten Tower entrance: quest category/loop (`EntityRadar::QuestDestinations` = Levels.txt Id 21);
+  exits found from twice the scan range (`MapSurvey::ExitSightFactor`).
+- Chat: panel visibility opens/closes the announcement, InputBox echoed without focus (`[field] chat panel`).
+- Captionless tabs as "Page N" (shared stash); locked waypoint rows say "locked" (layout heuristic);
+  character select says Start/X or "No characters"; lobby list rows reachable with the D-pad.
+
+Built and unit-tested only (see the build line below); **unverified live: all of it.** Not done:
+main menu left-from-list order (the game's own cursor; no mod code moves it), pad typing into the
+loader's host/direct-join boxes, the pentagram (needs `[scan] fire` from a Tower Cellar log).
+**Next step:** the user builds a test release and the tester tries it; logs: `[terrain] ...
+landmarks=`, `[vitals] BACK+RT`, `[skill-tree] branch shown`, `[corpses]`, `[items] loot filter`,
+`[field] chat panel`, `[tabs]`, `[hint]`, `[terrain] place remembered ... (quest)`.
+
 ## The tester's eighth list — 2026-10-14 (released as test-2026-10-14-2 from 3c33430)
 
 Release: 121/121 CTest, 29 entries, 61,806,088 bytes, SHA-256 `13c79b9d…ea54`; also carries the sixth and

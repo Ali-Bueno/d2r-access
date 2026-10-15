@@ -15,6 +15,33 @@ std::atomic<bool> g_potionsLast{true};
 int ItemSoundSet() { return g_set; }
 bool PotionsLast() { return g_potionsLast; }
 void SetPotionsLast(bool on) { g_potionsLast = on; }
+
+namespace LootFilter {
+namespace {
+std::atomic<bool> g_active{false}, g_potions{true}, g_gems{true};
+std::atomic<EquipmentLoops> g_equipment{EquipmentLoops::All};
+// Normal, magic, rare, then set and unique: the order of the levels.
+int Rank(Sound sound) { return sound == Sound::Normal ? 0 : sound == Sound::Magic ? 1 : sound == Sound::Rare ? 2 : 3; }
+}
+bool Active() { return g_active; }
+void SetActive(bool on) { g_active = on; }
+bool Potions() { return g_potions; }
+void SetPotions(bool on) { g_potions = on; }
+bool Gems() { return g_gems; }
+void SetGems(bool on) { g_gems = on; }
+EquipmentLoops Equipment() { return g_equipment; }
+void SetEquipment(EquipmentLoops level) { if (level < EquipmentLoops::Count) g_equipment = level; }
+bool Loops(const Item& item) {
+	if (!g_active) return true;
+	if (IsPotion(item.sound)) return g_potions;
+	if (item.sound == Sound::Gem || item.sound == Sound::Rune) return g_gems;
+	if (item.sound != Sound::Normal && item.sound != Sound::Magic && item.sound != Sound::Rare && item.sound != Sound::Legendary) return true;
+	const EquipmentLoops level = g_equipment;
+	if (level == EquipmentLoops::Off) return false;
+	if (item.silver) return true;
+	return Rank(item.sound) >= static_cast<int>(level);
+}
+}
 void SetItemSoundSet(int set) { g_set = std::clamp(set, 0, static_cast<int>(SoundSet::Count) - 1); }
 bool LastEpochSounds() { return g_set == static_cast<int>(SoundSet::LastEpoch); }
 bool DropSounds() { return g_set == static_cast<int>(SoundSet::DiabloIIDrops); }
@@ -142,7 +169,8 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	auto heard = nearby;
 	if (PotionsLast()) std::stable_partition(heard.begin(), heard.end(), [](const auto& entry) { return !entry.second->common; });
 	for (const auto& [distance, item] : heard)
-		if (itemLoops && item->sound != Sound::Quest && result.voices.size() < MaxVoices && distance < AudibleRadius)
+		if (itemLoops && item->sound != Sound::Quest && LootFilter::Loops(*item) && result.voices.size() < MaxVoices
+			&& distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
 	std::vector<const Item*> reachable;
 	for (const auto& [distance, item] : nearby)

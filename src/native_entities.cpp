@@ -814,6 +814,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		if (EntityRadar::QuestDestination(exit.destination)) entity.category = EntityRadar::Category::Quest;
 		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));

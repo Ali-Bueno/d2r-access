@@ -50,7 +50,25 @@ struct Item {
 	std::string name, baseName;
 	SourceKind source = SourceKind::Item;
 	bool common = false; // a health or mana potion: heard after the rest of the loot (PotionsLast)
+	bool silver = false; // a white item the game draws gray (GroundItemText::IsSilver): kept by every loot filter level but Off
 };
+// The audible loot filter (a tester, 2026-10-14): with it on, only some drop loops
+// sound, as a sighted player's loot filter hides items; LB in play turns it on and
+// off. Every item still makes the game's own drop sound as it lands.
+enum class EquipmentLoops { All, MagicUp, RareUp, SetUnique, Off, Count };
+namespace LootFilter {
+bool Active();
+void SetActive(bool on);
+bool Potions();
+void SetPotions(bool on);
+bool Gems();
+void SetGems(bool on);
+EquipmentLoops Equipment();
+void SetEquipment(EquipmentLoops level);
+// Whether an item's loop sounds under the filter as it stands. Gold, scrolls and
+// quest items always do.
+bool Loops(const Item& item);
+}
 // Landmarks, containers, quest objects, shut doors, shrines and wells only loop; proximity speech is for items.
 struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines; };
 struct Voice {

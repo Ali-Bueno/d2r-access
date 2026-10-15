@@ -1,5 +1,8 @@
 #include "tab_reader.h"
 #include "native_widgets.h"
+#include "speech_strings.h"
+
+#include <cstdio>
 
 #include <algorithm>
 #include <unordered_map>
@@ -27,6 +30,13 @@ void Append(std::string& text, const std::string& part) {
 }
 }
 
+std::string PageName(int index) {
+	if (index < 0) return {};
+	char text[64]{};
+	std::snprintf(text, sizeof(text), Strings::Current().tabPage, index + 1);
+	return text;
+}
+
 std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, bool suspended) {
 	if (!focus.panel) {
 		Reset();
@@ -48,7 +58,11 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 	std::string changed;
 	for (const auto& panel : g_panels) {
 		for (uintptr_t tab : panel.tabs) {
-			Selection now { NativeUi::SelectedTab(tab), UiText::Clean(NativeUi::SelectedTabText(tab)) };
+			const std::string caption = NativeUi::SelectedTabText(tab);
+			Selection now { NativeUi::SelectedTab(tab), UiText::Clean(caption) };
+			// A tab with no caption at all (the shared stash's pages; a tester, 2026-10-14) is said
+			// by its number; one whose caption is a controller glyph stays unnamed.
+			if (caption.empty() && NativeUi::Visible(tab)) now.text = PageName(now.index);
 			if (now.text.empty() || next.contains(tab)) continue;
 			const auto prior = g_selected.find(tab);
 			const bool isSwitcher = NativeWidgets::ReadName(tab) == SwitcherTabs;

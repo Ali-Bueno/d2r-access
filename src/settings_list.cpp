@@ -1,6 +1,7 @@
 #include "settings_list.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <utility>
 
 namespace D2RAccess::SettingsList {
@@ -49,7 +50,11 @@ std::string Menu::Current() const {
 	if (Empty()) return {};
 	if (const auto* entry = Landed()) return entry->Say(entry->Value());
 	const auto& list = lists_[list_];
-	return lists_[list.lists[list.at - list.entries.size()]].name;
+	const auto& name = lists_[list.lists[list.at - list.entries.size()]].name;
+	if (groupFormat_.empty()) return name;
+	char phrase[200]{};
+	std::snprintf(phrase, sizeof(phrase), groupFormat_.c_str(), name.c_str());
+	return phrase;
 }
 
 void Menu::Preview() const {
@@ -62,6 +67,10 @@ std::string Menu::Toggle(uint64_t now) {
 	open_ = !open_;
 	usedMs_ = now;
 	if (!open_) return closed_;
+	if (restart_) {
+		list_ = 0;
+		for (auto& list : lists_) list.at = 0;
+	}
 	Preview();
 	const auto current = Current();
 	return current.empty() ? opened_ : opened_ + ". " + current;

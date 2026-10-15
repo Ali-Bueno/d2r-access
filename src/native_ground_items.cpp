@@ -108,6 +108,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));
 	uint32_t flags = 0;
 	if (!Peek(data + ItemFlags, flags)) flags = 0;
+	item.silver = GroundItemText::IsSilver(item.quality, flags);
 	// The prefix says the quality, so the quality word is left out: described as a normal item.
 	const auto lowQuality = item.quality == LowQuality ? LowQualityName(data, tables, nameId) : std::string{};
 	item.name = lowQuality.empty() ? GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags)

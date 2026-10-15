@@ -249,16 +249,26 @@ bool Fixed(const EntityRadar::Entity& entity) {
 	using EntityRadar::Category;
 	using EntityRadar::Kind;
 	if (!entity.placeId) return false;
-	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint))
+	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint
+			|| entity.category == Category::Quest))
 		|| (entity.kind == Kind::Object && entity.category == Category::Stash);
 }
+
+// An exit is found from twice the scan's range, seen or not: the way into the
+// Forgotten Tower stands inside ruin walls (a tester, 2026-10-14), as visible
+// from afar to a sighted player as the tower itself.
+constexpr double ExitSightFactor = 2;
 
 std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 	const std::vector<EntityRadar::Entity>& entities, const std::vector<NativeRooms::Room>& charted) {
 	std::vector<EntityRadar::Entity> result;
-	for (const auto& entity : entities)
-		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None
-			|| InView(world, entity, EntityRadar::Settings{}.range)) result.push_back(entity);
+	const double range = EntityRadar::Settings{}.range;
+	for (const auto& entity : entities) {
+		const double straight = entity.kind == EntityRadar::Kind::Exit ? StraightLine(world.player, entity.position) : 0;
+		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None || InView(world, entity, range)
+			|| (entity.kind == EntityRadar::Kind::Exit && std::isfinite(straight) && straight <= range * ExitSightFactor))
+			result.push_back(entity);
+	}
 	return result;
 }
 

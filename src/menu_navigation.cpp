@@ -35,7 +35,8 @@ std::vector<MenuNavigationPolicy::Node> Nodes(const UiText::Snapshot& snapshot) 
 		const auto& node = snapshot.nodes[i];
 		if (!Under(snapshot, i, scope) || !node.enabled) continue;
 		using UiText::Kind;
-		if (node.kind != Kind::Button && node.kind != Kind::Toggle
+		// List rows too: the browser's games (a tester, 2026-10-15: the pad could not reach them).
+		if (node.kind != Kind::Button && node.kind != Kind::Toggle && node.kind != Kind::ListItem
 			&& node.kind != Kind::TextInput && node.kind != Kind::ValueControl) continue;
 		if (const auto rect = NativeSkillNavigation::FocusRect(node.id))
 			nodes.push_back({node.id, rect->x, rect->y, rect->width, rect->height});

@@ -26,6 +26,7 @@
 #include "native_controller_help.h"
 #include "native_ground_items.h"
 #include "native_progression.h"
+#include "native_ui.h"
 #include "progression_text.h"
 #include "radar_ui.h"
 #include "native_widgets.h"
@@ -129,6 +130,7 @@ std::string g_tabTitle;
 // Forgotten once the focus leaves the tree's panel, so a reopened tree names it again.
 uintptr_t g_skillTab = 0;
 uintptr_t g_skillTabPanel = 0;
+uintptr_t g_branchShown = 0; // the branch the open tree showed last, whatever had focus
 // The panel the last readout was about, to tell a tab change that moved focus
 // to another panel from one that left it where it was.
 uintptr_t g_readPanel = 0;
@@ -867,7 +869,48 @@ bool HandlesFocus(NativeUi::Focus focus) {
 		|| type.name == "HirelingSkillIconWidget";
 }
 
+// The branch the skill tree shows, read from the tree itself: the tab whose skill
+// container is visible. A change with the cursor on no node (the left stick moved
+// it off; a tester, 2026-10-14) was read only once a node had focus again. The
+// first branch seen is left to the focus reader, which says it with the window.
+constexpr std::string_view SkillsTreePanel = "SkillsTreePanel";
+constexpr const char* SkillContainers[] = {"SkillButtonContainer", "CommonSkillsContainer", "ItemSkillsContainer"};
+constexpr std::string_view SkillCounter = "SkillCounter";
+void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(SkillsTreePanel) : 0;
+	if (!panel || !NativeUi::Visible(panel)) { g_branchShown = 0; return; }
+	uintptr_t open = 0;
+	bool classTree = false;
+	for (const uintptr_t tab : NativeUi::FindControls(panel, UiText::Kind::TabButton)) {
+		if (!NativeUi::Visible(tab)) continue;
+		for (const uintptr_t child : NativeUi::Children(tab)) {
+			const auto name = NativeWidgets::ReadName(child);
+			const auto known = std::find(std::begin(SkillContainers), std::end(SkillContainers), name);
+			if (known == std::end(SkillContainers) || !NativeUi::Visible(child)) continue;
+			open = tab;
+			classTree = known == std::begin(SkillContainers);
+		}
+		if (open) break;
+	}
+	if (!open || open == g_branchShown) return;
+	const bool first = !g_branchShown;
+	g_branchShown = open;
+	if (first || open == g_skillTab) return;
+	std::string title = UiText::Clean(NativeUi::TabLabel(open));
+	if (title.empty()) return;
+	const auto points = UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(panel, SkillCounter)));
+	g_tabTitle = title;
+	g_tabChangedAt = now;
+	g_tabFocus.clear();
+	g_skillTab = open;
+	g_skillTabPanel = panel;
+	if (classTree && CharacterStats::HasPoints(points)) Append(title, points);
+	D2RAccess::AsyncLog::InfoF(context, "[skill-tree] branch shown -> \"%s\"", title.c_str());
+	ScreenReader::Speak(title, true);
+}
+
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
+	TickSkillBranch(context, now);
 	// The Advanced Stats list has nothing the controller can focus, and a menu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.

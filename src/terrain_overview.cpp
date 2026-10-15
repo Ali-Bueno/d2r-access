@@ -10,27 +10,18 @@
 namespace D2RAccess::TerrainOverview {
 namespace {
 using LevelExitLayout::SubtilesPerTile;
-// One step walks a tile along both world axes, which is exactly one screen
-// cardinal, so it covers that tile diagonal (Radar::Diagonal is cos 45).
-constexpr double StepSubtiles = SubtilesPerTile / Radar::Diagonal;
 // Two map tiles: an unexplored stretch starting this close starts at the
 // player's feet, and the distance adds nothing to the word "unexplored".
 constexpr double NearStart = 2 * SubtilesPerTile;
 
-size_t Index(Radar::Direction direction) { return static_cast<size_t>(direction); }
+size_t Index(Side side) { return static_cast<size_t>(side); }
 int Tile(double subtile) { return static_cast<int>(std::floor(subtile / SubtilesPerTile)); }
 bool Inside(const TileRect& rect, int x, int y) {
 	return x >= rect.x && y >= rect.y && x - rect.x < rect.width && y - rect.y < rect.height;
 }
-// Distance along a screen direction, over the radar's own axes, so a direction
-// here can never end up mirrored against the rest of the mod.
-double Along(Position point, Radar::Direction direction) {
-	const auto& axis = Radar::Axes[Index(direction)];
-	return point.x * axis.x + point.y * axis.y;
-}
-// The tile step of a screen direction: each screen cardinal is a world diagonal.
-int StepX(Radar::Direction direction) { return Radar::Axes[Index(direction)].x < 0 ? -1 : 1; }
-int StepY(Radar::Direction direction) { return Radar::Axes[Index(direction)].y < 0 ? -1 : 1; }
+// The tile step towards a side: one world axis, the other untouched.
+int StepX(Side side) { return static_cast<int>(SideSteps[Index(side)].x); }
+int StepY(Side side) { return static_cast<int>(SideSteps[Index(side)].y); }
 
 const Room* RoomAt(const Layout& layout, int x, int y) {
 	for (const auto& room : layout.rooms)
@@ -43,38 +34,31 @@ std::string NeighbourAt(const Layout& layout, int x, int y) {
 	return {};
 }
 
-// Which screen third of the level's span the player stands in, per axis.
+// Which third of the level's span the player stands in along each world axis.
+// Thirds along x run from the northwest side to the southeast one, along y from
+// the northeast side to the southwest one; the index is x's third times three
+// plus y's, the order of Strings::Table::terrainPlaces.
 size_t Place(const TileRect& box, Position player) {
-	const double left = static_cast<double>(box.x) * SubtilesPerTile;
-	const double top = static_cast<double>(box.y) * SubtilesPerTile;
-	const double right = static_cast<double>(box.x + box.width) * SubtilesPerTile;
-	const double bottom = static_cast<double>(box.y + box.height) * SubtilesPerTile;
-	const Position corners[]{{left, top}, {right, top}, {left, bottom}, {right, bottom}};
-	// The level's rectangle is a diamond on screen, so its span along a screen
-	// axis is the span of its four corners.
-	const auto third = [&](Radar::Direction direction) {
-		double low = Along(corners[0], direction), high = low;
-		for (const auto& corner : corners) {
-			const double value = Along(corner, direction);
-			low = std::min(low, value);
-			high = std::max(high, value);
-		}
-		if (high <= low) return ThirdsPerAxis / 2;
-		const int index = static_cast<int>((Along(player, direction) - low) / (high - low) * ThirdsPerAxis);
+	const auto third = [](double low, double span, double value) {
+		if (span <= 0) return ThirdsPerAxis / 2;
+		const int index = static_cast<int>((value - low) / span * ThirdsPerAxis);
 		return std::clamp(index, 0, ThirdsPerAxis - 1);
 	};
-	return static_cast<size_t>(third(Radar::Direction::Up) * ThirdsPerAxis + third(Radar::Direction::Right));
+	const double left = static_cast<double>(box.x) * SubtilesPerTile, top = static_cast<double>(box.y) * SubtilesPerTile;
+	const int x = third(left, static_cast<double>(box.width) * SubtilesPerTile, player.x);
+	const int y = third(top, static_cast<double>(box.height) * SubtilesPerTile, player.y);
+	return static_cast<size_t>(x * ThirdsPerAxis + y);
 }
 
-Leg Walk(const Layout& layout, const TileRect& box, int tileX, int tileY, Radar::Direction direction) {
+Leg Walk(const Layout& layout, const TileRect& box, int tileX, int tileY, Side side) {
 	Leg leg;
-	const int stepX = StepX(direction), stepY = StepY(direction);
-	// A diagonal walk cannot stay inside the level longer than its two sides.
-	const int maxSteps = box.width + box.height;
+	const int stepX = StepX(side), stepY = StepY(side);
+	// A walk along one axis cannot stay inside the level longer than that side.
+	const int maxSteps = std::max(box.width, box.height) + 1;
 	bool walkedTerrain = false;
 	for (int step = 1; step <= maxSteps; ++step) {
 		const int x = tileX + stepX * step, y = tileY + stepY * step;
-		leg.edge = step * StepSubtiles;
+		leg.edge = step * SubtilesPerTile;
 		const Room* room = RoomAt(layout, x, y);
 		if (room == nullptr) { leg.border = NeighbourAt(layout, x, y); break; }
 		walkedTerrain = true;
@@ -113,16 +97,16 @@ Summary Describe(const Layout& layout, Position player) {
 	size_t explored = 0;
 	for (const auto& room : layout.rooms) explored += room.explored ? 1 : 0;
 	summary.percent = static_cast<int>(explored * 100 / layout.rooms.size());
-	for (size_t d = 0; d < Radar::DirectionCount; ++d)
-		summary.legs[d] = Walk(layout, summary.box, tileX, tileY, static_cast<Radar::Direction>(d));
+	for (size_t d = 0; d < SideCount; ++d)
+		summary.legs[d] = Walk(layout, summary.box, tileX, tileY, static_cast<Side>(d));
 	summary.valid = true;
 	return summary;
 }
 
 std::string Speak(const Summary& summary, const std::string& levelName,
-	const EntityRadar::Settings& scan, const Strings::Table& strings) {
+	const EntityRadar::Settings& scan, const Strings::Table& strings, std::vector<Landmark> landmarks) {
 	std::string directions;
-	for (size_t d = 0; d < Radar::DirectionCount; ++d) {
+	for (size_t d = 0; d < SideCount; ++d) {
 		const Leg& leg = summary.legs[d];
 		const std::string distance = EntityRadar::DistancePhrase(leg.edge, scan, strings);
 		char reach[192]{};
@@ -138,9 +122,23 @@ std::string Speak(const Summary& summary, const std::string& levelName,
 		} else if (leg.hasUnexplored) state = strings.terrainUnexplored;
 		if (!state.empty()) state.insert(0, strings.listSeparator);
 		char line[320]{};
-		std::snprintf(line, sizeof line, strings.terrainDirection, SpokenDirection::OfSide(static_cast<Radar::Direction>(d), strings),
-			reach, state.c_str());
+		std::snprintf(line, sizeof line, strings.terrainDirection, SpokenDirection::Of(SideSteps[d], strings), reach, state.c_str());
 		if (!directions.empty()) directions += strings.terrainSeparator;
+		directions += line;
+	}
+	// The places found, nearest first, as the scanner says where a thing stands.
+	std::sort(landmarks.begin(), landmarks.end(), [](const Landmark& a, const Landmark& b) {
+		return std::hypot(a.offset.x, a.offset.y) < std::hypot(b.offset.x, b.offset.y);
+	});
+	for (const auto& landmark : landmarks) {
+		if (landmark.name.empty()) continue;
+		const double distance = std::hypot(landmark.offset.x, landmark.offset.y);
+		std::string line = landmark.name + strings.listSeparator + EntityRadar::DistancePhrase(distance, scan, strings);
+		if (!EntityRadar::UnderPlayer(distance, scan)) {
+			line += strings.listSeparator;
+			line += SpokenDirection::Of(landmark.offset, strings);
+		}
+		directions += strings.terrainSeparator;
 		directions += line;
 	}
 	// The place and the directions are separated the same way the directions are.
@@ -150,7 +148,7 @@ std::string Speak(const Summary& summary, const std::string& levelName,
 	std::string place = strings.terrainPlaces[std::min(summary.place, Strings::TerrainPlaceCount - 1)];
 	place += strings.listSeparator;
 	place += percent;
-	char text[1024]{};
+	char text[1600]{};
 	std::snprintf(text, sizeof text, strings.terrainOverview, levelName.c_str(), place.c_str(), directions.c_str());
 	return text;
 }

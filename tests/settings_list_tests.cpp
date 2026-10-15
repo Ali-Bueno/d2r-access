@@ -123,6 +123,20 @@ int main() {
 	Check(grouped.Toggle(160) == "Settings closed" && grouped.Toggle(170) == "Settings. Doors on",
 		"the list reopens where it was left, inside a group too");
 
+	// A group says it is a sub menu, and the list can start over on opening (a tester, 2026-10-14).
+	static bool wordingOn = true;
+	SettingsList::Entry worded{[] { return wordingOn; }, [](bool on) { wordingOn = on; },
+		[](bool on) { return std::string(on ? "Radar on" : "Radar off"); }};
+	SettingsList::Menu menu({{"Navigation", {worded}}, {"Alerts", {worded}}}, "Settings", "Settings closed");
+	menu.SetGroupFormat("%s sub menu");
+	Check(menu.Toggle(0) == "Settings. Navigation sub menu", "a group says it is a sub menu");
+	Check(menu.Enter(10) == "Radar on" && menu.Back(20) == "Navigation sub menu", "and again on the way back to it");
+	(void)menu.Step(1, 30);
+	Check(menu.Toggle(40) == "Settings closed" && menu.Toggle(50) == "Settings. Alerts sub menu", "the list reopens where it was left");
+	menu.SetRestart(true);
+	(void)menu.Toggle(60);
+	Check(menu.Toggle(70) == "Settings. Navigation sub menu", "with the restart on it reopens at the first entry");
+
 	// A group of its own inside a group comes after the group's switches.
 	SettingsList::Menu nested({{"Glossary", {sound, sound}, {{"Drops", {sound}, {}}, {"Nothing", {}, {}}}}},
 		"Settings", "Settings closed");

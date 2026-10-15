@@ -4,6 +4,7 @@
 #include "native_memory.h"
 #include "native_ui.h"
 #include "screen_reader.h"
+#include "tab_reader.h"
 #include "ui_text.h"
 
 #include <string>
@@ -22,7 +23,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!onStrip) { Reset(); return; }
 	// SelectedTabText resolves the strip's selected index to that tab's own
 	// label, so the text changing is the highlight having moved.
-	const std::string text = UiText::Clean(NativeUi::SelectedTabText(focus.widget));
+	const std::string caption = NativeUi::SelectedTabText(focus.widget);
+	std::string text = UiText::Clean(caption);
+	if (caption.empty()) text = TabReader::PageName(NativeUi::SelectedTab(focus.widget));
 	if (focus.widget != g_strip) {
 		// Landing on the strip is already announced by the focus tracker
 		// (d497e64), so the first reading is only a baseline.
