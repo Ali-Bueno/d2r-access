@@ -2,8 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's ninth and tenth lists — 2026-10-15 (not yet released)
+## The tester's ninth and tenth lists — 2026-10-15 (released as test-2026-10-15 from b5c6cf7)
 
+Release: 121/121 CTest, 29 entries, 61,820,481 bytes, SHA-256 `a0017cd6…f9e2`.
 Eighteen items from `../D2R Access test build 2026-10-14-2 bug list and improvements.txt` and
 `../d2r Access Build 2026-10-15 bug list part II.txt`, worked alone (weekly limit; no agents, no
 live run). Choices in [decisions](docs/decisions.md); news draft `../tester-news-draft-2026-10-15.txt`.
