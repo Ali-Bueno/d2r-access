@@ -12,9 +12,9 @@
 namespace D2RAccess::NativeStatus {
 namespace {
 // D2R 3.3.93787: AttributeBallWidget's poison-HSV branch at 0x14C9E25
-// calls this state checker with id 2 for the local player's health orb.
+// calls this state checker with id 2 (poison) for the local player's health
+// orb; it takes any states.txt row (docs/combat-status-evidence.md).
 constexpr uintptr_t StateChecker = 0x3351B0;
-constexpr int PoisonState = 2;
 // HirelingInventoryPanel resolves relation 7 from player to a monster unit
 // before drawing its equipment, experience and life statistics.
 constexpr uintptr_t HirelingRelation = 0x13ABC0;
@@ -89,19 +89,39 @@ bool Initialize(const D2RL::PluginContext* context) {
 	return g_poisonSupported || g_mercenarySupported || g_monsterSupported || g_movementSupported || g_experienceSupported;
 }
 
-std::optional<bool> PlayerPoisoned() noexcept {
-	if (!g_base || !g_poisonSupported) return std::nullopt;
+namespace {
+// The local player while alive and the state checker can be called, else 0.
+uintptr_t StatePlayer() noexcept {
+	if (!g_base || !g_poisonSupported) return 0;
 	uintptr_t player = 0, tables = 0;
-	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return std::nullopt;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return 0;
 	uint32_t type = 0, mode = 0;
 	if (!NativeMemory::Peek(player + GroundItemLayout::UnitType, type)
 		|| type != GroundItemLayout::PlayerType
 		|| !NativeMemory::Peek(player + GroundItemLayout::UnitMode, mode)
 		|| mode == GroundItemLayout::Death || mode == GroundItemLayout::Dead
-		|| !NativeMemory::Executable(g_base + StateChecker)) return std::nullopt;
+		|| !NativeMemory::Executable(g_base + StateChecker)) return 0;
+	return player;
+}
+
+// 1 when the unit has the state, 0 when not, -1 when the call faulted.
+int CheckState(uintptr_t unit, int state) noexcept {
 	__try {
-		return reinterpret_cast<int(*)(uintptr_t, int)>(g_base + StateChecker)(player, PoisonState) != 0;
-	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+		return reinterpret_cast<int(*)(uintptr_t, int)>(g_base + StateChecker)(unit, state) != 0 ? 1 : 0;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return -1; }
+}
+}
+
+std::optional<std::vector<size_t>> PlayerStates(std::span<const int> states) {
+	const auto player = StatePlayer();
+	if (!player) return std::nullopt;
+	std::vector<size_t> active;
+	for (size_t i = 0; i < states.size(); ++i) {
+		const int on = CheckState(player, states[i]);
+		if (on < 0) return std::nullopt;
+		if (on) active.push_back(i);
+	}
+	return active;
 }
 
 std::optional<Movement> PlayerMovement() noexcept {

@@ -1,4 +1,5 @@
 #include "advanced_stats_reader.h"
+#include "party_reader.h"
 #include "async_log.h"
 #include "auto_detail.h"
 #include "belt_reader.h"
@@ -871,6 +872,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.
 	if (AdvancedStatsReader::Tick(context, focus)) return !conversation;
+	if (PartyReader::Tick(context, focus)) return !conversation;
 	// The hire list's stats exist only in the game's tooltip, and a menu
 	// suspends this reader and its capture; HireStats keeps capture on there
 	// and takes the right stick. Its skill icons and gold lines are the

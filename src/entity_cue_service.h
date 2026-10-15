@@ -22,6 +22,11 @@ void SetEnabled(Cue cue, bool enabled);
 // A bell when a town NPC's "!" appears, and after its name wherever it is said.
 bool NpcAlerts();
 void SetNpcAlerts(bool on);
+// A rattle as usable corpses come near a Necromancer.
+bool CorpseCue();
+void SetCorpseCue(bool on);
+// The cue radius radar.toml sets, the one the corpse count uses too.
+double Range();
 void PlayNpcAlert();
 // The town NPCs whose "!" has just appeared, nearest first, each once whoever asks; RingAlert rings one, panned to it.
 std::vector<EntityCues::Cue> RaisedAlerts(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);

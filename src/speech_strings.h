@@ -28,13 +28,15 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
-inline constexpr std::size_t GlossarySoundCount = 50;
+inline constexpr std::size_t GlossarySoundCount = 51;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 inline constexpr std::size_t SettingsGroupCount = 9; // keyboard_service.cpp's SettingsGroup
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
 inline constexpr std::size_t CompassPointCount = 8; // Radar::ScreenSectors
 inline constexpr std::size_t ClockHourCount = 12;
 inline constexpr std::size_t DirectionStyleCount = 2; // SpokenDirection::Style
+inline constexpr std::size_t StatusConditionCount = 5; // StatusEffects::Condition
+inline constexpr std::size_t CurseNameCount = 2; // StatusEffects::CurseName
 
 struct Table {
 	const char* pluginLoaded;
@@ -198,8 +200,6 @@ struct Table {
 	const char* vitalsDisabled;
 	const char* vitalsOrbTextMissing; // %s, %s = the game's own orb text option labels
 	const char* vitalsOrbTextMissingOne; // %s = missing orb option label
-	const char* playerPoisoned;
-	const char* playerPoisonCleared;
 	const char* mercenaryLife; // %d = current hireling life percentage
 	const char* equipmentBroken;      // %s = equipment slot of the item that broke
 	const char* currentOfMaximum;     // %s = current value, %s = maximum
@@ -424,6 +424,39 @@ struct Table {
 	const char* goldMovedStash;       // %s = gold moved into a stash tab the mod could not name
 	const char* compareAloudOn;        // the equipped item read as the game draws it beside the highlighted one
 	const char* compareAloudOff;
+	const char* settingsEndsStop; // a step past the settings list's end stays, with a knock
+	const char* settingsEndsWrap; // it goes round to the other end, with a click
+	const char* routeOnAOn; // BACK+A and BACK+down traded (InputDirection::RouteOnA)
+	const char* routeOnAOff;
+	const char* zeroPointsOn; // the character and skill screens say when nothing is left to spend
+	const char* zeroPointsOff;
+	const char* stashNoticeOn; // an item sent from the backpack into a stash is named with the stash
+	const char* stashNoticeOff;
+	const char* itemMovedToPersonalStash; // %s = the item sent from the backpack
+	const char* itemMovedToSharedStash;
+	std::array<const char*, StatusConditionCount> conditionsStarted; // StatusEffects::Condition order
+	std::array<const char*, StatusConditionCount> conditionsEnded;
+	const char* curseStarted; // %s = the curse, the game's name of its skill
+	const char* curseEnded;
+	std::array<const char*, CurseNameCount> curseNames; // StatusEffects::CurseName order: monster curses the game leaves unnamed
+	const char* curseUnnamed; // a curse whose skill name could not be read
+	const char* statusAlertsOn;
+	const char* statusAlertsOff;
+	const char* corpseCueOn; // the rattle as usable corpses come near a Necromancer
+	const char* corpseCueOff;
+	const char* minionReportOn; // the summons in the life report (BACK+X)
+	const char* minionReportOff;
+	const char* minionCount; // %s = a summon's name, %d how many (MinionReport::Words)
+	const char* minionLife; // %s = a summon's name, %d its life percent
+	const char* minionNumbered; // %s = a summon's name, %d its number among those of that name
+	const char* usableCorpses; // %d = usable corpses near a Necromancer
+	const char* chatOpened; // the chat box opened (Enter)
+	const char* chatClosed;
+	const char* noCompanions; // BACK+RT with no mercenary, summon or party member
+	const char* inArea; // %s = the area a party member is in
+	const char* burningCorpse; // %s = a body with one of the game's fires on it
+	const char* potionsLastOn; // health and mana potions sound after the rest of the loot
+	const char* potionsLastOff;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -460,7 +493,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.questUpdated, t.questGoalDone, t.questAlertsEnabled, t.questAlertsDisabled, t.questNoObjective,
 		t.cairnStoneSymbol, t.cairnScrollOrder, t.sealNumbered, t.sealsLeft, t.sealsAllOpen,
 		t.vitalsLife, t.vitalsMana, t.vitalsEnabled, t.vitalsDisabled, t.vitalsOrbTextMissing,
-		t.vitalsOrbTextMissingOne, t.playerPoisoned, t.playerPoisonCleared, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.goldPersonalStash, t.goldSharedStash, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
+		t.vitalsOrbTextMissingOne, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.goldPersonalStash, t.goldSharedStash, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.roomOpening, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.finderEnabled, t.finderDisabled, t.mapSidesOn, t.mapSidesOff, t.finderNothing,
@@ -481,7 +514,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
 		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume,
-		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff}) visit(s);
+		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.burningCorpse, t.potionsLastOn, t.potionsLastOff}) visit(s);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
 	each(t.settingsGroups);
@@ -489,6 +522,9 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.placeInteriors);
 	each(t.placeFeatures);
 	each(t.glossarySounds);
+	each(t.conditionsStarted);
+	each(t.conditionsEnded);
+	each(t.curseNames);
 
 }
 

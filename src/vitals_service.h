@@ -23,6 +23,12 @@ void SetAmmoAlerts(bool enabled);
 // Experience within the level, said by the life report (BACK+X, Mod+X).
 bool ExperienceReport();
 void SetExperienceReport(bool enabled);
+// Poison, freezing, chill, stun, slowing and curses as they begin and end.
+bool StatusAlerts();
+void SetStatusAlerts(bool enabled);
+// The summons (and a Necromancer's usable corpses) in the life report.
+bool MinionsReported();
+void SetMinionsReported(bool enabled);
 // How much mana is spoken unasked, a Vitals::ManaAlerts level.
 int ManaAlerts();
 void SetManaAlerts(int level);

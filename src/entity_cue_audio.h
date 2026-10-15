@@ -10,8 +10,8 @@ inline constexpr unsigned SampleRate = 48000, Channels = 2;
 // Pickup and Edge are feedback, not presences: a ground item in pickup range, an
 // inventory cursor pushed against the grid's edge. Important is an elite enemy;
 // a boss shares its sound only with the class layers off.
-// NpcAlert: the "!" over a town NPC, a small bell.
-enum class Sound { Npc, Important, Resurrector, Ranged, Ordinary, Reach, Pickup, Edge, Boss, NpcAlert };
+// NpcAlert: the "!" over a town NPC, a small bell. Corpse: usable corpses near a Necromancer.
+enum class Sound { Npc, Important, Resurrector, Ranged, Ordinary, Reach, Pickup, Edge, Boss, NpcAlert, Corpse };
 
 // Screen coordinates: -1 right is left, +1 right is right; +1 front is
 // ahead and -1 front is behind. Rear cues use a lower pitch.
@@ -29,7 +29,7 @@ double PanScale();
 double PitchScale();
 bool ClassLayers();
 void SetClassLayers(bool on);
-// A pending Reach, Pickup, Edge or NpcAlert cue is never replaced by a presence pulse.
+// A pending Reach, Pickup, Edge, NpcAlert or Corpse cue is never replaced by a presence pulse.
 void Play(Sound sound, Placement placement);
 void Silence();
 void Stop();

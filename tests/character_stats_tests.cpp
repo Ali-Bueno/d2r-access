@@ -368,14 +368,23 @@ int main() {
 	pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Daño. 9 a 17",
 		"the hireling stat cursor reaches the final visible row");
+	// With an item focused, down and left keep the mercenary's statistics, up and
+	// right stay the item's (a tester, 2026-10-14).
+	pending = Push::Up;
+	Check(!CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Up,
+		"a focused hireling widget keeps up for its item's tooltip");
 	pending = Push::Down;
-	Check(!CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Down,
-		"a focused hireling widget keeps normal controller navigation and item-detail gestures");
+	Check(CharacterStatsReader::Tick(nullptr, On(10)) && speech.back() == "Daño. 9 a 17",
+		"and down still walks the mercenary's statistics");
 	Add(100, "PlayerInventoryExpansionLayout", "", 0);
 	Add(101, "grid", "", 100);
-	pending = Push::Down;
-	Check(!CharacterStatsReader::Tick(nullptr, {100, 101}) && pending == Push::Down,
-		"focus in another visible panel is never stolen by the hireling fallback");
+	pending = Push::Left;
+	Check(CharacterStatsReader::Tick(nullptr, {100, 101}) && speech.back() == "Emilio",
+		"from the backpack beside the mercenary, left goes back to the mercenary's first line");
+	pending = Push::Right;
+	Check(!CharacterStatsReader::Tick(nullptr, {100, 101}) && pending == Push::Right,
+		"and right stays the item's");
+	pending = Push::None;
 
 	// Moving directly to another supported panel resets both the row cursor and
 	// the one-time name announcement, even while the previous panel still exists.

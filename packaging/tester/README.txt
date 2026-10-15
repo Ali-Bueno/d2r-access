@@ -97,8 +97,17 @@ In play:
   east, 30"), and "Off the route" once if you leave it.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
-- BACK+X: life, mana, stamina (when not full) and the arrows or throwing
-  weapons left in hand.
+- BACK+X: life, mana, stamina (when not full), the arrows or throwing
+  weapons left in hand, any poison, freezing, chill, stun or curse on you,
+  and your mercenary. A Necromancer also hears how many usable corpses are
+  nearby.
+- BACK+RT: one press at a time, your mercenary, then each of your summons as
+  the game's portraits group them ("Raven: 5", "Oak Sage: life 35 percent",
+  a Warlock's demons one by one, "Tainted 2: life 75 percent"), then each
+  party member ("Dani: life 80 percent"), with how far and where each one is,
+  or the area a party member is in. After the last it starts again; after a
+  pause of 10 seconds it starts again at the mercenary.
+- BACK+LT: the main skill bar, as holding LT reads the other one.
 - BACK+Y: the passages out of the room you are in.
 - BACK+A: passage finder on or off. While on, the right stick names the
   passages on one wall of the room instead of scanning: flick up-right for the
@@ -113,8 +122,9 @@ In play:
   stick moves through it: up and down step, right opens a group and then
   changes the setting (or plays the sound again in the glossary), left goes
   back to the groups. LB and RB lower and raise a setting of several values
-  (they are the list's while it is open). It closes by itself after 30
-  seconds unused.
+  (they are the list's while it is open). Past the last entry the list goes
+  round to the first with a click (or stops there with a knock: see
+  SETTINGS). It closes by itself after 30 seconds unused.
 - Holding LT for a moment: reads the skill bar shown with LT.
 - L3 is the game's walk/run toggle: the mod says "Walking" or "Running" when
   you press it, and warns as stamina runs low. R3 is the game's weapon swap:
@@ -201,15 +211,47 @@ knowing:
   town NPC, also when it appears while you stand near, and after its name from the
   scanner or the NPC announcer. The game only shows the mark within about 15
   units of the NPC.
-- Footstep volume (in Volumes): your own footsteps from 25 to 300 percent of the game's; above 100
-  percent the game's step is played again on top of itself.
+- Footstep volume (in Volumes): your own footsteps from 25 to 300 percent of the game's, in
+  steps of 25; above 100 percent the game's step is played again on top of itself.
 - Pan and pitch strengths (enemies, guidance): 0 to 400 percent in steps of 25.
 - Item sounds: Diablo IV (the default), Last Epoch gold and potions (the rest
   stays Diablo IV), or Diablo II drops: every item on the ground repeats the
   sound the game makes when it lands (a sword, a ring, a potion...). Drop
-  sound speed, 50 to 300 percent, sets how often they repeat.
+  sound speed, 50 to 300 percent in steps of 25, sets how often they repeat.
 - Volumes: radar and walls (with the wall bump and wall tones), enemies and
-  NPCs, items and places, guidance; each from 0 to 200 percent.
+  NPCs, items and places, guidance; each from 0 to 200 percent in steps of 25.
+- Usable corpse rattle (Enemies and NPCs, on, Necromancer only): a short
+  bone rattle toward the nearest corpse when corpses you can raise or explode
+  come near after there were none. Corpses already raised or exploded do not
+  count.
+- Minions in the life report (Alerts, off): BACK+X also lists your summons.
+- Health and mana potions after other loot (Sounds, on): when more items lie
+  near than can sound at once, health and mana potions sound only once the
+  rest of the loot has its sound.
+- Town NPCs and exits listed from anywhere in town (on): now the exits too.
+- The party panel (multiplayer) reads with the right stick: the game's name,
+  then each player. The mercenary's sheet keeps the right stick down for its
+  statistics while an item is focused on it or in your backpack beside it;
+  up still reads the item. The chat box (Enter) says "Text chat" and echoes
+  what you type, as the name box does, then "Text chat closed".
+- A Dead Rogue with fire on it is called "Burning Dead Rogue".
+- Your own summons (and other players') are no longer announced as NPCs, and
+  a Warlock's bound demon is no longer taken for an enemy.
+- Status effect and curse alerts (Alerts, on): "You are poisoned", "You are
+  frozen", "You are chilled", "You are stunned", "You are slowed", "You are
+  afflicted by Amplify Damage" (any curse), said at once as they begin; their
+  end follows ("You are no longer frozen").
+- Zero points (Items and menus, on): opening the character screen or the skill
+  tree with nothing to spend says "0 Stat Points Remaining" or "0 Skill
+  Choices Remaining".
+- Items moved to the stash named (Items and menus, on): an item sent from the
+  backpack into the stash says "Short Sword moved to the personal stash" or
+  "... to the shared stash", as gold does.
+- Settings list ends (Items and menus): wraps around with a click (the
+  default) or stops at the first and last entries with a knock, saying the
+  entry again.
+- Route on BACK+A (Controller, off): swaps them: BACK+A says the route and
+  BACK + right stick down turns the passage finder on or off.
 - Experience in the life report (on): BACK+X also says how far you are into
   your level, as the bar between the orbs shows.
 - Mercenary's lines named (on): "Mercenary says: I feel much stronger now".
@@ -254,8 +296,9 @@ SOUND GLOSSARY
 
 The Sound glossary group of the Ctrl+S list holds the mod's sounds, one per
 entry: moving onto one names it and plays it, Space (right on the controller)
-plays it again. The Diablo II drop sounds group does the same for each drop
-sound, named after an item that makes it.
+plays it again. Its last entry, Diablo II drop sounds, is a group of its own
+(right opens it, left comes back) with each drop sound, named after an item
+that makes it.
 
 
 PLAYING ONLINE WITH SOMEONE ELSE

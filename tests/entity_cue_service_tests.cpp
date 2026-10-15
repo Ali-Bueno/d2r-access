@@ -77,6 +77,7 @@ bool Read(uint32_t player, uint64_t generation, int level, Radar::World& world, 
 }
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return nativeReady; }
+UsableCorpses LastUsableCorpses() { return {}; }
 bool Read(uint32_t player, uint64_t generation, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool, bool) {
 	++entityReads;
 	Check(player == 42 && generation == session && !distantExits && !levelBearings,

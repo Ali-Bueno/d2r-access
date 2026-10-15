@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <iterator>
 #include <string>
+#include <string_view>
 
 namespace D2RAccess::TextField {
 
@@ -19,11 +20,15 @@ namespace {
 
 // The editable archetypes. `ConsoleInput` is the loader's own console, which
 // is classified the same way and must not be read back to the player.
-constexpr const char* EditableTypes[]  = {"InputTextBoxWidget", "NumericInputTextBoxWidget"};
+constexpr const char* EditableTypes[]  = {"InputTextBoxWidget", "NumericInputTextBoxWidget", "AutocompleteInputTextBoxWidget"};
 constexpr const char* IgnoredNames[]   = {"ConsoleInput"};
+// The chat box (ChatPanelHD.json), said as it opens and closes: nothing on screen
+// takes focus with it (a tester, 2026-10-14: "/players 8" typed blind).
+constexpr std::string_view ChatPanel = "ChatPanel";
 
 uintptr_t   g_widget   = 0;
 bool        g_editable = false;
+bool        g_chat     = false;
 std::string g_text;
 
 bool Matches(const std::string& value, const char* const* list, size_t count) {
@@ -43,12 +48,19 @@ std::string Read(uintptr_t widget) {
 void Reset() {
 	g_widget   = 0;
 	g_editable = false;
+	g_chat     = false;
 	g_text.clear();
 }
 
 void Tick(const D2RL::PluginContext* context) {
 	NativeUi::Focus focus = NativeUi::CurrentFocus();
+	uintptr_t owner = 0;
 	if (const uintptr_t editor = NativeSkillNavigation::ActiveTextInput(focus.panel)) focus.widget = editor;
+	else if (const uintptr_t any = NativeSkillNavigation::AnyActiveTextInput(owner)) focus = {owner, any};
+	if (focus.widget != g_widget && g_chat) {
+		AsyncLog::Info(context, "[field] chat closed");
+		ScreenReader::Speak(Strings::Current().chatClosed, false);
+	}
 	if (focus.widget == 0) {
 		Reset();
 		return;
@@ -56,6 +68,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 	if (focus.widget != g_widget) {
 		g_widget = focus.widget;
+		g_chat = false;
 		const NativeUi::Type type = NativeUi::Classify(focus.widget);
 		const std::string    name = NativeWidgets::ReadName(focus.widget);
 		g_editable = Matches(type.name, EditableTypes, std::size(EditableTypes))
@@ -68,6 +81,10 @@ void Tick(const D2RL::PluginContext* context) {
 		// silence cannot tell them apart.
 		AsyncLog::InfoF(context, "[field] focus name=\"%s\" type=\"%s\" editable=%d text=\"%s\"",
 			name.c_str(), type.name.c_str(), g_editable ? 1 : 0, g_text.c_str());
+		if (g_editable && NativeWidgets::ReadName(focus.panel) == ChatPanel) {
+			g_chat = true;
+			ScreenReader::Speak(Strings::Current().chatOpened, true);
+		}
 		return;
 	}
 	if (!g_editable) return;

@@ -231,8 +231,11 @@ list). See [radar readings](docs/radar-readings.md).
 
 **Sound glossary:** the last group of the Ctrl+S settings list holds the mod's
 sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
-exclamation mark chime, the inventory edge knock, every loot and place loop): landing on one
-names it and plays it once, Space plays it again (`src/sound_glossary.cpp`).
+exclamation mark chime, the inventory edge knock, every loot and place loop, the
+Necromancer's corpse rattle): landing on one names it and plays it once, Space plays it again
+(`src/sound_glossary.cpp`). Its last entry is a group of its own with the game's Diablo II drop
+sounds. At either end the list goes round with a click, or with `settings-list-stops` stays
+there with a knock.
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking
@@ -497,10 +500,12 @@ attempt to equip one says "No se puede equipar" and why. Console
 `access-vitals on|off|status`.
 See [life, mana and broken equipment](docs/vitals.md).
 
-Player poison is read from the same native state check that colors the health
-orb. Entering and leaving poison are announced once, and the vitals report
-includes poison while active. These notices share the vitals toggle. Further
-condition coverage is tracked in [combat status evidence](docs/combat-status-evidence.md).
+Harmful states on the player (poison, freezing, chill, stun, slowing and the
+monster curses, by their `states.txt` rows) are read from the same native state
+check that colors the health orb for poison. A beginning interrupts ("You are
+afflicted by Amplify Damage", the curse named by the game's own skill name);
+an end is said once it has lasted a second, and the vitals report lists the
+states while active. Switch `status-alerts`; see [status effects](docs/status-effects.md).
 
 The current mercenary's life uses the game's displayed percentage and the same
 steps and critical interrupt rule as the player's life. Simultaneous player and
@@ -508,6 +513,13 @@ mercenary changes form one announcement, with the player's values first.
 Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
+
+The vitals report ends with the player's summons, read from the game's own pet
+list and grouped as its party portraits show them (a count per counted type,
+life for single summons, the Warlock's demons one by one), and for a
+Necromancer the usable corpses nearby; a short bone rattle sounds as usable
+corpses come near. Every player's pets are kept out of the NPC and enemy lists.
+Switches `minion-report` and `corpse-cue`; see [summons and corpses](docs/summons-and-corpses-re.md).
 
 ### Boss life
 
@@ -574,7 +586,7 @@ the level just left is not announced. `[discoveries]` in the settings file. See
 
 Testers who do not build can download the complete package (plugin, D2RLoader and the VC++
 runtime) from the [latest test release](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip)
-and follow its `LEEME.txt`. Maintainers publish one with `tools\test-release.ps1`; see
+and follow its `README.txt`. Maintainers publish one with `tools\test-release.ps1`; see
 [test releases](docs/test-releases.md).
 
 Build with the game closed. FFmpeg must be on `PATH` to convert the OGG loop

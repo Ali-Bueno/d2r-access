@@ -199,6 +199,21 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_record = g_line = 0;
 		g_namesDue = part == Part::Row ? now + SkillNamesDelayMs : 0;
 	}
+	// Y shows the skills' whole tooltips on screen (a tester: vital to choose whom to
+	// hire), so the press says them whole at once, whichever path reads the list: the
+	// names alone already follow the row (the tester, 2026-10-14). The left stick then walks them.
+	const bool y = InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y);
+	if (y && !g_yHeld && part == Part::Row) {
+		g_namesDue = 0;
+		const auto summary = SkillSummary(focus.widget, true);
+		AsyncLog::InfoF(context, "[hire] Y -> \"%s\" (%zu icons, %s)", summary.c_str(), MercenaryStats::Skills(focus.widget).size(),
+			KeyboardMenu::Engaged() ? "keyboard cursor" : "pad");
+		if (!summary.empty()) ScreenReader::Speak(summary, true);
+		g_sayTooltips = summary.empty();
+		g_tooltipLinesSaid = 0;
+	}
+	if (!y) g_sayTooltips = false;
+	g_yHeld = y;
 	if (KeyboardMenu::Engaged()) return KeyboardTick(context, now, focus, part);
 	if (g_namesDue && now >= g_namesDue) {
 		g_namesDue = 0;
@@ -206,19 +221,6 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		AsyncLog::InfoF(context, "[hire] row skills -> \"%s\"", names.c_str());
 		if (!names.empty()) ScreenReader::Speak(names, false);
 	}
-	// Y shows the skills on screen and nothing says them (a tester: vital to choose
-	// whom to hire), so the press names them at once; the left stick then walks them.
-	const bool y = InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y);
-	if (y && !g_yHeld && part == Part::Row) {
-		g_namesDue = 0;
-		const auto summary = SkillSummary(focus.widget, AutoDetail::Enabled());
-		AsyncLog::InfoF(context, "[hire] Y -> \"%s\" (%zu icons)", summary.c_str(), MercenaryStats::Skills(focus.widget).size());
-		if (!summary.empty()) ScreenReader::Speak(summary, true);
-		g_sayTooltips = summary.empty();
-		g_tooltipLinesSaid = 0;
-	}
-	if (!y) g_sayTooltips = false;
-	g_yHeld = y;
 	// MEASURED 2026-09-22: the hire list draws no tooltip for a highlighted
 	// row; holding Y draws the mercenary's skills (ui-controller.json "Show
 	// Mercenary Skills"), one tooltip per skill -- Exploding Arrow first, then

@@ -160,6 +160,9 @@ void Reset() {}
 namespace D2RAccess::AdvancedStatsReader {
 bool Tick(const D2RL::PluginContext*, NativeUi::Focus) { return false; }
 }
+namespace D2RAccess::PartyReader {
+bool Tick(const D2RL::PluginContext*, NativeUi::Focus) { return false; }
+}
 namespace D2RAccess::TooltipDelay {
 void Apply(const D2RL::PluginContext*, uintptr_t) {}
 }

@@ -122,6 +122,36 @@ int main() {
 	Check(grouped.Enter(150) == "Doors on", "a group reopens on the switch it was left on");
 	Check(grouped.Toggle(160) == "Settings closed" && grouped.Toggle(170) == "Settings. Doors on",
 		"the list reopens where it was left, inside a group too");
+
+	// A group of its own inside a group comes after the group's switches.
+	SettingsList::Menu nested({{"Glossary", {sound, sound}, {{"Drops", {sound}, {}}, {"Nothing", {}, {}}}}},
+		"Settings", "Settings closed");
+	played = 0;
+	(void)nested.Toggle(0);
+	Check(nested.Enter(10) == "Sound: wall" && played == 1, "the group opens on its first sound");
+	(void)nested.Step(1, 20);
+	Check(nested.Step(1, 30) == "Drops" && played == 2, "the group's own group follows its switches and plays nothing");
+	Check(nested.Step(1, 40) == "Sound: wall", "an empty inner group is left out and the steps wrap");
+	(void)nested.Step(-1, 50);
+	Check(nested.Change(60).empty() && nested.Enter(70) == "Sound: wall", "a change on a group does nothing, Enter opens it");
+	Check(nested.Back(80) == "Drops" && nested.Back(90) == "Glossary" && nested.Back(100).empty(),
+		"Back climbs one group at a time to the top");
+
+	// At either end a list goes round or stays, and says which.
+	g_switches = {{"Radar", true, true}, {"Trade", true, false}, {"Doors", false, false}};
+	auto ends = List();
+	(void)ends.Toggle(0);
+	Check(ends.Step(1, 10, SettingsList::Ends::Stop) == "Trade on" && ends.LastEdge() == SettingsList::Edge::None,
+		"a step inside the list meets no end");
+	(void)ends.Step(1, 20, SettingsList::Ends::Stop);
+	Check(ends.Step(1, 30, SettingsList::Ends::Stop) == "Doors off" && ends.LastEdge() == SettingsList::Edge::Stopped,
+		"stopping at the last entry says it again");
+	Check(ends.Step(1, 40) == "Radar on" && ends.LastEdge() == SettingsList::Edge::Wrapped, "wrapping goes round and says so");
+	Check(ends.Step(-1, 50, SettingsList::Ends::Stop) == "Radar on" && ends.LastEdge() == SettingsList::Edge::Stopped,
+		"stopping at the first entry too");
+	Check(ends.Step(-1, 60) == "Doors off" && ends.LastEdge() == SettingsList::Edge::Wrapped, "and wrapping back from it");
+	(void)ends.Toggle(70);
+	Check(ends.Step(1, 80).empty() && ends.LastEdge() == SettingsList::Edge::None, "a closed list's step meets nothing");
 	Passed();
 	return 0;
 }

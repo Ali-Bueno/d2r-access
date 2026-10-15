@@ -31,6 +31,17 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit);
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool wholeLevel = false, bool townNpcs = false);
 // Ids of the monsters every Read since the last call found dying or dead.
 std::vector<uint32_t> TakeDeadMonsters();
+// The monster corpses a Necromancer's skills can take that the last Read found
+// in the player's room and its neighbours (a tester, 2026-10-14); none for any
+// other class or when the rule could not be verified.
+struct UsableCorpses {
+	bool necromancer = false;
+	uint32_t playerId = 0;
+	uint64_t readMs = 0; // when, as GetTickCount64 counts: a failed read leaves the last one
+	Radar::Position player;
+	std::vector<Radar::Position> corpses;
+};
+UsableCorpses LastUsableCorpses();
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false);

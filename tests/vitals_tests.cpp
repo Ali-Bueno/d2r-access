@@ -108,18 +108,6 @@ void MissingOrbs() {
 	Check(availability.Update(false, false) == 0, "session reset clears missing-orb confirmation");
 }
 
-void Conditions() {
-	Vitals::Condition condition;
-	Check(!condition.Update(false), "healthy first sample is only a baseline");
-	Check(!condition.Update(false), "unchanged condition stays silent");
-	Check(condition.Update(true) == true, "entering poison reports once");
-	Check(!condition.Update(std::nullopt), "unreadable player state cannot clear poison");
-	Check(!condition.Update(true), "a restored poison read does not repeat");
-	Check(condition.Update(false) == false, "leaving poison reports once");
-	condition.Reset();
-	Check(!condition.Update(true), "new game takes its own silent condition baseline");
-}
-
 void MercenaryCondition() {
 	Vitals::MercenaryMeter meter;
 	auto alert = meter.Update(11U, 100, 10);
@@ -267,7 +255,7 @@ void Experience() {
 
 int main() {
 	Experience();
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();
 }

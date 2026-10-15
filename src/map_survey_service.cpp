@@ -1,4 +1,5 @@
 #include "map_survey_service.h"
+#include "generated/level_flags.h"
 #include "input_direction.h"
 
 #include "async_log.h"
@@ -14,6 +15,7 @@
 #include "native_ground_items.h"
 #include "level_areas.h"
 #include "native_level_areas.h"
+#include "native_level_exits.h"
 #include "native_rooms.h"
 #include "drlg_layout.h"
 #include "keyboard_menu.h"
@@ -313,8 +315,15 @@ std::vector<NativeRooms::Room> Here(const Lifecycle& state, const Radar::World& 
 // only at the middle of the edge.
 std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
 	const auto explored = Explored(state, world);
+	// A town is small and safe: its ways out are listed from anywhere in it, as its NPCs
+	// are (a tester, 2026-10-14: the camp's exit was missing in a fresh multiplayer game).
+	const bool town = g_townNpcsEverywhere.load() && Generated::FindLevelFlags(state.level).town;
 	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
-		return MapSurvey::Charted(world, entities, explored);
+		auto result = MapSurvey::Charted(world, entities, explored);
+		if (town) for (const auto& entity : entities)
+			if (entity.kind == EntityRadar::Kind::Exit && std::none_of(result.begin(), result.end(),
+					[&](const auto& known) { return EntityRadar::SameTarget(known, entity); })) result.push_back(entity);
+		return result;
 	};
 	NativeLevelExits::Layout layout;
 	if (std::none_of(scene.landmarks.begin(), scene.landmarks.end(), ZoneTransitions::Crosses)
@@ -433,10 +442,13 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
 		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
-	// Fixed places found on this same map in an earlier game, whose rooms the
-	// game has not streamed again; the live read wins where both have one.
+	// Fixed places and quest objects found on this same map in an earlier game, whose
+	// rooms the game has not streamed again; the live read wins where both have one.
+	// A live object has no place id: a kept quest object is it when it stands on its spot.
 	for (auto& place : TerrainService::KnownPlaces(state.level, CurrentRooms(state.level, state.session)))
-		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) { return EntityRadar::SameTarget(known, place); }))
+		if (std::none_of(catalogued.begin(), catalogued.end(), [&](const auto& known) {
+				return EntityRadar::SameTarget(known, place) || (place.questObject && known.kind == place.kind
+					&& NativeLevelExits::Identity(known.position) == place.placeId); }))
 			catalogued.push_back(std::move(place));
 	// Other players are listed whenever loaded, in sight or not: finding a teammate is the point.
 	catalogued.insert(catalogued.end(), scene.players.begin(), scene.players.end());

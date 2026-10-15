@@ -60,6 +60,12 @@ constexpr unsigned ClickMs = 30, KnockMs = 70;
 constexpr double ClickHz = 2400, ClickDecaySeconds = 0.006, ClickLevel = 0.30, ClickNoise = 0.5;
 constexpr double KnockStartHz = 230, KnockEndHz = 150, KnockDecaySeconds = 0.022, KnockLevel = 0.42, KnockNoise = 0.25;
 
+// Usable corpses near a Necromancer (a tester, 2026-10-14): three quick hollow
+// taps falling in pitch, bones rattling, higher and drier than the inventory knock.
+constexpr unsigned RattleMs = 150;
+constexpr double RattleHz[] = {620, 520, 440};
+constexpr double RattleDecaySeconds = 0.012, RattleLevel = 0.34, RattleNoise = 0.4;
+
 struct WhooshTimbre { double startHz, endHz, shimmerRatio; };
 WhooshTimbre Voice(Sound sound) {
 	switch (sound) {
@@ -170,6 +176,14 @@ double Click(double seconds, double noise) {
 		* (tone + ClickNoise * noise);
 }
 
+double Rattle(double seconds, double noise, double pitch) {
+	constexpr double Total = static_cast<double>(RattleMs) / 1000, Tap = Total / std::size(RattleHz);
+	const size_t tap = std::min(static_cast<size_t>(seconds / Tap), std::size(RattleHz) - 1);
+	const double local = seconds - static_cast<double>(tap) * Tap;
+	return RattleLevel * Envelope(seconds, Total) * std::exp(-local / RattleDecaySeconds)
+		* (std::sin(2 * std::numbers::pi * RattleHz[tap] * pitch * local) + RattleNoise * noise);
+}
+
 double Knock(double& phase, double seconds, double noise) {
 	constexpr double Total = static_cast<double>(KnockMs) / 1000;
 	phase += 2 * std::numbers::pi * KnockStartHz * std::pow(KnockEndHz / KnockStartHz, seconds / Total) / SampleRate;
@@ -190,7 +204,8 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 		|| sound == Sound::Ranged || sound == Sound::Ordinary;
 	const bool growl = sound == Sound::Ordinary || (enemy && placement.classLayers);
 	const unsigned milliseconds = npc ? NpcCueMs : growl ? GrowlMs : sound == Sound::Reach ? ChimeMs
-		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : sound == Sound::NpcAlert ? DingMs : WhooshMs;
+		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : sound == Sound::NpcAlert ? DingMs
+		: sound == Sound::Corpse ? RattleMs : WhooshMs;
 	const size_t frames = milliseconds * SampleRate / 1000;
 	double growlPhase = 0;
 	const double textureBlend = 1 - std::exp(-2 * std::numbers::pi * TextureCutoffHz * pitch / SampleRate);
@@ -216,9 +231,10 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 			sample = Chime(seconds, pitch);
 		} else if (sound == Sound::NpcAlert) {
 			sample = Ding(seconds, pitch);
-		} else if (sound == Sound::Pickup || sound == Sound::Edge) {
+		} else if (sound == Sound::Pickup || sound == Sound::Edge || sound == Sound::Corpse) {
 			texture += textureBlend * (Noise(frame) - texture);
-			sample = sound == Sound::Pickup ? Click(seconds, texture) : Knock(growlPhase, seconds, texture);
+			sample = sound == Sound::Pickup ? Click(seconds, texture) : sound == Sound::Corpse ? Rattle(seconds, texture, pitch)
+				: Knock(growlPhase, seconds, texture);
 		} else {
 			sample = Whoosh(whoosh, timbre, static_cast<double>(frame) / static_cast<double>(frames - 1), pitch);
 		}

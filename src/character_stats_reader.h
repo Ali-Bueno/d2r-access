@@ -53,4 +53,9 @@ std::string PointsFor(uintptr_t widget, uint64_t now);
 bool FocusPoints();
 void SetFocusPoints(bool enabled);
 
+// Whether opening the character panel or the skill tree with nothing to spend
+// says so, in the game's own words with a zero (a tester, 2026-10-14).
+bool ZeroPoints();
+void SetZeroPoints(bool enabled);
+
 }

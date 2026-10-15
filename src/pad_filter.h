@@ -40,7 +40,7 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press a, b, x, y, lb, rb, back; };
+struct Presses { Press a, b, x, y, lb, rb, back, lt, rt; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: the
 // face buttons and the bumpers pressed while BACK is held, the mod's BACK+A,
@@ -82,5 +82,10 @@ void ReleaseB();
 void ArmLeftStickWithY(uint64_t now);
 // Pure: whether a frame's left stick is kept from the game.
 bool KeepsLeftStick(uint16_t buttons, bool armed);
+
+// Pure: whether a trigger pulled this frame is kept from the game (the mod's
+// BACK+LT and BACK+RT, 2026-10-14): one pulled while BACK is held during play,
+// decided on its first frame and kept to its release, as a button is.
+bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press);
 
 }

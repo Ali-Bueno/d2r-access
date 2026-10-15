@@ -100,15 +100,6 @@ unsigned OrbAvailability::Update(bool lifeReadable, bool manaReadable) {
 
 void OrbAvailability::Reset() { missing_[0] = missing_[1] = 0; }
 
-std::optional<bool> Condition::Update(std::optional<bool> active) {
-	if (!active) return std::nullopt;
-	const auto previous = previous_;
-	previous_ = active;
-	if (previous && *previous != *active) return active;
-	return std::nullopt;
-}
-
-void Condition::Reset() { previous_.reset(); }
 
 std::optional<Gait> GaitTracker::Observe(std::optional<Gait> moving, bool free) {
 	if (!moving || !free) {

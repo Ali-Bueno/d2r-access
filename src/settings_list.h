@@ -11,8 +11,9 @@
 // the words the switch itself uses when changed. Nothing says where in the
 // list the player is or how long the list is.
 //
-// The switches can come in named groups (a tester, 2026-10-13): the list then
-// steps through the groups, Enter opens one and Back returns to the groups.
+// The switches can come in named groups (a tester, 2026-10-13), and a group in
+// groups of its own: the list steps through a group's switches and then its
+// groups, Enter opens one and Back returns to the group above.
 //
 // Pure logic: the switches are handed in, so it is unit-tested without the game.
 namespace D2RAccess::SettingsList {
@@ -38,7 +39,18 @@ struct Entry {
 	std::string Say(int value) const;
 };
 
-struct Group { std::string name; std::vector<Entry> entries; };
+// A group's own groups come after its switches.
+struct Group {
+	std::string name;
+	std::vector<Entry> entries;
+	std::vector<Group> groups;
+};
+
+// What a step past either end of a list does (a tester, 2026-10-14): go round
+// to the other end, or stay on the last entry reached.
+enum class Ends { Wrap, Stop };
+// What the last step met, for its sound: nothing, an end it went round, an end it stopped at.
+enum class Edge { None, Wrapped, Stopped };
 
 class Menu {
 public:
@@ -51,27 +63,38 @@ public:
 	// Each returns what to say, empty when there is nothing to say. Opening
 	// returns to the switch (or group) the list was left on.
 	std::string Toggle(uint64_t now);
-	std::string Step(int delta, uint64_t now); // wraps both ways, among groups or within one
+	// Within the list the player is in; at an end it wraps or stays, and then
+	// says the entry it stayed on again.
+	std::string Step(int delta, uint64_t now, Ends ends = Ends::Wrap);
+	Edge LastEdge() const { return edge_; }
 	// A switch flips whatever the direction. A setting of several values moves one
 	// value down (delta < 0) or up (delta > 0) and stops at either end; delta 0
-	// moves up and wraps to the first, for a single change key. Nothing among groups.
+	// moves up and wraps to the first, for a single change key. Nothing on a group.
 	std::string Change(uint64_t now, int delta = 0);
-	// Among groups opens the one the list stands on; within one is Change(now).
+	// On a group opens it; on a switch is Change(now).
 	std::string Enter(uint64_t now);
-	// Within a group returns to the groups and names it; nothing without groups.
+	// Within a group returns to the group above and names the group left; nothing at the top.
 	std::string Back(uint64_t now);
 	// Closes a list left open and unused for `idleMs`; returns what to say.
 	std::string Expire(uint64_t now, uint64_t idleMs);
 private:
-	bool Grouped() const { return !groups_.empty() && !groups_.front().name.empty(); }
-	const std::vector<Entry>& Entries() const { return groups_[group_].entries; }
+	struct List {
+		std::string name;
+		std::vector<Entry> entries;
+		std::vector<size_t> lists; // its groups, by index into lists_
+		size_t parent = 0;
+		size_t at = 0;             // the entry, then the group, it was left on
+	};
+	size_t Add(Group group, size_t parent);
+	bool Empty() const { return lists_.empty() || Count(lists_.front()) == 0; }
+	static size_t Count(const List& list) { return list.entries.size() + list.lists.size(); }
+	const Entry* Landed() const; // the entry stood on, none on a group
 	std::string Current() const;
 	void Preview() const;
-	std::vector<Group> groups_;
+	std::vector<List> lists_; // the top first
 	std::string opened_, closed_;
-	size_t group_ = 0;
-	std::vector<size_t> at_; // the entry each group was left on
-	bool inside_ = true;     // within a group (always, without groups)
+	size_t list_ = 0;         // the list the player is in
+	Edge edge_ = Edge::None;
 	bool open_ = false;
 	uint64_t usedMs_ = 0;
 };

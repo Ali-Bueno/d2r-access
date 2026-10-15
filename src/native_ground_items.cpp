@@ -102,6 +102,7 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 		: is(MakeItemCode("gem")) ? Base::Gem : Base::Equipment;
 	const bool quest = questFlag != 0 || is(MakeItemCode("ques"));
 	item.sound = GroundItems::Classify(item.quality, base, quest, GroundItems::LastEpochSounds());
+	item.common = base == Base::HealthPotion || base == Base::ManaPotion;
 	if (GroundItems::DropSounds()) item.play = GroundItems::DropSoundOf(item.code);
 	if (!anyDistance && distance > GroundItems::AudibleRange(item.sound)) return false;
 	item.baseName = GroundItemText::BaseName(UiText::Clean(Localization::Text(nameId)));

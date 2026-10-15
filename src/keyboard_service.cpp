@@ -27,6 +27,7 @@
 #include "ground_item_text.h"
 #include "input_direction.h"
 #include "interaction_reader.h"
+#include "inventory_arrival_service.h"
 #include "keyboard_menu.h"
 #include "level_route.h"
 #include "map_survey.h"
@@ -52,6 +53,7 @@
 #include "native_world.h"
 #include "navigation_grid.h"
 #include "pad_filter.h"
+#include "percent_steps.h"
 #include "navigation_mode.h"
 #include "quest_service.h"
 #include "radar_config.h"
@@ -185,6 +187,8 @@ std::atomic<bool> g_settingsOpen{false};
 SettingsList::Menu g_settings;
 Strings::Language g_settingsLanguage{};
 bool g_settingsBuilt = false;
+// A step past the list's end stops there with a knock instead of going round with a click.
+std::atomic<bool> g_settingsStop{false};
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
@@ -1516,7 +1520,7 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // Pan and pitch strength steps: a quarter of the compiled 100 from none to
 // RadarConfig::MaxStrengthPercent (the tester's request, 2026-10-13).
-constexpr int StrengthStepPercent = 25;
+constexpr int StrengthStepPercent = PercentSteps::Step;
 constexpr int StrengthLevels = static_cast<int>(RadarConfig::MaxStrengthPercent) / StrengthStepPercent + 1;
 constexpr int StrengthPercent(int level) { return std::clamp(level, 0, StrengthLevels - 1) * StrengthStepPercent; }
 static_assert(RadarConfig::MaxStrengthPercent % StrengthStepPercent == 0);
@@ -1633,7 +1637,7 @@ SettingsList::Entry FootstepVolume() {
 }
 
 // The groups of the settings list (a tester, 2026-10-13), in the order of
-// Strings::Table::settingsGroups; the glossary is the last.
+// Strings::Table::settingsGroups; the glossary is the last, the drop sounds a group inside it.
 enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
 
@@ -1660,6 +1664,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
 		ItemSoundSet(),
 		DropSoundSpeed(),
+		{GroundItems::PotionsLast, GroundItems::SetPotionsLast, phrase(&T::potionsLastOn, &T::potionsLastOff), false, "potions-last"},
 		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
 		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
 		{item(Item::Exits), setItem(Item::Exits), [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
@@ -1690,6 +1695,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{cue(Cue::Npcs), setCue(Cue::Npcs), phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
 		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
 		{EntityCueService::NpcAlerts, EntityCueService::SetNpcAlerts, phrase(&T::npcAlertOn, &T::npcAlertOff), false, "npc-alerts"},
+		{EntityCueService::CorpseCue, EntityCueService::SetCorpseCue, phrase(&T::corpseCueOn, &T::corpseCueOff), false, "corpse-cue"},
 	}});
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
@@ -1721,16 +1727,21 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
 		{InteractionReader::CompareAloud, InteractionReader::SetCompareAloud, phrase(&T::compareAloudOn, &T::compareAloudOff), false, "compare-aloud"},
 		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
+		{InventoryArrivalService::StashNotice, InventoryArrivalService::SetStashNotice, phrase(&T::stashNoticeOn, &T::stashNoticeOff), false, "stash-notice"},
 		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
+		{CharacterStatsReader::ZeroPoints, CharacterStatsReader::SetZeroPoints, phrase(&T::zeroPointsOn, &T::zeroPointsOff), false, "zero-points"},
 		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
 		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
 		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
+		{[] { return g_settingsStop.load(); }, [](bool on) { g_settingsStop = on; }, phrase(&T::settingsEndsStop, &T::settingsEndsWrap), false, "settings-list-stops"},
 		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
 	}});
 	groups.push_back({GroupName(G::Alerts), {
 		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
 		ManaAlerts(),
 		{VitalsService::ExperienceReport, VitalsService::SetExperienceReport, phrase(&T::experienceReportOn, &T::experienceReportOff), false, "experience-report"},
+		{VitalsService::StatusAlerts, VitalsService::SetStatusAlerts, phrase(&T::statusAlertsOn, &T::statusAlertsOff), false, "status-alerts"},
+		{VitalsService::MinionsReported, VitalsService::SetMinionsReported, phrase(&T::minionReportOn, &T::minionReportOff), false, "minion-report"},
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
 		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
@@ -1741,6 +1752,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	}});
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
+		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
 	}});
 	return groups;
 }
@@ -1755,8 +1767,8 @@ std::vector<SettingsList::Entry> SettingEntries() {
 // The switches, then the sound glossary: sounds to hear, nothing to save.
 SettingsList::Menu BuildSettings() {
 	auto groups = SettingGroups();
-	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries()});
-	groups.push_back({GroupName(SettingsGroup::DropGlossary), SoundGlossary::DropEntries()});
+	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries(),
+		{{GroupName(SettingsGroup::DropGlossary), SoundGlossary::DropEntries(), {}}}});
 	return SettingsList::Menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
 }
 
@@ -1779,6 +1791,30 @@ uint64_t g_restoreSince = 0, g_settingsCheck = 0;
 std::vector<int> g_seen;
 bool g_settingsLoaded = false;
 
+// The percent settings saved before they all moved in quarters (2026-10-14), by
+// their levels then, so a file saved before keeps each value it had.
+constexpr std::array OldVolumePercents{0, 25, 50, 75, 100, 125, 150, 200};
+constexpr std::array OldDropSpeedPercents{50, 75, 100, 150, 200, 300};
+constexpr std::array OldFootstepPercents{25, 50, 75, 100, 150, 200, 300};
+constexpr const char* QuarterStepsKey = "quarter-steps";
+
+template<size_t Old, size_t New>
+void ToQuarters(const char* key, const std::array<int, Old>& old, const std::array<int, New>& now) {
+	const auto found = g_saved.find(key);
+	if (found == g_saved.end() || found->second < 0 || static_cast<size_t>(found->second) >= Old) return;
+	const int level = PercentSteps::LevelOf(now, old[static_cast<size_t>(found->second)]);
+	if (level >= 0) found->second = level;
+}
+
+void SavedToQuarters() {
+	if (g_saved.contains(QuarterStepsKey)) return;
+	for (const char* key : {"radar-volume", "enemy-volume", "item-volume", "guidance-volume"})
+		ToQuarters(key, OldVolumePercents, SoundVolume::Percents);
+	ToQuarters("drop-sound-speed", OldDropSpeedPercents, ItemAudio::DropSpeedPercents);
+	ToQuarters("footstep-volume", OldFootstepPercents, Footsteps::VolumePercents);
+	g_saved[QuarterStepsKey] = 1;
+}
+
 void Persist(uint64_t now) {
 	if (g_settingsFile.empty()) return;
 	if (!g_settingsLoaded) {
@@ -1790,6 +1826,7 @@ void Persist(uint64_t now) {
 			if (g_saved["last-epoch-sounds"] == 1) g_saved["item-sound-set"] = static_cast<int>(GroundItems::SoundSet::LastEpoch);
 			g_saved.erase("last-epoch-sounds");
 		}
+		SavedToQuarters();
 		for (size_t i = 0; i < g_switches.size(); ++i)
 			if (const auto found = g_switches[i].key ? g_saved.find(g_switches[i].key) : g_saved.end();
 				found != g_saved.end() && g_switches[i].Value() != found->second) g_restore.push_back({i, found->second});
@@ -1847,9 +1884,14 @@ bool Settings(Command command, uint64_t now) {
 	else if (command == Command::SettingsBack) text = g_settings.Back(now);
 	else if (command == Command::SettingsLower || command == Command::SettingsRaise)
 		text = g_settings.Change(now, command == Command::SettingsLower ? -1 : 1);
-	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
-	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
-	else spent = false;
+	else if (command == Command::ReadPrevious || command == Command::ReadFirst || command == Command::ReadNext
+		|| command == Command::ReadLast) {
+		const bool back = command == Command::ReadPrevious || command == Command::ReadFirst;
+		text = g_settings.Step(back ? -1 : 1, now, g_settingsStop.load() ? SettingsList::Ends::Stop : SettingsList::Ends::Wrap);
+		if (g_settings.LastEdge() != SettingsList::Edge::None)
+			EntityCueAudio::Play(g_settings.LastEdge() == SettingsList::Edge::Wrapped ? EntityCueAudio::Sound::Pickup
+				: EntityCueAudio::Sound::Edge, {});
+	} else spent = false;
 	if (!spent) text = g_settings.Expire(now, SettingsIdleMs);
 	g_settingsOpen = g_settings.Open();
 	PadFilter::SetSettingsOpen(g_settingsOpen);
