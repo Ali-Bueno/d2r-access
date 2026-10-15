@@ -422,6 +422,8 @@ inline constexpr Table koKR {
 	.waypointLocked = "잠김",
 	.hintDeleteCharacter = "%s: 선택한 캐릭터 삭제",
 	.hintNoCharacters = "캐릭터가 없습니다. %s을 눌러 만드세요",
+	.padTypingOn = "오른쪽 스틱으로 입력 켬",
+	.padTypingOff = "오른쪽 스틱으로 입력 끔",
 };
 
 }

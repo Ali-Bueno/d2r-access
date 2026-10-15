@@ -53,6 +53,7 @@ add_library(d2r-access SHARED
 	src/multiplayer_reader.cpp
 	src/multiplayer_status.cpp
 	src/menu_navigation.cpp
+	src/pad_typing.cpp
 	src/menu_navigation_policy.cpp
 	src/footsteps.cpp
 	src/footstep_service.cpp

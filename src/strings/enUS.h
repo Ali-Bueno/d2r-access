@@ -422,6 +422,8 @@ inline constexpr Table enUS {
 	.waypointLocked = "locked",
 	.hintDeleteCharacter = "%s deletes the selected character",
 	.hintNoCharacters = "No characters. Press %s to create one",
+	.padTypingOn = "Typing with the right stick on",
+	.padTypingOff = "Typing with the right stick off",
 };
 
 }

@@ -422,6 +422,8 @@ inline constexpr Table deDE {
 	.waypointLocked = "gesperrt",
 	.hintDeleteCharacter = "%s löscht den gewählten Charakter",
 	.hintNoCharacters = "Keine Charaktere. Drücke %s, um einen zu erstellen",
+	.padTypingOn = "Tippen mit dem rechten Stick an",
+	.padTypingOff = "Tippen mit dem rechten Stick aus",
 };
 
 }

@@ -54,6 +54,7 @@
 #include "native_world.h"
 #include "navigation_grid.h"
 #include "pad_filter.h"
+#include "pad_typing.h"
 #include "percent_steps.h"
 #include "navigation_mode.h"
 #include "quest_service.h"
@@ -1787,6 +1788,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
 		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
+		{PadTyping::Enabled, PadTyping::SetEnabled, phrase(&T::padTypingOn, &T::padTypingOff), false, "pad-typing"},
 	}});
 	// The list's own behaviour, in a group of its own (a tester, 2026-10-14).
 	groups.push_back({GroupName(G::SettingsMenu), {

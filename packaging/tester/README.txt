@@ -122,6 +122,12 @@ In play:
   diamonds on screen) with how far it reaches, where unexplored ground
   starts or the area beyond it, then the places the radar has logged here,
   nearest first ("Waypoint, 40 units, northeast").
+- Lobby (host game, direct join): A on a text box starts typing there, for a
+  keyboard. With the controller alone, while a box is being typed into, the
+  right stick up and down step through the letters, digits, space and a few
+  signs (each one said), right types the one reached and left deletes the
+  last one; B ends as before. "Typing with the right stick" (Controller)
+  turns the stick part off.
 - LB (alone, in play): the audible loot filter on or off ("Loot filter on").
   While it is on, only the drop loops you keep in the Loot filter group of
   the settings sound (see SETTINGS); the game still plays each item's own

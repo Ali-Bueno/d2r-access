@@ -422,6 +422,8 @@ inline constexpr Table plPL {
 	.waypointLocked = "zablokowany",
 	.hintDeleteCharacter = "%s usuwa wybraną postać",
 	.hintNoCharacters = "Brak postaci. Naciśnij %s, aby utworzyć",
+	.padTypingOn = "Pisanie prawą gałką włączone",
+	.padTypingOff = "Pisanie prawą gałką wyłączone",
 };
 
 }

@@ -59,7 +59,7 @@ FaceButton LastFaceButton(unsigned maxAgeMs);
 // Whether that face button was pressed since the previous Take() for it, then
 // cleared: for a reader that acts on the press itself (the skill line reader
 // closes on B). A caller should take it once before it starts listening, so an
-// old press is not mistaken for a new one. Only B is recorded so far.
+// old press is not mistaken for a new one. A (alone, without BACK) and B are recorded.
 bool TakeFacePress(FaceButton button);
 
 // Whether that face button is down on any pad, as of the last Poll(): for a
@@ -205,7 +205,7 @@ bool LineStepPending();
 bool LineStepPlain();
 void PostBackWith(FaceButton button);
 void PostBackWithLb();
-void PostFacePress(FaceButton button);  // only B has a reader so far
+void PostFacePress(FaceButton button);  // A and B have readers
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.

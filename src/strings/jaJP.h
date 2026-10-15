@@ -422,6 +422,8 @@ inline constexpr Table jaJP {
 	.waypointLocked = "未開放",
 	.hintDeleteCharacter = "%s で選択中のキャラクターを削除",
 	.hintNoCharacters = "キャラクターがありません。%s で作成",
+	.padTypingOn = "右スティックで入力 オン",
+	.padTypingOff = "右スティックで入力 オフ",
 };
 
 }

@@ -74,6 +74,7 @@ bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY 
 bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
+bool g_pressedA = false; // A alone, for the pad typing of a text box (pad_typing.h)
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
 StickPush g_backWithRightStick = StickPush::None;
 std::atomic<bool> g_routeOnA{false};          // BACK+A and BACK+down trade places
@@ -223,6 +224,7 @@ void Poll() {
 				RecordEdge(FaceButton::A);
 				if (backDown && g_routeOnA.load()) g_backWithRightStick = StickPush::Down;
 				else if (backDown) g_backWithA = true;
+				else g_pressedA = true;
 			}
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
@@ -359,9 +361,10 @@ bool TakeLeftStickPushIf(StickPush wanted, const char*) {
 	return true;
 }
 bool TakeFacePress(FaceButton button) {
-	if (button != FaceButton::B) return false; // only B has a reader so far
-	const bool result = g_pressedB;
-	g_pressedB = false;
+	bool* pressed = button == FaceButton::A ? &g_pressedA : button == FaceButton::B ? &g_pressedB : nullptr;
+	if (!pressed) return false; // only A and B have readers so far
+	const bool result = *pressed;
+	*pressed = false;
 	return result;
 }
 StickPush TakeRightStickPush(const char* claimant) {
@@ -408,6 +411,7 @@ void PostBackWith(FaceButton button) {
 void PostBackWithLb() { g_backWithLb = true; }
 void PostFacePress(FaceButton button) {
 	if (button == FaceButton::B) g_pressedB = true;
+	if (button == FaceButton::A) g_pressedA = true;
 }
 PushRecord TakePushRecord() {
 	const PushRecord record{g_resolvedPush, g_resolvedClaimant};

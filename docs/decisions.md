@@ -40,10 +40,14 @@ the *how* lives in the linked docs, this page only records the *why* and what wa
 - **Character select hints**: Start to create and X to delete, or "No characters. Press Start to
   create one" with an empty save folder.
 - **Lobby browser**: list rows join the D-pad navigation nodes, so the game list can be entered.
+- **Typing with the pad** (`pad-typing`, on; the user, 2026-10-15: "para quien quiera escribir con
+  mando"): A on a loader text box that does not begin editing gets a mouse click (the keyboard
+  mode's way in), and while editing the right stick picks characters sent as keystrokes. Rejected:
+  writing the box's string directly (the game's own edit path keeps the echo and the cursor honest)
+  and a mod-drawn keyboard grid (nothing to see; a list the stick walks is enough).
 - **Not done, needs the tester's log or a controller session**: the main menu's left-from-list order
   (no mod code moves that focus; the game's own travelling cursor under the loader's layout does),
-  typing into the loader's host and direct-join boxes with the pad, and the crypt pentagram
-  (`[scan] fire` lines).
+  and the crypt pentagram (`[scan] fire` lines).
 
 ## 2026-10-14 — The tester's eighth list (after a Countess run)
 

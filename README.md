@@ -527,6 +527,12 @@ corpses come near and repeats while they stay (`corpse-repeat`: once, or every 2
 seconds; 3 by default). Every player's pets are kept out of the NPC and enemy lists.
 Switches `corpse-cue` and `corpse-repeat`; see [summons and corpses](docs/summons-and-corpses-re.md).
 
+**Typing with the controller (built; live validation pending):** in the loader's lobby, A on a
+text box that the game does not start editing gets a click, so a keyboard types there; while a
+box is edited, the right stick steps through letters, digits, space and a few signs (said as
+reached), right types the one reached and left deletes the last (`pad-typing`, Controller group).
+See [multiplayer](docs/multiplayer.md).
+
 **Audible loot filter:** **LB** in play turns it on and off ("Loot filter on"), as sighted players
 tap LB to filter the floor. While it is on, only the drop loops the **Loot filter** group of the
 Ctrl+S list keeps sound: potions (`loot-potions`), gems and runes (`loot-gems`), and equipment from

@@ -5,9 +5,11 @@
 #include "native_skill_navigation.h"
 #include "native_ui.h"
 #include "native_widgets.h"
+#include "pad_typing.h"
 #include "radar_config.h"
 #include "skill_navigation.h"
 #include "async_log.h"
+#include <windows.h>
 #include <algorithm>
 #include <vector>
 
@@ -47,6 +49,7 @@ std::vector<MenuNavigationPolicy::Node> Nodes(const UiText::Snapshot& snapshot) 
 
 void Reset() {
 	if (g_panel) NativeSkillNavigation::HoldCursor(false);
+	PadTyping::Reset();
 	g_panel = g_selected = g_restore = 0;
 	g_gesture = false;
 }
@@ -70,6 +73,7 @@ bool Tick(const D2RL::PluginContext* context) {
 		g_selected = focus.widget;
 	}
 	const auto editing = NativeSkillNavigation::TextEditing();
+	PadTyping::Tick(context, focus, editing, GetTickCount64());
 	const auto input = InputDirection::Dpad();
 	if (const auto restore = g_restore) {
 		g_restore = 0;
