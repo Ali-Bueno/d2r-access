@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's eighth list — 2026-10-14 (uncommitted, not released)
+## The tester's eighth list — 2026-10-14 (released as test-2026-10-14-2 from 3c33430)
+
+Release: 121/121 CTest, 29 entries, 61,806,088 bytes, SHA-256 `13c79b9d…ea54`; also carries the sixth and
+seventh lists below. News: `../tester-news-draft-2026-10-14b.txt`.
 
 BACK+RT steps through mercenary, summons and party (life, place); BACK+LT reads the main skill
 bar (triggers kept from the game with BACK in play); party panel and mercenary sheet on the
@@ -13,7 +16,7 @@ may also be an unbuilt next area (needs that player's log); the crypt pentagram 
 `[scan] fire` lines from a Tower Cellar run. Logs: `[vitals] BACK+RT`, `[skill-bar] main bar`,
 `[party]`, `[stats]`, `[field] focus name="InputBox"`, `[scan] fire`.
 
-## The tester's sixth and seventh lists — 2026-10-14 (uncommitted, not released)
+## The tester's sixth and seventh lists — 2026-10-14 (released in test-2026-10-14-2)
 
 Fifteen items, worked through while the user was away; choices in [decisions](docs/decisions.md),
 news draft `../tester-news-draft-2026-10-14b.txt`.
@@ -32,7 +35,7 @@ cut off the same hit's life alert; BACK+X lost the states with `vitals` off; a s
 reused; the count and the rattle used different radii). Unverified live: all of it, and every new
 game address is static RE (live checks open in the summons doc §7); also whether the stash listing
 covers every shared page (if not, a page change within 400 ms of Y would be taken for a sort).
-**Next step:** commit, then the user or the
+**Next step:** the user or the
 tester tries it; logs: `[pets] Native readers`, `[scan] Verified usable corpse reader.`,
 `[vitals] minions:`, `[corpses]`, `[vitals] effect began`, `[items] stashed`, `[items] sorted into
 the stash`, `[stats] nothing to spend`, `[hire] Y ->`.
