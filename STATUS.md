@@ -2,7 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's lists III and IV — 2026-10-16 (not released)
+## The tester's lists III and IV — 2026-10-16 (released as test-2026-10-16 from 876b39d)
+
+Release: 121/121 CTest, 29 entries, 63,090,945 bytes, SHA-256 `882f62e3…e0bd`. News: `../tester-news-draft-2026-10-16.txt`.
 
 From `D2R Access Build 2026-10-15, bug-list-with-multiplayer-issues.txt` and `... bug list IV.txt`
 (the user's Downloads) and the host's log of a two-player game. Choices in [decisions](docs/decisions.md).
@@ -22,7 +24,7 @@ From `D2R Access Build 2026-10-15, bug-list-with-multiplayer-issues.txt` and `..
 121/121 CTest; installed by the build. **Unverified live: all of it.** Not done: locked waypoints
 (diagnostic `[waypoint] row` lines), house entrances (needs a live tuning session), Cain's chime
 (needs the tester's log).
-**Next step:** test release; ask the tester for a log with the waypoint panel opened (a gold and a
+**Next step:** the tester tries it; ask them for a log with the waypoint panel opened (a gold and a
 grey row focused) and, if Cain chimes again, that moment's `[npc] exclamation mark` lines.
 
 ## The tester's ninth and tenth lists — 2026-10-15 (released as test-2026-10-15 from b5c6cf7)
