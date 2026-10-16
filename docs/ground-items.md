@@ -430,3 +430,17 @@ Epoch gold and potions. A drop sound repeats once a second at 100 percent; `drop
 sound with this set: the speech names it. The glossary has a group of its own for them (the
 user, 2026-10-13), each named after one item that makes it (`DropSoundExamples`: the first item
 of the commonest non-quest type), in the game's own words for the player's language.
+
+## Loop speeds (2026-10-16)
+
+The user asked for the pace of the loops that pulse, beside their volume. Measured on the built
+WAVs (`ffmpeg silencedetect`), the steady ones are long textures (gold, equipment, the Diablo IV
+potions, portal, zone transition, slime door: 7-15 s with no silence); the rest are one short
+sound per pass (0.2-1.8 s). `LoopPace` groups those by kind -- doors, scrolls/runes/gems,
+containers (chest, corpse, weapon rack, stash), shrines and wells, quest items, unexplored rooms,
+the Last Epoch set -- each 50-300 percent of the recording's own length, through the same
+`ItemWave::Pass` as the drop sounds (cut with a 10 ms fade, or padded with silence); 100 percent
+plays the recording untouched, and a change restarts the playing loops. The **Loop speeds**
+group of the settings list holds them, with `drop-sound-speed`, `wall-bump-repeat` (now from
+250 ms: a repeat keeps its own spacing, a new contact still waits the radar's cue interval) and
+`corpse-interval`. Keys unchanged where a setting moved.

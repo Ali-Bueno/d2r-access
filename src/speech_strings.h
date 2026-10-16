@@ -30,7 +30,8 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
 inline constexpr std::size_t GlossarySoundCount = 51;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
-inline constexpr std::size_t SettingsGroupCount = 11; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SettingsGroupCount = 12; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t LoopPaceGroupCount = 7; // loop_pace.h's Group
 inline constexpr std::size_t LootEquipmentCount = 5; // GroundItems::EquipmentLoops
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
 inline constexpr std::size_t CompassPointCount = 8; // Radar::ScreenSectors
@@ -416,6 +417,7 @@ struct Table {
 	const char* npcAlertOn;
 	const char* npcAlertOff;
 	const char* dropSoundSpeed;       // %d = percent of the drop loops' once-a-second pace
+	const char* loopSpeed; // %s = a Strings::Table::loopPaceNames entry, %d = percent of its natural pace
 	const char* radarVolume;          // %d = percent of each family's configured level
 	const char* enemyVolume;
 	const char* ordinaryEnemyVolume; // %d = percent, on top of the enemy volume
@@ -429,6 +431,7 @@ struct Table {
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
+	std::array<const char*, LoopPaceGroupCount> loopPaceNames; // loop_pace.h's Group order
 	const char* goldMovedPersonal;    // %s = gold the deposit moved into the personal stash
 	const char* goldMovedShared;      // %s = gold moved into the shared stash
 	const char* goldMovedStash;       // %s = gold moved into a stash tab the mod could not name
@@ -547,7 +550,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceToLevel, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
+		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
 		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointLocked,
@@ -556,6 +559,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
 	each(t.settingsGroups);
+	each(t.loopPaceNames);
 	each(t.placePresets);
 	each(t.placeInteriors);
 	each(t.placeFeatures);

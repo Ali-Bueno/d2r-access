@@ -24,6 +24,7 @@
 #include "ground_item_service.h"
 #include "ground_items.h"
 #include "item_audio.h"
+#include "loop_pace.h"
 #include "grid_edge_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
@@ -1614,6 +1615,22 @@ SettingsList::Entry Volume(const char* key, const char* Strings::Table::* format
 	return entry;
 }
 
+// How fast one kind of pulsing loop repeats (the user, 2026-10-16).
+SettingsList::Entry LoopSpeed(const char* key, LoopPace::Group group) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = static_cast<int>(LoopPace::Percents.size());
+	entry.level = [group] { return LoopPace::Setting(group).load(); };
+	entry.setLevel = [group](int level) { LoopPace::Setting(group) = std::clamp(level, 0, static_cast<int>(LoopPace::Percents.size()) - 1); };
+	entry.sayLevel = [group](int level) {
+		char phrase[200]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().loopSpeed, Strings::Current().loopPaceNames[static_cast<size_t>(group)],
+			LoopPace::Percents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
 // How often the wall thud repeats while the stick pushes on (a tester, 2026-10-15).
 SettingsList::Entry WallBumpLoop() {
 	SettingsList::Entry entry;
@@ -1705,8 +1722,9 @@ SettingsList::Entry LootEquipment() {
 
 // The groups of the settings list (a tester, 2026-10-13), in the order of
 // Strings::Table::settingsGroups; the glossary is the last, the drop sounds a group inside it.
-enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, Count };
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, LoopSpeeds, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
+static_assert(LoopPace::GroupCount == Strings::LoopPaceGroupCount, "a name for every loop pace group");
 
 std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
 
@@ -1730,7 +1748,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
 		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
 		ItemSoundSet(),
-		DropSoundSpeed(),
 		{GroundItems::PotionsLast, GroundItems::SetPotionsLast, phrase(&T::potionsLastOn, &T::potionsLastOff), false, "potions-last"},
 		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
 		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
@@ -1755,6 +1772,20 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
 		FootstepVolume(),
 	}});
+	// Every pulsing loop's pace in one place, next to the volumes (the user, 2026-10-16).
+	using P = LoopPace::Group;
+	groups.push_back({GroupName(G::LoopSpeeds), {
+		LoopSpeed("door-loop-speed", P::Doors),
+		LoopSpeed("small-item-loop-speed", P::SmallItems),
+		LoopSpeed("container-loop-speed", P::Containers),
+		LoopSpeed("shrine-loop-speed", P::Shrines),
+		LoopSpeed("quest-loop-speed", P::Quest),
+		LoopSpeed("room-loop-speed", P::Rooms),
+		LoopSpeed("epoch-loop-speed", P::Epoch),
+		DropSoundSpeed(),
+		WallBumpLoop(),
+		CorpseRepeat(),
+	}});
 	groups.push_back({GroupName(G::Enemies), {
 		{cue(Cue::All), setCue(Cue::All), phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
 		{cue(Cue::Enemies), setCue(Cue::Enemies), phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
@@ -1769,7 +1800,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
 		{EntityCueService::NpcAlerts, EntityCueService::SetNpcAlerts, phrase(&T::npcAlertOn, &T::npcAlertOff), false, "npc-alerts"},
 		{EntityCueService::CorpseCue, EntityCueService::SetCorpseCue, phrase(&T::corpseCueOn, &T::corpseCueOff), false, "corpse-cue"},
-		CorpseRepeat(),
 	}});
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
@@ -1777,7 +1807,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
-		WallBumpLoop(),
 		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
 		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},

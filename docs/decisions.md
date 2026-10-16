@@ -3,6 +3,16 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-16 — Loop speeds
+
+- The user asked for the pace of the loops that are not constant (doors, scrolls, the wall knock)
+  beside their volume. One setting per kind of pulsing loop (`LoopPace`), the drop sounds'
+  mechanism generalized; steady textures get none (a pace would only cut or gap them). A new
+  **Loop speeds** group gathers them with the drop speed, the wall knock repeat (now from 250 ms)
+  and the corpse rattle. Rejected: one speed for every loop (a door and a shrine want different
+  paces) and a speed per sound (forty settings). The radar's wall readings are not loops: they
+  sound on change, so they have no pace to set.
+
 ## 2026-10-16 — The tester's lists III and IV (build 2026-10-15)
 
 Worked from the two lists and the host's log of a two-player game (`[speech]` lines; that log is

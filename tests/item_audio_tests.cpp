@@ -1,5 +1,6 @@
 #include "item_wave.h"
 #include "item_audio.h"
+#include "loop_pace.h"
 #include "item_spatial.h"
 #include "test_support.h"
 #include <windows.h>
@@ -89,8 +90,19 @@ void DropPassTests() {
 		"a faster speed repeats sooner");
 }
 }
+void LoopPaceTests() {
+	using GroundItems::Sound;
+	Check(LoopPace::Of(Sound::WoodenDoor) == LoopPace::Group::Doors && LoopPace::Of(Sound::Scroll) == LoopPace::Group::SmallItems,
+		"doors and small items pulse, each in its own group");
+	Check(!LoopPace::Of(Sound::Gold) && !LoopPace::Of(Sound::Portal) && !LoopPace::Of(Sound::SlimeDoor),
+		"steady loops have no beat to pace");
+	Check(LoopPace::PassSamples(4800, LoopPace::NeutralLevel) == 0, "at 100 percent the recording plays as it is");
+	Check(LoopPace::PassSamples(4800, PercentSteps::LevelOf(LoopPace::Percents, 200)) == 2400
+		&& LoopPace::PassSamples(4800, PercentSteps::LevelOf(LoopPace::Percents, 50)) == 9600,
+		"twice as fast halves the pass, half as fast doubles it");
+}
 int main(int argc, char** argv) {
-	WaveTests(); MatrixTests(); NormalizationTests(); DropPassTests();
+	WaveTests(); MatrixTests(); NormalizationTests(); DropPassTests(); LoopPaceTests();
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::InsideUnexploredRoom), "room arrival uses a finite XAudio2 buffer");
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::Discovered), "the discovery cue plays once");
 	Check(!ItemAudio::IsOneShot(GroundItems::Sound::UnexploredRoom)
