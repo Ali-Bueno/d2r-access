@@ -37,6 +37,9 @@ std::vector<Crossing> Neighbours(const std::vector<NativeLevelAreas::Area>& area
 		const int gapX = Gap(here->tileX, here->tileWidth, area.tileX, area.tileWidth);
 		const int gapY = Gap(here->tileY, here->tileHeight, area.tileY, area.tileHeight);
 		if (gapX >= RoomGraph::NearGapTiles || gapY >= RoomGraph::NearGapTiles) continue;
+		// Corner to corner they share no edge to walk across (a tester, 2026-10-15:
+		// the Monastery Gate named from the Black Marsh).
+		if (gapX >= 0 && gapY >= 0) continue;
 		Crossing crossing;
 		crossing.level = area.level;
 		crossing.position = {Leaving(here->tileX, here->tileWidth, area.tileX, area.tileWidth),

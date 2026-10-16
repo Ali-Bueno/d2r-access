@@ -64,6 +64,7 @@ std::vector<Radar::LevelExit> g_exits;
 uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
 std::atomic<bool> g_wallBump{true}, g_smallObstacles{true};
+std::atomic<int> g_bumpLoop{0}; // a WallBump::LoopMs level
 WallBump::Detector g_bump;
 // A refused push the thud leaves silent (a slide, or no terrain found along it),
 // logged at most this often so a live test can tell which: design, not the game's.
@@ -179,7 +180,8 @@ void TickBump(const Radar::World* world, uint64_t now) {
 	const double moved = std::hypot(exact.x - g_refusedAt.x, exact.y - g_refusedAt.y);
 	g_refusedAttempts = blocked.attempts;
 	g_refusedAt = exact;
-	if (!g_bump.Tick({.attempts = blocked.attempts, .position = exact, .push = push, .contact = contact, .now = now})) {
+	if (!g_bump.Tick({.attempts = blocked.attempts, .position = exact, .push = push, .contact = contact, .now = now,
+			.loopMs = WallBump::LoopMs[static_cast<size_t>(g_bumpLoop.load())]})) {
 		if (refused && (moved > 0 || !contact) && now - g_silentLoggedAt >= SilentRefusalLogMs) {
 			g_silentLoggedAt = now;
 			AsyncLog::InfoF(g_context, "[wall-bump] silent refusal: %s position=%.2f,%.2f push=%.2f,%.2f moved=%.3f level=%d",
@@ -360,6 +362,8 @@ bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 bool Diagonal() { return g_frame == Radar::Frame::Diagonal; }
 void SetDiagonal(bool diagonal) { g_command = diagonal ? Command::Diagonal : Command::Cardinal; }
+int BumpLoopLevel() { return g_bumpLoop; }
+void SetBumpLoopLevel(int level) { g_bumpLoop = std::clamp(level, 0, static_cast<int>(std::size(WallBump::LoopMs)) - 1); }
 bool BumpEnabled() { return g_wallBump; }
 void SetBumpEnabled(bool enabled) { g_wallBump = enabled; }
 bool SmallObstaclesEnabled() { return g_smallObstacles; }

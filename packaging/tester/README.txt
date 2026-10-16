@@ -262,7 +262,6 @@ knowing:
   statistics while an item is focused on it or in your backpack beside it;
   up still reads the item. The chat box (Enter) says "Text chat" and echoes
   what you type, as the name box does, then "Text chat closed".
-- A Dead Rogue with fire on it is called "Burning Dead Rogue".
 - Your own summons (and other players') are no longer announced as NPCs, and
   a Warlock's bound demon is no longer taken for an enemy.
 - Status effect and curse alerts (Alerts, on): "You are poisoned", "You are

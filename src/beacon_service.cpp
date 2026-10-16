@@ -68,7 +68,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 Beacon::Settings g_settings;
 Beacon::Tracker g_tracker;
-struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0; };
+struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0, missingMs = 0; };
 Target g_offer, g_target, g_parked;
 Lifecycle g_seen;
 bool g_supported = false, g_sounds = true;
@@ -363,6 +363,11 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		static_cast<unsigned>(g_target.entity.kind), g_target.entity.position.x, g_target.entity.position.y,
 		g_target.level, g_target.entity.name.c_str());
 }
+// The target was read for and not found: since when, for Gone().
+bool Missing(uint64_t now) {
+	if (!g_target.missingMs) g_target.missingMs = now;
+	return false;
+}
 // Re-reads the locked target's current position. A target that is out of the
 // loaded rooms keeps its last known place: that is still where it was.
 bool Refresh(const Lifecycle& state, uint64_t now) {
@@ -396,7 +401,7 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 				g_target.seenMs = now;
 				return true;
 			}
-		return false;
+		return Missing(now);
 	}
 	// A locked exit may be a warp or a boundary with the next area; read both
 	// so the beacon can still find the one it is leading to.
@@ -417,11 +422,24 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 			g_target.seenMs = now;
 			return true;
 		}
-	return false;
+	return Missing(now);
+}
+// A unit read absent from a room the game keeps loaded beside the player -- an item
+// another player took, Cain led away -- is gone, not still where it was (a tester,
+// 2026-10-15). Exits are not all units, so they are left to arrival.
+bool Gone(const Lifecycle& state, Radar::Position player, uint64_t now) {
+	if (!g_target.missingMs || now - g_target.seenMs <= VanishedOnArrivalMs || g_target.entity.kind == EntityRadar::Kind::Exit) return false;
+	const auto* graph = Rooms(state);
+	if (!graph) return false;
+	const size_t here = NativeRooms::Containing(graph->rooms, player);
+	const size_t there = NativeRooms::Containing(graph->rooms, g_target.entity.position);
+	return here != NativeRooms::None && there != NativeRooms::None
+		&& (here == there || RoomGraph::Touching(graph->rooms[here], graph->rooms[there]));
 }
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	if (!Playing()) return; // dialogue, pause or another window: keep the lock, stay quiet
 	const bool seen = Refresh(state, now);
+	if (seen) g_target.missingMs = 0;
 	const auto prepared = Guidance(state, g_target.entity, now, g_way);
 	if (!prepared) return;
 	const auto& guidance = *prepared;
@@ -433,6 +451,13 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		return;
 	}
 	const auto& world = guidance.world;
+	if (!seen && Gone(state, world.player, now)) {
+		const auto name = g_target.entity.name;
+		AsyncLog::InfoF(context, "[beacon] gone id=%u name=%s", g_target.entity.id, name.c_str());
+		Release("gone");
+		Announce(Strings::Current().beaconLost, name);
+		return;
+	}
 	// A target that vanished as the player reached it (a chest opened, an item
 	// picked up) was reached; one gone for longer was lost before the player came.
 	const bool reached = seen || (g_target.seenMs && now - g_target.seenMs <= VanishedOnArrivalMs);

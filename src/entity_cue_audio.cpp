@@ -17,6 +17,18 @@
 
 namespace D2RAccess::EntityCueAudio {
 namespace {
+// Each enemy class's own volume, on top of the family's (a tester, 2026-10-15).
+double ClassVolume(Sound sound) {
+	using F = SoundVolume::Family;
+	switch (sound) {
+	case Sound::Ordinary: return SoundVolume::Of(F::OrdinaryEnemies).Factor();
+	case Sound::Important: return SoundVolume::Of(F::EliteEnemies).Factor();
+	case Sound::Ranged: return SoundVolume::Of(F::RangedEnemies).Factor();
+	case Sound::Resurrector: return SoundVolume::Of(F::ShamanEnemies).Factor();
+	case Sound::Boss: return SoundVolume::Of(F::BossEnemies).Factor();
+	default: return 1;
+	}
+}
 std::mutex g_mutex;
 std::condition_variable g_wake;
 ProcessLifetime<std::thread> g_threadOwner;
@@ -90,7 +102,7 @@ void Worker(const D2RL::PluginContext* context) {
 				generation = g_generation;
 			}
 			auto pcm = Synthesize(request.sound, request.placement, g_gain);
-			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Enemies).Factor());
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Enemies).Factor() * ClassVolume(request.sound));
 			if (generation != g_generation) continue;
 			failed = !PlayOne(device, done, pcm, generation);
 		}

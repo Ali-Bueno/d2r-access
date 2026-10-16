@@ -172,6 +172,7 @@ add_library(d2r-access SHARED
 	src/ui_notifications.cpp
 	src/vitals.cpp
 	src/vitals_service.cpp
+	src/low_life_audio.cpp
 	src/status_effects.cpp
 	src/minion_report.cpp
 	src/party_reader.cpp

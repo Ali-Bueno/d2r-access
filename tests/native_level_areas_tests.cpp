@@ -87,7 +87,13 @@ int main() {
 	Check(LevelAreas::Neighbours(areas, 1)[0].gapTiles == 5, "and the gap is reported");
 	f.moorRoomA.At<int>(RoomTileX, 1162); f.moorRoomB.At<int>(RoomTileX, 1202);
 	Check(f.Read(areas) && LevelAreas::Neighbours(areas, 1).empty(), "six tiles apart is not somewhere you can walk to");
+	// Moved down past the town's bottom edge, the moor meets it at a corner only.
 	f.moorRoomA.At<int>(RoomTileX, 1156); f.moorRoomB.At<int>(RoomTileX, 1196);
+	f.moorRoomA.At<int>(RoomTileY, 1120); f.moorRoomB.At<int>(RoomTileY, 1120);
+	Check(f.Read(areas) && LevelAreas::Neighbours(areas, 1).empty(), "areas meeting corner to corner have no crossing");
+	f.moorRoomA.At<int>(RoomTileY, 1119); f.moorRoomB.At<int>(RoomTileY, 1119);
+	Check(f.Read(areas) && LevelAreas::Neighbours(areas, 1).size() == 1, "one shared tile of edge is a crossing");
+	f.moorRoomA.At<int>(RoomTileY, 1080); f.moorRoomB.At<int>(RoomTileY, 1080);
 
 	// Fail closed: nothing partial, and nothing from another act.
 	f.moor.At(LevelDrlg, f.cave.Address());

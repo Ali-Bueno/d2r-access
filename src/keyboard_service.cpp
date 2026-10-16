@@ -61,6 +61,7 @@
 #include "radar_config.h"
 #include "radar_readout.h"
 #include "radar_service.h"
+#include "wall_bump.h"
 #include "radar_ui.h"
 #include "room_graph.h"
 #include "room_service.h"
@@ -1613,6 +1614,38 @@ SettingsList::Entry Volume(const char* key, const char* Strings::Table::* format
 	return entry;
 }
 
+// How often the wall thud repeats while the stick pushes on (a tester, 2026-10-15).
+SettingsList::Entry WallBumpLoop() {
+	SettingsList::Entry entry;
+	entry.key = "wall-bump-repeat";
+	entry.levels = static_cast<int>(std::size(WallBump::LoopMs));
+	entry.level = RadarService::BumpLoopLevel;
+	entry.setLevel = RadarService::SetBumpLoopLevel;
+	entry.sayLevel = [](int level) {
+		const auto ms = WallBump::LoopMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().wallBumpOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().wallBumpEvery, static_cast<int>(ms));
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// The share of life under which the heartbeat sounds (a tester, 2026-10-15).
+SettingsList::Entry LowLifeThreshold() {
+	SettingsList::Entry entry;
+	entry.key = "low-life-below";
+	entry.levels = static_cast<int>(std::size(Vitals::LowLifeThresholds));
+	entry.level = VitalsService::LowLifeLevel;
+	entry.setLevel = VitalsService::SetLowLifeLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().lowLifeBelow, Vitals::LowLifeThresholds[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
 SettingsList::Entry DropSoundSpeed() {
 	SettingsList::Entry entry;
 	entry.key = "drop-sound-speed";
@@ -1644,15 +1677,15 @@ SettingsList::Entry FootstepVolume() {
 // How often the usable-corpse rattle repeats while corpses stay near (a tester, 2026-10-14).
 SettingsList::Entry CorpseRepeat() {
 	SettingsList::Entry entry;
-	entry.key = "corpse-repeat";
-	entry.levels = static_cast<int>(EntityCues::CorpseRepeatSeconds.size());
+	entry.key = "corpse-interval"; // milliseconds; "corpse-repeat" saved seconds
+	entry.levels = static_cast<int>(EntityCues::CorpseRepeatMs.size());
 	entry.level = EntityCueService::CorpseRepeatLevel;
 	entry.setLevel = EntityCueService::SetCorpseRepeatLevel;
 	entry.sayLevel = [](int level) {
-		const int seconds = EntityCues::CorpseRepeatSeconds[static_cast<size_t>(level)];
-		if (!seconds) return std::string(Strings::Current().corpseRepeatOnce);
+		const int ms = EntityCues::CorpseRepeatMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().corpseRepeatOnce);
 		char phrase[160]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().corpseRepeatEvery, seconds);
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().corpseRepeatEvery, ms);
 		return std::string(phrase);
 	};
 	return entry;
@@ -1712,8 +1745,14 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Volumes), {
 		Volume("radar-volume", &T::radarVolume, F::Radar),
 		Volume("enemy-volume", &T::enemyVolume, F::Enemies),
+		Volume("ordinary-enemy-volume", &T::ordinaryEnemyVolume, F::OrdinaryEnemies),
+		Volume("elite-enemy-volume", &T::eliteEnemyVolume, F::EliteEnemies),
+		Volume("ranged-enemy-volume", &T::rangedEnemyVolume, F::RangedEnemies),
+		Volume("shaman-enemy-volume", &T::shamanEnemyVolume, F::ShamanEnemies),
+		Volume("boss-enemy-volume", &T::bossEnemyVolume, F::BossEnemies),
 		Volume("item-volume", &T::itemVolume, F::Items),
 		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
+		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
 		FootstepVolume(),
 	}});
 	groups.push_back({GroupName(G::Enemies), {
@@ -1738,6 +1777,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
+		WallBumpLoop(),
 		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
 		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
@@ -1775,6 +1815,8 @@ std::vector<SettingsList::Group> SettingGroups() {
 		ManaAlerts(),
 		{VitalsService::ExperienceReport, VitalsService::SetExperienceReport, phrase(&T::experienceReportOn, &T::experienceReportOff), false, "experience-report"},
 		{VitalsService::StatusAlerts, VitalsService::SetStatusAlerts, phrase(&T::statusAlertsOn, &T::statusAlertsOff), false, "status-alerts"},
+		{VitalsService::LowLifeSound, VitalsService::SetLowLifeSound, phrase(&T::lowLifeOn, &T::lowLifeOff), false, "low-life-sound"},
+		LowLifeThreshold(),
 		{VitalsService::MinionsReported, VitalsService::SetMinionsReported, phrase(&T::minionReportOn, &T::minionReportOff), false, "minion-report"},
 		{VitalsService::MercenaryReported, VitalsService::SetMercenaryReported, phrase(&T::mercenaryReportOn, &T::mercenaryReportOff), false, "mercenary-report"},
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},

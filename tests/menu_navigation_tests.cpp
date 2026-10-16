@@ -21,6 +21,7 @@ UiText::Snapshot snapshot;
 InputDirection::DpadInput dpad;
 std::map<uintptr_t, NativeUi::Rect> rectangles;
 std::optional<bool> editing = false;
+uintptr_t editor = 10; // the box holding the game's editor while editing
 bool available = true, selectionWorks = true, cursorHeld = false;
 int selections = 0, skillResets = 0;
 
@@ -59,6 +60,7 @@ std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
 	return it->second;
 }
 std::optional<bool> TextEditing() { return editing; }
+uintptr_t ActiveTextInput(uintptr_t) { return editing && *editing ? editor : 0; }
 bool Select(NativeUi::Focus next) {
 	++selections;
 	if (selectionWorks) focus = next;
@@ -120,10 +122,18 @@ int main() {
 	Release();
 	focus.widget = 10;
 	editing = true;
-	Press(0, 1);
+	Press(1, 0);
 	Check(focus.widget == 10 && selections == 2 && !cursorHeld,
-		"native text editing leaves D-pad control with the input field");
+		"native text editing leaves left and right with the input field");
 	Release();
+	Press(0, 1);
+	Check(focus.widget == 12 && selections == 3, "up and down leave the box being typed in");
+	Release();
+	Press(0, 1);
+	Check(focus.widget == 13 && selections == 4, "an editor left on another box does not stop the D-pad");
+	Release();
+	focus.widget = 10;
+	selections = 2;
 	editing = std::nullopt;
 	Press(0, 1);
 	Check(focus.widget == 10 && selections == 2 && !cursorHeld,

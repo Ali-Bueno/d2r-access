@@ -140,7 +140,9 @@ std::string FocusedTabText(uintptr_t) {
 	return x >= 0 && x < 7 ? labels[x] : "";
 }
 }
+namespace D2RAccess::NativeMemory { bool Copy(uintptr_t, void*, size_t) noexcept { return false; } }
 namespace D2RAccess::NativeWidgets {
+std::vector<FoundString> ScanStrings(uintptr_t, size_t) { return {}; }
 bool IsAvailable() { return true; }
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
 std::string ReadName(uintptr_t id) {
@@ -312,6 +314,7 @@ std::vector<bool> interrupts;
 int stops = 0;
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
+void Lead(std::string_view text, unsigned long long) { Speak(text, false); }
 void Stop() { ++stops; }
 }
 

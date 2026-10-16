@@ -25,6 +25,7 @@
 #include "native_tooltips.h"
 #include "native_controller_help.h"
 #include "native_ground_items.h"
+#include "native_memory.h"
 #include "native_progression.h"
 #include "native_ui.h"
 #include "progression_text.h"
@@ -45,6 +46,7 @@
 
 #include <D2RLPlugin/item.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdio>
 #include <optional>
@@ -523,6 +525,18 @@ std::string StashGold(const D2RL::PluginContext* context, uintptr_t panel) {
 	return digits;
 }
 
+// The shared stash's page, from the text between its arrows: the pages are no tab bar,
+// RB and LB change only this box (BankExpansionLayoutHD.json StashNavigation). Empty
+// on the other tabs, where it is hidden, and while it holds no page yet.
+constexpr std::string_view SharedPagePath[] = {"SharedStashTabContainer", "StashNavigation", "CurrentSharedStashText"};
+std::string SharedPage(uintptr_t panel) {
+	uintptr_t box = NativeWidgets::FindChild(panel, StashGoldContainer);
+	for (const auto name : SharedPagePath) box = NativeWidgets::FindChild(box, name);
+	if (!box || !NativeUi::Visible(box)) return {};
+	auto text = UiText::Clean(NativeWidgets::ReadText(box));
+	return text.starts_with('@') ? std::string{} : text; // the layout's key, not yet a page
+}
+
 // The stash tab the open panel shows, from its tab bars' selected labels.
 StashCount::GoldTab StashTab(const D2RL::PluginContext* context, uintptr_t panel) {
 	std::vector<std::string> selected;
@@ -597,6 +611,7 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	result.context = g_inventoryContext.name;
 	result.body = g_inventoryContext.title;
 	Append(result.body, TabReader::Selected(focus.panel));
+	if (g_inventoryContext.name == StashPanel) Append(result.body, SharedPage(focus.panel));
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
 	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) Append(result.body, Strings::Current().tradeYourOffer);
@@ -909,8 +924,66 @@ void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
 	ScreenReader::Speak(title, true);
 }
 
+// The stash says its tab as it opens, wherever the first focus lands, and the shared
+// stash's page as RB and LB turn it (a tester, 2026-10-15).
+constexpr uint64_t StashOpenHoldMs = 1200;
+uintptr_t g_stashShown = 0;
+std::string g_sharedPage;
+void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(StashPanel) : 0;
+	if (!panel || !NativeUi::Visible(panel)) { g_stashShown = 0; g_sharedPage.clear(); return; }
+	const auto page = SharedPage(panel);
+	if (g_stashShown != panel) {
+		g_stashShown = panel;
+		g_sharedPage = page;
+		if (focus.panel == panel) return; // a stash grid's own readout names its tab
+		std::string text = Title(panel);
+		for (const uintptr_t bar : NativeUi::FindControls(panel, UiText::Kind::Tabs))
+			Append(text, UiText::Clean(NativeUi::SelectedTabText(bar)));
+		Append(text, page);
+		D2RAccess::AsyncLog::InfoF(context, "[stash] opened -> \"%s\"", text.c_str());
+		ScreenReader::Lead(text, now + StashOpenHoldMs);
+		return;
+	}
+	if (page == g_sharedPage) return;
+	// Back on the shared tab the page follows the tab's name; a new page cuts in.
+	const bool turned = !page.empty() && !g_sharedPage.empty();
+	g_sharedPage = page;
+	if (page.empty()) return;
+	D2RAccess::AsyncLog::InfoF(context, "[stash] shared page -> \"%s\"", page.c_str());
+	ScreenReader::Speak(page, turned);
+}
+
+// What tells a locked waypoint row from an open one is not measured yet: the images
+// ui_text.cpp looks for are templates, not the row's children. Each row focused is
+// logged once, its children, strings and first bytes, so one log of a gold and a
+// grey row settles it (a tester, 2026-10-15).
+constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
+constexpr size_t WaypointProbeBytes = 0x200;
+uintptr_t g_probedRow = 0;
+void ProbeWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (!focus.widget || focus.widget == g_probedRow || !NativeWidgets::ReadName(focus.panel).starts_with(WaypointsPanelPrefix)) return;
+	g_probedRow = focus.widget;
+	std::string children, strings, bytes;
+	for (const uintptr_t child : NativeUi::Children(focus.widget))
+		children += " " + NativeWidgets::ReadName(child) + (NativeUi::Visible(child) ? "" : "(hidden)");
+	for (const auto& found : NativeWidgets::ScanStrings(focus.widget, WaypointProbeBytes)) {
+		char entry[80]{};
+		std::snprintf(entry, sizeof(entry), " +%zX=%.40s", found.offset, found.value.c_str());
+		strings += entry;
+	}
+	std::array<uint8_t, WaypointProbeBytes> raw{};
+	if (NativeMemory::Copy(focus.widget, raw.data(), raw.size()))
+		for (const uint8_t byte : raw) { char hex[4]{}; std::snprintf(hex, sizeof(hex), "%02X", byte); bytes += hex; }
+	D2RAccess::AsyncLog::InfoF(context, "[waypoint] row %s text=\"%s\" children:%s strings:%s bytes=%s",
+		NativeWidgets::ReadName(focus.widget).c_str(), UiText::Clean(NativeWidgets::ReadText(focus.widget)).c_str(),
+		children.c_str(), strings.c_str(), bytes.c_str());
+}
+
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	TickSkillBranch(context, now);
+	TickStash(context, now, focus);
+	ProbeWaypointRow(context, focus);
 	// The Advanced Stats list has nothing the controller can focus, and a menu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.

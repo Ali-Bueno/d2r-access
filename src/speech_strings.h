@@ -111,6 +111,8 @@ struct Table {
 	const char* radarStraight;
 	const char* wallBumpEnabled;
 	const char* wallBumpDisabled;
+	const char* wallBumpOnce; // the wall thud once per contact
+	const char* wallBumpEvery; // %d = milliseconds between thuds while pushing into a wall
 	const char* smallObstaclesEnabled;
 	const char* smallObstaclesDisabled;
 	// Clockwise from north, the top of the screen (Radar::ScreenSector order); spoken_direction.h.
@@ -405,6 +407,7 @@ struct Table {
 	const char* enemyClassSoundsOff;
 	const char* footstepVolume;       // %d = percent of the game's own footstep volume
 	const char* experiencePercent;    // %d = how far into the level, as the experience bar
+	const char* experienceToLevel; // %d = percent into the level, %d = the next level
 	const char* experienceReportOn;
 	const char* experienceReportOff;
 	const char* mercenarySays;        // %s = the line the mercenary says over its head
@@ -415,8 +418,14 @@ struct Table {
 	const char* dropSoundSpeed;       // %d = percent of the drop loops' once-a-second pace
 	const char* radarVolume;          // %d = percent of each family's configured level
 	const char* enemyVolume;
+	const char* ordinaryEnemyVolume; // %d = percent, on top of the enemy volume
+	const char* eliteEnemyVolume;
+	const char* rangedEnemyVolume;
+	const char* shamanEnemyVolume;
+	const char* bossEnemyVolume;
 	const char* itemVolume;
 	const char* guidanceVolume;
+	const char* lowLifeVolume; // %d = percent of the heartbeat's level
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
@@ -439,10 +448,14 @@ struct Table {
 	std::array<const char*, StatusConditionCount> conditionsEnded;
 	const char* curseStarted; // %s = the curse, the game's name of its skill
 	const char* curseEnded;
+	const char* shrineEnded; // a shrine's state left the player
 	std::array<const char*, CurseNameCount> curseNames; // StatusEffects::CurseName order: monster curses the game leaves unnamed
 	const char* curseUnnamed; // a curse whose skill name could not be read
 	const char* statusAlertsOn;
 	const char* statusAlertsOff;
+	const char* lowLifeOn;
+	const char* lowLifeOff;
+	const char* lowLifeBelow; // %d = percent of life at or under which the heartbeat sounds
 	const char* corpseCueOn; // the rattle as usable corpses come near a Necromancer
 	const char* corpseCueOff;
 	const char* minionReportOn; // the summons in the life report (BACK+X)
@@ -455,7 +468,6 @@ struct Table {
 	const char* chatClosed;
 	const char* noCompanions; // BACK+RT with no mercenary, summon or party member
 	const char* inArea; // %s = the area a party member is in
-	const char* burningCorpse; // %s = a body with one of the game's fires on it
 	const char* potionsLastOn; // health and mana potions sound after the rest of the loot
 	const char* potionsLastOff;
 	const char* settingsSubmenu; // %s = a group of the settings list, as the list lands on it
@@ -464,7 +476,7 @@ struct Table {
 	const char* mercenaryReportOn; // the mercenary in the life report (BACK+X)
 	const char* mercenaryReportOff;
 	const char* corpseRepeatOnce; // the usable-corpse rattle: once as corpses come near
-	const char* corpseRepeatEvery; // %d = seconds between rattles while corpses stay near
+	const char* corpseRepeatEvery; // %d = milliseconds between rattles while corpses stay near
 	const char* lootFilterOn; // the audible loot filter (LB in play)
 	const char* lootFilterOff;
 	const char* lootPotionsOn; // potion drop loops with the filter on
@@ -476,6 +488,7 @@ struct Table {
 	const char* waypointLocked; // a waypoint not yet activated
 	const char* hintDeleteCharacter; // %s = the button that deletes the selected character
 	const char* hintNoCharacters; // %s = the button that creates a character, with an empty list
+	const char* mainMenu; // the main menu panel's name: the game has no string for it
 	const char* padTypingOn; // typing into a text box with the right stick (pad_typing.h)
 	const char* padTypingOff;
 };
@@ -496,7 +509,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarRays, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight,
-		t.wallBumpEnabled, t.wallBumpDisabled, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
+		t.wallBumpEnabled, t.wallBumpDisabled, t.wallBumpOnce, t.wallBumpEvery, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
 		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.routeTo, t.routeLeg, t.routeThen, t.routeDoor, t.routeMore, t.routeUnseen,
 		t.routeNone, t.routeNow, t.routeOff, t.npcEnabled, t.npcDisabled,
@@ -532,13 +545,13 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.developmentBuild, t.shop, t.goldPickedUp, t.itemMovedToStash, t.stashGems, t.stashRunes, t.stashMaterials, t.stashSlotEmpty, t.mercenarySkills,
 		t.enemyPanStrength, t.enemyPitchStrength, t.beaconPanStrength, t.beaconPitchStrength,
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
-		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceReportOn, t.experienceReportOff,
+		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceToLevel, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.itemVolume, t.guidanceVolume,
-		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.burningCorpse, t.potionsLastOn, t.potionsLastOff,
+		t.dropSoundSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
+		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointLocked,
-		t.hintDeleteCharacter, t.hintNoCharacters, t.padTypingOn, t.padTypingOff}) visit(s);
+		t.hintDeleteCharacter, t.hintNoCharacters, t.mainMenu, t.padTypingOn, t.padTypingOff}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

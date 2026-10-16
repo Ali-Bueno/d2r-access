@@ -132,6 +132,8 @@ std::string Speak(const Summary& summary, const std::string& levelName,
 	});
 	for (const auto& landmark : landmarks) {
 		if (landmark.name.empty()) continue;
+		// A crossing already said as a side's border is not said twice (a tester, 2026-10-15).
+		if (std::any_of(summary.legs.begin(), summary.legs.end(), [&](const Leg& leg) { return leg.border == landmark.name; })) continue;
 		const double distance = std::hypot(landmark.offset.x, landmark.offset.y);
 		std::string line = landmark.name + strings.listSeparator + EntityRadar::DistancePhrase(distance, scan, strings);
 		if (!EntityRadar::UnderPlayer(distance, scan)) {

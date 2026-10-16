@@ -3,6 +3,46 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-16 — The tester's lists III and IV (build 2026-10-15)
+
+Worked from the two lists and the host's log of a two-player game (`[speech]` lines; that log is
+build 2026-10-14-2, so it shows the lobby's D-pad working before 10-15 and nothing of 10-15's
+features). Built and unit-tested only.
+- **Lobby D-pad** (regression of `pad-typing`): since A starts editing a box, the game's editor
+  stays active after the focus leaves it, and `MenuNavigation` took that for typing and left the
+  D-pad to the stock cursor, which skips the boxes. Only the focused box counts as typed in; in it,
+  left and right stay with the caret, up and down leave it.
+- **Area overview**: a landmark already said as a side's border is not said again. **Crossings**
+  need a shared edge: areas meeting corner to corner (the Monastery Gate from the Black Marsh) have
+  none. Rejected: hiding a level until the player has been in its neighbour (the tester's rule;
+  geometry says the same without a per-map list). Unverified that the Black Marsh case is a
+  corner; a crossing remembered on an old map stays listed there.
+- **Forgotten Tower**: the loaded warp replaced its preset and lost the quest category; it keeps it.
+- **Gone targets** (multiplayer): the beacon kept leading to where an item or Cain had been. A
+  target read absent from the player's room or one touching it for 2 s (`VanishedOnArrivalMs`)
+  is lost at once; exits are left to arrival. A remembered quest object whose spot the map can see
+  without it (`CorpseMemory::Covered`) is forgotten for the run (the archive only adds places).
+- **Status effects**: a beginning cuts in and holds 1.5 s (`ScreenReader::Urge`). **Shrine
+  blessings** say when they wear off, not when they begin (the shrine says that).
+- **Low life heartbeat**: the Diablo IV start and loop the user chose (from the Last Epoch mod),
+  threshold 5-70 percent, release five points over. Rejected: a spoken warning (it is what lagged).
+- **Volumes per enemy class**: normal, elite, ranged, shaman, boss, each a factor on the enemy
+  volume. **Wall knock repeat** (`wall-bump-repeat`, off): the thud again every 0.5-2 s while the
+  push goes on; the tester's swoosh complaint is answered by the knock, not by a new tone.
+- **Corpse rattle** in milliseconds (`corpse-interval`, a new key so a saved 3 s is not misread),
+  1 s by default, a drop sound's pace.
+- **Experience** names the next level. **Burning bodies** removed (the user: not now).
+- **Main menu** is named ("MainMenuPanel" was spoken raw) and a panel's title holds 700 ms, so
+  the first focus queues behind it; other untitled panels are said in words.
+- **Character select hint** after 5 s on a character (it was armed by the active panel, which is
+  the link bar, so it never fired). **Stash**: the tab (and shared page) said on opening; the shared
+  pages (RB/LB) are a text box between arrows, not a tab bar, and are read as they change.
+- **Not done**: locked waypoints (the images the 10-15 heuristic looks for are templates, not the
+  rows' children; each focused row is now logged, `[waypoint] row`, to find what differs); house
+  and ruin entrances (no detection exists; a wall-gap finder over the collision grid seeded by
+  the interior volumes needs a live tuning session, and Tristram has no volumes); Cain's chime
+  after his quest (the host's log rings it only while his mark was real: needs the tester's log).
+
 ## 2026-10-15 — The tester's ninth and tenth lists (worked alone, no live check)
 
 - **Area overview by the level's own sides** (BACK+B): the tester heard screen sides where Diablo's

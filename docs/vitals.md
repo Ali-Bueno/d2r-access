@@ -137,3 +137,16 @@ only in the notices, but the tester's log has it three times as `[interaction] W
 target -> "I feel much stronger now"`: the game draws it as the world target's tooltip.
 `GameTextReader::NameSpeaker` now names it on both paths (`mercenary-bark`, on); the
 log line to check is the same `World target` one, now starting with "Mercenary says:".
+
+## Low life heartbeat (2026-10-15)
+
+A tester died twice before the spoken life percentage caught up. At or under `low-life-below`
+(5 to 70 percent of life, 25 by default: a Sorceress and a Barbarian need different lines) the
+Diablo IV low-life sound plays once and its heartbeat loops (`sounds/*/vitals/`, the author's
+Last Epoch mod's copies), until life climbs `Vitals::LowLife::ReleasePoints` (5) over the line, so
+a regeneration tick at the line does not start it again. No life (dead) or an unreadable orb is
+quiet, and so is a pause or a dialogue. `LowLifeAudio` is its own XAudio2 voice with its own
+volume (`low-life-volume`, Volumes), under the mod-sounds master switch. Switch `low-life-sound`
+(Alerts, on). Logs: `[vitals] low life`, `[low-life] heartbeat started|stopped`.
+
+The life report's experience now names the level it leads to: "Experience 34 percent to level 17".

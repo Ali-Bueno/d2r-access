@@ -73,6 +73,9 @@ d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "s
 # four potion pickups, one per kind; each file is one pass of the loop.
 d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")
 d2r_sounds("one shot sounds" exploration "discovered")
+# The Diablo IV low-life start and heartbeat, from the author's Last Epoch mod (src/low_life_audio.cpp).
+d2r_sounds("one shot sounds" vitals "low life start")
+d2r_sounds("item loop sounds" vitals "low life")
 # The game's own drop sounds, the alternative item set (tools/gen_drop_sounds.py).
 include("${CMAKE_CURRENT_LIST_DIR}/DropSounds.cmake")
 d2r_sounds("item loop sounds" "d2 drops" ${D2R_DROP_SOUNDS})

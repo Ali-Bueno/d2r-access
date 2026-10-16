@@ -128,6 +128,10 @@ void Borders() {
 		"the opposite edge names nothing");
 	Check(TerrainOverview::Speak(summary, "Blood Moor", Scan, English).find("Rogue Encampment at 30 units")
 		!= std::string::npos, "a named border replaces the plain edge");
+	const std::string listed = TerrainOverview::Speak(summary, "Blood Moor", Scan, English,
+		{{"Rogue Encampment", {0, 30}}, {"Den of Evil", {10, 0}}});
+	Check(listed.find("Rogue Encampment") == listed.rfind("Rogue Encampment"), "a border found as a crossing is said once");
+	Check(listed.find("Den of Evil") != std::string::npos, "other landmarks are still listed");
 }
 
 void Explored() {

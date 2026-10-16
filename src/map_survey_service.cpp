@@ -384,9 +384,9 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	KeyboardService::NotePads(world, scene.landmarks);
 	TerrainService::RememberPlaces(state.level, rooms, discovered);
 	LogTownNpcs(g_context, state, scene);
-	g_corpses.Observe(state.level, scene.corpses, [&](Radar::Position position) {
-		return CorpseMemory::Covered(rooms, grid, world.player, position);
-	});
+	const auto covered = [&](Radar::Position position) { return CorpseMemory::Covered(rooms, grid, world.player, position); };
+	TerrainService::ForgetGoneQuestPlaces(state.level, rooms, scene.landmarks, covered);
+	g_corpses.Observe(state.level, scene.corpses, covered);
 	std::vector<CorpseMemory::Owner> owners;
 	if (NativeEntities::ReadRosterCorpses(state.player, owners)) g_corpses.Track(owners, Strings::Current().corpseOf);
 }

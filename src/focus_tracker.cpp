@@ -152,12 +152,14 @@ constexpr uint32_t XGlyph            = FirstControlGlyph + 17;
 constexpr uint32_t YGlyph            = FirstControlGlyph + 18;
 constexpr const char* CharacterCreatePanelName = "CharacterCreatePanel";
 // The list's first row is announced as the panel opens; the hint waits behind it.
-constexpr uint64_t SelectHintDelayMs = 1500;
+// After this long on one character (a tester, 2026-10-15: for players still deciding).
+constexpr uint64_t SelectHintDelayMs = 5000;
 
 std::atomic<bool> g_screenHints { true };
 std::string       g_hintPanel;
 uint64_t          g_selectHintAt = 0; // when the character-select hint falls due, 0 when none
 bool              g_nameHintSpoken = false;
+bool              g_selectOpen = false;   // the character list is among the open panels
 
 std::string HintText(const char* format, uint32_t glyph) {
 	const std::string_view button = ControllerText::Button(glyph);
@@ -166,17 +168,24 @@ std::string HintText(const char* format, uint32_t glyph) {
 	return button.empty() ? std::string {} : std::string(phrase);
 }
 
-// Called every tick: arms the character-select hint on entry, speaks it when due.
+// Called every tick: speaks the character-select hint when due. A character row arms
+// it as it is read; an empty list, as it opens. The link bar opens over the list, so
+// the list is looked for among the open panels, not as the active one.
 void TickScreenHints(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
 	if (active != g_hintPanel) {
 		g_hintPanel = active;
-		g_selectHintAt = active == CharacterSelectPanelName ? GetTickCount64() + SelectHintDelayMs : 0;
 		if (active != CharacterCreatePanelName) g_nameHintSpoken = false;
+	}
+	const auto& open = PanelState::OpenPanels();
+	const bool selectOpen = std::find(open.begin(), open.end(), CharacterSelectPanelName) != open.end();
+	if (selectOpen != g_selectOpen) {
+		g_selectOpen = selectOpen;
+		g_selectHintAt = selectOpen && CharacterSaves::Load(context).empty() ? GetTickCount64() + SelectHintDelayMs : 0;
 	}
 	if (g_selectHintAt == 0 || GetTickCount64() < g_selectHintAt) return;
 	g_selectHintAt = 0;
-	if (!g_screenHints.load()) return;
+	if (!g_screenHints.load() || !selectOpen) return;
 	// Create and delete (a tester, 2026-10-14: nothing said what X and Start do);
 	// with no character saved, only how to make one.
 	const auto& strings = Strings::Current();
@@ -820,6 +829,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	}
 	if (characterRow >= 0) {
 		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, characterPhrase.c_str());
+		g_selectHintAt = GetTickCount64() + SelectHintDelayMs;
 		ScreenReader::Speak(characterPhrase, true);
 		std::string legend;
 		for (const LegendAction& action : CharacterRowActions) {

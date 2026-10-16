@@ -2,6 +2,26 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's lists III and IV — 2026-10-16 (not released)
+
+From `D2R Access Build 2026-10-15, bug-list-with-multiplayer-issues.txt` and `... bug list IV.txt`
+(the user's Downloads) and the host's log of a two-player game. Choices in [decisions](docs/decisions.md).
+- Lobby D-pad reaches the text boxes again (`MenuNavigation`: only the focused box counts as typed in).
+- BACK+B: a border is not repeated as a landmark; corner-to-corner areas are no crossing (`LevelAreas`).
+- Forgotten Tower warp keeps the quest category when loaded. Gone targets: the beacon says lost at
+  once; remembered quest objects seen gone are forgotten (`[beacon] gone`, `[terrain] quest place gone`).
+- Status starts held 1.5 s (`ScreenReader::Urge`); shrine blessing end; low life heartbeat
+  (`low-life-sound`, `low-life-below`, `low-life-volume`); per-class enemy volumes; `wall-bump-repeat`;
+  `corpse-interval` (ms); experience "to level N"; burning bodies removed.
+- "Main menu" named, panel titles held 700 ms; character hint after 5 s; stash tab on opening and
+  shared pages (`[stash] opened`, `[stash] shared page`).
+
+121/121 CTest; installed by the build. **Unverified live: all of it.** Not done: locked waypoints
+(diagnostic `[waypoint] row` lines), house entrances (needs a live tuning session), Cain's chime
+(needs the tester's log).
+**Next step:** test release; ask the tester for a log with the waypoint panel opened (a gold and a
+grey row focused) and, if Cain chimes again, that moment's `[npc] exclamation mark` lines.
+
 ## The tester's ninth and tenth lists — 2026-10-15 (released as test-2026-10-15 from b5c6cf7)
 
 Release: 121/121 CTest, 29 entries, 61,820,481 bytes, SHA-256 `a0017cd6…f9e2`.

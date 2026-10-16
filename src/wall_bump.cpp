@@ -32,7 +32,8 @@ bool Detector::Tick(const Sample& sample) {
 	if (!attempted || !still || !sample.contact || !(length > 0)) return false;
 	const Radar::Position direction{sample.push.x / length, sample.push.y / length};
 	if (!armed_ && direction.x * direction_.x + direction.y * direction_.y < settings_.turnCosine) armed_ = true;
-	if (!armed_ || (bumped_ && sample.now - lastBump_ < settings_.repeatMs)) return false;
+	const bool again = !armed_ && sample.loopMs && sample.now - lastBump_ >= sample.loopMs;
+	if ((!armed_ && !again) || (bumped_ && sample.now - lastBump_ < settings_.repeatMs)) return false;
 	armed_ = false;
 	bumped_ = true;
 	direction_ = direction;

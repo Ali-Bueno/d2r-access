@@ -253,8 +253,21 @@ void Experience() {
 	Check(Vitals::MercenaryLevelStart(10, 145201) == 0 && Vitals::MercenaryLevelStart(0, 1200) == 0, "a threshold off the rule is unknown");
 }
 
+void LowLife() {
+	Vitals::LowLife heart;
+	bool started = false;
+	Check(!heart.Update(80, 25, &started) && !started, "plenty of life is quiet");
+	Check(heart.Update(25, 25, &started) && started, "life down to the threshold starts the heartbeat");
+	Check(heart.Update(20, 25, &started) && !started, "it goes on below, started only once");
+	Check(heart.Update(29, 25) && heart.Update(30, 25), "a little over the line keeps it going");
+	Check(!heart.Update(31, 25), "well over the line stops it");
+	Check(heart.Update(10, 25) && !heart.Update(0, 25), "no life, as dead, stops it");
+	Check(!heart.Update(-1, 25), "an unreadable orb is quiet");
+}
+
 int main() {
 	Experience();
+	LowLife();
 	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();

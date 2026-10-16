@@ -227,7 +227,8 @@ Controller validation is pending; see [behavior and evidence](docs/wall-sliding.
 Pushing the stick into a wall the game refuses to cross sounds one low **wall
 bump** thud, panned by the push; it repeats only after a step, a turn of more
 than 45 degrees or a release of the stick (`wall-bump` in the Ctrl+S settings
-list). See [radar readings](docs/radar-readings.md).
+list), or, with `wall-bump-repeat` (once by default; every 500 ms to 2 s), over and
+over while the push goes on. See [radar readings](docs/radar-readings.md).
 
 **Sound glossary:** the last group of the Ctrl+S settings list holds the mod's
 sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
@@ -506,10 +507,16 @@ See [life, mana and broken equipment](docs/vitals.md).
 
 Harmful states on the player (poison, freezing, chill, stun, slowing and the
 monster curses, by their `states.txt` rows) are read from the same native state
-check that colors the health orb for poison. A beginning interrupts ("You are
-afflicted by Amplify Damage", the curse named by the game's own skill name);
-an end is said once it has lasted a second, and the vitals report lists the
-states while active. Switch `status-alerts`; see [status effects](docs/status-effects.md).
+check that colors the health orb for poison. A beginning interrupts and is not cut
+off for a second and a half ("You are afflicted by Amplify Damage", the curse named
+by the game's own skill name); an end is said once it has lasted a second, and the
+vitals report lists the states while active. When a shrine's blessing wears off,
+"The shrine's blessing has worn off". Switch `status-alerts`; see [status effects](docs/status-effects.md).
+
+**Low life heartbeat:** at or under a share of life (`low-life-below`, 25 percent by default) the
+Diablo IV low-life sound plays once and its heartbeat loops until life climbs five points over
+the line; quiet in a pause or a dialogue. Switch `low-life-sound` (Alerts, on), volume
+`low-life-volume` (Volumes). See [vitals](docs/vitals.md).
 
 The current mercenary's life uses the game's displayed percentage and the same
 steps and critical interrupt rule as the player's life. Simultaneous player and
@@ -523,9 +530,9 @@ level) and the player's summons (`minion-report`, off), read from the game's own
 list and grouped as its party portraits show them (a count per counted type,
 life for single summons, the Warlock's demons one by one), and for a
 Necromancer the usable corpses nearby; a short bone rattle sounds toward the nearest as usable
-corpses come near and repeats while they stay (`corpse-repeat`: once, or every 2, 3, 5 or 8
-seconds; 3 by default). Every player's pets are kept out of the NPC and enemy lists.
-Switches `corpse-cue` and `corpse-repeat`; see [summons and corpses](docs/summons-and-corpses-re.md).
+corpses come near and repeats while they stay (`corpse-interval`: once, or every 500 ms to
+5 s; 1 s, a drop sound's pace, by default). Every player's pets are kept out of the NPC and enemy lists.
+Switches `corpse-cue` and `corpse-interval`; see [summons and corpses](docs/summons-and-corpses-re.md).
 
 **Typing with the controller (built; live validation pending):** in the loader's lobby, A on a
 text box that the game does not start editing gets a click, so a keyboard types there; while a

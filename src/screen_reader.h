@@ -38,6 +38,8 @@ void Swallow(std::string_view text, unsigned long long untilMs);
 // news that comes with a change the game makes in the same moment (the Cairn
 // scroll's order, as the game moves the inventory cursor beside it).
 void Lead(std::string_view text, unsigned long long untilMs);
+// As Lead, but cutting in on what is being said: for news that must be heard at once.
+void Urge(std::string_view text, unsigned long long untilMs);
 void Stop();
 // Every phrase given to Speak is logged through this context from now on, and
 // every one Swallow held back, so a test's log says what the player heard.
