@@ -518,7 +518,9 @@ pulses rather than plays steadily, 50 to 300 percent of its own rhythm: doors, s
 chests/corpses/weapon racks/the stash, shrines and wells, quest items, unexplored rooms and the
 Last Epoch set (`door-loop-speed`, `small-item-loop-speed`, `container-loop-speed`,
 `shrine-loop-speed`, `quest-loop-speed`, `room-loop-speed`, `epoch-loop-speed`), with the drop
-sounds' speed, the wall knock's repeat and the corpse rattle's interval moved there. Gold,
+sounds' speed, the wall knock's repeat and the corpse rattle's interval moved there. There too,
+`radar-wall-repeat` (once by default, every 250 ms to 1.5 s) repeats the radar's wall on the ray
+the player heads along -- moving, or pushing against it -- while it stays. Gold,
 equipment, potions, portals and zone crossings play steadily and have no pace. See
 [ground items](docs/ground-items.md).
 

@@ -782,7 +782,34 @@ void Rebasing() {
 	}
 }
 }
+// A tester, 2026-10-15: the wall the player runs into, again and again while it stays.
+void WallAheadRepeats() {
+	Run run;
+	run.engine.SetWallRepeat(250);
+	Barrier(run.world, WallSum, Wall);
+	run.Begin();
+	run.Approach();
+	const auto push = [&](Position heading) { run.now += PollMs; return run.engine.Tick(run.world, run.now, nullptr, nullptr, heading); };
+	int knocks = 0;
+	for (int poll = 0; poll < 10; ++poll) knocks += push({1, 1})[Down] == State::Blocked;
+	Check(knocks == 2, "pushing into the wall ahead repeats it every interval");
+	bool sideways = false;
+	for (int poll = 0; poll < 10; ++poll) sideways |= !Silent(push({1, -1}));
+	Check(!sideways, "a push along the wall repeats nothing");
+	bool still = false;
+	for (int poll = 0; poll < 10; ++poll) still |= !Silent(run.Stay());
+	Check(!still, "standing without a push repeats nothing");
+	Run once;
+	Barrier(once.world, WallSum, Wall);
+	once.Begin();
+	once.Approach();
+	bool repeated = false;
+	for (int poll = 0; poll < 10; ++poll) { once.now += PollMs; repeated |= !Silent(once.engine.Tick(once.world, once.now, nullptr, nullptr, {1, 1})); }
+	Check(!repeated, "with the repeat off the wall sounds once");
+}
+
 int main() {
+	WallAheadRepeats();
 	AxisProjection();
 	Frames();
 	Thresholds();

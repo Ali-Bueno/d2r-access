@@ -74,6 +74,8 @@ inline constexpr Table ruRU {
 	.wallBumpDisabled = "Звук удара о стену выключен",
 	.wallBumpOnce = "Стук о стену один раз за касание",
 	.wallBumpEvery = "Стук о стену каждые %d миллисекунд",
+	.radarWallOnce = "Стена радара впереди один раз при изменении",
+	.radarWallEvery = "Стена радара впереди каждые %d миллисекунд",
 	.smallObstaclesEnabled = "Звук малых препятствий включен",
 	.smallObstaclesDisabled = "Звук малых препятствий выключен",
 	.compassPoints = {"север", "северо-восток", "восток", "юго-восток", "юг", "юго-запад", "запад", "северо-запад"},

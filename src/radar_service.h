@@ -15,6 +15,10 @@ void SetDiagonal(bool diagonal);
 // The thud of pushing into a wall, and the small obstacle's own knock.
 bool BumpEnabled();
 void SetBumpEnabled(bool enabled);
+// How often the radar's wall ahead repeats while the player heads into it: a
+// Radar::WallRepeatMs level, 0 once per change.
+int WallRepeatLevel();
+void SetWallRepeatLevel(int level);
 // How often the thud repeats while the push goes on: a WallBump::LoopMs level, 0 once.
 int BumpLoopLevel();
 void SetBumpLoopLevel(int level);

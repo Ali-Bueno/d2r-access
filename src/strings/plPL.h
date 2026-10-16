@@ -74,6 +74,8 @@ inline constexpr Table plPL {
 	.wallBumpDisabled = "Dźwięk uderzenia w ścianę: wyłączony",
 	.wallBumpOnce = "Stuknięcie w ścianę raz na kontakt",
 	.wallBumpEvery = "Stuknięcie w ścianę co %d milisekund",
+	.radarWallOnce = "Ściana radaru z przodu raz na zmianę",
+	.radarWallEvery = "Ściana radaru z przodu co %d milisekund",
 	.smallObstaclesEnabled = "Dźwięk małych przeszkód: włączony",
 	.smallObstaclesDisabled = "Dźwięk małych przeszkód: wyłączony",
 	.compassPoints = {"północ", "północny wschód", "wschód", "południowy wschód", "południe", "południowy zachód", "zachód", "północny zachód"},

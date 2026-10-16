@@ -74,6 +74,8 @@ inline constexpr Table esES {
 	.wallBumpDisabled = "Sonido de choque con la pared desactivado",
 	.wallBumpOnce = "Golpe de pared una vez por contacto",
 	.wallBumpEvery = "Golpe de pared cada %d milisegundos",
+	.radarWallOnce = "Pared del radar al frente una vez por cambio",
+	.radarWallEvery = "Pared del radar al frente cada %d milisegundos",
 	.smallObstaclesEnabled = "Sonido de obstáculos pequeños activado",
 	.smallObstaclesDisabled = "Sonido de obstáculos pequeños desactivado",
 	.compassPoints = {"norte", "noreste", "este", "sureste", "sur", "suroeste", "oeste", "noroeste"},

@@ -74,6 +74,8 @@ inline constexpr Table zhCN {
 	.wallBumpDisabled = "撞墙音效已关闭",
 	.wallBumpOnce = "撞墙声每次接触一次",
 	.wallBumpEvery = "撞墙声每 %d 毫秒重复",
+	.radarWallOnce = "前方墙壁雷达声每次变化一次",
+	.radarWallEvery = "前方墙壁雷达声每 %d 毫秒重复",
 	.smallObstaclesEnabled = "小障碍物音效已开启",
 	.smallObstaclesDisabled = "小障碍物音效已关闭",
 	.compassPoints = {"北", "东北", "东", "东南", "南", "西南", "西", "西北"},
