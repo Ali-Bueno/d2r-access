@@ -15,6 +15,8 @@ From `D2R Access Build 2026-10-15, bug-list-with-multiplayer-issues.txt` and `..
   `corpse-interval` (ms); experience "to level N"; burning bodies removed.
 - "Main menu" named, panel titles held 700 ms; character hint after 5 s; stash tab on opening and
   shared pages (`[stash] opened`, `[stash] shared page`).
+- **Loop speeds** group (the user): each pulsing loop kind paced 50-300 % (`LoopPace`), with the drop
+  speed, wall knock repeat (from 250 ms) and corpse rattle moved there ([ground items](docs/ground-items.md)).
 
 121/121 CTest; installed by the build. **Unverified live: all of it.** Not done: locked waypoints
 (diagnostic `[waypoint] row` lines), house entrances (needs a live tuning session), Cain's chime

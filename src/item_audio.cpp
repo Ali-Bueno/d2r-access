@@ -1,6 +1,7 @@
 #include "item_audio.h"
 #include "item_wave.h"
 #include "item_spatial.h"
+#include "loop_pace.h"
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
@@ -55,12 +56,18 @@ struct Playing {
 	size_t passSamples = 0;
 	void Stop() { if (source) { source->DestroyVoice(); source = nullptr; } gain = 0; }
 };
+// One pass of a paced loop, a drop sound's or a pulsing loop's; 0 plays the recording as it is.
+size_t PassFor(Sound sound, const Samples& samples, size_t dropPass) {
+	if (IsDrop(sound)) return dropPass;
+	const auto group = LoopPace::Of(sound);
+	return group ? LoopPace::PassSamples(samples[static_cast<size_t>(sound)].size(), LoopPace::Setting(*group).load()) : 0;
+}
 // A one-shot channel plays even a loop's sample once (the glossary previews them there).
 bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>& sample,
 	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context, bool once = false,
 	size_t passSamples = 0) {
 	const bool loop = !once && !IsOneShot(target.sound);
-	const bool paced = loop && IsDrop(target.sound) && passSamples;
+	const bool paced = loop && passSamples;
 	active.passSamples = paced ? passSamples : 0;
 	if (paced) active.pass = ItemWave::Pass(sample, passSamples, size_t{ItemWave::SampleRate} * DropFadeMs / 1000);
 	const auto& data = paced ? active.pass : sample;
@@ -197,12 +204,12 @@ void Worker(const D2RL::PluginContext* context) {
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
 				const auto volume = static_cast<float>(SoundVolume::Of(SoundVolume::Family::Items).Factor());
 				if (FAILED(master->SetVolume(mixVolume * volume))) { g_running = false; break; }
-				const size_t passSamples = DropPassSamples(g_dropSpeed.load());
+				const size_t dropPass = DropPassSamples(g_dropSpeed.load());
 				for (auto& active : playing) {
 					if (!active.source) continue;
 					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return SameSource(active.target, target); });
-					// A new speed restarts the drop loops at their new pace.
-					if (found == targets.end() || (active.passSamples && active.passSamples != passSamples)) {
+					// A new speed restarts a paced loop at its new pace.
+					if (found == targets.end() || active.passSamples != PassFor(active.target.sound, samples, dropPass)) {
 						AsyncLog::InfoF(context, "[item-audio] stopped id=%u", active.id);
 						active.Stop();
 					}
@@ -214,21 +221,22 @@ void Worker(const D2RL::PluginContext* context) {
 					if (active == playing.end()) {
 						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
 						if (active == playing.end()) break;
-						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context, false, passSamples)) break;
+						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context, false, PassFor(target.sound, samples, dropPass))) break;
 					}
 					active->target = target;
 					ApplySpatial(*active, master, context);
 					if (!g_running) break;
 				}
 				if (!g_running) break;
-				if (exploration.source && (!room || exploration.id != room->id || exploration.sound != room->sound)) {
+				if (exploration.source && (!room || exploration.id != room->id || exploration.sound != room->sound
+						|| exploration.passSamples != PassFor(room->sound, samples, dropPass))) {
 					AsyncLog::InfoF(context, "[item-audio] stopped exploration id=%u", exploration.id);
 					exploration.Stop();
 				}
 				if (room && !samples[static_cast<size_t>(room->sound)].empty()) {
 					if (!exploration.source)
 						(void)StartVoice(exploration, *room, samples[static_cast<size_t>(room->sound)], 0,
-							engine, format, context);
+							engine, format, context, false, PassFor(room->sound, samples, dropPass));
 					if (exploration.source) { exploration.target = *room; ApplySpatial(exploration, master, context); }
 				}
 				if (!g_running) break;

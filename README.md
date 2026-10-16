@@ -227,8 +227,8 @@ Controller validation is pending; see [behavior and evidence](docs/wall-sliding.
 Pushing the stick into a wall the game refuses to cross sounds one low **wall
 bump** thud, panned by the push; it repeats only after a step, a turn of more
 than 45 degrees or a release of the stick (`wall-bump` in the Ctrl+S settings
-list), or, with `wall-bump-repeat` (once by default; every 500 ms to 2 s), over and
-over while the push goes on. See [radar readings](docs/radar-readings.md).
+list), or, with `wall-bump-repeat` (Loop speeds; once by default, every 250 ms to 2 s),
+over and over while the push goes on. See [radar readings](docs/radar-readings.md).
 
 **Sound glossary:** the last group of the Ctrl+S settings list holds the mod's
 sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
@@ -512,6 +512,15 @@ off for a second and a half ("You are afflicted by Amplify Damage", the curse na
 by the game's own skill name); an end is said once it has lasted a second, and the
 vitals report lists the states while active. When a shrine's blessing wears off,
 "The shrine's blessing has worn off". Switch `status-alerts`; see [status effects](docs/status-effects.md).
+
+**Loop speeds:** a group of the Ctrl+S settings list beside the volumes paces every loop that
+pulses rather than plays steadily, 50 to 300 percent of its own rhythm: doors, scrolls/runes/gems,
+chests/corpses/weapon racks/the stash, shrines and wells, quest items, unexplored rooms and the
+Last Epoch set (`door-loop-speed`, `small-item-loop-speed`, `container-loop-speed`,
+`shrine-loop-speed`, `quest-loop-speed`, `room-loop-speed`, `epoch-loop-speed`), with the drop
+sounds' speed, the wall knock's repeat and the corpse rattle's interval moved there. Gold,
+equipment, potions, portals and zone crossings play steadily and have no pace. See
+[ground items](docs/ground-items.md).
 
 **Low life heartbeat:** at or under a share of life (`low-life-below`, 25 percent by default) the
 Diablo IV low-life sound plays once and its heartbeat loops until life climbs five points over

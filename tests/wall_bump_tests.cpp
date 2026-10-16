@@ -157,6 +157,11 @@ void Looping() {
 	Check(push.Hold(), "the first refused push thuds");
 	Check(push.HoldFor(1800) == 3, "held into the wall, it thuds again every loop interval");
 	Check(push.IdleFor(Poll) == 0, "no thud without a push");
+	Push fast;
+	fast.sample.loopMs = 250;
+	fast.Begin();
+	fast.Hold();
+	Check(fast.HoldFor(1000) == 4, "a repeat shorter than the radar's cue interval keeps its own pace");
 }
 
 int main() {
