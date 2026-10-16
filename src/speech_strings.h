@@ -114,6 +114,8 @@ struct Table {
 	const char* wallBumpDisabled;
 	const char* wallBumpOnce; // the wall thud once per contact
 	const char* wallBumpEvery; // %d = milliseconds between thuds while pushing into a wall
+	const char* radarWallOnce; // the radar's wall ahead once per change
+	const char* radarWallEvery; // %d = milliseconds between the radar's wall sounds while heading into it
 	const char* smallObstaclesEnabled;
 	const char* smallObstaclesDisabled;
 	// Clockwise from north, the top of the screen (Radar::ScreenSector order); spoken_direction.h.
@@ -512,7 +514,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.radarReaderUnavailable, t.radarWaitingPlayer, t.radarAudioUnavailable, t.radarTest, t.radarRays, t.radarDepth,
 		t.radarNearbyObstacle, t.radarLimited, t.radarMoving, t.radarStationary, t.radarMotionUnknown,
 		t.radarStraight,
-		t.wallBumpEnabled, t.wallBumpDisabled, t.wallBumpOnce, t.wallBumpEvery, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
+		t.wallBumpEnabled, t.wallBumpDisabled, t.wallBumpOnce, t.wallBumpEvery, t.radarWallOnce, t.radarWallEvery, t.smallObstaclesEnabled, t.smallObstaclesDisabled,
 		t.navigationExploration, t.navigationFullAssistance, t.scanStep,
 		t.scanSteps, t.scanAdjacent, t.routeTo, t.routeLeg, t.routeThen, t.routeDoor, t.routeMore, t.routeUnseen,
 		t.routeNone, t.routeNow, t.routeOff, t.npcEnabled, t.npcDisabled,

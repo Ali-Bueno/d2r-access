@@ -10,8 +10,12 @@ the *how* lives in the linked docs, this page only records the *why* and what wa
   mechanism generalized; steady textures get none (a pace would only cut or gap them). A new
   **Loop speeds** group gathers them with the drop speed, the wall knock repeat (now from 250 ms)
   and the corpse rattle. Rejected: one speed for every loop (a door and a shrine want different
-  paces) and a speed per sound (forty settings). The radar's wall readings are not loops: they
-  sound on change, so they have no pace to set.
+  paces) and a speed per sound (forty settings).
+- **Radar wall repeat** (`radar-wall-repeat`, off): what the user meant by Raine's wall request is
+  the radar's wall, not the bump. The wall on the ray the player heads along (velocity, or a
+  refused push while standing) sounds again every 250 ms to 1.5 s while it stays; the other rays
+  keep once per change, or a corridor's side walls would knock without end. Rejected: repeating
+  every ray's wall. The bump repeat stays as well.
 
 ## 2026-10-16 — The tester's lists III and IV (build 2026-10-15)
 

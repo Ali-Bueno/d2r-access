@@ -74,6 +74,8 @@ inline constexpr Table enUS {
 	.wallBumpDisabled = "Wall bump sound off",
 	.wallBumpOnce = "Wall knock once per contact",
 	.wallBumpEvery = "Wall knock repeats every %d milliseconds",
+	.radarWallOnce = "Radar wall ahead once per change",
+	.radarWallEvery = "Radar wall ahead repeats every %d milliseconds",
 	.smallObstaclesEnabled = "Small obstacle sound on",
 	.smallObstaclesDisabled = "Small obstacle sound off",
 	.compassPoints = {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"},

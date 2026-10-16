@@ -74,6 +74,8 @@ inline constexpr Table ptBR {
 	.wallBumpDisabled = "Som de batida na parede: desligado",
 	.wallBumpOnce = "Batida na parede uma vez por contato",
 	.wallBumpEvery = "Batida na parede a cada %d milissegundos",
+	.radarWallOnce = "Parede do radar à frente uma vez por mudança",
+	.radarWallEvery = "Parede do radar à frente a cada %d milissegundos",
 	.smallObstaclesEnabled = "Som de obstáculos pequenos: ligado",
 	.smallObstaclesDisabled = "Som de obstáculos pequenos: desligado",
 	.compassPoints = {"norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste", "noroeste"},

@@ -58,6 +58,9 @@ inline constexpr std::array<std::array<Ray, DirectionCount>, FrameCount> Rays{{
 }};
 inline constexpr const std::array<Ray, DirectionCount>& RaysOf(Frame frame) { return Rays[static_cast<size_t>(frame)]; }
 using Events = std::array<State, DirectionCount>; // Unknown means no event.
+// The repeat intervals of the wall ahead the settings list offers, in milliseconds; 0 is
+// once per change, where the mod starts (Engine::SetWallRepeat).
+inline constexpr uint64_t WallRepeatMs[] = {0, 250, 350, 500, 750, 1000, 1500};
 // The unexplored qualifier of a passable reading: the way leads to ground the
 // player has not covered. Rides on the exit/floor cue as a short tail; never a
 // state of its own, so walls and doors are untouched. `docs/exploration.md`
@@ -220,8 +223,13 @@ class Engine {
 public:
 	explicit Engine(Settings settings = {}) : settings_(settings) {}
 	// `marks`, when given, receives the unexplored qualifier of each event;
-	// `small`, whether each wall event is a small obstacle.
-	Events Tick(const World& world, uint64_t now, Marks* marks = nullptr, Marks* small = nullptr);
+	// `small`, whether each wall event is a small obstacle. `heading`, when not
+	// zero, is a push the game refuses: the way the player heads while standing.
+	Events Tick(const World& world, uint64_t now, Marks* marks = nullptr, Marks* small = nullptr, Position heading = {});
+	// The wall on the ray the player heads along -- moving, or pushing against it --
+	// sounds again every `ms` while it stays (a tester, 2026-10-15: knock, knock,
+	// knock); 0, the default, is once per change. The other rays keep once.
+	void SetWallRepeat(uint64_t ms) { wallRepeatMs_ = ms; }
 	// Confirmed qualifiers, one per direction, for the audio queue's retention.
 	Marks Unexplored() const;
 	// The qualifier of a passable reading: an exit into a chamber never stood
@@ -247,7 +255,9 @@ private:
 	void UpdateMotion(Position player, uint64_t now);
 	State Observe(Sensor& sensor, Position axis, Position motion, uint64_t now) const;
 	State Deliver(Sensor& sensor, Position axis, Position motion, uint64_t now) const;
+	void RepeatWall(Events& events, Position heading, uint64_t now, Marks* small);
 	Settings settings_;
+	uint64_t wallRepeatMs_ = 0;
 	std::array<Sensor, DirectionCount> sensors_{};
 	Position previous_{};
 	uint64_t session_ = 0, lastTick_ = 0;

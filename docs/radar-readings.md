@@ -307,3 +307,12 @@ Tests: `radar-passage` (door, band, chamber exit, level exit), `radar-engine`
 (door cue, way back, small obstacle), `radar-audio` (timbres, urgency, bump),
 `radar-structure` (small obstacle), `wall-bump` (contact, re-arming), `rooms`
 (typical width).
+
+## The wall ahead, again and again (2026-10-16)
+
+A tester's friend asked for the wall knock to repeat while running into the wall (knock, knock,
+knock), the weather drowning the wall tones' swoosh. `Engine::SetWallRepeat` (`radar-wall-repeat`,
+Loop speeds; once by default, every 250 ms to 1.5 s): the ray within 45 degrees of where the player
+heads -- the velocity, or standing, a push the game refuses (`RadarService::PushHeading`) -- sounds
+its wall or door again each interval while it stays confirmed and seen. The other rays keep once
+per change. The setting survives the engine's rebase.

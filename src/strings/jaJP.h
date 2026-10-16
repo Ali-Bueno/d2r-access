@@ -74,6 +74,8 @@ inline constexpr Table jaJP {
 	.wallBumpDisabled = "壁にぶつかる音 オフ",
 	.wallBumpOnce = "壁のノックは接触ごとに一回",
 	.wallBumpEvery = "壁のノックを%dミリ秒ごとに繰り返す",
+	.radarWallOnce = "前方の壁のレーダー音は変化ごとに一回",
+	.radarWallEvery = "前方の壁のレーダー音を%dミリ秒ごとに繰り返す",
 	.smallObstaclesEnabled = "小さな障害物の音 オン",
 	.smallObstaclesDisabled = "小さな障害物の音 オフ",
 	.compassPoints = {"北", "北東", "東", "南東", "南", "南西", "西", "北西"},

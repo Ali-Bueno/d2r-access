@@ -65,6 +65,9 @@ uint64_t g_exitsAt = 0;
 int g_exitsLevel = 0;
 std::atomic<bool> g_wallBump{true}, g_smallObstacles{true};
 std::atomic<int> g_bumpLoop{0}; // a WallBump::LoopMs level
+std::atomic<int> g_wallRepeat{0}; // a Radar::WallRepeatMs level
+uint64_t g_headingAttempts = 0, g_headingAt = 0; // the last refused push, for the wall ahead's repeat
+Radar::Position g_heading{};
 WallBump::Detector g_bump;
 // A refused push the thud leaves silent (a slide, or no terrain found along it),
 // logged at most this often so a live test can tell which: design, not the game's.
@@ -168,6 +171,14 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize) || event->kind != D2RL::Input::ActionEventKind::Pressed) return D2RL::Input::ActionResult::Ignored;
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
 	return D2RL::Input::ActionResult::Handled;
+}
+// The way a refused push heads, while the stick still pushes: standing against a wall, the
+// radar has no motion to tell which of its walls the player runs into.
+Radar::Position PushHeading(uint64_t now) {
+	const auto blocked = WallSlideService::LastBlocked();
+	if (blocked.attempts > g_headingAttempts) { g_heading = {blocked.x, blocked.y}; g_headingAt = now; }
+	g_headingAttempts = blocked.attempts;
+	return g_headingAt && now - g_headingAt <= WallBump::Settings{}.releaseMs ? g_heading : Radar::Position{};
 }
 // The thud when the game refuses a push into a wall; null when the world is unreadable.
 void TickBump(const Radar::World* world, uint64_t now) {
@@ -322,7 +333,8 @@ void Tick(const D2RL::PluginContext* context) {
 		g_suspended = false;
 		const uint64_t revision = g_engine.Revision();
 		Radar::Marks marks{}, small{};
-		const auto events = g_engine.Tick(world, now, &marks, &small);
+		g_engine.SetWallRepeat(Radar::WallRepeatMs[static_cast<size_t>(g_wallRepeat.load())]);
+		const auto events = g_engine.Tick(world, now, &marks, &small, PushHeading(now));
 		if (revision != g_engine.Revision()) RadarAudio::Silence("world-rebased");
 		Radar::Events states{};
 		for (size_t i = 0; i < states.size(); ++i) states[i] = g_engine.Sensors()[i].state;
@@ -362,6 +374,8 @@ bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 bool Diagonal() { return g_frame == Radar::Frame::Diagonal; }
 void SetDiagonal(bool diagonal) { g_command = diagonal ? Command::Diagonal : Command::Cardinal; }
+int WallRepeatLevel() { return g_wallRepeat; }
+void SetWallRepeatLevel(int level) { g_wallRepeat = std::clamp(level, 0, static_cast<int>(std::size(Radar::WallRepeatMs)) - 1); }
 int BumpLoopLevel() { return g_bumpLoop; }
 void SetBumpLoopLevel(int level) { g_bumpLoop = std::clamp(level, 0, static_cast<int>(std::size(WallBump::LoopMs)) - 1); }
 bool BumpEnabled() { return g_wallBump; }

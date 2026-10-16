@@ -74,6 +74,8 @@ inline constexpr Table koKR {
 	.wallBumpDisabled = "벽 충돌 소리 꺼짐",
 	.wallBumpOnce = "벽 두드림 접촉마다 한 번",
 	.wallBumpEvery = "벽 두드림 %d밀리초마다 반복",
+	.radarWallOnce = "앞쪽 벽 레이더 소리 변화마다 한 번",
+	.radarWallEvery = "앞쪽 벽 레이더 소리 %d밀리초마다 반복",
 	.smallObstaclesEnabled = "작은 장애물 소리 켜짐",
 	.smallObstaclesDisabled = "작은 장애물 소리 꺼짐",
 	.compassPoints = {"북쪽", "북동쪽", "동쪽", "남동쪽", "남쪽", "남서쪽", "서쪽", "북서쪽"},

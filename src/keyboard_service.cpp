@@ -1631,6 +1631,23 @@ SettingsList::Entry LoopSpeed(const char* key, LoopPace::Group group) {
 	return entry;
 }
 
+// How often the radar's wall ahead repeats while the player heads into it (a tester, 2026-10-15).
+SettingsList::Entry RadarWallRepeat() {
+	SettingsList::Entry entry;
+	entry.key = "radar-wall-repeat";
+	entry.levels = static_cast<int>(std::size(Radar::WallRepeatMs));
+	entry.level = RadarService::WallRepeatLevel;
+	entry.setLevel = RadarService::SetWallRepeatLevel;
+	entry.sayLevel = [](int level) {
+		const auto ms = Radar::WallRepeatMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().radarWallOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().radarWallEvery, static_cast<int>(ms));
+		return std::string(phrase);
+	};
+	return entry;
+}
+
 // How often the wall thud repeats while the stick pushes on (a tester, 2026-10-15).
 SettingsList::Entry WallBumpLoop() {
 	SettingsList::Entry entry;
@@ -1783,6 +1800,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		LoopSpeed("room-loop-speed", P::Rooms),
 		LoopSpeed("epoch-loop-speed", P::Epoch),
 		DropSoundSpeed(),
+		RadarWallRepeat(),
 		WallBumpLoop(),
 		CorpseRepeat(),
 	}});
