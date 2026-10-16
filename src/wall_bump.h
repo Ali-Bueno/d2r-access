@@ -24,7 +24,12 @@ struct Sample {
 	Radar::Position push; // world direction of the refused push; zero when unknown
 	bool contact = false; // terrain blocks that way (Contact)
 	uint64_t now = 0;
+	uint64_t loopMs = 0; // while the push goes on, a thud this often; 0 is once per contact
 };
+// The repeat intervals the settings list offers, in milliseconds; 0 is once per contact,
+// where the mod starts (a tester, 2026-10-15: knock, knock, knock while running into a wall).
+// None is shorter than the radar's cue interval, which spaces every thud.
+inline constexpr uint64_t LoopMs[] = {0, 500, 750, 1000, 1500, 2000};
 class Detector {
 public:
 	explicit Detector(Settings settings = {}) : settings_(settings) {}

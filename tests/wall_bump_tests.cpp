@@ -150,8 +150,18 @@ void ContactAndPan() {
 	Check(Pan({}) == 0, "no push is centred");
 }
 }
+void Looping() {
+	Push push;
+	push.sample.loopMs = 600;
+	push.Begin();
+	Check(push.Hold(), "the first refused push thuds");
+	Check(push.HoldFor(1800) == 3, "held into the wall, it thuds again every loop interval");
+	Check(push.IdleFor(Poll) == 0, "no thud without a push");
+}
+
 int main() {
 	OncePerContact();
+	Looping();
 	Rearming();
 	BrokenSequences();
 	ContactAndPan();

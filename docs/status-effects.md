@@ -33,3 +33,13 @@ can reach a player with them; add a row once a log shows one.
 end is said queued after `EndHoldMs` (1 s) without the state, and a state back within that time is
 the same one going on, so a chill renewed by each cold hit is one chill. BACK+X adds the states on
 the player to the life report. Switch `status-alerts` (Alerts, on). Log: `[vitals] effect began|ended`.
+
+## Heard first, and shrines ending (2026-10-15)
+
+The tester heard "You are no longer chilled" but never the chill itself: a beginning that
+interrupts is cut off by whatever interrupts next in a fight. `ScreenReader::Urge` now speaks it
+cutting in and keeps it from being cut off for `StartHoldMs` (1.5 s): what comes meanwhile queues
+behind it. Shrine blessings (states.txt `shrine_armor` 128 to `shrine_experience` 137, one at a
+time) are watched the same way: when the last one leaves the player, "The shrine's blessing has
+worn off" (queued; the shrine's own text already says its start). Same switch. Logs: `[vitals]
+effect began`, `[vitals] shrine effect ended`.

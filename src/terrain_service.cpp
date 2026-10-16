@@ -78,6 +78,8 @@ ExploredStore::Store& g_store = g_storeOwner.Get();
 std::map<uint32_t, ExploredStore::Key> g_keys;
 // Fixed places found per map; stored ones join when the level's record loads.
 std::map<ExploredStore::Key, std::vector<ExploredStore::Place>> g_places;
+// Quest objects seen gone this run: the archive only adds places, so a level loaded again keeps them out.
+std::map<ExploredStore::Key, std::vector<uint64_t>> g_gonePlaces;
 uint32_t g_loadedLevel = 0;
 uint64_t g_nextLoadTry = 0; // the radar asks every poll; the layout is read at most this often
 uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
@@ -111,6 +113,8 @@ void LoadLevel(const D2RL::PluginContext* context, const NativeLevelExits::Layou
 	auto& places = g_places[key];
 	ExploredStore::MergePlaces(stored, places); // found this game is newer than the disk
 	places = std::move(stored);
+	if (const auto gone = g_gonePlaces.find(key); gone != g_gonePlaces.end())
+		std::erase_if(places, [&](const auto& place) { return std::ranges::find(gone->second, place.identity) != gone->second.end(); });
 	g_loadedLevel = native.level;
 	AsyncLog::InfoF(context, "[terrain] level=%u seed=%08X rooms=%zu %s %s: seen=%zu visited=%zu places=%zu", native.level, seed,
 		native.rooms.size(), loaded ? "loaded" : "new", ExploredStore::ArchiveFile(g_directory).filename().string().c_str(),
@@ -495,6 +499,24 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 	}
 	for (const auto& phrase : finds) ScreenReader::Speak(phrase, false);
 	if (!finds.empty()) ItemAudio::PlayDiscovery();
+}
+
+void ForgetGoneQuestPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& present,
+	const std::function<bool(Radar::Position)>& covered) {
+	std::lock_guard lock(g_mutex);
+	const auto* key = LoadedKey(level, rooms);
+	const auto places = key ? g_places.find(*key) : g_places.end();
+	if (places == g_places.end()) return;
+	std::erase_if(places->second, [&](const ExploredStore::Place& place) {
+		if (static_cast<EntityRadar::Kind>(place.kind) != EntityRadar::Kind::Object
+			|| static_cast<EntityRadar::Category>(place.category) != EntityRadar::Category::Quest || !covered({place.x, place.y})) return false;
+		if (std::any_of(present.begin(), present.end(), [&](const EntityRadar::Entity& entity) {
+				return entity.kind == EntityRadar::Kind::Object && EntityRadar::QuestSource(entity)
+					&& NativeLevelExits::Identity(entity.position) == place.identity; })) return false;
+		g_gonePlaces[*key].push_back(place.identity);
+		AsyncLog::InfoF(g_context, "[terrain] quest place gone level=%d at=%.0f,%.0f name=%s", level, place.x, place.y, place.name.c_str());
+		return true;
+	});
 }
 
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {

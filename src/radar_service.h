@@ -15,6 +15,9 @@ void SetDiagonal(bool diagonal);
 // The thud of pushing into a wall, and the small obstacle's own knock.
 bool BumpEnabled();
 void SetBumpEnabled(bool enabled);
+// How often the thud repeats while the push goes on: a WallBump::LoopMs level, 0 once.
+int BumpLoopLevel();
+void SetBumpLoopLevel(int level);
 bool SmallObstaclesEnabled();
 void SetSmallObstaclesEnabled(bool enabled);
 }

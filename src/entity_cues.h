@@ -67,11 +67,10 @@ inline constexpr double CorpseLeaveFactor = 1.25;
 // A usable-corpse read older than this, or of another player, is not used: a read
 // that fails (a crowded area, a level change) leaves the last one in place.
 inline constexpr uint64_t CorpsesFreshMs = 2000;
-// How often the rattle repeats while corpses stay within range, in seconds; 0 is
-// once as they come near (a tester, 2026-10-14: a loop, like a drop sound). The
-// settings list offers these; the mod starts at every 3 seconds.
-inline constexpr std::array<int, 5> CorpseRepeatSeconds{0, 2, 3, 5, 8};
-inline constexpr int DefaultCorpseRepeatLevel = 2;
+// How often the rattle repeats while corpses stay within range, in milliseconds; 0 is
+// once as they come near. The mod starts at a drop sound's own pass (ItemAudio::DropPassMs).
+inline constexpr std::array<int, 8> CorpseRepeatMs{0, 500, 750, 1000, 1500, 2000, 3000, 5000};
+inline constexpr int DefaultCorpseRepeatLevel = 3;
 size_t CorpsesWithin(Radar::Position player, const std::vector<Radar::Position>& corpses, double range);
 class CorpseTracker {
 public:

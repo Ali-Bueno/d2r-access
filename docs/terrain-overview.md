@@ -91,3 +91,11 @@ the level or the level changes; each query logs one `[terrain]` line.
 - Standing on no room at all (never seen in play) speaks the exit review's
   "unavailable" wording rather than guessing.
 - Live validation of the spoken line in an outdoor level is still pending.
+
+## Borders said once, corners are no crossing (2026-10-15)
+
+A crossing found by the scanner and said as a side's border ("southwest to Cold Plains") is not
+said again among the landmarks. The scanner's crossings (`LevelAreas::Neighbours`) now need the two
+areas to share some edge: areas meeting corner to corner, like the Monastery Gate against the
+Black Marsh when the Tamoe Highland joins both, have nothing to walk across. Unverified live that
+the Black Marsh case is a corner; a crossing remembered on an earlier game's map stays listed there.

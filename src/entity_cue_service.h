@@ -25,7 +25,7 @@ void SetNpcAlerts(bool on);
 // A rattle as usable corpses come near a Necromancer.
 bool CorpseCue();
 void SetCorpseCue(bool on);
-// How often it repeats while they stay near: a level of EntityCues::CorpseRepeatSeconds.
+// How often it repeats while they stay near: a level of EntityCues::CorpseRepeatMs.
 int CorpseRepeatLevel();
 void SetCorpseRepeatLevel(int level);
 // The cue radius radar.toml sets, the one the corpse count uses too.

@@ -24,6 +24,7 @@
 #include "status_effects.h"
 #include "vitals.h"
 #include "corpse_memory.h"
+#include "low_life_audio.h"
 #include "entity_radar.h"
 #include "spoken_direction.h"
 #include "wall_slide_service.h"
@@ -39,6 +40,7 @@
 #include <cmath>
 #include <cstdio>
 #include <span>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -81,6 +83,10 @@ uint64_t g_nextOrb = 0, g_nextDurability = 0;
 Vitals::Alerts g_alerts;
 Vitals::OrbAvailability g_orbAvailability;
 StatusEffects::Tracker g_effects;
+Vitals::LowLife g_lowLife;
+std::atomic<bool> g_lowLifeSound{true};
+std::atomic<int> g_lowLifeLevel{Vitals::DefaultLowLifeLevel};
+std::optional<bool> g_blessed; // a shrine state on the player at the last read, unknown after a reset
 MinionReport::Stepper g_companions;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
@@ -139,7 +145,7 @@ void AnnounceEffects(const D2RL::PluginContext* context, const StatusEffects::Ch
 	for (const auto index : change.ended) Append(ended, EffectWords(index, false));
 	if (!started.empty()) {
 		AsyncLog::InfoF(context, "[vitals] effect began -> \"%s\"", started.c_str());
-		ScreenReader::Speak(started, true);
+		ScreenReader::Urge(started, GetTickCount64() + StatusEffects::StartHoldMs);
 	}
 	if (!ended.empty()) {
 		AsyncLog::InfoF(context, "[vitals] effect ended -> \"%s\"", ended.c_str());
@@ -410,7 +416,11 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		AsyncLog::InfoF(context, "[vitals] experience level=%d total=%llu start=%llu next=%llu percent=%d maximum=%d",
 			experience->level, static_cast<unsigned long long>(experience->total), static_cast<unsigned long long>(experience->levelStart),
 			static_cast<unsigned long long>(experience->nextLevel), experience->percent, experience->maximum);
-		if (!experience->maximum && experience->percent >= 0) Append(text, FormattedPercent(strings.experiencePercent, experience->percent));
+		if (!experience->maximum && experience->percent >= 0) {
+			char phrase[100]{};
+			std::snprintf(phrase, sizeof(phrase), strings.experienceToLevel, experience->percent, experience->level + 1);
+			Append(text, phrase);
+		}
 	}
 	if (g_statusSupported && g_mercenaryReport) {
 		const auto mercenary = NativeStatus::MercenaryLife();
@@ -516,6 +526,7 @@ bool Register(const D2RL::PluginContext* context) {
 	if (!context) return false;
 	g_context = context;
 	g_statusSupported = NativeStatus::Initialize(context);
+	if (!LowLifeAudio::Start(context)) AsyncLog::Warn(context, "[vitals] low-life heartbeat not started");
 	// The controller's mercenary panel draws its experience as a bar only.
 	MercenaryStats::SetExperienceSource([] {
 		const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt;
@@ -573,6 +584,7 @@ void Unregister() {
 	g_context = nullptr;
 	g_statusSupported = false;
 	g_command = Command::None;
+	LowLifeAudio::Stop();
 	Reset();
 }
 
@@ -580,6 +592,7 @@ void Reset() {
 	g_alerts.Reset();
 	g_orbAvailability.Reset();
 	g_effects.Reset();
+	g_blessed.reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
 	g_gait.Reset();
@@ -623,6 +636,8 @@ void Tick(const D2RL::PluginContext* context) {
 		ScreenReader::Speak(g_enabled ? Strings::Current().vitalsEnabled : Strings::Current().vitalsDisabled, true);
 	if (!g_enabled || !NativeWidgets::IsAvailable()) {
 		g_runToggled = false;
+		g_lowLife.Reset();
+		LowLifeAudio::Play(false);
 		return;
 	}
 	const uint64_t now = GetTickCount64();
@@ -635,6 +650,9 @@ void Tick(const D2RL::PluginContext* context) {
 			g_alerts.Reset();
 			g_orbAvailability.Reset();
 			g_effects.Reset();
+			g_blessed.reset();
+			g_lowLife.Reset();
+			LowLifeAudio::Play(false);
 			g_mercenary.Reset();
 			g_gait.Reset();
 			g_stamina.Reset();
@@ -646,6 +664,13 @@ void Tick(const D2RL::PluginContext* context) {
 			const auto playerAlert = g_alerts.Update(life, mana, g_manaAlerts);
 			Vitals::MercenaryMeter::Alert mercenaryAlert;
 			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));
+			// Quiet in a pause, a dialogue or with the game in the background, as every cue is.
+			const auto ui = RadarUi::Inspect(true);
+			const bool heard = g_lowLifeSound.load() && ui != RadarUi::State::Paused && ui != RadarUi::State::Dialogue;
+			const int threshold = Vitals::LowLifeThresholds[static_cast<size_t>(g_lowLifeLevel.load())];
+			bool started = false;
+			LowLifeAudio::Play(g_lowLife.Update(heard ? life : -1, threshold, &started));
+			if (started) AsyncLog::InfoF(context, "[vitals] low life %d%% at or under %d%%", life, threshold);
 			if (g_statusSupported) {
 				const auto mercenary = NativeStatus::MercenaryLife();
 				const std::string_view source = !mercenary ? "unavailable"
@@ -667,6 +692,15 @@ void Tick(const D2RL::PluginContext* context) {
 				if (const auto active = NativeStatus::PlayerStates(EffectStates)) {
 					const auto change = g_effects.Update(*active, now);
 					if (g_statusAlerts) AnnounceEffects(context, change);
+				}
+			if (g_statusSupported)
+				if (const auto shrines = NativeStatus::PlayerStates(StatusEffects::ShrineStates)) {
+					const bool blessed = !shrines->empty();
+					if (g_blessed && *g_blessed && !blessed && g_statusAlerts) {
+						AsyncLog::Info(context, "[vitals] shrine effect ended");
+						ScreenReader::Speak(Strings::Current().shrineEnded, false);
+					}
+					g_blessed = blessed;
 				}
 			Announce(playerAlert, mercenaryAlert);
 			if (g_statusSupported) {
@@ -703,6 +737,10 @@ bool MinionsReported() { return g_minionReport; }
 void SetMinionsReported(bool enabled) { g_minionReport = enabled; }
 bool MercenaryReported() { return g_mercenaryReport; }
 void SetMercenaryReported(bool enabled) { g_mercenaryReport = enabled; }
+bool LowLifeSound() { return g_lowLifeSound; }
+void SetLowLifeSound(bool enabled) { g_lowLifeSound = enabled; }
+int LowLifeLevel() { return g_lowLifeLevel; }
+void SetLowLifeLevel(int level) { g_lowLifeLevel = std::clamp(level, 0, static_cast<int>(std::size(Vitals::LowLifeThresholds)) - 1); }
 int ManaAlerts() { return static_cast<int>(g_manaAlerts); }
 void SetManaAlerts(int level) {
 	g_manaAlerts = static_cast<Vitals::ManaAlerts>(std::clamp(level, 0, Vitals::ManaAlertLevels - 1));

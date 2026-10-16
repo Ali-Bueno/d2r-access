@@ -27,7 +27,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
-#include <limits>
 #include <mutex>
 #include <optional>
 #include <unordered_set>
@@ -57,17 +56,6 @@ bool g_npcAlertsSupported = false; // NpcAlertChecks passed: the "!" over town N
 bool g_usableCorpsesSupported = false; // UsableCorpseChecks passed: a Necromancer's corpses are counted
 std::mutex g_usableMutex;
 UsableCorpses g_usable;
-const D2RL::PluginContext* g_context = nullptr;
-// The game's flames (objects.txt Name "fire": FireSmall/Medium/Large, braziers, the camp
-// bonfire) cannot be targeted. One within the reach of a body's footprint sets it alight
-// (a tester, 2026-10-14: "Burning Dead Rogue" in the Tower Cellar). MEASURED nothing yet:
-// each fire is logged once so a crypt's pentagram and its corpses can be told apart.
-constexpr std::string_view FireKey = "fire";
-constexpr double BurningReach = 3;
-constexpr size_t MaxLoggedFires = 64;
-struct Fire { uint32_t id = 0, classId = 0; Radar::Position at; };
-std::mutex g_fireMutex;
-std::unordered_set<uint32_t> g_loggedFires;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -141,34 +129,6 @@ bool UsableCorpse(uintptr_t unit, uintptr_t tablesAddress, uint64_t monsterCount
 		&& Peek(tablesAddress + MonStats2, rows) && rows && Peek(tablesAddress + MonStats2Count, count)
 		&& static_cast<uint64_t>(extra) < count && Peek(rows + static_cast<uintptr_t>(extra) * MonStats2Stride + MonStats2Flags, flags)
 		&& (flags & CorpseSelectable) && !UsedCorpse(unit, tablesAddress);
-}
-bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position);
-void NoteFire(uintptr_t unit, uintptr_t room, const Tables& tables, std::vector<Fire>& fires) {
-	Fire fire;
-	if (!Peek(unit + UnitClass, fire.classId) || fire.classId >= tables.objectCount || !Peek(unit + UnitId, fire.id)
-		|| CString(tables.objects + fire.classId * ObjectStride + ObjNameKey, MaxKeyBytes) != FireKey
-		|| !StaticPosition(unit, room, fire.at)) return;
-	fires.push_back(fire);
-}
-// A body with a fire on it is said burning, and each fire is logged once with the nearest body.
-void MarkBurning(std::vector<EntityRadar::Entity>& entities, const std::vector<Fire>& fires) {
-	for (const auto& fire : fires) {
-		double nearest = std::numeric_limits<double>::infinity();
-		for (auto& entity : entities) {
-			if (!entity.corpse) continue;
-			const double distance = std::hypot(entity.position.x - fire.at.x, entity.position.y - fire.at.y);
-			nearest = std::min(nearest, distance);
-			if (distance > BurningReach || entity.burning) continue;
-			entity.burning = true;
-			char name[MaxNameBytes + 64]{};
-			std::snprintf(name, sizeof(name), Strings::Current().burningCorpse, entity.name.c_str());
-			entity.name = name;
-		}
-		std::lock_guard lock(g_fireMutex);
-		if (g_context && g_loggedFires.size() < MaxLoggedFires && g_loggedFires.insert(fire.id).second)
-			AsyncLog::InfoF(g_context, "[scan] fire id=%u class=%u at=%.0f,%.0f nearest body %.1f", fire.id, fire.classId,
-				fire.at.x, fire.at.y, nearest);
-	}
 }
 bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) {
 	uintptr_t path = 0, pathRoom = 0;
@@ -657,6 +617,8 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		entity.name = LevelText(tables, levelId, LevelWarpKey);
 		entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
 		entity.destinationLevel = levelId;
+		// Loaded, the warp replaces its preset: it keeps the quest category too (a tester, 2026-10-15).
+		if (EntityRadar::QuestDestination(levelId)) entity.category = EntityRadar::Category::Quest;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	TombSymbols::Mark(entity, Strings::Current());
@@ -696,7 +658,6 @@ bool Initialize(const D2RL::PluginContext* context) {
 	g_npcAlertsSupported = LayoutCheck::Verify(context, context->exeBase, NpcAlertChecks, "npc-alerts", "the NPC exclamation mark not read");
 	if (g_npcAlertsSupported) AsyncLog::Info(context, "[scan] Verified NPC exclamation mark reader.");
 	(void)NativePets::Initialize(context);
-	g_context = context;
 	g_usableCorpsesSupported = LayoutCheck::Verify(context, context->exeBase, UsableCorpseChecks, "corpses", "a Necromancer's corpses not counted");
 	if (g_usableCorpsesSupported) AsyncLog::Info(context, "[scan] Verified usable corpse reader.");
 	return true;
@@ -766,7 +727,6 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
 	std::unordered_set<uint32_t> pets;
 	if (const auto all = NativePets::All()) for (const auto& pet : *all) pets.insert(pet.id);
-	std::vector<Fire> fires;
 	UsableCorpses usable;
 	uint32_t playerClass = 0;
 	usable.necromancer = g_usableCorpsesSupported && Peek(player + UnitClass, playerClass) && playerClass == NecromancerClass
@@ -788,7 +748,6 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (Radar::Position at; usable.necromancer && !past && unitType == MonsterType
 				&& UsableCorpse(unit, tablesAddress, tables.monsterCount, tables.monsters) && DynamicPosition(unit, candidateRoom, at))
 				usable.corpses.push_back(at);
-			if (unitType == ObjectType && !past) NoteFire(unit, candidateRoom, tables, fires);
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, pets, entity))
@@ -804,7 +763,6 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (!Peek(unit + UnitNext, unit)) { if (past) break; return false; }
 		}
 	}
-	MarkBurning(entities, fires);
 	// Permanent level transitions may outlive their loaded warp units. Read
 	// the existing presets across this level, then merge by exact position.
 	std::vector<NativeLevelExits::Exit> exits;

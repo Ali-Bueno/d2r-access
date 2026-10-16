@@ -72,7 +72,10 @@ bool Tick(const D2RL::PluginContext* context) {
 		g_panel = focus.panel;
 		g_selected = focus.widget;
 	}
-	const auto editing = NativeSkillNavigation::TextEditing();
+	// The game keeps a box's editor after the focus leaves it: only the focused box counts
+	// as typed in, or the D-pad is left to the stock cursor, which skips the boxes.
+	auto editing = NativeSkillNavigation::TextEditing();
+	if (editing && *editing) editing = NativeSkillNavigation::ActiveTextInput(focus.panel) == focus.widget;
 	PadTyping::Tick(context, focus, editing, GetTickCount64());
 	const auto input = InputDirection::Dpad();
 	if (const auto restore = g_restore) {
@@ -90,7 +93,8 @@ bool Tick(const D2RL::PluginContext* context) {
 			}
 		}
 	}
-	if (!editing || *editing || !input.held) {
+	// In the box being typed in, left and right stay with its caret; up and down leave it.
+	if (!editing || (*editing && input.x) || !input.held) {
 		g_gesture = false;
 		g_selected = focus.widget;
 		NativeSkillNavigation::HoldCursor(false);

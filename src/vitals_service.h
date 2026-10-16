@@ -32,6 +32,11 @@ void SetMinionsReported(bool enabled);
 // The mercenary's life and level in the life report; off, BACK+RT says them.
 bool MercenaryReported();
 void SetMercenaryReported(bool enabled);
+// The heartbeat under a share of life, and that share: a Vitals::LowLifeThresholds level.
+bool LowLifeSound();
+void SetLowLifeSound(bool enabled);
+int LowLifeLevel();
+void SetLowLifeLevel(int level);
 // How much mana is spoken unasked, a Vitals::ManaAlerts level.
 int ManaAlerts();
 void SetManaAlerts(int level);

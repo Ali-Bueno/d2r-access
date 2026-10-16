@@ -76,7 +76,6 @@ struct Entity {
 	bool npcAlert = false; // the "!" a town NPC shows when it has something for the player (docs/npc-proximity.md)
 	bool well = false; // a shrine-category object that is a well (objects.txt SubClass): its own loop
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
-	bool burning = false; // a body with one of the game's fires on it (native_entities.cpp)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
 	uint32_t doorSpan = 0; // a shut door's long side in cells (objects.txt SizeX/SizeY), zero otherwise; not a footprint

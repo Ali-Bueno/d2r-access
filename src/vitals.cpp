@@ -241,4 +241,13 @@ void Equipping::Reset() {
 	known_ = false;
 }
 
+bool LowLife::Update(int lifePercent, int threshold, bool* started) {
+	const bool was = on_;
+	if (lifePercent <= 0) on_ = false;
+	else if (lifePercent <= threshold) on_ = true;
+	else if (lifePercent > threshold + ReleasePoints) on_ = false;
+	if (started) *started = on_ && !was;
+	return on_;
+}
+
 }

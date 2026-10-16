@@ -200,4 +200,21 @@ private:
 	bool known_ = false;
 };
 
+// The heartbeat under a share of life (a tester, 2026-10-15): on once life falls to
+// the threshold, off only once it climbs ReleasePoints over it, so a regeneration
+// tick at the line does not start it again. Unknown or no life (dead) is off.
+class LowLife {
+public:
+	static constexpr int ReleasePoints = 5;
+	// True while the heartbeat should sound; `started` is set on the update that turns it on.
+	bool Update(int lifePercent, int threshold, bool* started = nullptr);
+	void Reset() { on_ = false; }
+private:
+	bool on_ = false;
+};
+// The thresholds the settings list offers, percent of life; it starts at a quarter.
+inline constexpr int LowLifeThresholds[] = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70};
+inline constexpr int DefaultLowLifeLevel = 4;
+static_assert(LowLifeThresholds[DefaultLowLifeLevel] == 25);
+
 }

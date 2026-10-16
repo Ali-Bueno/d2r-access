@@ -215,3 +215,13 @@ none): `TextField` used to speak the contents on arrival, and the tracker's
 the game left it; restoring it to the edited box was not added. The refresh
 trigger and whether a controller `TextInputModal` owns the editor are unverified:
 next session, log `[field]`/`[focus]` while pressing A on the password box.
+
+## Things another player takes (2026-10-15)
+
+The host kept tracking a potion the other player had picked up (about 10 s) and Cain after the
+other player freed him (about 30 s). The beacon kept leading to the last place of a target it
+could no longer read. Now a target read absent from the player's room or one touching it (the
+game keeps those loaded) for more than 2 s is lost at once ("[beacon] gone"); exits are left to
+arrival, as not all are units. The host's log also showed "Cain's Gibbet" listed from the
+remembered places for 12 minutes after the rescue: a remembered quest object whose spot the map
+can see without it is forgotten for the run ("[terrain] quest place gone").

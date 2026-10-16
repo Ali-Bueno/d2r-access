@@ -290,6 +290,11 @@ void Lead(std::string_view text, unsigned long long untilMs) {
 	g_leadUntil = untilMs;
 }
 
+void Urge(std::string_view text, unsigned long long untilMs) {
+	Speak(text, true);
+	g_leadUntil = std::max(g_leadUntil.load(), untilMs);
+}
+
 void Stop() {
 	if (!g_available || GetTickCount64() < g_leadUntil.load()) {
 		return;
