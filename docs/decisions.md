@@ -3,6 +3,36 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-17 — The tester's list of 2026-10-16 and the waypoint evidence
+
+From `D2R Access build 2026-10-16 Bug list.txt` and the tester's waypoint folder (screenshots and
+a log with every Act I row focused). Built and unit-tested only.
+- **Waypoint rows** from the game's own row table (`NativeWaypoints`, [waypoints](waypoints.md)),
+  not from the widgets: the rows are identical clones, and the old heuristic called every row
+  locked. Words: "undiscovered" (the tester's) and "you are here"; "Terror Zone" from the row's
+  skull. Rejected: reading the text colour (+0x8D4), which a terror zone overwrites and focus may.
+- **Town portals** ([portals](portals.md)): the 16-bit level read took the portal's state flags
+  for the high byte; now +8 plus the loader's +0x78. The owner is added, roster first.
+- **Forgotten Tower**: the quest loop belongs on the Black Marsh's door (Levels.txt 20, the tower),
+  not only the tower's stairs (21). Every step down the chain 20-25 is a quest way; the way back
+  up is not (`EntityRadar::QuestWay`).
+- **Heartbeat** twice as fast: the recording's ten beats (52 a minute) each cut to their lub-dub
+  and 0.58 s, so 103 a minute with the beats' own variation. Rejected: a faster playback rate
+  (an octave higher) and a pace setting (one asked-for speed).
+- BACK+RT alone: "You are all alone" (the tester's words). Character select hint: A, Start, X in
+  the tester's order.
+- **Descriptions** (the user approved, with a switch; [descriptions](descriptions.md)): the
+  Hangman's Tree as a landmark whose words replace its name the first time; areas described by
+  hand in the player's `descriptions.txt`, never shipped so updates keep it; BACK + right stick
+  up reads them; a hint once per described area. Rejected: the hint on every area (long speech
+  for little gain, the tester's own worry) and shipping the file (an update would erase the
+  tester's writing).
+- **Lobby typing** ([multiplayer](multiplayer.md)): the mouse click on a box the game did not edit
+  is removed, since a real mouse event switches every panel to its mouse layout and closes modals
+  (Direct Join). The mod calls the game's begin-edit instead. Up/down walk the form's own order
+  rather than the nearest rectangle. Rejected: keeping the click with a layout guard (the reload
+  is the game's, on any mouse input).
+
 ## 2026-10-16 — Loop speeds
 
 - The user asked for the pace of the loops that are not constant (doors, scrolls, the wall knock)

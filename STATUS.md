@@ -2,6 +2,30 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list of 2026-10-16, waypoint evidence, lobby regression — 2026-10-17 (not released)
+
+From `D2R Access build 2026-10-16 Bug list.txt` and `D2R access -fast travel menu accessibility
+issues.7z` (the user's Downloads). Choices in [decisions](docs/decisions.md).
+- Waypoint rows from the game's row table: "undiscovered", "you are here", "Terror Zone"
+  ([waypoints](docs/waypoints.md), `NativeWaypoints`, `[waypoint] row ... -> open (tab= rows= level= open= player=)`).
+- Town portals: level byte +8 (+0x78 high byte under the loader), not the +9 state flags; owner
+  added ([portals](docs/portals.md), `[scan] Portal owners verified`).
+- Forgotten Tower quest loop on the Black Marsh's door: chain 20-25 downwards (`EntityRadar::QuestWay`).
+- Heartbeat recording re-cut to 103 a minute; "You are all alone"; select hint A, Start, X.
+- Descriptions (approved by the user, switch `descriptions`): Hangman's Tree landmark (new
+  `PlaceFeature`, place data regenerated: +2 seeds), BACK + right stick up, player's
+  `descriptions.txt` ([descriptions](docs/descriptions.md)).
+
+- Lobby regression ("text entry is a gamble", Direct Join password kicks back to the main
+  window): the mouse click is gone (it reloaded every panel), the game's begin-edit is called
+  instead, up/down walk the form's order (`MenuNavigationPolicy::Step`); `[menu-navigation] boxes:`
+  says why a box is not a stop ([multiplayer](docs/multiplayer.md)).
+
+122/122 CTest. **Live (the user, 2026-10-17): Host Game typing works** (D-pad, A, keyboard, right
+stick, B). Unverified live: Direct Join's boxes, the waypoint words, portal names and owners,
+descriptions.
+**Next step:** a test release when the user asks; the tester checks Direct Join and the rest.
+
 ## The tester's lists III and IV — 2026-10-16 (released as test-2026-10-16 from 876b39d)
 
 Release: 121/121 CTest, 29 entries, 63,090,945 bytes, SHA-256 `882f62e3…e0bd`. News: `../tester-news-draft-2026-10-16.txt`.

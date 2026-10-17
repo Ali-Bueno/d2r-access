@@ -2,6 +2,8 @@
 #include "game_text_reader.h"
 
 #include "control_hints.h"
+#include "controller_text.h"
+#include "descriptions.h"
 #include "focus_tracker.h"
 #include "interaction_reader.h"
 #include "localization.h"
@@ -114,6 +116,18 @@ void Speak(const D2RL::PluginContext* context, const UiText::Readout& readout, c
 	if (announcement.text.empty()) return;
 	D2RAccess::AsyncLog::InfoF(context, "[text] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 	ScreenReader::Speak(announcement.text, interrupt);
+}
+
+// The first time an area with hand-written words is entered, how to hear them
+// (a tester, 2026-10-16), after its name.
+void AreaHint(const D2RL::PluginContext* context, std::string_view area) {
+	constexpr uint32_t ViewGlyph = 0xE006; // Strings::Table::controllerButtons[6], "View"
+	if (!Descriptions::HintDue(UiText::Clean(area))) return;
+	const auto button = ControllerText::Button(ViewGlyph);
+	char hint[300]{};
+	std::snprintf(hint, sizeof hint, Strings::Current().areaDescriptionHint, std::string(button).c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[descriptions] hint for \"%s\"", std::string(area).c_str());
+	ScreenReader::Speak(hint, false);
 }
 }
 
@@ -260,8 +274,11 @@ bool Tick(const D2RL::PluginContext* context) {
 	}
 	g_ownedFocus = owns;
 	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
-	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
-	else g_areaReader.Reset();
+	if (!area.Empty()) {
+		const auto announcement = g_areaReader.Update(area, now);
+		Speak(context, area, announcement, !owns && !g_interactionFocus);
+		if (!announcement.text.empty()) AreaHint(context, area.body);
+	} else g_areaReader.Reset();
 	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
 		const auto text = NameSpeaker(TradeService::FixNotice(notice));
 		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());

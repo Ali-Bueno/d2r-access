@@ -95,6 +95,14 @@ In play:
   walks for you; ask again on the way and it starts from where you stand.
   While you walk it, the next leg is said as you come to each turn ("Now
   east, 30"), and "Off the route" once if you leave it.
+- BACK + right stick up: the description of the area you are in, when there is
+  one. Write your own in d2rloader\plugins\d2r-access\descriptions.txt, one
+  line each: the area's name as the game says it, an equals sign, the words
+  ("Rogue Encampment = A ramshackle collection of tents..."). Landmarks work
+  the same way ("Hangman's Tree = ..."): their words are said instead of their
+  name the first time they come into reach. Updates never replace that file.
+  "Area and landmark descriptions" (Navigation) turns off the landmark words
+  and the hint said the first time you enter a described area.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full), the arrows or throwing

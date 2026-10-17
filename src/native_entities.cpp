@@ -21,6 +21,7 @@
 #include "speech_strings.h"
 #include "ui_text.h"
 #include "async_log.h"
+#include "core_slots.h"
 #include <windows.h>
 #include <algorithm>
 #include <array>
@@ -54,6 +55,8 @@ bool g_socketsSupported = false;
 bool g_unbuiltSupported = false; // PresetMapLayout checks passed: presets of rooms not built yet are read
 bool g_npcAlertsSupported = false; // NpcAlertChecks passed: the "!" over town NPCs is read
 bool g_usableCorpsesSupported = false; // UsableCorpseChecks passed: a Necromancer's corpses are counted
+bool g_portalOwnersSupported = false; // PortalOwnerChecks passed: a town portal says whose it is
+bool g_widePortalLevel = false; // the loader keeps a portal level's high byte at ObjPortalLevelHigh
 std::mutex g_usableMutex;
 UsableCorpses g_usable;
 struct Tables {
@@ -493,6 +496,19 @@ bool IsContainer(uintptr_t row) {
 		|| !Peek(row + ObjSelectable + ObjectOpened, opened) || !shut || opened) return false;
 	return std::find(ContainerOperateFns.begin(), ContainerOperateFns.end(), operate) != ContainerOperateFns.end();
 }
+// Whose town portal it is, as the game's label says it; empty when nobody's or unread.
+std::string PortalOwner(uintptr_t data, uint32_t portalId) {
+	uintptr_t entry = 0;
+	if (!g_portalOwnersSupported) return {};
+	if (g_rosterSupported && Peek(g_base + RosterHead, entry))
+		for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+			uint32_t local = 0, remote = 0;
+			if (!Peek(entry + RosterPortal, local) || !Peek(entry + RosterRemotePortal, remote)) break;
+			if (local == portalId || remote == portalId) return UiText::Clean(CString(entry + RosterName, PlayerNameBytes));
+			if (!Peek(entry + RosterNext, entry)) break;
+		}
+	return UiText::Clean(CString(data + ObjPortalOwner, PlayerNameBytes));
+}
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t session, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
@@ -549,17 +565,22 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 			entity.name = UiText::Clean(Localization::Text(nameId));
 	}
 	if (subClass & SubClassPortal) { // the game labels a portal with its destination level
-		// Read as 16 bits: D2RLoader 1.3.0-beta widened this field, and the
-		// game's own hover label now consumes it as a word (0xC17E0+167 became
-		// `movzx edx, ax`). The offset is unchanged; the field grew into its
-		// padding, so a byte-sized read would silently truncate any level above
-		// 255 that a future build or a mod introduces.
-		uint16_t levelId = 0;
-		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) {
+		uint8_t low = 0, high = 0;
+		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, low)
+			&& (!g_widePortalLevel || Peek(data + ObjPortalLevelHigh, high))) {
+			const uint32_t levelId = low | static_cast<uint32_t>(high) << 8;
 			entity.name = LevelText(tables, levelId, LevelNameKey);
 			entity.nameKey = LevelKey(tables, levelId, LevelNameKey);
 			entity.destinationLevel = levelId;
+			if (const auto owner = PortalOwner(data, entity.id); !owner.empty() && !entity.name.empty()) {
+				char text[512]{};
+				std::snprintf(text, sizeof text, Strings::Current().portalOwned, entity.name.c_str(), owner.c_str());
+				entity.name = text;
+				entity.nameKey.clear(); // composed
+			}
 		}
+		// Its objects.txt key is "Portal to ", a prefix: no name without the level.
+		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	}
 	if (entity.name.empty() && !key.empty()) {
 		entity.name = UiText::Clean(Localization::Text(key));
@@ -618,7 +639,10 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
 		entity.destinationLevel = levelId;
 		// Loaded, the warp replaces its preset: it keeps the quest category too (a tester, 2026-10-15).
-		if (EntityRadar::QuestDestination(levelId)) entity.category = EntityRadar::Category::Quest;
+		uintptr_t here = 0;
+		uint32_t from = 0;
+		if (Peek(roomEx + ExtendedLevel, here) && here) (void)Peek(here + LevelId, from);
+		if (EntityRadar::QuestWay(from, levelId)) entity.category = EntityRadar::Category::Quest;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	TombSymbols::Mark(entity, Strings::Current());
@@ -660,6 +684,11 @@ bool Initialize(const D2RL::PluginContext* context) {
 	(void)NativePets::Initialize(context);
 	g_usableCorpsesSupported = LayoutCheck::Verify(context, context->exeBase, UsableCorpseChecks, "corpses", "a Necromancer's corpses not counted");
 	if (g_usableCorpsesSupported) AsyncLog::Info(context, "[scan] Verified usable corpse reader.");
+	g_portalOwnersSupported = LayoutCheck::Verify(context, context->exeBase, PortalOwnerChecks, "portals", "town portals not said with their owner");
+	const HMODULE core = GetModuleHandleW(CoreSlots::ModuleName);
+	g_widePortalLevel = core && GetProcAddress(core, WidePortalLevelExport);
+	AsyncLog::InfoF(context, "[scan] Portal owners %s; portal level high byte %s.", g_portalOwnersSupported ? "verified" : "off",
+		g_widePortalLevel ? "from the loader" : "absent");
 	return true;
 }
 std::optional<uint32_t> FilledSockets(uintptr_t unit) {
@@ -772,7 +801,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
-		if (EntityRadar::QuestDestination(exit.destination)) entity.category = EntityRadar::Category::Quest;
+		if (EntityRadar::QuestWay(exit.source, exit.destination)) entity.category = EntityRadar::Category::Quest;
 		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));

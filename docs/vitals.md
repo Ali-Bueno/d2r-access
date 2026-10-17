@@ -149,4 +149,8 @@ quiet, and so is a pause or a dialogue. `LowLifeAudio` is its own XAudio2 voice 
 volume (`low-life-volume`, Volumes), under the mod-sounds master switch. Switch `low-life-sound`
 (Alerts, on). Logs: `[vitals] low life`, `[low-life] heartbeat started|stopped`.
 
+2026-10-17: twice as fast (the tester: drowned in heavy combat). The loop's ten beats, 1.16 s
+apart (52 a minute), were each cut to their first 0.58 s, lub-dub included, with a 40 ms fade:
+103 a minute, each beat still its own. A faster playback rate was rejected (an octave higher).
+
 The life report's experience now names the level it leads to: "Experience 34 percent to level 17".

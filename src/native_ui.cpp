@@ -495,6 +495,11 @@ std::string DescribeList(uintptr_t list) {
 	return line;
 }
 
+namespace {
+std::atomic<FocusState> g_focusState{nullptr};
+}
+void SetFocusState(FocusState reader) { g_focusState = reader; }
+
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;
@@ -504,6 +509,8 @@ UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
 	snapshot.surface = Classify(panel).surface;
 	std::unordered_set<uintptr_t> visited;
 	Walk(panel, -1, 0, snapshot, visited);
+	if (const auto reader = g_focusState.load())
+		for (auto& node : snapshot.nodes) if (node.id == focus) node.state = reader(snapshot.name, panel, node.name);
 	// The visible journal graphic is information beside the objective, not
 	// a text node. Append its plain name to our copied objective so selection,
 	// manual repeat and the ordinary 150 ms stale-pane guard share one path.

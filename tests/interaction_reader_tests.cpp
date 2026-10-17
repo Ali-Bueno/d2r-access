@@ -12,6 +12,7 @@
 #include "native_controller_help.h"
 #include "native_ground_items.h"
 #include "native_progression.h"
+#include "native_waypoints.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -206,6 +207,10 @@ uint32_t ItemTableCode(uintptr_t unit) {
 }
 }
 namespace D2RAccess::NativeEntities { std::optional<uint32_t> FilledSockets(uintptr_t) { return std::nullopt; } }
+namespace D2RAccess::NativeWaypoints {
+Row Read(uintptr_t, std::string_view) noexcept { return {}; }
+const char* Name(State) { return ""; }
+}
 namespace D2RAccess::InventoryCensus {
 void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
 }

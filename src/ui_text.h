@@ -22,6 +22,7 @@ struct Node {
 	uintptr_t contentId = 0; // optional native notification delivery, not a widget address
 	std::optional<bool> toggled;
 	std::string hint; // optional native tooltip, separate from a value control's caption
+	std::string state; // what the native layer knows of the control beyond the tree: a waypoint row's "undiscovered"
 };
 struct Snapshot {
 	uintptr_t panel = 0, focus = 0;

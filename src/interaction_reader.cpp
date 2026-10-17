@@ -28,6 +28,7 @@
 #include "native_memory.h"
 #include "native_progression.h"
 #include "native_ui.h"
+#include "native_waypoints.h"
 #include "progression_text.h"
 #include "radar_ui.h"
 #include "native_widgets.h"
@@ -954,36 +955,23 @@ void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus
 	ScreenReader::Speak(page, turned);
 }
 
-// What tells a locked waypoint row from an open one is not measured yet: the images
-// ui_text.cpp looks for are templates, not the row's children. Each row focused is
-// logged once, its children, strings and first bytes, so one log of a gold and a
-// grey row settles it (a tester, 2026-10-15).
+// Each waypoint row focused is logged once with what its state was read from, the
+// game's row table (docs/waypoints.md), until the reading is measured live.
 constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
-constexpr size_t WaypointProbeBytes = 0x200;
-uintptr_t g_probedRow = 0;
-void ProbeWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
-	if (!focus.widget || focus.widget == g_probedRow || !NativeWidgets::ReadName(focus.panel).starts_with(WaypointsPanelPrefix)) return;
-	g_probedRow = focus.widget;
-	std::string children, strings, bytes;
-	for (const uintptr_t child : NativeUi::Children(focus.widget))
-		children += " " + NativeWidgets::ReadName(child) + (NativeUi::Visible(child) ? "" : "(hidden)");
-	for (const auto& found : NativeWidgets::ScanStrings(focus.widget, WaypointProbeBytes)) {
-		char entry[80]{};
-		std::snprintf(entry, sizeof(entry), " +%zX=%.40s", found.offset, found.value.c_str());
-		strings += entry;
-	}
-	std::array<uint8_t, WaypointProbeBytes> raw{};
-	if (NativeMemory::Copy(focus.widget, raw.data(), raw.size()))
-		for (const uint8_t byte : raw) { char hex[4]{}; std::snprintf(hex, sizeof(hex), "%02X", byte); bytes += hex; }
-	D2RAccess::AsyncLog::InfoF(context, "[waypoint] row %s text=\"%s\" children:%s strings:%s bytes=%s",
-		NativeWidgets::ReadName(focus.widget).c_str(), UiText::Clean(NativeWidgets::ReadText(focus.widget)).c_str(),
-		children.c_str(), strings.c_str(), bytes.c_str());
+uintptr_t g_loggedRow = 0;
+void LogWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (!focus.widget || focus.widget == g_loggedRow || !NativeWidgets::ReadName(focus.panel).starts_with(WaypointsPanelPrefix)) return;
+	g_loggedRow = focus.widget;
+	const auto name = NativeWidgets::ReadName(focus.widget);
+	const auto row = NativeWaypoints::Read(focus.panel, name);
+	D2RAccess::AsyncLog::InfoF(context, "[waypoint] row %s -> %s (tab=%d rows=%d level=%d open=%u player=%d)", name.c_str(),
+		NativeWaypoints::Name(row.state), row.tab, row.count, row.level, static_cast<unsigned>(row.open), row.player);
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	TickSkillBranch(context, now);
 	TickStash(context, now, focus);
-	ProbeWaypointRow(context, focus);
+	LogWaypointRow(context, focus);
 	// The Advanced Stats list has nothing the controller can focus, and a menu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.

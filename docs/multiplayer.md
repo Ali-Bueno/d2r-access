@@ -225,3 +225,36 @@ game keeps those loaded) for more than 2 s is lost at once ("[beacon] gone"); ex
 arrival, as not all are units. The host's log also showed "Cain's Gibbet" listed from the
 remembered places for 12 minutes after the rescue: a remembered quest object whose spot the map
 can see without it is forgotten for the run ("[terrain] quest place gone").
+
+## The lobby regression, measured live (2026-10-17)
+
+A tester (build 2026-10-16): text boxes reached erratically, typing a gamble, and Direct Join's
+password box sending the player back to the main multiplayer window. The user reproduced it with
+`[menu-navigation] boxes:` (each box and why it is or is not a D-pad stop) and
+`[menu-navigation] editing <box>` (the game's active editor):
+
+- **LAN Only disables all three host boxes**, and **Unlisted disables the game name**: the
+  loader's rules, not the mod's (`HostGameNameInput(disabled) HostPasswordInput(disabled) ...`).
+  The form then opens on `DifficultyNormal`.
+- **The synthetic click was the kick.** Pressing A on a box the game did not start editing made
+  `PadTyping` click it; the real mouse event made the game switch every panel to its mouse layout
+  (`d2rloader.log`: `Loaded panel D2RLoaderMultiplayerPanel` without `Controller/` 90 ms after the
+  click) and back on the next pad input, rebuilding every panel: a modal such as Direct Join is
+  gone, and the box is never edited. The click is removed. It also fired from the A that opened
+  the form; an A pressed before the form showed is now dropped.
+- **The D-pad went to the nearest rectangle**, which jumps between the form's columns and stays
+  put when nothing lies that way. Up and down now walk the form's own order (the widget tree's,
+  column by column), wrapping at the ends (`MenuNavigationPolicy::Step`); left and right keep the
+  nearest control within a row (difficulties, player count).
+- **Begin-edit instead of the click.** When A leaves a box unedited for 250 ms, `PadTyping` calls
+  the game's begin-edit `0x88C810(box)` (`NativeSkillNavigation::BeginEdit`, verified with
+  `IsEditing` `0x88B180` and the active-editor global it stores; `[typing] Begin-edit verified.`),
+  only when no box is edited, the box holds the game's focus (FocusManager+0x190) and takes input
+  (+0x589). Log: `[typing] A did not start editing <box>: <reason or "begun by the mod">`. While
+  the game's text entry panel holds focus over a lobby box, `MenuNavigation` keeps the right-stick
+  typing running.
+
+Measured live by the user (2026-10-17, Host Game, neither LAN Only nor Unlisted): the game name box
+reached with the D-pad, A started the game's own editing (the mod's begin-edit was not needed),
+keyboard and right-stick characters and Backspace reached the box, B ended editing; no panel
+reload. Direct Join's boxes were not in that log.

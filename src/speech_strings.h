@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 24;
+inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 25;
 
 
 
@@ -490,12 +490,21 @@ struct Table {
 	const char* lootGemsOff;
 	std::array<const char*, LootEquipmentCount> lootEquipment; // GroundItems::EquipmentLoops order
 	const char* tabPage; // %d = a tab shown with no caption, by its number
-	const char* waypointLocked; // a waypoint not yet activated
+	const char* waypointUndiscovered; // a waypoint row never activated
+	const char* waypointHere; // the waypoint row of the area the player stands in
+	const char* terrorZone; // a waypoint row whose area is a terror zone now
 	const char* hintDeleteCharacter; // %s = the button that deletes the selected character
 	const char* hintNoCharacters; // %s = the button that creates a character, with an empty list
+	const char* hintPlayCharacter; // %s = the button that plays the selected character
 	const char* mainMenu; // the main menu panel's name: the game has no string for it
 	const char* padTypingOn; // typing into a text box with the right stick (pad_typing.h)
 	const char* padTypingOff;
+	const char* hangmanTreeDescription; // the Hangman's Tree the first time it comes into reach (descriptions.h)
+	const char* descriptionsOn; // area and landmark descriptions (descriptions.h)
+	const char* descriptionsOff;
+	const char* areaDescriptionHint; // %s = the button held with the right stick for an area's description
+	const char* noAreaDescription; // %s = the area that has no description
+	const char* portalOwned; // %s = where a town portal leads, %s = the player who cast it
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -555,8 +564,9 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
 		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
-		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointLocked,
-		t.hintDeleteCharacter, t.hintNoCharacters, t.mainMenu, t.padTypingOn, t.padTypingOff}) visit(s);
+		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
+		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
+		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

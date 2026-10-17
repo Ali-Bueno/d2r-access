@@ -3,6 +3,7 @@
 #include "ui_text.h"
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace D2RAccess::NativeUi {
@@ -94,5 +95,9 @@ std::vector<uintptr_t> ListRows(uintptr_t list);
 // children it holds, and the first child's name and visible flag.
 std::string DescribeList(uintptr_t list);
 UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
+// Words a native reader knows of the focused control beyond the tree (Node::state),
+// from the panel's name and widget and the control's name; null for none.
+using FocusState = std::string (*)(std::string_view panelName, uintptr_t panel, std::string_view control);
+void SetFocusState(FocusState reader);
 void Reset();
 }

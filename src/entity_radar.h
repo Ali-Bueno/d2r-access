@@ -4,6 +4,7 @@
 #include "radar.h"
 #include "speech_strings.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <string>
@@ -101,13 +102,18 @@ bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
-// Levels whose way in is a quest location, by Levels.txt Id: 21 is Tower Cellar
-// Level 1, the way into the Forgotten Tower of the Act I quest of that name (a
-// tester, 2026-10-14: the quest sound and the quest list, before and after the quest).
-inline constexpr uint32_t QuestDestinations[] = {21};
-inline bool QuestDestination(uint32_t level) {
-	for (const auto quest : QuestDestinations) if (quest == level) return true;
-	return false;
+// The way down the Forgotten Tower, by Levels.txt Id: 20 is the tower, its door on
+// the Black Marsh, 21 to 25 its Tower Cellar levels, the Countess on the last (a
+// tester, 2026-10-14: the quest sound and the quest list, before and after the quest;
+// 2026-10-16: on the Black Marsh's door, not only the tower's stairs). Every step
+// deeper is a quest way; the stairs back up are not.
+inline constexpr uint32_t QuestChain[] = {20, 21, 22, 23, 24, 25};
+inline bool QuestWay(uint32_t from, uint32_t to) {
+	const auto* const end = std::end(QuestChain);
+	const auto* const target = std::find(std::begin(QuestChain), end, to);
+	if (target == end) return false;
+	const auto* const source = std::find(std::begin(QuestChain), end, from);
+	return source == end || source < target;
 }
 inline bool QuestSource(const Entity& entity) {
 	return (entity.kind == Kind::Object && (entity.questObject || entity.unreadTome))
