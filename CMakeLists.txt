@@ -206,6 +206,8 @@ add_library(d2r-access SHARED
 	src/native_skill_icons.cpp
 	src/native_swap.cpp
 	src/native_hover.cpp
+	src/native_waypoints.cpp
+	src/descriptions.cpp
 	src/native_value_controls.cpp
 	src/native_belt_rows.cpp
 	src/native_belt_fill.cpp
@@ -458,7 +460,7 @@ if(BUILD_TESTING)
 	d2r_test(native-ui-tests tests/native_ui_tests.cpp src/native_ui.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/localization.cpp src/quest_log.cpp)
 	target_link_libraries(native-ui-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME native-ui COMMAND native-ui-tests)
-	d2r_test(game-text-reader-tests tests/game_text_reader_tests.cpp src/async_log.cpp src/game_text_reader.cpp src/native_memory.cpp src/ui_text.cpp src/ui_notifications.cpp src/speech_strings.cpp)
+	d2r_test(game-text-reader-tests tests/game_text_reader_tests.cpp src/async_log.cpp src/game_text_reader.cpp src/native_memory.cpp src/ui_text.cpp src/ui_notifications.cpp src/speech_strings.cpp src/descriptions.cpp src/controller_text.cpp)
 	target_link_libraries(game-text-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME game-text-reader COMMAND game-text-reader-tests)
 	d2r_test(ui-notifications-tests tests/ui_notifications_tests.cpp src/ui_notifications.cpp src/ui_text.cpp src/speech_strings.cpp)
@@ -562,6 +564,9 @@ if(BUILD_TESTING)
 	add_test(NAME settings-list COMMAND settings-list-tests)
 	d2r_test(settings-store-tests tests/settings_store_tests.cpp src/settings_store.cpp)
 	add_test(NAME settings-store COMMAND settings-store-tests)
+	d2r_test(descriptions-tests tests/descriptions_tests.cpp src/descriptions.cpp src/async_log.cpp)
+	target_link_libraries(descriptions-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	add_test(NAME descriptions COMMAND descriptions-tests)
 endif()
 
 add_custom_command(TARGET d2r-access POST_BUILD

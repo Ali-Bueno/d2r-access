@@ -61,6 +61,7 @@ std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
 }
 std::optional<bool> TextEditing() { return editing; }
 uintptr_t ActiveTextInput(uintptr_t) { return editing && *editing ? editor : 0; }
+uintptr_t AnyActiveTextInput(uintptr_t& owner) { owner = 0; return editing && *editing ? editor : 0; }
 bool Select(NativeUi::Focus next) {
 	++selections;
 	if (selectionWorks) focus = next;

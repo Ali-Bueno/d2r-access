@@ -1,5 +1,6 @@
 #include "place_service.h"
 #include "async_log.h"
+#include "descriptions.h"
 #include "entity_radar.h"
 #include "level_exit_layout.h"
 #include "native_entities.h"
@@ -202,6 +203,7 @@ std::vector<std::string> Towards(const Lifecycle& state, const Reading& reading)
 std::string Phrase(const Reading& reading, const Places::Change& change, const std::vector<std::string>& towards) {
 	const auto& spot = reading.spot;
 	const auto& strings = Strings::Current();
+	std::string told; // a landmark's words, said instead of its name the first time (a tester, 2026-10-16)
 	std::vector<std::string_view> parts;
 	const auto add = [&](std::string_view word) { if (!word.empty() && (parts.empty() || parts.back() != word)) parts.push_back(word); };
 	if (change.preset) add(strings.placePresets[static_cast<size_t>(spot.preset)]);
@@ -213,7 +215,11 @@ std::string Phrase(const Reading& reading, const Places::Change& change, const s
 		add(spot.deadEnd ? strings.placeDeadEnd : strings.placeCorridor);
 		for (const auto& target : towards) add(target);
 	}
-	if (change.feature) add(strings.placeFeatures[static_cast<size_t>(spot.feature)]);
+	if (change.feature) {
+		const std::string_view name = strings.placeFeatures[static_cast<size_t>(spot.feature)];
+		told = Descriptions::FirstTime(name, spot.feature == Places::PlaceFeature::HangmanTree ? strings.hangmanTreeDescription : "");
+		add(told.empty() ? name : std::string_view(told));
+	}
 	std::string line;
 	for (const auto part : parts) {
 		if (!line.empty()) line += strings.listSeparator;

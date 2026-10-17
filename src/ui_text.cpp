@@ -113,22 +113,13 @@ std::string Clean(std::string_view text) {
 	return result;
 }
 
-// A waypoint row the player has not activated (a tester, 2026-10-14): the
-// waypoint panels clone their rows from UnselectableButtonTemplate and draw a
-// SelectableButton or CurrentButton image inside the ones that can be taken
-// (WaypointsPanelExpansionHD.json), so a row with neither is locked.
-constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
-constexpr const char* WaypointOpenImages[] = {"SelectableButton", "CurrentButton"};
-bool LockedWaypoint(const Snapshot& snapshot, int focus) {
-	const Node& node = snapshot.nodes[static_cast<size_t>(focus)];
-	if (node.kind != Kind::Button || !snapshot.name.starts_with(WaypointsPanelPrefix) || node.name.starts_with("Close")) return false;
-	for (size_t i = static_cast<size_t>(focus) + 1; i < snapshot.nodes.size(); ++i) {
-		const Node& child = snapshot.nodes[i];
-		if (child.parent != focus) continue;
-		for (const char* image : WaypointOpenImages)
-			if (child.name == image) return false;
-	}
-	return true;
+// A waypoint row shows its skull, the TerrorZone image, while its area is a terror
+// zone (WaypointsPanelOriginalHD.json; hidden subtrees are not in the snapshot).
+constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel", TerrorZoneImage = "TerrorZone";
+bool TerrorZone(const Snapshot& snapshot, int focus) {
+	if (!snapshot.name.starts_with(WaypointsPanelPrefix)) return false;
+	return std::any_of(snapshot.nodes.begin(), snapshot.nodes.end(),
+		[focus](const Node& child) { return child.parent == focus && child.name == TerrorZoneImage; });
 }
 
 Readout Describe(const Snapshot& snapshot) {
@@ -148,7 +139,8 @@ Readout Describe(const Snapshot& snapshot) {
 			// Tree position survives recreation of the same row at a new address.
 			result.focusKey = std::to_string(focus);
 			if (!node.enabled) Append(result.option, Strings::Current().unavailable);
-			if (LockedWaypoint(snapshot, focus)) Append(result.option, Strings::Current().waypointLocked);
+			Append(result.option, node.state);
+			if (TerrorZone(snapshot, focus)) Append(result.option, Strings::Current().terrorZone);
 		}
 	}
 	if (snapshot.surface == Surface::Other) return result;

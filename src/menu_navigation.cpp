@@ -11,12 +11,20 @@
 #include "async_log.h"
 #include <windows.h>
 #include <algorithm>
+#include <cstdio>
+#include <string>
 #include <vector>
 
 namespace D2RAccess::MenuNavigation {
 namespace {
 bool g_enabled = true, g_gesture = false;
 uintptr_t g_panel = 0, g_selected = 0, g_restore = 0;
+// Diagnosis of the boxes the D-pad does not reach (the user, 2026-10-17): the form's
+// text boxes and why each is or is not a D-pad stop, and whose box is being edited.
+constexpr uint64_t InventoryEveryMs = 500;
+uint64_t g_inventoryAt = 0;
+std::string g_inventory;
+uintptr_t g_editor = 0;
 
 bool Under(const UiText::Snapshot& snapshot, size_t child, size_t ancestor) {
 	for (int at = static_cast<int>(child); at >= 0;) {
@@ -47,10 +55,39 @@ std::vector<MenuNavigationPolicy::Node> Nodes(const UiText::Snapshot& snapshot) 
 }
 }
 
+namespace {
+void LogBoxes(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_t now) {
+	uintptr_t owner = 0;
+	if (const uintptr_t editor = NativeSkillNavigation::AnyActiveTextInput(owner); editor != g_editor) {
+		g_editor = editor;
+		AsyncLog::InfoF(context, "[menu-navigation] editing %s (focus %s)", editor ? NativeWidgets::ReadName(editor).c_str() : "nothing",
+			NativeWidgets::ReadName(focus.widget).c_str());
+	}
+	if (now - g_inventoryAt < InventoryEveryMs) return;
+	g_inventoryAt = now;
+	const NativeMemory::ReadScope scope;
+	const auto snapshot = NativeUi::Snapshot(focus.panel, focus.widget);
+	const auto reachable = Nodes(snapshot);
+	std::string text;
+	for (const auto& node : snapshot.nodes) {
+		if (node.kind != UiText::Kind::TextInput) continue;
+		const bool stop = std::any_of(reachable.begin(), reachable.end(), [&](const auto& n) { return n.widget == node.id; });
+		text += " " + node.name + (stop ? "" : !node.enabled ? "(disabled)" : !NativeSkillNavigation::FocusRect(node.id) ? "(no rect)" : "(outside the modal)");
+	}
+	char counts[64]{};
+	std::snprintf(counts, sizeof counts, " | %zu stops of %zu nodes", reachable.size(), snapshot.nodes.size());
+	text += counts;
+	if (text == g_inventory) return;
+	g_inventory = text;
+	AsyncLog::InfoF(context, "[menu-navigation] boxes:%s", text.c_str());
+}
+}
+
 void Reset() {
 	if (g_panel) NativeSkillNavigation::HoldCursor(false);
 	PadTyping::Reset();
-	g_panel = g_selected = g_restore = 0;
+	g_panel = g_selected = g_restore = g_editor = 0;
+	g_inventory.clear();
 	g_gesture = false;
 }
 void Initialize(const D2RL::PluginContext* context) {
@@ -59,6 +96,16 @@ void Initialize(const D2RL::PluginContext* context) {
 }
 bool Tick(const D2RL::PluginContext* context) {
 	auto focus = NativeUi::CurrentFocus();
+	// While a lobby box is edited, the game's text entry panel holds the focus: the
+	// right stick still types into the box, and the D-pad is the game's.
+	uintptr_t owner = 0;
+	if (const uintptr_t editor = NativeSkillNavigation::AnyActiveTextInput(owner); g_enabled && editor && owner == g_panel
+		&& g_panel && focus.panel != g_panel) {
+		LogBoxes(context, {owner, editor}, GetTickCount64());
+		PadTyping::Tick(context, {owner, editor}, true, GetTickCount64());
+		NativeSkillNavigation::HoldCursor(false);
+		return true;
+	}
 	// Loader-created forms use the stock travelling cursor: short D-pad presses
 	// may not cross the gaps between fields. Other menus keep their native policy.
 	if (!g_enabled || !NativeSkillNavigation::Available() || !focus.panel
@@ -74,6 +121,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	}
 	// The game keeps a box's editor after the focus leaves it: only the focused box counts
 	// as typed in, or the D-pad is left to the stock cursor, which skips the boxes.
+	LogBoxes(context, focus, GetTickCount64());
 	auto editing = NativeSkillNavigation::TextEditing();
 	if (editing && *editing) editing = NativeSkillNavigation::ActiveTextInput(focus.panel) == focus.widget;
 	PadTyping::Tick(context, focus, editing, GetTickCount64());
@@ -106,8 +154,10 @@ bool Tick(const D2RL::PluginContext* context) {
 		if (input.x && kind == UiText::Kind::ValueControl) return true;
 		const NativeMemory::ReadScope scope;
 		const auto nodes = Nodes(NativeUi::Snapshot(focus.panel, focus.widget));
-		const auto next = MenuNavigationPolicy::Move(nodes, g_selected, input.x, input.y);
-		if (next) {
+		// Up and down walk the form in its own order; left and right stay within a row of controls.
+		const auto next = input.y ? MenuNavigationPolicy::Step(nodes, g_selected, input.y)
+			: MenuNavigationPolicy::Move(nodes, g_selected, input.x, 0);
+		if (next && next != g_selected) {
 			NativeSkillNavigation::HoldCursor(true);
 			if (NativeSkillNavigation::Select({focus.panel, next})) {
 				g_selected = next;

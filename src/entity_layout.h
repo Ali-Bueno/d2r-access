@@ -107,7 +107,14 @@ inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassObelisk = 1u << 1, Su
 inline constexpr uint8_t SubClassExit = SubClassPortal | SubClassGate | SubClassWaypoint;
 // ObjectData (*(Unit+0x10)): per-class parameter byte (the destination level id of a
 // SubClass portal, 0x34AD40 / 0xC17E0); linked shrines.txt row and its localized name id.
-inline constexpr size_t ObjPortalLevel = 8, ObjLinkRecord = 0x10, ShrineNameId = 0x12;
+// +9 is a town portal's state flags, never part of the level: D2RLoader keeps the level's
+// high byte at +0x78 instead (its D2RCore export SetObjectInteraction16). docs/portals.md
+inline constexpr size_t ObjPortalLevel = 8, ObjPortalLevelHigh = 0x78, ObjLinkRecord = 0x10, ShrineNameId = 0x12;
+inline constexpr const char* WidePortalLevelExport = "SetObjectInteraction16";
+// A town portal's owner, for its label "<level> [<owner>]" (0xC17E0): the roster entry whose
+// local or remote portal id is the portal's unit id, else the name the ownership packet left
+// at ObjectData+0x34.
+inline constexpr size_t RosterPortal = 0x80, RosterRemotePortal = 0x84, ObjPortalOwner = 0x34;
 // Door captions by mode, string ids used by the door opener path (0x44FAC0).
 inline constexpr uint32_t DoorClosedText = 0xC99, DoorOpenText = 0xC9B;
 // The player's own stash carries no SubClass bit, so it is recognised by the
@@ -200,6 +207,12 @@ inline constexpr size_t RosterName = 0, RosterUnitId = 0x48, RosterParty = 0x5A,
 	RosterX = 0x60, RosterY = 0x64, RosterNext = 0x148;
 inline constexpr uint16_t NoParty = 0xFFFF; // 0x136570's "not in a party"
 inline constexpr size_t MaxRosterEntries = 64; // cycle guard, not a game limit
+inline constexpr Evidence PortalOwnerChecks[] = {
+	{0x136670, 100, 0xCC21F4B64B62FFCFULL}, // roster entry by portal id: +0x80 or +0x84
+	{0x1CB060, 9, 0x1062C4C489772EA1ULL},    // ObjectData+0x34 owner name getter
+	{0x1CB070, 135, 0x3EC1E6FD55ACF57BULL},  // its setter, 0x3C bytes at most
+	{0x34ADF0, 72, 0x2F7E608D85EB4508ULL},   // ObjectData+9 state getter: not the level
+};
 inline constexpr Evidence RosterChecks[] = {
 	{0x136470, 21, 0x4F66E997F9BC6D8EULL}, // next entry; head global for null
 	{0x13A220, 332, 0x6D4A070900DAFDDAULL}, // entry init: name at +0 bounded by 0x3D, party id +0x5A, unit id +0x48

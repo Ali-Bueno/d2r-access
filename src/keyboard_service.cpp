@@ -75,6 +75,7 @@
 #include "skill_navigation.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "descriptions.h"
 #include "place_service.h"
 #include "boss_life_service.h"
 #include "trade_service.h"
@@ -1837,6 +1838,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
 		{RoomService::MapSides, RoomService::SetMapSides, phrase(&T::mapSidesOn, &T::mapSidesOff), false, "passage-map-sides"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
+		{Descriptions::Enabled, Descriptions::SetEnabled, phrase(&T::descriptionsOn, &T::descriptionsOff), false, "descriptions"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},

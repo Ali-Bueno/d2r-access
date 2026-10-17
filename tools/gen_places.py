@@ -66,6 +66,7 @@ FEATURES = [
     ("River", "audio", r"river"),
     ("Bridge", "model", r"_bridge/(?!bridge_tracks)"),
     ("Campfire", "model", r"campfire|bonfire"),
+    ("HangmanTree", "model", r"graveyard_hanging_corpse|graveyard_props/noose_wrap"),
 ]
 FEATURE_NAMES = [f[0] for f in FEATURES]
 FEATURE_RX = [(n, s, re.compile(p)) for n, s, p in FEATURES]

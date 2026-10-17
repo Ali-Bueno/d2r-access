@@ -36,4 +36,11 @@ int main() {
 	Check(Move(partlyInvalid, 0, 0, 1) == 13,
 		"invalid rectangles cannot become navigation targets");
 	Check(Move({}, 0, 0, 1) == 0, "empty control set has no target");
+
+	// Up and down follow the form's own order, not the nearest rectangle (the user, 2026-10-17).
+	Check(Step(host, 1, 1) == 2 && Step(host, 5, 1) == 6 && Step(host, 6, -1) == 5, "the next and previous control in order");
+	Check(Step(host, 7, 1) == 1 && Step(host, 1, -1) == 7, "the ends wrap");
+	Check(Step(host, 0, 1) == 1 && Step(host, 99, -1) == 7, "from no control, the first or the last");
+	Check(Step(partlyInvalid, 13, 1) == 13 && Step(partlyInvalid, 0, -1) == 13, "invalid rectangles are skipped");
+	Check(Step({}, 0, 1) == 0 && Step(host, 1, 0) == 0, "no controls or no direction, no target");
 }

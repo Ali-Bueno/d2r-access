@@ -2,7 +2,6 @@
 
 #include "async_log.h"
 #include "input_direction.h"
-#include "menu_mouse.h"
 #include "native_skill_navigation.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -14,9 +13,10 @@
 
 namespace D2RAccess::PadTyping {
 namespace {
-// How long the game is given to start editing on its own after A on a box
-// before the box is clicked for it.
-constexpr uint64_t ClickAfterMs = 250;
+// How long the game is given to start editing on its own after A on a box, before
+// the mod starts it the way the game's A does. Never with a mouse click: a real mouse
+// event switches every panel to its mouse layout, closing Direct Join (the user, 2026-10-17).
+constexpr uint64_t EditWaitMs = 250;
 
 std::atomic<bool> g_enabled{true};
 uintptr_t g_box = 0;       // the box A was pressed on while nothing was being edited
@@ -66,13 +66,11 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 		g_pressedAt = now;
 	}
 	if (g_box && (!idle || focus.widget != g_box)) g_box = 0;
-	if (g_box && now - g_pressedAt >= ClickAfterMs) {
-		const uintptr_t target = g_box;
+	if (g_box && now - g_pressedAt >= EditWaitMs) {
+		const char* failed = NativeSkillNavigation::BeginEdit(g_box);
+		AsyncLog::InfoF(context, "[typing] A did not start editing %s: %s", NativeWidgets::ReadName(g_box).c_str(),
+			failed ? failed : "begun by the mod");
 		g_box = 0;
-		const auto rect = NativeSkillNavigation::FocusRect(target);
-		if (rect) MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
-		AsyncLog::InfoF(context, "[typing] A did not start editing %s: %s", NativeWidgets::ReadName(target).c_str(),
-			rect ? "the box is clicked for it" : "and its rectangle is unknown");
 	}
 	if (!editing || !*editing) {
 		g_editing = false;
@@ -108,6 +106,8 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 }
 
 void Reset() {
+	// An A pressed before the form showed (the one that opened it) is not a press on a box.
+	(void)InputDirection::TakeFacePress(InputDirection::FaceButton::A);
 	g_box = 0;
 	g_pressedAt = 0;
 	g_editing = false;

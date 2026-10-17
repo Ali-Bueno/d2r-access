@@ -17,6 +17,9 @@ the [architecture guide](docs/architecture.md).
 - Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
+- The waypoint panel says each row's state from the game's own row table: "Dark Wood, you are
+  here", "Jail Level 1, undiscovered", and "Terror Zone" while the area is one (built; live
+  validation pending). See [the waypoint panel](docs/waypoints.md).
 - Native text in dropdown rows, character rows and confirmation prompts. Character
   selection reads the name and level/class from the selected runtime row, even
   when the game's focus remains on the first row.
@@ -345,6 +348,15 @@ the next leg is said at each turn ("Now east, 30") and "Off the route" once if y
 (`route-prompts`, on). In exploration mode it prefers explored ground and otherwise guesses
 across rooms never entered, and says so. See [route description](docs/route-description.md).
 
+**Area and landmark descriptions (built; live validation pending):** **BACK + right stick up**
+says hand-written words for the area you are in. The first time a landmark with words comes
+into reach, its words replace its name (the Hangman's Tree of the Burial Grounds), and the first
+time a described area is entered, its name is followed by how to hear them (switch
+`descriptions`, on). Your own words go in `d2rloader/plugins/d2r-access/descriptions.txt`, one
+"Name = words" line each; updates never replace it. See [descriptions](docs/descriptions.md).
+Town portals are named like the game's label, with whose they are: "Tower Cellar Level 1,
+TankMan's portal" ([town portals](docs/portals.md)).
+
 **Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
 game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.
 After naming another target, one click switches to it; clicking again on the
@@ -545,10 +557,11 @@ corpses come near and repeats while they stay (`corpse-interval`: once, or every
 5 s; 1 s, a drop sound's pace, by default). Every player's pets are kept out of the NPC and enemy lists.
 Switches `corpse-cue` and `corpse-interval`; see [summons and corpses](docs/summons-and-corpses-re.md).
 
-**Typing with the controller (built; live validation pending):** in the loader's lobby, A on a
-text box that the game does not start editing gets a click, so a keyboard types there; while a
+**Typing with the controller:** in the loader's lobby, A on a text box starts editing it (the
+mod calls the game's own begin-edit when the game does not), so a keyboard types there; while a
 box is edited, the right stick steps through letters, digits, space and a few signs (said as
 reached), right types the one reached and left deletes the last (`pad-typing`, Controller group).
+The D-pad walks the form in its own order; boxes the game disables (LAN Only, Unlisted) are skipped.
 See [multiplayer](docs/multiplayer.md).
 
 **Audible loot filter:** **LB** in play turns it on and off ("Loot filter on"), as sighted players

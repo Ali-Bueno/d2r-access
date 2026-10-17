@@ -4,6 +4,7 @@
 #include "input_direction.h"
 #include "keyboard_service.h"
 #include "level_route.h"
+#include "descriptions.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_areas.h"
@@ -157,7 +158,9 @@ bool ReadLevel(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
 namespace D2RAccess::NativeEntities {
 bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, bool, bool) { return false; }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
+std::string LevelName(uint32_t) { return {}; }
 }
+namespace D2RAccess::Descriptions { std::string Find(std::string_view, std::string_view builtIn) { return std::string(builtIn); } }
 namespace D2RAccess::ZoneTransitions {
 std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
 bool Crosses(const EntityRadar::Entity&) { return false; }

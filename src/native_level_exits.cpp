@@ -154,7 +154,7 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 			if (type == WarpType && Peek(preset + PresetClass, warp)
 				&& Peek(preset + PresetX, px) && Peek(preset + PresetY, py)
 				&& px >= 0 && py >= 0 && px < width * SubtilesPerTile && py < height * SubtilesPerTile) {
-				Exit exit{warp & WarpIdMask};
+				Exit exit{warp & WarpIdMask, 0, currentLevel};
 				if (Destination(room, exit.warp, currentLevel, exit.destination)) {
 					exit.position = {static_cast<double>(x * SubtilesPerTile + px), static_cast<double>(y * SubtilesPerTile + py)};
 					exits.push_back(exit);

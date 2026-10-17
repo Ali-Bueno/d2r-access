@@ -9,6 +9,7 @@
 #include "keyboard_service.h"
 #include "level_areas.h"
 #include "map_survey_service.h"
+#include "descriptions.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_areas.h"
@@ -651,6 +652,21 @@ bool Register(const D2RL::PluginContext* context) {
 	return true;
 }
 
+namespace {
+// BACK + right stick up: the hand-written words of the area the player is in (a tester, 2026-10-16).
+void DescribeArea(const D2RL::PluginContext* context, int level) {
+	const auto name = level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(level)) : std::string{};
+	std::string text = name.empty() ? std::string{} : Descriptions::Find(name);
+	if (text.empty()) {
+		char none[300]{};
+		std::snprintf(none, sizeof none, Strings::Current().noAreaDescription, name.c_str());
+		text = none;
+	}
+	AsyncLog::InfoF(context, "[descriptions] BACK+up in \"%s\" (level %d)", name.c_str(), level);
+	ScreenReader::Speak(text, true);
+}
+}
+
 void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
@@ -701,6 +717,8 @@ void Tick(const D2RL::PluginContext* context) {
 	if (command == Command::Route || chord == InputDirection::StickPush::Down) {
 		if (!inPlay) AsyncLog::InfoF(context, "[route] %s ignored: not in play", chord != InputDirection::StickPush::None ? "BACK+down" : "command");
 		else DescribeRoute(state, now);
+	} else if (chord == InputDirection::StickPush::Up) {
+		if (inPlay) DescribeArea(context, state.level);
 	} else if (chord != InputDirection::StickPush::None) {
 		AsyncLog::InfoF(context, "[route] BACK+right stick %s: nothing bound", InputDirection::PushName(chord));
 	}
