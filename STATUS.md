@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list of 2026-10-16, waypoint evidence, lobby regression — 2026-10-17 (not released)
+## The tester's list of 2026-10-16, waypoint evidence, lobby regression — 2026-10-17 (released as test-2026-10-17 from a3175c9)
+
+Release: 122/122 CTest, 29 entries, 62,622,193 bytes, SHA-256 `1ad554f8…6fc2`. News (with replies to the
+tester's questions): `../tester-news-draft-2026-10-17.txt`.
 
 From `D2R Access build 2026-10-16 Bug list.txt` and `D2R access -fast travel menu accessibility
 issues.7z` (the user's Downloads). Choices in [decisions](docs/decisions.md).
@@ -32,7 +35,7 @@ Act II list (`D2R Access Act II bugs.7z`, the tester's log of 2026-10-17):
 122/122 CTest. **Live (the user, 2026-10-17): Host Game typing works** (D-pad, A, keyboard, right
 stick, B). Unverified live: Direct Join's boxes, the waypoint words, portal names and owners,
 descriptions.
-**Next step:** a test release when the user asks; the tester checks Direct Join and the rest.
+**Next step:** the tester checks Direct Join, waypoint rows, another player's portal, the cliff stairs and BACK+B.
 
 ## The tester's lists III and IV — 2026-10-16 (released as test-2026-10-16 from 876b39d)
 
