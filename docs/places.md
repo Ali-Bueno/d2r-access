@@ -116,6 +116,14 @@ row per line (`#` wall, `.` floor, `?` not streamed, `@` the player), with the t
   stalls, Warriv's wagon. Kurast Docks: Asheara's and Alkor's huts, docks, boats. Pandemonium Fortress,
   Harrogath's building (Malah), Act 1 cottages and tower, Kurast huts and temples, farmhouses,
   the cathedral. Barracks forge, jail cells, the Catacombs' bone throne, graves, bookshelves.
+- The Act II desert's cliff stairs (Dry Hills, Far Oasis), the only way between a level's two
+  halves (a tester, 2026-10-17): feature `CliffStairs`, said "stairs", one per `act2/bigcliff/cliffrp`
+  and `clifflp` piece (LvlPrest "Act 2 - Desert Cliff Right/Left Path", models
+  `act2_bigcliff_stairs/stairs_right01`, `stairs_left01`). It is also a tracker entry ("object"):
+  `Places::Tracked` features of the maps of the loaded rooms (`NativeWorld::LoadedRooms`, the near
+  lists) become scanner entities with no unit (`PlaceService::MapLandmarks`, `Entity::mapLandmark`),
+  kept with the map like exits (`MapSurvey::Fixed`), so the first sight says "The radar has logged
+  a new place: stairs".
 - Prefab placements count too (`pf_town_blacksmith01` is Charsi's forge, at her spawn in all four
   camp layouts; Akara's tent; Gheed's wagon; Kurast bar counters; Barracks cells).
 - The palace, harem and other indoor levels have landmarks but no interior volume of their own.

@@ -32,6 +32,10 @@ a log with every Act I row focused). Built and unit-tested only.
   (Direct Join). The mod calls the game's begin-edit instead. Up/down walk the form's own order
   rather than the nearest rectangle. Rejected: keeping the click with a layout guard (the reload
   is the game's, on any mouse input).
+- **Act II list**: the overview's "percent explored" now counts the rooms the automap drew or the
+  player stood in, as the tracker does; the streamed rooms (most of an outdoor level) said 100 %
+  with a dozen blank. The desert's cliff stairs are a place and a tracker entry, said "stairs" (the tester's word); a
+  feature of their own so that only they, not every staircase prop, join the tracker. The stash names its tab once the focus lands, wherever it lands.
 
 ## 2026-10-16 — Loop speeds
 

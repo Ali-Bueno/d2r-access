@@ -21,6 +21,14 @@ issues.7z` (the user's Downloads). Choices in [decisions](docs/decisions.md).
   instead, up/down walk the form's order (`MenuNavigationPolicy::Step`); `[menu-navigation] boxes:`
   says why a box is not a stop ([multiplayer](docs/multiplayer.md)).
 
+Act II list (`D2R Access Act II bugs.7z`, the tester's log of 2026-10-17):
+- Stash tab not said on opening: the panel is focused with no widget for ~500 ms, and the reader
+  took that for the grid's own readout; it now waits up to 1 s for the focus (`[stash] opened`).
+- Desert cliff stairs (Dry Hills, Far Oasis): a "stairs" place and a tracker entry with the discovery
+  notice (`CliffStairs`, `PlaceService::MapLandmarks`; [places](docs/places.md)).
+- Overview percentage from the automap and the rooms stood in, not the streamed rooms
+  ([terrain overview](docs/terrain-overview.md): 100 % said at 48/94 stood in).
+
 122/122 CTest. **Live (the user, 2026-10-17): Host Game typing works** (D-pad, A, keyboard, right
 stick, B). Unverified live: Direct Join's boxes, the waypoint words, portal names and owners,
 descriptions.

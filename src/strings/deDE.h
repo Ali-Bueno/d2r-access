@@ -300,7 +300,7 @@ inline constexpr Table deDE {
 	.deathRouteWaypoint = "Weg zu deinem Todesort, %s: %s, wähle %s",
 	.placePresets = {"", "Brücke", "Fluss", "Lager der Gefallenen", "Hütten", "Friedhof", "Turm", "Ruinen", "Lager", "Tempel", "Tor", "Oase", "Schmiede"},
 	.placeInteriors = {"Taverne", "Palasteingang", "Hütte", "Turm", "Hütte", "Tempel", "Festung", "Gebäude", "Bauernhaus", "Schuppen", "Kathedrale"},
-	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum"},
+	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum", "Treppe"},
 	.placeOutside = "draußen",
 	.placeCorridor = "Gang",
 	.placeDeadEnd = "Sackgasse",

@@ -63,6 +63,9 @@ struct Spot {
 	bool operator==(const Spot&) const = default;
 };
 uint64_t MapKey(int32_t def, int tileX, int tileY);
+// A landmark the scanner lists too, not only the walk-in announcer: a way across a
+// level that has no unit, such as the desert's cliff stairs (a tester, 2026-10-17).
+bool Tracked(PlaceFeature kind);
 
 // No landmark in reach inside the same interior keeps the last one: the floor
 // between two landmarks is not leaving either.

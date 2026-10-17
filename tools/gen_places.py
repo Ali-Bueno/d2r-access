@@ -67,6 +67,8 @@ FEATURES = [
     ("Bridge", "model", r"_bridge/(?!bridge_tracks)"),
     ("Campfire", "model", r"campfire|bonfire"),
     ("HangmanTree", "model", r"graveyard_hanging_corpse|graveyard_props/noose_wrap"),
+    # The Act II desert's cliff stairs, the only way between a level's halves: also a tracker entry.
+    ("CliffStairs", "model", r"act2_bigcliff_stairs/"),
 ]
 FEATURE_NAMES = [f[0] for f in FEATURES]
 FEATURE_RX = [(n, s, re.compile(p)) for n, s, p in FEATURES]

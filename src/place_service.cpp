@@ -4,6 +4,7 @@
 #include "entity_radar.h"
 #include "level_exit_layout.h"
 #include "native_entities.h"
+#include "native_level_exits.h"
 #include "native_preset_map.h"
 #include "native_world.h"
 #include "places.h"
@@ -380,5 +381,34 @@ void Unregister() {
 	g_lastPiece.clear();
 	g_named = {};
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
+}
+
+std::vector<EntityRadar::Entity> MapLandmarks() {
+	std::vector<EntityRadar::Entity> found;
+	if (!g_supported) return found;
+	std::vector<uint64_t> maps;
+	for (const uintptr_t room : NativeWorld::LoadedRooms()) {
+		NativePresetMap::Map map;
+		if (!NativePresetMap::Read(room, map)) continue;
+		// The rooms of one piece share its map.
+		const uint64_t key = Places::MapKey(map.def, map.tileX, map.tileY);
+		if (std::find(maps.begin(), maps.end(), key) != maps.end()) continue;
+		maps.push_back(key);
+		const auto* places = Places::Find(map.path);
+		if (!places) continue;
+		const int originX = map.tileX * LevelExitLayout::SubtilesPerTile, originY = map.tileY * LevelExitLayout::SubtilesPerTile;
+		for (const auto& seed : Places::PieceOf(*places).seeds) {
+			if (!Places::Tracked(seed.feature)) continue;
+			EntityRadar::Entity entity;
+			entity.kind = EntityRadar::Kind::Object;
+			entity.category = EntityRadar::Category::Interactable;
+			entity.position = {originX + (seed.minX + seed.maxX) / 2.0, originY + (seed.minY + seed.maxY) / 2.0};
+			entity.placeId = NativeLevelExits::Identity(entity.position);
+			entity.name = Strings::Current().placeFeatures[static_cast<size_t>(seed.feature)];
+			entity.mapLandmark = true;
+			found.push_back(std::move(entity));
+		}
+	}
+	return found;
 }
 }

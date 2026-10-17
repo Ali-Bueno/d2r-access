@@ -300,7 +300,7 @@ inline constexpr Table itIT {
 	.deathRouteWaypoint = "strada verso dove sei morto, %s: %s, scegli %s",
 	.placePresets = {"", "ponte", "fiume", "accampamento dei Caduti", "casupole", "cimitero", "torre", "rovine", "accampamento", "tempio", "porta", "oasi", "forgia"},
 	.placeInteriors = {"taverna", "ingresso del palazzo", "casupola", "torre", "capanna", "tempio", "fortezza", "edificio", "fattoria", "baracca", "cattedrale"},
-	.placeFeatures = {"cucina", "camino", "bancone", "tavoli", "scale", "molo", "barca", "bancarelle", "forgia", "altare", "trono", "tombe", "celle", "cavalletto di tortura", "letti", "scaffali", "statue", "fontana", "pozzo", "tende", "carro", "fiume", "ponte", "fuoco da campo", "Albero dell'Impiccato"},
+	.placeFeatures = {"cucina", "camino", "bancone", "tavoli", "scale", "molo", "barca", "bancarelle", "forgia", "altare", "trono", "tombe", "celle", "cavalletto di tortura", "letti", "scaffali", "statue", "fontana", "pozzo", "tende", "carro", "fiume", "ponte", "fuoco da campo", "Albero dell'Impiccato", "scale"},
 	.placeOutside = "fuori",
 	.placeCorridor = "corridoio",
 	.placeDeadEnd = "corridoio cieco",

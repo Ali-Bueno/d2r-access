@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 25;
+inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 26;
 
 
 
