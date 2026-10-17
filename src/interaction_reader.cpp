@@ -928,7 +928,12 @@ void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
 // The stash says its tab as it opens, wherever the first focus lands, and the shared
 // stash's page as RB and LB turn it (a tester, 2026-10-15).
 constexpr uint64_t StashOpenHoldMs = 1200;
+// The focus lands about 500 ms after the panel shows; until then the stash panel is
+// focused with no widget, which is no readout (a tester, 2026-10-17: nothing said).
+constexpr uint64_t StashFocusWaitMs = 1000;
 uintptr_t g_stashShown = 0;
+uint64_t g_stashShownAt = 0;
+bool g_stashTold = false;
 std::string g_sharedPage;
 void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
 	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(StashPanel) : 0;
@@ -936,8 +941,15 @@ void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus
 	const auto page = SharedPage(panel);
 	if (g_stashShown != panel) {
 		g_stashShown = panel;
+		g_stashShownAt = now;
+		g_stashTold = false;
 		g_sharedPage = page;
-		if (focus.panel == panel) return; // a stash grid's own readout names its tab
+	}
+	if (!g_stashTold) {
+		if (!focus.widget && now - g_stashShownAt < StashFocusWaitMs) return;
+		g_stashTold = true;
+		g_sharedPage = page;
+		if (focus.widget && focus.panel == panel) return; // a stash grid's own readout names its tab
 		std::string text = Title(panel);
 		for (const uintptr_t bar : NativeUi::FindControls(panel, UiText::Kind::Tabs))
 			Append(text, UiText::Clean(NativeUi::SelectedTabText(bar)));

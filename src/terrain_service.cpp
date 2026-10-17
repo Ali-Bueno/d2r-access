@@ -177,6 +177,14 @@ const ExploredStore::Key* LoadedKey(int level, const std::vector<NativeRooms::Ro
 		layout.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight}, false});
 	return ExploredStore::LayoutDigest(layout) == key->second.digest ? &key->second : nullptr;
 }
+// VisitedRooms with g_mutex already held.
+std::vector<NativeRooms::Room> VisitedRoomsLocked(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::vector<NativeRooms::Room> visited;
+	if (!LoadedKey(level, rooms)) return visited;
+	for (const auto& room : rooms)
+		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
+	return visited;
+}
 std::vector<EntityRadar::Entity> KnownPlacesLocked(int level, const std::vector<NativeRooms::Room>& rooms);
 // One spoken summary of the level around the player.
 void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
@@ -189,10 +197,20 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 		AsyncLog::InfoF(context, "[terrain] layout unavailable level=%d", state.level);
 		return;
 	}
+	std::vector<NativeRooms::Room> rooms;
+	rooms.reserve(native.rooms.size());
+	for (const auto& room : native.rooms)
+		rooms.push_back({room.rect.x, room.rect.y, room.rect.width, room.rect.height, NativeRooms::Identity(room.rect.x, room.rect.y)});
+	// Explored as the tracker and the beacon count it: stood in or drawn on the automap.
+	// Not every room the game streamed: outdoors that is most of the level, and the
+	// overview said 100 percent with a dozen rooms still blank (a tester, 2026-10-17).
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	const auto explored = NavigationPolicy::Explored(VisitedRoomsLocked(state.level, rooms), charted ? &*charted : nullptr, rooms, world.player);
 	TerrainOverview::Layout layout;
 	layout.rooms.reserve(native.rooms.size());
-	for (const auto& room : native.rooms)
-		layout.rooms.push_back({room.rect, g_explored.Explored(native.level, room.rect.x, room.rect.y)});
+	for (const auto& room : rooms)
+		layout.rooms.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight},
+			std::any_of(explored.begin(), explored.end(), [&](const NativeRooms::Room& known) { return known.id == room.id; })});
 	for (const auto& neighbour : native.neighbours)
 		layout.neighbours.push_back({neighbour.rect, LevelName(neighbour.level, strings)});
 	const auto summary = TerrainOverview::Describe(layout, world.player);
@@ -204,9 +222,6 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 	}
 	CheckBounds(context, native, summary.box);
 	// The places the scanner has logged here, as the automap shows them (a tester, 2026-10-14).
-	std::vector<NativeRooms::Room> rooms;
-	rooms.reserve(native.rooms.size());
-	for (const auto& room : native.rooms) rooms.push_back({room.rect.x, room.rect.y, room.rect.width, room.rect.height});
 	std::vector<TerrainOverview::Landmark> landmarks;
 	for (const auto& place : KnownPlacesLocked(state.level, rooms))
 		landmarks.push_back({place.name, {place.position.x - world.player.x, place.position.y - world.player.y}});
@@ -219,10 +234,10 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			leg.hasUnexplored ? leg.unexplored : 0.0, leg.border.empty() ? "-" : leg.border.c_str());
 		legs += entry;
 	}
-	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu percent=%d landmarks=%zu%s -> %s",
+	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu (charted %zu, streamed %zu) percent=%d landmarks=%zu%s -> %s",
 		world.player.x, world.player.y, native.level, summary.box.x, summary.box.y,
-		summary.box.width, summary.box.height, summary.place, g_explored.Count(native.level),
-		native.rooms.size(), summary.percent, landmarks.size(), legs.c_str(), text.c_str());
+		summary.box.width, summary.box.height, summary.place, explored.size(), native.rooms.size(),
+		charted ? charted->size() : 0, g_explored.Count(native.level), summary.percent, landmarks.size(), legs.c_str(), text.c_str());
 }
 // The rooms never streamed, as subtile rectangles, for the frontier.
 std::vector<NativeRooms::Bounds> Unseen(const NativeLevelExits::Layout& native) {
@@ -408,11 +423,7 @@ bool Visited(int level, int tileX, int tileY) {
 
 std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms) {
 	std::lock_guard lock(g_mutex);
-	std::vector<NativeRooms::Room> visited;
-	if (!LoadedKey(level, rooms)) return visited;
-	for (const auto& room : rooms)
-		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
-	return visited;
+	return VisitedRoomsLocked(level, rooms);
 }
 
 std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {

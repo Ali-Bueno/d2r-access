@@ -251,7 +251,7 @@ bool Fixed(const EntityRadar::Entity& entity) {
 	if (!entity.placeId) return false;
 	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint
 			|| entity.category == Category::Quest))
-		|| (entity.kind == Kind::Object && entity.category == Category::Stash);
+		|| (entity.kind == Kind::Object && entity.category == Category::Stash) || entity.mapLandmark;
 }
 
 // An exit is found from twice the scan's range, seen or not: the way into the

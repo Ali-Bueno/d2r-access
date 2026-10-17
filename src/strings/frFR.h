@@ -300,7 +300,7 @@ inline constexpr Table frFR {
 	.deathRouteWaypoint = "chemin vers le lieu de ta mort, %s : %s, choisis %s",
 	.placePresets = {"", "pont", "rivière", "camp des Déchus", "chaumières", "cimetière", "tour", "ruines", "camp", "temple", "porte", "oasis", "forge"},
 	.placeInteriors = {"taverne", "entrée du palais", "chaumière", "tour", "hutte", "temple", "forteresse", "bâtiment", "ferme", "cabane", "cathédrale"},
-	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu"},
+	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu", "escalier"},
 	.placeOutside = "dehors",
 	.placeCorridor = "couloir",
 	.placeDeadEnd = "couloir sans issue",

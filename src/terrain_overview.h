@@ -50,7 +50,7 @@ static_assert(ThirdsPerAxis * ThirdsPerAxis == Strings::TerrainPlaceCount);
 struct Summary {
 	bool valid = false;
 	size_t place = 0;  // index into Strings::Table::terrainPlaces
-	int percent = 0;   // share of the level's rooms ever streamed, what the automap would show filled
+	int percent = 0;   // share of the level's rooms explored: stood in or drawn on the automap
 	TileRect box;      // the level's extent, the union of its rooms
 	std::array<Leg, SideCount> legs{}; // Side order
 };

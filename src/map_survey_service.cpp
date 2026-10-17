@@ -21,6 +21,7 @@
 #include "keyboard_menu.h"
 #include "keyboard_service.h"
 #include "native_world.h"
+#include "place_service.h"
 #include "navigation_mode.h"
 #include "quest_seals.h"
 #include "radar_ui.h"
@@ -293,6 +294,9 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 bool Collect(const Lifecycle& state, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true, true)) return false;
+	// The map's own landmarks with no unit: the desert's cliff stairs (a tester, 2026-10-17).
+	const auto mapLandmarks = PlaceService::MapLandmarks();
+	entities.insert(entities.end(), mapLandmarks.begin(), mapLandmarks.end());
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }

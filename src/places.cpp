@@ -123,6 +123,8 @@ uint64_t MapKey(int32_t def, int tileX, int tileY) {
 		| static_cast<uint64_t>(static_cast<uint16_t>(tileX)) << 16 | static_cast<uint16_t>(tileY);
 }
 
+bool Tracked(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs; }
+
 Spot Carry(const Spot& current, Spot observed) {
 	if (current.valid && observed.feature == PlaceFeature::Count && observed.map == current.map
 		&& observed.interior == current.interior) observed.feature = current.feature;

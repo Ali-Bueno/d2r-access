@@ -81,6 +81,14 @@ id, and the set survives leaving and re-entering a level, like the automap. A
 new session forgets it. The count is logged only when it grows by a tenth of
 the level or the level changes; each query logs one `[terrain]` line.
 
+Since 2026-10-17 the overview's percentage and its explored sides count what the
+tracker and the beacon count: rooms stood in or drawn on the automap
+(`TerrainService::ExploredRooms`, `NativeAutomap::RevealedRooms`). A tester heard
+"100 percent explored" in the Dry Hills with the Halls of the Dead, the waypoint
+and 11 tracker rooms still undiscovered: outdoors the game streams most of the
+level around the player (94/94 streamed, 48 stood in). The log line gives both:
+`rooms=E/N (charted C, streamed S)`.
+
 ## Limits
 
 - The walk steps a tile at a time along a world axis, so distances are
