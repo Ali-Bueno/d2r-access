@@ -43,3 +43,12 @@ focused row is the test (`ui_text.cpp`). Its frame at +0x90 is 0 open, 1 current
 `[waypoint] row Act1 Button3 -> open (tab=0 rows=9 level=5 open=1 player=1)`, once per row focused.
 Expected: `rows` 9 in Act I, `level` the Levels.txt id of the row's area, `open` 0 on grey rows,
 `player` the area the player stands in. `[waypoint] Verified.` at start.
+
+## The row words were never said (build 2026-10-17)
+
+The tester's log had every row right (`-> here`, `-> undiscovered`) yet only names were spoken:
+the button readout snapshots the button alone, so the focus-state hook got the button's name
+("Act1 Button0") and the button as the panel, and `FocusWords` and `TerrorZone` both test for
+"WaypointsPanel". `NativeUi::Snapshot` takes the owning panel (`named`) for its name and hook now.
+Emote words after choosing a row ("GG, button") came from the always-open `EmoteWheelPanel`: the
+focus tracker's geometry fallback skips open panels that draw nothing (`NativeUi::DrawsNothing`).

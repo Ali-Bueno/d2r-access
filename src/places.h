@@ -22,7 +22,9 @@ inline constexpr int None = -1;
 // The generated places of a DS1 path as the game keeps it
 // ("data\global\tiles\Act2\Town\LutW.ds1"), or null when the HD layout marks nothing.
 const Generated::PresetPlaces* Find(std::string_view ds1Path);
-PresetPlace NameOf(int32_t def);
+// A LvlPrest row's place, or the piece's own when the row picks among kinds
+// (a cottage row's stable): `ds1Path` as Find takes it.
+PresetPlace NameOf(int32_t def, std::string_view ds1Path = {});
 
 // One piece's landmarks and interiors, in preset-local subtiles.
 struct Piece {
@@ -66,6 +68,8 @@ uint64_t MapKey(int32_t def, int tileX, int tileY);
 // A landmark the scanner lists too, not only the walk-in announcer: a way across a
 // level that has no unit, such as the desert's cliff stairs (a tester, 2026-10-17).
 bool Tracked(PlaceFeature kind);
+// The two landings of one cliff stairway: walking from one to the other is not news.
+bool Stairway(PlaceFeature kind);
 
 // No landmark in reach inside the same interior keeps the last one: the floor
 // between two landmarks is not leaving either.

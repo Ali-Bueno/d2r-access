@@ -38,6 +38,11 @@ void Worker(const D2RL::PluginContext* context) {
 	IXAudio2* engine = nullptr;
 	IXAudio2MasteringVoice* master = nullptr;
 	IXAudio2SourceVoice* voice = nullptr;
+	IXAudio2SourceVoice* alert = nullptr; // the start sound, on its own voice so the beat does not wait for its tail
+	const auto destroy = [&] {
+		if (voice) { voice->DestroyVoice(); voice = nullptr; }
+		if (alert) { alert->DestroyVoice(); alert = nullptr; }
+	};
 	try {
 		const auto module = reinterpret_cast<HMODULE>(&__ImageBase);
 		auto start = ItemWave::LoadEmbedded(module, "vitals", "low life start.wav");
@@ -60,12 +65,13 @@ void Worker(const D2RL::PluginContext* context) {
 				const bool wanted = g_running && g_wanted.load() && ModSounds::Enabled();
 				if (wanted == playing) continue;
 				playing = wanted;
-				if (voice) { voice->DestroyVoice(); voice = nullptr; }
+				destroy();
 				if (!wanted) { AsyncLog::Info(context, "[low-life] heartbeat stopped"); continue; }
 				const auto first = Buffer(start, false), loop = Buffer(beat, true);
-				if (FAILED(engine->CreateSourceVoice(&voice, &format)) || FAILED(voice->SubmitSourceBuffer(&first))
-					|| FAILED(voice->SubmitSourceBuffer(&loop)) || FAILED(voice->Start())) {
-					if (voice) { voice->DestroyVoice(); voice = nullptr; }
+				if (FAILED(engine->CreateSourceVoice(&alert, &format)) || FAILED(alert->SubmitSourceBuffer(&first))
+					|| FAILED(engine->CreateSourceVoice(&voice, &format)) || FAILED(voice->SubmitSourceBuffer(&loop))
+					|| FAILED(alert->Start()) || FAILED(voice->Start())) {
+					destroy();
 					AsyncLog::Warn(context, "[low-life] heartbeat could not start");
 					continue;
 				}
@@ -73,7 +79,7 @@ void Worker(const D2RL::PluginContext* context) {
 			}
 		}
 	} catch (...) { AsyncLog::Warn(context, "[low-life] Worker stopped after an audio error."); }
-	if (voice) voice->DestroyVoice();
+	destroy();
 	if (master) master->DestroyVoice();
 	if (engine) engine->Release();
 	if (SUCCEEDED(com)) CoUninitialize();

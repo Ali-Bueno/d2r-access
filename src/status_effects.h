@@ -57,6 +57,9 @@ inline constexpr uint64_t StartHoldMs = 1500;
 // game holds one at a time; when the last one ends the player hears it (a tester, 2026-10-15).
 inline constexpr std::array<int, 10> ShrineStates{128, 129, 130, 131, 132, 133, 134, 135, 136, 137};
 
+// The stamina potion's state (states.txt staminapot 180): the bar stays full while it holds.
+inline constexpr int StaminaPotionState = 180;
+
 struct Change {
 	std::vector<size_t> started, ended; // indexes into Effects
 	bool Empty() const { return started.empty() && ended.empty(); }

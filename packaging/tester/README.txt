@@ -109,6 +109,8 @@ In play:
   weapons left in hand, any poison, freezing, chill, stun or curse on you.
   A Necromancer also hears how many usable corpses are nearby. The mercenary
   is BACK+RT's now ("Mercenary in the life report", Alerts, brings it back).
+  "Running skills in the life report" (Alerts, off) adds the auras and skills
+  running on you: "Prayer aura active. Bone Armor active".
 - BACK+RT: one press at a time, your mercenary ("Mercenary life: 80 percent,
   Level 12, 6 units, north"), then each of your summons as
   the game's portraits group them ("Raven: 5", "Oak Sage: life 35 percent",
@@ -131,11 +133,11 @@ In play:
   starts or the area beyond it, then the places the radar has logged here,
   nearest first ("Waypoint, 40 units, northeast").
 - Lobby (host game, direct join): A on a text box starts typing there, for a
-  keyboard. With the controller alone, while a box is being typed into, the
-  right stick up and down step through the letters, digits, space and a few
-  signs (each one said), right types the one reached and left deletes the
-  last one; B ends as before. "Typing with the right stick" (Controller)
-  turns the stick part off.
+  keyboard, and the mod says "Editing". With the controller alone, while a
+  box is being typed into, the right stick up steps forward through the
+  letters, digits, space and a few signs and down steps back (each one said),
+  A or right types the one reached and left deletes the last one; B ends as
+  before. "Typing with the right stick" (Controller) turns the stick part off.
 - LB (alone, in play): the audible loot filter on or off ("Loot filter on").
   While it is on, only the drop loops you keep in the Loot filter group of
   the settings sound (see SETTINGS); the game still plays each item's own

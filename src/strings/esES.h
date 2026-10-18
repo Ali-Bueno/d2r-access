@@ -298,9 +298,9 @@ inline constexpr Table esES {
 	.deathPlace = "donde moriste",
 	.deathRoute = "camino a donde moriste, %s: %s",
 	.deathRouteWaypoint = "camino a donde moriste, %s: %s, elige %s",
-	.placePresets = {"", "puente", "río", "campamento de los Caídos", "cabañas", "cementerio", "torre", "ruinas", "campamento", "templo", "puerta", "oasis", "forja"},
+	.placePresets = {"", "puente", "río", "campamento de los Caídos", "cabaña", "cementerio", "torre en ruinas", "ruinas", "campamento", "templo", "puerta", "oasis", "forja", "establo", "cabaña en llamas"},
 	.placeInteriors = {"taberna", "entrada del palacio", "cabaña", "torre", "choza", "templo", "fortaleza", "edificio", "granja", "cobertizo", "catedral"},
-	.placeFeatures = {"cocina", "chimenea", "barra", "mesas", "escaleras", "muelle", "barca", "puestos", "forja", "altar", "trono", "tumbas", "celdas", "potro de tortura", "camastros", "estanterías", "estatuas", "fuente", "pozo", "tiendas", "carro", "río", "puente", "hoguera", "Árbol del Ahorcado", "escaleras"},
+	.placeFeatures = {"cocina", "chimenea", "barra", "mesas", "escaleras", "muelle", "barca", "puestos", "forja", "altar", "trono", "tumbas", "celdas", "potro de tortura", "camastros", "estanterías", "estatuas", "fuente", "pozo", "tiendas", "carro", "río", "puente", "hoguera", "Árbol del Ahorcado", "escaleras de subida", "fuente rebosante de sangre", "edificio en llamas", "estrella en llamas", "escaleras de bajada"},
 	.placeOutside = "fuera",
 	.placeCorridor = "pasillo",
 	.placeDeadEnd = "pasillo sin salida",
@@ -450,6 +450,16 @@ inline constexpr Table esES {
 	.areaDescriptionHint = "Pulsa %s y el stick derecho hacia arriba para oír la descripción de la zona",
 	.noAreaDescription = "Sin descripción para %s",
 	.portalOwned = "%s, portal de %s",
+	.skillAuraActive = "Aura %s activa",
+	.skillActive = "%s en curso",
+	.skillReportOn = "Habilidades en curso en el informe de vida activado",
+	.skillReportOff = "Habilidades en curso en el informe de vida desactivado",
+	.staminaFrozen = "Aguante congelado al 100 por ciento",
+	.staminaNormal = "El consumo de aguante vuelve a la normalidad",
+	.typingStarted = "Editando. El stick derecho elige un carácter, A lo escribe, B termina",
+	.skillBound = "%s asignada a %s",
+	.hintMoreControls = "Stick derecho arriba para más opciones",
+	.radiantObject = "%s radiante",
 };
 
 }

@@ -298,9 +298,9 @@ inline constexpr Table zhCN {
 	.deathPlace = "你死亡的地点",
 	.deathRoute = "前往你死亡的地点，%s：%s",
 	.deathRouteWaypoint = "前往你死亡的地点，%s：%s，选择%s",
-	.placePresets = {"", "桥", "河", "沉沦魔营地", "小屋群", "墓地", "塔", "废墟", "营地", "神殿", "城门", "绿洲", "铁匠铺"},
+	.placePresets = {"", "桥", "河", "沉沦魔营地", "小屋", "墓地", "塔楼废墟", "废墟", "营地", "神殿", "城门", "绿洲", "铁匠铺", "畜棚", "着火的小屋"},
 	.placeInteriors = {"酒馆", "宫殿入口", "小屋", "塔", "小屋", "神殿", "要塞", "建筑", "农舍", "棚屋", "大教堂"},
-	.placeFeatures = {"厨房", "壁炉", "吧台", "桌子", "楼梯", "码头", "船", "摊位", "铁匠铺", "祭坛", "王座", "坟墓", "牢房", "刑架", "床铺", "书架", "雕像", "喷泉", "水井", "帐篷", "马车", "河", "桥", "篝火", "绞刑树", "楼梯"},
+	.placeFeatures = {"厨房", "壁炉", "吧台", "桌子", "楼梯", "码头", "船", "摊位", "铁匠铺", "祭坛", "王座", "坟墓", "牢房", "刑架", "床铺", "书架", "雕像", "喷泉", "水井", "帐篷", "马车", "河", "桥", "篝火", "绞刑树", "上行楼梯", "血流满溢的喷泉", "燃烧的建筑", "燃烧之星", "下行楼梯"},
 	.placeOutside = "外面",
 	.placeCorridor = "走廊",
 	.placeDeadEnd = "死胡同",
@@ -450,6 +450,16 @@ inline constexpr Table zhCN {
 	.areaDescriptionHint = "按住%s并向上推右摇杆收听区域描述",
 	.noAreaDescription = "%s没有描述",
 	.portalOwned = "%s，%s的传送门",
+	.skillAuraActive = "%s灵气生效中",
+	.skillActive = "%s生效中",
+	.skillReportOn = "生命报告包含生效技能 开",
+	.skillReportOff = "生命报告包含生效技能 关",
+	.staminaFrozen = "耐力锁定在百分之百",
+	.staminaNormal = "耐力消耗恢复正常",
+	.typingStarted = "编辑中。右摇杆选择字符，A输入，B结束",
+	.skillBound = "%s已绑定到%s",
+	.hintMoreControls = "右摇杆向上查看更多选项",
+	.radiantObject = "发光的%s",
 };
 
 }

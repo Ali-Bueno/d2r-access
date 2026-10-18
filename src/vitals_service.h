@@ -29,6 +29,9 @@ void SetStatusAlerts(bool enabled);
 // The summons (and a Necromancer's usable corpses) in the life report.
 bool MinionsReported();
 void SetMinionsReported(bool enabled);
+// The skills running on the player (auras, armours, shapes) in the life report.
+bool SkillsReported();
+void SetSkillsReported(bool enabled);
 // The mercenary's life and level in the life report; off, BACK+RT says them.
 bool MercenaryReported();
 void SetMercenaryReported(bool enabled);

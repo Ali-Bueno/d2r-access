@@ -1,6 +1,7 @@
 #include "native_entities.h"
 #include "generated/level_flags.h"
 #include "generated/lootables.h"
+#include "native_quest_flags.h"
 #include "layout_check.h"
 #include "entity_layout.h"
 #include "ground_item_layout.h"
@@ -132,6 +133,11 @@ bool UsableCorpse(uintptr_t unit, uintptr_t tablesAddress, uint64_t monsterCount
 		&& Peek(tablesAddress + MonStats2, rows) && rows && Peek(tablesAddress + MonStats2Count, count)
 		&& static_cast<uint64_t>(extra) < count && Peek(rows + static_cast<uintptr_t>(extra) * MonStats2Stride + MonStats2Flags, flags)
 		&& (flags & CorpseSelectable) && !UsedCorpse(unit, tablesAddress);
+}
+// Unread flags keep the tower's ways quest ways, as before the flags were known.
+bool TowerQuestRunning() {
+	const auto flags = NativeQuestFlags::Read(EntityRadar::TowerQuestRow);
+	return !flags || EntityRadar::QuestRunning(*flags);
 }
 bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) {
 	uintptr_t path = 0, pathRoom = 0;
@@ -586,6 +592,13 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 		entity.name = UiText::Clean(Localization::Text(key));
 		entity.nameKey = key;
 	}
+	// The glowing quest and reward chests, told from the plain ones (a tester, 2026-10-17).
+	if (Generated::RadiantObject(classId) && !entity.name.empty()) {
+		char text[256]{};
+		std::snprintf(text, sizeof text, Strings::Current().radiantObject, entity.name.c_str());
+		entity.name = text;
+		entity.nameKey.clear(); // composed
+	}
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
 	if (entity.name.empty() && entity.kind == EntityRadar::Kind::Exit) entity.name = Strings::Current().exitUnnamed;
@@ -642,7 +655,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		uintptr_t here = 0;
 		uint32_t from = 0;
 		if (Peek(roomEx + ExtendedLevel, here) && here) (void)Peek(here + LevelId, from);
-		if (EntityRadar::QuestWay(from, levelId)) entity.category = EntityRadar::Category::Quest;
+		if (EntityRadar::QuestWay(from, levelId) && TowerQuestRunning()) entity.category = EntityRadar::Category::Quest;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	TombSymbols::Mark(entity, Strings::Current());
@@ -801,7 +814,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
-		if (EntityRadar::QuestWay(exit.source, exit.destination)) entity.category = EntityRadar::Category::Quest;
+		if (EntityRadar::QuestWay(exit.source, exit.destination) && TowerQuestRunning()) entity.category = EntityRadar::Category::Quest;
 		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));

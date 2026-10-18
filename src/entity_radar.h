@@ -116,6 +116,12 @@ inline bool QuestWay(uint32_t from, uint32_t to) {
 	const auto* const source = std::find(std::begin(QuestChain), end, from);
 	return source == end || source < target;
 }
+// The Forgotten Tower's quest flags (quest record row 5): bits 2-6 its steps since the
+// Moldy Tome, bit 0 completed, bit 15 done too. Only while it runs are its ways quest
+// ways (a tester, 2026-10-17: by the real quest state). docs/quests.md
+inline constexpr int TowerQuestRow = 5;
+inline constexpr uint16_t QuestStartedBits = 0x007C, QuestDoneBits = 0x8001;
+inline bool QuestRunning(uint16_t flags) { return (flags & QuestStartedBits) && !(flags & QuestDoneBits); }
 inline bool QuestSource(const Entity& entity) {
 	return (entity.kind == Kind::Object && (entity.questObject || entity.unreadTome))
 		|| (entity.kind == Kind::Exit && entity.category == Category::Quest);

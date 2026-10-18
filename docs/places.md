@@ -132,3 +132,23 @@ row per line (`#` wall, `.` floor, `?` not streamed, `@` the player), with the t
 - Words for 13 languages live in `src/strings/<locale>.h` (`placePresets`, `placeInteriors`,
   `placeFeatures`). Spanish and English were checked; the other eleven are first-pass
   translations a native speaker should review.
+
+## Cottage kinds, Tristram, the crypt fire, stairs both ways (2026-10-18)
+
+A tester (build 2026-10-17): every Act I building was "cottages", Tristram's blood fountain was a
+plain fountain and its fires were silent, the crypt fire star and the cliff stairs' upper end said
+nothing, and the Hangman's Tree only spoke at its trunk. `tools/gen_places.py` now:
+- names a piece by its **file** where its LvlPrest row picks among kinds (`PresetFileNames`):
+  "Cottages 1/2" (Def 47, 48) are *cottage*, their sixth piece (`Cott6`, `Cott6A`: hay, manure,
+  a cow's stall) is *stable*, "Cottages 3" (`Cott7`: burnt planks, Tristram's fire models) is
+  *cottage on fire*; the tower pieces (Defs 162, 163) are *tower ruin*;
+- adds **BloodFountain** (`fountain_gore`, which drops the plain fountain models on its spot),
+  **BurningBuilding** (Tristram's fire and smoulder effects, burnt beams and planks; also in the
+  Act V ruins; not in `Cott7`, whose name says it) and **FireStar** (`FX_Act1Crypt_fire_pentagram`
+  in the crypt themes `CryptSEWTheme`, `CryptNSEWTheme`; a call-out, not a scanner entry);
+- pads the **Hangman's Tree** seeds one tile (`FEATURE_PADDING`), about its canopy;
+- places the **cliff stairs** from their collision mesh (`stairs_*_collision.physics`: header
+  word 6 is the node count, 32-byte bounding-volume nodes from 0x30): the node lowest at its top
+  is the bottom landing (*stairs up*, `CliffStairs`), the one highest at its base the top landing
+  (*stairs down*, `CliffStairsTop`). Both are scanner entries; walking from one to the other is no
+  news (`Places::Stairway`). Extract `act2_bigcliff_stairs\` with the presets.

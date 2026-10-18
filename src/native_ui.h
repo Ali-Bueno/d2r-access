@@ -28,6 +28,8 @@ bool Visible(uintptr_t widget);
 uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);
 std::vector<uintptr_t> Children(uintptr_t widget);
+// A panel none of whose children is visible: open, but drawing nothing (EmoteWheelPanel all game).
+bool DrawsNothing(uintptr_t panel);
 Focus CurrentFocus();
 // The game's own focus, whatever the keyboard's cursor is on: for a reader
 // that asks whether the game itself gave a panel anything to stand on.
@@ -94,7 +96,9 @@ std::vector<uintptr_t> ListRows(uintptr_t list);
 // One line for the log: the list's type, its row container and how many
 // children it holds, and the first child's name and visible flag.
 std::string DescribeList(uintptr_t list);
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
+// `named`, when the walk starts at one of its widgets: the panel whose name and
+// focus-state words apply (a waypoint row is read alone, from its button).
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus, uintptr_t named = 0);
 // Words a native reader knows of the focused control beyond the tree (Node::state),
 // from the panel's name and widget and the control's name; null for none.
 using FocusState = std::string (*)(std::string_view panelName, uintptr_t panel, std::string_view control);

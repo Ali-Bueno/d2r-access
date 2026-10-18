@@ -133,6 +133,17 @@ constexpr bool TomeObject(uint32_t classId) {
 		static_cast<uint16_t>(classId));
 }
 
+// Chests that glow (Name chest, a Lit0 light): HoradricCubeChest, HoradricScrollChest, StaffOfKingsChest, ConsolationChest, KhalimHeartChest, KhalimBrainChest, KhalimEyeChest.
+inline constexpr std::array<uint16_t, 7> RadiantObjects{
+	354, 355, 356, 397, 405, 406, 407
+};
+
+constexpr bool RadiantObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(RadiantObjects.begin(), RadiantObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
 // Quest mechanisms, by OperateFn: Gibbet, TaintedSunShrine,
 //     SevenTombsReceptacle, GidBInnDecoy, BeneathTheCityLever,
 //     SoulStoneForge, DiabloSeal1, DiabloSeal2, DiabloSeal3, DiabloSeal4,

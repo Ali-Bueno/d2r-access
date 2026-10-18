@@ -258,3 +258,12 @@ Measured live by the user (2026-10-17, Host Game, neither LAN Only nor Unlisted)
 reached with the D-pad, A started the game's own editing (the mod's begin-edit was not needed),
 keyboard and right-stick characters and Backspace reached the box, B ended editing; no panel
 reload. Direct Join's boxes were not in that log.
+
+## The tester's lobby notes on build 2026-10-17
+
+The log showed A on a box starting the game's editing (`TextInputModal` opens), but that panel says
+nothing, so A seemed dead: the start is now said ("Editing. Right stick picks a character, A types
+it, B finishes"). The stick steps forward with up (most games' pickers), and A types the character
+reached as right does. **Not done:** Enter (or A) ending the edit. The game ends it on B through
+its text entry panel; no end-edit counterpart of begin-edit (`0x88C810`) is known, and a synthetic
+Esc risks closing Direct Join. LAN Only and Unlisted on at start are the loader's, not the mod's.

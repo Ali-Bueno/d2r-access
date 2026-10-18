@@ -74,7 +74,7 @@ Type Classify(uintptr_t widget) {
 	for (const auto& node : snapshot.nodes) if (node.id == widget) return {"", node.kind, UiText::Surface::Other};
 	return {};
 }
-UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return snapshot; }
+UiText::Snapshot Snapshot(uintptr_t, uintptr_t, uintptr_t) { return snapshot; }
 }
 namespace D2RAccess::NativeWidgets {
 std::string ReadName(uintptr_t widget) {

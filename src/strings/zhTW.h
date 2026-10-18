@@ -298,9 +298,9 @@ inline constexpr Table zhTW {
 	.deathPlace = "你死亡的地點",
 	.deathRoute = "前往你死亡的地點，%s：%s",
 	.deathRouteWaypoint = "前往你死亡的地點，%s：%s，選擇%s",
-	.placePresets = {"", "橋", "河", "墮落者營地", "小屋群", "墓地", "塔", "廢墟", "營地", "神殿", "城門", "綠洲", "鐵匠鋪"},
+	.placePresets = {"", "橋", "河", "墮落者營地", "小屋", "墓地", "塔樓廢墟", "廢墟", "營地", "神殿", "城門", "綠洲", "鐵匠鋪", "畜棚", "著火的小屋"},
 	.placeInteriors = {"酒館", "宮殿入口", "小屋", "塔", "小屋", "神殿", "要塞", "建築", "農舍", "棚屋", "大教堂"},
-	.placeFeatures = {"廚房", "壁爐", "吧檯", "桌子", "樓梯", "碼頭", "船", "攤位", "鐵匠鋪", "祭壇", "王座", "墳墓", "牢房", "刑架", "床鋪", "書架", "雕像", "噴泉", "水井", "帳篷", "馬車", "河", "橋", "營火", "絞刑樹", "樓梯"},
+	.placeFeatures = {"廚房", "壁爐", "吧檯", "桌子", "樓梯", "碼頭", "船", "攤位", "鐵匠鋪", "祭壇", "王座", "墳墓", "牢房", "刑架", "床鋪", "書架", "雕像", "噴泉", "水井", "帳篷", "馬車", "河", "橋", "營火", "絞刑樹", "上行樓梯", "血流滿溢的噴泉", "燃燒的建築", "燃燒之星", "下行樓梯"},
 	.placeOutside = "外面",
 	.placeCorridor = "走廊",
 	.placeDeadEnd = "死路",
@@ -450,6 +450,16 @@ inline constexpr Table zhTW {
 	.areaDescriptionHint = "按住%s並向上推右搖桿收聽區域描述",
 	.noAreaDescription = "%s沒有描述",
 	.portalOwned = "%s，%s的傳送門",
+	.skillAuraActive = "%s靈氣生效中",
+	.skillActive = "%s生效中",
+	.skillReportOn = "生命報告包含生效技能 開",
+	.skillReportOff = "生命報告包含生效技能 關",
+	.staminaFrozen = "耐力鎖定在百分之百",
+	.staminaNormal = "耐力消耗恢復正常",
+	.typingStarted = "編輯中。右搖桿選擇字元，A輸入，B結束",
+	.skillBound = "%s已綁定到%s",
+	.hintMoreControls = "右搖桿向上查看更多選項",
+	.radiantObject = "發光的%s",
 };
 
 }
