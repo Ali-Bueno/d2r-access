@@ -2,7 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build 2026-10-17 — 2026-10-18
+## The tester's list on build 2026-10-17 — 2026-10-18 (released as test-2026-10-18 from 4c1f287)
+
+Release: 122/122 CTest, 29 entries, 62,634,562 bytes, SHA-256 `2719634c…f411`.
 
 From `D2R Access test build 2026-10-17,bug list, screenshots and logs.7z` (the user's Downloads:
 list, 19 screenshots, waypoint and lobby logs). Choices in [decisions](docs/decisions.md); news
