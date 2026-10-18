@@ -81,6 +81,12 @@ int main() {
 	labels[102] = "Weapon"; indices[102] = 2;
 	Check(Tick(true) == "Weapon", "a repeated caption on another index is announced");
 	Check(Tick(true).empty() && TabReader::Detail().find("idx=2") != std::string::npos, "an unchanged bar stays silent and logs its index");
+	// A tester's log, 2026-10-18: the vendor opens behind the trade menu, which still reads.
+	panels.push_back(50); controls[50] = {500}; labels[500] = "Misc";
+	Check(Tick(true).empty(), "a vendor bar that opens under a conversation is its baseline");
+	labels[500] = "Armor"; indices[500] = 0;
+	Check(Tick(true) == "Armor", "LT/RT on it before the cursor lands is announced");
+	panels.pop_back();
 	TabReader::Reset(); panels = {40}; controls[40] = {400}; labels[400] = "Unrelated";
 	const int priorWalks = walks;
 	Check(Tick().empty() && walks == priorWalks, "narrative panels are not scanned for background navigation tabs");

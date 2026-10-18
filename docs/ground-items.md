@@ -237,6 +237,12 @@ rather than read at runtime.
 | `object_door_stone` | TombDoor*, TombDoor*2 | `stone door` |
 | `object_door_slime` | SlimeDoor1/2 | `slime door` |
 
+`stone door.ogg` was re-cut 2026-10-18 (a tester: the Act II tomb doors were lost under the music,
+nearly all its energy sat under 300 Hz): the same recording through ffmpeg
+`volume=10dB,asoftclip=type=tanh,treble=g=8:f=2500,volume=-6dB`, rendered from three loop copies and
+trimmed to the middle one so the seam stays clean. After peak normalisation it sits about 4.5 LU
+above the old cut, just over the metal gate, with its 1.5 kHz band 8 LU brighter.
+
 Other objects with door-type sounds but `IsDoor` = 0 (Trapdoor, HiddenDoor2,
 Duriel's door, the Arcane and Hell gates, the Act 5 pen door, the Ancients'
 gateway, the Summit door) are not doors to the plugin and get no door loop.

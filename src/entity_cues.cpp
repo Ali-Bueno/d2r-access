@@ -11,10 +11,14 @@ constexpr size_t MaxEnemyClasses = 2; // leave room for combat, speech and the n
 constexpr std::array Priorities{Kind::Important, Kind::Resurrector, Kind::Ranged};
 constexpr std::array Order{Kind::Important, Kind::Resurrector, Kind::Ranged, Kind::Npc};
 std::optional<Kind> Classify(const EntityRadar::Entity& entity, const Settings& settings) {
-	if (entity.kind == EntityRadar::Kind::Npc) return settings.npcs ? std::optional{Kind::Npc} : std::nullopt;
+	// Another player sounds as an NPC, to be found by ear (a tester, 2026-10-16).
+	if (entity.kind == EntityRadar::Kind::Npc || entity.kind == EntityRadar::Kind::Player)
+		return settings.npcs ? std::optional{Kind::Npc} : std::nullopt;
 	if (entity.kind != EntityRadar::Kind::Enemy || !settings.enemies) return std::nullopt;
-	if (entity.enemy.important) return Kind::Important;
+	if (entity.enemy.boss) return Kind::Important;
+	// A raiser of the dead keeps its sound as a champion or unique too (a tester, 2026-10-16).
 	if (entity.enemy.resurrector) return Kind::Resurrector;
+	if (entity.enemy.important) return Kind::Important;
 	if (entity.enemy.ranged && settings.ranged) return Kind::Ranged;
 	return settings.ordinary ? std::optional{Kind::Ordinary} : std::nullopt;
 }

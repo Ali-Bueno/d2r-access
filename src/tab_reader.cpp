@@ -81,6 +81,11 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 					continue;
 				}
 			}
+			// A bar that opens behind the trade menu is named with the window once the cursor lands.
+			if (suspended && prior == g_selected.end()) {
+				next.emplace(tab, std::move(now));
+				continue;
+			}
 			const bool differs = prior == g_selected.end() || prior->second.index != now.index || prior->second.text != now.text;
 			if (g_observing && differs) {
 				Append(changed, now.text);

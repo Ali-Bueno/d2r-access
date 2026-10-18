@@ -30,6 +30,10 @@ std::vector<size_t> Tracker::Active() const {
 	return active;
 }
 
+bool Tracker::EndPending() const {
+	return std::any_of(endAt_.begin(), endAt_.end(), [](uint64_t at) { return at != 0; });
+}
+
 void Tracker::Reset() {
 	on_ = {};
 	endAt_ = {};

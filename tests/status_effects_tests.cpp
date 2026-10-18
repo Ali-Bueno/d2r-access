@@ -35,9 +35,11 @@ int main() {
 	Check(change.started == std::vector<size_t>{amplify} && change.ended.empty(), "a new curse begins");
 	change = tracker.Update({amplify}, 1200);
 	Check(change.Empty(), "an end waits");
+	Check(tracker.EndPending(), "a fortifying potion's notice waits behind it");
 	Check(tracker.Update({amplify}, 1200 + EndHoldMs - 1).Empty(), "until the hold is over");
 	change = tracker.Update({amplify}, 1200 + EndHoldMs);
 	Check(change.ended == std::vector<size_t>{poison}, "then it is said");
+	Check(!tracker.EndPending(), "and nothing waits any more");
 	Check(tracker.Active() == std::vector<size_t>{amplify}, "the effects on the player now");
 
 	// A chill renewed by the next hit is one chill.

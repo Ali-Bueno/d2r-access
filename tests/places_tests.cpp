@@ -60,6 +60,16 @@ void GeneratedData() {
 		"Cott7 is the burning cottage");
 	Check(Places::NameOf(47, "Act1/Outdoors/Cott2.ds1") == PresetPlace::Cottage,
 		"another piece of the row keeps the row's name");
+	Check(Places::NameOf(47, "Act1/Outdoors/Cott1.ds1") == PresetPlace::CottageWithPorch
+		&& Places::NameOf(48, "data\\global\\tiles\\Act1\\Outdoors\\Cott1A.ds1") == PresetPlace::CottageWithPorch,
+		"Cott1 and Cott1A are the cottage with a porch (a tester, 2026-10-18)");
+	Check(Places::Find("Act1/Outdoors/Cott6A.ds1") == nullptr && Places::Find("Act1/Outdoors/Cott6.ds1") == nullptr,
+		"the stable's cottage visbox does not make it an interior");
+	const auto* cottage = Places::Find("Act1/Outdoors/Cott4.ds1");
+	Check(cottage && Places::PieceOf(*cottage).volumes.size() == 1
+		&& Places::PieceOf(*cottage).volumes[0].interior == PlaceInterior::Cottage, "a cottage keeps its interior");
+	Check(Places::Find("Act2/Sewer/Sews.ds1") == nullptr, "the sewers' crate piles named table01/02 are not tables (a tester, 2026-10-18)");
+	Check(Places::Padding(PresetPlace::Tower) > 0 && Places::Padding(PresetPlace::Cottage) == 0, "only the tower ruin is named from afar");
 }
 
 // Walking distance, not straight-line distance, decides the landmark.
@@ -143,6 +153,7 @@ Places::Spot At(uint64_t map, int interior, PlaceFeature feature, PresetPlace pr
 	Places::Spot spot;
 	spot.map = map;
 	spot.preset = preset;
+	spot.namedMap = preset == PresetPlace::None ? 0 : map;
 	spot.interior = interior;
 	spot.feature = feature;
 	spot.valid = true;
@@ -191,10 +202,25 @@ void WhatIsSpoken() {
 		At(9, Places::None, PlaceFeature::Count, PresetPlace::Bridge));
 	Check(ford.preset, "a bridge over the river is named");
 	Check(Places::MapKey(28, 10, 20) != Places::MapKey(28, 10, 21), "two placements of one piece are told apart");
+	const auto cottageA = At(10, Places::None, PlaceFeature::Count, PresetPlace::Cottage);
+	auto between = At(0, Places::None, PlaceFeature::Count, PresetPlace::Cottage); // plain ground, the name held
+	between.namedMap = cottageA.namedMap;
+	Check(!Places::Compare(cottageA, between).preset, "leaving a cottage onto the ground around it says nothing");
+	Check(Places::Compare(between, At(11, Places::None, PlaceFeature::Count, PresetPlace::Cottage)).preset,
+		"the next cottage along is named again (a tester, 2026-10-18)");
+	Check(!Places::Compare(between, cottageA).preset, "stepping back into the same cottage's piece is not news");
+	Check(Places::Separate(PresetPlace::Stable) && !Places::Separate(PresetPlace::River), "a river is one name, a building is each");
+	Check(Places::HoldsName(PresetPlace::River, Places::SeparateHoldMs * 10)
+		&& Places::HoldsName(PresetPlace::Cottage, 1000) && !Places::HoldsName(PresetPlace::Cottage, Places::SeparateHoldMs),
+		"a building's name lapses, so coming back to it later speaks it again");
 	const auto climbed = Places::Compare(At(3, Places::None, PlaceFeature::CliffStairs), At(3, Places::None, PlaceFeature::CliffStairsTop));
 	Check(!climbed.feature, "reaching the top of the stairs walked up is not a new landmark");
 	const auto arrived = Places::Compare(At(3, Places::None, PlaceFeature::Count), At(3, Places::None, PlaceFeature::CliffStairsTop));
 	Check(arrived.feature, "coming to the top landing from the upper level names the stairs");
+	const auto top = At(3, Places::None, PlaceFeature::CliffStairsTop);
+	Check(Places::HeldStairway(top, Places::StairwayHoldMs - 1) == top, "a stairway just left still holds");
+	const auto back = Places::Compare(Places::HeldStairway(top, Places::StairwayHoldMs), top);
+	Check(back.feature, "walking away and back to the top names the stairs again");
 	Check(Places::Tracked(PlaceFeature::CliffStairs) && Places::Tracked(PlaceFeature::CliffStairsTop), "both landings are in the scanner");
 }
 

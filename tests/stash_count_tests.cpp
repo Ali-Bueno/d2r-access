@@ -24,5 +24,7 @@ int main() {
 	Check(TabOf({"Gems"}, "Personal", "Shared") == GoldTab::Unknown && TabOf({}, "Personal", "Shared") == GoldTab::Unknown,
 		"any other tab, or none, is unknown");
 	Check(TabOf({""}, "", "") == GoldTab::Unknown, "unlocalized labels never match an empty one");
+	Check(D2RAccess::StashCount::Counted("Chipped Topaz", 3, "%d x %s") == "3 x Chipped Topaz", "a group is counted before its name");
+	Check(D2RAccess::StashCount::Counted("Chipped Topaz", 1, "%d x %s") == "Chipped Topaz", "a single item is its bare name");
 	Passed();
 }

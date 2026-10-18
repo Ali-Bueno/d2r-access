@@ -59,6 +59,8 @@ inline constexpr std::array<int, 10> ShrineStates{128, 129, 130, 131, 132, 133, 
 
 // The stamina potion's state (states.txt staminapot 180): the bar stays full while it holds.
 inline constexpr int StaminaPotionState = 180;
+// The antidote and thawing potions' states (states.txt antidote 178, thawing 179): +50 poison or cold resistance.
+inline constexpr std::array<int, 2> FortifyStates{178, 179};
 
 struct Change {
 	std::vector<size_t> started, ended; // indexes into Effects
@@ -72,6 +74,8 @@ public:
 	Change Update(const std::vector<size_t>& active, uint64_t now);
 	// The effects on the player at the last update.
 	std::vector<size_t> Active() const;
+	// An ended effect waits to be said.
+	bool EndPending() const;
 	void Reset();
 private:
 	std::array<bool, Effects.size()> on_{};

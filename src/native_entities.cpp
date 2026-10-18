@@ -277,9 +277,9 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
 		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
-		// *hcIdx values of the FallenShaman and FetishShaman AI rows in the game's monstats.txt.
-		constexpr std::array<uint32_t, 16> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
-			645, 646, 647, 662, 663, 664};
+		// *hcIdx values of the FallenShaman, FetishShaman and GreaterMummy AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 26> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 229, 667, 668, 669, 670};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {

@@ -5,6 +5,7 @@
 #include "belt_reader.h"
 #include "click_words.h"
 #include "control_hints.h"
+#include "cube_state.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
 #include "entity_cue_service.h"
@@ -604,6 +605,7 @@ std::string Title(uintptr_t panel) {
 	}
 	// The player opened the stash and knows it: its tab and page are the news (a tester, 2026-10-17).
 	if (NativeUi::Classify(panel).name == "BankPanel") return {};
+	if (NativeWidgets::ReadName(panel) == CubeState::Panel) return CubeState::Name();
 	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
 	const auto localized = Localization::Text(hireling ? "MiniPanelHireinv" : "minipanelinv");
 	return localized.empty() ? Strings::Current().inventory : localized;
@@ -618,6 +620,9 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	result.body = g_inventoryContext.title;
 	Append(result.body, TabReader::Selected(focus.panel));
 	if (g_inventoryContext.name == StashPanel) Append(result.body, SharedPage(focus.panel));
+	// The cube is a place of its own, in its window or in the stash; the stash tab says whether a cube is open beside it.
+	if (CubeState::IsGrid(g_inventoryContext.name, NativeWidgets::ReadName(focus.widget))) result.body = CubeState::Name();
+	else if (g_inventoryContext.name == StashPanel) result.body = CubeState::WithStashStatus(context, result.body, focus.panel);
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
 	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) Append(result.body, Strings::Current().tradeYourOffer);
@@ -1003,6 +1008,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool hire = HireStats::Tick(context, now, focus);
 	if (conversation) {
 		if (!hire) Reset();
+		// A vendor's LT/RT before the cursor reaches a grid: the trade menu behind still reads (a tester, 2026-10-18).
+		if (!tabChange.empty() && !PanelState::TakeAnnounced(tabChange)) ScreenReader::Speak(std::string(tabChange), true);
 		return false;
 	}
 	if (hire) return true;
@@ -1312,8 +1319,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// stick down, and spoken unasked only last and only with autodetail and
 	// control tooltips on -- MEASURED 2026-09-21, a change of hints spoken on
 	// its own interrupted the gold amount it followed.
-	const auto help = !(inventory || button || stats) ? std::string{}
+	auto help = !(inventory || button || stats) ? std::string{}
 		: progression.skill ? progression.controls : NativeControllerHelp::ForFocus(focus);
+	if (type.kind == UiText::Kind::InventoryGrid) help = CubeState::WithOpenHint(context, help, focusItem);
 	if (inventory || button || stats) ControlHints::Offer(help);
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. An occupied cell or slot

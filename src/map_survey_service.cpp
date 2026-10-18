@@ -386,7 +386,12 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
 	g_registry.ForgetEnemies(NativeEntities::TakeDeadMonsters());
 	KeyboardService::NotePads(world, scene.landmarks);
-	TerrainService::RememberPlaces(state.level, rooms, discovered);
+	// A border is kept where it is walked across (the corridor mouth), not at the point that names it.
+	auto remembered = discovered;
+	for (auto& entity : remembered)
+		if (ZoneTransitions::Crosses(entity))
+			if (const auto known = CrossingMemory::Find(state.session, state.level, entity.destinationLevel, world.player)) entity.position = *known;
+	TerrainService::RememberPlaces(state.level, rooms, remembered);
 	LogTownNpcs(g_context, state, scene);
 	const auto covered = [&](Radar::Position position) { return CorpseMemory::Covered(rooms, grid, world.player, position); };
 	TerrainService::ForgetGoneQuestPlaces(state.level, rooms, scene.landmarks, covered);
@@ -576,6 +581,11 @@ void PollStick() {
 	// all but a few of these ticks. A push left unclaimed stays pending for the
 	// reader that does want it -- in a menu, the menu's own.
 	if (InputDirection::PeekRightStickPush() == InputDirection::StickPush::None || !RadarUi::InPlay()) return;
+	// Character select has no menu panel, so out of a game the stick is the front end's (its row's controls).
+	{
+		std::lock_guard lock(g_mutex);
+		if (!g_state.ready) return;
+	}
 	switch (InputDirection::TakeRightStickPush("scanner")) {
 	case InputDirection::StickPush::Left:  g_request.store(Request::PreviousObject); break;
 	case InputDirection::StickPush::Right: g_request.store(Request::NextObject); break;

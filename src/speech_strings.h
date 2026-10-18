@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 15, PlaceInteriorWords = 11, PlaceFeatureWords = 30;
+inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 30;
 
 
 
@@ -449,6 +449,14 @@ struct Table {
 	const char* stashNoticeOff;
 	const char* itemMovedToPersonalStash; // %s = the item sent from the backpack
 	const char* itemMovedToSharedStash;
+	const char* horadricCube; // the cube's name where the game's item name cannot be read
+	const char* cubeOpened; // the cube window opened
+	const char* stashCubeOpen; // %s = the open stash tab, with the cube open beside it
+	const char* itemMovedIntoCube; // %s = an item sent from the backpack into the cube
+	const char* itemMovedIntoInventory; // %s = an item sent from the cube into the backpack
+	const char* itemMovedToCube; // %s = an item quick-moved from a stash tab into the cube
+	const char* itemCount; // %d = how many, %s = the item they are all of
+	const char* itemNewInCube; // %s = a transmute's result
 	std::array<const char*, StatusConditionCount> conditionsStarted; // StatusEffects::Condition order
 	std::array<const char*, StatusConditionCount> conditionsEnded;
 	const char* curseStarted; // %s = the curse, the game's name of its skill
@@ -511,6 +519,7 @@ struct Table {
 	const char* skillReportOff;
 	const char* staminaFrozen; // a stamina potion began: the bar stays full
 	const char* staminaNormal; // the stamina potions ran out
+	const char* fortified; // an antidote or thawing potion began (its resistance has no end notice)
 	const char* typingStarted; // a text box began editing (pad_typing.h)
 	const char* skillBound; // %s = the skill, %s = the button the rebinding window put it on
 	const char* hintMoreControls; // character select, said once a visit: a row keeps its controls on right stick up
@@ -572,12 +581,12 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceToLevel, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
 		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
-		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
+		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.horadricCube, t.cubeOpened, t.stashCubeOpen, t.itemMovedIntoCube, t.itemMovedIntoInventory, t.itemMovedToCube, t.itemCount, t.itemNewInCube, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject}) visit(s);
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build 2026-10-18 and the 2026-10-16 leftovers — 2026-10-18 (not released yet)
+
+From `D2R Access build 2026-10-18 bug list and extras.7z` (the user's Downloads: list, porch cottage
+screenshots, `rc_`/`stairs_`/`stable_cottage_`/`hidden_cottage_` logs). Choices in
+[decisions](docs/decisions.md); news (with replies) `../tester-news-draft-2026-10-18b.txt`.
+- Character select: right stick up was the scanner's out of a game (`MapSurvey` now waits for
+  `LocalPlayerReady`); the hint re-arms per character row.
+- Vendor LT/RT under the trade menu said (`InteractionReader` conversation branch, `TabReader` baseline).
+- Antidote/thawing "You are fortified" ([status effects](docs/status-effects.md)); `skill-report` on.
+- Cliff stairs: full-width landings (`STAIRS_LANDING_SLACK`), `Places::HeldStairway`; buildings per
+  piece, porch cottage, tower padding, sewer "tables" dropped ([places](docs/places.md)).
+- Players take the NPC cue; Greater Mummies are raisers, raisers outrank elites (not bosses)
+  ([entity cues](docs/entity-cues.md)); stone door loop re-cut ([ground items](docs/ground-items.md)).
+- Horadric Cube notices: opened, grid name, moves, Y, transmute (`CubeState`, `CubeNotice`,
+  `InventoryArrivals::Moves`; [Horadric Cube](docs/horadric-cube.md)).
+- Border exits at the corridor mouth facing the player (`ZoneTransitions::CorridorMouth`; [beacon](docs/beacon.md)).
+- Scanner order unchanged (explained to the tester).
+
+122/122 CTest; installed by the build. **Unverified live: all of it.**
+**Next step:** commit, release and send the news; logs to ask for: `[cube]`, `[tabs]`, `[places]`,
+`[vitals] fortifying potion began`, `[stick]`, `[terrain] place remembered` at the Monastery Gate.
+
 ## The tester's list on build 2026-10-17 — 2026-10-18 (released as test-2026-10-18 from 4c1f287)
 
 Release: 122/122 CTest, 29 entries, 62,634,562 bytes, SHA-256 `2719634c…f411`.

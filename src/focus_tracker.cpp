@@ -188,9 +188,9 @@ std::string SelectControls(bool none) {
 	return hint;
 }
 
-// Called every tick: speaks the character-select hint when due, once a visit and only
-// while the list is in front (a tester, 2026-10-17: it was heard in the lobby and in
-// the game). A character row arms it as it is read; an empty list, as it opens. With
+// Called every tick: speaks the character-select hint when due, only while the list is
+// in front (a tester, 2026-10-17: it was heard in the lobby and in the game). Each
+// character row arms it as it is read; an empty list, once as it opens. With
 // characters it points to right stick up, where a row keeps the controls.
 void TickScreenHints(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
@@ -853,6 +853,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	if (characterRow >= 0) {
 		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, characterPhrase.c_str());
 		g_selectHintAt = GetTickCount64() + SelectHintDelayMs;
+		g_selectHintSpoken = false; // each character the player rests on gets it (a tester, 2026-10-18)
 		ScreenReader::Speak(characterPhrase, true);
 		InteractionReader::OfferDetail(g_lastAnnounced, SelectControls(false)); // a row: a character exists
 		std::string legend;

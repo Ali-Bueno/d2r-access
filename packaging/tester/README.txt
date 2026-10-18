@@ -109,7 +109,7 @@ In play:
   weapons left in hand, any poison, freezing, chill, stun or curse on you.
   A Necromancer also hears how many usable corpses are nearby. The mercenary
   is BACK+RT's now ("Mercenary in the life report", Alerts, brings it back).
-  "Running skills in the life report" (Alerts, off) adds the auras and skills
+  "Running skills in the life report" (Alerts, on) adds the auras and skills
   running on you: "Prayer aura active. Bone Armor active".
 - BACK+RT: one press at a time, your mercenary ("Mercenary life: 80 percent,
   Level 12, 6 units, north"), then each of your summons as
@@ -277,13 +277,20 @@ knowing:
 - Status effect and curse alerts (Alerts, on): "You are poisoned", "You are
   frozen", "You are chilled", "You are stunned", "You are slowed", "You are
   afflicted by Amplify Damage" (any curse), said at once as they begin; their
-  end follows ("You are no longer frozen").
+  end follows ("You are no longer frozen"). A stamina potion says "Stamina
+  frozen at 100 percent"; an antidote or thawing potion "You are fortified",
+  after the poison or cold it cured, with no notice when it wears off.
 - Zero points (Items and menus, on): opening the character screen or the skill
   tree with nothing to spend says "0 Stat Points Remaining" or "0 Skill
   Choices Remaining".
 - Items moved to the stash named (Items and menus, on): an item sent from the
   backpack into the stash says "Short Sword moved to the personal stash" or
   "... to the shared stash", as gold does.
+- Horadric Cube: "Cube opened" when its window opens, "Horadric Cube" when the
+  cursor enters it; items moved say "Moved Wirt's Leg into the Cube", "Moved
+  ... into inventory" or, with Y from a stash tab, "Moved 3 Chipped Topaz to
+  Cube"; Transmute says "New item in Cube: Flawed Topaz". A stash tab beside a
+  carried, open cube says "Runes - Cube open".
 - Route on BACK+A (Controller, off): swaps them: BACK+A says the route and
   BACK + right stick down turns the passage finder on or off.
 - Experience in the life report (on): BACK+X also says how far you are into

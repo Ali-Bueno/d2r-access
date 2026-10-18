@@ -3,6 +3,37 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-18 — The tester's list on build 2026-10-18 and the leftovers of 2026-10-16
+
+From `D2R Access build 2026-10-18 bug list and extras.7z` (the user's Downloads). Built and
+unit-tested only.
+- **Scanner order kept.** Nearest first, right farther, left nearer, wrapping, the cursor kept by
+  identity for 10 s: the log showed the radiant chest as entry 1; the tester was already past it.
+  Explained, not changed.
+- **Character select stick.** Out of a game the scanner no longer takes the right stick
+  (`MapSurvey` waits for `LocalPlayerReady`): it answered "nothing found here", so right stick up
+  never reached the row's controls. The short hint is said for every character rested on.
+- **Vendor tabs under the trade menu.** The trade/repair menu still owns speech until the cursor
+  lands in a grid; tab changes TabReader reports there are now said (it already holds the menu
+  switcher under a dialogue). A bar that first appears under the menu is a silent baseline.
+- **Fortifying potions** (antidote, thawing): "You are fortified" after any pending effect end,
+  once per potion kind running, no end notice, as the tester specified ([status effects](status-effects.md)).
+- **`skill-report` on by default** (the tester: it costs nothing until a running skill is used).
+- **Other players** take the NPC cue, party or not: the tester asked for party members; a hostile
+  player is rare and still listed by name in the scanner.
+- **Greater Mummies** (and Radament, who keeps his boss cue) are raisers: monstats `GreaterMummy` AI.
+  A raiser outranks the elite cue (the tester named the champion and unique mummies), not a boss.
+- **Stone door** re-cut from the same recording instead of a new sample (none to hand): saturated
+  and brightened, [ground items](ground-items.md#door-loops).
+- **Cliff stairs** landings span the stairway's width; a stairway left 15 s holds no more
+  ([places](places.md)). **Buildings** are named per piece; porch cottage, tower range, sewer
+  "tables" removed ([places](places.md)).
+- **Horadric Cube**: one move diff names the destination whatever the button; counts as
+  "3 Chipped Topaz" (no plurals across 13 languages, no "×", which readers say as "times")
+  ([Horadric Cube](horadric-cube.md)).
+- **Outer Cloister exit** at the corridor's mouth facing the area the player is in
+  ([beacon](beacon.md)).
+
 ## 2026-10-18 — The tester's list on build 2026-10-17
 
 From `D2R Access test build 2026-10-17, bug list, screenshots and logs.7z` (the user's Downloads).

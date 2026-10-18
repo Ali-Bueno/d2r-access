@@ -91,6 +91,8 @@ FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.d
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
 FEATURE_PADDING = {"HangmanTree": 5}
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
+# HD height: nodes within one subtile of the lowest top (highest base) are one landing, the stairway's full width.
+STAIRS_LANDING_SLACK = HD_PER_SUBTILE
 FEATURE_RX = [(n, s, re.compile(p)) for n, s, p in FEATURES]
 
 # Feature -> regex over the basename of a prefab placement, tried before the model rules.
@@ -114,6 +116,9 @@ PREFAB_FEATURES = {
     "Campfire": r"pf_town_campfire",
 }
 PREFAB_RX = [(n, re.compile(PREFAB_FEATURES[n])) for n in FEATURE_NAMES if n in PREFAB_FEATURES]
+# Prefabs that only borrow a feature's name: the sewers' "pf_table01/02" are piles of crates, vases
+# and rags along the walls, not tables (a tester, 2026-10-18).
+PREFAB_NOT_FEATURES = {"Tables": re.compile(r"/sewer/prefabs/perimeter_deco/")}
 
 # Interior -> regexes over an audio environment (ESOUNDENVIRON_*) or a visbox entity name.
 INTERIORS = [
@@ -152,7 +157,13 @@ PLACES = [
 FILE_PLACES = [
     ("Stable", r"^act1/outdoors/cott6a?\.ds1$"),
     ("BurningCottage", r"^act1/outdoors/cott7\.ds1$"),
+    # Cottage 1's building (cottage01, its roof carried over a porch): a tester, 2026-10-18.
+    ("CottageWithPorch", r"^act1/outdoors/cott1a?\.ds1$"),
 ]
+# Tiles around a named piece where its name is already spoken: the ruined tower is seen from afar.
+PRESET_PADDING = {"Tower": 6}
+# Interiors a file's volumes must not name: the stable's visbox is the cottage's.
+INTERIOR_SKIPPED_FILES = {"Cottage": re.compile(r"^act1/outdoors/cott6a?\.ds1$")}
 PLACE_NAMES = [p[0] for p in PLACES] + [p[0] for p in FILE_PLACES]
 PLACE_RX = [(n, re.compile(p)) for n, p in PLACES]
 FILE_PLACE_RX = [(n, re.compile(p)) for n, p in FILE_PLACES]
@@ -213,8 +224,12 @@ def entity_strings(e):
 
 def classify_feature(e):
     texts = entity_strings(e)
+    pf = comp(e, "PrefabPlacementDefinitionComponent")
+    prefab_path = pf["prefab"].lower() if pf else ""
     for name, rx in PREFAB_RX:
         if any(rx.search(t) for t in texts["prefab"]):
+            if name in PREFAB_NOT_FEATURES and PREFAB_NOT_FEATURES[name].search(prefab_path):
+                return None, None
             return name, "prefab"
     for name, source, rx in FEATURE_RX:
         pool = texts["model"] + texts["audio"] + texts["name"] if source == "any" else texts[source]
@@ -304,8 +319,8 @@ def prefab_footprint(e, t, hd_root, cache, stats):
 
 def stairs_landings(e, t, hd_root, stats):
     """(bottom, top) subtile rects of a stairway from its collision mesh, or None: the
-    bounding-volume node lowest at its top is the bottom landing, the highest at its
-    base the top one (HD y is up)."""
+    bounding-volume nodes lowest at their top are the bottom landing, the highest at their
+    base the top one (HD y is up), each across the whole width a player may climb."""
     body = comp(e, "PhysicsBodyDefinitionComponent")
     for fixture in body.get("fixturedefs", []) if body else []:
         ref = norm_path(fixture.get("shapetype", {}).get("filename", ""))
@@ -328,8 +343,14 @@ def stairs_landings(e, t, hd_root, stats):
                     zs.append(pos["z"] + rz)
             return (clamp_subtile(math.floor(min(xs) / HD_PER_SUBTILE)), clamp_subtile(math.floor(min(zs) / HD_PER_SUBTILE)),
                     clamp_subtile(math.ceil(max(xs) / HD_PER_SUBTILE)), clamp_subtile(math.ceil(max(zs) / HD_PER_SUBTILE)))
+        def union(group):
+            rects = [rect(node) for node in group]
+            return (min(r[0] for r in rects), min(r[1] for r in rects), max(r[2] for r in rects), max(r[3] for r in rects))
+        lowest_top = min(n[4] for n in nodes)
+        highest_base = max(n[1] for n in nodes)
         stats["stairs_ok"] += 1
-        return rect(min(nodes, key=lambda n: n[4])), rect(max(nodes, key=lambda n: n[1]))
+        return (union([n for n in nodes if n[4] <= lowest_top + STAIRS_LANDING_SLACK]),
+                union([n for n in nodes if n[1] >= highest_base - STAIRS_LANDING_SLACK]))
     stats["stairs_missing"] += 1
     return None
 
@@ -397,6 +418,8 @@ def scan_preset(path, rel, hd_root, cache, stats):
             if not interior:
                 stats["unknown"][tag] += 1
                 continue
+            if interior in INTERIOR_SKIPPED_FILES and INTERIOR_SKIPPED_FILES[interior].search(rel):
+                continue
             minx, miny, maxx, maxy = volume_of(e, c, stats)
             if maxx - minx < MIN_VOLUME_SIDE or maxy - miny < MIN_VOLUME_SIDE:
                 stats["tiny"] += 1
@@ -459,6 +482,7 @@ def render(table, seeds_all, vols_all, names, file_names):
     o.append("struct PresetPlaces { const char* file; uint32_t firstSeed; uint16_t seedCount, firstVolume, volumeCount; };")
     o.append("struct PresetName  { int32_t def; PresetPlace place; };")
     o.append("struct PresetFileName { const char* file; PresetPlace place; };")
+    o.append("struct PresetPad { PresetPlace place; uint8_t tiles; };")
     o.append("inline constexpr PlaceSeed PlaceSeeds[] = {")
     o += [f"    {{{a}, {b}, {c}, {d}, PlaceFeature::{f}}}," for a, b, c, d, f in seeds_all]
     o.append("};")
@@ -474,6 +498,10 @@ def render(table, seeds_all, vols_all, names, file_names):
     o.append("// Over PresetNames: the piece a named row picked.")
     o.append("inline constexpr PresetFileName PresetFileNames[] = {")
     o += [f'    {{"{f}", PresetPlace::{p}}},' for f, p in file_names]
+    o.append("};")
+    o.append("// Tiles around a piece where its name is spoken already.")
+    o.append("inline constexpr PresetPad PresetPads[] = {")
+    o += [f"    {{PresetPlace::{p}, {n}}}," for p, n in sorted(PRESET_PADDING.items())]
     o.append("};")
     o.append("}")
     return "\n".join(o) + "\n"

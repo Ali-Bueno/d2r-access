@@ -3,6 +3,7 @@
 #include "entity_radar.h"
 #include "ground_items.h"
 #include "native_level_exits.h"
+#include "passages.h"
 #include "radar.h"
 
 #include <functional>
@@ -13,6 +14,10 @@ namespace D2RAccess::ZoneTransitions {
 // `radius` of the player: one per level, the nearest.
 std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout,
 	double radius = GroundItems::AudibleRadius);
+// A crossing that ends a corridor, moved to the corridor's other end: the mouth
+// a player coming from this area walks into. Unchanged elsewhere.
+Radar::Position MouthOf(const Passages::Reading& reading, Radar::Position crossing, Radar::Position player);
+Radar::Position CorridorMouth(const Radar::World& world, Radar::Position crossing);
 // An exit that names a neighbouring level: it may be walked across somewhere
 // along the shared border rather than at the point that names it.
 bool Crosses(const EntityRadar::Entity& entity);

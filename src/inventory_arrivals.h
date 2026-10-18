@@ -8,8 +8,8 @@
 // Pure state. docs/inventory-npc-followup.md#arrivals
 namespace D2RAccess::InventoryArrivals {
 
-// The stashes are known only while the stash is open.
-enum class Place { Other, Backpack, Belt, Worn, PersonalStash, SharedStash };
+// The stashes are known only while the stash is open; the cube's items, while the player carries it.
+enum class Place { Other, Backpack, Belt, Worn, PersonalStash, SharedStash, Cube };
 bool InStash(Place place);
 
 // One of the player's items: runtime id, what it is and where it lies (top-left cell).
@@ -30,5 +30,23 @@ std::vector<Item> Departures(const std::vector<Item>& before, const std::vector<
 // What went straight from the backpack into a stash, not through the hand
 // (`heldBefore`), as the stash's quick move sends it (a tester, 2026-10-14).
 std::vector<Item> Stashed(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldBefore);
+
+// An item that changed places between the backpack, a stash and the cube, and where it was.
+struct Move { Item item; Place from = Place::Other; };
+
+// What `now` holds in the backpack, a stash or the cube that `before` held in another of them,
+// except the item that was in hand (`heldBefore`). X in the cube window, Y in a gem tab.
+std::vector<Move> Moves(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldBefore);
+
+// What `now` holds in the cube that `before` did not know at all, except the hand's: a transmute's
+// result, or a stack the stash split a piece off.
+std::vector<Item> NewInCube(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldBefore);
+
+// How many of `before`'s cube items are gone from `now` and are not in hand (`heldNow`): a transmute used them up.
+int CubeConsumed(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldNow);
+
+// Items of one class and quality together, in the order first seen: three topazes one press moved.
+struct Group { Item item; int count = 1; };
+std::vector<Group> Grouped(const std::vector<Item>& items);
 
 }

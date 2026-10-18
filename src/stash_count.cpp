@@ -33,6 +33,13 @@ std::string Empty(const std::string& name, const char* emptyFormat) {
 	return text;
 }
 
+std::string Counted(const std::string& name, int count, const char* format) {
+	if (count <= 1) return name;
+	char text[200]{};
+	std::snprintf(text, sizeof(text), format, count, name.c_str());
+	return text;
+}
+
 uint32_t CodeOfWidgetName(std::string_view name) {
 	constexpr size_t MaxCodeLength = 4; // item table codes are four bytes, space padded (D2RLPlugin/item.h)
 	if (name.empty() || name.size() > MaxCodeLength

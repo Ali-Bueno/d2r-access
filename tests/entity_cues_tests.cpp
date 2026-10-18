@@ -69,6 +69,13 @@ void FilteringAndPriority() {
 	Check(Select(world, entities, settings).empty(), "both group switches silence all cues");
 	const auto ties = Select(world, {Make(20, Kind::Npc, 30, 32), Make(10, Kind::Npc, 32, 30)}, {});
 	Check(ties.size() == 1 && ties[0].id == 10, "distance ties use stable identity independent of list order");
+	auto friendPlayer = Make(30, Kind::Npc, 32, 30); friendPlayer.kind = EntityRadar::Kind::Player;
+	const auto heard = Select(world, {friendPlayer}, {});
+	Check(heard.size() == 1 && heard[0].kind == Kind::Npc, "another player sounds as an NPC");
+	auto uniqueRaiser = Make(31, Kind::Resurrector, 32, 30); uniqueRaiser.enemy.important = true;
+	Check(Select(world, {uniqueRaiser}, {})[0].kind == Kind::Resurrector, "a unique raiser of the dead keeps the shaman sound");
+	uniqueRaiser.enemy.boss = true;
+	Check(Select(world, {uniqueRaiser}, {})[0].kind == Kind::Important, "a boss that raises the dead keeps the boss sound");
 }
 void VisibilityAndPlacement() {
 	auto world = World();

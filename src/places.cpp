@@ -128,6 +128,19 @@ uint64_t MapKey(int32_t def, int tileX, int tileY) {
 		| static_cast<uint64_t>(static_cast<uint16_t>(tileX)) << 16 | static_cast<uint16_t>(tileY);
 }
 
+bool Separate(PresetPlace place) {
+	return place == PresetPlace::Cottage || place == PresetPlace::Stable || place == PresetPlace::BurningCottage
+		|| place == PresetPlace::CottageWithPorch || place == PresetPlace::Tower;
+}
+
+bool HoldsName(PresetPlace place, long long idleMs) { return !Separate(place) || idleMs < SeparateHoldMs; }
+
+int Padding(PresetPlace place) {
+	for (const auto& pad : Generated::PresetPads)
+		if (pad.place == place) return pad.tiles;
+	return 0;
+}
+
 bool Tracked(PlaceFeature kind) { return Stairway(kind); }
 bool Stairway(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs || kind == PlaceFeature::CliffStairsTop; }
 
@@ -137,10 +150,16 @@ Spot Carry(const Spot& current, Spot observed) {
 	return observed;
 }
 
+Spot HeldStairway(Spot current, long long idleMs) {
+	if (Stairway(current.feature) && idleMs >= StairwayHoldMs) current.feature = PlaceFeature::Count;
+	return current;
+}
+
 Change Compare(const Spot& before, const Spot& now) {
 	Change change;
 	const bool newMap = !before.valid || now.map != before.map;
-	change.preset = now.preset != PresetPlace::None && now.preset != before.preset;
+	const bool nextBuilding = Separate(now.preset) && now.namedMap != before.namedMap;
+	change.preset = now.preset != PresetPlace::None && (now.preset != before.preset || nextBuilding);
 	const bool newInterior = newMap ? now.interior != None : now.interior != before.interior;
 	change.interior = newInterior && now.interior != None;
 	change.outside = before.valid && before.interior != None && now.interior == None;

@@ -148,7 +148,35 @@ nothing, and the Hangman's Tree only spoke at its trunk. `tools/gen_places.py` n
   in the crypt themes `CryptSEWTheme`, `CryptNSEWTheme`; a call-out, not a scanner entry);
 - pads the **Hangman's Tree** seeds one tile (`FEATURE_PADDING`), about its canopy;
 - places the **cliff stairs** from their collision mesh (`stairs_*_collision.physics`: header
-  word 6 is the node count, 32-byte bounding-volume nodes from 0x30): the node lowest at its top
-  is the bottom landing (*stairs up*, `CliffStairs`), the one highest at its base the top landing
+  word 6 is the node count, 32-byte bounding-volume nodes from 0x30): the nodes lowest at their top
+  are the bottom landing (*stairs up*, `CliffStairs`), the highest at their base the top landing
   (*stairs down*, `CliffStairsTop`). Both are scanner entries; walking from one to the other is no
   news (`Places::Stairway`). Extract `act2_bigcliff_stairs\` with the presets.
+
+## Buildings named each time, the tower from afar (2026-10-18)
+
+A tester (build 2026-10-18): a second cottage next to the first was silent, the stable then said
+"cottage", the tower ruin was named only at its feet, the Lut Gholein sewers had "tables" that are
+crates, and Cottage 1's porch building had no name of its own. Causes and fixes:
+- **Held names.** A named piece's name holds on the plain ground around it (`Remember`), which is
+  right for a river but silenced every cottage after the first in a row. `Places::Separate` kinds
+  (cottage, stable, cottage on fire, cottage with porch, tower ruin) now carry the map they were earned
+  in (`Spot::namedMap`): the next such piece is named again, and the held name lapses after
+  `SeparateHoldMs` so coming back to a building speaks it again. Rivers and bridges keep one name.
+- **Stable.** `Cott6`/`Cott6A` carry the cottage's `visbox_cottage`, which said "cottage" on stepping in.
+  `INTERIOR_SKIPPED_FILES` drops that volume, so a stable is only a stable.
+- **Cottage with porch.** `Cott1`, `Cott1A` (`cottage01` with its `Roof01` porch roof; seen in Black
+  Marsh and the Dark Wood) are `PresetPlace::CottageWithPorch`, by file like the stable.
+  Inferred from the tester's screenshots and the pieces' models: confirm live.
+- **Tower ruin range.** `PRESET_PADDING` (`PresetPads`) names the tower 6 tiles before its piece, read
+  off the loaded rooms every 2 s (`PlaceService::RefreshPadded`).
+- **Sewer "tables".** The prefabs `pf_table01/02` under `sewer/prefabs/perimeter_deco` are piles of
+  crates, vases and rags; `PREFAB_NOT_FEATURES` stops them being tables (30 seeds, 20 sewer pieces
+  left with no landmark). The word is ours (`placeFeatures`), the classification was wrong.
+- **Cliff stairs, both ends.** The landings were one bounding-volume node each, the south half of
+  a stairway about 12 subtiles wide; the tester climbed its north side, 6-8 subtiles from the top
+  rect, so "stairs down" never came and the way down said "stairs up" at the bottom. Each landing is
+  now every node within `STAIRS_LANDING_SLACK` (one subtile of height) of the lowest top or the
+  highest base, the full width (Dry Hills' left stairs: bottom 30,43-39,55, top 20,45-25,56). A
+  stairway left `StairwayHoldMs` ago no longer holds (`Places::HeldStairway`): coming back to the top
+  says "stairs down" again, while walking straight from one landing to the other stays quiet.

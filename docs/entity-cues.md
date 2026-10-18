@@ -7,9 +7,9 @@ runtime dependencies are needed.
 
 | Target | Sound | Selection |
 |---|---|---|
-| Friendly NPC | Light wooden tap | Nearest visible NPC |
+| Friendly NPC or another player | Light wooden tap | Nearest visible NPC or player |
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
-| Resurrecting shaman | Mid-register resonant swoop | Next enemy priority |
+| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family; champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
 | Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
 | Any other enemy | Short rough growl | The nearest few, in the voices left; optional |
 

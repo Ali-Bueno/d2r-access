@@ -116,5 +116,20 @@ int main() {
 	layout.level = 1;
 	world.player.x = std::numeric_limits<double>::quiet_NaN();
 	Check(ZoneTransitions::Find(world, layout).empty(), "invalid player coordinates do not become collision-grid indices");
+	// Monastery Gate: the border ends a corridor, so the exit is the mouth facing the area, not the inner end.
+	Passages::Reading corridor;
+	corridor.shape = Passages::Shape::Corridor;
+	corridor.alongX = false;
+	corridor.ends = {Passages::Way{50, 20, Passages::End::Opens}, Passages::Way{50, 60, Passages::End::Opens}};
+	auto mouth = ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 5});
+	Check(mouth.x == 50 && mouth.y == 20, "a crossing at a corridor's far end is placed at the mouth facing the area");
+	mouth = ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 40});
+	Check(mouth.y == 61, "inside the corridor the crossing itself is the way on");
+	mouth = ZoneTransitions::MouthOf(corridor, {50, 19}, {50, 90});
+	Check(mouth.y == 60, "the corridor's other end is the mouth whichever end the crossing is at");
+	corridor.ends[0].end = Passages::End::Closed;
+	Check(ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 5}).y == 61, "a mouth that does not open leaves the crossing");
+	corridor.shape = Passages::Shape::Junction;
+	Check(ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 5}).y == 61, "no corridor, no change");
 	Passed();
 }

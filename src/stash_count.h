@@ -17,6 +17,8 @@ GoldTab TabOf(const std::vector<std::string>& selected, const std::string& perso
 std::string WithCount(const std::string& name, const std::string& shownText, bool shown, const char* separator);
 // The name `emptyFormat` gives an item with none in the stash.
 std::string Empty(const std::string& name, const char* emptyFormat);
+// `format` (count, name) for a group of identical items, "3 x Chipped Topaz"; the bare name for one.
+std::string Counted(const std::string& name, int count, const char* format);
 // The item table code a slot widget's layout name is (BankExpansionLayoutHD.json: "gcw", "r01"), 0 for any other name.
 uint32_t CodeOfWidgetName(std::string_view name);
 }

@@ -28,6 +28,8 @@ add_library(d2r-access SHARED
 	src/place_service.cpp
 	src/inventory_arrivals.cpp
 	src/inventory_arrival_service.cpp
+	src/cube_state.cpp
+	src/cube_notice.cpp
 	src/item_hand.cpp
 	src/attack_reach.cpp
 	src/native_attack.cpp
@@ -321,7 +323,7 @@ if(BUILD_TESTING)
 	d2r_test(exploration-cue-service-tests tests/exploration_cue_service_tests.cpp src/exploration_cue_service.cpp src/exploration_cues.cpp src/explored_rooms.cpp src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp)
 	target_link_libraries(exploration-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME exploration-cue-service COMMAND exploration-cue-service-tests)
-	d2r_test(zone-transitions-tests tests/zone_transitions_tests.cpp src/zone_transitions.cpp src/rooms.cpp src/radar_grid.cpp)
+	d2r_test(zone-transitions-tests tests/zone_transitions_tests.cpp src/zone_transitions.cpp src/passages.cpp src/rooms.cpp src/radar_grid.cpp)
 	add_test(NAME zone-transitions COMMAND zone-transitions-tests)
 	d2r_test(navigation-grid-tests tests/navigation_grid_tests.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
@@ -481,7 +483,7 @@ if(BUILD_TESTING)
 	d2r_test(hire-stats-tests tests/hire_stats_tests.cpp src/hire_stats.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	target_link_libraries(hire-stats-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME hire-stats COMMAND hire-stats-tests)
-	d2r_test(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp src/stash_count.cpp)
+	d2r_test(interaction-reader-tests tests/interaction_reader_tests.cpp src/async_log.cpp src/interaction_reader.cpp src/cube_state.cpp src/monster_names.cpp src/item_hand.cpp src/click_words.cpp src/equip_attempt.cpp src/ground_item_text.cpp src/panel_state.cpp src/control_hints.cpp src/progression_text.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp src/belt_reader.cpp src/controller_text.cpp src/stash_count.cpp)
 	target_link_libraries(interaction-reader-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME interaction-reader COMMAND interaction-reader-tests)
 	d2r_test(inventory-cursor-tests tests/inventory_cursor_tests.cpp src/inventory_cursor.cpp)

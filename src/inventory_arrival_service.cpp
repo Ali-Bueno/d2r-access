@@ -1,5 +1,7 @@
 #include "inventory_arrival_service.h"
 #include "async_log.h"
+#include "cube_notice.h"
+#include "cube_state.h"
 #include "input_direction.h"
 #include "interaction_reader.h"
 #include "inventory_arrivals.h"
@@ -35,6 +37,7 @@ std::atomic<bool> g_stashNotice = true;
 uint64_t g_nextSample = 0;
 std::optional<std::vector<Item>> g_baseline; // what the player held at the last sample, while the inventory is open
 bool g_baselineStash = false;                // the baseline holds the stashes too
+bool g_baselineCube = false;                 // ... and was taken with a cube on screen
 uint32_t g_heldBefore = 0;
 
 Place PlaceOf(Container container) {
@@ -44,6 +47,7 @@ Place PlaceOf(Container container) {
 	case Container::Equipment: return Place::Worn;
 	case Container::PersonalStash: return Place::PersonalStash;
 	case Container::SharedStash: return Place::SharedStash;
+	case Container::Cube: return Place::Cube;
 	default: return Place::Other;
 	}
 }
@@ -68,6 +72,7 @@ std::optional<std::vector<Item>> Read(const D2RL::PluginContext* context, bool s
 		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
 		.flags = 0,
 		.containerMask = ContainerBit(Container::Inventory) | ContainerBit(Container::Belt) | ContainerBit(Container::Equipment)
+			| ContainerBit(Container::Cube)
 			| (stash ? ContainerBit(Container::PersonalStash) | ContainerBit(Container::SharedStash) : 0U),
 		.reserved = 0};
 	std::vector<Item> items;
@@ -166,14 +171,18 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context) {
-	if (!g_enabled || !InventoryOpen()) { g_baseline.reset(); g_gold = -1; return; }
+	CubeNotice::Tick(context);
+	if (!g_enabled || !(InventoryOpen() || CubeState::PanelOpen())) { g_baseline.reset(); g_gold = -1; return; }
 	const uint64_t now = GetTickCount64();
 	if (now < g_nextSample) return;
 	g_nextSample = now + SampleMs;
 	// A baseline read with the stash closed has no stash items to compare, and the other way round.
 	const bool stash = StashOpen();
-	if (stash != g_baselineStash) g_baseline.reset();
+	// The cube's items are read as the cube is shown; first sight of them is not news.
+	const bool cube = CubeState::Up();
+	if (stash != g_baselineStash || cube != g_baselineCube) g_baseline.reset();
 	g_baselineStash = stash;
+	g_baselineCube = cube;
 	auto items = Read(context, stash);
 	const auto held = InventoryCursor::HeldItemId(context);
 	if (!items || !held) return;
@@ -189,6 +198,7 @@ void Tick(const D2RL::PluginContext* context) {
 		// News about the backpack, behind whatever the focus is saying.
 		ScreenReader::Speak(text, false);
 	}
+	if (g_baseline && cube) CubeNotice::Announce(context, *g_baseline, *items, g_heldBefore, *held);
 	if (g_baseline) AnnounceSorted(context, *g_baseline, *items, *held);
 	if (g_baseline) AnnounceStashed(context, *g_baseline, *items, g_heldBefore);
 	AnnounceGoldDeposit(context);

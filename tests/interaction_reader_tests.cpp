@@ -226,6 +226,7 @@ std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem
 std::optional<ItemState> Held(const D2RL::PluginContext*) { return holdingItem ? std::optional{ItemState{holdingItem.value() ? 1u : 0u}} : std::nullopt; }
 std::optional<ItemState> Find(const D2RL::PluginContext*, uint32_t) { return std::nullopt; }
 std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
+bool Holds(const D2RL::PluginContext*, D2RL::Items::ItemContainer, uint32_t) { return false; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
@@ -492,7 +493,10 @@ int main() {
 	Check(InteractionReader::Tick(&context, now + 160, focus, false, "Personaje")
 		&& speech == std::vector<std::string>{"Personaje"}, "only once: a later change to that tab still reads");
 	ClearSpeech();
-	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Opciones") && speech.empty(), "dialogue priority also suppresses tab speech");
+	// TabReader holds the switcher under a dialogue; what it still reports is a vendor's LT/RT
+	// before the cursor reaches a grid (a tester, 2026-10-18).
+	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Armas") && speech == std::vector<std::string>{"Armas"},
+		"a tab reported under a dialogue is still said");
 	conversation = false; InteractionReader::Reset(); inventory = {}; tooltip = {}; ClearSpeech();
 	focus = {20, 22}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; equipmentLocation = 1;
 	Check(InteractionReader::HandlesFocus(focus), "native equipment focus remains owned by the interaction reader");

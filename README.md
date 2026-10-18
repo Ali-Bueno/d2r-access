@@ -548,7 +548,7 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
-The vitals report can say the skills running on the player (`skill-report`, off: "Prayer aura
+The vitals report can say the skills running on the player (`skill-report`, on: "Prayer aura
 active. Bone Armor active", every class skill whose skills.txt `aurastate` stays on its caster,
 `tools/gen_skill_states.py`), the mercenary (`mercenary-report`, off: BACK+RT says it, with its
 level) and the player's summons (`minion-report`, off), read from the game's own pet
@@ -596,6 +596,11 @@ Trading with another player names the partner in the game's own request prompts,
 names the two offer grids, and announces what the other player offers (items,
 gold), both acceptances and whether the trade completed or was cancelled; console
 `access-trade on|off`. See [trade](docs/trade.md).
+
+The Horadric Cube says "Cube opened", names its grid as the cursor enters it, says what moves into
+or out of it whatever the button ("Moved Wirt's Leg into the Cube", "Moved 3 Chipped Topaz to
+Cube") and what Transmute made ("New item in Cube: Flawed Topaz"). See
+[Horadric Cube](docs/horadric-cube.md).
 
 The first time the scanner lists an exit on a map, dungeon entrances included, it
 plays a discovery sound and says "El radar ha registrado una salida nueva" with the

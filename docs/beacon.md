@@ -92,6 +92,12 @@ after the player had walked through and back. `ZoneTransitions::FoundAtCrossings
 now also judges a border at its walkable crossing; the listed entry keeps the
 midpoint as its position.
 
+**A corridor's mouth, not its inner end (2026-10-18).** A tester: the Outer Cloister notice and entry sat at
+the inner door of the gate corridor. The shared edge of the two areas ends that corridor, so the crossing was
+its far end. `ZoneTransitions::Find` now reads the corridor there (`Passages`) and moves the crossing to the
+mouth facing this area (`CorridorMouth`); inside the corridor it stays the way on. The place is also
+remembered at that point. Unverified live: the Gate's corridor must read as a corridor.
+
 **Crossings seen are kept for the game (2026-10-14).** A tester crossed from
 the Cold Plains into the Stony Field at 5400,5222, came back by waypoint, and
 the beacon refused the Stony Field eight times from 129 to 334 units away

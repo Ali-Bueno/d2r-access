@@ -49,7 +49,15 @@ effect began`, `[vitals] shrine effect ended`.
 A stamina potion's state (states.txt `staminapot` 180) holds the bar full; more potions add to its
 time. Its start says "Stamina frozen at 100 percent" and its end "Stamina consumption back to
 normal" (the tester's words), queued, under the same `status-alerts` switch (`[vitals] stamina
-potion began|ended`). BACK+X can also say the skills running on the player (`skill-report`, off):
+potion began|ended`). BACK+X can also say the skills running on the player (`skill-report`, on since 2026-10-18):
 the states of `src/generated/skill_states.h` (`tools/gen_skill_states.py`: each class skill's
 `aurastate`, not summons' and not a state two skills share), named by their skill, "aura" when
 skills.txt says so.
+
+## Antidote and thawing potions (2026-10-18)
+
+Their states (states.txt `antidote` 178, `thawing` 179) add 50 poison or cold resistance for their
+time; the game shows nothing for it. A state that begins says "You are fortified" `EndHoldMs` later
+and only once no ended effect waits to be said (`Tracker::EndPending`), so "Poison has worn off"
+comes first. More doses of the running potion say nothing, and the end is silent on purpose: a
+sighted player gets no notice either (the tester). `[vitals] fortifying potion began`.

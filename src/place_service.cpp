@@ -63,12 +63,19 @@ std::atomic<Command> g_command{Command::None};
 std::atomic<bool> g_enabled{true};
 bool g_supported = false;
 Rooms::BasicHysteresis<Places::Spot> g_spots;
+uint64_t g_landingAt = 0; // when the player last stood by a cliff stairway's landing
 uint64_t g_nextPoll = 0;
 std::string g_lastPiece; // the last piece line logged, so it is written on change only
 // The last named piece walked into. A river or a row of cottages is several
 // pieces with plain ground between them; near the last one, the name holds.
-struct Named { PresetPlace preset = PresetPlace::None; int level = 0, minX = 0, minY = 0, maxX = 0, maxY = 0; };
+struct Named { PresetPlace preset = PresetPlace::None; int level = 0, minX = 0, minY = 0, maxX = 0, maxY = 0; uint64_t map = 0, seenAt = 0; };
 Named g_named;
+// A named piece worth spoken from further out (Places::Padding), read off the loaded rooms now and then.
+struct Padded { Named piece; uint64_t key = 0; };
+std::vector<Padded> g_padded;
+int g_paddedLevel = -1;
+uint64_t g_paddedAt = 0;
+constexpr uint64_t PaddedRescanMs = 2000;
 
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -112,20 +119,57 @@ std::optional<Passages::Settings> CorridorSettings(const Radar::World& world) {
 		.slack = typical / 2, .reach = typical * CorridorFollowWidths};
 }
 
-// Keeps the name of the last named piece while the player stays within one
-// piece's size of it, so walking along a river made of several pieces names it once.
+// The pieces of Places::Padding named in the loaded rooms, rescanned every couple of seconds.
+void RefreshPadded(int level, uint64_t now) {
+	if (level == g_paddedLevel && now - g_paddedAt < PaddedRescanMs) return;
+	g_paddedLevel = level;
+	g_paddedAt = now;
+	g_padded.clear();
+	const int s = LevelExitLayout::SubtilesPerTile;
+	for (const uintptr_t room : NativeWorld::LoadedRooms()) {
+		NativePresetMap::Map map;
+		if (!NativePresetMap::Read(room, map)) continue;
+		const auto preset = Places::NameOf(map.def, map.path);
+		if (Places::Padding(preset) == 0) continue;
+		const uint64_t key = Places::MapKey(map.def, map.tileX, map.tileY);
+		if (std::any_of(g_padded.begin(), g_padded.end(), [key](const Padded& p) { return p.key == key; })) continue;
+		g_padded.push_back({{preset, level, map.tileX * s, map.tileY * s, (map.tileX + map.tileWidth) * s,
+			(map.tileY + map.tileHeight) * s, key, now}, key});
+	}
+}
+
+// Keeps the name of the last named piece while the player stays within one piece's size of it,
+// so walking along a river made of several pieces names it once; a building's name lapses with time.
+// A piece worth a wider berth (Places::Padding) is named from there.
 void Remember(int level, Reading& out, int x, int y) {
+	const uint64_t now = GetTickCount64();
+	const int s = LevelExitLayout::SubtilesPerTile;
 	if (out.spot.preset != PresetPlace::None) {
-		const int s = LevelExitLayout::SubtilesPerTile;
 		g_named = {out.spot.preset, level, out.map.tileX * s, out.map.tileY * s,
-			(out.map.tileX + out.map.tileWidth) * s, (out.map.tileY + out.map.tileHeight) * s};
+			(out.map.tileX + out.map.tileWidth) * s, (out.map.tileY + out.map.tileHeight) * s, out.spot.map, now};
+		out.spot.namedMap = out.spot.map;
 		return;
 	}
-	if (g_named.preset == PresetPlace::None || g_named.level != level) return;
-	const int marginX = g_named.maxX - g_named.minX, marginY = g_named.maxY - g_named.minY;
-	if (x >= g_named.minX - marginX && x < g_named.maxX + marginX && y >= g_named.minY - marginY && y < g_named.maxY + marginY)
-		out.spot.preset = g_named.preset;
-	else g_named = {};
+	if (g_named.preset != PresetPlace::None && g_named.level == level) {
+		const int marginX = g_named.maxX - g_named.minX, marginY = g_named.maxY - g_named.minY;
+		if (Places::HoldsName(g_named.preset, static_cast<long long>(now - g_named.seenAt))
+			&& x >= g_named.minX - marginX && x < g_named.maxX + marginX && y >= g_named.minY - marginY && y < g_named.maxY + marginY) {
+			out.spot.preset = g_named.preset;
+			out.spot.namedMap = g_named.map;
+			return;
+		}
+		g_named = {};
+	}
+	RefreshPadded(level, now);
+	for (const auto& padded : g_padded) {
+		const int pad = Places::Padding(padded.piece.preset) * s;
+		if (x < padded.piece.minX - pad || x >= padded.piece.maxX + pad || y < padded.piece.minY - pad || y >= padded.piece.maxY + pad) continue;
+		g_named = padded.piece;
+		g_named.seenAt = now;
+		out.spot.preset = padded.piece.preset;
+		out.spot.namedMap = padded.key;
+		return;
+	}
 }
 
 // Where the player stands; false when the world itself is unreadable.
@@ -360,8 +404,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	}
 	LogPiece(context, state, reading);
 	std::lock_guard lock(g_mutex);
-	reading.spot = Places::Carry(g_spots.current, reading.spot);
-	const Places::Spot before = g_spots.current;
+	if (Places::Stairway(reading.spot.feature)) g_landingAt = now;
+	const Places::Spot before = Places::HeldStairway(g_spots.current, static_cast<long long>(now - g_landingAt));
+	reading.spot = Places::Carry(before, reading.spot);
 	if (!g_spots.Observe(reading.spot, static_cast<long long>(now))) return;
 	Announce(context, state, reading, Places::Compare(before, reading.spot), false);
 }
@@ -380,6 +425,8 @@ void Unregister() {
 	g_enabled = true; g_supported = false; g_nextPoll = 0;
 	g_lastPiece.clear();
 	g_named = {};
+	g_padded.clear();
+	g_paddedLevel = -1;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
 

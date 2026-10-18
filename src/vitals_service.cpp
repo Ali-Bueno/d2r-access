@@ -76,7 +76,7 @@ bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_
 // The mercenary in BACK+X, off since BACK+RT says it (a tester, 2026-10-14).
 bool g_mercenaryReport = false;
 // The player's running skills (auras, armours, shapes) in BACK+X, an option (a tester, 2026-10-17).
-bool g_skillReport = false;
+bool g_skillReport = true;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -91,6 +91,8 @@ std::atomic<bool> g_lowLifeSound{true};
 std::atomic<int> g_lowLifeLevel{Vitals::DefaultLowLifeLevel};
 std::optional<bool> g_blessed; // a shrine state on the player at the last read, unknown after a reset
 std::optional<bool> g_staminaFrozen; // the stamina potion's state, the same way
+std::optional<std::array<bool, StatusEffects::FortifyStates.size()>> g_fortifiedBy; // antidote, thawing
+uint64_t g_fortifiedAt = 0; // when "fortified" is due, 0 for none
 MinionReport::Stepper g_companions;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
@@ -622,6 +624,8 @@ void Reset() {
 	g_effects.Reset();
 	g_blessed.reset();
 	g_staminaFrozen.reset();
+	g_fortifiedBy.reset();
+	g_fortifiedAt = 0;
 	g_mercenary.Reset();
 	g_breakage.Reset();
 	g_gait.Reset();
@@ -681,6 +685,8 @@ void Tick(const D2RL::PluginContext* context) {
 			g_effects.Reset();
 			g_blessed.reset();
 			g_staminaFrozen.reset();
+			g_fortifiedBy.reset();
+			g_fortifiedAt = 0;
 			g_lowLife.Reset();
 			LowLifeAudio::Play(false);
 			g_mercenary.Reset();
@@ -742,6 +748,22 @@ void Tick(const D2RL::PluginContext* context) {
 					}
 					g_staminaFrozen = frozen;
 				}
+			// An antidote or thawing potion: said after the poison or cold it cured, once while its time runs.
+			if (g_statusSupported)
+				if (const auto potions = NativeStatus::PlayerStates(StatusEffects::FortifyStates)) {
+					std::array<bool, StatusEffects::FortifyStates.size()> held{};
+					for (const size_t i : *potions) held[i] = true;
+					for (size_t i = 0; g_fortifiedBy && i < held.size(); ++i)
+						if (held[i] && !(*g_fortifiedBy)[i]) g_fortifiedAt = now + StatusEffects::EndHoldMs;
+					g_fortifiedBy = held;
+				}
+			if (g_fortifiedAt && now >= g_fortifiedAt && !g_effects.EndPending()) {
+				g_fortifiedAt = 0;
+				if (g_statusAlerts) {
+					AsyncLog::Info(context, "[vitals] fortifying potion began");
+					ScreenReader::Speak(Strings::Current().fortified, false);
+				}
+			}
 			Announce(playerAlert, mercenaryAlert);
 			if (g_statusSupported) {
 				if (g_movementAlerts) AnnounceMovement(context, g_runToggled);
