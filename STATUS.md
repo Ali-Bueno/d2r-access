@@ -2,7 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build 2026-10-18 and the 2026-10-16 leftovers — 2026-10-18 (not released yet)
+## The tester's list on build 2026-10-18 and the 2026-10-16 leftovers — 2026-10-18 (released as test-2026-10-18-2 from 2f2fab2)
+
+Release: 122/122 CTest, 29 entries, 62,645,285 bytes, SHA-256 `4a7f71aa…e08d`.
 
 From `D2R Access build 2026-10-18 bug list and extras.7z` (the user's Downloads: list, porch cottage
 screenshots, `rc_`/`stairs_`/`stable_cottage_`/`hidden_cottage_` logs). Choices in
@@ -21,8 +23,8 @@ screenshots, `rc_`/`stairs_`/`stable_cottage_`/`hidden_cottage_` logs). Choices 
 - Scanner order unchanged (explained to the tester).
 
 122/122 CTest; installed by the build. **Unverified live: all of it.**
-**Next step:** commit, release and send the news; logs to ask for: `[cube]`, `[tabs]`, `[places]`,
-`[vitals] fortifying potion began`, `[stick]`, `[terrain] place remembered` at the Monastery Gate.
+**Next step:** the tester tries it; logs: `[cube]`, `[tabs]`, `[places]`, `[vitals] fortifying potion
+began`, `[stick]`, `[terrain] place remembered` at the Monastery Gate.
 
 ## The tester's list on build 2026-10-17 — 2026-10-18 (released as test-2026-10-18 from 4c1f287)
 
