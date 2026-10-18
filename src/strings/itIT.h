@@ -298,9 +298,9 @@ inline constexpr Table itIT {
 	.deathPlace = "dove sei morto",
 	.deathRoute = "strada verso dove sei morto, %s: %s",
 	.deathRouteWaypoint = "strada verso dove sei morto, %s: %s, scegli %s",
-	.placePresets = {"", "ponte", "fiume", "accampamento dei Caduti", "casupole", "cimitero", "torre", "rovine", "accampamento", "tempio", "porta", "oasi", "forgia"},
+	.placePresets = {"", "ponte", "fiume", "accampamento dei Caduti", "casupola", "cimitero", "torre in rovina", "rovine", "accampamento", "tempio", "porta", "oasi", "forgia", "stalla", "casupola in fiamme"},
 	.placeInteriors = {"taverna", "ingresso del palazzo", "casupola", "torre", "capanna", "tempio", "fortezza", "edificio", "fattoria", "baracca", "cattedrale"},
-	.placeFeatures = {"cucina", "camino", "bancone", "tavoli", "scale", "molo", "barca", "bancarelle", "forgia", "altare", "trono", "tombe", "celle", "cavalletto di tortura", "letti", "scaffali", "statue", "fontana", "pozzo", "tende", "carro", "fiume", "ponte", "fuoco da campo", "Albero dell'Impiccato", "scale"},
+	.placeFeatures = {"cucina", "camino", "bancone", "tavoli", "scale", "molo", "barca", "bancarelle", "forgia", "altare", "trono", "tombe", "celle", "cavalletto di tortura", "letti", "scaffali", "statue", "fontana", "pozzo", "tende", "carro", "fiume", "ponte", "fuoco da campo", "Albero dell'Impiccato", "scale in salita", "fontana traboccante di sangue", "edificio in fiamme", "stella di fuoco", "scale in discesa"},
 	.placeOutside = "fuori",
 	.placeCorridor = "corridoio",
 	.placeDeadEnd = "corridoio cieco",
@@ -450,6 +450,16 @@ inline constexpr Table itIT {
 	.areaDescriptionHint = "Premi %s e la levetta destra in alto per una descrizione dell'area",
 	.noAreaDescription = "Nessuna descrizione per %s",
 	.portalOwned = "%s, portale di %s",
+	.skillAuraActive = "Aura %s attiva",
+	.skillActive = "%s in corso",
+	.skillReportOn = "Abilità in corso nel rapporto vita attivo",
+	.skillReportOff = "Abilità in corso nel rapporto vita disattivo",
+	.staminaFrozen = "Vigore bloccato al 100 per cento",
+	.staminaNormal = "Consumo di vigore tornato normale",
+	.typingStarted = "Modifica. Lo stick destro sceglie un carattere, A lo scrive, B termina",
+	.skillBound = "%s assegnata a %s",
+	.hintMoreControls = "Stick destro in alto per altre opzioni",
+	.radiantObject = "%s radiante",
 };
 
 }

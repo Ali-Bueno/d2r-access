@@ -48,7 +48,12 @@ const Generated::PresetPlaces* Find(std::string_view ds1Path) {
 	return found != end && std::string_view(found->file) == key ? found : nullptr;
 }
 
-PresetPlace NameOf(int32_t def) {
+PresetPlace NameOf(int32_t def, std::string_view ds1Path) {
+	if (!ds1Path.empty()) {
+		const std::string key = Normalize(ds1Path);
+		for (const auto& entry : Generated::PresetFileNames)
+			if (key == entry.file) return entry.place;
+	}
 	const auto* begin = std::begin(Generated::PresetNames);
 	const auto* end = std::end(Generated::PresetNames);
 	const auto* found = std::lower_bound(begin, end, def,
@@ -123,7 +128,8 @@ uint64_t MapKey(int32_t def, int tileX, int tileY) {
 		| static_cast<uint64_t>(static_cast<uint16_t>(tileX)) << 16 | static_cast<uint16_t>(tileY);
 }
 
-bool Tracked(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs; }
+bool Tracked(PlaceFeature kind) { return Stairway(kind); }
+bool Stairway(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs || kind == PlaceFeature::CliffStairsTop; }
 
 Spot Carry(const Spot& current, Spot observed) {
 	if (current.valid && observed.feature == PlaceFeature::Count && observed.map == current.map
@@ -138,7 +144,8 @@ Change Compare(const Spot& before, const Spot& now) {
 	const bool newInterior = newMap ? now.interior != None : now.interior != before.interior;
 	change.interior = newInterior && now.interior != None;
 	change.outside = before.valid && before.interior != None && now.interior == None;
-	change.feature = now.feature != PlaceFeature::Count && (now.feature != before.feature || change.interior);
+	const bool stairway = before.valid && now.map == before.map && Stairway(before.feature) && Stairway(now.feature);
+	change.feature = now.feature != PlaceFeature::Count && (now.feature != before.feature || change.interior) && !stairway;
 	using Passages::Shape;
 	change.node = (now.passage == Shape::Bend || now.passage == Shape::Junction) && now.passage != before.passage;
 	if (now.passage == Shape::Corridor) {

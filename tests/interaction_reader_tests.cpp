@@ -119,7 +119,7 @@ BeltSlot BeltItemAt(uintptr_t, int slot) {
 	if (slot == unreadableBeltSlot) return {};
 	return slot >= 0 && slot < static_cast<int>(beltItems.size()) ? BeltSlot{true, slot, beltItems[slot]} : BeltSlot{};
 }
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t, uintptr_t) {
 	if (panel == 40) return target;
 	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
 	++inventoryWalks;
@@ -402,17 +402,17 @@ int main() {
 	// Item bodies are written the way the engine stores them: bottom-up, with
 	// the name last. See tooltip_text.h.
 	Tooltip("Recupera 45 de vida\nPoción de curación menor"); tooltip.footer = "Usar";
-	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Poción de curación menor"}, "stash opens with its selected tab and the item name, without its description or coordinates");
+	Check(Settle() && speech == std::vector<std::string>{"Personal. Poción de curación menor"}, "stash opens with its selected tab and the item name, without its title, description or coordinates");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "stationary inventory selection stays quiet");
-	Check(inventoryWalks == 0 && titleLookups == 1, "localized title is cached; shared tab tracking owns discovery");
+	Check(inventoryWalks == 0 && titleLookups == 0, "the stash has no title to look up; shared tab tracking owns discovery");
 	cell = {1, 0}; selection = 1; Tick();
 	Tooltip("Recupera 45 de vida\nPoción de curación menor"); tooltip.footer = "Usar";
 	Settle();
 	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "identical items in different cells are announced without coordinates or section repetition");
 	ClearSpeech(); inventory.nodes[0].text = "Comp."; Settle();
-	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
-	Check(inventoryWalks == 0 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
+	Check(speech.size() == 1 && speech[0].starts_with("Comp."), "changing the actual stash tab announces the new section");
+	Check(inventoryWalks == 0 && titleLookups == 0, "cell navigation and selected-tab changes avoid full inventory walks");
 	ClearSpeech(); cell = {2, 0}; selection = 2; Settle();
 	Check(speech.empty(), "a cell that cannot be read is not given the position that says it is empty");
 	itemPresence = NativeUi::ItemPresence::Empty; Settle();

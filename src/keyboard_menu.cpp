@@ -191,6 +191,9 @@ bool Down(int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; }
 // (READ), so A typed an "a" as it clicked a class. What the game would type is
 // kept from it unless the cursor is on the box (the user, 2026-09-28).
 std::atomic<bool> g_keepLetters{false};
+// Character select moves its own selection with up and down too, so the cursor
+// walking the buttons beside the list changed the character (a tester, 2026-10-17).
+std::atomic<bool> g_keepArrows{false};
 HHOOK g_letterHook = nullptr;
 bool g_letterTried = false;
 const D2RL::PluginContext* g_letterContext = nullptr;
@@ -204,6 +207,12 @@ LRESULT CALLBACK KeepLetters(int code, WPARAM wParam, LPARAM lParam) {
 				message->wParam < 0x80 ? static_cast<char>(message->wParam) : '?');
 			message->message = WM_NULL;
 		}
+	}
+	if (code == HC_ACTION && wParam == PM_REMOVE && g_keepArrows.load()) {
+		auto* message = reinterpret_cast<MSG*>(lParam);
+		if ((message->message == WM_KEYDOWN || message->message == WM_KEYUP)
+			&& (message->wParam == VK_UP || message->wParam == VK_DOWN))
+			message->message = WM_NULL;
 	}
 	return CallNextHookEx(nullptr, code, wParam, lParam);
 }
@@ -1195,6 +1204,7 @@ void Reset() {
 	g_beltShown = false;
 	g_beltRows = 0;
 	g_keepLetters = false;
+	g_keepArrows = false;
 	if (g_letterHook) UnhookWindowsHookEx(g_letterHook);
 	g_letterHook = nullptr;
 	g_letterTried = false;
@@ -1213,6 +1223,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!menu) {
 		g_typing = false;
 		g_keepLetters = false;
+		g_keepArrows = false;
 		// The pointer was the menu's only if the cursor put it somewhere.
 		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
@@ -1234,6 +1245,7 @@ void Tick(const D2RL::PluginContext* context) {
 	HookLetters(context);
 	g_keepLetters = g_engaged && !field && g_menu.find("CharacterCreatePanel") != std::string::npos;
 	const bool typing = editing || field;
+	g_keepArrows = g_engaged && !typing && g_menu.find("CharacterSelectPanel") != std::string::npos;
 	// With no pad the menu is the keyboard's from the moment it opens; with one
 	// connected it is the pad's until an arrow key is pressed.
 	if (!g_engaged && !InputDirection::LeftStick().connected) {

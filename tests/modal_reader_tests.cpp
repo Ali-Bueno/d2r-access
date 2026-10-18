@@ -32,7 +32,7 @@ namespace D2RAccess::InputDirection { bool FaceButtonHeld(FaceButton) { return f
 namespace D2RAccess::NativeUi {
 Focus GameFocus() { return {}; } // these panels open with nothing focused
 bool Visible(uintptr_t) { return promptShown; }
-UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return tree; }
+UiText::Snapshot Snapshot(uintptr_t, uintptr_t, uintptr_t) { return tree; }
 }
 namespace D2RAccess::NativeWidgets {
 uintptr_t FindPanel(std::string_view) { return Panel; }

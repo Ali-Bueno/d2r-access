@@ -61,7 +61,8 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 	if (!g_enabled) { Reset(); return; }
 	const bool idle = editing && !*editing;
 	const bool box = focus.widget && NativeUi::Classify(focus.widget).kind == UiText::Kind::TextInput;
-	if (InputDirection::TakeFacePress(FaceButton::A)) {
+	const bool pressedA = InputDirection::TakeFacePress(FaceButton::A);
+	if (pressedA) {
 		g_box = box && idle ? focus.widget : 0;
 		g_pressedAt = now;
 	}
@@ -76,26 +77,31 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 		g_editing = false;
 		return;
 	}
+	// The game's text entry panel says nothing of itself (a tester, 2026-10-17: A seemed to do nothing).
 	if (!g_editing) {
 		g_editing = true;
 		g_index = 0;
 		AsyncLog::InfoF(context, "[typing] editing %s: the right stick picks characters", NativeWidgets::ReadName(focus.widget).c_str());
+		ScreenReader::Speak(Strings::Current().typingStarted, true);
+		return; // the A that began the edit is not a character
 	}
+	const auto type = [&] {
+		const char character = Charset[static_cast<size_t>(g_index)];
+		const bool sent = SendKey(static_cast<wchar_t>(character));
+		AsyncLog::InfoF(context, "[typing] '%c' %s", character, sent ? "sent" : "not sent: the game is not in front");
+	};
+	if (pressedA) type();
 	if (InputDirection::PeekRightStickPush() == StickPush::None) return;
 	const StickPush push = InputDirection::TakeRightStickPush("typing");
 	switch (push) {
 	case StickPush::Up:
 	case StickPush::Down: {
-		g_index = Step(g_index, push == StickPush::Up ? -1 : 1);
+		// Up goes forward through the letters, as most games' character pickers do (a tester, 2026-10-17).
+		g_index = Step(g_index, push == StickPush::Up ? 1 : -1);
 		ScreenReader::Speak(Word(Charset[static_cast<size_t>(g_index)]), true);
 		break;
 	}
-	case StickPush::Right: {
-		const char character = Charset[static_cast<size_t>(g_index)];
-		const bool sent = SendKey(static_cast<wchar_t>(character));
-		AsyncLog::InfoF(context, "[typing] '%c' %s", character, sent ? "sent" : "not sent: the game is not in front");
-		break;
-	}
+	case StickPush::Right: type(); break;
 	case StickPush::Left: {
 		const bool sent = SendKey(0);
 		AsyncLog::InfoF(context, "[typing] backspace %s", sent ? "sent" : "not sent: the game is not in front");

@@ -118,6 +118,15 @@ void CorpseIdentity() {
 	Check(!SameTarget(corpse, casket), "beacon matching cannot follow the same-ID world object in place of the corpse");
 }
 
+void TowerQuest() {
+	Check(EntityRadar::QuestWay(6, 20) && EntityRadar::QuestWay(20, 21) && !EntityRadar::QuestWay(21, 20),
+		"the Black Marsh's door and every step down the tower are quest ways, the way back up is not");
+	Check(!EntityRadar::QuestRunning(0), "before the Moldy Tome the tower is no quest");
+	Check(EntityRadar::QuestRunning(0x0004) && EntityRadar::QuestRunning(0x0048), "from the tome to the Countess it is");
+	Check(!EntityRadar::QuestRunning(0x2001) && !EntityRadar::QuestRunning(0x8010), "completed, or done, it is no more");
+	Check(!EntityRadar::QuestRunning(0x1000), "a flag of its own outside the steps is not a start");
+}
+
 void QuestSources() {
 	Entity tree{7, Kind::Object, {20, 20}, "Árbol de Inifuss"};
 	Check(!QuestSource(tree), "an object is not a quest source by its name");
@@ -167,6 +176,7 @@ int main() {
 	LevelExitIdentity();
 	CorpseIdentity();
 	QuestSources();
+	TowerQuest();
 	UsePreference();
 	Wording();
 	Passed();

@@ -302,3 +302,21 @@ speech. Automatic generic alerts are implemented regardless of that result;
 the new packet capture's unloaded-journal objective/counter coverage still
 requires live confirmation. Quest changes that bypass the guarded packet call
 continue to use the generic alert.
+
+## The player's quest flags (found 2026-10-18, read in the image, not yet measured live)
+
+The client keeps the local player's flags for the difficulty being played (`NativeQuestFlags`):
+`*(base+0x2A48778)` is the quest record (null outside a game; made at `0x10B538`, cleared at
+`0x10B44C`), its first field points to 0x60 bytes, one little-endian 16-bit word per quest
+record row (the row the text builder `0x16BD20` takes; `0x1CCEE0` checks `[rec+0x14] == row`).
+The getter `0x325C50(rec, quest, bit)` tests bit `quest*16+bit` through byte `n>>3` and the mask
+table at `0x1D996D0`, filled at run time: the reader waits until it reads 1, 2, 4... before it
+trusts a word. Packet 0x28 type 6 (handler `0x10E6E0`, copy at `0x10E715`) fills the words from
+the server's `[playerData + 0x40 + difficulty*8]`; before it arrives every word is 0.
+Bits: 0 completed, 1 reward pending, 2-6 the steps since the quest began (the server's status
+function `0x5E1441` maps 2, 3, 4, 5, 6), 13 primary goal done, 15 done. The Forgotten Tower is row
+5 (the server sets 5:13 and 5:0 at `0x5E1726`, after `cmp eax, 0x19`, Tower Cellar 5); its ways are
+quest ways only while `QuestRunning` (`EntityRadar`), and always when the flags cannot be read.
+Log: `[quest] flags row=5 word=XXXX` when the word changes; `[quest] Flag bit order verified.`
+To confirm live: a new character's word before the tome (0), after it (bit 2), in the cellars,
+after the Countess (0x2001); an in-progress character right after joining.

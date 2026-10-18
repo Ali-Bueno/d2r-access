@@ -148,7 +148,7 @@ bool Observe(const Lifecycle& state, Reading& out) {
 	const bool mapped = NativePresetMap::Read(NativeWorld::PlayerRoom(), out.map, &out.trace);
 	if (mapped) {
 		out.spot.map = Places::MapKey(out.map.def, out.map.tileX, out.map.tileY);
-		out.spot.preset = Places::NameOf(out.map.def);
+		out.spot.preset = Places::NameOf(out.map.def, out.map.path);
 	}
 	Remember(state.level, out, x, y);
 	if (!mapped) return true; // open ground no map owns

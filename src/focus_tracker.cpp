@@ -161,6 +161,9 @@ std::string       g_hintPanel;
 uint64_t          g_selectHintAt = 0; // when the character-select hint falls due, 0 when none
 bool              g_nameHintSpoken = false;
 bool              g_selectOpen = false;   // the character list is among the open panels
+bool              g_selectHintSpoken = false; // since the list last opened
+// What may be in front of the list while its hint is due: the link bar and the ribbon open over it.
+constexpr std::string_view SelectScreenPanels[] = { "CharacterSelectPanel", "MainMenuLinks", "MainMenuButtonRibbon" };
 
 std::string HintText(const char* format, uint32_t glyph) {
 	const std::string_view button = ControllerText::Button(glyph);
@@ -169,9 +172,26 @@ std::string HintText(const char* format, uint32_t glyph) {
 	return button.empty() ? std::string {} : std::string(phrase);
 }
 
-// Called every tick: speaks the character-select hint when due. A character row arms
-// it as it is read; an empty list, as it opens. The link bar opens over the list, so
-// the list is looked for among the open panels, not as the active one.
+// Play, create and delete, in the tester's order (2026-10-14: nothing said what X and
+// Start do; 2026-10-16: A first); with no character saved, only how to make one.
+std::string SelectControls(bool none) {
+	const auto& strings = Strings::Current();
+	std::string hint;
+	const auto add = [&hint](std::string part) {
+		if (part.empty()) return;
+		if (!hint.empty()) hint += ". ";
+		hint += part;
+	};
+	if (!none) add(HintText(strings.hintPlayCharacter, AGlyph));
+	add(HintText(none ? strings.hintNoCharacters : strings.hintNewCharacter, MenuGlyph));
+	if (!none) add(HintText(strings.hintDeleteCharacter, XGlyph));
+	return hint;
+}
+
+// Called every tick: speaks the character-select hint when due, once a visit and only
+// while the list is in front (a tester, 2026-10-17: it was heard in the lobby and in
+// the game). A character row arms it as it is read; an empty list, as it opens. With
+// characters it points to right stick up, where a row keeps the controls.
 void TickScreenHints(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
 	if (active != g_hintPanel) {
@@ -182,24 +202,17 @@ void TickScreenHints(const D2RL::PluginContext* context) {
 	const bool selectOpen = std::find(open.begin(), open.end(), CharacterSelectPanelName) != open.end();
 	if (selectOpen != g_selectOpen) {
 		g_selectOpen = selectOpen;
+		g_selectHintSpoken = false;
 		g_selectHintAt = selectOpen && CharacterSaves::Load(context).empty() ? GetTickCount64() + SelectHintDelayMs : 0;
 	}
+	const bool inFront = std::find(std::begin(SelectScreenPanels), std::end(SelectScreenPanels), active) != std::end(SelectScreenPanels);
+	if (g_selectHintAt && (!inFront || g_selectHintSpoken)) g_selectHintAt = 0;
 	if (g_selectHintAt == 0 || GetTickCount64() < g_selectHintAt) return;
 	g_selectHintAt = 0;
 	if (!g_screenHints.load() || !selectOpen) return;
-	// Play, create and delete, in the tester's order (2026-10-14: nothing said what X and
-	// Start do; 2026-10-16: A first); with no character saved, only how to make one.
-	const auto& strings = Strings::Current();
+	g_selectHintSpoken = true;
 	const bool none = CharacterSaves::Load(context).empty();
-	std::string hint;
-	const auto add = [&hint](std::string part) {
-		if (part.empty()) return;
-		if (!hint.empty()) hint += ". ";
-		hint += part;
-	};
-	if (!none) add(HintText(strings.hintPlayCharacter, AGlyph));
-	add(HintText(none ? strings.hintNoCharacters : strings.hintNewCharacter, MenuGlyph));
-	if (!none) add(HintText(strings.hintDeleteCharacter, XGlyph));
+	const std::string hint = none ? SelectControls(true) : std::string(Strings::Current().hintMoreControls);
 	if (!hint.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[hint] %s", hint.c_str());
 		ScreenReader::Speak(hint, false);
@@ -423,12 +436,17 @@ Match Resolve(const D2RL::PluginContext* context, const Widgets::Rect& indicator
 	Match best;
 	const auto& open = PanelState::OpenPanels();
 	std::vector<const Generated::PanelWidgets*> order;
-	if (g_lastMatchedPanel != nullptr && std::find(open.begin(), open.end(), g_lastMatchedPanel->panel) != open.end()) {
+	// An open panel drawing nothing (the emote wheel, all game) cannot be under the highlight.
+	const auto drawn = [](const Generated::PanelWidgets* catalog) {
+		return !NativeUi::DrawsNothing(NativeWidgets::FindPanel(catalog->panel));
+	};
+	if (g_lastMatchedPanel != nullptr && std::find(open.begin(), open.end(), g_lastMatchedPanel->panel) != open.end()
+		&& drawn(g_lastMatchedPanel)) {
 		order.push_back(g_lastMatchedPanel);
 	}
 	for (auto it = open.rbegin(); it != open.rend(); ++it) {
 		const Generated::PanelWidgets* catalog = Catalog(*it);
-		if (catalog != nullptr && catalog != g_lastMatchedPanel) {
+		if (catalog != nullptr && catalog != g_lastMatchedPanel && drawn(catalog)) {
 			order.push_back(catalog);
 		}
 	}
@@ -836,6 +854,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		D2RAccess::AsyncLog::InfoF(context, "[focus] %s row %d -> \"%s\"", g_lastAnnounced.c_str(), characterRow, characterPhrase.c_str());
 		g_selectHintAt = GetTickCount64() + SelectHintDelayMs;
 		ScreenReader::Speak(characterPhrase, true);
+		InteractionReader::OfferDetail(g_lastAnnounced, SelectControls(false)); // a row: a character exists
 		std::string legend;
 		for (const LegendAction& action : CharacterRowActions) {
 			if (const std::string text = TextForKey(action.textKey); !text.empty()) {

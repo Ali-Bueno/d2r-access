@@ -9,9 +9,13 @@ environment boxes and visual-data boxes are relative to the entity and give the
 interior volumes. A prefab placement's footprint comes from the entity positions
 inside the prefab JSON it names.
 
+The Act II cliff stairs are placed by their collision mesh (the model's own
+.physics file): its bounding-volume tree gives the bottom and the top landing.
+
 Usage (after every game patch):
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "hd\env\preset\"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "\pf_"
+    build/casc-extract/casc_extract.exe extract "<game dir>" <root> "act2_bigcliff_stairs\"
     python tools/gen_places.py --hd-root <root> [--lvlprest PATH] [--out PATH]
 
 Stdlib only.
@@ -21,6 +25,7 @@ import csv
 import json
 import math
 import re
+import struct
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -59,7 +64,7 @@ FEATURES = [
     ("Beds", "model", r"/cot\d|/bed\d"),
     ("Books", "model", r"bookshelf|bookcase"),
     ("Statues", "model", r"/(?:act2_|church_)?statue\d"),
-    ("Fountain", "model", r"fountain"),
+    ("Fountain", "model", r"fountain(?!_gore)"),
     ("Well", "model", r"/(?:small_|large_)?well\d"),
     ("Tents", "model", r"/tent\d"),
     ("Wagon", "model", r"/wagon\d\d(?:_pf)?$"),
@@ -69,8 +74,23 @@ FEATURES = [
     ("HangmanTree", "model", r"graveyard_hanging_corpse|graveyard_props/noose_wrap"),
     # The Act II desert's cliff stairs, the only way between a level's halves: also a tracker entry.
     ("CliffStairs", "model", r"act2_bigcliff_stairs/"),
+    # Tristram's fountain runs with blood (a tester, 2026-10-17); its plain fountain models are dropped there.
+    ("BloodFountain", "any", r"fountain_gore"),
+    ("BurningBuilding", "any", r"tristram_(?:fire_small|firewall|smolder)|building_burnt|burnt_beam"),
+    # The crypts' five-pointed fire on the floor, which burns whoever crosses it.
+    ("FireStar", "any", r"fx_act1crypt_fire_pentagram"),
 ]
-FEATURE_NAMES = [f[0] for f in FEATURES]
+# Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
+DERIVED_FEATURES = ["CliffStairsTop"]
+FEATURE_NAMES = [f[0] for f in FEATURES] + DERIVED_FEATURES
+# A feature's seeds drop another feature's seeds on the same spot.
+SUPERSEDES = {"BloodFountain": ("Fountain",)}
+# Files whose own preset name already says what the feature would (a cottage on fire).
+FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.ds1$")}
+# Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
+# one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
+FEATURE_PADDING = {"HangmanTree": 5}
+STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
 FEATURE_RX = [(n, s, re.compile(p)) for n, s, p in FEATURES]
 
 # Feature -> regex over the basename of a prefab placement, tried before the model rules.
@@ -118,7 +138,7 @@ PLACES = [
     ("Bridge", r"^Act \d - Bridge"),
     ("River", r"^Act 1 - River (?:Upper|Lower)"),
     ("FallenCamp", r"^Act 1 - Fallen Camp"),
-    ("Cottages", r"^Act 1 - Cottages"),
+    ("Cottage", r"^Act 1 - Cottages"),
     ("Graveyard", r"^Act 1 - Graveyard"),
     ("Tower", r"^Act 1 - Tower"),
     ("Ruin", r"^Act 1 - Ruin$|^Act 2 - Desert Valley Ruin"),
@@ -128,8 +148,14 @@ PLACES = [
     ("Oasis", r"^Act 2 - Desert Oasis"),
     ("Forge", r"^Act 1 - Barracks Forge"),
 ]
-PLACE_NAMES = [p[0] for p in PLACES]
+# LvlPrest file -> PresetPlace, over the row's name: a cottage row also picks a stable or a burning cottage.
+FILE_PLACES = [
+    ("Stable", r"^act1/outdoors/cott6a?\.ds1$"),
+    ("BurningCottage", r"^act1/outdoors/cott7\.ds1$"),
+]
+PLACE_NAMES = [p[0] for p in PLACES] + [p[0] for p in FILE_PLACES]
 PLACE_RX = [(n, re.compile(p)) for n, p in PLACES]
+FILE_PLACE_RX = [(n, re.compile(p)) for n, p in FILE_PLACES]
 
 
 def norm_path(p):
@@ -276,6 +302,42 @@ def prefab_footprint(e, t, hd_root, cache, stats):
     return rect
 
 
+def stairs_landings(e, t, hd_root, stats):
+    """(bottom, top) subtile rects of a stairway from its collision mesh, or None: the
+    bounding-volume node lowest at its top is the bottom landing, the highest at its
+    base the top one (HD y is up)."""
+    body = comp(e, "PhysicsBodyDefinitionComponent")
+    for fixture in body.get("fixturedefs", []) if body else []:
+        ref = norm_path(fixture.get("shapetype", {}).get("filename", ""))
+        path = hd_root / (ref[len(DATA_PREFIX):] if ref.startswith(DATA_PREFIX) else ref)
+        if not ref or not path.is_file():
+            continue
+        data = path.read_bytes()
+        count = struct.unpack_from("<I", data, 0x18)[0]  # header word 6: the node count
+        if STAIRS_COLLISION_NODES + 32 * count > len(data):
+            continue
+        nodes = [struct.unpack_from("<6f", data, STAIRS_COLLISION_NODES + 32 * i) for i in range(count)]
+        pos, q, sc = t["position"], t["orientation"], t.get("scale", {"x": 1, "y": 1, "z": 1})
+
+        def rect(node):
+            xs, zs = [], []
+            for x in (node[0], node[3]):
+                for z in (node[2], node[5]):
+                    rx, rz = quat_rotate_xz(q, x * sc["x"], 0.0, z * sc["z"])
+                    xs.append(pos["x"] + rx)
+                    zs.append(pos["z"] + rz)
+            return (clamp_subtile(math.floor(min(xs) / HD_PER_SUBTILE)), clamp_subtile(math.floor(min(zs) / HD_PER_SUBTILE)),
+                    clamp_subtile(math.ceil(max(xs) / HD_PER_SUBTILE)), clamp_subtile(math.ceil(max(zs) / HD_PER_SUBTILE)))
+        stats["stairs_ok"] += 1
+        return rect(min(nodes, key=lambda n: n[4])), rect(max(nodes, key=lambda n: n[1]))
+    stats["stairs_missing"] += 1
+    return None
+
+
+def centre(rect):
+    return (rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2
+
+
 def classify_interior(label):
     for name, rx in INTERIOR_RX:
         if rx.search(label):
@@ -301,7 +363,7 @@ def volume_of(e, c, stats):
     return box
 
 
-def scan_preset(path, hd_root, cache, stats):
+def scan_preset(path, rel, hd_root, cache, stats):
     d = json.loads(path.read_text(encoding="utf-8"))
     raw_seeds = defaultdict(list)
     volumes = []
@@ -310,9 +372,16 @@ def scan_preset(path, hd_root, cache, stats):
         if not t:
             continue
         feature, kind = classify_feature(e)
+        if feature in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[feature].search(rel):
+            feature = None
         if feature:
             x, y = round(t["position"]["x"] / HD_PER_SUBTILE), round(t["position"]["z"] / HD_PER_SUBTILE)
-            if 0 <= x <= SUBTILE_MAX and 0 <= y <= SUBTILE_MAX:
+            landings = stairs_landings(e, t, hd_root, stats) if feature == "CliffStairs" else None
+            if landings:
+                for name, rect in zip(("CliffStairs", "CliffStairsTop"), landings):
+                    raw_seeds[name].append((*centre(rect), rect))
+                stats["features"][feature, kind][basename_of(e)] += 1
+            elif 0 <= x <= SUBTILE_MAX and 0 <= y <= SUBTILE_MAX:
                 rect = prefab_footprint(e, t, hd_root, cache, stats) if kind == "prefab" else point_rect(x, y)
                 raw_seeds[feature].append((x, y, rect))
                 stats["features"][feature, kind][basename_of(e)] += 1
@@ -333,10 +402,16 @@ def scan_preset(path, hd_root, cache, stats):
                 stats["tiny"] += 1
                 continue
             volumes.append((minx, miny, maxx, maxy, interior))
+    for winner, losers in SUPERSEDES.items():
+        for loser in losers:
+            raw_seeds[loser] = [s for s in raw_seeds.get(loser, []) if not any(
+                abs(s[0] - w[0]) <= MERGE_RADIUS and abs(s[1] - w[1]) <= MERGE_RADIUS for w in raw_seeds.get(winner, []))]
     seeds = []
     for feature in FEATURE_NAMES:
+        pad = FEATURE_PADDING.get(feature, 0)
         for rect in merge_seeds(raw_seeds.get(feature, [])):
-            seeds.append((*rect, feature))
+            seeds.append((clamp_subtile(rect[0] - pad), clamp_subtile(rect[1] - pad),
+                          clamp_subtile(rect[2] + pad), clamp_subtile(rect[3] + pad), feature))
     return seeds, merge_volumes(volumes)
 
 
@@ -373,7 +448,7 @@ def match_places(rows):
     return sorted(kept), excluded
 
 
-def render(table, seeds_all, vols_all, names):
+def render(table, seeds_all, vols_all, names, file_names):
     o = ["// generated by tools/gen_places.py from the game's HD preset layouts -- do not edit",
          "#pragma once", "#include <cstdint>", "namespace D2RAccess::Generated {"]
     o.append("enum class PlaceFeature : uint8_t { " + ", ".join(FEATURE_NAMES) + ", Count };")
@@ -383,6 +458,7 @@ def render(table, seeds_all, vols_all, names):
     o.append("struct PlaceVolume { uint16_t minX, minY, maxX, maxY; PlaceInterior interior; };")
     o.append("struct PresetPlaces { const char* file; uint32_t firstSeed; uint16_t seedCount, firstVolume, volumeCount; };")
     o.append("struct PresetName  { int32_t def; PresetPlace place; };")
+    o.append("struct PresetFileName { const char* file; PresetPlace place; };")
     o.append("inline constexpr PlaceSeed PlaceSeeds[] = {")
     o += [f"    {{{a}, {b}, {c}, {d}, PlaceFeature::{f}}}," for a, b, c, d, f in seeds_all]
     o.append("};")
@@ -394,6 +470,10 @@ def render(table, seeds_all, vols_all, names):
     o.append("};")
     o.append("inline constexpr PresetName PresetNames[] = {")
     o += [f"    {{{d}, PresetPlace::{p}}}, // {n}" for d, p, n in names]
+    o.append("};")
+    o.append("// Over PresetNames: the piece a named row picked.")
+    o.append("inline constexpr PresetFileName PresetFileNames[] = {")
+    o += [f'    {{"{f}", PresetPlace::{p}}},' for f, p in file_names]
     o.append("};")
     o.append("}")
     return "\n".join(o) + "\n"
@@ -409,7 +489,7 @@ def main():
     rows = load_lvlprest(args.lvlprest)
     known = lvlprest_files(rows)
     stats = {"rotated": 0, "tiny": 0, "features": defaultdict(Counter), "ignored": Counter(), "unknown": Counter(),
-             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0}
+             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0}
     presets_dir = args.hd_root / PRESET_SUBDIR
     prefab_cache = {}
 
@@ -427,7 +507,7 @@ def main():
     table, seeds_all, vols_all = [], [], []
     interior_presets = defaultdict(list)
     for file in sorted(set(found) & known):
-        seeds, vols = scan_preset(found[file], args.hd_root, prefab_cache, stats)
+        seeds, vols = scan_preset(found[file], file, args.hd_root, prefab_cache, stats)
         if not seeds and not vols:
             continue
         table.append((file, len(seeds_all), len(seeds), len(vols_all), len(vols)))
@@ -438,12 +518,16 @@ def main():
     table.sort(key=lambda r: r[0].encode())
 
     kept, excluded = match_places(rows)
-    out = render(table, seeds_all, vols_all, sorted(kept))
+    file_names = sorted(((f, next(n for n, rx in FILE_PLACE_RX if rx.search(f))) for f in known
+                         if any(rx.search(f) for _, rx in FILE_PLACE_RX)), key=lambda r: r[0].encode())
+    out = render(table, seeds_all, vols_all, sorted(kept), file_names)
     args.out.write_text(out, encoding="utf-8", newline="\n")
 
     print(f"wrote {args.out}: {len(out)} bytes, {len(table)} presets, {len(seeds_all)} seeds, {len(vols_all)} volumes")
     print(f"prefab footprints: {stats['fp_ok']} ok; point fallback: {stats['fp_missing']} prefab missing, {stats['fp_outside']} rect misses anchor, {stats['fp_huge']} over {MAX_FOOTPRINT_SIDE} subtiles")
     print(f"boxes not identity-rotated: {stats['rotated']}; tiny boxes skipped: {stats['tiny']}")
+    print(f"stairs from collision: {stats['stairs_ok']}; without a collision file: {stats['stairs_missing']}")
+    print("file names:", file_names)
     print("ignored volumes:", dict(stats["ignored"]), "unclassified:", dict(stats["unknown"]))
     for f in FEATURE_NAMES:
         for kind in ("model", "prefab"):

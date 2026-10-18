@@ -39,8 +39,10 @@ constexpr int TeethHarmonics = 6;
 // Boss: a metallic ring, a struck bar's inharmonic partials above the growl.
 constexpr double RingRatios[] = {2.76, 5.40, 8.93}, RingWeights[] = {1, 0.55, 0.3};
 constexpr double RingLevel = 0.08;
-// Raiser of the dead: a wailing chant, a tone with a fast vibrato.
+// Raiser of the dead: a wailing chant, a tone with a fast vibrato that glides up one
+// semitone, rising as the dead do (a tester, 2026-10-17: a semitone at most).
 constexpr double ChantRatio = 4, ChantVibratoHz = 22, ChantVibratoDepth = 0.06, ChantLevel = 0.1;
+inline const double ChantGlide = std::pow(2.0, 1.0 / 12) - 1;
 // Ranged: a thin high whistle, far above the chant and with no vibrato.
 constexpr double WhistleRatio = 11, WhistleLevel = 0.07;
 // Attack reach: a bright rising two-note ping, far above every other cue.
@@ -145,7 +147,8 @@ double ClassLayer(Sound sound, double progress, double seconds, double pitch) {
 	}
 	case Sound::Resurrector: {
 		const double wobble = ChantVibratoDepth / (2 * std::numbers::pi * ChantVibratoHz) * std::sin(2 * std::numbers::pi * ChantVibratoHz * seconds);
-		return ChantLevel * swell * std::sin(2 * std::numbers::pi * base * ChantRatio * (seconds + wobble));
+		const double glide = ChantGlide * seconds * progress / 2; // the phase of a pitch rising linearly over the cue
+		return ChantLevel * swell * std::sin(2 * std::numbers::pi * base * ChantRatio * (seconds + glide + wobble));
 	}
 	case Sound::Ranged: return WhistleLevel * swell * tone(WhistleRatio);
 	default: return 0;

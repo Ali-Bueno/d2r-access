@@ -53,6 +53,13 @@ void GeneratedData() {
 	Check(Places::NameOf(28) == PresetPlace::Bridge, "LvlPrest 28 is Act 1 - Bridge");
 	Check(Places::NameOf(108) == PresetPlace::Graveyard, "LvlPrest 108 is Act 1 - Graveyard");
 	Check(Places::NameOf(1) == PresetPlace::None, "a town is a whole level, not a named piece");
+	Check(Places::NameOf(47) == PresetPlace::Cottage, "LvlPrest 47 is Act 1 - Cottages 1, one cottage");
+	Check(Places::NameOf(47, "Act1/Outdoors/Cott6.ds1") == PresetPlace::Stable,
+		"the row's sixth piece is a stable");
+	Check(Places::NameOf(49, "Act1/Outdoors/Cott7.ds1") == PresetPlace::BurningCottage,
+		"Cott7 is the burning cottage");
+	Check(Places::NameOf(47, "Act1/Outdoors/Cott2.ds1") == PresetPlace::Cottage,
+		"another piece of the row keeps the row's name");
 }
 
 // Walking distance, not straight-line distance, decides the landmark.
@@ -184,6 +191,11 @@ void WhatIsSpoken() {
 		At(9, Places::None, PlaceFeature::Count, PresetPlace::Bridge));
 	Check(ford.preset, "a bridge over the river is named");
 	Check(Places::MapKey(28, 10, 20) != Places::MapKey(28, 10, 21), "two placements of one piece are told apart");
+	const auto climbed = Places::Compare(At(3, Places::None, PlaceFeature::CliffStairs), At(3, Places::None, PlaceFeature::CliffStairsTop));
+	Check(!climbed.feature, "reaching the top of the stairs walked up is not a new landmark");
+	const auto arrived = Places::Compare(At(3, Places::None, PlaceFeature::Count), At(3, Places::None, PlaceFeature::CliffStairsTop));
+	Check(arrived.feature, "coming to the top landing from the upper level names the stairs");
+	Check(Places::Tracked(PlaceFeature::CliffStairs) && Places::Tracked(PlaceFeature::CliffStairsTop), "both landings are in the scanner");
 }
 
 void CarryAndHysteresis() {

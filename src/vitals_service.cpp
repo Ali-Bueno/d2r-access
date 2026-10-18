@@ -22,6 +22,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "status_effects.h"
+#include "generated/skill_states.h"
 #include "vitals.h"
 #include "corpse_memory.h"
 #include "low_life_audio.h"
@@ -74,6 +75,8 @@ bool g_enabled = true;
 bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
 // The mercenary in BACK+X, off since BACK+RT says it (a tester, 2026-10-14).
 bool g_mercenaryReport = false;
+// The player's running skills (auras, armours, shapes) in BACK+X, an option (a tester, 2026-10-17).
+bool g_skillReport = false;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -87,6 +90,7 @@ Vitals::LowLife g_lowLife;
 std::atomic<bool> g_lowLifeSound{true};
 std::atomic<int> g_lowLifeLevel{Vitals::DefaultLowLifeLevel};
 std::optional<bool> g_blessed; // a shrine state on the player at the last read, unknown after a reset
+std::optional<bool> g_staminaFrozen; // the stamina potion's state, the same way
 MinionReport::Stepper g_companions;
 Vitals::MercenaryMeter g_mercenary;
 Vitals::Breakage g_breakage;
@@ -121,6 +125,29 @@ constexpr auto EffectStates = [] {
 	for (size_t i = 0; i < states.size(); ++i) states[i] = StatusEffects::Effects[i].state;
 	return states;
 }();
+
+constexpr auto SkillStateIds = [] {
+	std::array<int, Generated::SkillStates.size()> states{};
+	for (size_t i = 0; i < states.size(); ++i) states[i] = Generated::SkillStates[i].state;
+	return states;
+}();
+
+// "Prayer aura active. Bone Armor active": the skills the game keeps running on the player.
+std::string RunningSkills() {
+	std::string text;
+	const auto active = NativeStatus::PlayerStates(SkillStateIds);
+	if (!active) return text;
+	const auto& strings = Strings::Current();
+	for (const auto index : *active) {
+		const auto& entry = Generated::SkillStates[index];
+		const std::string name = NativeSkillBar::SkillName(entry.skill);
+		if (name.empty()) continue;
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), entry.aura ? strings.skillAuraActive : strings.skillActive, name.c_str());
+		Append(text, phrase);
+	}
+	return text;
+}
 
 // An effect's words as it begins or ends: a condition in the mod's own, a curse by its name.
 std::string EffectWords(size_t index, bool started) {
@@ -406,6 +433,7 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 	// Read now, not from the tracker: the report answers with the announcements off too.
 	if (const auto active = g_statusSupported ? NativeStatus::PlayerStates(EffectStates) : std::nullopt)
 		for (const auto index : *active) Append(text, EffectWords(index, true));
+	if (g_statusSupported && g_skillReport) Append(text, RunningSkills());
 	if (const auto movement = g_statusSupported ? NativeStatus::PlayerMovement() : std::nullopt) {
 		const int stamina = StaminaPercent(*movement);
 		if (stamina >= 0 && stamina < 100) Append(text, FormattedPercent(strings.staminaPercent, stamina));
@@ -593,6 +621,7 @@ void Reset() {
 	g_orbAvailability.Reset();
 	g_effects.Reset();
 	g_blessed.reset();
+	g_staminaFrozen.reset();
 	g_mercenary.Reset();
 	g_breakage.Reset();
 	g_gait.Reset();
@@ -651,6 +680,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_orbAvailability.Reset();
 			g_effects.Reset();
 			g_blessed.reset();
+			g_staminaFrozen.reset();
 			g_lowLife.Reset();
 			LowLifeAudio::Play(false);
 			g_mercenary.Reset();
@@ -702,6 +732,16 @@ void Tick(const D2RL::PluginContext* context) {
 					}
 					g_blessed = blessed;
 				}
+			// A stamina potion holds the bar full for a while; more potions add to that time.
+			if (g_statusSupported)
+				if (const auto potion = NativeStatus::PlayerStates(std::array{StatusEffects::StaminaPotionState})) {
+					const bool frozen = !potion->empty();
+					if (g_staminaFrozen && *g_staminaFrozen != frozen && g_statusAlerts) {
+						AsyncLog::InfoF(context, "[vitals] stamina potion %s", frozen ? "began" : "ended");
+						ScreenReader::Speak(frozen ? Strings::Current().staminaFrozen : Strings::Current().staminaNormal, false);
+					}
+					g_staminaFrozen = frozen;
+				}
 			Announce(playerAlert, mercenaryAlert);
 			if (g_statusSupported) {
 				if (g_movementAlerts) AnnounceMovement(context, g_runToggled);
@@ -735,6 +775,8 @@ bool StatusAlerts() { return g_statusAlerts; }
 void SetStatusAlerts(bool enabled) { g_statusAlerts = enabled; }
 bool MinionsReported() { return g_minionReport; }
 void SetMinionsReported(bool enabled) { g_minionReport = enabled; }
+bool SkillsReported() { return g_skillReport; }
+void SetSkillsReported(bool enabled) { g_skillReport = enabled; }
 bool MercenaryReported() { return g_mercenaryReport; }
 void SetMercenaryReported(bool enabled) { g_mercenaryReport = enabled; }
 bool LowLifeSound() { return g_lowLifeSound; }

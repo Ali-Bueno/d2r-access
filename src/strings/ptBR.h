@@ -298,9 +298,9 @@ inline constexpr Table ptBR {
 	.deathPlace = "onde você morreu",
 	.deathRoute = "caminho até onde você morreu, %s: %s",
 	.deathRouteWaypoint = "caminho até onde você morreu, %s: %s, escolha %s",
-	.placePresets = {"", "ponte", "rio", "acampamento dos Decaídos", "cabanas", "cemitério", "torre", "ruínas", "acampamento", "templo", "portão", "oásis", "forja"},
+	.placePresets = {"", "ponte", "rio", "acampamento dos Decaídos", "cabana", "cemitério", "torre em ruínas", "ruínas", "acampamento", "templo", "portão", "oásis", "forja", "estábulo", "cabana em chamas"},
 	.placeInteriors = {"taverna", "entrada do palácio", "cabana", "torre", "choupana", "templo", "fortaleza", "edifício", "casa de fazenda", "barraco", "catedral"},
-	.placeFeatures = {"cozinha", "lareira", "balcão", "mesas", "escadas", "cais", "barco", "barracas", "forja", "altar", "trono", "túmulos", "celas", "cavalete de tortura", "camas", "estantes", "estátuas", "fonte", "poço", "tendas", "carroça", "rio", "ponte", "fogueira", "Árvore do Enforcado", "escadas"},
+	.placeFeatures = {"cozinha", "lareira", "balcão", "mesas", "escadas", "cais", "barco", "barracas", "forja", "altar", "trono", "túmulos", "celas", "cavalete de tortura", "camas", "estantes", "estátuas", "fonte", "poço", "tendas", "carroça", "rio", "ponte", "fogueira", "Árvore do Enforcado", "escadas de subida", "fonte transbordando de sangue", "edifício em chamas", "estrela em chamas", "escadas de descida"},
 	.placeOutside = "fora",
 	.placeCorridor = "corredor",
 	.placeDeadEnd = "corredor sem saída",
@@ -450,6 +450,16 @@ inline constexpr Table ptBR {
 	.areaDescriptionHint = "Pressione %s e o analógico direito para cima para ouvir a descrição da área",
 	.noAreaDescription = "Sem descrição para %s",
 	.portalOwned = "%s, portal de %s",
+	.skillAuraActive = "Aura %s ativa",
+	.skillActive = "%s em curso",
+	.skillReportOn = "Habilidades em curso no relatório de vida ligado",
+	.skillReportOff = "Habilidades em curso no relatório de vida desligado",
+	.staminaFrozen = "Vigor congelado em 100 por cento",
+	.staminaNormal = "Consumo de vigor de volta ao normal",
+	.typingStarted = "Editando. O analógico direito escolhe um caractere, A digita, B termina",
+	.skillBound = "%s atribuída a %s",
+	.hintMoreControls = "Analógico direito para cima para mais opções",
+	.radiantObject = "%s radiante",
 };
 
 }

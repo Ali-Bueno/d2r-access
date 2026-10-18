@@ -2,6 +2,33 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build 2026-10-17 — 2026-10-18
+
+From `D2R Access test build 2026-10-17,bug list, screenshots and logs.7z` (the user's Downloads:
+list, 19 screenshots, waypoint and lobby logs). Choices in [decisions](docs/decisions.md); news
+(with replies) `../tester-news-draft-2026-10-18.txt`; settings tree `../settings-tree-2026-10-18.txt`.
+- Waypoint words reach the speech (`NativeUi::Snapshot(..., named)`); emote wheel no longer
+  matched (`NativeUi::DrawsNothing`) ([waypoints](docs/waypoints.md)).
+- Places by piece file: cottage / stable / cottage on fire / tower ruin; blood fountain, burning
+  buildings, crypt burning star, Hangman's Tree padded; cliff stairs up/down from the collision
+  mesh, both tracked ([places](docs/places.md), `PresetFileNames`, `Places::Stairway`).
+- Shop confirmation return silent, stash title dropped; rebinding says "<skill> bound to <button>"
+  ([skill bar](docs/skill-bar.md)); select hint confined and short, controls on right stick up.
+- Lobby: "Editing" said, stick up forward, A types ([multiplayer](docs/multiplayer.md)); main
+  menu arrows kept from the character list (keyboard cursor).
+- Heartbeat alert on its own voice; stamina potion notices; `skill-report` (BACK+X running skills,
+  `tools/gen_skill_states.py`) ([status effects](docs/status-effects.md)).
+- Radiant chests (`Generated::RadiantObject`, objects.txt chest + `Lit0`); shaman layer glides a semitone.
+- Forgotten Tower ways are quest ways only while its quest runs: the client's quest flags
+  (`NativeQuestFlags`, row 5, bits 2-6 started, 0/15 done; [quests](docs/quests.md)), the old
+  rule when unreadable (`[quest] flags row=5 word=`).
+
+122/122 CTest. **Unverified live: all of it.** Not done: Enter ending a lobby edit (no end-edit
+call known), a sound for traps/spawners (waits for the tester's design), edge-exit notices (no
+fault found; a log asked for).
+**Next step:** the tester tries it; logs: `[waypoint] row`, `[places]`, `[skill-bar] binding`,
+`[interaction] back from a confirmation`, `[typing]`, `[vitals] stamina potion`.
+
 ## The tester's list of 2026-10-16, waypoint evidence, lobby regression — 2026-10-17 (released as test-2026-10-17 from a3175c9)
 
 Release: 122/122 CTest, 29 entries, 62,622,193 bytes, SHA-256 `1ad554f8…6fc2`. News (with replies to the

@@ -43,3 +43,13 @@ behind it. Shrine blessings (states.txt `shrine_armor` 128 to `shrine_experience
 time) are watched the same way: when the last one leaves the player, "The shrine's blessing has
 worn off" (queued; the shrine's own text already says its start). Same switch. Logs: `[vitals]
 effect began`, `[vitals] shrine effect ended`.
+
+## Stamina potions and running skills (2026-10-18)
+
+A stamina potion's state (states.txt `staminapot` 180) holds the bar full; more potions add to its
+time. Its start says "Stamina frozen at 100 percent" and its end "Stamina consumption back to
+normal" (the tester's words), queued, under the same `status-alerts` switch (`[vitals] stamina
+potion began|ended`). BACK+X can also say the skills running on the player (`skill-report`, off):
+the states of `src/generated/skill_states.h` (`tools/gen_skill_states.py`: each class skill's
+`aurastate`, not summons' and not a state two skills share), named by their skill, "aura" when
+skills.txt says so.

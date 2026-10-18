@@ -87,6 +87,7 @@ constexpr ClassDescription ClassDescriptions[] = {
 constexpr const char* ModalNameSuffix        = "Modal";
 constexpr const char* ConfirmationModalPanel = "ConfirmationModal";
 constexpr const char* DismissableModalPanel  = "DismissableModal";
+constexpr std::string_view RebindPanel       = "ButtonBindingModal";
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -244,7 +245,8 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 			}
 		}
 	} else if (std::strcmp(event.command, ClosePanelCommand) == 0 || std::strcmp(event.command, UnloadPanelCommand) == 0) {
-		if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title)) {
+		// The rebinding window's close is said as what it bound (SkillBarService).
+		if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title) && panel != RebindPanel) {
 			Say(Strings::Current().panelClosed, spoken, false);
 		}
 		if (panel == SettingsPanelName) {

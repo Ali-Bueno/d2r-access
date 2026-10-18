@@ -298,9 +298,9 @@ inline constexpr Table plPL {
 	.deathPlace = "miejsce twojej śmierci",
 	.deathRoute = "droga do miejsca twojej śmierci, %s: %s",
 	.deathRouteWaypoint = "droga do miejsca twojej śmierci, %s: %s, wybierz %s",
-	.placePresets = {"", "most", "rzeka", "obóz Upadłych", "chaty", "cmentarz", "wieża", "ruiny", "obóz", "świątynia", "brama", "oaza", "kuźnia"},
+	.placePresets = {"", "most", "rzeka", "obóz Upadłych", "chata", "cmentarz", "ruina wieży", "ruiny", "obóz", "świątynia", "brama", "oaza", "kuźnia", "obora", "płonąca chata"},
 	.placeInteriors = {"karczma", "wejście do pałacu", "chata", "wieża", "chata", "świątynia", "forteca", "budynek", "zagroda", "szopa", "katedra"},
-	.placeFeatures = {"kuchnia", "kominek", "szynk", "stoły", "schody", "pomost", "łódź", "stragany", "kuźnia", "ołtarz", "tron", "groby", "cele", "łoże tortur", "posłania", "regały z książkami", "posągi", "fontanna", "studnia", "namioty", "wóz", "rzeka", "most", "ognisko", "Drzewo Wisielców", "schody"},
+	.placeFeatures = {"kuchnia", "kominek", "szynk", "stoły", "schody", "pomost", "łódź", "stragany", "kuźnia", "ołtarz", "tron", "groby", "cele", "łoże tortur", "posłania", "regały z książkami", "posągi", "fontanna", "studnia", "namioty", "wóz", "rzeka", "most", "ognisko", "Drzewo Wisielców", "schody w górę", "fontanna przepełniona krwią", "płonący budynek", "płonąca gwiazda", "schody w dół"},
 	.placeOutside = "na zewnątrz",
 	.placeCorridor = "korytarz",
 	.placeDeadEnd = "ślepy korytarz",
@@ -450,6 +450,16 @@ inline constexpr Table plPL {
 	.areaDescriptionHint = "Naciśnij %s i prawą gałkę w górę, aby usłyszeć opis obszaru",
 	.noAreaDescription = "Brak opisu dla: %s",
 	.portalOwned = "%s, portal gracza %s",
+	.skillAuraActive = "Aura %s aktywna",
+	.skillActive = "%s działa",
+	.skillReportOn = "Działające umiejętności w raporcie życia włączone",
+	.skillReportOff = "Działające umiejętności w raporcie życia wyłączone",
+	.staminaFrozen = "Wytrzymałość zamrożona na 100 procentach",
+	.staminaNormal = "Zużycie wytrzymałości wróciło do normy",
+	.typingStarted = "Edycja. Prawa gałka wybiera znak, A go wpisuje, B kończy",
+	.skillBound = "%s przypisano do %s",
+	.hintMoreControls = "Prawa gałka w górę, aby zobaczyć więcej opcji",
+	.radiantObject = "Promienna %s",
 };
 
 }

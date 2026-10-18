@@ -65,6 +65,10 @@ struct InventoryContext {
 	std::string name, title;
 };
 InventoryContext g_inventoryContext;
+// A confirmation over a shop or the stash (buying with A): back on the cell it came
+// from, nothing is new, so the panel and its tab are not said again (a tester, 2026-10-17).
+uintptr_t g_modalReturnPanel = 0;
+std::string g_modalReturnKey, g_lastInventoryKey;
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
 std::string g_help, g_spokenHelp, g_helpContext;
@@ -598,10 +602,11 @@ std::string Title(uintptr_t panel) {
 		const auto vendor = EntityRadarService::NearestNpc();
 		return vendor.empty() ? Strings::Current().shop : vendor;
 	}
-	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
+	// The player opened the stash and knows it: its tab and page are the news (a tester, 2026-10-17).
+	if (NativeUi::Classify(panel).name == "BankPanel") return {};
 	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
-	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
-	return localized.empty() ? (stash ? Strings::Current().stash : Strings::Current().inventory) : localized;
+	const auto localized = Localization::Text(hireling ? "MiniPanelHireinv" : "minipanelinv");
+	return localized.empty() ? Strings::Current().inventory : localized;
 }
 
 UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type) {
@@ -1065,7 +1070,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else if (type.kind == UiText::Kind::StatButton) OfferDetail(std::to_string(focus.widget), progression.description);
 	bool goldAmount = false; // the gold row is saying the amount in place of its label
 	if (button) {
-		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
+		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget, focus.panel);
 		readout = UiText::Describe(snapshot);
 		readout.context = NativeWidgets::ReadName(focus.panel);
 		readout.focusKey = std::to_string(focus.widget);
@@ -1411,7 +1416,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// queued at .397, in the same poll as the first focus off the inventory,
 		// and the user heard both cut to silence. The title interrupts an item
 		// readout on its own.
-		if (g_inventory && RadarUi::InPlay()) ScreenReader::Stop();
+		const bool toModal = g_inventory && focus.panel && NativeWidgets::ReadName(focus.panel).ends_with("Modal");
+		if (toModal) {
+			g_modalReturnPanel = g_inventoryContext.panel;
+			g_modalReturnKey = g_lastInventoryKey;
+		} else if (g_inventory && RadarUi::InPlay()) ScreenReader::Stop();
 		g_reader.Reset();
 	}
 	g_inventory = inventory;
@@ -1446,6 +1455,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	} // the hints stay pending until the description arrives
 	if (progression.skill && !renderedDescription && tableHeadline.empty()) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false); return inventory || button || stats; }
+	if (inventory) {
+		const bool returned = g_modalReturnPanel == focus.panel && g_modalReturnKey == readout.focusKey;
+		g_modalReturnPanel = 0;
+		g_lastInventoryKey = readout.focusKey;
+		if (returned) {
+			(void)g_reader.Update(readout, now, 0);
+			D2RAccess::AsyncLog::Info(context, "[interaction] back from a confirmation on the same cell, not repeated");
+			return true;
+		}
+	}
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
 	// A monster name the gate admits is new by construction; waiting for it to
@@ -1535,6 +1554,9 @@ void Reset() {
 	g_reader.Reset();
 	g_inventory = false;
 	g_inventoryContext = {};
+	g_modalReturnPanel = 0;
+	g_modalReturnKey.clear();
+	g_lastInventoryKey.clear();
 	g_stat = {};
 	g_help.clear();
 	g_spokenHelp.clear();

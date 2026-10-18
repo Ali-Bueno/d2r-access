@@ -83,7 +83,7 @@ std::vector<uintptr_t> Panels() {
 	for (const auto& panel : panels) result.push_back(panel.panel);
 	return result;
 }
-UiText::Snapshot Snapshot(uintptr_t widget, uintptr_t focused) {
+UiText::Snapshot Snapshot(uintptr_t widget, uintptr_t focused, uintptr_t) {
 	if (widget == 80 || widget == 81 || widget == 82) ++inventorySnapshots;
 	for (const auto& panel : panels) {
 		if (panel.panel == widget) { auto result = panel; result.focus = focused; return result; }

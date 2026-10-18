@@ -298,9 +298,9 @@ inline constexpr Table frFR {
 	.deathPlace = "là où tu es mort",
 	.deathRoute = "chemin vers le lieu de ta mort, %s : %s",
 	.deathRouteWaypoint = "chemin vers le lieu de ta mort, %s : %s, choisis %s",
-	.placePresets = {"", "pont", "rivière", "camp des Déchus", "chaumières", "cimetière", "tour", "ruines", "camp", "temple", "porte", "oasis", "forge"},
+	.placePresets = {"", "pont", "rivière", "camp des Déchus", "chaumière", "cimetière", "tour en ruine", "ruines", "camp", "temple", "porte", "oasis", "forge", "étable", "chaumière en feu"},
 	.placeInteriors = {"taverne", "entrée du palais", "chaumière", "tour", "hutte", "temple", "forteresse", "bâtiment", "ferme", "cabane", "cathédrale"},
-	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu", "escalier"},
+	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu", "escalier montant", "fontaine débordant de sang", "bâtiment en feu", "étoile de feu", "escalier descendant"},
 	.placeOutside = "dehors",
 	.placeCorridor = "couloir",
 	.placeDeadEnd = "couloir sans issue",
@@ -450,6 +450,16 @@ inline constexpr Table frFR {
 	.areaDescriptionHint = "Appuyez sur %s et poussez le stick droit vers le haut pour une description de la zone",
 	.noAreaDescription = "Aucune description pour %s",
 	.portalOwned = "%s, portail de %s",
+	.skillAuraActive = "Aura %s active",
+	.skillActive = "%s en cours",
+	.skillReportOn = "Compétences en cours dans le rapport de vie activé",
+	.skillReportOff = "Compétences en cours dans le rapport de vie désactivé",
+	.staminaFrozen = "Endurance figée à 100 pour cent",
+	.staminaNormal = "Consommation d'endurance revenue à la normale",
+	.typingStarted = "Édition. Le stick droit choisit un caractère, A le saisit, B termine",
+	.skillBound = "%s attribuée à %s",
+	.hintMoreControls = "Stick droit vers le haut pour plus d'options",
+	.radiantObject = "%s radieux",
 };
 
 }

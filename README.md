@@ -548,7 +548,9 @@ Mercenary level increases are announced once; the vitals report includes both
 life and level. Missing mercenary data is not treated as death. Broken-equipment
 notices queue behind the life alerts.
 
-The vitals report can end with the mercenary (`mercenary-report`, off: BACK+RT says it, with its
+The vitals report can say the skills running on the player (`skill-report`, off: "Prayer aura
+active. Bone Armor active", every class skill whose skills.txt `aurastate` stays on its caster,
+`tools/gen_skill_states.py`), the mercenary (`mercenary-report`, off: BACK+RT says it, with its
 level) and the player's summons (`minion-report`, off), read from the game's own pet
 list and grouped as its party portraits show them (a count per counted type,
 life for single summons, the Warlock's demons one by one), and for a

@@ -298,9 +298,9 @@ inline constexpr Table deDE {
 	.deathPlace = "wo du gestorben bist",
 	.deathRoute = "Weg zu deinem Todesort, %s: %s",
 	.deathRouteWaypoint = "Weg zu deinem Todesort, %s: %s, wähle %s",
-	.placePresets = {"", "Brücke", "Fluss", "Lager der Gefallenen", "Hütten", "Friedhof", "Turm", "Ruinen", "Lager", "Tempel", "Tor", "Oase", "Schmiede"},
+	.placePresets = {"", "Brücke", "Fluss", "Lager der Gefallenen", "Hütte", "Friedhof", "Turmruine", "Ruinen", "Lager", "Tempel", "Tor", "Oase", "Schmiede", "Stall", "brennende Hütte"},
 	.placeInteriors = {"Taverne", "Palasteingang", "Hütte", "Turm", "Hütte", "Tempel", "Festung", "Gebäude", "Bauernhaus", "Schuppen", "Kathedrale"},
-	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum", "Treppe"},
+	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum", "Treppe hinauf", "von Blut überquellender Brunnen", "brennendes Gebäude", "brennender Stern", "Treppe hinab"},
 	.placeOutside = "draußen",
 	.placeCorridor = "Gang",
 	.placeDeadEnd = "Sackgasse",
@@ -450,6 +450,16 @@ inline constexpr Table deDE {
 	.areaDescriptionHint = "Drücke %s und den rechten Stick nach oben für eine Gebietsbeschreibung",
 	.noAreaDescription = "Keine Beschreibung für %s",
 	.portalOwned = "%s, Portal von %s",
+	.skillAuraActive = "Aura %s aktiv",
+	.skillActive = "%s aktiv",
+	.skillReportOn = "Laufende Fertigkeiten im Lebensbericht an",
+	.skillReportOff = "Laufende Fertigkeiten im Lebensbericht aus",
+	.staminaFrozen = "Ausdauer bei 100 Prozent eingefroren",
+	.staminaNormal = "Ausdauerverbrauch wieder normal",
+	.typingStarted = "Bearbeiten. Rechter Stick wählt ein Zeichen, A tippt es, B beendet",
+	.skillBound = "%s auf %s gelegt",
+	.hintMoreControls = "Rechten Stick nach oben für weitere Optionen",
+	.radiantObject = "Strahlende %s",
 };
 
 }

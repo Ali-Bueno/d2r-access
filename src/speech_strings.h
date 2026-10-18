@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 13, PlaceInteriorWords = 11, PlaceFeatureWords = 26;
+inline constexpr std::size_t PresetPlaceWords = 15, PlaceInteriorWords = 11, PlaceFeatureWords = 30;
 
 
 
@@ -505,6 +505,16 @@ struct Table {
 	const char* areaDescriptionHint; // %s = the button held with the right stick for an area's description
 	const char* noAreaDescription; // %s = the area that has no description
 	const char* portalOwned; // %s = where a town portal leads, %s = the player who cast it
+	const char* skillAuraActive; // %s = an aura's skill name, running on the player (the life report)
+	const char* skillActive; // %s = a skill's name, running on the player (Bone Armor, a shape)
+	const char* skillReportOn; // the running skills in the life report (BACK+X)
+	const char* skillReportOff;
+	const char* staminaFrozen; // a stamina potion began: the bar stays full
+	const char* staminaNormal; // the stamina potions ran out
+	const char* typingStarted; // a text box began editing (pad_typing.h)
+	const char* skillBound; // %s = the skill, %s = the button the rebinding window put it on
+	const char* hintMoreControls; // character select, said once a visit: a row keeps its controls on right stick up
+	const char* radiantObject; // %s = the game's name of a glowing quest or reward chest
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -566,7 +576,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
-		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned}) visit(s);
+		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

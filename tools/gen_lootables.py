@@ -168,11 +168,16 @@ def main():
     corpses = []          # (class id, class name)
     racks = []            # (class id, class name)
     tomes = []            # (class id, class name)
+    radiant = []          # (class id, class name)
     mechanisms = []       # (class id, class name, OperateFn)
     seals = []            # (class id, class name)
     by_fn = collections.defaultdict(list)
     skipped_unselectable = 0
+    lit = index["Lit0"]
     for row in rows:
+        # A chest lit from within: the purple glow of the quest and reward chests (a tester, 2026-10-17).
+        if row[name].strip().lower() == "chest" and row[lit].strip() not in ("", "0"):
+            radiant.append((int(row[ident]), row[klass]))
         if len(row) <= max(ident, klass, name, operate, *selectable):
             continue
         # The "Expansion" separator row carries no id and is not a real object.
@@ -309,6 +314,18 @@ def main():
     out.append("\t\tstatic_cast<uint16_t>(classId));")
     out.append("}")
     out.append("")
+    radiant.sort()
+    out.append("// Chests that glow (Name chest, a Lit0 light): %s." % ", ".join(class_name for _, class_name in radiant))
+    out.append("inline constexpr std::array<uint16_t, %d> RadiantObjects{" % len(radiant))
+    out.append("\t" + ", ".join(str(class_id) for class_id, _ in radiant))
+    out.append("};")
+    out.append("")
+    out.append("constexpr bool RadiantObject(uint32_t classId) {")
+    out.append("\tif (classId > UINT16_MAX) return false;")
+    out.append("\treturn std::binary_search(RadiantObjects.begin(), RadiantObjects.end(),")
+    out.append("\t\tstatic_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
     mechanisms.sort()
     out.extend(wrap_comment("// Quest mechanisms, by OperateFn: %s."
                             % ", ".join(class_name for _, class_name, _ in mechanisms)))
@@ -358,8 +375,8 @@ def main():
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     io.open(args.out, "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print("%s: %d lootable object classes from %d OperateFn groups, %d corpses, %d weapon racks, %d tomes, %d quest mechanisms, %d seals (%d skipped as never selectable)"
-          % (args.out, len(entries), len(by_fn), len(corpses), len(racks), len(tomes), len(mechanisms), len(seals), skipped_unselectable))
+    print("%s: %d lootable object classes from %d OperateFn groups, %d corpses, %d weapon racks, %d tomes, %d radiant chests, %d quest mechanisms, %d seals (%d skipped as never selectable)"
+          % (args.out, len(entries), len(by_fn), len(corpses), len(racks), len(tomes), len(radiant), len(mechanisms), len(seals), skipped_unselectable))
 
 
 if __name__ == "__main__":

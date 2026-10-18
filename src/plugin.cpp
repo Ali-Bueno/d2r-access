@@ -30,6 +30,7 @@
 #include "native_hover.h"
 #include "native_ui.h"
 #include "native_waypoints.h"
+#include "native_quest_flags.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
@@ -418,6 +419,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::MenuNavigation::Initialize(context);
 	(void)D2RAccess::NativeHover::Initialize(context);
 	if (D2RAccess::NativeWaypoints::Initialize(context)) D2RAccess::NativeUi::SetFocusState(&D2RAccess::NativeWaypoints::FocusWords);
+	(void)D2RAccess::NativeQuestFlags::Initialize(context);
 	// The native switch disables code hooks and input filtering together;
 	// readers that only inspect memory remain available.
 	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);

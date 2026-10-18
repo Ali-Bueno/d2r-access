@@ -3,6 +3,46 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-18 — The tester's list on build 2026-10-17
+
+From `D2R Access test build 2026-10-17, bug list, screenshots and logs.7z` (the user's Downloads).
+Built and unit-tested only.
+- **Waypoint words** were computed but never said: the row's button was snapshotted alone, so the
+  hook saw the button's name ([waypoints](waypoints.md)). The emote wheel's words after a row came
+  from a panel that draws nothing; such panels no longer match the highlight.
+- **Places by piece file** ([places](places.md)): cottage, stable, cottage on fire, tower ruin;
+  blood fountain and burning buildings (Tristram, Act V ruins), the crypt's burning star, the
+  Hangman's Tree padded one tile. **Cliff stairs** from their collision mesh: a landing at each
+  end, "stairs up" at the bottom and "stairs down" at the top, as the tester asked. Rejected: one
+  footprint for the whole stairway (its centre can fall off the walkable stairs, and the beacon
+  leads there) and telling the direction by movement (no height in the walk grid).
+- **Shop confirmations** (buy with A): back on the cell it came from, the shop and its tab are not
+  said again, so the new item's notice is not cut off. The stash no longer says its title.
+- **Heartbeat**: the alert plays on its own voice, so the beat starts with it, not after its tail
+  (rejected: cutting the recording's reverb).
+- **Stamina potion** in the tester's words; **running skills** in BACK+X behind `skill-report`
+  (off: the tester asked for an option), derived from skills.txt `aurastate`, not a list of names.
+- **Character select**: the hint only while the list is in front, once a visit, and short ("Press
+  right stick up for more options", the tester's alternative); the full controls are a row's
+  right stick up. **Rebinding** says "<skill> bound to <button>" instead of the window closing.
+- **Lobby**: "Editing" said when a box starts editing (A worked; the game's entry panel is mute),
+  the stick's up goes forward, A types. Not done: Enter ending the edit (no end-edit call known).
+  Main menu arrows: up and down are kept from the game's character list while the keyboard
+  cursor is engaged there (`WH_GETMESSAGE`, as for letters); unmeasured whether the game reads them
+  as messages.
+- **Radiant chests**: objects.txt rows named "chest" with a `Lit0` light (seven: the Horadric
+  Cube, Scroll and Staff chests, Khalim's three, the reward "sparkly" chest), "Radiant <name>".
+- **Forgotten Tower** quest ways only while its quest runs, by the client's own quest flags
+  (found in the image this session, [quests](quests.md)), not by what happened this session (the
+  tester's condition). Unreadable flags keep the old rule. Rejected: a switch for the chime (the
+  tester asked for the quest state) and calling the game's quest-text builder (a game call).
+  The tower piece itself is the landmark "tower ruin".
+- **Shaman** layer glides up one semitone (the tester's cap). Gargoyle traps, sarcophagi and fire
+  towers are already enemies (killable monstats rows) with the ordinary growl: a sound of their
+  own waits for the tester's design.
+- Not changed: edge exits' discovery notice (a known place or the way back is never news; a log is
+  asked for), the descriptions hint (only areas with words get it; the template's are notes).
+
 ## 2026-10-17 — The tester's list of 2026-10-16 and the waypoint evidence
 
 From `D2R Access build 2026-10-16 Bug list.txt` and the tester's waypoint folder (screenshots and

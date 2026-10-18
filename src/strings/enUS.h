@@ -298,9 +298,9 @@ inline constexpr Table enUS {
 	.deathPlace = "where you died",
 	.deathRoute = "way to where you died, %s: %s",
 	.deathRouteWaypoint = "way to where you died, %s: %s, choose %s",
-	.placePresets = {"", "bridge", "river", "Fallen camp", "cottages", "graveyard", "tower", "ruins", "camp", "temple", "gate", "oasis", "forge"},
+	.placePresets = {"", "bridge", "river", "Fallen camp", "cottage", "graveyard", "tower ruin", "ruins", "camp", "temple", "gate", "oasis", "forge", "stable", "cottage on fire"},
 	.placeInteriors = {"tavern", "palace entrance", "cottage", "tower", "hut", "temple", "fortress", "building", "farmhouse", "shack", "cathedral"},
-	.placeFeatures = {"kitchen", "fireplace", "bar", "tables", "stairs", "dock", "boat", "stalls", "forge", "altar", "throne", "graves", "cells", "torture rack", "beds", "bookshelves", "statues", "fountain", "well", "tents", "wagon", "river", "bridge", "campfire", "Hangman's Tree", "stairs"},
+	.placeFeatures = {"kitchen", "fireplace", "bar", "tables", "stairs", "dock", "boat", "stalls", "forge", "altar", "throne", "graves", "cells", "torture rack", "beds", "bookshelves", "statues", "fountain", "well", "tents", "wagon", "river", "bridge", "campfire", "Hangman's Tree", "stairs up", "fountain overflowing with blood", "burning building", "burning star", "stairs down"},
 	.placeOutside = "outside",
 	.placeCorridor = "corridor",
 	.placeDeadEnd = "dead-end corridor",
@@ -450,6 +450,16 @@ inline constexpr Table enUS {
 	.areaDescriptionHint = "Press %s and right stick up for an area description",
 	.noAreaDescription = "No description for %s",
 	.portalOwned = "%s, %s's portal",
+	.skillAuraActive = "%s aura active",
+	.skillActive = "%s active",
+	.skillReportOn = "Running skills in the life report on",
+	.skillReportOff = "Running skills in the life report off",
+	.staminaFrozen = "Stamina frozen at 100 percent",
+	.staminaNormal = "Stamina consumption back to normal",
+	.typingStarted = "Editing. Right stick picks a character, A types it, B finishes",
+	.skillBound = "%s bound to %s",
+	.hintMoreControls = "Press right stick up for more options",
+	.radiantObject = "Radiant %s",
 };
 
 }

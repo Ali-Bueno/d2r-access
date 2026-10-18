@@ -6,13 +6,17 @@
 #include "native_skill_bar.h"
 #include "native_ui.h"
 #include "native_widgets.h"
+#include "panel_state.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "skill_bar.h"
+#include "speech_strings.h"
 #include <windows.h>
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <charconv>
+#include <cstdio>
 #include <string>
 
 namespace D2RAccess::SkillBarService {
@@ -53,6 +57,46 @@ void Read(const D2RL::PluginContext* context, bool main = false) {
 	if (const auto text = SkillBar::Compose(slots); !text.empty()) ScreenReader::Speak(text, true);
 }
 
+// The game's rebinding window (holding X on a skill) says nothing of what it bound; the
+// bars before and after it tell (a tester, 2026-10-17: "Skill bound to <controller button>").
+constexpr std::string_view BindingPanel = "ButtonBindingModal";
+constexpr uint32_t LeftTriggerGlyph = 0xE00D; // U+E000 + 13, "LT" in controllerButtons
+using Bar = std::array<NativeSkillBar::Binding, NativeSkillBar::Buttons>;
+bool g_binding = false;
+std::optional<Bar> g_beforeMain, g_beforeLt;
+
+std::string BoundPhrase(const std::optional<Bar>& before, const std::optional<Bar>& after, bool lt) {
+	if (!before || !after) return {};
+	for (int i = 0; i < NativeSkillBar::Buttons; ++i) {
+		const auto& now = (*after)[i];
+		if (!now.bound || now.skill == (*before)[i].skill) continue;
+		const std::string name = now.name.empty() ? NativeSkillBar::SkillName(now.skill) : now.name;
+		std::string button(ControllerText::FirstButton(Localization::Text("ControllerHelpSkill" + std::to_string(i + 1))));
+		if (name.empty() || button.empty()) continue;
+		if (lt) button = std::string(ControllerText::Button(LeftTriggerGlyph)) + " " + button;
+		char phrase[256]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().skillBound, name.c_str(), button.c_str());
+		return phrase;
+	}
+	return {};
+}
+
+void WatchBinding(const D2RL::PluginContext* context) {
+	const auto& open = PanelState::OpenPanels();
+	const bool binding = std::find(open.begin(), open.end(), BindingPanel) != open.end();
+	if (binding == g_binding) return;
+	g_binding = binding;
+	if (binding) {
+		g_beforeMain = NativeSkillBar::AlternateBar(true);
+		g_beforeLt = NativeSkillBar::AlternateBar(false);
+		return;
+	}
+	auto phrase = BoundPhrase(g_beforeMain, NativeSkillBar::AlternateBar(true), false);
+	if (phrase.empty()) phrase = BoundPhrase(g_beforeLt, NativeSkillBar::AlternateBar(false), true);
+	AsyncLog::InfoF(context, "[skill-bar] binding window closed -> \"%s\"", phrase.c_str());
+	if (!phrase.empty()) ScreenReader::Speak(phrase, true);
+}
+
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command || !command->plugin) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view args(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -72,6 +116,7 @@ bool Register(const D2RL::PluginContext* context) {
 
 void Tick(const D2RL::PluginContext* context) {
 	const bool mainBar = InputDirection::TakeBackWithTrigger(false); // taken every tick, so an old press is never read
+	if (g_supported) WatchBinding(context);
 	if (!g_supported || !g_enabled) return;
 	if (mainBar && RadarUi::InPlay()) Read(context, true);
 	const auto trigger = InputDirection::LeftTrigger();
