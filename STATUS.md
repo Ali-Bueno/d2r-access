@@ -2,9 +2,12 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Route finder (BACK+A) into walls and after other players — 2026-10-19 (not released)
+## Route finder (BACK+A) into walls and after other players — 2026-10-19 (released as test-2026-10-19-2 from d1b047c)
 
-From the tester's chat (no log yet; choices in [decisions](docs/decisions.md)):
+Release: 123/123 CTest, 29 entries, 62,657,868 bytes, SHA-256 `8157c9a0…2b70`.
+
+From the tester's chat (no log yet; choices in [decisions](docs/decisions.md)); news (with
+replies) `../tester-news-draft-2026-10-19b.txt`:
 - Every compass point is a way the stick and arrows walk (`SpokenDirection::Bucket`): doorways
   are NE/SE/SW/NW, and the scanner, BACK+RT and the route agree
   ([spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13)).
