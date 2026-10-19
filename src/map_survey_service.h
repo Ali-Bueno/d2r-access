@@ -18,5 +18,9 @@ void Repeat();
 // has shown the level (KeyboardService::CutOff). Off until switched on.
 bool ReachFilter();
 void SetReachFilter(bool on);
+// Every town NPC listed and led to from anywhere in town, seen or not; on by
+// default (the user, 2026-10-12). Off keeps the 2026-09-28 rule: only those seen.
+bool TownNpcsEverywhere();
+void SetTownNpcsEverywhere(bool on);
 
 }

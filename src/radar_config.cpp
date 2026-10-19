@@ -1,6 +1,7 @@
 #include "radar_config.h"
 #include "async_log.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <string>
@@ -103,7 +104,7 @@ Navigation ParseNavigation(std::string_view config) {
 }
 Navigation ReadNavigation(const D2RL::PluginContext* context) {
 	return ReadSection<Navigation>(context, ParseNavigation,
-		"[navigation] Invalid [navigation] settings; using full assistance.");
+		"[navigation] Invalid [navigation] settings; using this branch's full-assistance default.");
 }
 
 std::optional<bool> ParseEnabled(std::string_view config, std::string_view section) {
@@ -186,12 +187,44 @@ Switch ParseBossLife(std::string_view config) { return ParseSwitch(config, "[bos
 Switch ReadBossLife(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseBossLife, "[boss-life] Invalid [boss_life] settings; using compiled defaults.");
 }
+WallToneSettings ParseWallTones(std::string_view config) {
+	WallToneSettings result;
+	const bool valid = ForEachKey(config, "[wall_tones]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "enabled" && key != "volume" && key != "range") return Line::Ignored;
+		if (!value) return Line::Invalid;
+		if (key == "enabled") {
+			bool flag = false;
+			if (result.enabled || !ParseBool(*value, flag)) return Line::Invalid;
+			result.enabled = flag;
+		} else if (key == "volume") {
+			unsigned volume = 0;
+			if (result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
+			result.volume = volume;
+		} else {
+			double range = 0;
+			if (result.range || !ParseNumber(*value, range) || !(range >= WallTones::MinRange && range <= WallTones::MaxRange)) return Line::Invalid;
+			result.range = range;
+		}
+		return Line::Accepted;
+	});
+	return valid ? result : WallToneSettings{.valid = false};
+}
+WallToneSettings ReadWallTones(const D2RL::PluginContext* context) {
+	return ReadSection<WallToneSettings>(context, ParseWallTones, "[wall-tones] Invalid [wall_tones] settings; using compiled defaults.");
+}
 Switch ParseDoors(std::string_view config) { return ParseSwitch(config, "[doors]"); }
 Switch ReadDoors(const D2RL::PluginContext* context) {
 	return ReadSection<Switch>(context, ParseDoors, "[doors] Invalid [doors] settings; using compiled defaults.");
 }
 
 namespace {
+// Percent strengths clamp rather than reject, so a typo of 500 still works.
+bool ParseStrength(std::string_view value, std::optional<unsigned>& slot) {
+	unsigned percent = 0;
+	if (slot || !ParseNumber(value, percent)) return false;
+	slot = std::min(percent, MaxStrengthPercent);
+	return true;
+}
 std::optional<AttackReach::Mode> ParseAttackMode(std::string_view value) {
 	if (value.size() >= 2 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
 	if (value == "auto") return AttackReach::Mode::Auto;
@@ -214,6 +247,12 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			if (!value || result.attack) return Line::Invalid;
 			result.attack = ParseAttackMode(*value);
 			if (!result.attack) return Line::Invalid;
+		} else if (key == "pan_strength" || key == "pitch_strength") {
+			if (!value || !ParseStrength(*value, key == "pan_strength" ? result.panStrength : result.pitchStrength)) return Line::Invalid;
+		} else if (key == "max_voices") {
+			size_t voices = 0;
+			if (!value || result.maxVoices || !ParseNumber(*value, voices)) return Line::Invalid;
+			result.maxVoices = std::clamp<size_t>(voices, 1, EntityCues::MaxVoices);
 		} else if (key == "volume") {
 			unsigned volume = 0;
 			if (!value || result.volume || !ParseNumber(*value, volume) || volume > MaxVolume) return Line::Invalid;
@@ -226,6 +265,7 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			else if (key == "ranged") slot = &result.ranged;
 			else if (key == "ordinary") slot = &result.ordinary;
 			else if (key == "reach") slot = &result.reach;
+			else if (key == "on_screen") slot = &result.onScreen;
 			else return Line::Ignored;
 			bool flag = false;
 			if (!value || slot->has_value() || !ParseBool(*value, flag)) return Line::Invalid;
@@ -237,5 +277,18 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 }
 EntityCueSettings ReadEntityCues(const D2RL::PluginContext* context) {
 	return ReadSection<EntityCueSettings>(context, ParseEntityCues, "[entity-cues] Invalid [entity_cues] settings; using compiled defaults.");
+}
+
+BeaconSettings ParseBeacon(std::string_view config) {
+	BeaconSettings result;
+	const bool valid = ForEachKey(config, "[beacon]", [&](std::string_view key, std::optional<std::string_view> value) {
+		if (key != "pan_strength" && key != "pitch_strength") return Line::Ignored;
+		return value && ParseStrength(*value, key == "pan_strength" ? result.panStrength : result.pitchStrength)
+			? Line::Accepted : Line::Invalid;
+	});
+	return valid ? result : BeaconSettings{.valid = false};
+}
+BeaconSettings ReadBeacon(const D2RL::PluginContext* context) {
+	return ReadSection<BeaconSettings>(context, ParseBeacon, "[beacon] Invalid [beacon] settings; using compiled defaults.");
 }
 }

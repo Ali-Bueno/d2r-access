@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace D2RL {
 struct PluginContext;
 }
@@ -23,5 +25,8 @@ namespace D2RAccess::ModalReader {
 void Tick(const D2RL::PluginContext* context);
 
 void Reset();
+
+// Text said once, queued behind the title screen's own announcement.
+void SetTitleAnnouncement(std::string text);
 
 }

@@ -1,6 +1,8 @@
 #include "native_entities.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
+#include "quest_seals.h"
+#include "generated/lootables.h"
 #include "entity_layout.h"
 #include "level_exit_layout.h"
 #include "ground_item_layout.h"
@@ -12,6 +14,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 using namespace D2RAccess;
 using namespace EntityLayout;
@@ -27,6 +30,7 @@ std::string Text(uint32_t id) {
 	case 3013: return "Zombi";
 	case 3014: return "Hratli";
 	case 3015: return "Natalya";
+	case 3016: return "Nihlathak";
 	case 2869: return "Bishibosh";
 	case 11072: return "a0n1:%1 %0"; // strChampionFormatXp, esES
 	case 3220: return "[fs]campeona[ms]campeón[fp]campeonas[mp]campeones";
@@ -42,6 +46,9 @@ std::string Text(std::string_view key) {
 	if (key == "Bank") return "Alijo";
 	if (key == "Casket") return "Ataúd";
 	if (key == "Inifuss") return "Árbol de Inifuss";
+	if (key == "Gibbet") return "Jaula de Cain";
+	if (key == "Seal") return "Sello";
+	if (key == "sewer stairs") return "Escaleras de la cloaca";
 	if (key == "teleport pad") return "Plataforma de teletransporte";
 	if (key == "StoneAlpha" || key == "StoneBeta" || key == "StoneGamma"
 		|| key == "StoneDelta" || key == "StoneLambda") return "Piedra de Cairn";
@@ -159,6 +166,126 @@ struct Fixture {
 		return nullptr;
 	}
 };
+
+// Ordinary town NPCs retain the established moving/unloaded fallback policy;
+// durable absence is separately limited to the two proven retiring actors.
+void RetiredTownPresence() {
+	using namespace LevelExitLayout;
+	for (const uint32_t monster : TownNpcs::RetiringClasses) {
+		Fixture town;
+		Memory<0x200> level;
+		Memory<0x100> farEx;
+		Memory<RoomSize> farRoom;
+		Memory<0x30> marker, duplicate;
+		Memory<UnitSize> actual;
+		Memory<PathSize> actualPath, actualData;
+		std::vector<uint8_t> rows(MonStatStride * 527);
+		const auto npcRow = [&](uint32_t id, uint16_t name) {
+			std::memcpy(rows.data() + id * MonStatStride + MonNameId, &name, sizeof name);
+			rows[id * MonStatStride + MonAlign] = AlignFriendly;
+			rows[id * MonStatStride + MonFlagsA] = FlagNpc | FlagInteract;
+		};
+		npcRow(0, 2892); npcRow(monster, monster == 297 ? 3015 : 3016);
+		town.tables.At(MonStats, reinterpret_cast<uintptr_t>(rows.data())); town.tables.At<uint64_t>(MonStatCount, 527);
+		town.roomEx.At(ExtendedLevel, level.Address()); level.At(LevelFirstRoom, town.roomEx.Address());
+		level.At<uint32_t>(LevelId, monster == 297 ? 75 : 109);
+		town.roomEx.At(RoomActive, town.room.Address());
+		for (auto* room : {&town.roomEx, &farEx}) {
+			room->At(ExtendedLevel, level.Address());
+			room->At<int>(RoomTileX, 20); room->At<int>(RoomTileY, 20);
+			room->At<int>(RoomTileWidth, 8); room->At<int>(RoomTileHeight, 8);
+		}
+		farEx.At<int>(RoomTileX, 40); farEx.At(RoomActive, farRoom.Address()); farRoom.At(RoomExtended, farEx.Address());
+		marker.At<uint32_t>(PresetType, ObjectType); marker.At<uint32_t>(PresetClass, monster == 297 ? 382 : 461);
+		marker.At<int>(PresetX, 20); marker.At<int>(PresetY, 20); town.roomEx.At(RoomPresets, marker.Address());
+		NativeEntities::TownPresence presence;
+		std::vector<EntityRadar::Entity> entities;
+		const auto read = [&](bool whole = true) {
+			return NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 42, 7, entities,
+				false, false, false, false, 0, whole, true, &presence);
+		};
+		const uint64_t identity = TownNpcs::Identity(monster);
+		Check(read() && presence.complete && presence.player == 42 && presence.session == 7
+			&& presence.level == (monster == 297 ? 75u : 109u) && presence.absent == std::vector<uint64_t>{identity},
+			"complete immediate-ring observation identifies an absent quest-retired town actor from its exact marker");
+		// Missing names are a read limitation, not a disappearance.
+		Localization::available = false;
+		Check(read() && !presence.complete && presence.absent.empty(), "unavailable candidate localization cannot establish NPC absence");
+		Localization::available = true;
+		Check(read(false) && !presence.complete && presence.absent.empty(), "a narrow reader never publishes level-wide negative presence");
+		// Distant rooms remain resident without their units; they are not the
+		// immediate player's room/near list, even though the full pass sees them.
+		town.roomEx.At(RoomNext, farEx.Address()); town.roomEx.At<uintptr_t>(RoomPresets, 0); farEx.At(RoomPresets, marker.Address());
+		Check(read() && presence.complete && presence.absent.empty(), "a distant unloaded candidate remains unknown instead of absent");
+		farEx.At<uintptr_t>(RoomPresets, 0); town.roomEx.At(RoomPresets, marker.Address());
+		town.Monster(actual, actualPath, actualData, monster, 777, 220, 120);
+		actualPath.At(PathRoom, farRoom.Address()); farRoom.At(GroundItemLayout::RoomFirstUnit, actual.Address());
+		Check(read() && presence.complete && presence.absent.empty()
+			&& std::any_of(entities.begin(), entities.end(), [identity](const auto& npc) {
+				return npc.placeId == identity && npc.id == 777 && npc.position.x == 220 && npc.npcApproaches.size() == 1;
+			}), "a moved real NPC anywhere resident overrides origin absence and retains its approach");
+		actual.At<uint32_t>(GroundItemLayout::UnitMode, 0);
+		Check(read() && presence.complete && presence.absent.empty(), "raw native class presence wins even when the name/liveness reader omits its unit");
+		farRoom.At<uintptr_t>(GroundItemLayout::RoomFirstUnit, 1);
+		Check(read() && !presence.complete && presence.absent.empty(), "tolerated unreadable distant units invalidate only negative presence evidence");
+		farRoom.At<uintptr_t>(GroundItemLayout::RoomFirstUnit, 0);
+		marker.At(PresetNext, duplicate.Address()); duplicate.At<uint32_t>(PresetType, ObjectType);
+		duplicate.At<uint32_t>(PresetClass, monster == 297 ? 382 : 461); duplicate.At<int>(PresetX, 21); duplicate.At<int>(PresetY, 20);
+		Check(read() && !presence.complete && presence.absent.empty(), "ambiguous duplicate retirement markers cannot establish absence");
+		marker.At<uintptr_t>(PresetNext, 0); marker.At<int>(PresetX, 999);
+		Check(read() && !presence.complete && presence.absent.empty(), "a malformed marker position does not become an empty valid approach set");
+		marker.At<int>(PresetX, 20); town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 999);
+		Check(read() && !presence.complete && presence.absent.empty(), "an invalid raw monster class makes the presence result unknown");
+		town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 0);
+		Check(!NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 99, 7, entities,
+			false, false, false, false, 0, true, true, &presence) && !presence.complete && !presence.player && presence.absent.empty(),
+			"a failed player read clears all previous presence evidence");
+	}
+}
+
+void TownNpcStandIns() {
+	using namespace LevelExitLayout;
+	Fixture town;
+	Memory<0x200> townLevel;
+	Memory<0x100> nearEx, farEx;
+	Memory<RoomSize> nearRoom, farRoom;
+	Memory<0x30> spawn;
+	std::vector<EntityRadar::Entity> entities;
+	town.roomEx.At(ExtendedLevel, townLevel.Address()); town.roomEx.At(RoomNext, nearEx.Address()); nearEx.At(RoomNext, farEx.Address());
+	townLevel.At<uint32_t>(LevelId, 40); townLevel.At(LevelFirstRoom, town.roomEx.Address());
+	int tileX = 20;
+	for (auto* logical : {&town.roomEx, &nearEx, &farEx}) {
+		logical->At(ExtendedLevel, townLevel.Address());
+		logical->At<int>(RoomTileX, tileX); logical->At<int>(RoomTileY, 20);
+		logical->At<int>(RoomTileWidth, 8); logical->At<int>(RoomTileHeight, 8);
+		tileX += 8;
+	}
+	nearRoom.At(RoomExtended, nearEx.Address()); farRoom.At(RoomExtended, farEx.Address());
+	// The player's room has one neighbour; the far room is loaded one hop further.
+	std::array<uintptr_t, 1> aroundPlayer{nearRoom.Address()}, nextHop{farRoom.Address()};
+	town.room.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(aroundPlayer.data()));
+	town.room.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	nearRoom.At(GroundItemLayout::RoomNeighbors, reinterpret_cast<uintptr_t>(nextHop.data()));
+	nearRoom.At<uint32_t>(GroundItemLayout::RoomNeighborCount, 1);
+	spawn.At<uint32_t>(PresetType, MonsterType); spawn.At<uint32_t>(PresetClass, 0);
+	spawn.At<int>(PresetX, 20); spawn.At<int>(PresetY, 10);
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 1); // Akara's unit is not read
+	const auto read = [&] { return NativeEntities::ReadPlayer(town.player.Address(), town.tables.Address(), 42, 7,
+		entities, false, false, false, false, 0, true, true); };
+	const auto standIn = [&]() -> const EntityRadar::Entity* {
+		const auto found = std::find_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; });
+		return found == entities.end() ? nullptr : &*found;
+	};
+	farEx.At(RoomPresets, spawn.Address());
+	Check(read() && standIn() && standIn()->position.x == 200 && standIn()->position.y == 110 && standIn()->name == "Akara",
+		"a spawn in a loaded room past the player's neighbours stands in for an unread unit");
+	farEx.At<uintptr_t>(RoomPresets, 0); nearEx.At(RoomPresets, spawn.Address());
+	Check(read() && standIn(), "an ordinary wandering NPC is not permanently retired from nearby origin absence");
+	town.npc.At<uint32_t>(GroundItemLayout::UnitClass, 0);
+	Check(read() && town.Find(entities, 7) && town.Find(entities, 7)->placeId == 1
+		&& std::count_if(entities.begin(), entities.end(), [](const auto& npc) { return npc.placeId == 1; }) == 1,
+		"a live unit takes its row's identity and no stand-in is added");
+}
 
 void PlayerCorpseOwnership() {
 	Fixture f;
@@ -418,6 +545,7 @@ void QuestObjectModes() {
 	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
 		&& f.Find(entities, 17)->name == "Árbol de Inifuss",
 		"selectable Inifuss tree is a localized quest audio source");
+	Check(f.Find(entities, 17)->category == EntityRadar::Category::Quest, "a quest item source is listed with the quest objects");
 	Localization::available = false;
 	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject
 		&& f.Find(entities, 17)->name == Strings::Current().containerUnnamed,
@@ -425,6 +553,68 @@ void QuestObjectModes() {
 	Localization::available = true;
 	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
 	Check(f.Read(entities) && !f.Find(entities, 17), "used Inifuss tree cannot continue emitting a quest cue");
+}
+// Cain's Gibbet (objects.txt *ID 26): a quest is advanced by using it, and it gives no item.
+void QuestMechanismModes() {
+	Fixture f;
+	constexpr uint32_t gibbet = 26;
+	constexpr size_t row = ObjectStride * gibbet;
+	f.objects.Text(row + ObjNameKey, "Gibbet");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectNeutral, 1);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, gibbet);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->questObject && !f.Find(entities, 17)->container
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Quest && f.Find(entities, 17)->name == "Jaula de Cain",
+		"an unused quest mechanism is a named quest object");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 1);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && f.Find(entities, 17) && !f.Find(entities, 17)->questObject
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Interactable,
+		"one used but still selectable is an ordinary object again");
+	f.objects.At<uint8_t>(row + ObjSelectable + ObjectOpened, 0);
+	Check(f.Read(entities) && !f.Find(entities, 17), "one the game no longer lets be targeted is gone");
+}
+// The five Chaos Sanctuary seals (objects.txt DiabloSeal1..5) all carry the label "Seal".
+void SealNumbersAndCount() {
+	const auto language = Strings::Selected();
+	Strings::Select(Strings::Language::enUS);
+	Fixture f;
+	constexpr uint64_t session = 7; // the fixture's read
+	const uint32_t rows = Generated::SealObjects.back() + 1u;
+	std::vector<uint8_t> objects(rows * ObjectStride);
+	for (const uint32_t classId : Generated::SealObjects) {
+		std::memcpy(objects.data() + classId * ObjectStride + ObjNameKey, "Seal", sizeof "Seal");
+		objects[classId * ObjectStride + ObjSelectable + ObjectNeutral] = 1;
+	}
+	f.tables.At(Objects, reinterpret_cast<uintptr_t>(objects.data())); f.tables.At<uint64_t>(ObjectCount, rows);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, Generated::SealObjects[2]);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->seal == 3 && f.Find(entities, 17)->name == "Sello 3"
+		&& f.Find(entities, 17)->worldName == "Sello" && f.Find(entities, 17)->category == EntityRadar::Category::Quest,
+		"a shut seal is a quest object named with its number");
+	Check(QuestSeals::Left(session) == QuestSeals::Count && !QuestSeals::TakeOpening(session), "a shut seal leaves all five to open");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && !f.Find(entities, 17), "an opened seal can no longer be targeted");
+	const auto opening = QuestSeals::TakeOpening(session);
+	Check(opening && *opening == QuestSeals::Count - 1 && QuestSeals::Left(session) == QuestSeals::Count - 1,
+		"its opening is read from its mode though it is no longer listed");
+	Strings::Select(language);
+}
+// The Kurast sewer stairs (objects.txt BeneathTheCityStairs): selectable only once the lever opens them.
+void SewerStairs() {
+	Fixture f;
+	constexpr uint32_t plainClass = 29; // a class in none of the generated object sets
+	constexpr size_t stairs = ObjectStride * plainClass;
+	f.objects.Text(stairs + ObjNameKey, "sewer stairs");
+	f.objects.At<uint8_t>(stairs + ObjSelectable + ObjectOpened, 1);
+	f.objects.At<uint8_t>(stairs + ObjOperateFn, RoomWarpOperateFn);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, plainClass);
+	std::vector<EntityRadar::Entity> entities;
+	Check(f.Read(entities) && !f.Find(entities, 17), "shut stairs are not offered");
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	Check(f.Read(entities) && f.Find(entities, 17) && f.Find(entities, 17)->kind == EntityRadar::Kind::Exit
+		&& f.Find(entities, 17)->category == EntityRadar::Category::Exit && f.Find(entities, 17)->name == "Escaleras de la cloaca"
+		&& !f.Find(entities, 17)->placeId, "open stairs are an exit, kept to this game since a new one starts them shut");
 }
 void TeleportPadClass() {
 	Fixture f;
@@ -545,6 +735,9 @@ int main() {
 	PlayersLoadedBeyondTheScanRing();
 	DistantPartyMembers();
 	QuestObjectModes();
+	QuestMechanismModes();
+	SealNumbersAndCount();
+	SewerStairs();
 	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;
@@ -588,7 +781,7 @@ int main() {
 	Check(f.Read(entities) && f.Find(entities, 8)->enemy.important, "prime evil bit also marks an important enemy");
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsBoss, 0);
 	f.monsters.At<uint8_t>(MonStatStride + MonFlagsRanged, 0);
-	for (uint16_t rarity : {1u, 2u, 4u, 8u}) {
+	for (const uint16_t rarity : {uint16_t{1}, uint16_t{2}, uint16_t{4}, uint16_t{8}}) {
 		f.enemyData.At<uint16_t>(MonRarityFlags, rarity);
 		Check(f.Read(entities) && f.Find(entities, 8)->enemy.important,
 			"each native special-monster rarity bit marks an elite");
@@ -897,6 +1090,8 @@ int main() {
 		Check(read() && std::none_of(entities.begin(), entities.end(), [](const auto& npc) { return npc.name == "Natalya"; }),
 			"quest markers in another level never invent Kurast characters");
 	}
+	TownNpcStandIns();
+	RetiredTownPresence();
 	Passed();
 	return 0;
 }

@@ -9,6 +9,7 @@
 #include "focus_tracker.h"
 #include "footstep_service.h"
 #include "wall_slide_service.h"
+#include "wall_tone_service.h"
 #include "game_text_reader.h"
 #include "ground_item_service.h"
 #include "beacon_service.h"
@@ -25,6 +26,11 @@
 #include "native_widgets.h"
 #include "native_cairn.h"
 #include "native_memory.h"
+#include "descriptions.h"
+#include "native_hover.h"
+#include "native_ui.h"
+#include "native_waypoints.h"
+#include "native_quest_flags.h"
 #include "native_tooltips.h"
 #include "map_survey_service.h"
 #include "native_skill_navigation.h"
@@ -51,11 +57,13 @@
 #include "weapon_swap_service.h"
 #include "trade_service.h"
 #include "text_field.h"
+#include "grid_edge_service.h"
 #include "widget_probe.h"
 #include "widgets.h"
 
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -64,6 +72,12 @@
 #include <vector>
 
 namespace {
+
+// The test release this was built as ("test-2026-10-13"), empty for a local build.
+#ifndef D2R_ACCESS_RELEASE
+#define D2R_ACCESS_RELEASE ""
+#endif
+constexpr const char* D2RAccessRelease = D2R_ACCESS_RELEASE;
 
 constexpr D2RL::PluginInfo PluginInfo {
 	.infoSize    = D2RL::PluginInfoSize,
@@ -90,7 +104,8 @@ void LogRightStickPush(const D2RL::PluginContext* context) {
 		record.claimant ? record.claimant : "nobody, a later push replaced it");
 }
 
-// Which part of a UI update took the time, for an update of 30 ms or more:
+// Which part of a UI update took the time, for an update of 30 ms or more,
+// and the worst update of every five seconds from 8 ms:
 // the mod's work runs on the game's own thread, so the game waits for it.
 // One line a second at most (the user, 2026-09-30: "slight lag when
 // navigating any inventory screen"; HANDOFF).
@@ -108,6 +123,7 @@ public:
 	~Laps() {
 		const auto now = Clock::now();
 		const double total = Ms(start_, now);
+		NoteWorst(now, total);
 		if (total < SlowMs) return;
 		++slow_;
 		if (now - reported_ < std::chrono::seconds(1)) return;
@@ -130,7 +146,24 @@ private:
 	using Clock = std::chrono::steady_clock;
 	static double Ms(Clock::time_point from, Clock::time_point to) { return std::chrono::duration<double, std::milli>(to - from).count(); }
 	static constexpr double SlowMs = 30;
+	// Half a frame at 60 fps: a shorter stall that recurs is still felt as lag.
+	static constexpr double NoticeMs = 8;
+	static constexpr auto WorstWindow = std::chrono::seconds(5);
 	struct Part { const char* name = ""; double ms = 0; };
+	// The worst update of each window, with its longest part.
+	void NoteWorst(Clock::time_point now, double total) {
+		if (total > worst_.ms) {
+			worst_ = {"", total};
+			worstPart_ = *std::max_element(parts_.begin(), parts_.begin() + count_, [](const Part& a, const Part& b) { return a.ms < b.ms; });
+		}
+		if (now - windowStart_ < WorstWindow) return;
+		if (worst_.ms >= NoticeMs)
+			D2RAccess::AsyncLog::InfoF(context_, "[pump] worst update in the last %lld s: %.1f ms, longest part %s %.1f ms",
+				static_cast<long long>(std::chrono::duration_cast<std::chrono::seconds>(now - windowStart_).count()),
+				worst_.ms, worstPart_.name, worstPart_.ms);
+		windowStart_ = now;
+		worst_ = worstPart_ = {};
+	}
 	const D2RL::PluginContext* context_;
 	D2RAccess::NativeMemory::PageChecks checks_;
 	Clock::time_point start_, last_;
@@ -138,6 +171,8 @@ private:
 	size_t count_ = 0;
 	static inline Clock::time_point reported_{};
 	static inline unsigned slow_ = 0;
+	static inline Clock::time_point windowStart_{};
+	static inline Part worst_{}, worstPart_{};
 };
 
 D2RAccess::CallbackFault g_notice = D2RAccess::CallbackFault::None;
@@ -160,9 +195,8 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	// Speak on a later attempt, after the failed snapshot has unwound. Failure
 	// to allocate this message leaves it pending and is contained by the pump.
 	if (g_notice != D2RAccess::CallbackFault::None) {
-		D2RAccess::ScreenReader::Speak(g_notice == D2RAccess::CallbackFault::Allocation
-			? "Memory is low. Mod movement stopped. Please try again."
-			: "Mod action failed. Movement stopped. Please try again.", true);
+		const auto& strings = D2RAccess::Strings::Current();
+		D2RAccess::ScreenReader::Speak(g_notice == D2RAccess::CallbackFault::Allocation ? strings.faultMemory : strings.faultAction, true);
 		g_notice = D2RAccess::CallbackFault::None;
 	}
 	D2RAccess::InputDirection::Poll(); lap("InputDirection");
@@ -179,6 +213,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	// only a later move along the strip is this one's.
 	D2RAccess::TabHighlight::Tick(context, uiOwnsSpeech); lap("TabHighlight");
 	D2RAccess::TextField::Tick(context); lap("TextField");
+	D2RAccess::GridEdgeService::Tick(context); lap("GridEdgeService");
 	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
 	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
@@ -348,7 +383,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	// to reconstruct afterwards.
 	const char* build = D2RL::GetBuildVersion(context);
 	const char* name  = D2RL::GetBuildName(context);
-	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
+	D2RAccess::AsyncLog::InfoF(context, "d2r-access %s (%s) on game %s%s%s, loader %s (plugin ABI %u)", PluginInfo.version,
+		*D2RAccessRelease ? D2RAccessRelease : "local build",
 		build != nullptr ? build : "of unknown build", name != nullptr ? " " : "", name != nullptr ? name : "",
 		D2RAccess::CoreSlots::LoaderVersion(), static_cast<unsigned>(PluginInfo.abiVersion));
 
@@ -356,13 +392,21 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
+	if (context->pluginDirectory)
+		D2RAccess::Descriptions::Load(context, std::filesystem::path(context->pluginDirectory) / "d2r-access" / "descriptions.txt");
 
 	// After Initialize, whose own Shutdown clears it: set before, no phrase was logged.
 	const bool speaking = D2RAccess::ScreenReader::Initialize(context->pluginDirectory);
 	D2RAccess::ScreenReader::LogTo(context);
 	if (speaking) {
 		D2RAccess::AsyncLog::InfoF(context, "PRISM ready, backend: %s", D2RAccess::ScreenReader::BackendName());
-		D2RAccess::ScreenReader::Speak(D2RAccess::Strings::Current().pluginLoaded, true);
+		// The release it is, so a tester knows which build they run (CMake: D2R_ACCESS_RELEASE).
+		const auto& strings = D2RAccess::Strings::Current();
+		char loaded[200]{};
+		std::snprintf(loaded, sizeof(loaded), "%s. %s", strings.pluginLoaded,
+			*D2RAccessRelease ? D2RAccessRelease : strings.developmentBuild);
+		// Said behind the title's announcement, which the game's own window read would cut off here.
+		D2RAccess::ModalReader::SetTitleAnnouncement(loaded);
 	} else {
 		D2RAccess::AsyncLog::ErrorF(context, "%s: %s", D2RAccess::Strings::Current().screenReaderMissing, D2RAccess::ScreenReader::LastError());
 	}
@@ -376,6 +420,9 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
 	D2RAccess::MultiplayerReader::Initialize(context);
 	D2RAccess::MenuNavigation::Initialize(context);
+	(void)D2RAccess::NativeHover::Initialize(context);
+	if (D2RAccess::NativeWaypoints::Initialize(context)) D2RAccess::NativeUi::SetFocusState(&D2RAccess::NativeWaypoints::FocusWords);
+	(void)D2RAccess::NativeQuestFlags::Initialize(context);
 	// The native switch disables code hooks and input filtering together;
 	// readers that only inspect memory remain available.
 	const bool nativeHooks = D2RAccess::RadarConfig::ReadEnabled(context, "[native]").value_or(true);
@@ -391,6 +438,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 	if (!D2RAccess::TradeService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[trade] Trade announcements unavailable.");
 	if (!D2RAccess::RadarService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[radar] Sonar lifecycle unavailable.");
+	if (!D2RAccess::WallTones::Register(context)) D2RAccess::AsyncLog::Warn(context, "[wall-tones] Wall tones unavailable.");
 	if (nativeHooks) D2RAccess::FootstepService::Register(context);
 	D2RAccess::WallSlideService::Register(context, nativeHooks);
 	if (!D2RAccess::GroundItemService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[items] Ground item lifecycle unavailable.");
@@ -470,6 +518,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::AutomapService::Unregister();
 	D2RAccess::FootstepService::Unregister();
 	D2RAccess::WallSlideService::Unregister();
+	D2RAccess::WallTones::Unregister();
 	D2RAccess::RadarService::Unregister();
 	D2RAccess::GameTextReader::Unregister();
 	D2RAccess::MultiplayerReader::Reset();

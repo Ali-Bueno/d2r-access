@@ -37,6 +37,10 @@ constexpr const char* OpenPanelCommand          = "OpenPanel";
 constexpr const char* OpenExclusivePanelCommand = "OpenExclusivePanel";
 constexpr const char* ClosePanelCommand         = "ClosePanel";
 constexpr const char* UnloadPanelCommand        = "UnloadPanel";
+// A panel's title is not cut off by the first focus the game gives it a moment later
+// (a tester, 2026-10-15: "Main Menu" cut off by the character it lands on).
+constexpr unsigned long long PanelTitleHoldMs = 700;
+constexpr std::string_view MainMenuPanel = "MainMenuPanel";
 constexpr const char* TogglePanelCommand        = "TogglePanel";
 
 // Front-end screen transitions ("FrontEndNavigation:ToExit", "To<Screen>").
@@ -83,6 +87,7 @@ constexpr ClassDescription ClassDescriptions[] = {
 constexpr const char* ModalNameSuffix        = "Modal";
 constexpr const char* ConfirmationModalPanel = "ConfirmationModal";
 constexpr const char* DismissableModalPanel  = "DismissableModal";
+constexpr std::string_view RebindPanel       = "ButtonBindingModal";
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -175,7 +180,7 @@ void Trace(const D2RL::PluginContext* context, const D2RL::SharedEvents::UiMessa
 	D2RAccess::AsyncLog::Info(context, line);
 }
 
-void Say(const char* format, const std::string& subject, bool interrupt) {
+void Say(const char* format, const std::string& subject, bool interrupt, unsigned long long holdMs = 0) {
 	char phrase[256] {};
 	std::snprintf(phrase, sizeof(phrase), format, subject.c_str());
 	// The window path's own line, in the words the player actually hears.
@@ -183,7 +188,8 @@ void Say(const char* format, const std::string& subject, bool interrupt) {
 	// log cannot show whether the same name was spoken twice, once by each
 	// path, which is what the "tabs read twice" report needs to settle.
 	D2RAccess::AsyncLog::InfoF(g_context, "[window] \"%s\"%s", phrase, interrupt ? " (interrupts)" : "");
-	ScreenReader::Speak(phrase, interrupt);
+	if (holdMs) ScreenReader::Urge(phrase, GetTickCount64() + holdMs);
+	else ScreenReader::Speak(phrase, interrupt);
 }
 
 // Localized title from the generated layout table, or empty when the panel has none.
@@ -193,7 +199,22 @@ std::string PanelTitle(std::string_view panel) {
 			return Localization::Text(entry.stringKey);
 		}
 	}
+	// The game's strings have no plain "Main Menu" (only "Return to Main Menu").
+	if (panel == MainMenuPanel) return Strings::Current().mainMenu;
 	return {};
+}
+
+// An untitled panel's layout name in words, "TitleScreenPanel" as "Title Screen".
+std::string PanelWords(std::string_view panel) {
+	constexpr std::string_view Suffix = "Panel";
+	if (panel.size() > Suffix.size() && panel.ends_with(Suffix)) panel.remove_suffix(Suffix.size());
+	std::string words;
+	for (size_t i = 0; i < panel.size(); ++i) {
+		const bool upper = panel[i] >= 'A' && panel[i] <= 'Z';
+		if (i && upper && panel[i - 1] >= 'a' && panel[i - 1] <= 'z') words += ' ';
+		words += panel[i];
+	}
+	return words;
 }
 
 // Helper panels (tooltips layer, link bars, loading overlays) open and close
@@ -209,13 +230,13 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 	const std::string panel     = Safe(event.text);
 	const bool        exclusive = std::strcmp(event.command, OpenExclusivePanelCommand) == 0;
 	const std::string title     = PanelTitle(panel);
-	const std::string spoken    = title.empty() ? panel : title;
+	const std::string spoken    = title.empty() ? PanelWords(panel) : title;
 
 	if (std::strcmp(event.command, OpenPanelCommand) == 0 || exclusive) {
 		PanelState::Opened(panel);
 		RequestTextProbes(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
-			Say(Strings::Current().panelOpened, spoken, true);
+			Say(Strings::Current().panelOpened, spoken, true, PanelTitleHoldMs);
 			// Cleaned as the tab reader cleans a tab's text, so the switcher's
 			// report of this same panel compares equal.
 			PanelState::Announced(UiText::Clean(spoken));
@@ -224,7 +245,8 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 			}
 		}
 	} else if (std::strcmp(event.command, ClosePanelCommand) == 0 || std::strcmp(event.command, UnloadPanelCommand) == 0) {
-		if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title)) {
+		// The rebinding window's close is said as what it bound (SkillBarService).
+		if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title) && panel != RebindPanel) {
 			Say(Strings::Current().panelClosed, spoken, false);
 		}
 		if (panel == SettingsPanelName) {

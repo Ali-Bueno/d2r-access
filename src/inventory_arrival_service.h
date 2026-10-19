@@ -7,4 +7,7 @@ namespace D2RL { struct PluginContext; }
 namespace D2RAccess::InventoryArrivalService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context);
+// "<item> moved to the personal stash" for an item sent there straight from the backpack.
+bool StashNotice();
+void SetStashNotice(bool on);
 }

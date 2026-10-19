@@ -22,9 +22,25 @@ using Radar::Position;
 
 inline constexpr size_t NoItem = static_cast<size_t>(-1);
 
+// The sides a push and a way out are told by: the screen's (up, left, right,
+// down), or the map's, the room's own walls, which D2 draws at the screen
+// diagonals (northeast, northwest, southeast, southwest: 2, 10, 4 and 8
+// o'clock). A tester, 2026-10-14: "flick up-right to check for passages at
+// 2 o'clock". The finder's Up is then the northeast wall, Right the southeast,
+// Down the southwest, Left the northwest: the screen's turned 45 degrees
+// clockwise. `docs/rooms.md`
+enum class Sides { Screen, Map };
+// The unit world direction a side stands for.
+Position Axis(Radar::Direction direction, Sides sides);
+// A world offset as the map's side it points to most: one of the four world axes.
+Position MapSide(Position offset);
+// The wall a passage is in, outward: a world axis.
+Position Wall(const Rooms::Opening& opening);
+
 struct Item {
 	std::string label;            // the passage word, or the level exit's own name
 	Position point{};             // the opening's centre, or the exit's own position
+	Position wall{};              // a passage's wall (Wall); zero for a level exit
 	double distance = 0;          // straight line to it, in collision subtiles
 	bool named = false;           // a real unit guidance can re-locate by itself
 	EntityRadar::Entity entity{}; // set when `named`
@@ -39,9 +55,9 @@ std::vector<Item> Collect(Position player, const std::vector<Rooms::Opening>& op
 	const std::vector<EntityRadar::Entity>& exits, const Strings::Table& strings,
 	UnexploredExit unexploredExit = nullptr);
 
-// The ways out on one screen side, nearest first: the quarter of the plane
-// centred on that side's screen axis.
-std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction);
+// The ways out on one side, nearest first: the quarter of the plane centred on
+// that side's axis; with the map's sides a passage by its own wall.
+std::vector<Item> Toward(const std::vector<Item>& items, Position player, Radar::Direction direction, Sides sides = Sides::Screen);
 
 // Cycles a list nearest-first, continuing from the item named last: the first
 // push is the nearest, the next the second nearest, and round again, with no
@@ -59,6 +75,6 @@ private:
 
 // One spoken line, as the scan says it: "passage, 12 steps".
 std::string Describe(const Item& item, const EntityRadar::Settings& scan, const Strings::Table& strings);
-// Nothing on that side, as the scan says it: "Nothing to the left".
-std::string Nothing(Radar::Direction direction, const Strings::Table& strings);
+// Nothing on that side, as the scan says it: "north: nothing".
+std::string Nothing(Radar::Direction direction, const Strings::Table& strings, Sides sides = Sides::Screen);
 }

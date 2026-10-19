@@ -50,5 +50,32 @@ int main() {
 	Check(!filter.Suppress(player, 400), "fractional Y-only sliding remains audible");
 	Check(filter.LastDecision().reason == Reason::Moved && filter.LastDecision().dx == 0 && filter.LastDecision().dy == 1,
 		"diagnostics distinguish fractional sliding from a completely stationary footfall");
+
+	// Treading into a wall (a tester): the game refuses the push between footfalls.
+	filter.Reset();
+	Sample wall{42, 0x00648000006E8000ULL, true, true, true};
+	Check(!filter.Suppress(wall, 10000), "the first footfall is heard");
+	wall.pushing = true;
+	Check(filter.Suppress(wall, 10010) && filter.LastDecision().reason == Reason::Pushing, "a pushed footfall that went nowhere is silent at once");
+	wall.locomotion = false;
+	Check(!filter.Suppress(wall, 10100), "a stop between retries is the game's own sound");
+	wall.locomotion = true;
+	wall.position += 0x100;
+	Check(filter.Suppress(wall, 10200), "the retry after it, crept a little, is silent too");
+	wall.position += uint64_t{1} << 16;
+	Check(!filter.Suppress(wall, 10400), "a whole subtile of sliding along the wall is a step");
+	wall.pushing = false;
+	Check(!filter.Suppress(wall, 10500) && filter.LastDecision().reason != Reason::Pushing, "without a refused push the stall rule decides");
+
+	Check(ScaleVolume(128, 100) == 128 && ScaleVolume(128, 50) == 64 && ScaleVolume(100, 150) == 150,
+		"the footstep volume scales the game's own value");
+	Check(ScaleVolume(200, 300) == MaxInstanceVolume && ScaleVolume(255, 200) == MaxInstanceVolume,
+		"a louder step stops at the most a sound instance holds");
+	Check(ScaleVolume(1, 25) == 1, "a quieter step never falls silent");
+	const auto extras = [](int percent) { return ExtraVoices(percent); };
+	Check(extras(100).whole == 0 && extras(100).partialPercent == 0 && extras(25).whole == 0 && extras(25).partialPercent == 0,
+		"the game's volume or less adds no footfall");
+	Check(extras(150).whole == 0 && extras(150).partialPercent == 50, "150 percent is one extra footfall at half");
+	Check(extras(200).whole == 1 && extras(200).partialPercent == 0 && extras(300).whole == 2, "each hundred above is a whole extra footfall");
 	Passed();
 }

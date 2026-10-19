@@ -8,6 +8,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 
+#include <windows.h>
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -15,6 +16,9 @@
 namespace D2RAccess::CairnScrollService {
 namespace {
 constexpr const char* PanelName = "ScrollOfInifuss";
+// The game reopens the inventory beside the scroll and moves its cursor in the same
+// moment; that readout used to cut the order off (a tester's log, 2026-10-13).
+constexpr uint64_t OrderLeadMs = 1500;
 Reader g_reader;
 
 bool ScrollListed() {
@@ -56,7 +60,7 @@ void Tick(const D2RL::PluginContext* context, uint64_t session, bool ready, bool
 	if (text.empty()) return;
 	AsyncLog::InfoF(context, "[cairn] Deciphered scroll order read for session %llu.",
 		static_cast<unsigned long long>(session));
-	ScreenReader::Speak(text, false);
+	ScreenReader::Lead(text, GetTickCount64() + OrderLeadMs);
 }
 
 void Reset() { g_reader = {}; }

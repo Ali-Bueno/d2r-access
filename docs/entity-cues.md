@@ -1,4 +1,4 @@
-# NPC and priority enemy sounds
+# NPC and enemy sounds
 
 Enabled by default. These short synthesized pulses use the same fixed screen
 axes as the radar: stereo gives left/right, and a lower pitch marks screen-down.
@@ -7,24 +7,42 @@ runtime dependencies are needed.
 
 | Target | Sound | Selection |
 |---|---|---|
-| Friendly NPC | Light wooden tap | Nearest visible NPC |
+| Friendly NPC or another player | Light wooden tap | Nearest visible NPC or player |
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
-| Resurrecting shaman | Mid-register resonant swoop | Next enemy priority |
-| Ordinary ranged enemy | Brighter resonant swoop | Lowest enemy priority; optional |
+| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family; champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
+| Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
+| Any other enemy | Short rough growl | The nearest few, in the voices left; optional |
 
-There is one representative per class, with at most two enemy classes plus the
-NPC. A crowd of archers therefore makes one stream, not one per archer. Regular
-melee enemies are silent. A special ranged enemy keeps the important-enemy sound
-even when ordinary ranged cues are disabled. Selection uses native traits, not
-translated names; classification evidence is in [entity units](entity-units-re.md).
+There are at most `max_voices` (default 6, 1-8) enemy streams plus the NPC. Each priority class has one
+representative, so a crowd of archers makes one stream, not one per archer.
+The streams the priority classes leave go to the nearest ordinary enemies in
+sight, each heard on its own: a pack of Fallen sounds as its nearest
+members, so its spread is audible. Each rank (nearest, second, ...) keeps its
+own cadence, so the nearest changing does not burst. An ordinary ranged enemy
+whose own cue is disabled growls instead. A special ranged enemy keeps the important-enemy sound even when
+ordinary ranged cues are disabled. Selection uses native traits, not translated
+names; classification evidence is in [entity units](entity-units-re.md).
 
-Only loaded, living entities within 15 collision subtiles are eligible, using
-the radar's terrain line-of-sight check. This has the same limitation as the
+The growl (2026-10-02, after the user and a friend asked for Diablo 1-style
+monster sounds, so a ranged player stops shooting blind) follows
+[mojsior/diablo-access](https://github.com/mojsior/diablo-access), the mod the
+friend meant: one shared monster sound, the three nearest emitters, faster when
+closer (100-1000 ms over 12 tiles; `Source/utils/proximity_audio.cpp`). That mod
+shares its three emitters with items and doors and lowers volume with distance;
+here items keep their own loops and distance stays in the tempo. It is a 90 ms band-limited
+buzz falling from 175 to 125 Hz whose loudness flutters at 36 Hz: rougher and
+lower than every swoop, and tonal where the radar breath is noise. The same
+service plays the attack reach ping; see [attack reach](attack-reach.md).
+
+Only loaded, living entities on screen are eligible (`on_screen = true`), using
+`CombatTarget::OnScreen` (the extent the Tab key uses) widened by 3 subtiles for
+ranged enemies, so archers and casters sound as they appear; `on_screen = false`
+restores the `range` circle (15 subtiles). Both use the radar's terrain line-of-sight check. This has the same limitation as the
 entity scan: walk-blocking fences may hide a target. An ordinary target in
 another room behind a wall does not get a cue. These are direct bearings, not
 routes around obstacles.
 
-Pulse intervals shorten continuously from 450 ms at the range edge to 150 ms
+Pulse intervals shorten continuously from 600 ms at the screen's far corner (or the range edge) to 150 ms
 at contact. The scheduler leaves 100 ms between starts, with an 84 ms NPC tap
 or 90 ms enemy swoop. Due targets take turns, so the nearest boss cannot starve
 the shaman or NPC. The 100 ms snapshot cadence gives one isolated target about
@@ -50,8 +68,9 @@ current output on suspension; there is no queue of stale targets.
 ## Controls
 
 `access-entity-cues on|off|status` controls the feature independently of NPC
-speech (`Ctrl+N`) and the navigation radar (`Ctrl+R`). The same command accepts
-`npc-on`, `npc-off`, `enemy-on`, `enemy-off`, `ranged-on`, and `ranged-off`.
+speech (`Ctrl+N`) and the navigation radar (`Ctrl+G`). The same command accepts
+`npc-on`, `npc-off`, `enemy-on`, `enemy-off`, `ranged-on`, `ranged-off`,
+`ordinary-on`, `ordinary-off`, and the reach controls of [attack reach](attack-reach.md).
 Status and toggle feedback are localized in all 13 game languages.
 
 Persistent settings in the plugin TOML:
@@ -62,11 +81,23 @@ enabled = true
 npcs = true
 enemies = true
 ranged = true
+ordinary = true
+on_screen = true
 range = 15
+max_voices = 6
+pan_strength = 100
+pitch_strength = 100
 volume = 100
+reach = true
+attack = "auto"
+melee_reach = 3
+ranged_reach = 15
 ```
 
-Restart after edits. Volume is 0–100 percent of the deliberately soft synthesized
+Restart after edits. `pan_strength` and `pitch_strength` are percent (0-200, clamped,
+100 = the compiled sound) of the stereo spread and the rear pitch drop; the cues are
+synthesized live, not samples. `range` is used only with `on_screen = false`;
+`ranged_reach` no longer follows it. Volume is 0–100 percent of the deliberately soft synthesized
 level, independent of radar volume. Range is in collision subtiles, greater than
 zero and at most 100; the upper bound keeps this a local proximity scan.
 Malformed or duplicate recognized keys discard this section and retain defaults.
@@ -91,3 +122,28 @@ find a Fallen shaman and a ranged pack outdoors, and compare against an elite.
 Move closer/farther, kill the enemy, open dialogue/pause, and change areas.
 Confirm cue loudness and identity alongside the radar and game combat audio.
 `[entity-cues]` logs selection and suspension; `[entity-audio]` logs device state.
+
+## Enemy classes by layer (2026-10-13)
+
+A tester: elite, boss, shaman and archer cues were the same swoop at different
+pitches, and pitch already says up or down, so a boss above sounded like an
+ordinary enemy below. Now every enemy growls in the same register and its class
+adds a layer, at about half the growl's level and swelling with it:
+champion/unique/minion a bright buzz chattering at 62 Hz, act boss or super
+unique a metallic ring (a struck bar's partials), raiser of the dead a wailing
+tone with vibrato, ordinary ranged a thin whistle. Elite and boss are now two
+sounds (`Cue::boss`, from `EnemyTraits::boss`). `enemy-class-sounds` (Ctrl+S,
+on, the user's choice) brings back the swoops. The pan and pitch strengths go up
+to 400 percent; the pitch never drops below a quarter. The NPC "!" bell is in
+[NPC proximity](npc-proximity.md). Not yet heard by the user: the glossary
+plays each one.
+
+### Elite layer louder and higher (2026-10-13)
+
+Tester: the champion buzz was too soft or low against six growls (the archer's 1.65 kHz whistle was fine).
+Fundamental 300 -> 750 Hz (ratio 5 over the 150 Hz layer base), six harmonics at 1/h with spread phases
+(1.3 rad per harmonic squared, which keeps the crest at 0.41 of full scale for the 14000 peak test),
+level 0.15 -> 0.28; layer RMS 0.035 -> 0.064 (1.8x, now equal to the growl's), spectral centroid
+880 -> 1830 Hz, still tonal and chattering at 62 Hz, never noise. The ping test now asks for twice,
+not four times, the elite's zero-crossing rate (a buzz this bright crosses zero more often); the
+growl still sits four times below. Static modelling only (numpy replica of the synth); listen in the glossary.

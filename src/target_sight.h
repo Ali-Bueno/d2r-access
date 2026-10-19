@@ -4,6 +4,7 @@
 #include "radar.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,8 +24,31 @@ struct Settings {
 	bool enabled = true; // false speaks every label, as before this gate existed
 };
 
-// Whether `label` names an entity with a clear terrain line of sight.
+// The unit the game itself targets (NativeHover), when it can be read: of the
+// bearers of a label it is the one meant, not the nearest.
+struct Aim {
+	uint8_t unit = EntityRadar::Entity::NoUnit; // the game's unit type
+	uint32_t id = 0;
+};
+
+// The nearest entity `label` names that is in sight, or why there is none.
 // Ground items are ignored: the item proximity service owns their labels.
+struct Bearer {
+	Sight sight = Sight::Unknown;
+	EntityRadar::Kind kind = EntityRadar::Kind::Item; // meaningful only when Visible
+	bool important = false; // a boss or an elite
+	double distance = 0;
+	uint32_t id = 0; // the unit, when Visible: two barrels share a label but not an id
+	// The scan's own name where it says more than the label (a Cairn Stone's
+	// symbol, a seal's number) and the label stands for that one unit alone: the
+	// game's target, or a bearer clearly nearer than any other. Empty otherwise.
+	std::string name, worldName;
+};
+Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
+	std::string_view label, const Settings& settings = {}, const std::optional<Aim>& aim = std::nullopt);
+// `label` with the bearer's own name in place of the game's: "Cairn Stone, one".
+std::string Spoken(std::string_view label, const Bearer& bearer);
+// Whether `label` names an entity with a clear terrain line of sight.
 Sight Of(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	std::string_view label, const Settings& settings = {});
 

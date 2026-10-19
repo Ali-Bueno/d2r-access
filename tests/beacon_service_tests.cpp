@@ -2,6 +2,9 @@
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "input_direction.h"
+#include "keyboard_service.h"
+#include "level_route.h"
+#include "descriptions.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_level_areas.h"
@@ -42,6 +45,8 @@ int silences = 0, plays = 0;
 std::vector<std::string> speech;
 std::vector<NativeLevelAreas::Area> actAreas; // the act's built areas; none when unreadable
 std::vector<EntityRadar::Entity> currentEntities;
+bool remembering = false; // the keyboard keeps a map of the level
+LevelRoute::Memory remembered;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener,
 	D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
@@ -82,17 +87,31 @@ std::string Format(const char* format, const char* name) {
 
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
 namespace D2RAccess::BeaconAudio {
-bool Start(const D2RL::PluginContext*, double) { return true; }
+bool Start(const D2RL::PluginContext*, double, double, double) { return true; }
 void Stop() {}
 bool Available() { return true; }
 void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
-namespace D2RAccess::InputDirection { bool TakeLeftStickClick() { return false; } }
+namespace D2RAccess::InputDirection {
+bool TakeBackWithLb() { return false; }
+StickPush TakeBackWithRightStick() { return StickPush::None; }
+const char* PushName(StickPush) { return ""; }
+}
+namespace D2RAccess::KeyboardService {
+const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
+	if (!remembering) return nullptr;
+	if (!remembered.Revision()) (void)remembered.Begin(world.session, world.level, levelRooms);
+	(void)remembered.Learn(world);
+	return &remembered;
+}
+}
+namespace D2RAccess::MapSurveyService { bool TownNpcsEverywhere() { return false; } }
 namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }
 Navigation ReadNavigation(const D2RL::PluginContext*) { return {.fullAssistance = true}; }
+BeaconSettings ReadBeacon(const D2RL::PluginContext*) { return {}; }
 }
 namespace D2RAccess::NativeAutomap {
 std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>&) { return chartedRooms; }
@@ -141,9 +160,12 @@ bool ReadLevel(uint32_t, uint64_t, GroundItems::Snapshot&) { return false; }
 namespace D2RAccess::NativeEntities {
 bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>& out, bool, bool, bool, bool) { out = currentEntities; return !out.empty(); }
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
+std::string LevelName(uint32_t) { return {}; }
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.kind == b.kind && a.placeId == b.placeId && (a.placeId || a.id == b.id); }
 bool Recreated(const Entity&, const Entity&) { return false; } }
+namespace D2RAccess::Descriptions { std::string Find(std::string_view, std::string_view builtIn) { return std::string(builtIn); } }
+namespace D2RAccess::EntityRadar { std::string DistancePhrase(double, const Settings&, const Strings::Table&) { return {}; } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
 
@@ -188,10 +210,41 @@ int main() {
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before + 1, "full assistance locks while the first room-graph read fails");
-	Check(roomReads == 2, "a failed room-graph read is retried by the next use in the same level instance");
+	Check(roomReads == 1, "fixture: the lock's first update made the failing read");
 	Sleep(160); // the service's 150 ms target refresh cadence
 	BeaconService::Tick(&context);
+	Check(roomReads == 2, "a failed room-graph read is retried by the next use in the same level instance");
+	Sleep(160);
+	BeaconService::Tick(&context);
 	Check(roomReads == 2, "a successfully built room graph is cached");
+
+	// Walled off as far as the level has been seen: no ping points through the wall.
+	Command("clear");
+	BeaconService::Tick(&context);
+	remembering = true;
+	playerAt = {10, 10};
+	blocked = {60, 0, 62, 49};
+	BeaconService::Offer(EntityRadar::Entity{.id = 10, .kind = EntityRadar::Kind::Exit, .position = {80, 10}, .name = "walled exit"},
+		0, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
+	const int locked = plays;
+	for (int i = 0; i < 8; ++i) { Sleep(160); BeaconService::Tick(&context); }
+	Command("status");
+	BeaconService::Tick(&context);
+	Check(plays == locked && speech.back().find("walled exit") != std::string::npos,
+		"full assistance keeps the lock and plays no ping while no walkable way is known");
+	blocked = {60, 0, 62, 39}; // a way round below the wall
+	for (int i = 0; i < 8; ++i) { Sleep(160); BeaconService::Tick(&context); }
+	Check(plays > locked, "the ping resumes once a way round is seen");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back().starts_with("Route to walled exit") && speech.back().find("; then ") != std::string::npos,
+		"the route to the followed target is said as legs, round the wall");
+	Command("clear");
+	BeaconService::Tick(&context);
+	blocked = {};
+	remembering = false;
 
 	const auto& strings = Strings::Current();
 	Command("exploration");
@@ -199,22 +252,23 @@ int main() {
 	Check(speech.back() == strings.navigationExploration, "the exploration command releases the lock and names the mode");
 	playerAt = {10, 10};
 	visitedRooms = {levelRooms[0]};
+	const Box border{50, 0, 50, 49}; // a wall all along the border between the two rooms
+	blocked = border;
 	EntityRadar::Entity gate{.id = 9, .kind = EntityRadar::Kind::Exit, .position = {70, 10}, .name = "gate"};
 	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
-		"exploration refuses a target in a room never entered");
+		"exploration refuses a target no known way leads to");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back() == Format(strings.beaconKnownRouteOnly, "gate"), "and has no route to describe there either");
+	blocked = {};
 	visitedRooms = {};
 	Command("lock");
 	BeaconService::Tick(&context);
-	Check(plays == before && speech.back() == Format(strings.beaconKnownRouteOnly, "gate"),
-		"without history only the room underfoot counts as visited");
-	visitedRooms = levelRooms;
-	Command("lock");
-	BeaconService::Tick(&context);
-	Check(plays == before + 1, "exploration locks a target reached through visited rooms");
+	Check(plays == before + 1, "what the scanner lists is led to, in a room never entered (the user, 2026-10-14)");
 
 	worldReadable = false;
 	const int silenced = silences;
@@ -226,19 +280,22 @@ int main() {
 		&& speech.back().find("gate") != std::string::npos, "an unreadable world keeps the exploration lock");
 	worldReadable = true;
 	visitedRooms = {levelRooms[0]};
-	Sleep(160);
+	blocked = border;
+	// Past the route's own recompute interval (Settings::routeIntervalMs, longer for a far target).
+	Sleep(700);
 	BeaconService::Tick(&context);
-	Check(silences == silenced, "a target briefly outside the visited rooms keeps the lock in silence");
+	Check(silences == silenced, "a target briefly cut off keeps the lock in silence");
 	Sleep(static_cast<DWORD>(Beacon::Settings{}.routeLossMs) + 160);
 	BeaconService::Tick(&context);
 	Check(silences == silenced + 1 && speech.back() == Format(strings.beaconKnownRouteEnded, "gate"),
-		"a target outside the visited rooms for the whole grace ends the known route");
+		"a target cut off for the whole grace ends the known route");
+	blocked = {};
 	chartedRooms = std::vector<NativeRooms::Room>{levelRooms[1]};
 	BeaconService::Offer(gate, 0, GetTickCount64());
 	before = plays;
 	Command("lock");
 	BeaconService::Tick(&context);
-	Check(plays == before + 1, "a room the automap has drawn counts as explored");
+	Check(plays == before + 1, "with the automap readable the gate is led to again once a way is seen");
 	EntityRadar::Entity lever{901, EntityRadar::Kind::Object, {70, 10}, "lever"};
 	BeaconService::Offer(lever, 0, GetTickCount64());
 	before = plays;

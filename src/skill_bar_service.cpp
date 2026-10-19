@@ -6,13 +6,17 @@
 #include "native_skill_bar.h"
 #include "native_ui.h"
 #include "native_widgets.h"
+#include "panel_state.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "skill_bar.h"
+#include "speech_strings.h"
 #include <windows.h>
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <charconv>
+#include <cstdio>
 #include <string>
 
 namespace D2RAccess::SkillBarService {
@@ -33,11 +37,13 @@ int HudQuantity(int slot) {
 	return error == std::errc{} && end == text.data() + text.size() ? quantity : 0;
 }
 
-void Read(const D2RL::PluginContext* context) {
-	const auto bar = NativeSkillBar::AlternateBar();
-	if (!bar) { AsyncLog::Info(context, "[skill-bar] LT bar unreadable."); return; }
-	// Counts are only the LT bar's while the HUD itself shows that bar.
-	const bool counts = NativeSkillBar::BackBarShown();
+// The LT bar, or with `main` the bar the HUD shows without LT (BACK+LT, a tester, 2026-10-14).
+void Read(const D2RL::PluginContext* context, bool main = false) {
+	const auto bar = NativeSkillBar::AlternateBar(main);
+	const char* which = main ? "main" : "LT";
+	if (!bar) { AsyncLog::InfoF(context, "[skill-bar] %s bar unreadable.", which); return; }
+	// The HUD's counts belong to the bar it shows.
+	const bool counts = NativeSkillBar::BackBarShown() != main;
 	std::array<SkillBar::Slot, NativeSkillBar::Buttons> slots;
 	for (int i = 0; i < NativeSkillBar::Buttons; ++i) {
 		// ControllerHelpSkill1..6 name SkillButton1..6's control (controllersettings.json variant 0).
@@ -46,9 +52,49 @@ void Read(const D2RL::PluginContext* context) {
 		slots[i].skill = (*bar)[i].name;
 		slots[i].quantity = counts && slots[i].bound ? HudQuantity(i) : 0;
 	}
-	AsyncLog::InfoF(context, "[skill-bar] LT bar skills=%d,%d,%d,%d,%d,%d hud=%d.", (*bar)[0].skill, (*bar)[1].skill,
+	AsyncLog::InfoF(context, "[skill-bar] %s bar skills=%d,%d,%d,%d,%d,%d hud=%d.", which, (*bar)[0].skill, (*bar)[1].skill,
 		(*bar)[2].skill, (*bar)[3].skill, (*bar)[4].skill, (*bar)[5].skill, counts ? 1 : 0);
 	if (const auto text = SkillBar::Compose(slots); !text.empty()) ScreenReader::Speak(text, true);
+}
+
+// The game's rebinding window (holding X on a skill) says nothing of what it bound; the
+// bars before and after it tell (a tester, 2026-10-17: "Skill bound to <controller button>").
+constexpr std::string_view BindingPanel = "ButtonBindingModal";
+constexpr uint32_t LeftTriggerGlyph = 0xE00D; // U+E000 + 13, "LT" in controllerButtons
+using Bar = std::array<NativeSkillBar::Binding, NativeSkillBar::Buttons>;
+bool g_binding = false;
+std::optional<Bar> g_beforeMain, g_beforeLt;
+
+std::string BoundPhrase(const std::optional<Bar>& before, const std::optional<Bar>& after, bool lt) {
+	if (!before || !after) return {};
+	for (int i = 0; i < NativeSkillBar::Buttons; ++i) {
+		const auto& now = (*after)[i];
+		if (!now.bound || now.skill == (*before)[i].skill) continue;
+		const std::string name = now.name.empty() ? NativeSkillBar::SkillName(now.skill) : now.name;
+		std::string button(ControllerText::FirstButton(Localization::Text("ControllerHelpSkill" + std::to_string(i + 1))));
+		if (name.empty() || button.empty()) continue;
+		if (lt) button = std::string(ControllerText::Button(LeftTriggerGlyph)) + " " + button;
+		char phrase[256]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().skillBound, name.c_str(), button.c_str());
+		return phrase;
+	}
+	return {};
+}
+
+void WatchBinding(const D2RL::PluginContext* context) {
+	const auto& open = PanelState::OpenPanels();
+	const bool binding = std::find(open.begin(), open.end(), BindingPanel) != open.end();
+	if (binding == g_binding) return;
+	g_binding = binding;
+	if (binding) {
+		g_beforeMain = NativeSkillBar::AlternateBar(true);
+		g_beforeLt = NativeSkillBar::AlternateBar(false);
+		return;
+	}
+	auto phrase = BoundPhrase(g_beforeMain, NativeSkillBar::AlternateBar(true), false);
+	if (phrase.empty()) phrase = BoundPhrase(g_beforeLt, NativeSkillBar::AlternateBar(false), true);
+	AsyncLog::InfoF(context, "[skill-bar] binding window closed -> \"%s\"", phrase.c_str());
+	if (!phrase.empty()) ScreenReader::Speak(phrase, true);
 }
 
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
@@ -69,7 +115,10 @@ bool Register(const D2RL::PluginContext* context) {
 }
 
 void Tick(const D2RL::PluginContext* context) {
+	const bool mainBar = InputDirection::TakeBackWithTrigger(false); // taken every tick, so an old press is never read
+	if (g_supported) WatchBinding(context);
 	if (!g_supported || !g_enabled) return;
+	if (mainBar && RadarUi::InPlay()) Read(context, true);
 	const auto trigger = InputDirection::LeftTrigger();
 	// InPlay walks the open panels, so it is only asked while LT is down.
 	const bool playing = trigger.held && RadarUi::InPlay();

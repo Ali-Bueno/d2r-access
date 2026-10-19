@@ -1,5 +1,6 @@
 #include "weapon_swap.h"
 #include "speech_strings.h"
+#include <cstdio>
 
 namespace D2RAccess::WeaponSwap {
 
@@ -27,7 +28,7 @@ void Tracker::Reset() {
 	pending_.reset();
 }
 
-std::string Phrase(const std::vector<std::string>& weapons) {
+std::string Phrase(const std::vector<std::string>& weapons, std::optional<int> set) {
 	const auto& strings = Strings::Current();
 	std::string list;
 	for (const auto& weapon : weapons) {
@@ -35,6 +36,10 @@ std::string Phrase(const std::vector<std::string>& weapons) {
 		if (!list.empty()) list += strings.listSeparator;
 		list += weapon;
 	}
-	return list.empty() ? std::string(strings.handsEmpty) : list;
+	if (list.empty()) list = strings.handsEmpty;
+	if (!set) return list;
+	char number[100]{};
+	std::snprintf(number, sizeof(number), strings.weaponSet, *set);
+	return std::string(number) + strings.listSeparator + list;
 }
 }

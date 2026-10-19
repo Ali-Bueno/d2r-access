@@ -119,6 +119,16 @@ capture was made. The foreign-reset correction was not exercised in this run.
 An orientation limitation remains: Ctrl+T reports straight directional clearance
 without describing the character's actual deflected movement.
 
+## 2026-10-12: treading into a wall
+
+A tester still heard steps against walls. The stall rule mutes only a footfall at the exact same
+position for 150 ms, so a walk restarted between retries (a non-walking footfall reset the
+baseline) or a creep along a ragged border stayed audible. Now a footfall the game made while
+refusing a stick push (the wall-slide hook's attempt count rose since the last local footfall)
+is muted at once when it advanced under a quarter subtile from the previous local footfall of
+any animation (`Reason::Pushing`, `PushStepMinimum`); a real slide along the wall still sounds.
+The `[footsteps] summary` counts it as `pushing=`. Unverified live.
+
 ## Verification scope
 
 Thirty-seven pure policy checks cover a sustained stall, immediate subcell resumption, slow
@@ -140,3 +150,29 @@ recorded. The filter remains unchanged; Ctrl+T now describes actual recent
 screen movement before its straight-ray readings. See [the map analysis and
 replayed regression](radar-map-fidelity.md). Live stationary suppression remains
 unverified.
+
+## Footstep volume (2026-10-13)
+
+A tester asked for the player's own footsteps louder or quieter than the game's
+sounds. `footstep-volume` (Ctrl+S, Sounds) scales them from 25 to 300 percent.
+A sound instance keeps its volume at `+0x24` (0-255, 0xFF at creation by
+0x1A0780); the event caller 0x7D9800 sets the footfall's after 0x7D9390 returns
+(SetSoundVolume 0x19F900, GetSoundVolume 0x19E9D0, both fingerprinted), and the
+game's sliders multiply later. So the detour keeps the local player's handle
+and the next `FootstepService::Tick` scales it, clamped to 255: a louder step is
+possible only while the game's own value leaves room. Only the floor step is
+scaled, not the armour's `footstep_foley`. Static RE only; live check:
+`[footsteps] volume stock=... percent=... set=... read_back=...` (logged for
+the first three steps after a change); if stock is always 255, only lowering works.
+
+### Louder steps (2026-10-13, tester: "no discernible difference")
+
+The user's log showed `[footsteps] volume stock=255 percent=300 set=255 read_back=255`: the floor step
+sits at the instance's maximum, 255, from creation (the caller 0x7D9800 sets a value only when the
+animation event carries one), so scaling that field upward can never be heard; only lowering could.
+Now a level above 100 plays the game's own footfall (the original 0x7D9390) again for the local player
+from the hook: `percent/100 - 1` whole extra instances plus one at the remainder (150 = one at half,
+200 = one, 300 = two). Lowering is unchanged (scaling the instance's volume). Live check:
+`[footsteps] boost whole= partial= played= partial_stock=` (first three steps); `played` below the
+expected count means the engine dropped the extra instance (instance limit) and louder is not possible.
+The setting is in the Volumes group.

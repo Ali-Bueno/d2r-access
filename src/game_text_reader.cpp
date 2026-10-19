@@ -2,8 +2,11 @@
 #include "game_text_reader.h"
 
 #include "control_hints.h"
+#include "controller_text.h"
+#include "descriptions.h"
 #include "focus_tracker.h"
 #include "interaction_reader.h"
+#include "localization.h"
 #include "native_controller_help.h"
 #include "generated/panel_widgets.h"
 #include "native_ui.h"
@@ -21,6 +24,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
+#include <cstdio>
 #include <vector>
 
 namespace D2RAccess::GameTextReader {
@@ -30,7 +34,9 @@ constexpr uint64_t PollMs = 33; // match the existing 30 Hz controller focus rea
 const D2RL::PluginContext* g_context = nullptr;
 const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
-std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false};
+std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false}, g_mercenaryBark{true};
+// The mercenary's level-up line (ui.json "merclevelup"), drawn over its head.
+constexpr const char* MercenaryLevelUpKey = "merclevelup";
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
 bool g_interactionFocus = false;
 // A tab switch is announced at the END of a tick, but the panel readout is
@@ -111,6 +117,18 @@ void Speak(const D2RL::PluginContext* context, const UiText::Readout& readout, c
 	D2RAccess::AsyncLog::InfoF(context, "[text] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 	ScreenReader::Speak(announcement.text, interrupt);
 }
+
+// The first time an area with hand-written words is entered, how to hear them
+// (a tester, 2026-10-16), after its name.
+void AreaHint(const D2RL::PluginContext* context, std::string_view area) {
+	constexpr uint32_t ViewGlyph = 0xE006; // Strings::Table::controllerButtons[6], "View"
+	if (!Descriptions::HintDue(UiText::Clean(area))) return;
+	const auto button = ControllerText::Button(ViewGlyph);
+	char hint[300]{};
+	std::snprintf(hint, sizeof hint, Strings::Current().areaDescriptionHint, std::string(button).c_str());
+	D2RAccess::AsyncLog::InfoF(context, "[descriptions] hint for \"%s\"", std::string(area).c_str());
+	ScreenReader::Speak(hint, false);
+}
 }
 
 bool Register(const D2RL::PluginContext* context) {
@@ -142,6 +160,17 @@ void Unregister() {
 	g_inGame = false;
 	Reset();
 	NativeUi::Reset();
+}
+
+// A sighted player sees who says a line drawn over a head; the mercenary's
+// level-up line names it (a tester, 2026-10-13).
+std::string NameSpeaker(std::string text) {
+	if (!g_mercenaryBark.load()) return text;
+	const auto bark = UiText::Clean(Localization::Text(MercenaryLevelUpKey));
+	if (bark.empty() || text.find(bark) == std::string::npos) return text;
+	char phrase[300]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().mercenarySays, text.c_str());
+	return phrase;
 }
 
 bool Tick(const D2RL::PluginContext* context) {
@@ -206,8 +235,9 @@ bool Tick(const D2RL::PluginContext* context) {
 		if (priority > best) { best = priority; active = readout; }
 	}
 	if (best < 0 && focus.widget && !nativeControlFocus) {
-		auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
-		snapshot.name = NativeWidgets::ReadName(focus.panel);
+		// The fallback traverses only this control, but native state/graphic
+		// adapters still need its owning panel's identity during the snapshot.
+		auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget, focus.panel);
 		if (dump) Dump(context, snapshot);
 		if (NeedsFallback(snapshot)) active = UiText::Describe(snapshot);
 	}
@@ -219,7 +249,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	// later, which is the interruption the queueing was supposed to stop.
 	const auto tabChange = TabReader::Update(panels, focus, owns);
 	if (!tabChange.empty()) {
-		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s", tabChange.c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[tabs] %s: %s", tabChange.c_str(), TabReader::Detail().c_str());
 		g_tabQueuesNext = true;
 	}
 	if (owns) {
@@ -245,10 +275,13 @@ bool Tick(const D2RL::PluginContext* context) {
 	}
 	g_ownedFocus = owns;
 	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
-	if (!area.Empty()) Speak(context, area, g_areaReader.Update(area, now), !owns && !g_interactionFocus);
-	else g_areaReader.Reset();
+	if (!area.Empty()) {
+		const auto announcement = g_areaReader.Update(area, now);
+		Speak(context, area, announcement, !owns && !g_interactionFocus);
+		if (!announcement.text.empty()) AreaHint(context, area.body);
+	} else g_areaReader.Reset();
 	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
-		const auto text = TradeService::FixNotice(notice);
+		const auto text = NameSpeaker(TradeService::FixNotice(notice));
 		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());
 		ScreenReader::Speak(text, false);
 	}
@@ -267,4 +300,6 @@ void RequestDump() { g_dump.store(true); }
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool Enabled() { return g_enabled.load(); }
+bool MercenaryBark() { return g_mercenaryBark.load(); }
+void SetMercenaryBark(bool on) { g_mercenaryBark = on; }
 }

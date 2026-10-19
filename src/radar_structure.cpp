@@ -1,6 +1,7 @@
 #include "radar.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace D2RAccess::Radar {
@@ -66,6 +67,48 @@ bool CanBypass(const World& original, Bounds obstacle) {
 	// only the perimeter would erase a small room whose exterior is bypassable.
 	return std::none_of(cells.begin(), cells.end(), [](State cell) { return cell == State::Open; });
 }
+
+struct Spot { int x, y; };
+struct Component { Bounds bounds; std::vector<Spot> cells; bool clutter = false; };
+// The 8-connected blocking group at a blocked cell, explored only while it can
+// still be clutter: fully loaded, WALL/OBJECT only, at most one tile across.
+Component Explore(const World& world, int x, int y) {
+	constexpr int Span = SubtilesPerTile, Side = 2 * Span + 1;
+	Component component{{x, y, x, y}, {}};
+	if (world.Cell(x, y, Layer::Terrain) != State::Blocked) return component;
+	// Within the bound every explored cell lies within Span of the start.
+	std::array<bool, Side * Side> seen{};
+	const auto mark = [&](int cx, int cy) { seen[static_cast<size_t>(cy - y + Span) * Side + (cx - x + Span)] = true; };
+	mark(x, y);
+	component.cells.push_back({x, y});
+	for (size_t cursor = 0; cursor < component.cells.size(); ++cursor) {
+		const auto [cx, cy] = component.cells[cursor];
+		auto& bounds = component.bounds;
+		bounds.left = std::min(bounds.left, cx); bounds.right = std::max(bounds.right, cx);
+		bounds.top = std::min(bounds.top, cy); bounds.bottom = std::max(bounds.bottom, cy);
+		if (bounds.right - bounds.left + 1 > Span || bounds.bottom - bounds.top + 1 > Span) return component;
+		uint16_t flags = 0;
+		(void)world.Cell(cx, cy, Layer::Terrain, &flags);
+		if (TerrainCollisionFlags(flags) & world.walkingMask & ~(Wall | Object)) return component;
+		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) {
+			const int nx = cx + dx, ny = cy + dy;
+			if (seen[static_cast<size_t>(ny - y + Span) * Side + (nx - x + Span)]) continue;
+			const auto state = world.Cell(nx, ny, Layer::Terrain);
+			if (state == State::Unknown) return component; // unloaded ground may hide the rest
+			if (state != State::Blocked) continue;
+			mark(nx, ny);
+			component.cells.push_back({nx, ny});
+		}
+	}
+	component.clutter = true;
+	return component;
+}
+}
+
+bool SmallObstacle(const World& world, int x, int y, size_t* explored) {
+	const auto component = Explore(world, x, y);
+	if (explored) *explored = component.cells.size();
+	return component.clutter && StandsAlone(world, component.bounds) && CanBypass(world, component.bounds);
 }
 
 int StructuralRadius(const Settings& settings, int bodyPattern) {
@@ -79,7 +122,6 @@ World StructuralWorld(const World& world, const Settings& settings) {
 	result.bodyPattern = world.bodyPattern; result.walkingMask = world.walkingMask;
 	// The halo contains an entire eligible component, its detour and the body
 	// checks beyond that detour, even when the hit is at the radar range edge.
-	const int objectSpan = ObjectSpan(settings);
 	const int radius = StructuralRadius(settings,world.bodyPattern);
 	const int side = radius*2+1;
 	result.rooms.push_back({static_cast<int>(world.player.x)-radius, static_cast<int>(world.player.y)-radius,
@@ -95,37 +137,16 @@ World StructuralWorld(const World& world, const Settings& settings) {
 	if (!world.slides) return result;
 	const World original = result;
 	std::vector<bool> visited(grid.cells.size());
-	std::vector<size_t> component;
+	const auto index = [&](Spot spot) { return static_cast<size_t>(spot.y - grid.y) * side + (spot.x - grid.x); };
 	for (size_t start = 0; start < grid.cells.size(); ++start) {
 		if (visited[start] || (original.rooms[0].cells[start] & Blank)
 			|| !(original.rooms[0].cells[start] & world.walkingMask)) continue;
-		component.assign(1, start); visited[start] = true;
-		const int sx = static_cast<int>(start % side), sy = static_cast<int>(start / side);
-		Bounds bounds{sx, sy, sx, sy};
-		uint16_t restrictions = 0;
-		bool complete = true;
-		for (size_t cursor = 0; cursor < component.size(); ++cursor) {
-			const size_t index = component[cursor];
-			const int x = static_cast<int>(index % side), y = static_cast<int>(index / side);
-			bounds.left = std::min(bounds.left, x); bounds.right = std::max(bounds.right, x);
-			bounds.top = std::min(bounds.top, y); bounds.bottom = std::max(bounds.bottom, y);
-			restrictions |= original.rooms[0].cells[index] & world.walkingMask;
-			// Eight-connected components preserve diagonal walls as a unit.
-			for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) {
-				const int nx = x+dx, ny = y+dy;
-				if (nx < 0 || ny < 0 || nx >= side || ny >= side) { complete = false; continue; }
-				const size_t next = static_cast<size_t>(ny)*side+nx;
-				const uint16_t flags = original.rooms[0].cells[next];
-				if (flags & Blank) { complete = false; continue; }
-				if (visited[next] || !(flags & world.walkingMask)) continue;
-				visited[next] = true; component.push_back(next);
-			}
-		}
-		if (!complete || (restrictions & ~(Wall | Object)) || bounds.right-bounds.left+1 > objectSpan
-			|| bounds.bottom-bounds.top+1 > objectSpan) continue;
-		const Bounds box{grid.x+bounds.left, grid.y+bounds.top, grid.x+bounds.right, grid.y+bounds.bottom};
-		if (!StandsAlone(original, box) || !CanBypass(original, box)) continue;
-		for (const size_t index : component) grid.cells[index] &= ~world.walkingMask;
+		// Eight-connected components preserve diagonal walls as a unit. A group
+		// cut short by the bound is no clutter; its other cells start their own.
+		const auto component = Explore(original, grid.x + static_cast<int>(start % side), grid.y + static_cast<int>(start / side));
+		for (const auto spot : component.cells) visited[index(spot)] = true;
+		if (!component.clutter || !StandsAlone(original, component.bounds) || !CanBypass(original, component.bounds)) continue;
+		for (const auto spot : component.cells) grid.cells[index(spot)] &= ~world.walkingMask;
 	}
 	return result;
 }

@@ -8,6 +8,7 @@
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "quest_progress.h"
+#include "quest_seals.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -219,6 +220,13 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
 	const bool foreground = process == GetCurrentProcessId();
 	CairnScrollService::Tick(context, g_session, g_ready, foreground);
+	// An opened seal says how many are left; it waits while a menu has the speech.
+	if (g_ready && !uiOwnsSpeech)
+		if (const auto left = QuestSeals::TakeOpening(g_session)) {
+			const std::string text = QuestSeals::LeftText(*left, Strings::Current());
+			AsyncLog::InfoF(context, "[quest] seal opened: %s", text.c_str());
+			ScreenReader::Speak(text, false);
+		}
 	if (!g_ready || !g_enabled) return;
 	if (g_language != Strings::Selected()) Reset(); // Never announce a locale change as progress.
 	const uint64_t now = GetTickCount64();

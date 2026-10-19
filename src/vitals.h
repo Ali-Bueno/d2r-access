@@ -27,6 +27,14 @@ int Step(int percent);
 // up into a safer number; -1 when the maximum is unusable.
 int Percent(int current, int maximum);
 
+// How far into its level an experience total is, floored to 0-99, as the
+// game's experience bar fills between the two thresholds; -1 when they make no sense.
+int ExperiencePercent(uint64_t experience, uint64_t levelStart, uint64_t nextLevel);
+// Where a mercenary's level began, from its next-level threshold: the hireling
+// panel (0x14F3400) uses ExpPerLvl * L * L * (L + 1), so the next one is
+// ExpPerLvl * (L + 1)^2 * (L + 2). 0 when the threshold does not fit that rule.
+uint64_t MercenaryLevelStart(int level, uint64_t nextLevel);
+
 // The two numbers an orb's value display shows ("45/120"), digit grouping and
 // surrounding text ignored. Nothing when the text carries no such pair.
 struct Orb {
@@ -54,11 +62,17 @@ struct Alert {
 	bool Any() const { return life >= 0 || mana >= 0; }
 };
 
+// How much mana is spoken unasked: every step as for life, only a fall to
+// ManaLowPercent or under, or nothing (a tester: casting drowned out life).
+enum class ManaAlerts { All, Low, Off };
+inline constexpr int ManaAlertLevels = 3;
+inline constexpr int ManaLowPercent = 20; // one of Steps
+
 // Produces at most one announcement per HUD sample. A critical value interrupts
 // only when it has fallen, so mana recovery cannot erase a life warning.
 class Alerts {
 public:
-	Alert Update(int life, int mana);
+	Alert Update(int life, int mana, ManaAlerts manaAlerts = ManaAlerts::All);
 	void Reset();
 private:
 	Meter life_, mana_;
@@ -75,14 +89,64 @@ private:
 	int missing_[2]{};
 };
 
-// Diff-gates a verified player condition. Missing reads preserve the last
-// state; entering a game takes a silent baseline.
-class Condition {
+// The character's gait as the game moves it. The run toggle itself is not
+// read: a press of the game's toggle says the flip, and only that is spoken.
+// The game also walks on its own, out of stamina or pushing into a wall
+// (controllerskillsettings forceWalk*), so an observed step only re-syncs the
+// toggle silently, and only from free running or walking (a tester heard
+// "Walking" and "Running" against walls with no press).
+enum class Gait { Walk, Run };
+// Samples in a row a new gait must hold before the toggle is taken to be it.
+inline constexpr int GaitConfirmSamples = 3;
+class GaitTracker {
 public:
-	std::optional<bool> Update(std::optional<bool> active);
+	// One sample: the gait while walking or running, nothing otherwise; `free`
+	// is false while the game may be forcing the walk. Returns the gait the
+	// toggle was re-synced to, for the log; the first is a baseline.
+	std::optional<Gait> Observe(std::optional<Gait> moving, bool free = true);
+	// The game's run toggle was pressed: the flipped gait, nothing before a baseline.
+	std::optional<Gait> Toggle();
 	void Reset();
 private:
-	std::optional<bool> previous_;
+	std::optional<Gait> known_, pending_;
+	int held_ = 0;
+};
+
+// Stamina falling through each step, and running out. A step is armed again
+// only once stamina has recovered StaminaRearm points above it, so the drain
+// and regeneration of running in short bursts does not repeat it.
+inline constexpr int StaminaSteps[] = {50, 25, 10};
+inline constexpr int StaminaRearm = 10;
+class StaminaMeter {
+public:
+	// The percentage to announce, 0 when stamina ran out, -1 for nothing; the
+	// first reading is a baseline.
+	int Update(int percent);
+	void Reset();
+private:
+	int depth_ = -1;
+};
+
+// A stack held in hand (arrows, bolts, throwing weapons) falling through each
+// step. An item counts as a stack once it has been seen holding more than one.
+inline constexpr int AmmoSteps[] = {50, 20, 10, 5};
+class AmmoMeter {
+public:
+	struct Stack {
+		uint32_t id = 0;
+		int quantity = 0;
+	};
+	// The stack to announce, if one fell through a step; a stack first seen is a baseline.
+	std::optional<Stack> Update(const std::vector<Stack>& inHand);
+	// The stacks among the items in hand.
+	std::vector<Stack> Known(const std::vector<Stack>& inHand) const;
+	void Reset();
+private:
+	struct Tracked {
+		uint32_t id = 0;
+		int depth = 0;
+	};
+	std::vector<Tracked> tracked_;
 };
 
 class MercenaryMeter {
@@ -108,6 +172,7 @@ public:
 		uint32_t id = 0;
 		int durability = 0, maximumDurability = 0, bodyLocation = 0;
 		uint32_t classId = 0, quality = 0; // for naming it
+		int quantity = 1; // one for an item that does not stack
 	};
 	// The body locations of the items that broke since the previous sweep, in
 	// the order they were reported.
@@ -134,5 +199,22 @@ private:
 	std::vector<uint32_t> worn_;
 	bool known_ = false;
 };
+
+// The heartbeat under a share of life (a tester, 2026-10-15): on once life falls to
+// the threshold, off only once it climbs ReleasePoints over it, so a regeneration
+// tick at the line does not start it again. Unknown or no life (dead) is off.
+class LowLife {
+public:
+	static constexpr int ReleasePoints = 5;
+	// True while the heartbeat should sound; `started` is set on the update that turns it on.
+	bool Update(int lifePercent, int threshold, bool* started = nullptr);
+	void Reset() { on_ = false; }
+private:
+	bool on_ = false;
+};
+// The thresholds the settings list offers, percent of life; it starts at a quarter.
+inline constexpr int LowLifeThresholds[] = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70};
+inline constexpr int DefaultLowLifeLevel = 4;
+static_assert(LowLifeThresholds[DefaultLowLifeLevel] == 25);
 
 }

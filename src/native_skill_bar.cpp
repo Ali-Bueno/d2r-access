@@ -76,10 +76,10 @@ bool Initialize(const D2RL::PluginContext* context) {
 	return true;
 }
 
-std::optional<std::array<Binding, Buttons>> AlternateBar() {
+std::optional<std::array<Binding, Buttons>> AlternateBar(bool main) {
 	std::array<int, Buttons> skills{};
 	uintptr_t player = 0, tables = 0;
-	if (!g_base || !ReadSkills(skills) || !NativeGroundItems::RuntimeRoots(player, tables)) return std::nullopt;
+	if (!g_base || !ReadSkills(skills, main ? 0 : AlternateFirst) || !NativeGroundItems::RuntimeRoots(player, tables)) return std::nullopt;
 	std::array<Binding, Buttons> bar;
 	for (int i = 0; i < Buttons; ++i) {
 		bar[i].skill = skills[i];

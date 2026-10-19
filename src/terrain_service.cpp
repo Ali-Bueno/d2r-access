@@ -78,6 +78,8 @@ ExploredStore::Store& g_store = g_storeOwner.Get();
 std::map<uint32_t, ExploredStore::Key> g_keys;
 // Fixed places found per map; stored ones join when the level's record loads.
 std::map<ExploredStore::Key, std::vector<ExploredStore::Place>> g_places;
+// Quest objects seen gone this run: the archive only adds places, so a level loaded again keeps them out.
+std::map<ExploredStore::Key, std::vector<uint64_t>> g_gonePlaces;
 uint32_t g_loadedLevel = 0;
 uint64_t g_nextLoadTry = 0; // the radar asks every poll; the layout is read at most this often
 uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
@@ -111,6 +113,8 @@ void LoadLevel(const D2RL::PluginContext* context, const NativeLevelExits::Layou
 	auto& places = g_places[key];
 	ExploredStore::MergePlaces(stored, places); // found this game is newer than the disk
 	places = std::move(stored);
+	if (const auto gone = g_gonePlaces.find(key); gone != g_gonePlaces.end())
+		std::erase_if(places, [&](const auto& place) { return std::ranges::find(gone->second, place.identity) != gone->second.end(); });
 	g_loadedLevel = native.level;
 	AsyncLog::InfoF(context, "[terrain] level=%u seed=%08X rooms=%zu %s %s: seen=%zu visited=%zu places=%zu", native.level, seed,
 		native.rooms.size(), loaded ? "loaded" : "new", ExploredStore::ArchiveFile(g_directory).filename().string().c_str(),
@@ -173,6 +177,15 @@ const ExploredStore::Key* LoadedKey(int level, const std::vector<NativeRooms::Ro
 		layout.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight}, false});
 	return ExploredStore::LayoutDigest(layout) == key->second.digest ? &key->second : nullptr;
 }
+// VisitedRooms with g_mutex already held.
+std::vector<NativeRooms::Room> VisitedRoomsLocked(int level, const std::vector<NativeRooms::Room>& rooms) {
+	std::vector<NativeRooms::Room> visited;
+	if (!LoadedKey(level, rooms)) return visited;
+	for (const auto& room : rooms)
+		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
+	return visited;
+}
+std::vector<EntityRadar::Entity> KnownPlacesLocked(int level, const std::vector<NativeRooms::Room>& rooms);
 // One spoken summary of the level around the player.
 void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 	const auto& strings = Strings::Current();
@@ -184,10 +197,20 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 		AsyncLog::InfoF(context, "[terrain] layout unavailable level=%d", state.level);
 		return;
 	}
+	std::vector<NativeRooms::Room> rooms;
+	rooms.reserve(native.rooms.size());
+	for (const auto& room : native.rooms)
+		rooms.push_back({room.rect.x, room.rect.y, room.rect.width, room.rect.height, NativeRooms::Identity(room.rect.x, room.rect.y)});
+	// Explored as the tracker and the beacon count it: stood in or drawn on the automap.
+	// Not every room the game streamed: outdoors that is most of the level, and the
+	// overview said 100 percent with a dozen rooms still blank (a tester, 2026-10-17).
+	const auto charted = NativeAutomap::RevealedRooms(rooms);
+	const auto explored = NavigationPolicy::Explored(VisitedRoomsLocked(state.level, rooms), charted ? &*charted : nullptr, rooms, world.player);
 	TerrainOverview::Layout layout;
 	layout.rooms.reserve(native.rooms.size());
-	for (const auto& room : native.rooms)
-		layout.rooms.push_back({room.rect, g_explored.Explored(native.level, room.rect.x, room.rect.y)});
+	for (const auto& room : rooms)
+		layout.rooms.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight},
+			std::any_of(explored.begin(), explored.end(), [&](const NativeRooms::Room& known) { return known.id == room.id; })});
 	for (const auto& neighbour : native.neighbours)
 		layout.neighbours.push_back({neighbour.rect, LevelName(neighbour.level, strings)});
 	const auto summary = TerrainOverview::Describe(layout, world.player);
@@ -198,7 +221,11 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 		return;
 	}
 	CheckBounds(context, native, summary.box);
-	const auto text = TerrainOverview::Speak(summary, LevelName(native.level, strings), g_scan, strings);
+	// The places the scanner has logged here, as the automap shows them (a tester, 2026-10-14).
+	std::vector<TerrainOverview::Landmark> landmarks;
+	for (const auto& place : KnownPlacesLocked(state.level, rooms))
+		landmarks.push_back({place.name, {place.position.x - world.player.x, place.position.y - world.player.y}});
+	const auto text = TerrainOverview::Speak(summary, LevelName(native.level, strings), g_scan, strings, landmarks);
 	ScreenReader::Speak(text, true);
 	std::string legs;
 	for (const auto& leg : summary.legs) {
@@ -207,10 +234,10 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			leg.hasUnexplored ? leg.unexplored : 0.0, leg.border.empty() ? "-" : leg.border.c_str());
 		legs += entry;
 	}
-	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu percent=%d%s -> %s",
+	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu (charted %zu, streamed %zu) percent=%d landmarks=%zu%s -> %s",
 		world.player.x, world.player.y, native.level, summary.box.x, summary.box.y,
-		summary.box.width, summary.box.height, summary.place, g_explored.Count(native.level),
-		native.rooms.size(), summary.percent, legs.c_str(), text.c_str());
+		summary.box.width, summary.box.height, summary.place, explored.size(), native.rooms.size(),
+		charted ? charted->size() : 0, g_explored.Count(native.level), summary.percent, landmarks.size(), legs.c_str(), text.c_str());
 }
 // The rooms never streamed, as subtile rectangles, for the frontier.
 std::vector<NativeRooms::Bounds> Unseen(const NativeLevelExits::Layout& native) {
@@ -396,15 +423,16 @@ bool Visited(int level, int tileX, int tileY) {
 
 std::vector<NativeRooms::Room> VisitedRooms(int level, const std::vector<NativeRooms::Room>& rooms) {
 	std::lock_guard lock(g_mutex);
-	std::vector<NativeRooms::Room> visited;
-	if (!LoadedKey(level, rooms)) return visited;
-	for (const auto& room : rooms)
-		if (g_explored.Visited(static_cast<uint32_t>(level), room.tileX, room.tileY)) visited.push_back(room);
-	return visited;
+	return VisitedRoomsLocked(level, rooms);
 }
 
 std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<NativeRooms::Room>& rooms) {
 	std::lock_guard lock(g_mutex);
+	return KnownPlacesLocked(level, rooms);
+}
+namespace {
+// KnownPlaces with g_mutex already held (the overview runs under it).
+std::vector<EntityRadar::Entity> KnownPlacesLocked(int level, const std::vector<NativeRooms::Room>& rooms) {
 	std::vector<EntityRadar::Entity> result;
 	const auto* key = LoadedKey(level, rooms);
 	const auto places = key ? g_places.find(*key) : g_places.end();
@@ -412,7 +440,10 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 	for (const auto& place : places->second) {
 		EntityRadar::Entity entity{place.id, static_cast<EntityRadar::Kind>(place.kind), {place.x, place.y}, place.name,
 			place.identity, false, static_cast<EntityRadar::Category>(place.category), place.destination};
-		if (!MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
+		// A quest object found in an earlier game is listed again, as the automap still shows
+		// it (a tester, 2026-10-14); it was kept only to be announced once before.
+		entity.questObject = entity.kind == EntityRadar::Kind::Object && entity.category == EntityRadar::Category::Quest;
+		if (!entity.questObject && !MapSurvey::Fixed(entity)) continue; // written by a build that kept something else
 		// The name in the language being played, whichever one it was found in.
 		entity.border = place.areaBorder ? EntityRadar::Entity::Border::Crossing : EntityRadar::Entity::Border::None;
 		entity.nameKey = place.nameKey;
@@ -422,6 +453,7 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 		result.push_back(std::move(entity));
 	}
 	return result;
+}
 }
 
 std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
@@ -486,6 +518,24 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 	}
 	for (const auto& phrase : finds) ScreenReader::Speak(phrase, false);
 	if (!finds.empty()) ItemAudio::PlayDiscovery();
+}
+
+void ForgetGoneQuestPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& present,
+	const std::function<bool(Radar::Position)>& covered) {
+	std::lock_guard lock(g_mutex);
+	const auto* key = LoadedKey(level, rooms);
+	const auto places = key ? g_places.find(*key) : g_places.end();
+	if (places == g_places.end()) return;
+	std::erase_if(places->second, [&](const ExploredStore::Place& place) {
+		if (static_cast<EntityRadar::Kind>(place.kind) != EntityRadar::Kind::Object
+			|| static_cast<EntityRadar::Category>(place.category) != EntityRadar::Category::Quest || !covered({place.x, place.y})) return false;
+		if (std::any_of(present.begin(), present.end(), [&](const EntityRadar::Entity& entity) {
+				return entity.kind == EntityRadar::Kind::Object && EntityRadar::QuestSource(entity)
+					&& NativeLevelExits::Identity(entity.position) == place.identity; })) return false;
+		g_gonePlaces[*key].push_back(place.identity);
+		AsyncLog::InfoF(g_context, "[terrain] quest place gone level=%d at=%.0f,%.0f name=%s", level, place.x, place.y, place.name.c_str());
+		return true;
+	});
 }
 
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player) {

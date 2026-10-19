@@ -163,6 +163,49 @@ stash loop pauses while the game's stash layout is open (`BankOriginalLayout`,
 `BankExpansionLayout` in `PanelState::OpenPanels`); the log says
 `[items] stash open: its loop paused` and `closed … resumed`.
 
+2026-10-12: racks never looped. `IsContainer` took only `ContainerOperateFns`, which lacked 19
+(armor stands), 20 (weapon racks) and 26 (bookshelves), though `gen_lootables.py` lists them.
+They are added (`ContainerRowCount` 175 of 587, `tools/objects_containers.py`); armor stands and
+bookshelves loop the chest cue.
+
+## Shrine and well loops (2026-10-12)
+
+A tester noticed shrines and wells only through the scanner. Every one the player can still use
+(objects.txt SubClass shrine or well; a used one is no longer selectable) loops while in reach:
+`exploration/shrine.ogg` and `exploration/well.ogg`, the two nearest at most (`MaxShrineVoices`),
+behind `shrine-sounds` (Ctrl+S, on). 2026-10-13, the tester: the shrine sounded like a monster.
+The shrine now loops the Diablo IV healing well's activation (padded to 1.8 s), the old well
+sound; the well loops the game's own drink sound (`object_well_hd`, `object_fountain_hd.flac`
+from CASC, +5 dB through a 0.9 limiter, padded to 1.8 s).
+The user may swap either file; a water ambience was too sparse to pass the loudness test.
+
+## Gold and potions from the Last Epoch mod (2026-10-12)
+
+The tester preferred the Last Epoch mod's coins and glass. `last-epoch-sounds` (Ctrl+S, off)
+swaps them in: its gold loop and the game's four potion pickups, one per kind, from the
+ItemTypes ancestry (`rpot` before `hpot`/`mpot`, its parents; other potions and elixirs share the
+fourth). Sources: `LeAccess/Sounds/Loops/gold.wav` and `LastEpoch_sonidos/candidatos/04 pociones`;
+the gold and the other potion are short clinks boosted 18 dB through the limiter.
+
+## Low-quality names (2026-10-12)
+
+A tester: "low quality" hid the game's four grades. A quality-1 item on the ground is now named
+as the game names it: its LowQualityItems row is the int32 at ItemData+0x34 (ITEMS_GetFileIndex
+0x36CE70, the field unique and set rows share), the row's prefix string id at +0x20 of a 0x22
+row at bank +0x1688 (count +0x1690, getter 0x3141C0), composed with the game's own
+`LowqualityFormat` through `MonsterPlate::Compose` ("Crude Short Sword"; "Espada corta basta"
+where the format puts the noun first). Rows in vanilla: Crude, Cracked, Damaged, Low Quality.
+Found offline in the name builder 0x1E1D80 (the quality switch, then 0x36CE70 and 0x3141C0);
+both functions are fingerprinted in `LowQualityChecks`, matched against the live dump, and a
+mismatch only keeps the old "low quality" word. Inventory headlines already read the game's own
+tooltip name; the fallback names of arrivals and held items still use the word. Unheard live.
+
+## Gold amounts (2026-10-12)
+
+A pile is named without its amount on the way past; the amount is said once it is picked up
+("Picked up 37 gold", `GroundItems::Purse`), from a rise of the gold stat during play only, so a
+sale, a withdrawal or a reward in a menu says nothing.
+
 ## Door loops
 
 Requested 2026-09-25: a door that is still shut loops a cue by what it is made
@@ -193,6 +236,12 @@ rather than read at runtime.
 | `object_door_metal_open` | DoorGate* (the Act 1 barred gates), DesertIronGrateDoor*, DesertWoodenGrateDoor* | `metal door` |
 | `object_door_stone` | TombDoor*, TombDoor*2 | `stone door` |
 | `object_door_slime` | SlimeDoor1/2 | `slime door` |
+
+`stone door.ogg` was re-cut 2026-10-18 (a tester: the Act II tomb doors were lost under the music,
+nearly all its energy sat under 300 Hz): the same recording through ffmpeg
+`volume=10dB,asoftclip=type=tanh,treble=g=8:f=2500,volume=-6dB`, rendered from three loop copies and
+trimmed to the middle one so the seam stays clean. After peak normalisation it sits about 4.5 LU
+above the old cut, just over the metal gate, with its 1.5 kHz band 8 LU brighter.
 
 Other objects with door-type sounds but `IsDoor` = 0 (Trapdoor, HiddenDoor2,
 Duriel's door, the Arcane and Hell gates, the Act 5 pen door, the Ancients'
@@ -254,9 +303,9 @@ lifecycle suspension use the existing shared gates.
 The quest range is 45 collision subtiles in resident nearby rooms. No distant
 presets or undiscovered map positions are requested. Classification identifies
 quest-related objects, not whether the player's current quest needs them: no
-player quest flags are inferred. Other quest mechanisms (the Hellforge and the
-Ancients' altar) are outside this catalog; some stay selectable after use and
-need separate verified state handling.
+player quest flags are inferred. Quest mechanisms that hand over no item (the Orb, the
+seals, the Hellforge, the Ancients' altar and others) use the same cue in their
+quest-step modes: see [quest objects](quest-objects.md).
 
 **Quest tomes** (requested 2026-09-25): the Moldy Tome (TowerTome, OperateFn 6)
 and Horazon's journal (ArcaneTome, OperateFn 42), the books the automap draws
@@ -368,3 +417,36 @@ User-led check: approach a potion, scroll, gold and equipment; stop beside each;
 walk away and return; collect one; open dialogue and inventory; leave/rejoin.
 Use `[items]` and `[item-audio]` in the latest plugin log. No per-frame audio
 logging or computer-control inputs are needed for this listening check.
+
+## The game's own drop sounds (2026-10-13)
+
+The tester suggested, and the user asked for, a set for players who do not want the Diablo IV
+sounds: every item loops the sound the game plays when it lands. It is one of three item sound
+sets (`item-sound-set`, Ctrl+S Sounds): Diablo IV (the default), Last Epoch gold and potions,
+Diablo II drops; a settings file with `last-epoch-sounds=1` keeps that set. The dropsound column of weapons.txt, armor.txt and misc.txt names a sounds.txt row whose
+Redirect is the HD file; `tools/gen_drop_sounds.py` maps the 692 item codes to 45 sounds
+(`src/generated/drop_sounds.h`, `cmake/DropSounds.cmake`) and converts the HD files from CASC
+into `sounds/item loop sounds/d2 drops/`, embedded with +9 dB through the 0.9 limiter.
+
+The drop sound only replaces what plays (`Item::play`): the item's category still sets its
+reach, the quest items' longer reach and priority, and the speech order, and overrides the Last
+Epoch gold and potions. A drop sound repeats once a second at 100 percent; `drop-sound-speed`
+(50-300 percent) shortens or lengthens the pass, cutting a long sound with a 10 ms fade
+(`ItemWave::Pass`); a change restarts the playing loops. Quality is no longer heard in the
+sound with this set: the speech names it. The glossary has a group of its own for them (the
+user, 2026-10-13), each named after one item that makes it (`DropSoundExamples`: the first item
+of the commonest non-quest type), in the game's own words for the player's language.
+
+## Loop speeds (2026-10-16)
+
+The user asked for the pace of the loops that pulse, beside their volume. Measured on the built
+WAVs (`ffmpeg silencedetect`), the steady ones are long textures (gold, equipment, the Diablo IV
+potions, portal, zone transition, slime door: 7-15 s with no silence); the rest are one short
+sound per pass (0.2-1.8 s). `LoopPace` groups those by kind -- doors, scrolls/runes/gems,
+containers (chest, corpse, weapon rack, stash), shrines and wells, quest items, unexplored rooms,
+the Last Epoch set -- each 50-300 percent of the recording's own length, through the same
+`ItemWave::Pass` as the drop sounds (cut with a 10 ms fade, or padded with silence); 100 percent
+plays the recording untouched, and a change restarts the playing loops. The **Loop speeds**
+group of the settings list holds them, with `drop-sound-speed`, `wall-bump-repeat` (now from
+250 ms: a repeat keeps its own spacing, a new contact still waits the radar's cue interval) and
+`corpse-interval`. Keys unchanged where a setting moved.

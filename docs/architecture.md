@@ -1,5 +1,11 @@
 # Game and plugin architecture
 
+For the current complete feature/source map, use the
+[feature index](feature-index.md). Shared input/settings/localization and output
+ownership are detailed in [runtime services](runtime-services.md). The
+[2026-10-19 integration record](upstream-2026-10-19.md) distinguishes retained
+keyboard behavior from upstream additions and pending runtime confirmation.
+
 Source survey, 2026-10-03, local `keyboard-local` checkout. This is a map of the
 current implementation and the game structures it reads. Feature documents
 retain their detailed evidence and validation history. Start with the
@@ -192,7 +198,9 @@ The local navigation grid is bounded by `Navigation::MaxRadius` (150 subtiles).
 `LevelRoute::Memory` learns streamed ground inside logical room bounds; unseen,
 open, blocked and door cells remain distinct. `Reach` can pass a door when asking
 whether a destination can eventually be reached; walking plans still treat a
-closed door as blocking. Pad links participate in reachability and planning;
+closed door as blocking, while the beacon's guidance plans past one and leads
+up to it (`KeyboardService::RememberedMap` shares the map; see
+[walkable guidance](beacon.md#walkable-guidance)). Pad links participate in reachability and planning;
 the player stops at a pad and uses D to take it. Ctrl+U's optional scanner filter
 and the mandatory checks before walking use the same reachability policy.
 See [keyboard routing and pads](keyboard-play.md).

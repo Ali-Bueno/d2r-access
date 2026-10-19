@@ -22,6 +22,7 @@ struct Node {
 	uintptr_t contentId = 0; // optional native notification delivery, not a widget address
 	std::optional<bool> toggled;
 	std::string hint; // optional native tooltip, separate from a value control's caption
+	std::string state; // what the native layer knows of the control beyond the tree: a waypoint row's "undiscovered"
 };
 struct Snapshot {
 	uintptr_t panel = 0, focus = 0;
@@ -43,8 +44,12 @@ struct Readout {
 struct Announcement {
 	std::string text;
 	bool interrupt = true;
+	bool sameFocus = false; // only the content under an unchanged focus changed
 };
 
+// U+E07E opens the game's inline font command; one index character, '0'..'V', follows it.
+inline constexpr unsigned FontCommand = 0xE07E;
+constexpr bool FontIndex(char c) { return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u; }
 std::string Clean(std::string_view text);
 Readout Describe(const Snapshot& snapshot);
 

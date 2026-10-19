@@ -28,11 +28,15 @@ std::string ItemBaseName(uintptr_t unit);
 uint32_t ItemTableCode(uintptr_t unit);
 // The same code for an item class id, as the loader's item records give it; 0 when unreadable.
 uint32_t ClassCode(uint32_t classId);
-struct UnitLabel { std::string baseName; uint32_t quality = 0; uint32_t id = 0; };
+// The inverse: the class id of an item table code, found by scanning the table once.
+std::optional<uint32_t> ClassOfCode(uint32_t code);
+struct UnitLabel { std::string baseName; uint32_t quality = 0; uint32_t id = 0; uint32_t flags = 0; };
 // Table name of an item known by its class row (the SDK's ItemInfo::classId),
 // with the quality it was given.
 UnitLabel ClassLabel(uint32_t classId, uint32_t quality);
 bool SocketFiller(uint32_t classId);
+// Whether an item class descends from an ItemTypes.txt code ("gem ", "rune"), parents included.
+bool ClassIsType(uint32_t classId, uint32_t typeCode);
 struct Weapon { bool missile = false; int rangeAdder = 0; };
 std::optional<Weapon> WeaponOf(uint32_t classId);
 // The same for an item unit, with the quality its unit data holds.

@@ -1,5 +1,6 @@
 #include "character_stats.h"
 #include "localization.h"
+#include "mercenary_stats.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 
@@ -173,6 +174,10 @@ std::vector<std::string> Lines(uintptr_t panel) {
 	const auto panelName = NativeWidgets::ReadName(panel);
 	if (auto level = panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel); !level.empty())
 		lines.push_back(std::move(level));
+	if (panelName == HirelingPanel) {
+		if (auto experience = MercenaryStats::Experience(panel); !experience.empty()) lines.push_back(std::move(experience));
+		for (auto& skill : MercenaryStats::SkillLines(panel)) lines.push_back(std::move(skill));
+	}
 	// Snapshot walks the visible tree in declaration order and omits hidden
 	// subtrees, so a row the game is not showing never reaches the list.
 	const auto snapshot = NativeUi::Snapshot(panel, 0);
@@ -202,6 +207,22 @@ std::vector<std::string> Lines(uintptr_t panel) {
 std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
 std::string Points(uintptr_t panel) { return ChildText(panel, "CombinedPointsInfo"); }
+std::string SkillChoices(uintptr_t panel) { return ChildText(panel, "SkillCounter"); }
+
+Attribute AttributeOf(uintptr_t panel, std::string_view button) {
+	constexpr std::string_view ButtonSuffix = "PointButton"; // the layouts' <stat>PointButton
+	if (!button.ends_with(ButtonSuffix)) return {};
+	const std::string stem(button.substr(0, button.size() - ButtonSuffix.size()));
+	return {ChildText(panel, stem + std::string(TitleSuffix)), ChildText(panel, stem + "Stat")};
+}
+
+bool HasPoints(std::string_view points) {
+	const auto first = points.find_first_of("0123456789");
+	if (first == std::string_view::npos) return false;
+	const auto last = points.find_first_not_of("0123456789", first);
+	const auto digits = points.substr(first, last == std::string_view::npos ? last : last - first);
+	return digits.find_first_not_of('0') != std::string_view::npos;
+}
 
 void Reset() {}
 

@@ -33,6 +33,13 @@ unsigned long long LastSpoken();
 // a switch put back at start as it was saved says its own change, which is
 // not news to the player.
 void Swallow(std::string_view text, unsigned long long untilMs);
+// Speaks `text` queued and keeps it from being cut off: until `untilMs`
+// (GetTickCount64) an interrupting phrase queues behind it and Stop waits. For
+// news that comes with a change the game makes in the same moment (the Cairn
+// scroll's order, as the game moves the inventory cursor beside it).
+void Lead(std::string_view text, unsigned long long untilMs);
+// As Lead, but cutting in on what is being said: for news that must be heard at once.
+void Urge(std::string_view text, unsigned long long untilMs);
 void Stop();
 // Every phrase given to Speak is logged through this context from now on, and
 // every one Swallow held back, so a test's log says what the player heard.

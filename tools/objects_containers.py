@@ -24,6 +24,7 @@ OFFSETS = {
     "Name": 0x42,
     "Selectable0": 0x85,  # ... Selectable7 at 0x8C
     "HasCollision0": 0xE0,  # ... HasCollision7 at 0xE7
+    "IsAttackable0": 0xE8,  # the client copies it to flag 0x4 of unit+0x124 (0x1401CB528)
     "IsDoor": 0xFA,
     "Lockable": 0x12F,
     "PopulateFn": 0x15D,
@@ -33,9 +34,10 @@ OFFSETS = {
 DWORD_OFFSETS = {"SizeX": 0x90, "SizeY": 0x94}
 # OperateFn values whose rows are the game's containers. Read off objects.txt,
 # not invented: 1 caskets/sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7
-# barrels, 14 crates/coffins/corpses/logs, 30 exploding chests, 39-41 and 57-59
-# the act-specific special chests, 68 the evil urn.
-CONTAINER_OPERATE = {1, 3, 4, 5, 7, 14, 30, 39, 40, 41, 57, 58, 59, 68}
+# barrels, 14 crates/coffins/corpses/logs, 19 armor stands, 20 weapon racks,
+# 26 bookshelves, 30 exploding chests, 39-41 and 57-59 the act-specific special
+# chests, 68 the evil urn.
+CONTAINER_OPERATE = {1, 3, 4, 5, 7, 14, 19, 20, 26, 30, 39, 40, 41, 57, 58, 59, 68}
 
 
 def rows_from_txt(path):

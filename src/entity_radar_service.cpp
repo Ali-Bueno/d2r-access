@@ -2,18 +2,21 @@
 #include "entity_radar.h"
 #include "async_log.h"
 #include "native_entities.h"
+#include "native_hover.h"
 #include "native_world.h"
 #include "npc_proximity.h"
 #include "radar_config.h"
-#include "radar_trace.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "entity_cue_service.h"
 #include "speech_strings.h"
 
 #include <windows.h>
 #include <atomic>
 #include <charconv>
+#include <cmath>
 #include <mutex>
+#include <string>
 #include <initializer_list>
 #include <string_view>
 
@@ -105,20 +108,46 @@ void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint6
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world) || !NativeEntities::Read(state.player, state.session, entities)) return;
 	const auto announcement = g_npcTracker.Update(world, entities, g_npcSettings);
-	if (!announcement) return;
+	// A "!" appearing over an NPC already named rings here too; the cue service reads the
+	// same tracker, so each mark rings once whoever sees it first (docs/npc-proximity.md).
+	const auto raised = EntityCueService::RaisedAlerts(world, entities);
+	if (!announcement) {
+		if (!raised.empty()) EntityCueService::RingAlert(raised.front());
+		return;
+	}
 	const auto text = NpcProximity::Describe(*announcement, g_settings, Strings::Current());
-	AsyncLog::InfoF(context, "[npc] position=%.0f,%.0f id=%u at=%.0f,%.0f distance=%.1f direction=%s text=%s", world.player.x, world.player.y,
-		announcement->entity.id, announcement->entity.position.x, announcement->entity.position.y, announcement->distance,
-		RadarTrace::DirectionName(static_cast<size_t>(announcement->direction)), text.c_str());
+	AsyncLog::InfoF(context, "[npc] position=%.0f,%.0f id=%u at=%.0f,%.0f distance=%.1f text=%s", world.player.x, world.player.y,
+		announcement->entity.id, announcement->entity.position.x, announcement->entity.position.y, announcement->distance, text.c_str());
 	ScreenReader::Speak(text, false);
+	if (announcement->entity.npcAlert) EntityCueService::PlayNpcAlert();
 }
 }
 
-TargetSight::Sight LabelSight(std::string_view label) {
-	if (!g_sightSettings.enabled || !g_units || label.empty()) return TargetSight::Sight::Unknown;
+TargetSight::Sight LabelSight(std::string_view label) { return LabelTarget(label).sight; }
+
+std::string NearestNpc() {
+	if (!g_units) return {};
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
-	if (!state.ready) return TargetSight::Sight::Unknown;
+	Radar::World world;
+	std::vector<EntityRadar::Entity> entities;
+	if (!state.ready || !NativeWorld::Read(state.player, state.session, state.level, world)
+		|| !NativeEntities::Read(state.player, state.session, entities)) return {};
+	const EntityRadar::Entity* nearest = nullptr;
+	double best = 0;
+	for (const auto& entity : entities) {
+		if (entity.kind != EntityRadar::Kind::Npc || entity.name.empty()) continue;
+		const double distance = std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y);
+		if (!nearest || distance < best) { nearest = &entity; best = distance; }
+	}
+	return nearest ? nearest->name : std::string{};
+}
+
+TargetSight::Bearer LabelTarget(std::string_view label) {
+	if (!g_sightSettings.enabled || !g_units || label.empty()) return {};
+	Lifecycle state;
+	{ std::lock_guard lock(g_mutex); state = g_state; }
+	if (!state.ready) return {};
 	const auto now = GetTickCount64();
 	// A failed read is cached like a good one: without that, `valid` being false
 	// bypassed the interval and every UI poll re-copied the collision rooms.
@@ -129,8 +158,10 @@ TargetSight::Sight LabelSight(std::string_view label) {
 		g_sight.valid = NativeWorld::Read(state.player, state.session, state.level, g_sight.world)
 			&& NativeEntities::Read(state.player, state.session, g_sight.entities);
 	}
-	if (!g_sight.valid) return TargetSight::Sight::Unknown;
-	return TargetSight::Of(g_sight.world, g_sight.entities, label, g_sightSettings);
+	if (!g_sight.valid) return {};
+	std::optional<TargetSight::Aim> aim;
+	if (const auto hovered = NativeHover::Read()) aim = TargetSight::Aim{static_cast<uint8_t>(hovered->type), hovered->id};
+	return TargetSight::Find(g_sight.world, g_sight.entities, label, g_sightSettings, aim);
 }
 
 bool Register(const D2RL::PluginContext* context) {

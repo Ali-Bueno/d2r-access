@@ -4,6 +4,7 @@
 #include "native_rooms.h"
 #include "navigation_grid.h"
 #include "radar.h"
+#include "town_npcs.h"
 
 #include <cstdint>
 #include <map>
@@ -35,7 +36,7 @@ struct Landmark {
 	EntityRadar::Entity entity;
 	int                 steps        = -1; // -1 when no walkable route is known
 	double              straightLine = 0;  // subtiles; ordering fallback and reporting
-	int                 direction    = 0; // Radar::ScreenSector, up and diagonals included
+	Radar::Position     offset;           // from the player, for its spoken direction
 	bool                reachable    = false;
 };
 
@@ -62,6 +63,8 @@ public:
 		const Navigation::Grid& grid, const Settings& settings = {},
 		const std::vector<EntityRadar::Entity>* present = nullptr);
 
+	// Enemies the game now holds dead, wherever they lay.
+	void ForgetEnemies(const std::vector<uint32_t>& dead);
 	void Clear();
 	// A return visit retains fixed places; enemies and loot are transient.
 	void KeepLandmarks();
@@ -90,6 +93,8 @@ public:
 		const Navigation::Grid& grid, bool exploration, const Settings& settings = {},
 		const std::vector<EntityRadar::Entity>* present = nullptr);
 	const std::vector<EntityRadar::Entity>& Entities() const;
+	// Enemies the game now holds dead, on every level kept.
+	void ForgetEnemies(const std::vector<uint32_t>& dead);
 	void Clear();
 private:
 	int m_level = 0;
@@ -100,12 +105,23 @@ private:
 // listed from anywhere in its town for the rest of the game.
 class TownNpcSightings {
 public:
+	// Apply only same-snapshot owned evidence. A partial pass cannot add an
+	// absence; actual reappearing units immediately restore their identities.
+	void Reconcile(const TownNpcs::Presence& presence, const std::vector<EntityRadar::Entity>& current);
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
 	// Remembered NPCs on this level, refreshed by currently loaded units.
 	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs);
-	void Clear() { m_seen.clear(); }
+	// What the scanner lists: all of `townNpcs` when `everywhere`, else the seen ones.
+	std::vector<EntityRadar::Entity> Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere);
+	void Clear() { m_seen.clear(); m_absent.clear(); m_session = 0; m_player = 0; }
 private:
+	void Live(int level, const std::vector<EntityRadar::Entity>& current);
+	bool Absent(int level, uint64_t identity) const;
 	std::map<int, std::map<uint64_t, EntityRadar::Entity>> m_seen;
+	// bool remembers whether this identity had been discovered before pruning.
+	std::map<int, std::map<uint64_t, bool>> m_absent;
+	uint64_t m_session = 0;
+	uint32_t m_player = 0;
 };
 
 // Distance and direction for everything known, nearest first: walking steps

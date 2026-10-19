@@ -4,6 +4,7 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
+#include "tooltip_text.h"
 #include "ui_text.h"
 
 #include <cstdio>
@@ -86,9 +87,20 @@ std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
 std::string LevelAndType(uintptr_t panel) { return ChildText(panel, "HireTypeText"); }
 
+namespace { int (*g_experienceSource)() = nullptr; }
+
+void SetExperienceSource(int (*source)()) { g_experienceSource = source; }
+
 std::string Experience(uintptr_t panel) {
 	const auto current = ChildText(panel, "CurrentXP");
 	const auto next = ChildText(panel, "NextLevelXP");
+	if (current.empty() && g_experienceSource) {
+		const int percent = g_experienceSource();
+		if (percent < 0) return {};
+		char phrase[100]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().experiencePercent, percent);
+		return phrase;
+	}
 	if (current.empty() || next.empty()) return current;
 	char phrase[100]{};
 	std::snprintf(phrase, sizeof(phrase), Strings::Current().currentOfMaximum, current.c_str(), next.c_str());
@@ -121,6 +133,19 @@ std::vector<Skill> Skills(uintptr_t panel) {
 		skills.push_back(SkillOf(widget));
 	}
 	return skills;
+}
+
+std::vector<std::string> SkillLines(uintptr_t panel) {
+	std::vector<std::string> lines;
+	for (const auto& skill : Skills(panel)) {
+		std::string line;
+		for (const auto& part : TooltipText::Read(skill.text).lines) {
+			if (!line.empty()) line += line.ends_with('.') || line.ends_with(':') ? " " : ". ";
+			line += part;
+		}
+		if (!line.empty()) lines.push_back(std::move(line));
+	}
+	return lines;
 }
 
 Skill SkillOf(uintptr_t icon) {

@@ -133,6 +133,55 @@ constexpr bool TomeObject(uint32_t classId) {
 		static_cast<uint16_t>(classId));
 }
 
+// Chests that glow (Name chest, a Lit0 light): HoradricCubeChest, HoradricScrollChest, StaffOfKingsChest, ConsolationChest, KhalimHeartChest, KhalimBrainChest, KhalimEyeChest.
+inline constexpr std::array<uint16_t, 7> RadiantObjects{
+	354, 355, 356, 397, 405, 406, 407
+};
+
+constexpr bool RadiantObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(RadiantObjects.begin(), RadiantObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
+// Quest mechanisms, by OperateFn: Gibbet, TaintedSunShrine,
+//     SevenTombsReceptacle, GidBInnDecoy, BeneathTheCityLever,
+//     SoulStoneForge, DiabloSeal1, DiabloSeal2, DiabloSeal3, DiabloSeal4,
+//     DiabloSeal5, CompellingOrb, AncientsAltar, AnyaYetAgain, ColossalAltar.
+inline constexpr std::array<uint16_t, 15> QuestMechanismObjects{
+	26, 149, 152, 252, 367, 376, 392, 393, 394, 395, 396, 404, 546, 558, 573
+};
+
+// The modes in which each is still a quest step, bit n for mode n.
+inline constexpr std::array<uint8_t, 15> QuestMechanismModes{
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
+};
+
+constexpr bool QuestMechanismObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(QuestMechanismObjects.begin(), QuestMechanismObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
+// True while a quest mechanism in this mode is still to be used.
+constexpr bool QuestMechanismStep(uint32_t classId, uint32_t mode) {
+	const auto found = std::lower_bound(QuestMechanismObjects.begin(), QuestMechanismObjects.end(), classId);
+	if (found == QuestMechanismObjects.end() || *found != classId || mode >= 8) return false;
+	return (QuestMechanismModes[found - QuestMechanismObjects.begin()] >> mode) & 1;
+}
+
+// Chaos Sanctuary seals, by OperateFn: DiabloSeal1, DiabloSeal2,
+//     DiabloSeal3, DiabloSeal4, DiabloSeal5.
+inline constexpr std::array<uint16_t, 5> SealObjects{
+	392, 393, 394, 395, 396
+};
+
+// A seal's place in SealObjects counted from one, zero for any other object.
+constexpr uint8_t SealOrdinal(uint32_t classId) {
+	const auto found = std::find(SealObjects.begin(), SealObjects.end(), classId);
+	return found == SealObjects.end() ? 0 : static_cast<uint8_t>(found - SealObjects.begin() + 1);
+}
+
 // True when this object class gives the player loot.
 constexpr bool LootableObject(uint32_t classId) {
 	if (classId > UINT16_MAX) return false;

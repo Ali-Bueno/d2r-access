@@ -1,8 +1,11 @@
 # Weapon swap
 
-A weapon swap (R3 on the controller, W on the keyboard, the inventory's I/II tabs) says the set
-and the weapons now in hand: "Armas 2: Arco largo, Carcaj", or "Armas 1: sin armas" for an empty
-set. It interrupts, because it answers the button just pressed. `[weapon_swap] enabled` in the
+A weapon swap (R3 on the controller, Y on the keyboard, the inventory's I/II tabs) says the
+weapons now in hand: "Long Bow, Quiver: 250 left", or "no weapons" for an empty set. A stack in
+hand (arrows, bolts, throwing weapons) says how many it holds. The set number ("Weapon set 2, …")
+leads with the `weapon-set-number` switch in Ctrl+S, on by default since 2026-10-12 (a tester
+asked for it; the user had left it out on 2026-09-27). It interrupts, because it answers the button
+just pressed. `[weapon_swap] enabled` in the
 settings file sets the default; `access-weapon-swap on|off` toggles it for the run.
 
 Code: `src/native_weapon_set.*` (the flag), `src/weapon_swap.*` (when to speak, the phrase,

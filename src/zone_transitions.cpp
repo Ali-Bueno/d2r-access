@@ -2,6 +2,7 @@
 
 #include "ground_items.h"
 #include "level_exit_layout.h"
+#include "passages.h"
 #include "rooms.h"
 #include "room_graph.h"
 
@@ -21,6 +22,39 @@ bool SameRoom(const NativeLevelExits::TileRect& rect, const Radar::RoomGrid& roo
 	return room.x == rect.x * Scale && room.y == rect.y * Scale
 		&& room.width == rect.width * Scale && room.height == rect.height * Scale;
 }
+
+// Corridor tuning as the place service reads corridors (place_service.cpp).
+constexpr int CorridorWidthSlack = 2, CorridorFollowWidths = 6;
+
+Passages::Ground Ground(const Radar::World& world, int x, int y) {
+	const auto state = world.Cell(x, y, Radar::Layer::Terrain);
+	if (state == Radar::State::Unknown) return Passages::Ground::Unknown;
+	return Radar::Passable(state) || state == Radar::State::Door ? Passages::Ground::Open : Passages::Ground::Blocked;
+}
+}
+
+Radar::Position MouthOf(const Passages::Reading& reading, Radar::Position crossing, Radar::Position player) {
+	if (reading.shape != Passages::Shape::Corridor) return crossing;
+	const auto along = [&](double x, double y) { return reading.alongX ? x : y; };
+	const double at = along(crossing.x, crossing.y);
+	const auto& [low, high] = reading.ends;
+	const bool crossingAtHigh = std::abs(at - along(high.x, high.y)) < std::abs(at - along(low.x, low.y));
+	const auto& mouth = crossingAtHigh ? low : high;
+	if (mouth.end != Passages::End::Opens) return crossing;
+	const double mouthAt = along(mouth.x, mouth.y), here = along(player.x, player.y);
+	// Past the mouth already, inside the corridor, the crossing is the way on.
+	if ((here - mouthAt) * (here - at) < 0) return crossing;
+	return {static_cast<double>(mouth.x), static_cast<double>(mouth.y)};
+}
+
+Radar::Position CorridorMouth(const Radar::World& world, Radar::Position crossing) {
+	const int typical = Rooms::TypicalOpeningWidth(world);
+	if (typical <= 0) return crossing;
+	const Passages::Settings settings{.minWidth = typical / 2, .maxWidth = typical + CorridorWidthSlack, .minLength = typical,
+		.slack = typical / 2, .reach = typical * CorridorFollowWidths};
+	const auto reading = Passages::Classify([&world](int x, int y) { return Ground(world, x, y); },
+		static_cast<int>(crossing.x), static_cast<int>(crossing.y), settings);
+	return MouthOf(reading, crossing, world.player);
 }
 
 std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout, double radius) {
@@ -55,6 +89,7 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 			}
 		}
 	}
+	for (auto& exit : result) exit.position = CorridorMouth(world, exit.position);
 	return result;
 }
 
@@ -112,7 +147,8 @@ bool RestoreCrossing(EntityRadar::Entity& entity, const EntityRadar::Entity& kno
 void MergeKnown(std::vector<EntityRadar::Entity>& entities, const std::vector<EntityRadar::Entity>& known) {
 	for (const auto& place : known) {
 		const auto live = std::find_if(entities.begin(), entities.end(), [&](const auto& entity) {
-			return entity.kind == place.kind && entity.placeId == place.placeId && (entity.placeId || entity.id == place.id);
+			return (entity.kind == place.kind && entity.placeId == place.placeId && (entity.placeId || entity.id == place.id))
+				|| (place.questObject && entity.kind == place.kind && NativeLevelExits::Identity(entity.position) == place.placeId);
 		});
 		if (live == entities.end()) entities.push_back(place);
 		else RestoreCrossing(*live, place);

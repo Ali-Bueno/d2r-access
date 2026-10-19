@@ -2,6 +2,7 @@
 
 #include "radar.h"
 #include <D2RLPlugin/api.h>
+#include <vector>
 
 namespace D2RAccess::NativeWorld {
 struct Diagnostics {
@@ -24,6 +25,9 @@ bool Read(uint32_t playerId, uint64_t session, int level, Radar::World& output, 
 // logical room list is reached through (native_rooms.h). Zero when the player
 // cannot be resolved. Guarded reads only; nothing is retained.
 uintptr_t PlayerRoom() noexcept;
+// The player's room and the rooms reached from it through the near lists, the
+// rooms the client keeps loaded around the player, as Read walks them.
+std::vector<uintptr_t> LoadedRooms();
 // Takes `mask` off the one cell x,y of the client's map with the game's own
 // single-cell reset 0x366130(room, x, y, mask): the routine its stamp remover
 // 0x3636D0 calls for each cell of a footprint and for the marker at its centre.

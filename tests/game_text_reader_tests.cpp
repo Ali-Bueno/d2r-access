@@ -27,6 +27,7 @@ bool npcAudioOnly = false;
 std::string questHelp;
 int questHelpReads = 0;
 bool automaticHints = false;
+uintptr_t fallbackNamed = 0;
 
 auto RegisterListener(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEventListener* listener, D2RL::Lifecycle::ListenerHandle* handle) noexcept -> D2RL::Lifecycle::Result {
 	listeners.push_back(*listener);
@@ -83,13 +84,17 @@ std::vector<uintptr_t> Panels() {
 	for (const auto& panel : panels) result.push_back(panel.panel);
 	return result;
 }
-UiText::Snapshot Snapshot(uintptr_t widget, uintptr_t focused) {
+UiText::Snapshot Snapshot(uintptr_t widget, uintptr_t focused, uintptr_t named) {
 	if (widget == 80 || widget == 81 || widget == 82) ++inventorySnapshots;
 	for (const auto& panel : panels) {
 		if (panel.panel == widget) { auto result = panel; result.focus = focused; return result; }
 		for (const auto& node : panel.nodes) if (node.id == widget) {
+			fallbackNamed = named;
 			auto result = UiText::Snapshot{widget, focused, panel.name, UiText::Surface::Other, {node}};
 			result.nodes[0].parent = -1;
+			// Native state adapters run while Snapshot is built, before the
+			// caller can repair its name. Model that owning-panel requirement.
+			if (panel.name == "WaypointsPanelExpansion" && named != panel.panel) result.nodes[0].state.clear();
 			return result;
 		}
 	}
@@ -114,6 +119,7 @@ std::string Repeat() { return {}; }
 namespace D2RAccess::TabReader {
 std::string Update(std::span<const uintptr_t>, NativeUi::Focus, bool) { return tabChange; }
 void Reset() {}
+std::string Detail() { return {}; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus current) {
@@ -128,6 +134,9 @@ void SpeakAfter(const D2RL::PluginContext*, std::string_view text) {
 }
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
 namespace D2RAccess::NpcSpeech { bool AudioOnly() { return npcAudioOnly; } }
+namespace D2RAccess::Localization {
+std::string Text(std::string_view key) { return key == "merclevelup" ? "I feel much stronger now" : std::string{}; }
+}
 namespace D2RAccess::TradeService {
 void NamePrompt(UiText::Readout&) {}
 std::string FixNotice(std::string notice) { return notice; }
@@ -202,6 +211,18 @@ int main() {
 	panels.push_back(Menu()); focus = {1, 2}; Settle(); speech.clear();
 	panels[0].nodes.back().text = "A new system message";
 	Check(Settle() && speech.size() == 1 && speech.back().text == "A new system message" && !speech.back().interrupt, "notifications coexist with an NPC conversation without stealing focus");
+	speech.clear();
+	panels[0].nodes.back().text = "I feel much stronger now";
+	Check(Settle() && speech.size() == 1 && speech.back().text.find("I feel much stronger now") != std::string::npos
+		&& speech.back().text != "I feel much stronger now", "the mercenary's level-up line says who speaks");
+	speech.clear(); GameTextReader::SetMercenaryBark(false);
+	panels[0].nodes.back().text = "A newer system message"; Settle();
+	panels[0].nodes.back().text = "I feel much stronger now"; speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "I feel much stronger now", "and only the line itself with the switch off");
+	GameTextReader::SetMercenaryBark(true);
+	const auto named = GameTextReader::NameSpeaker("I feel much stronger now");
+	Check(named != "I feel much stronger now" && named.find("I feel much stronger now") != std::string::npos
+		&& GameTextReader::NameSpeaker("Akara") == "Akara", "the same naming serves the world target's tooltip");
 	panels.pop_back(); focus = {};
 	panels[0].nodes.clear(); Settle(); speech.clear();
 	panels.push_back({50, 0, "NotificationPanel", UiText::Surface::Notice, {{51, -1, UiText::Kind::Text, "Prompt", "TextBoxWidget", "An informative notice"}}});
@@ -260,6 +281,17 @@ int main() {
 	const int populatedQuestHelpReads = questHelpReads;
 	panels[0].nodes[2].text.clear(); speech.clear(); Settle();
 	Check(questHelpReads == populatedQuestHelpReads, "an unpopulated quest detail pane does not acquire controller actions");
+	panels = {{100, 101, "WaypointsPanelExpansion", UiText::Surface::Other, {
+		{100, -1, UiText::Kind::Other, "Root", "WaypointsPanel", ""},
+		{101, 0, UiText::Kind::Button, "Act1 Button1", "ButtonWidget", "Cold Plains"},
+	}}};
+	panels[0].nodes[1].state = "Terrorized"; focus = {100, 101}; speech.clear(); fallbackNamed = 0;
+	Check(Settle() && fallbackNamed == focus.panel && speech.size() == 1 && speech.back().text == "Cold Plains. Terrorized",
+		"waypoint button fallback supplies its owning panel before native adapters run and speaks one marker");
+	GameTextReader::RequestRepeat(); speech.clear(); Settle();
+	Check(speech.size() == 1 && speech.back().text == "Cold Plains. Terrorized", "manual repeat retains the waypoint marker");
+	panels[0].nodes[1].state.clear(); speech.clear();
+	Check(Settle() && speech.size() == 1 && speech.back().text == "Cold Plains", "zone rotation refreshes the same row without stale terror speech");
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");
 	GameTextReader::Unregister();

@@ -72,6 +72,25 @@ void SimultaneousAlerts() {
 	Check(!alerts.Update(2, 2).Any(), "a new game takes fresh critical baselines");
 }
 
+void ManaVerbosity() {
+	using Vitals::ManaAlerts;
+	Vitals::Alerts low;
+	(void)low.Update(100, 100, ManaAlerts::Low);
+	Check(low.Update(100, 60, ManaAlerts::Low).mana < 0, "low mana alerts keep quiet above the low mark");
+	Check(low.Update(100, 75, ManaAlerts::Low).mana < 0, "and while mana comes back");
+	Check(low.Update(100, 18, ManaAlerts::Low).mana == 18, "a fall to the low mark is spoken");
+	Check(low.Update(100, 30, ManaAlerts::Low).mana < 0, "a recovery out of it is not");
+	const auto both = low.Update(50, 8, ManaAlerts::Low);
+	Check(both.life == 50 && both.mana == 8 && both.interrupt, "a critical fall still interrupts beside life");
+	Vitals::Alerts off;
+	(void)off.Update(100, 100, ManaAlerts::Off);
+	const auto alert = off.Update(40, 5, ManaAlerts::Off);
+	Check(alert.life == 40 && alert.mana < 0 && !alert.interrupt, "with mana alerts off only life speaks, and empty mana does not interrupt");
+	Vitals::Alerts all;
+	(void)all.Update(100, 100);
+	Check(all.Update(100, 70).mana == 70 && all.Update(100, 100).mana == 100, "all mana alerts keep every step both ways");
+}
+
 void MissingOrbs() {
 	Vitals::OrbAvailability availability;
 	for (int sample = 1; sample < Vitals::MissingConfirmationSamples; ++sample)
@@ -87,18 +106,6 @@ void MissingOrbs() {
 	Check(availability.Update(true, false) == 2, "a recovered life display is no longer marked missing");
 	availability.Reset();
 	Check(availability.Update(false, false) == 0, "session reset clears missing-orb confirmation");
-}
-
-void Conditions() {
-	Vitals::Condition condition;
-	Check(!condition.Update(false), "healthy first sample is only a baseline");
-	Check(!condition.Update(false), "unchanged condition stays silent");
-	Check(condition.Update(true) == true, "entering poison reports once");
-	Check(!condition.Update(std::nullopt), "unreadable player state cannot clear poison");
-	Check(!condition.Update(true), "a restored poison read does not repeat");
-	Check(condition.Update(false) == false, "leaving poison reports once");
-	condition.Reset();
-	Check(!condition.Update(true), "new game takes its own silent condition baseline");
 }
 
 void MercenaryCondition() {
@@ -176,7 +183,92 @@ void Equipping() {
 }
 }
 
+void Gaits() {
+	using Vitals::Gait;
+	Vitals::GaitTracker gait;
+	Check(!gait.Toggle(), "a toggle before any step has nothing to flip");
+	Check(!gait.Observe(Gait::Walk), "the first step is a baseline");
+	Check(!gait.Observe(std::nullopt), "standing still says nothing");
+	Check(!gait.Observe(Gait::Run) && !gait.Observe(Gait::Run), "a new gait waits until it has held");
+	Check(gait.Observe(Gait::Run) == Gait::Run, "starting to run is announced once it holds");
+	Check(!gait.Observe(Gait::Run), "and only once");
+	bool flicker = false;
+	for (int i = 0; i < 10; ++i) flicker |= gait.Observe(i % 2 ? Gait::Run : Gait::Walk).has_value();
+	Check(!flicker, "a character flickering between walk and run at stamina's edge says nothing");
+	Check(gait.Toggle() == Gait::Walk, "the game's toggle predicts walking at once");
+	Check(!gait.Observe(Gait::Walk), "the step that confirms it says nothing more");
+	Check(gait.Toggle() == Gait::Run, "toggling again predicts running");
+	for (int i = 1; i < Vitals::GaitConfirmSamples; ++i) gait.Observe(Gait::Walk);
+	Check(gait.Observe(Gait::Walk) == Gait::Walk, "steps that contradict the prediction correct it");
+	gait.Reset();
+	Check(!gait.Observe(Gait::Run), "a new game starts from a fresh baseline");
+	// Against a wall the game walks on its own: those steps never re-sync the toggle.
+	for (int i = 0; i < 10; ++i) Check(!gait.Observe(Gait::Walk, false), "a forced walk is not the toggle");
+	Check(gait.Toggle() == Gait::Walk, "so the next press still flips what the toggle was");
+	(void)gait.Toggle();
+	Check(!gait.Observe(Gait::Walk) && !gait.Observe(std::nullopt) && !gait.Observe(Gait::Walk) && !gait.Observe(Gait::Walk, false)
+		&& !gait.Observe(Gait::Walk), "a re-sync needs its samples in a row, free of any stop or push");
+}
+
+void Stamina() {
+	Vitals::StaminaMeter stamina;
+	Check(stamina.Update(100) < 0, "the first reading is a baseline");
+	Check(stamina.Update(60) < 0, "above the first step stays silent");
+	Check(stamina.Update(49) == 49, "falling through 50 speaks the real percentage");
+	Check(stamina.Update(45) < 0, "within the same step stays silent");
+	Check(stamina.Update(55) < 0 && stamina.Update(49) < 0, "a small recovery does not re-arm the step");
+	Check(stamina.Update(61) < 0 && stamina.Update(48) == 48, "recovering past the margin re-arms it");
+	Check(stamina.Update(24) == 24 && stamina.Update(9) == 9, "each lower step is announced");
+	Check(stamina.Update(0) == 0, "running out is announced as zero");
+	Check(stamina.Update(-1) < 0 && stamina.Update(0) < 0, "an unreadable sample keeps the state");
+	stamina.Reset();
+	Check(stamina.Update(5) < 0, "a new game starts from a fresh baseline");
+}
+
+void Ammo() {
+	Vitals::AmmoMeter ammo;
+	using Stack = Vitals::AmmoMeter::Stack;
+	Check(!ammo.Update({{1, 1}, {2, 120}}), "the first sight of a stack is a baseline");
+	Check(!ammo.Update({{1, 1}, {2, 51}}), "above the first step stays silent");
+	const auto fifty = ammo.Update({{1, 1}, {2, 50}});
+	Check(fifty && fifty->id == 2 && fifty->quantity == 50, "falling to 50 names the stack and its count");
+	Check(!ammo.Update({{1, 1}, {2, 30}}), "within a step stays silent");
+	Check(ammo.Update({{1, 1}, {2, 5}})->quantity == 5, "a big drop speaks once, at the count");
+	Check(ammo.Update({{1, 1}, {2, 0}})->quantity == 0, "running out is announced");
+	Check(!ammo.Update({{1, 1}, {2, 200}}), "a refill is silent");
+	Check(ammo.Update({{1, 1}, {2, 20}})->quantity == 20, "and re-arms the steps");
+	Check(ammo.Known({{1, 1}, {2, 20}}).size() == 1, "a single sword is not a stack");
+	Check(ammo.Known({{2, 1}}).size() == 1, "a stack down to one is still a stack");
+	Check(!ammo.Update({{3, 4}}), "a stack equipped low is a baseline, not an alarm");
+	ammo.Reset();
+	Check(ammo.Known({{2, 1}}).empty(), "a new game forgets the stacks");
+}
+
+void Experience() {
+	Check(Vitals::ExperiencePercent(0, 0, 500) == 0 && Vitals::ExperiencePercent(250, 0, 500) == 50, "experience fills its level as the bar does");
+	Check(Vitals::ExperiencePercent(1499, 500, 1500) == 99 && Vitals::ExperiencePercent(1500, 500, 1500) == 99, "a full bar is not yet the next level");
+	Check(Vitals::ExperiencePercent(400, 500, 1500) == 0 && Vitals::ExperiencePercent(10, 500, 500) == -1, "below the level or no span says nothing wrong");
+	// hireling.txt ExpPerLvl 100 at level 10: the level began at 100*10*10*11 and ends at 100*11*11*12.
+	Check(Vitals::MercenaryLevelStart(10, 100 * 11 * 11 * 12) == 100 * 10 * 10 * 11, "a mercenary's level start follows from its next threshold");
+	Check(Vitals::MercenaryLevelStart(10, 145201) == 0 && Vitals::MercenaryLevelStart(0, 1200) == 0, "a threshold off the rule is unknown");
+}
+
+void LowLife() {
+	Vitals::LowLife heart;
+	bool started = false;
+	Check(!heart.Update(80, 25, &started) && !started, "plenty of life is quiet");
+	Check(heart.Update(25, 25, &started) && started, "life down to the threshold starts the heartbeat");
+	Check(heart.Update(20, 25, &started) && !started, "it goes on below, started only once");
+	Check(heart.Update(29, 25) && heart.Update(30, 25), "a little over the line keeps it going");
+	Check(!heart.Update(31, 25), "well over the line stops it");
+	Check(heart.Update(10, 25) && !heart.Update(0, 25), "no life, as dead, stops it");
+	Check(!heart.Update(-1, 25), "an unreadable orb is quiet");
+}
+
 int main() {
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); MissingOrbs(); Conditions(); MercenaryCondition(); Breaking(); Equipping();
+	Experience();
+	LowLife();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Equipping();
+	Gaits(); Stamina(); Ammo();
 	Passed();
 }

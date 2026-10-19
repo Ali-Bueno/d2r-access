@@ -3,6 +3,8 @@
 #include "item_audio.h"
 #include "speech_strings.h"
 #include "test_support.h"
+
+#include <algorithm>
 #include <D2RLPlugin/item.h>
 #include <cmath>
 #include <limits>
@@ -107,6 +109,63 @@ void Tracking() {
 Item Make(uint32_t id, Sound sound, std::string name, Point position = {}) {
 	Item result = Make(id, position, std::move(name)); result.sound = sound; return result;
 }
+// Health and mana potions wait for the voices the rest of the loot leaves (a tester, 2026-10-14).
+void PotionsAfterLoot() {
+	Tracker tracker;
+	Snapshot scene{1, {}};
+	for (uint32_t i = 0; i < MaxVoices; ++i) {
+		auto potion = Make(i, Sound::Potion, "Poción", {1.0 + i, 0});
+		potion.common = true;
+		scene.items.push_back(potion);
+	}
+	scene.items.push_back(Make(100, Sound::Rare, "Anillo", {20, 0}));
+	auto batch = tracker.Tick(scene, 1000, false);
+	Check(batch.voices.size() == MaxVoices && std::any_of(batch.voices.begin(), batch.voices.end(), [](const Voice& voice) { return voice.id == 100; }),
+		"a far ring is heard over the nearer potions");
+	GroundItems::SetPotionsLast(false);
+	batch = tracker.Tick(scene, 2000, false);
+	Check(std::none_of(batch.voices.begin(), batch.voices.end(), [](const Voice& voice) { return voice.id == 100; }),
+		"with the switch off the nearest are heard, as before");
+	GroundItems::SetPotionsLast(true);
+	scene.items.pop_back();
+	Check(tracker.Tick(scene, 3000, false).voices.size() == MaxVoices, "with nothing else near, the potions take every voice");
+}
+// The audible loot filter keeps only some drop loops while it is on.
+void LootFiltering() {
+	using GroundItems::EquipmentLoops;
+	namespace Filter = GroundItems::LootFilter;
+	Tracker tracker;
+	Snapshot scene{1, {}};
+	scene.items.push_back(Make(1, Sound::Potion, "Poción", {2, 0}));
+	scene.items.push_back(Make(2, Sound::Gem, "Rubí", {3, 0}));
+	scene.items.push_back(Make(3, Sound::Normal, "Daga", {4, 0}));
+	auto silver = Make(4, Sound::Normal, "Daga", {5, 0});
+	silver.silver = true;
+	scene.items.push_back(silver);
+	scene.items.push_back(Make(5, Sound::Rare, "Anillo", {6, 0}));
+	scene.items.push_back(Make(6, Sound::Gold, "Oro", {7, 0}));
+	const auto heard = [&](uint64_t now) {
+		std::vector<uint32_t> ids;
+		for (const auto& voice : tracker.Tick(scene, now, false).voices) ids.push_back(voice.id);
+		std::sort(ids.begin(), ids.end());
+		return ids;
+	};
+	Check(heard(1000) == std::vector<uint32_t>{1, 2, 3, 4, 5, 6}, "with the filter off every drop loops");
+	Filter::SetActive(true);
+	Filter::SetEquipment(EquipmentLoops::RareUp);
+	Check(heard(2000) == std::vector<uint32_t>{1, 2, 4, 5, 6},
+		"rare and better keeps the rare, the silver white and the rest of the loot, not the plain white");
+	Filter::SetPotions(false);
+	Filter::SetGems(false);
+	Filter::SetEquipment(EquipmentLoops::Off);
+	Check(heard(3000) == std::vector<uint32_t>{6}, "with everything off only the gold loops");
+	Filter::SetActive(false);
+	Filter::SetPotions(true);
+	Filter::SetGems(true);
+	Filter::SetEquipment(EquipmentLoops::All);
+	Check(heard(4000).size() == 6, "off again, every drop loops");
+}
+
 void SpeechPriority() {
 	Tracker tracker;
 	Snapshot scene{1, {}, {Make(1, Sound::Normal, "Gorro", {0.5, 0}), Make(2, Sound::Potion, "Poción", {1, 0}),
@@ -259,8 +318,22 @@ void QuestSources() {
 	Check(total <= MixGainLimit + 0.0001f, "quest sources share the pile gain limit");
 }
 }
+// The game's own drop sounds play in place of an item's category, which keeps its reach.
+void DropSoundSet() {
+	using D2RL::Items::MakeItemCode;
+	const auto gold = DropSoundOf(MakeItemCode("gld")), sword = DropSoundOf(MakeItemCode("ssd")), axe = DropSoundOf(MakeItemCode("hax"));
+	Check(gold && sword && IsDrop(*gold) && IsDrop(*sword) && *gold != *sword, "gold and a sword have drop sounds of their own");
+	Check(axe && SoundFiles[static_cast<size_t>(*axe)].folder == DropFolder, "a drop sound is one of the game's files");
+	Check(!DropSoundOf(MakeItemCode("zzz")) && !DropSoundOf(0), "an unknown code has no drop sound");
+	Check(DropSoundOf(MakeItemCode('g', 'l', 'd', '\0')) == gold, "a short code padded with NUL is found too");
+	auto quest = Make(1, {AudibleRadius * 0.9, 0});
+	quest.sound = Sound::Quest; quest.play = sword;
+	const auto voice = Spatialize(quest, {});
+	Check(voice.sound == *sword && voice.gain > 0, "the drop sound plays where the quest bell would, still at the quest's reach");
+}
+
 int main() {
-	Classification(); Position(); Tracking(); SpeechPriority(); Containers(); Doors(); QuestSources();
+	Classification(); Position(); Tracking(); SpeechPriority(); PotionsAfterLoot(); LootFiltering(); Containers(); Doors(); QuestSources(); DropSoundSet();
 	Strings::Select(Strings::Language::esES);
 	Check(GroundItemText::BaseName("[fp]Saetas") == "Saetas", "live grammatical prefix is removed from bolts");
 	Check(GroundItemText::BaseName("[fs]Hacha de mano") == "Hacha de mano", "item gender markers are not spoken");
@@ -281,11 +354,33 @@ int main() {
 	Check(GroundItemText::RepairSuffixOnlyName("Mace of Flame", SuffixOnlyEn) == "Mace of Flame", "headerless formats are trusted");
 	Check(GroundItemText::RepairSuffixOnlyName("de llamas [fs]Maza", "") == "de llamas [fs]Maza", "an unresolved format repairs nothing");
 	Check(GroundItemText::Describe("Hacha", 7, 0) == "Hacha, único", "Spanish equipment readout uses actual quality");
-	Check(GroundItemText::Describe("Oro", 2, 37) == "37 Oro", "gold includes native amount");
+	Check(GroundItemText::Describe("Oro", 2, 37) == "Oro", "a gold pile is named alone: its amount is said once picked up");
+	{
+		GroundItems::Purse purse;
+		Check(purse.Update(100, true) == 0, "the first sample of the purse is a baseline");
+		Check(purse.Update(137, true) == 37, "gold that comes in during play is a pickup");
+		Check(purse.Update(500, false) == 0 && purse.Update(500, true) == 0, "gold that comes in from a menu is not");
+		Check(purse.Update(400, true) == 0 && purse.Update(-1, true) == 0 && purse.Update(410, true) == 10,
+			"spending and an unreadable sample say nothing, and the next pickup counts from what is left");
+	}
 	Check(GroundItemText::Describe("Poción", 2, 0) == "Poción", "ordinary consumables stay concise");
 	Check(GroundItemText::Describe("", 4, 0).empty(), "missing names never become a quality-only announcement");
 	Strings::Select(Strings::Language::enUS);
 	Check(GroundItemText::Describe("Axe", 4, 0) == "Axe, magic", "English quality is available");
+	{
+		using namespace GroundItemText;
+		Check(IsSilver(2, FlagSocketed) && IsSilver(2, FlagEthereal) && IsSilver(1, FlagSocketed) && IsSilver(3, FlagEthereal), "socketed or ethereal white qualities are gray");
+		Check(!IsSilver(2, 0) && !IsSilver(2, FlagBroken), "a plain white item is not silver");
+		for (uint32_t q = FirstColouredQuality; q <= LastColouredQuality; ++q)
+			Check(!IsSilver(q, FlagSocketed | FlagEthereal), "magic and better keep their own colour");
+		Check(!IsSilver(2, FlagSocketed | FlagBroken) && !IsSilver(2, FlagSocketed | FlagRuneword), "broken is red and a runeword is not silver");
+		Check(Describe("Leather Armor", 2, 0, FlagEthereal) == "Leather Armor, silver", "silver is the colour word only");
+		Check(Describe("Leather Armor", 4, 0, FlagEthereal) == "Leather Armor, magic", "a magic item is not silver");
+		Check(Describe("Leather Armor", 3, 0, FlagSocketed) == "Leather Armor, superior, silver", "superior keeps its word");
+		SetSilverEnabled(false);
+		Check(Describe("Leather Armor", 2, 0, FlagEthereal) == "Leather Armor", "the switch silences it");
+		SetSilverEnabled(true);
+	}
 	Check(MatchesLabel("Hacha\nDaño: 1-5", {"Hacha"}), "nearby tooltip duplicates are recognized");
 	Check(!MatchesLabel("Hachazo", {"Hacha"}) && !MatchesLabel("Charsi", {"Hacha"}), "different names and NPCs keep their speech");
 	Passed();

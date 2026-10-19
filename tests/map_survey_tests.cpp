@@ -181,6 +181,37 @@ void RecreatedObjectTakesItsOldPlace() {
 		"a monster of the same name near where one was lost from the loaded rooms takes its entry");
 }
 
+// A tester's Den of Evil: a Fallen and a Zombie stayed listed where nothing stood.
+void EnemiesFollowTheirUnitAndDie() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Registry registry;
+	auto fallen = Make(8, 30, 30, EntityRadar::Kind::Enemy);
+	const std::vector<EntityRadar::Entity> first{fallen};
+	registry.Observe(1, first, grid, {}, &first);
+	auto fled = fallen;
+	fled.position = {38, 38};
+	const std::vector<EntityRadar::Entity> loaded{fled};
+	registry.Observe(1, {}, grid, {}, &loaded);
+	Check(registry.Entities().size() == 1 && registry.Entities().front().position.x == 38,
+		"a discovered enemy out of sight but still loaded is listed where it stands now");
+	const std::vector<EntityRadar::Entity> nothing;
+	auto near = fallen;
+	near.id = 9;
+	const std::vector<EntityRadar::Entity> second{near};
+	Registry dying;
+	dying.Observe(1, second, grid, {}, &second);
+	dying.Observe(1, {}, grid, {}, &nothing);
+	Check(dying.Entities().empty(), "an enemy missing from its place within reach is gone at once");
+	registry.ForgetEnemies({8});
+	Check(registry.Entities().empty(), "an enemy the game holds dead is forgotten wherever it lay");
+	Registry items;
+	const std::vector<EntityRadar::Entity> potion{Make(8, 38, 38)};
+	items.Observe(1, potion, grid, {}, &potion);
+	items.ForgetEnemies({8});
+	Check(items.Entities().size() == 1, "a dead monster's id never removes an item that shares it");
+}
+
 void ChangingLevelClears() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -269,6 +300,16 @@ void CategoryCycling() {
 	Check(roomOrder.size() == 3 && roomOrder[0] == EntityRadar::Category::Exit
 		&& roomOrder[1] == EntityRadar::Category::UnexploredRoom && roomOrder[2] == EntityRadar::Category::Room,
 		"where is left to explore follows the ways out, before the rooms already walked");
+
+	const auto quest = Survey(world, grid, {
+		with(11, 22, 22, EntityRadar::Category::Interactable),
+		with(12, 24, 24, EntityRadar::Category::Npc),
+		with(13, 26, 26, EntityRadar::Category::Quest),
+	});
+	const auto questOrder = Categories(quest);
+	Check(questOrder.size() == 3 && questOrder[0] == EntityRadar::Category::Quest
+		&& questOrder[1] == EntityRadar::Category::Npc && questOrder[2] == EntityRadar::Category::Interactable,
+		"quest objects are their own category, ahead of the people and objects around them");
 }
 
 void ExplorationDiscoversOnlyNearbyVisibleTargets() {
@@ -318,9 +359,9 @@ void ExplorationSurveyUsesOrientation() {
 	Check(!exploration.front().reachable && exploration.front().steps < 0 && exploration.front().straightLine < 5,
 		"exploration reports only direct distance and direction");
 	// Screen sectors clockwise from up: 1 is up and to the right, 7 up and to the left.
-	Check(exploration.front().direction == 1, "a target up the world Y axis is up and to the right on screen");
+	Check(Radar::ScreenSector(exploration.front().offset) == 1, "a target up the world Y axis is up and to the right on screen");
 	const auto diagonal = Survey(world, grid, {Make(2, 16, 20)}, false);
-	Check(diagonal.front().direction == 7, "a target up the world X axis is up and to the left on screen");
+	Check(Radar::ScreenSector(diagonal.front().offset) == 7, "a target up the world X axis is up and to the left on screen");
 }
 
 void ReturningToLevelRetainsFixedLandmarks() {
@@ -466,6 +507,76 @@ void TownNpcsListedOnceSeen() {
 	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
 }
 
+void TownNpcSwitchListsEveryoneOrTheSeen() {
+	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
+	fara.category = EntityRadar::Category::Npc; fara.placeId = 200; fara.unit = 1;
+	auto standIn = Make(178, 900, 900, EntityRadar::Kind::Npc); // an unloaded NPC at its spawn point
+	standIn.category = EntityRadar::Category::Npc; standIn.placeId = 178;
+	TownNpcSightings sightings;
+	sightings.Found(40, {fara});
+	Check(sightings.Listed(40, {fara, standIn}, true).size() == 2, "switch on: every town NPC is listed, unseen stand-ins included");
+	const auto seen = sightings.Listed(40, {fara, standIn}, false);
+	Check(seen.size() == 1 && seen.front().placeId == 200, "switch off: only the NPCs already seen");
+	sightings.Found(40, {standIn});
+	auto loaded = standIn;
+	loaded.id = 4242; loaded.position = {905, 896}; loaded.unit = 1;
+	const auto later = sightings.Listed(40, {fara, loaded}, false);
+	// Discovery is stored by stable identity, so map iteration order is not the
+	// caller's input order. A real native monster must also carry unit type1;
+	// copying a stand-in without changing NoUnit does not make it a live actor.
+	const auto refreshed = std::find_if(later.begin(), later.end(), [&](const auto& npc) { return npc.placeId == standIn.placeId; });
+	Check(later.size() == 2 && refreshed != later.end() && refreshed->id == 4242 && refreshed->unit == 1
+		&& refreshed->position.x == 905 && refreshed->position.y == 896,
+		"a stand-in seen stays seen once its live unit replaces it");
+	const auto afterUnload = sightings.Listed(40, {fara, standIn}, false);
+	const auto remembered = std::find_if(afterUnload.begin(), afterUnload.end(), [&](const auto& npc) { return npc.placeId == standIn.placeId; });
+	Check(remembered != afterUnload.end() && remembered->id == 4242 && remembered->position.x == 905
+		&& remembered->unit == EntityRadar::Entity::NoUnit,
+		"a later spawn fallback preserves the actual moved position and clears its unloaded native unit type");
+}
+
+void RetiredTownNpcFiltering() {
+	for (const uint32_t monster : TownNpcs::RetiringClasses) {
+		const uint64_t identity = static_cast<uint64_t>(monster) + 1;
+		auto actual = Make(777, 120, 120, EntityRadar::Kind::Npc);
+		actual.category = EntityRadar::Category::Npc; actual.placeId = identity; actual.unit = 1;
+		auto fallback = actual; fallback.id = static_cast<uint32_t>(identity); fallback.unit = EntityRadar::Entity::NoUnit;
+		TownNpcSightings sightings;
+		TownNpcs::Presence presence{7, 42, monster == 297 ? 75u : 109u, true, {}};
+		const int level = static_cast<int>(presence.level);
+		sightings.Reconcile(presence, {actual}); sightings.Found(level, {actual});
+		presence.complete = false; presence.absent = {identity};
+		sightings.Reconcile(presence, {fallback});
+		Check(sightings.Listed(level, {fallback}, false).size() == 1, "an incomplete read cannot remove a remembered town character");
+		presence.complete = true; presence.absent.clear(); sightings.Reconcile(presence, {fallback});
+		Check(sightings.Listed(level, {fallback}, true).size() == 1, "distant unloading with no absence observation preserves the fallback");
+		presence.absent = {identity}; sightings.Reconcile(presence, {fallback});
+		Check(sightings.Listed(level, {fallback}, true).empty() && sightings.Listed(level, {fallback}, false).empty(),
+			"observed retired NPC is filtered from both everywhere and discovered-only navigator modes");
+		sightings.Found(level, {fallback});
+		Check(sightings.Seen(level, {fallback}).empty(), "a later discovered spawn cannot resurrect a confirmed absent identity");
+		presence.absent.clear(); sightings.Reconcile(presence, {fallback});
+		Check(sightings.Listed(level, {fallback}, true).empty(), "moving away to an unknown distant spawn does not forget observed absence");
+		actual.id = 888; actual.position = {150, 140};
+		const auto returned = sightings.Listed(level, {fallback, actual}, false);
+		Check(returned.size() == 1 && returned.front().id == 888 && returned.front().position.x == 150,
+			"a real reappearing unit immediately clears absence and restores a previously discovered character at its new position");
+		presence.absent = {identity}; sightings.Reconcile(presence, {actual});
+		Check(sightings.Listed(level, {actual}, true).size() == 1, "real unit evidence wins over contradictory absent input");
+		sightings.Reconcile(presence, {fallback});
+		presence.session = 8; presence.absent.clear(); sightings.Reconcile(presence, {fallback});
+		Check(sightings.Listed(level, {fallback}, true).size() == 1 && sightings.Listed(level, {fallback}, false).empty(),
+			"a new session resets absence and discovery without inheriting a prior game's retired NPC state");
+		presence.absent = {identity}; sightings.Reconcile(presence, {fallback}); sightings.Clear();
+		Check(sightings.Listed(level, {fallback}, true).size() == 1, "explicit lifecycle clear also resets retirement evidence");
+	}
+	TownNpcSightings sightings;
+	auto boss = Make(1, 10, 10, EntityRadar::Kind::Npc); boss.placeId = 527;
+	TownNpcs::Presence impossible{7, 42, 109, true, {527}};
+	sightings.Reconcile(impossible, {boss});
+	Check(sightings.Listed(109, {boss}, true).size() == 1, "hostile Nihlathak526 cannot enter the town-retirement identity filter");
+}
+
 
 int main() {
 	// A fresh full-assistance snapshot still contains the border's bearing.
@@ -486,6 +597,8 @@ int main() {
 		Check(Fixed(crossing) && !Fixed(bearing), "only a measured area border can enter the persistent map archive");
 	}
 	TownNpcsListedOnceSeen();
+	TownNpcSwitchListsEveryoneOrTheSeen();
+	RetiredTownNpcFiltering();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
 	NearestByStepsNotByStraightLine();
@@ -494,6 +607,7 @@ int main() {
 	AbsenceOutsideTheMapIsNotForgetting();
 	AbsenceBeyondTheScanIsNotForgetting();
 	RecreatedObjectTakesItsOldPlace();
+	EnemiesFollowTheirUnitAndDie();
 	ChangingLevelClears();
 	ReobservingRefreshesPosition();
 	KindFiltering();

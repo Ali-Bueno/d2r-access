@@ -3,6 +3,7 @@
 #include "target_sight.h"
 
 #include <D2RLPlugin/api.h>
+#include <string>
 #include <string_view>
 
 // The friendly NPC announcer and the HUD-label sight check: lifecycle, input
@@ -17,6 +18,11 @@ void Unregister();
 // The snapshot behind it is refreshed at most every few frames, so asking on
 // every UI poll is cheap.
 TargetSight::Sight LabelSight(std::string_view label);
+// The nearest entity in sight that the label names, from the same snapshot.
+TargetSight::Bearer LabelTarget(std::string_view label);
+// The nearest NPC's name, empty when none is loaded: the vendor a shop belongs
+// to, since the game opens one only beside its NPC.
+std::string NearestNpc();
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool NpcEnabled();

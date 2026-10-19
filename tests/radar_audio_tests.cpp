@@ -16,6 +16,9 @@ constexpr size_t Right = Index(Radar::Direction::Right), Down = Index(Radar::Dir
 constexpr size_t CueFrames = Radar::CueDurationMs * SampleRate / 1000;
 constexpr size_t CueSamples = CueFrames * Channels;
 constexpr size_t GapSamples = SampleRate * Channels * CueGapMs / 1000;
+// The floor breath is longer than a struck cue so its sweep can be heard.
+constexpr size_t BreathFrames = Radar::BreathDurationMs * SampleRate / 1000;
+constexpr size_t BreathSamples = BreathFrames * Channels;
 
 Radar::Events One(size_t direction, Radar::State state) {
 	Radar::Events events{};
@@ -145,11 +148,11 @@ void Register() {
 void Readings() {
 	const auto exit = Synthesize(One(Up, Radar::State::Exit)), floor = Synthesize(One(Up, Radar::State::Open));
 	const auto wall = Synthesize(One(Up, Radar::State::Blocked)), door = Synthesize(One(Up, Radar::State::Door));
-	Check(floor.size() == CueSamples && door.size() == CueSamples, "every reading occupies one cue slot");
-	const double breath = Rms(floor, 0, 0, CueFrames) / Rms(exit, 0, 0, CueFrames);
+	Check(door.size() == CueSamples && floor.size() == BreathSamples, "a struck reading fills one cue slot, the breath its longer one");
+	const double breath = Rms(floor, 0, 0, BreathFrames) / Rms(exit, 0, 0, CueFrames);
 	Check(breath > 0.35 && breath < 0.8, "floor is a breath under the struck cues, but not buried by the game (2026-09-21 listening)");
 	Check(Peak(floor) < Peak(exit), "the breath never strikes harder than the tin");
-	Check(Rms(floor, 0, CueFrames / 4, 3 * CueFrames / 4) > 2 * Rms(floor, 0, 0, CueFrames / 8),
+	Check(Rms(floor, 0, BreathFrames / 4, 3 * BreathFrames / 4) > 2 * Rms(floor, 0, 0, BreathFrames / 8),
 		"the breath swells in the middle instead of striking at the start");
 	Check(Frequency(door, 0, 0, CueFrames / 8) < Frequency(wall, 0, 0, CueFrames / 8), "the door knock sits below the wall tock");
 	// Two strikes: loud, a rest, loud again, where a wall's one strike is still dying away.
@@ -167,7 +170,7 @@ void Readings() {
 		"the darker breath keeps the same loudness");
 	bool mirrored = true;
 	const auto left = Synthesize(One(Left, Radar::State::Open)), right = Synthesize(One(Right, Radar::State::Open));
-	for (size_t frame = 0; frame < CueFrames; ++frame)
+	for (size_t frame = 0; frame < BreathFrames; ++frame)
 		mirrored &= left[frame * Channels] == right[frame * Channels + 1] && left[frame * Channels + 1] == right[frame * Channels];
 	Check(mirrored, "the breath is panned like the struck cues");
 	CueQueue urgent;
@@ -276,8 +279,8 @@ void UnexploredTail() {
 	const double tail = Frequency(tagged, 0, start, start + PipFrames);
 	Check(tail < Frequency(plain, 0, 0, CueFrames / 8), "and it sits below the tin");
 	const auto floor = Synthesize(One(Up, Radar::State::Open), marked);
-	Check(floor.size() == tagged.size(), "floor takes the same tail");
-	Check(std::equal(floor.begin() + static_cast<long long>(CueSamples), floor.end(), tagged.begin() + static_cast<long long>(CueSamples)),
+	Check(floor.size() == BreathSamples + TailFrames * Channels, "floor takes the same tail");
+	Check(std::equal(floor.begin() + static_cast<long long>(BreathSamples), floor.end(), tagged.begin() + static_cast<long long>(CueSamples)),
 		"one tail for both, so it is one thing to learn");
 	Check(Synthesize(One(Up, Radar::State::Blocked), marked).size() == CueSamples
 		&& Synthesize(One(Up, Radar::State::Door), marked).size() == CueSamples, "walls and doors never carry it");
@@ -286,6 +289,69 @@ void UnexploredTail() {
 	const auto down = Synthesize(One(Down, Radar::State::Exit), markedDown);
 	Check(Frequency(down, 0, start, start + PipFrames) < tail
 		&& Frequency(down, 0, second, second + PipFrames) < tail, "down lowers both pips like the cue");
+}
+
+// A small obstacle: a wall cue with its own short, higher wooden knock.
+void SmallKnock() {
+	constexpr size_t Window = CueFrames / 8;
+	constexpr auto Cardinal = Radar::Frame::Cardinal;
+	Radar::Marks small{};
+	small[Up] = small[Down] = true;
+	const auto wall = Synthesize(One(Up, Radar::State::Blocked)), exit = Synthesize(One(Up, Radar::State::Exit));
+	const auto clutter = Synthesize(One(Up, Radar::State::Blocked), {}, 1, Cardinal, small);
+	Check(clutter.size() == CueSamples, "a small obstacle fills one cue slot like the wall");
+	const double knock = Frequency(clutter, 0, 0, Window);
+	Check(knock > 2 * Frequency(wall, 0, 0, Window), "its knock sits well above the wall tock");
+	Check(knock < 0.75 * Frequency(exit, 0, 0, Window), "and well below the exit tin");
+	const auto decay = [](const std::vector<int16_t>& pcm) {
+		return Rms(pcm, 0, CueFrames / 4, CueFrames) / Rms(pcm, 0, 0, CueFrames / 4);
+	};
+	Check(decay(clutter) < decay(wall), "it is shorter: it dies away faster than the tock");
+	const double loudness = Rms(clutter, 0, 0, CueFrames / 4) / Rms(wall, 0, 0, CueFrames / 4);
+	Check(loudness > 0.5 && loudness < 2, "and about as loud");
+	Check(Frequency(Synthesize(One(Down, Radar::State::Blocked), {}, 1, Cardinal, small), 0, 0, Window) < knock,
+		"down lowers it like every other reading");
+	Check(Synthesize(One(Up, Radar::State::Exit), {}, 1, Cardinal, small) == exit
+		&& Synthesize(One(Up, Radar::State::Door), {}, 1, Cardinal, small) == Synthesize(One(Up, Radar::State::Door)),
+		"only a wall reading takes it; exits and doors are untouched");
+	CueQueue queue;
+	queue.Push(One(Up, Radar::State::Blocked), {}, {}, small);
+	Check(queue.Source(Up).small, "a pushed wall cue carries the small mark in its source");
+}
+
+// The wall bump: a 90 ms falling thud, panned by the push, ahead of every reading.
+void BumpThud() {
+	constexpr size_t BumpFrames = 90 * SampleRate / 1000;
+	const auto centre = SynthesizeBump(0), left = SynthesizeBump(-1), right = SynthesizeBump(1);
+	Check(centre.size() == BumpFrames * Channels, "the thud lasts its compiled 90 ms");
+	Check(Rms(left, 0, 0, BumpFrames) > 3 * Rms(left, 1, 0, BumpFrames), "a push to the left thuds in the left ear");
+	bool mirrored = true, centred = true;
+	for (size_t frame = 0; frame < BumpFrames; ++frame) {
+		mirrored &= left[frame * Channels] == right[frame * Channels + 1] && left[frame * Channels + 1] == right[frame * Channels];
+		centred &= centre[frame * Channels] == centre[frame * Channels + 1];
+	}
+	Check(mirrored && centred, "right mirrors left, and a push up or down is centred");
+	const auto wall = Synthesize(One(Up, Radar::State::Blocked));
+	Check(Frequency(centre, 0, BumpFrames / 4, 3 * BumpFrames / 4) < 0.6 * Frequency(wall, 0, 0, CueFrames / 8),
+		"the thud's body sits far below the wall tock");
+	Check(Rms(centre, 0, 3 * BumpFrames / 4, BumpFrames) < Rms(centre, 0, 0, BumpFrames / 4) / 5, "and dies away within its length");
+	Check(Peak(centre) > Peak(wall) && Peak(centre) < 32767, "it strikes harder than the tock, whose register sounds louder");
+	const auto silent = SynthesizeBump(0, 0);
+	Check(std::all_of(silent.begin(), silent.end(), [](int16_t sample) { return sample == 0; }), "volume zero silences it");
+	Check(std::abs(static_cast<double>(Peak(SynthesizeBump(0, 0.5))) / Peak(centre) - 0.5) < 0.01, "and the radar's volume scales it");
+	CueQueue queue;
+	Check(queue.Empty() && !queue.TakeBump(nullptr), "no thud is pending at first");
+	queue.Push(One(Up, Radar::State::Blocked));
+	queue.PushBump(0.1);
+	queue.PushBump(-0.5, {.eventMs = 9});
+	double pan = 0;
+	CueSource source{};
+	Check(queue.TakeBump(&pan, &source) && pan == -0.5 && source.eventMs == 9,
+		"the thud plays before a pending wall cue, and a newer one replaces the older");
+	Check(!queue.TakeBump(&pan) && !queue.Empty() && queue.Take()[Up] == Radar::State::Blocked && queue.Empty(),
+		"once played it is gone and the readings follow");
+	queue.PushBump(0);
+	Check(!queue.Empty(), "a thud alone keeps the worker awake");
 }
 }
 int main() {
@@ -297,5 +363,7 @@ int main() {
 	Volume();
 	Queue();
 	UnexploredTail();
+	SmallKnock();
+	BumpThud();
 	Passed();
 }

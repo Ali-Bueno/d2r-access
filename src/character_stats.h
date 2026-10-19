@@ -41,6 +41,17 @@ std::string Name(uintptr_t panel);
 // The stat points left to spend, as the panel says it ("5 Stat Points
 // Remaining"); empty when it cannot be read.
 std::string Points(uintptr_t panel);
+// The skill tree's choices left, as its footer says it ("1 Skill Choice Remaining").
+std::string SkillChoices(uintptr_t panel);
+
+// True when a points line ("5 Stat Points Remaining") names a count above zero.
+bool HasPoints(std::string_view points);
+
+// The attribute a "+" button raises (StrengthPointButton: StrengthTitle and
+// StrengthStat), read whether or not the button is showing; it hides with the
+// last point spent. Empty parts when they cannot be read.
+struct Attribute { std::string label, value; };
+Attribute AttributeOf(uintptr_t panel, std::string_view button);
 
 void Reset();
 

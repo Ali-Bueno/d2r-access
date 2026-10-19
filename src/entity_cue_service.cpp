@@ -13,7 +13,9 @@
 
 #include <windows.h>
 #include <atomic>
+#include <cstdio>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,6 +44,12 @@ bool g_reachCue = false;
 uint64_t g_lastLoadout = 0;
 constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
+std::atomic<bool> g_npcAlerts{true};
+std::atomic<bool> g_corpseCue{true};
+std::atomic<int> g_corpseRepeat{EntityCues::DefaultCorpseRepeatLevel};
+EntityCues::CorpseTracker g_corpses;
+EntityCues::AlertTracker g_alerts;
+std::mutex g_alertMutex; // the announcer reads the tracker too
 uint64_t g_revision = 0, g_lastPoll = 0;
 
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
@@ -96,6 +104,7 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	return D2RL::ConsoleCommandResult::Handled;
 }
 
+// The reach is published even while the cues are off: the HUD name gate uses it too.
 void RefreshReach(const D2RL::PluginContext* context) {
 	const auto loadout = NativeAttack::ReadLoadout(context);
 	if (!loadout && g_reachSettings.mode == AttackReach::Mode::Auto) { g_style.reset(); g_reach.reset(); return; }
@@ -111,6 +120,18 @@ void RefreshReach(const D2RL::PluginContext* context) {
 	AsyncLog::InfoF(context, "[attack-reach] %s", line);
 }
 
+// "Melee reach, 3 steps, automatic"; empty while the reach is unknown.
+std::string ReachText() {
+	if (!g_style || !g_reach) return {};
+	const auto& strings = Strings::Current();
+	char reach[160]{};
+	std::snprintf(reach, sizeof reach, *g_style == AttackReach::Style::Melee ? strings.attackReachMelee : strings.attackReachRanged,
+		EntityRadar::DistancePhrase(*g_reach, {}, strings).c_str());
+	std::string result = reach;
+	result += ", "; result += g_reachSettings.mode == AttackReach::Mode::Auto ? strings.attackModeAuto : strings.attackModeFixed;
+	return result;
+}
+
 std::string StatusText() {
 	const auto& strings = Strings::Current();
 	std::string result = g_enabled ? strings.entityCuesEnabled : strings.entityCuesDisabled;
@@ -119,6 +140,7 @@ std::string StatusText() {
 	result += ". "; result += g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
 	result += ". "; result += g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
 	result += ". "; result += g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
+	if (const auto reach = ReachText(); !reach.empty()) { result += ". "; result += reach; }
 	if (!g_supported) { result += ". "; result += strings.entityCueReaderUnavailable; }
 	if (!g_audioStarted || !EntityCueAudio::Available()) { result += ". "; result += strings.entityCueAudioUnavailable; }
 	return result;
@@ -135,8 +157,9 @@ std::string ChangeText(Command command) {
 	case Command::EnemyOn: case Command::EnemyOff: return g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
 	case Command::OrdinaryOn: case Command::OrdinaryOff: return g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
 	case Command::ReachOn: case Command::ReachOff: return g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
-	case Command::AttackAuto: return strings.attackModeAuto;
-	case Command::AttackMelee: case Command::AttackRanged: return strings.attackModeFixed;
+	case Command::AttackAuto: case Command::AttackMelee: case Command::AttackRanged:
+		if (auto reach = ReachText(); !reach.empty()) return reach;
+		return command == Command::AttackAuto ? strings.attackModeAuto : strings.attackModeFixed;
 	default: return g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
 	}
 }
@@ -162,17 +185,20 @@ bool Register(const D2RL::PluginContext* context) {
 	g_settings.enemies = config.enemies.value_or(g_settings.enemies);
 	g_settings.ranged = config.ranged.value_or(g_settings.ranged);
 	g_settings.range = config.range.value_or(g_settings.range);
-	g_settings.ordinary = config.ordinary.value_or(false);
-	g_reachCue = config.reach.value_or(false);
+	g_settings.onScreen = config.onScreen.value_or(g_settings.onScreen);
+	g_settings.maxVoices = config.maxVoices.value_or(g_settings.maxVoices);
+	g_settings.ordinary = config.ordinary.value_or(g_settings.ordinary);
+	g_reachCue = config.reach.value_or(g_reachCue);
 	g_reachSettings.mode = config.attack.value_or(g_reachSettings.mode);
 	g_reachSettings.meleeReach = config.meleeReach.value_or(g_reachSettings.meleeReach);
 	g_reachSettings.rangedReach = config.rangedReach.value_or(g_reachSettings.rangedReach);
 	(void)context->RegisterConsoleCommand("access-entity-cues", Console,
 		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
-	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0);
-	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
+	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0,
+		RadarConfig::StrengthScale(config.panStrength), RadarConfig::StrengthScale(config.pitchStrength));
+	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f on_screen=%u voices=%zu npc=%u enemy=%u ranged=%u",
 		g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
-		g_settings.npcs, g_settings.enemies, g_settings.ranged);
+		g_settings.onScreen, g_settings.maxVoices, g_settings.npcs, g_settings.enemies, g_settings.ranged);
 	return true;
 }
 
@@ -199,28 +225,29 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (command >= Command::AttackAuto) g_lastLoadout = 0;
 	if (changed) Suspend(context, "settings changed");
+	Lifecycle state;
+	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
+	if (state.revision != g_revision) {
+		g_revision = state.revision;
+		g_tracker.Reset(); g_corpses.Reset(); { std::lock_guard lock(g_alertMutex); g_alerts.Reset(); }
+		Suspend(context, "lifecycle changed");
+		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
+	}
+	const uint64_t now = GetTickCount64();
+	if (!state.ready || !g_supported) { g_style.reset(); g_reach.reset(); }
+	else if (!g_lastLoadout || now - g_lastLoadout >= LoadoutMs) { g_lastLoadout = now; RefreshReach(context); }
 	if (command != Command::None) {
 		ScreenReader::Speak(changed ? ChangeText(command) : StatusText(), true);
 		AsyncLog::InfoF(context, "[entity-cues] status enabled=%u native=%u audio=%u range=%.1f npc=%u enemy=%u ranged=%u",
 			g_enabled, g_supported, g_audioStarted && EntityCueAudio::Available(), g_settings.range,
 			g_settings.npcs, g_settings.enemies, g_settings.ranged);
 	}
-	Lifecycle state;
-	{ std::lock_guard lock(g_mutex); state = g_lifecycleState; }
-	if (state.revision != g_revision) {
-		g_revision = state.revision;
-		g_tracker.Reset();
-		Suspend(context, "lifecycle changed");
-		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
-	}
 	if (!g_enabled || !g_supported || !g_audioStarted || !EntityCueAudio::Available() || !state.ready) {
 		Suspend(context, "disabled or unavailable"); return;
 	}
 	if (!RadarUi::InPlay()) { Suspend(context, "UI/focus"); return; }
-	const uint64_t now = GetTickCount64();
 	if (now - g_lastPoll < PollMs) return;
 	g_lastPoll = now;
-	if (g_reachCue && (!g_lastLoadout || now - g_lastLoadout >= LoadoutMs)) { g_lastLoadout = now; RefreshReach(context); }
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
@@ -229,6 +256,17 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 	if (g_suspended) AsyncLog::Info(context, "[entity-cues] resumed");
 	g_suspended = false;
+	// A Necromancer's usable corpses (a tester, 2026-10-14): a rattle toward the nearest as some become available.
+	if (const auto usable = NativeEntities::LastUsableCorpses(); usable.necromancer && usable.playerId == state.player
+		&& usable.readMs + EntityCues::CorpsesFreshMs >= now) {
+		const auto repeatMs = static_cast<uint64_t>(EntityCues::CorpseRepeatMs[static_cast<size_t>(g_corpseRepeat.load())]);
+		const auto corpses = g_corpses.Update(usable.player, usable.corpses, g_settings.range, now, repeatMs);
+		if (corpses.cue && g_corpseCue.load()) {
+			AsyncLog::InfoF(context, "[corpses] %zu usable within %.0f, nearest %.1f", corpses.count, g_settings.range, corpses.cue->distance);
+			EntityCueAudio::Play(EntityCueAudio::Sound::Corpse, {corpses.cue->right, corpses.cue->front});
+			return;
+		}
+	}
 	if (g_reachCue && g_reach) {
 		if (const auto target = g_reachTracker.Update(world, entities, *g_reach, g_reachSettings.release)) {
 			AsyncLog::InfoF(context, "[attack-reach] in reach id=%u distance=%.2f reach=%.1f",
@@ -237,12 +275,18 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
+	// The moment a sighted player sees a "!" appear over an NPC (a tester, 2026-10-13); the
+	// announcer reads the same tracker, so a mark rings once whoever sees it first.
+	if (const auto raised = RaisedAlerts(world, entities); !raised.empty() && g_npcAlerts.load()) {
+		RingAlert(raised.front());
+		return;
+	}
 	const auto cue = g_tracker.Update(world, entities, now, g_settings);
 	if (!cue) return;
 	EntityCueAudio::Sound sound = EntityCueAudio::Sound::Npc;
 	switch (cue->kind) {
 	case EntityCues::Kind::Npc: sound = EntityCueAudio::Sound::Npc; break;
-	case EntityCues::Kind::Important: sound = EntityCueAudio::Sound::Important; break;
+	case EntityCues::Kind::Important: sound = cue->boss ? EntityCueAudio::Sound::Boss : EntityCueAudio::Sound::Important; break;
 	case EntityCues::Kind::Resurrector: sound = EntityCueAudio::Sound::Resurrector; break;
 	case EntityCues::Kind::Ranged: sound = EntityCueAudio::Sound::Ranged; break;
 	case EntityCues::Kind::Ordinary: sound = EntityCueAudio::Sound::Ordinary; break;
@@ -267,6 +311,11 @@ void Unregister() {
 	g_revision = g_lastPoll = 0;
 }
 
+std::optional<double> CurrentReach() { return g_reach; }
+std::optional<double> NamingReach() {
+	return g_style == AttackReach::Style::Melee ? g_reach : std::nullopt;
+}
+
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 bool Enabled(Cue cue) {
@@ -280,5 +329,26 @@ void SetEnabled(Cue cue, bool enabled) {
 		: cue == Cue::Ordinary ? (enabled ? Command::OrdinaryOn : Command::OrdinaryOff)
 		: cue == Cue::Reach ? (enabled ? Command::ReachOn : Command::ReachOff)
 		: (enabled ? Command::RangedOn : Command::RangedOff);
+}
+bool NpcAlerts() { return g_npcAlerts.load(); }
+void SetNpcAlerts(bool on) { g_npcAlerts = on; }
+bool CorpseCue() { return g_corpseCue.load(); }
+double Range() { return g_settings.range; }
+void SetCorpseCue(bool on) { g_corpseCue = on; }
+int CorpseRepeatLevel() { return g_corpseRepeat.load(); }
+void SetCorpseRepeatLevel(int level) {
+	if (level >= 0 && level < static_cast<int>(EntityCues::CorpseRepeatMs.size())) g_corpseRepeat = level;
+}
+void PlayNpcAlert() {
+	if (g_npcAlerts.load() && g_enabled) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
+}
+std::vector<EntityCues::Cue> RaisedAlerts(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	std::lock_guard lock(g_alertMutex);
+	return g_alerts.Raised(world, entities);
+}
+void RingAlert(const EntityCues::Cue& cue) {
+	if (!g_npcAlerts.load() || !g_enabled) return;
+	AsyncLog::InfoF(g_context, "[npc] exclamation mark id=%u distance=%.1f", cue.id, cue.distance);
+	EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {cue.right, cue.front});
 }
 }

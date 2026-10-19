@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace D2RAccess::NativeLevelExits {
-struct Exit { uint32_t warp = 0, destination = 0; Radar::Position position; };
+struct Exit { uint32_t warp = 0, destination = 0, source = 0; Radar::Position position; };
 // Walk existing logical rooms in the current level, including inactive rooms.
 // No native generator, room loader, map reveal or memory write is involved.
 // Empty/unavailable presets are skipped. A malformed traversal returns no exits.
@@ -12,11 +12,13 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output);
 // Where the level's presets spawn a MonStats row, from the same room walk.
 // `room` is the logical room (RoomEx) holding the preset.
 struct MonsterPreset { uint32_t monster = 0; Radar::Position position; uintptr_t room = 0; std::vector<Radar::Position> alternatives; };
-bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output);
+// `complete`, when requested, reports tolerated unbuilt-preset failures too.
+// Existing callers still receive the useful built subset on such a failure.
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt = false, bool* complete = nullptr);
 // Quest NPCs placed by object initialization, rather than monster presets.
 // Kurast's Hratli end marker takes precedence over his arrival marker; live
 // units always supersede these approach locations in NativeEntities.
-bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output);
+bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool* complete = nullptr);
 // Coordinate identity survives native warp-unit unloading/recreation. Zero is
 // reserved for entities that are not fixed level exits.
 uint64_t Identity(Radar::Position position);

@@ -125,6 +125,8 @@ int main() {
 	widgets[13].name = "SkillButton3"; widgets[12].name = "CommonSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill && NativeProgression::Read({10, 13}, button).readout.coordinates.empty(), "common skills remain readable without invented coordinates");
 	Check(NativeProgression::Read({10, 13}, button).name.empty(), "a skill outside the class tree has no table name and waits for its tooltip");
+	Check(skill.classTree && !NativeProgression::Read({10, 13}, button).classTree,
+		"a class tree's branch carries the skill choices, General Skills does not");
 	widgets[12].name = "ItemSkillsContainer";
 	Check(NativeProgression::Read({10, 13}, button).skill, "item-granted skills use the same reader");
 	widgets[12].name = "UnrelatedButtons";
@@ -141,7 +143,13 @@ int main() {
 	const std::string font = "\xEE\x81\xBE";
 	const auto raw = "Grito: +5 s por nivel\n" + font + "2Aturdir recibe bonus de:" + font + "1\n\nDuración: 1.2 s\nPrimer nivel\nNivel necesario: 12\ny aumenta tu índice de ataque.\nAturde a tu objetivo\n" + font + "2Aturdir\n\nTodavía no has aprendido esta habilidad";
 	const auto description = ProgressionText::SkillDescription(raw);
-	Check(description == "Aturdir. Todavía no has aprendido esta habilidad Aturde a tu objetivo y aumenta tu índice de ataque. Nivel necesario: 12 Primer nivel Duración: 1.2 s Aturdir recibe bonus de: Grito: +5 s por nivel", "skill name leads, wrapped sentences and requirements follow screen order, formatting digits are removed");
+	Check(description == "Aturdir. Todavía no has aprendido esta habilidad. Aturde a tu objetivo y aumenta tu índice de ataque. Nivel necesario: 12. Primer nivel. Duración: 1.2 s. Aturdir recibe bonus de: Grito: +5 s por nivel", "skill name leads, every line is set off by a pause, a wrapped sentence is whole, formatting digits are removed");
+	const auto multiple = ProgressionText::SkillDescription("Guided Arrow: +12% Damage per Level\nMana Cost: 4" + font + "1Multiple Shot Receives Bonuses From:\n"
+		"or bolt into many.\nMagically splits one Arrow\n" + font + "2Multiple Shot");
+	Check(multiple == "Multiple Shot. Magically splits one Arrow or bolt into many. Mana Cost: 4. Multiple Shot Receives Bonuses From: Guided Arrow: +12% Damage per Level",
+		"a style change after text starts a new block with its own pause (a tester)");
+	Check(ProgressionText::SkillLines("но не больше.\nДробит цель\n" + font + "2Удар").size() == 2, "Cyrillic lowercase continues a wrapped sentence too");
+	Check(ProgressionText::JoinLines({"Damage 5 to 10", "Mana Cost: 3.", "", "Level 2"}) == "Damage 5 to 10. Mana Cost: 3. Level 2", "lines get a full stop unless they end in punctuation, empty ones are skipped");
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
 	const std::vector<std::string> requirements{"Might", "Holy Bolt"};

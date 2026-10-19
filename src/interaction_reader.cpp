@@ -1,20 +1,24 @@
 #include "advanced_stats_reader.h"
+#include "party_reader.h"
 #include "async_log.h"
 #include "auto_detail.h"
+#include "belt_reader.h"
 #include "click_words.h"
 #include "control_hints.h"
+#include "cube_state.h"
 #include "character_stats.h"
 #include "character_stats_reader.h"
+#include "entity_cue_service.h"
 #include "entity_radar_service.h"
 #include "hire_stats.h"
 #include "generated/item_sizes.h"
 #include "equip_attempt.h"
+#include "game_text_reader.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
 #include "inventory_cursor.h"
 #include "item_hand.h"
 #include "native_entities.h"
-#include "native_belt.h"
 #include "ground_item_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
@@ -22,7 +26,10 @@
 #include "native_tooltips.h"
 #include "native_controller_help.h"
 #include "native_ground_items.h"
+#include "native_memory.h"
 #include "native_progression.h"
+#include "native_ui.h"
+#include "native_waypoints.h"
 #include "progression_text.h"
 #include "radar_ui.h"
 #include "native_widgets.h"
@@ -30,15 +37,18 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "stash_count.h"
 #include "tab_reader.h"
 #include "tooltip_delay.h"
 #include "tooltip_text.h"
 #include "native_skill_icons.h"
 #include "mercenary_stats.h"
+#include "monster_names.h"
 #include "ui_text.h"
 
 #include <D2RLPlugin/item.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdio>
 #include <optional>
@@ -56,6 +66,10 @@ struct InventoryContext {
 	std::string name, title;
 };
 InventoryContext g_inventoryContext;
+// A confirmation over a shop or the stash (buying with A): back on the cell it came
+// from, nothing is new, so the panel and its tab are not said again (a tester, 2026-10-17).
+uintptr_t g_modalReturnPanel = 0;
+std::string g_modalReturnKey, g_lastInventoryKey;
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
 std::string g_help, g_spokenHelp, g_helpContext;
@@ -65,7 +79,12 @@ std::string g_describedFocus;
 std::string g_skillHeadline, g_skillMismatch;
 // The world label last dropped for being out of sight, so the log records each
 // one once instead of on every UI poll.
-std::string g_hiddenLabel;
+std::string g_hiddenLabel, g_quietMonster;
+uint32_t g_worldTargetId = 0; // the unit the world label last named, and that label
+std::string g_worldTargetBody;
+MonsterNames::Gate g_monsterNames;
+// The game's monster health plate: the panel the auto-target names its monster in.
+constexpr std::string_view MonsterPlate = "HUDMonsterHealth";
 // Whether an item was in hand at the last inventory tick, and the red
 // requirement lines of the item last described and of the one in hand (taken
 // as it was picked up): why the game would refuse to equip it.
@@ -107,9 +126,19 @@ uintptr_t g_asideWidget = 0;
 // (MEASURED 2026-09-21 13:03:30). Later readouts interrupt as usual.
 uint64_t g_tabChangedAt = 0;
 constexpr uint64_t TabTitleMs = 1500;
+// The focus first read behind the title. What follows on that same focus while the
+// title may still be speaking queues too: a skill's description renders ~350 ms after
+// its name and cut the branch off when it interrupted (a tester, 2026-10-12).
+std::string g_tabFocus;
 // The title that tab change spoke, so the readout queued behind it does not
 // begin by saying it again ("Inventory", then "Inventory. Belt...").
 std::string g_tabTitle;
+// The skill-tree branch last read: its tabs are separate widgets, so TabReader
+// never sees a branch change and the skill readout has to name it itself.
+// Forgotten once the focus leaves the tree's panel, so a reopened tree names it again.
+uintptr_t g_skillTab = 0;
+uintptr_t g_skillTabPanel = 0;
+uintptr_t g_branchShown = 0; // the branch the open tree showed last, whatever had focus
 // The panel the last readout was about, to tell a tab change that moved focus
 // to another panel from one that left it where it was.
 uintptr_t g_readPanel = 0;
@@ -146,6 +175,9 @@ KeyLines g_keyLines;
 // Item tooltips in the log: off unless asked for, and each only once.
 std::atomic<bool> g_logItems{false};
 std::string g_itemLogged;
+// "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
+std::atomic<bool> g_handSpeech{true};
+std::atomic<bool> g_compareAloud{false}; // see CompareAloud
 
 // The equipped-item records last logged, so [compare] is written once per
 // change. Diagnosis only: what the game draws beside a held compare is not
@@ -191,6 +223,12 @@ const std::vector<std::string>& StatLabels() {
 const std::vector<std::string>& RequirementLabels() {
 	static Labels cache;
 	return cache.For(TooltipText::RequirementKeys);
+}
+
+// Quantity labels, so a stack or tome says how many it holds with its name.
+const std::vector<std::string>& QuantityLabels() {
+	static Labels cache;
+	return cache.For(TooltipText::QuantityKeys);
 }
 
 // A tooltip body with any magic name the game composed with a broken grammar
@@ -357,6 +395,15 @@ std::string CompareText(std::span<const std::string> records) {
 	return result;
 }
 
+// What compare draws beside the highlighted item, headed by the game's
+// "Currently Equipped" (ui.json currentEquip).
+std::string Equipped(std::span<const std::string> extras) {
+	const auto text = CompareText(extras);
+	const auto label = UiText::Clean(Localization::Text("currentEquip"));
+	if (text.empty() || label.empty() || text.starts_with(label)) return text;
+	return label + ". " + text;
+}
+
 // The same records' lines, one entry each, for the line keys.
 std::vector<std::string> CompareLines(std::span<const std::string> records) {
 	std::vector<std::string> lines;
@@ -465,6 +512,7 @@ std::string SizePhrase(uintptr_t item) {
 constexpr std::string_view GoldButton = "gold_button";
 // The stash's withdraw button and the text box beside it that shows the open tab's gold.
 constexpr std::string_view StashGoldButton = "gold_withdraw";
+constexpr std::string_view StashPanel = "BankExpansionLayout";
 constexpr std::string_view StashGoldBox = "gold_amount", StashGoldContainer = "basicstash_container";
 
 // The digits of the stash's gold box, "" when it cannot be read.
@@ -481,6 +529,51 @@ std::string StashGold(const D2RL::PluginContext* context, uintptr_t panel) {
 		AsyncLog::InfoF(context, "[stash] gold box=%d text=\"%s\" stat=%d", box ? 1 : 0, text.c_str(), NativeGroundItems::PlayerStashGold());
 	}
 	return digits;
+}
+
+// The shared stash's page, from the text between its arrows: the pages are no tab bar,
+// RB and LB change only this box (BankExpansionLayoutHD.json StashNavigation). Empty
+// on the other tabs, where it is hidden, and while it holds no page yet.
+constexpr std::string_view SharedPagePath[] = {"SharedStashTabContainer", "StashNavigation", "CurrentSharedStashText"};
+std::string SharedPage(uintptr_t panel) {
+	uintptr_t box = NativeWidgets::FindChild(panel, StashGoldContainer);
+	for (const auto name : SharedPagePath) box = NativeWidgets::FindChild(box, name);
+	if (!box || !NativeUi::Visible(box)) return {};
+	auto text = UiText::Clean(NativeWidgets::ReadText(box));
+	return text.starts_with('@') ? std::string{} : text; // the layout's key, not yet a page
+}
+
+// The stash tab the open panel shows, from its tab bars' selected labels.
+StashCount::GoldTab StashTab(const D2RL::PluginContext* context, uintptr_t panel) {
+	std::vector<std::string> selected;
+	for (uintptr_t bar : NativeUi::FindControls(panel, UiText::Kind::Tabs))
+		if (auto label = UiText::Clean(NativeUi::SelectedTabText(bar)); !label.empty()) selected.push_back(std::move(label));
+	const auto tab = StashCount::TabOf(selected, UiText::Clean(Localization::Text("personal")), UiText::Clean(Localization::Text("shared")));
+	static StashCount::GoldTab logged = StashCount::GoldTab::Unknown;
+	static bool any = false;
+	if (!any || tab != logged) {
+		any = true;
+		logged = tab;
+		AsyncLog::InfoF(context, "[stash] gold tab=%s selected=\"%s\"", tab == StashCount::GoldTab::Personal ? "personal"
+			: tab == StashCount::GoldTab::Shared ? "shared" : "unknown", selected.empty() ? "" : selected.front().c_str());
+	}
+	return tab;
+}
+
+// An empty stash slot named from its widget, whose layout name is the item code, as "Chipped Amethyst: 0".
+std::string EmptyStashSlot(const D2RL::PluginContext* context, uintptr_t widget) {
+	const auto stack = NativeUi::StashSlotStackCount(widget);
+	if (!stack.slot || stack.shown) return {};
+	const auto code = StashCount::CodeOfWidgetName(NativeWidgets::ReadName(widget));
+	const auto classId = code ? NativeGroundItems::ClassOfCode(code) : std::nullopt;
+	const auto name = classId ? NativeGroundItems::ClassLabel(*classId, 0).baseName : std::string{};
+	if (name.empty()) return {};
+	static uintptr_t logged = 0;
+	if (logged != widget) {
+		logged = widget;
+		AsyncLog::InfoF(context, "[stash] empty slot code=%s name=\"%s\"", NativeWidgets::ReadName(widget).c_str(), name.c_str());
+	}
+	return StashCount::Empty(name, Strings::Current().stashSlotEmpty);
 }
 
 bool IsInventory(UiText::Kind kind) {
@@ -505,10 +598,17 @@ std::string Title(uintptr_t panel) {
 		const auto partner = TradePartner(panel);
 		return partner.empty() ? Localization::Text("NPCMenuTrade") : Formatted(Strings::Current().tradeWith, partner);
 	}
-	const bool stash = NativeUi::Classify(panel).name == "BankPanel";
+	// A shop has no title of its own (VendorPanelLayoutHD.json): it is named by its vendor.
+	if (NativeWidgets::ReadName(panel).find("Vendor") != std::string::npos) {
+		const auto vendor = EntityRadarService::NearestNpc();
+		return vendor.empty() ? Strings::Current().shop : vendor;
+	}
+	// The player opened the stash and knows it: its tab and page are the news (a tester, 2026-10-17).
+	if (NativeUi::Classify(panel).name == "BankPanel") return {};
+	if (NativeWidgets::ReadName(panel) == CubeState::Panel) return CubeState::Name();
 	const bool hireling = NativeWidgets::ReadName(panel) == "HirelingInventoryPanel";
-	const auto localized = Localization::Text(stash ? "stash" : hireling ? "MiniPanelHireinv" : "minipanelinv");
-	return localized.empty() ? (stash ? Strings::Current().stash : Strings::Current().inventory) : localized;
+	const auto localized = Localization::Text(hireling ? "MiniPanelHireinv" : "minipanelinv");
+	return localized.empty() ? Strings::Current().inventory : localized;
 }
 
 UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type) {
@@ -519,6 +619,10 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	result.context = g_inventoryContext.name;
 	result.body = g_inventoryContext.title;
 	Append(result.body, TabReader::Selected(focus.panel));
+	if (g_inventoryContext.name == StashPanel) Append(result.body, SharedPage(focus.panel));
+	// The cube is a place of its own, in its window or in the stash; the stash tab says whether a cube is open beside it.
+	if (CubeState::IsGrid(g_inventoryContext.name, NativeWidgets::ReadName(focus.widget))) result.body = CubeState::Name();
+	else if (g_inventoryContext.name == StashPanel) result.body = CubeState::WithStashStatus(context, result.body, focus.panel);
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
 	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) Append(result.body, Strings::Current().tradeYourOffer);
@@ -538,6 +642,25 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	if (type.kind == UiText::Kind::InventorySlot)
 		if (const char* slot = SlotName(SlotLocation(context, focus.widget))) Append(result.option, slot);
 	return result;
+}
+
+// Where a carried item was just put down, so releasing it is not only "item
+// released". Equipment slots, grid cells and belt cells are exact.
+std::string Destination(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type) {
+	if (type.kind == UiText::Kind::InventorySlot) {
+		const char* slot = SlotName(SlotLocation(context, focus.widget));
+		return slot ? slot : Strings::Current().equipment;
+	}
+	if (type.name == "BeltWidget") {
+		const auto slot = NativeUi::BeltItem(focus.widget);
+		const auto location = slot.known ? BeltReader::Location(slot.slot) : std::string{};
+		return location.empty() ? Strings::Current().belt : location;
+	}
+	const auto cell = NativeUi::GridCell(focus.widget);
+	if (cell.x < 0) return {};
+	char phrase[100]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
+	return phrase;
 }
 
 // The game goes on drawing the tooltip of the place the pointer left for a
@@ -598,6 +721,7 @@ std::vector<std::string> MercenaryLines(uintptr_t panel) {
 	std::vector<std::string> lines;
 	for (auto line : {MercenaryStats::Name(panel), MercenaryStats::LevelAndType(panel), MercenaryStats::Experience(panel)})
 		if (!line.empty()) lines.push_back(std::move(line));
+	for (auto& line : MercenaryStats::SkillLines(panel)) lines.push_back(std::move(line));
 	for (auto& line : MercenaryStats::Lines(panel))
 		if (!line.empty()) lines.push_back(std::move(line));
 	return lines;
@@ -679,12 +803,12 @@ std::string SocketState(const ItemHand::Under& item) {
 }
 
 // What the hand did: picked up, put down, socketed, stacked, swapped or thrown.
-std::string HandNotice(const D2RL::PluginContext* context,
+std::string HandNotice(const D2RL::PluginContext* context, NativeUi::Focus focus, const NativeUi::Type& type,
 	const InventoryCursor::ItemState& held, uint32_t heldBefore, bool wasHolding, bool filler, uint32_t focusedId, uintptr_t focusedUnit) {
 	const auto& strings = Strings::Current();
 	if (held.id && !wasHolding) {
 		g_heldUnmet = g_itemUnmet;
-		return {}; // local preference: picking an item up is silent
+		return g_handSpeech ? strings.itemInHand : std::string{};
 	}
 	if (!wasHolding) return {};
 	ItemHand::Under after{focusedId};
@@ -712,10 +836,9 @@ std::string HandNotice(const D2RL::PluginContext* context,
 	}
 	case ItemHand::Outcome::Placed: case ItemHand::Outcome::None: break;
 	}
-	if (held.id) return {};
-	// A plain release stays silent on this branch. Only the specific outcomes
-	// above add feedback; the existing focus readout already names a placement.
-	return {};
+	if (held.id || !g_handSpeech) return {};
+	const auto destination = Destination(context, focus, type);
+	return destination.empty() ? std::string(strings.itemReleased) : Formatted(strings.itemPlacedIn, destination);
 }
 
 // The sockets of the item under a gem in hand, read once per item and hand.
@@ -727,7 +850,7 @@ std::string SocketsUnder(const D2RL::PluginContext* context, uint32_t id, uintpt
 	return g_socketRead.state;
 }
 
-std::string CursorNotice(const D2RL::PluginContext* context, bool inventory,
+std::string CursorNotice(const D2RL::PluginContext* context, bool inventory, NativeUi::Focus focus, const NativeUi::Type& type,
 	uint32_t focusedId, uintptr_t focusedUnit, const std::string& focusedName) {
 	// Focus may pass through another control while the same item remains held.
 	if (!inventory && !g_wasHolding.value_or(false)) return {};
@@ -740,7 +863,7 @@ std::string CursorNotice(const D2RL::PluginContext* context, bool inventory,
 		g_heldFiller = held->id && NativeGroundItems::SocketFiller(held->classId);
 		g_socketRead = {};
 	}
-	auto notice = inventory ? HandNotice(context, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
+	auto notice = inventory ? HandNotice(context, focus, type, *held, heldBefore, wasHolding, wasFiller, focusedId, focusedUnit) : std::string{};
 	// Recorded after the notice, which judges the hand against what lay under it before.
 	if (held->id) Hover(context, focusedId, focusedUnit, focusedName);
 	else g_hovered = {};
@@ -770,11 +893,110 @@ bool HandlesFocus(NativeUi::Focus focus) {
 		|| type.name == "HirelingSkillIconWidget";
 }
 
+// The branch the skill tree shows, read from the tree itself: the tab whose skill
+// container is visible. A change with the cursor on no node (the left stick moved
+// it off; a tester, 2026-10-14) was read only once a node had focus again. The
+// first branch seen is left to the focus reader, which says it with the window.
+constexpr std::string_view SkillsTreePanel = "SkillsTreePanel";
+constexpr const char* SkillContainers[] = {"SkillButtonContainer", "CommonSkillsContainer", "ItemSkillsContainer"};
+constexpr std::string_view SkillCounter = "SkillCounter";
+void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(SkillsTreePanel) : 0;
+	if (!panel || !NativeUi::Visible(panel)) { g_branchShown = 0; return; }
+	uintptr_t open = 0;
+	bool classTree = false;
+	for (const uintptr_t tab : NativeUi::FindControls(panel, UiText::Kind::TabButton)) {
+		if (!NativeUi::Visible(tab)) continue;
+		for (const uintptr_t child : NativeUi::Children(tab)) {
+			const auto name = NativeWidgets::ReadName(child);
+			const auto known = std::find(std::begin(SkillContainers), std::end(SkillContainers), name);
+			if (known == std::end(SkillContainers) || !NativeUi::Visible(child)) continue;
+			open = tab;
+			classTree = known == std::begin(SkillContainers);
+		}
+		if (open) break;
+	}
+	if (!open || open == g_branchShown) return;
+	const bool first = !g_branchShown;
+	g_branchShown = open;
+	if (first || open == g_skillTab) return;
+	std::string title = UiText::Clean(NativeUi::TabLabel(open));
+	if (title.empty()) return;
+	const auto points = UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(panel, SkillCounter)));
+	g_tabTitle = title;
+	g_tabChangedAt = now;
+	g_tabFocus.clear();
+	g_skillTab = open;
+	g_skillTabPanel = panel;
+	if (classTree && CharacterStats::HasPoints(points)) Append(title, points);
+	D2RAccess::AsyncLog::InfoF(context, "[skill-tree] branch shown -> \"%s\"", title.c_str());
+	ScreenReader::Speak(title, true);
+}
+
+// The stash says its tab as it opens, wherever the first focus lands, and the shared
+// stash's page as RB and LB turn it (a tester, 2026-10-15).
+constexpr uint64_t StashOpenHoldMs = 1200;
+// The focus lands about 500 ms after the panel shows; until then the stash panel is
+// focused with no widget, which is no readout (a tester, 2026-10-17: nothing said).
+constexpr uint64_t StashFocusWaitMs = 1000;
+uintptr_t g_stashShown = 0;
+uint64_t g_stashShownAt = 0;
+bool g_stashTold = false;
+std::string g_sharedPage;
+void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(StashPanel) : 0;
+	if (!panel || !NativeUi::Visible(panel)) { g_stashShown = 0; g_sharedPage.clear(); return; }
+	const auto page = SharedPage(panel);
+	if (g_stashShown != panel) {
+		g_stashShown = panel;
+		g_stashShownAt = now;
+		g_stashTold = false;
+		g_sharedPage = page;
+	}
+	if (!g_stashTold) {
+		if (!focus.widget && now - g_stashShownAt < StashFocusWaitMs) return;
+		g_stashTold = true;
+		g_sharedPage = page;
+		if (focus.widget && focus.panel == panel) return; // a stash grid's own readout names its tab
+		std::string text = Title(panel);
+		for (const uintptr_t bar : NativeUi::FindControls(panel, UiText::Kind::Tabs))
+			Append(text, UiText::Clean(NativeUi::SelectedTabText(bar)));
+		Append(text, page);
+		D2RAccess::AsyncLog::InfoF(context, "[stash] opened -> \"%s\"", text.c_str());
+		ScreenReader::Lead(text, now + StashOpenHoldMs);
+		return;
+	}
+	if (page == g_sharedPage) return;
+	// Back on the shared tab the page follows the tab's name; a new page cuts in.
+	const bool turned = !page.empty() && !g_sharedPage.empty();
+	g_sharedPage = page;
+	if (page.empty()) return;
+	D2RAccess::AsyncLog::InfoF(context, "[stash] shared page -> \"%s\"", page.c_str());
+	ScreenReader::Speak(page, turned);
+}
+
+// Each waypoint row focused is logged once with what its state was read from, the
+// game's row table (docs/waypoints.md), until the reading is measured live.
+constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
+uintptr_t g_loggedRow = 0;
+void LogWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
+	if (!focus.widget || focus.widget == g_loggedRow || !NativeWidgets::ReadName(focus.panel).starts_with(WaypointsPanelPrefix)) return;
+	g_loggedRow = focus.widget;
+	const auto name = NativeWidgets::ReadName(focus.widget);
+	const auto row = NativeWaypoints::Read(focus.panel, name);
+	D2RAccess::AsyncLog::InfoF(context, "[waypoint] row %s -> %s (tab=%d rows=%d level=%d open=%u player=%d)", name.c_str(),
+		NativeWaypoints::Name(row.state), row.tab, row.count, row.level, static_cast<unsigned>(row.open), row.player);
+}
+
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
+	TickSkillBranch(context, now);
+	TickStash(context, now, focus);
+	LogWaypointRow(context, focus);
 	// The Advanced Stats list has nothing the controller can focus, and a menu
 	// reader may or may not own its scroll bar, so its stick reader runs either
 	// way -- and before the character panel's, whose panel stays open behind it.
 	if (AdvancedStatsReader::Tick(context, focus)) return !conversation;
+	if (PartyReader::Tick(context, focus)) return !conversation;
 	// The hire list's stats exist only in the game's tooltip, and a menu
 	// suspends this reader and its capture; HireStats keeps capture on there
 	// and takes the right stick. Its skill icons and gold lines are the
@@ -784,12 +1006,15 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	const bool hire = HireStats::Tick(context, now, focus);
 	if (conversation) {
 		if (!hire) Reset();
+		// A vendor's LT/RT before the cursor reaches a grid: the trade menu behind still reads (a tester, 2026-10-18).
+		if (!tabChange.empty() && !PanelState::TakeAnnounced(tabChange)) ScreenReader::Speak(std::string(tabChange), true);
 		return false;
 	}
 	if (hire) return true;
 	// Focus that has been anywhere else since, even back in the same panel
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;
+	if (focus.panel != g_skillTabPanel) g_skillTab = g_skillTabPanel = 0;
 	// The character panel's own stick reader goes first: it claims all four
 	// directions, and ReadDetail below would otherwise take up from it. Nothing
 	// is lost by that order -- the character panel holds neither items nor
@@ -811,7 +1036,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// empty. Read the visible identity now; tooltip properties remain detail.
 	const std::string stashName = stashSlot ? UiText::Clean(Localization::Text(NativeWidgets::ReadName(focus.widget))) : std::string{};
 	const auto itemSlot = stashSlot ? NativeUi::ItemWidgetSlot(focus.widget) : NativeUi::GridSlot{};
-	if (type.kind == UiText::Kind::InventoryGrid) InventoryCensus::Log(context, focus, now);
+	// Diagnosis only, and it reads every cell: off unless items are logged.
+	if (type.kind == UiText::Kind::InventoryGrid && g_logItems.load(std::memory_order_relaxed)) InventoryCensus::Log(context, focus, now);
 	const auto selection = NativeUi::FocusSelection(focus.widget);
 	const auto equipmentPresence = type.kind == UiText::Kind::InventorySlot
 		? NativeUi::EquipmentItemPresence(focus.widget) : NativeUi::ItemPresence::Unknown;
@@ -830,34 +1056,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// at once now the controller layout's delay is gone (TooltipDelay; the
 	// user, 2026-09-22, on naming it early from the slot: "the belt fix is now
 	// unnecessary"). An empty slot has no tooltip at all, so it says so itself.
+	// Every cell is also told by its D-pad button, its row and its column's count (docs/belt.md).
 	uintptr_t beltItem = 0;
+	const auto belt = type.name == "BeltWidget" ? BeltReader::Read(context, focus.widget) : BeltReader::Readout{};
 	if (type.name == "BeltWidget") {
-		const auto belt = NativeUi::BeltItem(focus.widget);
-		if (belt.slot != g_beltSlot) {
-			g_beltSlot = belt.slot;
-			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.slot, belt.known ? 1 : 0,
-				reinterpret_cast<void*>(belt.item));
-		}
-		if (belt.known && !belt.item) {
-			readout.option = Strings::Current().slotEmpty;
-			// An empty slot says where it is, as an empty cell of a grid does. The
-			// belt's rows are counted from the bottom one, which is the row that is
-			// drunk from; its columns are the keys 1 to 4.
-			if (belt.slot >= 0) {
-				char phrase[64]{};
-				std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, belt.slot / 4 + 1, belt.slot % 4 + 1);
-				readout.coordinates = phrase;
-			}
+		if (belt.item.slot != g_beltSlot) {
+			g_beltSlot = belt.item.slot;
+			AsyncLog::InfoF(context, "[belt] slot=%d known=%d item=%p", belt.item.slot, belt.item.known ? 1 : 0,
+				reinterpret_cast<void*>(belt.item.item));
 		}
 		// An empty bottom cell shows, see-through, the inventory potion its
-		// D-pad button would drink (docs/belt.md): name it instead of "Empty".
-		if (belt.known && !belt.item && belt.slot >= 0 && belt.slot < 4) {
-			if (const auto automatic = NativeBelt::AutomaticItem(context, focus.widget, belt.slot); automatic && *automatic) {
-				readout.option = NativeGroundItems::ItemBaseName(*automatic);
-				Append(readout.option, Strings::Current().beltAutomatic);
-			}
-		}
-		if (belt.known) beltItem = belt.item;
+		// D-pad button would drink: name it instead of "Empty".
+		if (belt.item.known && !belt.item.item)
+			readout.option = belt.automatic ? NativeGroundItems::ItemBaseName(belt.automatic) : std::string(Strings::Current().slotEmpty);
+		if (belt.item.known) beltItem = belt.item.item;
 	} else g_beltSlot = -2;
 	// Moving to another cell drops the previous item's detail even before its
 	// own tooltip renders, so a push up can never answer about the last item.
@@ -868,7 +1080,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else if (type.kind == UiText::Kind::StatButton) OfferDetail(std::to_string(focus.widget), progression.description);
 	bool goldAmount = false; // the gold row is saying the amount in place of its label
 	if (button) {
-		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
+		const auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget, focus.panel);
 		readout = UiText::Describe(snapshot);
 		readout.context = NativeWidgets::ReadName(focus.panel);
 		readout.focusKey = std::to_string(focus.widget);
@@ -913,10 +1125,16 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// withdraw button says the amount it acts on, the same way.
 		else if (focusName == StashGoldButton) {
 			std::string gold = StashGold(context, focus.panel);
-			if (const int stat = NativeGroundItems::PlayerStashGold(); gold.empty() && stat >= 0) gold = std::to_string(stat);
+			const auto tab = StashTab(context, focus.panel);
+			// The gold stat is the personal stash's amount only.
+			if (const int stat = NativeGroundItems::PlayerStashGold();
+				gold.empty() && stat >= 0 && tab == StashCount::GoldTab::Personal) gold = std::to_string(stat);
 			if (!gold.empty()) {
 				char phrase[96]{};
-				std::snprintf(phrase, sizeof(phrase), Strings::Current().goldStashed, gold.c_str());
+				const auto& strings = Strings::Current();
+				const char* format = tab == StashCount::GoldTab::Personal ? strings.goldPersonalStash
+					: tab == StashCount::GoldTab::Shared ? strings.goldSharedStash : strings.goldStashed;
+				std::snprintf(phrase, sizeof(phrase), format, gold.c_str());
 				readout.option = phrase;
 				goldAmount = true;
 			}
@@ -933,7 +1151,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
-	std::string skillAddition;
+	std::string skillAddition, comparisonNow;
 	const std::string tableHeadline = progression.skill && !progression.name.empty()
 		? ProgressionText::SkillReadout(progression.name, AutoDetail::Enabled() ? progression.points : std::string{}, progression.help).headline
 		: std::string{};
@@ -967,23 +1185,35 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				OfferLines(linesOwner, std::move(lines));
 			}
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels());
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels());
 			// Magic and better, the quality the screen shows only by colour
 			// ("Crimson Spear. magic"); an unidentified item says so instead
 			// (Split). A lesser item's own name already says it ("Superior Short
 			// Sword"), and a runeword's name is its own, so the name is kept.
 			if (!split.unidentified && !split.name.empty()) {
-				const uint32_t quality = NativeGroundItems::ItemUnitLabel(focusItem).quality;
+				const uint32_t quality = itemLabel.quality;
 				const auto& qualities = Strings::Current().itemQualities;
 				if (quality >= static_cast<uint32_t>(D2RL::Items::Quality::Magic) && quality < qualities.size())
 					Append(split.name, qualities[quality]);
+				// A white name the game draws gray (socketed or ethereal): the colour only.
+				if (GroundItemText::SilverEnabled() && GroundItemText::IsSilver(quality, itemLabel.flags))
+					Append(split.name, Strings::Current().silverItem);
 			}
 			if (itemLabel.id) g_itemNames.Remember(itemLabel.id, itemLabel.baseName, itemLabel.quality, split.name);
+			// Gem, rune and material tabs draw a stack's count on its slot, not in the tooltip.
+			if (const auto stack = NativeUi::StashSlotStackCount(focus.widget); stack.slot && !split.name.empty()) {
+				split.name = StashCount::WithCount(split.name, stack.text, stack.shown, Strings::Current().listSeparator);
+				static std::string logged;
+				if (const auto line = split.name + "|" + stack.text + (stack.shown ? "|shown" : "|hidden"); line != logged) {
+					logged = line;
+					D2RAccess::AsyncLog::InfoF(context, "[stash] slot -> \"%s\" count text=\"%s\" %s", split.name.c_str(), stack.text.c_str(),
+						stack.shown ? "shown" : "hidden");
+				}
+			}
 			// What a sighted player sees in red, said right after that.
 			g_itemUnmet = split.unmet;
 			if (!split.unmet.empty()) Append(split.name, Refusal(split.unmet));
-			split.headline = split.name;
-			Append(split.headline, split.price);
+			split.headline = TooltipText::Headline(split);
 			Append(split.detail, UiText::Clean(tooltip.footer));
 			// The engine stores a body bottom-up, so Read gives the lines back
 			// in screen order and the name leads. The log still names the line
@@ -1003,11 +1233,14 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (const auto comparison = TooltipText::Comparison(tooltip.extras); comparison != g_compareLogged) {
 				g_compareLogged = comparison;
 				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
+				if (!comparison.empty() && g_compareAloud.load(std::memory_order_relaxed)) comparisonNow = Equipped(tooltip.extras);
 			}
-			// With autodetail the cells the item takes up come right after the
-			// name, ahead of any price; otherwise they wait for right stick right.
+			// With autodetail the cells the item takes up follow the name and a
+			// stack's or tome's count, ahead of any price; otherwise they wait for
+			// right stick right.
 			if (AutoDetail::Enabled()) {
 				description = std::move(split.name);
+				Append(description, split.stack);
 				Append(description, size);
 				Append(description, split.price);
 				Append(description, split.detail);
@@ -1043,7 +1276,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		else if ((inventory || button) && !goldAmount && (type.kind != UiText::Kind::StatButton || progression.readout.Empty())) {
 			Append(readout.option, description);
 		}
-		else if (!focus.panel) { readout.context = "World target"; readout.body = description; }
+		else if (!focus.panel) { readout.context = "World target"; readout.body = GameTextReader::NameSpeaker(description); }
 	}
 	if (progression.skill && !renderedDescription && !tableHeadline.empty()) readout.option = tableHeadline;
 	if (!progression.skill) { g_skillLines.clear(); g_skillLinesWidget = 0; }
@@ -1074,6 +1307,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout.coordinates.clear();
 		renderedDescription = true;
 	}
+	// An empty gem, rune or material slot draws no tooltip: its item, with a zero count.
+	if (type.kind == UiText::Kind::InventoryItem && !renderedDescription && readout.option.empty()) {
+		readout.option = EmptyStashSlot(context, focus.widget);
+		renderedDescription = !readout.option.empty();
+	}
 	if (type.kind == UiText::Kind::InventorySlot && !renderedDescription) {
 		if (equipmentPresence == NativeUi::ItemPresence::Empty) Append(readout.option, Strings::Current().slotEmpty);
 		// An occupied slot is read with its item or not at all. "Occupied" first
@@ -1089,8 +1327,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// stick down, and spoken unasked only last and only with autodetail and
 	// control tooltips on -- MEASURED 2026-09-21, a change of hints spoken on
 	// its own interrupted the gold amount it followed.
-	const auto help = !(inventory || button || stats) ? std::string{}
+	auto help = !(inventory || button || stats) ? std::string{}
 		: progression.skill ? progression.controls : NativeControllerHelp::ForFocus(focus);
+	if (type.kind == UiText::Kind::InventoryGrid) help = CubeState::WithOpenHint(context, help, focusItem);
 	if (inventory || button || stats) ControlHints::Offer(help);
 	const auto helpContext = readout.context + ":" + readout.body;
 	// Button hints belong after the thing they act on. An occupied cell or slot
@@ -1109,7 +1348,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// has had time to answer was refused (equip_attempt.h).
 	std::string cursorNotice;
 	if (inventory) {
-		cursorNotice = CursorNotice(context, inventory, itemLabel.id, focusItem, heldOver.empty() ? readout.option : heldOver);
+		cursorNotice = CursorNotice(context, inventory, focus, type, itemLabel.id, focusItem, heldOver.empty() ? readout.option : heldOver);
 		if (!cursorNotice.empty()) AsyncLog::InfoF(context, "[item] hand -> \"%s\"", cursorNotice.c_str());
 		const bool held = g_wasHolding.value_or(false);
 		const bool pressed = held && type.kind == UiText::Kind::InventorySlot
@@ -1122,12 +1361,20 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			ScreenReader::Speak(refusal, true);
 		}
 	}
+	// A belt cell's button and row lead what it holds; its column's count follows.
+	if (!belt.location.empty()) {
+		std::string text = belt.location;
+		Append(text, readout.option);
+		Append(text, belt.summary);
+		readout.option = std::move(text);
+	}
 	const bool helpChanged = help != g_spokenHelp || helpContext != g_helpContext;
 	g_help = help;
 	if (!focus.panel && readout.Empty()) {
-		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel("HUDMonsterHealth"), 0);
+		const auto target = NativeUi::Snapshot(NativeWidgets::FindPanel(MonsterPlate), 0);
 		if (target.surface == UiText::Surface::Target) readout = UiText::Describe(target);
 	}
+	if (!focus.panel) GroundItemService::NoteWorldTarget(readout.body);
 	if (!focus.panel && GroundItemService::OwnsWorldLabel(readout.body)) {
 		readout = {};
 		renderedDescription = false;
@@ -1137,8 +1384,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// which the right-stick scan would never list. Those are dropped and the
 	// reader is left with nothing to say, so the same entity announces itself as
 	// soon as it is really in sight.
-	if (!focus.panel && !readout.Empty()
-		&& EntityRadarService::LabelSight(readout.body) == TargetSight::Sight::Hidden) {
+	const auto bearer = !focus.panel && !readout.Empty() ? EntityRadarService::LabelTarget(readout.body) : TargetSight::Bearer{};
+	// A monster the plate names is said once it is within melee reach (a ranged
+	// attack reaches what the auto-target picks), and not again while the
+	// auto-target keeps trading it with the rest of its pack.
+	const bool monsterLabel = !focus.panel && !readout.Empty() && bearer.sight != TargetSight::Sight::Hidden
+		&& (bearer.sight == TargetSight::Sight::Visible ? bearer.kind == EntityRadar::Kind::Enemy : readout.context == MonsterPlate);
+	if (bearer.sight == TargetSight::Sight::Hidden) {
 		if (g_hiddenLabel != readout.body) {
 			g_hiddenLabel = readout.body;
 			AsyncLog::InfoF(context, "[interaction] behind a wall, not spoken -> \"%s\"", readout.body.c_str());
@@ -1146,6 +1398,32 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout = {};
 		renderedDescription = false;
 	} else if (!readout.Empty()) g_hiddenLabel.clear();
+	// A barrel broken with another in reach: the target moves to a unit of the same
+	// name and the label never changes, so the new unit is what makes it news (a tester).
+	if (!focus.panel && !monsterLabel && bearer.sight == TargetSight::Sight::Visible && bearer.id) {
+		if (bearer.id != g_worldTargetId && g_worldTargetId && readout.body == g_worldTargetBody) g_reader.Reset();
+		g_worldTargetId = bearer.id;
+		g_worldTargetBody = readout.body;
+		// The scan's name says which one of a shared label: "Cairn Stone, downward drop" (a tester, 2026-10-14).
+		readout.body = TargetSight::Spoken(readout.body, bearer);
+	}
+	if (!monsterLabel) g_monsterNames.Absent();
+	else {
+		const bool visible = bearer.sight == TargetSight::Sight::Visible;
+		if (!g_monsterNames.Admit(readout.body, visible ? std::optional{bearer.distance} : std::nullopt,
+			visible && bearer.important, EntityCueService::NamingReach(), now)) {
+			if (g_quietMonster != readout.body) {
+				g_quietMonster = readout.body;
+				AsyncLog::InfoF(context, "[interaction] out of reach or just heard, not spoken -> \"%s\" distance=%.1f",
+					readout.body.c_str(), visible ? bearer.distance : -1.0);
+			}
+			readout = {};
+			renderedDescription = false;
+		} else {
+			g_quietMonster.clear();
+			readout.body = MonsterNames::Speakable(readout.body);
+		}
+	}
 	if (inventory != g_inventory) {
 		// Leaving the inventory for play silences what it was saying; leaving it
 		// for another tab does not, because that tab's title is already being
@@ -1154,7 +1432,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// queued at .397, in the same poll as the first focus off the inventory,
 		// and the user heard both cut to silence. The title interrupts an item
 		// readout on its own.
-		if (g_inventory && RadarUi::InPlay()) ScreenReader::Stop();
+		const bool toModal = g_inventory && focus.panel && NativeWidgets::ReadName(focus.panel).ends_with("Modal");
+		if (toModal) {
+			g_modalReturnPanel = g_inventoryContext.panel;
+			g_modalReturnKey = g_lastInventoryKey;
+		} else if (g_inventory && RadarUi::InPlay()) ScreenReader::Stop();
 		g_reader.Reset();
 	}
 	g_inventory = inventory;
@@ -1172,6 +1454,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// named. MEASURED 2026-09-21: "Character" was said twice, the second
 		// time with interrupt, which cut off what was queued behind the first.
 		g_tabChangedAt = now;
+		g_tabFocus.clear();
 		const bool named = PanelState::TakeAnnounced(tabChange);
 		if (named) D2RAccess::AsyncLog::InfoF(context, "[tabs] %s already named by the window, not repeated", std::string(tabChange).c_str());
 		std::string text(named ? std::string_view{} : tabChange);
@@ -1188,10 +1471,22 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	} // the hints stay pending until the description arrives
 	if (progression.skill && !renderedDescription && tableHeadline.empty()) return true;
 	if (readout.Empty() && help.empty()) { g_reader.Reset(); if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false); return inventory || button || stats; }
+	if (inventory) {
+		const bool returned = g_modalReturnPanel == focus.panel && g_modalReturnKey == readout.focusKey;
+		g_modalReturnPanel = 0;
+		g_lastInventoryKey = readout.focusKey;
+		if (returned) {
+			(void)g_reader.Update(readout, now, 0);
+			D2RAccess::AsyncLog::Info(context, "[interaction] back from a confirmation on the same cell, not repeated");
+			return true;
+		}
+	}
 	// A rendered, focus-matching item description is already complete. Cells
 	// without one wait a single poll for capture, rather than the dialogue delay.
+	// A monster name the gate admits is new by construction; waiting for it to
+	// settle loses it to the auto-target's next hop (live log, 2026-10-02).
 	auto announcement = progression.skill && !renderedDescription ? g_reader.Update(readout, now, InventorySettleMs)
-		: button ? g_reader.Update(readout, now, 0)
+		: button || monsterLabel ? g_reader.Update(readout, now, 0)
 		: inventory ? g_reader.Update(readout, now, renderedDescription || type.kind == UiText::Kind::InventorySlot || (stashSlot && !itemName.empty()) ? 0 : InventorySettleMs)
 		: g_reader.Update(readout, now);
 	if (type.kind == UiText::Kind::StatButton && !progression.readout.Empty()) {
@@ -1200,7 +1495,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// The new value alone: right stick right says the points left.
 			if (g_stat.value != progression.value) Append(changed, progression.value);
 		}
-		if (!changed.empty() && !announcement.text.empty()) announcement.text = std::move(changed);
+		// A point spent changes the value under a focus that stays put, which the
+		// reader need not re-announce: the change is said either way (a tester,
+		// 2026-10-12: only moving away and back read the new value).
+		if (!changed.empty()) {
+			announcement.text = std::move(changed);
+			announcement.interrupt = true;
+		} else if (!announcement.text.empty()) Append(announcement.text, CharacterStatsReader::PointsFor(focus.widget, now));
 		g_stat = {focus.widget, progression.value, progression.points};
 	}
 	// A control hint follows the thing it acts on and never leads. While the
@@ -1227,12 +1528,38 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
-		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs;
+		if (progression.skill && progression.tab) {
+			// The branch leads, as the tree opens and on each LT/RT change, with the skill
+			// choices left in a class tree (a tester, 2026-10-13: "Defensive Auras, 1 Skill
+			// choice"); General Skills has none of its own. On opening it queues behind the
+			// window's title; a change interrupts.
+			if (g_skillTab != progression.tab && !readout.body.empty()) {
+				const bool opened = !g_skillTab;
+				g_tabTitle = readout.body;
+				g_tabChangedAt = now;
+				g_tabFocus.clear();
+				std::string title = g_tabTitle;
+				if (progression.classTree && CharacterStats::HasPoints(progression.points)) Append(title, progression.points);
+				AsyncLog::InfoF(context, "[skill-tree] branch %s -> \"%s\"", opened ? "opened" : "changed", title.c_str());
+				ScreenReader::Speak(title, !opened);
+			}
+			g_skillTab = progression.tab;
+			g_skillTabPanel = focus.panel;
+		}
+		const bool behindTitle = g_tabChangedAt && now - g_tabChangedAt < TabTitleMs
+			&& (g_tabFocus.empty() || g_tabFocus == readout.focusKey);
 		if (behindTitle && announcement.text.starts_with(g_tabTitle + ". "))
 			announcement.text.erase(0, g_tabTitle.size() + 2);
-		g_tabChangedAt = 0;
+		if (behindTitle) g_tabFocus = readout.focusKey;
+		else g_tabChangedAt = 0;
 		g_readPanel = focus.panel;
-		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows);
+		// A monster name is incremental combat news, never a context change; so is an
+		// inventory cell whose item left under the cursor (Y's stash notice goes first).
+		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel && !(inventory && announcement.sameFocus));
+	}
+	if (!comparisonNow.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[compare] aloud -> \"%s\"", comparisonNow.c_str());
+		ScreenReader::Speak(comparisonNow, announcement.text.empty());
 	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
@@ -1243,6 +1570,9 @@ void Reset() {
 	g_reader.Reset();
 	g_inventory = false;
 	g_inventoryContext = {};
+	g_modalReturnPanel = 0;
+	g_modalReturnKey.clear();
+	g_lastInventoryKey.clear();
 	g_stat = {};
 	g_help.clear();
 	g_spokenHelp.clear();
@@ -1251,8 +1581,13 @@ void Reset() {
 	g_skillMismatch.clear();
 	g_helpContext.clear();
 	g_hiddenLabel.clear();
+	g_quietMonster.clear();
+	g_monsterNames.Reset();
 	g_tabChangedAt = 0;
 	g_tabTitle.clear();
+	g_tabFocus.clear();
+	g_skillTab = 0;
+	g_skillTabPanel = 0;
 	if (g_lineReader.widget) PadFilter::ReleaseB();
 	g_lineReader = {};
 	g_keyLines = {};
@@ -1278,11 +1613,21 @@ void Reset() {
 	ControlHints::Offer({});
 }
 
+StashCount::GoldTab OpenStashTab(const D2RL::PluginContext* context) {
+	const uintptr_t panel = NativeWidgets::FindPanel(StashPanel);
+	return panel ? StashTab(context, panel) : StashCount::GoldTab::Unknown;
+}
+bool HandSpeech() { return g_handSpeech; }
+void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
+bool CompareAloud() { return g_compareAloud; }
+void SetCompareAloud(bool enabled) { g_compareAloud = enabled; }
+
 void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
 bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }
 
 std::string Repeat() {
-	std::string text = g_reader.Repeat();
+	std::string text = g_handSpeech && g_inventory && g_wasHolding.value_or(false) ? Strings::Current().itemInHand : "";
+	Append(text, g_reader.Repeat());
 	if (ControlHints::Automatic()) Append(text, g_help);
 	return text;
 }

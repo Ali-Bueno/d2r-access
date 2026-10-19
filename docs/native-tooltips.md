@@ -55,6 +55,14 @@ even with automatic detail disabled. Right-stick up and manual repeat retain it
 while visible; closing comparison removes it without another announcement. Focus/selection,
 conversation and lifecycle guards also apply to comparison text.
 
+Superseded on 2026-09-22 (`b444ee3`): holding Y reads nothing by itself, left stick
+right reads the equipped item, and the user kept compare on demand (decisions, 2026-10-03).
+2026-10-13, a tester: "pressing on an unequipped item brings up the comparison, which isn't
+read". Their log has 62 `[compare] drawn` lines (each a compare opening) and no left-stick
+compare read at all. Switch `compare-aloud` (Ctrl+S, Items and menus, off by default to keep the
+user's choice) reads it as it appears: the game's `currentEquip` heading, then each equipped
+record (`[compare] aloud -> "..."`).
+
 The user's unidentified Leather Armor log at 13:48:42 contains defense 17,
 durability 24/24, maximum sockets 2 and required strength 15, with the stock
 unidentified marker. Those are rendered game text; no hidden item-affix query is
@@ -122,6 +130,11 @@ ordinary grid items use their matching rendered description.
   status replaces quality. Prices and properties remain in right-stick-up detail;
   automatic detail still includes them. Delayed tooltips for ordinary items do
   not repeat the name. Controller hints follow the completed item announcement.
+- A stack's or tome's count line (`ItemStats1i` / `scrollbooktext`) joins the headline
+  after the name (`TooltipText::Headline`: name, count, price), with or without autodetail.
+  With autodetail the size follows the count, ahead of the price (bladestorm360's
+  2026-09-21 design, kept); otherwise Ctrl+PageDown or right stick right. A white
+  name drawn gray also gets the word "silver" ([silver-items.md](silver-items.md)).
 - Controller selection is the `FocusableWidget` pair of signed integers at
   `+0x544`/`+0x548`; `InventoryItemWidget` function `0x2A89C0` reads this pair
   and uses it to look up the selected item. Grid width/height at `+0x628` and
@@ -233,6 +246,26 @@ the box's own text, which follows the open tab; when the box cannot be read, the
 stash only. `[stash] gold box=… text=… stat=…` logs both on each change. Live check pending on a
 shared tab.
 
+## Stash stack counts {#stash-stack-counts}
+
+The gem, rune and material tabs (`advancedstash_gems/_runes/_materials` in `BankExpansionLayout`)
+are `AdvancedStashSlotWidget`s; the tooltip names the item, the count is drawn on the slot. Static RE
+of the live image (test 2026-10-12, no live check yet), RVAs:
+
+- Creator `0x2CE3F0` (size `0x848`, vtable `0x1CF4678`), type `0x2A9A198`, field table `0x2CE9B0`;
+  a sibling of `InventorySlotWidget` under `InventoryItemWidget`, so `+0x5D8` is its `itemCode`,
+  not a slot location.
+- `+0x618` embeds the `countText` TextBoxWidget (text at `+0x6A0`, the usual `+0x88`). Update
+  `0x2CF990` sets its text to the count and shows it only when the count is not zero.
+- The count is one item unit per class in a hidden proxy unit's inventory, `uint8` at
+  `ItemData(+0x10)+0x9C` (getter `0x46D9A0`, max 99), not stat 70; the SDK reports quantity 1.
+
+`NativeUi::StashSlotStackCount` reads the displayed text and visibility, and the item reader says
+`<name>, <count>` (`StashCount::WithCount`, the list separator); an empty slot hides its count and
+reads `<name>: 0` (`stashSlotEmpty`). With no tooltip at all, the name comes from the widget's layout name,
+which is the item code (`gcw`, `r01`), through `NativeGroundItems::ClassOfCode`; `[stash] empty slot` logs it.
+The gold line names the selected tab (`personal` / `shared` labels); `[stash] gold tab=` logs it. `[stash] slot -> ...` logs name, text and visibility on each change.
+
 ## Inventory action labels and equipment locations
 
 A read-only probe with the inventory open found `gold_button` as a native
@@ -333,6 +366,10 @@ The renderer subtracts `'0'` and accepts the result below `0x27`, so the index
 runs `'0'` through `'V'` -- 39 values. Three parser sites range-check it
 identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. Index 2 is the one
 a title is drawn in.
+
+`UiText::Clean` applies the same rule to every widget text (2026-10-02): the
+monster plate's affix line `\uE07E5•\uE07E0Invoca trinchantes` was spoken as
+"5• 0Invoca trinchantes".
 
 Item tooltips are drawn with index `'0'`; the index is D2's colour palette
 (see "Requirements the character does not meet" below). Stripping only `'1'` and `'2'` left

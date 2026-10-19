@@ -88,7 +88,7 @@ uintptr_t Parent(uintptr_t widget) {
 }
 // The real walk visits the panel and then its visible subtree in declaration
 // order, carrying each node's parent, name and text.
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t, uintptr_t) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;
 	snapshot.panel = panel;
@@ -157,6 +157,7 @@ namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) noexcept {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
+namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;

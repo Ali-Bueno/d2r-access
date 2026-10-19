@@ -31,6 +31,10 @@ void Poll();
 struct DpadInput { int x = 0, y = 0; bool pressed = false, held = false; };
 DpadInput Dpad();
 
+// The arrow keys, as sampled by the last Poll(): one direction held, with no Ctrl or
+// Shift (those step through lines). Only `held` is meaningful.
+DpadInput ArrowKeys();
+
 // The most recent left/right press edge, if it happened within the last
 // `maxAgeMs` milliseconds (measured via GetTickCount64); Horizontal::None
 // otherwise, or if no edge has been recorded yet.
@@ -55,7 +59,7 @@ FaceButton LastFaceButton(unsigned maxAgeMs);
 // Whether that face button was pressed since the previous Take() for it, then
 // cleared: for a reader that acts on the press itself (the skill line reader
 // closes on B). A caller should take it once before it starts listening, so an
-// old press is not mistaken for a new one. Only B is recorded so far.
+// old press is not mistaken for a new one. A (alone, without BACK) and B are recorded.
 bool TakeFacePress(FaceButton button);
 
 // Whether that face button is down on any pad, as of the last Poll(): for a
@@ -100,6 +104,11 @@ bool TakeLeftStickPushIf(StickPush wanted, const char* claimant);
 // survives ticks until it is claimed or a later push replaces it, so a reader
 // that declines it costs the player nothing but the next tick.
 StickPush PeekRightStickPush();
+// The same pending push read in the frame turned 45 degrees clockwise, the way
+// D2's walls lie on screen: a flick up-right is Up, down-right Right, down-left
+// Down, up-left Left (the stick's quarter, not its dominant axis). A posted
+// key's push is itself. None when nothing is pending. Claimed with the push.
+StickPush PeekTurnedRightStickPush();
 
 // What became of a push, written when it is resolved and not before: claimed
 // by a reader, or replaced by a later push while still pending. A push still
@@ -123,11 +132,39 @@ const char* PushName(StickPush push);
 // tick, in a menu too.
 bool TakeBackWith(FaceButton button);
 
-// Left thumbstick CLICK (L3): follows or releases the scanned target (beacon),
-// the mod's only stick button (R3 is the game's). The SDK's action service
-// binds keyboard keys only (D2RLPlugin/input.h Key/Modifier), so the pad
-// button is read here with the rest of the XInput state. Take() returns
-// whether a press happened since the previous Take() and clears it.
+// BACK+LB: follows or releases the scanned target (beacon). L3 and R3 are the
+// game's (run/walk, weapon swap); pad_filter.h keeps this LB press from the
+// game during play, as it does the face buttons. Take() returns whether a
+// press happened since the previous Take() and clears it.
+bool TakeBackWithLb();
+
+// A right-stick push made with BACK held, which no scanner or menu reader ever
+// sees: BACK+down describes the route to the scanned target (beacon_service.cpp).
+// Same Take() rules as BACK+LB.
+StickPush TakeBackWithRightStick();
+
+// BACK+LT (`right` false): the main skill bar; BACK+RT: the next of the mercenary,
+// summons and party members (a tester, 2026-10-14). pad_filter.h keeps that
+// trigger from the game during play. Same Take() rules as BACK+LB.
+bool TakeBackWithTrigger(bool right);
+
+// BACK+A and BACK+down trade places (a tester, 2026-10-14, switch `pad-route-on-a`):
+// BACK+A then gives the route and BACK+down the exit finder, to whichever reads them.
+bool RouteOnA();
+void SetRouteOnA(bool on);
+
+// BACK+RB: opens and closes the mod's settings list, the pad's Ctrl+S
+// (keyboard_service.cpp). pad_filter.h keeps this RB press from the game
+// during play, as it does LB's. Same Take() rules as BACK+LB.
+bool TakeBackWithRb();
+
+// LB or RB pressed without BACK: lower or raise a setting while the settings
+// list is open, when pad_filter.h keeps them from the game. Same Take() rules.
+bool TakeShoulder(bool right);
+
+// L3, the game's own run/walk toggle, which still reaches it: read only to
+// announce the new gait. Take() returns whether a press happened since the
+// previous Take() and clears it.
 bool TakeLeftStickClick();
 
 // Left trigger (LT/L2), the game's skill-bar toggle, as sampled by the last
@@ -143,6 +180,8 @@ TriggerHold LeftTrigger();
 // was steering when the cue fired. Zero and not connected without a pad.
 struct Stick { float x = 0, y = 0; bool connected = false; };
 Stick LeftStick();
+// The share of a stick's travel that counts as a deliberate push, not drift.
+inline constexpr float StickPushFraction = 0.5f;
 
 // The keyboard's twins of the gestures above. A key posts the gesture its
 // reader already listens for, so every reader serves pad and keyboard alike and
@@ -165,8 +204,8 @@ void PostLineStep(StickPush push, bool plain = false);
 bool LineStepPending();
 bool LineStepPlain();
 void PostBackWith(FaceButton button);
-void PostLeftStickClick();
-void PostFacePress(FaceButton button);  // only B has a reader so far
+void PostBackWithLb();
+void PostFacePress(FaceButton button);  // A and B have readers
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll
 // was never called.

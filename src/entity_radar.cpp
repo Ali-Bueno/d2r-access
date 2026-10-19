@@ -67,12 +67,20 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& 
 	return TraceSight(world, from, target.position, target.kind == Kind::Object ? target.footprint : Entity::ObjectFootprint{});
 }
 
+// Policy: the player's cross-shaped body covers the subtiles beside its own, so
+// a thing on any of them, diagonals included, is under the player.
+constexpr double AdjacentSubtiles = 1.5;
+
+bool UnderPlayer(double distance, const Settings& settings) {
+	return distance < AdjacentSubtiles || std::lround(distance * settings.unitsPerSubtile) < 1;
+}
+
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
-	const long steps = std::lround(distance * settings.stepsPerSubtile);
-	if (steps < 1) return strings.scanAdjacent;
-	if (steps == 1) return strings.scanStep;
+	const long units = std::lround(distance * settings.unitsPerSubtile);
+	if (UnderPlayer(distance, settings)) return strings.scanAdjacent;
+	if (units == 1) return strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(steps));
+	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(units));
 	return buffer;
 }
 }

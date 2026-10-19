@@ -1,4 +1,6 @@
+#include "belt_reader.h"
 #include "character_stats.h"
+#include "entity_cue_service.h"
 #include "entity_radar_service.h"
 #include "generated/item_sizes.h"
 #include "ground_item_text.h"
@@ -10,6 +12,7 @@
 #include "native_controller_help.h"
 #include "native_ground_items.h"
 #include "native_progression.h"
+#include "native_waypoints.h"
 #include "native_widgets.h"
 #include "panel_state.h"
 #include "screen_reader.h"
@@ -20,6 +23,8 @@
 #include "input_direction.h"
 #include "native_belt.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -27,13 +32,29 @@
 namespace D2RAccess::GroundItemService {
 bool ownsLabel = false;
 bool OwnsWorldLabel(std::string_view label) { return ownsLabel && label.starts_with("Poción"); }
+void NoteWorldTarget(std::string_view) {}
 }
 
 namespace D2RAccess::EntityRadarService {
+std::string NearestNpc() { return "Charsi"; }
 std::string hiddenLabel;
-TargetSight::Sight LabelSight(std::string_view label) {
-	return !hiddenLabel.empty() && label == hiddenLabel ? TargetSight::Sight::Hidden : TargetSight::Sight::Unknown;
+std::optional<TargetSight::Bearer> bearer; // what every other label names, when set
+TargetSight::Bearer LabelTarget(std::string_view label) {
+	if (!hiddenLabel.empty() && label == hiddenLabel) return {TargetSight::Sight::Hidden};
+	return bearer.value_or(TargetSight::Bearer{});
 }
+}
+namespace D2RAccess::TargetSight {
+// The scan's name in place of the label's, as target_sight.cpp has it (tested there).
+std::string Spoken(std::string_view label, const Bearer& bearer) {
+	std::string spoken(label);
+	const size_t at = bearer.name.empty() ? std::string::npos : spoken.find(bearer.worldName);
+	return at == std::string::npos ? spoken : spoken.replace(at, bearer.worldName.size(), bearer.name);
+}
+}
+namespace D2RAccess::EntityCueService {
+std::optional<double> reach;
+std::optional<double> NamingReach() { return reach; }
 }
 
 namespace {
@@ -55,6 +76,10 @@ int equipmentLocation = 0;
 // -1 is the real function's "could not read", so the gold row stays silent.
 int playerGold = -1, stashGold = -1;
 NativeUi::BeltSlot beltSlot;
+std::array<uintptr_t, NativeUi::BeltSlots> beltItems{};
+int unreadableBeltSlot = -1;
+uintptr_t automaticPotion = 0;
+std::string stashTabLabel; // the selected label of the stash's tab bar, widget 900
 std::string stashGoldText; // the stash's gold_amount box, at widget 60
 std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
@@ -88,16 +113,27 @@ uintptr_t GridItem(uintptr_t) { return gridItem; }
 uintptr_t EquipmentItem(uintptr_t) { return equipmentItem; }
 GridSlot ItemWidgetSlot(uintptr_t) { return stashItem; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
+StashSlotCount StashSlotStackCount(uintptr_t) { return {}; }
 int EquipmentLocation(uintptr_t) { return equipmentLocation; }
 uint64_t FocusSelection(uintptr_t) { return selection; }
 BeltSlot BeltItem(uintptr_t) { return beltSlot; }
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+BeltSlot BeltItemAt(uintptr_t, int slot) {
+	if (slot == unreadableBeltSlot) return {};
+	return slot >= 0 && slot < static_cast<int>(beltItems.size()) ? BeltSlot{true, slot, beltItems[slot]} : BeltSlot{};
+}
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t, uintptr_t) {
 	if (panel == 40) return target;
 	if (panel == focus.widget && (widgetType.kind == UiText::Kind::Button || widgetType.kind == UiText::Kind::StatButton || widgetType.kind == UiText::Kind::TabButton)) return buttonSnapshot;
 	++inventoryWalks;
 	return inventory;
 }
+std::vector<uintptr_t> FindControls(uintptr_t, UiText::Kind) { return stashTabLabel.empty() ? std::vector<uintptr_t>{} : std::vector<uintptr_t>{900}; }
+// The skill tree's branch poll finds no tree in these fixtures.
+bool Visible(uintptr_t widget) { return widget != 0; }
+std::vector<uintptr_t> Children(uintptr_t) { return {}; }
+std::string TabLabel(uintptr_t) { return {}; }
 std::string SelectedTabText(uintptr_t widget) {
+	if (widget == 900) return stashTabLabel;
 	for (const auto& node : inventory.nodes) if (node.id == widget) return node.text;
 	return {};
 }
@@ -107,7 +143,10 @@ std::string FocusedTabText(uintptr_t) {
 	return x >= 0 && x < 7 ? labels[x] : "";
 }
 }
+namespace D2RAccess::NativeMemory { bool Copy(uintptr_t, void*, size_t) noexcept { return false; } }
 namespace D2RAccess::NativeWidgets {
+std::vector<FoundString> ScanStrings(uintptr_t, size_t) { return {}; }
+bool IsAvailable() { return true; }
 uintptr_t FindPanel(std::string_view name) { return name == "TooltipsPanel" ? 30 : name == "HUDMonsterHealth" ? 40 : 0; }
 std::string ReadName(uintptr_t id) {
 	if (id == 201) return "r07";
@@ -115,7 +154,7 @@ std::string ReadName(uintptr_t id) {
 	if (id == 10) return "BankExpansionLayout";
 	if (id == 20) return "PlayerInventoryExpansionLayout";
 	if (id == 26 || id == 29) return "gold_button";
-	if (id == 31 || id == 32) return "gold_withdraw";
+	if (id >= 31 && id <= 33) return "gold_withdraw";
 	return "widget" + std::to_string(id);
 }
 uintptr_t FindChild(uintptr_t parent, std::string_view name) { return parent == 10 && name == "gold_amount" ? 60 : 0; }
@@ -133,6 +172,9 @@ void Reset() {}
 namespace D2RAccess::AdvancedStatsReader {
 bool Tick(const D2RL::PluginContext*, NativeUi::Focus) { return false; }
 }
+namespace D2RAccess::PartyReader {
+bool Tick(const D2RL::PluginContext*, NativeUi::Focus) { return false; }
+}
 namespace D2RAccess::TooltipDelay {
 void Apply(const D2RL::PluginContext*, uintptr_t) {}
 }
@@ -140,7 +182,7 @@ namespace D2RAccess::NativeProgression {
 Details Read(NativeUi::Focus, const NativeUi::Type&) { return progression; }
 }
 namespace D2RAccess::NativeBelt {
-std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return std::nullopt; }
+std::optional<uintptr_t> AutomaticItem(const D2RL::PluginContext*, uintptr_t, int) { return automaticPotion; }
 }
 // No mercenary here.
 namespace D2RAccess::MercenaryStats {
@@ -149,6 +191,7 @@ std::string LevelAndType(uintptr_t) { return {}; }
 std::string Experience(uintptr_t) { return {}; }
 std::vector<std::string> Lines(uintptr_t) { return {}; }
 std::vector<Skill> Skills(uintptr_t) { return {}; }
+std::vector<std::string> SkillLines(uintptr_t) { return {}; }
 }
 // No skill named here: every skill tooltip is taken, as before the check.
 namespace D2RAccess::NativeSkillIcons { std::string Name(uintptr_t) { return {}; } }
@@ -161,12 +204,17 @@ UnitLabel ItemUnitLabel(uintptr_t unit) {
 	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3} : UnitLabel{};
 }
 UnitLabel ClassLabel(uint32_t, uint32_t quality) { return {"", quality}; }
+std::optional<uint32_t> ClassOfCode(uint32_t) { return std::nullopt; }
 bool SocketFiller(uint32_t) { return false; }
 uint32_t ItemTableCode(uintptr_t unit) {
 	return unit == 55 ? Generated::ItemCode("ssd") : unit == 77 ? Generated::ItemCode("hp1") : 0;
 }
 }
 namespace D2RAccess::NativeEntities { std::optional<uint32_t> FilledSockets(uintptr_t) { return std::nullopt; } }
+namespace D2RAccess::NativeWaypoints {
+Row Read(uintptr_t, std::string_view) noexcept { return {}; }
+const char* Name(State) { return ""; }
+}
 namespace D2RAccess::InventoryCensus {
 void Log(const D2RL::PluginContext*, NativeUi::Focus, uint64_t) {}
 }
@@ -182,6 +230,7 @@ std::optional<bool> HoldingItem(const D2RL::PluginContext*) { return holdingItem
 std::optional<ItemState> Held(const D2RL::PluginContext*) { return holdingItem ? std::optional{ItemState{holdingItem.value() ? 1u : 0u}} : std::nullopt; }
 std::optional<ItemState> Find(const D2RL::PluginContext*, uint32_t) { return std::nullopt; }
 std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
+bool Holds(const D2RL::PluginContext*, D2RL::Items::ItemContainer, uint32_t) { return false; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
@@ -227,6 +276,13 @@ namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
 	if (key == "r07") return "Runa Tal";
 	if (key == "gcw") return "Diamante fragmentado";
+	if (key == "personal") return "Personal";
+	if (key == "currentEquip") return "Actualmente equipado";
+	if (key == "shared") return "Compartido";
+	if (key == "ControllerHelpBelt1") return "Casilla de cinturón 1 ";
+	if (key == "ControllerHelpBelt2") return "Casilla de cinturón 2 ";
+	if (key == "ControllerHelpBelt3") return "Casilla de cinturón 3 ";
+	if (key == "ControllerHelpBelt4") return "Casilla de cinturón 4 ";
 	if (key == "ItemStats1l") return "Daño: %d a %d";
 	if (key == "ItemStats1h") return "Defensa: %d";
 	if (key == TooltipText::UnidentifiedKey) return "Sin identificar";
@@ -236,16 +292,20 @@ std::string Text(std::string_view key) {
 	for (const char* stat : TooltipText::BaseStatKeys) if (key == stat) return {};
 	if (key == "ItemStats1e") return "Fuerza necesaria: %d";
 	for (const char* requirement : TooltipText::RequirementKeys) if (key == requirement) return {};
+	for (const char* quantity : TooltipText::QuantityKeys) if (key == quantity) return {};
 	++titleLookups;
 	return {};
 }
 }
 namespace D2RAccess::CharacterStats {
 bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
+bool HasPoints(std::string_view points) { return points.find_first_of("123456789") != std::string_view::npos; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
 void Reset() {}
 }
+std::string statPointsFor; // what the stats reader hands the Strength button's announcement
 namespace D2RAccess::CharacterStatsReader {
+std::string PointsFor(uintptr_t, uint64_t) { return statPointsFor; }
 bool Tick(const D2RL::PluginContext*, NativeUi::Focus) {
 	if (!characterStatsClaims) return false;
 	pendingPush = InputDirection::StickPush::None;
@@ -258,10 +318,15 @@ bool controlTooltips = true;
 bool inPlay = false;
 namespace D2RAccess::AutoDetail { bool Enabled() { return autoDetail; } bool ControlTooltips() { return controlTooltips; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return inPlay; } }
+// The mercenary's level-up line, named by the game text reader's switch.
+namespace D2RAccess::GameTextReader {
+std::string NameSpeaker(std::string text) { return text == "Me siento mucho mas fuerte" ? "Mercenario dice: " + text : text; }
+}
 std::vector<bool> interrupts;
 int stops = 0;
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
+void Lead(std::string_view text, unsigned long long) { Speak(text, false); }
 void Stop() { ++stops; }
 }
 
@@ -287,6 +352,9 @@ int main() {
 	Check(speech.empty() && tracked == 0 && InteractionReader::Repeat().empty(), "NPC conversations suspend tooltip capture and clear old world labels");
 	conversation = false; Tooltip("Akara"); Settle();
 	Check(speech == std::vector<std::string>{"Akara"}, "NPC name can use the native target tooltip");
+	ClearSpeech(); Tooltip("Me siento mucho mas fuerte"); Settle();
+	Check(speech == std::vector<std::string>{"Mercenario dice: Me siento mucho mas fuerte"},
+		"the mercenary's level-up line, drawn as the world target, says who speaks");
 	ClearSpeech();
 	EntityRadarService::hiddenLabel = "Zombi"; Tooltip("Zombi"); Settle();
 	Check(speech.empty(), "a world target the walls hide is not spoken");
@@ -301,6 +369,38 @@ int main() {
 	EntityRadarService::hiddenLabel.clear();
 	Settle();
 	Check(speech == std::vector<std::string>{"Charsi"}, "HUD target-name text covers targets without a tooltip");
+	// The auto-target trading a pack's names out of reach (log, 2026-09-29).
+	ClearSpeech(); EntityCueService::reach = 3.0;
+	EntityRadarService::bearer = TargetSight::Bearer{TargetSight::Sight::Visible, EntityRadar::Kind::Enemy, false, 12};
+	target = {40, 0, "HUDMonsterHealth", UiText::Surface::Target, {
+		{41, -1, UiText::Kind::Text, "Name", "TextBoxWidget", "Trinchante. Demonio"},
+	}};
+	Settle();
+	Check(speech.empty(), "a monster beyond attack reach is not named");
+	EntityRadarService::bearer->distance = 2; Settle();
+	Check(speech == std::vector<std::string>{"Trinchante. Demonio"} && !interrupts.back(),
+		"within reach it is named without cutting other speech off");
+	ClearSpeech();
+	const std::string shaman = "Chamán trinchante. Demonio \xEE\x81\xBE" "5\xE2\x80\xA2\xEE\x81\xBE" "0Invoca trinchantes";
+	target.nodes[0].text = shaman; Settle();
+	Check(speech == std::vector<std::string>{"Chamán trinchante. Demonio, Invoca trinchantes"},
+		"a second monster is named once, its affix dot spoken as a pause");
+	ClearSpeech();
+	for (int round = 0; round < 6; ++round) {
+		target.nodes[0].text = round % 2 ? shaman : "Trinchante. Demonio";
+		Tick();
+	}
+	Check(speech.empty(), "the target trading names inside a pack is not repeated");
+	// Live 2026-10-02: a Fallen joined a rat on the plate for under the reader's
+	// settle, the target hopped back, and the Fallen was never named at all.
+	target.nodes[0].text = "Caído. Demonio"; Tick();
+	target.nodes[0].text = "Trinchante. Demonio"; Tick();
+	Check(speech == std::vector<std::string>{"Caído. Demonio"}, "a new name on the plate for one poll is still said");
+	ClearSpeech();
+	EntityRadarService::bearer = TargetSight::Bearer{TargetSight::Sight::Visible, EntityRadar::Kind::Enemy, true, 12};
+	target.nodes[0].text = "Rakanishu. Demonio"; Settle();
+	Check(speech == std::vector<std::string>{"Rakanishu. Demonio"}, "a boss is named from first sight");
+	ClearSpeech(); target = {}; EntityRadarService::bearer.reset(); EntityCueService::reach.reset(); Settle();
 	ClearSpeech(); focus = {50, 51}; Settle();
 	Check(speech.empty(), "another focused menu suppresses background target labels");
 	target = {}; focus = {10, 11}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
@@ -309,17 +409,17 @@ int main() {
 	// Item bodies are written the way the engine stores them: bottom-up, with
 	// the name last. See tooltip_text.h.
 	Tooltip("Recupera 45 de vida\nPoción de curación menor"); tooltip.footer = "Usar";
-	Check(Settle() && speech == std::vector<std::string>{"Alijo. Personal. Poción de curación menor"}, "stash opens with its selected tab and the item name, without its description or coordinates");
+	Check(Settle() && speech == std::vector<std::string>{"Personal. Poción de curación menor"}, "stash opens with its selected tab and the item name, without its title, description or coordinates");
 	ClearSpeech(); Settle();
 	Check(speech.empty(), "stationary inventory selection stays quiet");
-	Check(inventoryWalks == 0 && titleLookups == 1, "localized title is cached; shared tab tracking owns discovery");
+	Check(inventoryWalks == 0 && titleLookups == 0, "the stash has no title to look up; shared tab tracking owns discovery");
 	cell = {1, 0}; selection = 1; Tick();
 	Tooltip("Recupera 45 de vida\nPoción de curación menor"); tooltip.footer = "Usar";
 	Settle();
 	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "identical items in different cells are announced without coordinates or section repetition");
 	ClearSpeech(); inventory.nodes[0].text = "Comp."; Settle();
-	Check(speech.size() == 1 && speech[0].starts_with("Alijo. Comp."), "changing the actual stash tab announces the new section");
-	Check(inventoryWalks == 0 && titleLookups == 1, "cell navigation and selected-tab changes avoid full inventory walks");
+	Check(speech.size() == 1 && speech[0].starts_with("Comp."), "changing the actual stash tab announces the new section");
+	Check(inventoryWalks == 0 && titleLookups == 0, "cell navigation and selected-tab changes avoid full inventory walks");
 	ClearSpeech(); cell = {2, 0}; selection = 2; Settle();
 	Check(speech.empty(), "a cell that cannot be read is not given the position that says it is empty");
 	itemPresence = NativeUi::ItemPresence::Empty; Settle();
@@ -399,7 +499,10 @@ int main() {
 	Check(InteractionReader::Tick(&context, now + 160, focus, false, "Personaje")
 		&& speech == std::vector<std::string>{"Personaje"}, "only once: a later change to that tab still reads");
 	ClearSpeech();
-	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Opciones") && speech.empty(), "dialogue priority also suppresses tab speech");
+	// TabReader holds the switcher under a dialogue; what it still reports is a vendor's LT/RT
+	// before the cursor reaches a grid (a tester, 2026-10-18).
+	Check(!InteractionReader::Tick(&context, now + 200, focus, true, "Armas") && speech == std::vector<std::string>{"Armas"},
+		"a tab reported under a dialogue is still said");
 	conversation = false; InteractionReader::Reset(); inventory = {}; tooltip = {}; ClearSpeech();
 	focus = {20, 22}; widgetType = {"InventorySlotWidget", UiText::Kind::InventorySlot}; equipmentLocation = 1;
 	Check(InteractionReader::HandlesFocus(focus), "native equipment focus remains owned by the interaction reader");
@@ -433,9 +536,19 @@ int main() {
 	tooltip = {}; focus = {10, 31}; stashGoldText = "12.345";
 	buttonSnapshot = {31, 31, "gold_withdraw", UiText::Surface::Other, {{31, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
 	Check(Tick() && speech == std::vector<std::string>{"12345 de oro en el alijo"}, "the withdraw button speaks the stash's gold box");
-	ClearSpeech(); stashGoldText.clear(); stashGold = 700; focus.widget = 32;
+	ClearSpeech(); stashTabLabel = "Compartido"; focus.widget = 31; Tick();
+	Check(!speech.empty() && speech.back() == "12345 de oro en el alijo compartido", "on the shared tab the gold box is the shared stash's");
+	ClearSpeech(); stashTabLabel = "Personal"; focus.widget = 31; Tick();
+	Check(!speech.empty() && speech.back() == "12345 de oro en el alijo personal", "on the personal tab, the personal stash's");
+	ClearSpeech(); stashGoldText.clear(); stashGold = 700; focus.widget = 32; stashTabLabel = "Compartido";
 	buttonSnapshot = {32, 32, "gold_withdraw", UiText::Surface::Other, {{32, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
-	Check(Tick() && speech == std::vector<std::string>{"700 de oro en el alijo"}, "an unreadable gold box falls back to the stash gold stat");
+	Tick();
+	Check(std::none_of(speech.begin(), speech.end(), [](const std::string& line) { return line.find("700") != std::string::npos; }),
+		"the personal stash's stat is not the shared stash's gold");
+	ClearSpeech(); stashTabLabel = "Personal"; focus.widget = 33;
+	buttonSnapshot = {33, 33, "gold_withdraw", UiText::Surface::Other, {{33, -1, UiText::Kind::Button, "gold_withdraw", "ButtonWidget", "Retirar"}}};
+	Check(Tick() && speech == std::vector<std::string>{"700 de oro en el alijo personal"}, "an unreadable gold box falls back to the stash gold stat");
+	stashTabLabel.clear();
 	stashGold = -1; focus.panel = savedPanel; ClearSpeech();
 	focus.widget = 27; buttonSnapshot = {27, 27, "AnyScrollAction", UiText::Surface::Other, {{27, -1, UiText::Kind::Button, "AnyScrollAction", "ButtonWidget", ""}}};
 	Tooltip("Pergamino del portal de la ciudad"); tooltip.footer = "Usar";
@@ -546,7 +659,8 @@ int main() {
 	Check(speech == std::vector<std::string>{"Espada corta superior"}, "a lesser item keeps its own name, with no quality word");
 	gridItem = 0;
 	// A belt slot's item is named by its tooltip, now drawn at once; an empty
-	// slot, which has no tooltip, says so from the slot.
+	// slot, which has no tooltip, says so from the slot. Each says its D-pad
+	// button and row first and its column's count last.
 	ClearSpeech(); tooltip = {}; cell = {}; focus = {20, 23}; widgetType = {"BeltWidget", UiText::Kind::InventoryItem};
 	selection = 0; beltSlot = {true, 0, 77};
 	Settle();
@@ -555,20 +669,38 @@ int main() {
 	Check(!speech.empty() && speech.back().find("Poción de curación menor") != std::string::npos, "and is read with it");
 	ClearSpeech(); selection = 1; beltSlot = {true, 1, 0}; tooltip = {};
 	Settle();
-	{
-		char where[64]{};
-		std::snprintf(where, sizeof(where), Strings::Current().gridCell, 1, 2);
-		Check(speech == std::vector<std::string>{std::string(Strings::Current().slotEmpty) + ". " + where},
-			"an empty belt slot says so, and where in the belt it is");
-	}
-	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77};
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 2 Cruceta arriba. Fila 1. Vacío. 0 en esta columna"},
+		"an empty belt slot names its native D-pad direction and confirms its empty column");
+	ClearSpeech(); selection = 2; beltSlot = {true, 2, 77}; beltItems[2] = 77;
 	Settle(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
-	Check(speech == std::vector<std::string>{"Poción de curación menor"}, "the next slot reads its item once its tooltip is drawn");
+	Check(speech == std::vector<std::string>{"Casilla de cinturón 3 Cruceta abajo. Fila 1. Poción de curación menor. 1 en esta columna"},
+		"the next slot reads its button, its item once its tooltip is drawn, and its column");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
 	Check(Tick() && speech == std::vector<std::string>{"Puntos: 45"}, "while its detail still reaches the right stick");
 	ClearSpeech(); selection = 3; beltSlot = {}; tooltip = {};
 	Settle();
 	Check(speech.empty(), "a slot that cannot be read waits for the tooltip, as before");
+	ClearSpeech(); selection = 7; beltSlot = {true, 7, 77}; beltItems = {}; beltItems[3] = 77; beltItems[11] = 77;
+	Settle(); Tooltip("Puntos: 45\nPoción de curación menor"); Settle();
+	Check(speech.size() == 1 && speech[0].find("Cruceta derecha. Fila 2") != std::string::npos
+		&& speech[0].find("3 en esta columna") != std::string::npos,
+		"reserve rows retain the column's real button and count only that column");
+	unreadableBeltSlot = 11;
+	Check(BeltReader::Read(&context, focus.widget).summary.empty(),
+		"one unreadable reserve suppresses a misleading partial column count");
+	unreadableBeltSlot = -1;
+	Check(BeltReader::Location(-1).empty() && BeltReader::Location(NativeUi::BeltSlots).empty(),
+		"unknown selection cannot claim a controller assignment");
+	ClearSpeech(); tooltip = {}; holdingItem = true; Tick(); ClearSpeech(); holdingItem = false; Tick();
+	Check(!speech.empty() && speech[0].find("Colocado en Casilla de cinturón 4 Cruceta derecha. Fila 2") != std::string::npos,
+		"placing a potion names its button and row");
+	ClearSpeech(); selection = 0; beltSlot = {true, 0, 0}; beltItems = {}; automaticPotion = 77;
+	Settle();
+	Check(speech.size() == 1 && speech[0].find("Poción de curación menor") != std::string::npos
+		&& speech[0].find("Poción automática del inventario") != std::string::npos
+		&& speech[0].find("0 en esta columna") != std::string::npos,
+		"a native automatic potion is named without counting inventory as physical belt reserves");
+	automaticPotion = 0; beltItems = {}; holdingItem.reset();
 	beltSlot = {};
 	conversation = false; InteractionReader::Reset(); ClearSpeech();
 	focus = {60, 61}; widgetType = {"CharacterStatLevelUpButtonWidget", UiText::Kind::StatButton};
@@ -576,6 +708,10 @@ int main() {
 	progression.readout = {"Stats", "", "Fuerza. 30", "61"};
 	progression.value = "30"; progression.points = "5 puntos"; progression.description = "Aumenta el daño.";
 	controllerHelp = "A: Asignar un punto. Vista: Ver estadísticas avanzadas. B: Cerrar menú";
+	statPointsFor = "5 puntos";
+	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Fuerza. 30. 5 puntos"},
+		"opened onto Strength with points to spend, the button's announcement ends with them");
+	statPointsFor.clear(); InteractionReader::Reset(); ClearSpeech();
 	Check(InteractionReader::HandlesFocus(focus) && Tick() && speech == std::vector<std::string>{"Fuerza. 30"},
 		"with autodetail off a stat reads its label and value, and nothing else");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up;
@@ -591,6 +727,8 @@ int main() {
 	ClearSpeech(); progression.value = "31"; progression.points = "4 puntos";
 	progression.readout.option = "Fuerza. 31"; Tick();
 	Check(speech == std::vector<std::string>{"31"}, "spending a stat point reads only the new value: right stick right has the points left");
+	ClearSpeech(); progression.value = "32"; progression.points = "3 puntos"; Tick();
+	Check(speech == std::vector<std::string>{"32"}, "a new value is said even when the readout's own text has not caught up");
 	autoDetail = true; ClearSpeech(); focus.widget = 62; progression.readout.focusKey = "62";
 	buttonSnapshot = {62, 62, "DexPointButton", UiText::Surface::Other, {{62, -1, UiText::Kind::StatButton, "DexPointButton", "", "Gastar punto"}}};
 	progression.readout.option = "Destreza. 20"; progression.value = "20"; progression.description = "Aumenta la precisión."; Tick();
@@ -612,7 +750,7 @@ int main() {
 	Check(Tick() && speech == std::vector<std::string>{"X: Asignar habilidad"}, "what the buttons do waits for right stick down");
 	ClearSpeech(); Tick(); Check(speech.empty(), "stationary skill does not repeat");
 	pendingPush = InputDirection::StickPush::Up;
-	Check(Tick() && speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "right stick up reads what the skill does");
+	Check(Tick() && speech == std::vector<std::string>{"Sin aprender. Huyen aterrorizados."}, "right stick up reads what the skill does, a pause between its lines");
 	// Right stick left opens the skill line by line; up and down move, and
 	// right stick left or B closes it and reads the skill again.
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Left;
@@ -627,7 +765,7 @@ int main() {
 	ClearSpeech(); InputDirection::pressB = true; Tick();
 	Check(speech.size() == 1 && speech[0].starts_with("Gritos de guerra. Aullido") && PadFilter::holds == 0, "B closes it, lets B go, and reads the skill again");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
-	Check(speech == std::vector<std::string>{"Sin aprender Huyen aterrorizados."}, "closed, up is the detail again");
+	Check(speech == std::vector<std::string>{"Sin aprender. Huyen aterrorizados."}, "closed, up is the detail again");
 	ClearSpeech(); InputDirection::pressB = true; pendingPush = InputDirection::StickPush::Left; Tick();
 	Check(speech == std::vector<std::string>{"Aullido"}, "reopening ignores a B pressed before it opened");
 	ClearSpeech(); pendingPush = InputDirection::StickPush::Left; Tick();
@@ -711,10 +849,11 @@ int main() {
 	ClearSpeech(); conversation = true; Tick();
 	Check(speech.empty() && InteractionReader::Repeat().empty(), "NPC dialogue suppresses inventory actions underneath it");
 	conversation = false;
-	// Picking an item up or putting it down is the game's business: nothing is
-	// announced for either, in any section of the inventory (the user,
+	// With the pick-up and placement speech switched off, nothing is announced
+	// for either, in any section of the inventory (the collaborator's player,
 	// 2026-09-21: the notice came back on every move to the belt, the
 	// equipment or a shop, and "it needs to go completely").
+	InteractionReader::SetHandSpeech(false);
 	InteractionReader::Reset(); ClearSpeech(); controllerHelp.clear(); tooltip = {};
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	holdingItem = false; itemPresence = NativeUi::ItemPresence::Occupied;
@@ -737,6 +876,15 @@ int main() {
 	Check(InteractionReader::Repeat() == "Inventario. Equipo. Cabeza. Vacío", "manual repeat is the readout alone");
 	ClearSpeech(); holdingItem = false; Tick();
 	Check(speech.empty(), "putting an item down announces nothing either");
+	// Switched on, the default, the hand is told.
+	InteractionReader::SetHandSpeech(true);
+	ClearSpeech(); holdingItem = true; Tick();
+	Check(!speech.empty() && speech.front() == Strings::Current().itemInHand, "with the switch on, picking up says the item is in hand");
+	Check(InteractionReader::Repeat().starts_with(Strings::Current().itemInHand), "and a manual repeat says so first");
+	ClearSpeech(); holdingItem = false; Tick();
+	Check(std::find(speech.begin(), speech.end(), std::string("Colocado en Cabeza")) != speech.end(),
+		"putting it down names where it went");
+	InteractionReader::SetHandSpeech(false);
 	InteractionReader::Reset(); ClearSpeech();
 	focus = {20, 21}; widgetType = {"InventoryGridWidget", UiText::Kind::InventoryGrid};
 	cell = {0, 0}; selection = 0; holdingItem = false; itemPresence = NativeUi::ItemPresence::Empty;
@@ -796,6 +944,18 @@ int main() {
 	Check(PadFilter::leftStickArms > 0, "an inventory item arms the left stick for a held Y");
 	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; InputDirection::holdingY = true; Settle();
 	Check(speech.empty(), "holding compare reads nothing by itself");
+	// With compare-aloud on, the equipped item is read as the game draws it (a tester, 2026-10-13).
+	InteractionReader::SetCompareAloud(true);
+	tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"},
+		"with compare-aloud on, the equipped item is read as it appears, under the game's own heading");
+	ClearSpeech(); Settle();
+	Check(speech.empty(), "and once");
+	tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "a heading already drawn is not said twice");
+	InteractionReader::SetCompareAloud(false); ClearSpeech();
 	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Right;
 	Check(Tick() && speech == std::vector<std::string>{"Actualmente equipado. Guantes de cuero. Defensa: 3"}, "left stick right reads the equipped item");
 	ClearSpeech(); InputDirection::pendingLeft = InputDirection::StickPush::Left;
@@ -822,6 +982,33 @@ int main() {
 	Check(pendingPush == InputDirection::StickPush::Right, "right stick right is claimed only on the inventory");
 	pendingPush = InputDirection::StickPush::None;
 
+	// The branch leads with the skill choices left as the tree opens and on LT/RT,
+	// queued behind the window's title on opening (a tester, 2026-10-13).
+	InteractionReader::Reset(); ClearSpeech(); interrupts.clear(); progression = {}; tooltip = {};
+	focus = {75, 76}; widgetType = {"ButtonWidget", UiText::Kind::Button}; buttonSnapshot = {};
+	progression.skill = true; progression.classTree = true; progression.tab = 500; progression.points = "1 punto";
+	progression.readout = {"Skills", "Gritos de guerra", "", "76"};
+	Tooltip("\xEE\x81\xBE" "2Aullido"); Tick();
+	Check(speech == std::vector<std::string>{"Gritos de guerra. 1 punto", "Aullido"} && interrupts == std::vector<bool>{false, false},
+		"an opened tree names its branch and the choices left, queued, before its first skill");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 77; progression.tab = 501; progression.readout = {"Skills", "Maestrías", "", "77"};
+	Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(speech == std::vector<std::string>{"Maestrías. 1 punto", "Golpe"} && interrupts == std::vector<bool>{true, false},
+		"LT/RT to another tree names it with the choices left, as a change of context");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 78; progression.tab = 502; progression.classTree = false; progression.readout = {"Skills", "Habilidades generales", "", "78"};
+	Tooltip("\xEE\x81\xBE" "2Portal"); Tick();
+	Check(speech == std::vector<std::string>{"Habilidades generales", "Portal"}, "General Skills is named without the class's choices");
+	ClearSpeech(); interrupts.clear();
+	focus.widget = 79; progression.tab = 501; progression.classTree = true; progression.points = "0 puntos";
+	progression.readout = {"Skills", "Maestrías", "", "79"};
+	Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(speech == std::vector<std::string>{"Maestrías", "Golpe"}, "with no choices left the branch is said alone");
+	ClearSpeech(); interrupts.clear();
+	focus = {}; Tick(); focus = {75, 79}; Tooltip("\xEE\x81\xBE" "2Golpe"); Tick();
+	Check(!speech.empty() && speech.front() == "Maestrías" && !interrupts.front(), "a tree reopened on the same branch names it again");
+
     InteractionReader::Reset(); progression = {}; tooltip = {}; buttonSnapshot = {};
     focus = {20, 100}; widgetType = {"SkillButtonWidget", UiText::Kind::Button};
     progression.skill = true; progression.name = "Salto"; progression.readout.focusKey = "100";
@@ -835,7 +1022,7 @@ int main() {
 	InputDirection::holdingY = false; autoDetail = false; holdingItem = false; controllerHelp.clear();
 	cell = {}; selection = 0; focus = {10, 201}; widgetType = {"AdvancedStashSlotWidget", UiText::Kind::InventoryItem};
 	stashItem = {true, 77};
-	Check(Tick() && speech == std::vector<std::string>{std::string(Strings::Current().stash) + ". Runa Tal"},
+	Check(Tick() && speech == std::vector<std::string>{"Runa Tal"},
 		"a rune slot is named in its first poll without waiting for a tooltip or cursor settle");
 	ClearSpeech(); Tooltip("Daño: 5\nRuna Tal"); Tick();
 	Check(speech.empty(), "the matching rune tooltip supplies detail without repeating its already spoken name");

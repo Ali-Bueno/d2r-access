@@ -3,6 +3,7 @@
 #include "process_lifetime.h"
 #include "mod_sounds.h"
 #include "radar_trace.h"
+#include "sound_volume.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -60,11 +61,18 @@ HWAVEOUT OpenDevice(HANDLE done) {
 	HWAVEOUT device = nullptr;
 	return waveOutOpen(&device, WAVE_MAPPER, &format, reinterpret_cast<DWORD_PTR>(done), 0, CALLBACK_EVENT) == MMSYSERR_NOERROR ? device : nullptr;
 }
-// Plays one cue to completion or cancellation. False means the device failed.
-bool PlayOne(HWAVEOUT device, HANDLE done, const Radar::Events& events, const CueSource& source, uint64_t generation) {
-	Radar::Marks marks{};
-	for (size_t i = 0; i < events.size(); ++i) marks[i] = source.unexplored && events[i] != Radar::State::Unknown;
-	auto pcm = Synthesize(events, marks, g_gain, source.frame);
+// One taken direction's cue, its qualifiers from the source it was pushed with.
+std::vector<int16_t> Cue(const Radar::Events& events, const CueSource& source) {
+	Radar::Marks marks{}, small{};
+	for (size_t i = 0; i < events.size(); ++i) {
+		marks[i] = source.unexplored && events[i] != Radar::State::Unknown;
+		small[i] = source.small && events[i] != Radar::State::Unknown;
+	}
+	return Synthesize(events, marks, g_gain, source.frame, small);
+}
+// Plays one sound to completion or cancellation. False means the device failed.
+// `events` names the radar reading it is, for the trace; none for the wall bump.
+bool PlayOne(HWAVEOUT device, HANDLE done, std::vector<int16_t>& pcm, const Radar::Events& events, const CueSource& source, uint64_t generation) {
 	WAVEHDR header{};
 	header.lpData = reinterpret_cast<char*>(pcm.data());
 	header.dwBufferLength = static_cast<DWORD>(pcm.size() * sizeof(int16_t));
@@ -108,6 +116,8 @@ void Worker(const D2RL::PluginContext* context) {
 			Radar::Events events{};
 			CueSource source{};
 			uint64_t generation = 0;
+			double pan = 0;
+			bool bump = false;
 			{
 				std::unique_lock lock(g_mutex);
 				g_wake.wait(lock, [] { return !g_running || !g_pending.Empty(); });
@@ -115,7 +125,8 @@ void Worker(const D2RL::PluginContext* context) {
 				g_wake.wait_until(lock, g_nextCue, [] { return !g_running.load(); });
 				if (!g_running) break;
 				if (g_pending.Empty()) continue;
-				events = g_pending.Take(&source);
+				bump = g_pending.TakeBump(&pan, &source);
+				if (!bump) events = g_pending.Take(&source);
 				g_playing = events;
 				g_playingSource = source;
 				generation = g_generation;
@@ -126,7 +137,9 @@ void Worker(const D2RL::PluginContext* context) {
 				g_playing = {};
 				continue;
 			}
-			const bool ok = PlayOne(device, done, events, source, generation);
+			auto pcm = bump ? SynthesizeBump(pan, g_gain) : Cue(events, source);
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Radar).Factor());
+			const bool ok = PlayOne(device, done, pcm, events, source, generation);
 			{
 				std::lock_guard lock(g_mutex);
 				g_nextCue = std::chrono::steady_clock::now() + std::chrono::milliseconds(CueGapMs);
@@ -157,7 +170,7 @@ bool Start(const D2RL::PluginContext* context, double gain) {
 	catch (...) { g_running = false; return false; }
 	return true;
 }
-void Play(const Radar::Events& events, CueSource source, const Radar::Marks& marks) {
+void Play(const Radar::Events& events, CueSource source, const Radar::Marks& marks, const Radar::Marks& small) {
 	std::lock_guard lock(g_mutex);
 	if (!g_running || !g_available) {
 		Trace(events, source, "dropped", "audio-unavailable");
@@ -172,10 +185,16 @@ void Play(const Radar::Events& events, CueSource source, const Radar::Marks& mar
 	for (size_t i = 0; i < events.size(); ++i)
 		if (events[i] != Radar::State::Unknown && g_pending.Pending()[i] != Radar::State::Unknown)
 			RadarTrace::Audio(g_context, i, g_pending.Pending()[i], g_pending.Source(i), "dropped", "superseded", GetTickCount64());
-	g_pending.Push(events, source, marks);
+	g_pending.Push(events, source, marks, small);
 	for (size_t i = 0; i < events.size(); ++i)
 		if (events[i] != Radar::State::Unknown)
 			RadarTrace::Audio(g_context, i, events[i], g_pending.Source(i), "queued", "generated", GetTickCount64());
+	g_wake.notify_one();
+}
+void Bump(double pan, CueSource source) {
+	std::lock_guard lock(g_mutex);
+	if (!g_running || !g_available || !ModSounds::Enabled()) return;
+	g_pending.PushBump(pan, source);
 	g_wake.notify_one();
 }
 void Retain(const Radar::Events& states, const Radar::Marks& marks) {

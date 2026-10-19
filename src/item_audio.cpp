@@ -1,9 +1,11 @@
 #include "item_audio.h"
 #include "item_wave.h"
 #include "item_spatial.h"
+#include "loop_pace.h"
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
+#include "sound_volume.h"
 #include <windows.h>
 #include <xaudio2.h>
 #include <algorithm>
@@ -31,6 +33,7 @@ std::condition_variable g_wake;
 ProcessLifetime<std::thread> g_threadOwner;
 std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
+std::atomic<int> g_dropSpeed{NeutralDropSpeedLevel};
 std::vector<Voice> g_pending;
 uint64_t g_updated = 0;
 std::vector<Voice> g_explorationPending;
@@ -49,11 +52,25 @@ struct Playing {
 	uint64_t generation = 0;
 	Voice target;
 	bool checked = false;
+	std::vector<int16_t> pass; // a drop sound's loop, kept while its voice plays
+	size_t passSamples = 0;
 	void Stop() { if (source) { source->DestroyVoice(); source = nullptr; } gain = 0; }
 };
+// One pass of a paced loop, a drop sound's or a pulsing loop's; 0 plays the recording as it is.
+size_t PassFor(Sound sound, const Samples& samples, size_t dropPass) {
+	if (IsDrop(sound)) return dropPass;
+	const auto group = LoopPace::Of(sound);
+	return group ? LoopPace::PassSamples(samples[static_cast<size_t>(sound)].size(), LoopPace::Setting(*group).load()) : 0;
+}
+// A one-shot channel plays even a loop's sample once (the glossary previews them there).
 bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>& sample,
-	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context) {
-	const bool loop = !IsOneShot(target.sound);
+	uint64_t generation, IXAudio2* engine, const WAVEFORMATEX& format, const D2RL::PluginContext* context, bool once = false,
+	size_t passSamples = 0) {
+	const bool loop = !once && !IsOneShot(target.sound);
+	const bool paced = loop && passSamples;
+	active.passSamples = paced ? passSamples : 0;
+	if (paced) active.pass = ItemWave::Pass(sample, passSamples, size_t{ItemWave::SampleRate} * DropFadeMs / 1000);
+	const auto& data = paced ? active.pass : sample;
 	const HRESULT created = engine->CreateSourceVoice(&active.source, &format);
 	if (FAILED(created)) {
 		AsyncLog::WarnF(context, "[item-audio] source failed HRESULT=%08lx", created);
@@ -64,8 +81,8 @@ bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>
 	active.started = GetTickCount64(); active.checked = false; active.generation = generation;
 	HRESULT submitted = active.source->SetVolume(0);
 	XAUDIO2_BUFFER buffer{};
-	buffer.AudioBytes = static_cast<UINT32>(sample.size() * sizeof(int16_t));
-	buffer.pAudioData = reinterpret_cast<const BYTE*>(sample.data());
+	buffer.AudioBytes = static_cast<UINT32>(data.size() * sizeof(int16_t));
+	buffer.pAudioData = reinterpret_cast<const BYTE*>(data.data());
 	buffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
 	if (SUCCEEDED(submitted)) submitted = active.source->SubmitSourceBuffer(&buffer);
 	if (SUCCEEDED(submitted)) submitted = active.source->Start();
@@ -117,7 +134,7 @@ void ServeOneShot(Playing& playing, const std::optional<OneShotRequest>& request
 	if (requested && requested->generation == channel.generation.load()) {
 		playing.Stop();
 		const auto& sample = samples[static_cast<size_t>(requested->voice.sound)];
-		if (!sample.empty()) (void)StartVoice(playing, requested->voice, sample, requested->generation, engine, format, context);
+		if (!sample.empty()) (void)StartVoice(playing, requested->voice, sample, requested->generation, engine, format, context, true);
 	}
 	if (!g_running || !playing.source) return;
 	XAUDIO2_VOICE_STATE state{};
@@ -185,11 +202,14 @@ void Worker(const D2RL::PluginContext* context) {
 				if (room) totalGain += std::max(room->gain, exploration.source ? exploration.gain : 0.0f);
 				totalGain += OneShotGain(arrival, requestedArrival, g_arrival) + OneShotGain(discovery, requestedDiscovery, g_discovery);
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
-				if (FAILED(master->SetVolume(mixVolume))) { g_running = false; break; }
+				const auto volume = static_cast<float>(SoundVolume::Of(SoundVolume::Family::Items).Factor());
+				if (FAILED(master->SetVolume(mixVolume * volume))) { g_running = false; break; }
+				const size_t dropPass = DropPassSamples(g_dropSpeed.load());
 				for (auto& active : playing) {
 					if (!active.source) continue;
 					const auto found = std::find_if(targets.begin(), targets.end(), [&](const Voice& target) { return SameSource(active.target, target); });
-					if (found == targets.end()) {
+					// A new speed restarts a paced loop at its new pace.
+					if (found == targets.end() || active.passSamples != PassFor(active.target.sound, samples, dropPass)) {
 						AsyncLog::InfoF(context, "[item-audio] stopped id=%u", active.id);
 						active.Stop();
 					}
@@ -201,21 +221,22 @@ void Worker(const D2RL::PluginContext* context) {
 					if (active == playing.end()) {
 						active = std::find_if(playing.begin(), playing.end(), [](const Playing& p) { return !p.source; });
 						if (active == playing.end()) break;
-						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context)) break;
+						if (!StartVoice(*active, target, samples[sound], 0, engine, format, context, false, PassFor(target.sound, samples, dropPass))) break;
 					}
 					active->target = target;
 					ApplySpatial(*active, master, context);
 					if (!g_running) break;
 				}
 				if (!g_running) break;
-				if (exploration.source && (!room || exploration.id != room->id || exploration.sound != room->sound)) {
+				if (exploration.source && (!room || exploration.id != room->id || exploration.sound != room->sound
+						|| exploration.passSamples != PassFor(room->sound, samples, dropPass))) {
 					AsyncLog::InfoF(context, "[item-audio] stopped exploration id=%u", exploration.id);
 					exploration.Stop();
 				}
 				if (room && !samples[static_cast<size_t>(room->sound)].empty()) {
 					if (!exploration.source)
 						(void)StartVoice(exploration, *room, samples[static_cast<size_t>(room->sound)], 0,
-							engine, format, context);
+							engine, format, context, false, PassFor(room->sound, samples, dropPass));
 					if (exploration.source) { exploration.target = *room; ApplySpatial(exploration, master, context); }
 				}
 				if (!g_running) break;
@@ -247,6 +268,8 @@ void Update(std::vector<Voice> voices) {
 	g_wake.notify_one();
 }
 void Silence() { Update({}); }
+int DropSpeedLevel() { return g_dropSpeed.load(); }
+void SetDropSpeedLevel(int level) { g_dropSpeed = std::clamp(level, 0, static_cast<int>(DropSpeedPercents.size()) - 1); }
 void UpdateExploration(std::vector<Voice> voices) {
 	if (!ModSounds::Enabled()) voices.clear();
 	std::lock_guard lock(g_mutex);
@@ -260,6 +283,11 @@ void PlayExplorationArrival(Voice voice) {
 void PlayDiscovery() {
 	Voice voice{0, Sound::Discovered};
 	voice.gain = LoopVolume; // centered and as near as a source can be, like the room arrival
+	Request(g_discovery, voice);
+}
+void Preview(Sound sound) {
+	Voice voice{0, sound};
+	voice.gain = LoopVolume;
 	Request(g_discovery, voice);
 }
 void SilenceExploration() {

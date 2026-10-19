@@ -1,3 +1,4 @@
 game-data/
 build/
 re/
+__pycache__/

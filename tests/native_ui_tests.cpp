@@ -1,6 +1,7 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "native_memory.h"
+#include "localization.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
@@ -16,6 +17,28 @@ bool supported = true, tombSupported = true;
 uintptr_t cellItem = 0, queriedWidget = 0;
 D2RAccess::NativeUi::Cell queriedCell;
 bool itemQueryFault = false;
+const char* terrorLabel = "Terrorized";
+unsigned terrorLookups = 0;
+auto Localized(const D2RL::PluginContext*, const char* key, char* output, uint32_t size, uint32_t* required) noexcept -> D2RL::Localization::Result {
+	if (std::strcmp(key, "d2r:EnteringDesecratedLevelNotification") != 0 || !terrorLabel)
+		return D2RL::Localization::Result::NotFound;
+	++terrorLookups;
+	*required = static_cast<uint32_t>(std::strlen(terrorLabel) + 1);
+	if (!output || size < *required) return D2RL::Localization::Result::BufferTooSmall;
+	std::memcpy(output, terrorLabel, *required);
+	return D2RL::Localization::Result::Success;
+}
+const D2RL::LocalizationService localizationService{
+	.serviceSize = D2RL::LocalizationServiceSize, .serviceVersion = D2RL::LocalizationService::AbiVersion,
+	.getStringByKey = Localized,
+};
+auto QueryLocalization(const D2RL::PluginContext*, D2RL::ServiceId id, uint32_t, const void** service) noexcept -> D2RL::ServiceQueryResult {
+	if (id != D2RL::ServiceId::Localization) return D2RL::ServiceQueryResult::Unavailable;
+	*service = &localizationService;
+	return D2RL::ServiceQueryResult::Success;
+}
+const D2RL::PluginApi localizationApi{.apiSize = D2RL::PluginApiSize, .queryService = QueryLocalization};
+const D2RL::PluginContext localizationContext{.contextSize = sizeof(D2RL::PluginContext), .api = &localizationApi};
 D2RAccess::NativeWidgets::Notification latestNotification;
 struct Metadata { uintptr_t vtable = 0; const char* name = nullptr; Metadata* base = nullptr; };
 
@@ -88,6 +111,63 @@ std::string ReadText(uintptr_t widget) {
 }
 
 namespace {
+void WaypointTerrorMarkers() {
+	using namespace D2RAccess;
+	NativeUi::Reset();
+	Check(Localization::Initialize(&localizationContext), "waypoint fixture uses the production localization service adapter");
+	Widget manager("Widget", "PanelManager"), focusManager("FocusManager", "FocusManager");
+	Widget panel("WaypointsPanel", "WaypointsPanelExpansion");
+	Widget marked("ButtonWidget", "Act1 Button0"), ordinary("ButtonWidget", "Act1 Button1");
+	Widget icon("ImageWidget", "TerrorZone"), otherIcon("ImageWidget", "TerrorZone");
+	marked.text = "Cold Plains"; ordinary.text = "Stony Field";
+	marked.StringAt(0x8A0, marked.text); ordinary.StringAt(0x8A0, ordinary.text);
+	panel.Add(marked); panel.Add(ordinary); marked.Add(icon); ordinary.Add(otherIcon);
+	otherIcon.Put<uint8_t>(0x51, 0);
+	manager.Add(panel); managerAddress = manager.Address(); manager.Put(0xD0, focusManager.Address());
+	focusManager.Put(0x188, panel.Address()); focusManager.Put(0x190, marked.Address());
+	const auto read = [&](bool oneRow = false) {
+		const auto focus = NativeUi::CurrentFocus();
+		return UiText::Describe(NativeUi::Snapshot(oneRow ? focus.widget : focus.panel, focus.widget, focus.panel));
+	};
+	terrorLabel = "Terrorized"; terrorLookups = 0;
+	Check(read().option == "Cold Plains. Terrorized", "physical-controller focus reads the visible waypoint skull once");
+	Check(terrorLookups == 2, "one marked snapshot performs one two-call localization lookup");
+	NativeUi::SetCursor({panel.Address(), ordinary.Address()}, UINT64_MAX);
+	Check(read().option == "Stony Field", "keyboard cursor does not inherit the other row's marker");
+	NativeUi::SetCursor({panel.Address(), marked.Address()}, UINT64_MAX);
+	Check(read(true).option == "Cold Plains. Terrorized", "single-button keyboard fallback retains the owning waypoint panel");
+	// All strings are from ui.json's existing game key, rather than a new mod
+	// catalogue. Changing the service value also checks that no language is cached.
+	for (const char* label : {"Terrorized", "邪惡威脅", "Terrorisiert", "Aterrorizado", "Terrorisée", "Terrorizzante",
+		"공포의 영역", "Opanowane przez Grozę", "Aterrorizado", "<恐怖が浸食中>", "Aterrorizado", "Зона ужаса", "恐惧区域"}) {
+		terrorLabel = label;
+		Check(read(true).option == std::string("Cold Plains. ") + label, "waypoint marker follows each of the 13 game locales");
+	}
+	terrorLabel = "Terrorized";
+	NativeUi::SetFocusState(+[](std::string_view, uintptr_t, std::string_view) { return std::string("you are here"); });
+	for (int32_t frame : {0, 1, 2}) {
+		icon.Put(0x90, frame);
+		Check(read(true).option == "Cold Plains. you are here. Terrorized", "current/open/locked icon frames retain the same terror status and row state");
+	}
+	NativeUi::SetFocusState(nullptr);
+	icon.Put<uint8_t>(0x51, 0);
+	Check(read(true).option == "Cold Plains", "zone rotation removes a hidden waypoint marker immediately from the next snapshot");
+	icon.Put<uint8_t>(0x51, 1);
+	marked.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::Snapshot(panel.Address(), marked.Address()).nodes.size() == 2, "hidden row ancestors withhold their marker");
+	marked.Put<uint8_t>(0x51, 1);
+	terrorLabel = nullptr;
+	Check(read(true).option == "Cold Plains", "missing game localization preserves the original row text");
+	terrorLabel = "Terrorized";
+	icon.metadata.name = "Widget"; NativeUi::Reset();
+	Check(read(true).option == "Cold Plains", "a same-named non-image cannot manufacture a waypoint marker");
+	icon.metadata.name = "ImageWidget"; panel.metadata.name = "OtherPanel"; NativeUi::Reset();
+	Check(read(true).option == "Cold Plains", "panel names alone do not establish waypoint marker semantics");
+	panel.metadata.name = "WaypointsPanel"; panel.name = "WaypointsPanelOriginal"; panel.StringAt(8, panel.name); NativeUi::Reset();
+	Check(read(true).option == "Cold Plains. Terrorized", "classic and expansion waypoint panels share the visible marker contract");
+	NativeUi::ClearCursor(); managerAddress = 0; NativeUi::Reset(); Localization::Shutdown();
+}
+
 void TombJournalSymbols() {
 	using namespace D2RAccess;
 	const auto language = Strings::Selected();
@@ -139,6 +219,7 @@ void TombJournalSymbols() {
 }
 
 int main() {
+	WaypointTerrorMarkers();
 	TombJournalSymbols();
 	using namespace D2RAccess;
 	Strings::Select(Strings::Language::esES);
@@ -346,6 +427,26 @@ int main() {
 	slot.Put<uint8_t>(0x51, 0);
 	Check(NativeUi::EquipmentItemPresence(slot.Address()) == NativeUi::ItemPresence::Unknown, "hidden equipment is not queried");
 	Check(NativeUi::EquipmentLocation(slot.Address()) == 0, "hidden equipment has no readable location");
+	// The belt shares that getter, numbering its slots by the selection's x.
+	Widget belt("BeltWidget", "belt");
+	belt.metadata.base = &itemBase;
+	belt.vtable[25] = reinterpret_cast<uintptr_t>(&ItemAtCell);
+	belt.Put<uint64_t>(0x544, 3);
+	cellItem = 123;
+	auto focused = NativeUi::BeltItem(belt.Address());
+	Check(focused.known && focused.item == cellItem && focused.slot == 3
+		&& queriedWidget == belt.Address() && queriedCell.x == 3, "a belt slot returns the unit in the selected slot");
+	belt.Put<uint64_t>(0x544, NativeUi::BeltSlots);
+	Check(!NativeUi::BeltItem(belt.Address()).known, "a selection past the last belt slot is never queried");
+	focused = NativeUi::BeltItemAt(belt.Address(), 11);
+	Check(focused.known && focused.slot == 11 && focused.item == cellItem && queriedCell.x == 11
+		&& NativeUi::FocusSelection(belt.Address()) == NativeUi::BeltSlots,
+		"reading a reserve cell leaves the native belt selection untouched");
+	Check(!NativeUi::BeltItemAt(belt.Address(), -1).known && !NativeUi::BeltItemAt(belt.Address(), NativeUi::BeltSlots).known
+		&& !NativeUi::BeltItemAt(grid.Address(), 0).known, "belt queries reject invalid slots and other widget types");
+	itemQueryFault = true;
+	Check(!NativeUi::BeltItemAt(belt.Address(), 4).known, "a failed belt reserve read remains unknown rather than empty");
+	itemQueryFault = false;
 	Widget footer("ButtonLegendScrollWidget", "AnyFooter");
 	Metadata legendBase{0, "ButtonLegendWidget", nullptr}; footer.metadata.base = &legendBase;
 	Check(NativeUi::Classify(footer.Address()).kind == UiText::Kind::Legend, "scrolling controller legends retain the shared legend archetype");

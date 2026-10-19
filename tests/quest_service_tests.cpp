@@ -1,5 +1,6 @@
 #include "quest_service.h"
 #include "quest_progress.h"
+#include "quest_seals.h"
 #include "localization.h"
 #include "native_ui.h"
 #include "native_widgets.h"
@@ -123,6 +124,12 @@ int main() {
 	speech.clear(); QuestService::Note("QuestUpdate"); Wait(); Check(speech.empty(), "disabled announcements do not accumulate");
 	Command("on"); Check(speech.back() == Strings::Current().questAlertsEnabled, "announcements can be reenabled"); speech.clear();
 	Check(Command("invalid") == D2RL::ConsoleCommandResult::InvalidArguments, "unknown console actions are rejected");
+	Wait(); speech.clear();
+	QuestSeals::Observe(1, 2, false); QuestSeals::Observe(1, 2, true); ownsSpeech = true; Tick();
+	Check(speech.empty(), "a seal's opening waits while the UI reader has the speech");
+	ownsSpeech = false; Tick();
+	Check(speech.size() == 1 && speech.back() == QuestSeals::LeftText(4, Strings::Current()) && !interrupted, "an opened seal says how many are left");
+	speech.clear(); Tick(); Check(speech.empty(), "one opening is said once");
 	QuestService::Note("QuestUpdate"); Event(K::GameLeft); Wait(); Check(speech.empty(), "leaving the game discards pending announcements");
 	QuestService::Unregister(); Check(removed == 4, "all lifecycle subscriptions are released");
 	listeners.clear(); failRegistration = 2;

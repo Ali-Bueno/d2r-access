@@ -2,6 +2,7 @@
 #include "corpse_memory.h"
 #include "entity_radar.h"
 #include "native_level_exits.h"
+#include "town_npcs.h"
 #include <D2RLPlugin/api.h>
 #include <cstdint>
 #include <optional>
@@ -13,6 +14,7 @@
 // neighbours, with the game's own localized names. Guarded reads only; the
 // native name resolver is never called because it allocates.
 namespace D2RAccess::NativeEntities {
+using TownPresence = TownNpcs::Presence;
 bool Initialize(const D2RL::PluginContext* context);
 // How many gems, runes or jewels sit in an item's sockets; unknown when unverified or unreadable.
 std::optional<uint32_t> FilledSockets(uintptr_t unit);
@@ -29,9 +31,25 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit);
 // player's room and its neighbours: the scanner's reach, and the reach of what
 // follows a thing the scanner named (the user, 2026-09-28).
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool wholeLevel = false, bool townNpcs = false);
+// Catalogue-only full entity read with owned presence evidence from that exact
+// pass. Unknown/cleared on failure; all reads remain on the native UI thread.
+bool ReadTownPresence(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, TownPresence& presence);
+// Ids of the monsters every Read since the last call found dying or dead.
+std::vector<uint32_t> TakeDeadMonsters();
+// The monster corpses a Necromancer's skills can take that the last Read found
+// in the player's room and its neighbours (a tester, 2026-10-14); none for any
+// other class or when the rule could not be verified.
+struct UsableCorpses {
+	bool necromancer = false;
+	uint32_t playerId = 0;
+	uint64_t readMs = 0; // when, as GetTickCount64 counts: a failed read leaves the last one
+	Radar::Position player;
+	std::vector<Radar::Position> corpses;
+};
+UsableCorpses LastUsableCorpses();
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
-bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false);
+bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false, TownPresence* presence = nullptr);
 // Every party roster entry with the corpse ids the client lists for it; false
 // when unreadable or unverified. The second form is factored for tests.
 bool ReadRosterCorpses(uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);

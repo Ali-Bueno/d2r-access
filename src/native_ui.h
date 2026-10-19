@@ -3,6 +3,7 @@
 #include "ui_text.h"
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace D2RAccess::NativeUi {
@@ -27,6 +28,8 @@ bool Visible(uintptr_t widget);
 uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);
 std::vector<uintptr_t> Children(uintptr_t widget);
+// A panel none of whose children is visible: open, but drawing nothing (EmoteWheelPanel all game).
+bool DrawsNothing(uintptr_t panel);
 Focus CurrentFocus();
 // The game's own focus, whatever the keyboard's cursor is on: for a reader
 // that asks whether the game itself gave a panel anything to stand on.
@@ -60,6 +63,10 @@ GridSlot ItemWidgetSlot(uintptr_t widget);
 GridSlot GridItemAt(uintptr_t widget, Cell cell);
 Cell GridSize(uintptr_t widget);
 ItemPresence EquipmentItemPresence(uintptr_t widget);
+// The stack count drawn on a gem, rune or material stash slot, and whether the slot shows it
+// (the game hides an empty slot's); empty text when the widget is not such a slot or it cannot be read.
+struct StashSlotCount { std::string text; bool shown = false; bool slot = false; }; // slot: the widget is a stash slot
+StashSlotCount StashSlotStackCount(uintptr_t widget);
 // The belt slot the controller is on and the item in it, read straight from
 // the belt rather than waiting for the game's tooltip, which the controller
 // layout shows 400 ms late (Controller/TooltipsPanelHD.json
@@ -67,6 +74,10 @@ ItemPresence EquipmentItemPresence(uintptr_t widget);
 // `item` is 0 for an empty slot. The unit is only named, never kept.
 struct BeltSlot { bool known = false; int slot = -1; uintptr_t item = 0; };
 BeltSlot BeltItem(uintptr_t widget);
+// BeltWidget's inventory getter accepts slots 0..15 (0x3883F2): four columns of four rows.
+inline constexpr int BeltSlots = 16;
+// Same read-only getter, for a known belt cell rather than the selected one.
+BeltSlot BeltItemAt(uintptr_t widget, int slot);
 int EquipmentLocation(uintptr_t widget);
 std::string SelectedTabText(uintptr_t widget);
 // The tab a controller highlight is on in a tab bar, which moving along the bar
@@ -88,6 +99,12 @@ std::vector<uintptr_t> ListRows(uintptr_t list);
 // One line for the log: the list's type, its row container and how many
 // children it holds, and the first child's name and visible flag.
 std::string DescribeList(uintptr_t list);
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus);
+// `named`, when the walk starts at one of its widgets: the panel whose name and
+// focus-state words apply (a waypoint row is read alone, from its button).
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus, uintptr_t named = 0);
+// Words a native reader knows of the focused control beyond the tree (Node::state),
+// from the panel's name and widget and the control's name; null for none.
+using FocusState = std::string (*)(std::string_view panelName, uintptr_t panel, std::string_view control);
+void SetFocusState(FocusState reader);
 void Reset();
 }

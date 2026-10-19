@@ -65,9 +65,12 @@ def read_tables():
     out = {}
     for relative in TABLES:
         text = io.open(REPO / relative, encoding="utf-8").read()
-        body = text[text.index("Checks[] = {"):]
-        out[relative] = [(int(rva, 16), int(size), int(stored, 16))
-                         for _, rva, size, stored in ENTRY.findall(body[:body.index("};")])]
+        out[relative] = []
+        # Every evidence array: Checks, and the optional readers' own (LowQualityChecks).
+        for start in re.finditer(r"\w*Checks\[\] = \{", text):
+            body = text[start.start():]
+            out[relative] += [(int(rva, 16), int(size), int(stored, 16))
+                              for _, rva, size, stored in ENTRY.findall(body[:body.index("};")])]
     return out
 
 

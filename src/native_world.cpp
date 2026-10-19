@@ -299,6 +299,24 @@ uintptr_t PlayerRoom() noexcept {
 	if (!player || !Peek(player + UnitPath, path) || !path || !Peek(path + PathRoom, room)) return 0;
 	return room;
 }
+
+std::vector<uintptr_t> LoadedRooms() {
+	std::vector<uintptr_t> rooms;
+	const uintptr_t first = PlayerRoom();
+	if (!first) return rooms;
+	const NativeMemory::ReadScope scope;
+	rooms.push_back(first);
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		uintptr_t neighbors = 0;
+		uint32_t count = 0;
+		if (!Peek(rooms[i] + RoomNear, neighbors) || !Peek(rooms[i] + RoomNearCount, count) || count > MaxNeighbors) continue;
+		std::array<uintptr_t, MaxNeighbors> adjacent{};
+		if (count && !NativeMemory::Copy(neighbors, adjacent.data(), count * sizeof(uintptr_t))) continue;
+		for (size_t n = 0; n < count && rooms.size() < MaxRooms; ++n)
+			if (adjacent[n] && std::find(rooms.begin(), rooms.end(), adjacent[n]) == rooms.end()) rooms.push_back(adjacent[n]);
+	}
+	return rooms;
+}
 namespace {
 bool CallClearCell(uintptr_t room, int x, int y, uint32_t mask) noexcept {
 	__try {

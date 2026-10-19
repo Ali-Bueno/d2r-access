@@ -4,6 +4,7 @@
 #include "radar.h"
 #include "speech_strings.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <string>
@@ -25,12 +26,13 @@ enum class Kind { Npc, Enemy, Object, Item, Exit, Room, Corpse, Player };
 // shrine", "any chests left"). Kind is too coarse for that: it files every
 // shrine, chest, lever and stash alike as Object. Assigned where the object's
 // table row is already in hand, so the map survey does not re-derive it.
-// Interactable is the deliberate catch-all: levers, seals, statues and doors
-// carry no SubClass bit of their own.
+// Interactable is the deliberate catch-all: levers, statues and doors carry no
+// SubClass bit of their own. Quest takes any object a quest still needs used.
 enum class Category : uint8_t {
 	Unknown, Enemy, Npc, Exit, Portal, Waypoint, Shrine, Treasure, Stash, Interactable, Item, Room, Player,
 	UnexploredRoom, // a room never stood in, kept apart from Room so the scanner can list where to explore
-	Corpse // a player's body, own or another's, listed from anywhere on its level
+	Corpse, // a player's body, own or another's, listed from anywhere on its level
+	Quest // a quest object still to be used (QuestSource), whatever else it is
 };
 
 struct EnemyTraits {
@@ -72,6 +74,8 @@ struct Entity {
 	std::string nameKey; // the game string key `name` was read from; empty when composed or unknown
 	bool corpse = false; // a container that is a dead body: it loops the corpse cue, not the chest one
 	bool weaponRack = false; // a container that is a weapon rack: it loops its own cue, not the chest one
+	bool npcAlert = false; // the "!" a town NPC shows when it has something for the player (docs/npc-proximity.md)
+	bool well = false; // a shrine-category object that is a well (objects.txt SubClass): its own loop
 	bool unreadTome = false; // a quest book not yet read (the Moldy Tome, Horazon's journal)
 	// A door still shut, by the sound the game plays when it opens; None once it is open.
 	Generated::DoorSound shutDoor = Generated::DoorSound::None;
@@ -91,6 +95,8 @@ struct Entity {
 	// Native approach markers for a town character with alternate quest
 	// locations. Actual unit positions remain authoritative while loaded.
 	std::vector<Radar::Position> npcApproaches;
+	uint8_t seal = 0; // a Chaos Sanctuary seal's number (Generated::SealOrdinal), zero otherwise
+	bool mapLandmark = false; // a landmark of the map itself, no unit: the desert's cliff stairs (PlaceService::MapLandmarks)
 };
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a
@@ -104,14 +110,41 @@ bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);
 // A quest object still to be used: the sources of the quest and tome loops.
-inline bool QuestSource(const Entity& entity) { return entity.kind == Kind::Object && (entity.questObject || entity.unreadTome); }
+// The way down the Forgotten Tower, by Levels.txt Id: 20 is the tower, its door on
+// the Black Marsh, 21 to 25 its Tower Cellar levels, the Countess on the last (a
+// tester, 2026-10-14: the quest sound and the quest list, before and after the quest;
+// 2026-10-16: on the Black Marsh's door, not only the tower's stairs). Every step
+// deeper is a quest way; the stairs back up are not.
+inline constexpr uint32_t QuestChain[] = {20, 21, 22, 23, 24, 25};
+inline bool QuestWay(uint32_t from, uint32_t to) {
+	const auto* const end = std::end(QuestChain);
+	const auto* const target = std::find(std::begin(QuestChain), end, to);
+	if (target == end) return false;
+	const auto* const source = std::find(std::begin(QuestChain), end, from);
+	return source == end || source < target;
+}
+// The Forgotten Tower's quest flags (quest record row 5): bits 2-6 its steps since the
+// Moldy Tome, bit 0 completed, bit 15 done too. Only while it runs are its ways quest
+// ways (a tester, 2026-10-17: by the real quest state). docs/quests.md
+inline constexpr int TowerQuestRow = 5;
+inline constexpr uint16_t QuestStartedBits = 0x007C, QuestDoneBits = 0x8001;
+inline bool QuestRunning(uint16_t flags) { return (flags & QuestStartedBits) && !(flags & QuestDoneBits); }
+inline bool QuestSource(const Entity& entity) {
+	return (entity.kind == Kind::Object && (entity.questObject || entity.unreadTome))
+		|| (entity.kind == Kind::Exit && entity.category == Category::Quest);
+}
+// Whether D, choosing what to use, takes `a` at `aSteps` over `b` at `bSteps`: a
+// quest object still to be used first (the Ancients' altar before the statues
+// around it), then the nearer on foot.
+inline bool UseBefore(const Entity& a, int aSteps, const Entity& b, int bSteps) {
+	if (QuestSource(a) != QuestSource(b)) return QuestSource(a);
+	return aSteps < bSteps;
+}
 struct Settings {
-	// Distances are collision subtiles, and a subtile is spoken as one STEP.
-	// That is the unit the pathfinder already counts in -- Navigation::Grid
-	// reports the shortest count of the game's own neighbouring-destination
-	// steps -- so the catalogue and this scan name the same thing the same
-	// way, and neither has to claim a real-world distance it never measured.
-	double stepsPerSubtile = 1;
+	// Distances are collision subtiles, and a subtile is spoken as one UNIT:
+	// not a footstep of the character (the tester, 2026-10-13), but the cell the
+	// pathfinder counts in, so every readout names the same measure the same way.
+	double unitsPerSubtile = 1;
 	double range = 15; // subtiles; the user asked for roughly fifteen steps
 };
 
@@ -121,7 +154,9 @@ struct Settings {
 bool LineOfSight(const Radar::World& world, Radar::Position from, Radar::Position to);
 // An object's own OBJECT bits within its footprint do not hide it; other barriers still do.
 bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& target);
-// "8 pasos" / "1 paso" / "aquí mismo" for a distance in subtiles; shared
+// "8 units" / "1 unit" / "right here" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
+// Whether a thing this far away is under the player, spoken without distance or direction.
+bool UnderPlayer(double distance, const Settings& settings);
 }

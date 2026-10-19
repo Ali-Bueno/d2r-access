@@ -27,6 +27,13 @@ struct Point { int x, y; };
 uintptr_t g_base = 0;
 uintptr_t g_activeInput = 0;
 bool g_modeVerified = false;
+// Begin-edit, what the game's own A on a focused text box calls (0x88BDC5): it makes the
+// box the active editor and opens the game's text entry panel. docs/multiplayer.md
+constexpr uintptr_t BeginEditRva = 0x88C810, IsEditingRva = 0x88B180;
+constexpr size_t BeginEditStoreDisplacement = 0x31, BeginEditStoreEnd = 0x35;
+constexpr size_t FocusedWidgetOffset = 0x190; // FocusManager's focused widget (HasFocus 0x876160)
+constexpr size_t InputEnabledOffset = 0x589;  // a text box's input switch, 1 from its constructor (0x886E20)
+uintptr_t g_beginEdit = 0;
 void* g_original = nullptr;
 std::atomic<bool> g_hold{false};
 
@@ -102,6 +109,13 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (Verify(base, EditCallbackRva, 70, 0xE6E4FE9DF7F4CE48ULL)
 		&& NativeMemory::Peek(base + EditCallbackRva + EditDisplacement, displacement))
 		g_activeInput = base + EditCallbackRva + EditLoadEnd + displacement;
+	// Begin-edit stores the box into the same global: it must be the one read above.
+	g_beginEdit = 0;
+	if (g_activeInput && Verify(base, BeginEditRva, 997, 0x61E9713CE040AFD3ULL) && Verify(base, IsEditingRva, 93, 0xBB13CB571829536CULL)
+		&& NativeMemory::Peek(base + BeginEditRva + BeginEditStoreDisplacement, displacement)
+		&& base + BeginEditRva + BeginEditStoreEnd + displacement == g_activeInput)
+		g_beginEdit = base + BeginEditRva;
+	AsyncLog::InfoF(context, "[typing] Begin-edit %s.", g_beginEdit ? "verified" : "unavailable");
 	if (!context->InstallInlineHook(CursorUpdateRva, UpdatePrefix, sizeof(UpdatePrefix), reinterpret_cast<void*>(&UpdateCursor), &g_original)) {
 		g_base = 0;
 		AsyncLog::Warn(context, "[skill-grid] Cursor hook unavailable; cursor navigation retained.");
@@ -172,6 +186,34 @@ uintptr_t ActiveTextInput(uintptr_t panel) {
 	if (!Available() || !g_activeInput || !panel || !NativeMemory::Peek(g_activeInput, editor) || !editor
 		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || owner != panel || !NativeUi::Visible(editor)) return 0;
 	return editor;
+}
+uintptr_t AnyActiveTextInput(uintptr_t& owner) {
+	uintptr_t editor = 0;
+	owner = 0;
+	if (!Available() || !g_activeInput || !NativeMemory::Peek(g_activeInput, editor) || !editor
+		|| !NativeMemory::Peek(editor + OwnerPanelOffset, owner) || !owner || !NativeUi::Visible(editor)) return 0;
+	return editor;
+}
+namespace {
+bool CallBeginEdit(uintptr_t box) noexcept {
+	__try {
+		reinterpret_cast<void(*)(uintptr_t)>(g_beginEdit)(box);
+		return true;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+}
+}
+const char* BeginEdit(uintptr_t box) {
+	if (!Available() || !g_beginEdit) return "begin-edit unavailable";
+	uintptr_t editor = 0, manager = 0, focused = 0;
+	uint8_t enabled = 0;
+	const auto panels = NativeWidgets::PanelManager();
+	if (!box || !NativeMemory::Peek(g_activeInput, editor)) return "unreadable";
+	if (editor) return "another box is edited";
+	if (!panels || !NativeMemory::Peek(panels + FocusManagerOffset, manager) || !manager
+		|| !NativeMemory::Peek(manager + FocusedWidgetOffset, focused) || focused != box) return "the box does not have the game's focus";
+	if (!NativeMemory::Peek(box + InputEnabledOffset, enabled) || !enabled) return "the box takes no input";
+	if (!CallBeginEdit(box)) return "begin-edit faulted";
+	return NativeMemory::Peek(g_activeInput, editor) && editor == box ? nullptr : "begin-edit left no editor";
 }
 bool SelectAt(NativeUi::Focus focus, uint64_t selection) {
 	if (!Available() || !NativeUi::Visible(focus.panel) || !NativeUi::Visible(focus.widget)) return false;

@@ -27,7 +27,8 @@ namespace D2RAccess::TooltipText {
 struct Body {
 	std::vector<std::string> lines;  // as drawn, top first, cleaned, empties dropped
 	std::vector<bool> red;           // per line: drawn in the game's red (unmet requirements)
-	size_t heading = static_cast<size_t>(-1); // the line the renderer styled as the title
+	size_t heading = static_cast<size_t>(-1); // the topmost line the renderer styled as the title
+	std::vector<size_t> headings;             // every styled line, top first
 	bool Marked() const { return heading != static_cast<size_t>(-1); }
 };
 
@@ -37,6 +38,7 @@ struct Description {
 	std::string headline; // the name, and in a shop the price
 	// The name and the price apart, so something can be read between them.
 	std::string name, price;
+	std::string stack;    // a stack's or tome's count line ("Quantity: 20 of 20"); also in the headline
 	std::string detail;   // base damage or defense, requirements, properties, flavour text
 	std::string unmet;    // the red requirement lines: what this character cannot meet
 	bool unidentified = false; // the tooltip's "Unidentified" line, said after the name, not in the detail
@@ -55,9 +57,14 @@ struct Description {
 // `unidentifiedLabel` is the game's "Unidentified" line: it follows the name
 // and leaves the detail. `requirementLabels` begin the lines the game draws red
 // when unmet; those red lines also go to `unmet`, and stay in the detail.
+// `quantityLabels` begin a stack's count line, which moves into the headline
+// between the name and the price.
+// The spoken headline of a description: name, then the stack's count, then the price.
+std::string Headline(const Description& description);
+
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
-	std::span<const std::string> requirementLabels = {});
+	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {});
 
 // What a held compare button adds, as the screen draws it: each extra record's
 // lines ("Currently Equipped", then the equipped item), joined for speech.
@@ -100,6 +107,10 @@ inline constexpr const char* PriceKey = "cost"; // Cost: %d
 // VERIFIED against local/lng/strings/ui.json. Unknown to the splitter before,
 // so it was read as the item's name (MEASURED 2026-09-21).
 inline constexpr const char* SellKey = "Sell"; // Sell value: %d
+
+// A stack's count ("Quantity: 20 of 20") joins the name in the headline, as
+// does a tome's: stackables use ItemStats1i, tomes scrollbooktext.
+inline constexpr const char* QuantityKeys[] = {"ItemStats1i", "scrollbooktext"};
 
 // Verified in local/lng/strings/item-modifiers.json for all game locales.
 inline constexpr const char* UnidentifiedKey = "ItemStats1b";

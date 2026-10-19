@@ -57,7 +57,7 @@ uintptr_t Parent(uintptr_t widget) {
 }
 // The real walk visits the panel and then its subtree in declaration order,
 // carrying each node's parent, name and text. Nothing else here reads a node.
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t) {
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t, uintptr_t) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;
 	snapshot.panel = panel;
@@ -82,6 +82,7 @@ namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) noexcept {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
+namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;
@@ -125,6 +126,8 @@ std::string Text(std::string_view key) {
 
 int main() {
 	using namespace D2RAccess;
+	Check(CharacterStats::HasPoints("5 Stat Points Remaining") && CharacterStats::HasPoints("Puntos: 12"), "a count above zero is points to spend");
+	Check(!CharacterStats::HasPoints("0 Stat Points Remaining") && !CharacterStats::HasPoints("") && !CharacterStats::HasPoints("none"), "zero, empty or no number is not");
 	Strings::Select(Strings::Language::esES);
 	widgets[Panel] = {"CharacterStatsPanel", "", 0};
 	Add(2, "CharacterName", "Ulfr");
@@ -272,21 +275,46 @@ int main() {
 		"and a panel that is not showing leaves the stick alone, push and all");
 	panelVisible = true;
 
-	// A point button with focus has the stick: up describes the stat, down
-	// reads its controls (interaction_reader.cpp), right says the points left.
+	// A point button with focus pages the statistics as well (a tester,
+	// 2026-10-13: the level-up sheet read the button's controls instead).
 	Add(90, "CombinedPointsInfo", "5 puntos de estadísticas restantes");
 	Add(91, "StrengthPointButton", "", Panel);
 	statButton = 91;
+	CharacterStatsReader::Reset();
+	pending = Push::Down; speech.clear();
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && speech.back() == "Ulfr",
+		"while a point button has focus the stick still pages the statistics");
 	pending = Push::Up;
-	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::Up,
-		"while a point button has focus up is left to the point readout");
-	pending = Push::Right; speech.clear();
-	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && !speech.empty()
-		&& speech.back() == "5 puntos de estadísticas restantes", "right says the points left to spend");
-	// With nothing focused, right jumps to the last statistic -- the same line.
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && pending == Push::None && speech.back() == "Ulfr",
+		"up included");
+	pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, On(91)) && speech.back() == "5 puntos de estadísticas restantes",
+		"and right, the last statistic, is the points left to spend");
 	statButton = 0; pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "5 puntos de estadísticas restantes",
-		"and with nothing focused the last statistic is the points left");
+		"the same as with nothing focused");
+
+	// The last point spent hides every "+" and the focus with it: the value is
+	// said from here, with its label; a value changing under a showing "+" is
+	// the interaction reader's (a tester, 2026-10-13).
+	CharacterStatsReader::Reset();
+	statButton = 91;
+	CharacterStatsReader::Tick(nullptr, On(91)); // the opening's own name and points
+	speech.clear();
+	widgets[12].text = "31";
+	CharacterStatsReader::Tick(nullptr, On(91));
+	Check(speech.empty(), "a value that changes under its showing button is left to the interaction reader");
+	const auto button = widgets[91];
+	widgets.erase(91);
+	widgets[12].text = "32";
+	Check(!CharacterStatsReader::Tick(nullptr, On(91)) && speech == std::vector<std::string>{"Fuerza. 32"},
+		"once its button has gone, the attribute's new value is said with its label");
+	widgets[12].text = "33"; speech.clear();
+	CharacterStatsReader::Tick(nullptr, {});
+	Check(speech.empty(), "and only once");
+	widgets[91] = button;
+	widgets[12].text = "30";
+	statButton = 0;
 	// MEASURED 2026-09-24: a left-stick push up from the top row puts the game's
 	// focus on the menu switcher's tab strip, outside this panel.
 	constexpr uintptr_t Overlay = 200, SwitcherTabs = 201;
@@ -340,14 +368,23 @@ int main() {
 	pending = Push::Right;
 	Check(CharacterStatsReader::Tick(nullptr, {}) && speech.back() == "Daño. 9 a 17",
 		"the hireling stat cursor reaches the final visible row");
+	// With an item focused, down and left keep the mercenary's statistics, up and
+	// right stay the item's (a tester, 2026-10-14).
+	pending = Push::Up;
+	Check(!CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Up,
+		"a focused hireling widget keeps up for its item's tooltip");
 	pending = Push::Down;
-	Check(!CharacterStatsReader::Tick(nullptr, On(10)) && pending == Push::Down,
-		"a focused hireling widget keeps normal controller navigation and item-detail gestures");
+	Check(CharacterStatsReader::Tick(nullptr, On(10)) && speech.back() == "Daño. 9 a 17",
+		"and down still walks the mercenary's statistics");
 	Add(100, "PlayerInventoryExpansionLayout", "", 0);
 	Add(101, "grid", "", 100);
-	pending = Push::Down;
-	Check(!CharacterStatsReader::Tick(nullptr, {100, 101}) && pending == Push::Down,
-		"focus in another visible panel is never stolen by the hireling fallback");
+	pending = Push::Left;
+	Check(CharacterStatsReader::Tick(nullptr, {100, 101}) && speech.back() == "Emilio",
+		"from the backpack beside the mercenary, left goes back to the mercenary's first line");
+	pending = Push::Right;
+	Check(!CharacterStatsReader::Tick(nullptr, {100, 101}) && pending == Push::Right,
+		"and right stays the item's");
+	pending = Push::None;
 
 	// Moving directly to another supported panel resets both the row cursor and
 	// the one-time name announcement, even while the previous panel still exists.

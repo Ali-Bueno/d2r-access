@@ -6,6 +6,8 @@ namespace D2RAccess::NativeProgression {
 struct Details {
 	UiText::Readout readout;
 	bool skill = false;
+	uintptr_t tab = 0; // a skill's branch (its TabWidget)
+	bool classTree = false; // the branch is one of the class's trees, not General Skills
 	std::string name; // table name available before the skill tooltip renders
 	std::vector<std::string> prerequisites; // direct required skills, from the active game tables
 	std::string points, value;

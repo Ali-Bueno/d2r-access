@@ -1,6 +1,7 @@
 #include "native_entities.h"
 #include "generated/level_flags.h"
 #include "generated/lootables.h"
+#include "native_quest_flags.h"
 #include "layout_check.h"
 #include "entity_layout.h"
 #include "ground_item_layout.h"
@@ -10,21 +11,30 @@
 #include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "level_exit_layout.h"
+#include "preset_map_layout.h"
+#include "town_npcs.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
+#include "quest_seals.h"
 #include "native_memory.h"
+#include "native_pets.h"
 #include "localization.h"
 #include "monster_plate.h"
 #include "speech_strings.h"
 #include "ui_text.h"
 #include "async_log.h"
+#include "core_slots.h"
 #include <windows.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
+#include <mutex>
 #include <optional>
+#include <span>
 #include <unordered_set>
+#include <utility>
 
 namespace D2RAccess::NativeEntities {
 namespace {
@@ -45,6 +55,13 @@ bool g_rosterCorpsesSupported = false;
 bool g_playersSupported = false;
 bool g_rosterSupported = false;
 bool g_socketsSupported = false;
+bool g_unbuiltSupported = false; // PresetMapLayout checks passed: presets of rooms not built yet are read
+bool g_npcAlertsSupported = false; // NpcAlertChecks passed: the "!" over town NPCs is read
+bool g_usableCorpsesSupported = false; // UsableCorpseChecks passed: a Necromancer's corpses are counted
+bool g_portalOwnersSupported = false; // PortalOwnerChecks passed: a town portal says whose it is
+bool g_widePortalLevel = false; // the loader keeps a portal level's high byte at ObjPortalLevelHigh
+std::mutex g_usableMutex;
+UsableCorpses g_usable;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -91,6 +108,43 @@ bool DynamicPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) 
 	position = {packed[0] / PositionScale, packed[1] / PositionScale};
 	return true;
 }
+// A corpse that has been raised, exploded or otherwise used carries a udead state.
+bool UsedCorpse(uintptr_t unit, uintptr_t tablesAddress) {
+	uintptr_t stats = 0, mask = 0;
+	int32_t extended = 0;
+	uint64_t states = 0;
+	if (!Peek(unit + UnitStats, stats)) return true;
+	if (!stats) return false;
+	if (!Peek(stats + StatsExtended, extended)) return true;
+	if (extended >= 0) return false; // no active states at all
+	if (!Peek(tablesAddress + UdeadStateMask, mask) || !mask || !Peek(tablesAddress + StateCount, states) || states > MaxStates) return true;
+	constexpr size_t MaxWords = (MaxStates + 31) >> 5;
+	const size_t words = static_cast<size_t>((states + 31) >> 5);
+	std::array<uint32_t, MaxWords> udead{}, active{};
+	if (!NativeMemory::Copy(mask, udead.data(), words * sizeof(uint32_t))
+		|| !NativeMemory::Copy(stats + StatsActiveStates, active.data(), words * sizeof(uint32_t))) return true;
+	for (size_t i = 0; i < words; ++i) if (udead[i] & active[i]) return true;
+	return false;
+}
+// The player's table bank, as ReadMonster reads every monster's row: a monster and the
+// player it is near share the game's bank (Unit+0x1BD, docs/summons-and-corpses-re.md §8).
+bool UsableCorpse(uintptr_t unit, uintptr_t tablesAddress, uint64_t monsterCount, uintptr_t monsters) {
+	uint32_t mode = 0, classId = 0;
+	int16_t extra = -1;
+	uintptr_t rows = 0;
+	uint64_t count = 0;
+	uint8_t flags = 0;
+	return Peek(unit + UnitMode, mode) && mode == MonsterDead && Peek(unit + UnitClass, classId) && classId < monsterCount
+		&& Peek(monsters + classId * MonStatStride + MonStatsExtra, extra) && extra >= 0
+		&& Peek(tablesAddress + MonStats2, rows) && rows && Peek(tablesAddress + MonStats2Count, count)
+		&& static_cast<uint64_t>(extra) < count && Peek(rows + static_cast<uintptr_t>(extra) * MonStats2Stride + MonStats2Flags, flags)
+		&& (flags & CorpseSelectable) && !UsedCorpse(unit, tablesAddress);
+}
+// Unread flags keep the tower's ways quest ways, as before the flags were known.
+bool TowerQuestRunning() {
+	const auto flags = NativeQuestFlags::Read(EntityRadar::TowerQuestRow);
+	return !flags || EntityRadar::QuestRunning(*flags);
+}
 bool StaticPosition(uintptr_t unit, uintptr_t room, Radar::Position& position) {
 	uintptr_t path = 0, pathRoom = 0;
 	int x = 0, y = 0;
@@ -113,6 +167,12 @@ const std::unordered_set<std::string>& LevelKeys(uintptr_t levels, uint64_t coun
 		}
 	cachedTable = levels; cachedCount = count;
 	return keys;
+}
+// *hcIdx of the cow and camel rows in the game's monstats.txt (NameStr "dummy"),
+// and the string keys that name them: objects.json "cowa", monsters.json "Camel".
+const char* AnimalNameKey(uint32_t classId) {
+	constexpr uint32_t CowClass = 179, CamelClass = 185;
+	return classId == CowClass ? "cowa" : classId == CamelClass ? "Camel" : nullptr;
 }
 // The placeholder label every unnamed MonStats row shares, in the player's
 // language. The string tables load after the plugin and reload when the text
@@ -164,13 +224,38 @@ std::string ComposedName(uintptr_t data) {
 	for (size_t i = 1; i < ids.size() && ids[i] != NoText; ++i) parts.push_back(Localization::Text(ids[i]));
 	return MonsterPlate::Compose(format, parts);
 }
-bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce, EntityRadar::Entity& entity) {
+std::mutex g_deadMutex;
+std::vector<uint32_t> g_deadMonsters;
+void NoteDead(uintptr_t unit) {
+	uint32_t mode = 0, id = 0;
+	if (!Peek(unit + UnitMode, mode) || (mode != MonsterDeath && mode != MonsterDead) || !Peek(unit + UnitId, id)) return;
+	std::lock_guard lock(g_deadMutex);
+	if (g_deadMonsters.size() < MaxUnits && std::find(g_deadMonsters.begin(), g_deadMonsters.end(), id) == g_deadMonsters.end())
+		g_deadMonsters.push_back(id);
+}
+bool HasOverlay(uintptr_t unit, int32_t id) {
+	uintptr_t graphics = 0, node = 0;
+	if (!Peek(unit + UnitGraphics, graphics) || !graphics || !Peek(graphics + GraphicsOverlays, node)) return false;
+	for (size_t i = 0; node && i < MaxOverlays; ++i) {
+		int32_t overlay = 0;
+		if (!Peek(node + OverlayId, overlay)) return false;
+		if (overlay == id) return true;
+		if (!Peek(node + OverlayNext, node)) return false;
+	}
+	return false;
+}
+// A player's pet -- a summon, the hireling, a bound demon -- is neither an NPC nor an
+// enemy: every summon is Align 1, a bound demon keeps its hostile class, and the
+// hireling's own flag marks no summon (docs/summons-and-corpses-re.md §3).
+bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std::optional<Pierce>& pierce,
+	const std::unordered_set<uint32_t>& pets, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0, flags = 0;
 	uintptr_t data = 0;
 	if (!Peek(unit + UnitMode, mode) || mode == MonsterDeath || mode == MonsterDead
 		|| !Peek(unit + UnitFlags1, flags) || (flags & (ForcedDead | PlayerMinion))
 		|| !Peek(unit + UnitClass, classId) || classId >= tables.monsterCount
-		|| !Peek(unit + UnitId, entity.id) || !DynamicPosition(unit, room, entity.position)) return false;
+		|| !Peek(unit + UnitId, entity.id) || pets.contains(entity.id) || NativePets::PlayerOwned(unit)
+		|| !DynamicPosition(unit, room, entity.position)) return false;
 	const uintptr_t row = tables.monsters + classId * MonStatStride;
 	uint16_t nameId = 0;
 	uint8_t align = 0, flagsA = 0;
@@ -182,6 +267,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	MonsterPlate::Plate plate;
 	entity.kind = hostile ? EntityRadar::Kind::Enemy : EntityRadar::Kind::Npc;
 	entity.category = hostile ? EntityRadar::Category::Enemy : EntityRadar::Category::Npc;
+	if (!hostile && (flagsA & FlagNpc) && g_npcAlertsSupported) entity.npcAlert = HasOverlay(unit, NpcAlertOverlay);
 	if (hostile && g_plate && Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, entity.enemy.flags)
 		&& NativeMemory::Copy(data + MonEnchantments, entity.enemy.enchantments.data(), entity.enemy.enchantments.size()))
 		plate = MonsterPlate::Read(entity.enemy.flags, entity.enemy.enchantments, flagsA, *g_plate);
@@ -197,9 +283,9 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
 		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
-		// *hcIdx values of the FallenShaman and FetishShaman AI rows in the game's monstats.txt.
-		constexpr std::array<uint32_t, 16> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
-			645, 646, 647, 662, 663, 664};
+		// *hcIdx values of the FallenShaman, FetishShaman and GreaterMummy AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 26> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 229, 667, 668, 669, 670};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {
@@ -222,6 +308,14 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			strings.monsterUnique, strings.listSeparator}));
 	}
 	if (entity.name.empty()) return false;
+	// Town animals share that unnamed row name, but the game names a cow and a
+	// camel in other tables (a tester liked the camp's tents and wagons and asked for its cows).
+	if (const char* key = AnimalNameKey(classId); key && !hostile) {
+		if (auto animal = UiText::Clean(Localization::Text(key)); !animal.empty()) {
+			entity.name = std::move(animal);
+			return true;
+		}
+	}
 	// Rows the game leaves unnamed all resolve to the same placeholder label
 	// ("an evil force"): decoration and helper units, never worth announcing.
 	const auto& placeholder = PlaceholderName();
@@ -245,9 +339,38 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 // does not prove that an absent client unit is gone: Lut Gholein's distant
 // NPCs can unload while their rooms and presets remain (2026-10-04 snapshot).
 void AddTownNpcs(uintptr_t room, uintptr_t level, const Tables& tables,
-	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities, bool spawnFallbacks) {
+	const std::vector<std::pair<size_t, uint32_t>>& liveNpcs, std::vector<EntityRadar::Entity>& entities, bool spawnFallbacks,
+	TownPresence* presence, std::span<const uintptr_t> immediate, const std::array<bool, TownNpcs::RetiringClasses.size()>& rawPresent) {
 	uint32_t levelId = 0;
-	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town) return;
+	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town) {
+		if (presence) presence->complete = false;
+		return;
+	}
+	// Only the immediate native ring can positively observe a missing actor.
+	// Presets use logical RoomEx pointers, while `immediate` contains active
+	// Room pointers. Validate both identity and every approach's tile bounds.
+	std::vector<uintptr_t> nearbyLogical;
+	std::vector<NativeLevelExits::TileRect> nearbyRects;
+	constexpr int SubtilesPerTile = LevelExitLayout::SubtilesPerTile;
+	if (presence && presence->complete) for (const uintptr_t active : immediate) {
+		uintptr_t logical = 0, owner = 0;
+		NativeLevelExits::TileRect rect;
+		constexpr int MaxTile = UINT16_MAX / SubtilesPerTile;
+		if (!Peek(active + RoomExtended, logical) || !logical || !Peek(logical + ExtendedLevel, owner) || owner != level
+			|| !Peek(logical + LevelExitLayout::RoomTileX, rect.x) || !Peek(logical + LevelExitLayout::RoomTileY, rect.y)
+			|| !Peek(logical + LevelExitLayout::RoomTileWidth, rect.width) || !Peek(logical + LevelExitLayout::RoomTileHeight, rect.height)
+			|| rect.x < 0 || rect.y < 0 || rect.width <= 0 || rect.height <= 0 || rect.width > MaxTile || rect.height > MaxTile
+			|| rect.x > MaxTile - rect.width || rect.y > MaxTile - rect.height) { presence->complete = false; break; }
+		nearbyLogical.push_back(logical);
+		nearbyRects.push_back(rect);
+	}
+	const auto nearby = [&](Radar::Position position) {
+		return std::isfinite(position.x) && std::isfinite(position.y)
+			&& std::any_of(nearbyRects.begin(), nearbyRects.end(), [&](const auto& rect) {
+				return position.x >= rect.x * SubtilesPerTile && position.y >= rect.y * SubtilesPerTile
+					&& position.x < (rect.x + rect.width) * SubtilesPerTile && position.y < (rect.y + rect.height) * SubtilesPerTile;
+			});
+	};
 	// A live quest/service character is itself evidence of its identity, even
 	// with no preset, several alternate presets, or a failed preset read.
 	// Mark local reads too, so walking/interaction can match scanner targets.
@@ -259,19 +382,44 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const Tables& tables,
 		entities[index].placeId = TownNpcIdentity(classId);
 	}
 	std::vector<NativeLevelExits::MonsterPreset> presets;
-	if (!spawnFallbacks || !NativeLevelExits::ReadMonsters(room, presets)) return;
+	bool presetsComplete = false;
+	if (!spawnFallbacks || !NativeLevelExits::ReadMonsters(room, presets, g_unbuiltSupported, &presetsComplete)) {
+		if (presence) presence->complete = false;
+		return;
+	}
+	if (presence && !presetsComplete) presence->complete = false;
 	std::vector<NativeLevelExits::MonsterPreset> markers;
-	if (NativeLevelExits::ReadNpcMarkers(room, markers))
+	bool markersComplete = false;
+	if (NativeLevelExits::ReadNpcMarkers(room, markers, &markersComplete))
 		for (const auto& marker : markers) {
+			// Marker replacement intentionally keeps one approach source, but
+			// must not disguise duplicate retirement markers as certain absence.
+			if (presence && TownNpcs::CanRetire(marker.monster)
+				&& std::count_if(markers.begin(), markers.end(), [&](const auto& other) { return other.monster == marker.monster; }) != 1)
+				presence->complete = false;
 			std::erase_if(presets, [&](const auto& preset) { return preset.monster == marker.monster; });
 			presets.push_back(marker);
 		}
+	if (presence && !markersComplete) presence->complete = false;
 	for (const auto& preset : presets) {
 		// Several presets of one row (guards) have no single place to name.
-		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) continue;
+		if (std::count_if(presets.begin(), presets.end(), [&](const auto& other) { return other.monster == preset.monster; }) != 1) {
+			if (presence && TownNpcs::CanRetire(preset.monster)) presence->complete = false;
+			continue;
+		}
 		auto name = NpcName(tables, preset.monster);
-		if (name.empty()) continue;
+		if (name.empty()) {
+			if (presence && TownNpcs::CanRetire(preset.monster)) presence->complete = false;
+			continue;
+		}
 		const uint64_t identity = TownNpcIdentity(preset.monster);
+		if (presence && presence->complete && TownNpcs::CanRetire(preset.monster)) {
+			const auto found = std::find(TownNpcs::RetiringClasses.begin(), TownNpcs::RetiringClasses.end(), preset.monster);
+			const auto index = static_cast<size_t>(found - TownNpcs::RetiringClasses.begin());
+			if (!rawPresent[index] && std::find(nearbyLogical.begin(), nearbyLogical.end(), preset.room) != nearbyLogical.end()
+				&& nearby(preset.position) && std::all_of(preset.alternatives.begin(), preset.alternatives.end(), nearby))
+				presence->absent.push_back(identity);
+		}
 		bool live = false;
 		const auto count = std::count_if(liveNpcs.begin(), liveNpcs.end(), [&](const auto& npc) { return npc.second == preset.monster; });
 		for (const auto& [index, classId] : liveNpcs)
@@ -433,7 +581,7 @@ EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool op
 	if (Generated::LootableObject(classId) || (subClass & SubClassContainer)) return EntityRadar::Category::Treasure;
 	if (openWarp) return EntityRadar::Category::Exit;
 	if (key == BankNameKey) return EntityRadar::Category::Stash;
-	// Levers, seals, statues and doors carry no SubClass bit of their own.
+	// Levers, statues and doors carry no SubClass bit of their own.
 	return EntityRadar::Category::Interactable;
 }
 
@@ -449,11 +597,27 @@ bool IsContainer(uintptr_t row) {
 		|| !Peek(row + ObjSelectable + ObjectOpened, opened) || !shut || opened) return false;
 	return std::find(ContainerOperateFns.begin(), ContainerOperateFns.end(), operate) != ContainerOperateFns.end();
 }
-bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar::Entity& entity) {
+// Whose town portal it is, as the game's label says it; empty when nobody's or unread.
+std::string PortalOwner(uintptr_t data, uint32_t portalId) {
+	uintptr_t entry = 0;
+	if (!g_portalOwnersSupported) return {};
+	if (g_rosterSupported && Peek(g_base + RosterHead, entry))
+		for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+			uint32_t local = 0, remote = 0;
+			if (!Peek(entry + RosterPortal, local) || !Peek(entry + RosterRemotePortal, remote)) break;
+			if (local == portalId || remote == portalId) return UiText::Clean(CString(entry + RosterName, PlayerNameBytes));
+			if (!Peek(entry + RosterNext, entry)) break;
+		}
+	return UiText::Clean(CString(data + ObjPortalOwner, PlayerNameBytes));
+}
+bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t session, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
 		|| !Peek(unit + UnitId, entity.id) || !StaticPosition(unit, room, entity.position)) return false;
 	const uintptr_t row = tables.objects + classId * ObjectStride;
+	// A seal is counted in every mode: the open ones are what the count is made of.
+	const uint8_t seal = Generated::SealOrdinal(classId);
+	if (seal) QuestSeals::Observe(session, seal, mode != ObjectNeutral);
 	uint8_t selectable = 0, door = 0, subClass = 0, openWarp = 0, operate = 0;
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
@@ -469,11 +633,12 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	entity.container = IsContainer(row);
 	entity.corpse = entity.container && Generated::CorpseObject(classId);
 	entity.weaponRack = entity.container && Generated::WeaponRackObject(classId);
+	entity.well = (subClass & SubClassWell) != 0;
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
 	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
 		entity.doorSpan = std::max(width, height);
-	entity.questObject = Generated::QuestItemObject(classId);
+	entity.questObject = Generated::QuestItemObject(classId) || Generated::QuestMechanismStep(classId, mode);
 	if (operate == TeleportPadOperateFn) entity.padClass = static_cast<uint16_t>(classId);
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
@@ -481,11 +646,14 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 	}
 	const auto key = CString(row + ObjNameKey, MaxKeyBytes);
 	// Objects that take the player to another area: portals, gates and waypoints by
-	// SubClass, the OpenWarp stairs/trapdoors, and objects named after a level
+	// SubClass, the OpenWarp stairs/trapdoors and the sewer stairs, and objects named after a level
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
-	const bool exit = (subClass & SubClassExit) || openWarp || (tables.levelKeys && tables.levelKeys->contains(key));
+	// The sewer stairs are the way through themselves, with no OpenWarp flag (RoomWarpOperateFn).
+	const bool warp = openWarp || operate == RoomWarpOperateFn;
+	const bool exit = (subClass & SubClassExit) || warp || (tables.levelKeys && tables.levelKeys->contains(key));
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
-	entity.category = ObjectCategory(classId, subClass, openWarp != 0, key);
+	entity.category = ObjectCategory(classId, subClass, warp, key);
+	if (EntityRadar::QuestSource(entity)) entity.category = EntityRadar::Category::Quest;
 	// Stairs, waypoints and the stash stand where the level's layout put them.
 	if (openWarp || entity.category == EntityRadar::Category::Waypoint || entity.category == EntityRadar::Category::Stash)
 		entity.placeId = NativeLevelExits::Identity(entity.position);
@@ -498,21 +666,33 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 			entity.name = UiText::Clean(Localization::Text(nameId));
 	}
 	if (subClass & SubClassPortal) { // the game labels a portal with its destination level
-		// Read as 16 bits: D2RLoader 1.3.0-beta widened this field, and the
-		// game's own hover label now consumes it as a word (0xC17E0+167 became
-		// `movzx edx, ax`). The offset is unchanged; the field grew into its
-		// padding, so a byte-sized read would silently truncate any level above
-		// 255 that a future build or a mod introduces.
-		uint16_t levelId = 0;
-		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, levelId)) {
+		uint8_t low = 0, high = 0;
+		if (Peek(unit + UnitData, data) && data && Peek(data + ObjPortalLevel, low)
+			&& (!g_widePortalLevel || Peek(data + ObjPortalLevelHigh, high))) {
+			const uint32_t levelId = low | static_cast<uint32_t>(high) << 8;
 			entity.name = LevelText(tables, levelId, LevelNameKey);
 			entity.nameKey = LevelKey(tables, levelId, LevelNameKey);
 			entity.destinationLevel = levelId;
+			if (const auto owner = PortalOwner(data, entity.id); !owner.empty() && !entity.name.empty()) {
+				char text[512]{};
+				std::snprintf(text, sizeof text, Strings::Current().portalOwned, entity.name.c_str(), owner.c_str());
+				entity.name = text;
+				entity.nameKey.clear(); // composed
+			}
 		}
+		// Its objects.txt key is "Portal to ", a prefix: no name without the level.
+		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	}
 	if (entity.name.empty() && !key.empty()) {
 		entity.name = UiText::Clean(Localization::Text(key));
 		entity.nameKey = key;
+	}
+	// The glowing quest and reward chests, told from the plain ones (a tester, 2026-10-17).
+	if (Generated::RadiantObject(classId) && !entity.name.empty()) {
+		char text[256]{};
+		std::snprintf(text, sizeof text, Strings::Current().radiantObject, entity.name.c_str());
+		entity.name = text;
+		entity.nameKey.clear(); // composed
 	}
 	// Spatial cues are derived from the object row, not its translated label.
 	// Keep those cues alive while string tables are unavailable or reloading.
@@ -525,6 +705,14 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRada
 		char text[512]{};
 		std::snprintf(text, sizeof text, strings.cairnStoneSymbol, entity.worldName.c_str(),
 			strings.cairnSymbols[entity.cairnStone - 1]);
+		entity.name = text;
+	}
+	if (seal) { // the game gives all five one label
+		entity.seal = seal;
+		entity.worldName = entity.name;
+		entity.nameKey.clear();
+		char text[512]{};
+		std::snprintf(text, sizeof text, Strings::Current().sealNumbered, entity.worldName.c_str(), static_cast<int>(seal));
 		entity.name = text;
 	}
 	return !entity.name.empty();
@@ -558,6 +746,11 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 		entity.name = LevelText(tables, levelId, LevelWarpKey);
 		entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
 		entity.destinationLevel = levelId;
+		// Loaded, the warp replaces its preset: it keeps the quest category too (a tester, 2026-10-15).
+		uintptr_t here = 0;
+		uint32_t from = 0;
+		if (Peek(roomEx + ExtendedLevel, here) && here) (void)Peek(here + LevelId, from);
+		if (EntityRadar::QuestWay(from, levelId) && TowerQuestRunning()) entity.category = EntityRadar::Category::Quest;
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	TombSymbols::Mark(entity, Strings::Current());
@@ -566,10 +759,10 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_immunities = false; g_plate.reset(); return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
-	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = false;
+	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
 	g_plate.reset();
@@ -590,6 +783,20 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (g_rosterCorpsesSupported) AsyncLog::Info(context, "[scan] Verified roster corpse reader.");
 	g_socketsSupported = LayoutCheck::Verify(context, context->exeBase, SocketChecks, "sockets", "filled sockets not counted");
 	if (g_socketsSupported) AsyncLog::Info(context, "[scan] Verified socketed item reader.");
+	constexpr const char* NoUnbuilt = "town NPCs in rooms not built yet not listed";
+	g_unbuiltSupported = LayoutCheck::Verify(context, context->exeBase, PresetMapLayout::Checks, "town-npcs", NoUnbuilt)
+		&& LayoutCheck::Verify(context, context->exeBase, PresetMapLayout::PendingChecks, "town-npcs", NoUnbuilt);
+	if (g_unbuiltSupported) AsyncLog::Info(context, "[scan] Verified unbuilt-room preset reader.");
+	g_npcAlertsSupported = LayoutCheck::Verify(context, context->exeBase, NpcAlertChecks, "npc-alerts", "the NPC exclamation mark not read");
+	if (g_npcAlertsSupported) AsyncLog::Info(context, "[scan] Verified NPC exclamation mark reader.");
+	(void)NativePets::Initialize(context);
+	g_usableCorpsesSupported = LayoutCheck::Verify(context, context->exeBase, UsableCorpseChecks, "corpses", "a Necromancer's corpses not counted");
+	if (g_usableCorpsesSupported) AsyncLog::Info(context, "[scan] Verified usable corpse reader.");
+	g_portalOwnersSupported = LayoutCheck::Verify(context, context->exeBase, PortalOwnerChecks, "portals", "town portals not said with their owner");
+	const HMODULE core = GetModuleHandleW(CoreSlots::ModuleName);
+	g_widePortalLevel = core && GetProcAddress(core, WidePortalLevelExport);
+	AsyncLog::InfoF(context, "[scan] Portal owners %s; portal level high byte %s.", g_portalOwnersSupported ? "verified" : "off",
+		g_widePortalLevel ? "from the loader" : "absent");
 	return true;
 }
 std::optional<uint32_t> FilledSockets(uintptr_t unit) {
@@ -604,9 +811,13 @@ std::optional<uint32_t> FilledSockets(uintptr_t unit) {
 		|| !Peek(inventory + InventoryItemCount, count) || count > MaxSockets) return std::nullopt;
 	return count;
 }
-bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs) {
+bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool includeCorpse, bool includePlayers, uintptr_t roster, bool wholeLevel, bool townNpcs, TownPresence* presence) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
+	if (presence) *presence = {}; // failure never exposes an earlier read's absence
+	TownPresence observed{session, playerId};
+	observed.complete = presence && wholeLevel && townNpcs;
+	std::array<bool, TownNpcs::RetiringClasses.size()> rawPresent{};
 	uint32_t type = 0, id = 0;
 	uintptr_t path = 0, room = 0;
 	Tables tables;
@@ -631,9 +842,12 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	// offered here, thousands of subtiles away behind solid ground. Without a
 	// readable level the walk stays as it was.
 	const uintptr_t level = RoomLevel(room);
+	if (!level || !Peek(level + LevelId, observed.level) || !observed.level) observed.complete = false;
 	for (size_t i = 0; i < count; ++i) {
 		if (!adjacent[i] || std::find(rooms.begin(), rooms.end(), adjacent[i]) != rooms.end()) continue;
-		if (level && RoomLevel(adjacent[i]) != level) continue;
+		const uintptr_t owner = RoomLevel(adjacent[i]);
+		if (!owner) observed.complete = false;
+		if (level && owner != level) continue;
 		rooms.push_back(adjacent[i]);
 	}
 	// The scanner's read goes on through every loaded room of this level, as the
@@ -645,44 +859,77 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		uint32_t listCount = 0;
 		std::array<uintptr_t, MaxRooms> next{};
 		if (!Peek(rooms[i] + RoomNeighbors, list) || !Peek(rooms[i] + RoomNeighborCount, listCount) || listCount > MaxRooms
-			|| (listCount && !NativeMemory::Copy(list, next.data(), listCount * sizeof(uintptr_t)))) continue;
-		for (size_t n = 0; n < listCount && rooms.size() < MaxLoadedRooms; ++n)
-			if (next[n] && (!level || RoomLevel(next[n]) == level)
-				&& std::find(rooms.begin(), rooms.end(), next[n]) == rooms.end()) rooms.push_back(next[n]);
+			|| (listCount && !NativeMemory::Copy(list, next.data(), listCount * sizeof(uintptr_t)))) { observed.complete = false; continue; }
+		for (size_t n = 0; n < listCount; ++n) {
+			if (!next[n]) continue;
+			const uintptr_t owner = RoomLevel(next[n]);
+			if (!owner) observed.complete = false;
+			if (level && owner != level) continue;
+			if (std::find(rooms.begin(), rooms.end(), next[n]) != rooms.end()) continue;
+			if (rooms.size() >= MaxLoadedRooms) { observed.complete = false; continue; }
+			rooms.push_back(next[n]);
+		}
 	}
 	if (wholeLevel && level) {
 		uintptr_t logical = 0;
 		std::unordered_set<uintptr_t> walked;
-		if (Peek(level + LevelExitLayout::LevelFirstRoom, logical))
-			while (logical && walked.size() < LevelExitLayout::MaxRooms && walked.insert(logical).second) {
+		if (Peek(level + LevelExitLayout::LevelFirstRoom, logical)) {
+			while (logical) {
+				if (walked.size() >= LevelExitLayout::MaxRooms || !walked.insert(logical).second) { observed.complete = false; break; }
 				uintptr_t active = 0, owner = 0;
-				if (Peek(logical + ExtendedLevel, owner) && owner == level
-					&& Peek(logical + LevelExitLayout::RoomActive, active) && active
-					&& rooms.size() < MaxLoadedRooms && RoomLevel(active) == level
-					&& std::find(rooms.begin(), rooms.end(), active) == rooms.end()) rooms.push_back(active);
-				if (!Peek(logical + LevelExitLayout::RoomNext, logical)) break;
+				if (!Peek(logical + ExtendedLevel, owner) || owner != level || !Peek(logical + LevelExitLayout::RoomActive, active)) observed.complete = false;
+				else if (active) {
+					if (RoomLevel(active) != level) observed.complete = false;
+					else if (std::find(rooms.begin(), rooms.end(), active) == rooms.end()) {
+						if (rooms.size() < MaxLoadedRooms) rooms.push_back(active);
+						else observed.complete = false;
+					}
+				}
+				if (!Peek(logical + LevelExitLayout::RoomNext, logical)) { observed.complete = false; break; }
 			}
+		} else observed.complete = false;
 	}
 	std::unordered_set<uintptr_t> visited;
 	std::vector<EntityRadar::Entity> entities;
 	const auto pierce = PlayerPierce(player);
-	std::vector<std::pair<size_t, uint32_t>> liveNpcs;
+	std::vector<TownNpcs::Live> liveNpcs;
 	std::vector<uint32_t> loadedPlayers; // any mode: the roster must not place a loaded unit again
+	std::unordered_set<uint32_t> pets;
+	if (const auto all = NativePets::All()) for (const auto& pet : *all) pets.insert(pet.id);
+	UsableCorpses usable;
+	uint32_t playerClass = 0;
+	usable.necromancer = g_usableCorpsesSupported && Peek(player + UnitClass, playerClass) && playerClass == NecromancerClass
+		&& DynamicPosition(player, room, usable.player);
+	usable.playerId = playerId;
+	usable.readMs = GetTickCount64();
 	for (size_t r = 0; r < rooms.size(); ++r) {
 		const uintptr_t candidateRoom = rooms[r];
 		const bool past = r >= ring;
 		uintptr_t unit = 0;
-		if (!Peek(candidateRoom + RoomFirstUnit, unit)) { if (past) continue; return false; }
+		if (!Peek(candidateRoom + RoomFirstUnit, unit)) { if (past) { observed.complete = false; continue; } return false; }
 		while (unit) {
-			if (visited.size() >= MaxUnits || !visited.insert(unit).second) { if (past) break; return false; }
+			if (visited.size() >= MaxUnits || !visited.insert(unit).second) { if (past) { observed.complete = false; break; } return false; }
 			uint32_t unitType = 0;
-			if (!Peek(unit + UnitType, unitType)) { if (past) break; return false; }
+			if (!Peek(unit + UnitType, unitType)) { if (past) { observed.complete = false; break; } return false; }
+			if (unitType > WarpType) observed.complete = false;
+			if (presence && unitType == MonsterType) {
+				// Raw existence precedes naming/liveness filters: an unread name,
+				// animation or transient path is never evidence of disappearance.
+				uint32_t classId = 0;
+				if (!Peek(unit + UnitClass, classId) || classId >= tables.monsterCount) observed.complete = false;
+				else for (size_t index = 0; index < TownNpcs::RetiringClasses.size(); ++index)
+					if (classId == TownNpcs::RetiringClasses[index]) rawPresent[index] = true;
+			}
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
+			if (unitType == MonsterType) NoteDead(unit);
+			if (Radar::Position at; usable.necromancer && !past && unitType == MonsterType
+				&& UsableCorpse(unit, tablesAddress, tables.monsterCount, tables.monsters) && DynamicPosition(unit, candidateRoom, at))
+				usable.corpses.push_back(at);
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
-				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, entity))
-				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, entity))
+				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, pets, entity))
+				|| (unitType == ObjectType && ReadObject(unit, candidateRoom, tables, session, entity))
 				|| (unitType == WarpType && ReadWarp(unit, candidateRoom, tables, entity))) {
 				if (unitType == MonsterType && entity.kind == EntityRadar::Kind::Npc) {
 					uint32_t classId = 0;
@@ -691,7 +938,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entity.unit = static_cast<uint8_t>(unitType);
 				entities.push_back(std::move(entity));
 			}
-			if (!Peek(unit + UnitNext, unit)) { if (past) break; return false; }
+			if (!Peek(unit + UnitNext, unit)) { if (past) { observed.complete = false; break; } return false; }
 		}
 	}
 	// Permanent level transitions may outlive their loaded warp units. Read
@@ -703,6 +950,7 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			false, EntityRadar::Category::Exit, exit.destination};
 		entity.nameKey = LevelKey(tables, exit.destination, LevelWarpKey);
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+		if (EntityRadar::QuestWay(exit.source, exit.destination) && TowerQuestRunning()) entity.category = EntityRadar::Category::Quest;
 		TombSymbols::Mark(entity, Strings::Current());
 		if (std::none_of(entities.begin(), entities.end(), [&](const auto& existing) { return EntityRadar::SameTarget(existing, entity); }))
 			entities.push_back(std::move(entity));
@@ -730,19 +978,47 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 				entities.push_back(std::move(entity));
 		}
 	}
-	if (levelStruct) AddTownNpcs(room, levelStruct, tables, liveNpcs, entities, townNpcs);
+	if (levelStruct) AddTownNpcs(room, levelStruct, tables, liveNpcs, entities, townNpcs,
+		presence ? &observed : nullptr, std::span<const uintptr_t>(rooms.data(), ring), rawPresent);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);
 	output = std::move(entities);
+	if (presence) {
+		if (!observed.complete) observed.absent.clear();
+		*presence = std::move(observed);
+	}
+	{
+		std::lock_guard lock(g_usableMutex);
+		g_usable = std::move(usable);
+	}
 	return true;
 }
+std::vector<uint32_t> TakeDeadMonsters() {
+	std::lock_guard lock(g_deadMutex);
+	return std::exchange(g_deadMonsters, {});
+}
+UsableCorpses LastUsableCorpses() {
+	std::lock_guard lock(g_usableMutex);
+	return g_usable;
+}
+
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {
 	uintptr_t player = 0, tables = 0;
 	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
 	uintptr_t roster = 0;
 	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
 	return ReadPlayer(player, tables, playerId, session, output, distantExits, levelBearings, g_corpsesSupported, g_playersSupported, roster, wholeLevel, townNpcs);
+}
+
+bool ReadTownPresence(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, TownPresence& presence) {
+	presence = {};
+	uintptr_t player = 0, tables = 0;
+	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tables)) { output.clear(); return false; }
+	uintptr_t roster = 0;
+	if (g_rosterSupported && !Peek(g_base + RosterHead, roster)) roster = 0;
+	return ReadPlayer(player, tables, playerId, session, output, true, true, g_corpsesSupported,
+		g_playersSupported, roster, true, true, &presence);
 }
 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout) {

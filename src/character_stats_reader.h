@@ -5,6 +5,9 @@
 
 #include <D2RLPlugin/api.h>
 
+#include <cstdint>
+#include <string>
+
 // Character and hireling panel statistics, on the right stick. The hireling
 // reader is active during its observed no-focus controller state, or with focus
 // on the menu tab strip, and yields to any other focused widget. The character panel shows
@@ -28,15 +31,31 @@ int Advance(int cursor, InputDirection::StickPush push, int count);
 
 // True when the gesture was claimed, so the callers further down the tick
 // leave the stick alone. Also says the character's name once per opening of
-// the panel, queued behind the panel's title. While a point button has focus
-// the stick is the point readout's -- up for the stat's explanation, down for
-// its controls -- except right, which reads the points left to spend; with
-// nothing focused, right jumps to the last statistic, which is that same line.
+// the panel, queued behind the panel's title, and an attribute's new value
+// when the point spent on it was the last (its "+" and the focus go with it).
+// A "+" with focus pages the statistics as well; right, the last statistic,
+// is the points left to spend.
 bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus);
 
 // True for the panel this reader speaks for, so the generic readers leave it.
 bool Owns(std::string_view panel);
 
 void Reset();
+
+// The points left, for the Strength button's own announcement to end with when
+// the panel opened onto it: said on a line of their own they were cut off by
+// that announcement (a tester, 2026-10-12). Empty for any other widget, and
+// once the points have been attached for a while.
+std::string PointsFor(uintptr_t widget, uint64_t now);
+
+// Whether opening the character panel with points to spend moves the focus to
+// the Strength "+" button.
+bool FocusPoints();
+void SetFocusPoints(bool enabled);
+
+// Whether opening the character panel or the skill tree with nothing to spend
+// says so, in the game's own words with a zero (a tester, 2026-10-14).
+bool ZeroPoints();
+void SetZeroPoints(bool enabled);
 
 }

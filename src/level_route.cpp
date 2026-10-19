@@ -139,6 +139,40 @@ bool Memory::Learn(const Radar::World& world) {
 	return changed;
 }
 
+Area Area::Around(Position place, int margin) {
+	const int x = Cell(place.x), y = Cell(place.y);
+	return {x - margin, y - margin, x + margin, y + margin};
+}
+
+Area Area::Of(const NativeRooms::Room& room) {
+	const auto bounds = NativeRooms::Subtiles(room);
+	return {bounds.minX, bounds.minY, bounds.maxX - 1, bounds.maxY - 1};
+}
+
+bool Area::Contains(Position at) const {
+	const int x = Cell(at.x), y = Cell(at.y);
+	return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
+Position Area::Centre() const { return {(minX + maxX) / 2.0, (minY + maxY) / 2.0}; }
+
+Memory Memory::Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const {
+	Memory copy = *this;
+	copy.revision_ = revision;
+	if (!rooms || cells_.empty()) return copy;
+	// What the rooms kept do not cover is the level still, only not known.
+	std::replace_if(copy.cells_.begin(), copy.cells_.end(), [](Ground ground) { return ground != Ground::Outside; }, Ground::Unseen);
+	for (const auto& room : *rooms) {
+		const auto bounds = NativeRooms::Subtiles(room);
+		const int x0 = std::max(bounds.minX, x_), x1 = std::min(bounds.maxX, x_ + width_);
+		for (int y = std::max(bounds.minY, y_); y < std::min(bounds.maxY, y_ + height_) && x0 < x1; ++y) {
+			const size_t row = static_cast<size_t>(y - y_) * width_;
+			std::copy(cells_.begin() + row + (x0 - x_), cells_.begin() + row + (x1 - x_), copy.cells_.begin() + row + (x0 - x_));
+		}
+	}
+	return copy;
+}
+
 Ground Memory::At(int x, int y) const {
 	const int64_t dx = int64_t(x) - x_, dy = int64_t(y) - y_;
 	if (dx < 0 || dy < 0 || dx >= width_ || dy >= height_) return Ground::Outside;
@@ -148,6 +182,10 @@ Ground Memory::At(int x, int y) const {
 Field::Field(const Memory& memory, Position place, int margin, int bodyPattern, bool unseen, bool doors)
 	: Field(memory, NativeRooms::Bounds{Cell(place.x) - margin, Cell(place.y) - margin,
 		Cell(place.x) + margin + 1, Cell(place.y) + margin + 1}, bodyPattern, unseen, doors) {}
+
+// Area uses inclusive maxima; native room bounds use exclusive maxima.
+Field::Field(const Memory& memory, const Area& goal, int bodyPattern, bool unseen, bool doors)
+    : Field(memory, std::vector<NativeRooms::Bounds>{{goal.minX, goal.minY, goal.maxX + 1, goal.maxY + 1}}, bodyPattern, unseen, doors) {}
 
 Field::Field(const Memory& memory, const NativeRooms::Bounds& room, int bodyPattern, bool unseen, bool doors)
 	: Field(memory, std::vector<NativeRooms::Bounds>{room}, bodyPattern, unseen, doors) {}
@@ -224,8 +262,12 @@ std::vector<Position> Field::From(Position from) const {
 	return path;
 }
 
-Way Plan::From(const Memory& memory, Position from, Position place, int margin, int bodyPattern) {
-	const Key key{memory.Session(), memory.Revision(), memory.Level(), Cell(place.x), Cell(place.y), margin, bodyPattern};
+Way Plan::From(const Memory& memory, Position from, Position place, int margin, int bodyPattern, bool doors) {
+	return From(memory, from, Area::Around(place, margin), bodyPattern, doors);
+}
+
+Way Plan::From(const Memory& memory, Position from, const Area& goal, int bodyPattern, bool doors) {
+	const Key key{memory.Session(), memory.Revision(), memory.Level(), bodyPattern, goal, doors};
 	if (!(key == key_)) {
 		key_ = key;
 		seen_.reset();
@@ -233,10 +275,10 @@ Way Plan::From(const Memory& memory, Position from, Position place, int margin, 
 	}
 	Way way;
 	if (!memory.Revision()) return way;
-	if (!seen_) seen_.emplace(memory, place, margin, bodyPattern, false);
+	if (!seen_) seen_.emplace(memory, goal, bodyPattern, false, doors);
 	way.path = seen_->From(from);
 	if (!way.path.empty() || seen_->At(from)) return way;
-	if (!any_) any_.emplace(memory, place, margin, bodyPattern, true);
+	if (!any_) any_.emplace(memory, goal, bodyPattern, true, doors);
 	way.path = any_->From(from);
 	way.guess = !way.path.empty();
 	return way;
@@ -247,7 +289,7 @@ Way Plan::Into(const Memory& memory, Position from, const NativeRooms::Bounds& r
 }
 
 Way Plan::Into(const Memory& memory, Position from, const std::vector<NativeRooms::Bounds>& regions, int bodyPattern) {
-	const Key key{memory.Session(), memory.Revision(), memory.Level(), 0, 0, 0, bodyPattern, true, regions};
+	const Key key{memory.Session(), memory.Revision(), memory.Level(), bodyPattern, {}, false, regions, true};
 	if (!(key == key_)) {
 		key_ = key;
 		seen_.reset();

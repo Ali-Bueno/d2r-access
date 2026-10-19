@@ -2,22 +2,34 @@
 
 #include "async_log.h"
 #include "auto_detail.h"
+#include "character_stats_reader.h"
+#include "focus_tracker.h"
 #include "auto_walk.h"
 #include "beacon.h"
+#include "beacon_audio.h"
 #include "beacon_navigation.h"
 #include "beacon_service.h"
 #include "combat_target.h"
+#include "entity_cue_audio.h"
 #include "entity_cue_service.h"
+#include "entity_cues.h"
 #include "entity_radar.h"
 #include "entity_radar_service.h"
 #include "equipment_census.h"
 #include "explore_goal.h"
 #include "footstep_service.h"
+#include "footsteps.h"
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
 #include "ground_item_service.h"
+#include "ground_items.h"
+#include "item_audio.h"
+#include "loop_pace.h"
+#include "grid_edge_service.h"
 #include "ground_item_text.h"
 #include "input_direction.h"
+#include "interaction_reader.h"
+#include "inventory_arrival_service.h"
 #include "keyboard_menu.h"
 #include "level_route.h"
 #include "map_survey.h"
@@ -29,6 +41,7 @@
 #include "native_list_rows.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
+#include "spoken_direction.h"
 #include "native_ground_items.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
@@ -41,25 +54,35 @@
 #include "native_weapon_set.h"
 #include "native_world.h"
 #include "navigation_grid.h"
+#include "pad_filter.h"
+#include "pad_typing.h"
+#include "percent_steps.h"
 #include "navigation_mode.h"
 #include "quest_service.h"
+#include "radar_config.h"
 #include "radar_readout.h"
 #include "radar_service.h"
+#include "wall_bump.h"
 #include "radar_ui.h"
 #include "room_graph.h"
 #include "room_service.h"
 #include "screen_reader.h"
 #include "settings_list.h"
+#include "sound_glossary.h"
+#include "sound_volume.h"
 #include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "descriptions.h"
 #include "place_service.h"
 #include "boss_life_service.h"
 #include "trade_service.h"
+#include "vitals.h"
 #include "vitals_service.h"
 #include "wall_slide_service.h"
+#include "wall_tone_service.h"
 #include "weapon_swap.h"
 #include "weapon_swap_service.h"
 #include "zone_transitions.h"
@@ -98,7 +121,13 @@ enum class Command : uint32_t {
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
-	Settings, SettingsChange,
+	// Space and the right stick right on the settings list: open a group, or change
+	// what the list stands on; Backspace and the stick left: back to the groups.
+	Settings, SettingsChange, SettingsBack,
+	// LB and RB (Shift+Space) on the settings list: a setting one value down or up.
+	SettingsLower, SettingsRaise,
+	// LB alone in play, with the list shut: the audible loot filter on or off (a tester, 2026-10-14).
+	LootFilter,
 	// In play and in a menu: the game's own key for it is W, the right hand's.
 	Swap,
 	// In play and in a menu: the list of skills for the left hand. The game's
@@ -159,12 +188,15 @@ std::atomic<int> g_testX{0}, g_testY{0};
 // act on the world are left to the game, so A still opens the character screen
 // from a menu and Tab is the game's own there.
 std::atomic<bool> g_playing{false};
-// While the settings list is open the reading keys step through it and Space
-// changes a switch; closed, Space is the game's.
+// While the settings list is open the reading keys (or the pad's right stick)
+// step through it and Space changes a switch; closed, Space is the game's.
 std::atomic<bool> g_settingsOpen{false};
 SettingsList::Menu g_settings;
 Strings::Language g_settingsLanguage{};
 bool g_settingsBuilt = false;
+// A step past the list's end stops there with a knock instead of going round with a click.
+std::atomic<bool> g_settingsStop{false};
+std::atomic<bool> g_settingsRestart{false};
 
 int g_revision = 0;
 Mode g_mode = Mode::Idle;
@@ -445,7 +477,7 @@ int UseSteps(const Navigation::Grid& grid, const Entity& entity) {
 std::string Describe(const Radar::World& world, const Entity& entity, int steps) {
 	const auto& strings = Strings::Current();
 	const Position offset{entity.position.x - world.player.x, entity.position.y - world.player.y};
-	const char* direction = strings.radarMovementDirections[static_cast<size_t>(Radar::ScreenSector(offset))];
+	const char* direction = SpokenDirection::Of(offset, strings);
 	const double reach = steps >= 0 ? static_cast<double>(steps) : Distance(world.player, entity.position);
 	const auto distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
 	return Format(strings.surveySteps, EntityRadar::SpokenName(entity, strings.listSeparator).c_str(), distance.c_str(), direction);
@@ -1242,7 +1274,7 @@ void BeginUse(const Lifecycle& state) {
 	for (const auto& thing : things) {
 		if (chosen) break;
 		const int steps = UseSteps(scene.grid, thing);
-		if (steps < 0 || steps > UseRange || (nearest && steps >= fewest)) continue;
+		if (steps < 0 || steps > UseRange || (nearest && !EntityRadar::UseBefore(thing, steps, *nearest, fewest))) continue;
 		if (!CombatTarget::OnScreen(scene.world.player, thing.position)) continue; // only what could be clicked
 		nearest = &thing;
 		fewest = steps;
@@ -1669,59 +1701,393 @@ void SwapAnswer(const D2RL::PluginContext* context, uint64_t now) {
 
 // ---- the settings list ----
 
-std::vector<SettingsList::Entry> SettingEntries() {
+// Pan and pitch strength steps: a quarter of the compiled 100 from none to
+// RadarConfig::MaxStrengthPercent (the tester's request, 2026-10-13).
+constexpr int StrengthStepPercent = PercentSteps::Step;
+constexpr int StrengthLevels = static_cast<int>(RadarConfig::MaxStrengthPercent) / StrengthStepPercent + 1;
+constexpr int StrengthPercent(int level) { return std::clamp(level, 0, StrengthLevels - 1) * StrengthStepPercent; }
+static_assert(RadarConfig::MaxStrengthPercent % StrengthStepPercent == 0);
+
+// A strength of a sound family as a setting of several values: `get` and `set`
+// trade the scale the audio module uses (1 = as compiled).
+SettingsList::Entry Strength(const char* key, const char* Strings::Table::* format,
+	std::function<double()> get, std::function<void(double)> set) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = StrengthLevels;
+	entry.level = [get] {
+		const double percent = get() * RadarConfig::NeutralStrengthPercent;
+		return std::clamp(static_cast<int>(std::lround(percent / StrengthStepPercent)), 0, StrengthLevels - 1);
+	};
+	entry.setLevel = [set](int level) { set(static_cast<double>(StrengthPercent(level)) / RadarConfig::NeutralStrengthPercent); };
+	entry.sayLevel = [format](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, StrengthPercent(level));
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// Saved as a step: the keys change with the steps (-25 = quarters), so a step of
+// an older grid is not read as one of these.
+std::vector<SettingsList::Entry> Strengths() {
+	return {
+		Strength("enemy-pan-25", &Strings::Table::enemyPanStrength, EntityCueAudio::PanScale,
+			[](double scale) { EntityCueAudio::SetStrength(scale, EntityCueAudio::PitchScale()); }),
+		Strength("enemy-pitch-25", &Strings::Table::enemyPitchStrength, EntityCueAudio::PitchScale,
+			[](double scale) { EntityCueAudio::SetStrength(EntityCueAudio::PanScale(), scale); }),
+		Strength("beacon-pan-25", &Strings::Table::beaconPanStrength, BeaconAudio::PanScale,
+			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
+		Strength("beacon-pitch-25", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
+			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
+	};
+}
+
+SettingsList::Entry ManaAlerts() {
+	static_assert(Strings::ManaAlertWords == Vitals::ManaAlertLevels, "a phrase for every mana alert level");
+	SettingsList::Entry entry;
+	entry.key = "mana-alerts";
+	entry.levels = Vitals::ManaAlertLevels;
+	entry.level = VitalsService::ManaAlerts;
+	entry.setLevel = VitalsService::SetManaAlerts;
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().manaAlerts[static_cast<size_t>(level)]); };
+	return entry;
+}
+
+// Compass points or clock hours for every spoken direction (spoken_direction.h).
+SettingsList::Entry DirectionStyle() {
+	SettingsList::Entry entry;
+	entry.key = "direction-style";
+	entry.levels = static_cast<int>(SpokenDirection::Style::Count);
+	entry.level = [] { return static_cast<int>(SpokenDirection::CurrentStyle()); };
+	entry.setLevel = [](int level) { SpokenDirection::SetStyle(static_cast<SpokenDirection::Style>(level)); };
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().directionStyles[static_cast<size_t>(level)]); };
+	return entry;
+}
+
+SettingsList::Entry ItemSoundSet() {
+	static_assert(Strings::ItemSoundSetCount == static_cast<size_t>(GroundItems::SoundSet::Count), "a phrase for every item sound set");
+	SettingsList::Entry entry;
+	entry.key = "item-sound-set";
+	entry.levels = static_cast<int>(GroundItems::SoundSet::Count);
+	entry.level = GroundItems::ItemSoundSet;
+	entry.setLevel = GroundItems::SetItemSoundSet;
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().itemSoundSets[static_cast<size_t>(level)]); };
+	return entry;
+}
+
+// A family's volume (sound_volume.h), from silent to double its configured level.
+SettingsList::Entry Volume(const char* key, const char* Strings::Table::* format, SoundVolume::Family family) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = static_cast<int>(SoundVolume::Percents.size());
+	entry.level = [family] { return SoundVolume::Of(family).Get(); };
+	entry.setLevel = [family](int level) { SoundVolume::Of(family).Set(level); };
+	entry.sayLevel = [format](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().*format, SoundVolume::Percents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// How fast one kind of pulsing loop repeats (the user, 2026-10-16).
+SettingsList::Entry LoopSpeed(const char* key, LoopPace::Group group) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = static_cast<int>(LoopPace::Percents.size());
+	entry.level = [group] { return LoopPace::Setting(group).load(); };
+	entry.setLevel = [group](int level) { LoopPace::Setting(group) = std::clamp(level, 0, static_cast<int>(LoopPace::Percents.size()) - 1); };
+	entry.sayLevel = [group](int level) {
+		char phrase[200]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().loopSpeed, Strings::Current().loopPaceNames[static_cast<size_t>(group)],
+			LoopPace::Percents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// How often the radar's wall ahead repeats while the player heads into it (a tester, 2026-10-15).
+SettingsList::Entry RadarWallRepeat() {
+	SettingsList::Entry entry;
+	entry.key = "radar-wall-repeat";
+	entry.levels = static_cast<int>(std::size(Radar::WallRepeatMs));
+	entry.level = RadarService::WallRepeatLevel;
+	entry.setLevel = RadarService::SetWallRepeatLevel;
+	entry.sayLevel = [](int level) {
+		const auto ms = Radar::WallRepeatMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().radarWallOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().radarWallEvery, static_cast<int>(ms));
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// How often the wall thud repeats while the stick pushes on (a tester, 2026-10-15).
+SettingsList::Entry WallBumpLoop() {
+	SettingsList::Entry entry;
+	entry.key = "wall-bump-repeat";
+	entry.levels = static_cast<int>(std::size(WallBump::LoopMs));
+	entry.level = RadarService::BumpLoopLevel;
+	entry.setLevel = RadarService::SetBumpLoopLevel;
+	entry.sayLevel = [](int level) {
+		const auto ms = WallBump::LoopMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().wallBumpOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().wallBumpEvery, static_cast<int>(ms));
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// The share of life under which the heartbeat sounds (a tester, 2026-10-15).
+SettingsList::Entry LowLifeThreshold() {
+	SettingsList::Entry entry;
+	entry.key = "low-life-below";
+	entry.levels = static_cast<int>(std::size(Vitals::LowLifeThresholds));
+	entry.level = VitalsService::LowLifeLevel;
+	entry.setLevel = VitalsService::SetLowLifeLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().lowLifeBelow, Vitals::LowLifeThresholds[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+SettingsList::Entry DropSoundSpeed() {
+	SettingsList::Entry entry;
+	entry.key = "drop-sound-speed";
+	entry.levels = static_cast<int>(ItemAudio::DropSpeedPercents.size());
+	entry.level = ItemAudio::DropSpeedLevel;
+	entry.setLevel = ItemAudio::SetDropSpeedLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().dropSoundSpeed, ItemAudio::DropSpeedPercents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+SettingsList::Entry FootstepVolume() {
+	SettingsList::Entry entry;
+	entry.key = "footstep-volume";
+	entry.levels = static_cast<int>(Footsteps::VolumePercents.size());
+	entry.level = FootstepService::VolumeLevel;
+	entry.setLevel = FootstepService::SetVolumeLevel;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().footstepVolume, Footsteps::VolumePercents[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// How often the usable-corpse rattle repeats while corpses stay near (a tester, 2026-10-14).
+SettingsList::Entry CorpseRepeat() {
+	SettingsList::Entry entry;
+	entry.key = "corpse-interval"; // milliseconds; "corpse-repeat" saved seconds
+	entry.levels = static_cast<int>(EntityCues::CorpseRepeatMs.size());
+	entry.level = EntityCueService::CorpseRepeatLevel;
+	entry.setLevel = EntityCueService::SetCorpseRepeatLevel;
+	entry.sayLevel = [](int level) {
+		const int ms = EntityCues::CorpseRepeatMs[static_cast<size_t>(level)];
+		if (!ms) return std::string(Strings::Current().corpseRepeatOnce);
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().corpseRepeatEvery, ms);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
+// The least equipment quality whose drop loop the loot filter keeps.
+SettingsList::Entry LootEquipment() {
+	static_assert(Strings::LootEquipmentCount == static_cast<size_t>(GroundItems::EquipmentLoops::Count), "a phrase for every equipment level");
+	SettingsList::Entry entry;
+	entry.key = "loot-equipment";
+	entry.levels = static_cast<int>(GroundItems::EquipmentLoops::Count);
+	entry.level = [] { return static_cast<int>(GroundItems::LootFilter::Equipment()); };
+	entry.setLevel = [](int level) { GroundItems::LootFilter::SetEquipment(static_cast<GroundItems::EquipmentLoops>(level)); };
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().lootEquipment[static_cast<size_t>(level)]); };
+	return entry;
+}
+
+// The groups of the settings list (a tester, 2026-10-13), in the order of
+// Strings::Table::settingsGroups; the glossary is the last, the drop sounds a group inside it.
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, LoopSpeeds, Count };
+static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
+static_assert(LoopPace::GroupCount == Strings::LoopPaceGroupCount, "a name for every loop pace group");
+
+std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
+
+// Every switch and setting kept between sessions, by group.
+std::vector<SettingsList::Group> SettingGroups() {
 	using SettingsList::Entry;
 	using Cue = EntityCueService::Cue;
 	using Item = GroundItemService::Switch;
 	using T = Strings::Table;
+	using G = SettingsGroup;
 	const auto phrase = [](const char* T::* on, const char* T::* off) {
 		return [on, off](bool state) { return std::string(Strings::Current().*(state ? on : off)); };
 	};
-	std::vector<Entry> entries{
+	const auto cue = [](Cue which) { return [which] { return EntityCueService::Enabled(which); }; };
+	const auto setCue = [](Cue which) { return [which](bool on) { EntityCueService::SetEnabled(which, on); }; };
+	const auto item = [](Item which) { return [which] { return GroundItemService::Enabled(which); }; };
+	const auto setItem = [](Item which) { return [which](bool on) { GroundItemService::SetEnabled(which, on); }; };
+	auto strengths = Strengths(); // enemy pan, enemy pitch, beacon pan, beacon pitch
+	std::vector<SettingsList::Group> groups;
+	groups.push_back({GroupName(G::Sounds), {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
-		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
-		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
+		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
+		ItemSoundSet(),
+		{GroundItems::PotionsLast, GroundItems::SetPotionsLast, phrase(&T::potionsLastOn, &T::potionsLastOff), false, "potions-last"},
+		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
+		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
+		{item(Item::Exits), setItem(Item::Exits), [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
+		{item(Item::Stash), setItem(Item::Stash), [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
+		{item(Item::Chests), setItem(Item::Chests), [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
+		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
+		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
+		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
+	}});
+	using F = SoundVolume::Family;
+	groups.push_back({GroupName(G::Volumes), {
+		Volume("radar-volume", &T::radarVolume, F::Radar),
+		Volume("enemy-volume", &T::enemyVolume, F::Enemies),
+		Volume("ordinary-enemy-volume", &T::ordinaryEnemyVolume, F::OrdinaryEnemies),
+		Volume("elite-enemy-volume", &T::eliteEnemyVolume, F::EliteEnemies),
+		Volume("ranged-enemy-volume", &T::rangedEnemyVolume, F::RangedEnemies),
+		Volume("shaman-enemy-volume", &T::shamanEnemyVolume, F::ShamanEnemies),
+		Volume("boss-enemy-volume", &T::bossEnemyVolume, F::BossEnemies),
+		Volume("item-volume", &T::itemVolume, F::Items),
+		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
+		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
+		FootstepVolume(),
+	}});
+	// Every pulsing loop's pace in one place, next to the volumes (the user, 2026-10-16).
+	using P = LoopPace::Group;
+	groups.push_back({GroupName(G::LoopSpeeds), {
+		LoopSpeed("door-loop-speed", P::Doors),
+		LoopSpeed("small-item-loop-speed", P::SmallItems),
+		LoopSpeed("container-loop-speed", P::Containers),
+		LoopSpeed("shrine-loop-speed", P::Shrines),
+		LoopSpeed("quest-loop-speed", P::Quest),
+		LoopSpeed("room-loop-speed", P::Rooms),
+		LoopSpeed("epoch-loop-speed", P::Epoch),
+		DropSoundSpeed(),
+		RadarWallRepeat(),
+		WallBumpLoop(),
+		CorpseRepeat(),
+	}});
+	groups.push_back({GroupName(G::Enemies), {
+		{cue(Cue::All), setCue(Cue::All), phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
+		{cue(Cue::Enemies), setCue(Cue::Enemies), phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
+		{cue(Cue::Ordinary), setCue(Cue::Ordinary), phrase(&T::entityCueOrdinaryEnabled, &T::entityCueOrdinaryDisabled), true, "enemy-growls"},
+		{EntityCueAudio::ClassLayers, EntityCueAudio::SetClassLayers, phrase(&T::enemyClassSoundsOn, &T::enemyClassSoundsOff), false, "enemy-class-sounds"},
+		std::move(strengths[0]),
+		std::move(strengths[1]),
+		{cue(Cue::Ranged), setCue(Cue::Ranged), phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
+		{cue(Cue::Reach), setCue(Cue::Reach), phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
+		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
+		{cue(Cue::Npcs), setCue(Cue::Npcs), phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
+		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
+		{EntityCueService::NpcAlerts, EntityCueService::SetNpcAlerts, phrase(&T::npcAlertOn, &T::npcAlertOff), false, "npc-alerts"},
+		{EntityCueService::CorpseCue, EntityCueService::SetCorpseCue, phrase(&T::corpseCueOn, &T::corpseCueOff), false, "corpse-cue"},
+	}});
+	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
+		DirectionStyle(),
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
-			return RadarReadout::DirectionList(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
-		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
+			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
+		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
+		{RadarService::SmallObstaclesEnabled, RadarService::SetSmallObstaclesEnabled, phrase(&T::smallObstaclesEnabled, &T::smallObstaclesDisabled), false, "small-obstacles"},
+		{WallTones::Enabled, WallTones::SetEnabled, phrase(&T::wallTonesOn, &T::wallTonesOff), false, "wall-tones"},
+		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
 		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
+		{BeaconService::RoutePrompts, BeaconService::SetRoutePrompts, phrase(&T::routePromptsOn, &T::routePromptsOff), false, "route-prompts"},
+		std::move(strengths[2]),
+		std::move(strengths[3]),
+		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
 		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
 		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
-		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},
-		{[] { return EntityCueService::Enabled(Cue::All); }, [](bool on) { EntityCueService::SetEnabled(Cue::All, on); }, phrase(&T::entityCuesEnabled, &T::entityCuesDisabled), true, "entity-cues"},
-		{[] { return EntityCueService::Enabled(Cue::Npcs); }, [](bool on) { EntityCueService::SetEnabled(Cue::Npcs, on); }, phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
-		{[] { return EntityCueService::Enabled(Cue::Enemies); }, [](bool on) { EntityCueService::SetEnabled(Cue::Enemies, on); }, phrase(&T::entityCueEnemiesEnabled, &T::entityCueEnemiesDisabled), true, "entity-cues-enemies"},
-		{[] { return EntityCueService::Enabled(Cue::Ranged); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ranged, on); }, phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
-		{[] { return GroundItemService::Enabled(Item::Speech); }, [](bool on) { GroundItemService::SetEnabled(Item::Speech, on); }, [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
-		{[] { return GroundItemService::Enabled(Item::Sounds); }, [](bool on) { GroundItemService::SetEnabled(Item::Sounds, on); }, [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Quests); }, [](bool on) { GroundItemService::SetEnabled(Item::Quests, on); }, [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Exits); }, [](bool on) { GroundItemService::SetEnabled(Item::Exits, on); }, [](bool on) { return std::string(GroundItemText::ExitSoundEnabled(on)); }, true, "exit-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Stash); }, [](bool on) { GroundItemService::SetEnabled(Item::Stash, on); }, [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
-		{[] { return GroundItemService::Enabled(Item::Chests); }, [](bool on) { GroundItemService::SetEnabled(Item::Chests, on); }, [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
-		{[] { return GroundItemService::Enabled(Item::Doors); }, [](bool on) { GroundItemService::SetEnabled(Item::Doors, on); }, [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
-		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
-		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
-		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
-		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
-		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
-		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
-		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
-		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
-		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
+		{RoomService::MapSides, RoomService::SetMapSides, phrase(&T::mapSidesOn, &T::mapSidesOff), false, "passage-map-sides"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
-		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
-		{[] { return EntityCueService::Enabled(Cue::Ordinary); }, [](bool on) { EntityCueService::SetEnabled(Cue::Ordinary, on); }, phrase(&T::entityCueOrdinaryEnabled, &T::entityCueOrdinaryDisabled), true, "enemy-growls"},
-		{[] { return EntityCueService::Enabled(Cue::Reach); }, [](bool on) { EntityCueService::SetEnabled(Cue::Reach, on); }, phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
-		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
+		{Descriptions::Enabled, Descriptions::SetEnabled, phrase(&T::descriptionsOn, &T::descriptionsOff), false, "descriptions"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
-	};
+		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
+	}});
+	groups.push_back({GroupName(G::Items), {
+		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
+		{GroundItemText::SilverEnabled, GroundItemText::SetSilverEnabled, phrase(&T::silverItemsOn, &T::silverItemsOff), true, "silver-items"},
+		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
+		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
+		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
+		{InteractionReader::CompareAloud, InteractionReader::SetCompareAloud, phrase(&T::compareAloudOn, &T::compareAloudOff), false, "compare-aloud"},
+		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
+		{InventoryArrivalService::StashNotice, InventoryArrivalService::SetStashNotice, phrase(&T::stashNoticeOn, &T::stashNoticeOff), false, "stash-notice"},
+		{CharacterStatsReader::FocusPoints, CharacterStatsReader::SetFocusPoints, phrase(&T::statPointsFocusOn, &T::statPointsFocusOff), false, "stat-points-focus"},
+		{CharacterStatsReader::ZeroPoints, CharacterStatsReader::SetZeroPoints, phrase(&T::zeroPointsOn, &T::zeroPointsOff), false, "zero-points"},
+		{SkillNavigation::Enabled, SkillNavigation::SetEnabled, phrase(&T::skillGridOn, &T::skillGridOff), false, "skill-grid"},
+		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
+		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
+		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
+	}});
+	groups.push_back({GroupName(G::Alerts), {
+		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},
+		ManaAlerts(),
+		{VitalsService::ExperienceReport, VitalsService::SetExperienceReport, phrase(&T::experienceReportOn, &T::experienceReportOff), false, "experience-report"},
+		{VitalsService::StatusAlerts, VitalsService::SetStatusAlerts, phrase(&T::statusAlertsOn, &T::statusAlertsOff), false, "status-alerts"},
+		{VitalsService::LowLifeSound, VitalsService::SetLowLifeSound, phrase(&T::lowLifeOn, &T::lowLifeOff), false, "low-life-sound"},
+		LowLifeThreshold(),
+		{VitalsService::MinionsReported, VitalsService::SetMinionsReported, phrase(&T::minionReportOn, &T::minionReportOff), false, "minion-report"},
+		{VitalsService::MercenaryReported, VitalsService::SetMercenaryReported, phrase(&T::mercenaryReportOn, &T::mercenaryReportOff), false, "mercenary-report"},
+		{VitalsService::SkillsReported, VitalsService::SetSkillsReported, phrase(&T::skillReportOn, &T::skillReportOff), false, "skill-report"},
+		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
+		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
+		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
+		{GameTextReader::MercenaryBark, GameTextReader::SetMercenaryBark, phrase(&T::mercenaryBarkOn, &T::mercenaryBarkOff), false, "mercenary-bark"},
+		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
+		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
+		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
+	}});
+	groups.push_back({GroupName(G::Controller), {
+		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
+		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
+		{PadTyping::Enabled, PadTyping::SetEnabled, phrase(&T::padTypingOn, &T::padTypingOff), false, "pad-typing"},
+	}});
+	// The list's own behaviour, in a group of its own (a tester, 2026-10-14).
+	groups.push_back({GroupName(G::SettingsMenu), {
+		{[] { return g_settingsStop.load(); }, [](bool on) { g_settingsStop = on; }, phrase(&T::settingsEndsStop, &T::settingsEndsWrap), false, "settings-list-stops"},
+		{[] { return g_settingsRestart.load(); }, [](bool on) { g_settingsRestart = on; }, phrase(&T::settingsRestartOn, &T::settingsRestartOff), false, "settings-list-restart"},
+	}});
+	// Which drop loops the audible loot filter keeps while it is on (LB in play; a tester, 2026-10-14).
+	namespace Loot = GroundItems::LootFilter;
+	groups.push_back({GroupName(G::LootFilter), {
+		{Loot::Active, Loot::SetActive, phrase(&T::lootFilterOn, &T::lootFilterOff), false, "loot-filter"},
+		{Loot::Potions, Loot::SetPotions, phrase(&T::lootPotionsOn, &T::lootPotionsOff), false, "loot-potions"},
+		{Loot::Gems, Loot::SetGems, phrase(&T::lootGemsOn, &T::lootGemsOff), false, "loot-gems"},
+		LootEquipment(),
+	}});
+	return groups;
+}
+
+// The same switches as one list, for keeping them between sessions.
+std::vector<SettingsList::Entry> SettingEntries() {
+	std::vector<SettingsList::Entry> entries;
+	for (auto& group : SettingGroups()) for (auto& entry : group.entries) entries.push_back(std::move(entry));
 	return entries;
 }
 
+// The switches, then the sound glossary: sounds to hear, nothing to save.
 SettingsList::Menu BuildSettings() {
-	return SettingsList::Menu(SettingEntries(), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	auto groups = SettingGroups();
+	groups.push_back({GroupName(SettingsGroup::Glossary), SoundGlossary::Entries(),
+		{{GroupName(SettingsGroup::DropGlossary), SoundGlossary::DropEntries(), {}}}});
+	SettingsList::Menu menu(std::move(groups), Strings::Current().settingsOpened, Strings::Current().settingsClosed);
+	menu.SetGroupFormat(Strings::Current().settingsSubmenu);
+	return menu;
 }
 
 // ---- the switches kept between sessions ----
@@ -1736,12 +2102,36 @@ constexpr uint64_t SettingQuietMs = 5000;  // how long its own announcement is l
 constexpr uint64_t SettingCheckMs = 1000;  // how often the switches are looked at for a change
 std::filesystem::path g_settingsFile;
 std::vector<SettingsList::Entry> g_switches;
-std::map<std::string, bool> g_saved;
-std::vector<std::pair<size_t, bool>> g_restore;
+std::map<std::string, int> g_saved;
+std::vector<std::pair<size_t, int>> g_restore;
 size_t g_restoreAt = 0;
 uint64_t g_restoreSince = 0, g_settingsCheck = 0;
-std::vector<bool> g_seen;
+std::vector<int> g_seen;
 bool g_settingsLoaded = false;
+
+// The percent settings saved before they all moved in quarters (2026-10-14), by
+// their levels then, so a file saved before keeps each value it had.
+constexpr std::array OldVolumePercents{0, 25, 50, 75, 100, 125, 150, 200};
+constexpr std::array OldDropSpeedPercents{50, 75, 100, 150, 200, 300};
+constexpr std::array OldFootstepPercents{25, 50, 75, 100, 150, 200, 300};
+constexpr const char* QuarterStepsKey = "quarter-steps";
+
+template<size_t Old, size_t New>
+void ToQuarters(const char* key, const std::array<int, Old>& old, const std::array<int, New>& now) {
+	const auto found = g_saved.find(key);
+	if (found == g_saved.end() || found->second < 0 || static_cast<size_t>(found->second) >= Old) return;
+	const int level = PercentSteps::LevelOf(now, old[static_cast<size_t>(found->second)]);
+	if (level >= 0) found->second = level;
+}
+
+void SavedToQuarters() {
+	if (g_saved.contains(QuarterStepsKey)) return;
+	for (const char* key : {"radar-volume", "enemy-volume", "item-volume", "guidance-volume"})
+		ToQuarters(key, OldVolumePercents, SoundVolume::Percents);
+	ToQuarters("drop-sound-speed", OldDropSpeedPercents, ItemAudio::DropSpeedPercents);
+	ToQuarters("footstep-volume", OldFootstepPercents, Footsteps::VolumePercents);
+	g_saved[QuarterStepsKey] = 1;
+}
 
 void Persist(uint64_t now) {
 	if (g_settingsFile.empty()) return;
@@ -1749,9 +2139,15 @@ void Persist(uint64_t now) {
 		g_settingsLoaded = true;
 		g_switches = SettingEntries();
 		if (const auto text = SettingsStore::Load(g_settingsFile)) g_saved = SettingsStore::Decode(*text);
+		// The two item sound switches became one set (2026-10-13): a file saved before keeps its choice.
+		if (!g_saved.contains("item-sound-set")) {
+			if (g_saved["last-epoch-sounds"] == 1) g_saved["item-sound-set"] = static_cast<int>(GroundItems::SoundSet::LastEpoch);
+			g_saved.erase("last-epoch-sounds");
+		}
+		SavedToQuarters();
 		for (size_t i = 0; i < g_switches.size(); ++i)
 			if (const auto found = g_switches[i].key ? g_saved.find(g_switches[i].key) : g_saved.end();
-				found != g_saved.end() && g_switches[i].on() != found->second) g_restore.push_back({i, found->second});
+				found != g_saved.end() && g_switches[i].Value() != found->second) g_restore.push_back({i, found->second});
 		AsyncLog::InfoF(g_context, "[settings] %zu saved, %zu to put back, file %s", g_saved.size(), g_restore.size(),
 			g_settingsFile.string().c_str());
 	}
@@ -1759,14 +2155,14 @@ void Persist(uint64_t now) {
 		const auto [index, value] = g_restore[g_restoreAt];
 		const auto& entry = g_switches[index];
 		if (!g_restoreSince) {
-			ScreenReader::Swallow(entry.say(value), now + SettingQuietMs);
-			entry.set(value);
+			ScreenReader::Swallow(entry.Say(value), now + SettingQuietMs);
+			entry.Put(value);
 			g_restoreSince = now;
-			AsyncLog::InfoF(g_context, "[settings] put back %s=%u", entry.key, value ? 1u : 0u);
+			AsyncLog::InfoF(g_context, "[settings] put back %s=%d", entry.key, value);
 			return;
 		}
-		if (entry.on() != value && now - g_restoreSince < SettingTakeMs) return;
-		if (entry.on() != value) AsyncLog::InfoF(g_context, "[settings] %s did not take", entry.key);
+		if (entry.Value() != value && now - g_restoreSince < SettingTakeMs) return;
+		if (entry.Value() != value) AsyncLog::InfoF(g_context, "[settings] %s did not take", entry.key);
 		++g_restoreAt;
 		g_restoreSince = 0;
 		return;
@@ -1775,14 +2171,14 @@ void Persist(uint64_t now) {
 	g_settingsCheck = now + SettingCheckMs;
 	bool changed = false;
 	if (g_seen.empty()) {
-		for (const auto& entry : g_switches) g_seen.push_back(entry.on());
+		for (const auto& entry : g_switches) g_seen.push_back(entry.Value());
 		return;
 	}
 	for (size_t i = 0; i < g_switches.size(); ++i) {
-		const bool on = g_switches[i].on();
-		if (on == g_seen[i]) continue;
-		g_seen[i] = on;
-		if (g_switches[i].key) { g_saved[g_switches[i].key] = on; changed = true; }
+		const int value = g_switches[i].Value();
+		if (value == g_seen[i]) continue;
+		g_seen[i] = value;
+		if (g_switches[i].key) { g_saved[g_switches[i].key] = value; changed = true; }
 	}
 	if (!changed) return;
 	const bool saved = SettingsStore::Save(g_settingsFile, SettingsStore::Encode(g_saved));
@@ -1800,20 +2196,54 @@ bool Settings(Command command, uint64_t now) {
 	}
 	std::string text;
 	bool spent = true;
+	g_settings.SetRestart(g_settingsRestart.load());
 	if (command == Command::Settings) text = g_settings.Toggle(now);
 	else if (!g_settings.Open()) spent = false;
-	else if (command == Command::SettingsChange) text = g_settings.Change(now);
-	else if (command == Command::ReadPrevious || command == Command::ReadFirst) text = g_settings.Step(-1, now);
-	else if (command == Command::ReadNext || command == Command::ReadLast) text = g_settings.Step(1, now);
-	else spent = false;
+	else if (command == Command::SettingsChange) text = g_settings.Enter(now);
+	else if (command == Command::SettingsBack) text = g_settings.Back(now);
+	else if (command == Command::SettingsLower || command == Command::SettingsRaise)
+		text = g_settings.Change(now, command == Command::SettingsLower ? -1 : 1);
+	else if (command == Command::ReadPrevious || command == Command::ReadFirst || command == Command::ReadNext
+		|| command == Command::ReadLast) {
+		const bool back = command == Command::ReadPrevious || command == Command::ReadFirst;
+		text = g_settings.Step(back ? -1 : 1, now, g_settingsStop.load() ? SettingsList::Ends::Stop : SettingsList::Ends::Wrap);
+		if (g_settings.LastEdge() != SettingsList::Edge::None)
+			EntityCueAudio::Play(g_settings.LastEdge() == SettingsList::Edge::Wrapped ? EntityCueAudio::Sound::Pickup
+				: EntityCueAudio::Sound::Edge, {});
+	} else spent = false;
 	if (!spent) text = g_settings.Expire(now, SettingsIdleMs);
 	g_settingsOpen = g_settings.Open();
+	PadFilter::SetSettingsOpen(g_settingsOpen);
 	Persist(now);
 	if (!text.empty()) {
 		AsyncLog::InfoF(g_context, "[keyboard] settings: %s", text.c_str());
 		ScreenReader::Speak(text, true);
 	}
 	return spent;
+}
+
+// The pad's Ctrl+S, Page Up/Down, Space, Backspace and Shift+Space: BACK+RB opens
+// and shuts the list, in play (where the pad filter keeps that RB from the game)
+// or to shut it anywhere, and while it is open the right stick steps through it
+// (up, down), opens a group or changes a switch (right) and goes back to the
+// groups (left) before the scanner or a menu can take the push; LB and RB, kept
+// from the game while it is open, lower and raise a setting. Every press is taken
+// every update, so an old one is never acted on.
+Command PadSettings(bool inPlay) {
+	using InputDirection::StickPush;
+	if (InputDirection::TakeBackWithRb() && (inPlay || g_settingsOpen.load())) return Command::Settings;
+	const bool lower = InputDirection::TakeShoulder(false), raise = InputDirection::TakeShoulder(true);
+	// With the list shut, LB in play is the loot filter's, as sighted players tap it to filter the floor.
+	if (!g_settingsOpen.load()) return lower && inPlay ? Command::LootFilter : Command::None;
+	if (lower != raise) return lower ? Command::SettingsLower : Command::SettingsRaise;
+	if (InputDirection::PeekRightStickPush() == StickPush::None) return Command::None;
+	switch (InputDirection::TakeRightStickPush("settings")) {
+	case StickPush::Up:   return Command::ReadPrevious;
+	case StickPush::Down: return Command::ReadNext;
+	case StickPush::Left:  return Command::SettingsBack;
+	case StickPush::Right: return Command::SettingsChange;
+	default: return Command::None;
+	}
 }
 
 // ---- console: the first live tests ----
@@ -1872,7 +2302,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
 	// Space changes a switch of the settings list and is the game's otherwise.
-	if (command == Command::SettingsChange && !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
+	if ((command == Command::SettingsChange || command == Command::SettingsBack || command == Command::SettingsLower)
+		&& !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;
 	// With the keyboard's cursor on a box of text the keys that type are the
 	// box's: a letter alone or with Shift, and the keys that move in the text.
 	if (KeyboardMenu::Typing() && !g_settingsOpen.load()
@@ -1921,7 +2352,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
 		|| command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped
-		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange;
+		|| command == Command::Repeat || command == Command::Settings || command == Command::SettingsChange || command == Command::SettingsBack
+		|| command == Command::SettingsLower;
 	if (!reading && !g_playing.load()) {
 		// A release still has to end a hold begun in play.
 		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
@@ -2018,7 +2450,9 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},
 			Entry{"keyboard-left-skill", "Choose the skill of the left hand", Key::S, Modifier::Shift, Command::LeftSkill},
 			Entry{"keyboard-settings", "Open or close the settings list", Key::S, Modifier::Control, Command::Settings},
-			Entry{"keyboard-settings-change", "Change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
+			Entry{"keyboard-settings-change", "Open the group or change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
+			Entry{"keyboard-settings-back", "Back to the groups (settings list open)", Key::Backspace, Modifier::None, Command::SettingsBack},
+			Entry{"keyboard-settings-lower", "Lower the setting (settings list open)", Key::Space, Modifier::Shift, Command::SettingsLower},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-click-alt", "Menu: left click with Alt", Key::A, Modifier::Alt, Command::ClickLeft},
@@ -2070,7 +2504,14 @@ void Tick(const D2RL::PluginContext* context) {
 	if (g_sort.exchange(false) && !KeyboardMenu::Sort(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (g_fill.exchange(false) && !KeyboardMenu::FillBelt(context)) ScreenReader::Speak(Strings::Current().unavailable, true);
 	if (inPlay && command == Command::None) command = g_deferred.exchange(Command::None);
+	if (const Command pad = PadSettings(inPlay); command == Command::None) command = pad;
 	if (Settings(command, now)) command = Command::None;
+	if (command == Command::LootFilter) {
+		const bool on = !GroundItems::LootFilter::Active();
+		GroundItems::LootFilter::SetActive(on);
+		AsyncLog::InfoF(context, "[items] loot filter %s (LB)", on ? "on" : "off");
+		ScreenReader::Speak(on ? Strings::Current().lootFilterOn : Strings::Current().lootFilterOff, true);
+	}
 	if (command == Command::Swap && state.ready) Swap(context, now);
 	SwapAnswer(context, now);
 	if (command == Command::LeftSkill && !(state.ready && KeyboardMenu::LeftSkillList(context)))
@@ -2180,6 +2621,13 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	return Remember(state, world);
 }
 
 void CancelAfterFault() noexcept {

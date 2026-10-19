@@ -4,8 +4,14 @@ Read the belt through its normal inventory focus. Each cell announces the
 game's belt-slot help (including the D-pad direction), its row, its item and
 the total number of physical items in that column. Row one is the bottom
 row used by the controller; higher rows hold reserves for the same direction.
+Columns one to four are also the keyboard's belt keys 1 to 4. An occupied
+cell's item is named by the game's tooltip, which is drawn at once; the button
+and row lead it and the count follows (`src/belt_reader.cpp`).
 The count includes mixed potion types and does not claim they are identical.
-Placing an item announces its destination direction and row.
+Placing an item announces its destination direction and row ("Placed in ...,
+Row 1"), as the other inventory sections announce theirs. That and "Item in
+hand" share one switch in the Ctrl+S settings list (`hand-speech`), on by
+default.
 
 An empty bottom cell can display a translucent potion from the inventory.
 The reader uses the game's own selection query and identifies this as an
@@ -43,8 +49,8 @@ The 2026-09-23 build passed all 67 CTest suites and was installed with its DLL
 hash verified. Game startup completed with NVDA; the automatic-potion guards
 initialize on first use, so startup alone does not validate that native call.
 
-Native UI tests check explicit reserve reads, invalid indices, failure as
-unknown and unchanged native selection. Interaction tests cover immediate
-button/item speech, empty cells, reserve rows, per-column counts, placement,
-automatic inventory items and delayed-tooltip deduplication. Live controller
+Native UI tests check explicit reserve reads (`NativeUi::BeltItemAt`), invalid
+indices, failure as unknown and unchanged native selection. Interaction tests
+cover button and row speech, empty cells, reserve rows, per-column counts,
+placement, automatic inventory items and the tooltip-named item. Live controller
 listening remains required, especially the translucent automatic potion case.

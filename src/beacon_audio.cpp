@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
+#include "sound_volume.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -24,7 +25,7 @@ std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::atomic<uint64_t> g_generation{0};
 const D2RL::PluginContext* g_context = nullptr;
-double g_gain = 1;
+double g_gain = 1, g_panScale = 1, g_pitchScale = 1;
 struct Request { bool pending = false; Sound sound = Sound::Ping; Placement placement; };
 Request g_pending;
 constexpr auto ReopenDelay = std::chrono::seconds(2);
@@ -85,6 +86,7 @@ void Worker(const D2RL::PluginContext* context) {
 				generation = g_generation;
 			}
 			auto pcm = Synthesize(request.sound, request.placement, g_gain);
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Guidance).Factor());
 			if (generation != g_generation) continue;
 			failed = !PlayOne(device, done, pcm, generation);
 		}
@@ -120,8 +122,9 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	case Sound::Arrived: notes = {PingHz, PingHz * Fifth, PingHz * Octave}; break;
 	default: notes = {PingHz}; break;
 	}
-	const double pan = std::clamp(placement.right, -1.0, 1.0);
-	const double pitch = 1 + (RearPitch - 1) * std::clamp(-placement.front, 0.0, 1.0);
+	const auto scale = [](double value) { return std::isfinite(value) ? std::max(value, 0.0) : 1.0; };
+	const double pan = std::clamp(placement.right * scale(placement.panScale), -1.0, 1.0);
+	const double pitch = 1 + (RearPitch - 1) * std::clamp(-placement.front, 0.0, 1.0) * scale(placement.pitchScale);
 	const double left = std::sqrt((1 - pan) / 2), right = std::sqrt((1 + pan) / 2);
 	const double level = Level * std::clamp(gain, 0.0, 1.0);
 	const double duration = NoteMs / 1000.0;
@@ -143,21 +146,29 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	return pcm;
 }
 
-bool Start(const D2RL::PluginContext* context, double gain) {
+bool Start(const D2RL::PluginContext* context, double gain, double panScale, double pitchScale) {
 	if (g_thread.joinable()) return false;
 	g_context = context;
 	g_gain = std::clamp(gain, 0.0, 1.0);
+	g_panScale = panScale; g_pitchScale = pitchScale;
 	g_running = true;
 	try { g_thread = std::thread(Worker, context); }
 	catch (...) { g_running = false; return false; }
 	return true;
 }
+void SetStrength(double panScale, double pitchScale) {
+	std::lock_guard lock(g_mutex);
+	g_panScale = panScale; g_pitchScale = pitchScale;
+}
+double PanScale() { std::lock_guard lock(g_mutex); return g_panScale; }
+double PitchScale() { std::lock_guard lock(g_mutex); return g_pitchScale; }
 void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available || !ModSounds::Enabled()) return;
 		// A confirmation must never be dropped for a ping that is still waiting.
 		if (g_pending.pending && g_pending.sound != Sound::Ping && sound == Sound::Ping) return;
+		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

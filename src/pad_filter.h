@@ -18,8 +18,9 @@ struct PluginContext;
 // reader is open, and the left stick while Y is held on a compare screen).
 // The pad is never reported absent, idle or on another slot, and no slot is
 // ever occupied: every other button, stick and trigger passes through byte for
-// byte (CRITICAL RULE 3). R3 is the game's again since 2026-09-27: the beacon
-// moved to L3 (the user: R3 kept swapping weapons with the filter on).
+// byte (CRITICAL RULE 3). R3 and L3 are the game's (weapon swap, run/walk):
+// the beacon is BACK+LB since 2026-10-11, so LB with BACK is kept too, and
+// RB with BACK since 2026-10-12 (the settings list).
 namespace D2RAccess::PadFilter {
 
 // Swaps the slot. When the game has not filled it yet, Claim looks
@@ -39,19 +40,29 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press a, b, x, y; };
+struct Presses { Press a, b, x, y, lb, rb, back, lt, rt; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: the
-// face buttons pressed while BACK is held, the mod's BACK+A, B, X and Y
-// readouts (input_direction.h). A press is decided on its first frame
+// face buttons and the bumpers pressed while BACK is held, the mod's BACK+A,
+// B, X, Y, LB and RB actions (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
-// while it is held. BACK itself always passes.
+// while it is held.
 //
-// `holdB` keeps a B press from the game in a menu too, while a mod reader that
-// closes on B is open (HoldB below), decided on the press's first frame like
-// the rest.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false);
+// `keepBack` keeps BACK itself from the game during play, where the game only
+// opens and zooms its automap with it (a tester: every mod readout toggled the
+// map); in a menu BACK is the game's. `holdB` keeps a B press from the game in
+// a menu too, while a mod reader that closes on B is open (HoldB below),
+// decided on the press's first frame like the rest.
+// `shoulders` keeps LB and RB alone too, while the mod's settings list is open
+// (they lower and raise a setting there; the user, 2026-10-13), in a menu as well.
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false, bool shoulders = false);
+// While the settings list is open, LB and RB are the list's.
+void SetSettingsOpen(bool open);
+
+// The switch behind `keepBack`, on by default; the keyboard's Tab still opens the automap.
+bool KeepBack();
+void SetKeepBack(bool keep);
 
 // Keeps B from the game while the skill line reader is open, so closing it
 // with B does not also close the skill tree (the user, 2026-09-21: "right
@@ -71,5 +82,10 @@ void ReleaseB();
 void ArmLeftStickWithY(uint64_t now);
 // Pure: whether a frame's left stick is kept from the game.
 bool KeepsLeftStick(uint16_t buttons, bool armed);
+
+// Pure: whether a trigger pulled this frame is kept from the game (the mod's
+// BACK+LT and BACK+RT, 2026-10-14): one pulled while BACK is held during play,
+// decided on its first frame and kept to its release, as a button is.
+bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press);
 
 }

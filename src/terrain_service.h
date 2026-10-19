@@ -4,6 +4,7 @@
 #include "radar.h"
 #include "native_rooms.h"
 #include <D2RLPlugin/api.h>
+#include <functional>
 #include <map>
 #include <vector>
 
@@ -35,6 +36,10 @@ std::vector<EntityRadar::Entity> KnownPlaces(int level, const std::vector<Native
 // discovered) with the record of the map `rooms` belong to.
 std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed);
 void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found);
+// Drops the quest objects kept here whose spot `covered` says is in view while no quest
+// object of `present` stands on it: used, or freed by another player.
+void ForgetGoneQuestPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& present,
+	const std::function<bool(Radar::Position)>& covered);
 // Exploration's known ground: rooms stood in, rooms the automap has drawn in,
 // and the room holding `player`. Game thread only (NativeAutomap::RevealedRooms).
 std::vector<NativeRooms::Room> ExploredRooms(int level, const std::vector<NativeRooms::Room>& rooms, Radar::Position player);

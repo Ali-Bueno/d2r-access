@@ -30,6 +30,29 @@ EntityRadar::Entity Make(uint32_t id, double x, double y, std::string name,
 	return entity;
 }
 
+// Five Cairn Stones share one label; the scan names each by its symbol (a tester, 2026-10-14).
+void SharedLabels() {
+	const auto world = OpenWorld();
+	auto stone = [](uint32_t id, double x, double y, const char* name) {
+		auto entity = Make(id, x, y, name, EntityRadar::Kind::Object);
+		entity.worldName = "Cairn Stone";
+		entity.unit = 2;
+		return entity;
+	};
+	const auto one = stone(1, 32, 30, "Cairn Stone, one"), two = stone(2, 30, 38, "Cairn Stone, two");
+	const auto nearest = Find(world, {one, two}, "Cairn Stone");
+	Check(nearest.id == 1 && nearest.name == "Cairn Stone, one", "the stone beside the player is named by its symbol");
+	Check(Spoken("Cairn Stone", nearest) == "Cairn Stone, one", "said in the label's place");
+	const auto aimed = Find(world, {one, two}, "Cairn Stone", {}, Aim{2, 2});
+	Check(aimed.id == 2 && aimed.name == "Cairn Stone, two", "the game's own target is the one named, nearest or not");
+	const auto close = Find(world, {one, stone(2, 30, 33, "Cairn Stone, two")}, "Cairn Stone");
+	Check(close.sight == Sight::Visible && close.name.empty(), "with two stones about as near no symbol is guessed");
+	Check(Spoken("Cairn Stone", close) == "Cairn Stone", "and the label is said as the game has it");
+	Check(Find(world, {Make(3, 31, 30, "Barrel", EntityRadar::Kind::Object)}, "Barrel").name.empty(),
+		"a label the scan says no more of is left alone");
+	Check(Spoken("Cairn Stoneware", aimed) == "Cairn Stoneware", "only the whole label is replaced");
+}
+
 void LabelNaming() {
 	Check(Names("Zombie. Undead", "Zombie"), "the name leads the game's own label");
 	Check(Names("Fallen Shaman. Demon 5 - Revives fallen", "Fallen Shaman"), "a decorated label still names it");
@@ -112,8 +135,26 @@ void FootprintSight() {
 }
 }
 
+// The plate's name gate needs the nearest bearer the player can see, and what it is.
+void NearestBearer() {
+	auto world = OpenWorld();
+	auto boss = Make(3, 30, 38, "Rakanishu"); boss.enemy.boss = true;
+	const std::vector entities{Make(1, 30, 36, "Zombi"), Make(2, 30, 33, "Zombi"), boss};
+	const auto zombie = Find(world, entities, "Zombi. Muerto viviente");
+	Check(zombie.sight == Sight::Visible && zombie.kind == EntityRadar::Kind::Enemy && zombie.distance == 3 && !zombie.important,
+		"the nearest bearer of a pack's name is reported with its distance");
+	Check(Find(world, entities, "Rakanishu").important, "a superunique counts as important");
+	BlockRow(world, 32);
+	const auto behind = Find(world, {Make(2, 30, 33, "Zombi"), Make(4, 30, 26, "Zombi")}, "Zombi");
+	Check(behind.sight == Sight::Visible && behind.distance == 4, "a nearer bearer behind a wall gives way to one in sight");
+	Check(Find(world, {Make(2, 30, 33, "Zombi")}, "Zombi").sight == Sight::Hidden, "only hidden bearers stay hidden");
+	Check(Find(world, {}, "Zombi").sight == Sight::Unknown, "no bearer is unknown");
+}
+
 int main() {
+	NearestBearer();
 	LabelNaming();
+	SharedLabels();
 	SightAcrossAWall();
 	ReachAndKinds();
 	ObjectsAndNpcs();

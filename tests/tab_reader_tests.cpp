@@ -10,6 +10,7 @@ std::vector<uintptr_t> panels{10, 20, 30}; // stash, focused inventory, controll
 std::unordered_map<uintptr_t, std::vector<uintptr_t>> controls{{10, {100, 101}}, {20, {}}, {30, {300}}};
 std::unordered_map<uintptr_t, std::string> labels{{100, "Personal"}, {101, "1"}, {300, "Inventario"}};
 std::unordered_set<uintptr_t> hidden{101};
+std::unordered_map<uintptr_t, int> indices;
 int walks = 0;
 std::string Tick(bool suspended = false) { return TabReader::Update(panels, {20, 21}, suspended); }
 }
@@ -22,6 +23,7 @@ std::vector<uintptr_t> FindControls(uintptr_t panel, UiText::Kind kind) {
 	Check(kind == UiText::Kind::Tabs, "shared discovery requests the tab archetype");
 	return controls[panel];
 }
+int SelectedTab(uintptr_t widget) { return indices[widget]; }
 std::string SelectedTabText(uintptr_t widget) { return Visible(widget) ? labels[widget] : ""; }
 }
 namespace D2RAccess::NativeWidgets {
@@ -52,17 +54,39 @@ int main() {
 	Check(Tick() == "Personal" && TabReader::Selected(10) == "Personal", "reopening a rebuilt panel discovers its new controls");
 	labels[102] = "\xEE\x80\x93";
 	Check(Tick().empty(), "controller glyphs do not become tab labels");
-	Check(Tick(true).empty() && TabReader::Selected(30).empty(), "dialogues suspend and reset tab tracking");
-	Check(Tick().empty(), "return from dialogue silently establishes current tabs");
+	Check(Tick(true).empty() && TabReader::Selected(30) == "Inventario", "a dialogue keeps the tab baseline");
+	Check(Tick().empty(), "return from dialogue with nothing changed stays silent");
 	// The quest log is a switcher tab that suspends this reader; the tab after
 	// it -- Options, which has no window title -- is still named.
 	Check(Tick(true).empty(), "the quest log suspends tab tracking");
 	labels[300] = "Opciones";
 	Check(Tick() == "Opciones", "the switcher tab reached from a dialogue is named on return");
 	Check(Tick().empty(), "and only once");
+	// A host's log, 2026-10-12: Party, then the quest log (a dialogue), then
+	// Character. The bar still showed the quest log a poll after Character opened,
+	// and "Quest Log" cut off the window's "Character".
+	labels[300] = "Grupo"; indices[300] = 0;
+	(void)Tick();
+	labels[300] = "Reg. de búsquedas"; indices[300] = 1;
+	Check(Tick(true).empty(), "the quest log holds the switcher");
+	Check(Tick().empty(), "the bar still on the quest log once it closed is not named");
+	labels[300] = "Personaje"; indices[300] = 2;
+	Check(Tick() == "Personaje", "the tab the bar really moves to next is");
+	indices[300] = 0;
 	Check(Tick(true).empty(), "a dialogue suspends tracking again");
 	labels[102] = "Comp.";
-	Check(Tick().empty(), "other tab bars still return from a dialogue silently");
+	Check(Tick() == "Comp.", "other tab bars are still read after a dialogue (vendor tabs)");
+	labels[102] = "Weapon"; indices[102] = 1;
+	Check(Tick(true) == "Weapon", "a bar changed while a readout owns speech is still announced");
+	labels[102] = "Weapon"; indices[102] = 2;
+	Check(Tick(true) == "Weapon", "a repeated caption on another index is announced");
+	Check(Tick(true).empty() && TabReader::Detail().find("idx=2") != std::string::npos, "an unchanged bar stays silent and logs its index");
+	// A tester's log, 2026-10-18: the vendor opens behind the trade menu, which still reads.
+	panels.push_back(50); controls[50] = {500}; labels[500] = "Misc";
+	Check(Tick(true).empty(), "a vendor bar that opens under a conversation is its baseline");
+	labels[500] = "Armor"; indices[500] = 0;
+	Check(Tick(true) == "Armor", "LT/RT on it before the cursor lands is announced");
+	panels.pop_back();
 	TabReader::Reset(); panels = {40}; controls[40] = {400}; labels[400] = "Unrelated";
 	const int priorWalks = walks;
 	Check(Tick().empty() && walks == priorWalks, "narrative panels are not scanned for background navigation tabs");

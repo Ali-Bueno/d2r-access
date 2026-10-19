@@ -1,4 +1,5 @@
 #include "npc_proximity.h"
+#include "spoken_direction.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
@@ -24,15 +25,25 @@ EntityRadar::Entity Make(uint32_t id, double x, double y, std::string name, Enti
 }
 bool Says(const std::optional<Announcement>& announcement, uint32_t id) { return announcement && announcement->entity.id == id; }
 
+// North is the top of the screen, which is the world's -X,-Y diagonal.
 void Directions() {
-	const Radar::Position player{30, 30};
-	Check(DirectionOf(player, {20, 20}) == Direction::Up, "screen up is the -X,-Y diagonal");
-	Check(DirectionOf(player, {40, 40}) == Direction::Down, "screen down is +X,+Y");
-	Check(DirectionOf(player, {20, 40}) == Direction::Left, "screen left is -X,+Y");
-	Check(DirectionOf(player, {40, 20}) == Direction::Right, "screen right is +X,-Y");
-	Check(DirectionOf(player, {29, 20}) == Direction::Up, "just inside the up sector is up");
-	Check(DirectionOf(player, {40, 29}) == Direction::Right, "just inside the right sector is right");
-	Check(DirectionOf(player, {30, 20}) == Direction::Up, "a diagonal tie goes to the earlier direction");
+	const auto& strings = Strings::For(Strings::Language::enUS);
+	using SpokenDirection::Of;
+	Check(std::string(Of({-10, -10}, strings)) == "north", "screen up is north");
+	Check(std::string(Of({10, 10}, strings)) == "south", "screen down is south");
+	Check(std::string(Of({-10, 10}, strings)) == "west", "screen left is west");
+	Check(std::string(Of({10, -10}, strings)) == "east", "screen right is east");
+	Check(std::string(Of({-10, 0}, strings)) == "northwest", "the world's -X axis is up and left on screen");
+	Check(std::string(Of({0, -10}, strings)) == "northeast", "the world's -Y axis is up and right on screen");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Clock);
+	Check(std::string(Of({-10, -10}, strings)) == "12 o'clock", "screen up is twelve o'clock");
+	Check(std::string(Of({10, -10}, strings)) == "3 o'clock", "screen right is three");
+	Check(std::string(Of({-10, 0}, strings)) == "10 o'clock", "a world axis lands between the diagonals' hours");
+	Check(std::string(Of({0, -10}, strings)) == "2 o'clock", "and on the other side");
+	Check(std::string(Of({10, 10}, strings)) == "6 o'clock", "screen down is six");
+	Check(std::string(SpokenDirection::OfSide(Radar::Direction::Left, strings)) == "9 o'clock", "a side by its hour");
+	SpokenDirection::SetStyle(SpokenDirection::Style::Compass);
+	Check(std::string(SpokenDirection::OfSide(Radar::Direction::Left, strings)) == "west", "a side by its compass point");
 }
 
 void OnlyFriendlyNpcs() {
@@ -43,7 +54,7 @@ void OnlyFriendlyNpcs() {
 		Make(2, 31, 30, "Cofre", EntityRadar::Kind::Object), Make(3, 30, 31, "Poción", EntityRadar::Kind::Item)};
 	Check(!tracker.Update(world, others, settings), "enemies, objects and items are never announced");
 	const auto kashya = tracker.Update(world, {Make(4, 36, 30, "Kashya")}, settings);
-	Check(Says(kashya, 4) && kashya->distance == 6 && kashya->direction == Direction::Right, "a friendly NPC in range is announced with its distance and direction");
+	Check(Says(kashya, 4) && kashya->distance == 6 && kashya->offset.x == 6 && kashya->offset.y == 0, "a friendly NPC in range is announced with its distance and direction");
 }
 
 void AnnounceOnceUntilGone() {
@@ -103,14 +114,16 @@ void Wording() {
 	Strings::Select(Strings::Language::esES);
 	const auto& strings = Strings::Current();
 	EntityRadar::Settings scan;
-	Announcement kashya{Make(1, 42, 30, "Kashya"), 12, Direction::Right};
-	Check(Describe(kashya, scan, strings) == "Kashya, 12 pasos, a la derecha", "name, distance and direction");
-	Announcement akara{Make(2, 30, 29, "Akara"), 1, Direction::Up};
-	Check(Describe(akara, scan, strings) == "Akara, 1 paso, adelante", "the singular step keeps the direction");
-	Announcement close{Make(3, 30, 30.2, "Charsi"), 0.2, Direction::Down};
+	Announcement kashya{Make(1, 42, 30, "Kashya"), 12, {12, -12}};
+	Check(Describe(kashya, scan, strings) == "Kashya, 12 unidades, este", "name, distance and direction");
+	Announcement akara{Make(2, 30, 29, "Akara"), 1, {-1, -1}};
+	Check(Describe(akara, scan, strings) == "Akara, aquí mismo", "an NPC beside the player has no distance or direction");
+	akara.distance = 2;
+	Check(Describe(akara, scan, strings) == "Akara, 2 unidades, norte", "one unit further keeps the direction");
+	Announcement close{Make(3, 30, 30.2, "Charsi"), 0.2, {0.2, 0.2}};
 	Check(Describe(close, scan, strings) == "Charsi, aquí mismo", "under one step drops the direction");
 	Strings::Select(Strings::Language::enUS);
-	Check(Describe(kashya, scan, Strings::Current()) == "Kashya, 12 steps, to the right", "English wording");
+	Check(Describe(kashya, scan, Strings::Current()) == "Kashya, 12 units, east", "English wording");
 }
 }
 

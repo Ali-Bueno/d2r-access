@@ -4,8 +4,13 @@
 
 #include <xinput.h>
 
+#include <atomic>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <numbers>
+#include <utility>
 
 namespace D2RAccess::InputDirection {
 
@@ -20,7 +25,7 @@ constexpr SHORT kThumbstickMaxMagnitude = std::numeric_limits<SHORT>::max();
 // Intentionally much larger than the small anti-drift deadzone XInput itself
 // recommends (XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE): this one has to signal a
 // deliberate directional push, not just that the stick is off-center.
-constexpr float kThumbstickDirectionDeadzoneFraction = 0.5f;
+constexpr float kThumbstickDirectionDeadzoneFraction = StickPushFraction;
 constexpr SHORT kThumbstickDirectionThreshold         = static_cast<SHORT>(kThumbstickMaxMagnitude * kThumbstickDirectionDeadzoneFraction);
 
 // Per GetAsyncKeyState's documented contract: the high bit of the return
@@ -46,9 +51,17 @@ struct PadEdgeState {
 	bool yHeld          = false;
 	bool rightStickHeld = false;
 	bool leftThumbHeld  = false;
+	bool lbHeld         = false;
+	bool rbHeld         = false;
+	bool ltHeld         = false;
+	bool rtHeld         = false;
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
+// Microsoft's XInput guidance: asking an empty slot is slow, so do it every few
+// seconds, not every frame (a tester's machine spent 5-8 ms an update on it).
+constexpr uint64_t EmptySlotProbeMs = 2000;
+uint64_t g_nextProbe[XUSER_MAX_COUNT] {}; // when an empty slot is asked again; 0 while a pad answers
 bool         g_keyLeftHeld  = false;
 bool         g_keyRightHeld = false;
 bool         g_keyUpHeld    = false;
@@ -57,9 +70,14 @@ DpadInput g_dpad;
 WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
-bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false;
+bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
+bool g_backWithLt = false, g_backWithRt = false;
+bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
+bool g_pressedA = false; // A alone, for the pad typing of a text box (pad_typing.h)
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
+StickPush g_backWithRightStick = StickPush::None;
+std::atomic<bool> g_routeOnA{false};          // BACK+A and BACK+down trade places
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
 bool g_lineStep = false;                      // the pending right-stick push is the keyboard's line step
@@ -73,6 +91,7 @@ Vertical   g_lastVertical         = Vertical::None;
 ULONGLONG  g_lastVerticalTickMs   = 0;
 FaceButton g_lastFaceButton       = FaceButton::None;
 StickPush  g_rightStickPush       = StickPush::None;
+StickPush  g_rightStickTurned     = StickPush::None; // the same push in the turned frame
 ULONGLONG  g_lastFaceButtonTickMs = 0;
 
 // The last push to be resolved, waiting to be logged. A claimant name means a
@@ -145,15 +164,19 @@ void Poll() {
 	g_leftStick = {};
 	g_leftTrigger = {};
 	if (g_xInputGetState != nullptr) {
+		const uint64_t now = GetTickCount64();
 		for (DWORD padIndex = 0; padIndex < XUSER_MAX_COUNT; ++padIndex) {
 			PadEdgeState& edges = g_padState[padIndex];
+			if (g_nextProbe[padIndex] && now < g_nextProbe[padIndex]) continue;
 			XINPUT_STATE  state {};
 			if (g_xInputGetState(padIndex, &state) != ERROR_SUCCESS) {
 				// Not connected: clear held flags so a later reconnect starts
 				// from a clean edge instead of replaying a stale press.
 				edges = {};
+				g_nextProbe[padIndex] = now + EmptySlotProbeMs;
 				continue;
 			}
+			g_nextProbe[padIndex] = 0;
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			dpadButtons |= pad.wButtons & DpadMask;
@@ -199,7 +222,9 @@ void Poll() {
 			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
 				RecordEdge(FaceButton::A);
-				if (backDown) g_backWithA = true;
+				if (backDown && g_routeOnA.load()) g_backWithRightStick = StickPush::Down;
+				else if (backDown) g_backWithA = true;
+				else g_pressedA = true;
 			}
 			if (UpdateEdge(edges.bHeld, (pad.wButtons & XINPUT_GAMEPAD_B) != 0)) {
 				RecordEdge(FaceButton::B);
@@ -216,18 +241,31 @@ void Poll() {
 			}
 			const bool rightPushed = pad.sThumbRX >= kThumbstickDirectionThreshold || pad.sThumbRX <= -kThumbstickDirectionThreshold
 				|| pad.sThumbRY >= kThumbstickDirectionThreshold || pad.sThumbRY <= -kThumbstickDirectionThreshold;
-			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) {
-				g_leftStickClick = true;
-			}
+			if (UpdateEdge(edges.lbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0)) (backDown ? g_backWithLb : g_lbAlone) = true;
+			if (UpdateEdge(edges.rbHeld, (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0)) (backDown ? g_backWithRb : g_rbAlone) = true;
+			// The triggers count as pulled past XInput's threshold, as the game's own poll reads them.
+			if (UpdateEdge(edges.ltHeld, pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) && backDown) g_backWithLt = true;
+			if (UpdateEdge(edges.rtHeld, pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) && backDown) g_backWithRt = true;
+			if (UpdateEdge(edges.leftThumbHeld, (pad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0)) g_leftStickClick = true;
 			if (UpdateEdge(edges.rightStickHeld, rightPushed)) {
-				// A push still pending here is one no reader has wanted, and it
-				// is about to be overwritten. Record that before it goes.
-				ResolvePush(g_rightStickPush, nullptr);
-				g_lineStep = false;
 				// Dominant axis at the moment the dead zone is left; XInput Y grows upward.
 				const int absX = std::abs(static_cast<int>(pad.sThumbRX)), absY = std::abs(static_cast<int>(pad.sThumbRY));
-				g_rightStickPush = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
+				const StickPush push = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
 					: (pad.sThumbRX > 0 ? StickPush::Right : StickPush::Left);
+				if (backDown && g_routeOnA.load() && push == StickPush::Down) g_backWithA = true;
+				else if (backDown) g_backWithRightStick = push; // the mod's chord, never a scanner step
+				else {
+					// A push still pending here is one no reader has wanted, and it
+					// is about to be overwritten. Record that before it goes.
+					ResolvePush(g_rightStickPush, nullptr);
+					g_lineStep = false;
+					g_rightStickPush = push;
+					// Clockwise from up, the quarter the stick is in: up-right is Up.
+					const double quarter = std::atan2(static_cast<double>(pad.sThumbRX), static_cast<double>(pad.sThumbRY))
+						/ (std::numbers::pi / 2);
+					constexpr StickPush Quarters[] = {StickPush::Up, StickPush::Right, StickPush::Down, StickPush::Left};
+					g_rightStickTurned = Quarters[static_cast<int>(std::floor(quarter) + 4) % 4];
+				}
 			}
 		}
 	}
@@ -273,6 +311,33 @@ bool TakeLeftStickClick() {
 	g_leftStickClick = false;
 	return clicked;
 }
+StickPush TakeBackWithRightStick() {
+	const StickPush push = g_backWithRightStick;
+	g_backWithRightStick = StickPush::None;
+	return push;
+}
+bool TakeBackWithLb() {
+	const bool pressed = g_backWithLb;
+	g_backWithLb = false;
+	return pressed;
+}
+bool TakeBackWithRb() {
+	const bool pressed = g_backWithRb;
+	g_backWithRb = false;
+	return pressed;
+}
+bool TakeBackWithTrigger(bool right) {
+	bool& pressed = right ? g_backWithRt : g_backWithLt;
+	return std::exchange(pressed, false);
+}
+bool RouteOnA() { return g_routeOnA.load(); }
+void SetRouteOnA(bool on) { g_routeOnA = on; }
+bool TakeShoulder(bool right) {
+	bool& pressed = right ? g_rbAlone : g_lbAlone;
+	const bool taken = pressed;
+	pressed = false;
+	return taken;
+}
 bool TakeBackWith(FaceButton button) {
 	bool* pressed = button == FaceButton::A ? &g_backWithA : button == FaceButton::B ? &g_backWithB
 		: button == FaceButton::X ? &g_backWithX
@@ -296,9 +361,10 @@ bool TakeLeftStickPushIf(StickPush wanted, const char*) {
 	return true;
 }
 bool TakeFacePress(FaceButton button) {
-	if (button != FaceButton::B) return false; // only B has a reader so far
-	const bool result = g_pressedB;
-	g_pressedB = false;
+	bool* pressed = button == FaceButton::A ? &g_pressedA : button == FaceButton::B ? &g_pressedB : nullptr;
+	if (!pressed) return false; // only A and B have readers so far
+	const bool result = *pressed;
+	*pressed = false;
 	return result;
 }
 StickPush TakeRightStickPush(const char* claimant) {
@@ -308,6 +374,7 @@ StickPush TakeRightStickPush(const char* claimant) {
 	return push;
 }
 StickPush PeekRightStickPush() { return g_rightStickPush; }
+StickPush PeekTurnedRightStickPush() { return g_rightStickPush == StickPush::None ? StickPush::None : g_rightStickTurned; }
 bool TakeRightStickPushIf(StickPush wanted, const char* claimant) {
 	if (wanted == StickPush::None || g_rightStickPush != wanted) {
 		return false;
@@ -320,7 +387,7 @@ void PostRightStickPush(StickPush push) {
 	if (push == StickPush::None) return;
 	// A push still pending is about to be replaced, as a pad's would be.
 	ResolvePush(g_rightStickPush, nullptr);
-	g_rightStickPush = push;
+	g_rightStickPush = g_rightStickTurned = push;
 	g_lineStep = false;
 }
 void PostLeftStickPush(StickPush push) {
@@ -341,9 +408,10 @@ void PostBackWith(FaceButton button) {
 	else if (button == FaceButton::X) g_backWithX = true;
 	else if (button == FaceButton::Y) g_backWithY = true;
 }
-void PostLeftStickClick() { g_leftStickClick = true; }
+void PostBackWithLb() { g_backWithLb = true; }
 void PostFacePress(FaceButton button) {
 	if (button == FaceButton::B) g_pressedB = true;
+	if (button == FaceButton::A) g_pressedA = true;
 }
 PushRecord TakePushRecord() {
 	const PushRecord record{g_resolvedPush, g_resolvedClaimant};
@@ -411,6 +479,13 @@ Vertical LastVertical(unsigned maxAgeMs) {
 
 DpadInput Dpad() { return g_dpad; }
 
+DpadInput ArrowKeys() {
+	const bool modified = (GetAsyncKeyState(VK_CONTROL) & kKeyDownFlag) != 0 || (GetAsyncKeyState(VK_SHIFT) & kKeyDownFlag) != 0;
+	const int x = (g_keyRightHeld ? 1 : 0) - (g_keyLeftHeld ? 1 : 0), y = (g_keyDownHeld ? 1 : 0) - (g_keyUpHeld ? 1 : 0);
+	if (modified || (x && y) || (!x && !y)) return {};
+	return {x, y, false, true};
+}
+
 void Shutdown() {
 	g_dpad = {};
 	g_previousDpad = 0;
@@ -424,6 +499,7 @@ void Shutdown() {
 	for (PadEdgeState& edges : g_padState) {
 		edges = {};
 	}
+	for (auto& probe : g_nextProbe) probe = 0;
 	g_keyLeftHeld  = false;
 	g_keyRightHeld = false;
 	g_keyUpHeld    = false;

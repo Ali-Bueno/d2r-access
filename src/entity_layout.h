@@ -34,7 +34,7 @@ inline constexpr size_t InventoryOwner = 8, InventoryItemCount = 0x4C;
 inline constexpr uint32_t MaxSockets = 6; // ItemsTxt gemsockets tops out at 6
 inline constexpr size_t UnitFlags1 = 0x124, UnitFlags2 = 0x128;
 inline constexpr uint32_t ForcedDead = 1u << 16; // Unit+0x124, liveness test 0x34C2C0
-inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0 (inferred: set on player-owned spawns)
+inline constexpr uint32_t PlayerMinion = 1u << 9; // Unit+0x124, getter 0x34FBA0: on the client the hireling alone (docs/summons-and-corpses-re.md)
 // Dynamic path (players/monsters): packed 16.16 X/Y at +0, room at +0x20 (native_world.cpp).
 // Static path (items/objects): room at +0, integer X/Y at +0x10/+0x14 (ground_item_layout.h).
 inline constexpr size_t PathRoom = 0x20;
@@ -78,18 +78,23 @@ inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha thro
 // Sanctuary's pads, and no other row. The handler (0x14058EAD0 in 3.3.93787)
 // sends the player to the other object of the pad's class in its room.
 inline constexpr uint8_t TeleportPadOperateFn = 27;
+// objects.txt BeneathTheCityStairs (366), the Kurast sewer stairs, and no other row.
+// Its handler (0x1405E9DA0) warps the player through the room's warp tile, which
+// is NoInteract, once the stairs are in mode 2, the only mode they can be selected in.
+inline constexpr uint8_t RoomWarpOperateFn = 44;
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587
 // rows): 1 caskets and sarcophagi, 3 urns/jars/baskets, 4 chests, 5 and 7
-// barrels, 14 crates/coffins/corpses/hollow logs, 30 the exploding chest,
-// 39-41 and 57-59 the act-specific special chests, 68 the evil urn.
-inline constexpr std::array<uint8_t, 14> ContainerOperateFns{1, 3, 4, 5, 7, 14, 30, 39, 40, 41, 57, 58, 59, 68};
-// Together with "selectable while shut, not once open" these select 165 of the
-// 587 rows (78 distinct keys). Both counts are the tripwire `access-items
-// chests-dump` checks against the live table: if a patch moves either, rerun
-// the tool before trusting the cue.
-inline constexpr size_t ContainerRowCount = 165, ObjectRowCount = 587;
+// barrels, 14 crates/coffins/corpses/hollow logs, 19 armor stands, 20 weapon
+// racks, 26 bookshelves, 30 the exploding chest, 39-41 and 57-59 the
+// act-specific special chests, 68 the evil urn.
+inline constexpr std::array<uint8_t, 17> ContainerOperateFns{1, 3, 4, 5, 7, 14, 19, 20, 26, 30, 39, 40, 41, 57, 58, 59, 68};
+// Together with "selectable while shut, not once open" these select 175 of the
+// 587 rows. Both counts are the tripwire `access-items chests-dump` checks
+// against the live table: if a patch moves either, rerun the tool before
+// trusting the cue.
+inline constexpr size_t ContainerRowCount = 175, ObjectRowCount = 587;
 // objects.txt SubClass bits the game's label builder (0xC17E0) and 0x34C470 branch on:
 // shrine, town/permanent portal, arcane sanctuary portal / hell gate, waypoint.
 // Bit meanings derived from the game's own global/excel/objects.txt (D2R 3.3,
@@ -102,7 +107,14 @@ inline constexpr uint8_t SubClassShrine = 1u << 0, SubClassObelisk = 1u << 1, Su
 inline constexpr uint8_t SubClassExit = SubClassPortal | SubClassGate | SubClassWaypoint;
 // ObjectData (*(Unit+0x10)): per-class parameter byte (the destination level id of a
 // SubClass portal, 0x34AD40 / 0xC17E0); linked shrines.txt row and its localized name id.
-inline constexpr size_t ObjPortalLevel = 8, ObjLinkRecord = 0x10, ShrineNameId = 0x12;
+// +9 is a town portal's state flags, never part of the level: D2RLoader keeps the level's
+// high byte at +0x78 instead (its D2RCore export SetObjectInteraction16). docs/portals.md
+inline constexpr size_t ObjPortalLevel = 8, ObjPortalLevelHigh = 0x78, ObjLinkRecord = 0x10, ShrineNameId = 0x12;
+inline constexpr const char* WidePortalLevelExport = "SetObjectInteraction16";
+// A town portal's owner, for its label "<level> [<owner>]" (0xC17E0): the roster entry whose
+// local or remote portal id is the portal's unit id, else the name the ownership packet left
+// at ObjectData+0x34.
+inline constexpr size_t RosterPortal = 0x80, RosterRemotePortal = 0x84, ObjPortalOwner = 0x34;
 // Door captions by mode, string ids used by the door opener path (0x44FAC0).
 inline constexpr uint32_t DoorClosedText = 0xC99, DoorOpenText = 0xC9B;
 // The player's own stash carries no SubClass bit, so it is recognised by the
@@ -195,6 +207,12 @@ inline constexpr size_t RosterName = 0, RosterUnitId = 0x48, RosterParty = 0x5A,
 	RosterX = 0x60, RosterY = 0x64, RosterNext = 0x148;
 inline constexpr uint16_t NoParty = 0xFFFF; // 0x136570's "not in a party"
 inline constexpr size_t MaxRosterEntries = 64; // cycle guard, not a game limit
+inline constexpr Evidence PortalOwnerChecks[] = {
+	{0x136670, 100, 0xCC21F4B64B62FFCFULL}, // roster entry by portal id: +0x80 or +0x84
+	{0x1CB060, 9, 0x1062C4C489772EA1ULL},    // ObjectData+0x34 owner name getter
+	{0x1CB070, 135, 0x3EC1E6FD55ACF57BULL},  // its setter, 0x3C bytes at most
+	{0x34ADF0, 72, 0x2F7E608D85EB4508ULL},   // ObjectData+9 state getter: not the level
+};
 inline constexpr Evidence RosterChecks[] = {
 	{0x136470, 21, 0x4F66E997F9BC6D8EULL}, // next entry; head global for null
 	{0x13A220, 332, 0x6D4A070900DAFDDAULL}, // entry init: name at +0 bounded by 0x3D, party id +0x5A, unit id +0x48
@@ -226,6 +244,19 @@ inline constexpr Evidence SocketChecks[] = {
 	{0x388C10, 68, 0xCF3B0CFFC3095301ULL}, // first item: magic check, then Inv+0x10
 	{0x3856E0, 378, 0x969ACF37B5669D2AULL}, // socket insert: owner Inv+8, count Inv+0x4C
 };
+// The "!" over a town NPC (Overlay.txt row 72, npcalert). Packet 0x8A's handler adds
+// it to the unit's overlay list within 15 subtiles of a pending quest; packet 0x27
+// (any NPC's dialogue) removes it from every NPC. The game's own test 0x152650 walks
+// the graphics data (Unit+0x78, 0x9A600) from +0x440: an id at +4, the next at +0xB0.
+inline constexpr size_t UnitGraphics = 0x78, GraphicsOverlays = 0x440, OverlayId = 4, OverlayNext = 0xB0;
+inline constexpr int32_t NpcAlertOverlay = 72;
+inline constexpr size_t MaxOverlays = 32; // a bound on the walk, not a game limit
+inline constexpr Evidence NpcAlertChecks[] = {
+	{0x9A600, 13, 0x1B97936E36D88934ULL}, // Unit+0x78 graphics data
+	{0x152650, 68, 0x620012C0175D4061ULL}, // has overlay: list +0x440, id +4, next +0xB0
+	{0x10F190, 340, 0x0FB5AA7F198F0466ULL}, // packet 0x8A adds overlay 72, skipping the NPC being talked to
+	{0x10B2B0, 93, 0xE6FEA295123E3FDBULL}, // packet 0x27 removes it from every NPC-flagged unit
+};
 inline constexpr Evidence CorpseChecks[] = {
 	{0x34A360, 165, 0xCC327F6CEB48B813ULL}, // inventory pointer, including owner wrapper
 	{0x388BA0, 100, 0xB5FBC7641E1D7F3AULL}, // inventory magic and link ID
@@ -234,4 +265,25 @@ inline constexpr Evidence CorpseChecks[] = {
 	{0x12D7E0, 66, 0x8C76B7E4ADFCAF4FULL}, // packet 0x74: owner and corpse ids
 	{0xFF910, 431, 0x00E34CF334B2272AULL}, // 0x74 sets the corpse inventory's link ID
 };
+// A dead monster's corpse a Necromancer's skills can take (core rule 0x33FBE0):
+// mode 12, MonStats2 corpseSel, and no udead state (a raised or exploded corpse
+// carries one). docs/summons-and-corpses-re.md §4, §8.
+inline constexpr size_t MonStatsExtra = 0x4C; // int16 monstats2 row (MonStatsEx)
+inline constexpr size_t MonStats2 = 0xF98, MonStats2Count = 0xFA0, MonStats2Stride = 0x128, MonStats2Flags = 4;
+inline constexpr uint8_t CorpseSelectable = 1u << 7;
+// The udead states' mask (a pointer to a dword bit array) and the states row count in the table bank.
+inline constexpr size_t UdeadStateMask = 0x3D8, StateCount = 0x298;
+// A unit's stat list (0x34B870); its active-state bits at +0xAF0 exist only when +0x1C is negative (0x2F6370).
+inline constexpr size_t UnitStats = 0x88, StatsExtended = 0x1C, StatsActiveStates = 0xAF0;
+inline constexpr uint64_t MaxStates = 1024; // a bound on the read: states.txt has 232 rows
+inline constexpr Evidence UsableCorpseChecks[] = {
+	{0x33FBE0, 177, 0xAAB1ED1B6CE1192CULL}, // core rule: mode 12, !udead, corpseSel
+	{0x975B0, 300, 0x58E2457EEE069F89ULL},  // MonStats2 row: MonStats +0x4C, bank +0xF98/+0xFA0
+	{0x336300, 42, 0x5033F280CDEB4295ULL},  // udead mask pointer at bank+0x3D8
+	{0x336440, 159, 0x7458FBC20E6C1529ULL}, // mask AND the active states, (bank+0x298 + 31) >> 5 words
+	{0x2F6370, 96, 0x5854EA1B418EE4BAULL},  // active states at stat list +0xAF0 when +0x1C < 0
+	{0x34B870, 59, 0xF5A91004595DA706ULL},  // stat list Unit+0x88
+};
+// charstats.txt row of the Necromancer, the class whose skills use corpses.
+inline constexpr uint32_t NecromancerClass = 2;
 }

@@ -43,6 +43,15 @@ auto __cdecl Match(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* item
 	search->found = State(*item);
 	return D2RL::Inventory::IterationAction::Stop;
 }
+struct Presence { uint32_t code = 0; bool found = false; };
+auto __cdecl HasCode(const D2RL::PluginContext*, const D2RL::Items::ItemInfo* item, void* userData) noexcept
+	-> D2RL::Inventory::IterationAction {
+	auto* presence = static_cast<Presence*>(userData);
+	if (!presence || !item || item->structSize < D2RL::Items::ItemInfoRequiredSize || item->code != presence->code)
+		return D2RL::Inventory::IterationAction::Continue;
+	presence->found = true;
+	return D2RL::Inventory::IterationAction::Stop;
+}
 }
 
 std::optional<bool> HoldingItem(const D2RL::PluginContext* context) {
@@ -88,5 +97,20 @@ std::optional<ItemState> Find(const D2RL::PluginContext* context, uint32_t runti
 	if (inventory->forEachInventoryItem(context, player, &filter, Match, &search) != D2RL::Inventory::Result::Success)
 		return std::nullopt;
 	return search.found;
+}
+
+bool Holds(const D2RL::PluginContext* context, D2RL::Items::ItemContainer container, uint32_t code) {
+	const auto* inventory = Inventory(context);
+	if (!code || !inventory || !inventory->forEachInventoryItem) return false;
+	const auto player = LocalPlayer(context, inventory);
+	if (player == D2RL::InvalidPlayerHandle) return false;
+	const D2RL::Inventory::ItemFilter filter{
+		.structSize = static_cast<uint32_t>(sizeof(D2RL::Inventory::ItemFilter)),
+		.flags = 0,
+		.containerMask = D2RL::Items::ContainerBit(container),
+		.reserved = 0};
+	Presence presence{code};
+	return inventory->forEachInventoryItem(context, player, &filter, HasCode, &presence) == D2RL::Inventory::Result::Success
+		&& presence.found;
 }
 }

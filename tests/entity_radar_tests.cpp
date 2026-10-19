@@ -118,6 +118,15 @@ void CorpseIdentity() {
 	Check(!SameTarget(corpse, casket), "beacon matching cannot follow the same-ID world object in place of the corpse");
 }
 
+void TowerQuest() {
+	Check(EntityRadar::QuestWay(6, 20) && EntityRadar::QuestWay(20, 21) && !EntityRadar::QuestWay(21, 20),
+		"the Black Marsh's door and every step down the tower are quest ways, the way back up is not");
+	Check(!EntityRadar::QuestRunning(0), "before the Moldy Tome the tower is no quest");
+	Check(EntityRadar::QuestRunning(0x0004) && EntityRadar::QuestRunning(0x0048), "from the tome to the Countess it is");
+	Check(!EntityRadar::QuestRunning(0x2001) && !EntityRadar::QuestRunning(0x8010), "completed, or done, it is no more");
+	Check(!EntityRadar::QuestRunning(0x1000), "a flag of its own outside the steps is not a start");
+}
+
 void QuestSources() {
 	Entity tree{7, Kind::Object, {20, 20}, "Árbol de Inifuss"};
 	Check(!QuestSource(tree), "an object is not a quest source by its name");
@@ -131,15 +140,33 @@ void QuestSources() {
 	Check(!QuestSource(scroll), "only world objects count; ground quest items have their own reader");
 }
 
+// D at the Ancients' altar: the statues stand nearer, and the altar is what the quest needs.
+void UsePreference() {
+	Entity altar{1, Kind::Object, {20, 20}, "Altar of the Heavens"};
+	altar.questObject = true;
+	Entity statue{2, Kind::Object, {18, 18}, "Talic the Defender"};
+	Entity npc{3, Kind::Npc, {17, 17}, "Qual-Kehk"};
+	Check(UseBefore(altar, 9, statue, 3) && !UseBefore(statue, 3, altar, 9), "an unused quest object comes before a nearer statue");
+	Check(UseBefore(altar, 9, npc, 1), "and before a nearer NPC");
+	Check(UseBefore(statue, 3, npc, 5) && !UseBefore(npc, 5, statue, 3), "other things go by steps");
+	Entity seal{4, Kind::Object, {22, 22}, "Seal 2"};
+	seal.questObject = true;
+	Check(UseBefore(seal, 4, altar, 9) && !UseBefore(altar, 9, seal, 4), "between quest objects the nearer comes first");
+	altar.questObject = false;
+	Check(UseBefore(statue, 3, altar, 9), "a used one is ordinary again");
+}
+
 void Wording() {
 	const auto& es = Strings::For(Strings::Language::esES);
 	Settings settings;
-	Check(DistancePhrase(8.2, settings, es) == "8 pasos", "steps distance");
-	Check(DistancePhrase(1.2, settings, es) == "1 paso", "the singular step");
+	Check(DistancePhrase(8.2, settings, es) == "8 unidades", "distance in units");
+	Check(DistancePhrase(1.2, settings, es) == "aquí mismo", "a thing beside the body is under the player");
+	Check(DistancePhrase(1.4, settings, es) == "aquí mismo", "diagonally beside too");
 	Check(DistancePhrase(0.4, settings, es) == "aquí mismo", "adjacent targets have no distance");
-	settings.stepsPerSubtile = 0.5;
-	Check(DistancePhrase(8.2, settings, es) == "4 pasos", "the spoken unit follows the calibration factor");
-	Check(DistancePhrase(8.2, settings, Strings::For(Strings::Language::enUS)) == "4 steps", "english wording");
+	settings.unitsPerSubtile = 0.5;
+	Check(DistancePhrase(8.2, settings, es) == "4 unidades", "the spoken unit follows the calibration factor");
+	Check(DistancePhrase(2.2, settings, es) == "1 unidad", "the singular unit");
+	Check(DistancePhrase(8.2, settings, Strings::For(Strings::Language::enUS)) == "4 units", "english wording");
 }
 }
 
@@ -149,6 +176,8 @@ int main() {
 	LevelExitIdentity();
 	CorpseIdentity();
 	QuestSources();
+	TowerQuest();
+	UsePreference();
 	Wording();
 	Passed();
 	return 0;

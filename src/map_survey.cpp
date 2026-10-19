@@ -20,6 +20,8 @@ constexpr EntityRadar::Category CategoryOrder[] = {
 	// no map needs the shape of the level before its contents.
 	EntityRadar::Category::UnexploredRoom,
 	EntityRadar::Category::Room,
+	// What the level is for: the quest's objects, ahead of who and what else is there.
+	EntityRadar::Category::Quest,
 	EntityRadar::Category::Npc,
 	EntityRadar::Category::Player,
 	EntityRadar::Category::Corpse,
@@ -107,6 +109,16 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	// where it was. Out-of-window objects keep their place indefinitely, which
 	// is the point: they are what the player still has to walk to.
 	for (Tracked& tracked : m_tracked) {
+		// A discovered enemy follows its live unit while the game has it loaded, so
+		// it is never listed where it no longer stands; missing within reach, it is gone.
+		if (present && tracked.entity.kind == EntityRadar::Kind::Enemy) {
+			const auto live = std::find_if(present->begin(), present->end(), [&tracked](const EntityRadar::Entity& entity) {
+				return EntityRadar::SameTarget(tracked.entity, entity);
+			});
+			if (live != present->end()) tracked.entity.position = live->position;
+			else if (Observed(grid, tracked.entity.position, settings.forgetWithin)) tracked.misses = settings.missesBeforeForgetting;
+			continue;
+		}
 		const bool stillPresent = loaded(tracked.entity);
 		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
@@ -117,6 +129,20 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 	m_entities.clear();
 	m_entities.reserve(m_tracked.size());
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Registry::ForgetEnemies(const std::vector<uint32_t>& dead) {
+	if (dead.empty()) return;
+	std::erase_if(m_tracked, [&dead](const Tracked& tracked) {
+		return tracked.entity.kind == EntityRadar::Kind::Enemy
+			&& std::find(dead.begin(), dead.end(), tracked.entity.id) != dead.end();
+	});
+	m_entities.clear();
+	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Memory::ForgetEnemies(const std::vector<uint32_t>& dead) {
+	for (auto& [level, registry] : m_levels) registry.ForgetEnemies(dead);
 }
 
 void Registry::Clear() {
@@ -169,18 +195,18 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		landmark.entity       = entity;
 		landmark.steps        = fullAssistance ? StepsTo(grid, entity.position) : -1;
 		landmark.reachable    = landmark.steps >= 0;
-		landmark.straightLine = StraightLine(world.player, entity.position);
-		landmark.direction    = Radar::ScreenSector({entity.position.x - world.player.x, entity.position.y - world.player.y});
+		// From where the player stands, not the collision cell, which drops up to a subtile on each axis.
+		const Radar::Position player{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
+		landmark.straightLine = StraightLine(player, entity.position);
+		landmark.offset       = {entity.position.x - player.x, entity.position.y - player.y};
 		result.push_back(std::move(landmark));
 	}
-	// Reachable first, then fewest steps. Unreachable objects keep their place
-	// in the list by straight line, so they can still be named as "no route".
-	std::sort(result.begin(), result.end(), [](const Landmark& a, const Landmark& b) {
-		if (a.reachable != b.reachable) return a.reachable;
-		if (a.reachable) {
-			return std::tie(a.steps, a.straightLine, a.entity.id) < std::tie(b.steps, b.straightLine, b.entity.id);
-		}
-		return std::tie(a.straightLine, a.entity.id) < std::tie(b.straightLine, b.entity.id);
+	// Nearest first, by the distance each one is spoken with: its walking steps
+	// when known, else its straight line (a tester: always the closest first, never
+	// a reachable one across the zone before an unreachable one beside the player).
+	const auto spoken = [](const Landmark& landmark) { return landmark.reachable ? landmark.steps : landmark.straightLine; };
+	std::sort(result.begin(), result.end(), [&](const Landmark& a, const Landmark& b) {
+		return std::tuple(spoken(a), a.straightLine, a.entity.id) < std::tuple(spoken(b), b.straightLine, b.entity.id);
 	});
 	return result;
 }
@@ -226,22 +252,69 @@ bool Fixed(const EntityRadar::Entity& entity) {
 	using EntityRadar::Category;
 	using EntityRadar::Kind;
 	if (!entity.placeId || entity.border == EntityRadar::Entity::Border::Bearing) return false;
-	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint))
-		|| (entity.kind == Kind::Object && entity.category == Category::Stash);
+	return (entity.kind == Kind::Exit && (entity.category == Category::Exit || entity.category == Category::Waypoint
+			|| entity.category == Category::Quest))
+		|| (entity.kind == Kind::Object && entity.category == Category::Stash) || entity.mapLandmark;
 }
+
+// An exit is found from twice the scan's range, seen or not: the way into the
+// Forgotten Tower stands inside ruin walls (a tester, 2026-10-14), as visible
+// from afar to a sighted player as the tower itself.
+constexpr double ExitSightFactor = 2;
 
 std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 	const std::vector<EntityRadar::Entity>& entities, const std::vector<NativeRooms::Room>& charted) {
 	std::vector<EntityRadar::Entity> result;
-	for (const auto& entity : entities)
-		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None
-			|| InView(world, entity, EntityRadar::Settings{}.range)) result.push_back(entity);
+	const double range = EntityRadar::Settings{}.range;
+	for (const auto& entity : entities) {
+		const double straight = entity.kind == EntityRadar::Kind::Exit ? StraightLine(world.player, entity.position) : 0;
+		if (NativeRooms::Containing(charted, entity.position) != NativeRooms::None || InView(world, entity, range)
+			|| (entity.kind == EntityRadar::Kind::Exit && std::isfinite(straight) && straight <= range * ExitSightFactor))
+			result.push_back(entity);
+	}
 	return result;
 }
 
+bool TownNpcSightings::Absent(int level, uint64_t identity) const {
+	const auto town = m_absent.find(level);
+	return town != m_absent.end() && town->second.contains(identity);
+}
+
+void TownNpcSightings::Live(int level, const std::vector<EntityRadar::Entity>& current) {
+	const auto town = m_absent.find(level);
+	if (town == m_absent.end()) return;
+	for (const auto& npc : current) {
+		if (!npc.placeId || npc.unit == EntityRadar::Entity::NoUnit) continue;
+		const auto absent = town->second.find(npc.placeId);
+		if (absent == town->second.end()) continue;
+		// Reappearance outside the discovery view still restores an NPC that
+		// was known before retirement. An unseen one retains ordinary discovery.
+		if (absent->second) m_seen[level][npc.placeId] = npc;
+		town->second.erase(absent);
+	}
+}
+
+void TownNpcSightings::Reconcile(const TownNpcs::Presence& presence, const std::vector<EntityRadar::Entity>& current) {
+	if (!presence.player || !presence.level) return; // failed native read: unknown
+	if (m_session != presence.session || m_player != presence.player) Clear();
+	m_session = presence.session;
+	m_player = presence.player;
+	const int level = static_cast<int>(presence.level);
+	if (presence.complete) for (const uint64_t identity : presence.absent) {
+		if (!identity || identity - 1 > UINT32_MAX || !TownNpcs::CanRetire(static_cast<uint32_t>(identity - 1))) continue;
+		if (std::any_of(current.begin(), current.end(), [identity](const auto& npc) {
+			return npc.placeId == identity && npc.unit != EntityRadar::Entity::NoUnit;
+		})) continue;
+		auto& wasSeen = m_absent[level][identity];
+		wasSeen = m_seen[level].erase(identity) != 0 || wasSeen;
+	}
+	Live(level, current);
+}
+
 void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& found) {
+	Live(level, found);
 	for (const auto& npc : found) {
-		if (!npc.placeId) continue;
+		if (!npc.placeId || Absent(level, npc.placeId)) continue;
 		auto& seen = m_seen[level];
 		const auto old = seen.find(npc.placeId);
 		// A spawn is useful until the character has actually been located.
@@ -252,6 +325,7 @@ void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& 
 }
 
 std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) {
+	Live(level, townNpcs);
 	std::vector<EntityRadar::Entity> result;
 	const auto seen = m_seen.find(level);
 	if (seen == m_seen.end()) return result;
@@ -269,6 +343,14 @@ std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::ve
 		result.push_back(std::move(listed));
 	}
 	return result;
+}
+
+std::vector<EntityRadar::Entity> TownNpcSightings::Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere) {
+	if (!everywhere) return Seen(level, townNpcs);
+	Live(level, townNpcs);
+	auto listed = townNpcs;
+	std::erase_if(listed, [&](const auto& npc) { return Absent(level, npc.placeId); });
+	return listed;
 }
 
 std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category) {

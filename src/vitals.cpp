@@ -34,6 +34,19 @@ int Percent(int current, int maximum) {
 	return static_cast<int>(std::clamp<long long>(percent, 0, 100));
 }
 
+int ExperiencePercent(uint64_t experience, uint64_t levelStart, uint64_t nextLevel) {
+	if (nextLevel <= levelStart) return -1;
+	if (experience <= levelStart) return 0;
+	return static_cast<int>(std::min<uint64_t>((experience - levelStart) * 100 / (nextLevel - levelStart), 99));
+}
+
+uint64_t MercenaryLevelStart(int level, uint64_t nextLevel) {
+	if (level < 1) return 0;
+	const uint64_t l = static_cast<uint64_t>(level), nextFactor = (l + 1) * (l + 1) * (l + 2);
+	if (nextLevel == 0 || nextLevel % nextFactor != 0) return 0;
+	return nextLevel / nextFactor * l * l * (l + 1);
+}
+
 std::optional<Orb> ParseOrb(std::string_view text) {
 	const auto split = text.find('/');
 	if (split == std::string_view::npos) return std::nullopt;
@@ -54,7 +67,7 @@ int Meter::Update(int percent) {
 
 void Meter::Reset() { step_ = previous_ = -1; }
 
-Alert Alerts::Update(int life, int mana) {
+Alert Alerts::Update(int life, int mana, ManaAlerts manaAlerts) {
 	Alert alert;
 	if (life >= 0) {
 		const int previous = life_.Previous();
@@ -64,6 +77,8 @@ Alert Alerts::Update(int life, int mana) {
 	if (mana >= 0) {
 		const int previous = mana_.Previous();
 		alert.mana = mana_.Update(mana);
+		const bool lowFall = mana <= ManaLowPercent && previous > mana;
+		if (manaAlerts == ManaAlerts::Off || (manaAlerts == ManaAlerts::Low && !lowFall)) alert.mana = -1;
 		alert.interrupt = alert.interrupt
 			|| (alert.mana >= 0 && mana <= CriticalPercent && previous > mana);
 	}
@@ -85,15 +100,92 @@ unsigned OrbAvailability::Update(bool lifeReadable, bool manaReadable) {
 
 void OrbAvailability::Reset() { missing_[0] = missing_[1] = 0; }
 
-std::optional<bool> Condition::Update(std::optional<bool> active) {
-	if (!active) return std::nullopt;
-	const auto previous = previous_;
-	previous_ = active;
-	if (previous && *previous != *active) return active;
-	return std::nullopt;
+
+std::optional<Gait> GaitTracker::Observe(std::optional<Gait> moving, bool free) {
+	if (!moving || !free) {
+		pending_.reset();
+		held_ = 0;
+		return std::nullopt;
+	}
+	if (!known_) {
+		known_ = moving;
+		return std::nullopt;
+	}
+	if (*moving == *known_) {
+		pending_.reset();
+		return std::nullopt;
+	}
+	held_ = pending_ == moving ? held_ + 1 : 1;
+	pending_ = moving;
+	if (held_ < GaitConfirmSamples) return std::nullopt;
+	known_ = moving;
+	pending_.reset();
+	return moving;
 }
 
-void Condition::Reset() { previous_.reset(); }
+std::optional<Gait> GaitTracker::Toggle() {
+	if (!known_) return std::nullopt;
+	known_ = *known_ == Gait::Run ? Gait::Walk : Gait::Run;
+	pending_.reset();
+	return known_;
+}
+
+void GaitTracker::Reset() {
+	known_.reset();
+	pending_.reset();
+	held_ = 0;
+}
+
+namespace {
+// How many steps a value sits at or below, one more once it is empty.
+template<size_t N> int Depth(const int (&steps)[N], int value) {
+	int depth = value <= 0 ? 1 : 0;
+	for (const int step : steps) depth += value <= step ? 1 : 0;
+	return depth;
+}
+}
+
+int StaminaMeter::Update(int percent) {
+	if (percent < 0) return -1;
+	const int depth = Depth(StaminaSteps, percent);
+	if (depth_ < 0 || depth < depth_) {
+		const int rearmed = Depth(StaminaSteps, percent - StaminaRearm);
+		if (depth_ < 0 || rearmed < depth_) depth_ = depth_ < 0 ? depth : rearmed;
+		return -1;
+	}
+	if (depth == depth_) return -1;
+	depth_ = depth;
+	return percent;
+}
+
+void StaminaMeter::Reset() { depth_ = -1; }
+
+std::optional<AmmoMeter::Stack> AmmoMeter::Update(const std::vector<Stack>& inHand) {
+	std::optional<Stack> fell;
+	std::vector<Tracked> tracked;
+	for (const auto& stack : inHand) {
+		const auto known = std::find_if(tracked_.begin(), tracked_.end(), [&](const Tracked& t) { return t.id == stack.id; });
+		const int depth = Depth(AmmoSteps, stack.quantity);
+		if (known == tracked_.end()) {
+			if (stack.quantity > 1) tracked.push_back({stack.id, depth});
+			continue;
+		}
+		if (depth > known->depth && !fell) fell = stack;
+		tracked.push_back({stack.id, depth});
+	}
+	tracked_ = std::move(tracked);
+	return fell;
+}
+
+std::vector<AmmoMeter::Stack> AmmoMeter::Known(const std::vector<Stack>& inHand) const {
+	std::vector<Stack> stacks;
+	for (const auto& stack : inHand)
+		if (stack.quantity > 1 || std::any_of(tracked_.begin(), tracked_.end(), [&](const Tracked& t) { return t.id == stack.id; }))
+			stacks.push_back(stack);
+	return stacks;
+}
+
+void AmmoMeter::Reset() { tracked_.clear(); }
 
 MercenaryMeter::Alert MercenaryMeter::Update(std::optional<uint32_t> id, int percent, int level) {
 	Alert alert;
@@ -147,6 +239,15 @@ std::vector<Breakage::Item> Equipping::Sweep(const std::vector<Breakage::Item>& 
 void Equipping::Reset() {
 	worn_.clear();
 	known_ = false;
+}
+
+bool LowLife::Update(int lifePercent, int threshold, bool* started) {
+	const bool was = on_;
+	if (lifePercent <= 0) on_ = false;
+	else if (lifePercent <= threshold) on_ = true;
+	else if (lifePercent > threshold + ReleasePoints) on_ = false;
+	if (started) *started = on_ && !was;
+	return on_;
 }
 
 }

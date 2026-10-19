@@ -1,17 +1,76 @@
 #include "ground_items.h"
 #include <D2RLPlugin/item.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <numbers>
 #include <cctype>
 #include <unordered_set>
 
 namespace D2RAccess::GroundItems {
-Sound Classify(uint32_t quality, Base base, bool quest) {
+namespace {
+std::atomic<int> g_set{static_cast<int>(SoundSet::DiabloIV)};
+}
+std::atomic<bool> g_potionsLast{true};
+int ItemSoundSet() { return g_set; }
+bool PotionsLast() { return g_potionsLast; }
+void SetPotionsLast(bool on) { g_potionsLast = on; }
+
+namespace LootFilter {
+namespace {
+std::atomic<bool> g_active{false}, g_potions{true}, g_gems{true};
+std::atomic<EquipmentLoops> g_equipment{EquipmentLoops::All};
+// Normal, magic, rare, then set and unique: the order of the levels.
+int Rank(Sound sound) { return sound == Sound::Normal ? 0 : sound == Sound::Magic ? 1 : sound == Sound::Rare ? 2 : 3; }
+}
+bool Active() { return g_active; }
+void SetActive(bool on) { g_active = on; }
+bool Potions() { return g_potions; }
+void SetPotions(bool on) { g_potions = on; }
+bool Gems() { return g_gems; }
+void SetGems(bool on) { g_gems = on; }
+EquipmentLoops Equipment() { return g_equipment; }
+void SetEquipment(EquipmentLoops level) { if (level < EquipmentLoops::Count) g_equipment = level; }
+bool Loops(const Item& item) {
+	if (!g_active) return true;
+	if (IsPotion(item.sound)) return g_potions;
+	if (item.sound == Sound::Gem || item.sound == Sound::Rune) return g_gems;
+	if (item.sound != Sound::Normal && item.sound != Sound::Magic && item.sound != Sound::Rare && item.sound != Sound::Legendary) return true;
+	const EquipmentLoops level = g_equipment;
+	if (level == EquipmentLoops::Off) return false;
+	if (item.silver) return true;
+	return Rank(item.sound) >= static_cast<int>(level);
+}
+}
+void SetItemSoundSet(int set) { g_set = std::clamp(set, 0, static_cast<int>(SoundSet::Count) - 1); }
+bool LastEpochSounds() { return g_set == static_cast<int>(SoundSet::LastEpoch); }
+bool DropSounds() { return g_set == static_cast<int>(SoundSet::DiabloIIDrops); }
+std::optional<Sound> DropSoundOf(uint32_t code) {
+	const int index = Generated::DropSoundFor(code);
+	return index < 0 ? std::nullopt : std::optional{DropSound(static_cast<size_t>(index))};
+}
+
+bool IsPotion(Sound sound) {
+	return sound == Sound::Potion || sound == Sound::EpochHealthPotion || sound == Sound::EpochManaPotion
+		|| sound == Sound::EpochRejuvenationPotion || sound == Sound::EpochOtherPotion;
+}
+bool IsGold(Sound sound) { return sound == Sound::Gold || sound == Sound::EpochGold; }
+
+int Purse::Update(int gold, bool playing) {
+	if (gold < 0) return 0;
+	const int gain = playing && known_ >= 0 && gold > known_ ? gold - known_ : 0;
+	known_ = gold;
+	return gain;
+}
+
+Sound Classify(uint32_t quality, Base base, bool quest, bool lastEpoch) {
 	if (quest) return Sound::Quest;
 	switch (base) {
-	case Base::Gold: return Sound::Gold;
-	case Base::Potion: return Sound::Potion;
+	case Base::Gold: return lastEpoch ? Sound::EpochGold : Sound::Gold;
+	case Base::HealthPotion: return lastEpoch ? Sound::EpochHealthPotion : Sound::Potion;
+	case Base::ManaPotion: return lastEpoch ? Sound::EpochManaPotion : Sound::Potion;
+	case Base::RejuvenationPotion: return lastEpoch ? Sound::EpochRejuvenationPotion : Sound::Potion;
+	case Base::Potion: return lastEpoch ? Sound::EpochOtherPotion : Sound::Potion;
 	case Base::Scroll: return Sound::Scroll;
 	case Base::Rune: return Sound::Rune;
 	case Base::Gem: return Sound::Gem;
@@ -28,14 +87,14 @@ Sound Classify(uint32_t quality, Base base, bool quest) {
 Voice Spatialize(const Item& item, Point player) {
 	const double dx = item.position.x - player.x, dy = item.position.y - player.y;
 	const double distance = std::hypot(dx, dy);
-	Voice voice{item.id, item.sound};
+	Voice voice{item.id, item.play.value_or(item.sound)};
 	voice.source = item.source;
 	if (!std::isfinite(distance)) return voice;
 	// Native projection 0x334DB0: +X down/right, +Y down/left.
 	voice.right = static_cast<float>((dx - dy) / std::numbers::sqrt2);
 	voice.front = static_cast<float>(-(dx + dy) / std::numbers::sqrt2);
 	const double proximity = std::clamp(1 - distance / AudibleRange(item.sound), 0.0, 1.0);
-	const double level = std::pow(10.0, SoundFiles[static_cast<size_t>(item.sound)].levelDb / 20);
+	const double level = std::pow(10.0, SoundFiles[static_cast<size_t>(voice.sound)].levelDb / 20);
 	voice.gain = static_cast<float>(LoopVolume * level * proximity * (item.sound == Sound::Quest ? 1 : proximity));
 	// Blend the rear pitch across one subtile to avoid chatter at the side axis.
 	voice.pitch = 1 + (RearPitch - 1) * std::clamp(-voice.front, 0.0f, 1.0f);
@@ -76,17 +135,14 @@ void Emit(const std::vector<Item>& sources, Point player, size_t limit, Update& 
 }
 // User priority for names read together: quest items, consumables, gold, then equipment last.
 int SpeechRank(Sound sound) {
-	switch (sound) {
-	case Sound::Quest: return 0;
-	case Sound::Potion: case Sound::Scroll: return 1;
-	case Sound::Gold: return 2;
-	default: return 3;
-	}
+	if (sound == Sound::Quest) return 0;
+	if (IsPotion(sound) || sound == Sound::Scroll) return 1;
+	return IsGold(sound) ? 2 : 3;
 }
 }
 
 Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled, bool itemLoops, bool containerLoops, bool doorLoops,
-	bool questLoops) {
+	bool questLoops, bool shrineLoops) {
 	if (session_ != snapshot.session) { Reset(); session_ = snapshot.session; }
 	Update result;
 	std::vector<Item> quests;
@@ -95,6 +151,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	Emit(quests, snapshot.player, MaxQuestVoices, result);
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
 	if (doorLoops) Emit(snapshot.doors, snapshot.player, MaxDoorVoices, result);
+	if (shrineLoops) Emit(snapshot.shrines, snapshot.player, MaxShrineVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;
 	std::unordered_set<uint32_t> present;
@@ -109,12 +166,15 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	std::sort(nearby.begin(), nearby.end(), [](const auto& a, const auto& b) {
 		return a.first == b.first ? a.second->id < b.second->id : a.first < b.first;
 	});
-	std::vector<const Item*> reachable;
-	for (const auto& [distance, item] : nearby) {
-		if (itemLoops && item->sound != Sound::Quest && result.voices.size() < MaxVoices && distance < AudibleRadius)
+	auto heard = nearby;
+	if (PotionsLast()) std::stable_partition(heard.begin(), heard.end(), [](const auto& entry) { return !entry.second->common; });
+	for (const auto& [distance, item] : heard)
+		if (itemLoops && item->sound != Sound::Quest && LootFilter::Loops(*item) && result.voices.size() < MaxVoices
+			&& distance < AudibleRadius)
 			result.voices.push_back(Spatialize(*item, snapshot.player));
+	std::vector<const Item*> reachable;
+	for (const auto& [distance, item] : nearby)
 		if (distance <= SpeakRadius && !item->name.empty() && !spoken_.contains(item->id)) reachable.push_back(item);
-	}
 	std::stable_sort(reachable.begin(), reachable.end(), [](const Item* a, const Item* b) {
 		return SpeechRank(a->sound) < SpeechRank(b->sound);
 	});

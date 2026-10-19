@@ -43,6 +43,7 @@ constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC7
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
+constexpr size_t StashCountTextOffset = 0x618; // AdvancedStashSlotWidget countText (TextBoxWidget), field table 0x2CE9B0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
 constexpr size_t ItemAtCellSlot = 0xC8; // 0x2A89C0 calls this virtual getter with the selected x/y
 constexpr size_t FocusManagerOffset = 0xD0; // 0x846020
@@ -230,8 +231,10 @@ uintptr_t Parent(uintptr_t widget) {
 
 std::string InputText(uintptr_t widget) {
 	if (!NativeWidgets::SupportsTree() || !widget) return {};
-	const auto type = Classify(widget).name;
-	if (type != "InputTextBoxWidget" && type != "NumericInputTextBoxWidget") return {};
+	// Any text box but the masked one, the chat's autocomplete box included; the getter
+	// check below refuses a subtype whose getter is not the verified one.
+	const auto type = Classify(widget);
+	if (type.kind != Kind::TextInput || type.name == "MaskedInputTextBoxWidget") return {};
 	uintptr_t vtable = 0, getter = 0;
 	std::array<uint8_t, InputTextGetterBytes.size()> instruction{};
 	if (!Peek(widget, vtable) || !Peek(vtable + InputTextGetterSlot, getter)
@@ -282,11 +285,14 @@ Focus GameFocus() {
 	if (!Visible(result.widget)) result.widget = 0;
 	// A panel drawing nothing cannot hold focus: EmoteWheelPanel stays open all
 	// game and only hides its Container, and kept world speech muted. docs/native-ui.md
-	if (!result.widget) {
-		const auto children = Children(result.panel);
-		if (std::none_of(children.begin(), children.end(), [](uintptr_t child) { return Visible(child); })) return {};
-	}
+	if (!result.widget && DrawsNothing(result.panel)) return {};
 	return result;
+}
+
+bool DrawsNothing(uintptr_t panel) {
+	if (!panel) return false; // not found: nothing known against it
+	const auto children = Children(panel);
+	return std::none_of(children.begin(), children.end(), [](uintptr_t child) { return Visible(child); });
 }
 
 uint64_t FocusSelection(uintptr_t widget) {
@@ -405,6 +411,12 @@ GridSlot GridItemAt(uintptr_t widget, Cell cell) {
 	return result;
 }
 
+StashSlotCount StashSlotStackCount(uintptr_t widget) {
+	if (!widget || !Visible(widget) || Classify(widget).name != "AdvancedStashSlotWidget") return {};
+	const uintptr_t count = widget + StashCountTextOffset;
+	return {NativeWidgets::ReadText(count), Visible(count), true}; // update 0x2CF990 hides it at zero
+}
+
 uintptr_t EquipmentItem(uintptr_t widget) {
 	if (Classify(widget).kind != Kind::InventorySlot || !Visible(widget)) return 0;
 	uintptr_t vtable = 0, getter = 0, item = 0;
@@ -424,12 +436,11 @@ ItemPresence EquipmentItemPresence(uintptr_t widget) {
 	return CallItemAtCell(getter, widget, {});
 }
 
-BeltSlot BeltItem(uintptr_t widget) {
+namespace {
+BeltSlot QueryBelt(uintptr_t widget, Cell cell) {
 	BeltSlot result;
-	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return result;
-	const uint64_t selection = FocusSelection(widget);
-	const Cell cell{static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)};
-	if (cell.x < 0 || cell.x >= 16) return result;
+	if (cell.x < 0 || cell.x >= BeltSlots || !NativeWidgets::SupportsTree() || !Visible(widget)
+		|| Classify(widget).name != "BeltWidget") return result;
 	uintptr_t vtable = 0, getter = 0;
 	if (!Peek(widget, vtable) || !vtable || !Peek(vtable + ItemAtCellSlot, getter)
 		|| !NativeMemory::Executable(getter)) return result;
@@ -441,6 +452,15 @@ BeltSlot BeltItem(uintptr_t widget) {
 	result.known = CallItemPointer(getter, widget, cell, result.item);
 	return result;
 }
+}
+
+BeltSlot BeltItem(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !Visible(widget) || Classify(widget).name != "BeltWidget") return {};
+	const uint64_t selection = FocusSelection(widget);
+	return QueryBelt(widget, {static_cast<int32_t>(selection), static_cast<int32_t>(selection >> 32)});
+}
+
+BeltSlot BeltItemAt(uintptr_t widget, int slot) { return QueryBelt(widget, {slot, 0}); }
 
 std::vector<uintptr_t> Panels() {
 	std::vector<uintptr_t> result;
@@ -491,15 +511,51 @@ std::string DescribeList(uintptr_t list) {
 	return line;
 }
 
-UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus) {
+namespace {
+std::atomic<FocusState> g_focusState{nullptr};
+}
+void SetFocusState(FocusState reader) { g_focusState = reader; }
+
+UiText::Snapshot Snapshot(uintptr_t panel, uintptr_t focus, uintptr_t named) {
 	UiText::Snapshot snapshot;
 	if (!Visible(panel)) return snapshot;
 	snapshot.panel = panel;
 	snapshot.focus = focus;
-	snapshot.name = NativeWidgets::ReadName(panel);
+	if (!named) named = panel;
+	snapshot.name = NativeWidgets::ReadName(named);
 	snapshot.surface = Classify(panel).surface;
 	std::unordered_set<uintptr_t> visited;
 	Walk(panel, -1, 0, snapshot, visited);
+	if (const auto reader = g_focusState.load())
+		for (auto& node : snapshot.nodes) if (node.id == focus) node.state = reader(snapshot.name, named, node.name);
+	// StyleRows (RVA 0x1EC430, especially 0x1EC6B7..0x1EC78B) shows a
+	// ButtonWidget's TerrorZone ImageWidget when that destination is terrorized.
+	// Walk has already excluded hidden images/ancestors and template containers.
+	// Use that rendered state, never a zone service/global or the icon's frame
+	// (the frame distinguishes current/open/locked rows, not terror status).
+	// `named` is the owning panel even when the fallback snapshots one button.
+	// This is one bounded pass over copied nodes; no native pointer survives it.
+	if ((snapshot.name == "WaypointsPanelOriginal" || snapshot.name == "WaypointsPanelExpansion")
+		&& Visible(named) && Classify(named).name == "WaypointsPanel") {
+		std::string marker;
+		bool resolved = false;
+		for (size_t index = 0; index < snapshot.nodes.size(); ++index) {
+			const auto& image = snapshot.nodes[index];
+			if (image.name != "TerrorZone" || image.type != "ImageWidget" || image.parent < 0
+				|| static_cast<size_t>(image.parent) >= index) continue;
+			auto& row = snapshot.nodes[static_cast<size_t>(image.parent)];
+			if (row.kind != Kind::Button) continue;
+			if (!resolved) {
+				// The game's existing "Terrorized" label covers all 13 locales and
+				// follows live UI-language changes. Missing localization fails closed.
+				marker = Localization::Text("EnteringDesecratedLevelNotification");
+				resolved = true;
+			}
+			if (marker.empty()) continue;
+			if (!row.state.empty()) row.state += row.state.ends_with('.') ? " " : ". ";
+			row.state += marker;
+		}
+	}
 	// The visible journal graphic is information beside the objective, not
 	// a text node. Append its plain name to our copied objective so selection,
 	// manual repeat and the ordinary 150 ms stale-pane guard share one path.

@@ -6,8 +6,9 @@
 
 namespace D2RAccess::NativeMemory {
 
-// Reuse page permission queries during one synchronous read pass, never game
-// contents. Nested scopes share the pass; SEH still guards every actual copy.
+// Reuse page permission queries within one synchronous read pass, never game
+// contents. Nested scopes share the pass; permissions expire at its boundary.
+// SEH still guards every actual copy, and a fault clears cached permissions.
 class ReadScope {
 public:
 	ReadScope() noexcept;

@@ -16,7 +16,7 @@ using Radar::Position;
 
 struct Settings {
 	Radar::Layer layer = Radar::Layer::Terrain; // movement commands may also avoid live unit footprints
-	bool requireKnownRoute = false; // exploration mode must not follow partial routes or direct fallbacks
+	bool requireKnownRoute = false; // exploration mode ends a lock left without a proved route for routeLossMs
 	// Distances are collision subtiles, the unit the scanner speaks as
 	// steps. Navigation policy, not game constants.
 	//
@@ -27,7 +27,9 @@ struct Settings {
 	// distance, so a near target searches a small one and pays a small cost.
 	double searchRadius = 158;
 	double lookAhead = 8;       // route length that chooses the heading
-	double arrivalDistance = 2; // within this the target counts as reached
+	// Within this the target counts as reached: the keyboard's use reach. Two bodies
+	// side by side stand sqrt(5) apart, so a smaller one never sees an NPC reached.
+	double arrivalDistance = 3;
 	// How stale a route may get before it is proved again. Both are stretched
 	// in proportion once the target is further off than farDistance: the box
 	// grows with the distance, while a long route changes more slowly, so
@@ -55,8 +57,8 @@ struct Route {
 
 // Bounded route search on the terrain layer: monsters and players standing in
 // a doorway do not reroute the player. When the target is unreachable or its
-// room is not loaded, the route heads for the reachable cell nearest to it,
-// which is what walking toward an unseen destination means in practice.
+// room is not loaded, the route heads for the reachable cell nearest to it; a
+// walk may take that, guidance only when it Reaches the target.
 Route FindRoute(const Radar::World& world, Position target, const Settings& settings);
 // Whether the player or the route's end gets within interaction distance of `target`;
 // an object can occupy its own destination cell.
@@ -68,7 +70,7 @@ struct Update {
 	bool ping = false;    // play one ping this tick
 	bool arrived = false; // the target is within arrivalDistance
 	bool routeUnavailable = false; // exploration mode has not proved a route for Settings::routeLossMs
-	Position heading{};   // unit vector; the straight line when no route is known
+	Position heading{};   // unit vector along the proved route; zero, and no ping, when none is known
 	bool routed = false;  // the heading follows a proved route
 	double distance = 0;  // straight-line distance to the target
 	double remaining = 0; // route length when routed, straight distance otherwise
@@ -83,11 +85,11 @@ public:
 	// player's position comes from the same snapshot as the collision.
 	//
 	// `waypoint`, when supplied, is where the ROUTE leads instead -- a cell
-	// the caller has already proved reachable, typically the way into the
-	// next room of a level-wide room route (room_graph.h), for a target the
-	// collision window cannot reach. Distance, arrival and ping cadence stay
-	// measured against `target`, so the lock itself is unchanged: only the
-	// heading follows the waypoint.
+	// the caller has already proved reachable, typically as far along the
+	// remembered map's way as the loaded floor goes (beacon_navigation.h), for
+	// a target the collision window cannot reach. Distance, arrival and ping
+	// cadence stay measured against `target`, so the lock itself is unchanged:
+	// only the heading follows the waypoint.
 	Update Tick(const Radar::World& world, Position target, uint64_t now, const Settings& settings,
 		const Position* waypoint = nullptr);
 	const Route& CurrentRoute() const { return route_; }

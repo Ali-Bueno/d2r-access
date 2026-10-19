@@ -4,15 +4,29 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 namespace D2RAccess::Radar {
 namespace {
 double Distance(Position a, Position b) { return std::hypot(a.x-b.x, a.y-b.y); }
+// A body stopped at a footprint position meets small clutter when every
+// blocked cell under it is clutter.
+bool SmallAhead(const World& structure, int x, int y) {
+	const int reach = structure.bodyPattern == 0 ? 0 : 1;
+	bool blocked = false;
+	for (int dy = -reach; dy <= reach; ++dy) for (int dx = -reach; dx <= reach; ++dx) {
+		if (structure.Cell(x + dx, y + dy) != State::Blocked) continue;
+		if (!SmallObstacle(structure, x + dx, y + dy)) return false;
+		blocked = true;
+	}
+	return blocked;
+}
 }
 void Engine::Reset() {
-	const uint64_t nextRevision = revision_ + 1;
+	const uint64_t nextRevision = revision_ + 1, wallRepeat = wallRepeatMs_; // a setting, not an observation
 	*this = Engine(settings_);
 	revision_ = nextRevision;
+	wallRepeatMs_ = wallRepeat;
 }
 double Engine::Speed() const { return std::hypot(velocity_.x, velocity_.y); }
 double Engine::CloseDepth(const Settings& settings, int bodyPattern) {
@@ -80,6 +94,7 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		sensor.baseline = true;
 		sensor.state = passage.observed;
 		sensor.unexplored = passage.unexplored;
+		sensor.small = passage.small;
 	} else if (passage.observed == sensor.state && passage.unexplored == sensor.unexplored) {
 		sensor.candidate = State::Unknown;
 	} else if (sensor.candidate != passage.observed || sensor.candidateUnexplored != passage.unexplored) {
@@ -93,6 +108,7 @@ State Engine::Observe(Sensor& sensor, Position axis, Position motion, uint64_t n
 		if (travelled || stationary) {
 			sensor.state = passage.observed;
 			sensor.unexplored = passage.unexplored;
+			sensor.small = passage.small;
 			sensor.candidate = State::Unknown;
 			sensor.deferred = sensor.state; // replaces any older change still waiting
 			sensor.deferredUnexplored = sensor.unexplored;
@@ -169,9 +185,31 @@ bool Engine::Qualify(const Passage& passage, const World& world, size_t directio
 	}
 	return direction < world.frontier.size() && world.frontier[direction];
 }
-Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
+void Engine::RepeatWall(Events& events, Position heading, uint64_t now, Marks* small) {
+	if (!(heading.x || heading.y)) heading = velocity_;
+	const double length = std::hypot(heading.x, heading.y);
+	if (!wallRepeatMs_ || !(length > 0)) return;
+	// The ray within 45 degrees of the heading; none on the exact diagonal between two.
+	const auto& rays = RaysOf(settings_.frame);
+	size_t ahead = sensors_.size();
+	double best = std::numbers::sqrt2 / 2;
+	for (size_t i = 0; i < rays.size(); ++i) {
+		const double along = (heading.x * rays[i].world.x + heading.y * rays[i].world.y)
+			/ (length * std::hypot(rays[i].world.x, rays[i].world.y));
+		if (along > best) { best = along; ahead = i; }
+	}
+	if (ahead == sensors_.size() || events[ahead] != State::Unknown) return;
+	auto& sensor = sensors_[ahead];
+	if (!Obstacle(sensor.state) || !sensor.passage.available || !Obstacle(sensor.passage.observed)
+		|| now - sensor.lastCueMs < wallRepeatMs_) return;
+	sensor.lastCueMs = now;
+	events[ahead] = sensor.state;
+	if (small && sensor.state == State::Blocked) (*small)[ahead] = sensor.small;
+}
+Events Engine::Tick(const World& world, uint64_t now, Marks* marks, Marks* small, Position heading) {
 	Events events{};
 	if (marks) *marks = {};
+	if (small) *small = {};
 	// Preserve subcell movement for confirmation and the actual-motion readout.
 	// The collision adapter still supplies the native integer footprint origin.
 	const Position motion{world.player.x + world.subtileFraction.x, world.player.y + world.subtileFraction.y};
@@ -205,11 +243,16 @@ Events Engine::Tick(const World& world, uint64_t now, Marks* marks) {
 	const auto& rays = RaysOf(settings_.frame);
 	for (size_t i = 0; i < sensors_.size(); ++i) {
 		query.committed = sensors_[i].state;
-		sensors_[i].passage = ScanPassage(grid, rays[i].world, query);
-		sensors_[i].passage.unexplored = Qualify(sensors_[i].passage, world, i);
+		auto& passage = sensors_[i].passage;
+		passage = ScanPassage(grid, rays[i].world, query);
+		passage.unexplored = Qualify(passage, world, i);
+		passage.small = world.smallObstacles && passage.available && passage.observed == State::Blocked
+			&& passage.obstacle && SmallAhead(structure, passage.obstacleX, passage.obstacleY);
 		events[i] = Observe(sensors_[i], rays[i].world, motion, now);
 		if (marks && events[i] != State::Unknown) (*marks)[i] = sensors_[i].lastCueUnexplored;
+		if (small && events[i] == State::Blocked) (*small)[i] = sensors_[i].small;
 	}
+	RepeatWall(events, heading, now, small);
 	return events;
 }
 }

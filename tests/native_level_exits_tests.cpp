@@ -1,6 +1,7 @@
 #include "native_level_exits.h"
 #include "level_exit_layout.h"
 #include "entity_layout.h"
+#include "preset_map_layout.h"
 #include "test_support.h"
 #include <array>
 #include <cstring>
@@ -39,6 +40,49 @@ struct Fixture {
 	}
 	bool Read(std::vector<NativeLevelExits::Exit>& exits) { return NativeLevelExits::Read(active.Address(), exits); }
 };
+
+// A town map whose far room the game has not built: its NPC preset still sits
+// on the map, in level subtiles, rather than in the room (0x3DE420).
+void UnbuiltRoomPresets() {
+	using namespace PresetMapLayout;
+	Fixture f;
+	Memory<0x10> data;
+	Memory<0x60> map;
+	Memory<0x30> pending, built;
+	for (auto* room : {&f.nearRoom, &f.farRoom}) {
+		room->At<int32_t>(RoomType, PresetRoomType); room->At(RoomData, data.Address());
+	}
+	data.At(PresetRoomMap, map.Address());
+	map.At(MapPendingPresets, pending.Address());
+	pending.At<uint32_t>(PresetType, MonsterType); pending.At<uint32_t>(PresetClass, 148);
+	pending.At<int>(PresetX, 1012); pending.At<int>(PresetY, 1507);
+	f.nearRoom.At(RoomPresets, built.Address());
+	built.At<uint32_t>(PresetType, MonsterType); built.At<uint32_t>(PresetClass, 154);
+	built.At<int>(PresetX, 3); built.At<int>(PresetY, 4);
+	std::vector<NativeLevelExits::MonsterPreset> monsters;
+	bool complete = false;
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters) && monsters.size() == 1 && monsters[0].monster == 154,
+		"without the map, only built rooms' presets are read");
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true, &complete) && complete && monsters.size() == 2,
+		"a built room's preset and one still on the map are both read");
+	Check(monsters[0].position.x == 503 && monsters[0].position.y == 504, "a built room's preset is rebased from its room");
+	Check(monsters[1].monster == 148 && monsters[1].position.x == 1012 && monsters[1].position.y == 1507
+		&& monsters[1].room == f.farRoom.Address(), "a map preset is already in level subtiles and goes to the room holding it");
+	pending.At<int>(PresetX, 5000);
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.size() == 1,
+		"a map preset no room holds is never spawned, so it is not read");
+	pending.At<int>(PresetX, 1012);
+	pending.At<uint32_t>(PresetType, WarpType);
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.size() == 1, "map presets other than monsters are skipped");
+	pending.At<uint32_t>(PresetType, MonsterType);
+	pending.At(PresetNext, pending.Address());
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true, &complete) && !complete && monsters.size() == 1 && monsters[0].monster == 154,
+		"a cyclic map list adds nothing and keeps the built rooms' presets");
+	pending.At<uintptr_t>(PresetNext, 0);
+	for (auto* room : {&f.nearRoom, &f.farRoom}) room->At<int32_t>(RoomType, 1);
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.size() == 1,
+		"outdoor filler rooms have no map to read");
+}
 }
 
 int main() {
@@ -91,5 +135,6 @@ int main() {
 	f.nearRoom.At<int>(RoomTileWidth, 8);
 	Check(f.Read(exits) && exits.size() == 1, "fixture restores to the distant exit");
 	Check(!NativeLevelExits::Read(0, exits) && exits.empty(), "missing player room clears previous exits");
+	UnbuiltRoomPresets();
 	Passed();
 }

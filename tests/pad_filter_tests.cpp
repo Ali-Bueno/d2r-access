@@ -12,11 +12,26 @@ void WarnF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 
 int main() {
 	using namespace D2RAccess::PadFilter;
-	constexpr uint16_t A = 0x1000, X = 0x4000, Y = 0x8000, Back = 0x0020, R3 = 0x0080, Up = 0x0001;
+	constexpr uint16_t A = 0x1000, X = 0x4000, Y = 0x8000, Back = 0x0020, L3 = 0x0040, R3 = 0x0080, Lb = 0x0100, Rb = 0x0200, Up = 0x0001;
 	Presses press;
 
 	Check(Filter(A | Up, true, press) == (A | Up), "every other button passes untouched during play");
-	Check(Filter(R3, true, press) == R3, "R3 is the game's during play (the beacon is on L3)");
+	Check(Filter(R3, true, press) == R3, "R3 is the game's during play (weapon swap)");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(L3, true, press) == L3, "L3 is the game's during play (run/walk; the beacon is BACK+LB)");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Lb, true, press) == Lb, "LB on its own during play is the game's (item labels)");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Lb, true, press) == Back, "BACK+LB during play keeps LB from the game: it is the beacon");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Lb, false, press) == (Back | Lb), "in a menu BACK+LB is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Rb, true, press) == Rb, "RB on its own during play is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Rb, true, press) == Back, "BACK+RB during play keeps RB from the game: it opens the settings list");
+	Check(Filter(Rb, true, press) == 0, "and RB stays kept until it is released, even after BACK is");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Rb, false, press) == (Back | Rb), "in a menu BACK+RB is the game's");
 	Check(Filter(0, true, press) == 0, "release");
 
 	// BACK is the modifier: it always passes, and X or Y pressed with it held
@@ -56,5 +71,14 @@ int main() {
 	Check(KeepsLeftStick(Y, true), "armed, a held Y keeps the left stick from the game");
 	Check(!KeepsLeftStick(0, true), "armed, without Y the left stick is the game's");
 	Check(!KeepsLeftStick(Y, false), "unarmed, Y leaves the left stick alone");
+
+	// BACK+LT and BACK+RT are the mod's in play (2026-10-14).
+	Press trigger;
+	Check(KeepsTrigger(true, true, true, trigger), "a trigger pulled with BACK in play is kept");
+	Check(KeepsTrigger(true, false, true, trigger), "and stays kept to its release, BACK let go first");
+	Check(!KeepsTrigger(false, false, true, trigger) && !KeepsTrigger(true, false, true, trigger), "a new pull without BACK is the game's");
+	Check(!KeepsTrigger(true, true, true, trigger), "one already pulled stays the game's when BACK comes after");
+	(void)KeepsTrigger(false, false, false, trigger);
+	Check(!KeepsTrigger(true, true, false, trigger), "with BACK in a menu, the game's");
 	Passed();
 }

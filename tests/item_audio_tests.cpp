@@ -1,5 +1,6 @@
 #include "item_wave.h"
 #include "item_audio.h"
+#include "loop_pace.h"
 #include "item_spatial.h"
 #include "test_support.h"
 #include <windows.h>
@@ -77,9 +78,31 @@ void NormalizationTests() {
 	Check(ItemWave::Normalize(loud) < 1 && loud[0] < 0 && loud[1] > 0, "full scale negative samples normalize without overflow");
 	Check(std::abs(loud[0]) < INT16_MAX && loud[1] < INT16_MAX, "normalized samples leave headroom without clipping");
 }
+void DropPassTests() {
+	const std::vector<int16_t> sound(10, 1000);
+	const auto padded = ItemWave::Pass(sound, 16, 4);
+	Check(padded.size() == 16 && padded[9] == 1000 && padded[10] == 0 && padded[15] == 0, "a short sound is padded with silence to its pass");
+	const auto cut = ItemWave::Pass(sound, 6, 4);
+	Check(cut.size() == 6 && cut[0] == 1000 && cut[5] == 0 && cut[4] > 0 && cut[4] < 1000, "a long sound is cut with a fade, never a click");
+	Check(ItemAudio::DropPassSamples(ItemAudio::NeutralDropSpeedLevel) == ItemWave::SampleRate * ItemAudio::DropPassMs / 1000,
+		"at 100 percent a drop sound repeats once a pass");
+	Check(ItemAudio::DropPassSamples(0) > ItemAudio::DropPassSamples(static_cast<int>(ItemAudio::DropSpeedPercents.size()) - 1),
+		"a faster speed repeats sooner");
+}
+}
+void LoopPaceTests() {
+	using GroundItems::Sound;
+	Check(LoopPace::Of(Sound::WoodenDoor) == LoopPace::Group::Doors && LoopPace::Of(Sound::Scroll) == LoopPace::Group::SmallItems,
+		"doors and small items pulse, each in its own group");
+	Check(!LoopPace::Of(Sound::Gold) && !LoopPace::Of(Sound::Portal) && !LoopPace::Of(Sound::SlimeDoor),
+		"steady loops have no beat to pace");
+	Check(LoopPace::PassSamples(4800, LoopPace::NeutralLevel) == 0, "at 100 percent the recording plays as it is");
+	Check(LoopPace::PassSamples(4800, PercentSteps::LevelOf(LoopPace::Percents, 200)) == 2400
+		&& LoopPace::PassSamples(4800, PercentSteps::LevelOf(LoopPace::Percents, 50)) == 9600,
+		"twice as fast halves the pass, half as fast doubles it");
 }
 int main(int argc, char** argv) {
-	WaveTests(); MatrixTests(); NormalizationTests();
+	WaveTests(); MatrixTests(); NormalizationTests(); DropPassTests(); LoopPaceTests();
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::InsideUnexploredRoom), "room arrival uses a finite XAudio2 buffer");
 	Check(ItemAudio::IsOneShot(GroundItems::Sound::Discovered), "the discovery cue plays once");
 	Check(!ItemAudio::IsOneShot(GroundItems::Sound::UnexploredRoom)
@@ -106,7 +129,7 @@ int main(int argc, char** argv) {
 		// At speech range, even a centered source must reach -34 dBFS per ear at
 		// its loudest tenth of a second. This catches the reported silence: raw
 		// gold/normal loops fell below -55 dBFS by either measure.
-		if (sound < GroundItems::ItemSoundCount) {
+		if (sound < GroundItems::ItemSoundCount || GroundItems::IsDrop(static_cast<GroundItems::Sound>(sound))) {
 			const double proximity = 1 - GroundItems::SpeakRadius / GroundItems::AudibleRadius;
 			const auto matrix = ItemSpatial::StereoMatrix({.front = float(GroundItems::SpeakRadius)});
 			Check(LoudestWindowRms(samples) * GroundItems::LoopVolume * proximity * proximity * matrix[0] >= 0.02,

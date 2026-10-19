@@ -39,23 +39,42 @@ std::atomic<bool>                  g_claimed { false };
 std::atomic<uint64_t>              g_holdBUntil { 0 };    // GetTickCount64 before which B is held
 std::atomic<uint64_t>              g_leftStickUntil { 0 }; // before which a held Y takes the left stick
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
+std::atomic<bool>                  g_keepBack { true };
+std::atomic<bool>                  g_settingsOpen { false };
 int                                g_retries = 0;
 uint64_t                           g_nextTry = 0;
 // Touched only on the thread the game polls from: D2R reads its pads from one
 // call site (MEASURED offline 2026-09-20, build 3.3.93787).
 std::array<Presses, XUSER_MAX_COUNT> g_press {};
 std::array<uint16_t, XUSER_MAX_COUNT> g_keptLast {}; // what the previous frame kept, so each press is logged once
+// The first presses the game itself polls outside play, for the UI tick's log.
+constexpr uint32_t SeenLogMax = 12;
+constexpr uint32_t SeenSlotShift = 16;
+constexpr uint32_t SeenSet = 1u << 24; // keeps a pending value non-zero for slot 0
+std::array<WORD, XUSER_MAX_COUNT> g_seenLast {};
+std::atomic<uint32_t>             g_seenCount { 0 };
+std::atomic<uint32_t>             g_seenPending { 0 };
 
 DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	const DWORD result = g_original(user, state);
 	if (result != ERROR_SUCCESS || state == nullptr || user >= XUSER_MAX_COUNT) return result;
 	const WORD before = state->Gamepad.wButtons;
+	if (before != 0 && g_seenLast[user] == 0 && !g_claimed.load(std::memory_order_relaxed)
+		&& g_seenCount.load(std::memory_order_relaxed) < SeenLogMax)
+		g_seenPending.store((user << SeenSlotShift) | before | SeenSet, std::memory_order_relaxed);
+	g_seenLast[user] = before;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
-	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB);
+	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB,
+		g_keepBack.load(std::memory_order_relaxed), g_settingsOpen.load(std::memory_order_relaxed));
 	if (KeepsLeftStick(before, GetTickCount64() < g_leftStickUntil.load(std::memory_order_relaxed))) {
 		state->Gamepad.sThumbLX = 0;
 		state->Gamepad.sThumbLY = 0;
 	}
+	const bool back = (before & Back) != 0, claimed = g_claimed.load(std::memory_order_relaxed);
+	if (KeepsTrigger(state->Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, back, claimed, g_press[user].lt))
+		state->Gamepad.bLeftTrigger = 0;
+	if (KeepsTrigger(state->Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, back, claimed, g_press[user].rt))
+		state->Gamepad.bRightTrigger = 0;
 	const uint16_t kept = static_cast<uint16_t>(before & ~state->Gamepad.wButtons);
 	if (const uint16_t fresh = static_cast<uint16_t>(kept & ~g_keptLast[user]))
 		g_keptPresses.fetch_or(fresh, std::memory_order_relaxed);
@@ -139,12 +158,15 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 }
 }
 
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB) {
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack, bool shoulders) {
 	const bool back = (buttons & Back) != 0;
+	buttons = Keep(buttons, Back, claimed && keepBack, presses.back);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_LEFT_SHOULDER, (claimed && back) || shoulders, presses.lb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_RIGHT_SHOULDER, (claimed && back) || shoulders, presses.rb);
 	return buttons;
 }
 
@@ -160,9 +182,19 @@ bool KeepsLeftStick(uint16_t buttons, bool armed) {
 	return armed && (buttons & XINPUT_GAMEPAD_Y) != 0;
 }
 
+bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press) {
+	if (pulled && !press.down) press.kept = claimed && back;
+	press.down = pulled;
+	return pulled && press.kept;
+}
+
 void ReleaseB() {
 	g_holdBUntil.store(0, std::memory_order_relaxed);
 }
+
+bool KeepBack() { return g_keepBack.load(std::memory_order_relaxed); }
+void SetSettingsOpen(bool open) { g_settingsOpen.store(open, std::memory_order_relaxed); }
+void SetKeepBack(bool keep) { g_keepBack.store(keep, std::memory_order_relaxed); }
 
 bool Install(const D2RL::PluginContext* context) {
 	if (!g_slots.empty()) return true;
@@ -184,10 +216,16 @@ void Claim(const D2RL::PluginContext* context, bool claimed) {
 		g_nextTry = GetTickCount64() + RetryMs;
 		(void)TryInstall(context, --g_retries == 0);
 	}
+	if (const uint32_t seen = g_seenPending.exchange(0, std::memory_order_relaxed)) {
+		const uint32_t count = g_seenCount.fetch_add(1, std::memory_order_relaxed) + 1;
+		AsyncLog::InfoF(context, "[pad] the game polled slot %u with buttons 0x%04x outside play (%u of %u logged)",
+			(seen >> SeenSlotShift) & 0xFF, seen & 0xFFFF, count, SeenLogMax);
+	}
 	if (const uint16_t kept = g_keptPresses.exchange(0, std::memory_order_relaxed)) {
-		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s",
+		AsyncLog::InfoF(context, "[pad] kept from the game:%s%s%s%s%s%s%s", (kept & Back) ? " BACK (the automap in play)" : "",
 			(kept & XINPUT_GAMEPAD_A) ? " A (with BACK)" : "", (kept & XINPUT_GAMEPAD_B) ? " B (with BACK, or closing the line reader)" : "",
-			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "");
+			(kept & XINPUT_GAMEPAD_X) ? " X (with BACK)" : "", (kept & XINPUT_GAMEPAD_Y) ? " Y (with BACK)" : "",
+			(kept & XINPUT_GAMEPAD_LEFT_SHOULDER) ? " LB (with BACK)" : "", (kept & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? " RB (with BACK)" : "");
 	}
 }
 

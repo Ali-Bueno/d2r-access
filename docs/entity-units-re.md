@@ -291,6 +291,10 @@ creation path guarded by `GetType(owner) == 0` (the owner is a **player**), so
 **`Unit+0x124 & 0x200` = player-owned minion / hireling / summon** — *inferred (strong)*. Note that
 `Align` cannot express this: a raised skeleton still has `Align == 0`.
 
+**Corrected 2026-10-14** ([summons and corpses](summons-and-corpses-re.md) §3): on the client the
+bit is set for the **hireling only** (`0x1A28A0`, reached for pet type 7), and every summon has
+`Align = 1`. A player's pets are told by the game's pet list and its second ownership rule.
+
 Two hard-coded monster classes are special-cased in `0xC0420`: `0x1A1`/`0x1A2` = `shadowwarrior` /
 `shadowmaster` (named from MonStats), and `0x164` = `dopplezon`, named after the owning player.
 

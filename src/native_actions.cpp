@@ -165,7 +165,7 @@ bool Interact(Unit type, uint32_t id) {
 	case Unit::Item:    op = TakeItem; break;
 	case Unit::Monster: op = TalkTo; break;
 	case Unit::Tile:    op = UseTile; break;
-	case Unit::Object:  op = UseObject; break;
+	case Unit::Object:  op = UseObject; break; // attackable ones too, as the click sends (docs/keyboard-actions.md)
 	case Unit::Player:  op = LootCorpse; break; // only ever a corpse here: D never offers a living player
 	default: return false; // a missile: nothing to open or take
 	}

@@ -59,25 +59,36 @@ namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const cha
 int main() {
 	Strings::Select(Strings::Language::enUS);
 	WallSlideService::Register(&context, true);
+	Check(!WallSlideService::Enabled() && !WallSlideService::Prevent(0x1234),
+		"the local default preserves native wall sliding until explicitly enabled");
+	Reset(); configured = true;
+	WallSlideService::Register(&context, true);
 	Check(console && initializeCalls == 1, "supported native movement registers its command and initializes once");
-	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "feature defaults off without configuration");
-	Check(!WallSlideService::Enabled(), "and the radar is told blocked moves still slide");
+	Check(WallSlideService::Prevent(0x1234) && directionalCalls == 1, "explicitly enabled prevention checks native attempt identity");
+	Check(WallSlideService::Enabled(), "the radar is told that blocked moves stop instead of sliding");
 	WallSlideService::Tick();
 	Check(speech.empty(), "blocked movement never speaks automatically");
-	Check(Command("on") == D2RL::ConsoleCommandResult::Handled && WallSlideService::Prevent(0x1234) && directionalCalls == 1,
-		"on enables prevention and checks native attempt identity");
-	Check(WallSlideService::Enabled(), "the radar is told that blocked moves stop instead of sliding");
 	Check(Command("status") == D2RL::ConsoleCommandResult::Handled && speech.back() == Strings::Current().movementEnabled && interrupted,
 		"status speaks the enabled state as a context update");
 	Check(Command("off") == D2RL::ConsoleCommandResult::Handled && speech.back() == Strings::Current().movementDisabled,
 		"off disables prevention and announces the state");
 	directionalCalls = 0;
-	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "disabled prevention passes through without native reads");
+	const auto before = WallSlideService::LastBlocked().attempts;
+	const float push[2]{0.6f, 0.8f};
+	Check(!WallSlideService::Prevent(0x1234, push) && directionalCalls == 1, "disabled prevention passes through");
+	const auto blocked = WallSlideService::LastBlocked();
+	Check(blocked.attempts == before + 1 && blocked.x == 0.6f && blocked.y == 0.8f,
+		"a refused attempt is counted with its push even when sliding is allowed (the wall bump)");
+	directional = false;
+	Check(!WallSlideService::Prevent(0x1234) && WallSlideService::LastBlocked().attempts == before + 1,
+		"another unit's attempt is never counted");
+	directional = true;
 	Check(!WallSlideService::Enabled(), "with prevention off the radar is told the game slides again");
 	Check(Command("on") == D2RL::ConsoleCommandResult::Handled && WallSlideService::Prevent(0x1234), "on restores supported prevention");
 	Check(Command("bad") == D2RL::ConsoleCommandResult::InvalidArguments, "invalid movement command is rejected");
 	WallSlideService::Unregister(); directionalCalls = 0;
 	Check(!WallSlideService::Prevent(0x1234) && directionalCalls == 0, "shutdown restores pass-through behavior");
+	Check(WallSlideService::LastBlocked().attempts == 0, "and forgets the attempts counted");
 
 	Reset(); configured = false;
 	WallSlideService::Register(&context, true);
@@ -97,7 +108,7 @@ int main() {
 		"disabled native hooks cannot be enabled by configuration");
 	Command("status");
 	Check(speech.back() == Strings::Current().movementUnavailable, "status reports unavailable without native hooks");
-	Reset(); configured = true;
+	Reset();
 	WallSlideService::Register(&context, true);
 	directional = false;
 	Check(!WallSlideService::Prevent(1) && directionalCalls == 1, "enabled prevention passes through unrelated native attempts");

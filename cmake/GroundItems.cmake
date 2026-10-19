@@ -20,6 +20,15 @@ set(D2R_CLICK_BOOST_DB 24)
 # User listening, 2026-09-26: at 24 dB the corpse click still played about 6 dB under the other
 # loops; 42 dB brings its loudest 100 ms to the quest and weapon rack level (docs/ground-items.md).
 set(D2R_CORPSE_BOOST_DB 42)
+# Two Last Epoch pickups are short clinks too: peak-normalized alone the gold and the
+# other potion sat 6-7 dB under the Diablo gold loop; 18 dB through the limiter brings
+# their loudest 100 ms level with it (measured 2026-10-12). The other three need nothing.
+set(D2R_EPOCH_CLICKS "last epoch/gold" "last epoch/other potion")
+set(D2R_EPOCH_BOOST_DB 18)
+# The game's drop sounds are short clinks and thuds as well; peak-normalized alone the
+# herb, quiver and key sat at the near-item floor (measured 2026-10-13). 9 dB through the
+# limiter lifts their bodies and leaves the loud ones at full scale.
+set(D2R_DROP_BOOST_DB 9)
 # `group` is the folder under sounds/: "item loop sounds" or "one shot sounds".
 function(d2r_sounds group folder)
 	foreach(name IN LISTS ARGN)
@@ -30,6 +39,10 @@ function(d2r_sounds group folder)
 			set(loop_filter -af "apad=whole_dur=${D2R_QUEST_LOOP_SECONDS},atrim=duration=${D2R_QUEST_LOOP_SECONDS},afade=t=in:d=${D2R_QUEST_ATTACK_SECONDS},afade=t=out:st=${D2R_QUEST_RELEASE_START_SECONDS}:d=${D2R_QUEST_RELEASE_SECONDS}")
 		elseif(name STREQUAL "stash")
 			set(loop_filter -af "apad=whole_dur=${D2R_STASH_LOOP_SECONDS}")
+		elseif(folder STREQUAL "d2 drops")
+			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_DROP_BOOST_DB}dB,alimiter=limit=0.9:level=false")
+		elseif("${folder}/${name}" IN_LIST D2R_EPOCH_CLICKS)
+			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_EPOCH_BOOST_DB}dB,alimiter=limit=0.9:level=false")
 		elseif(name IN_LIST D2R_CLICK_SOUNDS)
 			set(boost ${D2R_CLICK_BOOST_DB})
 			if(name STREQUAL "corpse")
@@ -55,8 +68,17 @@ endfunction()
 d2r_sounds("item loop sounds" loot "gold" "potion" "scroll" "rune" "gem" "normal equipment" "magic equipment" "rare equipment" "legendary equipment"
 	"chest" "quest item" "corpse" "weapon rack" "stash")
 d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "stone door" "slime door"
-	"unexplored room" "zone transition" "inside unexplored room")
+	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well")
+# Taken from the author's Last Epoch accessibility mod: its gold loop and the game's
+# four potion pickups, one per kind; each file is one pass of the loop.
+d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")
 d2r_sounds("one shot sounds" exploration "discovered")
+# The Diablo IV low-life start and heartbeat, from the author's Last Epoch mod (src/low_life_audio.cpp).
+d2r_sounds("one shot sounds" vitals "low life start")
+d2r_sounds("item loop sounds" vitals "low life")
+# The game's own drop sounds, the alternative item set (tools/gen_drop_sounds.py).
+include("${CMAKE_CURRENT_LIST_DIR}/DropSounds.cmake")
+d2r_sounds("item loop sounds" "d2 drops" ${D2R_DROP_SOUNDS})
 add_custom_target(d2r-item-sounds DEPENDS ${D2R_ITEM_WAVS})
 set(D2R_ITEM_RC "${CMAKE_CURRENT_BINARY_DIR}/item-sounds.rc")
 file(CONFIGURE OUTPUT "${D2R_ITEM_RC}" CONTENT "${D2R_ITEM_RESOURCES}" @ONLY)
@@ -69,7 +91,7 @@ target_link_libraries(d2r-access PRIVATE xaudio2 ole32)
 
 if(BUILD_TESTING)
 	add_executable(ground-item-tests tests/ground_items_tests.cpp src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp)
-	add_executable(native-ground-item-tests tests/native_ground_items_tests.cpp src/native_ground_items.cpp
+	add_executable(native-ground-item-tests tests/native_ground_items_tests.cpp src/native_ground_items.cpp src/monster_plate.cpp
 		src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp)
 	add_executable(item-audio-tests tests/item_audio_tests.cpp src/item_wave.cpp src/item_spatial.cpp)
 	target_link_libraries(item-audio-tests PRIVATE xaudio2)

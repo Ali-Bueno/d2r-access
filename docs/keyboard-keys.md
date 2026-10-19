@@ -36,6 +36,7 @@ before adding one, and read this file first.
 | Ctrl+Numpad 4, Ctrl+Numpad 6 | scanner: previous object, next object |
 | Ctrl+Numpad 8, Ctrl+Numpad 2 | scanner: previous category, next category |
 | Ctrl+B | follow or release what the scanner named |
+| Ctrl+E | the route to what the beacon follows or the scanner named (docs/route-description.md) |
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
@@ -106,7 +107,7 @@ game's code, not pressed in a test).
 
 | key | what |
 |---|---|
-| Ctrl+S | the list of the mod's switches, open and shut |
+| Ctrl+S | the list of the mod's switches, in groups, open and shut: Page Up/Down step, Space opens a group or changes, Shift+Space lowers, Backspace returns to the groups. The pad's is BACK+RB, then the right stick: up and down step, right opens or changes, left returns; LB and RB lower and raise, kept from the game while the list is open (2026-10-13) |
 | PageUp, PageDown, Space | with that list open: previous, next, change. The arrows are not the list's: in play they still walk the character. The user, 2026-09-28, once told PageUp and PageDown step the list: no change wanted |
 | Ctrl+H | the controls read with it, on and off |
 | Ctrl+G | radar |

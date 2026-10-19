@@ -27,8 +27,11 @@ std::string Name(uintptr_t panel);
 std::string LevelAndType(uintptr_t panel);
 
 // Its experience as "current of next level", from CurrentXP and NextLevelXP;
-// empty when the panel shows neither.
+// the controller layout has only a bar, so then the percent within its level
+// from the source below; empty when neither is known.
 std::string Experience(uintptr_t panel);
+// The mercenary's experience percent within its level, -1 unknown.
+void SetExperienceSource(int (*source)());
 
 // Every statistic row, label then value, in the order the layout declares
 // them, which is the order down the screen. Each value is looked up among its
@@ -48,6 +51,10 @@ struct Skill {
 // The skills the panel's icons show, in icon order (Skill0 to Skill2); icons
 // the game has hidden -- a mercenary with fewer skills -- are left out.
 std::vector<Skill> Skills(uintptr_t panel);
+// One line per skill, its name first and then its description, for the
+// panel's stick reader: the icons beside the experience bar are focusable
+// only by the mouse (a tester could not hear them).
+std::vector<std::string> SkillLines(uintptr_t panel);
 // The skill one icon shows (a HirelingSkillIconWidget); its text is empty
 // when it could not be read.
 Skill SkillOf(uintptr_t icon);

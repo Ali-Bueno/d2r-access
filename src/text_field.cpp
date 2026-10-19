@@ -6,10 +6,13 @@
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
+#include "speech_strings.h"
+#include "text_field_edit.h"
 
 #include <cstdint>
 #include <iterator>
 #include <string>
+#include <string_view>
 
 namespace D2RAccess::TextField {
 
@@ -17,11 +20,18 @@ namespace {
 
 // The editable archetypes. `ConsoleInput` is the loader's own console, which
 // is classified the same way and must not be read back to the player.
-constexpr const char* EditableTypes[]  = {"InputTextBoxWidget", "NumericInputTextBoxWidget"};
+constexpr const char* EditableTypes[]  = {"InputTextBoxWidget", "NumericInputTextBoxWidget", "AutocompleteInputTextBoxWidget"};
 constexpr const char* IgnoredNames[]   = {"ConsoleInput"};
+// The chat box (ChatPanelHD.json), said as it opens and closes: nothing on screen
+// takes focus with it (a tester, 2026-10-14: "/players 8" typed blind).
+constexpr std::string_view ChatPanel = "ChatPanel";
+constexpr std::string_view ChatInputBox = "InputBox"; // ChatPanelHD.json
 
 uintptr_t   g_widget   = 0;
 bool        g_editable = false;
+bool        g_chat     = false;
+bool        g_chatShown = false; // the chat panel is visible (a tester, 2026-10-14: Enter said nothing)
+bool        g_chatSaid = false;  // "Text chat" said, its closing owed
 std::string g_text;
 
 bool Matches(const std::string& value, const char* const* list, size_t count) {
@@ -41,12 +51,38 @@ std::string Read(uintptr_t widget) {
 void Reset() {
 	g_widget   = 0;
 	g_editable = false;
+	g_chat     = false;
 	g_text.clear();
+}
+
+// The chat panel as it shows and hides, read from the panel itself: when the game
+// gives nothing focus with it, the box is found as the panel's own InputBox.
+void TrackChatPanel(const D2RL::PluginContext* context, NativeUi::Focus& focus) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(ChatPanel) : 0;
+	const bool shown = panel && NativeUi::Visible(panel);
+	if (shown != g_chatShown) {
+		g_chatShown = shown;
+		AsyncLog::InfoF(context, "[field] chat panel %s focus=%p", shown ? "shown" : "hidden", reinterpret_cast<void*>(focus.widget));
+		if (shown && !g_chatSaid) ScreenReader::Speak(Strings::Current().chatOpened, true);
+		if (!shown && g_chatSaid && !g_chat) ScreenReader::Speak(Strings::Current().chatClosed, false);
+		g_chatSaid = shown || g_chat;
+	}
+	if (!shown || focus.widget) return;
+	if (const uintptr_t box = NativeWidgets::FindChild(panel, ChatInputBox); box && NativeUi::Visible(box)) focus = {panel, box};
 }
 
 void Tick(const D2RL::PluginContext* context) {
 	NativeUi::Focus focus = NativeUi::CurrentFocus();
+	uintptr_t owner = 0;
 	if (const uintptr_t editor = NativeSkillNavigation::ActiveTextInput(focus.panel)) focus.widget = editor;
+	else if (const uintptr_t any = NativeSkillNavigation::AnyActiveTextInput(owner)) focus = {owner, any};
+	TrackChatPanel(context, focus);
+	if (focus.widget != g_widget && g_chat) {
+		AsyncLog::InfoF(context, "[field] chat closed panel_shown=%d", g_chatShown ? 1 : 0);
+		// With the panel still showing, its hiding says so.
+		if (!g_chatShown) ScreenReader::Speak(Strings::Current().chatClosed, false);
+		g_chatSaid = g_chatShown;
+	}
 	if (focus.widget == 0) {
 		Reset();
 		return;
@@ -54,6 +90,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 	if (focus.widget != g_widget) {
 		g_widget = focus.widget;
+		g_chat = false;
 		const NativeUi::Type type = NativeUi::Classify(focus.widget);
 		const std::string    name = NativeWidgets::ReadName(focus.widget);
 		g_editable = Matches(type.name, EditableTypes, std::size(EditableTypes))
@@ -66,6 +103,12 @@ void Tick(const D2RL::PluginContext* context) {
 		// silence cannot tell them apart.
 		AsyncLog::InfoF(context, "[field] focus name=\"%s\" type=\"%s\" editable=%d text=\"%s\"",
 			name.c_str(), type.name.c_str(), g_editable ? 1 : 0, g_text.c_str());
+		if (g_editable && NativeWidgets::ReadName(focus.panel) == ChatPanel) {
+			g_chat = true;
+			// Said by the panel's own showing when the focus arrived after it.
+			if (!g_chatSaid) ScreenReader::Speak(Strings::Current().chatOpened, true);
+			g_chatSaid = true;
+		}
 		return;
 	}
 	if (!g_editable) return;
@@ -73,19 +116,17 @@ void Tick(const D2RL::PluginContext* context) {
 	const std::string current = Read(g_widget);
 	if (current == g_text) return;
 
-	const bool deleted  = current.size() < g_text.size() && g_text.compare(0, current.size(), current) == 0;
-	const bool appended = current.size() > g_text.size() && current.compare(0, g_text.size(), g_text) == 0;
-	if (deleted) {
-		// Exactly what the backspace took, which is the one thing the player
-		// has no other way to know. Interrupting, not queued: while editing,
-		// what was just deleted matters more than finishing the previous
+	const Edit edit = Classify(g_text, current);
+	if (edit.kind == EditKind::Removed) {
+		// Interrupting: what was just deleted matters more than the previous
 		// announcement, and a backlog lags behind the cursor.
-		const std::string removed = g_text.substr(current.size());
-		AsyncLog::InfoF(context, "[field] removed \"%s\"", removed.c_str());
-		ScreenReader::Speak(removed, true);
-	} else if (!appended) {
-		// Neither a clean insertion nor a clean deletion: the box was replaced
-		// wholesale, so read the result rather than trying to describe an edit.
+		AsyncLog::InfoF(context, "[field] removed \"%s\"", edit.text.c_str());
+		ScreenReader::Speak(edit.text, true);
+	} else if (edit.kind == EditKind::Added) {
+		AsyncLog::InfoF(context, "[field] added \"%s\"", edit.text.c_str());
+		ScreenReader::Speak(edit.text == " " ? Strings::Current().spaceKey : edit.text, true);
+	} else {
+		// The box was replaced wholesale: read the result, not the edit.
 		AsyncLog::InfoF(context, "[field] now \"%s\"", current.c_str());
 		ScreenReader::Speak(current, true);
 	}

@@ -24,7 +24,7 @@ struct Key {
 // A fixed place found on one map: an exit, a waypoint, the stash
 // (MapSurvey::Fixed). Kept with that map's rooms, so a later game on the same
 // map knows it from anywhere, and a regenerated map never does. Quest objects
-// are kept too, only so that each is announced once (EntityRadar::QuestSource).
+// are kept too (EntityRadar::QuestSource): announced once, listed again later.
 // `docs/exploration.md`
 struct Place {
 	uint32_t id = 0;          // the scanner's selection id

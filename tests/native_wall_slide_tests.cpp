@@ -16,6 +16,7 @@ using Unit = std::array<unsigned char, UnitPath + sizeof(uintptr_t)>;
 
 bool prevent = false;
 uintptr_t localPlayer = 0;
+const float* pushed = nullptr; // the push direction the last fallback reported
 int calls = 0, forwardedDistance = -1;
 NativeWallSlide::Probe forwarded{};
 
@@ -49,7 +50,7 @@ void Original(uintptr_t context, const float* start, const float* direction, int
 	*collision = 0;
 }
 }
-namespace D2RAccess::WallSlideService { bool Prevent(uintptr_t) noexcept { return prevent; } }
+namespace D2RAccess::WallSlideService { bool Prevent(uintptr_t, const float* push) noexcept { pushed = push; return prevent; } }
 namespace D2RAccess::NativeWorld { bool IsLocalPlayer(uintptr_t player) noexcept { return player == localPlayer; } }
 namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) noexcept {}
@@ -113,6 +114,13 @@ int main() {
 			"zero-distance prevention still uses the original probe's normal output initialization");
 	}
 	Check(dispatch.context == before, "prevention leaves the native context untouched");
+	// The solver's first probe names the stick's own direction; its fallbacks report it.
+	float desired[2]{0.6f, -0.8f};
+	Probe first{dispatch.Address(), start, desired, 10, &point, &travel, &alignment, &collision};
+	Dispatch(first, 0x3AB24C, Original);
+	Dispatch(probe, 0x3AB6B4, Original);
+	Check(pushed && pushed[0] == 0.6f && pushed[1] == -0.8f, "a fallback reports the direction the solver tried first");
+	Check(forwarded.direction == direction, "while its own probe still goes the fallback's way");
 	Check(!Initialize(nullptr), "missing plugin context cannot install the hook");
 	Passed();
 }

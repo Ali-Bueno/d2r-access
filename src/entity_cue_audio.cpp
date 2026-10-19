@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "mod_sounds.h"
+#include "sound_volume.h"
 #include "wave_out.h"
 
 #include <windows.h>
@@ -16,13 +17,25 @@
 
 namespace D2RAccess::EntityCueAudio {
 namespace {
+// Each enemy class's own volume, on top of the family's (a tester, 2026-10-15).
+double ClassVolume(Sound sound) {
+	using F = SoundVolume::Family;
+	switch (sound) {
+	case Sound::Ordinary: return SoundVolume::Of(F::OrdinaryEnemies).Factor();
+	case Sound::Important: return SoundVolume::Of(F::EliteEnemies).Factor();
+	case Sound::Ranged: return SoundVolume::Of(F::RangedEnemies).Factor();
+	case Sound::Resurrector: return SoundVolume::Of(F::ShamanEnemies).Factor();
+	case Sound::Boss: return SoundVolume::Of(F::BossEnemies).Factor();
+	default: return 1;
+	}
+}
 std::mutex g_mutex;
 std::condition_variable g_wake;
 ProcessLifetime<std::thread> g_threadOwner;
 std::thread& g_thread = g_threadOwner.Get();
-std::atomic<bool> g_running{false}, g_available{false};
+std::atomic<bool> g_running{false}, g_available{false}, g_classLayers{false};
 std::atomic<uint64_t> g_generation{0};
-double g_gain = 1;
+double g_gain = 1, g_panScale = 1, g_pitchScale = 1;
 struct Request { bool pending = false; Sound sound = Sound::Npc; Placement placement; };
 Request g_pending;
 constexpr auto ReopenDelay = std::chrono::seconds(2);
@@ -89,6 +102,7 @@ void Worker(const D2RL::PluginContext* context) {
 				generation = g_generation;
 			}
 			auto pcm = Synthesize(request.sound, request.placement, g_gain);
+			SoundVolume::Scale(pcm, SoundVolume::Of(SoundVolume::Family::Enemies).Factor() * ClassVolume(request.sound));
 			if (generation != g_generation) continue;
 			failed = !PlayOne(device, done, pcm, generation);
 		}
@@ -105,19 +119,35 @@ void Worker(const D2RL::PluginContext* context) {
 }
 }
 
-bool Start(const D2RL::PluginContext* context, double gain) {
+bool Start(const D2RL::PluginContext* context, double gain, double panScale, double pitchScale) {
 	if (g_thread.joinable()) return false;
 	g_gain = std::isfinite(gain) ? std::clamp(gain, 0.0, 1.0) : 0;
+	g_panScale = panScale; g_pitchScale = pitchScale;
 	g_running = true;
 	try { g_thread = std::thread(Worker, context); }
 	catch (...) { g_running = false; return false; }
 	return true;
 }
 
+void SetStrength(double panScale, double pitchScale) {
+	std::lock_guard lock(g_mutex);
+	g_panScale = panScale; g_pitchScale = pitchScale;
+}
+
+double PanScale() { std::lock_guard lock(g_mutex); return g_panScale; }
+double PitchScale() { std::lock_guard lock(g_mutex); return g_pitchScale; }
+bool ClassLayers() { return g_classLayers; }
+void SetClassLayers(bool on) { g_classLayers = on; }
+
 void Play(Sound sound, Placement placement) {
 	{
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available || !ModSounds::Enabled()) return;
+		const auto feedback = [](Sound cue) {
+			return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge || cue == Sound::NpcAlert || cue == Sound::Corpse;
+		};
+		if (g_pending.pending && feedback(g_pending.sound) && !feedback(sound)) return;
+		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale; placement.classLayers = g_classLayers;
 		g_pending = {true, sound, placement};
 	}
 	g_wake.notify_one();

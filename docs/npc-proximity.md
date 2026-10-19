@@ -60,3 +60,34 @@ player was busy killing and looting.
 3. Walk away past about eighteen metres and come back: she is announced again.
 4. `[npc]` lines in `d2rloader/logs/d2r-access.log` show each announcement; the
    spoken distance is the scan's provisional metre (calibration pending there).
+
+## The "!" over an NPC (2026-10-13)
+
+A tester asked for parity with the yellow "!" a sighted player sees over a town
+NPC with a quest or reward. It is overlay 72 (`npcalert`, Overlay.txt) in the
+unit's overlay list: graphics data `Unit+0x78` (0x9A600), list head `+0x440`,
+a node's id at `+4`, the next node at `+0xB0` (the game's own test 0x152650).
+Packet 0x8A's handler (0x10F190, wrapper 0x12E150) adds it, skipping the NPC
+being talked to; packet 0x27's path (0x10B2B0) removes it from every NPC, so
+talking to anyone clears every mark until the server sends it again. The
+server sends 0x8A only within 15 subtiles (town AI 0x4A8930, D2MOO
+`AiTactics.cpp`): a far NPC carries no mark yet. Static RE of the live dump;
+fingerprints in `entity_layout.h` (`NpcAlertChecks`).
+
+`NativeEntities` reads it for NPC-flagged monsters (`Entity::npcAlert`). A
+small bell (`EntityCueAudio::Sound::NpcAlert`) rings, panned, when a mark
+appears (`EntityCues::AlertTracker`), and after the NPC's name from this
+announcer and from the scanner. Switch `npc-alerts` (Ctrl+S, on).
+Live check: a fresh Act 1 game, walk to Akara and Warriv: `[npc] exclamation
+mark id=...`; after talking to anyone the bell rings again only for NPCs that
+still have something to say.
+
+### The "!" appearing while the NPC is near (2026-10-13)
+
+Tester: the bell did not reliably ring when the mark appeared after the name was said. The announcer rings
+only at the name; the mark appearing later is the entity cue service's `AlertTracker`, which required the
+NPC cue switch (`entity-cues-npcs`) on as well as `npc-alerts` and consumed a mark while it was off. The bell
+(`RingAlert`, `PlayNpcAlert`) now depends on `npc-alerts` and the master cue switch only, and the tracker
+state advances either way. The NPC announcer's poll asks the same tracker (`RaisedAlerts`), so a
+mark rings within its poll even while the cue service is quiet, and still once. Live check: `[npc] exclamation
+mark id=...` when the mark appears while standing near.

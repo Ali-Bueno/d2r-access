@@ -65,6 +65,16 @@ int main() {
 		"the markup diagnostic names each styled line's commands, index included");
 	Check(TooltipText::Markup("Defense: 43\nQuilted Armor").empty(), "and says nothing for plain lines");
 
+	// A throwing potion: a styled damage line under the styled name, or the only
+	// styled line, never takes the name's place (a tester heard "Throw Damage" first).
+	const std::vector<std::string> throwStats{"Throw Damage:"};
+	const auto gas = TooltipText::Read("Required Level: 6\n" + std::string(Title) + "Throw Damage: 7 to 9\n"
+		+ std::string(Title) + "Strangling Gas Potion");
+	Check(gas.headings.size() == 2 && gas.heading == 0, "every styled line is kept, the topmost first");
+	Check(TooltipText::Split(gas, throwStats).headline == "Strangling Gas Potion", "the styled name wins over a styled stat below it");
+	const auto lone = TooltipText::Read("Required Level: 6\n" + std::string(Title) + "Throw Damage: 7 to 9\nStrangling Gas Potion");
+	Check(TooltipText::Split(lone, throwStats).headline == "Strangling Gas Potion", "a styled stat alone does not name the item");
+
 	// No styling: the first line stands in, and the split says so.
 	const auto plain = TooltipText::Read("Restores Health\nMinor Healing Potion");
 	Check(!plain.Marked(), "an unstyled tooltip reports that it was unstyled");
@@ -125,6 +135,23 @@ int main() {
 	Check(highest.lines.size() == 1 && highest.lines[0] == "Short Sword", "nor is the highest index the renderer accepts");
 	const auto beyond = TooltipText::Read(std::string(Title).substr(0, 3) + "WShort Sword");
 	Check(beyond.lines.size() == 1 && beyond.lines[0] == "WShort Sword", "a character past that range is text, as the renderer reads it");
+
+	// A tome's count is read with its name, ahead of any price.
+	const std::vector<std::string> quantity{"Quantity:"};
+	{
+		auto described = TooltipText::Split(TooltipText::Read("Quantity: 20 of 20\nTome of Town Portal"), BaseStats, {}, {}, {}, quantity);
+		Check(described.stack == "Quantity: 20 of 20", "the count line is kept apart for the reader");
+		described.name += ". magic"; // the reader adds words to the name after Split
+		Check(TooltipText::Headline(described) == "Tome of Town Portal. magic. Quantity: 20 of 20", "a rebuilt headline keeps the count");
+	}
+	const auto tome = TooltipText::Split(TooltipText::Read("Quantity: 20 of 20\nTome of Identify"), BaseStats, {}, {}, {}, quantity);
+	Check(tome.name == "Tome of Identify" && tome.headline == "Tome of Identify. Quantity: 20 of 20" && tome.detail.empty(),
+		"a tome's quantity joins the name in the headline");
+	const std::vector<std::string> costs{"Cost:"};
+	const auto stack = TooltipText::Split(TooltipText::Read("Quantity: 5 of 60\nCost: 30\nThrowing Knife"), BaseStats, costs, {}, {}, quantity);
+	Check(stack.name == "Throwing Knife" && stack.headline == "Throwing Knife. Quantity: 5 of 60. Cost: 30", "the quantity precedes the price");
+	Check(TooltipText::Split(TooltipText::Read("Quantity: 5 of 60\nThrowing Knife"), BaseStats).detail == "Quantity: 5 of 60",
+		"without quantity labels the line stays detail");
 
 	Check(TooltipText::Read("").lines.empty(), "an empty tooltip has no lines");
 	Check(TooltipText::Split(TooltipText::Read(""), BaseStats).Empty(), "and nothing to say");

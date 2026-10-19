@@ -32,6 +32,10 @@ void PanelsChanged();
 // the press count, not the sampled positions, drives popup scroll tracking.
 void NoteScrollInput();
 
+// Whether the character-select and character-create hints are spoken.
+bool ScreenHints();
+void SetScreenHints(bool enabled);
+
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();
 

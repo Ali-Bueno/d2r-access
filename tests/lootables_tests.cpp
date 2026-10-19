@@ -73,6 +73,31 @@ int main() {
 	for (const uint32_t id : {7u, 15u, 54u, 119u, 267u})
 		Check(!Generated::QuestItemObject(id), "ordinary object is not a quest item source");
 	Check(!Generated::QuestItemObject(0xFFFFFFFFu), "out-of-range quest object id is rejected");
+	Check(!Generated::QuestItemObject(252) && !Generated::LootableObject(252), "the Gidbinn's altar wakes a guardian, it hands over nothing");
+	// Quest mechanisms by objects.txt *ID: Cain's Gibbet, the Tainted Sun altar, the orifice,
+	// the Gidbinn's altar, the sewer lever, the Hellforge, the five seals, the Compelling Orb,
+	// both Altars of the Heavens and Frozen Anya.
+	for (const uint32_t id : {26u, 149u, 152u, 252u, 367u, 376u, 392u, 393u, 394u, 395u, 396u, 404u, 546u, 558u, 573u})
+		Check(Generated::QuestMechanismObject(id) && !Generated::LootableObject(id), "a quest mechanism is told apart from loot");
+	// The sewer stairs, the Ancients' statues, the stash, a waypoint and a chest are not.
+	for (const uint32_t id : {366u, 474u, 475u, 476u, 267u, 119u, 5u, 0xFFFFFFFFu})
+		Check(!Generated::QuestMechanismObject(id), "an ordinary object is not a quest mechanism");
+	for (uint32_t ordinal = 1; ordinal <= Generated::SealObjects.size(); ++ordinal)
+		Check(Generated::SealOrdinal(391 + ordinal) == ordinal && Generated::QuestMechanismObject(391 + ordinal),
+			"DiabloSeal1 to DiabloSeal5 are numbered in class order");
+	Check(!Generated::SealOrdinal(404) && !Generated::SealOrdinal(0xFFFFFFFFu), "only a seal has a seal number");
+	// Object modes as objects.txt orders them: 0 neutral, 1 operating, 2 opened, 3 the first special.
+	Check(Generated::QuestMechanismStep(404, 0) && !Generated::QuestMechanismStep(404, 1) && !Generated::QuestMechanismStep(404, 2),
+		"the Compelling Orb is a quest step only while neutral");
+	Check(Generated::QuestMechanismStep(376, 0) && Generated::QuestMechanismStep(376, 2) && !Generated::QuestMechanismStep(376, 3),
+		"the Hellforge stays one while it holds the Soulstone, until it is broken");
+	Check(!Generated::QuestMechanismStep(152, 2), "the orifice holding the staff is done");
+	Check(!Generated::QuestMechanismStep(5, 0) && !Generated::QuestMechanismStep(404, 8) && !Generated::QuestMechanismStep(0xFFFFFFFFu, 0),
+		"an ordinary object or an impossible mode is no quest step");
+	Check(Generated::QuestMechanismModes.size() == Generated::QuestMechanismObjects.size(), "every mechanism has its modes");
+	const auto& mechanismIds = Generated::QuestMechanismObjects;
+	Check(std::is_sorted(mechanismIds.begin(), mechanismIds.end())
+		&& std::adjacent_find(mechanismIds.begin(), mechanismIds.end()) == mechanismIds.end(), "quest mechanism table is sorted and unique");
 
 	// The lookup is a binary search, so the table has to stay sorted, and a
 	// duplicate id would mean the generator emitted a row twice.

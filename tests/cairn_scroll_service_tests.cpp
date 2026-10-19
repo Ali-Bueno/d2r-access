@@ -43,6 +43,7 @@ void Speak(std::string_view text, bool interrupt) {
 	speech.emplace_back(text);
 	interrupted = interrupt;
 }
+void Lead(std::string_view text, unsigned long long) { Speak(text, false); }
 }
 namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
 

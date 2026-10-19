@@ -10,6 +10,9 @@ inline constexpr size_t UnitType = 0, UnitClass = 4, UnitId = 8, UnitMode = 0xC,
 	UnitData = 0x10, UnitPath = 0x38, UnitNext = 0x160, UnitBank = 0x1BD;
 inline constexpr size_t PlayerRoom = 0x20, RoomNeighbors = 0, RoomNeighborCount = 0x40, RoomFirstUnit = 0xA8;
 inline constexpr size_t StaticX = 0x10, StaticY = 0x14, ItemQuality = 0;
+// ItemData flags dword: the tests in the name-colour function 0x2BD360 and its siblings
+// (socketed 0x800 at 0x37A731, runeword 0x4000000 at 0x379A44) read [ItemData + 0x18]. docs/silver-items.md
+inline constexpr size_t ItemFlags = 0x18;
 inline constexpr size_t Items = 0x15A0, ItemCount = 0x15A8, ItemStride = 0x1C0,
 	ItemCode = 0x80, ItemName = 0xFC, ItemType = 0x12E, ItemQuest = 0x13A;
 inline constexpr size_t Types = 0x1348, TypeCount = 0x1350, TypeStride = 0xE8;
@@ -24,6 +27,9 @@ inline constexpr uint32_t OnGround = 3, Dropping = 5;
 inline constexpr int GoldStat = 14; // ItemStatCost.txt 'gold'; also native 0x370C90
 inline constexpr int StashGoldStat = 15; // ItemStatCost.txt 'goldbank', the row after 'gold'
 inline constexpr uint32_t Death = 0, Dead = 17; // native player modes
+// D2C_PlayerModes (D2MOO Units/Player.h); native 0x7D96D0 tests run == 3 (docs/footsteps.md).
+inline constexpr uint32_t Walk = 2, Run = 3, TownWalk = 6;
+inline constexpr int StaminaStat = 10, MaxStaminaStat = 11; // ItemStatCost.txt 'stamina', 'maxstamina'
 inline constexpr size_t MaxRooms = 64, MaxUnits = 4096, MaxTableRows = 65536, MaxTypeDepth = 16;
 inline constexpr double PositionScale = 65536; // native unsigned 16.16 position
 // `mayBeDetoured` marks a function the reader only ever calls, never reads for
@@ -44,5 +50,17 @@ inline constexpr Evidence Checks[] = {
 	{0x293CC0, 2207, 0x605DCE341B5674CBULL},
 	{0x34A0E0, 47, 0x05F93D9EFDC375A1ULL},
 	{0x2F5020, 147, 0xEF955B08A436F777ULL, true}, // UNIT_GetStat: called, and detoured by 1.3.0-beta
+};
+// A low-quality item's LowQualityItems row: the int32 ITEMS_GetFileIndex (0x36CE70) reads
+// at [ItemData + 0x34], -1 for none; the same field holds a unique's or a set item's row.
+// The table: rows at bank +0x1688, count at +0x1690, 0x22 bytes each, the prefix's string
+// id at +0x20 (row getter 0x3141C0; name builder 0x1E1D80 then formats LowqualityFormat).
+// Rows in vanilla: Crude, Cracked, Damaged, Low Quality. docs/ground-items.md
+inline constexpr size_t ItemFileIndex = 0x34;
+inline constexpr size_t LowQualityRows = 0x1688, LowQualityCount = 0x1690, LowQualityStride = 0x22, LowQualityText = 0x20;
+inline constexpr uint32_t LowQuality = 1; // D2RL::Items::Quality::Low
+inline constexpr Evidence LowQualityChecks[] = {
+	{0x36CE70, 119, 0x1968B631994368E0ULL},
+	{0x3141C0, 102, 0xD8A8CC2087C546B6ULL},
 };
 }

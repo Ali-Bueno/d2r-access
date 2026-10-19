@@ -21,6 +21,7 @@ UiText::Snapshot snapshot;
 InputDirection::DpadInput dpad;
 std::map<uintptr_t, NativeUi::Rect> rectangles;
 std::optional<bool> editing = false;
+uintptr_t editor = 10; // the box holding the game's editor while editing
 bool available = true, selectionWorks = true, cursorHeld = false;
 int selections = 0, skillResets = 0;
 
@@ -46,6 +47,10 @@ void Press(int dx, int dy) {
 }
 
 namespace D2RAccess::InputDirection { DpadInput Dpad() { return dpad; } }
+namespace D2RAccess::PadTyping {
+void Tick(const D2RL::PluginContext*, NativeUi::Focus, std::optional<bool>, uint64_t) {}
+void Reset() {}
+}
 namespace D2RAccess::NativeSkillNavigation {
 bool Available() { return available; }
 void HoldCursor(bool hold) { cursorHeld = hold; }
@@ -55,6 +60,8 @@ std::optional<NativeUi::Rect> FocusRect(uintptr_t widget) {
 	return it->second;
 }
 std::optional<bool> TextEditing() { return editing; }
+uintptr_t ActiveTextInput(uintptr_t) { return editing && *editing ? editor : 0; }
+uintptr_t AnyActiveTextInput(uintptr_t& owner) { owner = 0; return editing && *editing ? editor : 0; }
 bool Select(NativeUi::Focus next) {
 	++selections;
 	if (selectionWorks) focus = next;
@@ -67,7 +74,7 @@ Type Classify(uintptr_t widget) {
 	for (const auto& node : snapshot.nodes) if (node.id == widget) return {"", node.kind, UiText::Surface::Other};
 	return {};
 }
-UiText::Snapshot Snapshot(uintptr_t, uintptr_t) { return snapshot; }
+UiText::Snapshot Snapshot(uintptr_t, uintptr_t, uintptr_t) { return snapshot; }
 }
 namespace D2RAccess::NativeWidgets {
 std::string ReadName(uintptr_t widget) {
@@ -116,10 +123,18 @@ int main() {
 	Release();
 	focus.widget = 10;
 	editing = true;
-	Press(0, 1);
+	Press(1, 0);
 	Check(focus.widget == 10 && selections == 2 && !cursorHeld,
-		"native text editing leaves D-pad control with the input field");
+		"native text editing leaves left and right with the input field");
 	Release();
+	Press(0, 1);
+	Check(focus.widget == 12 && selections == 3, "up and down leave the box being typed in");
+	Release();
+	Press(0, 1);
+	Check(focus.widget == 13 && selections == 4, "an editor left on another box does not stop the D-pad");
+	Release();
+	focus.widget = 10;
+	selections = 2;
 	editing = std::nullopt;
 	Press(0, 1);
 	Check(focus.widget == 10 && selections == 2 && !cursorHeld,

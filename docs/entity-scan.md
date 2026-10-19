@@ -12,11 +12,18 @@ automap; enemies are the one live category.
   through the categories that have something in them (the category name is
   spoken first), **left/right** step through that category, nearest first.
   One dominant axis per push (`InputDirection::TakeRightStickPush`), so a
-  diagonal push never changes both at once.
+  diagonal push never changes both at once. Nearest by the distance each is
+  spoken with (walking steps when known, else the straight line), one key for
+  all, and a flick ten seconds after the last answer starts again at the nearest
+  (`StaleSelectionMs`; a tester heard far ones first, 2026-10-12).
 - In a menu, dialogue or pause the stick belongs to the menu (`RadarUi::InPlay`).
-- A short left-stick click (L3), or **Ctrl+B**, follows what the scanner last
-  named (`docs/beacon.md`); on a newly named target it switches in one press.
-  R3 and the L3+R3 chord have no mod gesture since 2026-09-25.
+  While the settings list is open (BACK+RB) it steps the list instead.
+- **BACK+LB**, or **Ctrl+B**, follows what the scanner last named
+  (`docs/beacon.md`); on a newly named target it switches in one press.
+  L3, R3 and the L3+R3 chord are the game's.
+- **BACK + right stick down**, or **Ctrl+E**, describes the way there as legs
+  ([route description](route-description.md)). With BACK held the stick never
+  steps the scanner.
 - Keyboard: Ctrl+Numpad 8/2 previous/next category, Ctrl+Numpad 4/6
   previous/next object, `,`/`.` step categories, `\` repeats.
 
@@ -32,12 +39,17 @@ automap; enemies are the one live category.
   layout. A later game on the same map lists them from anywhere on the level,
   before the game streams their rooms again. A regenerated map has another key,
   so its places appear only once discovered again. Only what exploration counts
-  as discovered is kept, in either mode. Shrines, chests, quest objects and
-  portals are not kept: what they are, or whether they are there, changes
-  between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
+  as discovered is kept, in either mode, and so are quest objects (2026-10-14:
+  the automap keeps showing them). Shrines, chests and portals are not kept:
+  what they are, or whether they are there, changes between games (`TerrainService::RememberPlaces`/`KnownPlaces`,
   `docs/exploration.md#on-disk`).
-- **Enemies** are never remembered: each answer lists the enemies in range and
-  in sight right now, nearest first.
+- **Enemies** are discovered in range and in sight (all loaded ones with full
+  assistance) and then remembered. A remembered enemy follows its live unit
+  while the game has it loaded, is forgotten as soon as the game holds it dying
+  or dead anywhere it is loaded (`NativeEntities::TakeDeadMonsters`), and at once
+  when its place is within reach and it is not there. One that unloads alive
+  stays at its last live position. This fixed a tester's phantom Fallen and
+  Zombie in the Den of Evil (2026-10-11).
 - **Players** (multiplayer) are the other living characters in the game, read
   live like enemies but not filtered by sight, by name, nearest first, so a
   teammate can be found and followed with the beacon. Anyone standing in the
@@ -67,14 +79,18 @@ automap; enemies are the one live category.
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
   (`MapSurvey::Split`).
-- In exploration mode (the default) a landmark is listed once it stands in a
-  logical room the stock automap has drawn in, meaning at least one floor or
-  wall cell (`NativeAutomap::RevealedRooms`, `MapSurvey::Charted`). Drawn
-  terrain is saved with the character, so these landmarks are listed from the
-  start of a later game. A landmark that has been in range and in sight
-  (`MapSurvey::Discoverable`) is listed too. That test is also the whole rule
-  whenever the automap cannot be read (`docs/automap-reader.md`).
-  Readouts give straight-line distance and one of eight screen directions (diagonals such as "arriba y a la izquierda" included, `Radar::ScreenSector`). Full assistance
+- In exploration mode (the default) a landmark is listed once it stands in an
+  explored logical room: one stood in, the one underfoot, or one the stock
+  automap has drawn in, meaning at least one floor or wall cell
+  (`TerrainService::ExploredRooms`, `MapSurvey::Charted`). A sighted player sees
+  a room whole on stepping into it (the user, 2026-10-14). Drawn terrain is
+  saved with the character, so these landmarks are listed from the start of a
+  later game. A landmark that has been in range and in sight
+  (`MapSurvey::Discoverable`) is listed too. Enemies and loot are listed in
+  sight or in the room underfoot. Whatever is listed can be routed to
+  ([exploration mode](beacon.md#exploration-mode)).
+  Readouts give straight-line distance in units and a screen direction as one of eight compass
+  points or twelve clock hours ([spoken directions](radar-readings.md#spoken-directions-2026-10-13)). Full assistance
   lists everything loaded with walking steps (`docs/beacon.md#exploration-mode`).
 
 ## Code
@@ -217,3 +233,108 @@ refresh. Build/deployment and current validation: [STATUS](../STATUS.md).
 Records: `../../re/kurast-routing-rootcause-2026-10-05/`. The user confirmed the
 new deployed NPC/exploration fixes work in game and authorized commit/push to
 origin/bladestorm. The previous deployment's failure remains user-confirmed.
+## Town NPCs
+
+### Quest-retired NPCs and navigator presence — 2026-10-19
+
+The navigator now removes a positively observed absent Natalya or town
+Nihlathak, including remembered entries, without changing active walking.
+This is an observation of current client availability, not a prediction from
+the player's quest-completion flags. A distant missing unit remains a valid
+fallback; a room merely remaining loaded is insufficient evidence of absence.
+
+Exact actor sources are the installed image's object-init table at RVA
+`0x239B980`: object382/Init52 calls `0x5EBC20` and creates Natalya class297;
+object461/Init68 calls `0x548EE0` and creates town Nihlathak class514. Hostile
+Nihlathak class526 is separate. Natalya's producer tests the server game-global
+quest record row22 bit13 through `0x514FD0`. Nihlathak's producer checks the
+server A5Q3 object's `+0xA8` state; `0x54A2D0` retires the town actor and changes
+that state. Those game-global facts can differ from the local player's quest
+flags in multiplayer, so `NativeQuestFlags` is not used for this filter.
+Complete offline disassembly and limitations are retained in workspace
+`re/upstream-terror-2026-10-19/npc-presence.md` and its disassembly artifact.
+
+`NativeEntities::ReadTownPresence` performs the existing full entity read and
+returns copied `TownPresence` values from that same pass. The ordinary `Read`
+signature and proximity readers retain their behavior. Only classes297/514
+can enter the durable absent set. Every known approach must lie inside a
+verified immediate player/neighbor room rectangle, with the preset's logical
+RoomEx identity matching that ring. A same-class raw native unit anywhere
+resident in this level wins, even when its name, mode or path reader cannot
+produce an ordinary named entity. Actual moved positions and Hratli's alternate
+approaches keep their existing priority.
+
+The reader records raw class presence during its existing bounded traversal.
+All native work stays on the UI thread; no native pointer survives the pass.
+Unknown room ownership, caps/cycles, failed far-room/unit reads, invalid raw
+types/classes, malformed relevant presets, duplicate retirement markers and
+unavailable candidate names disable new absence evidence. Tolerated partial
+reads still return useful entities. `ReadMonsters` and `ReadNpcMarkers` expose
+optional completeness outputs so ignored malformed/unbuilt data cannot become
+a false empty map. Harrogath object461 joins the existing Kurast marker adapter
+as approach evidence; it does not assert that the actor currently exists.
+
+`MapSurveyService::Collect` reconciles that owned evidence immediately after
+splitting the same entities. `TownNpcSightings` tracks absent stable identities
+by session/player and level, prunes their stale sightings, ignores later
+fallback discoveries, and filters both everywhere and discovered-only lists.
+Moving away cannot resurrect a confirmed absent stand-in. A real current unit
+clears absence immediately and restores a previously discovered character at
+its actual position, even outside the discovery view. New games/player changes
+and normal lifecycle Clear reset this state; it is not saved to disk.
+
+No settings, speech wording, quest reads, hooks, workers, native waits or walk
+cancellation were added. Additional work is bounded by existing room/unit
+limits, two raw-class comparisons per monster, immediate-ring rectangles, and
+the candidate approach sets. No live responsiveness number is claimed. These
+two established large reader/test files retain their cohesive native traversal
+and fixture responsibilities; this scoped change does not split or redesign
+the shared reader.
+
+Regression fixtures cover both actual marker classes, distant unloading,
+local absence, a moved live unit outside the immediate ring, raw-unit/name/mode
+ambiguity, malformed/duplicate markers, partial scans and failed reads; pure
+catalogue tests cover both modes, fallback resurrection, moving away, live
+return and session reset. Parent build/test results remain in HANDOFF/STATUS.
+Gameplay confirmation is pending: after the game removes either NPC, cycle
+the town navigator; that character should stop appearing once its former
+location has been observed nearby. Other town NPCs should remain listed.
+
+In a town (`Levels.txt` town flag) the NPC category lists every NPC row
+(MonStats `npc` column) the level's presets place exactly once; a row placed
+more than once, such as a guard, is left out. The loaded unit is listed where
+there is one, else a stand-in at its spawn point with the same identity
+(`TownNpcs::Identity`, the row + 1), so a beacon on one follows the other.
+The two verified quest-retired actors use the conservative local-absence policy
+above; ordinary wandering/unloaded NPCs retain their stand-ins. Other loaded
+rooms prove nothing: in a Lut Gholein snapshot
+(bladestorm360, `bdb7e91`, branch `port/bladestorm-npcs`) 25 of 49 rooms were
+loaded, with Fara, Cain and Meshif presets in them and no unit read. Switch
+`town-npcs-everywhere` (Ctrl+S, on by default) or full assistance lists them
+all; off, only those seen (`TownNpcSightings::Listed`). NPCs that wander
+(Warriv, Gheed, Ormus) are found near their spawn. Code: `src/town_npcs.{h,cpp}`,
+`NativeEntities::AddTownNpcs`.
+
+### Presets of rooms not built yet (fixed 2026-10-12)
+
+A tester at Charsi, in the Rogue Encampment, heard only Charsi, Warriv and
+Kashya. The reader took presets from the rooms (`RoomEx+0x98`), which the game
+fills only when it builds a room. Until then the map holds them. Evidence: D2R
+3.3.93787, Ghidra `re/ghidra` `D2R_live`; fingerprints in
+`preset_map_layout.h` `PendingChecks`.
+
+| Native function | Fact |
+|---|---|
+| `0x3DE0E0` (a room's preset setup) | The first room of a map to be set up loads the DS1 (`map+0x10`) and calls `0x3DF600` once, for the whole map. |
+| `0x3DF600`, 813 bytes | Copies the DS1's presets (`file+0x98`) onto `map+0x58`, through `0x3DBB60`. |
+| `0x3DBB60`, 393 bytes | The copy: class `+4`, type `+0x20`, X `+8` / Y `+0x24` plus the map origin (`map+0x18/+0x1C` tiles x5), so level subtiles. |
+| `0x3DE420`, 692 bytes (room build `0x3F38D0`) | Moves each `map+0x58` preset inside the room's subtile rectangle to `RoomEx+0x98`, minus the room origin. |
+| `0x3DDBB0`, 634 bytes | Frees `map+0x58` only with the level's maps (next `+0x88`). |
+
+The two lists never share a preset and together hold all of the map's.
+`NativeLevelExits::ReadMonsters(..., unbuilt)` reads both. A map preset goes to
+the room whose rectangle holds it, where the build will put it. The map is
+`RoomEx+0x40 -> +0x08` (`docs/places.md`). A malformed map list drops only the
+map presets. Live check: `[scan] Verified unbuilt-room preset reader.` at
+startup, and `[survey] town NPCs on level <n>: <total>, ...` naming every town
+NPC, the far ones as `/spawn`.

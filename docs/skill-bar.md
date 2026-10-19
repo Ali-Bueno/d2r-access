@@ -74,3 +74,10 @@ menus, phrase order and locale punctuation, help-line decoding). Installed
 DLL SHA-256 `561EE346…` matches the build. The user confirmed it works live
 (2026-09-25). Not yet checked live: a weapon swap with separate bindings on,
 and a charged-item skill (count hidden).
+
+## Rebinding (2026-10-18)
+
+The game's rebinding window (`ButtonBindingModal`, holding X on a skill) said only "Press Button To
+Rebind Skill closed". `SkillBarService` reads both bars as it opens and again as it closes, and the
+slot that changed is said: "Prayer bound to RB", "LT" before a button of the LT bar; its close is
+no longer announced (`[skill-bar] binding window closed -> "..."`).

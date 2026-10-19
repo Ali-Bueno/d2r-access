@@ -1,4 +1,5 @@
 #include "radar_readout.h"
+#include "spoken_direction.h"
 #include <cmath>
 #include <cstdio>
 #include <numbers>
@@ -9,13 +10,18 @@ int MovementDirection(Radar::Position velocity) {
 	return Radar::ScreenSector(velocity);
 }
 const char* DirectionName(Radar::Frame frame, size_t direction, const Strings::Table& text) {
-	if (frame == Radar::Frame::Cardinal) return text.radarDirections[direction];
-	return text.radarMovementDirections[static_cast<size_t>(Radar::RaysOf(frame)[direction].sector)];
+	if (frame == Radar::Frame::Cardinal) return SpokenDirection::OfSide(static_cast<Radar::Direction>(direction), text);
+	return SpokenDirection::Of(Radar::RaysOf(frame)[direction].world, text);
 }
 std::string DirectionList(Radar::Frame frame, const Strings::Table& text) {
 	std::string result;
-	for (size_t i = 0; i < Radar::DirectionCount; ++i) result += std::string(i ? ", " : "") + DirectionName(frame, i, text);
+	for (size_t i = 0; i < Radar::DirectionCount; ++i) result += std::string(i ? text.listSeparator : "") + DirectionName(frame, i, text);
 	return result;
+}
+std::string RaysPhrase(Radar::Frame frame, const Strings::Table& text) {
+	char phrase[256]{};
+	std::snprintf(phrase, sizeof phrase, text.radarRays, DirectionList(frame, text).c_str());
+	return phrase;
 }
 std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	const int direction = MovementDirection(engine.Velocity());
@@ -24,7 +30,7 @@ std::string Describe(const Radar::Engine& engine, const Strings::Table& text) {
 	else if (direction < 0) result = text.radarStationary;
 	else {
 		char motion[160]{};
-		std::snprintf(motion, sizeof(motion), text.radarMoving, text.radarMovementDirections[direction]);
+		std::snprintf(motion, sizeof(motion), text.radarMoving, SpokenDirection::Of(engine.Velocity(), text));
 		result = motion;
 	}
 	result += std::string(". ") + text.radarStraight;

@@ -23,9 +23,7 @@ constexpr std::string_view Heading = "\xEE\x81\xBE" "2";
 // '5' socketed grey, and '1' red, an unmet requirement (log, 2026-09-25 07:49).
 constexpr std::string_view Red = "\xEE\x81\xBE" "1";
 
-bool FontIndex(char c) {
-	return static_cast<unsigned>(static_cast<unsigned char>(c) - '0') < 0x27u;
-}
+using UiText::FontIndex;
 
 std::string StripFont(std::string line) {
 	for (size_t at = 0; (at = line.find(Font, at)) != std::string::npos;) {
@@ -116,8 +114,11 @@ Body Read(std::string_view body) {
 		const bool  red = raw.find(Red) != std::string::npos;
 		std::string line = UiText::Clean(StripFont(std::move(raw)));
 		if (!line.empty()) {
-			// Reading upwards, the last styled line seen is the topmost one.
-			if (heading) result.heading = result.lines.size();
+			// Walking down from the title, the first styled line seen is the topmost one.
+			if (heading) {
+				if (!result.Marked()) result.heading = result.lines.size();
+				result.headings.push_back(result.lines.size());
+			}
 			result.lines.push_back(std::move(line));
 			result.red.push_back(red);
 		}
@@ -136,7 +137,7 @@ std::string Comparison(std::span<const std::string> extras) {
 
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel,
-	std::span<const std::string> requirementLabels) {
+	std::span<const std::string> requirementLabels, std::span<const std::string> quantityLabels) {
 	Description result;
 	if (body.lines.empty()) return result;
 	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
@@ -145,34 +146,46 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 	};
 	const auto price = [&](const std::string& line) { return starts(line, priceLabels); };
 	const auto unidentified = [&](const std::string& line) { return !unidentifiedLabel.empty() && line == unidentifiedLabel; };
-	const auto labelled = [&](const std::string& line) { return starts(line, statLabels) || price(line) || unidentified(line); };
+	const auto quantity = [&](const std::string& line) { return starts(line, quantityLabels); };
+	const auto labelled = [&](const std::string& line) { return starts(line, statLabels) || price(line) || unidentified(line) || quantity(line); };
 	// The styled title where there is one. Otherwise the first line that is not
 	// one of the labelled ones: a vendor puts its price where an inventory
 	// tooltip has the name, and a price is not an item. When every line is
 	// labelled there is nothing better than the first.
-	size_t name = body.Marked() ? body.heading : 0;
-	if (!body.Marked()) {
+	// A labelled styled line is not the name either (a throwing potion's damage, a tester).
+	size_t name = body.lines.size();
+	for (const size_t at : body.headings)
+		if (at < body.lines.size() && !labelled(body.lines[at])) { name = at; break; }
+	if (name == body.lines.size()) {
+		name = 0;
 		for (size_t at = 0; at < body.lines.size(); ++at)
 			if (!labelled(body.lines[at])) { name = at; break; }
 	}
-	result.name = result.headline = body.lines[name];
-	// A price joins it, wherever it sits. Everything else, the base damage or
-	// defense included, keeps the order the screen drew it in and waits to be
-	// asked for.
+	result.name = body.lines[name];
+	// A stack's quantity and a price join it, wherever they sit. Everything
+	// else, the base damage or defense included, keeps the order the screen drew
+	// it in and waits to be asked for.
+	std::string& stack = result.stack;
 	for (size_t at = 0; at < body.lines.size(); ++at) {
 		if (unidentified(body.lines[at])) { result.unidentified = true; continue; }
 		if (at == name) continue;
 		if (price(body.lines[at])) Append(result.price, body.lines[at]);
-		Append(price(body.lines[at]) ? result.headline : result.detail, body.lines[at]);
+		if (quantity(body.lines[at])) { Append(stack, body.lines[at]); continue; }
+		if (price(body.lines[at])) continue;
+		Append(result.detail, body.lines[at]);
 		if (at < body.red.size() && body.red[at] && starts(body.lines[at], requirementLabels)) Append(result.unmet, body.lines[at]);
 	}
 	// Unidentified is the name's status, said once right after it.
-	if (result.unidentified && result.name != unidentifiedLabel) {
-		Append(result.name, unidentifiedLabel);
-		result.headline = result.name;
-		Append(result.headline, result.price);
-	}
+	if (result.unidentified && result.name != unidentifiedLabel) Append(result.name, unidentifiedLabel);
+	result.headline = Headline(result);
 	return result;
+}
+
+std::string Headline(const Description& description) {
+	std::string headline = description.name;
+	Append(headline, description.stack);
+	Append(headline, description.price);
+	return headline;
 }
 
 }

@@ -30,6 +30,12 @@ uintptr_t Owner(uintptr_t widget);
 std::optional<bool> TextEditing();
 // The text box the game is typing into when it belongs to `panel`, else 0.
 uintptr_t ActiveTextInput(uintptr_t panel);
+// The editor that takes typed text whatever has focus, and the panel it belongs to:
+// the chat box leaves the focus on its candidate list (a tester, 2026-10-14). 0 when none is shown.
+uintptr_t AnyActiveTextInput(uintptr_t& owner);
+// Starts the game's own editing of the focused text box, as its A does when it works:
+// the box becomes the active editor and typed keys reach it. Null when it did, else why not.
+const char* BeginEdit(uintptr_t box);
 // Temporarily stop the game's analog cursor update during a D-pad gesture.
 void HoldCursor(bool hold);
 }

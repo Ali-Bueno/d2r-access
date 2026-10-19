@@ -14,6 +14,8 @@ SkillButton ParseSkillButton(std::string_view name);
 NativeUi::Cell SkillCell(std::string_view name);
 // Skill tooltip lines are stored bottom to top; font-size commands are not text.
 std::string SkillDescription(std::string_view body, std::span<const std::string> prerequisites = {});
+// Lines joined for speech with a pause between them, as an item tooltip's are.
+std::string JoinLines(const std::vector<std::string>& lines);
 // The same tooltip as its lines, name first, for reading one line at a time.
 // Required skill icons are represented as text after the native body. The
 // same lines feed the full description and keyboard/controller line buffers.

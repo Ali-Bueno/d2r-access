@@ -5,6 +5,7 @@
 #include "keyboard_menu.h"
 #include "localization.h"
 #include "mercenary_stats.h"
+#include "native_skill_bar.h"
 #include "native_tooltips.h"
 #include "native_widgets.h"
 #include "pad_filter.h"
@@ -58,10 +59,18 @@ namespace D2RAccess::AutoDetail {
 bool Enabled() { return autoDetail; }
 }
 namespace D2RAccess::KeyboardMenu {
-bool Active() { return keyboard; }
+bool Engaged() { return keyboard; }
 }
+namespace D2RAccess::NativeSkillBar { std::string SkillName(int) { return {}; } }
 namespace D2RAccess::MercenaryStats {
-std::vector<Skill> Skills(uintptr_t) { return {}; }
+// Row 15's icons, as the engine keeps their tooltips: bottom-up.
+std::vector<Skill> Skills(uintptr_t row) {
+	if (row != 15) return {};
+	Skill jab, aura;
+	jab.text = "Mana Cost: 3\nJab";
+	aura.text = "Radius: 14.6 yards\nDefiance";
+	return {jab, aura};
+}
 // An icon's text as the engine keeps a tooltip: bottom-up.
 Skill SkillOf(uintptr_t icon) {
 	Skill skill;
@@ -212,5 +221,23 @@ int main() {
 	Check(Tick(gold), "the gold line under the cursor is the hire list's");
 	keyboard = false;
 	Check(!Tick(jab) && !Tick(gold), "on a controller the icons and the gold lines are not this reader's");
+
+	// A pad player's menu is up but never the keyboard's cursor's (a tester,
+	// 2026-10-13: the pad path below was never reached): the row's skills follow
+	// it, and Y says them at once.
+	lineStep = false; tooltip = {}; speech.clear();
+	const NativeUi::Focus fifth{10, 15};
+	Check(HireStats::Tick(&context, 2000, fifth) && speech.empty(), "a row's skills wait for the menu reader to say the row");
+	HireStats::Tick(&context, 2400, fifth);
+	Check(speech == std::vector<std::string>{"Skills: Jab, Defiance"}, "then follow it, names only");
+	// Y shows the whole tooltips: the press says them whole, autodetail or not (the tester, 2026-10-14).
+	speech.clear(); holdingY = true;
+	HireStats::Tick(&context, 2500, fifth);
+	Check(speech == std::vector<std::string>{"Skills: Jab. Mana Cost: 3. Defiance. Radius: 14.6 yards"}, "Y says them in full at once");
+	holdingY = false; HireStats::Tick(&context, 2600, fifth);
+	speech.clear(); holdingY = true; keyboard = true; HireStats::Tick(&context, 2700, fifth);
+	Check(!speech.empty() && speech.front() == "Skills: Jab. Mana Cost: 3. Defiance. Radius: 14.6 yards",
+		"and on the keyboard cursor's path as well");
+	keyboard = false; holdingY = false;
 	Passed();
 }

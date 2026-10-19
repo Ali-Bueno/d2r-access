@@ -28,6 +28,34 @@ unavailable display immediately.
 `bodyLocation` (`external/PluginSDK/include/D2RLPlugin/item.h`). `inventory.h`
 permits both on the UI thread, which is where the plugin's tick runs.
 
+## Walking, running, stamina and ammunition (2026-10-11)
+
+A tester: running drops defense to zero, so the walk/run state is tactical, and stamina was never
+mentioned. Behind the `movement-alerts` switch (Ctrl+S, on by default):
+
+- **Gait.** L3 (the game's toggle) flips it and speaks "Running"/"Walking" at once, with
+  interrupt; nothing else speaks it. The player unit's mode (walk 2 and town-walk 6 walking, run 3
+  running, `GroundItemLayout::Walk/Run/TownWalk`) only re-syncs the toggle in silence, after three
+  samples in a row, never while the wall-slide hook counts refused pushes or stamina is at or under
+  10 percent: the game walks by itself against a wall and when tired (`controllerskillsettings`
+  `forceWalk*`), which a tester heard as the game toggling (2026-10-12). The toggle flag itself is
+  not read, so a toggle before any step says nothing.
+- **Stamina** is `GetStat` 10 over 11 (`NativeStatus::PlayerMovement`); the ratio holds whatever
+  the fixed-point scale. Falling through 50, 25 and 10 percent is spoken, and "Out of stamina" at
+  zero; a step re-arms once stamina recovers 10 points above it (`Vitals::StaminaMeter`). BACK+X
+  adds stamina when it is not full. `[vitals] movement` logs the raw values on each alert.
+- **Ammunition** (`ammo-alerts`, on): a stack in hand (seen holding more than one) falling to
+  50, 20, 10, 5 or 0 is spoken as "Arrows: 20 left" (`Vitals::AmmoMeter`, quantity from the
+  loader's `ItemInfo.quantity`). BACK+X adds every stack in hand.
+
+Live checks pending: the gait mapping in town and with stamina exhausted, and the stamina values.
+
+## Mana alerts (2026-10-12)
+
+A tester: casting made mana spammy and it drowned out life. `mana-alerts` in the Ctrl+S list has
+three values (`Vitals::ManaAlerts`): every change (as life, the default), low mana only (a fall to
+20 percent or under, `ManaLowPercent`, never a recovery) and off. BACK+X still reads mana.
+
 ## What is announced
 
 `src/vitals.cpp` holds all of it, free of game and speech dependencies, and
@@ -84,3 +112,45 @@ announced with its equipment slot. An item with no maximum durability never
 breaks, an item worn already broken is not a break, and an item that stays
 broken is announced once. Repairing and breaking again is announced again.
 Breakage speech queues so it cannot erase a critical life alert from the same tick.
+
+## Experience (2026-10-13)
+
+A tester: the bar between the orbs is always in a sighted player's view. The
+life report (BACK+X, Mod+X) ends with "Experience N percent", how far into the
+level as the bar fills (`experience-report`, Ctrl+S, on). Static RE of the HUD
+bar's updater 0x14CC8C0: experience is stat 13, the thresholds come from
+experience.txt through 0x300920(expansion 0x34A0E0, class 0x349860, level - 1
+and level), below the cap 0x300C70. At the cap nothing is said.
+
+The controller's mercenary panel draws only a bar (its CurrentXP/NextLevelXP
+boxes are commented out in `Controller/HirelingInventoryPanelHD.json`), so the
+panel's experience line is the same percent: the hireling panel 0x14F3400 reads
+stat 13 and the next threshold stat 30, and a level starts at
+ExpPerLvl * L^2 * (L + 1), so ExpPerLvl = next / ((L + 1)^2 * (L + 2))
+(`Vitals::MercenaryLevelStart`). Live check: `[vitals] experience level=1
+total=... start=0 next=500` for a new character; the percent matches the bar.
+
+### "Mercenary says:" (2026-10-13)
+
+The mercenary's level-up line (`merclevelup`, "I feel much stronger now") was named
+only in the notices, but the tester's log has it three times as `[interaction] World
+target -> "I feel much stronger now"`: the game draws it as the world target's tooltip.
+`GameTextReader::NameSpeaker` now names it on both paths (`mercenary-bark`, on); the
+log line to check is the same `World target` one, now starting with "Mercenary says:".
+
+## Low life heartbeat (2026-10-15)
+
+A tester died twice before the spoken life percentage caught up. At or under `low-life-below`
+(5 to 70 percent of life, 25 by default: a Sorceress and a Barbarian need different lines) the
+Diablo IV low-life sound plays once and its heartbeat loops (`sounds/*/vitals/`, the author's
+Last Epoch mod's copies), until life climbs `Vitals::LowLife::ReleasePoints` (5) over the line, so
+a regeneration tick at the line does not start it again. No life (dead) or an unreadable orb is
+quiet, and so is a pause or a dialogue. `LowLifeAudio` is its own XAudio2 voice with its own
+volume (`low-life-volume`, Volumes), under the mod-sounds master switch. Switch `low-life-sound`
+(Alerts, on). Logs: `[vitals] low life`, `[low-life] heartbeat started|stopped`.
+
+2026-10-17: twice as fast (the tester: drowned in heavy combat). The loop's ten beats, 1.16 s
+apart (52 a minute), were each cut to their first 0.58 s, lub-dub included, with a 40 ms fade:
+103 a minute, each beat still its own. A faster playback rate was rejected (an octave higher).
+
+The life report's experience now names the level it leads to: "Experience 34 percent to level 17".

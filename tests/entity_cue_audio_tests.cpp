@@ -1,11 +1,13 @@
 #include "entity_cue_audio.h"
 #include "entity_cues.h"
 #include "radar_audio.h"
+#include "sound_volume.h"
 #include "test_support.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 using namespace D2RAccess::EntityCueAudio;
 
@@ -38,7 +40,7 @@ int Crossings(const std::vector<int16_t>& pcm, size_t fromFrame, size_t toFrame)
 }
 
 void DurationAndLevels() {
-	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+	for (Sound sound : {Sound::Npc, Sound::Important, Sound::Boss, Sound::Resurrector, Sound::Ranged, Sound::Ordinary, Sound::Reach}) {
 		const auto pcm = Synthesize(sound, {});
 		Check(!pcm.empty() && pcm.size() % Channels == 0, "every cue contains interleaved stereo PCM");
 		Check(pcm.size() / Channels <= SampleRate * 120 / 1000, "every cue is at most 120 ms");
@@ -50,6 +52,9 @@ void DurationAndLevels() {
 		if (sound == Sound::Npc) {
 			Check(Rms(pcm, 0, frames * 2 / 3, frames) < 0.25 * Rms(pcm, 0, 0, frames / 3),
 				"the NPC retains its quickly decaying wooden tap");
+		} else if (sound == Sound::Reach) {
+			Check(Rms(pcm, 0, 0, frames / 5) > 2 * Rms(pcm, 0, frames / 5 * 2 - frames / 10, frames / 5 * 2),
+				"the reach ping strikes and decays before its second note");
 		} else {
 			const double middle = Rms(pcm, 0, frames / 3, frames * 2 / 3);
 			Check(middle > 2 * Rms(pcm, 0, 0, frames / 3) && middle > 2 * Rms(pcm, 0, frames * 2 / 3, frames),
@@ -78,23 +83,102 @@ void Spatial() {
 		"rear placement lowers the tap's resonance by a meaningful interval");
 }
 
+void Strengths() {
+	const Placement side{0.5, -1};
+	Placement flat = side, wide = side, none = side;
+	flat.panScale = 0; flat.pitchScale = 0; wide.panScale = 2; none.panScale = 1;
+	const auto mono = Synthesize(Sound::Ordinary, flat);
+	bool equal = true;
+	for (size_t i = 0; i + 1 < mono.size(); i += Channels) equal &= mono[i] == mono[i + 1];
+	Check(equal, "zero pan strength centers the sound");
+	Check(Synthesize(Sound::Ordinary, none) == Synthesize(Sound::Ordinary, side), "strength 1 is today's sound");
+	const auto normal = Synthesize(Sound::Ordinary, side), doubled = Synthesize(Sound::Ordinary, wide);
+	Check(Rms(doubled, 1) / Rms(doubled, 0) > Rms(normal, 1) / Rms(normal, 0), "doubled pan strength widens the spread");
+	Placement full = {1, 1, 2, 1};
+	Check(Synthesize(Sound::Ordinary, full) == Synthesize(Sound::Ordinary, {1, 1}), "panning stays within the valid range");
+	Placement noPitch = {0, -1, 1, 0};
+	Check(Synthesize(Sound::Ordinary, noPitch) == Synthesize(Sound::Ordinary, {0, 1}), "zero pitch strength removes the rear drop");
+	Placement deeper = {0, -1, 1, 2};
+	Check(Synthesize(Sound::Ordinary, deeper) != Synthesize(Sound::Ordinary, {0, -1}), "doubled pitch strength deepens the rear drop");
+}
+
+// The older swoops, kept behind the class-layer switch.
+constexpr Placement Classic{0, 1, 1, 1, false};
+
 void Timbres() {
-	const auto npc = Synthesize(Sound::Npc, {});
-	const auto important = Synthesize(Sound::Important, {});
-	const auto resurrector = Synthesize(Sound::Resurrector, {});
-	const auto ranged = Synthesize(Sound::Ranged, {});
+	const auto npc = Synthesize(Sound::Npc, Classic);
+	const auto important = Synthesize(Sound::Important, Classic);
+	const auto resurrector = Synthesize(Sound::Resurrector, Classic);
+	const auto ranged = Synthesize(Sound::Ranged, Classic);
 	Check(npc != important, "friendly and enemy signatures differ");
 	Check(important != resurrector && important != ranged && resurrector != ranged,
 		"important, resurrector and ranged signatures differ");
+	Check(Synthesize(Sound::Boss, Classic) == important, "without the layers a boss swoops like an elite");
 	for (Sound sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
-		const auto sweep = Synthesize(sound, {});
+		const auto sweep = Synthesize(sound, Classic);
 		const size_t frames = sweep.size() / Channels;
 		Check(Crossings(sweep, frames / 6, frames / 3) > Crossings(sweep, frames * 2 / 3, frames * 5 / 6),
 			"enemy whoosh sweeps down in brightness");
-		const auto rear = Synthesize(sound, {0, -1});
+		const auto rear = Synthesize(sound, {0, -1, 1, 1, false});
 		Check(Crossings(rear, frames / 3, frames * 2 / 3) < Crossings(sweep, frames / 3, frames * 2 / 3),
 			"rear whoosh remains audibly lower than front");
 	}
+}
+
+// Pitch says up or down, so the classes share the growl and differ by a layer over it.
+void LayeredClasses() {
+	const auto growl = Synthesize(Sound::Ordinary, {0, 1, 1, 1, true});
+	const double growlRms = Rms(growl, 0);
+	std::vector<std::vector<int16_t>> layered;
+	for (const auto sound : {Sound::Important, Sound::Boss, Sound::Resurrector, Sound::Ranged}) {
+		const auto pcm = Synthesize(sound, {0, 1, 1, 1, true});
+		Check(pcm.size() == growl.size(), "a layered enemy lasts as long as the growl");
+		std::vector<int16_t> layer(pcm.size());
+		for (size_t i = 0; i < pcm.size(); ++i) layer[i] = static_cast<int16_t>(pcm[i] - growl[i]);
+		const double level = Rms(layer, 0);
+		Check(level > 0.2 * growlRms && level < 1.2 * growlRms, "each class adds a layer over the same growl, neither lost nor drowning it");
+		for (const auto& other : layered) Check(pcm != other, "every class has a layer of its own");
+		layered.push_back(pcm);
+		const size_t frames = pcm.size() / Channels;
+		const auto rear = Synthesize(sound, {0, -1, 1, 1, true});
+		Check(Crossings(rear, frames / 3, frames * 2 / 3) < Crossings(pcm, frames / 3, frames * 2 / 3),
+			"a layered enemy behind is lower than one ahead");
+	}
+	const auto bell = Synthesize(Sound::NpcAlert, {});
+	const size_t frames = bell.size() / Channels;
+	Check(Peak(bell) > 1500 && Peak(bell) < 14000 && bell.front() == 0 && bell.back() == 0, "the NPC bell is audible and starts and ends at silence");
+	Check(Rms(bell, 0, 0, frames / 4) > 3 * Rms(bell, 0, frames * 3 / 4, frames), "the NPC bell is struck and rings down");
+	const double bellRate = static_cast<double>(Crossings(bell, 0, frames / 4)) / (frames / 4);
+	const double growlRate = static_cast<double>(Crossings(growl, 0, growl.size() / Channels)) / (growl.size() / Channels);
+	Check(bellRate > 4 * growlRate, "the NPC bell rings far above every enemy");
+
+	const auto rattle = Synthesize(Sound::Corpse, {}), knock = Synthesize(Sound::Edge, {});
+	Check(Peak(rattle) > 1500 && Peak(rattle) < 14000 && rattle.front() == 0, "the corpse rattle is audible and starts at silence");
+	Check(rattle != knock && rattle.size() != knock.size(), "the corpse rattle is not the inventory knock");
+	const auto rattleRight = Synthesize(Sound::Corpse, {1, 1});
+	Check(Rms(rattleRight, 1) > 2 * Rms(rattleRight, 0), "the corpse rattle pans toward the corpse");
+}
+
+void NewCues() {
+	const auto growl = Synthesize(Sound::Ordinary, {});
+	const auto ping = Synthesize(Sound::Reach, {});
+	const auto important = Synthesize(Sound::Important, {});
+	const size_t growlFrames = growl.size() / Channels, pingFrames = ping.size() / Channels;
+	Check(growl != important && ping != growl && ping != important, "the growl and the ping have signatures of their own");
+	const double growlRate = static_cast<double>(Crossings(growl, growlFrames / 3, growlFrames * 2 / 3)) / growlFrames;
+	const size_t importantFrames = important.size() / Channels;
+	const double importantRate = static_cast<double>(Crossings(important, importantFrames / 3, importantFrames * 2 / 3)) / importantFrames;
+	const double pingRate = static_cast<double>(Crossings(ping, 0, pingFrames / 3)) / pingFrames;
+	Check(pingRate > 4 * growlRate && pingRate > 2 * importantRate, "the ping sits above every enemy cue, far above the growl");
+	const size_t split = pingFrames * 42 / 100;
+	Check(Crossings(ping, split + 50, split + 650) > Crossings(ping, 50, 650), "the ping rises to its second note");
+	const auto rearGrowl = Synthesize(Sound::Ordinary, {0, -1});
+	Check(Crossings(rearGrowl, growlFrames / 3, growlFrames * 2 / 3) < Crossings(growl, growlFrames / 3, growlFrames * 2 / 3),
+		"a growl behind is lower than one ahead");
+	const auto rearPing = Synthesize(Sound::Reach, {0, -1});
+	Check(Crossings(rearPing, 50, 650) < Crossings(ping, 50, 650), "a ping behind is lower than one ahead");
+	const auto left = Synthesize(Sound::Reach, {-0.75, 1});
+	Check(Rms(left, 0) > 2 * Rms(left, 1), "the ping is placed toward the enemy");
 }
 
 void DifferentFromRadarBreath() {
@@ -103,7 +187,7 @@ void DifferentFromRadarBreath() {
 	const auto floor = D2RAccess::RadarAudio::Synthesize(events, {}, 1);
 	const size_t floorFrames = floor.size() / Channels;
 	const double floorRate = static_cast<double>(Crossings(floor, floorFrames / 3, floorFrames * 2 / 3)) / floorFrames;
-	for (const auto sound : {Sound::Important, Sound::Resurrector, Sound::Ranged}) {
+	for (const auto sound : {Sound::Important, Sound::Resurrector, Sound::Ranged, Sound::Ordinary}) {
 		const auto enemy = Synthesize(sound, {});
 		const size_t frames = enemy.size() / Channels;
 		const double enemyRate = static_cast<double>(Crossings(enemy, frames / 3, frames * 2 / 3)) / frames;
@@ -133,17 +217,17 @@ void InvalidInputsAndGain() {
 }
 
 int main() {
-
-    for (const auto sound : {Sound::Ordinary, Sound::Reach}) {
-        const auto pcm = Synthesize(sound, {});
-        Check(!pcm.empty() && pcm.size() % Channels == 0 && Peak(pcm) > 1500 && Peak(pcm) < 16000,
-            "new optional sounds are audible stereo with headroom");
-        Check(pcm.front() == 0 && pcm.back() == 0, "new optional sounds start and end at silence");
-        Check(Synthesize(sound, {1, 0}) != Synthesize(sound, {-1, 0}), "new optional sounds preserve spatial placement");
-    }
-    DurationAndLevels();
+	DurationAndLevels();
 	Spatial();
 	Timbres();
+	LayeredClasses();
+	std::vector<int16_t> pcm{1000, -1000, 30000, -30000};
+	D2RAccess::SoundVolume::Scale(pcm, 2);
+	Check(pcm[0] == 2000 && pcm[1] == -2000 && pcm[2] == 32767 && pcm[3] == -32767, "a family's volume doubles and saturates at full scale");
+	Check(D2RAccess::SoundVolume::Factor(D2RAccess::SoundVolume::NeutralLevel) == 1 && D2RAccess::SoundVolume::Factor(0) == 0
+		&& D2RAccess::SoundVolume::Factor(99) == 2, "a volume level is a factor from silence to double");
+	Strengths();
+	NewCues();
 	DifferentFromRadarBreath();
 	InvalidInputsAndGain();
 	Passed();

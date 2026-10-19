@@ -2,8 +2,11 @@
 #include "level_exit_layout.h"
 #include "entity_layout.h"
 #include "native_memory.h"
+#include "preset_map_layout.h"
+#include <algorithm>
 #include <cmath>
 #include <unordered_set>
+#include <utility>
 
 namespace D2RAccess::NativeLevelExits {
 namespace {
@@ -55,7 +58,7 @@ bool InRoom(uintptr_t preset, const TileRect& rect, Radar::Position& position) {
 
 // Every logical room of the player's level, inactive ones included, and each
 // preset in it. False when the traversal is malformed.
-template<class Visit> bool WalkPresets(uintptr_t activeRoom, Visit visit) {
+template<class Visit, class VisitRoom> bool WalkPresets(uintptr_t activeRoom, Visit visit, VisitRoom visitRoom) {
 	uintptr_t room = 0, level = 0;
 	uint32_t currentLevel = 0;
 	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
@@ -68,6 +71,7 @@ template<class Visit> bool WalkPresets(uintptr_t activeRoom, Visit visit) {
 		TileRect rect;
 		if (!Peek(room + ExtendedLevel, owner) || owner != level || !Peek(room + RoomPresets, preset)
 			|| !ReadRect(room, rect)) return false;
+		visitRoom(room, rect);
 		while (preset) {
 			if (presets.size() >= MaxPresets || !presets.insert(preset).second) return false;
 			uint32_t type = 0;
@@ -76,6 +80,44 @@ template<class Visit> bool WalkPresets(uintptr_t activeRoom, Visit visit) {
 			if (!Peek(preset + PresetNext, preset)) return false;
 		}
 		if (!Peek(room + RoomNext, room)) return false;
+	}
+	return true;
+}
+
+// The map a preset room was cut from; zero for any other room.
+uintptr_t MapOf(uintptr_t room, bool* readable = nullptr) {
+	int32_t type = 0;
+	uintptr_t data = 0, map = 0;
+	if (readable) *readable = false;
+	if (!Peek(room + PresetMapLayout::RoomType, type)) return 0;
+	if (type != PresetMapLayout::PresetRoomType) { if (readable) *readable = true; return 0; }
+	if (!Peek(room + PresetMapLayout::RoomData, data) || !data || !Peek(data + PresetMapLayout::PresetRoomMap, map) || !map) return 0;
+	if (readable) *readable = true;
+	return map;
+}
+
+using Room = std::pair<uintptr_t, TileRect>;
+
+// The monster presets `map` still holds, already in level subtiles. Each goes to
+// the room whose rectangle holds it, as building that room will (0x3DE420).
+bool ReadUnbuilt(uintptr_t map, const std::vector<Room>& rooms, std::vector<MonsterPreset>& output, bool& complete) {
+	std::unordered_set<uintptr_t> presets;
+	uintptr_t preset = 0;
+	if (!Peek(map + PresetMapLayout::MapPendingPresets, preset)) return false;
+	while (preset) {
+		if (presets.size() >= MaxPresets || !presets.insert(preset).second) return false;
+		uint32_t type = 0, monster = 0;
+		int x = 0, y = 0;
+		if (!Peek(preset + PresetType, type)) return false;
+		if (type == MonsterType && Peek(preset + PresetClass, monster) && Peek(preset + PresetX, x) && Peek(preset + PresetY, y)) {
+			for (const auto& [room, rect] : rooms)
+				if (x >= rect.x * SubtilesPerTile && y >= rect.y * SubtilesPerTile
+					&& x < (rect.x + rect.width) * SubtilesPerTile && y < (rect.y + rect.height) * SubtilesPerTile) {
+					output.push_back({monster, {static_cast<double>(x), static_cast<double>(y)}, room});
+					break;
+				}
+		} else if (type == MonsterType) complete = false;
+		if (!Peek(preset + PresetNext, preset)) return false;
 	}
 	return true;
 }
@@ -115,7 +157,7 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 			if (type == WarpType && Peek(preset + PresetClass, warp)
 				&& Peek(preset + PresetX, px) && Peek(preset + PresetY, py)
 				&& px >= 0 && py >= 0 && px < width * SubtilesPerTile && py < height * SubtilesPerTile) {
-				Exit exit{warp & WarpIdMask};
+				Exit exit{warp & WarpIdMask, 0, currentLevel};
 				if (Destination(room, exit.warp, currentLevel, exit.destination)) {
 					exit.position = {static_cast<double>(x * SubtilesPerTile + px), static_cast<double>(y * SubtilesPerTile + py)};
 					exits.push_back(exit);
@@ -129,28 +171,54 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 	return true;
 }
 
-bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt, bool* complete) {
 	const NativeMemory::ReadScope scope;
+	if (complete) *complete = false;
 	output.clear();
 	std::vector<MonsterPreset> monsters;
+	std::vector<Room> rooms;
+	std::vector<uintptr_t> maps;
+	bool allPresets = true;
 	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t, uintptr_t preset, uint32_t type) {
 		MonsterPreset monster{0, {}, room};
-		if (type == MonsterType && Peek(preset + PresetClass, monster.monster) && InRoom(preset, rect, monster.position))
-			monsters.push_back(monster);
+		if (type == MonsterType) {
+			if (Peek(preset + PresetClass, monster.monster) && InRoom(preset, rect, monster.position)) monsters.push_back(monster);
+			else allPresets = false;
+		}
+	}, [&](uintptr_t room, const TileRect& rect) {
+		rooms.push_back({room, rect});
+		bool readable = true;
+		const uintptr_t map = unbuilt ? MapOf(room, &readable) : 0;
+		allPresets &= readable;
+		if (map && std::find(maps.begin(), maps.end(), map) == maps.end()) maps.push_back(map);
 	})) return false;
+	std::vector<MonsterPreset> pending;
+	for (const uintptr_t map : maps)
+		if (!ReadUnbuilt(map, rooms, pending, allPresets)) { allPresets = false; pending.clear(); break; }
+	monsters.insert(monsters.end(), pending.begin(), pending.end());
 	output = std::move(monsters);
+	if (complete) *complete = allPresets;
 	return true;
 }
 
-bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
+bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool* complete) {
 	const NativeMemory::ReadScope scope;
+	if (complete) *complete = false;
 	output.clear();
 	std::vector<MonsterPreset> markers;
 	bool end = false;
+	bool allMarkers = true;
 	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t level, uintptr_t preset, uint32_t type) {
 		uint32_t object = 0;
 		Radar::Position position;
-		if (level != 75 || type != ObjectType || !Peek(preset + PresetClass, object) || !InRoom(preset, rect, position)) return;
+		if ((level != 75 && level != 109) || type != ObjectType) return;
+		if (!Peek(preset + PresetClass, object) || !InRoom(preset, rect, position)) { allMarkers = false; return; }
+		// Harrogath's object461/Init68 creates the town actor514 (0x548EE0),
+		// distinct from hostile Nihlathak526. Its presence is observed separately.
+		if (level == 109) {
+			if (object == 461) markers.push_back({514, position, room});
+			return;
+		}
 		// Shipped objects.txt HratliStart/End (378/379, InitFn 49/50),
 		// NatalyaStart (382, InitFn 52). Installed quest handlers spawn
 		// MonStats 253/297 here (RVA 0x5EB9E0 / 0x5EBC20).
@@ -165,8 +233,9 @@ bool ReadNpcMarkers(uintptr_t activeRoom, std::vector<MonsterPreset>& output) {
 			markers.push_back({253, position, room, std::move(alternatives)});
 			end = object == 379;
 		} else if (object == 382) markers.push_back({297, position, room});
-	})) return false;
+	}, [](uintptr_t, const TileRect&) {})) return false;
 	output = std::move(markers);
+	if (complete) *complete = allMarkers;
 	return true;
 }
 

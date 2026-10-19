@@ -7,7 +7,7 @@ complete unexplored routing remains unavailable.
 
 Lets a blind player walk to a specific thing instead of only sensing walls
 around them. The level scanner on the right stick (`docs/entity-scan.md`,
-`src/map_survey.h`) names the target; a short left-stick click (L3), or
+`src/map_survey.h`) names the target; **BACK+LB**, or
 **Ctrl+B**, locks what it spoke last. From then on a ping repeats, faster the closer the
 route gets, panned along the next leg of a route proved on the game's own
 collision — so a dungeon corridor is followed turn by turn instead of the
@@ -18,13 +18,18 @@ releases it on its own.
 
 ## Controls and console
 
-- Short left-stick click (`InputDirection::TakeLeftStickClick`) or **Ctrl+B**:
+- **BACK+LB** (`InputDirection::TakeBackWithLb`) or **Ctrl+B**:
   lock the last thing the entity scan or the exit review announced. With a lock
   active, a still-fresh offer of a *different* target (`EntityRadar::SameTarget`)
   replaces it in one press, silently releasing the old one (`retargeted`); a
   refused retarget keeps the old lock. Otherwise the press releases the lock.
-  Moved from R3 on 2026-09-25: R3 also opens the game's emote wheel. L3 is the
-  mod's only stick button, reported on press; R3 belongs to the game again.
+  Moved from R3 on 2026-09-25 (R3 opens the emote wheel), then from L3 on
+  2026-10-11: L3 is the game's walk/run toggle, so each beacon press also toggled
+  running. `pad_filter.h` keeps LB from the game while BACK is held in play.
+- Arrival: within 3 subtiles of the exact player position (the keyboard's use
+  reach), plus half a large object's footprint. A target that vanishes as it is
+  reached (a chest opened, an item picked up, read within the last 2 s) is
+  announced as arrived, not lost.
 - Console `access-beacon lock|clear|status|exploration|full` (`lock` also accepts
   `toggle`, `clear` also accepts `off`); `status` speaks the navigation mode,
   then whether something is locked and, if so, its name. `exploration` and
@@ -78,24 +83,79 @@ Live log, 2026-09-25, Dark Wood → Black Marsh: the midpoint was 15640,5169 and
 the player crossed near 15623,5160. Entering the midpoint's room released the
 lock (`known-route-unavailable`) and later locks were refused (`no-route`).
 
+**Found at the crossing (2026-09-28).** Exploration lists a border once it is
+discovered, and that used to be judged at the midpoint only: in Tamoe Highland
+the Monastery Gate's midpoint (15160,5090) lay in a room the automap had not
+drawn while the player stood at the eastern entrance near 15265,5089, the
+zone-transition loop already playing, so the scanner did not list the gate until
+after the player had walked through and back. `ZoneTransitions::FoundAtCrossings`
+now also judges a border at its walkable crossing; the listed entry keeps the
+midpoint as its position.
+
+**A corridor's mouth, not its inner end (2026-10-18).** A tester: the Outer Cloister notice and entry sat at
+the inner door of the gate corridor. The shared edge of the two areas ends that corridor, so the crossing was
+its far end. `ZoneTransitions::Find` now reads the corridor there (`Passages`) and moves the crossing to the
+mouth facing this area (`CorridorMouth`); inside the corridor it stays the way on. The place is also
+remembered at that point. Unverified live: the Gate's corridor must read as a corridor.
+
+**Crossings seen are kept for the game (2026-10-14).** A tester crossed from
+the Cold Plains into the Stony Field at 5400,5222, came back by waypoint, and
+the beacon refused the Stony Field eight times from 129 to 334 units away
+(`refused reason=no-route`): with the crossing not loaded, the way was planned
+to the edge's middle, 5400,5240, inside the border's trees. It locked at 97
+units, once the crossing loaded. Every crossing `ZoneTransitions::Find` gives
+(scanner passes, beacon updates) is now kept per area for the game
+(`CrossingMemory`), and the beacon, the route and the scanner's distance use
+the one seen nearest the player when none is loaded. A border never seen
+loaded is led to anywhere within 20 units of its edge's middle
+(`BorderReach`, a `Recall::area`), moved into this area when the middle falls
+just outside it; the crossing loads before the player gets there.
+
+**Stepping across a border keeps the lock (2026-09-28).** A route can run along
+an area border. Monastery Gate is 18 tiles tall. Its eastern entrance opens into
+an alcove, and the only way on is a strip at y 5080–5089 along the Tamoe
+border (y 5090) back to the central gate. The route to the Outer Cloister was
+right, but one step south crossed into Tamoe, and any lifecycle change released
+the lock. That happened twice in the log. Now, when the level changes to an
+area that shares an edge with the target's level (`LevelAreas::Neighbours`), the
+lock is parked instead (`released reason=left-area`). Walking back into the
+target's level resumes it with the lock sound (`[beacon] resumed`). Guidance is
+silent while outside. These drop the parked lock:
+
+- a third level, or an area that is not a neighbour (a warp);
+- a new lock or a Clear;
+- BACK+LB with nothing offered, which announces the release;
+- a mode change;
+- a new game.
+
+An exit target whose destination is the new level still ends there.
+
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
 helps the player return, but never discovers for them.
 
-- **Scanner.** Something enters the scanner only once it has been
-  within the scan's range (`EntityRadar::Settings::range`) on known terrain with
-  a clear line of sight (`MapSurvey::Discoverable`); it then stays while out of
-  sight. Rooms are listed once stood in. Readouts give straight-line distance and
+- **Scanner.** Something enters the scanner once it stands in an explored
+  room (stood in, drawn on the automap, or underfoot: a room is seen whole on
+  stepping into it, the user's rule of 2026-10-14), or once it has been within
+  the scan's range (`EntityRadar::Settings::range`) on known terrain with a
+  clear line of sight (`MapSurvey::Discoverable`); it then stays while out of
+  sight. Enemies and loot count in the room underfoot only. Rooms are listed
+  once stood in. Readouts give straight-line distance and
   direction (`surveyOrientation`), never walking steps. Exits and objects
   (waypoints, stones, doors) are kept per level for the whole game, so they are
   still there after a town trip (`MapSurvey::Memory`). Enemies are never
   remembered: they are read live, within range and in sight.
 - **Beacon.** Routes use only the collision of explored logical rooms: those
   the player has stood in (`TerrainService::VisitedRooms`), those the automap
-  has drawn in (`NativeAutomap::RevealedRooms`), and the current room. Everything
-  else is masked unknown (`NavigationPolicy::Restrict`), and the room graph is
-  rebuilt from explored rooms (`BeaconNavigation::Prepare`).
+  has drawn in (`NativeAutomap::RevealedRooms`), and the current room, plus the
+  target's own room: what the scanner lists can be routed to (2026-10-14).
+  Everything else is masked unknown (`NavigationPolicy::Restrict`; on the
+  remembered map, ground not seen yet), and the room graph is rebuilt from
+  explored rooms (`BeaconNavigation::Prepare`). A way over explored rooms is
+  preferred; without one the way guesses across rooms never stood in, and the
+  first of them joins the floor followed, so the ping leads into it. Stepping
+  in explores it and the plan is made again.
   A lock needs a route whose end reaches the target or the next waypoint
   (`Beacon::Reaches`); otherwise it says "No route through explored areas to X",
   stays silent and logs `[beacon] refused reason=unreadable|outside-explored|no-route`.
@@ -108,13 +168,13 @@ helps the player return, but never discovers for them.
   `routeLossMs`. The ping is silent meanwhile and resumes when the route returns;
   before 2026-09-25 a single failed update released the lock. A failed world or
   room read only skips that update.
-- **Unexplored rooms.** The scanner's unexplored-room entries share an edge
-  with explored ground, so the beacon admits that one room besides the
-  explored ones: the route may enter it but never crosses it. The waypoint is
-  the room's doorway, the nearest reachable cell inside it
-  (`docs/room-routing.md`). It arrives as soon as the player
-  steps into the room, since its centre may be inside a wall. Once entered,
-  the room is explored, and what the automap draws there joins the scanner.
+- **Rooms.** A room target, explored or not, is reached at the first step
+  inside it: the remembered way ends there (`Recall::room`,
+  `LevelRoute::Area`), its last loaded cell is the waypoint, and the lock
+  arrives as soon as the player steps in (`InTargetRoom`), since its centre may
+  be inside a wall. Before 2026-10-14 the way was planned to the centre, and a
+  route to the unexplored room next door failed when the centre was wall. Once
+  entered, the room is explored, and everything in it joins the scanner.
 - **Other players** are followed as in full assistance, through rooms this
   player has not explored: the lock is never refused and never ends for lack of
   an explored route (`Unrestricted` in `src/beacon_service.cpp`, user's request
@@ -127,6 +187,59 @@ helps the player return, but never discovers for them.
   `[navigation] full_assistance = true` in `d2rloader/config/d2r-access.toml`
   (read at startup), or `access-beacon full` for the session. Switching mode
   releases any lock and clears the catalogue.
+
+## Walkable guidance
+
+Added 2026-10-12, after a blind tester's report: "In dungeons, the tracker
+leads through walls". An item "56 steps right" really lay down, right, up and
+right. When the loaded window had no complete route, the ping followed the
+search's nearest reachable cell, often a dead end at the wall on the target's
+side. With no route at all it fell back to the straight line. Now the ping
+follows walkable ground or stays silent:
+
+1. **The window's route.** When the loaded floor reaches the target
+   (`BeaconNavigation::Prepare`, `ReachableNow`), the route search below leads
+   there, as before.
+2. **The remembered map.** Otherwise guidance plans over the level's floor as
+   the game has shown it this game. This is the same `LevelRoute::Memory` the
+   keyboard walks use, shared through `KeyboardService::RememberedMap` and
+   learnt from each look. The waypoint is the last cell of that way still on
+   the loaded floor (`LevelRoute::Ahead`). The route search leads there, so the
+   ping turns where the corridor turns, not toward the target. The plan crosses
+   ground seen open first, then ground not seen yet. It never crosses ground
+   seen shut.
+3. **Nothing.** When the map has no way either, no waypoint is guessed: the
+   room graph's sub-goal is used only when no map is kept. A route search that
+   stops short of the target is never followed (`Beacon::Reaches`, now in every
+   mode). Without a proved route the beacon plays no ping.
+
+The modes keep their rules:
+
+- **Exploration** plans only over explored rooms (`Memory::Copy` keeps their
+  ground alone). It refuses a lock with no route, and releases one after
+  `routeLossMs` without a route, with the same strings as before.
+- **Full assistance** and unrestricted targets (other players, unseen town
+  NPCs) plan over the whole map. When no walkable route is known they keep the
+  lock in silence, never releasing it, until a route appears.
+
+**Shut doors.** A walking plan never passes a shut door: the game will not walk
+through one. Guidance plans past it (`Plan::From(..., doors)`), because the
+player opens it. The waypoint is the floor in front of the door. The ping stops
+there, where the radar names the door, and goes on once it is open.
+
+**Cost.** The plan is a search of the whole level (3.6 ms on 400 x 400, see
+[keyboard play](keyboard-play.md#a-far-walk-the-remembered-map)). It runs only
+when the loaded floor does not reach the target. `RememberedWay` plans on a
+copy of the map, refreshed at most every `RefreshMs` (1 s). A moving target is
+planned to where it was until it is 1 s old or `PlaceDrift` (10 cells) away.
+New explored rooms or another level refresh the copy at once. Outside
+exploration's grace, a lock without a route is searched again only at the usual
+interval. Log, on change only: `[beacon] lead=direct|room-graph|remembered-map|remembered-map-guess|no-way way_cells=N to=x,y name=NAME`.
+
+**Not verified in the game:** the tester's case itself, the ping stopping at
+a shut door, how often the plan is rebuilt on a large level (the Arcane
+Sanctuary), and whether full assistance's silence without a route needs
+spoken feedback. Tests: `tests/beacon_guidance_tests.cpp`.
 
 ## Route search
 
@@ -150,11 +263,10 @@ helps the player return, but never discovers for them.
   lead is re-proved on roughly the work per second a short one costs instead
   of running the widest search several times a second. Near targets keep the
   original 3-cell / 400 ms cadence exactly.
-- A target beyond the box, or in a room that is not loaded, is not abandoned:
-  the search heads for the reachable cell nearest it and re-proves as the
-  player advances, so the box slides along the route until the target falls
-  inside it. That is greedy, and it can still be fooled by a detour longer
-  than the box.
+- A target beyond the box, or in a room that is not loaded, is led to along
+  the remembered map ([walkable guidance](#walkable-guidance)). Before
+  2026-10-12 the search headed for the reachable cell nearest it, which a
+  detour longer than the box fooled.
 - Only the **terrain layer** is read (`TerrainCollisionFlags(raw) &
   walkingMask`), the same layer the sonar radar uses: a monster or another
   player standing in a doorway does not make the beacon reroute around them.
@@ -162,9 +274,9 @@ helps the player return, but never discovers for them.
   native footprint patterns: 1/3/5 are a five-cell cross, 2/4 a 3x3 square,
   0 a single point.
 - A breadth-first search from the player's cell finds the target cell. If it
-  cannot be reached (unknown/blocked cell, or an unloaded room with only a
-  last-known position), the search instead keeps the reachable cell nearest
-  to the target as a sub-goal — walking toward an unseen destination.
+  cannot be reached, the search keeps the reachable cell nearest to the
+  target. Guidance follows that route only when it ends within
+  `arrivalDistance` of the target, as beside a chest on its own blocked cell.
 - The spoken heading aims at the point `lookAhead` cells along the found
   route, not the very next cell, so the ping turns a corner early instead of
   hugging it.
@@ -219,9 +331,12 @@ sounds where this uses a word.
 | `lockDelayMs` | 600 | `Beacon::Settings`, silence after a lock so the spoken name is not stepped on |
 | `routeLossMs` | 3000 | `Beacon::Settings`, how long exploration waits, silent, for an unproved route before releasing |
 | `UpdateMs` | 150 | `beacon_service.cpp`, how often the locked target is re-read and ticked |
+| `RefreshMs` | 1000 | `BeaconNavigation::RememberedWay`, most often the remembered map is copied anew to plan on |
+| `PlaceDrift` | 10 | `BeaconNavigation::RememberedWay`, cells a moving target may move before it is planned to afresh |
 | `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scan announcement stays lockable |
 | ping tone | 620 Hz, 80 ms notes | `beacon_audio.cpp` `Synthesize`, `PingHz`/`NoteMs` |
 | rear pitch | 0.94 | `beacon_audio.cpp` `RearPitch`; shared with the ground-item loops' rear factor |
+| `pan_strength` / `pitch_strength` | 100 % | `radar.toml [beacon]`, 0-200 %, scale the stereo spread and the rear pitch drop |
 | level | 0.15 | `beacon_audio.cpp` `Level`, peak gain before the user's volume setting |
 | stereo/front placement | native projection `0x334DB0` | `beacon_service.cpp` `Place`; same screen-axis convention as the ground-item loops |
 
@@ -231,6 +346,7 @@ sounds where this uses a word.
 - `[beacon] released reason=<cancelled|retargeted|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
 - `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
+- `[beacon] lead=<direct|room-graph|remembered-map|remembered-map-guess|no-way> way_cells=<n> to=<x>,<y> name=<name>` — when the way guidance takes changes ([walkable guidance](#walkable-guidance)).
 - `[beacon-audio]` — output device ready/unavailable/reopening, and `silenced reason=<reason>`.
   A buffer not returned one second after its length counts as a failed device and is reopened.
 
@@ -240,9 +356,14 @@ sounds where this uses a word.
   use the current level's logical-room presets, with no range/visibility cutoff.
   Their room list, rectangles and presets now have whole-function guards.
   Rooms with no generated preset data remain unknown; see [coverage](distant-exits.md).
-- The route is only as good as the collision copied into the search box: an
-  unloaded or unknown cell is never routed through, so a target behind
-  unloaded terrain falls back to heading for the nearest reachable cell.
+- A town NPC whose unit is not loaded is led to as its spawn point; its unit
+  takes over the lock when it loads (same identity, `docs/entity-scan.md#town-npcs`).
+  If the spawn comes around the player without the NPC, the lock keeps that
+  place and says the NPC is gone on arrival.
+- The route is only as good as the collision copied into the search box and
+  the remembered map: an unloaded or unknown cell is never routed through. A
+  target behind ground never seen is led toward over it as a guess (full
+  assistance), and nothing is played where no way is known.
 - Ordinary unit-id reuse after death remains unverified. Fixed level exits use
   coordinate identity, including when represented by an unloaded-room preset.
 
