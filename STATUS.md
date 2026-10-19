@@ -1,20 +1,5 @@
 # STATUS — Diablo II: Resurrected (d2r-access)
 
-## All-edits publication to bladestorm — 2026-10-19
-
-User explicitly requested pushing every source edit to `origin/bladestorm`,
-including previously local instructions, memory, crash report and build script.
-Merge `4ad6316` is the tested/deployed production state described below;
-this follow-up changes documentation and build-script comments only. The build
-script now participates in normal Git tracking; its four-job/BelowNormal
-behavior is unchanged. Generated build output and extracted game data retain
-their existing ignore rules.
-
-Remote `bladestorm` was verified at `4c88812`, an ancestor of the merge. The
-publication fetch also found newer upstream commits `2628b90`/`76d9c7e`; they
-postdate the integration below and are outside this tested/deployed snapshot.
-Push outcome and exact remote tip are recorded in local HANDOFF and evidence.
-
 ## Upstream merge, terror waypoint label and NPC presence — 2026-10-19
 
 IMPLEMENTED, OFFLINE-VERIFIED AND INSTALLED; gameplay confirmation pending.
