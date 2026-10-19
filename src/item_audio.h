@@ -19,6 +19,10 @@ constexpr size_t DropPassSamples(int level) {
 }
 int DropSpeedLevel();
 void SetDropSpeedLevel(int level);
+// How far item and place sounds pan to their side: 1 as X3DAudio places them, 0 centred
+// (a tester heard them too far left and right, 2026-10-19).
+double PanScale();
+void SetPanScale(double scale);
 constexpr bool IsOneShot(GroundItems::Sound sound) {
 	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered;
 }

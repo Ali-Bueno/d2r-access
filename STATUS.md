@@ -2,6 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Route finder (BACK+A) into walls and after other players — 2026-10-19 (not released)
+
+From the tester's chat (no log yet; choices in [decisions](docs/decisions.md)):
+- Every compass point is a way the stick and arrows walk (`SpokenDirection::Bucket`): doorways
+  are NE/SE/SW/NW, and the scanner, BACK+RT and the route agree
+  ([spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13)).
+- Legs straightened with the body's footprint; a doorway step is no longer folded away
+  (`RouteLegs::Fold`); `Radar::InBody` shared by the three footprint tests.
+- Route to what the scanner named re-reads it first; a followed target that walks on is
+  re-planned (`FollowMovedTarget`).
+- Item and place panning, `item-pan-25` in Ctrl+S Sounds ([ground items](docs/ground-items.md)).
+
+123/123 CTest; installed by the build. **Unverified live: all of it.**
+**Next step:** the tester tries a route through a doorway and to the other player, compares the
+scanner's and BACK+RT's words with the way the stick walks, and item panning at 50 percent; logs:
+`[route] from=`, `[route] follow moved`.
+
 ## The tester's list on build 2026-10-18-2 — 2026-10-19 (released as test-2026-10-19 from 2628b90)
 
 Release: 123/123 CTest, 29 entries, 62,660,001 bytes, SHA-256 `7a02e52e…2adf`.

@@ -20,12 +20,13 @@ struct Leg {
 	bool door = false;  // a shut door to open, said as a leg of its own
 };
 
-// Whether a straight line may cut across a cell: ground the way itself may cross.
+// Whether a straight leg may cross a cell: ground the way itself may cross, with
+// room for the whole body.
 using Passable = std::function<bool(int x, int y)>;
 
 // The way from `from` along `path` (the cells to walk, the last at the place),
 // straightened over `passable` ground, split at the shut doors (`doors`:
-// indices into `path`), and merged into legs as `style` names their directions.
+// indices into `path`), and merged into legs as `style` names the ways to walk them.
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
 	const Passable& passable, SpokenDirection::Style style);
 double Length(const std::vector<Leg>& legs);

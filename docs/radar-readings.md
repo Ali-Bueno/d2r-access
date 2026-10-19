@@ -45,7 +45,8 @@ down-left (+Y), down-right (+X). The service applies `[radar] diagonals`
 (default false since listening); `access-radar diagonal|cardinal` switches for the run, forgets
 what the old rays said (silent baseline) and speaks the four names. Only the
 radar changes; the NPC announcer, terrain overview, scanner and room exits keep
-the screen directions.
+the screen directions (until 2026-10-19, when every compass point became a way to
+walk: [spoken directions](#spoken-directions-2026-10-13)).
 
 - The engine, passage scan and wall memory are unchanged; only the axis differs.
   The scan's lateral tolerance stays one native cell: on an axis ray that is
@@ -287,6 +288,16 @@ The tester asked for compass words instead of up/down/left/right and the user ad
 as an alternative. Distances are **units** (one collision subtile), no longer "steps": a step of
 the character covers several subtiles. Per language the twelve hours are written out
 (`clockHours`), so each grammar ("a la 1", "на 2 часа") is right.
+
+**The eight points are the ways to walk** (2026-10-19, the user): a compass point is the nearest of
+the eight ways the stick and the arrows walk, the world turned 45 degrees without the screen's 2:1
+squash (`SpokenDirection::Bucket`), so a world axis (every wall, every doorway) is exactly a
+diagonal. Before, the points were cut on the projection, where east and west each covered 79 degrees
+of walking and north and south 23: a route leg through a doorway was "east" and walked into the
+frame, and a target the stick reaches by pushing southeast was "east" too. Every bearing follows:
+scanner, BACK+RT, NPC announcer, room exits, area overview, radar motion, keyboard target lines and
+the route ([route description](route-description.md)). Clock hours keep the projection, which puts
+the axes at 2, 4, 8 and 10 o'clock. `Radar::ScreenSector` stays the screen's for logs and ray names.
 
 ## Queue
 

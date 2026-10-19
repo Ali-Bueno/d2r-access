@@ -1566,6 +1566,7 @@ std::vector<SettingsList::Entry> Strengths() {
 			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
 		Strength("beacon-pitch-25", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
 			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
+		Strength("item-pan-25", &Strings::Table::itemPanStrength, ItemAudio::PanScale, ItemAudio::SetPanScale),
 	};
 }
 
@@ -1780,12 +1781,13 @@ std::vector<SettingsList::Group> SettingGroups() {
 	const auto setCue = [](Cue which) { return [which](bool on) { EntityCueService::SetEnabled(which, on); }; };
 	const auto item = [](Item which) { return [which] { return GroundItemService::Enabled(which); }; };
 	const auto setItem = [](Item which) { return [which](bool on) { GroundItemService::SetEnabled(which, on); }; };
-	auto strengths = Strengths(); // enemy pan, enemy pitch, beacon pan, beacon pitch
+	auto strengths = Strengths(); // enemy pan, enemy pitch, beacon pan, beacon pitch, item pan
 	std::vector<SettingsList::Group> groups;
 	groups.push_back({GroupName(G::Sounds), {
 		{ModSounds::Enabled, ModSounds::SetEnabled, phrase(&T::modSoundsOn, &T::modSoundsOff), false, "mod-sounds"},
 		{item(Item::Sounds), setItem(Item::Sounds), [](bool on) { return std::string(GroundItemText::SoundEnabled(on)); }, true, "item-sounds"},
 		ItemSoundSet(),
+		std::move(strengths[4]),
 		{GroundItems::PotionsLast, GroundItems::SetPotionsLast, phrase(&T::potionsLastOn, &T::potionsLastOff), false, "potions-last"},
 		{GroundItemService::ShrineSounds, GroundItemService::SetShrineSounds, phrase(&T::shrineSoundsOn, &T::shrineSoundsOff), false, "shrine-sounds"},
 		{item(Item::Quests), setItem(Item::Quests), [](bool on) { return std::string(GroundItemText::QuestSoundEnabled(on)); }, true, "quest-sounds"},

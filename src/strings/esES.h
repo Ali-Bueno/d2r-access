@@ -345,6 +345,7 @@ inline constexpr Table esES {
 	.enemyPitchStrength = "Tono de sonidos de enemigos: %d por ciento",
 	.beaconPanStrength = "Paneo de la guía: %d por ciento",
 	.beaconPitchStrength = "Tono de la guía: %d por ciento",
+	.itemPanStrength = "Paneo de objetos y lugares: %d por ciento",
 	.backToModOn = "Botón Atrás solo para el mod",
 	.backToModOff = "Botón Atrás también abre el mapa",
 	.shrineSoundsOn = "Sonidos de santuarios y pozos activados",

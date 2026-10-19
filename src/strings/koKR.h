@@ -345,6 +345,7 @@ inline constexpr Table koKR {
 	.enemyPitchStrength = "적 소리 음높이 %d퍼센트",
 	.beaconPanStrength = "안내 패닝 %d퍼센트",
 	.beaconPitchStrength = "안내 음높이 %d퍼센트",
+	.itemPanStrength = "아이템과 장소 소리 패닝 %d퍼센트",
 	.backToModOn = "뒤로 버튼은 모드 전용",
 	.backToModOff = "뒤로 버튼으로 지도도 열기",
 	.shrineSoundsOn = "성소와 우물 소리 켜짐",

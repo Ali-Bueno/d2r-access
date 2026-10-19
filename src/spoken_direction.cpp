@@ -20,7 +20,12 @@ Style CurrentStyle() { return g_style.load(); }
 void SetStyle(Style style) { if (style < Style::Count) g_style = style; }
 
 int Bucket(Radar::Position offset, Style style) {
-	if (style != Style::Clock) return Radar::ScreenSector(offset);
+	if (style != Style::Clock) {
+		// The game turns the stick 45 degrees into the world, without the screen's 2:1 squash.
+		const double x = offset.x - offset.y, y = offset.x + offset.y;
+		const auto sector = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / Radar::ScreenSectors));
+		return static_cast<int>((sector + Radar::ScreenSectors) % Radar::ScreenSectors);
+	}
 	const auto [x, y] = Radar::ScreenOffset(offset);
 	const auto hour = std::lround(std::atan2(x, -y) / (2 * std::numbers::pi / ClockHours));
 	return static_cast<int>((hour + ClockHours) % ClockHours);

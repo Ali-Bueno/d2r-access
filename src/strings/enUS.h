@@ -345,6 +345,7 @@ inline constexpr Table enUS {
 	.enemyPitchStrength = "Enemy sound pitch %d percent",
 	.beaconPanStrength = "Guidance panning %d percent",
 	.beaconPitchStrength = "Guidance pitch %d percent",
+	.itemPanStrength = "Item and place panning %d percent",
 	.backToModOn = "Back button for the mod only",
 	.backToModOff = "Back button also opens the map",
 	.shrineSoundsOn = "Shrine and well sounds on",

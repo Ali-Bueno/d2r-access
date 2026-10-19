@@ -27,6 +27,8 @@ public:
 	void Stop() { *this = {}; }
 	bool Active() const { return active_; }
 	const std::vector<RouteLegs::Leg>& Legs() const { return legs_; }
+	// The leg being walked, an index into Legs().
+	size_t Walking() const { return at_; }
 	// Where `player` is on the route at `now`: a turn reached, the route left
 	// (then it stops), its end reached (then it stops), or nothing new.
 	Step Tick(Position player, uint64_t now);

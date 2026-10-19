@@ -3,6 +3,26 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-19 — The route finder into walls and after other players
+
+The tester and a second player, in chat (no log yet): BACK+A "leads into walls but not through
+openings", says east or west where doorways are always crossed NE/SE/SW/NW, and in multiplayer
+said "TankMan, 19 units west" with the ping at "11 units northeast" until the scanner named him
+again. Built and unit-tested only. [Route description](route-description.md).
+- **Compass points as walked**, everywhere (the user, so the ping and the scanner agree with the
+  route): the stick's and the arrows' eight ways (measured 2026-09-25: the game turns them 45
+  degrees into the world), not the screen's 2:1 projection. This ends the 2026-09-25 rule that
+  bearings keep the screen's directions. Clock hours unchanged (the projection's 2/4/8/10 axes).
+- **Legs the body walks straight**: straightened with the body's footprint, and a short leg folded
+  only when the leg it joins stays clear, so the step through a doorway is said.
+- **Live target**: the route re-reads what the scanner named before planning, and while it is
+  followed re-plans for a target that walks on, saying the leg only when it changed. Rejected:
+  a full route spoken on every re-plan (a moving player would bury the speech).
+- **Item and place panning** (`item-pan-25`, the user's choice): a second player heard item
+  sounds too far left and right. One setting for the whole "item and place" family, as its
+  volume is; it scales the balance, not the emitter's position (scaling the position leaves a
+  source straight to the side fully in one ear).
+
 ## 2026-10-19 — The tester's list on build 2026-10-18-2
 
 From `D2R Access test build 2026-10-18-2 bug list and feedback` (the user's Downloads: list with the

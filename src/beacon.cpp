@@ -49,10 +49,8 @@ Field Copy(const Radar::World& world, int left, int top, int width, int height, 
 			}
 		}
 	}
-	// The body must fit, exactly as the native footprint dispatch tests it:
-	// patterns 1/3/5 are a five-cell cross, 2/4 a 3x3 square, 0 a point.
+	// The body must fit, exactly as the native footprint dispatch tests it.
 	if (world.bodyPattern != 0) {
-		const bool square = world.bodyPattern % 2 == 0;
 		const auto raw = field.open;
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
@@ -60,7 +58,7 @@ Field Copy(const Radar::World& world, int left, int top, int width, int height, 
 				if (!cell) continue;
 				for (int dy = -1; dy <= 1 && cell; ++dy) {
 					for (int dx = -1; dx <= 1; ++dx) {
-						if ((dx == 0 && dy == 0) || (!square && dx != 0 && dy != 0)) continue;
+						if (!Radar::InBody(world.bodyPattern, dx, dy)) continue;
 						const int nx = x+dx, ny = y+dy;
 						// Outside the box the body cannot be proved to fit.
 						if (nx < 0 || ny < 0 || nx >= width || ny >= height || !raw[static_cast<size_t>(ny)*width + nx]) {

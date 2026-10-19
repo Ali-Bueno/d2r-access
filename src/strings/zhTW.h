@@ -345,6 +345,7 @@ inline constexpr Table zhTW {
 	.enemyPitchStrength = "敵人音效音高 %d 百分比",
 	.beaconPanStrength = "引導聲像 %d 百分比",
 	.beaconPitchStrength = "引導音高 %d 百分比",
+	.itemPanStrength = "物品與地點聲像 %d 百分比",
 	.backToModOn = "返回鍵僅供模組使用",
 	.backToModOff = "返回鍵也會開啟地圖",
 	.shrineSoundsOn = "神殿與水井音效已開啟",

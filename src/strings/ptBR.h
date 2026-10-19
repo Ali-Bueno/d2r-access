@@ -345,6 +345,7 @@ inline constexpr Table ptBR {
 	.enemyPitchStrength = "Tom dos sons de inimigos: %d por cento",
 	.beaconPanStrength = "Panorâmica da orientação: %d por cento",
 	.beaconPitchStrength = "Tom da orientação: %d por cento",
+	.itemPanStrength = "Panorâmica de itens e lugares: %d por cento",
 	.backToModOn = "Botão Voltar só para o mod",
 	.backToModOff = "Botão Voltar também abre o mapa",
 	.shrineSoundsOn = "Sons de santuários e poços: ligados",

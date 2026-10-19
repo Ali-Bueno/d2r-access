@@ -345,6 +345,7 @@ inline constexpr Table frFR {
 	.enemyPitchStrength = "Hauteur des sons ennemis : %d pour cent",
 	.beaconPanStrength = "Panoramique du guidage : %d pour cent",
 	.beaconPitchStrength = "Hauteur du guidage : %d pour cent",
+	.itemPanStrength = "Panoramique des objets et lieux : %d pour cent",
 	.backToModOn = "Bouton Retour réservé au mod",
 	.backToModOff = "Bouton Retour ouvre aussi la carte",
 	.shrineSoundsOn = "Sons des sanctuaires et des puits : activés",

@@ -345,6 +345,7 @@ inline constexpr Table deDE {
 	.enemyPitchStrength = "Tonhöhe der Gegnerklänge %d Prozent",
 	.beaconPanStrength = "Stereobreite der Führung %d Prozent",
 	.beaconPitchStrength = "Tonhöhe der Führung %d Prozent",
+	.itemPanStrength = "Stereobreite Gegenstände und Orte %d Prozent",
 	.backToModOn = "Zurück-Taste nur für den Mod",
 	.backToModOff = "Zurück-Taste öffnet auch die Karte",
 	.shrineSoundsOn = "Schrein- und Brunnenklänge an",

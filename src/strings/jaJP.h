@@ -345,6 +345,7 @@ inline constexpr Table jaJP {
 	.enemyPitchStrength = "敵の音のピッチ %d パーセント",
 	.beaconPanStrength = "誘導のパン %d パーセント",
 	.beaconPitchStrength = "誘導のピッチ %d パーセント",
+	.itemPanStrength = "アイテムと場所の音のパン %d パーセント",
 	.backToModOn = "戻るボタンはMOD専用",
 	.backToModOff = "戻るボタンでマップも開く",
 	.shrineSoundsOn = "祠と井戸の音 オン",

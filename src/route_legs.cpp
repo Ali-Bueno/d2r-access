@@ -18,11 +18,22 @@ constexpr double SampleStep = 0.5;
 
 int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); }
 
+// Whether the body walks straight from `from` to `to`. The cell a move starts
+// from is not tested, as the game does not test it (level_route.h).
 bool Clear(Position from, Position to, const Passable& passable) {
 	const double dx = to.x - from.x, dy = to.y - from.y, length = std::hypot(dx, dy);
-	for (double depth = SampleStep; depth < length; depth += SampleStep)
-		if (!passable(Cell(from.x + dx / length * depth), Cell(from.y + dy / length * depth))) return false;
+	const int startX = Cell(from.x), startY = Cell(from.y);
+	for (double depth = SampleStep; depth < length; depth += SampleStep) {
+		const int x = Cell(from.x + dx / length * depth), y = Cell(from.y + dy / length * depth);
+		if ((x != startX || y != startY) && !passable(x, y)) return false;
+	}
 	return true;
+}
+
+// Where legs[index] starts on a way walked from `from`.
+Position Corner(const std::vector<Leg>& legs, Position from, size_t index) {
+	for (size_t i = 0; i < index; ++i) from = {from.x + legs[i].delta.x, from.y + legs[i].delta.y};
+	return from;
 }
 
 // points[first..last] as straight legs: from each corner, as far along the way
@@ -51,12 +62,17 @@ std::vector<Leg> Merge(const std::vector<Leg>& legs, SpokenDirection::Style styl
 	return merged;
 }
 
-// A short leg is walked as part of the one before it, or of the one after
-// when nothing to walk comes before it.
-std::vector<Leg> Fold(std::vector<Leg> legs) {
+// A short leg is walked as part of the one before it, else of the one after,
+// when that leg still runs straight over clear ground. One that would not,
+// as the step through a doorway, stays a turn of its own.
+std::vector<Leg> Fold(std::vector<Leg> legs, Position from, const Passable& passable) {
 	for (size_t i = 0; i < legs.size();) {
-		const bool before = i > 0 && !legs[i - 1].door, after = i + 1 < legs.size() && !legs[i + 1].door;
-		if (legs[i].door || legs[i].length >= MinLegUnits || (!before && !after)) { ++i; continue; }
+		if (legs[i].door || legs[i].length >= MinLegUnits) { ++i; continue; }
+		const bool before = i > 0 && !legs[i - 1].door
+			&& Clear(Corner(legs, from, i - 1), Corner(legs, from, i + 1), passable);
+		const bool after = !before && i + 1 < legs.size() && !legs[i + 1].door
+			&& Clear(Corner(legs, from, i), Corner(legs, from, i + 2), passable);
+		if (!before && !after) { ++i; continue; }
 		// Its way too, so the legs still end where the way turns (RouteFollow walks them).
 		auto& into = before ? legs[i - 1] : legs[i + 1];
 		into.delta = {into.delta.x + legs[i].delta.x, into.delta.y + legs[i].delta.y};
@@ -84,7 +100,7 @@ std::vector<Leg> Describe(Position from, const std::vector<Position>& path, cons
 		at = door + 1;
 	}
 	Straighten(points, at, points.size() - 1, passable, legs);
-	return Merge(Fold(Merge(legs, style)), style);
+	return Merge(Fold(Merge(legs, style), points.front(), passable), style);
 }
 
 double Length(const std::vector<Leg>& legs) {

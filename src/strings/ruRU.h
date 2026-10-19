@@ -345,6 +345,7 @@ inline constexpr Table ruRU {
 	.enemyPitchStrength = "Высота звуков врагов: %d процентов",
 	.beaconPanStrength = "Панорама наведения: %d процентов",
 	.beaconPitchStrength = "Высота наведения: %d процентов",
+	.itemPanStrength = "Панорама предметов и мест: %d процентов",
 	.backToModOn = "Кнопка «Назад» только для мода",
 	.backToModOff = "Кнопка «Назад» также открывает карту",
 	.shrineSoundsOn = "Звуки святилищ и колодцев: включено",

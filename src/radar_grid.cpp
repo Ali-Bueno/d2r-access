@@ -38,8 +38,6 @@ State World::Cell(int x, int y, Layer layer, uint16_t* rawFlags) const {
 }
 
 State World::Body(int x, int y, Layer layer, uint16_t* flags) const {
-	// Exact footprint dispatch recovered from D2R 0x364C70 / 0x366D40:
-	// pattern 0 = point; 1/3/5 = five-cell cross; 2/4 = 3x3 square.
 	// The out-parameter reports the first blocking cell, or the centre when
 	// the whole body is clear.
 	uint16_t centre = 0;
@@ -48,8 +46,7 @@ State World::Body(int x, int y, Layer layer, uint16_t* flags) const {
 	if (result == State::Blocked) return result;
 	for (int dy = -1; dy <= 1; ++dy) {
 		for (int dx = -1; dx <= 1; ++dx) {
-			if (bodyPattern == 0 || (dx == 0 && dy == 0)) continue;
-			if ((bodyPattern % 2) != 0 && dx != 0 && dy != 0) continue;
+			if (!InBody(bodyPattern, dx, dy)) continue;
 			uint16_t neighbour = 0;
 			const State next = Cell(x + dx, y + dy, layer, &neighbour);
 			if (next == State::Blocked) { if (flags) *flags = neighbour; return next; }

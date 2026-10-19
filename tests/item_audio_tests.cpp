@@ -47,6 +47,15 @@ void MatrixTests() {
 	}
 	const auto center = ItemSpatial::StereoMatrix({});
 	Check(std::isfinite(center[0]) && std::isfinite(center[1]) && center[0] > 0 && center[1] > 0, "standing directly on a source gives finite stereo output");
+	const auto side = ItemSpatial::StereoMatrix(Voice{.right = 5.0f, .front = 5.0f});
+	const auto power = [](const std::array<float, 2>& m) { return m[0] * m[0] + m[1] * m[1]; };
+	const auto same = ItemSpatial::ScalePan(side, 1), none = ItemSpatial::ScalePan(side, 0);
+	const auto half = ItemSpatial::ScalePan(side, 0.5), more = ItemSpatial::ScalePan(side, 2);
+	Check(std::abs(same[0] - side[0]) < 1e-5f && std::abs(same[1] - side[1]) < 1e-5f, "pan scale 1 leaves X3DAudio's matrix");
+	Check(std::abs(none[0] - none[1]) < 1e-5f, "pan scale 0 centres the sound");
+	Check(half[1] - half[0] < side[1] - side[0] && half[1] > half[0], "a smaller pan scale keeps the side, nearer the middle");
+	Check(more[1] - more[0] > side[1] - side[0], "a larger one moves it further out");
+	Check(std::abs(power(none) - power(side)) < 1e-5f && std::abs(power(more) - power(side)) < 1e-5f, "the loudness is kept");
 }
 double Rms(const std::vector<int16_t>& samples) {
 	double energy = 0;

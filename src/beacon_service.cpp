@@ -89,8 +89,14 @@ enum class Lead { Direct, Rooms, Map, Guess, None };
 std::optional<Lead> g_lead;
 // The route described last, followed on foot while its level lasts.
 constexpr uint64_t FollowMs = 250;
-// `ofLock`: the route leads to the locked target, and ends when the lock does.
-struct Followed { std::string name; int level = 0; uint64_t session = 0, nextMs = 0; bool ofLock = false; };
+// Policy: how often a followed target that walks (a player, an NPC, a monster) is read again.
+constexpr uint64_t MovedCheckMs = 1000;
+// Policy: its way is planned again once it stands this far from where the way was
+// planned to: past the arrival margin (3 units) and a stride.
+constexpr double MovedUnits = 5;
+// `entity` where the way was planned to; `ofLock`: the route leads to the locked
+// target, and ends when the lock does.
+struct Followed { EntityRadar::Entity entity; int level = 0; uint64_t session = 0, nextMs = 0, movedMs = 0; bool ofLock = false; };
 Followed g_followed;
 RouteFollow::Follower g_follower;
 std::atomic<bool> g_routePrompts{true};
@@ -309,11 +315,12 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	g_command = static_cast<Command>(reinterpret_cast<uintptr_t>(data));
 	return D2RL::Input::ActionResult::Handled;
 }
-void Announce(const char* format, const std::string& name) {
+std::string Named(const char* format, const std::string& name) {
 	char text[256]{};
 	std::snprintf(text, sizeof text, format, name.c_str());
-	ScreenReader::Speak(text, true);
+	return text;
 }
+void Announce(const char* format, const std::string& name) { ScreenReader::Speak(Named(format, name), true); }
 bool SameOfferedTarget() {
 	return EntityRadar::SameTarget(g_offer.entity, g_target.entity);
 }
@@ -365,29 +372,29 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		g_target.level, g_target.entity.name.c_str());
 }
 // The target was read for and not found: since when, for Gone().
-bool Missing(uint64_t now) {
-	if (!g_target.missingMs) g_target.missingMs = now;
+bool Missing(Target& target, uint64_t now) {
+	if (!target.missingMs) target.missingMs = now;
 	return false;
 }
-// Re-reads the locked target's current position. A target that is out of the
-// loaded rooms keeps its last known place: that is still where it was.
-bool Refresh(const Lifecycle& state, uint64_t now) {
-	if (g_target.entity.placeId == DeathPlace::Identity) { g_target.seenMs = now; return true; }
+// Re-reads where `target` is now. A target out of the loaded rooms keeps its
+// last known place: that is still where it was.
+bool Refresh(Target& target, const Lifecycle& state, uint64_t now) {
+	if (target.entity.placeId == DeathPlace::Identity) { target.seenMs = now; return true; }
 	std::vector<EntityRadar::Entity> entities;
 	// A room is not a native unit and never moves: it is exactly where the
 	// catalogue said it was, so there is nothing to re-read and nothing that
 	// could be reported lost on arrival.
-	if (g_target.entity.kind == EntityRadar::Kind::Room) {
-		g_target.seenMs = now;
+	if (target.entity.kind == EntityRadar::Kind::Room) {
+		target.seenMs = now;
 		return true;
 	}
-	if (g_target.entity.kind == EntityRadar::Kind::Item) {
+	if (target.entity.kind == EntityRadar::Kind::Item) {
 		GroundItems::Snapshot snapshot;
 		if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return false;
 		for (const auto& item : snapshot.items)
-			if (item.id == g_target.entity.id) {
-				g_target.entity.position = {item.position.x, item.position.y};
-				g_target.seenMs = now;
+			if (item.id == target.entity.id) {
+				target.entity.position = {item.position.x, item.position.y};
+				target.seenMs = now;
 				return true;
 			}
 		// An item is loaded again under a new id as an object is (MEASURED
@@ -395,35 +402,35 @@ bool Refresh(const Lifecycle& state, uint64_t now) {
 		// walk to an item already took it so; the beacon said the item was lost
 		// with the item lying there.
 		for (const auto& item : snapshot.items)
-			if (item.source == GroundItems::SourceKind::Item && item.name == g_target.entity.name
-				&& std::abs(item.position.x - g_target.entity.position.x) <= 1 && std::abs(item.position.y - g_target.entity.position.y) <= 1) {
-				g_target.entity.id = item.id;
-				g_target.entity.position = {item.position.x, item.position.y};
-				g_target.seenMs = now;
+			if (item.source == GroundItems::SourceKind::Item && item.name == target.entity.name
+				&& std::abs(item.position.x - target.entity.position.x) <= 1 && std::abs(item.position.y - target.entity.position.y) <= 1) {
+				target.entity.id = item.id;
+				target.entity.position = {item.position.x, item.position.y};
+				target.seenMs = now;
 				return true;
 			}
-		return Missing(now);
+		return Missing(target, now);
 	}
 	// A locked exit may be a warp or a boundary with the next area; read both
 	// so the beacon can still find the one it is leading to.
-	const bool exit = g_target.entity.kind == EntityRadar::Kind::Exit && g_target.entity.placeId != 0;
+	const bool exit = target.entity.kind == EntityRadar::Kind::Exit && target.entity.placeId != 0;
 	// As far as the scanner reads: what it named may be rooms away.
-	const bool townNpc = g_target.entity.kind == EntityRadar::Kind::Npc && g_target.entity.placeId != 0;
+	const bool townNpc = target.entity.kind == EntityRadar::Kind::Npc && target.entity.placeId != 0;
 	if (!NativeEntities::Read(state.player, state.session, entities, exit, exit, true, townNpc)) return false;
 	for (const auto& entity : entities)
-		if (EntityRadar::SameTarget(entity, g_target.entity)) {
-			g_target.entity = entity;
-			g_target.seenMs = now;
+		if (EntityRadar::SameTarget(entity, target.entity)) {
+			target.entity = entity;
+			target.seenMs = now;
 			return true;
 		}
 	// An object is loaded again under a new id: it is still the one led to.
 	for (const auto& entity : entities)
-		if (EntityRadar::Recreated(g_target.entity, entity)) {
-			g_target.entity = entity;
-			g_target.seenMs = now;
+		if (EntityRadar::Recreated(target.entity, entity)) {
+			target.entity = entity;
+			target.seenMs = now;
 			return true;
 		}
-	return Missing(now);
+	return Missing(target, now);
 }
 // A unit read absent from a room the game keeps loaded beside the player -- an item
 // another player took, Cain led away -- is gone, not still where it was (a tester,
@@ -439,7 +446,7 @@ bool Gone(const Lifecycle& state, Radar::Position player, uint64_t now) {
 }
 void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	if (!Playing()) return; // dialogue, pause or another window: keep the lock, stay quiet
-	const bool seen = Refresh(state, now);
+	const bool seen = Refresh(g_target, state, now);
 	if (seen) g_target.missingMs = 0;
 	const auto prepared = Guidance(state, g_target.entity, now, g_way);
 	if (!prepared) return;
@@ -505,41 +512,37 @@ LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entit
 		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
 	return LevelRoute::Area::Around(entity.position, margin);
 }
-// The whole way to what guidance follows, else to what was named last, said as
-// legs: what a sighted player plans off the map. docs/route-description.md
-void DescribeRoute(const Lifecycle& state, uint64_t now) {
-	const auto& strings = Strings::Current();
-	EntityRadar::Entity entity;
-	if (g_tracker.Locked()) entity = g_target.entity;
-	else if (g_offer.entity.id && g_offer.level == state.level) entity = g_offer.entity;
-	else { ScreenReader::Speak(strings.beaconNothing, true); return; }
+// The way to `entity` from where the player stands, as legs: what a sighted
+// player plans off the map. docs/route-description.md
+struct PlannedRoute {
+	bool read = false; // the world could be read
 	Radar::World world;
-	if (!NativeWorld::Read(state.player, state.session, state.level, world)) {
-		AsyncLog::InfoF(g_context, "[route] world unreadable name=%s", entity.name.c_str());
-		Announce(strings.routeNone, entity.name);
-		return;
-	}
+	Radar::Position place;
+	std::vector<RouteLegs::Leg> legs; // none: no way, or already there (`here`)
+	size_t cells = 0, doors = 0;
+	bool here = false, map = false, restricted = false, guess = false;
+};
+PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now) {
+	PlannedRoute route;
+	if (!NativeWorld::Read(state.player, state.session, state.level, route.world)) return route;
+	route.read = true;
+	const auto& world = route.world;
 	const auto end = WayEnd(state, entity, ToCrossing(state, world, entity));
-	const auto place = end.Centre();
+	route.place = end.Centre();
 	const auto* memory = KeyboardService::RememberedMap(world);
 	const auto* graph = Rooms(state);
-	const bool restricted = !Unrestricted(entity);
+	route.map = memory != nullptr;
+	route.restricted = !Unrestricted(entity);
 	std::optional<std::vector<NativeRooms::Room>> explored;
-	if (restricted && graph) explored = ExploredFor(state, *graph, world.player, entity);
+	if (route.restricted && graph) explored = ExploredFor(state, *graph, world.player, entity);
 	LevelRoute::Way way;
-	if (memory && (!restricted || explored)) {
+	if (memory && (!route.restricted || explored)) {
 		BeaconNavigation::RememberedWay planner;
 		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, end, world.bodyPattern, now);
 	}
 	if (way.path.empty()) {
-		const bool here = end.Contains(world.player);
-		AsyncLog::InfoF(g_context, "[route] none name=%s here=%u map=%u restricted=%u", entity.name.c_str(), here ? 1u : 0u,
-			memory ? 1u : 0u, restricted ? 1u : 0u);
-		if (!here) { Announce(restricted ? strings.beaconKnownRouteOnly : strings.routeNone, entity.name); return; }
-		char text[256]{};
-		std::snprintf(text, sizeof text, strings.surveyBearing, entity.name.c_str(), strings.scanAdjacent);
-		ScreenReader::Speak(text, true);
-		return;
+		route.here = end.Contains(world.player);
+		return route;
 	}
 	// The ground as the way knew it: past the explored rooms only guessed at, as ground not seen yet.
 	const auto groundAt = [&](int x, int y) {
@@ -551,21 +554,105 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 	std::vector<size_t> doors;
 	for (size_t i = 0; i < way.path.size(); ++i)
 		if (groundAt(cell(way.path[i].x), cell(way.path[i].y)) == LevelRoute::Ground::Door) doors.push_back(i);
-	// A leg is straightened only over ground the way itself may cross.
-	const auto passable = [&](int x, int y) {
+	const auto crossable = [&](int x, int y) {
 		const auto ground = groundAt(x, y);
 		return ground == LevelRoute::Ground::Open || ground == LevelRoute::Ground::Door
 			|| (way.guess && ground == LevelRoute::Ground::Unseen);
 	};
-	const auto legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle());
-	const auto text = RouteLegs::Speak(entity.name, legs, way.guess, strings);
+	// A leg is straightened only over ground the way may cross with the whole body
+	// on it: a line cut across a door frame's corner walks into the wall.
+	const auto passable = [&](int x, int y) {
+		if (!crossable(x, y)) return false;
+		for (int dy = -1; dy <= 1; ++dy)
+			for (int dx = -1; dx <= 1; ++dx)
+				if (Radar::InBody(world.bodyPattern, dx, dy) && !crossable(x + dx, y + dy)) return false;
+		return true;
+	};
+	route.legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle());
+	route.cells = way.path.size();
+	route.doors = doors.size();
+	route.guess = way.guess;
+	return route;
+}
+// The whole way to what guidance follows, else to what was named last, said as legs.
+void DescribeRoute(const Lifecycle& state, uint64_t now) {
+	const auto& strings = Strings::Current();
+	EntityRadar::Entity entity;
+	if (g_tracker.Locked()) entity = g_target.entity;
+	else if (g_offer.entity.id && g_offer.level == state.level) {
+		// Named any time ago: another player, an NPC or a monster has walked on since (a tester, 2026-10-19).
+		auto offer = g_offer;
+		if (Refresh(offer, state, now)) g_offer.entity = offer.entity;
+		entity = g_offer.entity;
+	}
+	else { ScreenReader::Speak(strings.beaconNothing, true); return; }
+	const auto route = PlanRoute(state, entity, now);
+	if (!route.read) {
+		AsyncLog::InfoF(g_context, "[route] world unreadable name=%s", entity.name.c_str());
+		Announce(strings.routeNone, entity.name);
+		return;
+	}
+	if (route.legs.empty()) {
+		AsyncLog::InfoF(g_context, "[route] none name=%s here=%u map=%u restricted=%u", entity.name.c_str(), route.here ? 1u : 0u,
+			route.map ? 1u : 0u, route.restricted ? 1u : 0u);
+		if (!route.here) { Announce(route.restricted ? strings.beaconKnownRouteOnly : strings.routeNone, entity.name); return; }
+		char text[256]{};
+		std::snprintf(text, sizeof text, strings.surveyBearing, entity.name.c_str(), strings.scanAdjacent);
+		ScreenReader::Speak(text, true);
+		return;
+	}
+	const auto text = RouteLegs::Speak(entity.name, route.legs, route.guess, strings);
 	ScreenReader::Speak(text, true);
 	AsyncLog::InfoF(g_context, "[route] from=%.0f,%.0f to=%.0f,%.0f cells=%zu doors=%zu legs=%zu guess=%u restricted=%u -> %s",
-		world.player.x, world.player.y, place.x, place.y, way.path.size(), doors.size(), legs.size(), way.guess ? 1u : 0u,
-		restricted ? 1u : 0u, text.c_str());
+		route.world.player.x, route.world.player.y, route.place.x, route.place.y, route.cells, route.doors, route.legs.size(),
+		route.guess ? 1u : 0u, route.restricted ? 1u : 0u, text.c_str());
 	if (!g_routePrompts.load(std::memory_order_relaxed)) return;
-	g_followed = {entity.name, state.level, state.session, now, g_tracker.Locked()};
-	g_follower.Start(world.player, legs);
+	g_followed = {entity, state.level, state.session, now, now + MovedCheckMs, g_tracker.Locked()};
+	g_follower.Start(route.world.player, route.legs);
+}
+// "Now east, 21"; a shut door is said with the leg past it: "Now door; then north, 16".
+std::string NowText(const std::vector<RouteLegs::Leg>& legs, size_t leg, const Strings::Table& strings) {
+	std::string said = RouteLegs::Say(legs[leg], strings);
+	if (legs[leg].door && leg + 1 < legs.size()) said += strings.routeThen + RouteLegs::Say(legs[leg + 1], strings);
+	char text[320]{};
+	std::snprintf(text, sizeof text, strings.routeNow, said.c_str());
+	return text;
+}
+bool Walks(const EntityRadar::Entity& entity) {
+	return entity.kind == EntityRadar::Kind::Player || entity.kind == EntityRadar::Kind::Npc || entity.kind == EntityRadar::Kind::Enemy;
+}
+// A followed target that has walked on is planned for again from where the player
+// stands; the leg to walk is said only when it is not the one walked now.
+// docs/route-description.md#following-it
+void FollowMovedTarget(const Lifecycle& state, uint64_t now) {
+	if (!Walks(g_followed.entity) || now < g_followed.movedMs) return;
+	g_followed.movedMs = now + MovedCheckMs;
+	Target target{g_followed.entity, state.level};
+	if (g_followed.ofLock) target.entity = g_target.entity;
+	else if (!Refresh(target, state, now)) return;
+	const auto was = g_followed.entity.position, is = target.entity.position;
+	if (std::hypot(is.x - was.x, is.y - was.y) <= MovedUnits) return;
+	const auto route = PlanRoute(state, target.entity, now);
+	if (route.here) {
+		AsyncLog::InfoF(g_context, "[route] follow moved name=%s to=%.0f,%.0f -> here", target.entity.name.c_str(), is.x, is.y);
+		g_follower.Stop();
+		// A locked beacon says its own arrival.
+		if (!g_tracker.Locked()) Announce(Strings::Current().beaconArrived, target.entity.name);
+		return;
+	}
+	if (route.legs.empty()) return; // the way known is still the best guess
+	const auto style = SpokenDirection::CurrentStyle();
+	const auto& walking = g_follower.Legs()[g_follower.Walking()];
+	const auto& next = route.legs.front();
+	const bool same = walking.door == next.door
+		&& (next.door || SpokenDirection::Bucket(walking.delta, style) == SpokenDirection::Bucket(next.delta, style));
+	const auto& strings = Strings::Current();
+	const auto text = same ? std::string{} : NowText(route.legs, 0, strings);
+	g_followed.entity = target.entity;
+	g_follower.Start(route.world.player, route.legs);
+	AsyncLog::InfoF(g_context, "[route] follow moved name=%s to=%.0f,%.0f legs=%zu -> %s", target.entity.name.c_str(), is.x, is.y,
+		route.legs.size(), same ? "(same leg)" : text.c_str());
+	if (!same) ScreenReader::Speak(text, true);
 }
 // The route asked for last, its next leg said at each turn. docs/route-description.md#following-it
 void FollowRoute(const Lifecycle& state, uint64_t now) {
@@ -573,32 +660,33 @@ void FollowRoute(const Lifecycle& state, uint64_t now) {
 	g_followed.nextMs = now + FollowMs;
 	if (!g_routePrompts.load(std::memory_order_relaxed) || !state.ready || state.level != g_followed.level
 		|| state.session != g_followed.session) {
-		AsyncLog::InfoF(g_context, "[route] follow stopped name=%s", g_followed.name.c_str());
+		AsyncLog::InfoF(g_context, "[route] follow stopped name=%s", g_followed.entity.name.c_str());
 		g_follower.Stop();
 		return;
 	}
 	if (!Playing()) return;
+	FollowMovedTarget(state, now);
+	if (!g_follower.Active()) return;
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
 	const auto legs = g_follower.Legs();
 	const auto step = g_follower.Tick(world.player, now);
 	const auto& strings = Strings::Current();
-	char text[320]{};
+	const auto& name = g_followed.entity.name;
+	std::string text;
 	if (step.event == RouteFollow::Event::Turn) {
-		std::string leg = RouteLegs::Say(legs[step.leg], strings);
-		if (legs[step.leg].door && step.leg + 1 < legs.size()) leg += strings.routeThen + RouteLegs::Say(legs[step.leg + 1], strings);
-		std::snprintf(text, sizeof text, strings.routeNow, leg.c_str());
+		text = NowText(legs, step.leg, strings);
 	} else if (step.event == RouteFollow::Event::Off) {
-		std::snprintf(text, sizeof text, strings.routeOff, g_followed.name.c_str());
+		text = Named(strings.routeOff, name);
 	} else if (step.event == RouteFollow::Event::End && !g_tracker.Locked()) {
 		// A locked beacon says its own arrival.
-		std::snprintf(text, sizeof text, strings.beaconArrived, g_followed.name.c_str());
+		text = Named(strings.beaconArrived, name);
 	}
 	if (step.event != RouteFollow::Event::None)
 		AsyncLog::InfoF(g_context, "[route] follow %s leg=%zu at=%.0f,%.0f name=%s -> %s",
 			step.event == RouteFollow::Event::Turn ? "turn" : step.event == RouteFollow::Event::Off ? "off" : "end", step.leg,
-			world.player.x, world.player.y, g_followed.name.c_str(), text);
-	if (*text) ScreenReader::Speak(text, true);
+			world.player.x, world.player.y, name.c_str(), text.c_str());
+	if (!text.empty()) ScreenReader::Speak(text, true);
 }
 }
 

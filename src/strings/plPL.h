@@ -345,6 +345,7 @@ inline constexpr Table plPL {
 	.enemyPitchStrength = "Wysokość dźwięków wrogów: %d procent",
 	.beaconPanStrength = "Panorama prowadzenia: %d procent",
 	.beaconPitchStrength = "Wysokość prowadzenia: %d procent",
+	.itemPanStrength = "Panorama przedmiotów i miejsc: %d procent",
 	.backToModOn = "Przycisk Wstecz tylko dla moda",
 	.backToModOff = "Przycisk Wstecz otwiera też mapę",
 	.shrineSoundsOn = "Dźwięki kapliczek i studni: włączone",

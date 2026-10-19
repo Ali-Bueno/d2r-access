@@ -43,7 +43,7 @@ Floor Standing(const Memory& memory, int bodyPattern, bool unseen, bool doors) {
 	std::vector<int64_t> body;
 	for (int dy = -1; dy <= 1; ++dy)
 		for (int dx = -1; dx <= 1; ++dx)
-			if ((dx || dy) && bodyPattern != 0 && ((bodyPattern % 2) == 0 || dx == 0 || dy == 0)) body.push_back(dy * row + dx);
+			if (Radar::InBody(bodyPattern, dx, dy)) body.push_back(dy * row + dx);
 	const auto open = [doors](Ground ground) { return ground == Ground::Open || (doors && ground == Ground::Door); };
 	floor.stood.assign(cells, 0);
 	for (int y = 1; y <= height; ++y) {

@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <numbers>
 #include <span>
@@ -117,6 +118,13 @@ struct RoomGrid {
 	std::vector<uint16_t> cells;
 	bool visited = false; // the player has stood in this room (exploration memory)
 };
+// Whether the cell `dx`,`dy` off the body's centre is part of the body, as the
+// game's footprint dispatch (0x364C70 / 0x366D40) has it: pattern 0 is a point,
+// 1/3/5 a five-cell cross, 2/4 a 3x3 square. The centre is not counted.
+inline bool InBody(int bodyPattern, int dx, int dy) {
+	return (dx || dy) && bodyPattern != 0 && std::abs(dx) <= 1 && std::abs(dy) <= 1
+		&& (bodyPattern % 2 == 0 || dx == 0 || dy == 0);
+}
 struct World {
 	Position player;
 	Position subtileFraction; // native 16.16 low words, for motion only; collision uses player cells

@@ -34,6 +34,7 @@ ProcessLifetime<std::thread> g_threadOwner;
 std::thread& g_thread = g_threadOwner.Get();
 std::atomic<bool> g_running{false}, g_available{false};
 std::atomic<int> g_dropSpeed{NeutralDropSpeedLevel};
+std::atomic<double> g_panScale{1};
 std::vector<Voice> g_pending;
 uint64_t g_updated = 0;
 std::vector<Voice> g_explorationPending;
@@ -97,7 +98,7 @@ bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>
 }
 void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::PluginContext* context) {
 	const auto& target = active.target;
-	const auto matrix = ItemSpatial::StereoMatrix(target);
+	const auto matrix = ItemSpatial::ScalePan(ItemSpatial::StereoMatrix(target), g_panScale.load());
 	active.gain += (target.gain - active.gain) * GainSmoothing;
 	HRESULT applied = active.source->SetOutputMatrix(master, 1, 2, matrix.data());
 	if (SUCCEEDED(applied)) applied = active.source->SetFrequencyRatio(target.pitch);
@@ -270,6 +271,8 @@ void Update(std::vector<Voice> voices) {
 void Silence() { Update({}); }
 int DropSpeedLevel() { return g_dropSpeed.load(); }
 void SetDropSpeedLevel(int level) { g_dropSpeed = std::clamp(level, 0, static_cast<int>(DropSpeedPercents.size()) - 1); }
+double PanScale() { return g_panScale.load(); }
+void SetPanScale(double scale) { g_panScale = std::max(0.0, scale); }
 void UpdateExploration(std::vector<Voice> voices) {
 	if (!ModSounds::Enabled()) voices.clear();
 	std::lock_guard lock(g_mutex);

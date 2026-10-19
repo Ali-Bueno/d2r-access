@@ -345,6 +345,7 @@ inline constexpr Table itIT {
 	.enemyPitchStrength = "Tono dei suoni dei nemici: %d per cento",
 	.beaconPanStrength = "Panoramica della guida: %d per cento",
 	.beaconPitchStrength = "Tono della guida: %d per cento",
+	.itemPanStrength = "Panoramica di oggetti e luoghi: %d per cento",
 	.backToModOn = "Tasto Indietro solo per la mod",
 	.backToModOff = "Tasto Indietro apre anche la mappa",
 	.shrineSoundsOn = "Suoni di santuari e pozzi: attivi",

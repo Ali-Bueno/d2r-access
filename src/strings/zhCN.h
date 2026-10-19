@@ -345,6 +345,7 @@ inline constexpr Table zhCN {
 	.enemyPitchStrength = "敌人音效音高 百分之%d",
 	.beaconPanStrength = "引导声像 百分之%d",
 	.beaconPitchStrength = "引导音高 百分之%d",
+	.itemPanStrength = "物品和地点声像 百分之%d",
 	.backToModOn = "返回键仅供模组使用",
 	.backToModOff = "返回键也会打开地图",
 	.shrineSoundsOn = "神殿和水井音效已开启",
