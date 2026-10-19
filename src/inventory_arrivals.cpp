@@ -26,7 +26,7 @@ std::vector<Arrival> Diff(const std::vector<Item>& before, const std::vector<Ite
 std::vector<Item> Departures(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldNow) {
 	std::vector<Item> result;
 	for (const auto& item : before) {
-		if ((item.place != Place::Backpack && !InStash(item.place)) || item.id == heldNow) continue;
+		if ((item.place != Place::Backpack && item.place != Place::Cube && !InStash(item.place)) || item.id == heldNow) continue;
 		if (!Find(now, item.id)) result.push_back(item);
 	}
 	return result;

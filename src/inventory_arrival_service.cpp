@@ -113,7 +113,10 @@ const char* StashTab(uint32_t classId) {
 }
 void AnnounceSorted(const D2RL::PluginContext* context, const std::vector<Item>& before, const std::vector<Item>& now, uint32_t held) {
 	if (!StashOpen() || InputDirection::LastFaceButton(SortPressMs) != InputDirection::FaceButton::Y) return;
+	// What a transmute used up left the cube too, for its result: CubeNotice says that one.
+	const bool transmuted = !InventoryArrivals::NewInCube(before, now, held).empty();
 	for (const auto& item : InventoryArrivals::Departures(before, now, held)) {
+		if (transmuted && item.place == Place::Cube) continue;
 		const auto name = InteractionReader::ItemName(item.id, item.classId, item.quality);
 		char text[300]{};
 		std::snprintf(text, sizeof(text), Strings::Current().itemMovedToStash, name.c_str(), StashTab(item.classId));

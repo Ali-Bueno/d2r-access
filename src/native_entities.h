@@ -54,6 +54,8 @@ bool ReadRosterCorpses(uintptr_t head, uint32_t playerId, std::vector<CorpseMemo
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);
 // The game's own localized name of a level id; empty when the table is unreadable.
 std::string LevelName(uint32_t levelId);
+// Every level's name, in table order, each once; empty when the table is unreadable.
+std::vector<std::string> LevelNames();
 // A game string key in the language being played, cleaned as entity names are.
 std::string KeyText(std::string_view key);
 // The patch tripwire: how many objects.txt rows the container predicate selects

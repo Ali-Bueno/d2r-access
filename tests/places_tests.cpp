@@ -2,6 +2,7 @@
 #include "rooms.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <set>
 #include <vector>
 
@@ -60,15 +61,27 @@ void GeneratedData() {
 		"Cott7 is the burning cottage");
 	Check(Places::NameOf(47, "Act1/Outdoors/Cott2.ds1") == PresetPlace::Cottage,
 		"another piece of the row keeps the row's name");
-	Check(Places::NameOf(47, "Act1/Outdoors/Cott1.ds1") == PresetPlace::CottageWithPorch
-		&& Places::NameOf(48, "data\\global\\tiles\\Act1\\Outdoors\\Cott1A.ds1") == PresetPlace::CottageWithPorch,
-		"Cott1 and Cott1A are the cottage with a porch (a tester, 2026-10-18)");
+	Check(Places::NameOf(47, "Act1/Outdoors/Cott5.ds1") == PresetPlace::CottageWithPorch
+		&& Places::NameOf(48, "data\\global\\tiles\\Act1\\Outdoors\\Cott5A.ds1") == PresetPlace::CottageWithPorch,
+		"Cott5 and Cott5A are the cottage with a porch (a tester's screenshots, 2026-10-18)");
+	Check(Places::NameOf(47, "Act1/Outdoors/Cott1.ds1") == PresetPlace::Cottage
+		&& Places::NameOf(48, "data\\global\\tiles\\Act1\\Outdoors\\Cott1A.ds1") == PresetPlace::Cottage,
+		"Cott1 and Cott1A are the plain stone cottage (a tester, 2026-10-19)");
 	Check(Places::Find("Act1/Outdoors/Cott6A.ds1") == nullptr && Places::Find("Act1/Outdoors/Cott6.ds1") == nullptr,
 		"the stable's cottage visbox does not make it an interior");
 	const auto* cottage = Places::Find("Act1/Outdoors/Cott4.ds1");
 	Check(cottage && Places::PieceOf(*cottage).volumes.size() == 1
 		&& Places::PieceOf(*cottage).volumes[0].interior == PlaceInterior::Cottage, "a cottage keeps its interior");
 	Check(Places::Find("Act2/Sewer/Sews.ds1") == nullptr, "the sewers' crate piles named table01/02 are not tables (a tester, 2026-10-18)");
+	const auto grateAt = [](const char* file, int x, int y) {
+		const auto* piece = Places::Find(file);
+		if (!piece) return false;
+		const auto seeds = Places::PieceOf(*piece).seeds;
+		return std::any_of(seeds.begin(), seeds.end(), [&](const PlaceSeed& seed) {
+			return seed.feature == PlaceFeature::SewerGrate && (x < 0 || (seed.minX == x && seed.minY == y)); });
+	};
+	Check(grateAt("Act2/Sewer/SewNSW.ds1", 37, 33), "the sewers' round grate (manhole01) is a landmark (a tester, 2026-10-19)");
+	Check(!grateAt("Act2/Sewer/SewS2.ds1", -1, -1), "the flat water channel grates are not the round grate");
 	Check(Places::Padding(PresetPlace::Tower) > 0 && Places::Padding(PresetPlace::Cottage) == 0, "only the tower ruin is named from afar");
 }
 

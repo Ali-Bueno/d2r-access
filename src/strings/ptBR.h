@@ -300,7 +300,7 @@ inline constexpr Table ptBR {
 	.deathRouteWaypoint = "caminho até onde você morreu, %s: %s, escolha %s",
 	.placePresets = {"", "ponte", "rio", "acampamento dos Decaídos", "cabana", "cemitério", "torre em ruínas", "ruínas", "acampamento", "templo", "portão", "oásis", "forja", "estábulo", "cabana em chamas", "cabana com varanda"},
 	.placeInteriors = {"taverna", "entrada do palácio", "cabana", "torre", "choupana", "templo", "fortaleza", "edifício", "casa de fazenda", "barraco", "catedral"},
-	.placeFeatures = {"cozinha", "lareira", "balcão", "mesas", "escadas", "cais", "barco", "barracas", "forja", "altar", "trono", "túmulos", "celas", "cavalete de tortura", "camas", "estantes", "estátuas", "fonte", "poço", "tendas", "carroça", "rio", "ponte", "fogueira", "Árvore do Enforcado", "escadas de subida", "fonte transbordando de sangue", "edifício em chamas", "estrela em chamas", "escadas de descida"},
+	.placeFeatures = {"cozinha", "lareira", "balcão", "mesas", "escadas", "cais", "barco", "barracas", "forja", "altar", "trono", "túmulos", "celas", "cavalete de tortura", "camas", "estantes", "estátuas", "fonte", "poço", "tendas", "carroça", "rio", "ponte", "fogueira", "Árvore do Enforcado", "escadas de subida", "fonte transbordando de sangue", "edifício em chamas", "estrela em chamas", "grade de esgoto", "escadas de descida"},
 	.placeOutside = "fora",
 	.placeCorridor = "corredor",
 	.placeDeadEnd = "corredor sem saída",
@@ -377,7 +377,7 @@ inline constexpr Table ptBR {
 	.lowLifeVolume = "Volume do batimento de vida baixa %d por cento",
 	.manaAlerts = {"Alertas de mana: cada mudança", "Alertas de mana: só mana baixa", "Alertas de mana: desligados"},
 	.itemSoundSets = {"Sons dos itens: Diablo IV", "Sons dos itens: ouro e poções do Last Epoch", "Sons dos itens: quedas do Diablo II"},
-	.settingsGroups = {"Sons", "Inimigos e NPCs", "Navegação", "Itens e menus", "Alertas", "Controle", "Glossário de sons", "Volumes", "Sons de queda do Diablo II", "Lista de ajustes", "Filtro de saque", "Velocidade dos loops"},
+	.settingsGroups = {"Sons", "Inimigos e NPCs", "Navegação", "Itens e menus", "Alertas", "Controle", "Glossário de sons", "Volumes", "Sons de queda do Diablo II", "Lista de ajustes", "Filtro de saque", "Velocidade dos loops", "Prioridade da fala"},
 	.loopPaceNames = {"Portas", "Pergaminhos, runas e gemas", "Baús, cadáveres, armeiros e o baú", "Santuários e poços", "Itens de missão", "Salas inexploradas", "Sons de Last Epoch"},
 	.goldMovedPersonal = "%s de ouro movido para o baú pessoal",
 	.goldMovedShared = "%s de ouro movido para o baú compartilhado",
@@ -469,6 +469,9 @@ inline constexpr Table ptBR {
 	.skillBound = "%s atribuída a %s",
 	.hintMoreControls = "Analógico direito para cima para mais opções",
 	.radiantObject = "%s radiante",
+	.speechPriority = "%s: %s",
+	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão"},
+	.speechPriorityLevels = {"espera a vez", "interrompe se for urgente", "interrompe", "interrompe e não pode ser cortado"},
 };
 
 }

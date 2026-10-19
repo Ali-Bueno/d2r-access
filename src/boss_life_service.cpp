@@ -6,6 +6,7 @@
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 
 #include <windows.h>
@@ -85,7 +86,7 @@ void Announce(const D2RL::PluginContext* context, const std::vector<BossLife::Al
 	}
 	if (text.empty()) return;
 	AsyncLog::InfoF(context, "[boss-life] %s", text.c_str());
-	ScreenReader::Speak(text, interrupt);
+	SpeechPriority::Say(SpeechPriority::Kind::BossLife, text, interrupt);
 }
 }
 

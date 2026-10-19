@@ -32,7 +32,9 @@ bool Carried(const D2RL::PluginContext* context);
 std::string Name();
 // `body` followed by " - Cube open" while a carried cube is shown in the stash; unchanged otherwise.
 std::string WithStashStatus(const D2RL::PluginContext* context, const std::string& body, uintptr_t stashPanel);
-// `help` with the game's own "Hold A to Open" when the focused item is the cube and the help lacks it.
+// The game's own "Hold A to Open" when `item` is the cube; empty for any other item.
+std::string OpenHint(uintptr_t item);
+// `help` with OpenHint when the focused item is the cube and the help lacks it.
 std::string WithOpenHint(const D2RL::PluginContext* context, const std::string& help, uintptr_t item);
 
 }

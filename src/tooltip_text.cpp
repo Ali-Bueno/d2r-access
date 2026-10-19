@@ -1,5 +1,6 @@
 #include "tooltip_text.h"
 
+#include "controller_text.h"
 #include "ui_text.h"
 
 #include <algorithm>
@@ -112,7 +113,9 @@ Body Read(std::string_view body) {
 		std::string raw(body.substr(newline == std::string_view::npos ? 0 : newline + 1));
 		const bool  heading = raw.find(Heading) != std::string::npos;
 		const bool  red = raw.find(Red) != std::string::npos;
-		std::string line = UiText::Clean(StripFont(std::move(raw)));
+		std::string line = UiText::Clean(StripFont(raw));
+		// A line with words keeps its buttons, "Hold Y to compare" (a tester, 2026-10-19); a lone symbol stays out.
+		if (!line.empty()) line = ControllerText::Read(StripFont(std::move(raw)));
 		if (!line.empty()) {
 			// Walking down from the title, the first styled line seen is the topmost one.
 			if (heading) {

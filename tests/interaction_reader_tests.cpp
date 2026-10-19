@@ -321,6 +321,7 @@ int stops = 0;
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupts.push_back(interrupt); }
 void Lead(std::string_view text, unsigned long long) { Speak(text, false); }
+void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
 void Stop() { ++stops; }
 }
 

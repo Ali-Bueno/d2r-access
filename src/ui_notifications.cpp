@@ -1,4 +1,5 @@
 #include "ui_notifications.h"
+#include "controller_text.h"
 
 #include <algorithm>
 
@@ -28,7 +29,8 @@ std::vector<std::string> Describe(const UiText::Snapshot& snapshot) {
 		const auto& node = snapshot.nodes[i];
 		if (node.kind != UiText::Kind::Text && node.kind != UiText::Kind::LinkedText) continue;
 		if (!InNotificationList(snapshot, i)) continue;
-		auto text = UiText::Clean(node.text);
+		// "You've leveled up. Press <Menu> to assign Stat Points." (a tester, 2026-10-19: buttons left out).
+		auto text = ControllerText::Read(node.text);
 		if (!text.empty() && std::find(result.begin(), result.end(), text) == result.end()) result.push_back(std::move(text));
 	}
 	return result;
@@ -38,7 +40,7 @@ std::vector<Delivery> Deliveries(const UiText::Snapshot& snapshot) {
 	std::vector<Delivery> result;
 	for (const auto& node : snapshot.nodes) {
 		if (node.kind != UiText::Kind::NotificationList || !node.contentId) continue;
-		auto text = UiText::Clean(node.text);
+		auto text = ControllerText::Read(node.text);
 		if (!text.empty()) result.push_back({node.id, node.contentId, std::move(text)});
 	}
 	return result;

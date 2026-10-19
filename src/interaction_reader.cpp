@@ -36,6 +36,7 @@
 #include "pad_filter.h"
 #include "panel_state.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "stash_count.h"
 #include "tab_reader.h"
@@ -261,13 +262,17 @@ const std::vector<std::string>& PriceLabels() {
 	return cache.For(Keys);
 }
 
+void SpeakDetail(const D2RL::PluginContext* context) {
+	const std::string& text = g_detail.empty() ? Strings::Current().detailNone : g_detail;
+	D2RAccess::AsyncLog::InfoF(context, "[detail] %s -> \"%s\"", g_detailFor.c_str(), text.c_str());
+	ScreenReader::Speak(text, true);
+}
+
 // A push up on the right stick, claimed only while a panel is open so the
 // level scanner keeps the stick during play.
 bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (!focus.panel || !InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) return false;
-	const std::string& text = g_detail.empty() ? Strings::Current().detailNone : g_detail;
-	D2RAccess::AsyncLog::InfoF(context, "[detail] %s -> \"%s\"", g_detailFor.c_str(), text.c_str());
-	ScreenReader::Speak(text, true);
+	SpeakDetail(context);
 	return true;
 }
 
@@ -990,6 +995,11 @@ void LogWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		NativeWaypoints::Name(row.state), row.tab, row.count, row.level, static_cast<unsigned>(row.open), row.player);
 }
 
+void TickFrontEnd(const D2RL::PluginContext* context) {
+	if (InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) SpeakDetail(context);
+	else (void)ReadHints(context);
+}
+
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {
 	TickSkillBranch(context, now);
 	TickStash(context, now, focus);
@@ -1249,6 +1259,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		renderedDescription = !description.empty();
 		if (type.kind == UiText::Kind::InventoryGrid && renderedDescription) {
 			readout.option = description;
+			// The cube says how it opens with its name (a tester, 2026-10-19).
+			if (const auto hint = CubeState::OpenHint(focusItem); !hint.empty() && readout.option.find(hint) == std::string::npos)
+				Append(readout.option, hint);
 			readout.coordinates.clear(); // a described cell keeps its existing coordinate-free readout
 		}
 		else if (progression.skill) {
@@ -1547,7 +1560,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_readPanel = focus.panel;
 		// A monster name is incremental combat news, never a context change; so is an
 		// inventory cell whose item left under the cursor (Y's stash notice goes first).
-		ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !monsterLabel && !(inventory && announcement.sameFocus));
+		if (monsterLabel) SpeechPriority::Say(SpeechPriority::Kind::EnemyNames, announcement.text);
+		else ScreenReader::Speak(announcement.text, !behindTitle && !skillDetailFollows && !(inventory && announcement.sameFocus));
 	}
 	if (!comparisonNow.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[compare] aloud -> \"%s\"", comparisonNow.c_str());

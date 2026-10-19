@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 30;
+inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 31;
 
 
 
@@ -30,7 +30,9 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
 inline constexpr std::size_t GlossarySoundCount = 51;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
-inline constexpr std::size_t SettingsGroupCount = 12; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SettingsGroupCount = 13; // keyboard_service.cpp's SettingsGroup
+inline constexpr std::size_t SpeechPriorityKindCount = 9; // SpeechPriority::Kind
+inline constexpr std::size_t SpeechPriorityLevelCount = 4; // SpeechPriority::Level
 inline constexpr std::size_t LoopPaceGroupCount = 7; // loop_pace.h's Group
 inline constexpr std::size_t LootEquipmentCount = 5; // GroundItems::EquipmentLoops
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
@@ -524,6 +526,9 @@ struct Table {
 	const char* skillBound; // %s = the skill, %s = the button the rebinding window put it on
 	const char* hintMoreControls; // character select, said once a visit: a row keeps its controls on right stick up
 	const char* radiantObject; // %s = the game's name of a glowing quest or reward chest
+	const char* speechPriority; // %s = a speechPriorityKinds entry, %s = a speechPriorityLevels entry
+	std::array<const char*, SpeechPriorityKindCount> speechPriorityKinds; // SpeechPriority::Kind order
+	std::array<const char*, SpeechPriorityLevelCount> speechPriorityLevels; // SpeechPriority::Level order
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -586,7 +591,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject}) visit(s);
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.speechPriority}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
@@ -599,6 +604,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.conditionsStarted);
 	each(t.conditionsEnded);
 	each(t.curseNames);
+	each(t.speechPriorityKinds);
+	each(t.speechPriorityLevels);
 
 }
 

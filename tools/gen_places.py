@@ -79,6 +79,9 @@ FEATURES = [
     ("BurningBuilding", "any", r"tristram_(?:fire_small|firewall|smolder)|building_burnt|burnt_beam"),
     # The crypts' five-pointed fire on the floor, which burns whoever crosses it.
     ("FireStar", "any", r"fx_act1crypt_fire_pentagram"),
+    # The sewers' round floor grate with its steam (manhole01; a tester, 2026-10-19). The flat
+    # water_channel_grate01 along the channels is not it.
+    ("SewerGrate", "model", r"act2_sewer_manholes/manhole"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -114,6 +117,7 @@ PREFAB_FEATURES = {
     "Wagon": r"pf_town_wagon\d",
     "Bridge": r"pf_diab_bridge|pf_bridge\d+(?:_\d+)?$|pf_bridge_stone",
     "Campfire": r"pf_town_campfire",
+    "SewerGrate": r"pf_steamy_grate",
 }
 PREFAB_RX = [(n, re.compile(PREFAB_FEATURES[n])) for n in FEATURE_NAMES if n in PREFAB_FEATURES]
 # Prefabs that only borrow a feature's name: the sewers' "pf_table01/02" are piles of crates, vases
@@ -157,8 +161,9 @@ PLACES = [
 FILE_PLACES = [
     ("Stable", r"^act1/outdoors/cott6a?\.ds1$"),
     ("BurningCottage", r"^act1/outdoors/cott7\.ds1$"),
-    # Cottage 1's building (cottage01, its roof carried over a porch): a tester, 2026-10-18.
-    ("CottageWithPorch", r"^act1/outdoors/cott1a?\.ds1$"),
+    # Cottage 5's building (cottage05 under roof05, an open timber porch; a tester's Dark Wood
+    # screenshots, 2026-10-18). Cottage 1's is the plain stone cottage (a tester, 2026-10-19).
+    ("CottageWithPorch", r"^act1/outdoors/cott5a?\.ds1$"),
 ]
 # Tiles around a named piece where its name is already spoken: the ruined tower is seen from afar.
 PRESET_PADDING = {"Tower": 6}

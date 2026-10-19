@@ -165,9 +165,8 @@ crates, and Cottage 1's porch building had no name of its own. Causes and fixes:
   `SeparateHoldMs` so coming back to a building speaks it again. Rivers and bridges keep one name.
 - **Stable.** `Cott6`/`Cott6A` carry the cottage's `visbox_cottage`, which said "cottage" on stepping in.
   `INTERIOR_SKIPPED_FILES` drops that volume, so a stable is only a stable.
-- **Cottage with porch.** `Cott1`, `Cott1A` (`cottage01` with its `Roof01` porch roof; seen in Black
-  Marsh and the Dark Wood) are `PresetPlace::CottageWithPorch`, by file like the stable.
-  Inferred from the tester's screenshots and the pieces' models: confirm live.
+- **Cottage with porch.** By file like the stable: `PresetPlace::CottageWithPorch` (corrected
+  2026-10-19, below).
 - **Tower ruin range.** `PRESET_PADDING` (`PresetPads`) names the tower 6 tiles before its piece, read
   off the loaded rooms every 2 s (`PlaceService::RefreshPadded`).
 - **Sewer "tables".** The prefabs `pf_table01/02` under `sewer/prefabs/perimeter_deco` are piles of
@@ -180,3 +179,19 @@ crates, and Cottage 1's porch building had no name of its own. Causes and fixes:
   highest base, the full width (Dry Hills' left stairs: bottom 30,43-39,55, top 20,45-25,56). A
   stairway left `StairwayHoldMs` ago no longer holds (`Places::HeldStairway`): coming back to the top
   says "stairs down" again, while walking straight from one landing to the other stays quiet.
+
+## The porch cottage's file, the sewer grate (2026-10-19)
+
+A tester (build 2026-10-18-2): `Cott1A` in the Cold Plains and the Black Marsh said "cottage with
+porch", but it is their plain "Stone Cottage" (screenshot "Cottage 2"). Each `CottN`/`CottNA` pair
+places the same models at the same spot (no rotation): `cottage0N` under `roof0N`. The porch
+screenshots (Dark Wood) match `Cott5A` by time in `hidden_cottage_d2r-access.log` (log times run five
+hours ahead of the files), so **`Cott5`/`Cott5A`** (`cottage05`, the larger `roof05`) are the porch
+cottage and `Cott1`/`Cott1A` plain cottages. `Cott2` to `Cott4` stay "cottage": nothing shows a porch.
+
+**Sewer grate.** The round floor grate with steam is `act2_sewer_manholes/manhole01` (entity
+`manhole01_01`, with `sewer_well_trim01` and `rising_steam01`), placed directly in 20 sewer pieces and
+through the prefab `pf_steamy_grate01`; feature `SewerGrate` ("sewer grate"), 22 seeds. In `SewNSW`
+it is at subtile 37,33, where the tester walked round it (`sewer_d2r-access.log`). The flat
+`water_channel_grate01` along the channels is not matched; `pf_sewer_grate` is Lut Gholein's street
+grate, left for later. The "tables" heard there is `bench01_03` in a pile of broken furniture.

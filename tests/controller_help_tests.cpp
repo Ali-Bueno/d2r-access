@@ -73,6 +73,18 @@ int main() {
 	Check(ControllerText::Read("\xEE\x80\x91" "Asignar habilidad") == "X Asignar habilidad", "adjacent caption keeps its controller button");
 	Check(ControllerText::Read("\xEE\x81\xBF" "Texto") == "Texto", "unknown formatting glyphs are not guessed as buttons");
 	Check(ControllerText::Button(0).empty() && ControllerText::Button(0xE07E).empty(), "non-button and skill font commands have no button label");
+	// UI actions, drawn as the button bound to them (a tester, 2026-10-19: "Press to continue").
+	Strings::Select(Strings::Language::enUS);
+	Check(ControllerText::Read("You have died. Press \xEE\x80\x9D to continue.") == "You have died. Press Menu to continue.",
+		"the death screen's pause action is the Menu button");
+	Check(ControllerText::Read("Hold \xEE\x80\x93 to Open") == "Hold A to Open", "select is A");
+	Check(ControllerText::Button(0xE014) == "B" && ControllerText::Button(0xE015) == "X" && ControllerText::Button(0xE016) == "Y",
+		"back is B, the two options X and Y");
+	Check(ControllerText::Button(0xE01E) == "View" && ControllerText::Button(0xE020) == "D-pad up" && ControllerText::Button(0xE027) == "LB",
+		"the menu action is View, the second belt slot D-pad up, the first cycle LB");
+	Check(ControllerText::Button(0xE019).empty() && ControllerText::Button(0xE023).empty() && ControllerText::Button(0xE02B).empty(),
+		"an action bound to no button, or past the actions, is not guessed");
+	Strings::Select(Strings::Language::esES);
 	Put(legend.data(), 0x88, reinterpret_cast<uintptr_t>(records.data()));
 	Put(legend.data(), 0x90, uint64_t{2});
 	Entry(0, 0xE011, 0, 1, "Asignar habilidad"); Entry(1, 0xE010, 0, 1, "Cerrar menú");

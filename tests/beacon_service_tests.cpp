@@ -160,7 +160,10 @@ bool Read(uint32_t, uint64_t, std::vector<EntityRadar::Entity>&, bool, bool, boo
 bool ReadLayout(uint32_t, bool, NativeLevelExits::Layout&) { return false; }
 std::string LevelName(uint32_t) { return {}; }
 }
-namespace D2RAccess::Descriptions { std::string Find(std::string_view, std::string_view builtIn) { return std::string(builtIn); } }
+namespace D2RAccess::Descriptions {
+std::string Find(std::string_view, std::string_view builtIn) { return std::string(builtIn); }
+std::string FindArea(std::string_view) { return {}; }
+}
 namespace D2RAccess::ZoneTransitions {
 std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
 bool Crosses(const EntityRadar::Entity&) { return false; }

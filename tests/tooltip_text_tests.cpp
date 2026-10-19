@@ -125,6 +125,10 @@ int main() {
 	const std::vector<std::string> extras{"Defense: 2\nLeather Gloves\nCurrently Equipped", "\xEE\x80\x93"};
 	Check(TooltipText::Comparison(extras) == "Currently Equipped. Leather Gloves. Defense: 2", "a comparison reads as the screen draws it, and a button image adds nothing");
 	Check(TooltipText::Comparison({}).empty(), "no extra record, no comparison");
+	// A control line keeps its button (a tester, 2026-10-19: the cube's "Hold to Open").
+	const auto cube = TooltipText::Read("Hold \xEE\x80\x93 to Open\nHoradric Cube");
+	Check(cube.lines.size() == 2 && cube.lines[0] == "Horadric Cube" && cube.lines[1] == "Hold A to Open",
+		"the line with words names the button bound to the action");
 
 	// The font index is markup, not text. Item tooltips draw with index 0,
 	// which used to survive and be spoken as a stray "0" on every line.

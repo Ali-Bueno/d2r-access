@@ -89,6 +89,7 @@ void Reset() {}
 }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
+void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
 }
 namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) noexcept {}

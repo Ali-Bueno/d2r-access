@@ -244,6 +244,14 @@ void DoorOnTheWay() {
 		"with the door loaded and shut the waypoint is the floor in front of it");
 	const auto update = Settled(atDoor, Beacon::Settings{});
 	Check(update.routed && Dot(update.heading, MinusY) > 0.9, "and the ping leads there, for the player to open it");
+	// Standing where the ping led, at the shut door (a player, 2026-10-19: "No route through explored areas").
+	const Position front{atDoor.waypoint.x, atDoor.waypoint.y};
+	const auto here = BeaconNavigation::Prepare(level.Loaded(front, 1), target, &graph, nullptr, Margin, nullptr, {&memory, &way, 0});
+	Beacon::Settings exploring;
+	exploring.requireKnownRoute = true;
+	Check(here.available && here.hasWaypoint
+		&& Beacon::Reaches(here.world, Beacon::FindRoute(here.world, here.waypoint, exploring), here.waypoint, exploring),
+		"at the door itself guidance neither refuses nor drops the target");
 }
 
 // The remembered way is planned again at a bounded rate.

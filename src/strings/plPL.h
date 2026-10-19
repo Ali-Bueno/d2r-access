@@ -300,7 +300,7 @@ inline constexpr Table plPL {
 	.deathRouteWaypoint = "droga do miejsca twojej śmierci, %s: %s, wybierz %s",
 	.placePresets = {"", "most", "rzeka", "obóz Upadłych", "chata", "cmentarz", "ruina wieży", "ruiny", "obóz", "świątynia", "brama", "oaza", "kuźnia", "obora", "płonąca chata", "chata z gankiem"},
 	.placeInteriors = {"karczma", "wejście do pałacu", "chata", "wieża", "chata", "świątynia", "forteca", "budynek", "zagroda", "szopa", "katedra"},
-	.placeFeatures = {"kuchnia", "kominek", "szynk", "stoły", "schody", "pomost", "łódź", "stragany", "kuźnia", "ołtarz", "tron", "groby", "cele", "łoże tortur", "posłania", "regały z książkami", "posągi", "fontanna", "studnia", "namioty", "wóz", "rzeka", "most", "ognisko", "Drzewo Wisielców", "schody w górę", "fontanna przepełniona krwią", "płonący budynek", "płonąca gwiazda", "schody w dół"},
+	.placeFeatures = {"kuchnia", "kominek", "szynk", "stoły", "schody", "pomost", "łódź", "stragany", "kuźnia", "ołtarz", "tron", "groby", "cele", "łoże tortur", "posłania", "regały z książkami", "posągi", "fontanna", "studnia", "namioty", "wóz", "rzeka", "most", "ognisko", "Drzewo Wisielców", "schody w górę", "fontanna przepełniona krwią", "płonący budynek", "płonąca gwiazda", "kratka kanalizacyjna", "schody w dół"},
 	.placeOutside = "na zewnątrz",
 	.placeCorridor = "korytarz",
 	.placeDeadEnd = "ślepy korytarz",
@@ -377,7 +377,7 @@ inline constexpr Table plPL {
 	.lowLifeVolume = "Głośność bicia serca przy niskim życiu %d procent",
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
 	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
-	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II", "Lista ustawień", "Filtr łupów", "Tempo pętli"},
+	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II", "Lista ustawień", "Filtr łupów", "Tempo pętli", "Priorytet mowy"},
 	.loopPaceNames = {"Drzwi", "Zwoje, runy i klejnoty", "Skrzynie, zwłoki, stojaki na broń i skrytka", "Kapliczki i studnie", "Przedmioty zadań", "Niezbadane komnaty", "Dźwięki Last Epoch"},
 	.goldMovedPersonal = "%s złota przeniesiono do skrytki osobistej",
 	.goldMovedShared = "%s złota przeniesiono do skrytki wspólnej",
@@ -469,6 +469,9 @@ inline constexpr Table plPL {
 	.skillBound = "%s przypisano do %s",
 	.hintMoreControls = "Prawa gałka w górę, aby zobaczyć więcej opcji",
 	.radiantObject = "Promienna %s",
+	.speechPriority = "%s: %s",
+	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi"},
+	.speechPriorityLevels = {"czeka na swoją kolej", "przerywa, gdy pilne", "przerywa", "przerywa i nie da się go przerwać"},
 };
 
 }

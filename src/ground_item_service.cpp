@@ -11,6 +11,7 @@
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "async_log.h"
 #include "zone_transitions.h"
@@ -402,7 +403,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines) ItemAudio::Update(std::move(update.voices));
 	if (!update.speech.empty()) {
 		AsyncLog::InfoF(context, "[items] nearby: %s", update.speech.c_str());
-		ScreenReader::Speak(update.speech, false);
+		SpeechPriority::Say(SpeechPriority::Kind::NearbyItems, update.speech);
 	}
 }
 void Unregister() {

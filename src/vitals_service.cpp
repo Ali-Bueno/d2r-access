@@ -20,6 +20,7 @@
 #include "native_widgets.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "status_effects.h"
 #include "generated/skill_states.h"
@@ -174,11 +175,11 @@ void AnnounceEffects(const D2RL::PluginContext* context, const StatusEffects::Ch
 	for (const auto index : change.ended) Append(ended, EffectWords(index, false));
 	if (!started.empty()) {
 		AsyncLog::InfoF(context, "[vitals] effect began -> \"%s\"", started.c_str());
-		ScreenReader::Urge(started, GetTickCount64() + StatusEffects::StartHoldMs);
+		SpeechPriority::Say(SpeechPriority::Kind::StatusBegins, started, true);
 	}
 	if (!ended.empty()) {
 		AsyncLog::InfoF(context, "[vitals] effect ended -> \"%s\"", ended.c_str());
-		ScreenReader::Speak(ended, false);
+		SpeechPriority::Say(SpeechPriority::Kind::StatusEnds, ended);
 	}
 }
 
@@ -273,7 +274,7 @@ void Announce(const Vitals::Alert& alert, const Vitals::MercenaryMeter::Alert& m
 	if (mercenary.level > 0) Append(text, MercenaryLevel(mercenary.level));
 	AsyncLog::InfoF(g_context, "[vitals] alert life=%d mana=%d mercenary_life=%d mercenary_level=%d interrupt=%d",
 		alert.life, alert.mana, mercenary.life, mercenary.level, alert.interrupt || mercenary.interrupt);
-	if (!text.empty()) ScreenReader::Speak(text, alert.interrupt || mercenary.interrupt);
+	if (!text.empty()) SpeechPriority::Say(SpeechPriority::Kind::LifeAlerts, text, alert.interrupt || mercenary.interrupt);
 }
 
 // Says which displayed orb value is unavailable, after persistent absence or
@@ -734,7 +735,7 @@ void Tick(const D2RL::PluginContext* context) {
 					const bool blessed = !shrines->empty();
 					if (g_blessed && *g_blessed && !blessed && g_statusAlerts) {
 						AsyncLog::Info(context, "[vitals] shrine effect ended");
-						ScreenReader::Speak(Strings::Current().shrineEnded, false);
+						SpeechPriority::Say(SpeechPriority::Kind::StatusEnds, Strings::Current().shrineEnded);
 					}
 					g_blessed = blessed;
 				}

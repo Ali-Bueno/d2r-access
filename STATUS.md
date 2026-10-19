@@ -2,6 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build 2026-10-18-2 — 2026-10-19 (not released)
+
+From `D2R Access test build 2026-10-18-2 bug list and feedback` (the user's Downloads: list with the
+user's notes, `menu_walk_`/`death_`/`sewer_`/`wrong_house_` logs). Choices in [decisions](docs/decisions.md);
+news (with replies and a multiplayer checklist) `../tester-news-draft-2026-10-19.txt`.
+- Character select right stick up: out of a game nobody claimed it (`InteractionReader::TickFrontEnd`).
+- Controller glyphs U+E013..E02A are UI actions (death "Press Menu", "Hold A to Open", level-up
+  notices); tooltip lines keep buttons ([controller glyphs](docs/controller-glyphs.md)).
+- Cube: open hint with the name; Y out of the cube to a tab said ([Horadric Cube](docs/horadric-cube.md)).
+- Speech priority menu, 9 kinds x 4 levels (`SpeechPriority`; [speech priority](docs/speech-priority.md));
+  status endings cut in, 500 ms after the end.
+- Porch cottage is `Cott5`/`Cott5A`; sewer grate (`manhole01`) ([places](docs/places.md)).
+- descriptions.txt read again on save, `descriptions-names.txt`, banner form "The Cave Level 1"
+  ([descriptions](docs/descriptions.md)).
+- Guidance at a shut door keeps the target ([beacon](docs/beacon.md)).
+
+123/123 CTest; installed by the build. **Unverified live: all of it.**
+**Next step:** release when the user asks; the tester tries it; logs: `[detail]` at character select,
+`[modal] YouDiedModal`, `[cube]`, `[items] sorted into the stash`, `[descriptions] read again`,
+`[beacon] refused reason=` from the second player.
+
 ## The tester's list on build 2026-10-18 and the 2026-10-16 leftovers — 2026-10-18 (released as test-2026-10-18-2 from 2f2fab2)
 
 Release: 122/122 CTest, 29 entries, 62,645,285 bytes, SHA-256 `4a7f71aa…e08d`.

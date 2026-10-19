@@ -308,7 +308,7 @@ version:
   `reachable` alone a chest in an open field reads "no route". The line test
   skips both end cells, exactly as the scan's sight test does, and calling
   that a straight walk is what actually happens.
-- **Beyond the box it says nothing.** `searchRadius` is 96 subtiles; claiming
+- **Beyond the box it says nothing.** `searchRadius` is 158 subtiles; claiming
   "no route" for something merely far away would be a lie, so the plain
   "Guiando hacia X" is used instead.
 
@@ -317,13 +317,24 @@ aid is a ping that answers this and nothing else —
 `reference/audio-navigation/grim-dawn/navigation-spec.md` §6. It uses three
 sounds where this uses a word.
 
+## A shut door on the way (2026-10-19)
+
+A player: "No route through explored areas" where guidance had led. Standing on the floor in front of
+a shut door (or a chest or barrel in a corridor), the remembered way's next cell is one the loaded
+grid stands no body on (`DoorBits` is door and object), so `LevelRoute::Ahead` found no waypoint;
+`Toggle` then tried the far target, failed, and refused, and a lock in exploration mode was dropped
+after `routeLossMs`. `Prepare` now makes the player's own cell the waypoint when that first cell
+lies against door ground in the map (`AgainstDoor`): the ping is silent at the door and leads on once
+it opens. Reproduced offline first (`beacon_guidance_tests.cpp` `DoorOnTheWay`). There is no
+distance limit near 120: the route box is 158, the world window 152, the grid 150.
+
 ## Parameters
 
 | Name | Value | Where it comes from |
 |---|---|---|
-| `searchRadius` | 96 | `Beacon::Settings`, half-side of the route search box |
+| `searchRadius` | 158 | `Beacon::Settings`, half-side of the route search box |
 | `lookAhead` | 8 | `Beacon::Settings`, cells ahead on the route that choose the heading |
-| `arrivalDistance` | 2 | `Beacon::Settings`, straight-line distance counted as arrived |
+| `arrivalDistance` | 3 | `Beacon::Settings`, straight-line distance counted as arrived |
 | `reroute` | 3 | `Beacon::Settings`, player/target movement that forces a fresh route |
 | `routeIntervalMs` | 400 | `Beacon::Settings`, otherwise-fixed route recompute cadence |
 | `nearPingMs` / `farPingMs` | 160 / 1200 | `Beacon::Settings`, ping interval bounds, linear in remaining route length |

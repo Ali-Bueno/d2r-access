@@ -15,6 +15,7 @@
 #include "npc_speech.h"
 #include "panel_state.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "tab_reader.h"
 #include "trade_service.h"
@@ -180,6 +181,8 @@ bool Tick(const D2RL::PluginContext* context) {
 		g_wasEnabled = enabled;
 		ScreenReader::Speak(enabled ? Strings::Current().gameTextEnabled : Strings::Current().gameTextDisabled, true);
 	}
+	// The front end's highlight keeps its detail and controls on the right stick (a tester, 2026-10-19).
+	if (!g_inGame) InteractionReader::TickFrontEnd(context);
 	if (!g_inGame || !enabled || !NativeWidgets::SupportsTree()) return false;
 	const uint64_t now = GetTickCount64();
 	if (now - g_lastPoll < PollMs) return g_ownedFocus || g_interactionFocus;
@@ -277,12 +280,15 @@ bool Tick(const D2RL::PluginContext* context) {
 	if (!area.Empty()) {
 		const auto announcement = g_areaReader.Update(area, now);
 		Speak(context, area, announcement, !owns && !g_interactionFocus);
-		if (!announcement.text.empty()) AreaHint(context, area.body);
+		if (!announcement.text.empty()) {
+			Descriptions::NoteBanner(UiText::Clean(area.body));
+			AreaHint(context, area.body);
+		}
 	} else g_areaReader.Reset();
 	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
 		const auto text = NameSpeaker(TradeService::FixNotice(notice));
 		D2RAccess::AsyncLog::InfoF(context, "[notice] %s", text.c_str());
-		ScreenReader::Speak(text, false);
+		SpeechPriority::Say(SpeechPriority::Kind::GameNotices, text);
 	}
 	if (g_repeat.exchange(false)) {
 		const auto phrase = owns ? g_reader.Repeat() : !InteractionReader::Repeat().empty() ? InteractionReader::Repeat()

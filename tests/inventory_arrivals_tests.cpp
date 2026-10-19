@@ -79,6 +79,12 @@ int main() {
 	Check(NewInCube({}, {flawed}, 60).empty(), "the item put down from the hand is not a result");
 	Check(CubeConsumed({cubed(topaz1)}, {}, 51) == 0, "an ingredient picked up into the hand was not used up");
 	Check(CubeConsumed({cubed(topaz1)}, {topaz1}, 0) == 0, "nor was one sent to a stash");
+	// Y on a gem in the cube with a specialty tab open sends it to the tab (a tester, 2026-10-19).
+	const auto outOfCube = Departures({ruby, cubed(topaz1)}, {ruby}, 0);
+	Check(outOfCube.size() == 1 && outOfCube[0].id == topaz1.id && outOfCube[0].place == Place::Cube,
+		"a gem Y sorts out of the cube departed, from the cube");
+	Check(Departures({cubed(topaz1)}, {cubed(topaz1)}, 0).empty() && Departures({cubed(topaz1)}, {}, topaz1.id).empty(),
+		"one still in the cube or taken into the hand did not");
 	Check(NewInCube({ruby}, {ruby, backpacked(flawed)}, 0).empty(), "a new item outside the cube is not the cube's");
 
 	// Three topazes one press moved are one phrase.

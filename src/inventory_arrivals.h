@@ -22,9 +22,9 @@ struct Arrival { Item item; bool unequipped = false; };
 // already spoken.
 std::vector<Arrival> Diff(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldBefore);
 
-// What left the backpack or a stash between `before` and `now` for nowhere known,
-// not the hand (`heldNow`): with the stash open and Y just pressed, an item the
-// game sorted into its gem, rune or materials tab (a tester).
+// What left the backpack, a stash or the cube between `before` and `now` for nowhere
+// known, not the hand (`heldNow`): with the stash open and Y just pressed, an item the
+// game sorted into its gem, rune or materials tab (testers, 2026-10-14 and 2026-10-19).
 std::vector<Item> Departures(const std::vector<Item>& before, const std::vector<Item>& now, uint32_t heldNow);
 
 // What went straight from the backpack into a stash, not through the hand

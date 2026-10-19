@@ -11,6 +11,7 @@
 #include "quest_seals.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 
 #include <windows.h>
@@ -265,7 +266,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	else if (announcement.kind == QuestProgress::Kind::Objective) text = announcement.quest + ". " + announcement.objective;
 	if (!text.empty()) {
 		AsyncLog::InfoF(context, "[quest] announce: %s", text.c_str());
-		ScreenReader::Speak(text, false);
+		SpeechPriority::Say(SpeechPriority::Kind::QuestAlerts, text);
 	}
 }
 

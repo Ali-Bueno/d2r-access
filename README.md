@@ -243,6 +243,13 @@ in the **Settings list** group: at either end it goes round with a click, or wit
 stays there with a knock; `settings-list-restart` opens it at its first entry instead of where it was
 left.
 
+**Speech priority (built; live validation pending):** the **Speech priority** group of the settings
+list sets, for each kind of news (status effects beginning and ending, life and mana alerts, boss
+life, enemy names, game messages, quest updates, places, items on the ground), whether it waits its
+turn, cuts in only when urgent, always cuts in, or cuts in and cannot be cut off for 1.5 s. The
+defaults keep the mod's earlier behaviour, except status endings, which cut in. See
+[speech priority](docs/speech-priority.md).
+
 An experimental **stalled-footstep filter** suppresses repeated local HD
 footfalls when the character remains at exactly the same position while walking
 or running. Any fractional movement restores footsteps, including sliding along
@@ -353,7 +360,9 @@ says hand-written words for the area you are in. The first time a landmark with 
 into reach, its words replace its name (the Hangman's Tree of the Burial Grounds), and the first
 time a described area is entered, its name is followed by how to hear them (switch
 `descriptions`, on). Your own words go in `d2rloader/plugins/d2r-access/descriptions.txt`, one
-"Name = words" line each; updates never replace it. See [descriptions](docs/descriptions.md).
+"Name = words" line each; updates never replace it. It is read again a second after you save
+it, while the game runs, and `descriptions-names.txt` beside it lists every name it answers to; an
+area can also be written as its banner says it ("The Cave Level 1"). See [descriptions](docs/descriptions.md).
 Town portals are named like the game's label, with whose they are: "Tower Cellar Level 1,
 TankMan's portal" ([town portals](docs/portals.md)).
 

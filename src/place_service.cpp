@@ -12,6 +12,7 @@
 #include "room_service.h"
 #include "rooms.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 
 #include <windows.h>
@@ -277,7 +278,7 @@ void Announce(const D2RL::PluginContext* context, const Lifecycle& state, const 
 	const auto towards = change.corridor || change.branch ? Towards(state, reading) : std::vector<std::string>{};
 	const std::string line = Phrase(reading, change, towards);
 	if (line.empty()) return;
-	ScreenReader::Speak(line.c_str(), interrupt);
+	SpeechPriority::Say(SpeechPriority::Kind::Places, line, interrupt);
 	const auto& ends = reading.passage.ends;
 	AsyncLog::InfoF(context,
 		"[places] map=%s def=%d origin=%d,%d interior=%d feature=%d seed=%d passage=%d dead=%u ends=%d,%d:%d %d,%d:%d width=%d..%d length=%d -> %s",
@@ -371,6 +372,25 @@ bool Register(const D2RL::PluginContext* context) {
 	return g_supported;
 }
 
+namespace {
+// The names a description can be given, written in the first game of a run and
+// again when the language changes (a tester, 2026-10-19: "The Cave Level 1" is "Cave Level 1").
+std::optional<Strings::Language> g_namesFor;
+uint64_t g_namesRetry = 0;
+void WriteDescriptionNames() {
+	const uint64_t now = GetTickCount64();
+	if (g_namesFor == Strings::Selected() || now < g_namesRetry) return;
+	g_namesRetry = now + PollMs;
+	const auto areas = NativeEntities::LevelNames();
+	if (areas.empty()) return;
+	g_namesFor = Strings::Selected();
+	std::vector<std::string> landmarks;
+	for (const char* name : Strings::Current().placeFeatures)
+		if (std::find(landmarks.begin(), landmarks.end(), name) == landmarks.end()) landmarks.emplace_back(name);
+	Descriptions::WriteNames(areas, landmarks);
+}
+}
+
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
 	Lifecycle state;
@@ -391,6 +411,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		AsyncLog::InfoF(context, "[places] enabled=%u supported=%u", g_enabled ? 1u : 0u, g_supported ? 1u : 0u);
 		return;
 	}
+	if (state.ready) WriteDescriptionNames();
 	if (!g_supported || !g_enabled) return;
 	const uint64_t now = GetTickCount64();
 	if (uiOwnsSpeech || now - g_nextPoll < PollMs) return;

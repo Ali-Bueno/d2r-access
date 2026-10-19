@@ -845,6 +845,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	g_lastAnnounced = std::move(id);
 	g_lastMatchedPanel = match.panel;
 	ControlHints::Offer({}); // a new focus: the last one's controls no longer apply
+	InteractionReader::OfferDetail(g_lastAnnounced, {}); // nor its detail
 	for (const char* type : MessageAnnouncedTypes) {
 		if (std::strcmp(match.widget->type, type) == 0) {
 			return;

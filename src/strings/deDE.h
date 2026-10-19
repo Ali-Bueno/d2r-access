@@ -300,7 +300,7 @@ inline constexpr Table deDE {
 	.deathRouteWaypoint = "Weg zu deinem Todesort, %s: %s, wähle %s",
 	.placePresets = {"", "Brücke", "Fluss", "Lager der Gefallenen", "Hütte", "Friedhof", "Turmruine", "Ruinen", "Lager", "Tempel", "Tor", "Oase", "Schmiede", "Stall", "brennende Hütte", "Hütte mit Veranda"},
 	.placeInteriors = {"Taverne", "Palasteingang", "Hütte", "Turm", "Hütte", "Tempel", "Festung", "Gebäude", "Bauernhaus", "Schuppen", "Kathedrale"},
-	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum", "Treppe hinauf", "von Blut überquellender Brunnen", "brennendes Gebäude", "brennender Stern", "Treppe hinab"},
+	.placeFeatures = {"Küche", "Kamin", "Theke", "Tische", "Treppe", "Anlegesteg", "Boot", "Marktstände", "Schmiede", "Altar", "Thron", "Gräber", "Zellen", "Streckbank", "Betten", "Bücherregale", "Statuen", "Springbrunnen", "Ziehbrunnen", "Zelte", "Wagen", "Fluss", "Brücke", "Lagerfeuer", "Galgenbaum", "Treppe hinauf", "von Blut überquellender Brunnen", "brennendes Gebäude", "brennender Stern", "Kanalgitter", "Treppe hinab"},
 	.placeOutside = "draußen",
 	.placeCorridor = "Gang",
 	.placeDeadEnd = "Sackgasse",
@@ -377,7 +377,7 @@ inline constexpr Table deDE {
 	.lowLifeVolume = "Lautstärke des Herzschlags bei wenig Leben %d Prozent",
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
 	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
-	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche", "Einstellungsliste", "Beutefilter", "Schleifentempo"},
+	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche", "Einstellungsliste", "Beutefilter", "Schleifentempo", "Sprachpriorität"},
 	.loopPaceNames = {"Türen", "Schriftrollen, Runen und Edelsteine", "Truhen, Leichen, Waffenständer und die Truhe im Lager", "Schreine und Brunnen", "Questgegenstände", "Unerforschte Räume", "Last-Epoch-Klänge"},
 	.goldMovedPersonal = "%s Gold in den persönlichen Schatz gelegt",
 	.goldMovedShared = "%s Gold in den gemeinsamen Schatz gelegt",
@@ -469,6 +469,9 @@ inline constexpr Table deDE {
 	.skillBound = "%s auf %s gelegt",
 	.hintMoreControls = "Rechten Stick nach oben für weitere Optionen",
 	.radiantObject = "Strahlende %s",
+	.speechPriority = "%s: %s",
+	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden"},
+	.speechPriorityLevels = {"wartet, bis es dran ist", "unterbricht, wenn dringend", "unterbricht", "unterbricht und wird nicht unterbrochen"},
 };
 
 }

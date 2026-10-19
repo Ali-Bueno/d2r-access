@@ -88,7 +88,7 @@ void FirstButtonNamesTheHelpLine() {
 	Check(ControllerText::FirstButton("\xEE\x80\x8F  Habilidad 1") == "A", "the help line's control");
 	Check(ControllerText::FirstButton("Alternar habilidades  \xEE\x80\x8D") == "LT", "the control after the caption");
 	Check(ControllerText::FirstButton("Habilidad 1").empty(), "no control symbol, no button");
-	Check(ControllerText::FirstButton("\xEE\x80\x96 \xEE\x80\x8C") == "RB", "an unknown symbol is passed over");
+	Check(ControllerText::FirstButton("\xEE\x80\x99 \xEE\x80\x8C") == "RB", "a symbol bound to no button is passed over");
 	Check(ControllerText::FirstButton("\xEE\x80").empty(), "a truncated symbol is not read");
 }
 }

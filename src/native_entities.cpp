@@ -882,14 +882,30 @@ bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& la
 	return NativeLevelExits::ReadLayout(room, neighbours, layout);
 }
 
+namespace {
+bool ReadLevelTable(Tables& tables) {
+	uintptr_t player = 0, tablesAddress = 0;
+	return g_base && NativeGroundItems::RuntimeRoots(player, tablesAddress) && tablesAddress
+		&& Peek(tablesAddress + Levels, tables.levels) && tables.levels
+		&& Peek(tablesAddress + LevelCount, tables.levelCount) && tables.levelCount <= MaxTableRows;
+}
+}
+
 std::string LevelName(uint32_t levelId) {
 	const NativeMemory::ReadScope scope;
-	uintptr_t player = 0, tablesAddress = 0;
 	Tables tables;
-	if (!g_base || !NativeGroundItems::RuntimeRoots(player, tablesAddress) || !tablesAddress
-		|| !Peek(tablesAddress + Levels, tables.levels) || !tables.levels
-		|| !Peek(tablesAddress + LevelCount, tables.levelCount) || tables.levelCount > MaxTableRows) return {};
-	return LevelText(tables, levelId, LevelNameKey);
+	return ReadLevelTable(tables) ? LevelText(tables, levelId, LevelNameKey) : std::string{};
+}
+
+std::vector<std::string> LevelNames() {
+	const NativeMemory::ReadScope scope;
+	Tables tables;
+	std::vector<std::string> names;
+	if (!ReadLevelTable(tables)) return names;
+	for (uint32_t id = 1; id < tables.levelCount; ++id)
+		if (auto name = LevelText(tables, id, LevelNameKey); !name.empty() && std::find(names.begin(), names.end(), name) == names.end())
+			names.push_back(std::move(name));
+	return names;
 }
 
 std::string KeyText(std::string_view key) {

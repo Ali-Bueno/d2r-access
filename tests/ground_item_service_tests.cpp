@@ -121,7 +121,10 @@ bool Available() { return true; }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
 std::vector<std::string> openPanels;
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }
-namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; } }
+namespace D2RAccess::ScreenReader {
+void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
+void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
+}
 int main() {
 	using K = D2RL::Lifecycle::GameplayEventKind;
 	Check(GroundItemService::Register(&context) && listeners.size() == 6, "loot service subscribes to lifecycle independently of radar");

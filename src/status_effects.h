@@ -47,11 +47,9 @@ inline constexpr std::array Effects{
 };
 
 // An effect gone for less than this that comes back is the same one going on: a
-// cold hit chills again before the last chill is over. Its end waits that long.
-inline constexpr uint64_t EndHoldMs = 1000;
-// A beginning cuts in and is not cut off for this long (a tester, 2026-10-15: "with
-// increased priority over other notifications"); what comes meanwhile queues behind it.
-inline constexpr uint64_t StartHoldMs = 1500;
+// cold hit chills again before the last chill is over. Its end waits that long, and
+// no longer (a tester, 2026-10-19: said as close to the real end as can be).
+inline constexpr uint64_t EndHoldMs = 500;
 
 // The shrines' own states (states.txt shrine_armor 128 to shrine_experience 137). The
 // game holds one at a time; when the last one ends the player hears it (a tester, 2026-10-15).

@@ -3,6 +3,34 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-19 — The tester's list on build 2026-10-18-2
+
+From `D2R Access test build 2026-10-18-2 bug list and feedback` (the user's Downloads: list with the
+user's notes, `menu_walk_`, `death_`, `sewer_`, `wrong_house_` logs, sewer screenshots), a second
+player's report on guidance, and the tester's multiplayer notes. Built and unit-tested only.
+- **Always-latest download link kept** (the user: many blind players cannot find their way around
+  GitHub). The tester's four logs all say `test-2026-10-18-2`; the build is said at start.
+- **Speech priority menu** (the user): one level per kind of news, four levels, defaults equal to
+  the old behaviour except status endings, which cut in as the tester asked; introduced gradually,
+  menus and focus left out ([speech priority](speech-priority.md)). A status end waits 500 ms, not 1 s.
+- **Phonetic name replacements not made** (the user): the names are the game's own text; a voice that
+  says them wrong is fixed in the screen reader's speech dictionary, which then works everywhere.
+- **Controller glyphs from U+E013 are UI actions** with fixed PC bindings: decoded by a fixed table,
+  not a runtime call ([controller glyphs](controller-glyphs.md)). Item tooltip lines keep their
+  buttons; glyph-only lines stay silent. Not the Steam controller: the code was unknown to the mod.
+- **Front-end right stick** read by a reader of its own out of a game (`InteractionReader::TickFrontEnd`):
+  the in-game readers never run there, so the character row's controls were offered and never read.
+- **Descriptions** read again on save (checked at most once a second, on request), a names list
+  written per run, and the banner's form of an area name accepted only when it ends with the
+  level's name ([descriptions](descriptions.md)). The tester asked for a temporary on-demand load;
+  the write-time check costs nothing and can stay.
+- **Porch cottage** is `Cott5`/`Cott5A`, `Cott1` a plain cottage; **sewer grate** added
+  ([places](places.md)).
+- **Guidance at a shut door**: the player's cell is the waypoint, not a refusal ([beacon](beacon.md)).
+  The other player's "120 units" guess was checked: there is no such limit. Their log is asked for.
+- **Multiplayer**: the mod sends nothing over the network and changes no game state; each copy reads
+  its own client. Explained to the tester with the mod's poll rates; a checklist was sent.
+
 ## 2026-10-18 — The tester's list on build 2026-10-18 and the leftovers of 2026-10-16
 
 From `D2R Access build 2026-10-18 bug list and extras.7z` (the user's Downloads). Built and

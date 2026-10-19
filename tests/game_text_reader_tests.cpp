@@ -108,6 +108,7 @@ namespace D2RAccess::FocusTracker { void Reset() {} }
 namespace D2RAccess::InteractionReader {
 bool HandlesFocus(NativeUi::Focus current) { return current.widget == 81 || current.widget == 82; }
 bool Tick(const D2RL::PluginContext*, uint64_t, NativeUi::Focus, bool conversation, std::string_view) { ++interactionTicks; return inventoryOwns && !conversation; }
+void TickFrontEnd(const D2RL::PluginContext*) {}
 void Reset() {}
 std::string Repeat() { return {}; }
 }
@@ -139,6 +140,7 @@ std::string FixNotice(std::string notice) { return notice; }
 namespace D2RAccess::ScreenReader {
 void Stop() { ++stops; }
 void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); }
+void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
 }
 
 int main() {

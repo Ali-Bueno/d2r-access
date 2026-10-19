@@ -73,6 +73,7 @@
 #include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
 #include "descriptions.h"
@@ -1738,10 +1739,29 @@ SettingsList::Entry LootEquipment() {
 	return entry;
 }
 
+// How far one kind of news may push past other speech: "Status effects ending: cuts in" (speech_priority.h).
+SettingsList::Entry Priority(const char* key, SpeechPriority::Kind kind) {
+	SettingsList::Entry entry;
+	entry.key = key;
+	entry.levels = SpeechPriority::LevelCount;
+	entry.level = [kind] { return static_cast<int>(SpeechPriority::Get(kind)); };
+	entry.setLevel = [kind](int level) { SpeechPriority::Set(kind, static_cast<SpeechPriority::Level>(level)); };
+	entry.sayLevel = [kind](int level) {
+		const auto& strings = Strings::Current();
+		char text[300]{};
+		std::snprintf(text, sizeof(text), strings.speechPriority, strings.speechPriorityKinds[static_cast<size_t>(kind)],
+			strings.speechPriorityLevels[static_cast<size_t>(level)]);
+		return std::string(text);
+	};
+	return entry;
+}
+
 // The groups of the settings list (a tester, 2026-10-13), in the order of
 // Strings::Table::settingsGroups; the glossary is the last, the drop sounds a group inside it.
-enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, LoopSpeeds, Count };
+enum class SettingsGroup { Sounds, Enemies, Navigation, Items, Alerts, Controller, Glossary, Volumes, DropGlossary, SettingsMenu, LootFilter, LoopSpeeds, SpeechPriority, Count };
 static_assert(static_cast<size_t>(SettingsGroup::Count) == Strings::SettingsGroupCount, "a name for every settings group");
+static_assert(SpeechPriority::KindCount == Strings::SpeechPriorityKindCount && SpeechPriority::LevelCount == Strings::SpeechPriorityLevelCount,
+	"a name for every kind of news and every priority");
 static_assert(LoopPace::GroupCount == Strings::LoopPaceGroupCount, "a name for every loop pace group");
 
 std::string GroupName(SettingsGroup group) { return Strings::Current().settingsGroups[static_cast<size_t>(group)]; }
@@ -1876,6 +1896,19 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
+	}});
+	// Which news may cut in on other speech, kind by kind (a tester and the user, 2026-10-19).
+	using K = SpeechPriority::Kind;
+	groups.push_back({GroupName(G::SpeechPriority), {
+		Priority("priority-status-begins", K::StatusBegins),
+		Priority("priority-status-ends", K::StatusEnds),
+		Priority("priority-life-alerts", K::LifeAlerts),
+		Priority("priority-boss-life", K::BossLife),
+		Priority("priority-enemy-names", K::EnemyNames),
+		Priority("priority-game-messages", K::GameNotices),
+		Priority("priority-quest-updates", K::QuestAlerts),
+		Priority("priority-places", K::Places),
+		Priority("priority-ground-items", K::NearbyItems),
 	}});
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},

@@ -300,7 +300,7 @@ inline constexpr Table enUS {
 	.deathRouteWaypoint = "way to where you died, %s: %s, choose %s",
 	.placePresets = {"", "bridge", "river", "Fallen camp", "cottage", "graveyard", "tower ruin", "ruins", "camp", "temple", "gate", "oasis", "forge", "stable", "cottage on fire", "cottage with porch"},
 	.placeInteriors = {"tavern", "palace entrance", "cottage", "tower", "hut", "temple", "fortress", "building", "farmhouse", "shack", "cathedral"},
-	.placeFeatures = {"kitchen", "fireplace", "bar", "tables", "stairs", "dock", "boat", "stalls", "forge", "altar", "throne", "graves", "cells", "torture rack", "beds", "bookshelves", "statues", "fountain", "well", "tents", "wagon", "river", "bridge", "campfire", "Hangman's Tree", "stairs up", "fountain overflowing with blood", "burning building", "burning star", "stairs down"},
+	.placeFeatures = {"kitchen", "fireplace", "bar", "tables", "stairs", "dock", "boat", "stalls", "forge", "altar", "throne", "graves", "cells", "torture rack", "beds", "bookshelves", "statues", "fountain", "well", "tents", "wagon", "river", "bridge", "campfire", "Hangman's Tree", "stairs up", "fountain overflowing with blood", "burning building", "burning star", "sewer grate", "stairs down"},
 	.placeOutside = "outside",
 	.placeCorridor = "corridor",
 	.placeDeadEnd = "dead-end corridor",
@@ -377,7 +377,7 @@ inline constexpr Table enUS {
 	.lowLifeVolume = "Low life heartbeat volume %d percent",
 	.manaAlerts = {"Mana alerts: every change", "Mana alerts: low mana only", "Mana alerts off"},
 	.itemSoundSets = {"Item sounds: Diablo IV", "Item sounds: Last Epoch gold and potions", "Item sounds: Diablo II drops"},
-	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes", "Diablo II drop sounds", "Settings list", "Loot filter", "Loop speeds"},
+	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes", "Diablo II drop sounds", "Settings list", "Loot filter", "Loop speeds", "Speech priority"},
 	.loopPaceNames = {"Doors", "Scrolls, runes and gems", "Chests, corpses, weapon racks and the stash", "Shrines and wells", "Quest items", "Unexplored rooms", "Last Epoch sounds"},
 	.goldMovedPersonal = "%s gold moved to the personal stash",
 	.goldMovedShared = "%s gold moved to the shared stash",
@@ -469,6 +469,9 @@ inline constexpr Table enUS {
 	.skillBound = "%s bound to %s",
 	.hintMoreControls = "Press right stick up for more options",
 	.radiantObject = "Radiant %s",
+	.speechPriority = "%s: %s",
+	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground"},
+	.speechPriorityLevels = {"waits its turn", "cuts in when urgent", "cuts in", "cuts in and cannot be cut off"},
 };
 
 }

@@ -24,5 +24,19 @@ so an update keeps it. One line per place: the name as the mod says it (any case
 language, as the area banner says them. The tester writes area descriptions there; finished ones
 can move into the strings layer to be translated.
 
-Logs: `[descriptions] N read from descriptions.txt`, `[descriptions] hint for "<area>"`,
+**Edited while playing** (a tester, 2026-10-19): a request for words (a landmark reached, an area
+announced, BACK + right stick up) looks at the file's write time at most once a second and reads it
+again when it was saved. A name whose words changed, or that is new, is "the first time" again; the
+others stay told. **The names it answers to**: `descriptions-names.txt`, beside it, is written in
+the first game of each run (and when the game's language changes) with every area name from the
+levels table and every landmark word, exactly as the mod says them. **The banner's form works
+too**: the level is "Cave Level 1" (`LevelName`) but its banner says "Entering The Cave Level 1"
+(`LevelEntry`, a string of its own per level), so BACK + right stick up (`Descriptions::FindArea`)
+takes the level's name, else a written name that the last banner ends with and that ends with the
+level's name: "The Cave Level 1" or the whole banner, never "Swampy Pit Level 1" for "Pit Level 1".
+The side dungeons are "Pit Level 1", "Hole Level 1" (banners "Entering The Pit Level 1"...).
+
+Logs: `[descriptions] N read from descriptions.txt`, `[descriptions] N read again from
+descriptions.txt, saved while playing`, `[descriptions] N area and M landmark names written to
+descriptions-names.txt`, `[descriptions] hint for "<area>"`,
 `[descriptions] BACK+up in "<area>" (level N)`, and the place line of the first landmark reach.

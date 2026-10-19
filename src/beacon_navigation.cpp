@@ -17,6 +17,15 @@ bool ReachableNow(const Navigation::Grid& grid, Radar::Position position, int ma
 		}
 	return false;
 }
+// The way's next cell lies against a shut door, or a chest or barrel in a corridor: the loaded
+// floor stands no body there, though the map's way goes through (a player, 2026-10-19).
+bool AgainstDoor(const LevelRoute::Memory& memory, Radar::Position cell) {
+	const int x = static_cast<int>(std::lround(cell.x)), y = static_cast<int>(std::lround(cell.y));
+	for (int dy = -1; dy <= 1; ++dy)
+		for (int dx = -1; dx <= 1; ++dx)
+			if (memory.At(x + dx, y + dy) == LevelRoute::Ground::Door) return true;
+	return false;
+}
 // The first room `path` steps into outside `explored`, or null.
 const NativeRooms::Room* FirstUnexplored(const std::vector<Radar::Position>& path,
 	const std::vector<NativeRooms::Room>& explored, const std::vector<NativeRooms::Room>& rooms) {
@@ -101,8 +110,9 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 		result.guess = way.guess;
 		result.wayCells = way.path.size();
 		result.hasWaypoint = LevelRoute::Ahead(way.path, grid, result.waypoint);
-		if (way.path.empty() && arrival.Contains(result.world.player)) {
-			// Already there: no step left, and where the player stands is the place.
+		if ((way.path.empty() && arrival.Contains(result.world.player))
+			|| (!result.hasWaypoint && !way.path.empty() && AgainstDoor(*recall.memory, way.path.front()))) {
+			// Already there, or at the door the way goes through: where the player stands is the place, until it opens.
 			result.hasWaypoint = true;
 			result.waypoint = result.world.player;
 		}

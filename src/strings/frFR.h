@@ -300,7 +300,7 @@ inline constexpr Table frFR {
 	.deathRouteWaypoint = "chemin vers le lieu de ta mort, %s : %s, choisis %s",
 	.placePresets = {"", "pont", "rivière", "camp des Déchus", "chaumière", "cimetière", "tour en ruine", "ruines", "camp", "temple", "porte", "oasis", "forge", "étable", "chaumière en feu", "chaumière avec porche"},
 	.placeInteriors = {"taverne", "entrée du palais", "chaumière", "tour", "hutte", "temple", "forteresse", "bâtiment", "ferme", "cabane", "cathédrale"},
-	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu", "escalier montant", "fontaine débordant de sang", "bâtiment en feu", "étoile de feu", "escalier descendant"},
+	.placeFeatures = {"cuisine", "cheminée", "comptoir", "tables", "escalier", "quai", "barque", "étals", "forge", "autel", "trône", "tombes", "cellules", "chevalet de torture", "lits", "bibliothèques", "statues", "fontaine", "puits", "tentes", "chariot", "rivière", "pont", "feu de camp", "Arbre du Pendu", "escalier montant", "fontaine débordant de sang", "bâtiment en feu", "étoile de feu", "grille d’égout", "escalier descendant"},
 	.placeOutside = "dehors",
 	.placeCorridor = "couloir",
 	.placeDeadEnd = "couloir sans issue",
@@ -377,7 +377,7 @@ inline constexpr Table frFR {
 	.lowLifeVolume = "Volume du battement de cœur de vie basse %d pour cent",
 	.manaAlerts = {"Alertes de mana : chaque changement", "Alertes de mana : mana faible seulement", "Alertes de mana : désactivées"},
 	.itemSoundSets = {"Sons des objets : Diablo IV", "Sons des objets : or et potions de Last Epoch", "Sons des objets : chutes de Diablo II"},
-	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes", "Sons de chute de Diablo II", "Liste des réglages", "Filtre de butin", "Vitesse des boucles"},
+	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes", "Sons de chute de Diablo II", "Liste des réglages", "Filtre de butin", "Vitesse des boucles", "Priorité de la parole"},
 	.loopPaceNames = {"Portes", "Parchemins, runes et gemmes", "Coffres, cadavres, râteliers et le coffre", "Sanctuaires et puits", "Objets de quête", "Salles inexplorées", "Sons de Last Epoch"},
 	.goldMovedPersonal = "%s pièces d'or déposées dans le coffre personnel",
 	.goldMovedShared = "%s pièces d'or déposées dans le coffre partagé",
@@ -469,6 +469,9 @@ inline constexpr Table frFR {
 	.skillBound = "%s attribuée à %s",
 	.hintMoreControls = "Stick droit vers le haut pour plus d'options",
 	.radiantObject = "%s radieux",
+	.speechPriority = "%s : %s",
+	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol"},
+	.speechPriorityLevels = {"attend son tour", "interrompt si urgent", "interrompt", "interrompt et ne peut pas être coupé"},
 };
 
 }

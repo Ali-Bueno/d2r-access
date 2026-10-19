@@ -65,9 +65,14 @@ std::string WithStashStatus(const D2RL::PluginContext* context, const std::strin
 	return text;
 }
 
+std::string OpenHint(uintptr_t item) {
+	if (!item || NativeGroundItems::ItemTableCode(item) != CubeCode) return {};
+	return ControllerText::Read(Localization::Text(OpenHintKey));
+}
+
 std::string WithOpenHint(const D2RL::PluginContext* context, const std::string& help, uintptr_t item) {
 	if (!item || NativeGroundItems::ItemTableCode(item) != CubeCode) return help;
-	const auto hint = ControllerText::Read(Localization::Text(OpenHintKey));
+	const auto hint = OpenHint(item);
 	static std::string logged;
 	if (const auto line = help + "|" + hint; line != logged) {
 		logged = line;

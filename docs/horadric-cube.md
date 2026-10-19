@@ -30,6 +30,19 @@ A tester's request, 2026-10-18. Code: `src/cube_state.*` (where the cube is, its
   and the tooltip path cleans the glyph away. The controls line of a focused cube now gets the game's string
   (`CubeState::WithOpenHint`) unless the legend already holds it. Not confirmed in the running game.
 
+## The tester's first pass (build 2026-10-18-2)
+
+Window changes, X both ways, Y into the cube and transmute results all heard as designed. Two gaps:
+- **"Hold A to open" with the name.** The tooltip's line was read as "Hold to Open": its button is
+  U+E013, beyond the 19 controls `ControllerText` knew, and the cleaner drops unknown glyphs. The
+  code is now decoded (see [controller glyphs](controller-glyphs.md)) and the focused
+  cube reads "Horadric Cube. Hold A to Open" (`CubeState::OpenHint`, appended unless the readout has
+  it); `CubeState::NamedOpenHint` puts the button back into the tooltip's own line in the detail.
+- **Y out of the cube into a specialty tab** said nothing: `InventoryArrivals::Departures` only
+  watched the backpack and the stashes. It watches the cube too, so the stash's Y notice says
+  "Chipped Topaz moved to the Gems"; a sample where a transmute left something new in the cube
+  skips the cube's departures (those were its ingredients).
+
 ## Unknowns (need the running game)
 
 - Whether `ItemContainer::Cube` lists the cube's contents while the cube is closed, and whether Y's split

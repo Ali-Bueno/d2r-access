@@ -13,6 +13,9 @@ bool HandlesFocus(NativeUi::Focus focus);
 // under a new owner simply clears it.
 void OfferDetail(std::string_view owner, std::string detail);
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange = {});
+// Out of a game, where Tick does not run: right stick up reads what the front end's
+// highlight offered (the focus tracker's OfferDetail), down its controls.
+void TickFrontEnd(const D2RL::PluginContext* context);
 void Reset();
 std::string ItemName(uint32_t id, uint32_t classId, uint32_t quality);
 // The stash tab the open expansion stash shows, Unknown when it is closed or unreadable.

@@ -656,7 +656,7 @@ namespace {
 // BACK + right stick up: the hand-written words of the area the player is in (a tester, 2026-10-16).
 void DescribeArea(const D2RL::PluginContext* context, int level) {
 	const auto name = level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(level)) : std::string{};
-	std::string text = name.empty() ? std::string{} : Descriptions::Find(name);
+	std::string text = name.empty() ? std::string{} : Descriptions::FindArea(name);
 	if (text.empty()) {
 		char none[300]{};
 		std::snprintf(none, sizeof none, Strings::Current().noAreaDescription, name.c_str());
