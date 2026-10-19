@@ -2,7 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build 2026-10-18-2 — 2026-10-19 (not released)
+## The tester's list on build 2026-10-18-2 — 2026-10-19 (released as test-2026-10-19 from 2628b90)
+
+Release: 123/123 CTest, 29 entries, 62,660,001 bytes, SHA-256 `7a02e52e…2adf`.
 
 From `D2R Access test build 2026-10-18-2 bug list and feedback` (the user's Downloads: list with the
 user's notes, `menu_walk_`/`death_`/`sewer_`/`wrong_house_` logs). Choices in [decisions](docs/decisions.md);
@@ -19,7 +21,7 @@ news (with replies and a multiplayer checklist) `../tester-news-draft-2026-10-19
 - Guidance at a shut door keeps the target ([beacon](docs/beacon.md)).
 
 123/123 CTest; installed by the build. **Unverified live: all of it.**
-**Next step:** release when the user asks; the tester tries it; logs: `[detail]` at character select,
+**Next step:** the tester tries it; logs: `[detail]` at character select,
 `[modal] YouDiedModal`, `[cube]`, `[items] sorted into the stash`, `[descriptions] read again`,
 `[beacon] refused reason=` from the second player.
 
