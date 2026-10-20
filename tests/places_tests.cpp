@@ -128,6 +128,10 @@ void Footprints() {
 	Check(beside.kind == PlaceFeature::Forge && beside.steps == 4, "walking past a tile away is at the forge");
 	Check(Places::Nearest(piece, 0, 0, 33, 2, Places::None, field, Reach).seed == Places::None,
 		"two tiles off it is not");
+	const PlaceSeed star[]{{2, 0, 4, 2, PlaceFeature::FireStar}};
+	const auto across = Places::Nearest(Places::Piece{star, {}}, 0, 0, 33, 2, Places::None, field, Reach);
+	Check(across.kind == PlaceFeature::FireStar && across.steps == 29,
+		"the burning star is told from across its piece, not on its points (a tester, 2026-10-19)");
 }
 
 // A prop standing in a blocked cell, a stool against the counter, is reached

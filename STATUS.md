@@ -2,6 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Route legs along the stick's eight ways — 2026-10-19 (not released)
+
+From the tester's "Fundamentals: Route finder (Mod+A)" (text, painted screenshots, `wf_` logs on
+`test-2026-10-19`) and the earlier `BFB_mp`/`dani_mp`/`dani_sp` logs; choices in
+[decisions](docs/decisions.md); news (with replies) `../tester-news-draft-2026-10-19c.txt`:
+- Every leg is one of the eight ways, a doorway crossed along its axis (`RouteLegs::Search`:
+  turns charged 3 units, diagonals need room on both sides; stretches of 96 cells); the route ends
+  anywhere in the arrival area, and only a cell walked to from the place counts as there
+  (`LevelRoute::Arrival`, the planner's goal too) ([route description](docs/route-description.md)).
+- The next leg is said half a second before its turn at the player's pace (`RouteFollow::Follower`).
+- The Crypt's burning star is told across its piece (`Places::Reach`, [places](docs/places.md)).
+- Not built: the tester's optional click per unit walked (offered).
+
+123/123 CTest; installed by the build. **Unverified live: all of it.**
+**Next step:** the tester walks the four examples again (cottage door, Den of Evil, Barracks
+room, Crypt doorway) with the stick's eight ways; logs: `[route] from=`, `[route] follow turn`.
+
 ## Route finder (BACK+A) into walls and after other players — 2026-10-19 (released as test-2026-10-19-2 from d1b047c)
 
 Release: 123/123 CTest, 29 entries, 62,657,868 bytes, SHA-256 `8157c9a0…2b70`.

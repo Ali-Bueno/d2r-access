@@ -3,6 +3,39 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-19 — Route legs along the stick's eight ways
+
+The tester's "Fundamentals: Route finder (Mod+A)" (the user's Downloads: text, screenshots of a
+cottage door, the Den of Evil, the Barracks and a Crypt doorway, painted with the scanner's line,
+the route's and the right one, and the `wf_` logs, on `test-2026-10-19`): every way in D2 is
+walked at 45 degrees, and a route of any-angle legs cannot be. In the logs, "east, 22" toward the
+Den of Evil was a leg of (15,-22) walked as the stick's east (1,-1), past the cave mouth; the
+Crypt's "north, 18" a leg of (-16,-9) that the stick's north (-1,-1) walks into the wall beside
+the doorway, where the tester's line is northeast, then northwest. Built and unit-tested only.
+[Route description](route-description.md).
+- **Each leg one of the eight ways**, found by a search that charges a turn 3 units, within 8
+  cells of the planner's way; a diagonal step needs the body to fit on both cells beside it, so a
+  doorway is crossed along its axis. Rejected: splitting each straightened leg into a diagonal
+  and an axis part (its turn would fall wherever the split puts it, not at the doorway), and
+  dropping the corner test for diagonals (it allows the diagonal into a doorway that the tester
+  showed walks into the frame).
+- **A route ends anywhere it counts as there** (the beacon's arrival area), and a door is opened
+  from beside it: no last jog onto the planner's own cell.
+- **Arriving is walked** (`LevelRoute::Arrival`, the planner's goal too): only cells of the
+  arrival square walked to from the place, over open ground and no shut door, count. The Den of
+  Evil route "arrived" 7 units from the mouth, which rocks close on three sides, and the tester
+  needed two more routes to get in. Not for a border whose crossing is unknown, nor for a room
+  (anywhere inside it).
+- **The turn said half a second ahead at the player's pace**, not 3 units at any pace: on a leg
+  that ends on a doorway's line, early is the frame.
+- **Laid out 96 cells at a time**: the search over a 720-cell way took 24 ms in one piece, 4.5 ms
+  in stretches; the beacon's ticks already reach 35 ms in the logs.
+- **The burning star told across its piece** (`Places::Reach`): it was told when almost on its
+  points. Only that landmark: the forge stays a tile, as the user asked for passing through it.
+- **Unit ticks not built yet**: the tester asked for an optional click every unit walked, to
+  judge the distances. Following a route no longer needs them (the turn is said, then the
+  arrival); offered, behind a switch.
+
 ## 2026-10-19 — The route finder into walls and after other players
 
 The tester and a second player, in chat (no log yet): BACK+A "leads into walls but not through

@@ -38,9 +38,14 @@ enum class Ground : uint8_t { Outside, Unseen, Open, Blocked, Door };
 // as soon as the body is anywhere inside it.
 struct Area {
 	int minX = 0, minY = 0, maxX = 0, maxY = 0;
-	static Area Around(Position place, int margin);
+	// Only the cells walked to from the centre within the bounds count (Arrival):
+	// past a wall or the rocks round a cave mouth, a cell beside a thing is not at
+	// it. 2026-10-19, the Den of Evil: a route "arrived" 7 units from the mouth,
+	// which rocks close on three sides (a tester).
+	bool walked = false;
+	static Area Around(Position place, int margin); // walked
 	static Area Of(const NativeRooms::Room& room);
-	bool Contains(Position at) const;
+	bool Contains(Position at) const; // within the bounds
 	Position Centre() const;
 	bool operator==(const Area&) const = default;
 };
@@ -71,6 +76,21 @@ private:
 	uint64_t session_ = 0, revision_ = 0;
 	int level_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0;
 	std::vector<Ground> cells_;
+};
+
+// The cells of an area that count as being there, on the ground a memory has:
+// with Area::walked, those walked to from the centre (else from the nearest
+// ring round it with ground to stand on) over ground seen open or not seen yet,
+// one step at a time and a diagonal only past open ground on both sides, within
+// the bounds and as many steps as the centre is from their edge. A shut door
+// stops it: the far side of a door is not at the thing. Every cell, without.
+class Arrival {
+public:
+	Arrival(const Memory& memory, const Area& area);
+	bool Contains(int x, int y) const;
+private:
+	Area area_;
+	std::vector<uint8_t> counts_; // one per cell of the area, by rows
 };
 
 // The steps to a place from every cell that has a way to it. A cell is stood on

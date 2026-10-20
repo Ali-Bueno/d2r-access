@@ -37,6 +37,9 @@ private:
 	std::vector<Position> corners_; // corners_[i] starts legs_[i]; the last is the way's end
 	size_t at_ = 0;                 // the leg being walked
 	uint64_t offSince_ = 0;         // when the player was first seen off the route, 0 while on it
-	bool active_ = false;
+	Position last_{};               // where the last tick saw the player, at lastMs_
+	uint64_t lastMs_ = 0;
+	double pace_ = -1;              // units a second, smoothed; -1 until two ticks have measured it
+	bool active_ = false, timed_ = false;
 };
 }

@@ -23,7 +23,7 @@ request ([decisions](decisions.md)); it is asked for, never spoken on its own.
 ## What is said
 
 "Route to Akara, 85 units: north, 20; then door; then east, 30" — the whole
-length, then each straight leg as a direction and its units. In the clock
+length, then each leg as the way to walk it and its units. In the clock
 style the legs are hours ("12 o'clock, 20"). After six legs the rest is
 counted ("then 3 more legs"). A way that crosses ground not seen yet ends with
 "Part of it crosses ground not seen yet". Standing at it: "Akara, right here".
@@ -49,26 +49,44 @@ ground not seen yet, and says so. A room target ends at the way's first step
 inside the room (`LevelRoute::Area::Of`): its centre can be wall, and that was
 why a route to the unexplored room next door failed (2026-10-14).
 
-`RouteLegs` (pure, `tests/route_legs_tests.cpp`) turns the cells into legs:
+`RouteLegs` (pure, `tests/route_legs_tests.cpp`) turns the cells into legs
+the player walks with the stick or the arrows, which go eight ways only:
 
-1. **Straighten.** From each corner, as far along the way as a clear straight
-   line goes over the way's own ground with the whole body on it (half-subtile
-   samples, the body's cross or square as the planner fits it; the cell a move
-   starts from is not tested, as the game does not). The search's cell-by-cell
-   zigzag over open floor becomes one straight leg; corridors keep their
-   corners, and a line can no longer cut a door frame's corner.
-2. **Doors** split the way: the first cell of each shut door ends a leg and is
-   said as "door".
-3. **Merge** neighbouring legs said in the same direction, **fold** a leg
-   under 3 units (`MinLegUnits`, about the body's width: a jog round a corner)
-   into the one before it, else the one after, and merge again. A leg is
-   folded only when the leg it joins still runs straight over clear ground;
-   the step through a doorway does not, so it stays a leg of its own
-   ("northeast, 10; then southeast, 2; then northeast, 10"). Before 2026-10-19
-   it was folded and merged away, and the walk went on along the wall.
+1. **Legs of the eight ways.** Each leg runs exactly one of the eight ways,
+   so pushing the stick the way it is said walks it, to its end. A search over
+   (cell, heading) finds them, a turn costing 3 units of walking (`TurnUnits`):
+   of two ways nearly as long, the one with fewer legs. It keeps within 8 cells
+   of the planner's own way (`CorridorCells`), over ground the way may cross
+   with the whole body on it (the body's cross or square as the planner fits
+   it; the cell a move starts from is not tested, as the game does not). A
+   diagonal step also needs the body to fit on both cells beside it, as at a
+   wall's corner: a doorway is then crossed along the world axis it runs on,
+   never cut on the stick's north, east, south or west. Only where no such way
+   exists may it cut a corner as the planner's own steps do, and failing that
+   the planner's steps are the legs (each of them one of the eight ways too).
+   The search is walked back from the end first, so it heads where the way goes
+   and stays small; a way longer than 96 cells (`StretchCells`) is laid out a
+   stretch at a time, each stretch's last leg laid out again with the next.
+2. **Doors** split the way: a shut door is opened from any cell next to it
+   (`DoorReach`), said as "door", and the leg after it walks through.
+3. **The end** is anywhere the way counts as there, not the planner's last
+   cell, so the last leg need not jog onto it: within the beacon's arrival
+   distance round the place (`LevelRoute::Area`), on a cell walked to from the
+   place within it (`LevelRoute::Arrival`, for the planner too). Before
+   2026-10-19 any cell of the square counted: a route to the Den of Evil
+   "arrived" 7 units from its mouth, which rocks close on three sides, and a
+   thing just past a wall was reached from the wall's other side.
+4. **Merge** neighbouring legs said in the same direction.
 
-Lengths are straight lines in units (collision subtiles), the scanner's own
-measure.
+Before 2026-10-19 a leg was any straight line clear of walls, then said as its
+nearest compass point: "east, 22" walked as the stick's east ran past the
+Den of Evil's mouth, and "north, 18" left the player beside a Crypt doorway,
+not in line with it (a tester, `docs/decisions.md`). The planner's zigzag over
+open floor is now one leg along an axis and one along a diagonal, where it was
+one straight leg.
+
+Lengths are in units (collision subtiles), the scanner's own measure: a leg
+along a diagonal of the stick covers 1.41 units a cell.
 
 ## Following it
 
@@ -76,10 +94,12 @@ Added 2026-10-14: the user reported players getting lost on a route. Once a
 route is said, `RouteFollow::Follower` (pure, `tests/route_follow_tests.cpp`)
 walks its legs with the player, polled every 250 ms:
 
-- **At each turn** (3 units before it, `TurnUnits`), the leg to walk now:
-  "Now east, 21". A shut door ahead is said with the leg past it: "Now door;
-  then north, 16". A turn already walked past moves on to the leg the player
-  is nearest.
+- **At each turn**, half a second before it at the player's own pace
+  (`TurnSeconds`; 3 units at a run, `TurnUnits`, at least 1), the leg to walk
+  now: "Now east, 21". A shut door ahead is said with the leg past it: "Now
+  door; then north, 16". A turn already walked past moves on to the leg the
+  player is nearest. Before 2026-10-19 the turn was said 3 units before it at
+  any pace: a step early at a walk, and a step early in a doorway is its frame.
 - **Off the route**: further than 8 units (`OffRouteUnits`) from every leg
   still to walk for 2 seconds, it says "Off the route to X" once and stops.
   Asking again plans from where the player stands.

@@ -198,7 +198,12 @@ std::optional<std::vector<NativeRooms::Room>> ExploredFor(const Lifecycle& state
 // reached at the first step inside since its centre may be in a wall, or the
 // stretch of a border whose crossing is not known yet.
 std::optional<LevelRoute::Area> GoalArea(const Lifecycle& state, const EntityRadar::Entity& entity, Border border) {
-	if (border == Border::Unknown) return LevelRoute::Area::Around(entity.position, BorderReach);
+	if (border == Border::Unknown) {
+		// Anywhere near the border will do: the crossing is not known yet.
+		auto bounds = LevelRoute::Area::Around(entity.position, BorderReach);
+		bounds.walked = false;
+		return bounds;
+	}
 	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
 	if (!graph) return std::nullopt;
 	const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == entity.placeId; });
@@ -541,7 +546,8 @@ PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint6
 		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, end, world.bodyPattern, now);
 	}
 	if (way.path.empty()) {
-		route.here = end.Contains(world.player);
+		route.here = memory ? LevelRoute::Arrival(*memory, end).Contains(static_cast<int>(std::lround(world.player.x)),
+			static_cast<int>(std::lround(world.player.y))) : end.Contains(world.player);
 		return route;
 	}
 	// The ground as the way knew it: past the explored rooms only guessed at, as ground not seen yet.
@@ -559,8 +565,8 @@ PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint6
 		return ground == LevelRoute::Ground::Open || ground == LevelRoute::Ground::Door
 			|| (way.guess && ground == LevelRoute::Ground::Unseen);
 	};
-	// A leg is straightened only over ground the way may cross with the whole body
-	// on it: a line cut across a door frame's corner walks into the wall.
+	// A leg crosses only ground the way may cross with the whole body on it: one
+	// cut across a door frame's corner walks into the wall.
 	const auto passable = [&](int x, int y) {
 		if (!crossable(x, y)) return false;
 		for (int dy = -1; dy <= 1; ++dy)
@@ -568,7 +574,9 @@ PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint6
 				if (Radar::InBody(world.bodyPattern, dx, dy) && !crossable(x + dx, y + dy)) return false;
 		return true;
 	};
-	route.legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle());
+	const LevelRoute::Arrival arrival(*memory, end);
+	const RouteLegs::End reached{end.minX, end.minY, end.maxX, end.maxY, [&arrival](int x, int y) { return arrival.Contains(x, y); }};
+	route.legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle(), &reached);
 	route.cells = way.path.size();
 	route.doors = doors.size();
 	route.guess = way.guess;

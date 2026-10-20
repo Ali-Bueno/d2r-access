@@ -6,9 +6,11 @@
 
 namespace D2RAccess::RouteFollow {
 namespace {
-// Policy: the next leg is said this many units before its turn, about one stride
-// of a run, so it is heard while there is still a step to take toward it.
-constexpr double TurnUnits = 3;
+// Policy: the next leg is said this long before its turn, the time to hear it
+// and turn: about one stride of a run (TurnUnits) at a run, less at a walk, as
+// a leg of the stick's ways ends on the line of a doorway. Before the pace is
+// known, a run's.
+constexpr double TurnSeconds = 0.5, TurnUnits = 3, NearestTurnUnits = 1;
 // Policy: the route is left when the player is further from every leg still to
 // walk than this, longer than OffRouteMs. Wider than a corridor and a dodge.
 constexpr double OffRouteUnits = 8;
@@ -38,6 +40,13 @@ void Follower::Start(Position from, const std::vector<RouteLegs::Leg>& legs) {
 
 Step Follower::Tick(Position player, uint64_t now) {
 	if (!active_) return {};
+	if (timed_ && now > lastMs_) {
+		const double pace = Distance(player, last_) * 1000 / static_cast<double>(now - lastMs_);
+		pace_ = pace_ < 0 ? pace : (pace_ + pace) / 2;
+	}
+	timed_ = true;
+	last_ = player;
+	lastMs_ = now;
 	if (Distance(player, corners_.back()) <= EndUnits) {
 		Stop();
 		return {Event::End};
@@ -60,7 +69,8 @@ Step Follower::Tick(Position player, uint64_t now) {
 	}
 	offSince_ = 0;
 	size_t next = std::max(at_, nearest);
-	if (at_ + 1 < legs_.size() && Distance(player, corners_[at_ + 1]) <= TurnUnits) next = std::max(next, at_ + 1);
+	const double lead = pace_ < 0 ? TurnUnits : std::clamp(pace_ * TurnSeconds, NearestTurnUnits, TurnUnits);
+	if (at_ + 1 < legs_.size() && Distance(player, corners_[at_ + 1]) <= lead) next = std::max(next, at_ + 1);
 	if (next == at_) return {};
 	// A door has no length: the leg after it is walked from the same corner.
 	at_ = legs_[next].door && next + 1 < legs_.size() ? next + 1 : next;

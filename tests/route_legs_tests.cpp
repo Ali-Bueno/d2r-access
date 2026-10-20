@@ -1,7 +1,9 @@
 #include "route_legs.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <set>
 #include <string>
 #include <utility>
@@ -59,15 +61,47 @@ void Corners() {
 		"the route says its whole length, then each leg");
 }
 
+// Whether `legs` walk from `from` one cell at a time over `passable` ground, each
+// one of the eight ways, a diagonal step only with the body fitting on both
+// cells beside it.
+bool Walkable(Position from, const std::vector<Leg>& legs, const RouteLegs::Passable& passable) {
+	int x = static_cast<int>(from.x), y = static_cast<int>(from.y);
+	for (const auto& leg : legs) {
+		if (leg.door) continue;
+		const int dx = static_cast<int>(leg.delta.x), dy = static_cast<int>(leg.delta.y);
+		if (dx && dy && std::abs(dx) != std::abs(dy)) return false;
+		const int steps = std::max(std::abs(dx), std::abs(dy)), sx = (dx > 0) - (dx < 0), sy = (dy > 0) - (dy < 0);
+		for (int i = 0; i < steps; ++i) {
+			if (!passable(x + sx, y + sy) || (sx && sy && (!passable(x + sx, y) || !passable(x, y + sy)))) return false;
+			x += sx; y += sy;
+		}
+	}
+	return true;
+}
+
 void OpenGround() {
 	// The search's own way across open floor: all its diagonal steps first, then straight on.
 	Walk walk;
 	walk.Go(North, 10).Go(NorthWest, 10);
 	const auto legs = Legs(walk, Everywhere());
-	Check(legs.size() == 1, "across open floor the zigzag of the search is one straight leg");
-	Check(std::abs(legs[0].length - std::hypot(20.0, 10.0)) < 1e-6, "as long as the straight line");
+	Check(legs.size() == 2 && Walkable({0, 0}, legs, Everywhere()), "across open floor a way is legs the stick walks");
+	Check(std::abs(RouteLegs::Length(legs) - (10 * std::sqrt(2.0) + 10)) < 1e-6, "as long as the way");
+	Walk zigzag;
+	for (int i = 0; i < 10; ++i) zigzag.Go(North, 1).Go(NorthWest, 1);
+	const auto straight = Legs(zigzag, Everywhere());
+	Check(straight.size() == 2 && Walkable({0, 0}, straight, Everywhere()), "a zigzag of the search is two legs, not twenty");
 	const auto walled = Legs(walk, walk.Corridor());
 	Check(walled.size() == 2, "the same cells between walls keep their corner");
+	// A way some hundreds of cells long is laid out a stretch at a time.
+	Walk far;
+	for (int i = 0; i < 40; ++i) far.Go(North, 3).Go(NorthWest, 2).Go(NorthEast, 2);
+	const RouteLegs::End there{static_cast<int>(far.at.x) - 3, static_cast<int>(far.at.y) - 3,
+		static_cast<int>(far.at.x) + 3, static_cast<int>(far.at.y) + 3};
+	const auto across = RouteLegs::Describe({0, 0}, far.path, {}, Everywhere(), Compass, &there);
+	Position end{};
+	for (const auto& leg : across) end = {end.x + leg.delta.x, end.y + leg.delta.y};
+	Check(across.size() <= 2 && Walkable({0, 0}, across, Everywhere()), "a long staircase over open floor is a leg or two");
+	Check(end.x >= there.minX && end.x <= there.maxX && end.y >= there.minY && end.y <= there.maxY, "and comes to the end");
 }
 
 void Doors() {
@@ -75,25 +109,49 @@ void Doors() {
 	walk.Go(North, 10).Go(North, 2).Go(North, 10);
 	const auto legs = Legs(walk, walk.Corridor(), {10, 11});
 	Check(legs.size() == 3 && !legs[0].door && legs[1].door && !legs[2].door, "a shut door on the way is a leg of its own");
-	Check(RouteLegs::Speak("Cain", legs, false, English).find("north, 16; then door; then north, 16") != std::string::npos,
-		"two cells of one door are said once");
+	Check(RouteLegs::Speak("Cain", legs, false, English).find("north, 14; then door; then north, 17") != std::string::npos,
+		"a door is opened from the cell before it, and its two cells are said once");
 }
 
 void Jogs() {
+	// A corridor along a world axis, one cell wider than the way on each side.
 	Walk walk;
-	walk.Go(North, 20).Go(East, 1).Go(North, 20);
-	const auto legs = Legs(walk, walk.Wide());
-	Check(legs.size() == 1 && Bucket(legs[0]) == 0, "a one-cell jog in a corridor wider than the way is not a turn");
-	Check(legs[0].delta.x == walk.at.x && legs[0].delta.y == walk.at.y, "the leg still ends where the way does");
+	walk.Go(NorthEast, 20).Go(SouthEast, 1).Go(NorthEast, 20);
+	const RouteLegs::End beside{0, -41, 2, -39};
+	const auto legs = RouteLegs::Describe({0, 0}, walk.path, {}, walk.Wide(), Compass, &beside);
+	Check(legs.size() == 1 && Bucket(legs[0]) == 1, "a jog the corridor leaves room to walk past is not a turn");
+	const auto exact = Legs(walk, walk.Wide());
+	Check(RouteLegs::Length(exact) > 40 && Walkable({0, 0}, exact, walk.Wide()), "to the way's very cell the legs still walk");
+	Position end{};
+	for (const auto& leg : exact) end = {end.x + leg.delta.x, end.y + leg.delta.y};
+	Check(end.x == walk.at.x && end.y == walk.at.y, "and end where the way does");
 	Walk first;
-	first.Go(East, 1).Go(North, 20);
-	const auto start = Legs(first, first.Wide());
-	Check(start.size() == 1 && Bucket(start[0]) == 0, "nor is a jog at the very start");
-	// A short first leg, cut off by one cell that walking straight past it misses.
-	Walk around;
-	around.Go(North, 2).Go(East, 12);
-	const auto folded = Legs(around, [](int x, int y) { return !(x == -1 && y == -2); });
-	Check(folded.size() == 1 && Bucket(folded[0]) == 2, "a short leg walked straight past over clear ground is no turn");
+	first.Go(SouthEast, 1).Go(NorthEast, 20);
+	const RouteLegs::End ahead{0, -21, 2, -19};
+	const auto start = RouteLegs::Describe({0, 0}, first.path, {}, first.Wide(), Compass, &ahead);
+	Check(start.size() == 1 && Bucket(start[0]) == 1, "nor is a jog at the very start");
+}
+
+// A wall along the world's X axis at y = -5, with a doorway the body just fits through.
+bool Floor(int x, int y) { return y != -5 || std::abs(x) <= 1; }
+bool Body(int x, int y) { return Floor(x, y) && Floor(x - 1, y) && Floor(x + 1, y) && Floor(x, y - 1) && Floor(x, y + 1); }
+
+void Wall() {
+	// The search's own way cuts through the doorway on a diagonal.
+	Walk walk;
+	walk.at = {6, 0};
+	walk.Go(North, 3).Go(NorthWest, 2).Go(NorthEast, 1).Go(North, 1).Go(North, 1).Go(North, 6).Go(NorthWest, 1);
+	const auto legs = RouteLegs::Describe({6, 0}, walk.path, {}, Body, Compass);
+	Check(Walkable({6, 0}, legs, Body), "every leg walks clear of the wall, the body and all");
+	Position at{6, 0};
+	bool through = false;
+	for (const auto& leg : legs) {
+		const Position next{at.x + leg.delta.x, at.y + leg.delta.y};
+		if (at.y > -5 && next.y < -5) through = leg.delta.x == 0 && Bucket(leg) == 1;
+		at = next;
+	}
+	Check(through, "the doorway is walked through along the world axis: northeast, as the stick's diagonal");
+	Check(at.x == walk.at.x && at.y == walk.at.y, "to where the way ends");
 }
 
 void Doorways() {
@@ -144,6 +202,7 @@ int main() {
 	OpenGround();
 	Doors();
 	Jogs();
+	Wall();
 	Doorways();
 	Wording();
 	Passed();

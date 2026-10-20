@@ -78,7 +78,9 @@ DS1 spawns in `TownN1`: Charsi stands in the forge yard, Akara in her tent, Ghee
 Being at a landmark means standing on its footprint, or within one map tile of it by a
 breadth-first walk over the live collision grid (terrain layer, doors open). A straight-line
 distance would name the kitchen through the kitchen wall. A footprint that blocks (the forge, a
-stool at the counter) is reached from any cell around it. Only props in the player's interior count;
+stool at the counter) is reached from any cell around it. The Crypt's burning star is told from
+40 cells (`Places::Reach`, a whole 8x8-tile piece): at one tile it came when the tester was almost
+on its points (2026-10-19). Only props in the player's interior count;
 outside, only props outside every interior. At equal distance the earlier kind in the enum wins.
 Replaying the user's camp walk from the log: before footprints, only "forja", at Charsi. With them:
 hoguera, forja, hoguera, carro, tiendas, carro, tiendas.

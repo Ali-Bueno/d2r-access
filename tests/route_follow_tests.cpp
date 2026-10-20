@@ -21,6 +21,15 @@ void Turns() {
 	Check(follower.Tick({14, -20}, 1000).event == Event::None, "after which nothing more is said");
 }
 
+void Pace() {
+	RouteFollow::Follower follower;
+	follower.Start({0, 0}, {Walk(0, -20), Walk(15, 0)});
+	(void)follower.Tick({0, -15}, 0);
+	Check(follower.Tick({0, -17.5}, 1000).event == Event::None, "at a walk the turn is not said a run's stride early");
+	const auto turn = follower.Tick({0, -19}, 1600);
+	Check(turn.event == Event::Turn && turn.leg == 1, "but half a second before it");
+}
+
 void Doors() {
 	RouteFollow::Follower follower;
 	follower.Start({0, 0}, {Walk(0, -10), Door(), Walk(0, -10)});
@@ -53,6 +62,7 @@ void OffTheRoute() {
 
 int main() {
 	Turns();
+	Pace();
 	Doors();
 	CutCorners();
 	OffTheRoute();

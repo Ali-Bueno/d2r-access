@@ -34,6 +34,14 @@ long long Area(const Generated::PlaceVolume& volume) {
 	return static_cast<long long>(volume.maxX - volume.minX) * (volume.maxY - volume.minY);
 }
 
+// How far a landmark is told from: `radius`, or for one seen across the whole
+// map piece it stands in, from anywhere in that piece. The Crypt's burning star
+// was told when almost stepping on its points (a tester, 2026-10-19).
+int Reach(PlaceFeature kind, int radius) {
+	constexpr int AcrossPiece = 40; // subtiles: the 8x8 tiles of a Crypt or Catacombs piece
+	return kind == PlaceFeature::FireStar ? std::max(radius, AcrossPiece) : radius;
+}
+
 uint64_t CellKey(int x, int y) {
 	return static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32 | static_cast<uint32_t>(y);
 }
@@ -87,11 +95,14 @@ Feature Nearest(const Piece& piece, int originX, int originY, int playerX, int p
 		if (!added && piece.seeds[static_cast<size_t>(seed)].feature < piece.seeds[static_cast<size_t>(at->second)].feature)
 			at->second = seed;
 	};
+	int farthest = 0;
 	for (size_t i = 0; i < piece.seeds.size(); ++i) {
 		const auto& seed = piece.seeds[i];
 		const int minX = originX + seed.minX - 1, minY = originY + seed.minY - 1;
 		const int maxX = originX + seed.maxX, maxY = originY + seed.maxY; // inclusive: one cell around the footprint
-		if (playerX < minX - radius || playerX > maxX + radius || playerY < minY - radius || playerY > maxY + radius) continue;
+		const int reach = Reach(seed.feature, radius);
+		if (playerX < minX - reach || playerX > maxX + reach || playerY < minY - reach || playerY > maxY + reach) continue;
+		farthest = std::max(farthest, reach);
 		if (InteriorAt(piece, (seed.minX + seed.maxX) / 2, (seed.minY + seed.maxY) / 2) != interior) continue;
 		for (int y = minY; y <= maxY; ++y)
 			for (int x = minX; x <= maxX; ++x) claim(x, y, static_cast<int>(i));
@@ -101,12 +112,13 @@ Feature Nearest(const Piece& piece, int originX, int originY, int playerX, int p
 	// a goal decides, and inside it the enum order does.
 	std::unordered_set<uint64_t> seen{CellKey(playerX, playerY)};
 	std::vector<std::pair<int, int>> ring{{playerX, playerY}}, next;
-	for (int steps = 0; steps <= radius && !ring.empty(); ++steps) {
+	for (int steps = 0; steps <= farthest && !ring.empty(); ++steps) {
 		Feature best;
 		for (const auto& [x, y] : ring) {
 			const auto goal = goals.find(CellKey(x, y));
 			if (goal == goals.end()) continue;
 			const auto kind = piece.seeds[static_cast<size_t>(goal->second)].feature;
+			if (steps > Reach(kind, radius)) continue;
 			if (best.seed == None || kind < best.kind) best = {goal->second, kind, steps};
 		}
 		if (best.seed != None) return best;

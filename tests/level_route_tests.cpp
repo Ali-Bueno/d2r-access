@@ -131,6 +131,27 @@ int main() {
 		Check(LevelRoute::Field(memory, {Left - 50.0, Top + 5.0}, 1, 1, true).From(from).empty(), "a place outside the level has no way");
 	}
 	{
+		// A thing just past a wall is not reached from the wall's other side: the
+		// Den of Evil's mouth from behind its rocks (a tester, 2026-10-19).
+		Level level;
+		level.Fill(Left, Top + 20, Left + Width - 1, Top + 20, Wall);
+		level.Fill(Left + 120, Top + 20, Left + 122, Top + 20, 0);
+		LevelRoute::Memory memory;
+		Check(memory.Begin(1, 1, level.Rooms()), "fixture: the map begins");
+		for (int row = 0; row < Down; ++row)
+			for (int column = 0; column < Across; ++column)
+				(void)memory.Learn(level.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
+		const Position from{Left + 50.0, Top + 60.0}, place{Left + 50.0, Top + 18.0};
+		const auto path = LevelRoute::Field(memory, place, 4, 1, false).From(from);
+		Check(!path.empty() && path.back().y < Top + 20, "the way goes round by the gap to the thing's own side");
+		const auto around = LevelRoute::Area::Around(place, 4);
+		const LevelRoute::Arrival arrival(memory, around);
+		Check(arrival.Contains(Left + 50, Top + 15) && !arrival.Contains(Left + 50, Top + 22), "a cell past the wall is not at it");
+		auto bounds = around;
+		bounds.walked = false;
+		Check(LevelRoute::Arrival(memory, bounds).Contains(Left + 50, Top + 22), "without walking, every cell of the bounds is");
+	}
+	{
 		// A way all seen is taken before a shorter one that is part guess.
 		Level level;
 		level.Fill(Left, Top + 100, Left + Width - 1, Top + 102, Wall);

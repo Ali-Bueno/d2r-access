@@ -124,7 +124,7 @@ bool Memory::Learn(const Radar::World& world) {
 
 Area Area::Around(Position place, int margin) {
 	const int x = Cell(place.x), y = Cell(place.y);
-	return {x - margin, y - margin, x + margin, y + margin};
+	return {x - margin, y - margin, x + margin, y + margin, true};
 }
 
 Area Area::Of(const NativeRooms::Room& room) {
@@ -138,6 +138,47 @@ bool Area::Contains(Position at) const {
 }
 
 Position Area::Centre() const { return {(minX + maxX) / 2.0, (minY + maxY) / 2.0}; }
+
+Arrival::Arrival(const Memory& memory, const Area& area) : area_(area) {
+	if (!area.walked || area.maxX < area.minX || area.maxY < area.minY) return;
+	const int width = area.maxX - area.minX + 1, height = area.maxY - area.minY + 1;
+	counts_.assign(static_cast<size_t>(width) * height, 0);
+	const auto at = [&](int x, int y) { return static_cast<size_t>(y - area.minY) * width + static_cast<size_t>(x - area.minX); };
+	const auto walkable = [&](int x, int y) {
+		if (x < area.minX || y < area.minY || x > area.maxX || y > area.maxY) return false;
+		const Ground ground = memory.At(x, y);
+		return ground == Ground::Open || ground == Ground::Unseen;
+	};
+	const int cx = (area.minX + area.maxX) / 2, cy = (area.minY + area.maxY) / 2;
+	const int reach = std::min(std::min(cx - area.minX, area.maxX - cx), std::min(cy - area.minY, area.maxY - cy));
+	std::vector<std::pair<int, int>> ring, next;
+	for (int radius = 0; ring.empty() && radius <= reach; ++radius)
+		for (int y = cy - radius; y <= cy + radius; ++y)
+			for (int x = cx - radius; x <= cx + radius; ++x)
+				if (std::max(std::abs(x - cx), std::abs(y - cy)) == radius && walkable(x, y)) {
+					counts_[at(x, y)] = 1;
+					ring.emplace_back(x, y);
+				}
+	for (int steps = 0; steps < reach && !ring.empty(); ++steps) {
+		next.clear();
+		for (const auto [x, y] : ring) {
+			for (const auto step : Steps8) {
+				const int nx = x + step.x, ny = y + step.y;
+				if (!walkable(nx, ny) || counts_[at(nx, ny)]) continue;
+				if (step.x && step.y && (!walkable(nx, y) || !walkable(x, ny))) continue;
+				counts_[at(nx, ny)] = 1;
+				next.emplace_back(nx, ny);
+			}
+		}
+		ring.swap(next);
+	}
+}
+
+bool Arrival::Contains(int x, int y) const {
+	if (x < area_.minX || y < area_.minY || x > area_.maxX || y > area_.maxY) return false;
+	if (counts_.empty()) return !area_.walked;
+	return counts_[static_cast<size_t>(y - area_.minY) * (area_.maxX - area_.minX + 1) + static_cast<size_t>(x - area_.minX)] != 0;
+}
 
 Memory Memory::Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const {
 	Memory copy = *this;
@@ -176,9 +217,10 @@ Field::Field(const Memory& memory, const Area& goal, int bodyPattern, bool unsee
 	const auto index = [&](int x, int y) { return static_cast<size_t>(y - y_ + 1) * across + static_cast<size_t>(x - x_ + 1); };
 	const auto row = static_cast<int64_t>(across);
 	std::vector<uint32_t> queue;
+	const Arrival arrival(memory, goal);
 	for (int y = std::max(goal.minY, y_); y <= std::min(goal.maxY, y_ + height_ - 1); ++y) {
 		for (int x = std::max(goal.minX, x_); x <= std::min(goal.maxX, x_ + width_ - 1); ++x) {
-			if (!stood[index(x, y)]) continue;
+			if (!stood[index(x, y)] || !arrival.Contains(x, y)) continue;
 			steps_[index(x, y)] = 0;
 			queue.push_back(static_cast<uint32_t>(index(x, y)));
 		}
