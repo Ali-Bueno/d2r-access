@@ -264,6 +264,8 @@ inline constexpr Table jaJP {
 	.weaponSetNumberOff = "武器セット番号 オフ",
 	.gaitWalking = "歩き",
 	.gaitRunning = "走り",
+	.stationaryAttack = "その場で攻撃。メニューではShiftと左クリック",
+	.staminaRead = "スタミナを読み上げ",
 	.staminaPercent = "スタミナ %d パーセント",
 	.staminaOut = "スタミナ切れ",
 	.movementAlertsOn = "歩き・走り・スタミナの通知 オン",

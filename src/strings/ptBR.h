@@ -264,6 +264,8 @@ inline constexpr Table ptBR {
 	.weaponSetNumberOff = "Número do conjunto de armas: desligado",
 	.gaitWalking = "Andando",
 	.gaitRunning = "Correndo",
+	.stationaryAttack = "Atacar sem se mover; menu: Shift e clique esquerdo",
+	.staminaRead = "Ler vigor",
 	.staminaPercent = "Vigor %d por cento",
 	.staminaOut = "Sem vigor",
 	.movementAlertsOn = "Avisos de andar, correr e vigor: ligado",

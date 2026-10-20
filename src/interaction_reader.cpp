@@ -1185,7 +1185,11 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				OfferLines(linesOwner, std::move(lines));
 			}
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels());
+			// Set items style their name with palette 3 and their base type with
+			// 2. The latter is a legacy title hint for other item forms, so use
+			// the copied screen order for sets instead (docs/native-tooltips.md).
+			const bool setItem = itemLabel.quality == static_cast<uint32_t>(D2RL::Items::Quality::Set);
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels(), setItem);
 			// Magic and better, the quality the screen shows only by colour
 			// ("Crimson Spear. magic"); an unidentified item says so instead
 			// (Split). A lesser item's own name already says it ("Superior Short
@@ -1219,7 +1223,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// in screen order and the name leads. The log still names the line
 			// the headline came from, and whether the renderer styled it.
 			if (g_logItems.load(std::memory_order_relaxed)) {
-				const std::string line = std::to_string(body.lines.size()) + " lines, title line "
+				const std::string line = std::to_string(body.lines.size()) + " lines, palette-2 line "
 					+ (body.Marked() ? std::to_string(body.heading) : std::string("unstyled"))
 					+ " -> \"" + split.headline + "\" | " + split.detail;
 				if (line != g_itemLogged) {

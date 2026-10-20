@@ -195,7 +195,9 @@ game.
 
 **The keys:** the game's S opens the list for the right hand; **Shift+S**
 (the user, 2026-09-27: *"a key to open it is fine. shift+s"*) opens it for the
-left, in play as in a menu, by a click on the HUD's `LeftSkillButton`. The
+left, in play as in a menu, through the HUD's `LeftSkillButton`. Since
+2026-10-20 this invokes the verified native callback directly; gameplay
+correctly cancels menu-only queued clicks. See the [current contract](menus/left-skill-menu.md). The
 same key shuts it. In the list the arrows move from skill to skill, A puts
 the skill on the hand and shuts the list, and F1 to F8 bind the skill under
 the pointer to that key (the game's own).

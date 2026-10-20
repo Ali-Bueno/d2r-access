@@ -364,6 +364,26 @@ int main() {
 	Check(!NativeUi::ItemWidgetSlot(rune.Address()).known, "an unavailable stash getter fails safely");
 	Check(!NativeUi::ItemWidgetSlot(slot.Address()).known, "the single-item adapter does not reinterpret equipment slots");
 	tabs.Add(tab0); tabs.Add(tab1); tabs.Put<int32_t>(0x16C4, 1);
+	// Original constructed memory, exercising the production native adapter:
+	// two identical captions are independent slots; availability comes from
+	// the game's per-slot flags, never from their text or cached selection.
+	Widget shopTabs("TabBarWidget", "tabs");
+	shopTabs.Put<int32_t>(0x558, 4); shopTabs.Put<int32_t>(0x16C4, 1);
+	for (int index = 0; index < 4; ++index) shopTabs.Put<uint8_t>(0x1788 + index, 1);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 2, "enabled second Weapons slot stays independently reachable");
+	shopTabs.Put<uint8_t>(0x178A, 0);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 3, "disabled second Weapons slot is skipped to Misc");
+	shopTabs.Put<int32_t>(0x16C4, 3);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == 1, "reverse traversal also skips the inactive shop category");
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 3, "tab navigation retains its existing stop at the edge");
+	shopTabs.Put<int32_t>(0x558, 9);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == -1, "native tab count is bounded before reading availability");
+	shopTabs.Put<int32_t>(0x558, 4); shopTabs.Put<uint8_t>(0x1788, 9);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == -1, "invalid availability bytes fail closed");
+	shopTabs.Put<uint8_t>(0x1788, 1);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 0) == -1, "neutral input never becomes a tab action");
+	shopTabs.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == -1, "a hidden tab bar cannot be cycled");
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
 	tabs.Put<int32_t>(0x544, 0);
 	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "tab activation index differs from the FocusableWidget hover index");

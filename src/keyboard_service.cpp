@@ -5,6 +5,7 @@
 #include "character_stats_reader.h"
 #include "focus_tracker.h"
 #include "auto_walk.h"
+#include "battle/skill_cast.h"
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
@@ -31,6 +32,8 @@
 #include "interaction_reader.h"
 #include "inventory_arrival_service.h"
 #include "keyboard_menu.h"
+#include "input/native_keyboard.h"
+#include "menus/native_stash_pages.h"
 #include "level_route.h"
 #include "map_survey.h"
 #include "map_survey_service.h"
@@ -183,6 +186,7 @@ constexpr const char* TransmuteButton = "convert";
 // virtual-key code, 0 when up) and whether it went down since the last update.
 std::atomic<uint32_t> g_held[2]{};
 std::atomic<bool> g_pressed[2]{};
+std::atomic<uint32_t> g_attackKeys[2]{}; // copied primary/secondary, no native lookup in the hook
 std::atomic<int> g_testX{0}, g_testY{0};
 // Whether the game was in play at the last update. Out of play the keys that
 // act on the world are left to the game, so A still opens the character screen
@@ -1456,8 +1460,8 @@ bool Shooting(const D2RL::PluginContext* context, uint64_t now) {
 
 Generated::SkillAttack KindOf(Hand hand) {
 	const int skill = NativeActions::SelectedSkill(hand);
-	// A skill that cannot be read is fought with as the plain Attack would be.
-	return skill < 0 ? Generated::SkillAttack::Weapon : Generated::SkillAttackFor(skill);
+	// An unknown skill must not inherit Attack's enemy requirement.
+	return Generated::SkillAttackFor(skill);
 }
 
 CombatTarget::Reach ReachOf(const D2RL::PluginContext* context, Hand hand, uint64_t now) {
@@ -1499,15 +1503,24 @@ void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand
 	if (g_mode != Mode::Idle && g_mode != Mode::Fight) End("fighting key", true);
 	const int skill = NativeActions::SelectedSkill(hand);
 	if (KindOf(hand) == Generated::SkillAttack::None) {
-		// Not an attack: a cry, an armour, a summons. Used once, where the
-		// monster held stands when there is one, where the player stands otherwise.
-		Scene scene;
-		if (!Look(state, scene, false)) return;
-		bool moved = false;
-		const auto ranked = Monsters(scene);
-		const auto* target = g_lock.Held() ? g_lock.Keep(ranked, moved) : nullptr;
+		// Self buffs/summons do not depend on terrain readiness or a retained
+		// enemy lock. Native validation owns town/mana/form restrictions.
+		End("one-shot skill", true);
 		AsyncLog::InfoF(g_context, "[keyboard] skill %d is not an attack: used once", skill);
-		(void)NativeActions::SkillAt(hand, target ? target->entity.position : scene.world.player);
+		if (Generated::SkillRequiresEnemy(skill)) {
+			// Some non-attack effects still require a hostile unit. Keep that
+			// requirement separate from self buffs and from damage/range.
+			Scene scene;
+			bool moved = false;
+			if (Look(state, scene, false)) {
+				const auto ranked = Monsters(scene);
+				if (const auto* target = g_lock.Keep(ranked, moved)) {
+					(void)NativeActions::SkillOn(hand, static_cast<Unit>(target->entity.unit), target->entity.id);
+					return;
+				}
+			}
+			ScreenReader::Speak(Strings::Current().targetNone, true);
+		} else (void)NativeActions::SkillHere(hand);
 		return;
 	}
 	End("fight", false);
@@ -1525,15 +1538,34 @@ void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand
 
 void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
+	// Poll the physical modifier on the UI owner so Shift can be pressed or
+	// released during a hold. Never synthesize keyboard/controller state.
+	const bool stationary = g_hand == Hand::Left && (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+	const int skill = NativeActions::SelectedSkill(g_hand);
+	const auto missing = SkillCast::MissingEnemy(skill, stationary);
+	auto untargeted = [&] {
+		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		if (missing == SkillCast::WithoutEnemy::Report) {
+			if (!g_saidNone) ScreenReader::Speak(strings.targetNone, true);
+			g_saidNone = true;
+		} else if (now >= g_nextStrike) {
+			g_nextStrike = now + StrikeMs;
+			(void)NativeActions::SkillHere(g_hand);
+			// Optional-target spells cast once with no target, like buffs. A
+			// deliberately stationary held attack continues striking in place.
+			if (missing == SkillCast::WithoutEnemy::CastHere) End("untargeted skill", false);
+		}
+	};
 	Scene scene;
-	if (!Look(state, scene, false)) return;
+	if (!Look(state, scene, false)) {
+		if (missing != SkillCast::WithoutEnemy::Report) untargeted();
+		return;
+	}
 	const auto ranked = Monsters(scene);
 	bool moved = false;
 	const auto* target = g_lock.Keep(ranked, moved);
 	if (!target) {
-		if (!g_saidNone) ScreenReader::Speak(strings.targetNone, true);
-		g_saidNone = true;
-		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		untargeted();
 		return;
 	}
 	g_saidNone = false;
@@ -1542,6 +1574,16 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		AsyncLog::InfoF(g_context, "[keyboard] fight: now id=%u name=%s", target->entity.id, target->entity.name.c_str());
 		ScreenReader::Speak(target->entity.name, false);
 		g_walker.Start();
+	}
+	if (stationary) {
+		// This branch precedes both chase and ranged retreat. The native
+		// stationary command also prevents its own walk-to-unit behavior.
+		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		if (now >= g_nextStrike) {
+			g_nextStrike = now + StrikeMs;
+			(void)NativeActions::SkillOn(g_hand, static_cast<Unit>(target->entity.unit), target->entity.id, true);
+		}
+		return;
 	}
 	const auto reach = ReachOf(context, g_hand, now);
 	if (reach.ranged) {
@@ -2314,6 +2356,16 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	// In a menu the keys are the menu's: a click, a tab, a button (keyboard_menu.h).
 	if (!g_playing.load() && !g_settingsOpen.load() && KeyboardMenu::Active()) {
 		using KeyboardMenu::Act;
+		// Shift+PageUp/Down retain comparison elsewhere; the visible Shared
+		// stash gives those keys to its pages, as requested by the user.
+		if ((command == Command::CompareItem || command == Command::CompareEquipped
+			|| command == Command::ReadFirst || command == Command::ReadLast) && KeyboardMenu::SharedStashActive()) {
+			const bool shift = event->binding.modifier == D2RL::Input::Modifier::Shift || Down(VK_SHIFT);
+			const bool control = event->binding.modifier == D2RL::Input::Modifier::Control || Down(VK_CONTROL);
+			if (pressed) KeyboardMenu::DeliverStash(command == Command::CompareItem || command == Command::ReadFirst ? -1 : 1,
+				NativeStashPages::Amount(shift, control));
+			return pressed ? D2RL::Input::ActionResult::Handled : D2RL::Input::ActionResult::Ignored;
+		}
 		if (command == Command::Attack || command == Command::Cast) {
 			const size_t hand = command == Command::Attack ? 0 : 1;
 			// A held key repeats its press; only the first one is a click. W is
@@ -2341,7 +2393,11 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			return D2RL::Input::ActionResult::Handled;
 		}
 	}
-	// Out of a menu a click with Shift, Ctrl or Alt, and the cube's key, are the game's keys.
+	// Shift+A is a menu equip click there, and a native stationary attack in
+	// play. Consume it through the same hold as A; no OS mouse click is issued.
+	if (command == Command::ClickLeft && event->binding.modifier == D2RL::Input::Modifier::Shift)
+		command = Command::Attack;
+	// Other modified clicks and the cube's key retain their existing contexts.
 	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort
 		|| command == Command::FillBelt || command == Command::Repair)
 		return D2RL::Input::ActionResult::Ignored;
@@ -2357,6 +2413,10 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (!reading && !g_playing.load()) {
 		// A release still has to end a hold begun in play.
 		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
+		// UI/play snapshots can straddle a menu close. An unowned combat
+		// press must not leak A to the game's Character-screen binding.
+		if (command == Command::Attack || command == Command::Cast)
+			return pressed ? D2RL::Input::ActionResult::Handled : D2RL::Input::ActionResult::Ignored;
 		return D2RL::Input::ActionResult::Ignored;
 	}
 	if (command == Command::Attack || command == Command::Cast) {
@@ -2401,6 +2461,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	if (context->pluginDirectory) g_settingsFile = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "settings.txt";
 	(void)NativeActions::Initialize(context, nativeHooks);
+	if (nativeHooks) (void)NativeStashPages::Initialize(context);
 	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (nativeHooks) (void)NativeSwap::Initialize(context);
 	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
@@ -2453,7 +2514,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-settings-change", "Open the group or change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-settings-back", "Back to the groups (settings list open)", Key::Backspace, Modifier::None, Command::SettingsBack},
 			Entry{"keyboard-settings-lower", "Lower the setting (settings list open)", Key::Space, Modifier::Shift, Command::SettingsLower},
-			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
+			Entry{"keyboard-click-shift", Strings::Current().stationaryAttack, Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-click-alt", "Menu: left click with Alt", Key::A, Modifier::Alt, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},
@@ -2476,6 +2537,16 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			}
 			++registered;
 			g_actions.push_back(handle);
+			if (entry.command == Command::Attack) {
+				g_attackKeys[0] = static_cast<uint32_t>(entry.key);
+				g_attackKeys[1] = 0;
+				if (g_input->getBinding) for (size_t slot = 0; slot < 2; ++slot) {
+					D2RL::Input::Binding actual{};
+					if (g_input->getBinding(context, handle, slot == 0 ? D2RL::Input::BindingSlot::Primary : D2RL::Input::BindingSlot::Secondary,
+						&actual) == D2RL::Input::Result::Success)
+						g_attackKeys[slot] = actual.modifier == Modifier::None ? static_cast<uint32_t>(actual.key) : 0;
+				}
+			}
 			// The key the loader really gave it: a saved or a clashing binding shows here.
 			D2RL::Input::Binding bound{};
 			if (g_input->getBinding && g_input->getBinding(context, handle, D2RL::Input::BindingSlot::Primary, &bound) == D2RL::Input::Result::Success
@@ -2495,6 +2566,14 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	auto command = g_command.exchange(Command::None);
 	const uint64_t now = GetTickCount64();
+	static uint64_t nextClaimLog = 0, pendingClaims = 0;
+	pendingClaims += NativeKeyboard::TakeClaims();
+	if (pendingClaims && now >= nextClaimLog) {
+		AsyncLog::InfoF(context, "[keyboard-native] redirected %llu competing Character key dispatches to the mod",
+			static_cast<unsigned long long>(pendingClaims));
+		pendingClaims = 0;
+		nextClaimLog = now + 1000;
+	}
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
 	const bool inPlay = state.ready && RadarUi::InPlay();
@@ -2596,6 +2675,21 @@ void Tick(const D2RL::PluginContext* context) {
 bool Playing() { return g_playing.load(); }
 bool SettingsOpen() { return g_settingsOpen.load(); }
 
+bool NativeCharacterBinding(uint16_t packedKey) noexcept {
+	// This is an exact native binding, not a guess from the parked pointer.
+	// C and other native bindings remain native unless actually assigned to
+	// the mod's attack action. Typing and other modified clicks retain ownership.
+	const uint32_t key = packedKey & 0xFFFu;
+	if ((packedKey & 0xF000u) || !key || !g_context || Down(VK_CONTROL) || Down(VK_MENU)
+		|| (key != g_attackKeys[0].load() && key != g_attackKeys[1].load())) return false;
+	const bool shift = Down(VK_SHIFT);
+	const D2RL::Input::ActionEvent event{.structSize = D2RL::Input::ActionEventSize,
+		.kind = D2RL::Input::ActionEventKind::Pressed,
+		.binding = {static_cast<D2RL::Input::Key>(key), shift ? D2RL::Input::Modifier::Shift : D2RL::Input::Modifier::None}};
+	return OnAction(g_context, &event, reinterpret_cast<void*>(static_cast<uintptr_t>(shift ? Command::ClickLeft : Command::Attack)))
+		== D2RL::Input::ActionResult::Handled;
+}
+
 std::vector<bool> CutOff(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things) {
 	std::vector<bool> cut(things.size(), false);
 	Lifecycle state;
@@ -2664,6 +2758,7 @@ void Unregister() {
 	g_deferred = Command::None;
 	for (auto& held : g_held) held = 0;
 	for (auto& pressed : g_pressed) pressed = false;
+	for (auto& key : g_attackKeys) key = 0;
 	g_lock.Clear();
 	g_graph = {};
 	g_graphLevel = 0;

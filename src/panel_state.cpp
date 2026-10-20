@@ -12,6 +12,7 @@ namespace {
 std::vector<std::string> g_open;
 std::string              g_announced;
 bool                     g_movie = false;
+uint64_t                 g_revision = 0;
 
 auto Find(std::string_view panel) {
 	return std::find(g_open.begin(), g_open.end(), panel);
@@ -20,6 +21,7 @@ auto Find(std::string_view panel) {
 }
 
 void Opened(std::string_view panel) {
+	++g_revision;
 	const auto it = Find(panel);
 	if (it != g_open.end()) {
 		g_open.erase(it);
@@ -33,6 +35,7 @@ bool Closed(std::string_view panel) {
 		return false;
 	}
 	const bool wasActive = (it + 1 == g_open.end());
+	++g_revision;
 	g_open.erase(it);
 	return wasActive;
 }
@@ -44,6 +47,7 @@ std::string_view Active() {
 const std::vector<std::string>& OpenPanels() {
 	return g_open;
 }
+uint64_t Revision() { return g_revision; }
 
 void Announced(std::string_view title) {
 	g_announced = title;
@@ -58,10 +62,12 @@ bool TakeAnnounced(std::string_view tab) {
 }
 
 void MovieStarted() {
+	++g_revision;
 	g_movie = true;
 }
 
 void MovieEnded() {
+	++g_revision;
 	g_movie = false;
 }
 
@@ -70,6 +76,7 @@ bool MoviePlaying() {
 }
 
 void Reset() {
+	++g_revision;
 	g_open.clear();
 	g_announced.clear();
 	g_movie = false;

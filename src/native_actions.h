@@ -31,7 +31,10 @@ bool Available();
 // game's tests do; kept to tell the two apart in a live test.
 bool MoveTo(Radar::Position cell, bool run = true, bool plain = false);
 bool SkillAt(Hand hand, Radar::Position cell);
-bool SkillOn(Hand hand, Unit type, uint32_t id);
+// A self/untargeted cast reads only the local player's position, never terrain
+// or enemies. Town legality is left to the game, like a real skill click.
+bool SkillHere(Hand hand);
+bool SkillOn(Hand hand, Unit type, uint32_t id, bool stationary = false);
 // Talk to, open, take or use: the command the game sends for that kind of
 // unit. The game refuses one that is too far, so the caller walks up first.
 bool Interact(Unit type, uint32_t id);

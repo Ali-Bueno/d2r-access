@@ -199,9 +199,10 @@ namespace D2RAccess::NativeGroundItems {
 int PlayerGold() noexcept { return playerGold; }
 int PlayerStashGold() noexcept { return stashGold; }
 std::string ItemBaseName(uintptr_t unit) { return unit == 77 ? "Poción de curación menor" : std::string{}; }
-// 80: a magic spear, 81: a superior short sword (D2RL::Items::Quality 4 and 3).
+// Distinct mod-owned test units cover magic/superior plus set/unique headlines.
 UnitLabel ItemUnitLabel(uintptr_t unit) {
-	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3} : UnitLabel{};
+	return unit == 80 ? UnitLabel{"Lanza", 4} : unit == 81 ? UnitLabel{"Espada corta", 3}
+		: unit == 82 ? UnitLabel{"Sabre", 5} : unit == 83 ? UnitLabel{"Mace", 7} : UnitLabel{};
 }
 UnitLabel ClassLabel(uint32_t, uint32_t quality) { return {"", quality}; }
 std::optional<uint32_t> ClassOfCode(uint32_t) { return std::nullopt; }
@@ -657,6 +658,29 @@ int main() {
 	Check(speech.size() == 1 && speech.back().find("Sin identificar") == std::string::npos, "and it is not repeated in the detail");
 	ClearSpeech(); gridItem = 81; Tooltip("Espada corta superior"); Tick();
 	Check(speech == std::vector<std::string>{"Espada corta superior"}, "a lesser item keeps its own name, with no quality word");
+	// The set composer styles the name with index 3 and the base type with 2.
+	// Index 2 used to win merely for its colour, reproducing the user's Sabre
+	// headline even though the very first description line named Angelic Sickle.
+	ClearSpeech(); gridItem = 82;
+	Tooltip("\xEE\x81\xBE" "2Angelic Raiment\n\xEE\x81\xBE" "1Fuerza necesaria: 25\n"
+		"\xEE\x81\xBE" "0Daño: 3 a 8\n\xEE\x81\xBE" "2Sabre\n\xEE\x81\xBE" "3Angelic Sickle");
+	Tick();
+	Check(speech.size() == 1 && speech.front().starts_with(std::string("Angelic Sickle. ") + Strings::Current().itemQualities[5]),
+		"a set item's displayed full name leads its quality, never the styled base type or set title");
+	Check(speech.front().find("Fuerza necesaria: 25") != std::string::npos,
+		"set name correction preserves the red unmet requirement on the short readout");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Up; Tick();
+	Check(speech.size() == 1 && speech.front().starts_with("Sabre. Daño: 3 a 8")
+		&& speech.front().find("Angelic Raiment") != std::string::npos,
+		"a set item's type, properties and set title stay available in the detail");
+	ClearSpeech(); pendingPush = InputDirection::StickPush::Left; InputDirection::lineStep = true; Tick();
+	Check(speech == std::vector<std::string>{"Angelic Sickle"}, "line reader and short readout agree on the displayed set name");
+	InputDirection::lineStep = false;
+	ClearSpeech(); Tooltip("Sin identificar\n\xEE\x81\xBE" "2Sabre"); Tick();
+	Check(speech == std::vector<std::string>{"Sabre. Sin identificar"}, "unidentified set items keep their visible type and unidentified status");
+	ClearSpeech(); gridItem = 83; Tooltip("Daño: 3 a 8\nMace\n\xEE\x81\xBE" "2Crushflange"); Tick();
+	Check(speech == std::vector<std::string>{std::string("Crushflange. ") + Strings::Current().itemQualities[7]},
+		"unique full names and their quality remain unchanged beside the set-item fix");
 	gridItem = 0;
 	// A belt slot's item is named by its tooltip, now drawn at once; an empty
 	// slot, which has no tooltip, says so from the slot. Each says its D-pad

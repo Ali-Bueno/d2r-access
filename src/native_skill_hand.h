@@ -15,4 +15,8 @@ bool Initialize(const D2RL::PluginContext* context);
 bool Available();
 // UI thread. None when the game has not chosen one, or the read failed.
 Hand Chosen();
+// UI thread, fresh visible/on-screen left HUD button only. Invoke its verified
+// native click callback synchronously, without pointer movement or queued mouse
+// input. Reject other button types/sides; retain the game's toggle semantics.
+bool ActivateLeft(uintptr_t button) noexcept;
 }

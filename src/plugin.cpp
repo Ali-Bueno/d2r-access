@@ -38,6 +38,7 @@
 #include "skill_navigation.h"
 #include "skill_bar_service.h"
 #include "native_skill_hotkeys.h"
+#include "input/native_keyboard.h"
 #include "skill_hotkey_service.h"
 #include "quest_service.h"
 #include "radar_config.h"
@@ -462,6 +463,10 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	if (!D2RAccess::KeyboardService::Register(context, nativeHooks)) D2RAccess::AsyncLog::Warn(context, "[keyboard] Keyboard play unavailable.");
 	if (nativeHooks && !D2RAccess::NativeSkillHotkeys::Initialize(context))
 		D2RAccess::AsyncLog::Warn(context, "[skill-hotkey] Some keyboard skill announcements unavailable.");
+	// Skill-hotkey verification pins the original dispatcher before this narrow
+	// pre-dispatch claim hook is installed. Keep that initialization order.
+	if (nativeHooks && !D2RAccess::NativeKeyboard::Initialize(context, D2RAccess::KeyboardService::NativeCharacterBinding))
+		D2RAccess::AsyncLog::Warn(context, "[keyboard-native] Character binding protection unavailable.");
 	if (!D2RAccess::AutoDetail::Register(context)) D2RAccess::AsyncLog::Warn(context, "[detail] Ctrl+H could not be registered.");
 	if (!D2RAccess::Widgets::Initialize(context)) {
 		D2RAccess::AsyncLog::Warn(context, "Widget service unavailable; focus tracking disabled.");
@@ -499,6 +504,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::UiThreadPump::Stop();
 	D2RAccess::PadFilter::Remove();
 	D2RAccess::KeyboardMenu::Reset();
+	D2RAccess::NativeKeyboard::Reset();
 	D2RAccess::KeyboardService::Unregister();
 	D2RAccess::VitalsService::Unregister();
 	D2RAccess::AutoDetail::Unregister();

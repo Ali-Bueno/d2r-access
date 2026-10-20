@@ -18,6 +18,7 @@ before adding one, and read this file first.
 |---|---|
 | arrows, held | walk |
 | A, held | fight with the left skill: only a monster on screen, as a click would (`22e2739`) |
+| Shift+A, held | stand still and attack with the left skill; no chase/retreat. Menus retain Shift-click equip |
 | W, held | fight with the right skill: only a monster on screen |
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
@@ -29,7 +30,7 @@ before adding one, and read this file first.
 | Shift+Home | walk to what the scanner named. An exit is taken: stairs are used, an area border is walked on across (`9269536`) |
 | Ctrl+R | retreat: walk back to the way you came into the level -- the stairs, waypoint, portal or area border you arrived by, or the place you first stood if none stands there -- and stop beside it (the user, 2026-10-02: "collapse retreat to control+r"). Shift+R and Alt+R retreat no more; in play they are the game's |
 | End | stop |
-| Z, X | life, mana |
+| Z, X, V | life, mana, stamina |
 | PageUp, PageDown | scanner: previous object, next object |
 | Ctrl+PageUp, Ctrl+PageDown | scanner: previous category, next category |
 | Home, backslash | say the scanner's object again |
@@ -40,6 +41,10 @@ before adding one, and read this file first.
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
+
+Self buffs cast once without enemies, including an attempt in town. Optional
+target skills also attempt once without an enemy. Native cast rules still apply;
+see [skill casting](battle/skill-casting.md).
 
 "On screen" is a 16:9 view around the character, INFERRED from the user's
 1920x1080 and not measured (`CombatTarget::OnScreen`). The scanner lists
@@ -72,11 +77,13 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Ctrl+Left, Ctrl+Right | the first line, the last line, the same way |
 | Shift+Up, Shift+Down | the line before, the line after, as the game draws the tooltip with Shift held, which is the regular one: "+2 to Sacrifice" (the user, 2026-09-29; the game shows ranges only with Ctrl, the user, 2026-09-30). After the compare key reads the equipped item they walk that item's lines instead, until the compare key reads the highlighted one again or the cursor moves |
 | Shift+Left, Shift+Right | the first line, the last line, the same way |
-| PageUp, PageDown | the tab before, the tab after |
+| PageUp, PageDown | previous/next enabled tab; disabled empty shop categories are skipped |
 | Home, End | the menu before, the menu after |
 | Ctrl+PageUp | a skill's lines, opened and closed |
 | Ctrl+PageDown | an item's size; a skill's points left |
-| Shift+PageUp, Shift+PageDown | compare: the item in full, the one equipped |
+| Shift+PageUp, Shift+PageDown | Shared stash: previous/next page. Elsewhere: compare the item and equipped item |
+| Ctrl+PageUp, Ctrl+PageDown, with Shared open | previous/next five pages, stopping at the edge |
+| Ctrl+Shift+PageUp, Ctrl+Shift+PageDown, with Shared open | previous/next ten pages, stopping at the edge |
 | Ctrl+R | repair all |
 | Shift+R | repair |
 | Alt+T | transmute |

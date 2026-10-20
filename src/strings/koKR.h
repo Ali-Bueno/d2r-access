@@ -264,6 +264,8 @@ inline constexpr Table koKR {
 	.weaponSetNumberOff = "무기 세트 번호 꺼짐",
 	.gaitWalking = "걷기",
 	.gaitRunning = "달리기",
+	.stationaryAttack = "제자리 공격; 메뉴: Shift 왼쪽 클릭",
+	.staminaRead = "기력 읽기",
 	.staminaPercent = "기력 %d퍼센트",
 	.staminaOut = "기력 소진",
 	.movementAlertsOn = "걷기, 달리기, 기력 알림 켜짐",

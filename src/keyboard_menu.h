@@ -23,6 +23,8 @@
 //   Ctrl + arrows            read line by line: up and down a line, left and
 //                            right the first and the last (InputDirection::PostLineStep).
 //   PageUp, PageDown         the tab before and after, in a menu that has tabs.
+//   Shift+PageUp/PageDown    previous/next page while the Shared stash is open.
+//   Ctrl+PageUp/PageDown     five Shared pages; Ctrl+Shift ten (edge clamped).
 //   Home, End                the menu before and after: character, inventory,
 //                            skill tree, quest log, game menu.
 //   backslash                say it again (Home says it again in play).
@@ -36,7 +38,8 @@
 // prevent automatic placement in keyboard mode.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
-enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail };
+enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail,
+	StashPrevious, StashNext, StashPrevious5, StashNext5, StashPrevious10, StashNext10 };
 
 // After KeyboardService::Tick and before the readers, so what is read is
 // where the cursor ends up.
@@ -44,6 +47,8 @@ void Tick(const D2RL::PluginContext* context);
 void Reset();
 // True while a menu is up and the keys above are the menu's.
 bool Active();
+// Copied context flag for input callbacks; native hierarchy stays on the UI owner.
+bool SharedStashActive();
 // True while the keyboard's cursor has the menu: no pad is connected, or an
 // arrow key took it. A pad player's menus are up (Active) but never engaged. UI thread.
 bool Engaged();
@@ -54,6 +59,7 @@ bool Typing();
 // A key of the menu as the loader delivered it. The same keys are watched
 // directly as well, for the screens where the loader delivers none.
 void Deliver(Act act);
+void DeliverStash(int direction, int pages);
 // A click on a button of the open menu by the name its layout gives it, for a
 // key that presses it for the player. False when it is not shown.
 bool Press(const D2RL::PluginContext* context, std::string_view button);

@@ -6,6 +6,33 @@ announcement steps, mercenary life, poison state changes, and a worn item that b
 
 ## Where the numbers come from
 
+### V: stamina on demand — 2026-10-20
+
+Feature status: complete, offline-verified and installed; full suite 125/125.
+Gameplay confirmation remains pending. V registers the logical action
+`vitals-stamina` beside Z and X. Its binding label is localized in all thirteen
+catalogs; speech reuses each locale's existing stamina-percent phrase.
+
+The input callback posts `Command::Stamina` through the existing atomic command
+slot and retains the Z/X guard for keyboard text fields. `VitalsService::Tick` consumes that
+intent and `Report` reads `NativeStatus::PlayerMovement`, using the same
+verified stamina/max-stamina fields and `Vitals::Percent` calculation as the
+automatic movement alerts. The dedicated report includes 0 and 100 percent,
+works with automatic alerts disabled, and does not advance or rearm their
+threshold tracker. Missing HUD/native support or invalid values use the
+existing localized unavailable result; unknown stamina is never reported as
+empty. Reset/lifecycle and action unregistration remain shared with Z/X.
+
+No native hook, actor scan, state write or new queue is added. Native reads
+stay on the existing UI owner; the screen-reader worker receives owned text.
+The atomic command slot retains its existing bounded latest-intent behavior.
+Existing percent/native-status and all-language catalog tests cover the reused
+data/formatting dependencies; registration and routing are reviewed against
+the actual input callback and report path. Runtime key delivery and audible
+timing remain unmeasured. First gameplay check: V at full stamina, then after
+running, and with movement alerts disabled; typing V into chat should still
+type normally.
+
 **Life and mana: the game's own HUD orbs.** `HUDPanelHD.json` declares
 `HealthBall` and `ManaBall` (`AttributeBallWidget`), each with a child
 `ValueDisplay` (`TextBoxWidget`) that the game fills with `current/maximum`

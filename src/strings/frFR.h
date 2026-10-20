@@ -264,6 +264,8 @@ inline constexpr Table frFR {
 	.weaponSetNumberOff = "Numéro du jeu d'armes : désactivé",
 	.gaitWalking = "Marche",
 	.gaitRunning = "Course",
+	.stationaryAttack = "Attaquer sans bouger ; menu : Maj et clic gauche",
+	.staminaRead = "Lire l'endurance",
 	.staminaPercent = "Endurance %d pour cent",
 	.staminaOut = "Plus d'endurance",
 	.movementAlertsOn = "Annonces marche, course et endurance : activé",

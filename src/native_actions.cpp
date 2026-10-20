@@ -1,6 +1,7 @@
 #include "native_actions.h"
 
 #include "async_log.h"
+#include "battle/skill_cast.h"
 #include "layout_check.h"
 #include "native_ground_items.h"
 #include "native_memory.h"
@@ -26,7 +27,7 @@ constexpr uintptr_t MoveToPointRva = 0x101EF0;
 constexpr size_t UnitSkills = 0x100, SkillsLeft = 0x08, SkillsRight = 0x10;
 // The command numbers are the game's own client-to-server message numbers.
 constexpr uint32_t Walk = 0x01, Run = 0x03;
-constexpr uint32_t LeftAt = 0x05, LeftOn = 0x06, RightAt = 0x0C, RightOn = 0x0D;
+constexpr uint32_t LeftAt = 0x05, RightAt = 0x0C;
 constexpr uint32_t TakeItem = 0x16, TalkTo = 0x2F, UseTile = 0x40, UseObject = 0x41;
 // A player unit in reach: the game's click (0x140101E29) sends 0x13, whose
 // server handler is in PlrMsg.cpp, to loot a corpse, and 0x2B (PlrTrade.cpp),
@@ -155,8 +156,14 @@ bool MoveTo(Radar::Position cell, bool run, bool plain) {
 bool SkillAt(Hand hand, Radar::Position cell) {
 	return Call(hand == Hand::Left ? LeftAt : RightAt, Cell(cell.x), Cell(cell.y), hand == Hand::Left ? "left skill at" : "right skill at");
 }
-bool SkillOn(Hand hand, Unit type, uint32_t id) {
-	return Call(hand == Hand::Left ? LeftOn : RightOn, static_cast<int32_t>(type), static_cast<int32_t>(id),
+bool SkillHere(Hand hand) {
+	const auto state = ReadMoveState();
+	if (!state.read) return false;
+	return SkillAt(hand, {static_cast<double>(state.x >> 16), static_cast<double>(state.y >> 16)});
+}
+bool SkillOn(Hand hand, Unit type, uint32_t id, bool stationary) {
+	return Call(SkillCast::OnUnit(hand == Hand::Left, stationary, stationary ? SelectedSkill(hand) : -1),
+		static_cast<int32_t>(type), static_cast<int32_t>(id),
 		hand == Hand::Left ? "left skill on" : "right skill on");
 }
 bool Interact(Unit type, uint32_t id) {

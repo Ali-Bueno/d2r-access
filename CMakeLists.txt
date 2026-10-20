@@ -43,6 +43,9 @@ add_library(d2r-access SHARED
 	src/grid_edge.cpp
 	src/grid_edge_service.cpp
 	src/stash_count.cpp
+	src/menus/stash_pages.cpp
+	src/menus/native_stash_pages.cpp
+	src/input/native_keyboard.cpp
 	src/sound_glossary.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
@@ -250,6 +253,8 @@ function(d2r_test name test_source)
 	foreach(source IN LISTS ARGN)
 		if(source MATCHES "^src/(.+)\\.cpp$")
 			set(object "testobj-${CMAKE_MATCH_1}")
+			# Feature folders are valid sources; target names cannot contain slashes.
+			string(REPLACE "/" "-" object "${object}")
 			if(NOT TARGET ${object})
 				add_library(${object} OBJECT ${source})
 				target_include_directories(${object} PRIVATE src)
@@ -278,6 +283,19 @@ function(d2r_test name test_source)
 endfunction()
 
 if(BUILD_TESTING)
+	d2r_test(native-keyboard-tests tests/native_keyboard_tests.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(native-keyboard-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	add_test(NAME native-keyboard COMMAND native-keyboard-tests)
+
+	d2r_test(native-skill-hand-tests tests/native_skill_hand_tests.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(native-skill-hand-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	add_test(NAME native-skill-hand COMMAND native-skill-hand-tests)
+	d2r_test(native-stash-pages-tests tests/native_stash_pages_tests.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(native-stash-pages-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	add_test(NAME native-stash-pages COMMAND native-stash-pages-tests)
+	d2r_test(menu-mouse-tests tests/menu_mouse_tests.cpp src/panel_state.cpp)
+	target_link_libraries(menu-mouse-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	add_test(NAME menu-mouse COMMAND menu-mouse-tests)
 	d2r_test(callback-boundary-tests tests/callback_boundary_tests.cpp tests/allocation_failure.cpp src/navigation_grid.cpp src/radar_grid.cpp)
 	add_test(NAME callback-boundary COMMAND callback-boundary-tests)
 	d2r_test(ui-thread-pump-tests tests/ui_thread_pump_tests.cpp tests/allocation_failure.cpp src/ui_thread_pump.cpp src/async_log.cpp)
@@ -504,6 +522,9 @@ if(BUILD_TESTING)
 	add_test(NAME equip-attempt COMMAND equip-attempt-tests)
 	d2r_test(tooltip-text-tests tests/tooltip_text_tests.cpp src/tooltip_text.cpp src/ui_text.cpp src/speech_strings.cpp)
 	add_test(NAME tooltip-text COMMAND tooltip-text-tests)
+	d2r_test(stash-pages-tests tests/stash_pages_tests.cpp src/menus/stash_pages.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(stash-pages-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	add_test(NAME stash-pages COMMAND stash-pages-tests)
 	d2r_test(tab-reader-tests tests/tab_reader_tests.cpp src/tab_reader.cpp src/ui_text.cpp src/speech_strings.cpp)
 	target_link_libraries(tab-reader-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME tab-reader COMMAND tab-reader-tests)

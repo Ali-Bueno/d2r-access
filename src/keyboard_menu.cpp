@@ -1,4 +1,6 @@
 #include "keyboard_menu.h"
+#include "menus/stash_pages.h"
+#include "menus/native_stash_pages.h"
 
 #include "async_log.h"
 #include "click_words.h"
@@ -135,6 +137,7 @@ std::string g_menu;         // the open panels by name, to tell one menu from th
 Place g_place;
 std::atomic<bool> g_active{false};
 std::atomic<bool> g_typing{false}; // the cursor is on a box of text, which has the keys that type
+std::atomic<bool> g_sharedStash{false}; // copied UI context; callbacks never traverse native page controls
 bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
 bool g_holding = false;     // an item was in hand when the pointer was last placed
 bool g_landed = false;      // the pointer went to where the cursor is
@@ -174,20 +177,26 @@ Arrow g_arrows[] = {
 };
 // The keys of the menu, watched directly beside the loader's delivery of them,
 // and what may be held with each for it still to be the menu's key.
-enum class With { Nothing, Shift, ClickModifiers };
-struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
+enum class With { Nothing, SharedStash, ClickModifiers };
+struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; Act chosen = Act::ClickLeft; };
 Watched g_watched[] = {
 	{'A', Act::ClickLeft, With::ClickModifiers}, {'D', Act::ClickRight, With::ClickModifiers}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
 	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
+	{VK_PRIOR, Act::StashPrevious, With::SharedStash}, {VK_NEXT, Act::StashNext, With::SharedStash},
 };
-constexpr size_t Acts = 8;
+constexpr size_t Acts = 14;
 constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
-	"say again", "description"};
+	"say again", "description", "previous stash page", "next stash page", "previous five stash pages", "next five stash pages",
+	"previous ten stash pages", "next ten stash pages"};
 std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
 bool Down(int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; }
+Act PageAction(int direction, int pages) {
+	const int offset = pages == 10 ? 4 : pages == 5 ? 2 : 0;
+	return static_cast<Act>(static_cast<int>(Act::StashPrevious) + offset + (direction > 0 ? 1 : 0));
+}
 
 // Character creation's name box takes what is typed wherever the cursor is
 // (READ), so A typed an "a" as it clicked a class. What the game would type is
@@ -716,6 +725,7 @@ void Census(const D2RL::PluginContext* context) {
 }
 
 void Release(const D2RL::PluginContext* context, const char* reason) {
+	MenuMouse::Reset();
 	if (g_engaged && context) AsyncLog::InfoF(context, "[cursor] released: %s", reason);
 	g_engaged = false;
 	ClickWords::SetKeyboard(false);
@@ -751,7 +761,9 @@ void Park(const D2RL::PluginContext* context) {
 	const NativeUi::Rect rest{from->x + from->width, from->y, gap, from->height};
 	AsyncLog::InfoF(context, "[cursor] play goes on: the pointer to %d,%d, between the skill buttons",
 		rest.x + rest.width / 2, rest.y + rest.height / 2);
-	MenuMouse::PlaceAfter(rest);
+	// A park is a move only, performed after cancellation; it must never sit
+	// behind a stale menu press/return that could click the HUD in play.
+	(void)MenuMouse::Place(rest);
 }
 
 // The list of skills is one panel for both hands and has no title. The hand it
@@ -935,9 +947,9 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	if (repeated) return;
 	const bool shift = Down(VK_SHIFT), control = Down(VK_CONTROL), alt = Down(VK_MENU);
 	const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr;
-	if (entry && !g_landed) {
+	if (!entry || !g_landed || !NativeUi::Visible(entry->panel)) {
 		// Never a click on whatever the pointer happens to be over.
-		AsyncLog::WarnF(context, "[cursor] no click: the pointer is not on %s", entry->name.c_str());
+		AsyncLog::Warn(context, "[cursor] no click: no current, landed menu target");
 		ScreenReader::Speak(Strings::Current().unavailable, true);
 		return;
 	}
@@ -974,6 +986,10 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 		g_choosing = {entry->widget, now};
 	}
 	const auto rect = entry ? PointerRect(*entry, g_place, InventoryCursor::HoldingItem(context).value_or(false)) : std::nullopt;
+	if (!rect) {
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		return;
+	}
 	// A row that one click only chooses is acted on by two, as the mouse does it
 	// (the user, 2026-09-27, of five clicks on a character that began no game:
 	// the click "should have clicked"). A click that went to the row a moment
@@ -982,8 +998,7 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	const bool twice = row && !(g_rowClicked.widget == entry->widget && now - g_rowClicked.at < RowPairMs);
 	AsyncLog::InfoF(context, "[cursor] %s click%s%s%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
 		shift ? " with Shift" : "", control ? " with Ctrl" : "", alt ? " with Alt" : "", twice ? ", twice" : "", entry ? entry->name.c_str() : "where the pointer is");
-	if (rect) MenuMouse::ClickAt(*rect, button);
-	else MenuMouse::Click(button);
+	MenuMouse::ClickAt(*rect, button);
 	if (twice) MenuMouse::ClickAt(*rect, button);
 	g_rowClicked = row ? RowClick{entry->widget, now} : RowClick{};
 	g_refreshAt = now + AfterClickMs;
@@ -1005,12 +1020,13 @@ void ClickWidget(const D2RL::PluginContext* context, uint64_t now, uintptr_t wid
 }
 
 void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
+	if (MenuMouse::Busy()) return; // one tab click in flight; do not build a stale input backlog
 	Refresh(context, now);
 	// A bar of tabs first: the stash, the shop, the quest log, the waypoints, the options.
 	for (const auto& entry : g_entries) {
 		if (entry.kind != Kind::Tabs || !entry.cells) continue;
-		const int tabs = NativeUi::TabCount(entry.widget), open = NativeUi::SelectedTab(entry.widget);
-		const int next = std::clamp((open < 0 ? 0 : open) + delta, 0, tabs - 1);
+		const int open = NativeUi::SelectedTab(entry.widget), next = NativeUi::AdjacentTab(entry.widget, delta);
+		if (next < 0) { ScreenReader::Speak(Strings::Current().unavailable, true); return; }
 		if (next == open) { ScreenReader::Speak(TabText(entry.widget, next), true); return; }
 		ClickWidget(context, now, entry.widget, Pack({next, 0}), "tab");
 		Expect(now + AfterClickMs, TabText(entry.widget, next));
@@ -1093,6 +1109,19 @@ bool SayStatTooltip(const D2RL::PluginContext* context, uint64_t now) {
 
 void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	switch (act) {
+	case Act::StashPrevious: case Act::StashNext: case Act::StashPrevious5: case Act::StashNext5:
+	case Act::StashPrevious10: case Act::StashNext10: {
+		// Revalidate on execution: a callback may have posted before the player
+		// changed tabs. Use the existing asynchronous native mouse input route.
+		if (MenuMouse::Busy() || !StashPages::Available()) break;
+		const int offset = static_cast<int>(act) - static_cast<int>(Act::StashPrevious);
+		const int pages = offset >= 4 ? 10 : offset >= 2 ? 5 : 1;
+		if (!StashPages::Change(offset % 2 ? 1 : -1, pages)) ScreenReader::Speak(Strings::Current().unavailable, true);
+		NativeTooltips::Discard(now + AfterClickMs);
+		g_refreshAt = now + AfterClickMs;
+		// TickStash owns the resulting localized page announcement.
+		break;
+	}
 	case Act::ClickLeft:    Click(context, now, MenuMouse::Button::Left); break;
 	case Act::ClickRight:   Click(context, now, MenuMouse::Button::Right); break;
 	case Act::TabPrevious:  StepTab(context, now, -1); break;
@@ -1120,14 +1149,17 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 		key.down = down;
 		// PageUp, PageDown, Home and End with a modifier are reading keys, and
 		// the settings list steps with them while it is open.
-		const bool mine = key.with == With::ClickModifiers || (key.with == With::Shift && !control)
-			|| (!shift && !control && !KeyboardService::SettingsOpen());
+		const bool mine = key.with == With::ClickModifiers
+			|| (key.with == With::SharedStash && g_sharedStash.load() && (shift || control) && !KeyboardService::SettingsOpen())
+			|| (key.with == With::Nothing && !shift && !control && !KeyboardService::SettingsOpen());
 		if (pressed && !typing && (!alt || key.with == With::ClickModifiers) && mine) {
 			key.waiting = true;
 			key.since = now;
+			key.chosen = key.with == With::SharedStash
+				? PageAction(key.act == Act::StashPrevious ? -1 : 1, NativeStashPages::Amount(shift, control)) : key.act;
 		}
 		if (!key.waiting) continue;
-		const size_t act = static_cast<size_t>(key.act);
+		const size_t act = static_cast<size_t>(key.chosen);
 		const uint64_t delivered = g_delivered[act].load();
 		if (delivered && delivered + DeliveredMs >= key.since) { key.waiting = false; continue; }
 		if (now - key.since < GraceMs) continue;
@@ -1143,6 +1175,7 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 }
 
 bool Active() { return g_active.load(); }
+bool SharedStashActive() { return g_active.load() && g_sharedStash.load(); }
 bool Engaged() { return g_active.load() && g_engaged; }
 bool Typing() { return g_typing.load(); }
 
@@ -1150,6 +1183,9 @@ void Deliver(Act act) {
 	const size_t index = static_cast<size_t>(act);
 	g_delivered[index] = GetTickCount64();
 	g_pending |= 1u << index;
+}
+void DeliverStash(int direction, int pages) {
+	if ((direction == -1 || direction == 1) && (pages == 1 || pages == 5 || pages == 10)) Deliver(PageAction(direction, pages));
 }
 
 bool Press(const D2RL::PluginContext* context, std::string_view button) {
@@ -1171,10 +1207,13 @@ bool LeftSkillList(const D2RL::PluginContext* context) {
 	const uintptr_t button = hud && NativeUi::Visible(hud) ? FindNamed(hud, LeftSkill, false, 0) : 0;
 	const auto rect = button ? NativeSkillNavigation::RectAt(button, NativeUi::FocusSelection(button)) : std::nullopt;
 	const bool there = rect && OnScreen(*rect);
+	// The HUD is available during play; the menu-only mouse queue must still
+	// cancel stale gestures there. Use this actual button's native callback.
+	const bool activated = there && NativeSkillNavigation::ControllerMode() == false
+		&& NativeSkillHand::ActivateLeft(button);
 	AsyncLog::InfoF(context, "[cursor] left skill: the HUD's button %s", !button ? "is not shown" : !rect ? "has no rectangle"
-		: there ? "is clicked" : "is off the screen");
-	if (!there) return false;
-	MenuMouse::ClickAt(*rect, MenuMouse::Button::Left);
+		: !there ? "is off the screen" : activated ? "native click invoked" : "native click unavailable");
+	if (!activated) return false;
 	NativeTooltips::Discard(now + AfterClickMs);
 	g_refreshAt = now + AfterClickMs;
 	return true;
@@ -1223,6 +1262,7 @@ void Reset() {
 	g_links.clear();
 	g_mended.clear();
 	g_active = false;
+	g_sharedStash = false;
 	g_beltShown = false;
 	g_beltRows = 0;
 	g_keepLetters = false;
@@ -1240,10 +1280,18 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	g_refreshedAt = UINT64_MAX;
 	g_tickStart = Clock::now();
-	MenuMouse::Tick(now);
 	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()
 		&& !KeyboardService::Playing();
+	// KeyboardService samples play first. Retire input from the old panel
+	// before a queued mouse-down can reach the HUD or a newly opened panel.
+	const uint64_t revision = PanelState::Revision();
+	static uint64_t previousRevision = UINT64_MAX;
+	const bool changed = revision != previousRevision;
+	previousRevision = revision;
+	MenuMouse::Tick(now, menu, revision);
+	if (changed) { g_pending = 0; g_refreshAt = 0; }
 	g_active = menu;
+	g_sharedStash = menu && !KeyboardService::SettingsOpen() && StashPages::Available();
 	if (!menu) {
 		g_typing = false;
 		g_keepLetters = false;

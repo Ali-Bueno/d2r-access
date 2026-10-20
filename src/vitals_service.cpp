@@ -48,7 +48,7 @@
 namespace D2RAccess::VitalsService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Status, Report, Life, Mana };
+enum class Command { None, On, Off, Status, Report, Life, Mana, Stamina };
 
 // The game's own HUD widgets: HUDPanelHD.json declares HealthBall and ManaBall
 // as AttributeBallWidgets, each carrying the ValueDisplay text box the game
@@ -416,6 +416,16 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		ScreenReader::Speak(strings.unavailable, true);
 		return;
 	}
+	// V requests the same verified live movement stats as the falling-stamina
+	// alerts, independently of those alerts. Full and empty bars are useful on
+	// demand too; do not touch the automatic threshold/rearm tracker here.
+	if (what == Command::Stamina) {
+		const auto movement = g_statusSupported ? NativeStatus::PlayerMovement() : std::nullopt;
+		const int percent = movement ? StaminaPercent(*movement) : -1;
+		AsyncLog::InfoF(context, "[vitals] stamina report=%d", percent);
+		ScreenReader::Speak(percent >= 0 ? FormattedPercent(strings.staminaPercent, percent) : std::string(strings.unavailable), true);
+		return;
+	}
 	const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
 	AsyncLog::InfoF(context, "[vitals] report life=%d mana=%d", life, mana);
 	if (what == Command::Life || what == Command::Mana) {
@@ -567,11 +577,12 @@ bool Register(const D2RL::PluginContext* context) {
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		using D2RL::Input::Key;
 		struct Entry { const char* id; const char* label; Key key; Command command; };
-		// Z and X are the keyboard's own: each orb by itself, and no key for
-		// both (the user, 2026-09-27). R is left to the game.
+		// Z/X read each orb; V reads stamina (user, 2026-10-20). Reports use
+		// current native values even when automatic announcements are disabled.
 		for (const Entry& entry : {
 			Entry{"vitals-life", "Say life", Key::Z, Command::Life},
-			Entry{"vitals-mana", "Say mana", Key::X, Command::Mana}}) {
+			Entry{"vitals-mana", "Say mana", Key::X, Command::Mana},
+			Entry{"vitals-stamina", Strings::Current().staminaRead, Key::V, Command::Stamina}}) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = entry.id, .displayName = entry.label, .category = "Accessibility",
 				.defaultPrimary = {entry.key, D2RL::Input::Modifier::None}, .callback = OnAction,
@@ -657,7 +668,7 @@ void Tick(const D2RL::PluginContext* context) {
 	// Always taken, so a press made in a menu is never heard later.
 	if (InputDirection::TakeLeftStickClick() && RadarUi::InPlay()) g_runToggled = true;
 	if (InputDirection::TakeBackWithTrigger(true) && RadarUi::InPlay()) StepCompanions(context);
-	if (command == Command::Life || command == Command::Mana) Report(context, command);
+	if (command == Command::Life || command == Command::Mana || command == Command::Stamina) Report(context, command);
 	else if (command == Command::Report || BackRequested()) Report(context);
 	if (command == Command::On || command == Command::Off) {
 		g_enabled = command == Command::On;

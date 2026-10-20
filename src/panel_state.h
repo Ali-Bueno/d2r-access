@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cstdint>
 
 // Centralized record of which game panels are open, in opening order. The
 // announcer asks it what changed instead of echoing raw events: the game opens
@@ -21,6 +22,9 @@ std::string_view Active();
 
 // Every open panel, oldest first (the active one is last).
 const std::vector<std::string>& OpenPanels();
+// UI-owner generation, including close/reopen of the same named panel. Menu
+// gestures use it to discard coordinates from the previous panel lifetime.
+uint64_t Revision();
 
 // The title the window announcer has just spoken for a panel it opened. The
 // controller's menu switcher then reports the same panel as a tab change, and

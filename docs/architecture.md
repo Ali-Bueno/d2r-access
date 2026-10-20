@@ -221,6 +221,19 @@ paths; `pad_filter` is narrow input filtering. There is no synthetic keyboard
 XInput pad. Ctrl+R in gameplay walks to the remembered way into the level;
 in a merchant menu it means repair all. Context decides the command.
 
+The native keyboard boundary in `input/native_keyboard.*` can claim the
+competing Character action before its native handler, reusing KeyboardService's
+existing intent/hold path. Its two-field observation ends before dispatch;
+unclaimed keys/controller events forward untouched. Initialize it after the
+skill-hotkey fingerprints have inspected the original dispatcher. Shared stash
+shortcuts use `menus/native_stash_pages.*`, resolving the loader's verified page
+command with native single-step semantics and explicit edge bounds; physical
+shortcut modifiers never select the amount. See [input lifetime](menus/mouse-lifetime.md)
+and [stash pages](menus/stash-pages.md) for ownership, work bounds and limits.
+Shift+S resolves the current left HUD button and invokes its verified native
+click callback through NativeSkillHand on the UI owner. This intentional HUD
+entry does not enter the menu-only mouse queue; see [left skill menu](menus/left-skill-menu.md).
+
 ## Working on a feature
 
 Trace the producer first: native draw/packet/message or copied world state;

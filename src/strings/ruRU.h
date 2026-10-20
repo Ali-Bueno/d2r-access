@@ -264,6 +264,8 @@ inline constexpr Table ruRU {
 	.weaponSetNumberOff = "Номер набора оружия: выключен",
 	.gaitWalking = "Шаг",
 	.gaitRunning = "Бег",
+	.stationaryAttack = "Атаковать стоя на месте; меню: Shift и левый щелчок",
+	.staminaRead = "Прочитать выносливость",
 	.staminaPercent = "Выносливость %d процентов",
 	.staminaOut = "Выносливость кончилась",
 	.movementAlertsOn = "Оповещения о шаге, беге и выносливости: включено",

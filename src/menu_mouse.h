@@ -12,7 +12,8 @@
 //
 // A click is a press and a release some frames apart, and a pointer that was
 // just moved is clicked only after the game has seen the move: the steps are
-// kept in a short queue that Tick works through. UI thread only.
+// kept in a sixteen-step queue that Tick works through. Overflow cancels the
+// current burst and releases our buttons. UI thread only.
 namespace D2RAccess::MenuMouse {
 enum class Button { Left, Right };
 
@@ -34,6 +35,8 @@ void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& af
 void PlaceAfter(const NativeUi::Rect& rect);
 // True while steps wait: what the pointer is on is about to change.
 bool Busy();
-void Tick(uint64_t now);
+// Validate context BEFORE dispatching any step. A changed panel generation,
+// resumed play or focus loss cancels the whole gesture, releasing our button.
+void Tick(uint64_t now, bool menuActive, uint64_t panelRevision);
 void Reset();
 }

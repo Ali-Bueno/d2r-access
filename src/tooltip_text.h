@@ -16,10 +16,9 @@
 //
 // The engine stores a body bottom-up, so `Read` reverses it and `Body::lines`
 // is the tooltip in the order the screen draws it -- the name first. The name
-// is taken from the font command the renderer marks a heading with where there
-// is one, and from that first line where there is not; `Body::heading` says
-// which of the two happened, so a log can show it rather than leaving it
-// assumed.
+// normally uses the legacy palette-2 hint where present, otherwise the first
+// unlabelled line. Set items explicitly use screen order: their actual name
+// uses palette 3 and the base type uses 2, so colour cannot identify the title.
 //
 // Pure text handling: no native calls, no SDK, unit-tested without the game.
 namespace D2RAccess::TooltipText {
@@ -27,8 +26,8 @@ namespace D2RAccess::TooltipText {
 struct Body {
 	std::vector<std::string> lines;  // as drawn, top first, cleaned, empties dropped
 	std::vector<bool> red;           // per line: drawn in the game's red (unmet requirements)
-	size_t heading = static_cast<size_t>(-1); // the topmost line the renderer styled as the title
-	std::vector<size_t> headings;             // every styled line, top first
+	size_t heading = static_cast<size_t>(-1); // first palette-2 line; not universal title metadata
+	std::vector<size_t> headings;             // every palette-2 line, top first
 	bool Marked() const { return heading != static_cast<size_t>(-1); }
 };
 
@@ -62,9 +61,12 @@ struct Description {
 // The spoken headline of a description: name, then the stack's count, then the price.
 std::string Headline(const Description& description);
 
+// `nameInScreenOrder` is true for set items: use the first unlabelled drawn
+// line rather than mistaking the base type's palette 2 for title metadata.
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
-	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {});
+	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {},
+	bool nameInScreenOrder = false);
 
 // What a held compare button adds, as the screen draws it: each extra record's
 // lines ("Currently Equipped", then the equipped item), joined for speech.

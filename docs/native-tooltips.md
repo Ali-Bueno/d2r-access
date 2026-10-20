@@ -102,6 +102,60 @@ and speech-dispatch path with keyboard input; controller listening, comparison
 audio and hireling equipment remain user checks. The final deployed DLL matches
 the build: SHA-256 `C0FAFD80447EE0FCE9F7BA148726CB674771D442DDC719736884C8535A696C3D`.
 
+## Set-item headline correction — 2026-10-20
+
+Status: implementation complete, offline-verified and installed. Gameplay
+confirmation remains pending; the existing rendered-tooltip producer and
+keyboard/controller consumers remain the feature boundary.
+
+The user's own current log shows shared-stash selections at 03:28:26.882
+reading Crushflange correctly, then 03:28:27.187 reading Sabre as the set
+item's name. At 03:29:29.834 the same session's description-line reader exposes
+Angelic Sickle; the world-tooltip body at 03:32:55.702 includes that name and
+the base type. Thus the visible name reaches the copied tooltip pipeline but
+the short headline selects another line. Light Gauntlets and Amulet show the
+same set-item symptom. No player save, tester log or runtime probe was used.
+
+READ: the build-matched set composer at RVA `0x2BF1B0`, reached from the
+quality-5 branch of `0x2BD480`, appends its actual name with palette index 3
+and its base type with index 2. The styling helper at `0xCD6E0` builds a color
+command using the localized `colorcode` prefix and a one-character palette
+index. Palette 2 is not universal title metadata. The old splitter preferred
+that color and selected the base type. The legacy decompile of `0x2BE560`
+is an empty failed body, so it was rejected; conclusions use full-image native
+instructions and the user's logged line-reader/name evidence instead.
+
+`InteractionReader::Build` now supplies `nameInScreenOrder` to
+`TooltipText::Split` for set quality only. The splitter selects the first
+unlabelled displayed line after skipping vendor prices, base-stat labels,
+quantity and unidentified status. Other item forms retain their established
+name selection. Existing quality, red unmet requirements, prices, quantity,
+detail, line reading, repeat and remembered held-item name consumers all use
+the resulting description. Unidentified sets retain their visible type and
+status; no table lookup reveals an undisplayed name. No strings are translated
+or reconstructed: names remain the game's current locale text.
+
+Ownership is unchanged: `NativeTooltips::Capture` copies the renderer-owned
+body before stock drawing clears it; the UI reader consumes an owned snapshot
+and existing panel/widget/cell/age guards. The fix adds no native traversal,
+hook, queue, wait, cache, input or text-content deduplication. It makes one
+existing bounded line-selection pass choose screen order for this item form.
+The native capture's existing mutex/copy work is unchanged and is not newly
+certified as nonblocking or timed by these offline tests. Runtime frame cost
+and end-to-end audible latency remain unmeasured for this change.
+
+The production interaction-reader regression failed before the fix at the
+set-name assertion. Tests now cover the name versus base/set-list styles,
+unidentified sets, prices, full detail and first-line reading, red requirements
+and an adjacent unique. Pure text tests preserve the existing non-set cases.
+Full offline suite passed 125/125; final installation matches the tested
+code/data, with only PE timestamps changed by relinking. See STATUS for hashes
+and remaining listening checks.
+First gameplay check: return to the logged Sabre cell and hear Angelic Sickle,
+then set quality and the same unmet requirements; compare a unique and an
+unidentified item. Evidence is local outside the source repository at
+`../../re/set-item-names-2026-10-20/`.
+
 ## Inventory and target archetypes
 
 Current rune/gem fixed-slot adapters and zero cursor-settle policy:
@@ -331,18 +385,18 @@ field**. The item's name is inside the body string.
 
 | offset | size | field | how it is used |
 |---|---|---|---|
-| `+0x00` | 0x28 | body engine string `{data, size +0x08, capacityAndFlags +0x10, inline +0x18}` | `mov rcx,[rsi]` into the text draw; `cmp qword [rsi+8],0` tests empty |
-| `+0x28` | 0x28 | footer engine string, same shape | `mov rcx,[rsi+0x28]`; `cmp qword [rsi+0x30],0` |
+| `+0x00` | 0x28 | body engine string `{data, size +0x08, capacityAndFlags +0x10, inline +0x18}` | the instruction that loads the body data pointer into the text draw; the instruction that tests the body size field for zero tests empty |
+| `+0x28` | 0x28 | footer engine string, same shape | the footer data-pointer load at offset 0x28; the footer-size zero test at offset 0x30 |
 | `+0x50` | 0x10 | rect A -- x, y, w, h as int32 | background fill `0x140657B90` |
-| `+0x60` | 0x10 | rect B -- the body's text rect | `lea rdx,[rsi+0x60]` -> text draw `0x140902E20` |
-| `+0x70` | 0x10 | rect C -- the footer's text rect | `lea rdi,[rsi+0x70]`, same text draw |
+| `+0x60` | 0x10 | rect B -- the body's text rect | the address of the rectangle at offset 0x60 passed in RDX -> text draw `0x140902E20` |
+| `+0x70` | 0x10 | rect C -- the footer's text rect | the address of the subrecord at offset 0x70 in RDI, same text draw |
 | `+0x80` | ~0xA0 | text style block, ten 16-byte `movups` to the stack | passed as `r8` to the text draw |
-| `+0xA8` | 4 | a mode inside that block | `cmp dword [rsi+0xa8],1` |
+| `+0xA8` | 4 | a mode inside that block | the comparison of the 32-bit field at offset 0xA8 with 1 |
 | `+0x120` | 0x10 | four dwords | args to `0x14090CBD0` on the empty-body path |
 | `+0x151` | 1 | flag: run the per-rect pass `0x1408DAAD0` | called once per text rect |
 | `+0x154` | 4 | fixed-point fraction in 128ths | `imul edi,[rsi+0x68]`, `sar edi,7` -- splits the body rect into two coloured spans |
 | `+0x158` | 0x10 | a colour, four floats | patched into the stack copy of the style block |
-| `+0x168` | ? | block passed as the fill's fifth argument | `lea r14,[rsi+0x168]` |
+| `+0x168` | ? | block passed as the fill's fifth argument | the address of the subrecord at offset 0x168 in R14 |
 | `+0x2D8` | 1 | byte flag | passed on the stack to `0x140657AB0` |
 
 ### The body is stored bottom-up
@@ -364,8 +418,9 @@ which the image attributes thirteen functions to, spanning `0x1402BCB1A` ..
 `U+E07E` introduces a font command and **exactly one character follows it**.
 The renderer subtracts `'0'` and accepts the result below `0x27`, so the index
 runs `'0'` through `'V'` -- 39 values. Three parser sites range-check it
-identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. Index 2 is the one
-a title is drawn in.
+identically: `0x140908BD1`, `0x14090C225` and `0x14090F660`. These are palette
+indices, not title identifiers; the set-item correction above records the
+different name/base styling that made the legacy index-2 hint fail.
 
 `UiText::Clean` applies the same rule to every widget text (2026-10-02): the
 monster plate's affix line `\uE07E5•\uE07E0Invoca trinchantes` was spoken as
@@ -380,7 +435,7 @@ base-stat labels ("One-Hand Damage: ") no longer matched their own lines.
 
 An image dumped from a running, modded game contains the plugin's own inline
 hooks. At `0x1408DA7E0` the first five bytes are a jump out of the image, over
-`push rsi; sub rsp, 0x110`; disassembly only makes sense from `+9`. The original
+the prologue that saves RSI and reserves 0x110 stack bytes; disassembly only makes sense from `+9`. The original
 bytes are in `DrawTooltipBytes` in `native_tooltips.cpp`.
 
 

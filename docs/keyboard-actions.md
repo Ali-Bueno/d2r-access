@@ -4,6 +4,10 @@ How the keyboard walks, fights and interacts. No controller is imitated and no
 input is sent to the game: the plugin calls the function the game itself calls
 once it has decided what a click or a button means.
 
+Current targeting, self-buff and Shift+A behavior is specified in
+[native skill casting](battle/skill-casting.md). The 2026-10-20 correction
+supersedes historical attack-only/terrain-dependent buff behavior below.
+
 Everything here is for D2R **3.3.93787**, image base `0x140000000`. **READ**
 means the disassembly shows it; **MEASURED** means the running game showed it.
 Nothing in this file is MEASURED yet. The first live session decides the open
@@ -11,9 +15,7 @@ questions at the end.
 
 ## The command
 
-`PlayerCommand(int cmd, Unit* player, int a, int b)` at RVA `0xFABE0`
-(`D2Client\src\Unit\UnitMode.cpp`). READ: `mov r13d,ecx; movsxd r14,r9d;
-movsxd r15,r8d; mov rbx,rdx`.
+`PlayerCommand` at RVA `0xFABE0` receives command ID in ECX, player unit in RDX and the two command arguments in R8D/R9D. The entry disassembly preserves those values in R13D, RBX, R15 and R14 respectively, with sign extension for the two integer arguments. Source provenance: `D2Client/src/Unit/UnitMode.cpp`. This is an ABI description, not a reproduced declaration or instruction sequence.
 
 `cmd` is the client-to-server message number. `a`, `b` are a cell's x and y for
 a command aimed at a place, a unit's type and id for one aimed at a unit.
@@ -24,6 +26,8 @@ a command aimed at a place, a unit's type and id for one aimed at a unit.
 | 0x02 / 0x04 | walk / run to a unit | type, id |
 | 0x05 / 0x0C | left / right skill at a cell | x, y |
 | 0x06 / 0x0D | left / right skill on a unit | type, id |
+| 0x07 / 0x0E | stationary left / right skill on a unit | type, id |
+| 0x0A / 0x11 | stationary Charge/Whirlwind unit variants | type, id |
 | 0x16 | pick up an item | 4, id |
 | 0x2F | talk to an NPC | 1, id |
 | 0x40 | use a warp tile (stairs, entrance) | 5, id |
@@ -49,9 +53,9 @@ it directly (READ, from `names.txt` source attributions):
 
 - `BVT\PlayerSkillsUtility.cpp` `0x140248DF0`: `ecx = right ? 0xD : 6; rdx =
   player; r8d = unit type; r9d = unit id`.
-- `BVT\ProcessCombatBVT.cpp` `0x1402661F0`: `r8d = 4; r9d = item id; ecx = 0x16`.
+- `BVT\ProcessCombatBVT.cpp` `0x1402661F0`: R8D carries 4, R9D the item ID and ECX 0x16.
 - `BVT\ProcessGameSystemsBVT.cpp`: `ecx = 1, r8d = x, r9d = y`, seven sites.
-- `BVT\ProcessAbilitiesBVT.cpp`: `r8d = 2; ecx = 0x41; r9d = object id`.
+- `BVT\ProcessAbilitiesBVT.cpp`: R8D carries 2, ECX 0x41 and R9D the object ID.
 
 In **controller mode** that same test code presses pad buttons instead
 (`0x1401452E0`, after `0x77D80` returns true). Whether the command works while

@@ -264,6 +264,8 @@ inline constexpr Table enUS {
 	.weaponSetNumberOff = "Weapon set number off",
 	.gaitWalking = "Walking",
 	.gaitRunning = "Running",
+	.stationaryAttack = "Stand still and attack; menu: Shift left click",
+	.staminaRead = "Read stamina",
 	.staminaPercent = "Stamina %d percent",
 	.staminaOut = "Out of stamina",
 	.movementAlertsOn = "Walk, run and stamina alerts on",

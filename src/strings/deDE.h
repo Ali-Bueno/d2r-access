@@ -264,6 +264,8 @@ inline constexpr Table deDE {
 	.weaponSetNumberOff = "Waffenset-Nummer aus",
 	.gaitWalking = "Gehen",
 	.gaitRunning = "Rennen",
+	.stationaryAttack = "Im Stehen angreifen; Menü: Umschalt-Linksklick",
+	.staminaRead = "Ausdauer vorlesen",
 	.staminaPercent = "Ausdauer %d Prozent",
 	.staminaOut = "Keine Ausdauer mehr",
 	.movementAlertsOn = "Gehen-, Rennen- und Ausdaueransagen an",

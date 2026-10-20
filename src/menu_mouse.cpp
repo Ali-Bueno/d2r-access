@@ -10,6 +10,7 @@ namespace {
 // Policy, not game constants. The game reads the mouse once a frame.
 constexpr uint64_t SettleMs = 60; // from a move of the pointer to a press on what it is on
 constexpr uint64_t HoldMs = 40;   // from a press to its release
+constexpr size_t MaxSteps = 16; // bounded burst; overload retires the gesture
 
 enum class Act { Place, Down, Up };
 struct Step {
@@ -21,6 +22,7 @@ struct Step {
 std::deque<Step> g_steps;
 uint64_t g_last = 0;   // when the last step was done
 bool g_down[2]{};      // a press of ours still waits for its release
+uint64_t g_revision = 0;
 
 bool Foreground() {
 	DWORD process = 0;
@@ -40,6 +42,11 @@ void Send(Button button, bool down) {
 void Press(Button button, uint64_t settle) {
 	g_steps.push_back({Act::Down, button, {}, settle});
 	g_steps.push_back({Act::Up, button, {}, HoldMs});
+}
+bool Room(size_t count) {
+	if (g_steps.size() + count <= MaxSteps) return true;
+	Reset();
+	return false;
 }
 }
 
@@ -67,21 +74,28 @@ bool Place(const NativeUi::Rect& rect) {
 	return NativeSkillNavigation::PlacePointer({rect.x + rect.width / 2, rect.y + rect.height / 2});
 }
 
-void Click(Button button) { Press(button, g_steps.empty() ? 0 : SettleMs); }
+void Click(Button button) {
+	if (Room(2)) Press(button, g_steps.empty() ? 0 : SettleMs);
+}
 
 void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& after) {
+	if (!Room(after.width > 0 && after.height > 0 ? 4 : 3)) return;
 	g_steps.push_back({Act::Place, button, rect, g_steps.empty() ? 0 : SettleMs});
 	Press(button, SettleMs);
 	if (after.width > 0 && after.height > 0) g_steps.push_back({Act::Place, button, after, SettleMs});
 }
 
 void PlaceAfter(const NativeUi::Rect& rect) {
+	if (!Room(1)) return;
 	g_steps.push_back({Act::Place, Button::Left, rect, g_steps.empty() ? 0 : SettleMs});
 }
 
 bool Busy() { return !g_steps.empty(); }
 
-void Tick(uint64_t now) {
+void Tick(uint64_t now, bool menuActive, uint64_t panelRevision) {
+	const bool changed = panelRevision != g_revision;
+	g_revision = panelRevision;
+	if (!menuActive || changed) { Reset(); return; }
 	if (g_steps.empty()) return;
 	if (!Foreground()) {
 		// Another window has the mouse now: nothing more is clicked, and a
@@ -94,7 +108,11 @@ void Tick(uint64_t now) {
 	g_steps.pop_front();
 	g_last = now;
 	switch (step.act) {
-	case Act::Place: (void)Place(step.rect); break;
+	case Act::Place:
+		// Failure must not turn the following press into a click at the old
+		// pointer (which can now be a Character/HUD button after a shop).
+		if (!Place(step.rect)) Reset();
+		break;
 	case Act::Down:  Send(step.button, true); break;
 	case Act::Up:    Send(step.button, false); break;
 	}

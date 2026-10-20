@@ -54,6 +54,9 @@ void Unregister();
 bool Playing();
 // The list of the mod's switches is open and steps with PageUp and PageDown.
 bool SettingsOpen();
+// Native Character BindingDown fallback: claim only an unmodified attack
+// binding (plus physical Shift) before the game's competing action can run.
+bool NativeCharacterBinding(uint16_t packedKey) noexcept;
 // For each of `things`, whether the game has shown that it cannot be got to on
 // foot from where `world` has the player (level_route.h, Reach): the walk's own
 // test, here for the scanner's filter. All false when the level's map is not kept.

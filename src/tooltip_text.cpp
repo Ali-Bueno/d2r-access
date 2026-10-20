@@ -13,7 +13,9 @@ namespace {
 // character follows it. The renderer accepts that character when `c - '0'` is
 // below 0x27, so the index runs '0' through 'V' -- measured in the 3.3.93787
 // image at 0x140908BD1, 0x14090C225 and 0x14090F660, which range-check it
-// identically. Index 2 is the one a title is drawn in.
+// identically. These are palette indices, not semantic title markers. The
+// legacy index-2 hint is retained for other item forms; set names use 3 and
+// their base type uses 2 (native set composer RVA 0x2BF1B0).
 //
 // Only '1' and '2' were accepted here before, so an item tooltip -- drawn with
 // index '0' -- kept that '0' and spoke it at the head of every line.
@@ -137,7 +139,8 @@ std::string Comparison(std::span<const std::string> extras) {
 
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels, std::string_view unidentifiedLabel,
-	std::span<const std::string> requirementLabels, std::span<const std::string> quantityLabels) {
+	std::span<const std::string> requirementLabels, std::span<const std::string> quantityLabels,
+	bool nameInScreenOrder) {
 	Description result;
 	if (body.lines.empty()) return result;
 	const auto starts = [](const std::string& line, std::span<const std::string> labels) {
@@ -154,8 +157,12 @@ Description Split(const Body& body, std::span<const std::string> statLabels,
 	// labelled there is nothing better than the first.
 	// A labelled styled line is not the name either (a throwing potion's damage, a tester).
 	size_t name = body.lines.size();
-	for (const size_t at : body.headings)
-		if (at < body.lines.size() && !labelled(body.lines[at])) { name = at; break; }
+	// The set tooltip's base type and later set-list lines use palette 2; its
+	// name is the first unlabelled line actually drawn, in palette 3. Preserve
+	// the other item forms' established selection and never consult hidden data.
+	if (!nameInScreenOrder)
+		for (const size_t at : body.headings)
+			if (at < body.lines.size() && !labelled(body.lines[at])) { name = at; break; }
 	if (name == body.lines.size()) {
 		name = 0;
 		for (size_t at = 0; at < body.lines.size(); ++at)

@@ -264,6 +264,8 @@ inline constexpr Table zhCN {
 	.weaponSetNumberOff = "武器组编号已关闭",
 	.gaitWalking = "步行",
 	.gaitRunning = "奔跑",
+	.stationaryAttack = "原地攻击；菜单：Shift加左键点击",
+	.staminaRead = "朗读耐力",
 	.staminaPercent = "耐力百分之%d",
 	.staminaOut = "耐力耗尽",
 	.movementAlertsOn = "步行、奔跑和耐力提示已开启",

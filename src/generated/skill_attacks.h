@@ -2,8 +2,8 @@
 //
 // Whether each skill is an attack, and whether it is struck from beside the
 // monster or from a distance, by skill id, from skills.txt. The rules and
-// their known limits are in the generator. 429 skills: 43 melee, 95 ranged,
-// 3 by the weapon in hand, 288 not attacks.
+// their known limits are in the generator. 429 skills: 43 melee, 88 ranged,
+// 3 by the weapon in hand, 295 not attacks.
 #pragma once
 
 #include <algorithm>
@@ -24,8 +24,8 @@ inline constexpr std::array<SkillAttack, 429> SkillAttacks{{
 #define W SkillAttack::Weapon
 	W,N,R,N,R,W,R,R,N,N,M,R,R,N,M,R,R,N,N,M, // 0
 	R,R,R,N,M,R,R,R,N,N,M,R,N,N,M,R,R,N,R,R, // 20
-	N,R,N,N,R,R,R,R,R,R,N,R,N,R,N,R,R,R,N,R, // 40
-	R,N,N,N,R,N,N,R,N,N,N,N,N,M,N,N,N,N,N,N, // 60
+	N,R,N,N,R,R,N,R,R,R,N,R,N,R,N,R,R,N,N,R, // 40
+	N,N,N,N,R,N,N,R,N,N,N,N,N,M,N,N,N,N,N,N, // 60
 	N,N,N,N,R,N,N,N,N,N,N,N,R,R,N,N,M,M,N,N, // 80
 	N,R,N,N,N,N,M,M,N,N,N,M,R,N,N,N,M,N,N,N, // 100
 	N,R,N,N,N,N,M,N,N,N,N,N,N,M,N,N,N,N,N,M, // 120
@@ -34,15 +34,15 @@ inline constexpr std::array<SkillAttack, 429> SkillAttacks{{
 	N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N, // 180
 	R,N,N,N,N,N,N,R,R,N,N,N,N,N,N,N,N,N,N,N, // 200
 	N,N,N,N,N,R,N,N,N,R,R,N,M,M,R,N,N,N,M,M, // 220
-	R,N,M,R,R,R,N,N,M,R,N,R,N,R,M,M,R,N,N,M, // 240
-	M,N,N,N,N,M,R,N,N,M,M,N,N,R,M,R,N,R,N,N, // 260
+	R,N,M,R,R,R,N,N,M,N,N,R,N,R,M,M,R,N,N,M, // 240
+	M,N,N,N,N,M,R,N,N,M,M,N,N,R,M,R,N,N,N,N, // 260
 	M,N,R,N,N,N,N,N,N,N,N,R,N,N,N,N,N,N,N,N, // 280
 	N,N,N,N,N,N,N,N,R,N,N,N,N,N,N,N,R,R,R,N, // 300
 	N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,R, // 320
-	R,R,R,R,N,R,R,N,R,R,N,N,N,N,N,N,N,N,N,N, // 340
+	R,R,R,R,N,R,R,N,R,N,N,N,N,N,N,N,N,N,N,N, // 340
 	N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,R, // 360
 	N,N,N,N,R,N,N,N,R,N,R,M,W,N,R,R,N,N,R,R, // 380
-	N,R,R,N,N,N,R,M,N,N,M,N,R,R,R,N,M,N,M,M, // 400
+	N,R,R,N,N,N,R,M,N,N,M,N,R,R,N,N,M,N,M,M, // 400
 	N,R,R,N,N,N,R,M,N, // 420
 #undef N
 #undef M
@@ -53,6 +53,38 @@ inline constexpr std::array<SkillAttack, 429> SkillAttacks{{
 constexpr SkillAttack SkillAttackFor(int skill) {
 	return skill >= 0 && static_cast<size_t>(skill) < SkillAttacks.size()
 		? SkillAttacks[static_cast<size_t>(skill)] : SkillAttack::None;
+}
+
+// Enemy targeting is independent of attack/reach classification. Native
+// TargetableOnly, excluding pet/ally/corpse/item targets. Unknown ids never
+// invent an enemy requirement; the native cast still decides validity.
+inline constexpr std::array<bool, 429> EnemyTargets{{
+	true,false,false,false,false,true,false,false,false,false,true,false,false,false,true,false,false,false,false,true, // 0
+	false,false,false,false,true,false,false,false,false,false,true,false,false,false,true,false,false,false,false,false, // 20
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, // 40
+	false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false, // 60
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,false,false, // 80
+	false,false,false,false,false,false,true,false,false,false,false,true,false,false,false,false,true,false,false,false, // 100
+	false,true,false,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,true, // 120
+	false,false,false,false,true,false,false,true,false,false,false,false,true,false,false,false,false,false,false,false, // 140
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, // 160
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, // 180
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false, // 200
+	false,false,false,false,false,false,false,false,false,false,false,false,true,true,false,false,false,false,true,true, // 220
+	false,false,true,false,false,false,false,false,true,false,false,false,false,true,true,true,false,false,false,true, // 240
+	true,false,false,false,false,true,false,false,false,false,false,false,false,false,true,false,false,false,false,false, // 260
+	true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, // 280
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, // 300
+	false,false,false,false,false,false,true,false,true,false,false,false,false,false,false,false,false,false,false,false, // 320
+	false,false,false,false,true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false, // 340
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false, // 360
+	false,false,true,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false, // 380
+	false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,false, // 400
+	false,false,false,false,false,false,false,true,false, // 420
+}};
+constexpr bool SkillRequiresEnemy(int skill) {
+	return skill >= 0 && static_cast<size_t>(skill) < EnemyTargets.size()
+		&& EnemyTargets[static_cast<size_t>(skill)];
 }
 
 // The weapons that shoot: the bows and crossbows of weapons.txt, by item code

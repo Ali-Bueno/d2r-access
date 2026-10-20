@@ -1,10 +1,18 @@
 # Keyboard play
 
+Current [menu gesture lifetime](menus/mouse-lifetime.md) documents the
+2026-10-20 exit/Character-pane correction. [Skill casting](battle/skill-casting.md)
+specifies self buffs and Shift+A stationary attacks in play.
+
 Playing the game from the keyboard alone, with no controller connected: what
 is built, what the two live tests of 2026-09-27 measured, and what the next
 has to measure. How the character is made to act is in `keyboard-actions.md`.
 What is not built is in `keyboard-unbuilt.md`; every key is in
 `keyboard-keys.md`.
+
+Current enabled-tab and Shift+Page Up/Down shared-stash implementation,
+native evidence, input ownership and tests: [keyboard pages](menus/stash-pages.md).
+V uses the [stamina report](vitals.md#v-stamina-on-demand--2026-10-20).
 
 **MEASURED** means the running game or its log showed it. **READ** means the
 code or the game's data says so. **OPEN** means not established.
@@ -59,7 +67,7 @@ In play:
 | Ctrl+R | retreat: walk back to the way you came into the level, and stop beside it |
 | End | stop |
 | Ctrl+Y | the ways out of this room |
-| Z, X | life, mana. There is no key for both |
+| Z, X, V | life, mana, stamina. There is no key for the combined report |
 | Ctrl+G | radar on or off |
 
 Everywhere:
@@ -86,10 +94,10 @@ In a menu:
 | backslash | say it again |
 | Ctrl + up, down | the line before, the line after, of what the cursor is on |
 | Ctrl + left, right | its first line, its last line |
-| PageUp, PageDown | the tab before, the tab after |
+| PageUp, PageDown | previous/next enabled tab, skipping disabled empty shop categories |
 | Home, End | the menu before, the menu after: character, inventory, skill tree, quest log, game menu |
 | Ctrl+PageUp, Ctrl+PageDown | as before: skill lines, item size |
-| Shift+PageUp, Shift+PageDown | as before: compare |
+| Shift+PageUp, Shift+PageDown | Shared stash: previous/next page. Elsewhere: compare |
 | Ctrl+R, Shift+R | repair all, repair (a merchant who repairs) |
 | Alt+T | transmute (the Horadric Cube) |
 | Alt+S | sort the grid the cursor is in; the player's inventory when it is in none |
@@ -330,7 +338,7 @@ The user's decisions, 2026-09-27:
 |---|---|---|
 | the cursor's logic | `src/menu_cursor.*` | pure, tested. A step inside a grid is `GridJump::Move`; a step past its edge, or from a control, lands on the nearest thing that way (below); a step into a grid enters at the cell nearest to where it came from |
 | the steps made | `MenuCursor::Mend` | a place the arrows would miss is given a step of its own from the nearest place that is reached, and a place that does not lead back is given one to a place that does. The log names each: `[cursor] a step made for what the arrows miss` |
-| the hand of the list of skills | `src/native_skill_hand.*` | asks the game which hand its list of skills is open for (`0x238240`) |
+| the hand of the list of skills | `src/native_skill_hand.*` | reads the native chosen hand (`0x238240`); Shift+S invokes the current left HUD button's verified native callback (`0x2389F0`), preserving menu-only queue cancellation; [contract](menus/left-skill-menu.md) |
 | the skills' icons | `src/native_skill_icons.*` | the skill an icon of the skill tree or of the list stands for, and its name in the game's language |
 | values | `src/native_value_controls.*` | a slider's value and its two arrows, an option's state and its two arrows |
 | the classes | `src/native_class_choice.*` | whether a class of character creation is chosen, and the description the screen shows |
@@ -430,7 +438,7 @@ off.
 | question | the log line |
 |---|---|
 | Is the game in play with no menu open? | no `[survey] request ignored: not in play`, no `[radar] status=dialogue`, and `[actions] run to` when an arrow is held |
-| Does Shift+S open the list for the left hand? | `[cursor] left skill: the HUD's button is clicked`, `OpenPanel SkillSelect`, `[cursor] the list of skills is open for the left hand; said "..."` |
+| Does Shift+S open the list for the left hand? | `[cursor] left skill: the HUD's button native click invoked`, `OpenPanel SkillSelect`, `[cursor] the list of skills is open for the left hand; said "..."`. The callback diagnostic alone does not prove the panel opened. |
 | Is a skill named, in the list and in the tree? | `[cursor] skill id=.. ".."` on each move; then an `[interaction]` line with the tooltip, or `[cursor] no reader named it; said "<the skill>"` |
 | Are the skills of the tree places? | `[cursor] thing SkillButton3 0,0 (ButtonWidget) rect ...`, ten to a page; the size of the rectangle is the icon's |
 | Was a step made for a place? | `[cursor] a step made for what the arrows miss: from X right to Y`. None is expected in the skill tree |
@@ -475,7 +483,7 @@ measured; the working files are in the workspace, `re/actions/sort`:
 - The string is used by the inventory grid's prompt updater (`0x2C8C80`,
   vtable `0x1CF3800` +0xE8). The same class's message handler (`0x2C6BD0`,
   +0x20) ends a completed hold of pad action 4 with three calls:
-  `owner = GetOwner(grid)` (`0x2A7810`), `CanSortPage(owner, page)`
+  owner set to the result of GetOwner with arguments grid (`0x2A7810`), `CanSortPage(owner, page)`
   (`0x15A680`), `SortPage(id, page)` (`0x160B00`); the page is the grid's byte
   +0x630 and the id its +0x5C4.
 - The controller check is in the handler alone. `CanSortPage` refuses with an

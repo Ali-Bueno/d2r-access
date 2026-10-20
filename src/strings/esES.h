@@ -264,6 +264,8 @@ inline constexpr Table esES {
 	.weaponSetNumberOff = "Número de juego de armas desactivado",
 	.gaitWalking = "Caminando",
 	.gaitRunning = "Corriendo",
+	.stationaryAttack = "Atacar sin moverse; menú: Mayús y clic izquierdo",
+	.staminaRead = "Leer aguante",
 	.staminaPercent = "Aguante %d por ciento",
 	.staminaOut = "Sin aguante",
 	.movementAlertsOn = "Avisos de caminar, correr y aguante activados",

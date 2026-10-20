@@ -1,5 +1,156 @@
 # STATUS — Diablo II: Resurrected (d2r-access)
 
+## Shift+S left-hand skill menu — 2026-10-20
+
+Complete, offline-verified and installed; gameplay confirmation pending. The
+user's current log records four left-HUD requests at 09:02:51–09:02:55 without
+opening SkillSelect; later openings explicitly select the right hand. The old
+"is clicked" log preceded dispatch. The menu lifetime guard discarded this
+queued HUD action during play. Shift+S now invokes the verified native callback
+of a fresh visible/on-screen left HUD button on the UI owner, after checking
+input mode, virtual callback identity and left-hand side. Generic mouse-queue
+cancellation, native Character protection and confirmed shop tabs are retained.
+
+Nine actual adapter checks and the existing 17 queue checks pass. Full CTest
+129/129, timeout20, 86.69s, outside sandbox for existing atomic-file fixtures.
+Five original normalized native fingerprints and vtable slot independently
+match the archived image. Both canonical builds used four jobs/BelowNormal;
+no warnings. The game/loader was checked closed outside sandbox before normal
+installation. Prior DLLs backed up; installed SHA-256:
+`48CAAD61C520D24078B3192539D07DBE461ECB02835E1BD8E69C5504A29E2199`.
+Installed matches build and tested code/data (only four verified PE timestamp
+bytes differ). PRISM matches vendor; all seven fresh current data hashes and
+606 tested source/build inputs are unchanged. No game launch/control, save
+edit or new delegation. Local-only tooling/records remain protected.
+
+Current design/native/ownership/extension/checks: [left skill menu](docs/menus/left-skill-menu.md).
+Evidence outside Git: ../re/left-skill-2026-10-20/verification.md and
+deployment-verification.json. Publication target under the user's explicit
+commit/push request: origin/bladestorm, including earlier tested source fixes.
+First gameplay: Shift+S opens/announces left; arrows/A assign; S then Shift+S
+switches from right to left; repeat Shift+S closes. Native execution, audible
+response and aggregate UI cost remain unconfirmed. Active build owner: none.
+
+## Menu/Shared stash follow-up — 2026-10-20
+
+Implementation register: both corrections complete, offline-verified and
+installed; gameplay unconfirmed. The user confirms Character
+still opened after menu/town exit in the prior installed 26E052AC build. Prior
+queue tests proved only queue behavior. New pre-dispatch native protection
+claims the competing Character action for a copied mod attack binding before
+the native handler, preserving C, typing, forced controllers and other actions.
+Native counters will identify actual claims in the next own log; the exact
+previous physical trigger remains unproved. Initialization follows skill-hotkey
+verification so that hook does not invalidate its original-code fingerprint.
+
+Shared modifiers now map Shift to one, Ctrl to five, Ctrl+Shift to ten. The
+current loader's actual page replacement inspects Ctrl/Shift for ten/five;
+the adapter resolves that native command and uses verified single-step mode,
+clamping counts before invocation so it cannot wrap. Commands capture amount
+at the press and revalidate Shared ownership before execution. Existing
+comparison/reading keys remain outside Shared. Ctrl+Shift uses the established
+direct watcher because the binding API only represents one modifier.
+
+Focused checks pass: actual native keyboard observer 8, native page adapter 34,
+Shared context 28, mouse queue 17, native UI 165 and skill-hotkey service 27.
+Full CTest 128/128, timeout20, 97.44s outside sandbox for the existing atomic
+archive fixture. Final build has no warnings. All 213 production cpp modules
+are indexed. Designs/native/ownership/extension/test limits are current in
+docs/menus/mouse-lifetime.md and docs/menus/stash-pages.md. Runtime initialization,
+audible/native behavior and native command aggregate cost remain user checks.
+
+Canonical four-job/BelowNormal stage and deployment passed. Initial copy failed
+because sandbox process enumeration hid running D2RLoader 11736; broader check
+found it, installed DLL stayed unchanged, user closed game. Retry checked
+processes outside sandbox and refreshed all seven CURRENT data hashes after
+closure. Both prior DLLs backed up. Installed SHA-256:
+`428C6E2074C6075B7C81FF3534337E7000AFA2F11852997C25A156465E95D95C`.
+Installed equals build; only four verified COFF/debug timestamp bytes differ
+from tested staging. PRISM exact vendor and all seven fresh data hashes remain
+unchanged. 605 tested source/build files unchanged; whitespace passes. Evidence:
+../re/menu-stash-2026-10-20/verification.md and deployment-verification.json.
+Active-game digests are retained as failed-attempt-data-hashes.json, not used
+as the final baseline. Active build owner: none. No launch/control, save edit,
+new delegation, commit or push. Local-only Git protections preserved.
+
+Shop Page Up/Down cycling is GAMEPLAY-CONFIRMED by the user; retain the existing
+enabled-tab traversal. No new game launch/control/capture is authorized.
+
+## Skill targeting, stationary attacks and menu exit — 2026-10-20
+
+Feature register: all three complete, offline-verified and installed; gameplay
+unconfirmed. Self buffs use native one-shot casts without terrain/enemies or a
+mod-side town restriction. Independent generated target requirements retain
+enemy-only behavior and allow optional-target casting without No enemies.
+Shift+A uses native stationary commands before chase/retreat and keeps menu
+equip clicks. Menu input expires before dispatch on play/context change;
+failed placement cancels its click and unowned A/W cannot leak through transitions.
+
+The own latest log records a brief Character open after menus closed; exact
+physical key provenance is absent. The corrected stale-queue/placement/fallthrough
+paths are verified defects, not a claim to have captured the exact live trigger.
+Designs/native evidence: [skill casting](docs/battle/skill-casting.md) and
+[menu gesture lifetime](docs/menus/mouse-lifetime.md), linked from the complete
+211-module feature index. Existing unrelated local/doc edits are preserved.
+
+Focused checks: skill-attacks 98, actual menu queue 17, radar UI 38, menu cursor
+55, UI text 56 and catalogs 26,589 pass. Full CTest 126/126, timeout20, 86.31s;
+existing archive fixture ran outside sandbox. Final build has no new warnings
+(existing zone-transitions fixture shadow warning remains). Native execution/
+input/animation/audible response and comparable performance baseline are untested.
+
+User deployment authorization retained; game/loader verified closed, old DLLs
+backed up, canonical four-job/BelowNormal staging and normal install completed.
+Installed SHA-256:
+`26E052AC9CF5FED9388E6EA5160467BF1D6CF9E68FF8580A58B52DA682CD4DDD`.
+Installed equals build, with only four verified COFF/debug timestamp bytes
+different from the tested stage. PRISM matches vendor; all seven config/archive
+hashes unchanged. Tested source/build manifest unchanged after verification.
+No game launch/control, save edit, new delegation, commit or push. Active build
+owner: none. Local evidence: ../re/keyboard-combat-2026-10-20/verification.md and
+deployment-verification.json. First user checks: buff without enemies, including
+town attempt; Shift+A in/out of melee range and with no enemies; shop/inventory/
+stash closure then A, with Character staying closed. Earlier four feature checks
+below remain pending in the same installed build.
+
+## Set names, menu pages and stamina key — 2026-10-20
+
+Feature register: all four changes complete, offline-verified and installed.
+Gameplay remains unconfirmed.
+The user's own current log proves the set-name loss; its line reader retains
+Angelic Sickle while the short readout chooses Sabre. Set headlines now use
+rendered name order. Page Up/Down consults native tab availability so disabled
+shop categories do not trap navigation. Shift+Page Up/Down uses the Shared
+stash's existing arrow buttons, retaining comparison elsewhere. V reads live
+stamina, including full/empty, independently of automatic alerts; its new
+binding label is present in all thirteen language catalogs.
+
+The set-name interaction regression failed before the production fix. Focused
+checks pass: interaction 219, tooltip 61, native UI 165, Shared pages 15,
+vitals 139 and language catalogs 26,550. Full CTest passed 125/125, timeout 20,
+86.47 seconds, outside sandbox for the existing atomic archive fixtures.
+All 211 production modules are indexed; whitespace and source/build freshness
+checks pass. Unrelated concurrent documentation cleanup edits were preserved.
+
+User explicitly authorized deployment with game closed. Verified game/loader
+closed, backed up installed DLLs, then used canonical build.ps1 at four jobs
+and BelowNormal priority. Installed SHA-256:
+`71CC26B9D548DCAF9366321088E997DD7D793F3ED136AC42A7B290FB0E3BBF8C`.
+Installed matches the build; compared with the tested staged DLL, only four
+bytes in the verified COFF/debug timestamp fields changed. PRISM matches
+vendor, and all seven current config/archive hashes remain unchanged. No game
+launch/control, save edit, commit or push. Local-only records/build protection
+is retained. Active build owner: none. Local evidence:
+`../re/set-item-names-2026-10-20/verification.md` and deployment-verification.json.
+
+First user checks: set-item full name and requirements, shop Page Up/Down past
+disabled empty categories, Shared Shift+Page Up/Down in both directions, and
+V at full/depleted stamina with automatic alerts disabled. Native input,
+audible ordering and comparable runtime performance remain user checks.
+See [set-name evidence](docs/native-tooltips.md#set-item-headline-correction--2026-10-20),
+[tabs and Shared pages](docs/menus/stash-pages.md) and
+[stamina](docs/vitals.md#v-stamina-on-demand--2026-10-20).
+
 ## Upstream merge, terror waypoint label and NPC presence — 2026-10-19
 
 IMPLEMENTED, OFFLINE-VERIFIED AND INSTALLED; gameplay confirmation pending.
@@ -2424,7 +2575,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Preloaded in-game panels | Right after `OpenExclusivePanel TitleScreenPanel` the game opens `ShowItemsPanel` and `EmoteWheelPanel` (never closed); their buttons are invisible in the front end but overlapped CharacterCreate's class area (Emote6 "¡Adiós!" at coverage 0.51). `FrontEndNavigation:ToFrontEnd` now resets the panel record | log 2026-09-15 03:58 |
 | SDK widget handles | `WidgetHandle` = plugin-owned name PATH, not a game pointer (README "Existing Widgets"; widgets.h:20). Every `getWidgetRect`/`findWidget` re-walks the tree inside the loader: measured up to ~50 ms per call and one-second UI stalls when a hundred rects were re-read (pump log 2026-09-15). Handles are cached for the plugin's lifetime; rects re-read only near the indicator after a settled scroll | log + README |
 | Native widget access | D2RCore.dll 1.2.1-beta slot table (offsets from the DLL base, filled at startup): **0x5AA340** → address of the game's `PanelManager*` global, **0x5AB880** `FindPanel(mgr, name)`, **0x5AB610** `FindChildWidget(parent, name)` (recursive below parent), **0x5ADA48** `TextBoxWidget::SetText(widget, {ptr,len}*)`; D2R live RVAs are logged at load ("[native] D2R live RVAs"). `src/native_widgets.cpp` | Opus RE 2026-09-15 (D2RCore call sites 0x2AE3B3, 0x2AE3C2, 0x2A6FB6, 0x2A7260) |
-| Engine string | 0x28 bytes: `{char* data; size_t size (bytes, no NUL); size_t capacity | bit63 = non-owning; char inline[16]}`; `data` always valid (points at the inline buffer or heap). D2RCore 0x699509 (ctor), 0x314622 (dtor), 0x3F911B (size≠cap). 1-byte chars (UTF-8 vs ANSI unconfirmed) | Opus RE |
+| Engine string | 0x28 bytes: an engine string record with data pointer, byte length excluding NUL, capacity/non-owning bit 63 and a 16-byte inline buffer; `data` always valid (points at the inline buffer or heap). D2RCore 0x699509 (ctor), 0x314622 (dtor), 0x3F911B (size≠cap). 1-byte chars (UTF-8 vs ANSI unconfirmed) | Opus RE |
 | Reflection records (corrected) | Stride 0x30, **base = the qword holding the name pointer**: `+0x08 type, +0x10 memberOffset, +0x20 memberSize`. Live RVAs: `name` 0x23FE4E0 (string, off 0x0), `rect` 0x23FEBA0 (struct, off 0x70), `text` 0x2400130 / `tooltipString` 0x23FFCE0 / `states` 0x2401000 / `isToggled` 0x2400430 are name-only on disk (runtime fill unconfirmed). Offsets are relative to a reflected sub-object after the vptr (widget+0 is a vtable), shift F unconfirmed. `re/out/schema2.tsv` | Opus RE |
 | Widget text offsets | Probe 2026-09-15: every widget's **name at +0x8**; a text box's **displayed text at +0x88** (TextBox rows "1280x720", character row Name "yarkey" / Level&Class "Bárbaro de niv. 1", modal Prompt "Han cambiado los ajustes…"), UTF-8; a second copy at +0x200. Popup slots: `DropdownListContents/Items/ListItemN/TextBox`; character rows: `CharacterSelectPanel/CharacterList/ListItemN/{Name,Level&Class}`; modal: `ConfirmationModal/Frame/Prompt`. Hidden template rows report +0x50/+0x51 = 0, visible clones 1 | log "[native] probe" |
 | Speech cost | PRISM/NVDA `speak` is synchronous: 300-800 ms per call measured on the UI thread → all PRISM calls now run on a dedicated speech thread (`screen_reader.cpp`); Speak() only queues | slow-tick log 2026-09-15 |

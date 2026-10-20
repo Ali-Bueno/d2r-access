@@ -264,6 +264,8 @@ inline constexpr Table plPL {
 	.weaponSetNumberOff = "Numer zestawu broni: wyłączony",
 	.gaitWalking = "Chód",
 	.gaitRunning = "Bieg",
+	.stationaryAttack = "Atakuj bez ruchu; menu: Shift i lewy przycisk myszy",
+	.staminaRead = "Odczytaj wytrzymałość",
 	.staminaPercent = "Wytrzymałość %d procent",
 	.staminaOut = "Brak wytrzymałości",
 	.movementAlertsOn = "Komunikaty chodu, biegu i wytrzymałości: włączone",

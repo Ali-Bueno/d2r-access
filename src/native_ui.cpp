@@ -42,6 +42,7 @@ constexpr size_t LinkedTextOffset = 0x570; // 0x87DC10 / 0x87EFE0 delegate to em
 constexpr size_t ChatDataSourceOffset = 0x300; // ChatListWidget::Count, 0x84CC70
 constexpr uint32_t ChatNotificationMessages = 1; // ChatDataSource registration, 0x8BA3A0
 constexpr size_t SelectedTabOffset = 0x16C4; // TabBarWidget input handler, 0x878D30
+constexpr size_t TabCountOffset = 0x558, TabEnabledOffset = 0x1788; // 0x878CA0/0x877D20; VendorPanel 0x2420C0
 constexpr size_t SelectionOffset = 0x544; // FocusableWidget x/y, InventoryItemWidget 0x2A89C0
 constexpr size_t StashCountTextOffset = 0x618; // AdvancedStashSlotWidget countText (TextBoxWidget), field table 0x2CE9B0
 constexpr size_t GridDimensionsOffset = 0x628; // InventoryGridWidget update, 0x2C5FA0
@@ -322,6 +323,24 @@ int TabCount(uintptr_t widget) {
 	// A bar names its tabs Text0 onward; one it does not show has no caption.
 	while (count < 8 && !NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(count))).empty()) ++count;
 	return count;
+}
+
+int AdjacentTab(uintptr_t widget, int delta) {
+	if ((delta != -1 && delta != 1) || !Visible(widget) || Classify(widget).kind != Kind::Tabs) return -1;
+	int32_t count = 0;
+	std::array<uint8_t, 8> enabled{};
+	if (!Peek(widget + TabCountOffset, count) || count < 1 || count > static_cast<int>(enabled.size())
+		|| !NativeMemory::Copy(widget + TabEnabledOffset, enabled.data(), count)) return -1;
+	for (int index = 0; index < count; ++index) if (enabled[index] > 1) return -1;
+	const int open = SelectedTab(widget);
+	// VendorPanel leaves all four captions present, but disables categories
+	// with no stock. Clicking the disabled second Weapons tab does nothing, so
+	// advancing by caption count alone trapped PageDown before Misc. Read the
+	// same availability bytes used by native tab hit testing, in at most 8 steps.
+	for (int next = open >= 0 && open < count ? open + delta : delta > 0 ? 0 : count - 1;
+		next >= 0 && next < count; next += delta)
+		if (enabled[next]) return next;
+	return open >= 0 && open < count && enabled[open] ? open : -1;
 }
 
 std::string TabLabel(uintptr_t widget) {

@@ -46,6 +46,9 @@ uint64_t FocusSelection(uintptr_t widget);
 // The open tab of a tab bar and how many tabs it shows; -1 and 0 when unreadable.
 int SelectedTab(uintptr_t widget);
 int TabCount(uintptr_t widget);
+// Previous/next enabled native tab, keeping caption duplicates distinct. Stops
+// at the edge; returns the current tab there, or -1 for an unavailable read.
+int AdjacentTab(uintptr_t widget, int delta);
 Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
 // The item on the grid cell the controller is on, or in the equipment slot,

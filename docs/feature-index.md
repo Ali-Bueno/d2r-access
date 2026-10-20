@@ -12,20 +12,27 @@ The inventory includes upstream additions through 7352a4a and retained local
 work through 4c88812. Historical tester reports remain attributed reports,
 not confirmations by this user. See [integration record](upstream-2026-10-19.md).
 
+Current scoped corrections: [skill targeting and stationary attacks](battle/skill-casting.md)
+(keyboard_service/native_actions, battle/skill_cast.h and generated metadata),
+and [menu gesture lifetime](menus/mouse-lifetime.md) (keyboard_menu/menu_mouse/
+panel_state). These supplement their primary action/menu topics below.
+Shift+S's HUD entry uses the verified [left-hand skill selector](menus/left-skill-menu.md)
+callback, keeping menu-only queue cancellation intact during play.
+
 | Feature or subsystem | Primary implementation modules | Authoritative topic |
 | --- | --- | --- |
 | Runtime, settings, speech and localization | [plugin](../src/plugin.cpp), [ui_thread_pump](../src/ui_thread_pump.cpp), [async_log](../src/async_log.cpp), [screen_reader](../src/screen_reader.cpp), [localization](../src/localization.cpp), [speech_strings](../src/speech_strings.cpp), [settings_file](../src/settings_file.cpp), [settings_list](../src/settings_list.cpp), [settings_store](../src/settings_store.cpp), [control_state](../src/control_state.cpp), [control_hints](../src/control_hints.cpp), [mod_sounds](../src/mod_sounds.cpp), [radar_config](../src/radar_config.cpp) | [runtime-services](runtime-services.md) |
 | Native widget tree and front-end focus | [native_widgets](../src/native_widgets.cpp), [native_memory](../src/native_memory.cpp), [native_ui](../src/native_ui.cpp), [native_focus](../src/native_focus.cpp), [widgets](../src/widgets.cpp), [focus_tracker](../src/focus_tracker.cpp), [frontend_native_fallback](../src/frontend_native_fallback.cpp), [panel_state](../src/panel_state.cpp), [ui_message_monitor](../src/ui_message_monitor.cpp), [display_modes](../src/display_modes.cpp), [character_saves](../src/character_saves.cpp), [widget_probe](../src/widget_probe.cpp), [code_dump](../src/code_dump.cpp) | [native-ui](native-ui.md) |
 | Gameplay text and notices | [game_text_reader](../src/game_text_reader.cpp), [ui_text](../src/ui_text.cpp), [ui_notifications](../src/ui_notifications.cpp), [native_tooltips](../src/native_tooltips.cpp), [native_list_rows](../src/native_list_rows.cpp), [tooltip_delay](../src/tooltip_delay.cpp), [tooltip_text](../src/tooltip_text.cpp), [interaction_reader](../src/interaction_reader.cpp), [controller_text](../src/controller_text.cpp), [click_words](../src/click_words.cpp), [auto_detail](../src/auto_detail.cpp) | [native-tooltips](native-tooltips.md) |
 | Modal and deletion confirmation | [modal_reader](../src/modal_reader.cpp) | [delete-character-modal](delete-character-modal.md) |
-| Keyboard play and actions | [keyboard_service](../src/keyboard_service.cpp), [native_actions](../src/native_actions.cpp), [native_attack](../src/native_attack.cpp), [native_hover](../src/native_hover.cpp), [combat_target](../src/combat_target.cpp), [auto_walk](../src/auto_walk.cpp) | [keyboard-actions](keyboard-actions.md) |
+| Keyboard play and actions | [keyboard_service](../src/keyboard_service.cpp), [native_actions](../src/native_actions.cpp), [native_attack](../src/native_attack.cpp), [native_hover](../src/native_hover.cpp), [combat_target](../src/combat_target.cpp), [auto_walk](../src/auto_walk.cpp), [native_keyboard](../src/input/native_keyboard.cpp) | [keyboard-actions](keyboard-actions.md), [native Character binding](menus/mouse-lifetime.md) |
 | Keyboard menu cursor and clicks | [keyboard_menu](../src/keyboard_menu.cpp), [menu_cursor](../src/menu_cursor.cpp), [menu_mouse](../src/menu_mouse.cpp), [grid_jump](../src/grid_jump.cpp), [inventory_cursor](../src/inventory_cursor.cpp), [native_sort](../src/native_sort.cpp) | [keyboard-play](keyboard-play.md) |
 | Controller focus, cursor and text entry | [input_direction](../src/input_direction.cpp), [pad_filter](../src/pad_filter.cpp), [native_skill_navigation](../src/native_skill_navigation.cpp), [native_cursor_gesture](../src/native_cursor_gesture.cpp), [menu_navigation](../src/menu_navigation.cpp), [menu_navigation_policy](../src/menu_navigation_policy.cpp), [pad_typing](../src/pad_typing.cpp), [text_field](../src/text_field.cpp), [text_field_edit](../src/text_field_edit.cpp) | [controller-navigation](controller-navigation.md) |
 | Skills, prerequisites, statistics and skill-tree navigation | [native_progression](../src/native_progression.cpp), [progression_text](../src/progression_text.cpp), [native_skill_bar](../src/native_skill_bar.cpp), [native_skill_icons](../src/native_skill_icons.cpp), [native_class_choice](../src/native_class_choice.cpp), [skill_grid](../src/skill_grid.cpp), [skill_navigation](../src/skill_navigation.cpp) | [progression](progression.md) |
 | Bound skills, hotkeys and weapon hands | [skill_bar](../src/skill_bar.cpp), [skill_bar_service](../src/skill_bar_service.cpp), [skill_hotkey_service](../src/skill_hotkey_service.cpp), [native_skill_hotkeys](../src/native_skill_hotkeys.cpp), [native_skill_hand](../src/native_skill_hand.cpp) | [skill-bar](skill-bar.md) |
 | Native controller help and tabs | [native_controller_help](../src/native_controller_help.cpp), [native_value_controls](../src/native_value_controls.cpp), [tab_reader](../src/tab_reader.cpp), [tab_highlight](../src/tab_highlight.cpp), [inventory_census](../src/inventory_census.cpp) | [navigation-latency](navigation-latency.md) |
 | Inventory actions, hand outcomes and arrivals | [equipment_census](../src/equipment_census.cpp), [equip_attempt](../src/equip_attempt.cpp), [inventory_arrivals](../src/inventory_arrivals.cpp), [inventory_arrival_service](../src/inventory_arrival_service.cpp), [item_hand](../src/item_hand.cpp) | [inventory-npc-followup](inventory-npc-followup.md) |
-| Belt and stash cells | [belt_reader](../src/belt_reader.cpp), [native_belt](../src/native_belt.cpp), [native_belt_rows](../src/native_belt_rows.cpp), [native_belt_fill](../src/native_belt_fill.cpp), [stash_count](../src/stash_count.cpp) | [belt](belt.md) |
+| Belt and stash cells/pages | [belt_reader](../src/belt_reader.cpp), [native_belt](../src/native_belt.cpp), [native_belt_rows](../src/native_belt_rows.cpp), [native_belt_fill](../src/native_belt_fill.cpp), [stash_count](../src/stash_count.cpp), [stash_pages](../src/menus/stash_pages.cpp), [native_stash_pages](../src/menus/native_stash_pages.cpp) | [belt](belt.md), [keyboard tabs and shared pages](menus/stash-pages.md) |
 | Grid edge and compartment boundary cues | [grid_edge](../src/grid_edge.cpp), [grid_edge_service](../src/grid_edge_service.cpp) | [native-tooltips](native-tooltips.md) |
 | Character and advanced statistics | [character_stats](../src/character_stats.cpp), [character_stats_reader](../src/character_stats_reader.cpp), [advanced_stats_reader](../src/advanced_stats_reader.cpp) | [character-panel](character-panel.md) |
 | Mercenary, hire list, summons and usable corpses | [mercenary_stats](../src/mercenary_stats.cpp), [hire_stats](../src/hire_stats.cpp), [native_pets](../src/native_pets.cpp), [minion_report](../src/minion_report.cpp) | [summons-and-corpses-re](summons-and-corpses-re.md) |
@@ -76,7 +83,7 @@ Additional focused evidence: [Tal Rasha symbols](tal-rasha-symbols.md),
 
 ## Documentation and engineering limits
 
-Inventory coverage: 210 production `.cpp` modules mapped above; no
+Inventory coverage: 213 production `.cpp` modules mapped above; no
 unassigned production module. This checks discoverability and module ownership;
 it does not convert archived test claims into current runtime validation.
 Existing explanatory topics are reused; changed merge/native/presence paths

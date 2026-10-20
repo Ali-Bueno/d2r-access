@@ -264,6 +264,8 @@ inline constexpr Table itIT {
 	.weaponSetNumberOff = "Numero del set di armi: disattivo",
 	.gaitWalking = "Camminata",
 	.gaitRunning = "Corsa",
+	.stationaryAttack = "Attacca da fermo; menu: Maiusc e clic sinistro",
+	.staminaRead = "Leggi il vigore",
 	.staminaPercent = "Vigore %d per cento",
 	.staminaOut = "Vigore esaurito",
 	.movementAlertsOn = "Annunci di camminata, corsa e vigore: attivo",
