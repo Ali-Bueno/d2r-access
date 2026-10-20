@@ -137,7 +137,7 @@ uintptr_t PlayerRoom() noexcept { return 0; }
 namespace D2RAccess::NativeRooms {
 Bounds Subtiles(const Room& room) { return {room.tileX, room.tileY, room.tileX + room.tileWidth, room.tileY + room.tileHeight}; }
 bool Contains(const Bounds& bounds, int x, int y) { return x >= bounds.minX && x < bounds.maxX && y >= bounds.minY && y < bounds.maxY; }
-bool Read(uintptr_t, std::vector<Room>& rooms) {
+bool Read(uintptr_t, std::vector<Room>& rooms, int) {
 	if (++roomReads == 1) return false;
 	rooms = levelRooms;
 	return true;

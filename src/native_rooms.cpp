@@ -27,12 +27,14 @@ uint64_t Identity(int tileX, int tileY) {
 	return (static_cast<uint64_t>(tileX) << 16 | static_cast<uint64_t>(tileY)) + 1;
 }
 
-bool Read(uintptr_t activeRoom, std::vector<Room>& output) {
+bool Read(uintptr_t activeRoom, std::vector<Room>& output, int expectedLevel) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
 	uintptr_t room = 0, level = 0;
+	int32_t levelId = 0;
 	if (!activeRoom || !Peek(activeRoom + RoomExtended, room) || !room
 		|| !Peek(room + ExtendedLevel, level) || !level
+		|| (expectedLevel && (!Peek(level + LevelId, levelId) || levelId != expectedLevel))
 		|| !Peek(level + LevelFirstRoom, room)) return false;
 	std::vector<Room>              rooms;
 	std::unordered_set<uintptr_t>  seen;

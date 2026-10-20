@@ -58,14 +58,9 @@ public:
 	bool Begin(uint64_t session, int level, const std::vector<NativeRooms::Room>& rooms);
 	// Copies in the rooms the game has loaded now. True when a cell changed.
 	bool Learn(const Radar::World& world);
-	// The game builds a level's rooms as the player goes, so the list this map
-	// was bounded by grows under it. Ground outside the bounds is no part of the
-	// level and no way crosses it, not even as a guess, so a room built after
-	// Begin would stay unreachable for the rest of the game -- which is what the
-	// player met on 2026-10-20: the first unexplored rooms were led to and then
-	// every further one answered "no route through explored areas", with the way
-	// empty (`lead=no-way way_cells=0 guess=0`). The map grows with the list
-	// instead, keeping every cell already learnt. True when it grew.
+	// Grows the map to rooms added to the level's list since Begin, keeping every
+	// cell already learnt: no way crosses ground outside the bounds, not even as
+	// a guess (docs/beacon.md, 2026-10-20). True when it grew.
 	bool Extend(const std::vector<NativeRooms::Room>& rooms);
 	// A copy to plan on while this map goes on learning, with only the ground
 	// inside `rooms` known when given: the rest of the level is ground not seen

@@ -168,6 +168,21 @@ way may guess across; `Remember` calls it on every visit and logs
 `[route] the map grew with the level`. Pinned by `tests/level_route_tests.cpp`,
 which asserts the room cannot be planned to before the map grows and can after.
 
+**Unproven, and first wired wrong (same day).** That the list grows mid-level is
+the PR's inference; `native_rooms.h` holds that `Read` returns every room of the
+level, active or not. As merged, `Extend` was fed the room graph cached once per
+level (`Rooms()`), the very list `Begin` used, so it could not grow on a first
+visit. It now gets a fresh `NativeRooms::Read` each time, so a
+`[route] the map grew with the level` line in a log is the proof the list grows.
+If it shows, the other two caches (beacon `Rooms()`, survey `CurrentRooms()`)
+are stale as well, and unifying them needs room numbers keyed on the room `id`:
+`RoomCatalogue` numbers rooms by list position and keys explored flags on the
+layout, so a grown list would renumber "room 5" and reset them. A second
+candidate cause is closed meanwhile: `Read` takes the expected level and fails
+on another level's rooms, so no cache keeps the previous level's list under the
+new level's number, and the survey's cache retries a failed read instead of
+staying empty for the level.
+
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
@@ -392,7 +407,7 @@ distance limit near 120: the route box is 158, the world window 152, the grid 15
 ## Log format
 
 - `[beacon] locked id=<id> kind=<kind> at=<x>,<y> level=<n> name=<name>` — on lock.
-- `[beacon] released reason=<cancelled|retargeted|arrived|lifecycle|unregister|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
+- `[beacon] released reason=<cancelled|retargeted|arrived|lifecycle|unregister|outside-explored|known-route-unavailable|navigation-mode> id=<id> name=<name>` — on release.
 - `[beacon] Registered; audio=<0|1> full_assistance=<0|1>.` at startup, and `[beacon] full_assistance=<0|1>` on a console mode switch.
 - `[beacon] position=<x>,<y> target=<x>,<y> seen=<0|1> distance=<d> remaining=<r> routed=<0|1> heading=<hx>,<hy> route_cells=<n> name=<name>` — once per second while locked (`LogIntervalMs`); `seen` is whether the target's room is currently loaded, `remaining` is the route length when routed or the straight distance otherwise.
 - `[beacon] lead=<direct|room-graph|remembered-map|remembered-map-guess|no-way> way_cells=<n> to=<x>,<y> name=<name>` — when the way guidance takes changes ([walkable guidance](#walkable-guidance)).

@@ -34,8 +34,9 @@ bool   Contains(const Bounds& bounds, int x, int y);
 uint64_t Identity(int tileX, int tileY);
 
 // Sorted by (tileY, tileX) so a room's number is the same on every visit,
-// independent of the order the game happens to link them in.
-bool Read(uintptr_t activeRoom, std::vector<Room>& output);
+// independent of the order the game happens to link them in. A nonzero `level`
+// fails the read when the room is another level's: the player between levels.
+bool Read(uintptr_t activeRoom, std::vector<Room>& output, int level = 0);
 
 // Index of the room holding this subtile position, or None. Rooms do not
 // overlap, so the first match is the only one.

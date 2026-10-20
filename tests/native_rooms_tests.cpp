@@ -73,6 +73,8 @@ int main() {
 	Check(!f.Read(rooms) && rooms.empty(), "a degenerate rectangle is refused rather than routed through");
 	f.north.At<int>(RoomTileHeight, 8);
 	Check(f.Read(rooms) && rooms.size() == 3, "the fixture restores");
+	Check(NativeRooms::Read(f.active.Address(), rooms, 9) && rooms.size() == 3, "the expected level reads");
+	Check(!NativeRooms::Read(f.active.Address(), rooms, 8) && rooms.empty(), "another level's rooms are refused, with no stale list");
 	Check(!NativeRooms::Read(0, rooms) && rooms.empty(), "no player room clears any previous list");
 	Passed();
 }

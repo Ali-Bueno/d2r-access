@@ -110,7 +110,7 @@ std::atomic<bool> g_routeTotal{true}, g_routeLegs{true};
 const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	if (g_graphLevel != state.level || g_graphSession != state.session || g_graph.Empty()) {
 		std::vector<NativeRooms::Room> rooms;
-		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
+		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms, state.level) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
 		g_graphLevel = state.level;
 		g_graphSession = state.session;
 	}

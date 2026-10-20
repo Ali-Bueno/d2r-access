@@ -264,9 +264,11 @@ void LogAreas(const D2RL::PluginContext* context, const Lifecycle& state) {
 // when they cannot be read, which leaves exploration to line of sight alone.
 const std::vector<NativeRooms::Room>& CurrentRooms(int level, uint64_t session) {
 	if (g_roomLevel != level || g_roomSession != session) {
-		if (!NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList)) g_roomList.clear();
-		g_roomLevel = level;
-		g_roomSession = session;
+		// A failed read is tried again: the player may be between levels.
+		if (NativeRooms::Read(NativeWorld::PlayerRoom(), g_roomList, level)) {
+			g_roomLevel = level;
+			g_roomSession = session;
+		}
 	}
 	return g_roomList;
 }

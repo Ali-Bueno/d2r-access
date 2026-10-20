@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## PR #4 merged, its map growth wired to a fresh room read — 2026-10-20 (not released yet)
+
+PR #4 (mojsior): `Memory::Extend` and fuller `[beacon]` refusal/release logs for "no route through
+explored areas". As merged, `Extend` got the per-level cached room graph and could not grow; it now
+gets a fresh `NativeRooms::Read`. `Read` takes the expected level and fails on another level's rooms;
+the survey's room cache retries a failed read. Whether the list grows mid-level is unproven
+([beacon](docs/beacon.md)). 124/124 CTest. **Unverified live.**
+**Next step:** the tester's log: `[route] the map grew with the level` proves growth (then unify the
+three room caches with `id`-keyed room numbers); refusals without it point elsewhere.
+
 ## The tester's list on builds 2026-10-19 and 19-3 — 2026-10-20 (not released yet)
 
 From `D2R Access build 2026-10-19 and 19-3 feedback and bug list.7z` (the user's Downloads: list,

@@ -251,7 +251,7 @@ int Margin(const Entity& entity) {
 const RoomGraph::Graph* Rooms(const Lifecycle& state) {
 	if (g_graphLevel != state.level || g_graphSession != state.session || g_graph.Empty()) {
 		std::vector<NativeRooms::Room> rooms;
-		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
+		g_graph = NativeRooms::Read(NativeWorld::PlayerRoom(), rooms, state.level) ? RoomGraph::Build(rooms) : RoomGraph::Graph{};
 		g_graphLevel = state.level;
 		g_graphSession = state.session;
 	}
@@ -278,16 +278,16 @@ const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& w
 		g_rememberedSession = state.session;
 	}
 	auto found = std::find_if(g_remembered.begin(), g_remembered.end(), [&](const Remembered& entry) { return entry.level == world.level; });
-	const auto* graph = Rooms(state);
 	if (found != g_remembered.end()) {
-		// The level's rooms are built as the player goes, and a room the map was
-		// not bounded by is no part of the level to any way over it. The map
-		// follows the list instead of the list it began with (level_route.h).
-		if (graph && found->memory.Extend(graph->rooms))
+		// The game's list as it is now, not the graph cached when the level began:
+		// a room added since would stay outside the map (docs/beacon.md).
+		std::vector<NativeRooms::Room> rooms;
+		if (NativeRooms::Read(NativeWorld::PlayerRoom(), rooms, state.level) && found->memory.Extend(rooms))
 			AsyncLog::InfoF(g_context, "[route] the map grew with the level: %zu rooms, %dx%d from %d,%d",
-				graph->rooms.size(), found->memory.Width(), found->memory.Height(), found->memory.X(), found->memory.Y());
+				rooms.size(), found->memory.Width(), found->memory.Height(), found->memory.X(), found->memory.Y());
 	}
 	if (found == g_remembered.end()) {
+		const auto* graph = Rooms(state);
 		Remembered entry{world.level};
 		if (!graph || !entry.memory.Begin(state.session, world.level, graph->rooms)) return nullptr;
 		if (g_remembered.size() >= RememberedLevels)
