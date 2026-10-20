@@ -2,17 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Live play by the user — 2026-10-20 (build e280447): two open bugs
+## Live play by the user — 2026-10-20 (build e280447): beacon bug open
 
 Log kept outside the repo: `../logs/d2r-access-2026-10-20-user.log` (the game overwrites its own).
 - **Beacon "no route through explored areas" still happens**, 3 times, `lead=no-way way_cells=0`:
   town exit to Rocky Waste and both Stony Tomb 1 stairs. No `[route] the map grew` in 45 minutes
   over 6 levels: the room list does not grow, so PR #4 is not the cause ([beacon](docs/beacon.md)).
-- **Identify never works on an inventory item**, tome or scroll. The log shows the tome focused
-  (15:56:18) and no carry or release after it; on controller, identify is carry and release
-  ([character panel](docs/character-panel.md)).
-**Next step:** find why the remembered map has no way (stairs and level-edge exits), then the
-identify flow.
+- Identify: not a bug. The user tried it on items Cain had just identified; it works by holding A
+  on the tome ([character panel](docs/character-panel.md)).
+**Next step:** find why the remembered map has no way (stairs and level-edge exits).
 
 ## PR #4 merged, its map growth wired to a fresh room read — 2026-10-20 (released as test-2026-10-20 from e280447)
 

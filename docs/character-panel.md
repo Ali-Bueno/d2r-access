@@ -67,10 +67,11 @@ for an inventory or stash cell, and the belt for the belt. The belt is a single
 received the potion is **not** known yet — that is the remaining gap for belt
 assignment feedback.
 
-Identifying an item is the same carry-and-release mechanic on controller (hold
-to pick the scroll up, release it on the target), so it gets the same notice;
-the mouse path goes through `ContextMenu`'s runtime-filled `OptionsList`, which
-the mod does not read at all yet.
+Identifying an item on controller is holding A on the tome or scroll, then A on
+the target: the inventory's hint reads "A: Recoger(Mantener para: Usar)", and a
+tap only picks the tome up (the user's log, 2026-10-20; they report identify
+works). The mouse path goes through `ContextMenu`'s runtime-filled
+`OptionsList`, which the mod does not read at all yet.
 
 ## Where the button hints go
 
