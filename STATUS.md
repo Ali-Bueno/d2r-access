@@ -2,7 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Route legs along the stick's eight ways — 2026-10-19 (not released)
+## Route legs along the stick's eight ways — 2026-10-19 (released as test-2026-10-19-3 from ac561c3)
+
+Release: 123/123 CTest, 29 entries, 62,665,603 bytes, SHA-256 `b89c2a63…d881`.
 
 From the tester's "Fundamentals: Route finder (Mod+A)" (text, painted screenshots, `wf_` logs on
 `test-2026-10-19`) and the earlier `BFB_mp`/`dani_mp`/`dani_sp` logs; choices in
