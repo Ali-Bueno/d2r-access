@@ -528,15 +528,7 @@ not-selected. Ports MUST keep that guard.
 
 Traversal order for recovery and scanning, computed per render:
 
-```
-order = []; seen = {}; downFringe = [StartKey]
-for k in downFringe (growing):
-    while k not in seen:
-        seen.add(k); order.append(k)
-        if node(k) has Down edge: downFringe.append(down.dest)
-        if node(k) has Right edge: k = right.dest else break
-append every declared node not yet seen, in declaration order   # later Tab-stops
-```
+`ComputeOrder` walks the current render from `StartKey`: visit the right-linked row until a seen node or row end, retaining Down destinations for subsequent rows. Then append declared nodes not yet visited in declaration order, supplying later Tab stops. References: `ComputeOrder`, `StartKey`, node Right/Down edges and the graph-navigator design in this section.
 
 Visits a planar UI in reading order; the append step keeps the order **total** (stops have no
 cross-stop edges).
@@ -545,21 +537,7 @@ cross-stop edges).
 
 On every rebuild, move the cursor to a valid control:
 
-```
-if NextSuggestedMove set: adopt it as CurKey; consume it            # then fall through
-resolved = null
-if CurKey != null:
-    tier 1: nodes whose Id.Reference IS CurKey.Reference            # object moved
-            — if SEVERAL nodes share the Reference, prefer the one
-              whose StructuralKey also equals CurKey's; else pick
-              deterministically (declaration order)                 # see below
-    tier 2: the node at CurKey's StructuralKey                      # object rebuilt
-    fallback: from CurKey's index in the PREVIOUS KeyOrder, walk BACKWARD
-              to the nearest key that still exists in this render   # nearest survivor
-if resolved == null:                                                # first render / all gone
-    resolved = the SELECTED member of the start node's stop, else the start node
-CurKey = resolved; remember it in StopMemory; KeyOrder = ComputeOrder(render)
-```
+On render, consume `NextSuggestedMove` into the current key. Resolve identity first by the same object reference, preferring a matching structural key among duplicate references and otherwise declaration order. Fall back to structural identity, then walk backward through the prior `KeyOrder` for the nearest surviving key. If none resolves, choose the selected member of the start stop or the start node. Store the resolved key in `StopMemory` and recompute order. References: `CurKey`, `NextSuggestedMove`, `ComputeOrder` and the identity contract below.
 
 The tier-1 tie-break is normative in Draft 2. Several nodes legitimately share a backing object
 (a row primary and its cells; a card and its label). Without the tie-break, "any node" over a
@@ -645,19 +623,7 @@ of these bit somebody:
 
 The spoken line for a focus change from `from` to `to`:
 
-```
-toPath   = ancestors of to (outermost first) + to itself     # via Parent pointers
-fromPath = same for from (empty when from == null)
-i = length of common prefix, comparing NODE IDENTITY (Id equality) level by level
-if i >= len(toPath):        # ascended, or same node
-    speak just to's own readout
-else:
-    speak toPath[i..] outermost-first, each level's readout,
-    SKIPPING a level whose LABEL duplicates the next level's LABEL
-    (equal, or the next label begins "label,")
-prepend the crossed edge's transition label, if any
-join with ", "
-```
+Build the source and destination ancestor paths through Parent links, comparing their shared prefix by node identity. An ascent or unchanged node speaks only the destination readout; otherwise speak newly entered levels outermost first. Omit a level whose label duplicates or prefixes the next label, prepend any crossed-edge transition label and join the readouts with comma separators. Reference: the graph-navigator readout/identity design in this section; this preserves the documented local hierarchical-label rule.
 
 The dedupe comparand is the **label** — each level's first *declared* part (§3.2's convention) —
 on both sides. Draft 1 said "next's readout begins 'label,'", which no implementation does: it

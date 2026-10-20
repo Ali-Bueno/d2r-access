@@ -38,35 +38,7 @@ Source: `Sound/Ian/CollisionHelperCopy.cs` (audio) and `FirstPerson/Ian/CH.cs` (
 
 ## 1. Public entry points
 
-```csharp
-// First wall/impassable/door tile the ray hits (null if none within scanDistance).
-// Used by the Style-1 REACTIVE RADAR (not the POI scans — those use a different point-march, Doc 05).
-public static AudibleTileCollision? GetWallOrImpassableOrDoorCollision(
-        IAudibleMap map, V2 startPosition, V2 slope /*unit dir*/, float scanDistance)
-{
-    foreach (AudibleTileCollision c in GetLineToTileCollision(map, startPosition, slope, scanDistance))
-        if (c.Tile.IsWall || c.Tile.IsImpassable || c.Tile.IsDoor)
-            return c;
-    return null;
-}
-
-// Total thickness (in tile-units) of walls + doors lying between source and target. Used by audio occlusion.
-public static float GetWallAndDoorDepth(
-        IAudibleMap map, V2 source, V2 target,
-        bool heardThroughWalls = false, bool heardThroughDoors = false)
-{
-    float length = (source - target).Length;
-    V2 slope = (target - source); slope.Normalize();
-    List<AudibleTileCollision> hits = GetLineToTileCollision(map, source, slope, length);
-    float depth = 0f;
-    for (int i = 0; i < hits.Count - 1; i++) {
-        var t = hits[i].Tile;
-        if ((!heardThroughWalls && t.IsWall) || (!heardThroughDoors && t.IsDoor))
-            depth += (hits[i + 1].Point - hits[i].Point).Length;   // span of this blocking tile along the ray
-    }
-    return depth;
-}
-```
+`CollisionHelperCopy.GetWallOrImpassableOrDoorCollision` returns the first grid crossing whose tile blocks movement as wall, impassable terrain or door; it has no result when the finite cast misses. `GetWallAndDoorDepth` instead accumulates the lengths between successive crossings for wall/door spans, honoring the separate through-wall and through-door exemptions. These are different consumers of `GetLineToTileCollision`.
 
 `GetWallAndDoorDepth` returns **how many tile-units of solid wall/door the ray passes through**, by
 summing the segment length the ray spends inside each blocking tile (distance from this crossing to
@@ -82,65 +54,11 @@ identifies the tile on the entering side of each crossing, then sorts all crossi
 the start. The result is the ordered list of tiles the ray passes through, with the exact entry point
 of each.
 
-```csharp
-private static List<AudibleTileCollision> GetLineToTileCollision(
-        IAudibleMap map, V2 startPosition, V2 slope, float scanDistance)
-{
-    V2 second = startPosition + slope;
-    Line line = Line.FromPoints(startPosition.AsV3(), second.AsV3(), isSegment:false);
-    V3 reach = line.Slope * scanDistance;            // ray extent as a vector
-    float dy = Math.Abs(reach.Y);                    // how far in Y we travel
-    float dx = Math.Abs(reach.X);                    // how far in X we travel
-    var list = new List<AudibleTileCollision>();
-
-    // --- horizontal gridline crossings (y = integer) -> gives tile column from solved X ---
-    GetGridLineStartAndIncrement(startPosition.Y, slope.Y, dy, out int start, out int inc, out int end);
-    if (!line.IsHorizontal)
-        for (int i = start; i != end; i += inc) {
-            float x = line.SolveForX(i);             // x where ray crosses y=i
-            int tx = (int)Math.Floor(x);
-            int ty = (inc == -1) ? (i - 1) : i;      // tile is below/above the line depending on direction
-            if (!IsInRangeWithExclusiveMax(tx, ty, map.TileWidth, map.TileHeight)) break;
-            list.Add(new AudibleTileCollision { Point = new V2(x, i), Tile = map.GetTile(tx, ty) });
-        }
-
-    // --- vertical gridline crossings (x = integer) -> gives tile row from solved Y ---
-    GetGridLineStartAndIncrement(startPosition.X, slope.X, dx, out int start2, out int inc2, out int end2);
-    if (!line.IsVertical)
-        for (int j = start2; j != end2; j += inc2) {
-            float y = line.SolveForY(j);             // y where ray crosses x=j
-            int tx = (inc2 == -1) ? (j - 1) : j;
-            int ty = (int)Math.Floor(y);
-            if (!IsInRangeWithExclusiveMax(tx, ty, map.TileWidth, map.TileHeight)) break;
-            list.Add(new AudibleTileCollision { Point = new V2(j, y), Tile = map.GetTile(tx, ty) });
-        }
-
-    // order all crossings by distance from the start (interleaves the H and V crossings correctly)
-    return list.OrderBy(p => (p.Point - startPosition).LengthSquared).ToList();
-}
-```
+`CollisionHelperCopy.GetLineToTileCollision` creates a normalized line from the origin and direction, computes its finite X/Y extent, then enumerates horizontal and vertical integer-grid crossings separately. Each crossing solves the other coordinate, selects the entered tile according to travel sign, checks exclusive map bounds and records point plus tile. It merges both sets by squared distance from the origin. See the stepping helper and edge cases below; this is the recovered traversal behavior, not a replacement raycaster.
 
 ### The stepping helper
 
-```csharp
-private static void GetGridLineStartAndIncrement(
-        float startCoord, float slopeComponent, float distance, out int start, out int inc, out int end)
-{
-    if (slopeComponent > 0f) {                       // moving in +axis
-        start = (int)Math.Ceiling(startCoord);       // first integer line ahead
-        inc   = 1;
-        end   = (int)Math.Floor(startCoord + distance);
-    } else {                                          // moving in -axis
-        start = (int)Math.Floor(startCoord);
-        inc   = -1;
-        end   = (int)Math.Ceiling(startCoord - distance);
-    }
-    end += inc;                                       // make 'end' exclusive for the != loop
-}
-
-private static bool IsInRangeWithExclusiveMax(int x, int y, int maxX, int maxY)
-    => 0 <= x && x < maxX && 0 <= y && y < maxY;
-```
+`GetGridLineStartAndIncrement` starts at ceiling for positive travel and floor for negative travel, sets the increment sign accordingly and computes a final exclusive gridline bound from the ray extent. `IsInRangeWithExclusiveMax` admits nonnegative coordinates strictly below map width/height. References: `CollisionHelperCopy.cs`, the traversal above and the corner/boundary notes below.
 
 ### Notes that bite you when porting
 
@@ -164,23 +82,7 @@ private static bool IsInRangeWithExclusiveMax(int x, int y, int maxX, int maxY)
 
 ## 3. `AudibleTileCollision` and the tile contract
 
-```csharp
-// Sound/Ian/AudibleTileCollision.cs
-public struct AudibleTileCollision { public V2 Point; public IAudibleTile Tile; }
-
-// Sound/Ian/IAudibleTile.cs  — the per-tile flags the raycaster consults
-public interface IAudibleTile {
-    int ID; string IndexedTerrainName; string StepSound;
-    string ConstantSound; string SecondarySharedSound; bool UniqueEmit;
-    string ZoneName;
-    bool IsWall; bool IsImpassable; bool IsIndoors; bool IsDoor;
-    int X; int Y;
-}
-// Sound/Ian/IAudibleMap.cs
-public interface IAudibleMap {
-    int TileWidth; int TileHeight; List<IAudibleZone> Zones; IAudibleTile GetTile(int x, int y);
-}
-```
+`Sound/Ian/AudibleTileCollision.cs` associates a hit point with its `IAudibleTile`. The tile interface carries terrain identity, step/ambient/shared sounds, unique-emitter and indoor flags, zone name, coordinates and wall/impassable/door flags. `IAudibleMap` supplies tile dimensions, zones and coordinate lookup. These are the recovered data contracts, located in `IAudibleTile.cs` and `IAudibleMap.cs`.
 
 So the **entire world model** the navigation system needs is: a width/height, `GetTile(x,y)`, and per
 tile the booleans `IsWall / IsImpassable / IsDoor / IsIndoors`, a `ZoneName`, and the terrain/sound
@@ -199,28 +101,7 @@ strings. That is the whole adapter surface for a tile game.
 
 `Sound/Ian/ObstructionHelpers.cs`:
 
-```csharp
-public static void PositionSoundForObstruction(
-        MapAndPlayer ent, V3 basePosition, IMovableSound sound,
-        bool heardThroughWalls = false, bool silentInMenus = false, bool heardThroughDoors = false)
-{
-    if (silentInMenus && ent.AreWeInMenu) { sound.Mute = true; return; }
-
-    float depth = CollisionHelperCopy.GetWallAndDoorDepth(
-        ent.Map, ent.PlayerPosition, basePosition.Xy, heardThroughWalls, heardThroughDoors);
-
-    sound.Mute = depth >= 1f;                         // >= 1 tile of wall/door -> silent
-
-    int px = (int)Math.Floor(ent.PlayerPosition.X), py = (int)Math.Floor(ent.PlayerPosition.Y);
-    int sx = (int)Math.Floor(basePosition.X),       sy = (int)Math.Floor(basePosition.Y);
-    if (sx >= 0 && sy >= 0 && sx < ent.Map.TileWidth && sy < ent.Map.TileHeight) {
-        bool playerIndoors = ent.Map.GetTile(px, py).IsIndoors;
-        bool soundIndoors  = ent.Map.GetTile(sx, sy).IsIndoors;
-        sound.SetObstructionAndIndoorStatus(depth, playerIndoors, soundIndoors);  // -> FMOD params
-        sound.Update(basePosition);                   // -> FMOD 3D position
-    }
-}
-```
+`PositionSoundForObstruction` immediately mutes menu-silent sounds while menus are active. Otherwise it computes wall/door thickness to the source, mutes at one tile or more, obtains player/source indoor flags from their tiles, and sends obstruction, indoor state and world position to the movable sound. Source bounds are checked before tile lookup/update. Reference: `CollisionHelperCopy.GetWallAndDoorDepth` and `IMovableSound`.
 
 - **Mute threshold**: `depth >= 1.0`. Less than a full tile of obstruction is *not* muted but the
   `depth` value (0..1) is still handed to FMOD as the `"Obstruction"` parameter to drive a low-pass
@@ -312,14 +193,7 @@ come back null). If all you can reliably get is a **boolean "does a ray of lengt
 (e.g. `castRay(...).NumContactPoints > 0`), you can still recover the distance by **binary-searching the
 ray length**:
 
-```
-if not RayHits(origin, dir, maxRange): return maxRange        # nothing within range = "open"
-lo, hi = 0, maxRange
-repeat ~6 times:                                              # 6 iters over 8 m ≈ 0.13 m precision
-    mid = (lo+hi)/2
-    if RayHits(origin, dir, mid): hi = mid else lo = mid
-return hi                                                     # distance to first blocker
-```
+Proposed fallback for engines exposing only a boolean hit test: test the full finite range first; a miss is open at that range. For a hit, repeatedly halve the interval containing the first blocker, keeping the hit half and returning its upper bound. About six iterations over eight meters give roughly 0.13-meter resolution. This is the RE7-derived technique described here, not an extracted A-Hero's Call implementation.
 
 ~7 boolean casts per beam, entirely from the reliable hit/no-hit primitive — no dependency on an
 unreadable hit struct. Reconstruct the hit point (if needed) as `origin + dir*distance`. **Caveat:** the

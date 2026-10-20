@@ -115,9 +115,7 @@ Crucial observations:
 
 `RunRadar()` only sets:
 
-```text
-NextRadarTime = totalSeconds + 0.1
-```
+The original A-Hero's Call radar schedules its next evaluation 0.1 seconds after a cue, using total elapsed seconds. Reference: `ReactiveRadar.NextRadarTime` in the linked A-Hero's Call study.
 
 when a beam actually plays a sound. If no event is produced, the radar may be evaluated again on the next call/update.
 
@@ -216,15 +214,11 @@ This is the A-Hero's-Call-inspired part.
 
 Initial configurable target:
 
-```text
-TopologyRangeTiles = 20..35 tiles
-```
+Proposed topology reach is 20–35 tiles; this is a tuning range in the design, not measured production behavior.
 
 D2 collision uses 5x5 subtiles per map tile, so when operating on a raw subtile grid:
 
-```text
-TopologyRangeSubtiles = TopologyRangeTiles * 5
-```
+Convert the proposed topology reach to subtiles using five subtiles per tile, keeping the coordinate unit explicit.
 
 Start testing around **30 tiles / 150 subtiles**, but treat this as a tuning value, not a recovered D2 constant.
 
@@ -257,15 +251,7 @@ Use 3 lanes initially; optionally 5 later.
 
 Record:
 
-```cpp
-struct TopologyProbe {
-    float leftClearDepth;
-    float centerClearDepth;
-    float rightClearDepth;
-    float medianClearDepth;
-    bool hitWithinRange;
-};
-```
+Proposed `TopologyProbe` records the left, center and right clear depths, their median, and whether a blocker was hit within range. This section defines the proposed probe contract; current implementation status is recorded separately in `radar-redesign.md`.
 
 A lane marches until the first cell that blocks player walking, or until max topology range.
 
@@ -275,27 +261,13 @@ Quantize/filter distances before state decisions.
 
 ## 4.1 Suggested derived values
 
-```text
-bodyClearDepth  = minimum clearance compatible with actual player width
-centerClearDepth = centre lane run
-spaceClearDepth = median(left, center, right)
-```
+The proposed body-clear depth is the minimum compatible with actual player width. Center depth is the center-lane run; space-clear depth is the median of the left, center and right runs. Reference: proposed `TopologyProbe` in this section.
 
 Use near/body probe + far depth together.
 
 Suggested semantic classifier:
 
-```text
-If near body sweep is not passable:
-    BLOCKED
-
-Else if centerClearDepth >= MinOpenDepth
-     and enough of the footprint is clear:
-    OPEN
-
-Else:
-    keep previous stable state (dead band)
-```
+Classify a failed near-body sweep as BLOCKED. When the body sweep passes, classify sustained far-depth evidence as OPEN; use the thresholds and stability rules below for ambiguous observations. This is the proposed near/far decision policy.
 
 `MinOpenDepth` should be tuned in tiles. Start around a few player lengths, **not** the full 30-tile max range.
 
@@ -317,19 +289,11 @@ This distance jump is useful evidence.
 
 Maintain a slowly varying baseline per direction:
 
-```cpp
-float baselineBoundaryDepth;
-```
+The proposed per-direction `baselineBoundaryDepth` retains the previous supporting boundary depth for comparison with the next observation; it is an optional evidence source in this design.
 
 Potential transition evidence:
 
-```text
-OPEN evidence:
-    currentClearDepth - baselineBoundaryDepth >= OpenJumpThreshold
-
-CLOSE evidence:
-    previously-open depth collapses back near baseline
-```
+The optional boundary-jump detector treats a sufficient increase from the baseline clear depth as opening evidence and a sufficient decrease as closing evidence. The separate open/close thresholds provide hysteresis; this remains supporting evidence, not body-clearance truth.
 
 Do **not** let this evidence bypass:
 
@@ -348,10 +312,7 @@ This preserves what makes A Hero's Call perceptually effective without importing
 
 A far probe that does not hit anything within range means:
 
-```text
-clearDepth = TopologyRange
-hitWithinRange = false
-```
+A probe with no hit within range reports the full topology range and records that no blocker was hit. It must not manufacture a boundary at that distance.
 
 Treat this as stable `OPEN` evidence.
 
@@ -439,19 +400,7 @@ Do not emit directly from raw collision results.
 
 Per direction:
 
-```cpp
-enum class NavState { Unknown, Open, Blocked };
-
-struct SensorState {
-    NavState stable = NavState::Unknown;
-    NavState candidate = NavState::Unknown;
-    double candidateSince = 0;
-    WorldPos candidateStartPosition{};
-    double lastEmitTime = 0;
-    float baselineBoundaryDepth = 0;
-    bool initialized = false;
-};
-```
+The proposed `SensorState` stores stable and candidate navigation states (Unknown/Open/Blocked), candidate start time and position, last emission time, baseline boundary depth and an initialization flag. Candidate stability and cooldown checks described below control emission. See `radar-redesign.md` for the implemented replacement and its limits.
 
 Pipeline:
 
@@ -468,12 +417,7 @@ raw near/far probes
 
 Recommended starting values after scale calibration:
 
-```text
-MinStableTime       = 80..120 ms
-MinStableTravel     = small fraction of one D2 tile / player step
-SafetyCooldown      = ~100 ms per direction
-Open/Blocked dead-band = enabled
-```
+Proposed tuning: stable time 80–120 ms, stable travel a small fraction of a tile/player step, per-direction safety cooldown about 100 ms, and approach reminders only on entering a new nearer distance bucket. These are design values requiring validation.
 
 Use the dedicated anti-spam document for the full portable design.
 
@@ -485,9 +429,7 @@ The radar is **movement-relative**.
 
 Use actual displacement, not camera angle:
 
-```cpp
-delta = currentPlayerPos - previousPlayerPos;
-```
+Derive travel direction from the difference between the current and previous player positions. Keep that measured movement separate from facing or input intent; this is the heading contract proposed in this section.
 
 Maintain the last stable heading while stationary.
 
@@ -495,12 +437,7 @@ Start by quantizing to 8 movement sectors.
 
 Derived directions:
 
-```text
-Front = heading
-Back  = heading + 180 deg
-Left  = heading - 90 deg
-Right = heading + 90 deg
-```
+In the proposed facing-relative frame, Front follows heading, Back is opposite it, and Left/Right are the respective quarter turns. Verify the game's handedness before using the frame.
 
 ## Silent heading rebase
 
@@ -874,12 +811,7 @@ Do not assume D2R runtime positions and generated collision grids use the same f
 
 Centralize conversions:
 
-```cpp
-struct RuntimePos { double x; double y; };
-struct SubtilePos { int x; int y; };
-
-SubtilePos RuntimeToCollision(RuntimePos p, const LevelFrame& frame);
-```
+The proposed position contract separates floating-point runtime coordinates (`RuntimePos`) from integer collision subtiles (`SubtilePos`). `RuntimeToCollision` would apply the level frame explicitly. These are design names; the adjacent native layout references establish the real coordinate sources.
 
 Calibration tests:
 
@@ -925,11 +857,7 @@ Objects can be identified through `UnitAny.type`, `txtFileNo`, `mode` and positi
 
 Scan all four directions before playing sounds.
 
-```cpp
-std::vector<RadarEvent> events = EvaluateAllDirections();
-Coalesce(events);
-Emit(events);
-```
+Evaluate all directions first, collect their `RadarEvent` results, coalesce compatible events and then emit the resulting batch. This is the event-order proposal in this section, not a pasted implementation.
 
 Rules:
 
@@ -1092,12 +1020,7 @@ At minimum:
 3. Build a `CollisionProvider` interface.
 4. Only if needed, plug generated collision behind the same interface.
 
-```cpp
-struct ICollisionProvider {
-    virtual ~ICollisionProvider() = default;
-    virtual bool IsWalkable(SubtilePos p) const = 0;
-};
-```
+The proposed `ICollisionProvider` exposes a read-only walkability query for a `SubtilePos`. Ownership and validity must remain with the provider; see this phase and the runtime-truth requirements above before adopting an implementation.
 
 ## Phase C — silent dual-range radar
 

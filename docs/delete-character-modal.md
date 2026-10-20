@@ -23,9 +23,7 @@ mod is the only thing on this machine that *can* read the line correctly.
 
 `src/generated/panel_widgets.h` has all four controls:
 
-```
-Widgets_DeleteCharacterModal[] = { Confirm, ConfirmLegend, Dismiss, DismissLegend }
-```
+`Widgets_DeleteCharacterModal` in the generated widget catalog contains Confirm, ConfirmLegend, Dismiss and DismissLegend. The modal reader uses those widget paths to resolve its controls.
 
 `Confirm` carries `strdeletecharok`, `Dismiss` carries `strdeletecharnot`, and
 both legends carry `strdeletecharmessage`.

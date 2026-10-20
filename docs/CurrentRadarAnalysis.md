@@ -62,7 +62,7 @@ path. Logical map tiles are five subtiles wide; native grid header coordinates
 and the player's integer position are already in subtiles.
 
 Native projection `0x334DB0` uses screen deltas proportional to
-`(80*(dx-dy), 40*(dx+dy))`. Consequently up/left/right/down are world diagonals
+the isometric projection: horizontal screen displacement is 80 times the X-minus-Y world delta, and vertical displacement 40 times the X-plus-Y delta. Consequently up/left/right/down are world diagonals
 `(-X,-Y) / (-X,+Y) / (+X,-Y) / (+X,+Y)`. The supplied document's world-cardinal
 bits must not be mistaken for these four screen directions. The user previously
 requested fixed stick directions; new connectivity must preserve that convention.

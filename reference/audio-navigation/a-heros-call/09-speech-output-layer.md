@@ -22,15 +22,7 @@ and beacon readouts into actual screen-reader / TTS output.
 > any `ESay`/`DSay` call sitting in a hot path (e.g. per-frame code) will spam TTS in production, not
 > just a log file.
 
-```
-gameplay code
-  TranslateSO.TSay("entering {0}", region.FriendlyName)   // localized, with substitutions
-      -> TranslateAPI.TSay(base, args)
-          -> Diag.Write(GetTranslatedText(ts))            // Diag.Write is the single sink
-              -> SpeechContext.InnerSpeakAsync(text)      // routed to the active output backend
-DiagSO.Say/DSay/ESay(text)  // NON-localized convenience -> Diag.Write(text)  [SAME sink as above,
-                            // once RPGStartup.ConfigureSystems has run — IS spoken via TTS, not log-only]
-```
+Speech flow: gameplay calls localized `TranslateSO.TSay`; `TranslateAPI` resolves substitutions and forwards text to `SpeechContext`, whose background queue routes it to the selected backend and logging. Reference: `TranslateSO`, `TranslateAPI` and `SpeechContext` in this study.
 
 - **`TranslateSO.TSay` / `TranslateSO._`** is the localized path (looks up a base string + fills
   `{0},{1}…`). Use it for anything player-facing.
@@ -43,30 +35,7 @@ DiagSO.Say/DSay/ESay(text)  // NON-localized convenience -> Diag.Write(text)  [S
 
 ## 2. `SpeechContext` — the backend router
 
-```csharp
-public sealed class SpeechContext : GESO {
-    public Action<string> InterceptSpeech;   // test/override hook: if set, receives text and returns
-    public MySAPI SAPI { get; }              // Windows SAPI5 TTS
-    private readonly BlockingCollection<Action> mCommands;   // background speech queue
-
-    public void SpeakAsync(string text)        => mCommands.Add(() => InnerSpeakAsync(text));
-    public void SpeakLowPriority(string text)  => mCommands.Add(() => InnerSpeakAsync(text));
-    public void SAPICancelAndSay(string text)  => mCommands.Add(() => { SAPI.CancelAll(); if(!text.IsBlank()){ SAPI.SpeakAsync(text); SpeechLog.Log(text);} });
-    public void CancelAllSpeech()              => mCommands.Add(() => { /* per-mode interrupt, below */ });
-}
-
-private void InnerSpeakAsyncWithoutLogging(string text) {
-    if ((G.GameConfig?.NoSpeech ?? false) || text.IsBlank()) return;
-    if (InterceptSpeech != null) { InterceptSpeech(text); return; }   // hook wins
-    SpeechMode mode = m_world.UserSettings.SpeechMode;
-    switch ((int)mode) {
-        case 3: break;                          // Silent
-        case 2: SetFormText(text); break;       // show in window/form text
-        case 1: Tolk.Output(text, false); break;// Screen reader (NVDA/JAWS/Narrator) via Tolk
-        default: SAPI.SpeakAsync(text); break;  // 0: SAPI TTS
-    }
-}
-```
+`SpeechContext.cs` routes requests through a background `BlockingCollection` command queue. Normal and low-priority speech share the same inner path; SAPI cancel-and-say cancels first and logs nonblank replacement speech. The inner route rejects blank/no-speech requests, gives `InterceptSpeech` precedence, then selects Silent, form text, Tolk screen-reader output or default SAPI from the user's speech mode. Cancellation is also queued; backend-specific behavior is detailed below.
 
 ### SpeechMode
 
@@ -102,7 +71,7 @@ private void InnerSpeakAsyncWithoutLogging(string text) {
 
 `SpeakLowPriority` (`SpeechContext.cs:72-78`) is **not actually lower priority** — its body is
 byte-for-byte identical to `SpeakAsync` (`SpeechContext.cs:109-115`): both are
-`mCommands.Add(() => InnerSpeakAsync(text))`. Same FIFO queue, no distinct priority lane; treat the name
+a queued command invoking InnerSpeakAsync with the requested text. Same FIFO queue, no distinct priority lane; treat the name
 as a misnomer/vestigial distinction, not a real feature to port. Speech runs on **its own command
 thread** (`SpeechContext.StartThread`), **separate from the audio thread** (Doc 08 §7) — the two never
 share a queue.
@@ -112,11 +81,7 @@ share a queue.
 `CancelAllSpeech` (`SpeechContext.cs:80-101`) cancels **only the currently active backend**, mirroring the
 speak switch — it never blindly cancels all three:
 
-```csharp
-if (mode == 2 && FormIsFocused) Platform.SendBogusCancelSpeechKey();
-else if (mode == 1 && FormIsFocused) Tolk.Silence();     // screen-reader stop
-else SAPI.CancelAll();                                    // TTS stop
-```
+`SpeechContext.CancelAllSpeech` (`SpeechContext.cs:80-101`) sends the form cancellation key for focused form-text mode, uses `Tolk.Silence` for focused screen-reader mode and otherwise cancels SAPI. It follows the selected/focused backend rather than cancelling all backends indiscriminately.
 
 `HandleRegion` (Doc 04 §7) calls `CancelAllSpeech()` before announcing a new region so the latest
 area interrupts whatever was being read — the right UX for navigation.
@@ -179,8 +144,8 @@ only as a fallback for legacy .NET/BepInEx mods. The mapping is 1:1:
 
 | AHC (Tolk) | PRISM equivalent |
 |------------|------------------|
-| `Tolk.Output(text, false)` | `prism_backend_speak(be, text, /*interrupt=*/false)` |
-| `Tolk.Output(text, true)` / then speak | `prism_backend_speak(be, text, /*interrupt=*/true)` |
+| `Tolk.Output(text, false)` | prism_backend_speak with interruption disabled |
+| `Tolk.Output(text, true)` / then speak | prism_backend_speak with interruption enabled |
 | `Tolk.Silence()` | speak empty with interrupt, or backend stop |
 | SpeechMode routing | `prism_registry_acquire_best` picks NVDA/JAWS/SAPI/VoiceOver/etc. automatically |
 

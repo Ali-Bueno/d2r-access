@@ -149,13 +149,7 @@ information (relies on `mSoundObject == null` → `Scene.Up()`, not an announcem
 exploration: after running the fixed-timestep simulation loop(s), it commits the pending speech/caption
 title:
 
-```csharp
-// GameLoopLogic.cs:47-49
-if (ent.GLS.ForceTitleCommit || pendingMessages == ent.Speech.PendingMessages || ent.Speech.PendingMessages > 10)
-{
-    ent.Speech.CommitTitleChange(ent);
-}
-```
+`GameLoopLogic.cs:47-49` commits the pending speech/caption title after simulation when forced, when the pending-message count matches its pre-loop value, or when that count exceeds ten. Reference: `CommitTitleChange` and the pre-loop count captured at line 23.
 
 `pendingMessages` was captured before the loop(s) ran (line 23); the commit fires once the pending-message
 count **stabilizes** (no new messages queued this tick) or **exceeds 10**, whichever comes first. This is
@@ -167,18 +161,7 @@ the app-wide speech/caption timing backstop that also governs the CustomNVDA tit
 
 `FirstPerson/Ian/FPLogic.HandleCommonKeys` (`FPLogic.cs:160-172`):
 
-```csharp
-if (input.IsPressed(FPInput.ToggleColorMode))       // config key "toggle_color_mode"
-{
-    ent.Window.CurrentColorMode.MoveNext();
-    TranslateSO.TSay(ent.Window.CurrentColorMode.Name);
-}
-if (input.IsPressed(FPInput.ToggleViewMode))        // config key "toggle_view_mode"
-{
-    ent.Window.CurrentViewMode.MoveNext();
-    TranslateSO.TSay(ent.Window.CurrentViewMode.Name);
-}
-```
+`FirstPerson/Ian/FPLogic.HandleCommonKeys` (`FPLogic.cs:160-172`) advances the current color mode or view mode on the respective toggle input and speaks the selected mode name through `TranslateSO.TSay`. The persisted input keys are `toggle_color_mode` and `toggle_view_mode`.
 
 Both cycle to the next enum value (`Window.CurrentColorMode`/`CurrentViewMode`) and **speak the new
 mode's name** — a low-vision accommodation (color mode) and a display accommodation (view mode), each
@@ -220,7 +203,7 @@ RPG-mode extra (not in the base `FPInput` enum — registered separately in `RPG
 
 | Config key | Handler behavior |
 |---|---|
-| `fp_run_forward` | Held; `RPGExploring.HandleRunning` (`RPGExploring.cs:43-51`) adds `FPState.Front` to `travel` **and** unconditionally multiplies `speedMod *= 2.5f` on line 50 — the 2.5× speed multiplier applies whether or not the key is held (see Doc 04 for the full analysis of this bug). |
+| `fp_run_forward` | Held; `RPGExploring.HandleRunning` (`RPGExploring.cs:43-51`) adds `FPState.Front` to `travel` **and** unconditionally multiplies speedMod multiplied by 2.5 on line 50 — the 2.5× speed multiplier applies whether or not the key is held (see Doc 04 for the full analysis of this bug). |
 
 **`grid_announce_tile` is a different system entirely** — it belongs to the turn-based combat grid mode
 (`GameEngine/Ian/GeneralKeys.cs:86`, `GameInput.GridAnnounceTile`), not first-person exploration. Do not

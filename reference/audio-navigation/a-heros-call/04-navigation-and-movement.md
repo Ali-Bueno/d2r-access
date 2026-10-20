@@ -21,10 +21,7 @@ different object.
 
 Heading is always clamped to `[0,360)` after any change:
 
-```csharp
-if (mWorld.Facing < 0f) mWorld.Facing += 3600f;   // +10 turns so a single subtract can't go negative
-mWorld.Facing %= 360f;
-```
+`ClampPlayerDirectionBetween0And360` adds ten full turns when heading is negative, then reduces it modulo one turn. This preserves the recovered normalization behavior; see the limits below.
 
 ---
 
@@ -32,31 +29,14 @@ mWorld.Facing %= 360f;
 
 `FPExploring.HandleKeys()` accumulates a travel vector from held movement keys, in the player's basis:
 
-```csharp
-V2 travel = V2.Zero;
-if (input.IsHeld(FPMoveForward))  travel += FPState.Front;
-if (input.IsHeld(FPMoveBackward)) travel += FPState.Back;
-if (input.IsHeld(FPMoveLeft))     travel += FPState.Left;
-if (input.IsHeld(FPMoveRight))    travel += FPState.Right;
-
-float speedMod = 1f;
-AffectTravelFunc?.Invoke(ref travel, ref speedMod);   // hook for slows/hastes
-IsTravelling = travel.Length != 0f;
-if (IsTravelling) {
-    travel.Normalize();
-    mWorld.Player.Travel = travel;
-    FSO.FPML.MoveUnitBasedOnTravelVector(mWorld, mWorld.Player, travel, speedMod);
-    FSO.FPML.AfterUpdatePosition(mWorld, travel);
-    mWorld.FPState.LastTravel = travel;
-} else { mWorld.Player.Travel = V2.Zero; mWorld.Velocity = V2.Zero; }
-```
+`FPExploring` sums held forward/back/left/right basis vectors, allows `AffectTravelFunc` to alter travel and speed, and normalizes nonzero travel before calling `MoveUnitBasedOnTravelVector` and `AfterUpdatePosition`. It retains the last travel direction after moving; with no travel it clears player travel and world velocity. References: `FPExploring.HandleKeys`, `FPState` and the movement functions discussed here.
 
 Speed is not free-form: `MapScriptObject.CalcMovementSpeed` (MapScriptObject.cs:171-175) =
 **1.4 tiles/s × (1 + terrain.MovementSpeedAddPercent)** — a base of 1.4 tiles/sec on the tile the entity
 currently stands on, modulated by that tile's terrain.
 
 > **Effective speed is 3.5 tiles/s, not 1.4 (2026-07 deep pass, re-verified).** The only `AffectTravelFunc`
-> ever assigned is `RPGExploring.HandleRunning` (`RPGExploring.cs:43-51`), and its `speedMod *= 2.5f` is
+> ever assigned is `RPGExploring.HandleRunning` (`RPGExploring.cs:43-51`), and its speedMod multiplied by 2.5 is
 > **unconditional** (`RPGExploring.cs:50`) — it applies every tick whether or not the run key is held. The
 > run key (`FPRunForward`) only **adds a `Front` vector** to `travel` (`RPGExploring.cs:46-48`), which
 > merely biases direction when you're also strafing; it never touches `speedMod`. And because `travel` is
@@ -69,14 +49,7 @@ currently stands on, modulated by that tile's terrain.
 
 `FPMapLogic.MoveUnitBasedOnTravelVector`:
 
-```csharp
-ent.Velocity = travel * u.CalcMovementSpeed(ent) * speedMod;
-V2 change = ent.Velocity * (float)ent.GameTimeSinceLastTick;          // dt-scaled
-FPLBumpResult bump = HandleUnitPointToWallCollision(ent, u, ref change);  // may zero an axis
-if (bump.BumpOccured) PlayBumpSoundIfPlayer(ent, u, bump.BumpSound);
-u.Position += change;
-ent.FPState.DistanceTravelled += change.Length;
-```
+`MoveUnitBasedOnTravelVector` derives velocity from normalized travel, actor movement speed and speed modifier, then scales by tick duration. `HandleUnitPointToWallCollision` may remove a blocked axis; a bump can trigger its sound. Only the resulting displacement updates position and accumulated distance. This explains sliding versus total blockage.
 
 ### Collision / wall blocking (`HandleUnitPointToWallCollision`, FPMapLogic.cs:39-132)
 
@@ -121,19 +94,7 @@ ent.FPState.DistanceTravelled += change.Length;
 
 `FPExploring.HandleMouseTurning` blends mouse and key turning into a continuous heading delta:
 
-```csharp
-float m = mWorld.RawInput.MouseXChange / 8f;     // mouse sensitivity: raw delta / 8
-float k = 0f;
-if (input.IsHeld(FPTurnLeft))  k += -1f;          // key turn: ±1 degree/frame, accumulative
-if (input.IsHeld(FPTurnRight)) k += +1f;
-mWorld.LastFacing = mWorld.Facing;
-mWorld.Facing += m + k;
-ClampPlayerDirectionBetween0And360();
-PlayCardinalDirectionSoundIfCrossed();
-FSO.FPML.UpdateFrontVector(mWorld);               // recompute Front immediately
-mTurnedWithMouseThisLoop = (m != 0f || k != 0f);
-if (mTurnedWithMouseThisLoop) mWorld.SC.ResetAllButFrontRadar();  // clear stale open/close history
-```
+The turn handler adds raw mouse X divided by eight and one degree per held turn key per frame. It retains the old heading, normalizes the new heading, emits crossed-cardinal cues and immediately updates Front. Any mouse/key turn marks the tick as turned and clears all radar history except Front. References: `FPExploring`, `ClampPlayerDirectionBetween0And360`, `PlayCardinalDirectionSoundIfCrossed` and `ResetAllButFrontRadar`.
 
 > **Radar interaction:** any intentional turn calls `ResetAllButFrontRadar()` (mouse/key,
 > `FPExploring.cs:365`) or `ResetRadar()` (snaps/teleports) so the open/closed transition logic
@@ -177,22 +138,7 @@ a `suppressTTS` parameter, there is no TTS/speech branch anywhere in the method 
 the parameter is dead code and every caller (turn-crossing, snap) gets sound only, no spoken direction
 name.
 
-```csharp
-ClampPlayerDirectionBetween0And360();
-float f = mWorld.Facing;
-float dN = (f > 270f) ? (360f - f) : f;     // angular distance to North(0)
-float dE = Math.Abs(90f  - f);
-float dS = Math.Abs(180f - f);
-float dW = Math.Abs(270f - f);
-int thresh = 67;
-if (!NoSoundsOrMusic && SC.RadarEnabled) {
-    if (dN < thresh) { mNorthSE.Update((North + Position).AsV3()); mNorthSE.Play(); }
-    if (dS < thresh) { mSouthSE.Update((South + Position).AsV3()); mSouthSE.Play(); }
-    if (dW < thresh) { mWestSE .Update((West  + Position).AsV3()); mWestSE .Play(); }
-    if (dE < thresh) { mEastSE .Update((East  + Position).AsV3()); mEastSE .Play(); }
-}
-// cardinal vectors (Y-down): North(0,-1) South(0,1) East(1,0) West(-1,0)
-```
+`AnnounceDirection` normalizes heading and measures angular distance to each world cardinal. When sounds/music and radar are enabled, every cardinal within 67 degrees plays from a point one unit in that direction relative to the player. Adjacent cues can overlap near diagonals. The Y-down cardinal frame is North negative Y, South positive Y, East positive X and West negative X.
 
 The threshold is the **integer `67`** (`FPExploring.cs:839`) — note it is *not* the `67.5°`
 `RoughDirection` bin edge (§4 "Direction binning"), just a nearby round number. Because `67 > 45`, near
@@ -282,24 +228,14 @@ The whole loop runs in this fixed order every frame; announcement sequencing (be
 8. `RunForwardComparison(announcedRegion)` (auto forward scan, Doc 05 §2)
 9. `RunSideComparison` ×2 (left, then right — audio cue only, Doc 05)
 
-```csharp
-int x = floor(Position.X), y = floor(Position.Y);
-FPRegion region = map.Tiles.Get(x,y).Region;
-if (region != mCurrentRegion) {
-    mWorld.Speech.CancelAllSpeech();
-    if (region.IsNone() && mCurrentRegion != null) TranslateSO.TSay("leaving {0}",  mCurrentRegion.FriendlyName);
-    else                                           TranslateSO.TSay("entering {0}", region.FriendlyName);
-    mCurrentRegion = region;
-    return true;   // signals "region changed" -> forces a fresh forward POI scan this frame
-}
-```
+`FPExploring.HandleRegion` reads the region of the floored player tile. A changed region cancels current speech, announces leaving the previous named region when entering unnamed space or entering the new named region otherwise, then stores the region and reports a change. `FPExploring.Process` (`FPExploring.cs:149-167`) uses that change to force a fresh forward POI scan.
 
 - **`CancelAllSpeech` first (`FPExploring.cs:179`) → region announcements INTERRUPT.** The newest area is
   what matters, so any queued speech is dropped before "entering/leaving" is spoken.
 - **"leaving X" fires only into *unnamed* space** (`:180-183`): the branch requires the *new* region to
   be `IsNone()`. A named region A → named region B transition therefore says **only "entering B"**, never
   "leaving A" (see Doc 06 §1).
-- **The `return true` bypasses the auto-scan throttle.** `RunForwardComparison` skips its `0.1 s` gate
+- **The successful region-change result bypasses the auto-scan throttle.** `RunForwardComparison` skips its `0.1 s` gate
   whenever `announcedRegion` is set (`FPExploring.cs:393`), so the new area is re-scanned and described
   the same frame it's entered (Doc 05 §2).
 

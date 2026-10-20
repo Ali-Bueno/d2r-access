@@ -172,7 +172,7 @@ The table is at `0x2294F30` and its count is at `0x2294F74`; both are written at
 * MonStats2 (`0x975B0`, bank+0xF98, stride 0x128) `+4` bit7 = **corpseSel**.
 
 **The udead state test.**
-* `0x336300(unit)` passes the mask `*(bank+0x3D8)` to `0x336440`.
+* `0x336300(unit)` passes the mask the value read at bank offset 0x3D8 to `0x336440`.
 * `0x336440` ANDs that mask with the unit's active-state bitset `statlist+0xAF0` (from `0x2F6370`,
   the same bitset the poison reader uses). The length in words is `(bank+0x298 + 31) >> 5`.
 * The masks are an array at `bank+0x2C8 + 8·k` (indexed form at `0x3362D0`), with k the states
@@ -201,57 +201,56 @@ potion, 5 find item and 6 grim ward. The thunk order suggests 1→`0x965E0`, 2�
 
 ## 6. Fingerprints (`LayoutCheck::Hash`)
 
-```c
-// pet list and HUD
-{0x13B270,   33, 0x17DFFFA847B8AD90ULL}, // node by id: head 0x2A4DC10, id +8, next +0x30
-{0x13ABC0,  123, 0x6B3D47A73702E114ULL}, // (shipped) nth pet: owner +0xC, type +4, dead flag +0x20
-{0x13AA50,   37, 0xDA9992529F17CB7BULL}, // (shipped) life +0x1C
-{0x13ABA0,   32, 0xEF297C9F25E10636ULL}, // owner +0xC or -1
-{0x13AB80,   27, 0x3F52C1F982EDB58AULL}, // pet type +4
-{0x13AA80,   27, 0xC210D535C7CBDBE5ULL}, // class u16 +0
-{0x13A5A0,  179, 0x4AC276CB45359F2EULL}, // node create: 0x38 bytes, life 100, head push
-{0x13AEC0,  173, 0x640B7385EF906B52ULL}, // remove; own hireling flagged +0x20
-{0x13B1E0,  129, 0xDEE448CAC950BB5FULL}, // life +0x1C, level +0x10
-{0x12DBD0,   36, 0x9AE4DA92E6178A75ULL}, // add/remove packet layout
-{0x12DE10,   29, 0x9C1AF17D2B65342BULL}, // (shipped) 0x7F: non-player -> 0x13B1E0
-{0x13A890,  195, 0xD27DFEF5C8476258ULL}, // count by owner/type (pool +8)
-{0x13ADD0,  228, 0x75F1780A77344CD7ULL}, // per-pet walk, loaded units only
-{0x13A4F0,  169, 0x41641BC29FB5E290ULL}, // PetType row: bank+0x12D8/+0x12E0, stride 200
-{0x1E75F0,  697, 0x719F3C566D8354C4ULL}, // HUD dispatcher: icontype +0x12
-{0x1E8750, 1017, 0xB43B0394955637C4ULL}, // single/counted portrait
-{0x1E7C60, 1150, 0xF70A32865564F91FULL}, // per-pet portraits
-{0x1E78B0,  932, 0x41B7EFE401C8822FULL}, // hireling portrait
-{0x1E6560,  341, 0x65A33E3907E2FF09ULL}, // icon index: mclass +0xB6, micon +0x33, drawhp
-{0x1E66C0,  141, 0x76D2ECDB0E4C5E6BULL}, // name: overridename +0xC0, name +0x10, 5382 skipped
-{0x97490,   228, 0x76BB3F5F993669AAULL}, // (shipped) unit life prefers node life
-{0x5000F0,  581, 0x8253CF977504AC72ULL}, // server: 0x7F for partysend pets
-{0x480AD0,  461, 0x4E34945C8B6B454EULL}, // (shipped) server 0x7F builder
-{0x480CA0,  334, 0x66027795B9D2B371ULL}, // server add/remove builder
-{0x4FFF00,  491, 0x535EE4EC9E22C6CAULL}, // server: all pets of a player to a client
-// ownership / hireling bit
-{0x1A28A0,  611, 0xE2E2757FB95F3E9FULL}, // client: bit 9 set for the hireling
-{0x98FA0,  1385, 0x0C89F66E218B2A96ULL}, // ...only when pet type == 7
-{0x34E2F0,   73, 0xA458B77F6147A6E7ULL}, // bit 9 setter
-{0x971E0,   675, 0x702AD84E5A3174ACULL}, // hostility: pet owner, or +0x128&0x400 / +0xE8 / +0xEC
-{0x34FB00,   54, 0x94781FF2A3108387ULL}, // Unit+0x128 mask test
-// corpses
-{0x9E950,   129, 0x264896FE6CD54DFCULL}, // SelectProc +0x35 dispatch, table 0x2294F30
-{0x97790,   169, 0x44E02BF073C32627ULL}, // skills row
-{0x96600,   421, 0x2C28006559D579EFULL}, // revive proc
-{0x33FBE0,  177, 0xAAB1ED1B6CE1192CULL}, // core: mode 12, !udead, corpseSel
-{0x33A4F0,   26, 0x189A5B87CFF67661ULL},
-{0x33A5C0,  155, 0x8D9FF5C29B085D65ULL}, // core
-{0x33A510,  167, 0xB4FCC3BC8968BF90ULL}, // core + soft
-{0x33A9A0,   96, 0x0C67C5B215C0CBF1ULL}, // core + Velocity
-{0x34FA60,  156, 0x249991F0A3B8BAB4ULL}, // MonStats2 +5 soft
-{0x336300,   42, 0x5033F280CDEB4295ULL}, // udead mask bank+0x3D8
-{0x336440,  159, 0x7458FBC20E6C1529ULL}, // mask AND statlist+0xAF0
-{0x2F6370,   96, 0x5854EA1B418EE4BAULL}, // statlist+0xAF0
-{0x975B0,   300, 0x58E2457EEE069F89ULL}, // MonStats2 row
-{0x9B840,  1438, 0x68A7C846BCCB18EFULL}, // hover: dead needs bit 2
-{0x1A33B0, 1175, 0xF4E8D8AF227FED8AULL}, // init: bit1 = isSel, bit2 = isAtt
-{0x34DB10,   71, 0xD1F8F2A8B0759702ULL}, // bit 2 setter
-```
+Fingerprint evidence for `LayoutCheck::Hash`; each row records RVA, byte span, hash and purpose.
+
+| RVA | Bytes | Hash | Purpose / source locator |
+|---|---:|---|---|
+| 0x13B270 | 33 | 0x17DFFFA847B8AD90 | node by id: head 0x2A4DC10, id +8, next +0x30 |
+| 0x13ABC0 | 123 | 0x6B3D47A73702E114 | (shipped) nth pet: owner +0xC, type +4, dead flag +0x20 |
+| 0x13AA50 | 37 | 0xDA9992529F17CB7B | (shipped) life +0x1C |
+| 0x13ABA0 | 32 | 0xEF297C9F25E10636 | owner +0xC or -1 |
+| 0x13AB80 | 27 | 0x3F52C1F982EDB58A | pet type +4 |
+| 0x13AA80 | 27 | 0xC210D535C7CBDBE5 | class u16 +0 |
+| 0x13A5A0 | 179 | 0x4AC276CB45359F2E | node create: 0x38 bytes, life 100, head push |
+| 0x13AEC0 | 173 | 0x640B7385EF906B52 | remove; own hireling flagged +0x20 |
+| 0x13B1E0 | 129 | 0xDEE448CAC950BB5F | life +0x1C, level +0x10 |
+| 0x12DBD0 | 36 | 0x9AE4DA92E6178A75 | add/remove packet layout |
+| 0x12DE10 | 29 | 0x9C1AF17D2B65342B | (shipped) 0x7F: non-player  to  0x13B1E0 |
+| 0x13A890 | 195 | 0xD27DFEF5C8476258 | count by owner/type (pool +8) |
+| 0x13ADD0 | 228 | 0x75F1780A77344CD7 | per-pet walk, loaded units only |
+| 0x13A4F0 | 169 | 0x41641BC29FB5E290 | PetType row: bank+0x12D8/+0x12E0, stride 200 |
+| 0x1E75F0 | 697 | 0x719F3C566D8354C4 | HUD dispatcher: icontype +0x12 |
+| 0x1E8750 | 1017 | 0xB43B0394955637C4 | single/counted portrait |
+| 0x1E7C60 | 1150 | 0xF70A32865564F91F | per-pet portraits |
+| 0x1E78B0 | 932 | 0x41B7EFE401C8822F | hireling portrait |
+| 0x1E6560 | 341 | 0x65A33E3907E2FF09 | icon index: mclass +0xB6, micon +0x33, drawhp |
+| 0x1E66C0 | 141 | 0x76D2ECDB0E4C5E6B | name: overridename +0xC0, name +0x10, 5382 skipped |
+| 0x97490 | 228 | 0x76BB3F5F993669AA | (shipped) unit life prefers node life |
+| 0x5000F0 | 581 | 0x8253CF977504AC72 | server: 0x7F for partysend pets |
+| 0x480AD0 | 461 | 0x4E34945C8B6B454E | (shipped) server 0x7F builder |
+| 0x480CA0 | 334 | 0x66027795B9D2B371 | server add/remove builder |
+| 0x4FFF00 | 491 | 0x535EE4EC9E22C6CA | server: all pets of a player to a client |
+| 0x1A28A0 | 611 | 0xE2E2757FB95F3E9F | client: bit 9 set for the hireling |
+| 0x98FA0 | 1385 | 0x0C89F66E218B2A96 | ...only when pet type == 7 |
+| 0x34E2F0 | 73 | 0xA458B77F6147A6E7 | bit 9 setter |
+| 0x971E0 | 675 | 0x702AD84E5A3174AC | hostility: pet owner, or +0x128&0x400 / +0xE8 / +0xEC |
+| 0x34FB00 | 54 | 0x94781FF2A3108387 | Unit+0x128 mask test |
+| 0x9E950 | 129 | 0x264896FE6CD54DFC | SelectProc +0x35 dispatch, table 0x2294F30 |
+| 0x97790 | 169 | 0x44E02BF073C32627 | skills row |
+| 0x96600 | 421 | 0x2C28006559D579EF | revive proc |
+| 0x33FBE0 | 177 | 0xAAB1ED1B6CE1192C | core: mode 12, !udead, corpseSel |
+| 0x33A4F0 | 26 | 0x189A5B87CFF67661 | See surrounding native analysis |
+| 0x33A5C0 | 155 | 0x8D9FF5C29B085D65 | core |
+| 0x33A510 | 167 | 0xB4FCC3BC8968BF90 | core + soft |
+| 0x33A9A0 | 96 | 0x0C67C5B215C0CBF1 | core + Velocity |
+| 0x34FA60 | 156 | 0x249991F0A3B8BAB4 | MonStats2 +5 soft |
+| 0x336300 | 42 | 0x5033F280CDEB4295 | udead mask bank+0x3D8 |
+| 0x336440 | 159 | 0x7458FBC20E6C1529 | mask AND statlist+0xAF0 |
+| 0x2F6370 | 96 | 0x5854EA1B418EE4BA | statlist+0xAF0 |
+| 0x975B0 | 300 | 0x58E2457EEE069F89 | MonStats2 row |
+| 0x9B840 | 1438 | 0x68A7C846BCCB18EF | hover: dead needs bit 2 |
+| 0x1A33B0 | 1175 | 0xF4E8D8AF227FED8A | init: bit1 = isSel, bit2 = isAtt |
+| 0x34DB10 | 71 | 0xD1F8F2A8B0759702 | bit 2 setter |
 
 **Not useful as checks.** The thunks `0x965E0`/`0x965F0` and `0x967B0`/`0x967C0` hash identically
 in pairs: their only operand is the zeroed jump.
@@ -274,7 +273,7 @@ bit it reads.
 **Bank.**
 * The bank byte is `Unit+0x1BD` for every unit type. `0x34A0E0` reads it with no type test, and
   `0x3501E0` passes a monster's own `+0x1BD` straight to `0x975B0`.
-* `0x300A90(bank)` asserts that `bank < 4` and returns `*(base + 0x2A9A580 + bank*0x10)`. That
+* `0x300A90(bank)` asserts that `bank < 4` and returns the value read at the sum of the sum of base and 0x2A9A580 and the product of bank and 0x10. That
   displacement is inside its fingerprint.
 * `NativeGroundItems::RuntimeRoots` resolves `tables` through the same `0x300A90(player+0x1BD)`, so
   `tables` is this bank base. `+0xF58`, `+0xF98`, `+0x12D8`, `+0x298` and `+0x3D8` are all relative
@@ -284,39 +283,41 @@ bit it reads.
 
 **MonStats → MonStats2.**
 * `0x975B0(uint8 bank, int classId)` returns the row pointer, or null when out of range:
-  1. `0 <= classId < *(bank+0xF60)`;
-  2. `ex = (int16) *(*(bank+0xF58) + classId*0x1FC + 0x4C)`;
-  3. `0 <= ex < *(bank+0xFA0)`, a qword count;
-  4. return `*(bank+0xF98) + ex*0x128`.
+  1. classId is nonnegative and below the count at bank offset 0xF60;
+  2. ex is the signed 16-bit index at offset 0x4C of the classId row in the table reached through bank offset 0xF58, with 0x1FC row stride;
+  3. ex is nonnegative and below the count at bank offset 0xFA0, a qword count;
+  4. return the sum of the value read at bank offset 0xF98 and the product of ex and 0x128.
 * A failed bound runs an assert hook and then returns 0.
 * `+0x4C` holds the **MonStatsEx** column as a sign-extended int16: the row index into monstats2.
   Proven over all 751 rows of both the Rotw and base banks, and no other offset matches.
 * corpseSel is `+4` bit 7 of that row, proven over all 623 rows of both banks.
 
 **udead test.**
-* `0x336300(unit)` loads the **pointer** `*(bank+0x3D8)`, a dword bit array, and tail-calls
+* `0x336300(unit)` loads the **pointer** the value read at bank offset 0x3D8, a dword bit array, and tail-calls
   `0x336440(unit, mask)`.
 * `0x336440` returns int 1 when any word of `mask[i] & bits[i]` is non-zero, else 0, for
-  `i < (*(u64*)(bank+0x298) + 31) >> 5`.
+  i is below the word count obtained by adding 31 to the unsigned 64-bit bit-count at bank offset 0x298 and shifting right five bits.
 * `bank+0x298` is the states row count: the table builder writes `bank+0x290` (rows) and `+0x298`
   (count) next to the 0x44 stride at `0x300646`..`0x300676`.
 * `bits` comes from `0x2F6370`:
-  1. statlist = `*(Unit+0x88)` (`0x34B870`);
-  2. if the statlist is null, or `*(int32*)(statlist+0x1C) >= 0`, there are no bits and the test
+  1. statlist = the value read at Unit offset 0x88 (`0x34B870`);
+  2. if the statlist is null, or the signed 32-bit statlist field at offset 0x1C is nonnegative, there are no bits and the test
      returns 0;
   3. otherwise `bits = statlist + 0xAF0`, an **inline** array.
 * The path only reads. Its failure branches call the game's assert hooks, which end in `int3` when
   they return non-zero. A Peek replica that pre-checks these values is the safe form off the game
   thread.
 
-```c
-{0x975B0,  300, 0x58E2457EEE069F89ULL}, // MonStats2 row: MonStats+0x4C, bank+0xF98/+0xFA0, 0x128
-{0x976E0,  169, 0xFF5A28122B22038AULL}, // (shipped) MonStats row
-{0x34A0E0,  47, 0x05F93D9EFDC375A1ULL}, // (shipped) Unit+0x1BD
-{0x300A90,  67, 0xBC5C7D366A355A3BULL}, // (shipped) bank table 0x2A9A580, stride 0x10
-{0x3501E0, 119, 0x83CCAAB89BFD9402ULL}, // monster's own +0x1BD into 0x975B0
-{0x336300,  42, 0x5033F280CDEB4295ULL}, // mask pointer bank+0x3D8
-{0x336440, 159, 0x7458FBC20E6C1529ULL}, // word AND over (bank+0x298 + 31) >> 5
-{0x2F6370,  96, 0x5854EA1B418EE4BAULL}, // statlist+0x1C sign, +0xAF0 inline
-{0x34B870,  59, 0xF5A91004595DA706ULL}, // statlist = Unit+0x88
-```
+Fingerprint evidence for `LayoutCheck::Hash`; each row records RVA, byte span, hash and purpose.
+
+| RVA | Bytes | Hash | Purpose / source locator |
+|---|---:|---|---|
+| 0x975B0 | 300 | 0x58E2457EEE069F89 | MonStats2 row: MonStats+0x4C, bank+0xF98/+0xFA0, 0x128 |
+| 0x976E0 | 169 | 0xFF5A28122B22038A | (shipped) MonStats row |
+| 0x34A0E0 | 47 | 0x05F93D9EFDC375A1 | (shipped) Unit+0x1BD |
+| 0x300A90 | 67 | 0xBC5C7D366A355A3B | (shipped) bank table 0x2A9A580, stride 0x10 |
+| 0x3501E0 | 119 | 0x83CCAAB89BFD9402 | monster's own +0x1BD into 0x975B0 |
+| 0x336300 | 42 | 0x5033F280CDEB4295 | mask pointer bank+0x3D8 |
+| 0x336440 | 159 | 0x7458FBC20E6C1529 | word AND over (bank+0x298 + 31) >> 5 |
+| 0x2F6370 | 96 | 0x5854EA1B418EE4BA | statlist+0x1C sign, +0xAF0 inline |
+| 0x34B870 | 59 | 0xF5A91004595DA706 | statlist = Unit+0x88 |

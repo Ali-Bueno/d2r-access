@@ -55,7 +55,7 @@ offset, hook or native dependency was introduced.
 | `0x364700` | Integer destination trace visits collision cells, skips its origin, and stops at a failed body test. Equal X/Y deltas visit diagonal centers. |
 | `0x364C70`, `0x366D40` | Runtime pattern 0 tests one cell; 1/3/5 test a five-cell cross; 2/4 test a 3x3 square. A thin center ray cannot establish player clearance. |
 | `0x3C5610` | Supplies `Path+0x5C` body pattern and `Path+0x64` movement mask to that trace. |
-| `0x334DB0` | Screen displacement is `X=80*(worldX-worldY)`, `Y=40*(worldX+worldY)`. Screen cardinal probes are world diagonals. A wall along a world axis is oblique to those rays. |
+| `0x334DB0` | Screen displacement is X set to the product of 80 and the difference between worldX and worldY, Y set to the product of 40 and the sum of worldX and worldY. Screen cardinal probes are world diagonals. A wall along a world axis is oblique to those rays. |
 | `0x22EEB0` | Destination handling uses collision/path queries. A requested destination is not proof of the player's actual path or current stamp location. |
 | `0x340E70`, `0x343920` | When enabled by the native path flags, a rejected target leads to alternate directional candidates, each checked against the body mask. This explains why blocked straight rays do not imply complete immobility. |
 | `0x3ACC60`, `0x3822B0` | Movement helpers also constrain candidate endpoints with the native trace. Do not substitute the requested input direction for measured displacement. |

@@ -32,15 +32,7 @@ the remembered region, **cancel current speech** and say `entering {name}` (or `
 stepping into unnamed space). Returns a "changed" flag that forces a fresh forward POI scan so the new
 area is immediately described.
 
-```csharp
-FPRegion region = map.Tiles.Get(floor(Position.X), floor(Position.Y)).Region;
-if (region != mCurrentRegion) {
-    mWorld.Speech.CancelAllSpeech();
-    if (region.IsNone() && mCurrentRegion != null) TranslateSO.TSay("leaving {0}",  mCurrentRegion.FriendlyName);
-    else                                           TranslateSO.TSay("entering {0}", region.FriendlyName);
-    mCurrentRegion = region;
-}
-```
+`FPExploring.HandleRegion` compares the floored player tile's region with the saved region. On change it cancels speech, announces leaving the previous region when entering unnamed space or entering the new named region, and stores the new region. Its changed result forces the forward-scan refresh described above.
 
 Regions also surface in scans (Doc 05): `AddSectionPOI` ("`{region} {dist}`"), `AddEndOfRegionPOI`
 ("`end of {region} {dist}`"), and the range-collapsing in `AddRangeToLastRegion`.
@@ -95,21 +87,7 @@ preloaded FMOD event instance.
 Per frame, when the player's tile `ZoneName` changes, the old zone's snapshot is switched off and the
 new one on, via an FMOD parameter `"StopSnapshot"` (0 = active, 1 = stopped):
 
-```csharp
-IAudibleTile curTile = map.GetTile(floor(playerPos.X), floor(playerPos.Y));
-if (curTile != mLastTile && (mLastTile == null || curTile.ZoneName != mLastTile.ZoneName)) {
-    if (mLastTile != null) {                          // turn OFF previous zone's reverb
-        var prev = mZones.FirstOrDefault(z => z.Name == mLastTile.ZoneName);
-        prev?.Event?.mEventInstance.setParameterValue("StopSnapshot", 1f);
-    }
-    var cur = mZones.FirstOrDefault(z => z.Name == curTile.ZoneName);   // turn ON current
-    if (cur?.Event != null) {
-        cur.Event.mEventInstance.setParameterValue("StopSnapshot", 0f);
-        cur.Event.Play();
-    }
-}
-mLastTile = curTile;
-```
+`MapSoundHandler.UpdateMapSoundss` compares the current tile and zone name with the previous tile. A zone-name transition stops the previous zone snapshot through its `StopSnapshot` parameter (value 1), starts the new snapshot with that parameter at zero and plays it, then retains the current tile. Missing zone/event records are tolerated.
 
 So crossing a zone boundary cross-fades the reverb character (e.g. dry corridor → cavernous hall)
 purely through audio, with no announcement. The `IsIndoors` tile flag additionally feeds the FMOD
@@ -126,11 +104,7 @@ purely through audio, with no announcement. The `IsIndoors` tile flag additional
 
 ## 4. Interfaces
 
-```csharp
-// Sound/Ian/IAudibleZone.cs
-public interface IAudibleZone { string Name; string EnvironmentalReverb; }   // (+ flags)
-// tile side (Doc 03): IAudibleTile.ZoneName, IAudibleTile.IsIndoors
-```
+`Sound/Ian/IAudibleZone.cs` carries the zone name and environmental reverb identity plus flags. Tile-side `IAudibleTile.ZoneName` and `IsIndoors` connect map tiles to that zone/acoustic state. See study 03 for tile ownership and study 08 for FMOD consumption.
 
 ---
 

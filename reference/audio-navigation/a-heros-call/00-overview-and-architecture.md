@@ -76,13 +76,7 @@ This single section prevents 90% of porting bugs.
 - **Heading is a compass angle in degrees, clockwise, 0° = North.** `0=N, 90=E, 180=S, 270=W`.
 - Heading → unit vector (the authoritative conversion, `MyMath.GetUnitVectorFromCompassDegrees`):
 
-  ```csharp
-  // degrees: compass, 0=N, clockwise. Returns a unit V2 in (+X=East, +Y=South) space.
-  float r = degrees * PI/180;
-  V2 front = new V2( sin(r), -cos(r) ).Normalized();
-  //   0° -> ( 0, -1) North      90° -> ( 1, 0) East
-  // 180° -> ( 0,  1) South     270° -> (-1, 0) West
-  ```
+  `MyMath.GetUnitVectorFromCompassDegrees` converts clockwise compass degrees to radians and normalizes the direction in the Y-down plane. North points along negative Y, East positive X, South positive Y and West negative X. See `MyMath.cs` and the coordinate-system study for the conversion and handedness limits.
 
 - The perpendiculars (from `V2`): `PerpendicularRight = (Y, -X)`, `PerpendicularLeft = (-Y, X)`.
   In this Y-down frame, **`Left = Front.PerpendicularRight`** and **`Right = Front.PerpendicularLeft`**
@@ -98,18 +92,17 @@ Everything spatial is driven once per frame from **`MapSoundHandler.UpdateMapSou
 (`Sound/Ian/MapSoundHandler.cs:208`). The gameplay state `FPExploring.Process()` updates the player
 position/heading and calls into this. The essential pipeline:
 
-```
-FPExploring.Process()                       // FirstPerson: input, movement, region check, scans
-  └─ player Position (V2), Facing (deg), Velocity (V2) updated
-MapSoundHandler.UpdateMapSoundss(map, actors, playerPos, facingDeg, velocity, inMenu)
-  ├─ build MapAndPlayer 'ent'               // bundles pos, Front/Left/Right…, map, velocity, inMenu
-  ├─ set FMOD 3D listener (pos + forward + up)
-  ├─ mRadar.RunRadar(ent)                   // <-- the reactive radar (Doc 02)
-  ├─ for each positioned/terrain/object sound:
-  │     ObstructionHelpers.PositionSoundForObstruction(ent, srcPos, sound, …)
-  │       └─ depth = CollisionHelperCopy.GetWallAndDoorDepth(map, listener, src)   // raycast (Doc 03)
-  │       └─ mute if depth>=1 ; set obstruction/indoor status ; sound.Update(srcPos)
-  └─ zone change? -> swap FMOD reverb snapshot (Doc 06)
+```text
+FPExploring.Process: input, movement, region checks and scans
+  -> owned player position, facing and velocity
+MapSoundHandler.UpdateMapSoundss
+  -> assemble MapAndPlayer state
+  -> update FMOD listener pose
+  -> evaluate ReactiveRadar (study 02)
+  -> update positioned terrain/object sounds
+     -> CollisionHelperCopy wall/door depth (study 03)
+     -> mute at one tile of obstruction; update indoor state and position
+  -> switch zone reverb snapshots on zone change (study 06)
 ```
 
 Independently, **`FPExploring`** handles the discrete/speech side each frame:
@@ -139,7 +132,7 @@ Pulled from the actual source. Use these as sane defaults when porting.
 | Default scan distance | `GameConfig.ScanDistance` | `GameConfig` | Forward/side scan ray length |
 | Bump-sound throttle | `0.6 s` | `FPMapLogic.PlayBumpSound` | Min interval between wall-bump sounds |
 | Run footstep threshold | `velocity.Length > 2` | `FPMapLogic.PlayStepSound` | Above this speed, use "running" footstep |
-| Effective travel speed | ≈`3.5` tiles/s (**constant**) | `1.4` base × unconditional `2.5` (`RPGExploring.cs:43-51`) × terrain `MovementSpeedAddPercent` | **No walk/run gear**: `speedMod *= 2.5f` is applied *always*; the run key only adds an extra Front-vector bias. This is the speed feeding every radar timing intuition |
+| Effective travel speed | ≈`3.5` tiles/s (**constant**) | `1.4` base × unconditional `2.5` (`RPGExploring.cs:43-51`) × terrain `MovementSpeedAddPercent` | **No walk/run gear**: speedMod multiplied by 2.5 is applied *always*; the run key only adds an extra Front-vector bias. This is the speed feeding every radar timing intuition |
 | Advanced-beacon interval | `2.0 s` | `FPExploring` advanced beacon | Min time between beacon path beeps |
 | Advanced-beacon near switch | `< 5` tiles | `FPExploring` advanced beacon | Switch to simple beacon when this close |
 | Advanced-beacon path lookahead | `10` tiles | `FPExploring` advanced beacon | Max path tiles scanned for an unobstructed beep source |

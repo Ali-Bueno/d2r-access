@@ -33,7 +33,7 @@ binaural spatialization** instead of pan-by-angle.
 
 > `MaxRange` is the scanner field `scan+0x24`, read fresh each tick and passed to the sampler as
 > `param_5` (`FUN_1403f5600:3359`). Its **default is 20.0** world units, written literally in the scanner
-> constructor `FUN_1403f52c0:340` (`*(scan+0x24) = 0x41a00000`). The field is re-read every tick, so it
+> constructor `FUN_1403f52c0:340` (the value read at scan offset 0x24 set to 0x41a00000). The field is re-read every tick, so it
 > can be changed at runtime, but 20.0 is the built-in default.
 
 ## Scan geometry — a fixed 6-axis probe (not a polar sweep)
@@ -65,7 +65,7 @@ plane (XY) plus straight up/down (Z) for elevation. Recovered directly from `FUN
 - The **2 secondary rays** are purely **vertical** (straight up / straight down), centered pan, up
   slightly boosted (1.1) vs down (0.7) — they probe ceiling/above and floor/below (elevation). The
   secondary pass runs only when the `scan+0x29` flag is set (indoor/occlusion state, `FUN_1403f54c0`).
-- Per-ray raymarch (`FUN_1403f6480`, or `FUN_1403f6fd0` without occlusion): advances `p += dir*StepSize`
+- Per-ray raymarch (`FUN_1403f6480`, or `FUN_1403f6fd0` without occlusion): advances p increased by the product of dir and StepSize
   while `dist < MaxRange` (20.0), sampling terrain height at each step. For the 4 horizontal rays, the
   ramp/drop detection comes from the **height (Z) changing along the horizontal march**; the 2 vertical
   rays give direct above/below readings.
@@ -95,7 +95,7 @@ depth; `≥ 6.0 → HarmfulDrop(4)`, `< 6.0 → HarmlessDrop(3)`.
 
 ## Continuous emission (the radar)
 
-- **Cadence** (`FUN_1403f5600:3291-3296`): accumulator `timer += dt`; if `timer < 0.1` return; otherwise
+- **Cadence** (`FUN_1403f5600:3291-3296`): accumulator timer increased by dt; if `timer < 0.1` return; otherwise
   `timer = 0` and emit a pulse. → **10 pulses/second**, all directions in the same pulse.
 - **Diff-gating + movement gate** (`FUN_1403f5de0`): re-triggers a cue only if the type changed, or
   within a 2-frame hysteresis, or if you move along that direction: it computes
@@ -116,7 +116,7 @@ from emitter vs. listener. There is a `StereoPanner` (`FUN_140071e60`, scalar pa
 fallback.
 
 > **Porting implication:** to replicate it faithfully, feed a 3D positional HRTF panner (Steam Audio /
-> Resonance / OpenAL-HRTF) with the **world hit position**, rather than a `pan = f(angle)`.
+> Resonance / OpenAL-HRTF) with the **world hit position**, rather than a pan set to the result of f with arguments angle.
 
 ## SpeakSonar (Q key) — on-demand spoken readout
 
@@ -134,119 +134,13 @@ Localization keys (`.ftl`): `sonar-beam-{wall,open,door,ground,portal,harmless-d
 
 ## Portable C# pseudocode (continuous radar, engine-agnostic)
 
-```csharp
-// Adapter to implement per engine (Unity/MonoGame/…)
-interface ISonarWorld {
-    bool    IsBlocked(Vector3 p);                    // FUN_1400174e0
-    float   SampleHeight(Vector3 p);                 // FUN_140020380 / 140020310
-    bool    HasDoorInAabb(Vector3 min, Vector3 max); // FUN_1403f7460
-    Vector3 ListenerPosition { get; }
-}
-interface ISonarAudio {
-    void PlayCue(string oggId, Vector3 worldPos);    // SpatialPanner (positional HRTF)
-}
+The recovered sonar behavior is documented by `FUN_1403F5600` (tick), `FUN_1403F5DE0` (per-ray emission), `FUN_1403F6480` / `FUN_1403F6FD0` (classification), `FUN_1403F52C0` (construction) and `FUN_1403F5D60` (ray normalization). The engine adapter needs bounded blocked-position, height and door-in-box queries plus listener position; audio plays the classified cue at its hit point through the positional panner.
 
-enum Beam { Open=0, Wall=1, Portal=2, HarmlessDrop=3, HarmfulDrop=4, Door=5, Ground=6 }
-enum Slope { None=0, Up=1, Down=2 }
+The fixed probe has four horizontal cardinals and two vertical rays. Their recovered gains are North 1.00, East 0.98, South 0.80, West 0.94, Up 1.10 and Down 0.70; East/West stereo biases are +0.6/-0.6 and the others centered. Classification distinguishes open, wall, portal, harmless/harmful drop, door and ground, with optional incline-up/down cues. The existing cue-name and native-reference tables in this study identify assets and evidence.
 
-// REAL constants read from the binary (not guessed)
-static class SonarConst {
-    public const float ScanInterval     = 0.1f;   // DAT_140c1ee78
-    public const float StepSize         = 1.0f;   // DAT_140c1eed8
-    public const float MinHeightDelta   = 2.0f;   // DAT_140c1eed0
-    public const float MinGradient      = 0.2f;   // DAT_140c1eed4
-    public const float HarmfulDropDepth = 6.0f;   // DAT_140c1ef10
-    public const float GroundZThreshold = -0.5f;  // DAT_140c1ef30
-    public const float MoveGatePos      = 1.5f;   // DAT_140c1ee8c
-    public const float MoveGateNeg      = -1.5f;  // DAT_140c1ee90
-    public const float MaxRange         = 20.0f;  // FUN_1403f52c0 (scan+0x24 = 0x41a00000); re-read each tick
-}
+Recovered values: scan interval 0.1 seconds (`DAT_140C1EE78`), step one unit (`DAT_140C1EED8`), minimum height delta 2 (`DAT_140C1EED0`), gradient 0.2 (`DAT_140C1EED4`), harmful drop depth 6 (`DAT_140C1EF10`), downward ground threshold -0.5 (`DAT_140C1EF30`), retrigger movement gates +1.5/-1.5 (`DAT_140C1EE8C` / `DAT_140C1EE90`) and range 20 from the constructor, reread each tick.
 
-struct Hit { public bool Valid; public Vector3 Pos; public Beam Type; public Slope Slope; public float Dist; }
-
-sealed class Ray {
-    public Vector3 Dir;      // normalized in the ctor (FUN_1403f5d60)
-    public float Volume;     // ray+0x10 — front/back gain preset
-    public float Pan;        // ray+0x14 — left/right stereo bias preset
-    public Beam LastType; public Vector3 LastHitPos; public int FramesSince;
-    public Ray(Vector3 dir, float vol, float pan) { Dir = Vector3.Normalize(dir); Volume = vol; Pan = pan; }
-}
-
-sealed class Sonar {
-    ISonarWorld world; ISonarAudio audio;
-
-    // Fixed 6-axis probe recovered from FUN_1403f52c0 + the .data table (DAT_140c1ee10..70).
-    // Primary = 4 cardinals in the top-down plane; secondary = 2 vertical (elevation).
-    readonly Ray[] primary = {
-        new Ray(new Vector3( 0,  1, 0), 1.00f,  0.0f), // North / forward
-        new Ray(new Vector3( 1,  0, 0), 0.98f, +0.6f), // East / right
-        new Ray(new Vector3( 0, -1, 0), 0.80f,  0.0f), // South / back
-        new Ray(new Vector3(-1,  0, 0), 0.94f, -0.6f), // West / left
-    };
-    readonly Ray[] secondary = {
-        new Ray(new Vector3(0, 0,  1), 1.10f, 0.0f),   // Up
-        new Ray(new Vector3(0, 0, -1), 0.70f, 0.0f),   // Down
-    };
-    float timer;
-
-    static readonly Dictionary<Beam,string> Cues = new() {
-        [Beam.Open]="open", [Beam.Wall]="wall.ogg", [Beam.Portal]="portal.ogg",
-        [Beam.HarmlessDrop]="harmless_drop.ogg", [Beam.HarmfulDrop]="harmful_drop.ogg",
-        [Beam.Door]="door.ogg", [Beam.Ground]="ground.ogg",
-    };
-    static readonly Dictionary<Slope,string> SlopeCues = new() {
-        [Slope.Up]="incline_up.ogg", [Slope.Down]="incline_down.ogg",
-    };
-
-    public void Tick(float dt) {                          // FUN_1403f5600
-        timer += dt;
-        if (timer < SonarConst.ScanInterval) return;
-        timer = 0f;
-        var origin = world.ListenerPosition;
-        foreach (var r in primary)   Emit(origin, r);
-        foreach (var r in secondary) Emit(origin, r);
-    }
-
-    void Emit(Vector3 origin, Ray r) {                    // FUN_1403f5de0
-        Hit h = Classify(origin, Vector3.Normalize(r.Dir));
-        bool typeChanged = h.Type != r.LastType;
-        r.FramesSince = h.Valid ? 0 : r.FramesSince + 1;
-        float moveAlong = Vector3.Dot(h.Pos - r.LastHitPos, r.Dir);
-        bool retrigger = typeChanged || r.FramesSince < 2
-                         || moveAlong > SonarConst.MoveGatePos || moveAlong < SonarConst.MoveGateNeg;
-        if (h.Valid && retrigger) {
-            audio.PlayCue(Cues[h.Type], h.Pos);
-            if (h.Slope != Slope.None) audio.PlayCue(SlopeCues[h.Slope], h.Pos);
-        }
-        r.LastType = h.Type; r.LastHitPos = h.Pos;
-    }
-
-    Hit Classify(Vector3 origin, Vector3 dir) {           // FUN_1403f6480 / FUN_1403f6fd0
-        float dist = 0f; var p = origin; float prevH = world.SampleHeight(origin);
-        var slope = Slope.None;
-        while (dist < SonarConst.MaxRange) {
-            dist += SonarConst.StepSize; p += dir * SonarConst.StepSize;
-            if (world.IsBlocked(p)) {
-                var min = p - Vector3.One*SonarConst.StepSize; var max = p + Vector3.One*SonarConst.StepSize;
-                Beam t = world.HasDoorInAabb(min, max) ? Beam.Door : Beam.Wall;
-                if (dir.Z <= SonarConst.GroundZThreshold) t = Beam.Ground;
-                return new Hit{ Valid=true, Pos=p, Type=t, Slope=slope, Dist=dist };
-            }
-            float h = world.SampleHeight(p), dh = h - prevH;
-            if (slope == Slope.None && MathF.Abs(dh) >= SonarConst.MinHeightDelta
-                && MathF.Abs(dh)/SonarConst.StepSize >= SonarConst.MinGradient)
-                slope = dh <= 0 ? Slope.Down : Slope.Up;
-            if (dh <= -SonarConst.MinHeightDelta) {
-                float depth = ProbeDropDepth(p, dir);     // LAB_1403f6b7d
-                Beam t = depth >= SonarConst.HarmfulDropDepth ? Beam.HarmfulDrop : Beam.HarmlessDrop;
-                return new Hit{ Valid=true, Pos=p, Type=t, Slope=slope, Dist=dist };
-            }
-            prevH = h;
-        }
-        return new Hit{ Valid=false, Pos=p, Type=Beam.Open, Slope=slope, Dist=dist };
-    }
-}
-```
+Each due tick scans the primary then secondary rays. A ray retains its last hit type/position and no-hit count. A valid hit can retrigger on type change, recent validity or sufficient movement along the ray. Classification advances through samples to the finite range, distinguishes door/wall/ground blockers, tracks slope and probes a detected drop for harmful depth. A full-range miss is open without a valid hit. The earlier portable sketch was an adaptation; it was not complete engine source, and the native functions remain authoritative for unresolved portal/drop semantics.
 
 ## How to port it to your mods (fit with the playbook)
 

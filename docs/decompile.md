@@ -36,7 +36,7 @@ points at.
 
 ## Measurement
 
-Scanning `.text` for genuine `lea r64, [rip+disp32]` instructions (REX.W,
+Scanning `.text` for genuine RIP-relative LEA instructions with a 32-bit displacement (REX.W,
 opcode `8D`, ModRM mod=00 rm=101) finds **67,254** of them. Where they land:
 
 | target | count |
@@ -51,10 +51,7 @@ Seventy-nine references into the read-only data section of a 22 MB game binary
 is not a plausible number. And disassembling two fingerprint-verified
 functions shows what the references really look like:
 
-```
-1400c17f4  mov rax, qword ptr [rip + 0x2909acd]   -> 0x1429CB2C8   (the stack cookie)
-14009a4be  lea rdi, [rip + 0x298942b]             -> 0x142A238F0
-```
+The instruction at VA `0x1400C17F4` references the stack cookie at `0x1429CB2C8`; VA `0x14009A4BE` references `0x142A238F0`. These RIP-relative targets provide the measurement cross-check described here.
 
 `0x1429CB2C8` is the `__security_cookie` — it appears as `_DAT_1429cb2c8`
 throughout the decompile. It is **past the file's `SizeOfImage`**

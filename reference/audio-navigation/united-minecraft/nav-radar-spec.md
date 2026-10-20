@@ -59,12 +59,12 @@ that maps onto style 1. The siblings, and the *arbitration* between them, are in
 |-------|-------|
 | Axes | **Y-up**; **+X = East**, **+Z = South** (so **−Z = North**) |
 | Yaw zero | Minecraft's `getYRot()` is **0 = facing South**, increasing toward West (confirmed at `CameraUtil.java:19-20`, `AccessibilityTickHandler.java:524-525`) |
-| Mod's bearing | `bearing = floorMod(round(yRot) + 180, 360)` → **0 = North, 90 = East, 180 = South, 270 = West**, clockwise (`NavRadarController.java:93`) |
-| bearing → direction vector | `dirX = sin(rad)`, `dirZ = −cos(rad)` (`:129-131`, `:159-161`) |
-| Scan axes | facing **snapped to the nearest 90°**: `facing = floorMod(round(bearing / 90) * 90, 360)` (`:94`) |
+| Mod's bearing | bearing set to the result of floorMod with arguments the sum of the result of round with arguments yRot and 180, 360 → **0 = North, 90 = East, 180 = South, 270 = West**, clockwise (`NavRadarController.java:93`) |
+| bearing → direction vector | dirX set to the result of sin with arguments rad, the Z direction from the negated cosine of the bearing (`:129-131`, `:159-161`) |
+| Scan axes | facing **snapped to the nearest 90°**: facing set to the result of floorMod with arguments the product of the result of round with arguments the quotient of bearing and 90 and 90, 360 (`:94`) |
 | Beams | offsets `{0, 90, 270}` = **front, right, left**. **Behind is deliberately never scanned** (`:43`) |
 
-**Worked example.** With `yRot = -95` → `bearing = floorMod(-95 + 180, 360) = 85` → snapped
+**Worked example.** With `yRot = -95` → bearing set to the result of floorMod with arguments the sum of the negative of 95 and 180, 360 set to 85 → snapped
 `facing = 90` (East). Beams fire at bearings **90 (front / East)**, **180 (right / South)** and
 **0 (left / North)**. Bearing 90 → `dirX = sin 90° = 1`, `dirZ = −cos 90° = 0` → **+X = East**. ✔
 Facing East, your right points South, and the "right" beam correctly probes +Z.
@@ -83,43 +83,11 @@ Facing East, your right points South, and the "right" beam correctly probes +Z.
 Runs on `ClientTickEvents.END_CLIENT_TICK` (`AccessibilityTickHandler.java:76`), i.e. **20 tps → 1 tick
 = 50 ms**, when the radar is toggled on (**N** by default, `ClientKeyBindings.java:78-79`):
 
-```
-tick():
-  bearing  = floorMod(round(yaw) + 180, 360)          # south-zero yaw -> compass
-  facing   = floorMod(round(bearing / 90) * 90, 360)  # SNAP to cardinal
-  for offset in {0, 90, 270}:                         # front, right, left
-      b      = floorMod(facing + offset, 360)
-      result = probe(b)
-      if lastState[b] == result.state: continue       # (1) diff gate, keyed by BEARING
-      lastState[b] = result.state
-      if ticks - lastPlayedTick[b] < 10: continue     # (2) per-bearing cooldown, 500 ms
-      pending.removeIf(cue -> cue.center == b)        #     one pending cue per bearing, newest wins
-      pending.add(cue(b, result))
-
-  if pending nonempty and ticks - lastGlobalPlayTick >= 3:      # (3) global stagger, 150 ms
-      cue = first pending whose state == OPEN, else pending[0]  # (4) OPEN has priority
-      play(cue); lastPlayedTick[cue.center] = ticks; lastGlobalPlayTick = ticks
-```
+The radar tick normalizes Minecraft yaw into clockwise North-zero compass bearing, snaps to a cardinal facing and selects the configured directions. It probes each selected bearing, compares observations to retained state and schedules the relevant cue/readout under the timing and gameplay gates described below. Reference: the United Minecraft radar controller and probe method identified in this study.
 
 ### 3.1 `probe(bearing)` — one ray, classified by **height**, not distance
 
-```
-range = config.navRadarRange                       # default 8 blocks (slider 4..16)
-rayY  = player.y + 0.1                             # JUST ABOVE THE FEET, not eye height
-hit   = clip(from = (x, rayY, z),
-             to   = (x + dirX * range, rayY, z + dirZ * range),
-             blocks = COLLIDER, fluids = NONE, ignoreEntity = player)
-
-if hit == MISS: return OPEN at full range, no material
-
-top      = hitBlockPos.y + hitState.collisionShape.bounds.maxY   # top of what we hit
-rise     = top - player.y                                        # how far UP it is, from the feet
-distance = |hitPoint - from|
-
-state = rise <= player.maxUpStep() ? OPEN       # auto step-up: you walk straight over it
-      : rise <= 1.25              ? JUMPABLE    # one jump clears it
-      :                             BLOCKED     # turn around
-```
+The bearing probe casts a finite COLLIDER ray just 0.1 blocks above the feet, ignoring fluids and the player, using configured reach (default eight blocks, slider 4–16). A miss is open at full range. A hit compares the block collision-shape top with foot height: within the live auto-step height is open, up to 1.25 blocks is jumpable and anything higher is blocked. Distance and material belong to the hit, not to the height category. Reference: `probe` in the radar module identified above.
 
 Three things here are the substance of the whole study:
 
@@ -298,15 +266,7 @@ announce the wall that's doing the occluding.
 
 ### Adapter surface
 
-```
-Vec3   PlayerPosition()                // feet
-float  HeadingDegrees()                // normalized to compass: 0 = North, clockwise
-float  StepUpHeight()                  // live, from the character controller
-float  JumpApexHeight()                // derived from jump velocity & gravity, NOT hardcoded
-Hit    Raycast(origin, dir, maxDist)   // -> { hit, point, distance, topY, materialId }
-void   PlayCue(soundId, volume, pitch, pan)
-void   Speak(text, interrupt)
-```
+The proposed adapter supplies feet position, North-zero clockwise heading, live step-up height, jump apex from the controller's actual velocity/gravity, and a finite raycast returning point, distance, top height and material. Output exposes cue volume/pitch/pan and interruptible speech. This is an adapter contract in this study, not copied engine source.
 
 Everything in §3 is then **engine-free logic copied verbatim**.
 

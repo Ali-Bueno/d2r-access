@@ -171,30 +171,21 @@ https://github.com/soarqin/d2mapapi_mod/blob/master/pathfinder.cpp
 
 La función:
 
-```cpp
-pathFindBFS(...)
-```
+La búsqueda usa `pathFindBFS` en `pathfinder.cpp`.
 
 recibe:
 
-```cpp
-const uint8_t *mapData
-```
+El mapa de `pathfinder.cpp` se consulta como una secuencia de bytes; cada celda conserva sus permisos direccionales.
 
 y cada celda utiliza bits de dirección.
 
 El código itera:
 
-```cpp
-for (auto e: {1, 2, 4, 8})
-```
+En `pathfinder.cpp`, la búsqueda examina los permisos 1, 2, 4 y 8 por separado.
 
 y comprueba:
 
-```cpp
-if (!(mapData[u] & e))
-    continue;
-```
+La búsqueda de `pathfinder.cpp` descarta una dirección cuando el byte de la celda no contiene su permiso correspondiente.
 
 La interpretación aparente es:
 
@@ -312,38 +303,15 @@ Nuestro radar debería trabajar principalmente con:
 
 Intentar llegar a una representación interna similar a:
 
-```cpp
-struct NavigationCell
-{
-    bool walkable;
-
-    bool canMoveLeft;
-    bool canMoveRight;
-    bool canMoveUp;
-    bool canMoveDown;
-
-    // Opcional
-    uint16_t collisionFlags;
-};
-```
+Propuesta de diseño: `NavigationCell` conservaría transitabilidad, permiso de movimiento hacia izquierda/derecha/arriba/abajo y, opcionalmente, las banderas originales de colisión. Es un contrato propuesto en esta investigación, no una declaración de que exista ya ese tipo en producción.
 
 o una representación compacta:
 
-```cpp
-enum DirectionBits : uint8_t
-{
-    Left  = 1,
-    Right = 2,
-    Up    = 4,
-    Down  = 8
-};
-```
+La representación propuesta asigna los bits 1, 2, 4 y 8 a izquierda, derecha, arriba y abajo, respectivamente. Véase `DirectionBits` como nombre del contrato de diseño en esta sección.
 
 con:
 
-```cpp
-std::vector<uint8_t> navigationGrid;
-```
+La cuadrícula propuesta `navigationGrid` almacenaría un byte de permisos por celda; su implementación debe localizarse en el módulo de navegación que adopte esta propuesta.
 
 No copiar ciegamente esta API; adaptar a la arquitectura existente del proyecto.
 
@@ -508,12 +476,7 @@ Sólo las celdas alcanzables deberían participar en la clasificación de espaci
 
 Pseudocódigo:
 
-```cpp
-reachable = FloodFill(playerCell, navigationGrid);
-
-for each directionSector:
-    analyze reachable cells inside sector
-```
+Propuesta: un flood fill desde la celda del jugador obtiene las celdas alcanzables de `navigationGrid`; después se analizan las de cada sector direccional. Esta sección describe el algoritmo, sin reproducir una implementación.
 
 ---
 
@@ -628,11 +591,7 @@ Muchos bugs de radar pueden venir de:
 
 Crear funciones explícitas como:
 
-```cpp
-WorldToCollision(...)
-CollisionToWorld(...)
-WorldToRoom(...)
-```
+El contrato propuesto necesita conversiones explícitas entre mundo y colisión y entre mundo y habitación: `WorldToCollision`, `CollisionToWorld` y `WorldToRoom`. Estos son nombres de diseño, no funciones verificadas aquí.
 
 si corresponde.
 
@@ -705,9 +664,7 @@ o equivalente.
 
 El radar debería consultar una estructura ya procesada:
 
-```cpp
-NavigationMap::GetCell(x, y)
-```
+La consulta propuesta `NavigationMap::GetCell` centraliza el acceso a una celda por coordenadas; las claves y la invalidación se describen alrededor de esta sección.
 
 y no regenerar geometría constantemente.
 
@@ -731,15 +688,7 @@ porque un probe cambia ligeramente de tile.
 
 Guardar un estado semántico por dirección:
 
-```cpp
-enum class RadarSpaceState
-{
-    Unknown,
-    Blocked,
-    Narrow,
-    Open
-};
-```
+El estado propuesto `RadarSpaceState` distingue desconocido, bloqueado, estrecho y abierto. La estabilidad temporal descrita aquí decide cuándo se anuncia un cambio.
 
 y emitir audio/TTS únicamente cuando haya un cambio real suficientemente estable.
 

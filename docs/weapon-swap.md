@@ -30,7 +30,7 @@ Ghidra decompiles of `re/D2R.rebuilt.exe`; every function below is fingerprinted
 `native_weapon_set.cpp`.
 
 - **The flag is not on the player unit.** It is a bool in a client key/value registry:
-  `0x8461C0()` returns `*(.data 0x2E401A0)` (read directly from the `mov rax,[rip+disp32]` at
+  `0x8461C0()` returns the pointer stored at data RVA 0x2E401A0 (read directly from the a RIP-relative pointer load at
   `+4`, because the accessor asserts when the global is empty). `0x11C860(registry, key)` looks
   the key up (murmur finalizer hash) and returns `entry->[+0x10]->[+0x110]` as a bool, 0 when
   absent. 0 = set I, nonzero = set II.

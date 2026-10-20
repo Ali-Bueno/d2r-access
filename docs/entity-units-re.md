@@ -23,18 +23,13 @@ hostility and liveness. Same room walk as `docs/ground-items.md`; only the per-u
 `0x34B9D0` is the type getter; it returns **6 for a null unit**, and `0x349250` (unit destructor)
 writes `*unit = 6`, so **6 means "no/freed unit"** — reject it.
 
-```c
-// 0x34B9D0
-ulonglong FUN_14034b9d0(uint *param_1) {
-  if (param_1 != (uint *)0x0) return (ulonglong)*param_1;   // Unit+0 == type
-  ... return 6; }
-```
+At RVA `0x34B9D0`, `FUN_14034b9d0` reads the unit type from offset zero. A null unit produces the sentinel type 6.
 
 | value | meaning | evidence |
 |---|---|---|
 | 0 | player | `0x34C2C0` treats type 0 with PlrMode 0/0x11; `0x9A1B0` returns 0 for type 0 |
 | **1** | **monster / NPC** | `0x9A1B0` type-1 branch reads MonStats; `0x34C2C0` uses MonMode 0/0xC |
-| **2** | **object** | `0x44FAC0`: `if ((iVar1 == 2) && …) { SetMode(u,2); }` (door opener); `0x34AD90`/`0x34C340`/`0x34C470`/`0x34B520` all gate on `*param_1 == 2` |
+| **2** | **object** | `0x44FAC0`: the object-type branch that sets mode 2 (door opener); `0x34AD90`/`0x34C340`/`0x34C470`/`0x34B520` all gate on unit type 2 |
 | 3 | missile | `0x34DA60` excludes type 3 |
 | 4 | item | already used by the plugin; `0x9A1B0` type-4 branch reads the Items row |
 | 5 | tile / warp | `0x9A1B0` scans the room for a type-5 unit to name a portal (§4) |
@@ -47,14 +42,14 @@ Counts of real comparisons against `0x34B9D0`'s result over the decompiled calle
 
 | RVA | reads | note |
 |---|---|---|
-| `0x34B9D0` | `*(uint*)(Unit+0x00)` | type |
-| `0x349860` | `*(uint*)(Unit+0x04)` | class id (row index into the type's table) |
-| `0x34A330` | `*(uint*)(Unit+0x08)` | unit id |
-| `0x34AB60` | `*(uint*)(Unit+0x0C)` | mode |
-| `0x34A500` | `*(void**)(Unit+0x10)` | type-specific data (MonsterData / ObjectData / ItemData) |
-| `0x34A0E0` | `*(byte*)(Unit+0x1BD)` | table bank (already in `Checks[]`) |
-| `0x34B4A0` | `*(void**)(Unit+0x160)` | next unit in room list (already in `Checks[]`) |
-| `0x34FBA0` | `(*(uint*)(Unit+0x124) >> 9) & 1` | see §5, player-owned minion |
+| `0x34B9D0` | the unsigned 32-bit value read at Unit offset 0x00 | type |
+| `0x349860` | the unsigned 32-bit value read at Unit offset 0x04 | class id (row index into the type's table) |
+| `0x34A330` | the unsigned 32-bit value read at Unit offset 0x08 | unit id |
+| `0x34AB60` | the unsigned 32-bit value read at Unit offset 0x0C | mode |
+| `0x34A500` | the pointer read at Unit offset 0x10 | type-specific data (MonsterData / ObjectData / ItemData) |
+| `0x34A0E0` | the unsigned 8-bit value read at Unit offset 0x1BD | table bank (already in `Checks[]`) |
+| `0x34B4A0` | the pointer read at Unit offset 0x160 | next unit in room list (already in `Checks[]`) |
+| `0x34FBA0` | the bitwise intersection of the right shift of the unsigned 32-bit value read at Unit offset 0x124 and 9 and 1 | see §5, player-owned minion |
 
 **Unit flag words: `Unit+0x124` and `Unit+0x128`, both uint32.** `0x349Cxx`–`0x34FBxx` is a dense
 bank of one-bit getters/setters over them (e.g. `0x34E190`/`0x34E140` are the generic
@@ -62,13 +57,7 @@ set/clear-by-mask entry points). Only the bits named in this document are establ
 
 ## 3. Liveness — verified
 
-```c
-// 0x34C2C0  (param_1 = int* unit; [0x49]=Unit+0x124, [0x4a]=Unit+0x128, [3]=Unit+0xC)
-if ((param_1[0x49] & 0x10000U) != 0) return 1;                       // forced-dead flag
-if (*param_1 == 0) { if (param_1[3] == 0) return 1; ok = param_1[3] == 0x11; }   // player
-else if (*param_1 == 1) { if (param_1[3] == 0) return 1; ok = param_1[3] == 0xc; } // monster
-else return (param_1[0x4a] & 0x4000000U) != 0;                       // everything else
-```
+The liveness routine at RVA `0x34C2C0` checks the forced-dead flag at Unit offset `0x124` (mask `0x10000`). Player mode zero or `0x11` and monster mode zero or `0x0C` count as dead/dying. Other unit types use the `0x4000000` flag at offset `0x128`.
 
 Mode tables are authoritative from CASC `global/excel/MonMode.txt` / `PlrMode.txt` / `ObjMode.txt`:
 
@@ -90,19 +79,10 @@ So: **monster alive ⇔ mode ∉ {0, 12} and `!(Unit+0x124 & 0x10000)`**; for ob
 It is already in `Checks[]` (the plugin cites it as the *item* name resolver); it actually handles
 players, monsters, objects and items:
 
-```c
-char* FUN_14009a1b0(int *unit) {           // 0x9A1B0, __fastcall, returns char* (UTF-8)
-  if (unit[0] == 0) return 0;                                   // player -> nothing
-  if (unit[0] == 1) { s = FUN_1400985a0(unit);                  // composed unique/champion name
-                      if (strlen(s) == 0) { row = FUN_1400976e0(bank, (short)unit[1]);
-                                            return FUN_1405f4a50(*(u16*)(row + 0x36)); } }
-  else if (unit[0] == 4) { row = FUN_140314110(bank, GetClass(unit));
-                           return FUN_1405f4a50(*(u16*)(row + 0xfc)); }   // items (known path)
-  else if (unit[0] == 2) { /* objects, see 4.3 */ } }
-```
+`FUN_14009a1b0` (RVA `0x9A1B0`, Windows x64 calling convention) returns UTF-8 name text. Players have no result on this path. Monsters first use the composed-name builder at `0x985A0`, then fall back to the MonStats row at `0x976E0` and its name index at `0x36`. Items use the record resolver at `0x314110` and name index at `0xFC`; object handling is described in section 4.3. Numeric localization uses `0x5F4A50`.
 
 Calling convention: `__fastcall`, one argument (the unit pointer), returns `char*` — its consumer
-`0x14F3400` does `pcVar16 = (char *)FUN_14009a1b0(param_2); if (*pcVar16 == '\0')`, i.e. **UTF-8/ANSI
+`0x14F3400` does the call to FUN_14009A1B0 followed by an empty-name test, i.e. **UTF-8/ANSI
 `char*`, not `wchar_t*`**, and non-null for types 1/2/4. It is safe thread-wise only on the game/UI
 thread, **but it is not side-effect free**: for monsters it reaches `0x985A0`, which frees and
 re-allocates `MonsterData+0x40` through the game allocator. Recommendation: **do not call it**; use
@@ -110,31 +90,24 @@ the data paths below, which is also the style the plugin already uses for items.
 
 Localization primitives (the plugin's own `Localization::Text` goes through D2RCore's
 `LocalizationService`, so these are only needed as evidence):
-`0x5F4A50 = Text(uint16 id)`, `0x5F4AF0 = Text(uint16 id, char* fallback)`,
-`0x5F4B90 = Text({const char* key, size_t len})` — all three are hash lookups returning
-`*(char**)(node+0x18)`.
+RVA 0x5F4A50, numeric text lookup by 16-bit ID, RVA 0x5F4AF0, numeric text lookup with fallback,
+RVA 0x5F4B90, text lookup by key pointer and byte length — all three are hash lookups returning
+the character pointer read at node offset 0x18.
 
 ### 4.2 Monster name — data path
 
 **Base name (verified end to end).** `MonStats` row = `0x976E0(bank, classId)`, i.e.
 `bank+0xF58` (ptr) / `bank+0xF60` (count), stride **0x1FC**; the name is the **uint16 string id at
 row+0x36**. Verified in code (`0x9A1B0`, `0xC0420`, `0xCEA50`, `0x16A390` all do
-`Localize(*(u16*)(row + 0x36))`) *and* against the data: over all 751 rows, `+0x36 == 0` exactly when
+the result of Localize with arguments the unsigned 16-bit value read at row offset 0x36) *and* against the data: over all 751 rows, `+0x36 == 0` exactly when
 `monstats.txt NameStr` is empty, the key→id map is injective, and the ids resolve in
 `local/lng/strings`: row 0 `skeleton1` → 3011 `"Skeleton"`, row 1 `skeleton2` → 3013 = `0xBC5`
 `"Returned"`, row 148 `akara` → 2892 `"Akara"`.
 
 **Unique / superunique / champion name (verified from code).** `0x985A0` composes it from
-**MonsterData = `*(void**)(Unit+0x10)`**:
+**MonsterData = the pointer read at Unit offset 0x10**:
 
-```c
-// 0x985A0, lVar3 = *(longlong *)(unit + 0x10)   (MonsterData)
-sVar1 = *(short *)(lVar3 + 0x34);  sVar2 = *(short *)(lVar3 + 0x32);
-if (sVar1 == -1) { if (sVar2 != -1) FUN_1405f4a50(sVar2); return; }       // plain name
-pcVar13 = (sVar2 == -1) ? "" : FUN_1405f4af0(sVar2, "");                  // pattern
-... FUN_1403adca0(local_428, pcVar13, pcVar8 /*+0x34*/, pcVar11 /*+0x36*/ /*, +0x38*/);
-*(longlong *)(lVar3 + 0x40) = <allocated copy of local_428>;              // cached char*
-```
+The monster name builder at RVA `0x985A0` uses MonsterData at Unit offset `0x10`. Its indices at `0x32` and `0x34` select plain-name versus pattern formatting, with `-1` indicating an absent index. The localized pattern and name components at `0x34`, `0x36` and `0x38` feed formatter `0x3ADCA0`; the allocated composed UTF-8 result is cached at MonsterData offset `0x40`. See the adjacent localization and layout evidence.
 
 | MonsterData field | type | meaning | confidence |
 |---|---|---|---|
@@ -169,23 +142,13 @@ mask (§3) and display metrics.
 
 ### 4.3 Object name — verified
 
-**ObjectsTxt record = `*(void**)(*(void**)(Unit+0x10))`**, i.e. the first qword of ObjectData
+**ObjectsTxt record = the pointer read at the pointer read at Unit offset 0x10**, i.e. the first qword of ObjectData
 (getter `0x34AD90`). Independently, `0xC0420` gets the same record from the class id with
 **`0x38FD00(bank, classId)` = `bank+0x1528` (ptr) / `bank+0x1530` (count), stride 0x168**.
 
 `0x9A1B0`'s object branch, with every flag byte verified against `objects.txt` over all 587 rows:
 
-```c
-if (rec[0x163] != 0 && unit[3] == 2) { /* OpenWarp && mode Opened: find the type-5 warp unit in
-                                          this room or a neighbour -> FUN_14009f2a0 */ }
-if (rec[0xfa] == 0) {                                   // not a door
-   if (FUN_14034c470(unit)) { link = *(void**)(ObjectData + 0x10);  id = *(u16*)(link + 0x12); }
-   else if (rec[0x12f] == 0 || (char)*(byte*)(ObjectData + 8) >= 0) {
-        key = (char*)(rec + 0x42); return FUN_1405f4b90({key, strlen(key)}); }   // normal path
-   else id = 0xcbe; }
-else { id = (unit[3]-4u < 2) ? 0xc9c : unit[3] == 0 ? 0xc99 : unit[3] == 6 ? 0xc9d : 0xc9b; }
-return FUN_1405f4a50(id);
-```
+The object branch of `FUN_14009a1b0` uses the object record and current mode. An opened OpenWarp follows a type-5 warp in the current or neighboring room to resolver `0x9F2A0`. Non-door shrines use their linked-record name index at `0x12`; ordinary objects localize the key at record offset `0x42`. A negative ObjectData state in the special record case selects label `0xCBE`. Doors select the native state labels `0xC99`, `0xC9B`, `0xC9C` or `0xC9D` according to mode. The controlling record fields are `0x163`, `0xFA`, `0x12F` and shrine classifier `0x34C470`.
 
 | ObjectsTxt field | meaning | how verified |
 |---|---|---|
@@ -213,7 +176,7 @@ game's own "can this object be targeted in its current animation mode" bit: a ch
 in Neutral(0) and not in Opened(2), a door in its closed modes, etc. Doors additionally give their
 state through the mode → name mapping above. Portals/waypoints: `OpenWarp` (`+0x163`) objects in mode
 2 (Opened) name themselves after their **destination level** via `0x9F2A0`:
-`levelId = 0x2EFE50(bank, room)` → `0x32C4A0(bank, levelId)` (`bank+0x1460` / count `bank+0x1468`,
+levelId obtained from native resolver 0x2EFE50 using bank and room → `0x32C4A0(bank, levelId)` (`bank+0x1460` / count `bank+0x1468`,
 stride 0x18C) → ASCII key at `row+0x125` → `0x5F4B90`. (Note `Levels.bin`'s on-disk stride is 0x194,
 so the in-memory Levels record is *not* the bin record — trust `+0x125` from the code, not the bin.)
 
@@ -268,13 +231,7 @@ elite cue.
 between `0xCEA50` (the plate *with* a health bar, which reads `0x2F5020` stats) and the plain
 `0x9A1B0` hover name:
 
-```c
-// 0x140C0C42 .. 0x140C0C5D, lVar14 = MonStats row of this monster
-movzx eax, byte [r13+0x3d]
-test  dword [0x1D996D4], eax   ; jne -> plain name        (must be CLEAR)
-test  dword [0x1D996EC], eax   ; je  -> plain name        (must be SET)
-cmp   word  [r13+0x36], 0      ; je  -> plain name        (must have a name)
-```
+The hover-name renderer between VAs `0x140C0C42` and `0x140C0C5D` reads the MonStats byte at `0x3D`. The relevant bit must be clear in global `0x1D996D4`, set in `0x1D996EC`, and accompanied by a nonzero name word at MonStats offset `0x36`; otherwise the renderer uses the plain name. These are native trait gates, not a new mod classification.
 
 The two masks are **global variables**, not immediates. In the disk image `.rdata` at those addresses
 holds an unrelated monotonic id table, so their live values could not be read offline. They sit in a
@@ -300,7 +257,7 @@ Two hard-coded monster classes are special-cased in `0xC0420`: `0x1A1`/`0x1A2` =
 
 ## 6. Table bank map
 
-Resolver `0x300A90(bank)` returns `*(void**)(0x2A9A580 + bank*0x10)`; every table accessor is
+Resolver `0x300A90(bank)` returns the bank pointer in table 0x2A9A580 at 0x10-byte stride; every table accessor is
 `row = base[off] + index * stride` with `count` at `off+8`. Strides were matched against the
 extracted `.bin` files (`4 + rows*stride == filesize`), which names them:
 
@@ -321,7 +278,7 @@ extracted `.bin` files (`4 + rows*stride == filesize`), which names them:
 ## 7. What could not be established offline
 
 1. **The two nameplate masks** at `0x1D996D4` / `0x1D996EC` (§5). Live check: log
-   `*(uint32*)(exeBase + 0x1D996D0 + 4*k)` for k = 0..7 once at plugin init; expect
+   the unsigned 32-bit value read at the sum of the sum of exeBase and 0x1D996D0 and the product of 4 and k for k = 0..7 once at plugin init; expect
    `{1,2,4,8,0x10,0x20,0x40,0x80}`.
 2. **A dedicated "not rendered / hidden" unit flag.** `Unit+0x124 bit16` forces dead (§3) and
    `MonStats.enabled` (`+0x3F` bit1) disables a row entirely, but no per-instance visibility bit was
@@ -337,7 +294,7 @@ extracted `.bin` files (`4 + rows*stride == filesize`), which names them:
 5. **`ObjectData+0x08` and `+0x10`** — `+0x08` is the byte whose sign selects `"Locked Chest"`, and
    `+0x10` points at the `shrines.bin` row for shrine objects; neither was traced to a writer. Live
    check: log `ObjectData+0x08` for a locked and an unlocked chest, and
-   `*(u16*)(*(void**)(ObjectData+0x10) + 0x12)` for a known shrine.
+   the 16-bit name index at offset 0x12 in the linked record reached through ObjectData offset 0x10 for a known shrine.
 6. **The in-memory Levels record** (stride 0x18C vs the 0x194 bin record): `+0x125` is read as an
    ASCII key by `0x9F2A0`, but the field could not be confirmed against the bin. Live check: open a
    town portal and log the key string at `row+0x125`.
@@ -347,35 +304,37 @@ extracted `.bin` files (`4 + rows*stride == filesize`), which names them:
 `{rva, size, fnv1a}`, same production method as `ground_item_layout.h::Checks[]` (the last three
 rows are the already-shipped tuples, reproduced here as a self-check).
 
-```c
-{0x34B9D0,   45, 0xA892FC2D16626027ULL}, // UNIT_GetType        (Unit+0)
-{0x349860,   46, 0x27DC60F1541D2802ULL}, // UNIT_GetClassId     (Unit+4)
-{0x34A330,   46, 0x7626C6CCA52BFF23ULL}, // UNIT_GetId          (Unit+8)
-{0x34AB60,   43, 0xBCDE6EC19007BD7AULL}, // UNIT_GetMode        (Unit+0xC)
-{0x34A500,   53, 0x8D3BD69276CB0C27ULL}, // UNIT_GetData        (Unit+0x10)
-{0x34C2C0,  104, 0xBF5FE9280CD1598FULL}, // UNIT_IsDeadOrDying
-{0x34FBA0,   52, 0x7BAC2EF8F8795A3DULL}, // Unit+0x124 bit9 (player-owned minion)
-{0x34AD90,   81, 0x2BADCEB575F7FFEFULL}, // OBJECT_GetRecord
-{0x34B520,   82, 0x92E9C1E7FFFA1F03ULL}, // OBJECT_GetLinkedRecord (shrines row)
-{0x34AD40,   72, 0xFA46CE6C937348C4ULL}, // ObjectData+8 byte
-{0x34C340,   66, 0x63746874D9F78DA0ULL}, // ObjectsTxt IsDoor byte
-{0x34C470,   30, 0x2E439D67061BDE9DULL}, // OBJECT_IsShrine (rec+0x127 bit0)
-{0x985A0,   521, 0x69116D401817738CULL}, // MONSTER composed-name builder
-{0x976E0,   169, 0x262A2516AE7AEA21ULL}, // MonStats row      (bank+0xF58, 0x1FC)
-{0x975B0,   300, 0x7E685F6F31B35BD2ULL}, // MonStats2 row     (bank+0xF98, 0x128)
-{0x38FD00,  132, 0x8E99DD2AE136F14FULL}, // Objects row       (bank+0x1528, 0x168)
-{0x32C4A0,  246, 0x6974DAC5D6D6B9B3ULL}, // Levels row        (bank+0x1460, 0x18C)
-{0x9F2A0,   203, 0xBF0DFAAA7FBA1AE5ULL}, // warp -> level name
-{0x5F4A50,  150, 0x8F484EA21C6A17E1ULL}, // Localize(id)
-{0x5F4AF0,  147, 0xDC0D9F06773A7F63ULL}, // Localize(id, default)
-{0x5F4B90, 1035, 0x89EEBB5DDB1B0BC5ULL}, // Localize(key)
-{0x3ADCA0,  990, 0xB52F49BC9A292002ULL}, // name pattern formatter
-{0xCEA50,  5725, 0x27A13CD2C7F4B8CAULL}, // monster plate (evidence for the hostile rule)
-{0xC0420,  3244, 0xAFA4D77E1B5D8644ULL}, // hover-name renderer (evidence)
-{0x9A1B0,   651, 0x52805E57958E13F6ULL}, // UNITS_GetName (already shipped)
-{0x300A90,   67, 0xB8B977E3BE437A28ULL}, // table bank resolver (already shipped)
-{0x34A0E0,   47, 0x17D168C4E18BD823ULL}, // Unit+0x1BD bank (already shipped)
-```
+Fingerprint evidence for `LayoutCheck::Hash`; each row records RVA, byte span, hash and purpose.
+
+| RVA | Bytes | Hash | Purpose / source locator |
+|---|---:|---|---|
+| 0x34B9D0 | 45 | 0xA892FC2D16626027 | UNIT_GetType        (Unit+0) |
+| 0x349860 | 46 | 0x27DC60F1541D2802 | UNIT_GetClassId     (Unit+4) |
+| 0x34A330 | 46 | 0x7626C6CCA52BFF23 | UNIT_GetId          (Unit+8) |
+| 0x34AB60 | 43 | 0xBCDE6EC19007BD7A | UNIT_GetMode        (Unit+0xC) |
+| 0x34A500 | 53 | 0x8D3BD69276CB0C27 | UNIT_GetData        (Unit+0x10) |
+| 0x34C2C0 | 104 | 0xBF5FE9280CD1598F | UNIT_IsDeadOrDying |
+| 0x34FBA0 | 52 | 0x7BAC2EF8F8795A3D | Unit+0x124 bit9 (player-owned minion) |
+| 0x34AD90 | 81 | 0x2BADCEB575F7FFEF | OBJECT_GetRecord |
+| 0x34B520 | 82 | 0x92E9C1E7FFFA1F03 | OBJECT_GetLinkedRecord (shrines row) |
+| 0x34AD40 | 72 | 0xFA46CE6C937348C4 | ObjectData+8 byte |
+| 0x34C340 | 66 | 0x63746874D9F78DA0 | ObjectsTxt IsDoor byte |
+| 0x34C470 | 30 | 0x2E439D67061BDE9D | OBJECT_IsShrine (rec+0x127 bit0) |
+| 0x985A0 | 521 | 0x69116D401817738C | MONSTER composed-name builder |
+| 0x976E0 | 169 | 0x262A2516AE7AEA21 | MonStats row      (bank+0xF58, 0x1FC) |
+| 0x975B0 | 300 | 0x7E685F6F31B35BD2 | MonStats2 row     (bank+0xF98, 0x128) |
+| 0x38FD00 | 132 | 0x8E99DD2AE136F14F | Objects row       (bank+0x1528, 0x168) |
+| 0x32C4A0 | 246 | 0x6974DAC5D6D6B9B3 | Levels row        (bank+0x1460, 0x18C) |
+| 0x9F2A0 | 203 | 0xBF0DFAAA7FBA1AE5 | warp  to  level name |
+| 0x5F4A50 | 150 | 0x8F484EA21C6A17E1 | Localize(id) |
+| 0x5F4AF0 | 147 | 0xDC0D9F06773A7F63 | Localize(id, default) |
+| 0x5F4B90 | 1035 | 0x89EEBB5DDB1B0BC5 | Localize(key) |
+| 0x3ADCA0 | 990 | 0xB52F49BC9A292002 | name pattern formatter |
+| 0xCEA50 | 5725 | 0x27A13CD2C7F4B8CA | monster plate (evidence for the hostile rule) |
+| 0xC0420 | 3244 | 0xAFA4D77E1B5D8644 | hover-name renderer (evidence) |
+| 0x9A1B0 | 651 | 0x52805E57958E13F6 | UNITS_GetName (already shipped) |
+| 0x300A90 | 67 | 0xB8B977E3BE437A28 | table bank resolver (already shipped) |
+| 0x34A0E0 | 47 | 0x17D168C4E18BD823 | Unit+0x1BD bank (already shipped) |
 
 Only `0x300A90` / `0x34A0E0` (and the existing `0x8B2D0` / `0x9A480` / `0x2F5020`) need to be
 *called*; everything else in this document is a guarded memory read, so the plugin keeps its
@@ -421,16 +380,16 @@ study cites. Every fingerprint below matches that image, the Cairn
 `scroll-open` image and the 2026-09-17 `D2R.text.bin`. The controls
 0x34B9D0, 0x34A500, 0xCE8F0 and 0x34C2C0 reproduce their stored hashes.
 
-- **PlayerData** is `*(Unit+0x10)`. The getter `0x34B240` asserts the type is
-  0 at `0x34B261` (`cmp dword [rbx],0`), then reads `mov rax,[rbx+0x10]` at
+- **PlayerData** is the value read at Unit offset 0x10. The getter `0x34B240` asserts the type is
+  0 at `0x34B261` (the comparison of the unit type word with zero), then reads the load from Unit offset 0x10 into RAX at
   `0x34B27A`.
 - **The name is at PlayerData+0.** The name getter `0x134FC0`
   (`D2Client\src\Game\Roster.cpp`) returns the PlayerData pointer itself
-  (`mov rax,rbx` at `0x1350A9`) when the unit has no roster entry. With a
+  (the return-value copy from RBX to RAX at `0x1350A9`) when the unit has no roster entry. With a
   roster entry it returns the roster display name at entry+0xAA, which can
   carry a platform tag. The corpse label `0xCE8F0` uses this getter.
 - **The buffer is `char[0x3D]`.** `0x1C9DE0` copies the name with a 0x3D bound
-  (`mov r9d,0x3D` at `0x1C9DFE`, then `bcStrCopyN`, `0x1227A80`). The ear name
+  (the value 0x3D passed in R9D at `0x1C9DFE`, then `bcStrCopyN`, `0x1227A80`). The ear name
   `0x36DFA0` copies 0x3D bytes from PlayerData. The quest array begins at
   PlayerData+0x40 (`0x5A6650`). 61 = 15 × 4 + 1, which fits 15 UTF-8
   characters, so the name is read as UTF-8. That is an inference: no decoder
@@ -460,7 +419,7 @@ captures, `scroll-open` and `scroll-visible`.
 
   | Field | Offset | Evidence |
   |---|---|---|
-  | Name, `char[0x3D]` | +0 | init `0x13A220`: `mov edx,0x3D`, then the copy |
+  | Name, `char[0x3D]` | +0 | init `0x13A220`: the value 0x3D passed in EDX, then the copy |
   | Unit ID | +0x48 | `0x1366E0` |
   | Party ID, word | +0x5A | `0x136570`, see below |
   | Level ID | +0x5C | getter `0x136440`; set by `0x139460`, packet 0x7F, table entry size 10 |
@@ -473,7 +432,7 @@ captures, `scroll-open` and `scroll-visible`.
   and `0x22BC9C0`, 24-byte stride. That matches opcodes 0x7F and 0x90.
 - **Units:** subtiles, the same frame as unit paths. The server builder
   `0x480AD0` fills X/Y from the unit path getters (`0x341A20`/`0x341A30`). It
-  sends 0x90 only when unit distance `0x324FC0` exceeds 50 (`cmp eax,0x32` at
+  sends 0x90 only when unit distance `0x324FC0` exceeds 50 (the comparison of EAX with 0x32 at
   `0x480BC8`). Its callers include the party-member loop `0x507440`, so
   positions exist only for party members. The automap draw `0xD286C` passes
   X/Y through the subtile projection `0x334E00`.

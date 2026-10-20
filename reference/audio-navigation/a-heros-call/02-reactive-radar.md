@@ -34,22 +34,7 @@ beam *does* is decided by **velocity**: each runs up to two independent detector
 | **Opposite** | idle | — |
 | (diagonal travel ⇒ a beam can be aligned *and* non-parallel: both detectors, same tick) | | |
 
-```
-every frame:
-    if a cue played < 0.1 s ago: return               # ONE global cooldown — freezes sensing too
-    aim beams from FACING; v = unit travel direction (none when still)
-    for beam in [Left, Front, Right]:                 # fixed priority
-        hit = raycast(player, beam.dir, ∞)            # first thing that BLOCKS MOVEMENT (doors count)
-        d   = floor(distance)                         # tiles
-        # detector A — approach pitch (aligned beams)
-        if aligned and d < 3 and d != beam.lastD: play WallApproach[d]   # 0 = nearest = highest pitch
-        beam.lastD = aligned ? d : ∞                  # wipe ⇒ one reminder chirp on resume
-        # detector B — open/closed (perpendicular beams)
-        line = line through (hit point, previous hit point)   # the surface being tracked
-        if line changed since last tick:              # an EDGE just crossed the beam
-            play (new hit BEYOND the old line ? "Open space" : "Closed space")
-        if anything played: cooldown 0.1 s; break     # one cue per tick, ≤ ~10 cues/s total
-```
+`ReactiveRadar.cs` evaluates Left, Front and Right in that priority order. A shared 0.1-second post-cue cooldown pauses sensing. Each beam finds the first movement blocker and tracks floored tile distance. An aligned beam announces changes within three tiles; leaving alignment clears its remembered distance. Lateral beams compare successive distinct hit points to track a wall line; a changed line is classified against the previous line as opening or closing. Evaluation stops after the first beam that emits. See `RunRadar` and `PlayRadarBeamSound` for the original implementation and the caveats below.
 
 Detector B is the clever part: consecutive hits on the same flat wall are collinear **at any approach
 angle**, so sliding along a wall — however obliquely — is silent, and the line changes only when the ray
@@ -132,16 +117,7 @@ corridor walk past a room opening, ending at a wall, produced **5 cues in 2.3 s*
 Called from the game loop every frame (`RPGGameLoop.cs:89` → sound thread → `MapSoundHandler` →
 `RunRadar`). The radar itself (`ReactiveRadar.cs:134-160`):
 
-```csharp
-if (!Enabled) return;                                  // player toggle only
-if (NextRadarTime >= now) return;                      // POST-CUE cooldown (own Stopwatch, real time)
-V2 v = ent.Velocity.Normalized();
-Front.Direction = ent.Front;  Right.Direction = ent.Right;  Left.Direction = ent.Left;
-Front.TravellingThisDirection = ent.Front == v || ent.FrontLeft == v || ent.FrontRight == v;  // §4.6!
-...                                                    // Left/Right likewise, with their diagonals
-foreach (RadarBeam b in AllBeams)                      // order: Left, Front, Right
-    if (PlayRadarBeamSound(ent, b, ent.PlayerPosition, v)) { NextRadarTime = now + 0.1; break; }
-```
+`ReactiveRadar.RunRadar` (`ReactiveRadar.cs:134-160`) skips disabled/cooldown evaluations, normalizes travel velocity, assigns beam directions from player facing and marks alignment against the cardinal or adjacent diagonal travel directions. It then evaluates Left, Front and Right, stopping after the first emitted cue and advancing the shared real-time deadline by 0.1 seconds.
 
 Load-bearing properties:
 
@@ -182,40 +158,7 @@ that visits **grid-line crossings only**, sorts them by distance, and returns th
 
 The core (`ReactiveRadar.cs:162-232`), annotated:
 
-```csharp
-// sense
-V2 point = V2.Zero; double dist = MaxValue; int rounded = MaxValue;
-if (hit.HasValue) { point = hit.Value.Point; dist = (position-point).Length; rounded = floor(dist); }
-
-// shift history — for EVERY beam, before any role exclusion
-V2 lastPoint = rb.LastCollisionPoint;  rb.LastCollisionPoint = point;
-int lastRounded = rb.LastRoundedDistance;
-rb.LastRoundedDistance = rb.TravellingThisDirection ? rounded : int.MaxValue;
-
-// detector A — proximity pitch (§4.5)
-if (rounded < 3 && rounded != lastRounded && rb.TravellingThisDirection) { PlayPitch(rounded); played = true; }
-
-// role gate: open/closed only for beams NOT (anti)parallel to travel   (AlmostEquals, ε = 1e-5)
-if (rb.Direction.AlmostEquals(travelHeading))      return played;
-if (rb.Direction.AlmostEquals(travelHeading * -1)) return played;
-
-// need two valid, DIFFERENT consecutive hits
-if (point == V2.Zero || lastPoint == V2.Zero) { rb.LastCollisionLine = null; return played; }  // miss ⇒ wipe
-if (point == lastPoint) return played;               // idle gate — only bites standing still
-
-// detector B — the line through the last two hits IS the surface being tracked
-Line line = Line.FromPoints(point, lastPoint, isSegment:false);   // 2-D points lifted to Z = 0
-Line lastLine = rb.LastCollisionLine; rb.LastCollisionLine = line;
-if (lastLine == null)          return played;        // silent re-seed
-if (line.Equivalent(lastLine)) return played;        // same surface ⇒ silence
-
-// surface changed ⇒ classify against the OLD line, then consume
-rb.LastCollisionLine = null;
-bool playerSide = lastLine.IsPointLeftOfLine(position);
-bool hitSide    = lastLine.IsPointLeftOfLine(point);
-if (playerSide == hitSide) PlayClose(); else PlayOpen();
-return true;
-```
+`ReactiveRadar.PlayRadarBeamSound` (`ReactiveRadar.cs:162-232`) updates hit-point history before role exclusions. Its aligned detector emits when the floored distance changes below three tiles and resets the bucket when no longer aligned. Open/closed detection excludes beams approximately parallel or antiparallel to travel (tolerance `1e-5`), silently clears/reseeds history after a missing hit, ignores identical consecutive points, and compares the new supporting line with the previous line. A changed line consumes the baseline; matching player/hit sides of the previous line indicate closing, opposite sides opening. The first line after reset seeds silently.
 
 Why it works, and its edges:
 
@@ -356,22 +299,7 @@ touched), the ignored `position` args of `PlayOpen/PlayClose/PlayPitch`, `Collis
 
 ### 5.1 The adapter surface
 
-```csharp
-public interface IRadarWorld {
-    Vector2 Position         { get; }  // navigation-plane position, world units
-    Vector2 Facing           { get; }  // unit, YAW ONLY, projected to the nav plane — never camera pitch
-    Vector2 TravelDir        { get; }  // unit; Vector2.zero when not moving — from the POSITION DELTA
-    float   Speed            { get; }  // world units/s (magnitude of position delta / dt)
-    bool    InActiveGameplay { get; }  // false in menus, dialogue, cutscenes, loading, death
-    bool TryCastBlocking(Vector2 origin, Vector2 dir, float maxDist, out RadarHit hit);
-}
-public struct RadarHit {
-    public float   Distance;           // required
-    public Vector2 Point;              // origin + dir*Distance
-    public Vector2 Normal;  public bool HasNormal;   // if the engine gives one (§5.4)
-    public int     SurfaceId;          // collider/instance id — the best "same surface" test there is
-}
-```
+Proposed adapter `IRadarWorld` supplies owned navigation-plane position, yaw-only unit facing, actual position-derived travel direction and speed, active-gameplay state and a bounded movement-blocking cast. Proposed `RadarHit` carries distance and point plus optional normal and stable surface identity. This is the portable design in this study, not an existing engine API; the rules below constrain adoption.
 
 Rules, each one a real bug class:
 
@@ -403,70 +331,7 @@ questions, that game's own answers:
 
 ### 5.2 The per-tick core
 
-```csharp
-sealed class Beam {
-    public Vector2 Dir; public bool Aligned, Lateral;
-    public float   Pan;                // -1 / 0 / +1, fixed at construction
-    public Plane?  Plane;              // tracked surface (§5.4)
-    public int     LastBucket = -1;    // last proximity bucket announced
-}
-
-sealed class ReactiveRadar {
-    readonly Beam Left  = new(){ Pan = -1f },
-                  Front = new(){ Pan =  0f },
-                  Right = new(){ Pan = +1f };
-    Beam[] Order => new[]{ Left, Front, Right };     // fixed priority — side beams outrank Front (§4.2)
-    float nextCueTime;                               // ONE global cooldown
-
-    public void Tick(IRadarWorld w, float now) {
-        if (!Enabled || !w.InActiveGameplay) { ResetAll(); return; }   // the gate AHC lacks
-        if (now < nextCueTime) return;                                 // freezes sensing too — deliberate
-
-        Vector2 f = w.Facing;
-        Front.Dir = f;
-        Left .Dir = new Vector2( f.y, -f.x);         // AHC "Left" = PerpendicularRight — VERIFY the sign
-        Right.Dir = new Vector2(-f.y,  f.x);         // in your engine's handedness (§4.1 trap)
-
-        Vector2 v = w.TravelDir;
-        bool moving = v != Vector2.zero;
-        float reach = 0.86f * w.Speed;               // reach is a TIME — §5.5
-        float bucketSize = reach / 3f;
-
-        foreach (Beam b in Order) {
-            float align = moving ? Vector2.Dot(b.Dir, v) : 0f;
-            // cone with hysteresis replaces AHC's broken exact == (§4.6)
-            b.Aligned = moving && (b.Aligned ? align > AlignExit : align > AlignEnter);
-            b.Lateral = moving && MathF.Abs(align) < PerpMax;          // role set by VELOCITY (§1)
-        }
-
-        foreach (Beam b in Order) {
-            if (!w.TryCastBlocking(w.Position, b.Dir, MaxRayLength, out RadarHit hit)) {
-                b.Plane = null; b.LastBucket = -1; continue;           // miss ⇒ silent re-seed (§4.4)
-            }
-            bool emitted = false;
-
-            if (b.Aligned && hit.Distance < reach) {                   // detector A (§4.5)
-                int bucket = Math.Min((int)(hit.Distance / bucketSize), 2);
-                if (bucket < b.LastBucket || b.LastBucket < 0) {       // fire only when CLOSER
-                    Play(Cue.Approach(bucket), b.Pan); emitted = true;
-                }
-                b.LastBucket = bucket;
-            } else {
-                b.LastBucket = -1;                                     // re-arm ⇒ one reminder on resume
-            }
-
-            if (b.Lateral && Classify(b, hit, w.Position) is Cue c)    // detector B (§5.4)
-                { Play(c, b.Pan); emitted = true; }
-
-            if (emitted) { nextCueTime = now + 0.1f; break; }          // one beam per evaluation
-        }
-    }
-
-    // §4.7 — on continuous turn: sides always; Front too unless you deliberately ship turn-scan
-    public void ResetSides() { Left.Plane = Right.Plane = null; }
-    public void ResetAll()   { foreach (var b in Order) b.Plane = null; }
-}
-```
+The portable `ReactiveRadar` proposal keeps beam direction, alignment/lateral roles, fixed pan, supporting plane and last approach bucket. It resets outside active gameplay, retains the shared 0.1-second sensing cooldown and Left/Front/Right priority, derives roles from travel using a hysteretic alignment cone, and sizes approach reach at 0.86 seconds of measured speed split into three buckets. Missing hits silently reset beam history. Approach cues fire only for a closer bucket or first entry; lateral plane changes produce open/close cues. The first beam that emits ends evaluation. Turning clears side history; complete reset clears all planes. These are proposed adaptations; the following paragraph lists deliberate deviations from the recovered game.
 
 Deviations from AHC, all deliberate: the gameplay gate, the alignment cone, proximity firing only on
 *decrease* (AHC fires on any change — safe only with noise-free distances), and re-tracking instead of
@@ -519,23 +384,7 @@ normals-only; it drops the most common cue. Always test offset too.)
 **The portable formulation** — this *is* AHC's algorithm (track the supporting plane; fire when it
 changes in normal *or* offset; classify by side of the old plane):
 
-```csharp
-// per beam, only while Lateral and moving
-if (noHit) { beam.Plane = null; return null; }                      // lost surface ⇒ silent re-seed
-Plane cur = PlaneFrom(hit);                                         // point + normal (sources below)
-if (beam.Plane == null) { beam.Plane = cur; return null; }          // SILENT seed, never announce
-
-float denom = Dot(beamDir, beam.Plane.Normal);
-if (Abs(denom) < 0.2f) { beam.Plane = cur; return null; }           // grazing guard (AHC has none)
-float predicted = Dot(beam.Plane.Point - origin, beam.Plane.Normal) / denom;   // old plane, this tick
-
-bool changed = predicted <= 0f
-            || Abs(hit.Distance - predicted) > PlaneEps             // offset changed (doorway!)
-            || (hit.HasNormal && Dot(hit.Normal, beam.Plane.Normal) < COS20);  // orientation changed
-Cue? cue = changed ? (hit.Distance > predicted ? Cue.Open : Cue.Close) : null;
-beam.Plane = cur;                                                   // re-track EVERY tick (no blind window)
-return cue;
-```
+The portable lateral classifier silently seeds a supporting plane after a missing hit. It predicts where the current beam would meet the old plane, rejects grazing cases when the absolute direction/normal dot product is below 0.2, and detects changes in offset or normal (20-degree normal threshold). A hit farther than the old-plane prediction means opening; a nearer hit means closing. Each valid evaluation replaces the tracked plane, avoiding a blind window. This is the proposed adapter classifier described here, with plane tolerance supplied by the surrounding design.
 
 Predicting the old plane's distance (instead of comparing raw distances) cancels out the player's own
 oblique motion — that's what keeps it quiet along walls at any angle. *Measured*: robust to combined
@@ -553,13 +402,7 @@ Where the normal comes from:
 **Fallback (no normals at all)** — absolute-distance hysteresis; slightly later cues,
 speed-independent, four constants:
 
-```
-if      dist >= OpenEnter:                ns = OPEN     // ≈ 2.5 × corridorWidth
-else if dist <= WallEnter:                ns = WALL     // ≈ 1.0 × corridorWidth
-else if prev == OPEN && dist < OpenExit:  ns = NEUTRAL  // enter ≠ exit: dead-band ≈ 0.5 × width
-else if prev == WALL && dist > WallExit:  ns = NEUTRAL
-seed silently on (re)start; announce only on state change to OPEN/WALL
-```
+For the optional distance classifier, enter OPEN at `OpenEnter` and WALL at `WallEnter`. Leave those states at their distinct exit thresholds and otherwise retain the prior state or neutral band. Suggested entry scales are about 2.5 corridor widths for open and one width for wall; the separate exits provide roughly a half-width dead band. Reference: the fallback classifier proposal in this section.
 
 Never use a per-tick jump threshold (`|dist − lastDist| > k`): speed-dependent — slow walks miss
 openings. Field-validated failure.

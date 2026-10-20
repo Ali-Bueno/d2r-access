@@ -100,14 +100,14 @@ Cell coordinates are client pixels / 10.
 
 **Floors and walls** (`0xD5160` → `0x334EF0`):
 - Tile `(tx, ty)` = RoomEx `+0x60`/`+0x64` plus tile `+0x08`/`+0x0C`.
-- Pixels: `x = 8(tx-ty)`, `y = 4(tx+ty)`; tile type ≥ 16 (lower wall) adds 24 to `y`.
+- Pixels: horizontal map X is eight times tile X minus tile Y, vertical map Y is four times tile X plus tile Y; tile type ≥ 16 (lower wall) adds 24 to `y`.
 - Exact inverse: `tx = (x+2y)/16`, `ty = (2y-x)/16`. Both must divide exactly (the /16 self-check).
 - A lower wall decodes three tiles further on both axes and still passes the check, so the discovery mask should come from floors.
 - Subtiles are `5t .. 5t+4` (`0x334ED0`).
 
 **Objects** (`0xD52B0`):
-- Pixels: `x = trunc(cx/10) + 1`, `y = trunc(cy/10) - 3`, where `cx`/`cy` are the unit's path `+0x08`/`+0x0C` (`0x34AF60`, `0x34AFB0`).
-- A static path stores `cx = 16(x-y)`, `cy = 8(x+y)` from its subtile (`0x34D540` → `0x334E00`). A dynamic path computes the same from 32nds of a subtile (`0x3818E0` → `0x334DE0`).
+- Pixels: divide path X by ten, truncate toward zero, then add one; divide path Y by ten, truncate toward zero, then subtract three. Path coordinates `cx`/`cy` are at `+0x08`/`+0x0C` (`0x34AF60`, `0x34AFB0`).
+- A static path stores collision X as sixteen times the difference between map X and map Y, and collision Y as eight times their sum, using subtile coordinates (`0x34D540` → `0x334E00`). A dynamic path computes the same from 32nds of a subtile (`0x3818E0` → `0x334DE0`).
 - The reader takes the middle of each truncation interval, then applies the game's inverse `0x334E80`: `sx = (cx+2cy)/32`, `sy = (2cy-cx)/32`.
 - Accuracy:
   - Static objects round back to their exact subtile.

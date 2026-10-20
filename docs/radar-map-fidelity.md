@@ -45,7 +45,7 @@ image rechecked `0x364700`, `0x364C70`, `0x366D40`, `0x3C5610`, `0x22EEB0` and
 | Resident rooms | `ActiveRoom+0x38` owns its grid; origin, size and cell pointer were already verified at `0x366250`. Unloaded collision is unknown. Logical room rectangles alone cannot describe internal passages. |
 | Body clearance | `0x364C70` selects point, five-cell cross or 3x3 box from the player's actual pattern. Pattern 1 in this session is the cross, checked by `0x366D40`. A clear central pixel/cell alone does not prove passage. |
 | Movement mask | `0x3C5610` passes the player's `Path+0x5C` pattern and `Path+0x64` mask to `0x364700`. The latter visits destination cells and stops at a failed body check; it skips the starting cell. Equal X/Y displacements visit diagonal cell centres. |
-| Coordinate projection | `0x334DB0`: screen X = `80*(X-Y)`, screen Y = `40*(X+Y)`. World +X is screen down/right; world -X is up/left. Fixed screen cardinal rays are world diagonals. |
+| Coordinate projection | `0x334DB0`: screen X = the product of 80 and the difference between X and Y, screen Y = the product of 40 and the sum of X and Y. World +X is screen down/right; world -X is up/left. Fixed screen cardinal rays are world diagonals. |
 | Occupancy | Player/creature stamps share the grid with walls, objects and doors. Existing copy-only player-stamp removal and actor/physical layers remain. Bitfields do not fully encode ownership. |
 
 The classic [D2MOO collision implementation](https://github.com/ThePhrozenKeep/D2MOO/blob/master/source/D2Common/src/D2Collision.cpp)

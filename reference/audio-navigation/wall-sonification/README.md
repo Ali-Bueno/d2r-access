@@ -26,16 +26,7 @@ constant, passive sense of "the box I'm standing in" without pressing anything.
 
 ## 1. The model (identical across all three mods)
 
-```
-Per direction d in {Forward/N, Back/S, Left/W, Right/E}:
-    one CONTINUOUS looping tone channel, created once, NEVER stopped.
-    channel d has a FIXED frequency and a FIXED stereo pan.
-Every tick:
-    hit = cast a ray / step the grid in direction d, up to maxRange
-    if hit within range:  channel.volume = baseVol * falloff(hit.distance)   // closer = louder
-    else:                 channel.volume = 0                                  // open = silent
-    (volume changes are SMOOTHED so there are no clicks)
-```
+For each of the four directions, this proposed design retains one continuous tone channel with a fixed direction-specific frequency and pan. Detection adjusts the channel's audible level under the range/gameplay policy rather than recreating the channel on every observation. Reference: the continuous wall-sonification design in this study.
 
 Four design invariants that make it work — copy all four:
 
@@ -98,7 +89,7 @@ All three generate the tones procedurally; none ship wall WAVs.
 - **Unity IL2CPP (DRG, Megabonk):** Unity's audio path is awkward under IL2CPP, so they run **NAudio**
   directly: a custom `ISampleProvider` (`SineWaveGenerator`) generating **70% triangle + 30% sine**
   (softer than pure sine, more present than pure triangle), → `PanningSampleProvider` → mixer →
-  `WaveOutEvent`. Frequency and volume are smoothed *per sample* (`+= (target−current)*k`) so changes
+  `WaveOutEvent`. Frequency and volume are smoothed *per sample* (a first-order step toward the target, scaled by k) so changes
   are seamless. One output device, all channels mixed.
 
 > **Porting rule:** Mono games → Unity `AudioSource` + a generated clip (or 3 pre-pitched WAVs) is
@@ -116,11 +107,7 @@ All three generate the tones procedurally; none ship wall WAVs.
 - **3D game:** `Physics.Raycast(origin, dir, out hit, maxDist, layerMask)` once per direction. Origin =
   player position **+ ~1 m up** (waist height — avoids floor/ceiling bias). Direction = camera forward
   projected to the horizontal plane, plus its perpendicular for left/right:
-  ```csharp
-  Vector3 fwd = cam.forward; fwd.y = 0; fwd.Normalize();
-  Vector3 right = new Vector3(fwd.z, 0, -fwd.x);   // perpendicular on the ground plane
-  // directions: fwd, -fwd, -right, right
-  ```
+  Project camera forward onto the horizontal plane and normalize it; derive its perpendicular for Right, then reverse those directions for Back and Left. Reference: the camera-relative detection adapter proposed in this section. Verify handedness before adopting it.
   Use a layer mask covering **all movement-blocking colliders** (walls, terrain, rocks, trees,
   invisible/out-of-bounds barriers) — the same layers the player's own collider collides with, not
   just a "walls" layer. Classify the hit (e.g. `GetComponentInParent<…>()`) only if you want to encode
@@ -161,13 +148,7 @@ Everything downstream (channel volume, pan, smoothing, gating) is engine-free.
 
 Expose to the engine-free core:
 
-```csharp
-Vector3 PlayerPosition { get; }
-Vector3 CameraForwardOnPlane { get; }        // or, for grid games, just use world N/S/E/W
-bool RaycastWall(Vector3 origin, Vector3 dir, float maxDist, out Hit hit);  // or grid step-scan
-bool IsInActiveGameplay();                    // for gating
-// audio primitive: a continuous tone channel you can set { frequency, volume, pan } on, smoothly
-```
+The proposed engine adapter supplies owned player position, camera forward projected onto the navigation plane (or fixed world cardinals), a bounded movement-blocking raycast and active-gameplay state. The output adapter owns continuous channels with adjustable frequency, volume and pan. Reference: the detector/channel architecture in this study.
 
 Then copy verbatim: the 4-channel setup, freq/pan-per-direction table, `proximity→volume` mapping with
 smoothing, the "open = silent" rule, and state gating. Tune `maxRange`, `baseVolume`, and the three

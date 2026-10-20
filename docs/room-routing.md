@@ -37,20 +37,7 @@ list.** It walks every room in the level and keeps those whose gap, measured
 between facing edges and negative where the rectangles overlap, is under six
 **tiles** on both axes:
 
-```c
-void BuildNearList(Room2* self) {
-  self[+0x18] = 0;                                  // near count
-  other = self[+0x90]->[+0x10];                     // room->Level->FirstRoom
-  do {
-    gapX = (self.x < other.x) ? other.x - (self.x + self.w)
-                              : self.x - (other.x + other.w);
-    gapY = ... same on Y ...
-    if (gapX < 6 && gapY < 6) push_back(other);     // vector at +0x10/+0x18/+0x20
-    other = other[+0x48];                           // ->next
-  } while (other);
-  // then bubble-sorts by (x + w <= other.x) || (y + h <= other.y)
-}
-```
+`BuildNearList` clears the near-room count at Room2 offset `0x18`, traverses the level room list through offsets `0x90`, `0x10` and next-room offset `0x48`, and compares the signed gaps between each pair of room rectangles. Rooms qualify when both axis gaps are below 6. The near-vector occupies offsets `0x10`, `0x18` and `0x20`; its subsequent ordering uses separation along X or Y. This is the observed native adjacency rule, including overlapping rectangles, rather than center-distance adjacency.
 
 `RoomGraph::Near` is that predicate, reimplemented on rectangles we read
 ourselves. Two independent reasons it cannot silently drift:
@@ -71,9 +58,7 @@ ourselves. Two independent reasons it cannot silently drift:
 The game caches the list in the room itself, and **both call sites build it
 lazily**:
 
-```c
-if (room[+0x18] == 0) BuildNearList(room);   // 0x328da0 and 0x328fd0
-```
+The callers at RVAs `0x328DA0` and `0x328FD0` lazily invoke `BuildNearList` only when the room near-count at `0x18` is zero. Reading an empty list therefore does not establish that no adjacent rooms exist.
 
 A room nothing has touched has an empty list. Distant rooms — exactly the ones
 routing needs — are the ones that have not been touched. So the list is not

@@ -15,15 +15,7 @@ authored in the FMOD project and *parameterized from C#*.
 Radar cues don't use 3D position; they set a single FMOD event parameter named **`"Panning"`** to a
 discrete value:
 
-```csharp
-// FModSoundContext.GetRadarSound
-public I2DSoundSource GetRadarSound(string name, float panningValue) {
-    FModEventWrapper ev = InnerGetEvent(name);
-    if (ev == null) { DiagSO.ESay("unable to find radar sound " + name); return null; }
-    ev.mEventInstance.setParameterValue("Panning", panningValue);   // 0=L, 1=C, 2=R
-    return ev;
-}
-```
+`FModSoundContext.GetRadarSound` resolves the event by sound name, reports a missing event and otherwise sets its `Panning` parameter. Values 0, 1 and 2 identify Left, Center and Right. The event asset defines the resulting balance.
 
 `ReactiveRadar` builds its beams with `0f / 1f / 2f` (Left/Front/Right; Doc 02). The actual L↔R balance
 curve for those three values is authored inside the FMOD event on the `"Panning"` parameter. So in
@@ -36,16 +28,7 @@ FMOD-land, "panning" is just an automation parameter you map to a panner; in a n
 
 ### Listener (once per frame, from player pose) — `MapSoundHandler`
 
-```csharp
-V2 fwd = MyMath.GetUnitVectorFromCompassDegrees(facingDeg);   // heading -> unit vector
-V3 pos = VectorHelpers.MyTransform(new V3(0,-0.0001f,0), facingDeg, playerPos.AsV3()); // ~player pos
-var attr = new FMOD.Studio._3D_ATTRIBUTES {
-    forward  = { x = fwd.X, y = fwd.Y },
-    up       = { x = 0, y = 0, z = 1 },     // mFPUpVector = (0,0,1)
-    position = { x = pos.X, y = pos.Y },
-};
-mSC.mFModStudio.setListenerAttributes(0, attr);
-```
+`MapSoundHandler` converts player facing to a normalized Y-down forward vector and submits listener 0 with world position near the player and positive Z as up. A rotated `-0.0001` Y offset avoids the degenerate zero-vector case described below. Reference: `setListenerAttributes` in the listener update.
 
 The world is 2D (XY); `up` is `+Z`. (The tiny `-0.0001` Y offset avoids a degenerate zero vector in
 `MyTransform`.)
@@ -65,12 +48,7 @@ The world is 2D (XY); `up` is `+Z`. (The tiny `-0.0001` Y offset avoids a degene
 
 ### Source position — `FModEventWrapper.Update`
 
-```csharp
-public void Update(V3 position) {
-    var attr = new _3D_ATTRIBUTES { position = position.AsFModV3() };
-    mEventInstance.set3DAttributes(attr);
-}
-```
+`FModEventWrapper.Update` places the supplied world position into the FMOD 3D attributes and submits them to the event instance. Source updates set position only; listener orientation is handled separately.
 
 `_3D_ATTRIBUTES { VECTOR position, velocity, forward, up }`. Sources set only `position`. Positions are
 tile-units; tile emitters sit at tile centers `(X+0.5, Y+0.5)`.
@@ -109,7 +87,7 @@ they are **never applied to any FMOD event**:
   `Sound/Ian/CombatEvent.cs:303` — `lowLevelSound.Channel.set3DMinMaxDistance(1000f, 1000f)` — hardcoded
   to a huge distance so the **combat TTS voice-over channel is explicitly non-attenuating** (§8 below).
   This has nothing to do with `SoundConfig`.
-- `FModSoundContext.Get3DSound(name, lifetime, minDistance=-1f, maxDistance=-1f, ...)`
+- FModSoundContext.Get3DSound, whose parameters include name, lifetime and optional min/max distances defaulting to -1
   (`FModSoundContext.cs:477-483`) accepts per-cue min/max distance and reverb-flag parameters in its
   **signature**, but the **body ignores every optional parameter** and just returns `InnerGetEvent(name)`
   — vestigial/unused knobs in this build.
@@ -125,7 +103,7 @@ they are **never applied to any FMOD event**:
 | `SoundRolloffFactor` | `1f` | read by `RunTest2` (same print); never applied to any FMOD event |
 | `MuteDistance` (`FModEventWrapper.cs:96`) | `13f` | **live, but unrelated** — see below |
 
-`FModEventWrapper.MuteDistance` is a **hardcoded literal getter** (`public float MuteDistance => 13f;`),
+`FModEventWrapper.MuteDistance` is a **hardcoded literal getter** (the MuteDistance accessor fixed at 13),
 not derived from `SoundConfig`, and — despite the name — it is **not a "mute beyond this distance"
 cutoff**. Its **only** uses are `MapSoundHandler.cs:420,441` as `MuteDistance * 2f` (≈ **26 tiles**): the
 **tile-search radius for SHARED-TERRAIN sounds only** — the code searches out to that radius for the
@@ -138,10 +116,7 @@ nearest tile whose terrain matches the sound, and mutes the sound (`mEventInstan
 in the same breath as `SoundMinDistance`/`SoundMaxDistance` — it's an unrelated, unused-by-FMOD constant.
 `SoundLogic.GetMuteDistanceBasedOnMuteGain` (formula below) is only ever called by the dead `RunTest2`:
 
-```csharp
-// SoundLogic.GetMuteDistanceBasedOnMuteGain
-return (minDistance / muteGain - minDistance) / rolloffFactor + minDistance;
-```
+`SoundLogic.GetMuteDistanceBasedOnMuteGain` derives an inverse-rolloff distance from minimum distance, desired mute gain and rolloff factor. This helper is only used by the dead `RunTest2` path, so it is not evidence of active FMOD attenuation.
 
 ---
 
@@ -153,12 +128,7 @@ two steps by `ObstructionHelpers.PositionSoundForObstruction` (Doc 03 §4):
 1. **Hard mute** if `depth >= 1f` (≥1 tile of wall/door → silent).
 2. Otherwise push `depth` (0..1) plus indoor flags into the event:
 
-```csharp
-// FModEventWrapper.SetObstructionAndIndoorStatus
-mEventInstance.setParameterValue("Obstruction",   obstruction);          // 0..1 -> low-pass muffle
-mEventInstance.setParameterValue("PlayerIndoors",  playerIndoors ? 1 : 0);
-mEventInstance.setParameterValue("SoundIndoors",   soundIndoors  ? 1 : 0);
-```
+`FModEventWrapper.SetObstructionAndIndoorStatus` sends obstruction depth to `Obstruction` and boolean player/source indoor states to `PlayerIndoors` and `SoundIndoors` as numeric flags. The event DSP consumes those parameters; see the mute threshold above.
 
 The FMOD project's DSP chain reads `"Obstruction"` to drive a low-pass filter (and likely volume), and
 the two `*Indoors` booleans to pick reverb/EQ.
@@ -214,20 +184,7 @@ DSP chain — not visible in C#.)
 
 ## 6. Interfaces (contracts to re-implement)
 
-```csharp
-// I2DSoundSource (radar/UI) : ISound, IDisposable
-bool Mute; bool IsLooping; bool IsDisposed; float Panning; float Pitch;
-void Play(); void Stop(); void PlayAndDispose(); void PlayAndCallback(Action cb);
-bool IsCompleted(); double GetPercentCompleted();
-
-// IMovableSound (anything 3D-positioned & occludable)
-string OriginalFile; bool Mute; float MuteDistance;
-void Update(V3 position);
-void SetDirectLowPass(float gainHF, float gain = 1f); void RemoveDirectLowPass();
-void SetObstructionAndIndoorStatus(float obstruction, bool playerIndoors, bool soundIndoors);
-
-// I3DSoundSource : IMovableSound (+ IsLooping, Volume, SecondarySound, …) — world emitters
-```
+Recovered sound contracts: `I2DSoundSource` supports mute, loop/disposal state, pan, pitch, playback/stop/completion and callbacks. `IMovableSound` adds source identity, mute distance, world-position updates, low-pass control and obstruction/indoor state. `I3DSoundSource` adds looping, volume and secondary sound for world emitters. See these interfaces and `FModEventWrapper` for backend ownership and lifetime; this is a contract description, not a portable implementation.
 
 `IAudibleObject` (Doc 05 §3) is the world-object side: `RenderPosition`, `HeardThroughWalls`,
 `SilentInMenus`, and the sound ids `FocusSound / RadarSound / ConstantSound / ConstantEvent /
@@ -237,17 +194,7 @@ SequenceSoundStrings`.
 
 ## 7. FMOD playback API surface used
 
-```csharp
-FMOD.Studio.System.create(out mFModStudio);
-mFModStudio.initialize(1024, INITFLAGS.LIVEUPDATE, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
-mFModStudio.getEvent(path, out EventDescription ed);
-ed.createInstance(out EventInstance inst);
-inst.start();  inst.stop(STOP_MODE.ALLOWFADEOUT);
-inst.set3DAttributes(attr);  inst.setParameterValue(name, value);
-inst.setVolume(v); inst.setPitch(p);
-mFModStudio.setListenerAttributes(0, listenerAttr);
-mFModStudio.update();                  // pumped on the sound thread every 10 ms
-```
+`FModSoundContext` creates and initializes the FMOD Studio system for 1,024 channels with LIVEUPDATE, resolves event descriptions and creates instances. `FModEventWrapper` starts/stops instances (allowing fade-out), updates 3D attributes, event parameters, volume and pitch. `MapSoundHandler` sets listener attributes and pumps Studio updates every 10 ms on the sound thread. See these modules for the recovered API use and the ownership notes below.
 
 ### Threading model (important for mods)
 
@@ -272,7 +219,7 @@ Not every sound is made the same way — porting the mix faithfully means matchi
   cheaper than re-triggering a loop each frame.
 - **Radar instances**: created **once per session**, not per map. The `ReactiveRadar` constructor builds
   all fifteen event instances (5 cues × 3 pans) via `GetRadarSound`, and `MapSoundHandler.MapChanged`
-  only constructs it `if (mRadar == null)` (`MapSoundHandler.cs:98-106`); every later map change just
+  only constructs it the condition the equality test between mRadar and null (`MapSoundHandler.cs:98-106`); every later map change just
   calls `ResetRadar()`, which clears beam history and touches no sound instance.
 
 ### Shared-terrain dual crossfade

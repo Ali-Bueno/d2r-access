@@ -12,15 +12,7 @@ that uses A* pathfinding to place a directional beep on the next reachable step 
 
 ## 1. Beacon data & selection
 
-```csharp
-// Beacon.cs (Beacon.cs:9-13)
-public sealed class Beacon {
-    public string  IndexedName;     // internal id
-    public TString FriendlyName;    // spoken name
-    public float X, Y;              // authored position, NOT tile-centered
-    public V2 Position => new V2(X, Y);
-}
-```
+`Beacon.cs:9-13` stores an internal indexed name, localized friendly name and authored X/Y coordinates. Its position accessor returns those raw coordinates, with no tile-center offset.
 
 > **Not tile-centered.** `Position` is the raw authored `(X, Y)` — no `+0.5` offset is applied. The
 > `+0.5` tile-center convention exists elsewhere in the codebase (portals, `tile.Center`) but not for
@@ -32,11 +24,7 @@ Beacons are **authored map data** — `Beacon` is a serialized object (`X`, `Y`,
 `FPBeaconMenu` (caption `"Choose a beacon"`, `FPBeaconMenu.cs:13-16`) lists `mWorld.Map.Beacons` by
 `FriendlyName` as menu items; selecting one sets `map.ActiveBeacon` (`FPBeaconMenu.cs:22-44`):
 
-```csharp
-foreach (Beacon b in mWorld.Map.Beacons) menu.Items.Add(new MyMenuItem(b.FriendlyName, HandleClick, null, b));
-…
-void HandleClick(MyMenuItem mi){ mWorld.Map.ActiveBeacon = (Beacon)mi.Tag; mWorld.Scene.Up(); }
-```
+`FPBeaconMenu.cs:22-44` creates one menu item per map beacon, using the friendly name and retaining the beacon as the item payload. `HandleClick` assigns that beacon as `ActiveBeacon` and returns to the previous scene.
 
 Bound keys (all in `FPExploring.HandleKeys`): `BeaconMenu` (open list, `FPExploring.cs:571-574`),
 `AnnounceBeacon` (speak distance+direction now, `:579-582`), `DisableBeacon` (clears `ActiveBeacon`,
@@ -48,20 +36,7 @@ Bound keys (all in `FPExploring.HandleKeys`): `BeaconMenu` (open list, `FPExplor
 
 `FPExploring.AnnounceDistanceAndDirectionToBeacon`:
 
-```csharp
-Beacon b = mWorld.Map.ActiveBeacon;
-if (b == null) { DiagSO.Say("No active beacon"); return; }
-V2 toBeacon = mWorld.Position - b.Position;             // vector FROM beacon TO player
-int dist = (int)Math.Round(toBeacon.Length);
-RoughDirection rd = GetRoughDirection(ref toBeacon);
-DiagSO.Say(dist + " " + Enum.GetName(typeof(RoughDirection), rd));   // e.g. "45 NorthEast"
-
-static RoughDirection GetRoughDirection(ref V2 toBeacon) {
-    double a = Math.Atan2(toBeacon.X, -toBeacon.Y);     // compass bearing (Doc 01 §2)
-    float dir = MyMath.RadiansToDegrees((float)a) + 180f;
-    return DirectionHelper.GetRoughDirectionEnum(dir);  // 45°-wide bins
-}
-```
+`FPExploring.AnnounceDistanceAndDirectionToBeacon` reports absence when no beacon is active. Otherwise it rounds Euclidean player/beacon distance and announces the eight-point compass direction from `GetRoughDirection`. That helper derives the bearing from the target-to-player delta and shifts by half a turn before applying `DirectionHelper` bins. See study 01 for coordinate convention.
 
 > The `atan2(X, -Y) + 180°` converts the player↔beacon delta into a compass bearing and then the
 > `+180` flips it from "direction to player" into "direction to beacon" before binning into the
@@ -84,45 +59,7 @@ When `GameConfig.UseAdvancedBeacon`, instead of a raw bearing the game pathfinds
 directional beacon sound positioned on the **next reachable tile along the path**, so you're guided
 around walls rather than into them.
 
-```csharp
-float dist = (mWorld.Position - b.Position).Length;
-if (dist < 5f) { PlaySimpleBeacon(); }                 // see note below: this is a no-op, execution falls through
-
-SinceLastAdvancedBeaconSound += GameTimeSinceLastTick;
-if (SinceLastAdvancedBeaconSound < 2.0) return;        // throttle: one beep / 2 s
-SinceLastAdvancedBeaconSound = 0.0;
-
-FPTile playerTile = FSO.FPML.GetPlayerTile(mWorld);
-FPTile goalTile   = FSO.FPML.GetTile(mWorld, b.Position);
-if (playerTile == goalTile) {                          // arrived
-    mWorld.SC.PlayPlain2DIfExists("arrived at beacon"); DisableBeacon(); return;
-}
-
-// A* on the tile graph, NON-diagonal moves.
-SEquatableEdge<FPTile>[] path = GraphSearch.AStar(mWorld.Map, playerTile, goalTile, includeDiagonals:false);
-if (path == null) { DiagSO.Say("You can't get there from here"); return; }
-
-// Walk up to 10 path tiles; keep the farthest one with clear line-of-sight from the player.
-FPTile beepTile = null; int n = 0;
-foreach (var edge in path) {
-    if (++n > 10) break;
-    FPTile t = edge.Target;
-    float len = (t.Center - mWorld.Position).Length;
-    V2 slope = (t.Center - mWorld.Position); slope.Normalize();
-    if (CH.GetWallOrImpassableCollision(mWorld.Map, mWorld.Position, slope, len) != null) break; // blocked -> stop
-    beepTile = t;
-}
-if (beepTile == null) { DiagSO.Say("Could not find a tile to play the sound from"); return; }
-
-// Direction from that tile back to player -> choose one of 8 pre-positioned directional sounds.
-V2 toBeacon = mWorld.Position - beepTile.Center;
-RoughDirection rd = GetRoughDirection(ref toBeacon);
-I3DSoundSource se = rd switch {
-    North=>mABNorthSE, South=>mABSouthSE, East=>mABEastSE, West=>mABWestSE,
-    NorthEast=>mABNorthEastSE, NorthWest=>mABNorthWestSE, SouthEast=>mABSouthEastSE, SouthWest=>mABSouthWestSE };
-se.Update(beepTile.Center.AsV3());                     // position at the path tile
-se.Play();
-```
+The advanced-beacon path in `FPExploring` keeps a two-second cue interval, recognizes arrival on the beacon tile, plays arrival audio and disables the beacon. Otherwise it uses non-diagonal `GraphSearch.AStar`; failure reports no route. It checks at most ten path tiles and selects the farthest consecutive tile with a clear wall/impassable cast from the player, reporting failure if none qualifies. It computes that tile's eight-point bearing, positions the corresponding preloaded cue at its center and plays it. The under-five-tile simple-beacon call is empty and falls through, as explained below.
 
 > **`PlaySimpleBeacon()` is an empty method body** (`FPExploring.cs:332-334`) and the `dist < 5f` branch
 > that calls it has **no `return`** (`FPExploring.cs:241-244`) — so there is no "fall back to simple cue
@@ -147,10 +84,7 @@ se.Play();
 The eight `mAB*SE` sounds are preloaded with effectively infinite min/max distance and no reverb so
 they always play clearly:
 
-```csharp
-mABNorthSE = mWorld.SC.Get3DSound("ab north", "map", 10000f, 10000f, useEnvironmentalReverb:false);
-// … ab south / east / west / northeast / northwest / southeast / southwest
-```
+`FPExploring` preloads each of the eight `mAB*SE` directional sounds through the sound context with min/max distances both 10,000 and environmental reverb disabled. Reference: the advanced-beacon initialization and `Get3DSound`.
 
 ### Why this design is good (and worth copying)
 
@@ -251,7 +185,7 @@ no beacon indicator** in the overview readout.
 
 ## 5. Porting notes
 
-- **Simple beacon** is trivial anywhere: `bearing = atan2(dx, -dy) deg`, bin to 8 points, speak
+- **Simple beacon** is trivial anywhere: the compass bearing in degrees from the X delta and negated Y delta, bin to 8 points, speak
   `"{round(distance)} {dir}"`. Great for "where's the objective/exit/enemy" in any game.
 - **Advanced beacon**: use your engine's pathfinder (Unity `NavMesh.CalculatePath` for 7DTD; in
   RE-Engine games without exposed nav, fall back to simple bearing or a coarse waypoint graph you
