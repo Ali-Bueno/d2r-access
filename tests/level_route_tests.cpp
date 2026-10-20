@@ -29,6 +29,35 @@ bool Reached(const Navigation::Grid& grid, Position place, int margin) {
 
 int main() {
 	{
+		// The level's rooms are built as the player goes: a map bounded by the
+		// list as it was keeps every later room Outside, where no way reaches --
+		// the player's report of 2026-10-20, where every further unexplored room
+		// answered "no route through explored areas" with an empty way.
+		Level level;
+		const auto all = level.Rooms();
+		std::vector<NativeRooms::Room> first{all.begin(), all.begin() + Across}; // the top row only
+		LevelRoute::Memory partial;
+		Check(partial.Begin(1, 1, first), "a map begins from the rooms built so far");
+		const Position inside{Left + 20.0, Top + 20.0};
+		(void)partial.Learn(level.Loaded(inside, 0));
+		const auto learnt = partial.At(static_cast<int>(inside.x), static_cast<int>(inside.y));
+		Check(learnt == Ground::Open, "fixture: the room walked is learnt");
+		const auto later = NativeRooms::Subtiles(all[2 * Across]);
+		Check(partial.At(later.minX + 5, later.minY + 5) == Ground::Outside, "a room built later is no part of that map");
+		const auto revision = partial.Revision();
+		LevelRoute::Plan plan;
+		const Position target{(later.minX + later.maxX) / 2.0, (later.minY + later.maxY) / 2.0};
+		Check(plan.From(partial, inside, target, 1, 0).path.empty(),
+			"so no way reaches it, guess or not: the fault behind the player's report");
+		Check(partial.Extend(all), "the map grows with the level's room list");
+		Check(partial.At(later.minX + 5, later.minY + 5) == Ground::Unseen,
+			"and the room built later becomes ground a way may cross as a guess");
+		Check(partial.At(static_cast<int>(inside.x), static_cast<int>(inside.y)) == learnt, "what was learnt is kept where it was");
+		Check(partial.Revision() > revision, "a grown map is a new one to plan on");
+		Check(!partial.Extend(all), "growing it again changes nothing");
+		Check(!plan.From(partial, inside, target, 1, 0).path.empty(), "and the room can be planned to at last");
+	}
+	{
 		LevelRoute::Memory memory;
 		Check(!memory.Begin(1, 1, {}), "a level with no rooms is not kept");
 		Check(memory.Revision() == 0 && memory.At(Left, Top) == Ground::Outside, "nothing is kept of it");

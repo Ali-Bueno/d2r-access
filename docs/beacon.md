@@ -124,6 +124,36 @@ silent while outside. These drop the parked lock:
 
 An exit target whose destination is the new level still ends there.
 
+## A room built after the map began was unreachable — 2026-10-20
+
+The player: the first unexplored rooms are led to, and then every further one
+answers *"no route through explored areas"*. The live log named the fault once
+the refusal was made to say what the guidance held:
+
+```
+[survey] niezbadany pokój 5, jednostek: 110, wschód      (110 units, inside the window)
+[beacon] refused reason=no-route lead=no-way waypoint=0 guess=0 way_cells=0 rooms=25 to=7680,5020
+```
+
+An empty way, not even a guess, for a room 110 units away — and `Prepare`
+leads across a synthetic level of the same shape correctly
+(`tests/beacon_guidance_tests.cpp`, `RoomAcrossTheLevel`), so the geometry was
+not it.
+
+`KeyboardService::Remember` bounds a level's map **once**, from the room list as
+it stands when the player first arrives, and afterwards only `Learn`s into it.
+The game builds a level's rooms as the player goes, so every room built later
+fell outside the map, where the ground is `Ground::Outside` — no part of the
+level, and no way crosses it, not even as a guess. Hence an empty way, the
+destination falling back to the room's centre, and a refusal that reads like a
+failure of routing rather than a map that had never heard of the room.
+
+`Memory::Extend` grows the map with the list, keeping every cell already learnt
+and turning ground the bounds now cover from `Outside` into `Unseen`, which a
+way may guess across; `Remember` calls it on every visit and logs
+`[route] the map grew with the level`. Pinned by `tests/level_route_tests.cpp`,
+which asserts the room cannot be planned to before the map grows and can after.
+
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and
