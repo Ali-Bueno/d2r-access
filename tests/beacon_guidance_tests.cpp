@@ -171,6 +171,39 @@ void ExploredOnly() {
 	Check(!path.empty() && !inside, "no cell of the explored way is in the unexplored room");
 }
 
+// The player's report of 2026-10-20: the first unexplored rooms are led to, and
+// then "no route through explored areas" for one the scanner lists 201 units
+// away. The map keeps only ground the game has loaded, so a room across the
+// level has no cells of its own; what matters is that the way still leads
+// toward it over the ground that is known.
+void RoomAcrossTheLevel() {
+	Level level;
+	const auto rooms = level.Rooms();
+	const auto graph = RoomGraph::Build(rooms);
+	// Only the player's own corner has ever been loaded, as a real walk has it.
+	LevelRoute::Memory memory;
+	Check(memory.Begin(1, 1, rooms), "fixture: the map begins");
+	const Position player{Left + 20.0, Top + 20.0};
+	(void)memory.Learn(level.Loaded(player, 1));
+	const auto& far = rooms[(Down - 1) * Across + (Across - 1)];
+	const auto bounds = NativeRooms::Subtiles(far);
+	const Position target{(bounds.minX + bounds.maxX - 1) / 2.0, (bounds.minY + bounds.maxY - 1) / 2.0};
+	Check(std::hypot(target.x - player.x, target.y - player.y) > 150, "fixture: the room is past the loaded window");
+	// What ExploredFor hands Prepare: the rooms walked, plus the target's own.
+	std::vector<NativeRooms::Room> explored{rooms[0], rooms[1], rooms[Across], rooms[Across + 1], far};
+	const World world = level.Loaded(player, 1);
+	BeaconNavigation::RememberedWay way;
+	const auto guidance = BeaconNavigation::Prepare(world, target, &graph, &explored, Margin, nullptr,
+		{&memory, &way, 0, LevelRoute::Area::Of(far)});
+	Check(guidance.available, "a room across the level keeps the guidance available");
+	Check(guidance.hasWaypoint, "and is led toward: the way ends as far along as the known ground goes");
+	Check(Dot(Unit(player, guidance.waypoint), Unit(player, target)) > 0.5, "the waypoint lies toward the room, not away from it");
+	Beacon::Settings settings;
+	settings.requireKnownRoute = true;
+	Check(Beacon::Reaches(guidance.world, Beacon::FindRoute(guidance.world, guidance.waypoint, settings), guidance.waypoint, settings),
+		"and exploration mode can prove a route to it, so the lock is not refused");
+}
+
 // A room is reached at its first step inside: its centre can be wall (the
 // user, 2026-10-14: a route to the unexplored room next door did not work).
 void RoomWithAWalledCentre() {
@@ -290,6 +323,7 @@ int main() {
 	BeyondTheWindow();
 	ExploredOnly();
 	RoomWithAWalledCentre();
+	RoomAcrossTheLevel();
 	PastAnUnexploredRoom();
 	DoorOnTheWay();
 	BoundedReplanning();

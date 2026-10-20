@@ -90,6 +90,45 @@ bool Memory::Begin(uint64_t session, int level, const std::vector<NativeRooms::R
 	return true;
 }
 
+bool Memory::Extend(const std::vector<NativeRooms::Room>& rooms) {
+	if (cells_.empty() || rooms.empty()) return false;
+	int minX = x_, minY = y_, maxX = x_ + width_, maxY = y_ + height_;
+	for (const auto& room : rooms) {
+		const auto bounds = NativeRooms::Subtiles(room);
+		minX = std::min(minX, bounds.minX); minY = std::min(minY, bounds.minY);
+		maxX = std::max(maxX, bounds.maxX); maxY = std::max(maxY, bounds.maxY);
+	}
+	const int64_t width = int64_t(maxX) - minX, height = int64_t(maxY) - minY;
+	if (width <= 0 || height <= 0 || width * height > MaxCells) return false; // fail closed, as Begin does
+	bool grew = false;
+	if (minX != x_ || minY != y_ || width != width_ || height != height_) {
+		// What was learnt is kept: the old grid is copied into its place in the new one.
+		std::vector<Ground> grown(static_cast<size_t>(width * height), Ground::Outside);
+		for (int y = 0; y < height_; ++y)
+			std::copy_n(cells_.begin() + static_cast<size_t>(y) * width_, width_,
+				grown.begin() + static_cast<size_t>(y + y_ - minY) * static_cast<size_t>(width) + (x_ - minX));
+		cells_ = std::move(grown);
+		x_ = minX; y_ = minY;
+		width_ = static_cast<int>(width); height_ = static_cast<int>(height);
+		grew = true;
+	}
+	// A room the bounds already covered can still be outside the level as this
+	// map has it, when it was built after Begin: its ground becomes unseen, which
+	// a way may cross as a guess. Learnt ground is never put back to unseen.
+	for (const auto& room : rooms) {
+		const auto bounds = NativeRooms::Subtiles(room);
+		for (int y = std::max(y_, bounds.minY); y < std::min(y_ + height_, bounds.maxY); ++y)
+			for (int x = std::max(x_, bounds.minX); x < std::min(x_ + width_, bounds.maxX); ++x) {
+				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
+				if (cell != Ground::Outside) continue;
+				cell = Ground::Unseen;
+				grew = true;
+			}
+	}
+	if (grew) ++revision_;
+	return grew;
+}
+
 bool Memory::Learn(const Radar::World& world) {
 	if (cells_.empty() || world.session != session_ || world.level != level_) return false;
 	const uint16_t mask = static_cast<uint16_t>(world.walkingMask & ~NoPath);

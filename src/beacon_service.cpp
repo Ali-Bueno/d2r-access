@@ -345,8 +345,17 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 		const auto destination = !known ? g_offer.entity.position : guidance->hasWaypoint ? guidance->waypoint : guidance->target;
 		if (!known || !Beacon::Reaches(guidance->world, Beacon::FindRoute(guidance->world, destination, settings),
 			destination, settings)) {
-			AsyncLog::InfoF(g_context, "[beacon] refused reason=%s name=%s",
-				!guidance ? "unreadable" : !known ? "outside-explored" : "no-route", g_offer.entity.name.c_str());
+			// What the guidance had: a refusal reads the same whether the way was
+			// empty, its waypoint off the loaded floor, or the route to it short,
+			// and only these fields tell those apart. A synthetic level of the
+			// same shape is led across correctly (tests/beacon_guidance_tests.cpp,
+			// RoomAcrossTheLevel), so a live refusal needs its own evidence.
+			AsyncLog::InfoF(g_context, "[beacon] refused reason=%s lead=%s waypoint=%u guess=%u way_cells=%zu rooms=%zu to=%.0f,%.0f name=%s",
+				!guidance ? "unreadable" : !known ? "outside-explored" : "no-route",
+				!guidance ? "-" : !guidance->remembered ? "room-graph" : guidance->hasWaypoint ? (guidance->guess ? "remembered-map-guess" : "remembered-map") : "no-way",
+				guidance && guidance->hasWaypoint ? 1u : 0u, guidance && guidance->guess ? 1u : 0u,
+				guidance ? guidance->wayCells : 0u, guidance ? guidance->roomCount : 0u,
+				destination.x, destination.y, g_offer.entity.name.c_str());
 			Announce(strings.beaconKnownRouteOnly, g_offer.entity.name);
 			return;
 		}
@@ -447,7 +456,10 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	if (!guidance.available) {
 		if (!g_tracker.RouteLost(now, g_settings)) return;
 		const auto name = g_target.entity.name;
-		Release("known-route-unavailable");
+		// Its own reason: the guidance had no way at all, which is a different
+		// fault from a way whose proved route stops short, and the two were
+		// indistinguishable in the log.
+		Release("outside-explored");
 		Announce(Strings::Current().beaconKnownRouteEnded, name);
 		return;
 	}
@@ -474,6 +486,10 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	if (!update.valid) return;
 	if (update.routeUnavailable) {
 		const auto name = g_target.entity.name;
+		AsyncLog::InfoF(context, "[beacon] route stopped short: lead=%s waypoint=%u guess=%u way_cells=%zu rooms=%zu to=%.0f,%.0f",
+			!guidance.remembered ? "room-graph" : guidance.hasWaypoint ? (guidance.guess ? "remembered-map-guess" : "remembered-map") : "no-way",
+			guidance.hasWaypoint ? 1u : 0u, guidance.guess ? 1u : 0u, guidance.wayCells, guidance.roomCount,
+			guidance.hasWaypoint ? guidance.waypoint.x : guidance.target.x, guidance.hasWaypoint ? guidance.waypoint.y : guidance.target.y);
 		Release("known-route-unavailable");
 		Announce(Strings::Current().beaconKnownRouteEnded, name);
 		return;
