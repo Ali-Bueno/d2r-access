@@ -183,6 +183,20 @@ on another level's rooms, so no cache keeps the previous level's list under the
 new level's number, and the survey's cache retries a failed read instead of
 staying empty for the level.
 
+**Refuted live the same day** (the user, build `e280447`, log kept as
+`../logs/d2r-access-2026-10-20-user.log`): no `[route] the map grew` in 45
+minutes over Lut Gholein, Rocky Waste, Dry Hills, Stony Tomb 1–2 and Halls of
+the Dead 1, and the empty way came back three times:
+
+```
+[beacon] route stopped short: lead=no-way waypoint=0 guess=0 way_cells=0 rooms=34 to=5000,5140   (Lut Gholein, exit to Rocky Waste; relocked at 5000,5100 it arrived)
+[beacon] refused reason=no-route lead=no-way waypoint=0 guess=0 way_cells=0 rooms=13 to=15205,5047   (Stony Tomb 1, stairs down; locked 21 s later)
+[beacon] refused reason=no-route lead=no-way waypoint=0 guess=0 way_cells=0 rooms=13 to=15117,5005   (Stony Tomb 1, stairs up, from the stairs down, along a path walked this game)
+```
+
+With no room added, every room was inside the map's bounds, so the cause is
+elsewhere. All three targets are exits: one at a level's edge, two stairs.
+
 ## Exploration mode
 
 The default since 2026-09-24 (`docs/decisions.md`): the pathfinder orients and

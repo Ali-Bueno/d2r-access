@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Live play by the user — 2026-10-20 (build e280447): two open bugs
+
+Log kept outside the repo: `../logs/d2r-access-2026-10-20-user.log` (the game overwrites its own).
+- **Beacon "no route through explored areas" still happens**, 3 times, `lead=no-way way_cells=0`:
+  town exit to Rocky Waste and both Stony Tomb 1 stairs. No `[route] the map grew` in 45 minutes
+  over 6 levels: the room list does not grow, so PR #4 is not the cause ([beacon](docs/beacon.md)).
+- **Identify never works on an inventory item**, tome or scroll. The log shows the tome focused
+  (15:56:18) and no carry or release after it; on controller, identify is carry and release
+  ([character panel](docs/character-panel.md)).
+**Next step:** find why the remembered map has no way (stairs and level-edge exits), then the
+identify flow.
+
 ## PR #4 merged, its map growth wired to a fresh room read — 2026-10-20 (released as test-2026-10-20 from e280447)
 
 Release: 124/124 CTest, 29 entries, 62,817,687 bytes, SHA-256 `076ea284…2a80a`.
@@ -11,8 +23,7 @@ explored areas". As merged, `Extend` got the per-level cached room graph and cou
 gets a fresh `NativeRooms::Read`. `Read` takes the expected level and fails on another level's rooms;
 the survey's room cache retries a failed read. Whether the list grows mid-level is unproven
 ([beacon](docs/beacon.md)). 124/124 CTest. **Unverified live.**
-**Next step:** the tester's log: `[route] the map grew with the level` proves growth (then unify the
-three room caches with `id`-keyed room numbers); refusals without it point elsewhere.
+**Next step:** superseded: the user's log refutes the growth (section above).
 
 ## The tester's list on builds 2026-10-19 and 19-3 — 2026-10-20 (released as test-2026-10-20 from e280447)
 
