@@ -130,6 +130,9 @@ Log: `[route] follow turn|off|end leg=N at=x,y name=X -> <text>`,
 
 A tester: after Mod+A the whole length ("27 units") is not what a player needs before the legs.
 Switch `route-total` (Ctrl+S Navigation, on): off, the route says "Route to X: east, 11; then ...".
+The user, the same day: the legs ("east, 11; then ...") are what bothers them. Switch `route-legs`
+(on): off, "Route to X, 27 units", or "Route to X" with both off (`RouteLegs::Wording`). The turn
+prompts while walking keep their own switch, `route-prompts`.
 Each route asked for also logs the raw collision 24 cells around the player
 (`RadarTrace::Collision`, `[radar-collision]` lines as the radar's snapshots), so a leg the game
 would not walk can be replayed from the log. The case that asked for it: a Tower Cellar doorway

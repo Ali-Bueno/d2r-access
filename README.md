@@ -355,7 +355,8 @@ the game's smallest map cell (a subtile). See [spoken directions](docs/radar-rea
 a sighted player plans it off the minimap: "Route to Akara, 85 units: north, 20; then door;
 then east, 30". Nothing walks for you; ask again on the way for the rest. While you walk it,
 the next leg is said at each turn ("Now east, 30") and "Off the route" once if you leave it
-(`route-prompts`, on); the whole length before the legs can be left out (`route-total`, on).
+(`route-prompts`, on); the whole length and the legs can each be left out (`route-total`,
+`route-legs`, both on).
 In exploration mode it prefers explored ground and otherwise guesses
 across rooms never entered, and says so. See [route description](docs/route-description.md).
 

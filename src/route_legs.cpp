@@ -323,14 +323,14 @@ std::string Say(const Leg& leg, const Strings::Table& strings) {
 	return text;
 }
 
-std::string Speak(const std::string& name, const std::vector<Leg>& legs, bool unseen, bool total, const Strings::Table& strings) {
+std::string Speak(const std::string& name, const std::vector<Leg>& legs, bool unseen, Wording wording, const Strings::Table& strings) {
 	std::string said;
-	const size_t shown = std::min(legs.size(), SpokenLegs);
+	const size_t shown = wording.legs ? std::min(legs.size(), SpokenLegs) : 0;
 	for (size_t i = 0; i < shown; ++i) {
 		if (i) said += strings.routeThen;
 		said += Say(legs[i], strings);
 	}
-	if (legs.size() > shown) {
+	if (wording.legs && legs.size() > shown) {
 		char more[96]{};
 		std::snprintf(more, sizeof more, strings.routeMore, static_cast<int>(legs.size() - shown));
 		said += strings.routeThen;
@@ -338,8 +338,11 @@ std::string Speak(const std::string& name, const std::vector<Leg>& legs, bool un
 	}
 	const auto length = EntityRadar::DistancePhrase(Length(legs), EntityRadar::Settings{}, strings);
 	std::string text(name.size() + length.size() + said.size() + 128, '\0');
-	const int written = total ? std::snprintf(text.data(), text.size(), strings.routeTo, name.c_str(), length.c_str(), said.c_str())
-		: std::snprintf(text.data(), text.size(), strings.routeToLegs, name.c_str(), said.c_str());
+	int written = 0;
+	if (wording.total && wording.legs) written = std::snprintf(text.data(), text.size(), strings.routeTo, name.c_str(), length.c_str(), said.c_str());
+	else if (wording.legs) written = std::snprintf(text.data(), text.size(), strings.routeToLegs, name.c_str(), said.c_str());
+	else if (wording.total) written = std::snprintf(text.data(), text.size(), strings.routeToLength, name.c_str(), length.c_str());
+	else written = std::snprintf(text.data(), text.size(), strings.routeToName, name.c_str());
 	text.resize(written > 0 ? std::min(static_cast<size_t>(written), text.size() - 1) : 0);
 	if (unseen) {
 		text += strings.terrainSeparator;

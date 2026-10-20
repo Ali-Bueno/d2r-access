@@ -1875,6 +1875,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
 		{BeaconService::RoutePrompts, BeaconService::SetRoutePrompts, phrase(&T::routePromptsOn, &T::routePromptsOff), false, "route-prompts"},
 		{BeaconService::RouteTotal, BeaconService::SetRouteTotal, phrase(&T::routeTotalOn, &T::routeTotalOff), false, "route-total"},
+		{BeaconService::RouteLegsSaid, BeaconService::SetRouteLegsSaid, phrase(&T::routeLegsOn, &T::routeLegsOff), false, "route-legs"},
 		std::move(strengths[2]),
 		std::move(strengths[3]),
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},

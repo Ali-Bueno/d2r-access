@@ -103,7 +103,7 @@ struct Followed { EntityRadar::Entity entity; int level = 0; uint64_t session = 
 Followed g_followed;
 RouteFollow::Follower g_follower;
 std::atomic<bool> g_routePrompts{true};
-std::atomic<bool> g_routeTotal{true};
+std::atomic<bool> g_routeTotal{true}, g_routeLegs{true};
 
 // The room graph for the level being played, or nothing when the level's
 // rooms cannot be read. Never a stale level's graph.
@@ -613,7 +613,8 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(text, true);
 		return;
 	}
-	const auto text = RouteLegs::Speak(entity.name, route.legs, route.guess, g_routeTotal.load(std::memory_order_relaxed), strings);
+	const RouteLegs::Wording wording{g_routeTotal.load(std::memory_order_relaxed), g_routeLegs.load(std::memory_order_relaxed)};
+	const auto text = RouteLegs::Speak(entity.name, route.legs, route.guess, wording, strings);
 	ScreenReader::Speak(text, true);
 	AsyncLog::InfoF(g_context, "[route] from=%.0f,%.0f to=%.0f,%.0f cells=%zu doors=%zu legs=%zu guess=%u restricted=%u -> %s",
 		route.world.player.x, route.world.player.y, route.place.x, route.place.y, route.cells, route.doors, route.legs.size(),
@@ -868,6 +869,7 @@ void Unregister() {
 	g_followed = {};
 	g_routePrompts = true;
 	g_routeTotal = true;
+	g_routeLegs = true;
 	NavigationMode::SetFullAssistance(false);
 }
 
@@ -879,5 +881,7 @@ bool RoutePrompts() { return g_routePrompts.load(std::memory_order_relaxed); }
 void SetRoutePrompts(bool enabled) { g_routePrompts.store(enabled, std::memory_order_relaxed); }
 bool RouteTotal() { return g_routeTotal.load(std::memory_order_relaxed); }
 void SetRouteTotal(bool enabled) { g_routeTotal.store(enabled, std::memory_order_relaxed); }
+bool RouteLegsSaid() { return g_routeLegs.load(std::memory_order_relaxed); }
+void SetRouteLegsSaid(bool enabled) { g_routeLegs.store(enabled, std::memory_order_relaxed); }
 void SetSounds(bool enabled) { g_command = enabled ? Command::SoundsOn : Command::SoundsOff; }
 }

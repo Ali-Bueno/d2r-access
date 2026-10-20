@@ -57,10 +57,14 @@ void Corners() {
 	Check(legs.size() == 2, "a corridor that turns once is two legs");
 	Check(Bucket(legs[0]) == 0 && Bucket(legs[1]) == 2, "north, then east");
 	Check(std::abs(legs[0].length - 20 * std::sqrt(2.0)) < 1e-6, "a leg's length is the straight line it covers, in units");
-	Check(RouteLegs::Speak("Akara", legs, false, true, English) == "Route to Akara, 49 units: north, 28; then east, 21",
+	Check(RouteLegs::Speak("Akara", legs, false, {}, English) == "Route to Akara, 49 units: north, 28; then east, 21",
 		"the route says its whole length, then each leg");
-	Check(RouteLegs::Speak("Akara", legs, false, false, English) == "Route to Akara: north, 28; then east, 21",
+	Check(RouteLegs::Speak("Akara", legs, false, {.total = false}, English) == "Route to Akara: north, 28; then east, 21",
 		"without the whole length the route says only its legs");
+	Check(RouteLegs::Speak("Akara", legs, false, {.legs = false}, English) == "Route to Akara, 49 units",
+		"without its legs the route says only its whole length");
+	Check(RouteLegs::Speak("Akara", legs, true, {.total = false, .legs = false}, English) == "Route to Akara. Part of it crosses ground not seen yet",
+		"with neither, the route names its target and still warns of unseen ground");
 }
 
 // Whether `legs` walk from `from` one cell at a time over `passable` ground, each
@@ -111,7 +115,7 @@ void Doors() {
 	walk.Go(North, 10).Go(North, 2).Go(North, 10);
 	const auto legs = Legs(walk, walk.Corridor(), {10, 11});
 	Check(legs.size() == 3 && !legs[0].door && legs[1].door && !legs[2].door, "a shut door on the way is a leg of its own");
-	Check(RouteLegs::Speak("Cain", legs, false, true, English).find("north, 14; then door; then north, 17") != std::string::npos,
+	Check(RouteLegs::Speak("Cain", legs, false, {}, English).find("north, 14; then door; then north, 17") != std::string::npos,
 		"a door is opened from the cell before it, and its two cells are said once");
 }
 
@@ -162,7 +166,7 @@ void Doorways() {
 	walk.Go(NorthEast, 10).Go(SouthEast, 2).Go(NorthEast, 10);
 	const auto legs = Legs(walk, walk.Corridor());
 	Check(legs.size() == 3, "the step through a doorway is not folded into the walk along the wall");
-	Check(RouteLegs::Speak("Kashya", legs, false, true, English)
+	Check(RouteLegs::Speak("Kashya", legs, false, {}, English)
 		== "Route to Kashya, 22 units: northeast, 10; then southeast, 2; then northeast, 10",
 		"a doorway is crossed along a world axis, said as a diagonal");
 	// A little off a world axis, as a leg straightened through a doorway is.
@@ -179,18 +183,18 @@ void Wording() {
 	walk.Go(North, 20).Go(East, 15);
 	SpokenDirection::SetStyle(SpokenDirection::Style::Clock);
 	const auto legs = Legs(walk, walk.Corridor(), {}, SpokenDirection::Style::Clock);
-	Check(RouteLegs::Speak("Akara", legs, false, true, English) == "Route to Akara, 49 units: 12 o'clock, 28; then 3 o'clock, 21",
+	Check(RouteLegs::Speak("Akara", legs, false, {}, English) == "Route to Akara, 49 units: 12 o'clock, 28; then 3 o'clock, 21",
 		"the clock style names legs by their hours");
 	SpokenDirection::SetStyle(SpokenDirection::Style::Compass);
-	Check(RouteLegs::Speak("Akara", legs, true, true, English).ends_with(". Part of it crosses ground not seen yet"),
+	Check(RouteLegs::Speak("Akara", legs, true, {}, English).ends_with(". Part of it crosses ground not seen yet"),
 		"a way over ground not seen yet says so");
-	Check(RouteLegs::Speak("Akara", legs, false, true, Strings::For(Strings::Language::esES))
+	Check(RouteLegs::Speak("Akara", legs, false, {}, Strings::For(Strings::Language::esES))
 		== "Ruta hasta Akara, 49 unidades: norte, 28; luego este, 21", "Spanish wording");
 	Walk winding;
 	for (int i = 0; i < 4; ++i) winding.Go(North, 5).Go(East, 5);
 	const auto many = Legs(winding, winding.Corridor());
 	Check(many.size() == 8, "a winding corridor keeps every turn");
-	Check(RouteLegs::Speak("Rakanishu", many, false, true, English).ends_with("; then north, 7; then east, 7; then 2 more legs"),
+	Check(RouteLegs::Speak("Rakanishu", many, false, {}, English).ends_with("; then north, 7; then east, 7; then 2 more legs"),
 		"past six legs the rest is counted");
 	Check(RouteLegs::Describe({0, 0}, {}, {}, Everywhere(), SpokenDirection::Style::Compass).empty(), "no way, no legs");
 	Walk back;

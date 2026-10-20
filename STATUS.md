@@ -9,8 +9,8 @@ screenshots, `creak_wook.mp3`; no logs). Choices in [decisions](docs/decisions.m
 - Doorway creak in crypt-type levels (`doorway-sounds`, on), opened doors' loops
   (`open-door-sounds`, off), a click every 1/5/10 units walked (`step-clicks`, off;
   `step-click-interval`, `step-volume`) ([ground items](docs/ground-items.md)).
-- Route: whole length optional (`route-total`, on); each route logs the collision around the
-  player ([route description](docs/route-description.md)). Grave doorway: awaiting a log.
+- Route: whole length and legs optional (`route-total`, `route-legs`, on); each route logs the
+  collision around the player ([route description](docs/route-description.md)). Grave doorway: awaiting a log.
 - Cathedral exit kept at its door, not the colonnade arch (`ZoneTransitions::DoorAt`, [beacon](docs/beacon.md)).
 - Discoveries: held behind the arrival banner, said with the scanner's name (tomb symbol)
   ([exploration](docs/exploration.md)).

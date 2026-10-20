@@ -230,6 +230,8 @@ knowing:
   said at each turn.
 - Route total distance (Navigation, on): turn it off and a route says only its
   legs, without the whole length first.
+- Route legs (Navigation, on): turn it off and a route says only its target and
+  its whole length, without the legs ("east, 11; then ...").
 - Passages by the map's sides (Navigation, on): the passage finder and the
   room's exit line by the room's walls, northeast, southeast, southwest and
   northwest, and the finder's stick turned to match.

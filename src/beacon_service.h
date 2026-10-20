@@ -27,4 +27,7 @@ void SetRoutePrompts(bool enabled);
 // A route asked for says its whole length before its legs (a tester, 2026-10-20: optional).
 bool RouteTotal();
 void SetRouteTotal(bool enabled);
+// ... and its legs (the user, 2026-10-20: optional; the turn prompts have their own switch).
+bool RouteLegsSaid();
+void SetRouteLegsSaid(bool enabled);
 }
