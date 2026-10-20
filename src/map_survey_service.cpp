@@ -288,7 +288,8 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 			npc.id == npc.placeId ? "spawn" : "unit");
 		listed += entry;
 	}
-	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu, %zu seen:%s", state.level, scene.townNpcs.size(), seen, listed.c_str());
+	AsyncLog::InfoF(context, "[survey] town NPCs on level %d: %zu, %zu seen:%s; presets row x count:%s", state.level,
+		scene.townNpcs.size(), seen, listed.c_str(), NativeEntities::TownPresets().c_str());
 }
 
 bool Collect(const Lifecycle& state, Scene& scene) {

@@ -320,3 +320,15 @@ quest ways only while `QuestRunning` (`EntityRadar`), and always when the flags 
 Log: `[quest] flags row=5 word=XXXX` when the word changes; `[quest] Flag bit order verified.`
 To confirm live: a new character's word before the tome (0), after it (bit 2), in the cellars,
 after the Countess (0x2001); an in-progress character right after joining.
+
+
+## The Tainted Sun's eclipse (2026-10-20)
+
+A tester: the eclipse that falls as the Tainted Sun begins is only seen. `QuestService` reads quest
+record row 11 (Act II's intro is row 8, then Radament, the Horadric Staff, the Tainted Sun: the
+save's order, in which the Tower is 5) and says "An unnatural darkness blankets the land"
+(`questEclipse`, at the quest alerts' priority) once, when the row turns running
+(`EntityRadar::QuestRunning`) while the player is in the Lost City (Levels.txt 44, from
+`LevelChanged`). A game joined while the quest runs starts in a town: no line. Log:
+`[quest] Tainted Sun began: flags=XXXX`; `[quest] flags row=11` shows the word. The row is
+inferred from the order, not measured yet.

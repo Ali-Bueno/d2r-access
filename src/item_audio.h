@@ -24,7 +24,8 @@ void SetDropSpeedLevel(int level);
 double PanScale();
 void SetPanScale(double scale);
 constexpr bool IsOneShot(GroundItems::Sound sound) {
-	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered;
+	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered
+		|| sound == GroundItems::Sound::Step;
 }
 constexpr bool SameSource(const GroundItems::Voice& a, const GroundItems::Voice& b) {
 	return a.id == b.id && a.sound == b.sound && a.source == b.source;
@@ -36,6 +37,8 @@ void UpdateExploration(std::vector<GroundItems::Voice> voices);
 void PlayExplorationArrival(GroundItems::Voice voice);
 // One centered cue for a find the radar has just announced; its own voice, apart from exploration.
 void PlayDiscovery();
+// One click of the units walked, on its own voice at its own volume (SoundVolume::Family::Steps).
+void PlayStep();
 // One sound, centred and played once, for the sound glossary.
 void Preview(GroundItems::Sound sound);
 void SilenceExploration();

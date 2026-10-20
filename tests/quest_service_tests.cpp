@@ -22,6 +22,7 @@ std::vector<std::string> speech, panels;
 bool interrupted = false, ownsSpeech = false, available = true, visible = false;
 bool serviceAvailable = true;
 int removed = 0, failRegistration = -1;
+uint16_t taintedSun = 0; // the Tainted Sun's quest word (row 11)
 uintptr_t panel = 0;
 RadarUi::State ui = RadarUi::State::Playing;
 std::string title = "Misiones", shortText = "El Cubil del Mal", longText = "Monstruos restantes: 3";
@@ -53,6 +54,11 @@ void Event(K kind, uint32_t player = 42, uint64_t session = 1) {
 		.kind = kind, .playerId = player, .sessionGeneration = session, .questRecordId = 1};
 	for (const auto& listener : listeners) if (listener.kind == kind) listener.callback(&context, &event, nullptr);
 }
+void Level(int32_t level) {
+	const D2RL::Lifecycle::GameplayEvent event{.structSize = D2RL::Lifecycle::GameplayEventSize,
+		.kind = K::LevelChanged, .playerId = 42, .sessionGeneration = 1, .currentValue = level};
+	for (const auto& listener : listeners) if (listener.kind == K::LevelChanged) listener.callback(&context, &event, nullptr);
+}
 void Tick() { QuestService::Tick(&context, ownsSpeech); }
 void Wait() {
 	// Exercise real deferred service scheduling; exact timing is asserted only
@@ -83,6 +89,9 @@ std::string Text(std::string_view key) { const auto found = strings.find(key); r
 std::string Text(uint32_t id) { return id == 3714 ? "El Cubil del Mal" : std::string(); }
 }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
+namespace D2RAccess::NativeQuestFlags {
+std::optional<uint16_t> Read(int quest) { return quest == 11 ? std::optional<uint16_t>(taintedSun) : std::nullopt; }
+}
 namespace D2RAccess::CairnScrollService {
 void Tick(const D2RL::PluginContext*, uint64_t, bool, bool) {}
 void Reset() {}
@@ -99,7 +108,7 @@ void Warn(const D2RL::PluginContext*, const char*) noexcept {}
 
 int main() {
 	Strings::Select(Strings::Language::esES);
-	Check(QuestService::Register(&context) && listeners.size() == 4, "quest service registers game lifecycle and completion events");
+	Check(QuestService::Register(&context) && listeners.size() == 5, "quest service registers game lifecycle, level and completion events");
 	QuestService::Note("SetQuestAlert"); Wait(); Check(speech.empty(), "front-end quest traffic stays silent");
 	Event(K::GameJoined); Event(K::LocalPlayerReady);
 	QuestService::Note("SetQuestAlert"); QuestService::Note("QuestUpdate");
@@ -131,10 +140,15 @@ int main() {
 	ownsSpeech = false; Tick();
 	Check(speech.size() == 1 && speech.back() == QuestSeals::LeftText(4, Strings::Current()) && !interrupted, "an opened seal says how many are left");
 	speech.clear(); Tick(); Check(speech.empty(), "one opening is said once");
+	Level(40); taintedSun = 0x0004; Tick(); // Lut Gholein: a game joined while the quest runs
+	Check(speech.empty(), "quest flags arriving in a town are not the eclipse");
+	taintedSun = 0; Tick(); Level(44); taintedSun = 0x0004; Tick(); // the Lost City
+	Check(speech.size() == 1 && speech.back() == Strings::Current().questEclipse, "the Tainted Sun beginning in the Lost City is said");
+	speech.clear(); taintedSun = 0x0008; Tick(); Check(speech.empty(), "the eclipse is said once");
 	QuestService::Note("QuestUpdate"); Event(K::GameLeft); Wait(); Check(speech.empty(), "leaving the game discards pending announcements");
-	QuestService::Unregister(); Check(removed == 4, "all lifecycle subscriptions are released");
+	QuestService::Unregister(); Check(removed == 5, "all lifecycle subscriptions are released");
 	listeners.clear(); failRegistration = 2;
-	Check(!QuestService::Register(&context) && removed == 6, "partial registration cleans up successful subscriptions");
+	Check(!QuestService::Register(&context) && removed == 7, "partial registration cleans up successful subscriptions");
 	listeners.clear(); failRegistration = -1; serviceAvailable = false;
 	Check(!QuestService::Register(&context), "missing lifecycle service fails gracefully");
 	Passed();

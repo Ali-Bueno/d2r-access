@@ -22,7 +22,7 @@ import argparse
 import sys
 from pathlib import Path
 
-REQUIRED_COLUMNS = ("Id", "Name", "DrlgType", "*IsInside")
+REQUIRED_COLUMNS = ("Id", "Name", "DrlgType", "LevelType", "*IsInside")
 
 
 def load_rows(levels_txt: Path) -> list[dict[str, str]]:
@@ -79,6 +79,7 @@ def main() -> int:
             "drlgType": int(row["DrlgType"]),
             "inside": row["*IsInside"].strip() == "1",
             "town": int(row["Id"]) == towns.get(int(row["Act"])),
+            "levelType": int(row["LevelType"]),
         })
     entries.sort(key=lambda e: e["id"])
 
@@ -103,13 +104,14 @@ def main() -> int:
     lines.append("\tint32_t drlgType; // Levels.txt DrlgType, unmodified")
     lines.append("\tbool inside;      // Levels.txt *IsInside")
     lines.append("\tbool town;        // the lowest non-zero Id of its Levels.txt Act")
+    lines.append("\tint32_t levelType; // Levels.txt LevelType: the LvlTypes.txt row, its tile set")
     lines.append("};")
     lines.append("")
     lines.append("inline constexpr LevelFlags LevelFlagsTable[] = {")
     for e in entries:
         name_comment = f" // {escape_c_string(e['name'])}" if e["name"] else ""
         lines.append(
-            f"\t{{ {e['id']}, {e['drlgType']}, {'true' if e['inside'] else 'false'}, {'true' if e['town'] else 'false'} }},{name_comment}"
+            f"\t{{ {e['id']}, {e['drlgType']}, {'true' if e['inside'] else 'false'}, {'true' if e['town'] else 'false'}, {e['levelType']} }},{name_comment}"
         )
     lines.append("};")
     lines.append("")
@@ -120,7 +122,7 @@ def main() -> int:
     lines.append("")
     lines.append("// No level with this id exists in Levels.txt: {} for drlgType/inside is not a")
     lines.append("// valid Levels.txt value, so it can't be mistaken for a real row.")
-    lines.append("inline constexpr LevelFlags UnknownLevel{ -1, -1, false, false };")
+    lines.append("inline constexpr LevelFlags UnknownLevel{ -1, -1, false, false, -1 };")
     lines.append("")
     lines.append("inline constexpr const LevelFlags& FindLevelFlags(int32_t id) {")
     lines.append("\tfor (const auto& entry : LevelFlagsTable) {")

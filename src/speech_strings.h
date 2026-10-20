@@ -28,7 +28,7 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
-inline constexpr std::size_t GlossarySoundCount = 51;
+inline constexpr std::size_t GlossarySoundCount = 53;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 inline constexpr std::size_t SettingsGroupCount = 13; // keyboard_service.cpp's SettingsGroup
 inline constexpr std::size_t SpeechPriorityKindCount = 9; // SpeechPriority::Kind
@@ -130,6 +130,7 @@ struct Table {
 	const char* scanSteps; // %d = whole units
 	const char* scanAdjacent; // under one unit away
 	const char* routeTo;     // %s = name, %s = whole length, %s = the legs joined by routeThen
+	const char* routeToLegs; // routeTo without the whole length: %s = name, %s = the legs
 	const char* routeLeg;    // %s = direction, %d = units
 	const char* routeThen;   // joins two legs
 	const char* routeDoor;   // a shut door on the way, said as a leg
@@ -192,6 +193,7 @@ struct Table {
 	const char* placeFoundQuest; // %s = a quest object the scanner lists for the first time
 	const char* questUpdated;
 	const char* questGoalDone; // PrimaryGoalDone; reward collection may still be pending.
+	const char* questEclipse; // the Tainted Sun's eclipse falling over the land
 	const char* questAlertsEnabled;
 	const char* questAlertsDisabled;
 	const char* questNoObjective;
@@ -305,6 +307,8 @@ struct Table {
 	const char* beaconSoundsOff;
 	const char* routePromptsOn; // the next leg of a route said at each turn
 	const char* routePromptsOff;
+	const char* routeTotalOn; // a route asked for says its whole length before its legs
+	const char* routeTotalOff;
 	const char* modSoundsOn; // one switch over every sound the mod makes (mod_sounds.h)
 	const char* modSoundsOff;
 	const char* reachFilterOn; // the scanner lists only what can be got to on foot (map_survey_service.h)
@@ -407,6 +411,13 @@ struct Table {
 	const char* backToModOff;
 	const char* shrineSoundsOn;
 	const char* shrineSoundsOff;
+	const char* doorwaySoundsOn; // a creak at each doorway of a crypt's rooms
+	const char* doorwaySoundsOff;
+	const char* openDoorSoundsOn; // opened doors keep their loop
+	const char* openDoorSoundsOff;
+	const char* stepClicksOn; // a click every so many units walked
+	const char* stepClicksOff;
+	const char* stepClickInterval; // %d = units walked per click
 	const char* wallTonesOn;
 	const char* wallTonesOff;
 	const char* enemyClassSoundsOn;
@@ -433,6 +444,7 @@ struct Table {
 	const char* itemVolume;
 	const char* guidanceVolume;
 	const char* lowLifeVolume; // %d = percent of the heartbeat's level
+	const char* stepVolume; // %d = percent of the walked distance click's level
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
@@ -526,7 +538,9 @@ struct Table {
 	const char* typingStarted; // a text box began editing (pad_typing.h)
 	const char* skillBound; // %s = the skill, %s = the button the rebinding window put it on
 	const char* hintMoreControls; // character select, said once a visit: a row keeps its controls on right stick up
+	const char* hintWaypointActs; // waypoint window, right stick down: %s = tab right's button, %s = tab left's
 	const char* radiantObject; // %s = the game's name of a glowing quest or reward chest
+	const char* rogueFountain; // the Outer Cloister's fountain of three Rogue statues, a landmark
 	const char* speechPriority; // %s = a speechPriorityKinds entry, %s = a speechPriorityLevels entry
 	std::array<const char*, SpeechPriorityKindCount> speechPriorityKinds; // SpeechPriority::Kind order
 	std::array<const char*, SpeechPriorityLevelCount> speechPriorityLevels; // SpeechPriority::Level order
@@ -575,7 +589,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);
@@ -592,7 +606,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.speechPriority}) visit(s);
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.speechPriority}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

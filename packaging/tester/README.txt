@@ -228,6 +228,8 @@ knowing:
   every direction the mod says.
 - Route turn prompts (Navigation, on): the next leg of a route you asked for,
   said at each turn.
+- Route total distance (Navigation, on): turn it off and a route says only its
+  legs, without the whole length first.
 - Passages by the map's sides (Navigation, on): the passage finder and the
   room's exit line by the room's walls, northeast, southeast, southwest and
   northwest, and the finder's stick turned to match.
@@ -320,6 +322,11 @@ knowing:
   100 is the default.
 - Shrine and well sounds (on): a sound for each shrine or well you can still
   use, while it is in reach.
+- Doorway sounds (on): in the Crypt, the Mausoleum and the Tower Cellar, a
+  creaking wood sound at the middle of each doorway between two rooms.
+- Opened door sounds (off): doors keep their sound after you open them.
+- Walked distance clicks (off): a click every 1, 5 or 10 units you walk
+  ("Units per click", next to it); its volume is in Volumes.
 - Back button for the mod only (on): during play the game no longer opens or
   zooms its map with BACK. Turn it off to give BACK back to the map.
 

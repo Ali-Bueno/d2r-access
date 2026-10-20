@@ -4,6 +4,7 @@
 #include "auto_detail.h"
 #include "belt_reader.h"
 #include "click_words.h"
+#include "controller_text.h"
 #include "control_hints.h"
 #include "cube_state.h"
 #include "character_stats.h"
@@ -13,6 +14,7 @@
 #include "hire_stats.h"
 #include "generated/item_sizes.h"
 #include "equip_attempt.h"
+#include "focus_tracker.h"
 #include "game_text_reader.h"
 #include "interaction_reader.h"
 #include "inventory_census.h"
@@ -280,10 +282,25 @@ bool ReadDetail(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 // highlighted thing offers, which are only spoken unasked with autodetail and
 // control tooltips both on (control_hints.h). In play the stick belongs to the
 // scan, the pathfinder and the exit finder.
+void Append(std::string& text, const std::string& part);
+
+constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
+// The waypoint window's acts are its tabs, which its legends never mention (a tester, 2026-10-20).
+std::string WaypointActsHint() {
+	const auto& open = PanelState::OpenPanels();
+	if (std::ranges::none_of(open, [](const std::string& panel) { return panel.starts_with(WaypointsPanelPrefix); })) return {};
+	const std::string right(ControllerText::Button(ControllerText::TabRightGlyph)), left(ControllerText::Button(ControllerText::TabLeftGlyph));
+	char hint[200]{};
+	std::snprintf(hint, sizeof hint, Strings::Current().hintWaypointActs, right.c_str(), left.c_str());
+	return hint;
+}
+
 bool ReadHints(const D2RL::PluginContext* context) {
 	if (InputDirection::PeekRightStickPush() != InputDirection::StickPush::Down || RadarUi::InPlay()) return false;
 	(void)InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Down, "hints");
-	const std::string& text = ControlHints::Current().empty() ? Strings::Current().detailNone : ControlHints::Current();
+	std::string text = WaypointActsHint();
+	if (!ControlHints::Current().empty()) Append(text, ControlHints::Current());
+	if (text.empty()) text = Strings::Current().detailNone;
 	D2RAccess::AsyncLog::InfoF(context, "[hints] asked -> \"%s\"", text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;
@@ -984,7 +1001,6 @@ void TickStash(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus
 
 // Each waypoint row focused is logged once with what its state was read from, the
 // game's row table (docs/waypoints.md), until the reading is measured live.
-constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
 uintptr_t g_loggedRow = 0;
 void LogWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	if (!focus.widget || focus.widget == g_loggedRow || !NativeWidgets::ReadName(focus.panel).starts_with(WaypointsPanelPrefix)) return;
@@ -996,8 +1012,10 @@ void LogWaypointRow(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 }
 
 void TickFrontEnd(const D2RL::PluginContext* context) {
-	if (InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) SpeakDetail(context);
-	else (void)ReadHints(context);
+	if (InputDirection::TakeRightStickPushIf(InputDirection::StickPush::Up, "detail")) {
+		FocusTracker::CancelSelectHint(); // a tester, 2026-10-20: it still came after the controls
+		SpeakDetail(context);
+	} else (void)ReadHints(context);
 }
 
 bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focus, bool conversation, std::string_view tabChange) {

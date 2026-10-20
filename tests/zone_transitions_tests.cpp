@@ -131,5 +131,11 @@ int main() {
 	Check(ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 5}).y == 61, "a mouth that does not open leaves the crossing");
 	corridor.shape = Passages::Shape::Junction;
 	Check(ZoneTransitions::MouthOf(corridor, {50, 61}, {50, 5}).y == 61, "no corridor, no change");
+	// The Cathedral: a shut door at the crossing keeps the exit there, not at the walk's mouth.
+	auto doorRoom = Room(0, 0, 10, 10), beyond = Room(10, 0, 10, 10);
+	auto doorWorld = World(doorRoom, beyond, {5, 5});
+	Check(!ZoneTransitions::DoorAt(doorWorld, {9, 5}), "an open crossing has no door");
+	doorWorld.rooms[0].cells[5 * 10 + 8] = Radar::Collision::Door;
+	Check(ZoneTransitions::DoorAt(doorWorld, {9, 5}), "a shut door beside the crossing is found");
 	Passed();
 }

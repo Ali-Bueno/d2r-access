@@ -19,6 +19,8 @@ enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legenda
 	EpochGold, EpochHealthPotion, EpochManaPotion, EpochRejuvenationPotion, EpochOtherPotion,
 	Shrine, Well,
 	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered,
+	// A doorway's creak (a tester's recording, 2026-10-20) and the click of the units walked.
+	Doorway, Step,
 	// The game's own drop sounds (Generated::DropSoundFiles), an alternative to the
 	// Diablo IV set behind a switch (a tester, 2026-10-13).
 	DropFirst, Count = DropFirst + static_cast<int>(Generated::DropSoundFiles.size()) };
@@ -70,7 +72,7 @@ void SetEquipment(EquipmentLoops level);
 bool Loops(const Item& item);
 }
 // Landmarks, containers, quest objects, shut doors, shrines and wells only loop; proximity speech is for items.
-struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines; };
+struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines, doorways; };
 struct Voice {
 	uint32_t id = 0; Sound sound{}; float right = 0, front = 0, gain = 0, pitch = 1;
 	SourceKind source = SourceKind::Item;
@@ -94,6 +96,8 @@ inline constexpr size_t MaxDoorVoices = 2;
 inline constexpr size_t MaxQuestVoices = 2;
 // A shrine and a well can stand together; the nearest two are what a passer-by needs.
 inline constexpr size_t MaxShrineVoices = 2;
+// Doorways between dungeon rooms, as many as doors.
+inline constexpr size_t MaxDoorwayVoices = MaxDoorVoices;
 // Spacing for the rest of a pile; an item that has just come within reach speaks at once.
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
 // Exits never move, so their list is refreshed slowly; only the listener position is polled fast.
@@ -119,7 +123,7 @@ inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "p
 	{"last epoch", "rejuvenation potion.wav"}, {"last epoch", "other potion.wav"},
 	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
-	{"exploration", "discovered.wav"}};
+	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"}};
 static_assert(std::size(BaseSoundFiles) == static_cast<size_t>(Sound::DropFirst));
 inline constexpr std::string_view DropFolder = "d2 drops";
 // Indexed by Sound: the files above, then the drop sounds.

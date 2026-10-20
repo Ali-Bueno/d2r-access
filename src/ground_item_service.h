@@ -17,6 +17,17 @@ void SetPickupClick(bool enabled);
 // A loop for every usable shrine and well nearby (a tester), on by default.
 bool ShrineSounds();
 void SetShrineSounds(bool enabled);
+// A creak at each doorway of a crypt's rooms (a tester, 2026-10-20), on by default.
+bool DoorwaySounds();
+void SetDoorwaySounds(bool enabled);
+// Opened doors keep their loop (a tester, 2026-10-20), off by default.
+bool OpenDoorSounds();
+void SetOpenDoorSounds(bool enabled);
+// A click every StepCounter::Intervals[interval] units walked (a tester, 2026-10-20), off by default.
+bool StepClicks();
+void SetStepClicks(bool enabled);
+int StepInterval();
+void SetStepInterval(int interval);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 enum class Switch { Speech, Sounds, Exits, Chests, Doors, Quests, Stash };

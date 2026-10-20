@@ -35,6 +35,8 @@ void NoteScrollInput();
 // Whether the character-select and character-create hints are spoken.
 bool ScreenHints();
 void SetScreenHints(bool enabled);
+// The player already asked for the character's controls: the hint pointing there is dropped.
+void CancelSelectHint();
 
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();

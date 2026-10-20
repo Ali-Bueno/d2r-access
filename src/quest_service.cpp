@@ -1,9 +1,11 @@
 #include "quest_service.h"
 #include "async_log.h"
 #include "cairn_scroll_service.h"
+#include "entity_radar.h"
 #include "localization.h"
 #include "layout_check.h"
 #include "native_memory.h"
+#include "native_quest_flags.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -21,6 +23,7 @@
 #include <cstring>
 #include <intrin.h>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -58,6 +61,15 @@ const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_ready = false, g_enabled = true, g_seen = false;
+// The Tainted Sun's eclipse falls as the quest begins, on reaching the Lost City; a sighted
+// player sees the land go dark (a tester, 2026-10-20). Quest record rows: Act II's intro is 8,
+// then Radament 9, the Horadric Staff 10, the Tainted Sun 11 (docs/quests.md).
+constexpr int TaintedSunRow = 11;
+// Levels.txt Id of the Lost City. A game joined while the quest runs starts in a town, so the
+// flags arriving there are not the eclipse falling.
+constexpr int LostCityLevel = 44;
+std::atomic<int> g_level{0};
+std::optional<bool> g_eclipse; // whether the quest ran at the last read; empty until this game's first
 uint64_t g_session = 0, g_nextWatch = 0;
 uint32_t g_player = 0;
 Strings::Language g_language = Strings::Language::enUS;
@@ -137,6 +149,7 @@ Reading Read() {
 
 void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
+	if (event->kind == Kind::LevelChanged) { g_level.store(event->currentValue); return; }
 	if (event->kind == Kind::QuestCompleted) {
 		if (!g_ready || !g_enabled || event->sessionGeneration != g_session || event->playerId != g_player) return;
 		g_reader.Completed(event->questRecordId, event->difficulty, GetTickCount64());
@@ -166,7 +179,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	g_context = context;
 	if (!context || context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
-	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::QuestCompleted}) {
+	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::QuestCompleted, Kind::LevelChanged}) {
 		const D2RL::Lifecycle::GameplayEventListener listener{.structSize = D2RL::Lifecycle::GameplayEventListenerSize,
 			.kind = kind, .callback = OnGameplay};
 		D2RL::Lifecycle::ListenerHandle handle = D2RL::Lifecycle::InvalidHandle;
@@ -208,6 +221,18 @@ void Note(const char* command) {
 	g_nextWatch = now + QuestProgress::SettleMs;
 }
 
+// The eclipse is said once, as the Tainted Sun begins in the Lost City.
+void TickEclipse(const D2RL::PluginContext* context) {
+	const auto flags = NativeQuestFlags::Read(TaintedSunRow);
+	if (!flags) return;
+	const bool running = EntityRadar::QuestRunning(*flags);
+	const bool began = g_eclipse && !*g_eclipse && running && g_level.load() == LostCityLevel;
+	g_eclipse = running;
+	if (!began) return;
+	AsyncLog::InfoF(context, "[quest] Tainted Sun began: flags=%04X", *flags);
+	SpeechPriority::Say(SpeechPriority::Kind::QuestAlerts, Strings::Current().questEclipse);
+}
+
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
@@ -230,6 +255,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		}
 	if (!g_ready || !g_enabled) return;
 	if (g_language != Strings::Selected()) Reset(); // Never announce a locale change as progress.
+	TickEclipse(context);
 	const uint64_t now = GetTickCount64();
 	if (now >= g_nextWatch) {
 		g_nextWatch = now + WatchMs;
@@ -280,6 +306,7 @@ void Reset() {
 	g_last = {};
 	g_sample = {};
 	g_seen = false;
+	g_eclipse.reset();
 	g_nextWatch = 0;
 	g_language = Strings::Selected();
 	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);

@@ -125,3 +125,13 @@ Log: `[route] follow turn|off|end leg=N at=x,y name=X -> <text>`,
 - Teleport pads are not crossed (the walking plan does not use them).
 - Not verified in the game. Log: `[route] from=x,y to=x,y cells=N doors=N
   legs=N guess=0|1 restricted=0|1 -> <text>`, or `[route] none name=...`.
+
+## The whole length optional; the ground logged (2026-10-20)
+
+A tester: after Mod+A the whole length ("27 units") is not what a player needs before the legs.
+Switch `route-total` (Ctrl+S Navigation, on): off, the route says "Route to X: east, 11; then ...".
+Each route asked for also logs the raw collision 24 cells around the player
+(`RadarTrace::Collision`, `[radar-collision]` lines as the radar's snapshots), so a leg the game
+would not walk can be replayed from the log. The case that asked for it: a Tower Cellar doorway
+whose lower half an open grave closes; the route led through it into the corner past the grave
+(screenshots `edge_case_1/2`, no log yet).

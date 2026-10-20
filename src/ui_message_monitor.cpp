@@ -20,6 +20,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -99,6 +100,11 @@ struct ModalRead {
 	unsigned long long dueTick = 0;
 };
 ModalRead g_modalRead;
+// The gold window's title is set as it opens: Drop Gold, Deposit, Withdraw or Offer by
+// what else is open; the layout's own is always Drop Gold (a tester, 2026-10-20).
+constexpr std::string_view RuntimeTitlePanels[] = { "DropGoldModal" };
+const std::string  RuntimeTitlePath[] = { "Title" };
+ModalRead g_titleRead;
 
 // Widgets whose runtime text is still being probed natively when their panel
 // opens, to learn where their class keeps it (see native_widgets.h).
@@ -236,10 +242,14 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		PanelState::Opened(panel);
 		RequestTextProbes(panel);
 		if (IsAnnouncedPanel(panel, exclusive, title)) {
-			Say(Strings::Current().panelOpened, spoken, true, PanelTitleHoldMs);
-			// Cleaned as the tab reader cleans a tab's text, so the switcher's
-			// report of this same panel compares equal.
-			PanelState::Announced(UiText::Clean(spoken));
+			if (std::ranges::find(RuntimeTitlePanels, panel) != std::end(RuntimeTitlePanels)) {
+				g_titleRead = { panel, GetTickCount64() + ModalTextDelayMs };
+			} else {
+				Say(Strings::Current().panelOpened, spoken, true, PanelTitleHoldMs);
+				// Cleaned as the tab reader cleans a tab's text, so the switcher's
+				// report of this same panel compares equal.
+				PanelState::Announced(UiText::Clean(spoken));
+			}
 			if (panel == ConfirmationModalPanel || panel == DismissableModalPanel) {
 				g_modalRead = { panel, GetTickCount64() + ModalTextDelayMs };
 			}
@@ -381,10 +391,26 @@ void Unregister() {
 	g_context = nullptr;
 	g_events  = nullptr;
 	g_lastSelection.clear();
+	g_titleRead = {};
 	PanelState::Reset();
 }
 
+// A runtime title is read natively a few updates after its panel opened.
+void TickRuntimeTitle(const D2RL::PluginContext* context) {
+	if (g_titleRead.panel.empty() || GetTickCount64() < g_titleRead.dueTick) return;
+	const std::string panel = std::move(g_titleRead.panel);
+	g_titleRead = {};
+	const auto& open = PanelState::OpenPanels();
+	if (std::ranges::find(open, panel) == open.end()) return;
+	std::string title = UiText::Clean(NativeWidgets::TextAt(panel, RuntimeTitlePath));
+	D2RAccess::AsyncLog::InfoF(context, "[modal] %s title: \"%s\"", panel.c_str(), title.c_str());
+	if (title.empty()) title = PanelTitle(panel);
+	Say(Strings::Current().panelOpened, title, true, PanelTitleHoldMs);
+	PanelState::Announced(UiText::Clean(title));
+}
+
 void Tick(const D2RL::PluginContext* context) {
+	TickRuntimeTitle(context);
 	if (g_modalRead.panel.empty() || GetTickCount64() < g_modalRead.dueTick) {
 		return;
 	}

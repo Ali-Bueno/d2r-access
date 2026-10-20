@@ -228,6 +228,9 @@ std::optional<ItemState> Find(const D2RL::PluginContext*, uint32_t) { return std
 std::optional<uint32_t> HeldItemId(const D2RL::PluginContext*) { return holdingItem.value_or(false) ? 1u : 0u; }
 bool Holds(const D2RL::PluginContext*, D2RL::Items::ItemContainer, uint32_t) { return false; }
 }
+namespace D2RAccess::FocusTracker {
+void CancelSelectHint() {}
+}
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }
 void Reset() {}

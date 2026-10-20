@@ -18,11 +18,11 @@ const char* StateName(Radar::State state) {
 	default: return "unknown";
 	}
 }
-void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, const Radar::Engine& engine, uint64_t now) {
+void Collision(const D2RL::PluginContext* context, const Radar::World& world, int radius, uint64_t now) {
 	// Retain the raw flags needed to replay footprint/terrain filtering,
 	// including unknown coverage. Run-length encoding avoids dozens of disk
-	// flushes per map. The service rate-limits these records.
-	const int radius=Radar::StructuralRadius(engine.Configuration(),world.bodyPattern), side=2*radius+1;
+	// flushes per map. The callers rate-limit these records.
+	const int side=2*radius+1;
 	const int left=static_cast<int>(world.player.x)-radius, top=static_cast<int>(world.player.y)-radius;
 	struct Chunk { size_t start; std::string data; };
 	std::vector<Chunk> chunks{{0,{}}};
@@ -48,6 +48,9 @@ void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, con
 		AsyncLog::InfoF(context,"[radar-collision] event_ms=%llu session=%llu level=%d origin=%d,%d size=%d pattern=%d mask=%04X position=%.5f,%.5f part=%zu/%zu start=%zu data=%s",
 			static_cast<unsigned long long>(now),static_cast<unsigned long long>(world.session),world.level,left,top,side,world.bodyPattern,world.walkingMask,
 			world.player.x+world.subtileFraction.x,world.player.y+world.subtileFraction.y,part+1,chunks.size(),chunks[part].start,chunks[part].data.c_str());
+}
+void Snapshot(const D2RL::PluginContext* context, const Radar::World& world, const Radar::Engine& engine, uint64_t now) {
+	Collision(context,world,Radar::StructuralRadius(engine.Configuration(),world.bodyPattern),now);
 	for (size_t direction=0;direction<Radar::DirectionCount;++direction) {
 		const auto& sensor=engine.Sensors()[direction];
 		AsyncLog::InfoF(context,"[radar-direction] event_ms=%llu direction=%s state=%s candidate=%s depth=%.1f open=%.1f close=%.1f available=%u deferred=%s last_cue=%s hold=%s frontier=%u,%.1f",

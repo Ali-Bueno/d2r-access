@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on builds 2026-10-19 and 19-3 — 2026-10-20 (not released yet)
+
+From `D2R Access build 2026-10-19 and 19-3 feedback and bug list.7z` (the user's Downloads: list,
+screenshots, `creak_wook.mp3`; no logs). Choices in [decisions](docs/decisions.md).
+- Doorway creak in crypt-type levels (`doorway-sounds`, on), opened doors' loops
+  (`open-door-sounds`, off), a click every 1/5/10 units walked (`step-clicks`, off;
+  `step-click-interval`, `step-volume`) ([ground items](docs/ground-items.md)).
+- Route: whole length optional (`route-total`, on); each route logs the collision around the
+  player ([route description](docs/route-description.md)). Grave doorway: awaiting a log.
+- Cathedral exit kept at its door, not the colonnade arch (`ZoneTransitions::DoorAt`, [beacon](docs/beacon.md)).
+- Discoveries: held behind the arrival banner, said with the scanner's name (tomb symbol)
+  ([exploration](docs/exploration.md)).
+- Tainted Sun eclipse line (`questEclipse`, row 11, Lost City) ([quests](docs/quests.md)).
+- Sarcophagus is a raiser; Rogue fountain a map landmark; porch cottage without "cottage";
+  waypoint window's acts hint; gold window's live title; select hint dropped after right stick up.
+- Natalya: `[survey]` lists the town's NPC presets ([entity scan](docs/entity-scan.md)).
+
+124/124 CTest; installed by the build. **Unverified live: all of it.**
+**Next step:** the tester tries it; logs: `[route] from=` with `[radar-collision]` at the grave
+doorway, `[survey] town NPCs on level 75`, `[modal] DropGoldModal title`, `[quest] Tainted Sun began`,
+`[items] doorways nearby`.
+
 ## Route legs along the stick's eight ways — 2026-10-19 (released as test-2026-10-19-3 from ac561c3)
 
 Release: 123/123 CTest, 29 entries, 62,665,603 bytes, SHA-256 `b89c2a63…d881`.

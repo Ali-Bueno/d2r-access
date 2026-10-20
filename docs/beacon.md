@@ -98,6 +98,14 @@ its far end. `ZoneTransitions::Find` now reads the corridor there (`Passages`) a
 mouth facing this area (`CorridorMouth`); inside the corridor it stays the way on. The place is also
 remembered at that point. Unverified live: the Gate's corridor must read as a corridor.
 
+**A shut door at the crossing stays the crossing (2026-10-20).** A tester: the Inner Cloister's
+Cathedral exit sat at an arch of the colonnade, halfway to the Cathedral's double doors. The two
+areas share a border with no warp (Levels.txt: the Inner Cloister's Vis1 is 33, its only warp leads
+to the Jail), and the colonnade walk to the doors reads as a corridor, so `CorridorMouth` moved the
+crossing to the walk's mouth, the arch. A crossing with a DOOR collision bit within 2 cells
+(`ZoneTransitions::DoorAt`) is no longer moved: the door is the way in. Risk: if the Monastery
+Gate's inner door is a door object, its entry goes back there. Unverified live.
+
 **Crossings seen are kept for the game (2026-10-14).** A tester crossed from
 the Cold Plains into the Stony Field at 5400,5222, came back by waypoint, and
 the beacon refused the Stony Field eight times from 129 to 334 units away

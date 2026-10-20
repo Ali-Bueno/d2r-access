@@ -83,6 +83,21 @@ bool Describe(const Radar::World& world, Position position, Room& out) {
 	return true;
 }
 
+std::vector<Opening> Doorways(const Radar::World& world) {
+	std::vector<Opening> result, openings;
+	for (const auto& room : world.rooms) {
+		openings.clear();
+		Openings(world, room, openings);
+		for (const auto& opening : openings) {
+			// From the other room the same gap's centre is one cell across the border.
+			const bool known = std::any_of(result.begin(), result.end(), [&](const Opening& seen) {
+				return std::abs(seen.centre.x - opening.centre.x) + std::abs(seen.centre.y - opening.centre.y) <= 2; });
+			if (!known) result.push_back(opening);
+		}
+	}
+	return result;
+}
+
 int TypicalOpeningWidth(const Radar::World& world) {
 	// Every opening is seen from both of its rooms; a median does not mind.
 	std::vector<int> widths;

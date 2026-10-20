@@ -52,3 +52,9 @@ the button readout snapshots the button alone, so the focus-state hook got the b
 "WaypointsPanel". `NativeUi::Snapshot` takes the owning panel (`named`) for its name and hook now.
 Emote words after choosing a row ("GG, button") came from the always-open `EmoteWheelPanel`: the
 focus tracker's geometry fallback skips open panels that draw nothing (`NativeUi::DrawsNothing`).
+
+## The acts on right stick down (2026-10-20)
+
+A tester: the window's legends never say that the triggers change the act. Right stick down with
+the waypoint window open says "Use RT or LT to change acts" first, naming the buttons bound to the
+tab actions (`ControllerText::TabRightGlyph` U+E01C, `TabLeftGlyph` U+E01B), then the legends.

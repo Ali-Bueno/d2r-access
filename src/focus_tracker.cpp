@@ -1195,6 +1195,11 @@ void NoteScrollInput() {
 bool ScreenHints() { return g_screenHints.load(); }
 void SetScreenHints(bool enabled) { g_screenHints.store(enabled); }
 
+void CancelSelectHint() {
+	g_selectHintAt = 0;
+	g_selectHintSpoken = true; // until the next character row re-arms it
+}
+
 void SetDiagnosticsEnabled(bool enabled) {
 	g_diagnostics = enabled;
 }

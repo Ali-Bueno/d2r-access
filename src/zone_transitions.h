@@ -18,6 +18,8 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 // a player coming from this area walks into. Unchanged elsewhere.
 Radar::Position MouthOf(const Passages::Reading& reading, Radar::Position crossing, Radar::Position player);
 Radar::Position CorridorMouth(const Radar::World& world, Radar::Position crossing);
+// A shut door stands at the crossing: the door is the way in, whatever corridor leads to it.
+bool DoorAt(const Radar::World& world, Radar::Position crossing);
 // An exit that names a neighbouring level: it may be walked across somewhere
 // along the shared border rather than at the point that names it.
 bool Crosses(const EntityRadar::Entity& entity);

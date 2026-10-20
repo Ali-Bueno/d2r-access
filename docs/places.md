@@ -197,3 +197,19 @@ through the prefab `pf_steamy_grate01`; feature `SewerGrate` ("sewer grate"), 22
 it is at subtile 37,33, where the tester walked round it (`sewer_d2r-access.log`). The flat
 `water_channel_grate01` along the channels is not matched; `pf_sewer_grate` is Lut Gholein's street
 grate, left for later. The "tables" heard there is `bench01_03` in a pile of broken furniture.
+
+## Porch cottage from the southwest, Outer Cloister fountain (2026-10-20)
+
+**Porch cottage.** From the southwest a tester heard only "cottage": `Cott5`/`Cott5A` carry a
+`visbox_cottage` volume (14,15-32,32 subtiles) that said the interior word, while the piece word
+"cottage with porch" was not heard. `INTERIOR_SKIPPED_FILES` now skips the cottage interior for
+`cott[56]a?`, so the porch cottage says one word, its own. Not reproduced in game: the code reading
+(preset word only on a piece change, interior word on a volume change) fits but the walk was not traced.
+
+**Outer Cloister fountain.** The courtyard's Rogue fountain (`objects.txt` *ID 12 `Fountain`,
+"RogueFountain") is not in the HD layouts: `act1/court/courtw|n|e.json` hold no fountain, statue or
+plaza model (only walls, walkways, bushes and 26-29 `act1_courtyard_water/water_plane` tiles spread
+over the whole level). It is an object placed at runtime, a target in no mode, so the generator
+cannot name it. `NativeEntities` reads it anyway as a map landmark (`EntityLayout::RogueFountainClass`,
+"Rogue fountain"): it is listed in the scanner, found ("The radar has located a new place") and
+guided to like the desert's cliff stairs. Unverified live: that the fountain is that object.

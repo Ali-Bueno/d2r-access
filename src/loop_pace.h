@@ -23,7 +23,7 @@ static_assert(Percents[NeutralLevel] == 100);
 constexpr std::optional<Group> Of(GroundItems::Sound sound) {
 	using S = GroundItems::Sound;
 	switch (sound) {
-	case S::WoodenDoor: case S::MetalDoor: case S::StoneDoor: return Group::Doors;
+	case S::WoodenDoor: case S::MetalDoor: case S::StoneDoor: case S::Doorway: return Group::Doors;
 	case S::Scroll: case S::Rune: case S::Gem: return Group::SmallItems;
 	case S::Chest: case S::Corpse: case S::WeaponRack: case S::Stash: return Group::Containers;
 	case S::Shrine: case S::Well: return Group::Shrines;

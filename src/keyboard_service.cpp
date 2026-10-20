@@ -70,6 +70,7 @@
 #include "settings_list.h"
 #include "sound_glossary.h"
 #include "sound_volume.h"
+#include "step_counter.h"
 #include "settings_store.h"
 #include "skill_bar_service.h"
 #include "skill_navigation.h"
@@ -1592,6 +1593,21 @@ SettingsList::Entry DirectionStyle() {
 	return entry;
 }
 
+// How many units each click of the walk counts (a tester, 2026-10-20).
+SettingsList::Entry StepClickInterval() {
+	SettingsList::Entry entry;
+	entry.key = "step-click-interval";
+	entry.levels = static_cast<int>(std::size(StepCounter::Intervals));
+	entry.level = GroundItemService::StepInterval;
+	entry.setLevel = GroundItemService::SetStepInterval;
+	entry.sayLevel = [](int level) {
+		char phrase[160]{};
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().stepClickInterval, StepCounter::Intervals[static_cast<size_t>(level)]);
+		return std::string(phrase);
+	};
+	return entry;
+}
+
 SettingsList::Entry ItemSoundSet() {
 	static_assert(Strings::ItemSoundSetCount == static_cast<size_t>(GroundItems::SoundSet::Count), "a phrase for every item sound set");
 	SettingsList::Entry entry;
@@ -1795,6 +1811,10 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{item(Item::Stash), setItem(Item::Stash), [](bool on) { return std::string(GroundItemText::StashSoundEnabled(on)); }, true, "stash-sound"},
 		{item(Item::Chests), setItem(Item::Chests), [](bool on) { return std::string(GroundItemText::ChestSoundEnabled(on)); }, true, "chest-sounds"},
 		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
+		{GroundItemService::OpenDoorSounds, GroundItemService::SetOpenDoorSounds, phrase(&T::openDoorSoundsOn, &T::openDoorSoundsOff), false, "open-door-sounds"},
+		{GroundItemService::DoorwaySounds, GroundItemService::SetDoorwaySounds, phrase(&T::doorwaySoundsOn, &T::doorwaySoundsOff), false, "doorway-sounds"},
+		{GroundItemService::StepClicks, GroundItemService::SetStepClicks, phrase(&T::stepClicksOn, &T::stepClicksOff), false, "step-clicks"},
+		StepClickInterval(),
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
 	}});
@@ -1810,6 +1830,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Volume("item-volume", &T::itemVolume, F::Items),
 		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
 		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
+		Volume("step-volume", &T::stepVolume, F::Steps),
 		FootstepVolume(),
 	}});
 	// Every pulsing loop's pace in one place, next to the volumes (the user, 2026-10-16).
@@ -1853,6 +1874,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{[] { return WallSlideService::Enabled(); }, [](bool on) { WallSlideService::SetEnabled(on); }, phrase(&T::movementEnabled, &T::movementDisabled), true, "wall-slide"},
 		{BeaconService::Sounds, BeaconService::SetSounds, phrase(&T::beaconSoundsOn, &T::beaconSoundsOff), true, "beacon-sounds"},
 		{BeaconService::RoutePrompts, BeaconService::SetRoutePrompts, phrase(&T::routePromptsOn, &T::routePromptsOff), false, "route-prompts"},
+		{BeaconService::RouteTotal, BeaconService::SetRouteTotal, phrase(&T::routeTotalOn, &T::routeTotalOff), false, "route-total"},
 		std::move(strengths[2]),
 		std::move(strengths[3]),
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},

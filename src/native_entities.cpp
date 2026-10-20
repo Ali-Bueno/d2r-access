@@ -29,6 +29,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <unordered_set>
@@ -277,9 +278,10 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
 		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
-		// *hcIdx values of the FallenShaman, FetishShaman and GreaterMummy AI rows in the game's monstats.txt.
-		constexpr std::array<uint32_t, 26> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
-			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 229, 667, 668, 669, 670};
+		// *hcIdx values of the FallenShaman, FetishShaman, GreaterMummy and MummyGenerator (the
+		// Sarcophagus, which spawns mummies) AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 27> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 228, 229, 667, 668, 669, 670};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {
@@ -325,6 +327,8 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 	auto name = UiText::Clean(Localization::Text(nameId));
 	return name == PlaceholderName() ? std::string{} : name;
 }
+std::mutex g_townPresetsMutex;
+std::string g_townPresets;
 // In a town, every NPC its presets place once is listed from anywhere in it,
 // rooms not built yet included. `around` are the player's room and its
 // neighbours: other loaded rooms may lack units still there (docs/entity-scan.md#town-npcs).
@@ -340,6 +344,13 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& 
 	std::vector<TownNpcs::Spawn> spawns;
 	spawns.reserve(presets.size());
 	for (const auto& preset : presets) spawns.push_back({preset.monster, preset.position, aroundRooms.contains(preset.room)});
+	// A row placed twice is not listed: the log tells which NPC that was (a tester, 2026-10-20: Natalya).
+	std::map<uint32_t, int> counts;
+	for (const auto& spawn : spawns) ++counts[spawn.monster];
+	std::string summary;
+	for (const auto& [monster, count] : counts)
+		if (!NpcName(tables, monster).empty()) summary += " " + std::to_string(monster) + "x" + std::to_string(count);
+	{ std::lock_guard lock(g_townPresetsMutex); g_townPresets = std::move(summary); }
 	TownNpcs::Merge(spawns, liveNpcs, [&](uint32_t monster) { return NpcName(tables, monster); }, entities);
 }
 // A player's corpse, own or another's: its inventory's link ID names the owner,
@@ -523,6 +534,14 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	// A seal is counted in every mode: the open ones are what the count is made of.
 	const uint8_t seal = Generated::SealOrdinal(classId);
 	if (seal) QuestSeals::Observe(session, seal, mode != ObjectNeutral);
+	if (classId == RogueFountainClass) {
+		entity.kind = EntityRadar::Kind::Object;
+		entity.category = EntityRadar::Category::Interactable;
+		entity.placeId = NativeLevelExits::Identity(entity.position);
+		entity.name = Strings::Current().rogueFountain;
+		entity.mapLandmark = true;
+		return true;
+	}
 	uint8_t selectable = 0, door = 0, subClass = 0, openWarp = 0, operate = 0;
 	// Only what the game itself lets the player target in the object's current mode.
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
@@ -541,6 +560,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	entity.well = (subClass & SubClassWell) != 0;
 	entity.unreadTome = mode == ObjectNeutral && Generated::TomeObject(classId);
 	if (door && mode == ObjectNeutral) entity.shutDoor = Generated::DoorOpenSound(classId);
+	else if (door) entity.openedDoor = Generated::DoorOpenSound(classId);
 	if (door && mode == ObjectNeutral && Peek(row + ObjSizeX, width) && Peek(row + ObjSizeY, height) && width <= UINT16_MAX && height <= UINT16_MAX)
 		entity.doorSpan = std::max(width, height);
 	entity.questObject = Generated::QuestItemObject(classId) || Generated::QuestMechanismStep(classId, mode);
@@ -906,6 +926,11 @@ std::vector<std::string> LevelNames() {
 		if (auto name = LevelText(tables, id, LevelNameKey); !name.empty() && std::find(names.begin(), names.end(), name) == names.end())
 			names.push_back(std::move(name));
 	return names;
+}
+
+std::string TownPresets() {
+	std::lock_guard lock(g_townPresetsMutex);
+	return g_townPresets;
 }
 
 std::string KeyText(std::string_view key) {

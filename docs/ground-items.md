@@ -51,6 +51,8 @@ does not reveal unidentified affixes.
 | `loot/quest item.ogg` | Ground quest items and unused objects that supply quest items ([below](#quest-item-loops)) |
 | `exploration/portal.ogg` | Level exits: warps, portals, waypoints |
 | `exploration/wooden door.ogg`, `metal door.ogg`, `stone door.ogg`, `slime door.ogg` | Shut doors ([below](#door-loops)) |
+| `exploration/doorway.ogg` | Doorways between a crypt's rooms ([below](#doorways-2026-10-20)) |
+| `one shot sounds/movement/step.ogg` | The walked distance click ([below](#walked-distance-click-2026-10-20)) |
 | `exploration/unexplored room.ogg`, `zone transition.ogg`, `inside unexplored room.ogg` | Exploration cues ([exploration.md](exploration.md)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
@@ -220,6 +222,34 @@ is set only while the object is in mode NU (`ObjectNeutral`), so the next unit
 refresh (up to 500 ms) drops it. The radar's passage probe reads the game's own
 DOOR collision bit, which opening clears, so the way through opens there too.
 Switch: `[doors] enabled` in `radar.toml`, `access-items doors-on|doors-off`.
+
+**Opened doors (2026-10-20).** A tester asked for doors that keep sounding once open, to find
+the way through again. `open-door-sounds` (Ctrl+S Sounds, off by default, the earlier choice)
+keeps the loop of a door in any other mode (`Entity::openedDoor`, set beside `shutDoor`).
+
+## Doorways (2026-10-20)
+
+A tester's request: openings that act as doors but are no door object should sound like
+shrines and wells, starting with the crypt tile set, whose doorways break the automap's wall
+lines. Built: in a level whose Levels.txt `LevelType` is the LvlTypes.txt row "Act 1 - Crypt"
+(4: the Crypt, the Mausoleum, Tower Cellar 1-4), every gap between two streamed rooms
+(`Rooms::Doorways`, the openings the room announcer reads, each once) loops the tester's own
+creaking-wood recording (`exploration/doorway.ogg`, mono, peak-normalized, a 2 s pass) at its
+middle, the two nearest (`MaxDoorwayVoices`), paced with the doors. Read with the doors, every
+500 ms. Switch `doorway-sounds` (Ctrl+S Sounds, on). Log: `[items] doorways nearby: N level=L`.
+Not built yet: doorways in the scanner, other tile sets (cottages, the Tower's ruin, Kurast's
+huts), which the tester will widen to once the crypt is heard. Unverified live.
+
+## Walked distance click (2026-10-20)
+
+A tester's request, to judge distances: a click every 1, 5 or 10 units walked (units as the
+scanner and the route speak them, subtiles). `StepCounter::Odometer` sums the player's
+movement between the service's reads; more than 10 units at once is a jump (teleport, portal,
+waypoint, a new level) and counts nothing; a new game starts again. The click
+(`one shot sounds/movement/step.ogg`, a 40 ms 1250 Hz tick made with ffmpeg) plays on its own
+one-shot channel of the item mixer, so it never takes an enemy cue's place. Switches in Ctrl+S
+Sounds: `step-clicks` (off), `step-click-interval` (1, 5 or 10 units); its volume
+`step-volume` (Volumes, on top of the item volume). Unverified live.
 
 **Which cue** is the sound the game itself plays when that door opens, not its
 class name. objects.txt has no material column; the client keeps a per-class

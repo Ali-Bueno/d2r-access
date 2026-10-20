@@ -8,11 +8,14 @@
 #include "entity_cue_audio.h"
 #include "item_audio.h"
 #include "panel_state.h"
+#include "generated/level_flags.h"
 #include "radar_config.h"
 #include "radar_ui.h"
+#include "rooms.h"
 #include "screen_reader.h"
 #include "speech_priority.h"
 #include "speech_strings.h"
+#include "step_counter.h"
 #include "async_log.h"
 #include "zone_transitions.h"
 #include <windows.h>
@@ -45,8 +48,13 @@ bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = fals
 bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors = true, g_quests = true, g_stash = true, g_suspended = true, g_stashOpen = false;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
-std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines;
-std::atomic<bool> g_shrineSounds{true};
+std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines, g_doorways;
+std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false};
+std::atomic<int> g_stepInterval{0}; // into StepCounter::Intervals
+StepCounter::Odometer g_odometer;
+// LvlTypes.txt row "Act 1 - Crypt" (Levels.txt LevelType of the Crypt, the Mausoleum and the
+// Tower Cellar): its doorways break the automap's walls; other tile sets follow once heard.
+constexpr int32_t CryptLevelType = 4;
 std::vector<std::string> g_nearbyLabels;
 uint64_t g_labelsUpdated = 0;
 // Every loaded ground item's name, for the pickup click, and the target last clicked for.
@@ -188,11 +196,12 @@ std::optional<GroundItems::Sound> DoorLoop(Generated::DoorSound sound) {
 	}
 	return std::nullopt;
 }
-// Only shut doors loop; one the player opens leaves the list and falls silent.
-std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity>& entities) {
+// Shut doors loop; one the player opens falls silent unless `opened` keeps it.
+std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity>& entities, bool opened) {
 	std::vector<GroundItems::Item> result;
 	for (const auto& entity : entities) {
-		const auto sound = entity.kind == EntityRadar::Kind::Object ? DoorLoop(entity.shutDoor) : std::nullopt;
+		const auto door = opened && entity.shutDoor == Generated::DoorSound::None ? entity.openedDoor : entity.shutDoor;
+		const auto sound = entity.kind == EntityRadar::Kind::Object ? DoorLoop(door) : std::nullopt;
 		if (!sound) continue;
 		GroundItems::Item source;
 		source.id = entity.id; source.position = {entity.position.x, entity.position.y};
@@ -202,10 +211,25 @@ std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity
 	}
 	return result;
 }
+// The gaps between a crypt's rooms, at their middle.
+std::vector<GroundItems::Item> DoorwaySources(const Radar::World& world) {
+	std::vector<GroundItems::Item> result;
+	if (Generated::FindLevelFlags(world.level).levelType != CryptLevelType) return result;
+	for (const auto& doorway : Rooms::Doorways(world)) {
+		GroundItems::Item source;
+		source.id = (static_cast<uint32_t>(doorway.centre.x) << 16) | (static_cast<uint32_t>(doorway.centre.y) & 0xFFFF);
+		source.position = {doorway.centre.x, doorway.centre.y};
+		source.sound = GroundItems::Sound::Doorway;
+		source.source = GroundItems::SourceKind::Object;
+		result.push_back(std::move(source));
+	}
+	return result;
+}
 void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	ItemAudio::Silence();
 	g_nearbyLabels.clear();
-	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear(); g_entitiesRead = 0;
+	g_odometer.Reset();
+	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear(); g_doorways.clear(); g_entitiesRead = 0;
 	if (!g_suspended) AsyncLog::InfoF(context, "[items] suspended: %s", reason);
 	g_suspended = true;
 }
@@ -346,27 +370,33 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		AsyncLog::InfoF(context, "[items] gold picked up: %d", gain);
 		ScreenReader::Speak(phrase, false);
 	}
-	if (!g_supported || !state.ready || (!g_speech && !g_sound && !g_exits && !g_chests && !g_doors && !g_quests && !g_stash)) { Suspend(context, "lifecycle/disabled"); return; }
+	const bool doorways = g_doorwaySounds.load(), steps = g_stepClicks.load();
+	if (!g_supported || !state.ready || (!g_speech && !g_sound && !g_exits && !g_chests && !g_doors && !g_quests && !g_stash && !doorways && !steps)) {
+		Suspend(context, "lifecycle/disabled");
+		return;
+	}
 	if (!playing) { Suspend(context, "UI/focus"); return; }
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::Read(state.player, state.session, snapshot)) { Suspend(context, "world unavailable"); return; }
 	if (g_suspended) AsyncLog::Info(context, "[items] resumed");
 	g_suspended = false;
+	if (!steps) g_odometer.Reset();
+	else if (g_odometer.Walk(snapshot.player, snapshot.session, StepCounter::Intervals[g_stepInterval.load()]) > 0) ItemAudio::PlayStep();
 	g_nearbyLabels.clear();
 	g_labelsUpdated = now;
 	// Fixed exits, containers, quest objects and doors share one slower unit read.
 	const bool shrines = g_shrineSounds.load();
-	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
+	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines || doorways) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
 		g_entitiesRead = now;
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
 		auto landmarks = read && (g_exits || g_stash) ? Landmarks(entities, g_exits, g_stash) : std::vector<GroundItems::Item>{};
-		if (g_exits && g_boundariesSupported) {
-			Radar::World world;
+		const bool borders = g_exits && g_boundariesSupported;
+		Radar::World world;
+		const bool worldRead = (borders || doorways) && NativeWorld::Read(state.player, state.session, 0, world);
+		if (borders && worldRead) {
 			NativeLevelExits::Layout layout;
-			if (NativeWorld::Read(state.player, state.session, 0, world)
-				&& NativeEntities::ReadLayout(state.player, true, layout))
-				AddTransitions(landmarks, entities, ZoneTransitions::Find(world, layout));
+			if (NativeEntities::ReadLayout(state.player, true, layout)) AddTransitions(landmarks, entities, ZoneTransitions::Find(world, layout));
 		}
 		if (landmarks.size() != g_landmarks.size()) AsyncLog::InfoF(context, "[items] exits nearby: %zu", landmarks.size());
 		g_landmarks = std::move(landmarks);
@@ -376,9 +406,12 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		auto quests = read && g_quests ? ObjectSources(entities, true) : std::vector<GroundItems::Item>{};
 		if (quests.size() != g_questObjects.size()) AsyncLog::InfoF(context, "[items] quest objects nearby: %zu", quests.size());
 		g_questObjects = std::move(quests);
-		auto doors = read && g_doors ? DoorSources(entities) : std::vector<GroundItems::Item>{};
+		auto doors = read && g_doors ? DoorSources(entities, g_openDoorSounds.load()) : std::vector<GroundItems::Item>{};
 		if (doors.size() != g_shutDoors.size()) AsyncLog::InfoF(context, "[items] shut doors nearby: %zu", doors.size());
 		g_shutDoors = std::move(doors);
+		auto gaps = worldRead && doorways ? DoorwaySources(world) : std::vector<GroundItems::Item>{};
+		if (gaps.size() != g_doorways.size()) AsyncLog::InfoF(context, "[items] doorways nearby: %zu level=%d", gaps.size(), world.level);
+		g_doorways = std::move(gaps);
 		auto wells = read && shrines ? ShrineSources(entities) : std::vector<GroundItems::Item>{};
 		if (wells.size() != g_shrines.size()) AsyncLog::InfoF(context, "[items] shrines and wells nearby: %zu", wells.size());
 		g_shrines = std::move(wells);
@@ -393,6 +426,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	snapshot.questObjects = g_questObjects;
 	snapshot.doors = g_shutDoors;
 	if (shrines) snapshot.shrines = g_shrines;
+	if (doorways) snapshot.doorways = g_doorways;
 	g_itemLabels.clear();
 	for (const auto& item : snapshot.items)
 		if (!item.baseName.empty()) g_itemLabels.push_back(item.baseName);
@@ -400,7 +434,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (!item.name.empty() && std::hypot(item.position.x - snapshot.player.x, item.position.y - snapshot.player.y) <= GroundItems::SpeakRadius)
 			g_nearbyLabels.push_back(item.baseName);
 	auto update = g_tracker.Tick(snapshot, now, g_speech && !uiOwnsSpeech && command == Command::None, g_sound, g_chests, g_doors, g_quests, shrines);
-	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines) ItemAudio::Update(std::move(update.voices));
+	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines || doorways) ItemAudio::Update(std::move(update.voices));
 	if (!update.speech.empty()) {
 		AsyncLog::InfoF(context, "[items] nearby: %s", update.speech.c_str());
 		SpeechPriority::Say(SpeechPriority::Kind::NearbyItems, update.speech);
@@ -429,6 +463,16 @@ void NoteWorldTarget(std::string_view label) {
 }
 bool ShrineSounds() { return g_shrineSounds.load(); }
 void SetShrineSounds(bool enabled) { g_shrineSounds = enabled; }
+bool DoorwaySounds() { return g_doorwaySounds.load(); }
+void SetDoorwaySounds(bool enabled) { g_doorwaySounds = enabled; }
+bool OpenDoorSounds() { return g_openDoorSounds.load(); }
+void SetOpenDoorSounds(bool enabled) { g_openDoorSounds = enabled; }
+bool StepClicks() { return g_stepClicks.load(); }
+void SetStepClicks(bool enabled) { g_stepClicks = enabled; }
+int StepInterval() { return g_stepInterval.load(); }
+void SetStepInterval(int interval) {
+	g_stepInterval = std::clamp(interval, 0, static_cast<int>(std::size(StepCounter::Intervals)) - 1);
+}
 bool PickupClick() { return g_pickupClick; }
 void SetPickupClick(bool enabled) { g_pickupClick = enabled; }
 

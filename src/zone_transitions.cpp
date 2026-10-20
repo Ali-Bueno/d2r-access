@@ -55,6 +55,17 @@ Radar::Position CorridorMouth(const Radar::World& world, Radar::Position crossin
 	return MouthOf(reading, crossing, world.player);
 }
 
+bool DoorAt(const Radar::World& world, Radar::Position crossing) {
+	constexpr int Reach = 2; // the crossing is the door's nearest cell; a double door spans more
+	for (int dy = -Reach; dy <= Reach; ++dy)
+		for (int dx = -Reach; dx <= Reach; ++dx) {
+			uint16_t flags = 0;
+			(void)world.Cell(static_cast<int>(crossing.x) + dx, static_cast<int>(crossing.y) + dy, Radar::Layer::Movement, &flags);
+			if (flags & Radar::Collision::Door) return true;
+		}
+	return false;
+}
+
 std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelExits::Layout& layout, double radius) {
 	std::vector<Radar::LevelExit> result;
 	if (layout.level != static_cast<uint32_t>(world.level)
@@ -87,7 +98,8 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 			}
 		}
 	}
-	for (auto& exit : result) exit.position = CorridorMouth(world, exit.position);
+	// The Cathedral's doors end the colonnade walk, which reads as a corridor (a tester, 2026-10-20).
+	for (auto& exit : result) if (!DoorAt(world, exit.position)) exit.position = CorridorMouth(world, exit.position);
 	return result;
 }
 

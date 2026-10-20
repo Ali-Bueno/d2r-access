@@ -56,6 +56,8 @@ bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& la
 std::string LevelName(uint32_t levelId);
 // Every level's name, in table order, each once; empty when the table is unreadable.
 std::vector<std::string> LevelNames();
+// The NPC presets of the town last read, " row x count" each, for the survey's log.
+std::string TownPresets();
 // A game string key in the language being played, cleaned as entity names are.
 std::string KeyText(std::string_view key);
 // The patch tripwire: how many objects.txt rows the container predicate selects

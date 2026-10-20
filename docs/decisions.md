@@ -3,6 +3,34 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-20 — The tester's list on builds 2026-10-19 and 19-3
+
+From `D2R Access build 2026-10-19 and 19-3 feedback and bug list.7z` (the user's Downloads: list,
+screenshots of a Tower Cellar doorway, the Inner Cloister and the Outer Cloister fountain, a
+creaking-wood recording; no logs). Built and unit-tested only.
+- **Doorway sounds from the room openings, crypt tile set only**: the gaps between two streamed
+  rooms the room announcer already reads (`Rooms::Doorways`), in levels of LvlTypes row
+  "Act 1 - Crypt", as the tester asked to start. Rejected: reading the automap's doorway marks
+  (nothing reads them yet, and the collision gives the same gaps) and every maze level at once
+  (cave openings are no doorways). On by default, behind `doorway-sounds`.
+- **Opened doors keep sounding only by choice** (`open-door-sounds`, off): silence on opening
+  was the earlier choice and stays the default.
+- **The step click on the item mixer's own one-shot channel**, not the cue synthesizer: that
+  plays one cue at a time, and a click every unit would have taken enemy cues' turns.
+- **A shut door at an area crossing keeps the exit there** rather than at a corridor's mouth
+  (the Cathedral's doors past the colonnade). Accepted risk: the Monastery Gate's entry, moved to
+  its corridor's mouth on 2026-10-18, goes back to its inner door if that is a door object.
+- **The eclipse said only on its start in the Lost City**: a joined game's first flags in a town
+  are no eclipse. Rejected: saying it on every entry while it lasts (a sighted player sees it
+  once).
+- **Discoveries in a level's first 2.5 s wait for the banner** instead of being spoken under it.
+- **Route grave case: logged, not guessed.** No log came with the screenshots; each route now logs
+  the collision around the player, and the planner is unchanged until a log shows the cause.
+- **The fountain as a map landmark from its object** (`RogueFountainClass`), not a place word:
+  the place names come from the HD layouts, which do not hold it.
+- **Natalya: a log line, not a fix**: three causes fit, and the new `[survey]` presets column
+  tells them apart.
+
 ## 2026-10-19 — Route legs along the stick's eight ways
 
 The tester's "Fundamentals: Route finder (Mod+A)" (the user's Downloads: text, screenshots of a

@@ -76,3 +76,12 @@ Trade module globals (all rip-relative in the fingerprinted functions):
 A two-client trade: both prompts name the partner; the grids name the offer side; items and gold
 offered by the partner are told; both acceptances; completed and cancelled endings; the partner's
 items read in `grid_them`.
+
+## The gold window's title (2026-10-20)
+
+A tester at the stash heard "Drop Gold - Deposit". One window (`DropGoldModal`) drops, deposits,
+withdraws and offers gold; its layout's title is always Drop Gold (`strDropGoldInfo`) and the game
+sets the shown one as it opens. The announcer now reads the live `Title` 120 ms after the window
+opens (`UiMessageMonitor`, `RuntimeTitlePanels`) and says that, the layout's only when it reads
+empty. Log: `[modal] DropGoldModal title: "..."`. Unverified live: what said "Deposit" the
+first time is unknown, so the title may be heard twice.

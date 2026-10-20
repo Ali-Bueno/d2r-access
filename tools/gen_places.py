@@ -167,8 +167,9 @@ FILE_PLACES = [
 ]
 # Tiles around a named piece where its name is already spoken: the ruined tower is seen from afar.
 PRESET_PADDING = {"Tower": 6}
-# Interiors a file's volumes must not name: the stable's visbox is the cottage's.
-INTERIOR_SKIPPED_FILES = {"Cottage": re.compile(r"^act1/outdoors/cott6a?\.ds1$")}
+# Interiors a file's volumes must not name: the stable's visbox is the cottage's, and the porch
+# cottage already says its own name (its interior alone said just "cottage").
+INTERIOR_SKIPPED_FILES = {"Cottage": re.compile(r"^act1/outdoors/cott[56]a?\.ds1$")}
 PLACE_NAMES = [p[0] for p in PLACES] + [p[0] for p in FILE_PLACES]
 PLACE_RX = [(n, re.compile(p)) for n, p in PLACES]
 FILE_PLACE_RX = [(n, re.compile(p)) for n, p in FILE_PLACES]

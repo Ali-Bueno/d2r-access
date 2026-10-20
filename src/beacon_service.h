@@ -24,4 +24,7 @@ void SetSounds(bool enabled);
 // The next leg said at each turn of a route asked for (docs/route-description.md).
 bool RoutePrompts();
 void SetRoutePrompts(bool enabled);
+// A route asked for says its whole length before its legs (a tester, 2026-10-20: optional).
+bool RouteTotal();
+void SetRouteTotal(bool enabled);
 }

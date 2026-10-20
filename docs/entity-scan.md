@@ -143,3 +143,11 @@ the room whose rectangle holds it, where the build will put it. The map is
 map presets. Live check: `[scan] Verified unbuilt-room preset reader.` at
 startup, and `[survey] town NPCs on level <n>: <total>, ...` naming every town
 NPC, the far ones as `/spawn`.
+
+## Natalya in Kurast Docks (open, 2026-10-20)
+
+A tester at the docks' stash could not find Natalya until near her. Kurast Docks is one preset
+(LvlPrest 529, `DockTown3.ds1`), so her preset should come with the map's. Candidates: her row
+placed twice (`TownNpcs::Merge` drops a row placed more than once), or her preset missing from
+the map's list. `[survey] town NPCs on level 75` now ends with the town's NPC presets as
+`row x count` (`NativeEntities::TownPresets`; Natalya is MonStats row 297) to tell which.

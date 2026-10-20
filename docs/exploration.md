@@ -225,3 +225,11 @@ matched every room and visited flag across all nine keys: 286 seen, 176 visited.
 No legacy text files remain in that installation. Listening in game is pending.
 - Live: `[radar] … unexplored=1` on generated cues, `[terrain] visited room=`, `[terrain] level=…
   seen=… visited=…` on load, the grid-origin warning must never appear.
+
+## Discoveries after the banner, by their full name (2026-10-20)
+
+A tester: arriving in the Canyon of the Magi, the waypoint beside the arrival was never said. A place
+found in the first 2.5 s of a level (`TerrainService` `ArrivalHoldMs`) was said at once and cut by
+the area's banner, which interrupts; such finds now wait and are said after that window. A find
+is said by the scanner's own name, so a tomb carries its symbol ("Tomb of Tal Rasha: Double
+Chevron"); it is still stored by its plain name. Unverified live.

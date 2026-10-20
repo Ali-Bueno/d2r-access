@@ -22,6 +22,7 @@
 #include "pad_filter.h"
 #include "room_graph.h"
 #include "radar_config.h"
+#include "radar_trace.h"
 #include "radar_ui.h"
 #include "route_follow.h"
 #include "route_legs.h"
@@ -94,12 +95,15 @@ constexpr uint64_t MovedCheckMs = 1000;
 // Policy: its way is planned again once it stands this far from where the way was
 // planned to: past the arrival margin (3 units) and a stride.
 constexpr double MovedUnits = 5;
+// Diagnostics: a described route logs the collision this far around the player (a 49-cell square).
+constexpr int RouteCollisionRadius = 24;
 // `entity` where the way was planned to; `ofLock`: the route leads to the locked
 // target, and ends when the lock does.
 struct Followed { EntityRadar::Entity entity; int level = 0; uint64_t session = 0, nextMs = 0, movedMs = 0; bool ofLock = false; };
 Followed g_followed;
 RouteFollow::Follower g_follower;
 std::atomic<bool> g_routePrompts{true};
+std::atomic<bool> g_routeTotal{true};
 
 // The room graph for the level being played, or nothing when the level's
 // rooms cannot be read. Never a stale level's graph.
@@ -609,11 +613,13 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		ScreenReader::Speak(text, true);
 		return;
 	}
-	const auto text = RouteLegs::Speak(entity.name, route.legs, route.guess, strings);
+	const auto text = RouteLegs::Speak(entity.name, route.legs, route.guess, g_routeTotal.load(std::memory_order_relaxed), strings);
 	ScreenReader::Speak(text, true);
 	AsyncLog::InfoF(g_context, "[route] from=%.0f,%.0f to=%.0f,%.0f cells=%zu doors=%zu legs=%zu guess=%u restricted=%u -> %s",
 		route.world.player.x, route.world.player.y, route.place.x, route.place.y, route.cells, route.doors, route.legs.size(),
 		route.guess ? 1u : 0u, route.restricted ? 1u : 0u, text.c_str());
+	// The ground the route was laid on, to replay a leg the game would not walk (docs/route-description.md).
+	RadarTrace::Collision(g_context, route.world, RouteCollisionRadius, now);
 	if (!g_routePrompts.load(std::memory_order_relaxed)) return;
 	g_followed = {entity, state.level, state.session, now, now + MovedCheckMs, g_tracker.Locked()};
 	g_follower.Start(route.world.player, route.legs);
@@ -861,6 +867,7 @@ void Unregister() {
 	g_follower.Stop();
 	g_followed = {};
 	g_routePrompts = true;
+	g_routeTotal = true;
 	NavigationMode::SetFullAssistance(false);
 }
 
@@ -870,5 +877,7 @@ void SetFullAssistance(bool enabled) { g_command = enabled ? Command::FullAssist
 bool Sounds() { return g_sounds; }
 bool RoutePrompts() { return g_routePrompts.load(std::memory_order_relaxed); }
 void SetRoutePrompts(bool enabled) { g_routePrompts.store(enabled, std::memory_order_relaxed); }
+bool RouteTotal() { return g_routeTotal.load(std::memory_order_relaxed); }
+void SetRouteTotal(bool enabled) { g_routeTotal.store(enabled, std::memory_order_relaxed); }
 void SetSounds(bool enabled) { g_command = enabled ? Command::SoundsOn : Command::SoundsOff; }
 }

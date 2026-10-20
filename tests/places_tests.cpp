@@ -69,6 +69,10 @@ void GeneratedData() {
 		"Cott1 and Cott1A are the plain stone cottage (a tester, 2026-10-19)");
 	Check(Places::Find("Act1/Outdoors/Cott6A.ds1") == nullptr && Places::Find("Act1/Outdoors/Cott6.ds1") == nullptr,
 		"the stable's cottage visbox does not make it an interior");
+	const auto* porch5 = Places::Find("Act1/Outdoors/Cott5.ds1");
+	const auto* porch5a = Places::Find("Act1/Outdoors/Cott5A.ds1");
+	Check((!porch5 || Places::PieceOf(*porch5).volumes.empty()) && (!porch5a || Places::PieceOf(*porch5a).volumes.empty()),
+		"the porch cottage has no interior word of its own: its name is the only one said");
 	const auto* cottage = Places::Find("Act1/Outdoors/Cott4.ds1");
 	Check(cottage && Places::PieceOf(*cottage).volumes.size() == 1
 		&& Places::PieceOf(*cottage).volumes[0].interior == PlaceInterior::Cottage, "a cottage keeps its interior");

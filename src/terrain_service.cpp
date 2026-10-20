@@ -69,6 +69,11 @@ uint32_t g_warnedLevel = 0;
 bool g_supported = false, g_roomSounds = true, g_placeAlerts = true;
 // The level being surveyed and the one before it: the way back is not a find.
 int g_surveyedLevel = 0, g_cameFrom = 0;
+// Finds made just after arriving wait behind the area's banner, which interrupts (a tester,
+// 2026-10-20: the Canyon of the Magi's waypoint, beside the arrival, was never heard).
+constexpr uint64_t ArrivalHoldMs = 2500;
+uint64_t g_arrivedAt = 0;
+std::vector<std::string> g_heldFinds;
 // The store worker owns archive I/O; gameplay only submits room snapshots.
 std::filesystem::path g_directory;
 // Explicit Unregister stops/flushes the store; forced process exit must not
@@ -143,6 +148,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 		g_keys.clear();
 		g_places.clear();
 		g_surveyedLevel = g_cameFrom = 0;
+		g_heldFinds.clear();
 		g_loggedLevel = 0;
 		g_loggedRooms = 0;
 	}
@@ -473,7 +479,8 @@ std::map<int, std::vector<EntityRadar::Entity>> MapPlaces(uint32_t seed) {
 }
 
 void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, const std::vector<EntityRadar::Entity>& found) {
-	struct Found { ExploredStore::Place place; bool quest; };
+	// Stored by its plain name, said by the scanner's (a tomb with its symbol: a tester, 2026-10-20).
+	struct Found { ExploredStore::Place place; bool quest; std::string label; };
 	std::vector<Found> fixed;
 	for (const auto& entity : found) {
 		const bool quest = EntityRadar::QuestSource(entity);
@@ -481,17 +488,21 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 		// A quest object is known by where it stands; a Cairn Stone by its name without the symbol.
 		fixed.push_back({{entity.id, entity.placeId ? entity.placeId : NativeLevelExits::Identity(entity.position),
 			entity.position.x, entity.position.y, entity.destinationLevel, entity.worldName.empty() ? entity.name : entity.worldName,
-			static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey}, quest});
+			static_cast<uint8_t>(entity.kind), static_cast<uint8_t>(entity.category), entity.nameKey}, quest, entity.name});
 	}
 	std::vector<std::string> finds;
 	{
 		std::lock_guard lock(g_mutex);
 		const auto* key = LoadedKey(level, rooms);
 		if (!key) return;
-		if (g_surveyedLevel != level) { g_cameFrom = g_surveyedLevel; g_surveyedLevel = level; }
-		if (fixed.empty()) return;
-		auto& known = g_places[*key];
-		for (const auto& [place, quest] : fixed) {
+		const uint64_t now = GetTickCount64();
+		if (g_surveyedLevel != level) {
+			g_cameFrom = g_surveyedLevel; g_surveyedLevel = level;
+			g_arrivedAt = now;
+			g_heldFinds.clear();
+		}
+		for (const auto& [place, quest, label] : fixed) {
+			auto& known = g_places[*key];
 			const auto novelty = ExploredStore::Classify(known, place, static_cast<uint32_t>(g_cameFrom));
 			const bool namesake = quest && ExploredStore::Namesake(known, place);
 			if (!ExploredStore::MergePlaces(known, {place}) || novelty == ExploredStore::Novelty::Known) continue;
@@ -504,8 +515,15 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 			const bool exit = static_cast<EntityRadar::Category>(place.category) == EntityRadar::Category::Exit;
 			char phrase[200]{};
 			std::snprintf(phrase, sizeof(phrase), quest ? strings.placeFoundQuest : exit ? strings.placeFoundExit : strings.placeFound,
-				place.name.c_str());
+				label.c_str());
 			finds.emplace_back(phrase);
+		}
+		if (now - g_arrivedAt < ArrivalHoldMs) {
+			g_heldFinds.insert(g_heldFinds.end(), finds.begin(), finds.end());
+			finds.clear();
+		} else if (!g_heldFinds.empty()) {
+			finds.insert(finds.begin(), g_heldFinds.begin(), g_heldFinds.end());
+			g_heldFinds.clear();
 		}
 	}
 	for (const auto& phrase : finds) ScreenReader::Speak(phrase, false);
@@ -563,6 +581,7 @@ void Unregister() {
 	g_roomSounds = true;
 	g_placeAlerts = true;
 	g_surveyedLevel = g_cameFrom = 0;
+	g_heldFinds.clear();
 	g_nextPoll = 0;
 	g_nextSave = 0;
 	g_loadedLevel = 0;

@@ -1,4 +1,5 @@
 #include "ground_item_service.h"
+#include "rooms.h"
 #include "entity_cue_audio.h"
 #include "ground_items.h"
 #include "entity_layout.h"
@@ -117,7 +118,9 @@ void Update(std::vector<GroundItems::Voice> value) { voices = std::move(value); 
 void Silence() { voices.clear(); }
 void Stop() { voices.clear(); }
 bool Available() { return true; }
+void PlayStep() {}
 }
+namespace D2RAccess::Rooms { std::vector<Opening> Doorways(const Radar::World&) { return {}; } }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
 std::vector<std::string> openPanels;
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }

@@ -51,6 +51,7 @@ std::vector<std::function<void()>> Players() {
 		Loot(Item::Discovered),
 		Loot(Item::EpochGold), Loot(Item::EpochHealthPotion), Loot(Item::EpochManaPotion), Loot(Item::EpochRejuvenationPotion),
 		Loot(Item::EpochOtherPotion), Loot(Item::Shrine), Loot(Item::Well), Cue(ES::Corpse),
+		Loot(Item::Doorway), Loot(Item::Step),
 	};
 }
 }

@@ -323,7 +323,10 @@ start await a follow-up listening check.
 
 **Doors:** a shut door loops `wooden door`, `metal door`, `stone door` or
 `slime door`, chosen by the sound the game itself plays when that door opens,
-and falls silent once opened. Scrolls, runes and gems on the ground have their
+and falls silent once opened, unless `open-door-sounds` (off) keeps it. In the Crypt, the
+Mausoleum and the Tower Cellar every doorway between two rooms creaks (`doorway-sounds`, on).
+A click every 1, 5 or 10 units walked tells distance (`step-clicks`, off; `step-click-interval`,
+`step-volume`). Scrolls, runes and gems on the ground have their
 own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
 `scroll` until read. `[doors] enabled` in the plugin config and
 `access-items doors-on|doors-off` switch the door loops. See
@@ -352,7 +355,8 @@ the game's smallest map cell (a subtile). See [spoken directions](docs/radar-rea
 a sighted player plans it off the minimap: "Route to Akara, 85 units: north, 20; then door;
 then east, 30". Nothing walks for you; ask again on the way for the rest. While you walk it,
 the next leg is said at each turn ("Now east, 30") and "Off the route" once if you leave it
-(`route-prompts`, on). In exploration mode it prefers explored ground and otherwise guesses
+(`route-prompts`, on); the whole length before the legs can be left out (`route-total`, on).
+In exploration mode it prefers explored ground and otherwise guesses
 across rooms never entered, and says so. See [route description](docs/route-description.md).
 
 **Area and landmark descriptions (built; live validation pending):** **BACK + right stick up**

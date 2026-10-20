@@ -67,12 +67,15 @@ endfunction()
 # fork (audio/chest.ogg there); the others are the user's own recordings.
 d2r_sounds("item loop sounds" loot "gold" "potion" "scroll" "rune" "gem" "normal equipment" "magic equipment" "rare equipment" "legendary equipment"
 	"chest" "quest item" "corpse" "weapon rack" "stash")
+# "doorway" is a tester's creaking-wood recording (2026-10-20), mono, padded to a two-second pass.
 d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "stone door" "slime door"
-	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well")
+	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well" "doorway")
 # Taken from the author's Last Epoch accessibility mod: its gold loop and the game's
 # four potion pickups, one per kind; each file is one pass of the loop.
 d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")
 d2r_sounds("one shot sounds" exploration "discovered")
+# The click of the units walked, made with ffmpeg: a 40 ms 1250 Hz tick, peak -1 dB, fading from 6 ms.
+d2r_sounds("one shot sounds" movement "step")
 # The Diablo IV low-life start and heartbeat, from the author's Last Epoch mod (src/low_life_audio.cpp).
 d2r_sounds("one shot sounds" vitals "low life start")
 d2r_sounds("item loop sounds" vitals "low life")
@@ -97,7 +100,8 @@ if(BUILD_TESTING)
 	target_link_libraries(item-audio-tests PRIVATE xaudio2)
 	add_dependencies(item-audio-tests d2r-access)
 	add_executable(ground-item-service-tests tests/ground_item_service_tests.cpp src/ground_item_service.cpp
-		src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp src/async_log.cpp src/radar_config.cpp src/speech_priority.cpp)
+		src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp src/async_log.cpp src/radar_config.cpp src/speech_priority.cpp
+		src/step_counter.cpp)
 	foreach(target ground-item-tests native-ground-item-tests item-audio-tests ground-item-service-tests)
 		target_link_libraries(${target} PRIVATE D2RLPlugin::D2RLPlugin version)
 		target_include_directories(${target} PRIVATE src)
