@@ -257,6 +257,8 @@ inline constexpr Table frFR {
 	.beaconSoundsOff = "Sons du guidage : désactivé",
 	.routePromptsOn = "Annonces des virages de l'itinéraire : activé",
 	.routePromptsOff = "Annonces des virages de l'itinéraire : désactivé",
+	.tutorialOn = "Tutoriel : activé",
+	.tutorialOff = "Tutoriel : désactivé",
 	.routeTotalOn = "Distance totale de l'itinéraire : activée",
 	.routeTotalOff = "Distance totale de l'itinéraire : désactivée",
 	.routeLegsOn = "Étapes de l'itinéraire : activées",
@@ -489,7 +491,7 @@ inline constexpr Table frFR {
 	.radiantObject = "%s radieux",
 	.rogueFountain = "Fontaine des Rôdeuses",
 	.speechPriority = "%s : %s",
-	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol"},
+	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol", "Tutoriel"},
 	.speechPriorityLevels = {"attend son tour", "interrompt si urgent", "interrompt", "interrompt et ne peut pas être coupé"},
 };
 

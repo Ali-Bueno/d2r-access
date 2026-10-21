@@ -21,6 +21,8 @@ enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legenda
 	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered,
 	// A doorway's creak (a tester's recording, 2026-10-20) and the click of the units walked.
 	Doorway, Step,
+	// The tutorial's message and step-done cues.
+	TutorialMessage, TutorialStepDone,
 	// The game's own drop sounds (Generated::DropSoundFiles), an alternative to the
 	// Diablo IV set behind a switch (a tester, 2026-10-13).
 	DropFirst, Count = DropFirst + static_cast<int>(Generated::DropSoundFiles.size()) };
@@ -123,7 +125,8 @@ inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "p
 	{"last epoch", "rejuvenation potion.wav"}, {"last epoch", "other potion.wav"},
 	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
-	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"}};
+	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"},
+	{"tutorial", "message.wav"}, {"tutorial", "step done.wav"}};
 static_assert(std::size(BaseSoundFiles) == static_cast<size_t>(Sound::DropFirst));
 inline constexpr std::string_view DropFolder = "d2 drops";
 // Indexed by Sound: the files above, then the drop sounds.

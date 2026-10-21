@@ -25,7 +25,8 @@ double PanScale();
 void SetPanScale(double scale);
 constexpr bool IsOneShot(GroundItems::Sound sound) {
 	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered
-		|| sound == GroundItems::Sound::Step;
+		|| sound == GroundItems::Sound::Step || sound == GroundItems::Sound::TutorialMessage
+		|| sound == GroundItems::Sound::TutorialStepDone;
 }
 constexpr bool SameSource(const GroundItems::Voice& a, const GroundItems::Voice& b) {
 	return a.id == b.id && a.sound == b.sound && a.source == b.source;
@@ -39,6 +40,9 @@ void PlayExplorationArrival(GroundItems::Voice voice);
 void PlayDiscovery();
 // One click of the units walked, on its own voice at its own volume (SoundVolume::Family::Steps).
 void PlayStep();
+// The tutorial's message cue and its step-done cue, centred, each on its own voice.
+void PlayTutorialMessage();
+void PlayTutorialStep();
 // One sound, centred and played once, for the sound glossary.
 void Preview(GroundItems::Sound sound);
 void SilenceExploration();

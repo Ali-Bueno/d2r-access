@@ -10,6 +10,7 @@
 #include "screen_reader.h"
 #include "entity_cue_service.h"
 #include "speech_strings.h"
+#include "tutorial.h"
 
 #include <windows.h>
 #include <atomic>
@@ -101,7 +102,8 @@ bool Playing(const Lifecycle& state) {
 // owns speech or the player is not simply playing; the tracker keeps its
 // memory across those gaps so nothing repeats when they end.
 void Proximity(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now, bool uiOwnsSpeech) {
-	if (!g_npcEnabled || !g_units || uiOwnsSpeech || now < g_npcNextPoll) return;
+	// The tutorial's words first: the NPC is named once they are over (the user, 2026-10-21).
+	if (!g_npcEnabled || !g_units || uiOwnsSpeech || Tutorial::Busy() || now < g_npcNextPoll) return;
 	g_npcNextPoll = now + g_npcSettings.intervalMs;
 	if (!Playing(state)) return;
 	Radar::World world;

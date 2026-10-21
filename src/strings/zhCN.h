@@ -257,6 +257,8 @@ inline constexpr Table zhCN {
 	.beaconSoundsOff = "引导音效已关闭",
 	.routePromptsOn = "路线转弯提示已开启",
 	.routePromptsOff = "路线转弯提示已关闭",
+	.tutorialOn = "教程已开启",
+	.tutorialOff = "教程已关闭",
 	.routeTotalOn = "路线总距离已开启",
 	.routeTotalOff = "路线总距离已关闭",
 	.routeLegsOn = "路线分段已开启",
@@ -489,7 +491,7 @@ inline constexpr Table zhCN {
 	.radiantObject = "发光的%s",
 	.rogueFountain = "罗格喷泉",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"状态开始", "状态结束", "生命和法力警报", "首领生命", "敌人名称", "游戏消息", "任务进展", "地点", "地上的物品"},
+	.speechPriorityKinds = {"状态开始", "状态结束", "生命和法力警报", "首领生命", "敌人名称", "游戏消息", "任务进展", "地点", "地上的物品", "教程"},
 	.speechPriorityLevels = {"排队等候", "紧急时打断", "打断", "打断且不可被打断"},
 };
 

@@ -40,6 +40,8 @@ before adding one, and read this file first.
 | Ctrl+Y | the ways out of this room |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
+| K, L | the tutorial: previous message, next message ([tutorial](tutorial.md); the user, 2026-10-21) |
+| Shift+K | the tutorial: its first message |
 
 "On screen" is a 16:9 view around the character, INFERRED from the user's
 1920x1080 and not measured (`CombatTarget::OnScreen`). The scanner lists
@@ -160,5 +162,5 @@ Every switch that has no key of its own is in the Ctrl+S list.
 |---|---|---|
 | move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | INFERRED to work already through the key watch: Ctrl+Shift+A. Not measured |
 
-Keys no one uses: K, L, U, Insert, Delete, and most
+Keys no one uses: U, Insert, Delete, and most
 keys with Alt.

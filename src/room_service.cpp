@@ -15,6 +15,7 @@
 #include "speech_strings.h"
 #include "spoken_direction.h"
 #include "terrain_service.h"
+#include "tutorial.h"
 
 #include <windows.h>
 #include <atomic>
@@ -152,6 +153,7 @@ void Announce(const Lifecycle& state, const Radar::World& world, const Rooms::Ro
 // BACK+Y: the room the player stands in, asked for. Answers whether or not the
 // automatic announcements are on -- that toggle is about speaking unasked.
 void Layout(const Lifecycle& state) {
+	Tutorial::Post(Tutorial::Signal::RoomWays);
 	const auto& strings = Strings::Current();
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) {

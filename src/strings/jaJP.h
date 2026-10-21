@@ -257,6 +257,8 @@ inline constexpr Table jaJP {
 	.beaconSoundsOff = "誘導の音 オフ",
 	.routePromptsOn = "ルートの曲がり角の案内 オン",
 	.routePromptsOff = "ルートの曲がり角の案内 オフ",
+	.tutorialOn = "チュートリアル オン",
+	.tutorialOff = "チュートリアル オフ",
 	.routeTotalOn = "ルートの総距離 オン",
 	.routeTotalOff = "ルートの総距離 オフ",
 	.routeLegsOn = "ルートの区間 オン",
@@ -489,7 +491,7 @@ inline constexpr Table jaJP {
 	.radiantObject = "輝く%s",
 	.rogueFountain = "ローグの噴水",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"状態異常の開始", "状態異常の終了", "ライフとマナの警告", "ボスのライフ", "敵の名前", "ゲームのメッセージ", "クエストの進行", "場所", "地面のアイテム"},
+	.speechPriorityKinds = {"状態異常の開始", "状態異常の終了", "ライフとマナの警告", "ボスのライフ", "敵の名前", "ゲームのメッセージ", "クエストの進行", "場所", "地面のアイテム", "チュートリアル"},
 	.speechPriorityLevels = {"順番を待つ", "緊急時のみ割り込む", "割り込む", "割り込み、中断されない"},
 };
 

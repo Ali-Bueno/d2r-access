@@ -9,7 +9,7 @@
 // the settings list (a tester and the user, 2026-10-19). docs/speech-priority.md
 namespace D2RAccess::SpeechPriority {
 
-enum class Kind { StatusBegins, StatusEnds, LifeAlerts, BossLife, EnemyNames, GameNotices, QuestAlerts, Places, NearbyItems, Count };
+enum class Kind { StatusBegins, StatusEnds, LifeAlerts, BossLife, EnemyNames, GameNotices, QuestAlerts, Places, NearbyItems, Tutorial, Count };
 inline constexpr size_t KindCount = static_cast<size_t>(Kind::Count);
 
 // Waits its turn; cuts in only when the mod judges it urgent; always cuts in; cuts in and is not cut off.
@@ -19,7 +19,7 @@ inline constexpr int LevelCount = static_cast<int>(Level::Count);
 // What each kind did before the list existed, except status endings: a tester asked them to cut in (2026-10-19).
 inline constexpr std::array<Level, KindCount> Defaults{
 	Level::Holds, Level::CutsIn, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent,
-	Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent};
+	Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::Queued};
 
 // How long a held phrase keeps later interruptions waiting (a tester, 2026-10-15: a status
 // effect's beginning, "with increased priority over other notifications").

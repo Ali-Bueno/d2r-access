@@ -257,6 +257,8 @@ inline constexpr Table enUS {
 	.beaconSoundsOff = "Guidance sounds off",
 	.routePromptsOn = "Route turn prompts on",
 	.routePromptsOff = "Route turn prompts off",
+	.tutorialOn = "Tutorial on",
+	.tutorialOff = "Tutorial off",
 	.routeTotalOn = "Route total distance on",
 	.routeTotalOff = "Route total distance off",
 	.routeLegsOn = "Route legs on",
@@ -489,7 +491,7 @@ inline constexpr Table enUS {
 	.radiantObject = "Radiant %s",
 	.rogueFountain = "Rogue fountain",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground"},
+	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground", "Tutorial"},
 	.speechPriorityLevels = {"waits its turn", "cuts in when urgent", "cuts in", "cuts in and cannot be cut off"},
 };
 

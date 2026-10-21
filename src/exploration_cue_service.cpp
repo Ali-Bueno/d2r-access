@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "ground_items.h"
 #include "item_audio.h"
+#include "tutorial.h"
 
 #include <optional>
 #include <tuple>
@@ -21,6 +22,7 @@ GroundItems::Voice Voice(Radar::Position source, Radar::Position player, GroundI
 
 void Update(const D2RL::PluginContext* context, const NativeLevelExits::Layout& layout,
 	Radar::Position player, const ExploredRooms::Memory& memory, bool maze) {
+	if (Tutorial::QuietWorld()) { Silence(); return; }
 	const auto selection = ExplorationCues::Select(layout, player, memory, maze);
 	std::vector<GroundItems::Voice> voices;
 	std::optional<RoomKey> nearest;

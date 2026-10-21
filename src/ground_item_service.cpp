@@ -16,6 +16,7 @@
 #include "speech_priority.h"
 #include "speech_strings.h"
 #include "step_counter.h"
+#include "tutorial.h"
 #include "async_log.h"
 #include "zone_transitions.h"
 #include <windows.h>
@@ -434,7 +435,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (!item.name.empty() && std::hypot(item.position.x - snapshot.player.x, item.position.y - snapshot.player.y) <= GroundItems::SpeakRadius)
 			g_nearbyLabels.push_back(item.baseName);
 	auto update = g_tracker.Tick(snapshot, now, g_speech && !uiOwnsSpeech && command == Command::None, g_sound, g_chests, g_doors, g_quests, shrines);
-	if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines || doorways) ItemAudio::Update(std::move(update.voices));
+	if (Tutorial::QuietWorld()) ItemAudio::Silence();
+	else if (g_sound || g_exits || g_chests || g_doors || g_quests || g_stash || shrines || doorways) ItemAudio::Update(std::move(update.voices));
 	if (!update.speech.empty()) {
 		AsyncLog::InfoF(context, "[items] nearby: %s", update.speech.c_str());
 		SpeechPriority::Say(SpeechPriority::Kind::NearbyItems, update.speech);

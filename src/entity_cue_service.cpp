@@ -10,6 +10,7 @@
 #include "radar_ui.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "tutorial.h"
 
 #include <windows.h>
 #include <atomic>
@@ -246,6 +247,7 @@ void Tick(const D2RL::PluginContext* context) {
 		Suspend(context, "disabled or unavailable"); return;
 	}
 	if (!RadarUi::InPlay()) { Suspend(context, "UI/focus"); return; }
+	if (Tutorial::QuietWorld()) { Suspend(context, "tutorial: the radar alone"); return; }
 	if (now - g_lastPoll < PollMs) return;
 	g_lastPoll = now;
 	Radar::World world;
@@ -340,14 +342,14 @@ void SetCorpseRepeatLevel(int level) {
 	if (level >= 0 && level < static_cast<int>(EntityCues::CorpseRepeatMs.size())) g_corpseRepeat = level;
 }
 void PlayNpcAlert() {
-	if (g_npcAlerts.load() && g_enabled) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
+	if (g_npcAlerts.load() && g_enabled && !Tutorial::QuietWorld()) EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {});
 }
 std::vector<EntityCues::Cue> RaisedAlerts(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
 	std::lock_guard lock(g_alertMutex);
 	return g_alerts.Raised(world, entities);
 }
 void RingAlert(const EntityCues::Cue& cue) {
-	if (!g_npcAlerts.load() || !g_enabled) return;
+	if (!g_npcAlerts.load() || !g_enabled || Tutorial::QuietWorld()) return;
 	AsyncLog::InfoF(g_context, "[npc] exclamation mark id=%u distance=%.1f", cue.id, cue.distance);
 	EntityCueAudio::Play(EntityCueAudio::Sound::NpcAlert, {cue.right, cue.front});
 }

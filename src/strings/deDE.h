@@ -257,6 +257,8 @@ inline constexpr Table deDE {
 	.beaconSoundsOff = "Zielführungsklänge aus",
 	.routePromptsOn = "Abbiegehinweise der Route an",
 	.routePromptsOff = "Abbiegehinweise der Route aus",
+	.tutorialOn = "Tutorial an",
+	.tutorialOff = "Tutorial aus",
 	.routeTotalOn = "Gesamtlänge der Route an",
 	.routeTotalOff = "Gesamtlänge der Route aus",
 	.routeLegsOn = "Teilstrecken der Route an",
@@ -489,7 +491,7 @@ inline constexpr Table deDE {
 	.radiantObject = "Strahlende %s",
 	.rogueFountain = "Brunnen der Jägerinnen",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden"},
+	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden", "Tutorial"},
 	.speechPriorityLevels = {"wartet, bis es dran ist", "unterbricht, wenn dringend", "unterbricht", "unterbricht und wird nicht unterbrochen"},
 };
 

@@ -7,6 +7,12 @@ the [architecture guide](docs/architecture.md).
 
 ## What works today
 
+- **Tutorial for a new character (built; live validation pending):** a level 1 character playing
+  alone is guided through the mod's tools (vitals, radar, scanner, route, beacon, the area
+  questions) until the Den of Evil's reward, each step waiting for the player to do it. A chime
+  opens each message and another marks a step done. BACK + right stick left/right (K, L) reads the
+  messages again and BACK + D-pad up (Shift+K) the first, kept from the game. Switch `tutorial`
+  in the Ctrl+S list; spoken in Spanish or English. See [tutorial](docs/tutorial.md).
 - Screen changes and panels are announced with the game's own localized titles (title screen,
   main menu, character select/create, options tabs, cinematics, calibration, modals).
 - **Controller focus is read on every menu**: the focused button, checkbox, dropdown, carousel,

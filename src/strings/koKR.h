@@ -257,6 +257,8 @@ inline constexpr Table koKR {
 	.beaconSoundsOff = "안내 소리 꺼짐",
 	.routePromptsOn = "경로 방향 전환 안내 켜짐",
 	.routePromptsOff = "경로 방향 전환 안내 꺼짐",
+	.tutorialOn = "튜토리얼 켜짐",
+	.tutorialOff = "튜토리얼 꺼짐",
 	.routeTotalOn = "경로 총 거리 켜짐",
 	.routeTotalOff = "경로 총 거리 꺼짐",
 	.routeLegsOn = "경로 구간 켜짐",
@@ -489,7 +491,7 @@ inline constexpr Table koKR {
 	.radiantObject = "빛나는 %s",
 	.rogueFountain = "궁수 석상 분수",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"상태 이상 시작", "상태 이상 종료", "생명력과 마나 경고", "보스 생명력", "적 이름", "게임 메시지", "퀘스트 진행", "장소", "바닥의 아이템"},
+	.speechPriorityKinds = {"상태 이상 시작", "상태 이상 종료", "생명력과 마나 경고", "보스 생명력", "적 이름", "게임 메시지", "퀘스트 진행", "장소", "바닥의 아이템", "튜토리얼"},
 	.speechPriorityLevels = {"차례를 기다림", "긴급할 때만 끼어듦", "끼어듦", "끼어들고 끊기지 않음"},
 };
 

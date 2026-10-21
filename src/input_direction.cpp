@@ -42,6 +42,7 @@ struct PadEdgeState {
 	bool stickLeftHeld  = false;
 	bool stickRightHeld = false;
 	bool dpadUpHeld     = false;
+	bool dpadUpOwned    = false; // this press began with BACK held: the tutorial's, not a direction
 	bool dpadDownHeld   = false;
 	bool stickUpHeld    = false;
 	bool stickDownHeld  = false;
@@ -71,12 +72,14 @@ WORD g_previousDpad = 0;
 Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
+bool g_backWithDpadUp = false;
 bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
 bool g_pressedA = false; // A alone, for the pad typing of a text box (pad_typing.h)
 StickPush g_leftStickPush = StickPush::None; // only while Y is held
-StickPush g_backWithRightStick = StickPush::None;
+StickPush g_backWithRightStick = StickPush::None; // Up or Down only
+StickPush g_backWithRightStickSide = StickPush::None; // Left or Right only
 std::atomic<bool> g_routeOnA{false};          // BACK+A and BACK+down trade places
 ULONGLONG g_leftStickPosted = 0;              // when the keyboard posted one, 0 when it did not
 constexpr ULONGLONG kPostedPushMs = 150;      // several updates of the reader that takes it
@@ -179,7 +182,14 @@ void Poll() {
 			g_nextProbe[padIndex] = 0;
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
-			dpadButtons |= pad.wButtons & DpadMask;
+			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
+			const bool dpadUpDown = (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+			if (UpdateEdge(edges.dpadUpHeld, dpadUpDown)) {
+				edges.dpadUpOwned = backDown;
+				if (backDown) g_backWithDpadUp = true;
+				else RecordEdge(Vertical::Up);
+			}
+			dpadButtons |= pad.wButtons & DpadMask & ~(edges.dpadUpOwned ? XINPUT_GAMEPAD_DPAD_UP : 0);
 			g_leftTrigger.held = g_leftTrigger.held || pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 			g_leftTrigger.otherButton = g_leftTrigger.otherButton || pad.wButtons != 0
 				|| pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
@@ -203,9 +213,6 @@ void Poll() {
 				if (edges.yHeld) g_leftStickPush = StickPush::Right;
 			}
 			// XInput's Y axis grows upward.
-			if (UpdateEdge(edges.dpadUpHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0)) {
-				RecordEdge(Vertical::Up);
-			}
 			if (UpdateEdge(edges.dpadDownHeld, (pad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0)) {
 				RecordEdge(Vertical::Down);
 			}
@@ -219,7 +226,6 @@ void Poll() {
 			}
 			// BACK is a modifier: a face button pressed while it is held (pad_filter.h
 			// keeps that press from the game during play).
-			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			if (UpdateEdge(edges.aHeld, (pad.wButtons & XINPUT_GAMEPAD_A) != 0)) {
 				RecordEdge(FaceButton::A);
 				if (backDown && g_routeOnA.load()) g_backWithRightStick = StickPush::Down;
@@ -253,7 +259,9 @@ void Poll() {
 				const StickPush push = absY >= absX ? (pad.sThumbRY > 0 ? StickPush::Up : StickPush::Down)
 					: (pad.sThumbRX > 0 ? StickPush::Right : StickPush::Left);
 				if (backDown && g_routeOnA.load() && push == StickPush::Down) g_backWithA = true;
-				else if (backDown) g_backWithRightStick = push; // the mod's chord, never a scanner step
+				else if (backDown) { // the mod's chord, never a scanner step
+					(push == StickPush::Left || push == StickPush::Right ? g_backWithRightStickSide : g_backWithRightStick) = push;
+				}
 				else {
 					// A push still pending here is one no reader has wanted, and it
 					// is about to be overwritten. Record that before it goes.
@@ -315,6 +323,16 @@ StickPush TakeBackWithRightStick() {
 	const StickPush push = g_backWithRightStick;
 	g_backWithRightStick = StickPush::None;
 	return push;
+}
+StickPush TakeBackWithRightStickSide() {
+	const StickPush push = g_backWithRightStickSide;
+	g_backWithRightStickSide = StickPush::None;
+	return push;
+}
+bool TakeBackWithDpadUp() {
+	const bool pressed = g_backWithDpadUp;
+	g_backWithDpadUp = false;
+	return pressed;
 }
 bool TakeBackWithLb() {
 	const bool pressed = g_backWithLb;
@@ -446,7 +464,7 @@ Horizontal HeldHorizontal() {
 Vertical HeldVertical() {
 	bool up = g_keyUpHeld, down = g_keyDownHeld;
 	for (const PadEdgeState& edges : g_padState) {
-		up   = up || edges.dpadUpHeld || edges.stickUpHeld;
+		up   = up || (edges.dpadUpHeld && !edges.dpadUpOwned) || edges.stickUpHeld;
 		down = down || edges.dpadDownHeld || edges.stickDownHeld;
 	}
 	if (up == down) {

@@ -15,6 +15,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "mod_sounds.h"
+#include "tutorial.h"
 #include "wall_bump.h"
 #include "wall_tone_service.h"
 #include "wall_slide_service.h"
@@ -341,6 +342,7 @@ void Tick(const D2RL::PluginContext* context) {
 		RadarAudio::Retain(states, g_engine.Unexplored());
 		LogGenerated(world, events, marks, small, now);
 		RadarAudio::Play(events, {.eventMs = now, .session = world.session, .level = world.level, .position = world.player, .frame = g_frame}, marks, small);
+		if (std::find(events.begin(), events.end(), Radar::State::Blocked) != events.end()) Tutorial::Post(Tutorial::Signal::Wall);
 		const bool generated = std::any_of(events.begin(), events.end(), [](auto state) { return state != Radar::State::Unknown; });
 		if (generated && (!g_lastSnapshot || now - g_lastSnapshot >= SnapshotIntervalMs)) {
 			RadarTrace::Snapshot(context, world, g_engine, now);

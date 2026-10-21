@@ -137,6 +137,21 @@ bool UnderTabBar(const UiText::Snapshot& snapshot, int parent) {
 	return false;
 }
 
+// A confirmation modal's legends draw only the button bound to their action, select on
+// Confirm and back on Dismiss (Controller/ConfirmationModalHD.json), and hold no text:
+// deleting a character said "press and hold" and never which button (the user,
+// 2026-10-21). The pad's buttons for those actions, A and B (docs/controller-glyphs.md).
+constexpr uint32_t SelectGlyph = 0xE00F, BackGlyph = 0xE010;
+uint32_t LegendGlyph(const UiText::Snapshot& snapshot, size_t button) {
+	for (size_t at = button + 1; at < snapshot.nodes.size(); ++at) {
+		const auto& node = snapshot.nodes[at];
+		if (node.parent != static_cast<int>(button) || node.kind != UiText::Kind::Legend || !node.text.empty()) continue;
+		if (node.name == "ConfirmLegend") return SelectGlyph;
+		if (node.name == "DismissLegend") return BackGlyph;
+	}
+	return 0;
+}
+
 void Append(std::string& phrase, const std::string& part) {
 	if (part.empty()) return;
 	if (!phrase.empty()) phrase += ", ";
@@ -221,10 +236,13 @@ void Tick(const D2RL::PluginContext* context) {
 	// not a modal message. The shared item reader will announce the next focus.
 	if (HasInventory(snapshot)) return;
 	std::string            phrase, legends;
-	for (const UiText::Node& node : snapshot.nodes) {
+	for (size_t index = 0; index < snapshot.nodes.size(); ++index) {
+		const UiText::Node& node = snapshot.nodes[index];
 		if (!Speakable(node) || UnderTabBar(snapshot, node.parent)) continue;
-		const auto text = UiText::Clean(node.text);
+		auto text = UiText::Clean(node.text);
 		if (text.empty()) continue;
+		if (node.kind == UiText::Kind::Button)
+			if (const auto glyph = LegendGlyph(snapshot, index)) text = std::string(ControllerText::Button(glyph)) + ": " + text;
 		AsyncLog::InfoF(context, "[modal] %s/%s (%s) -> \"%s\"", active.c_str(), node.name.c_str(), node.type.c_str(), text.c_str());
 		// A button legend is a control hint: held for right stick down, and
 		// spoken unasked only last, with autodetail and control tooltips on.

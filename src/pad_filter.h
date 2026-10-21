@@ -40,11 +40,11 @@ struct Press {
 	bool kept = false; // this press is being kept from the game
 };
 // The presses the filter decides on, per pad.
-struct Presses { Press a, b, x, y, lb, rb, back, lt, rt; };
+struct Presses { Press a, b, x, y, lb, rb, back, lt, rt, dpadUp; };
 
 // Pure: the buttons the game is handed. What the mod owns during play: the
-// face buttons and the bumpers pressed while BACK is held, the mod's BACK+A,
-// B, X, Y, LB and RB actions (input_direction.h). A press is decided on its first frame
+// face buttons, the bumpers and D-pad up pressed while BACK is held, the mod's BACK+A,
+// B, X, Y, LB, RB and D-pad up actions (input_direction.h). A press is decided on its first frame
 // and kept to its release, so one that began in a menu reaches the game whole
 // and one that began in play never reaches it at all, whatever the claim does
 // while it is held.

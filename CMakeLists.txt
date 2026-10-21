@@ -22,6 +22,9 @@ add_library(d2r-access SHARED
 	src/death_place_service.cpp
 	src/boss_life.cpp
 	src/boss_life_service.cpp
+	src/tutorial.cpp
+	src/tutorial_service.cpp
+	src/tutorial_text.cpp
 	src/native_preset_map.cpp
 	src/passages.cpp
 	src/places.cpp
@@ -303,6 +306,8 @@ if(BUILD_TESTING)
 	add_test(NAME death-place COMMAND death-place-tests)
 	d2r_test(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
 	add_test(NAME boss-life COMMAND boss-life-tests)
+	d2r_test(tutorial-tests tests/tutorial_tests.cpp src/tutorial.cpp src/tutorial_text.cpp)
+	add_test(NAME tutorial COMMAND tutorial-tests)
 	d2r_test(inventory-arrivals-tests tests/inventory_arrivals_tests.cpp src/inventory_arrivals.cpp)
 	add_test(NAME inventory-arrivals COMMAND inventory-arrivals-tests)
 	d2r_test(item-hand-tests tests/item_hand_tests.cpp src/item_hand.cpp)
@@ -322,7 +327,7 @@ if(BUILD_TESTING)
 	add_test(NAME exploration COMMAND exploration-tests)
 	d2r_test(exploration-cues-tests tests/exploration_cues_tests.cpp src/exploration_cues.cpp src/explored_rooms.cpp)
 	add_test(NAME exploration-cues COMMAND exploration-cues-tests)
-	d2r_test(exploration-cue-service-tests tests/exploration_cue_service_tests.cpp src/exploration_cue_service.cpp src/exploration_cues.cpp src/explored_rooms.cpp src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp)
+	d2r_test(exploration-cue-service-tests tests/exploration_cue_service_tests.cpp src/exploration_cue_service.cpp src/exploration_cues.cpp src/explored_rooms.cpp src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp src/tutorial.cpp)
 	target_link_libraries(exploration-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME exploration-cue-service COMMAND exploration-cue-service-tests)
 	d2r_test(zone-transitions-tests tests/zone_transitions_tests.cpp src/zone_transitions.cpp src/passages.cpp src/rooms.cpp src/radar_grid.cpp)
@@ -400,7 +405,7 @@ if(BUILD_TESTING)
 	d2r_test(entity-cue-audio-tests tests/entity_cue_audio_tests.cpp src/entity_cue_synth.cpp src/radar_synth.cpp)
 	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
-	d2r_test(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/async_log.cpp)
+	d2r_test(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/async_log.cpp src/tutorial.cpp)
 	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME entity-cue-service COMMAND entity-cue-service-tests)
 	d2r_test(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)

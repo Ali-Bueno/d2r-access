@@ -106,6 +106,7 @@ const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
 }
 }
 namespace D2RAccess::MapSurveyService { bool TownNpcsEverywhere() { return false; } }
+namespace D2RAccess::TutorialService { void Routed(const EntityRadar::Entity&) {} void Arrived(const EntityRadar::Entity&) {} }
 namespace D2RAccess::PadFilter { void Claim(const D2RL::PluginContext*, bool) {} }
 namespace D2RAccess::RadarConfig {
 Result Read(const D2RL::PluginContext*) { return {}; }

@@ -31,6 +31,7 @@
 #include "speech_strings.h"
 #include "spoken_direction.h"
 #include "terrain_service.h"
+#include "tutorial_service.h"
 #include "zone_transitions.h"
 
 #include <D2RLPlugin/input.h>
@@ -539,6 +540,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	// the scanner just named. Every answer re-offers, including a plain repeat,
 	// so the offer is always the thing the player heard most recently.
 	BeaconService::Offer(members[index].entity, level, GetTickCount64());
+	TutorialService::Scanned(members[index].entity);
 
 	// The category name first when the category changed, so the player knows
 	// which list they are in before hearing the object itself. The name only:

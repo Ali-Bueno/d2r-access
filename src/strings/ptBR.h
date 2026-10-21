@@ -257,6 +257,8 @@ inline constexpr Table ptBR {
 	.beaconSoundsOff = "Sons da guia: desligado",
 	.routePromptsOn = "Avisos de curva da rota: ligado",
 	.routePromptsOff = "Avisos de curva da rota: desligado",
+	.tutorialOn = "Tutorial: ligado",
+	.tutorialOff = "Tutorial: desligado",
 	.routeTotalOn = "Distância total da rota: ligada",
 	.routeTotalOff = "Distância total da rota: desligada",
 	.routeLegsOn = "Trechos da rota: ligados",
@@ -489,7 +491,7 @@ inline constexpr Table ptBR {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fonte das arqueiras",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão"},
+	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão", "Tutorial"},
 	.speechPriorityLevels = {"espera a vez", "interrompe se for urgente", "interrompe", "interrompe e não pode ser cortado"},
 };
 

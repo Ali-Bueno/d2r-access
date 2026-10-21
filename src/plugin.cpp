@@ -8,6 +8,7 @@
 #include "core_slots.h"
 #include "focus_tracker.h"
 #include "footstep_service.h"
+#include "tutorial_service.h"
 #include "wall_slide_service.h"
 #include "wall_tone_service.h"
 #include "game_text_reader.h"
@@ -218,6 +219,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
 	D2RAccess::NativeWidgets::Tick(context); lap("NativeWidgets");
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech); lap("QuestService");
+	D2RAccess::TutorialService::Tick(context, uiOwnsSpeech); lap("TutorialService");
 	D2RAccess::RadarService::Tick(context); lap("RadarService");
 	D2RAccess::RoomService::Tick(context, uiOwnsSpeech); lap("RoomService");
 	D2RAccess::PlaceService::Tick(context, uiOwnsSpeech); lap("PlaceService");
@@ -448,6 +450,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::DeathPlaceService::Register(context);
 	if (!D2RAccess::PlaceService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[places] Named places unavailable.");
 	if (!D2RAccess::BossLifeService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[boss-life] Boss life unavailable.");
+	if (!D2RAccess::TutorialService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[tutorial] Tutorial unavailable.");
 	D2RAccess::InventoryArrivalService::Register(context);
 	if (!D2RAccess::TerrainService::Register(context)) D2RAccess::AsyncLog::Warn(context, "[terrain] Terrain overview unavailable.");
 	if (!D2RAccess::GameTextReader::Register(context)) D2RAccess::AsyncLog::Warn(context, "[text] Gameplay lifecycle unavailable; in-game text reading disabled.");
@@ -504,6 +507,7 @@ D2RL_PLUGIN_EXPORT void D2RLoaderUnloadPlugin() noexcept {
 	D2RAccess::DeathPlaceService::Unregister();
 	D2RAccess::PlaceService::Unregister();
 	D2RAccess::BossLifeService::Unregister();
+	D2RAccess::TutorialService::Unregister();
 	D2RAccess::TerrainService::Unregister();
 	D2RAccess::RoomService::Unregister();
 	D2RAccess::BeaconService::Unregister();

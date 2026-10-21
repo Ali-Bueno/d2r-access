@@ -257,6 +257,8 @@ inline constexpr Table esES {
 	.beaconSoundsOff = "Sonidos de guía desactivados",
 	.routePromptsOn = "Avisos de giro de la ruta activados",
 	.routePromptsOff = "Avisos de giro de la ruta desactivados",
+	.tutorialOn = "Tutorial activado",
+	.tutorialOff = "Tutorial desactivado",
 	.routeTotalOn = "Distancia total de la ruta activada",
 	.routeTotalOff = "Distancia total de la ruta desactivada",
 	.routeLegsOn = "Tramos de la ruta activados",
@@ -489,7 +491,7 @@ inline constexpr Table esES {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fuente de las Arpías",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Estados que empiezan", "Estados que terminan", "Avisos de vida y maná", "Vida de los jefes", "Nombres de enemigos", "Mensajes del juego", "Avances de misiones", "Lugares", "Objetos en el suelo"},
+	.speechPriorityKinds = {"Estados que empiezan", "Estados que terminan", "Avisos de vida y maná", "Vida de los jefes", "Nombres de enemigos", "Mensajes del juego", "Avances de misiones", "Lugares", "Objetos en el suelo", "Tutorial"},
 	.speechPriorityLevels = {"espera su turno", "interrumpe si es urgente", "interrumpe", "interrumpe y no se puede cortar"},
 };
 

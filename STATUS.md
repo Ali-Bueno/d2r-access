@@ -2,6 +2,43 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## New-character tutorial built — 2026-10-21 (not released)
+
+[Tutorial](docs/tutorial.md): `TutorialService` (steps and history pure in `tutorial.*`, words in
+`tutorial_text.*`, Spanish and English), two one-shot sounds made for it, speech kind `Tutorial`,
+switch `tutorial`, BACK + right stick left/right and BACK + D-pad up (kept from the game by
+`PadFilter`), keys K, L, Shift+K. 125/125 CTest; installed by the build.
+
+First live test (2026-10-21, pad, steps 0 to 4): the steps advance and the sounds play. Changed
+after it: Warriv first (scan him, talk to him; then Akara for the route, the beacon and the quest:
+16 steps), the welcome waits for the arrival news and every message for a pause in speech (the
+area's name had cut the welcome), the place names are the game's own (Spain's and Mexico's differ),
+and the beacon keeps what the scanner named last until the next scan unless it is a monster, a
+corpse or a player (Akara had expired after 15 s: `docs/beacon.md`).
+Second test (2026-10-21): Warriv works. Then: until the radar step is done, NPC, stash, exit and
+unexplored-room sounds keep quiet (`Tutorial::QuietWorld`); the delete-character modal names its
+buttons, "A: SÍ, B: NO" (its legends hold no text; `docs/delete-character-modal.md`). Third: a
+character made again under a deleted one's name resumed its tutorial; records are now keyed by name
+and the save's creation time. Fourth: a lesson of the world's sounds after the radar's (step 2,
+each sound after its name, then let in), 4 s after the wall; the radar's words say the tutorial
+plays its sounds, and floor no longer means "nothing there". Fifth: a character deleted and made
+again within 15 s kept the old save's creation time (file name tunnelling), so records of deleted
+saves are dropped outside a game; the radar's new places and the NPC announcer wait while the
+tutorial talks; the radar is 3 dB louder (`CueLevel` 0.34). Sixth: each radar sound's meaning
+before it, shorter waits (45 ms a character), the radar 3 dB louder again (0.48), the unexplored
+passage and floor in the radar lesson, and a level-up lesson (character sheet, points, lines) at the
+first calm moment after level 2, which follows the player from the sheet to the skill tree
+without shutting it (RB inferred); no spoiler of the Den before Akara;
+the Den's step says the map is made anew each game and how to search it. Seventh: menu messages
+were never said (`uiOwnsSpeech` is always true in a focused menu), fixed; Warriv's step without
+spoiler; an inventory lesson when something to wear is picked up; all Act I quest rows logged, since
+row 0, not 1, changed when Akara gave the Den. Eighth (2026-10-21): the user played a new character
+through the whole tutorial, the Den cleared and rewarded: row 1 is the Den (201e cleared, 2001
+rewarded), row 0's bit 0 is Akara's quest given (now a state for both talks); the skill tree lesson
+says how to put a skill on a button once the point is spent.
+**Next step:** the user plays a new level 1 character from the
+welcome through Akara's quest and sends the log (`[tutorial]`, including `quest rows`). The beacon check of the section below still stands.
+
 ## Beacon ways end where the body fits — 2026-10-21 (released as test-2026-10-21 from d64065d)
 
 Release: 124/124 CTest, 29 entries, 62,815,997 bytes, SHA-256 `d179e0f2…6209a9`; news
@@ -2044,6 +2081,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
 | Performance | done — improvement confirmed by user | Scoped native reads and immediate capture on selection change installed; user reports improvement. `docs/inventory-npc-followup.md` |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
+| New-character tutorial (mod commands, radar, scanner, through the Den of Evil) | built 2026-10-21; played through live 2026-10-21 | 16 steps, message history (BACK + right stick left/right, BACK + D-pad up kept from the game; K, L, Shift+K), two sounds. `docs/tutorial.md` |
 | NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |

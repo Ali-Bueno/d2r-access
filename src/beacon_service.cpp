@@ -30,6 +30,7 @@
 #include "speech_strings.h"
 #include "spoken_direction.h"
 #include "terrain_service.h"
+#include "tutorial_service.h"
 #include "zone_transitions.h"
 
 #include <windows.h>
@@ -53,7 +54,10 @@ enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, S
 // The locked target is re-read on this cadence: fast enough to follow a
 // walking monster, far cheaper than the 50 ms UI poll.
 constexpr uint64_t UpdateMs = 150;
-// A scan result can be locked while it is still what the player heard last.
+// What the scanner named last stays lockable on its level. A monster, a corpse or
+// another player, which die, rot or walk off, only this long after it was named;
+// anything else until the next scan (the user, 2026-10-21: Akara, named before the
+// tutorial's next message, had to be scanned again).
 constexpr uint64_t OfferWindowMs = 15000;
 constexpr uint64_t LogIntervalMs = 1000;
 // Policy: a target last read this recently counts as reached when it vanishes at arrival.
@@ -350,6 +354,12 @@ std::string Named(const char* format, const std::string& name) {
 	return text;
 }
 void Announce(const char* format, const std::string& name) { ScreenReader::Speak(Named(format, name), true); }
+bool Lockable(const Target& offer, const Lifecycle& state, uint64_t now) {
+	if (!offer.entity.id || offer.level != state.level) return false;
+	const auto kind = offer.entity.kind;
+	const bool fleeting = kind == EntityRadar::Kind::Enemy || kind == EntityRadar::Kind::Corpse || kind == EntityRadar::Kind::Player;
+	return !fleeting || now - offer.offeredMs <= OfferWindowMs;
+}
 bool SameOfferedTarget() {
 	return EntityRadar::SameTarget(g_offer.entity, g_target.entity);
 }
@@ -357,8 +367,7 @@ bool SameOfferedTarget() {
 // moves the beacon there in one press. docs/beacon.md
 void Toggle(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
-	const bool offered = g_offer.entity.id && g_offer.level == state.level
-		&& now - g_offer.offeredMs <= OfferWindowMs;
+	const bool offered = Lockable(g_offer, state, now);
 	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
 	if ((g_tracker.Locked() && !retarget) || (Parked() && !offered)) {
 		g_parked = {};
@@ -511,6 +520,7 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 	// picked up) was reached; one gone for longer was lost before the player came.
 	const bool reached = seen || (g_target.seenMs && now - g_target.seenMs <= VanishedOnArrivalMs);
 	const auto arrive = [reached] {
+		if (reached) TutorialService::Arrived(g_target.entity);
 		const auto name = g_target.entity.name;
 		Release("arrived");
 		Cue(BeaconAudio::Sound::Arrived);
@@ -632,6 +642,7 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 		entity = g_offer.entity;
 	}
 	else { ScreenReader::Speak(strings.beaconNothing, true); return; }
+	TutorialService::Routed(entity);
 	const auto route = PlanRoute(state, entity, now);
 	if (!route.read) {
 		AsyncLog::InfoF(g_context, "[route] world unreadable name=%s", entity.name.c_str());

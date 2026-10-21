@@ -81,6 +81,7 @@
 #include "place_service.h"
 #include "boss_life_service.h"
 #include "trade_service.h"
+#include "tutorial_service.h"
 #include "vitals.h"
 #include "vitals_service.h"
 #include "wall_slide_service.h"
@@ -1928,6 +1929,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{GameTextReader::MercenaryBark, GameTextReader::SetMercenaryBark, phrase(&T::mercenaryBarkOn, &T::mercenaryBarkOff), false, "mercenary-bark"},
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
+		{TutorialService::Enabled, TutorialService::SetEnabled, phrase(&T::tutorialOn, &T::tutorialOff), false, "tutorial"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
 	}});
 	// Which news may cut in on other speech, kind by kind (a tester and the user, 2026-10-19).
@@ -1942,6 +1944,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Priority("priority-quest-updates", K::QuestAlerts),
 		Priority("priority-places", K::Places),
 		Priority("priority-ground-items", K::NearbyItems),
+		Priority("priority-tutorial", K::Tutorial),
 	}});
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},

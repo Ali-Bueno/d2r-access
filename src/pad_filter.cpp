@@ -167,6 +167,7 @@ uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bo
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_LEFT_SHOULDER, (claimed && back) || shoulders, presses.lb);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_RIGHT_SHOULDER, (claimed && back) || shoulders, presses.rb);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_DPAD_UP, claimed && back, presses.dpadUp);
 	return buttons;
 }
 

@@ -33,6 +33,16 @@ int main() {
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(Back | Rb, false, press) == (Back | Rb), "in a menu BACK+RB is the game's");
 	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Up, true, press) == Up, "D-pad up on its own during play is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Up, true, press) == Back, "BACK+D-pad up during play keeps D-pad up from the game: it is the tutorial");
+	Check(Filter(Up, true, press) == 0, "and D-pad up stays kept until it is released, even after BACK is");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Back | Up, false, press) == (Back | Up), "in a menu BACK+D-pad up is the game's");
+	Check(Filter(0, true, press) == 0, "release");
+	Check(Filter(Up, true, press) == Up, "D-pad up pressed before BACK...");
+	Check(Filter(Up | Back, true, press) == (Up | Back), "...stays with the game when BACK is pressed later");
+	Check(Filter(0, true, press) == 0, "release");
 
 	// BACK is the modifier: it always passes, and X or Y pressed with it held
 	// during play belongs to the mod's readouts, not to a skill.

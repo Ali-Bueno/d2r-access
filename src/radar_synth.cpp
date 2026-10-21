@@ -9,8 +9,10 @@ namespace {
 constexpr double Release = 0.015;
 // Sound-design values shared by every radar sound: the struck cues' peak level,
 // and left/right sitting just inside the stereo edges. The user and a tester,
-// 2026-10-12: the radar sat 6-9 dB under the item loops; raised 3 dB from 0.17.
-constexpr double CueLevel = 0.24, PanWidth = 0.9, PcmPeak = 32767;
+// 2026-10-12: the radar sat 6-9 dB under the item loops; raised 3 dB from 0.17. The user,
+// 2026-10-21: still lost in the game's ambience; 3 dB more from 0.24, then 3 dB more again
+// from 0.34. The door's peak is 0.81 of full scale, so little room is left above it.
+constexpr double CueLevel = 0.48, PanWidth = 0.9, PcmPeak = 32767;
 // The door's low, short knock was the faintest cue (a tester: "inaudible"); the user asked for a little more.
 constexpr double DoorLevel = 1.4;
 // A fixed noise sequence keeps every cue reproducible.

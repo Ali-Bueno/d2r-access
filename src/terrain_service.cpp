@@ -24,6 +24,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "terrain_overview.h"
+#include "tutorial.h"
 
 #include <windows.h>
 #include <algorithm>
@@ -194,6 +195,7 @@ std::vector<NativeRooms::Room> VisitedRoomsLocked(int level, const std::vector<N
 std::vector<EntityRadar::Entity> KnownPlacesLocked(int level, const std::vector<NativeRooms::Room>& rooms);
 // One spoken summary of the level around the player.
 void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
+	Tutorial::Post(Tutorial::Signal::Terrain);
 	const auto& strings = Strings::Current();
 	Radar::World world;
 	NativeLevelExits::Layout native;
@@ -518,7 +520,8 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 				label.c_str());
 			finds.emplace_back(phrase);
 		}
-		if (now - g_arrivedAt < ArrivalHoldMs) {
+		// They wait for the tutorial's words too, which they had broken into (the user, 2026-10-21).
+		if (now - g_arrivedAt < ArrivalHoldMs || Tutorial::Busy()) {
 			g_heldFinds.insert(g_heldFinds.end(), finds.begin(), finds.end());
 			finds.clear();
 		} else if (!g_heldFinds.empty()) {

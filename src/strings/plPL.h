@@ -257,6 +257,8 @@ inline constexpr Table plPL {
 	.beaconSoundsOff = "Dźwięki prowadzenia: wyłączone",
 	.routePromptsOn = "Zapowiedzi zakrętów trasy: włączone",
 	.routePromptsOff = "Zapowiedzi zakrętów trasy: wyłączone",
+	.tutorialOn = "Samouczek: włączony",
+	.tutorialOff = "Samouczek: wyłączony",
 	.routeTotalOn = "Całkowita długość trasy: włączona",
 	.routeTotalOff = "Całkowita długość trasy: wyłączona",
 	.routeLegsOn = "Odcinki trasy: włączone",
@@ -489,7 +491,7 @@ inline constexpr Table plPL {
 	.radiantObject = "Promienna %s",
 	.rogueFountain = "Fontanna Łotrzyc",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi"},
+	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi", "Samouczek"},
 	.speechPriorityLevels = {"czeka na swoją kolej", "przerywa, gdy pilne", "przerywa", "przerywa i nie da się go przerwać"},
 };
 

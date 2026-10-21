@@ -24,6 +24,7 @@
 #include "speech_strings.h"
 #include "status_effects.h"
 #include "generated/skill_states.h"
+#include "tutorial.h"
 #include "vitals.h"
 #include "corpse_memory.h"
 #include "low_life_audio.h"
@@ -409,6 +410,7 @@ void StepCompanions(const D2RL::PluginContext* context) {
 }
 
 void Report(const D2RL::PluginContext* context, Command what = Command::Report) {
+	Tutorial::Post(Tutorial::Signal::Vitals);
 	const auto& strings = Strings::Current();
 	const NativeMemory::ReadScope scope;
 	if (!NativeWidgets::IsAvailable() || !NativeWidgets::FindPanel(HudPanel)) {

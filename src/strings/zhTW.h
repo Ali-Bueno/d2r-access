@@ -257,6 +257,8 @@ inline constexpr Table zhTW {
 	.beaconSoundsOff = "引導音效已關閉",
 	.routePromptsOn = "路線轉彎提示已開啟",
 	.routePromptsOff = "路線轉彎提示已關閉",
+	.tutorialOn = "教學已開啟",
+	.tutorialOff = "教學已關閉",
 	.routeTotalOn = "路線總距離已開啟",
 	.routeTotalOff = "路線總距離已關閉",
 	.routeLegsOn = "路線分段已開啟",
@@ -489,7 +491,7 @@ inline constexpr Table zhTW {
 	.radiantObject = "發光的%s",
 	.rogueFountain = "羅格噴泉",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"狀態開始", "狀態結束", "生命和法力警報", "首領生命", "敵人名稱", "遊戲訊息", "任務進度", "地點", "地上的物品"},
+	.speechPriorityKinds = {"狀態開始", "狀態結束", "生命和法力警報", "首領生命", "敵人名稱", "遊戲訊息", "任務進度", "地點", "地上的物品", "教學"},
 	.speechPriorityLevels = {"排隊等候", "緊急時打斷", "打斷", "打斷且不可被打斷"},
 };
 

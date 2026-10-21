@@ -257,6 +257,8 @@ inline constexpr Table itIT {
 	.beaconSoundsOff = "Suoni della guida: disattivo",
 	.routePromptsOn = "Avvisi di svolta del percorso: attivo",
 	.routePromptsOff = "Avvisi di svolta del percorso: disattivo",
+	.tutorialOn = "Tutorial: attivo",
+	.tutorialOff = "Tutorial: disattivo",
 	.routeTotalOn = "Distanza totale del percorso: attiva",
 	.routeTotalOff = "Distanza totale del percorso: disattiva",
 	.routeLegsOn = "Tratti del percorso: attivi",
@@ -489,7 +491,7 @@ inline constexpr Table itIT {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fontana delle guerriere",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Inizio degli stati", "Fine degli stati", "Avvisi di vita e mana", "Vita dei boss", "Nomi dei nemici", "Messaggi del gioco", "Avanzamento delle missioni", "Luoghi", "Oggetti a terra"},
+	.speechPriorityKinds = {"Inizio degli stati", "Fine degli stati", "Avvisi di vita e mana", "Vita dei boss", "Nomi dei nemici", "Messaggi del gioco", "Avanzamento delle missioni", "Luoghi", "Oggetti a terra", "Tutorial"},
 	.speechPriorityLevels = {"aspetta il suo turno", "interrompe se urgente", "interrompe", "interrompe e non può essere interrotto"},
 };
 

@@ -266,6 +266,12 @@ The radar sat 6-9 dB under the item loops (the tester and the user: a bit quiet)
 0.24 (was 0.17, +3 dB); the door's double knock plays 1.4 times that with an 18 ms decay (was
 12 ms), the faintest cue before ("Sound-Radar-Door inaudible").
 
+2026-10-21, the user: the radar, the wall above all, should stand out more from the game's
+ambience. `CueLevel` is 0.34 (+3 dB again); every cue keeps its sound and its balance with the
+others. Peaks: a struck cue about 0.41 of full scale, the door 0.57, so nothing clips. The same
+day, after a try, "a little louder still": 0.48 (+3 dB). Peaks now 0.58 and the door 0.81, so a
+further raise of the whole radar has about 2 dB left before the door clips.
+
 **Wall tones** (`wall-tones`, off by default; `[wall_tones]` in `d2r-access.toml`): a soft band of
 noise per screen direction, louder as terrain closes in within 12 subtiles, (1 - d/range)^2, bands
 800/450/450/250 Hz, ported from the Last Epoch mod's `WallSonar` (Grimdark's walltones). Three

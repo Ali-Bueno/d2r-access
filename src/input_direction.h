@@ -138,10 +138,15 @@ bool TakeBackWith(FaceButton button);
 // press happened since the previous Take() and clears it.
 bool TakeBackWithLb();
 
-// A right-stick push made with BACK held, which no scanner or menu reader ever
+// A right-stick push up or down made with BACK held, which no scanner or menu reader ever
 // sees: BACK+down describes the route to the scanned target (beacon_service.cpp).
 // Same Take() rules as BACK+LB.
 StickPush TakeBackWithRightStick();
+// The same for a push left or right: the tutorial's previous and next message.
+StickPush TakeBackWithRightStickSide();
+// BACK+D-pad up: the tutorial's first message. The press is no ordinary D-pad
+// or vertical edge. Same Take() rules as BACK+LB.
+bool TakeBackWithDpadUp();
 
 // BACK+LT (`right` false): the main skill bar; BACK+RT: the next of the mercenary,
 // summons and party members (a tester, 2026-10-14). pad_filter.h keeps that

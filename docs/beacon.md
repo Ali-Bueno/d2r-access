@@ -39,9 +39,12 @@ releases it on its own.
 
 - The scanner and the exit review hand the beacon service an *offer*
   (`BeaconService::Offer`) every time they announce something: entity, level and timestamp. A lock only
-  takes the most recent offer, and only while it is still the same level and
-  within `OfferWindowMs` of being spoken — never something older than what
-  the player just heard.
+  takes the most recent offer, and only while it is still the same level. A
+  monster, a corpse or another player, which die, rot or walk off, stays
+  lockable `OfferWindowMs` after it was spoken; anything else (an NPC, an exit,
+  an object, a room, an item) until the next scan or a change of level (the
+  user, 2026-10-21: in the tutorial, Akara named 17 s before BACK+LB said
+  "nothing selected", though she had not moved).
 - Whichever spoke last is what a click follows, which is the whole rule the
   player has to know.
 - Once locked, the target is re-located every tick by matching its unit id
@@ -443,7 +446,7 @@ distance limit near 120: the route box is 158, the world window 152, the grid 15
 | `UpdateMs` | 150 | `beacon_service.cpp`, how often the locked target is re-read and ticked |
 | `RefreshMs` | 1000 | `BeaconNavigation::RememberedWay`, most often the remembered map is copied anew to plan on |
 | `PlaceDrift` | 10 | `BeaconNavigation::RememberedWay`, cells a moving target may move before it is planned to afresh |
-| `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scan announcement stays lockable |
+| `OfferWindowMs` | 15000 | `beacon_service.cpp`, how long a scanned monster, corpse or player stays lockable |
 | ping tone | 620 Hz, 80 ms notes | `beacon_audio.cpp` `Synthesize`, `PingHz`/`NoteMs` |
 | rear pitch | 0.94 | `beacon_audio.cpp` `RearPitch`; shared with the ground-item loops' rear factor |
 | `pan_strength` / `pitch_strength` | 100 % | `radar.toml [beacon]`, 0-200 %, scale the stereo spread and the rear pitch drop |

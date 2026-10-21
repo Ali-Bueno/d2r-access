@@ -116,6 +116,11 @@ instead of surfacing one at a time as they are stumbled over.
 
 ## Status
 
-Implemented. Untested in game: the next run should log
-`[modal] DeleteCharacterModal -> "..."` naming the prompt and the bound
-controls.
+MEASURED 2026-10-21 (Spanish, pad): the prompt and the buttons' faces are read,
+"Pulsa y mantén pulsado para borrar…, SÍ, NO", but **the legends hold no text**
+(no `[modal] …Legend` line), so no button was named and the user could not
+delete a character. Since then the reader names a `Confirm` or `Dismiss`
+button whose `ConfirmLegend` / `DismissLegend` child is empty by its action's
+pad button, A for select and B for back (`LegendGlyph` in
+`src/modal_reader.cpp`): "A: SÍ, B: NO". That is the default binding, not read
+from the game; the hold's length is not measured.
