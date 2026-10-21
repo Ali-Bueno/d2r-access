@@ -153,6 +153,9 @@ In play:
   round to the first with a click (or stops there with a knock: see
   SETTINGS). It closes by itself after 30 seconds unused.
 - Holding LT for a moment: reads the skill bar shown with LT.
+- BACK + right stick left / right: the tutorial's previous / next message;
+  BACK + D-pad up: its first message. A new level 1 character gets a
+  hands-on tutorial (switch "Tutorial", Alerts).
 - L3 is the game's walk/run toggle: the mod says "Walking" or "Running" when
   you press it, and warns as stamina runs low. R3 is the game's weapon swap:
   the mod names the weapons in hand.

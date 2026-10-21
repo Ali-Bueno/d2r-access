@@ -91,7 +91,13 @@ to it, so a step that changes always leaves the player on the newest message.
 ## Steps
 
 Pad buttons are said by the game's glyph names (`ControllerText::Button`, tokens such as `{view}`
-in `tutorial_text.cpp`), so they follow the language. The game's own actions are written as their
+in `tutorial_text.cpp`), so they follow the language.
+
+The words are one header per language in `src/tutorial_strings/` (as `src/strings/`). Spanish
+(both locales) and English are the project's own; the other ten were machine-translated on
+2026-10-21 from the English, with the game's own names (`game-data/local/lng/strings/*.json`)
+and the mod's words in each `src/strings/<lang>.h`. `tutorial_tests` holds every translation to
+the English text's `{tokens}`, string by string. Native speakers' corrections are welcome. The game's own actions are written as their
 default buttons (A talks and picks up, B closes).
 
 | # | Where | Teaches | Done when |
@@ -207,4 +213,3 @@ The radar's sounds are audition cues (`CueSource::audition`), which no radar rea
 ## Open
 
 - Whether it ends at the Den or also teaches the Cold Plains waypoint.
-- Translations beyond Spanish and English.

@@ -2,7 +2,9 @@
 #include "tutorial_text.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 using namespace D2RAccess::Tutorial;
 namespace Text = D2RAccess::TutorialText;
@@ -100,11 +102,48 @@ void Browsing() {
 	Check(history.Empty() && !history.First(), "cleared, it is empty");
 }
 
+// Every string of a table in one order, to hold each translation against the English.
+std::vector<const char*> All(const Text::Texts& t) {
+	std::vector<const char*> all;
+	const auto add = [&all](const Text::Lines& lines) { all.push_back(lines.pad); all.push_back(lines.keys); };
+	add(t.welcome);
+	for (const auto& lines : t.steps) add(lines);
+	for (const auto* lines : {&t.radarTask, &t.worldTask, &t.levelUp, &t.levelUpSheet, &t.levelUpSwitch, &t.levelUpTree,
+		&t.levelUpTreeLater, &t.levelUpBind, &t.kit, &t.kitOpen, &t.kitWorn, &t.kitDone, &t.levelUpDone}) add(*lines);
+	all.insert(all.end(), std::begin(t.cues), std::end(t.cues));
+	all.insert(all.end(), std::begin(t.worldCues), std::end(t.worldCues));
+	all.insert(all.end(), {t.routeStick, t.routeButton, t.firstMessage, t.lastMessage, t.den, t.moor});
+	return all;
+}
+
+// The {tokens} a text holds, sorted: the buttons and places the game fills in.
+std::vector<std::string> TokensOf(const char* text) {
+	std::vector<std::string> tokens;
+	const std::string_view view(text ? text : "");
+	for (size_t at = view.find('{'); at != std::string_view::npos; at = view.find('{', at + 1)) {
+		const size_t end = view.find('}', at);
+		if (end == std::string_view::npos) { tokens.emplace_back(view.substr(at)); break; }
+		tokens.emplace_back(view.substr(at, end - at + 1));
+	}
+	std::sort(tokens.begin(), tokens.end());
+	return tokens;
+}
+
 void Words() {
-	const auto& english = Text::For(D2RAccess::Strings::Language::enUS);
-	const auto& spanish = Text::For(D2RAccess::Strings::Language::esES);
-	Check(&Text::For(D2RAccess::Strings::Language::esMX) == &spanish, "both Spanish locales read the Spanish");
-	Check(&Text::For(D2RAccess::Strings::Language::deDE) == &english, "a language without its own words reads the English");
+	using D2RAccess::Strings::Language;
+	const auto& english = Text::For(Language::enUS);
+	const auto& spanish = Text::For(Language::esES);
+	Check(&Text::For(Language::esMX) == &spanish, "both Spanish locales read the Spanish");
+	const auto reference = All(english);
+	for (size_t language = 0; language < D2RAccess::Strings::LanguageCount; ++language) {
+		const auto& texts = Text::For(static_cast<Language>(language));
+		Check(language == static_cast<size_t>(Language::enUS) || &texts != &english, "every language has its own words");
+		const auto strings = All(texts);
+		for (size_t i = 0; i < strings.size(); ++i) {
+			Check(strings[i] && *strings[i], "every text is translated");
+			Check(TokensOf(strings[i]) == TokensOf(reference[i]), "a translation keeps the English text's buttons and places");
+		}
+	}
 	for (const auto* texts : {&english, &spanish}) {
 		for (const auto& lines : texts->steps)
 			Check(lines.pad && lines.keys && *lines.pad && *lines.keys, "every step has words for the pad and the keyboard");

@@ -8,8 +8,8 @@
 #include <string>
 #include <string_view>
 
-// The tutorial's words, for the pad and for the keyboard. Spanish and English
-// only for now; every other language reads the English (docs/tutorial.md).
+// The tutorial's words, for the pad and for the keyboard, one table per language
+// in src/tutorial_strings/ (docs/tutorial.md).
 namespace D2RAccess::TutorialText {
 struct Lines { const char* pad; const char* keys; };
 // The radar's sounds in the radar step and the world's in the sounds step, each after its name.

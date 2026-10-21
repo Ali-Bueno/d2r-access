@@ -33,6 +33,7 @@ Ctrl+E: the route to what the beacon follows or the scanner named (BACK + right 
 Ctrl+Y: the passages out of this room.
 Ctrl+O: terrain overview.
 Ctrl+T: radar status.
+K / L: the tutorial's previous / next message; Shift+K: its first (BACK + right stick left / right, BACK + D-pad up).
 
 
 == IN A MENU ==
