@@ -367,6 +367,10 @@ inline constexpr Table plPL {
 	.stepClicksOn = "Kliknięcia przebytej odległości: włączone",
 	.stepClicksOff = "Kliknięcia przebytej odległości: wyłączone",
 	.stepClickInterval = "Jednostek na kliknięcie: %d",
+	.stepBeepOn = "Dźwięk przebytej odległości: pisk",
+	.stepBeepOff = "Dźwięk przebytej odległości: kliknięcie",
+	.menuNewsOn = "Nowości w menu głównym: włączone",
+	.menuNewsOff = "Nowości w menu głównym: wyłączone",
 	.wallTonesOn = "Tony ścian: włączone",
 	.wallTonesOff = "Tony ścian: wyłączone",
 	.enemyClassSoundsOn = "Dźwięki klas wrogów: warstwowe",
@@ -394,6 +398,8 @@ inline constexpr Table plPL {
 	.guidanceVolume = "Głośność prowadzenia: %d procent",
 	.lowLifeVolume = "Głośność bicia serca przy niskim życiu %d procent",
 	.stepVolume = "Głośność kliknięcia odległości %d procent",
+	.doorVolume = "Głośność drzwi %d procent",
+	.doorwayVolume = "Głośność przejść %d procent",
 	.manaAlerts = {"Komunikaty many: każda zmiana", "Komunikaty many: tylko niski poziom", "Komunikaty many: wyłączone"},
 	.itemSoundSets = {"Dźwięki przedmiotów: Diablo IV", "Dźwięki przedmiotów: złoto i mikstury z Last Epoch", "Dźwięki przedmiotów: upadki z Diablo II"},
 	.settingsGroups = {"Dźwięki", "Wrogowie i postacie", "Nawigacja", "Przedmioty i menu", "Powiadomienia", "Kontroler", "Słownik dźwięków", "Głośność", "Dźwięki upadku z Diablo II", "Lista ustawień", "Filtr łupów", "Tempo pętli", "Priorytet mowy"},
@@ -491,7 +497,7 @@ inline constexpr Table plPL {
 	.radiantObject = "Promienna %s",
 	.rogueFountain = "Fontanna Łotrzyc",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi", "Samouczek"},
+	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi", "Samouczek", "Dotarcie do celu"},
 	.speechPriorityLevels = {"czeka na swoją kolej", "przerywa, gdy pilne", "przerywa", "przerywa i nie da się go przerwać"},
 };
 

@@ -12,9 +12,10 @@ the [architecture guide](docs/architecture.md).
   questions) until the Den of Evil's reward, each step waiting for the player to do it. A chime
   opens each message and another marks a step done. BACK + right stick left/right (K, L) reads the
   messages again and BACK + D-pad up (Shift+K) the first, kept from the game. Switch `tutorial`
-  in the Ctrl+S list; spoken in Spanish or English. See [tutorial](docs/tutorial.md).
+  in the Ctrl+S list; spoken in every language the mod speaks. See [tutorial](docs/tutorial.md).
 - Screen changes and panels are announced with the game's own localized titles (title screen,
-  main menu, character select/create, options tabs, cinematics, calibration, modals).
+  main menu, character select/create, options tabs, cinematics, calibration, modals). The main
+  menu's news ("Reign of the Warlock available now!") is read as it opens (`main-menu-news`, on).
 - **Controller focus is read on every menu**: the focused button, checkbox, dropdown, carousel,
   slider or text field is spoken with its label, its role and the game's own tooltip text.
   Catalog controls now resolve from native focus identity first, fixing silent main-menu
@@ -24,7 +25,8 @@ the [architecture guide](docs/architecture.md).
   dropdown popups read the highlighted option.
 - Character class names while creating a character.
 - The waypoint panel says each row's state from the game's own row table: "Dark Wood, you are
-  here", "Jail Level 1, undiscovered", and "Terror Zone" while the area is one (built; live
+  here", "Jail Level 1, undiscovered", and "Terror Zone" while the area is one; its act tabs
+  ("I" to "V") are said with the game's own "Act 1" to "Act 5" (built; live
   validation pending). See [the waypoint panel](docs/waypoints.md).
 - Native text in dropdown rows, character rows and confirmation prompts. Character
   selection reads the name and level/class from the selected runtime row, even
@@ -251,9 +253,10 @@ left.
 
 **Speech priority (built; live validation pending):** the **Speech priority** group of the settings
 list sets, for each kind of news (status effects beginning and ending, life and mana alerts, boss
-life, enemy names, game messages, quest updates, places, items on the ground), whether it waits its
-turn, cuts in only when urgent, always cuts in, or cuts in and cannot be cut off for 1.5 s. The
-defaults keep the mod's earlier behaviour, except status endings, which cut in. See
+life, enemy names, game messages, quest updates, places, items on the ground, the tutorial, arrivals
+at a target), whether it waits its turn, cuts in only when urgent, always cuts in, or cuts in and
+cannot be cut off for 1.5 s. The defaults keep the mod's earlier behaviour, except status endings,
+which cut in, and arrivals, which cannot be cut off (a door's name under the cursor cut them). See
 [speech priority](docs/speech-priority.md).
 
 An experimental **stalled-footstep filter** suppresses repeated local HD
@@ -331,8 +334,9 @@ start await a follow-up listening check.
 `slime door`, chosen by the sound the game itself plays when that door opens,
 and falls silent once opened, unless `open-door-sounds` (off) keeps it. In the Crypt, the
 Mausoleum and the Tower Cellar every doorway between two rooms creaks (`doorway-sounds`, on).
+Doors and doorways have their own volumes (`door-volume`, `doorway-volume`).
 A click every 1, 5 or 10 units walked tells distance (`step-clicks`, off; `step-click-interval`,
-`step-volume`). Scrolls, runes and gems on the ground have their
+5; `step-beep` for the first beep instead of the click; `step-volume`). Scrolls, runes and gems on the ground have their
 own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
 `scroll` until read. `[doors] enabled` in the plugin config and
 `access-items doors-on|doors-off` switch the door loops. See
@@ -360,8 +364,9 @@ the game's smallest map cell (a subtile). See [spoken directions](docs/radar-rea
 **Ctrl+E**, says the way to what the beacon follows, else to what the scanner named last, as
 a sighted player plans it off the minimap: "Route to Akara, 85 units: north, 20; then door;
 then east, 30". Nothing walks for you; ask again on the way for the rest. While you walk it,
-the next leg is said at each turn ("Now east, 30") and "Off the route" once if you leave it
-(`route-prompts`, on); the whole length and the legs can each be left out (`route-total`,
+the next leg is said at each turn ("Now east, 30"), never before half the leg is walked, and
+"Off the route" once if you leave it (`route-prompts`, on); a room is arrived at anywhere in it;
+the whole length and the legs can each be left out (`route-total`,
 `route-legs`, both on).
 In exploration mode it prefers explored ground and otherwise guesses
 across rooms never entered, and says so. See [route description](docs/route-description.md).

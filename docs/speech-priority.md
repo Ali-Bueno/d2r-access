@@ -24,7 +24,8 @@ interrupting phrase comes last wins, unless an `Urge` window is open.
 ## Kinds and defaults
 
 The defaults reproduce the behaviour before the menu, except status endings, which the tester
-asked to cut in.
+asked to cut in, and arrivals (2026-10-21): at the Cathedral's doors the door's name, said as the
+cursor came onto it, cut "Arrived at Cathedral" off; held, the name follows it.
 
 | Kind | Where it is spoken | Default |
 |---|---|---|
@@ -37,6 +38,8 @@ asked to cut in.
 | Quest updates | `quest_service.cpp` | when urgent (queued) |
 | Places | `place_service.cpp` `Announce` | when urgent |
 | Items on the ground | `ground_item_service.cpp` nearby items | when urgent (queued) |
+| Tutorial | `tutorial_service.cpp` | waits its turn |
+| Arrivals at a target ("Arrived at X": the beacon's and the route's) | `beacon_service.cpp` `AnnounceArrival` | cannot be cut off |
 
 Menus, focus and window changes are not in the list: they interrupt because they are context
 changes (§9 of the playbook). "You are fortified" stays queued so it follows the status ending.

@@ -367,6 +367,10 @@ inline constexpr Table esES {
 	.stepClicksOn = "Clics de distancia recorrida activados",
 	.stepClicksOff = "Clics de distancia recorrida desactivados",
 	.stepClickInterval = "Unidades por clic: %d",
+	.stepBeepOn = "Sonido de distancia recorrida: pitido",
+	.stepBeepOff = "Sonido de distancia recorrida: clic",
+	.menuNewsOn = "Novedades del menú principal activadas",
+	.menuNewsOff = "Novedades del menú principal desactivadas",
 	.wallTonesOn = "Tonos de pared activados",
 	.wallTonesOff = "Tonos de pared desactivados",
 	.enemyClassSoundsOn = "Sonidos de clase de enemigo: por capas",
@@ -394,6 +398,8 @@ inline constexpr Table esES {
 	.guidanceVolume = "Volumen de la guía: %d por ciento",
 	.lowLifeVolume = "Volumen del latido de vida baja %d por ciento",
 	.stepVolume = "Volumen del clic de distancia %d por ciento",
+	.doorVolume = "Volumen de puertas %d por ciento",
+	.doorwayVolume = "Volumen de umbrales de puerta %d por ciento",
 	.manaAlerts = {"Avisos de maná: cada cambio", "Avisos de maná: solo maná bajo", "Avisos de maná desactivados"},
 	.itemSoundSets = {"Sonidos de objetos: Diablo IV", "Sonidos de objetos: oro y pociones de Last Epoch", "Sonidos de objetos: caídas de Diablo II"},
 	.settingsGroups = {"Sonidos", "Enemigos y PNJ", "Navegación", "Objetos y menús", "Avisos", "Mando", "Glosario de sonidos", "Volúmenes", "Sonidos de caída de Diablo II", "Lista de ajustes", "Filtro de botín", "Velocidad de los bucles", "Prioridad de habla"},
@@ -491,7 +497,7 @@ inline constexpr Table esES {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fuente de las Arpías",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Estados que empiezan", "Estados que terminan", "Avisos de vida y maná", "Vida de los jefes", "Nombres de enemigos", "Mensajes del juego", "Avances de misiones", "Lugares", "Objetos en el suelo", "Tutorial"},
+	.speechPriorityKinds = {"Estados que empiezan", "Estados que terminan", "Avisos de vida y maná", "Vida de los jefes", "Nombres de enemigos", "Mensajes del juego", "Avances de misiones", "Lugares", "Objetos en el suelo", "Tutorial", "Llegadas a un destino"},
 	.speechPriorityLevels = {"espera su turno", "interrumpe si es urgente", "interrumpe", "interrumpe y no se puede cortar"},
 };
 

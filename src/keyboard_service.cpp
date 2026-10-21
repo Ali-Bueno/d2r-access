@@ -34,6 +34,7 @@
 #include "level_route.h"
 #include "map_survey.h"
 #include "map_survey_service.h"
+#include "modal_reader.h"
 #include "mod_sounds.h"
 #include "native_actions.h"
 #include "native_belt_fill.h"
@@ -1824,6 +1825,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{GroundItemService::DoorwaySounds, GroundItemService::SetDoorwaySounds, phrase(&T::doorwaySoundsOn, &T::doorwaySoundsOff), false, "doorway-sounds"},
 		{GroundItemService::StepClicks, GroundItemService::SetStepClicks, phrase(&T::stepClicksOn, &T::stepClicksOff), false, "step-clicks"},
 		StepClickInterval(),
+		{GroundItemService::StepBeep, GroundItemService::SetStepBeep, phrase(&T::stepBeepOn, &T::stepBeepOff), false, "step-beep"},
 		{TerrainService::RoomSounds, TerrainService::SetRoomSounds, phrase(&T::explorationSoundsOn, &T::explorationSoundsOff), false, "exploration-sounds"},
 		{[] { return FootstepService::Enabled(); }, [](bool on) { FootstepService::SetEnabled(on); }, phrase(&T::footstepsEnabled, &T::footstepsDisabled), true, "footsteps"},
 	}});
@@ -1837,6 +1839,8 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Volume("shaman-enemy-volume", &T::shamanEnemyVolume, F::ShamanEnemies),
 		Volume("boss-enemy-volume", &T::bossEnemyVolume, F::BossEnemies),
 		Volume("item-volume", &T::itemVolume, F::Items),
+		Volume("door-volume", &T::doorVolume, F::Doors),
+		Volume("doorway-volume", &T::doorwayVolume, F::Doorways),
 		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
 		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
 		Volume("step-volume", &T::stepVolume, F::Steps),
@@ -1931,6 +1935,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
 		{TutorialService::Enabled, TutorialService::SetEnabled, phrase(&T::tutorialOn, &T::tutorialOff), false, "tutorial"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
+		{ModalReader::MenuNews, ModalReader::SetMenuNews, phrase(&T::menuNewsOn, &T::menuNewsOff), false, "main-menu-news"},
 	}});
 	// Which news may cut in on other speech, kind by kind (a tester and the user, 2026-10-19).
 	using K = SpeechPriority::Kind;
@@ -1945,6 +1950,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Priority("priority-places", K::Places),
 		Priority("priority-ground-items", K::NearbyItems),
 		Priority("priority-tutorial", K::Tutorial),
+		Priority("priority-arrivals", K::Arrivals),
 	}});
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},

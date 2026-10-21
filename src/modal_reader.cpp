@@ -15,6 +15,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -74,6 +75,9 @@ void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
 // "You have died / Press <button> to continue." and "Death takes its toll of N
 // Gold". Its Continue button holds the focus, so it is read here, not left to
 // the focus reader, and polled like the title prompt.
+// The game's news and links over the main menu; a tester who owns the expansion asked to silence it (2026-10-20).
+constexpr std::string_view MenuLinksPanel = "MainMenuLinks";
+std::atomic<bool> g_menuNews{true};
 constexpr std::string_view DeathPanel = "YouDiedModal";
 constexpr std::string_view DeathBoxes[] = {"MainText", "SubText", "ContinueButton"};
 bool g_deathSpoken = false;
@@ -184,6 +188,9 @@ void Reset() { g_lastPanel.clear(); g_titleSpoken = g_deathSpoken = false; }
 
 void SetTitleAnnouncement(std::string text) { g_titleAnnouncement = std::move(text); }
 
+bool MenuNews() { return g_menuNews.load(); }
+void SetMenuNews(bool on) { g_menuNews = on; }
+
 void Tick(const D2RL::PluginContext* context) {
 	const std::string active(PanelState::Active());
 	if (active == g_lastPanel) {
@@ -199,6 +206,10 @@ void Tick(const D2RL::PluginContext* context) {
 	g_titleSpoken = g_deathSpoken = false;
 	g_deathPolled = g_titlePadPress = 0;
 	if (active.empty()) return;
+	if (active == MenuLinksPanel && !g_menuNews.load()) {
+		AsyncLog::InfoF(context, "[modal] %s: main menu news off", active.c_str());
+		return;
+	}
 	if (active == TitlePanel && !g_titleAnnouncement.empty()) {
 		AsyncLog::InfoF(context, "[modal] title: plugin announcement \"%s\"", g_titleAnnouncement.c_str());
 		ScreenReader::Speak(std::exchange(g_titleAnnouncement, {}), false);

@@ -9,7 +9,8 @@ namespace {
 // Policy: the next leg is said this long before its turn, the time to hear it
 // and turn: about one stride of a run (TurnUnits) at a run, less at a walk, as
 // a leg of the stick's ways ends on the line of a doorway. Before the pace is
-// known, a run's.
+// known, a run's. Never before half the leg is walked: a short leg, a step round
+// a grave, was skipped at the start (a tester, 2026-10-20).
 constexpr double TurnSeconds = 0.5, TurnUnits = 3, NearestTurnUnits = 1;
 // Policy: the route is left when the player is further from every leg still to
 // walk than this, longer than OffRouteMs. Wider than a corridor and a dodge.
@@ -69,7 +70,8 @@ Step Follower::Tick(Position player, uint64_t now) {
 	}
 	offSince_ = 0;
 	size_t next = std::max(at_, nearest);
-	const double lead = pace_ < 0 ? TurnUnits : std::clamp(pace_ * TurnSeconds, NearestTurnUnits, TurnUnits);
+	const double lead = std::min(Distance(player, corners_[at_]),
+		pace_ < 0 ? TurnUnits : std::clamp(pace_ * TurnSeconds, NearestTurnUnits, TurnUnits));
 	if (at_ + 1 < legs_.size() && Distance(player, corners_[at_ + 1]) <= lead) next = std::max(next, at_ + 1);
 	if (next == at_) return {};
 	// A door has no length: the leg after it is walked from the same corner.

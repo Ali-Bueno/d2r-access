@@ -39,9 +39,10 @@ private:
 // Radar and walls take the radar, the wall bump and the wall tones; enemies and NPCs every
 // entity cue; items and places the ground loops; guidance the beacon. Each enemy class
 // is a factor on top of the enemies' (a tester, 2026-10-15); low life is the heartbeat;
-// steps the click of the units walked, on top of the items'.
+// steps the click of the units walked, doors the door loops and doorways the crypt's
+// creaks (a tester, 2026-10-20), each on top of the items'.
 enum class Family { Radar, Enemies, Items, Guidance, OrdinaryEnemies, EliteEnemies, RangedEnemies, ShamanEnemies, BossEnemies, LowLife,
-	Steps, Count };
+	Steps, Doors, Doorways, Count };
 inline Level& Of(Family family) {
 	static std::array<Level, static_cast<size_t>(Family::Count)> levels;
 	return levels[static_cast<size_t>(family)];

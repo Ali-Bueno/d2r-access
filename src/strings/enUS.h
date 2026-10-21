@@ -367,6 +367,10 @@ inline constexpr Table enUS {
 	.stepClicksOn = "Walked distance clicks on",
 	.stepClicksOff = "Walked distance clicks off",
 	.stepClickInterval = "Units per click: %d",
+	.stepBeepOn = "Walked distance sound: beep",
+	.stepBeepOff = "Walked distance sound: click",
+	.menuNewsOn = "Main menu news on",
+	.menuNewsOff = "Main menu news off",
 	.wallTonesOn = "Wall tones on",
 	.wallTonesOff = "Wall tones off",
 	.enemyClassSoundsOn = "Enemy class sounds: layered",
@@ -394,6 +398,8 @@ inline constexpr Table enUS {
 	.guidanceVolume = "Guidance volume %d percent",
 	.lowLifeVolume = "Low life heartbeat volume %d percent",
 	.stepVolume = "Walked distance click volume %d percent",
+	.doorVolume = "Door volume %d percent",
+	.doorwayVolume = "Doorway volume %d percent",
 	.manaAlerts = {"Mana alerts: every change", "Mana alerts: low mana only", "Mana alerts off"},
 	.itemSoundSets = {"Item sounds: Diablo IV", "Item sounds: Last Epoch gold and potions", "Item sounds: Diablo II drops"},
 	.settingsGroups = {"Sounds", "Enemies and NPCs", "Navigation", "Items and menus", "Alerts", "Controller", "Sound glossary", "Volumes", "Diablo II drop sounds", "Settings list", "Loot filter", "Loop speeds", "Speech priority"},
@@ -491,7 +497,7 @@ inline constexpr Table enUS {
 	.radiantObject = "Radiant %s",
 	.rogueFountain = "Rogue fountain",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground", "Tutorial"},
+	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground", "Tutorial", "Arrivals at a target"},
 	.speechPriorityLevels = {"waits its turn", "cuts in when urgent", "cuts in", "cuts in and cannot be cut off"},
 };
 

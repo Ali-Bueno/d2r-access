@@ -28,6 +28,9 @@ bool StepClicks();
 void SetStepClicks(bool enabled);
 int StepInterval();
 void SetStepInterval(int interval);
+// The walked distance sound: the first beep, or the click (default; a tester, 2026-10-21).
+bool StepBeep();
+void SetStepBeep(bool beep);
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
 enum class Switch { Speech, Sounds, Exits, Chests, Doors, Quests, Stash };

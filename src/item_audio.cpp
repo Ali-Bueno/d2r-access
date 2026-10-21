@@ -96,13 +96,25 @@ bool StartVoice(Playing& active, const Voice& target, const std::vector<int16_t>
 		target.id, SoundFiles[static_cast<size_t>(target.sound)].name, target.right, target.front, loop);
 	return true;
 }
+// A sound's own volume on top of the items' (SoundVolume). Applied to its voice past the mix
+// headroom: counted in it, a click at 150 percent only turned the rest down (a tester, 2026-10-20).
+float OwnVolume(Sound sound) {
+	using F = SoundVolume::Family;
+	switch (sound) {
+	case Sound::Step: case Sound::StepClick: return static_cast<float>(SoundVolume::Of(F::Steps).Factor());
+	case Sound::WoodenDoor: case Sound::MetalDoor: case Sound::StoneDoor: case Sound::SlimeDoor:
+		return static_cast<float>(SoundVolume::Of(F::Doors).Factor());
+	case Sound::Doorway: return static_cast<float>(SoundVolume::Of(F::Doorways).Factor());
+	default: return 1;
+	}
+}
 void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::PluginContext* context) {
 	const auto& target = active.target;
 	const auto matrix = ItemSpatial::ScalePan(ItemSpatial::StereoMatrix(target), g_panScale.load());
 	active.gain += (target.gain - active.gain) * GainSmoothing;
 	HRESULT applied = active.source->SetOutputMatrix(master, 1, 2, matrix.data());
 	if (SUCCEEDED(applied)) applied = active.source->SetFrequencyRatio(target.pitch);
-	if (SUCCEEDED(applied)) applied = active.source->SetVolume(active.gain);
+	if (SUCCEEDED(applied)) applied = active.source->SetVolume(active.gain * OwnVolume(target.sound));
 	if (FAILED(applied)) {
 		AsyncLog::WarnF(context, "[item-audio] spatial update failed id=%u HRESULT=%08lx", target.id, applied);
 		g_running = false;
@@ -204,8 +216,9 @@ void Worker(const D2RL::PluginContext* context) {
 					totalGain += std::max(target.gain, active == playing.end() ? 0.0f : active->gain);
 				}
 				if (room) totalGain += std::max(room->gain, exploration.source ? exploration.gain : 0.0f);
+				// Not the walked distance sound: counted, its 30 ms turned every loop down at each step.
 				totalGain += OneShotGain(arrival, requestedArrival, g_arrival) + OneShotGain(discovery, requestedDiscovery, g_discovery)
-					+ OneShotGain(step, requestedStep, g_step) + OneShotGain(tutorialMessage, requestedTutorialMessage, g_tutorialMessage)
+					+ OneShotGain(tutorialMessage, requestedTutorialMessage, g_tutorialMessage)
 					+ OneShotGain(tutorialStep, requestedTutorialStep, g_tutorialStep);
 				const float mixVolume = totalGain > MixGainLimit ? MixGainLimit / totalGain : 1.0f;
 				const auto volume = static_cast<float>(SoundVolume::Of(SoundVolume::Family::Items).Factor());
@@ -299,9 +312,10 @@ void PlayDiscovery() {
 	voice.gain = LoopVolume; // centered and as near as a source can be, like the room arrival
 	Request(g_discovery, voice);
 }
-void PlayStep() {
-	Voice voice{0, Sound::Step};
-	voice.gain = static_cast<float>(LoopVolume * SoundVolume::Of(SoundVolume::Family::Steps).Factor());
+void PlayStep(Sound sound) {
+	Voice voice{0, sound};
+	// Its own volume goes on its voice (OwnVolume); the file's level trims the click against the beep.
+	voice.gain = static_cast<float>(LoopVolume * std::pow(10.0, SoundFiles[static_cast<size_t>(sound)].levelDb / 20));
 	Request(g_step, voice);
 }
 void PlayTutorialMessage() {

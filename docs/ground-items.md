@@ -52,7 +52,7 @@ does not reveal unidentified affixes.
 | `exploration/portal.ogg` | Level exits: warps, portals, waypoints |
 | `exploration/wooden door.ogg`, `metal door.ogg`, `stone door.ogg`, `slime door.ogg` | Shut doors ([below](#door-loops)) |
 | `exploration/doorway.ogg` | Doorways between a crypt's rooms ([below](#doorways-2026-10-20)) |
-| `one shot sounds/movement/step.ogg` | The walked distance click ([below](#walked-distance-click-2026-10-20)) |
+| `one shot sounds/movement/step.ogg`, `click.ogg` | The walked distance beep and click ([below](#walked-distance-click-2026-10-20)) |
 | `exploration/unexplored room.ogg`, `zone transition.ogg`, `inside unexplored room.ogg` | Exploration cues ([exploration.md](exploration.md)) |
 
 Loops begin only once the native item mode is **OnGround (3)**. The falling
@@ -239,6 +239,16 @@ middle, the two nearest (`MaxDoorwayVoices`), paced with the doors. Read with th
 500 ms. Switch `doorway-sounds` (Ctrl+S Sounds, on). Log: `[items] doorways nearby: N level=L`.
 Not built yet: doorways in the scanner, other tile sets (cottages, the Tower's ruin, Kurast's
 huts), which the tester will widen to once the crypt is heard. Unverified live.
+Tower Cellar 5 (level 25) is of the same LevelType and already included; it is a preset map, so
+whether its rooms leave gaps to creak at is unchecked (`[items] doorways nearby: N level=25`).
+
+**Heard, 2026-10-21.** The tester: clacks from about 400 ms flapped on every pass, and the creak
+was very soft in the Tower Cellar mix. The recording is cut to the creak (80-338 ms of the old
+file, 25 ms fade, before the first of six clacks 115 ms apart from 350 ms) and still padded to a
+2 s pass; the build lifts it 6 dB through the limiter (`D2R_DOORWAY_BOOST_DB`): its loudest 100 ms
+went from 15 dB under its peak to 9.5, with the metal door. Doors and doorways each have a volume in
+Volumes (`door-volume`, `doorway-volume`, `SoundVolume::Family::Doors`/`Doorways`), applied to
+their voices past the mix headroom (`ItemAudio::OwnVolume`).
 
 ## Walked distance click (2026-10-20)
 
@@ -250,6 +260,15 @@ waypoint, a new level) and counts nothing; a new game starts again. The click
 one-shot channel of the item mixer, so it never takes an enemy cue's place. Switches in Ctrl+S
 Sounds: `step-clicks` (off), `step-click-interval` (1, 5 or 10 units); its volume
 `step-volume` (Volumes, on top of the item volume). Unverified live.
+
+**Heard, 2026-10-21.** The tester: above 100 % the volume did not rise; 5 units are about one
+stride at a run and two at a walk; 1 unit is spam, 10 too coarse indoors; "less beep, more
+click". The volume was a gain counted in the mix headroom (`MixGainLimit` 0.5 against
+`LoopVolume` 0.4), so past 125 % the master came down by as much: each own volume now goes on its
+voice past the headroom, and the step is left out of it (counted, every loop dipped under each
+click). The default interval is 5. The click (`movement/click.ogg`, 30 ms of white noise decaying
+at exp(-220 t), 900-6500 Hz, soft-clipped; +3 dB `StepClickLevelDb`, as a 30 ms burst carries 7 dB
+less than the beep at one peak) is the default sound; `step-beep` (off) keeps the beep.
 
 **Which cue** is the sound the game itself plays when that door opens, not its
 class name. objects.txt has no material column; the client keeps a per-class

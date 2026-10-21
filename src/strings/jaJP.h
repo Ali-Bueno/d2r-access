@@ -367,6 +367,10 @@ inline constexpr Table jaJP {
 	.stepClicksOn = "歩いた距離のクリック オン",
 	.stepClicksOff = "歩いた距離のクリック オフ",
 	.stepClickInterval = "1クリックあたり %dマス",
+	.stepBeepOn = "歩いた距離の音: ビープ",
+	.stepBeepOff = "歩いた距離の音: クリック",
+	.menuNewsOn = "メインメニューのお知らせ オン",
+	.menuNewsOff = "メインメニューのお知らせ オフ",
 	.wallTonesOn = "壁の音 オン",
 	.wallTonesOff = "壁の音 オフ",
 	.enemyClassSoundsOn = "敵の種類の音 レイヤー",
@@ -394,6 +398,8 @@ inline constexpr Table jaJP {
 	.guidanceVolume = "ガイドの音量 %d パーセント",
 	.lowLifeVolume = "低体力の心音の音量 %d パーセント",
 	.stepVolume = "距離クリックの音量 %d パーセント",
+	.doorVolume = "扉の音量 %d パーセント",
+	.doorwayVolume = "出入口の音量 %d パーセント",
 	.manaAlerts = {"マナ通知：変化ごと", "マナ通知：マナ不足のみ", "マナ通知 オフ"},
 	.itemSoundSets = {"アイテムの音 Diablo IV", "アイテムの音 Last Epochのゴールドとポーション", "アイテムの音 Diablo IIの落下音"},
 	.settingsGroups = {"サウンド", "敵とNPC", "ナビゲーション", "アイテムとメニュー", "通知", "コントローラー", "サウンド用語集", "音量", "Diablo IIの落下音", "設定リスト", "戦利品フィルター", "ループの速さ", "読み上げの優先度"},
@@ -491,7 +497,7 @@ inline constexpr Table jaJP {
 	.radiantObject = "輝く%s",
 	.rogueFountain = "ローグの噴水",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"状態異常の開始", "状態異常の終了", "ライフとマナの警告", "ボスのライフ", "敵の名前", "ゲームのメッセージ", "クエストの進行", "場所", "地面のアイテム", "チュートリアル"},
+	.speechPriorityKinds = {"状態異常の開始", "状態異常の終了", "ライフとマナの警告", "ボスのライフ", "敵の名前", "ゲームのメッセージ", "クエストの進行", "場所", "地面のアイテム", "チュートリアル", "目標への到着"},
 	.speechPriorityLevels = {"順番を待つ", "緊急時のみ割り込む", "割り込む", "割り込み、中断されない"},
 };
 

@@ -38,6 +38,22 @@ void Doors() {
 	Check(follower.Tick({0, -12}, 250).event == Event::None, "the leg past the door is not said again");
 }
 
+// The tester's grave (2026-10-20): "northwest, 3; then southwest, 4" was cut at once by "Now southwest, 4".
+void ShortLegs() {
+	RouteFollow::Follower follower;
+	follower.Start({0, 0}, {Walk(-3, 0), Walk(0, 4), Walk(1, 1), Walk(0, 10)});
+	Check(follower.Tick({0, 0}, 0).event == Event::None, "a short first leg is not skipped at the start");
+	Check(follower.Tick({0, 0}, 250).event == Event::None, "nor while the player stands");
+	Check(follower.Tick({-1, 0}, 500).event == Event::None, "nor before half of it is walked");
+	const auto turn = follower.Tick({-2, 0}, 750);
+	Check(turn.event == Event::Turn && turn.leg == 1, "its next leg is said past its middle");
+	follower.Start({0, 0}, {Walk(0, -20), Walk(2, 0), Walk(0, -10)});
+	Check(follower.Tick({0, -17}, 0).event == Event::Turn, "a short leg is said before its turn");
+	Check(follower.Tick({0, -18}, 250).event == Event::None, "and the leg after it is not said over it");
+	const auto after = follower.Tick({1, -20}, 750);
+	Check(after.event == Event::Turn && after.leg == 2, "but once it is half walked");
+}
+
 void CutCorners() {
 	RouteFollow::Follower follower;
 	follower.Start({0, 0}, {Walk(0, -20), Walk(15, 0), Walk(0, -20)});
@@ -64,6 +80,7 @@ int main() {
 	Turns();
 	Pace();
 	Doors();
+	ShortLegs();
 	CutCorners();
 	OffTheRoute();
 	Passed();

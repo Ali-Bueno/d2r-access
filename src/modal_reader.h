@@ -29,4 +29,8 @@ void Reset();
 // Text said once, queued behind the title screen's own announcement.
 void SetTitleAnnouncement(std::string text);
 
+// The main menu's link bar ("Reign of the Warlock available now!") read as it opens, on by default.
+bool MenuNews();
+void SetMenuNews(bool on);
+
 }

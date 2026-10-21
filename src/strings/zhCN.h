@@ -367,6 +367,10 @@ inline constexpr Table zhCN {
 	.stepClicksOn = "行走距离提示音已开启",
 	.stepClicksOff = "行走距离提示音已关闭",
 	.stepClickInterval = "每 %d 格提示一次",
+	.stepBeepOn = "行走距离提示音：蜂鸣",
+	.stepBeepOff = "行走距离提示音：咔嗒",
+	.menuNewsOn = "主菜单新闻已开启",
+	.menuNewsOff = "主菜单新闻已关闭",
 	.wallTonesOn = "墙壁音调已开启",
 	.wallTonesOff = "墙壁音调已关闭",
 	.enemyClassSoundsOn = "敌人类别音效：分层",
@@ -394,6 +398,8 @@ inline constexpr Table zhCN {
 	.guidanceVolume = "引导音量 百分之%d",
 	.lowLifeVolume = "低生命心跳音量百分之%d",
 	.stepVolume = "行走距离提示音音量百分之%d",
+	.doorVolume = "门音量 百分之%d",
+	.doorwayVolume = "门洞音量 百分之%d",
 	.manaAlerts = {"法力提示：每次变化", "法力提示：仅法力不足时", "法力提示已关闭"},
 	.itemSoundSets = {"物品音效：暗黑破坏神IV", "物品音效：Last Epoch的金币和药剂", "物品音效：暗黑破坏神II掉落声"},
 	.settingsGroups = {"音效", "敌人和NPC", "导航", "物品和菜单", "提示", "手柄", "音效词汇表", "音量", "暗黑破坏神II掉落声", "设置列表", "战利品过滤", "循环速度", "朗读优先级"},
@@ -491,7 +497,7 @@ inline constexpr Table zhCN {
 	.radiantObject = "发光的%s",
 	.rogueFountain = "罗格喷泉",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"状态开始", "状态结束", "生命和法力警报", "首领生命", "敌人名称", "游戏消息", "任务进展", "地点", "地上的物品", "教程"},
+	.speechPriorityKinds = {"状态开始", "状态结束", "生命和法力警报", "首领生命", "敌人名称", "游戏消息", "任务进展", "地点", "地上的物品", "教程", "到达目标"},
 	.speechPriorityLevels = {"排队等候", "紧急时打断", "打断", "打断且不可被打断"},
 };
 

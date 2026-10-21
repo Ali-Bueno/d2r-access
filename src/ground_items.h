@@ -19,8 +19,9 @@ enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legenda
 	EpochGold, EpochHealthPotion, EpochManaPotion, EpochRejuvenationPotion, EpochOtherPotion,
 	Shrine, Well,
 	UnexploredRoom, ZoneTransition, InsideUnexploredRoom, Discovered,
-	// A doorway's creak (a tester's recording, 2026-10-20) and the click of the units walked.
-	Doorway, Step,
+	// A doorway's creak (a tester's recording, 2026-10-20) and the sound of the units walked:
+	// a beep, or a click (a tester, 2026-10-21: less beep, more click).
+	Doorway, Step, StepClick,
 	// The tutorial's message and step-done cues.
 	TutorialMessage, TutorialStepDone,
 	// The game's own drop sounds (Generated::DropSoundFiles), an alternative to the
@@ -114,6 +115,8 @@ inline constexpr float MixGainLimit = 0.5f; // headroom even when nearby loops p
 struct SoundFile { const char* folder; const char* name; float levelDb = 0; };
 // User listening, 2026-09-26: the chest sat about 4 LU under the loot loops, the stash too loud.
 inline constexpr float ChestLevelDb = 4, StashLevelDb = -4;
+// The walked distance click: a 30 ms burst carries 7 dB less than the 40 ms beep at one peak.
+inline constexpr float StepClickLevelDb = 3;
 inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "potion.wav"},
 	{"loot", "scroll.wav"}, {"loot", "rune.wav"}, {"loot", "gem.wav"}, {"loot", "normal equipment.wav"},
 	{"loot", "magic equipment.wav"}, {"loot", "rare equipment.wav"}, {"loot", "legendary equipment.wav"},
@@ -125,7 +128,7 @@ inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "p
 	{"last epoch", "rejuvenation potion.wav"}, {"last epoch", "other potion.wav"},
 	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
-	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"},
+	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"}, {"movement", "click.wav", StepClickLevelDb},
 	{"tutorial", "message.wav"}, {"tutorial", "step done.wav"}};
 static_assert(std::size(BaseSoundFiles) == static_cast<size_t>(Sound::DropFirst));
 inline constexpr std::string_view DropFolder = "d2 drops";

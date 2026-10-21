@@ -3,6 +3,29 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-21 — The tester's list on build 2026-10-20
+
+From `d2r access test build 2026-10-20 notes, feedback and logs.7z` (the user's Downloads: list,
+three logs, screenshots of the Tower Cellar grave doorway). Built and unit-tested only.
+- **The grave was the route follower, not the planner.** The four Grand Charm routes all went
+  round the grave; the follower said the second leg at once, as a first leg of 3 units was within
+  its turn lead, and that cut the route off. Rejected: adding object collision to the planner
+  (it already blocks the grave's cells) and a collision check of the legs (they already fit the
+  body). A turn now waits for half its leg.
+- **A room is arrived at anywhere in it by the route too**, as the beacon's. Rejected: a wider end
+  distance (an L-shaped room would still miss it, and a point target would arrive early).
+- **Arrivals hold 1.5 s**, a new speech kind with that default, rather than quieting the cursor's
+  hover names (they are what a sighted player reads at the door).
+- **The click a sound of its own, the beep kept behind `step-beep`**; the click is the default
+  because the beep was ours, not the user's choice. Clicks stay off by default until the tester
+  has used them at 5 units (they suggested on, once the settings menu is reworked).
+- **Own volumes past the mix headroom**, for the step, the doors and the doorways. Rejected:
+  raising `MixGainLimit` (it would lift every loud pile and the chest's +4 dB, tuned by ear).
+- **The main menu's news behind a switch, on by default**: it is what a sighted player sees.
+- **"Act 1" from the game's levels table** rather than our own words, so it follows the language.
+- **Doorway recording trimmed here, not replaced by the stash sound**, as the tester allowed.
+- **"Unexplored room" kept** for now; "area" is the tester's vocabulary question, left to the user.
+
 ## 2026-10-20 — The tester's list on builds 2026-10-19 and 19-3
 
 From `D2R Access build 2026-10-19 and 19-3 feedback and bug list.7z` (the user's Downloads: list,

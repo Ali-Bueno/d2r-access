@@ -1,4 +1,5 @@
 #include "tab_reader.h"
+#include "localization.h"
 #include "test_support.h"
 
 #include <unordered_map>
@@ -27,7 +28,10 @@ int SelectedTab(uintptr_t widget) { return indices[widget]; }
 std::string SelectedTabText(uintptr_t widget) { return Visible(widget) ? labels[widget] : ""; }
 }
 namespace D2RAccess::NativeWidgets {
-std::string ReadName(uintptr_t widget) { return widget == 300 ? "UISwitcherTabs" : "TabBar"; }
+std::string ReadName(uintptr_t widget) { return widget == 300 ? "UISwitcherTabs" : widget == 60 ? "WaypointsPanelExpansion" : "TabBar"; }
+}
+namespace D2RAccess::Localization {
+std::string Text(std::string_view key) { return key == "act2" ? "Act 2" : ""; }
 }
 
 int main() {
@@ -87,6 +91,16 @@ int main() {
 	labels[500] = "Armor"; indices[500] = 0;
 	Check(Tick(true) == "Armor", "LT/RT on it before the cursor lands is announced");
 	panels.pop_back();
+	// The waypoint window's acts (a tester, 2026-10-20: "I", "II" said as acts there only).
+	panels.push_back(60); controls[60] = {600}; labels[600] = "I"; indices[600] = 0;
+	(void)Tick();
+	labels[600] = "II"; indices[600] = 1;
+	Check(Tick() == "Act 2", "a waypoint act tab is said as the game's act name");
+	labels[600] = "III"; indices[600] = 2;
+	Check(Tick() == "III", "and as captioned when the game has no name for it");
+	panels.pop_back();
+	labels[102] = "II"; indices[102] = 1;
+	Check(Tick() == "II", "other windows' numbered tabs keep their captions");
 	TabReader::Reset(); panels = {40}; controls[40] = {400}; labels[400] = "Unrelated";
 	const int priorWalks = walks;
 	Check(Tick().empty() && walks == priorWalks, "narrative panels are not scanned for background navigation tabs");

@@ -27,6 +27,7 @@
 #include "route_follow.h"
 #include "route_legs.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "spoken_direction.h"
 #include "terrain_service.h"
@@ -266,12 +267,13 @@ void LogLead(const D2RL::PluginContext* context, const BeaconNavigation::Guidanc
 }
 // A room is reached by stepping into it, anywhere: its centre may lie inside a
 // wall, and what is in it is in sight from its doorway (the user, 2026-10-14).
-bool InTargetRoom(const Lifecycle& state, Radar::Position player) {
-	if (g_target.entity.kind != EntityRadar::Kind::Room) return false;
+bool InRoom(const Lifecycle& state, const EntityRadar::Entity& entity, Radar::Position player) {
+	if (entity.kind != EntityRadar::Kind::Room) return false;
 	const auto* graph = Rooms(state);
 	const size_t room = graph ? NativeRooms::Containing(graph->rooms, player) : NativeRooms::None;
-	return room != NativeRooms::None && graph->rooms[room].id == g_target.entity.placeId;
+	return room != NativeRooms::None && graph->rooms[room].id == entity.placeId;
 }
+bool InTargetRoom(const Lifecycle& state, Radar::Position player) { return InRoom(state, g_target.entity, player); }
 bool Playing() {
 	return RadarUi::InPlay();
 }
@@ -354,6 +356,10 @@ std::string Named(const char* format, const std::string& name) {
 	return text;
 }
 void Announce(const char* format, const std::string& name) { ScreenReader::Speak(Named(format, name), true); }
+// "Arrived at X", ahead of what the arrival puts under the cursor: the Cathedral's door (a tester, 2026-10-20).
+void AnnounceArrival(const std::string& name) {
+	SpeechPriority::Say(SpeechPriority::Kind::Arrivals, Named(Strings::Current().beaconArrived, name), true);
+}
 bool Lockable(const Target& offer, const Lifecycle& state, uint64_t now) {
 	if (!offer.entity.id || offer.level != state.level) return false;
 	const auto kind = offer.entity.kind;
@@ -524,7 +530,8 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		const auto name = g_target.entity.name;
 		Release("arrived");
 		Cue(BeaconAudio::Sound::Arrived);
-		Announce(reached ? Strings::Current().beaconArrived : Strings::Current().beaconLost, name);
+		if (reached) AnnounceArrival(name);
+		else Announce(Strings::Current().beaconLost, name);
 	};
 	if (InTargetRoom(state, world.player)) { arrive(); return; }
 	const auto* waypoint = guidance.hasWaypoint ? &guidance.waypoint : nullptr;
@@ -697,7 +704,7 @@ void FollowMovedTarget(const Lifecycle& state, uint64_t now) {
 		AsyncLog::InfoF(g_context, "[route] follow moved name=%s to=%.0f,%.0f -> here", target.entity.name.c_str(), is.x, is.y);
 		g_follower.Stop();
 		// A locked beacon says its own arrival.
-		if (!g_tracker.Locked()) Announce(Strings::Current().beaconArrived, target.entity.name);
+		if (!g_tracker.Locked()) AnnounceArrival(target.entity.name);
 		return;
 	}
 	if (route.legs.empty()) return; // the way known is still the best guess
@@ -730,7 +737,10 @@ void FollowRoute(const Lifecycle& state, uint64_t now) {
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
 	const auto legs = g_follower.Legs();
-	const auto step = g_follower.Tick(world.player, now);
+	// A room is reached anywhere in it, as the beacon's, not only at the way's end (a tester, 2026-10-20).
+	const bool inRoom = InRoom(state, g_followed.entity, world.player);
+	if (inRoom) g_follower.Stop();
+	const auto step = inRoom ? RouteFollow::Step{RouteFollow::Event::End} : g_follower.Tick(world.player, now);
 	const auto& strings = Strings::Current();
 	const auto& name = g_followed.entity.name;
 	std::string text;
@@ -746,7 +756,8 @@ void FollowRoute(const Lifecycle& state, uint64_t now) {
 		AsyncLog::InfoF(g_context, "[route] follow %s leg=%zu at=%.0f,%.0f name=%s -> %s",
 			step.event == RouteFollow::Event::Turn ? "turn" : step.event == RouteFollow::Event::Off ? "off" : "end", step.leg,
 			world.player.x, world.player.y, name.c_str(), text.c_str());
-	if (!text.empty()) ScreenReader::Speak(text, true);
+	if (step.event == RouteFollow::Event::End && !text.empty()) AnnounceArrival(name);
+	else if (!text.empty()) ScreenReader::Speak(text, true);
 }
 }
 

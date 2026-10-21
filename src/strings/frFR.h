@@ -367,6 +367,10 @@ inline constexpr Table frFR {
 	.stepClicksOn = "Clics de distance parcourue : activés",
 	.stepClicksOff = "Clics de distance parcourue : désactivés",
 	.stepClickInterval = "Unités par clic : %d",
+	.stepBeepOn = "Son de distance parcourue : bip",
+	.stepBeepOff = "Son de distance parcourue : clic",
+	.menuNewsOn = "Actualités du menu principal : activées",
+	.menuNewsOff = "Actualités du menu principal : désactivées",
 	.wallTonesOn = "Tons des murs : activés",
 	.wallTonesOff = "Tons des murs : désactivés",
 	.enemyClassSoundsOn = "Sons des classes d'ennemis : en couches",
@@ -394,6 +398,8 @@ inline constexpr Table frFR {
 	.guidanceVolume = "Volume du guidage : %d pour cent",
 	.lowLifeVolume = "Volume du battement de cœur de vie basse %d pour cent",
 	.stepVolume = "Volume du clic de distance %d pour cent",
+	.doorVolume = "Volume des portes %d pour cent",
+	.doorwayVolume = "Volume des passages %d pour cent",
 	.manaAlerts = {"Alertes de mana : chaque changement", "Alertes de mana : mana faible seulement", "Alertes de mana : désactivées"},
 	.itemSoundSets = {"Sons des objets : Diablo IV", "Sons des objets : or et potions de Last Epoch", "Sons des objets : chutes de Diablo II"},
 	.settingsGroups = {"Sons", "Ennemis et PNJ", "Navigation", "Objets et menus", "Alertes", "Manette", "Glossaire des sons", "Volumes", "Sons de chute de Diablo II", "Liste des réglages", "Filtre de butin", "Vitesse des boucles", "Priorité de la parole"},
@@ -491,7 +497,7 @@ inline constexpr Table frFR {
 	.radiantObject = "%s radieux",
 	.rogueFountain = "Fontaine des Rôdeuses",
 	.speechPriority = "%s : %s",
-	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol", "Tutoriel"},
+	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol", "Tutoriel", "Arrivées à destination"},
 	.speechPriorityLevels = {"attend son tour", "interrompt si urgent", "interrompt", "interrompt et ne peut pas être coupé"},
 };
 

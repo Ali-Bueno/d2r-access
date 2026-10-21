@@ -140,5 +140,21 @@ int main() {
 	Sleep(300);
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2 && speech[1].text == "Press Any Key to Begin", "a plain prompt is spoken as shown");
+
+	// The main menu's link bar (a tester, 2026-10-20: it is read on every visit to the menu).
+	speech.clear();
+	active = "MainMenuLinks";
+	tree = {};
+	Node(-1, Kind::Other, "MainMenuLinks");
+	Node(0, Kind::Text, "RotwBodyText", "Reign of the Warlock available now!");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1 && speech[0].text == "Reign of the Warlock available now!", "the menu's news is read by default");
+	ModalReader::SetMenuNews(false);
+	active.clear(); // the menu closes and opens again
+	ModalReader::Tick(nullptr);
+	active = "MainMenuLinks";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1, "and not with its switch off");
+	ModalReader::SetMenuNews(true);
 	Passed();
 }

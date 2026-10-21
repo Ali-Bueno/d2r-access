@@ -50,8 +50,9 @@ bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors =
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
 std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines, g_doorways;
-std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false};
-std::atomic<int> g_stepInterval{0}; // into StepCounter::Intervals
+std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false}, g_stepBeep{false};
+// Into StepCounter::Intervals: 5 units (a tester, 2026-10-21: 1 is spam, 10 too coarse indoors).
+std::atomic<int> g_stepInterval{1};
 StepCounter::Odometer g_odometer;
 // LvlTypes.txt row "Act 1 - Crypt" (Levels.txt LevelType of the Crypt, the Mausoleum and the
 // Tower Cellar): its doorways break the automap's walls; other tile sets follow once heard.
@@ -382,7 +383,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (g_suspended) AsyncLog::Info(context, "[items] resumed");
 	g_suspended = false;
 	if (!steps) g_odometer.Reset();
-	else if (g_odometer.Walk(snapshot.player, snapshot.session, StepCounter::Intervals[g_stepInterval.load()]) > 0) ItemAudio::PlayStep();
+	else if (g_odometer.Walk(snapshot.player, snapshot.session, StepCounter::Intervals[g_stepInterval.load()]) > 0)
+		ItemAudio::PlayStep(g_stepBeep.load() ? GroundItems::Sound::Step : GroundItems::Sound::StepClick);
 	g_nearbyLabels.clear();
 	g_labelsUpdated = now;
 	// Fixed exits, containers, quest objects and doors share one slower unit read.
@@ -471,6 +473,8 @@ bool OpenDoorSounds() { return g_openDoorSounds.load(); }
 void SetOpenDoorSounds(bool enabled) { g_openDoorSounds = enabled; }
 bool StepClicks() { return g_stepClicks.load(); }
 void SetStepClicks(bool enabled) { g_stepClicks = enabled; }
+bool StepBeep() { return g_stepBeep.load(); }
+void SetStepBeep(bool beep) { g_stepBeep = beep; }
 int StepInterval() { return g_stepInterval.load(); }
 void SetStepInterval(int interval) {
 	g_stepInterval = std::clamp(interval, 0, static_cast<int>(std::size(StepCounter::Intervals)) - 1);

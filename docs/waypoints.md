@@ -58,3 +58,10 @@ focus tracker's geometry fallback skips open panels that draw nothing (`NativeUi
 A tester: the window's legends never say that the triggers change the act. Right stick down with
 the waypoint window open says "Use RT or LT to change acts" first, naming the buttons bound to the
 tab actions (`ControllerText::TabRightGlyph` U+E01C, `TabLeftGlyph` U+E01B), then the legends.
+
+## The acts by name (2026-10-21)
+
+A tester: the act tabs are captioned "I" to "V", which the screen reader says as letters. In the
+waypoint window only (a bar of a panel named `WaypointsPanel*`), `TabReader` says a tab by the
+game's own string for its index, levels table `act1` to `act5` ("Act 1", "Acto 1"), and keeps the
+caption when the key is missing. The quest log's tabs stay "I" to "V".

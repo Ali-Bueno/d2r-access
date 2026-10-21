@@ -31,7 +31,7 @@ inline constexpr std::size_t TerrainPlaceCount = 9;
 inline constexpr std::size_t GlossarySoundCount = 53;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 inline constexpr std::size_t SettingsGroupCount = 13; // keyboard_service.cpp's SettingsGroup
-inline constexpr std::size_t SpeechPriorityKindCount = 10; // SpeechPriority::Kind
+inline constexpr std::size_t SpeechPriorityKindCount = 11; // SpeechPriority::Kind
 inline constexpr std::size_t SpeechPriorityLevelCount = 4; // SpeechPriority::Level
 inline constexpr std::size_t LoopPaceGroupCount = 7; // loop_pace.h's Group
 inline constexpr std::size_t LootEquipmentCount = 5; // GroundItems::EquipmentLoops
@@ -424,6 +424,10 @@ struct Table {
 	const char* stepClicksOn; // a click every so many units walked
 	const char* stepClicksOff;
 	const char* stepClickInterval; // %d = units walked per click
+	const char* stepBeepOn; // the walked distance sound: the beep, off the click
+	const char* stepBeepOff;
+	const char* menuNewsOn; // the main menu's link bar read as it opens
+	const char* menuNewsOff;
 	const char* wallTonesOn;
 	const char* wallTonesOff;
 	const char* enemyClassSoundsOn;
@@ -451,6 +455,8 @@ struct Table {
 	const char* guidanceVolume;
 	const char* lowLifeVolume; // %d = percent of the heartbeat's level
 	const char* stepVolume; // %d = percent of the walked distance click's level
+	const char* doorVolume; // %d = percent of the door loops' level
+	const char* doorwayVolume; // %d = percent of the doorway creaks' level
 	std::array<const char*, ManaAlertWords> manaAlerts; // every change, low mana only, off
 	std::array<const char*, ItemSoundSetCount> itemSoundSets;
 	std::array<const char*, SettingsGroupCount> settingsGroups;
@@ -595,7 +601,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

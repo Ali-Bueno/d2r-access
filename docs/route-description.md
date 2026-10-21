@@ -100,11 +100,18 @@ walks its legs with the player, polled every 250 ms:
   door; then north, 16". A turn already walked past moves on to the leg the
   player is nearest. Before 2026-10-19 the turn was said 3 units before it at
   any pace: a step early at a walk, and a step early in a doorway is its frame.
+  Never before half the leg is walked (2026-10-21): a leg of 3 units or less was "done" where
+  it began, so the first prompt came at once and cut the route off. The tester's grave in Tower
+  Cellar 4: "northwest, 3; then southwest, 4; ..." was heard as "Now southwest, 4", and walking it
+  led into the grave. The route itself went round it each time (`[radar-collision]`: the grave's
+  cells `0x0011`, blocked); the follower's skip was the cause, in the Den of Evil too.
 - **Off the route**: further than 8 units (`OffRouteUnits`) from every leg
   still to walk for 2 seconds, it says "Off the route to X" once and stops.
   Asking again plans from where the player stands.
-- **The end**: within 3 units of the way's end. Without a beacon lock it says
-  "Arrived at X"; a locked beacon says its own arrival.
+- **The end**: within 3 units of the way's end, or for a room anywhere inside it, as the
+  beacon's (`InRoom`; 2026-10-21: a tester crossed into unexplored rooms away from the way's
+  end cell and heard nothing, then "Off the route"). Without a beacon lock it says
+  "Arrived at X" (speech kind Arrivals, held 1.5 s); a locked beacon says its own arrival.
 - **A target that walks** (a player, an NPC, a monster) is read again every
   second (`MovedCheckMs`); once it stands more than 5 units (`MovedUnits`) from
   where the way was planned to, the way is planned again from where the player

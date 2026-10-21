@@ -29,6 +29,10 @@ set(D2R_EPOCH_BOOST_DB 18)
 # herb, quiver and key sat at the near-item floor (measured 2026-10-13). 9 dB through the
 # limiter lifts their bodies and leaves the loud ones at full scale.
 set(D2R_DROP_BOOST_DB 9)
+# A tester, 2026-10-20: the doorway creak was very soft in the Tower Cellar mix. Peak-normalized,
+# its loudest 100 ms sat 15 dB under its peak (the doors 4-12); trimmed to the creak, 6 dB
+# through the limiter brings it to 9.5, with the metal door.
+set(D2R_DOORWAY_BOOST_DB 6)
 # `group` is the folder under sounds/: "item loop sounds" or "one shot sounds".
 function(d2r_sounds group folder)
 	foreach(name IN LISTS ARGN)
@@ -39,6 +43,8 @@ function(d2r_sounds group folder)
 			set(loop_filter -af "apad=whole_dur=${D2R_QUEST_LOOP_SECONDS},atrim=duration=${D2R_QUEST_LOOP_SECONDS},afade=t=in:d=${D2R_QUEST_ATTACK_SECONDS},afade=t=out:st=${D2R_QUEST_RELEASE_START_SECONDS}:d=${D2R_QUEST_RELEASE_SECONDS}")
 		elseif(name STREQUAL "stash")
 			set(loop_filter -af "apad=whole_dur=${D2R_STASH_LOOP_SECONDS}")
+		elseif(name STREQUAL "doorway")
+			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_DOORWAY_BOOST_DB}dB,alimiter=limit=0.9:level=false")
 		elseif(folder STREQUAL "d2 drops")
 			set(loop_filter -af "aformat=sample_fmts=flt,volume=${D2R_DROP_BOOST_DB}dB,alimiter=limit=0.9:level=false")
 		elseif("${folder}/${name}" IN_LIST D2R_EPOCH_CLICKS)
@@ -67,7 +73,8 @@ endfunction()
 # fork (audio/chest.ogg there); the others are the user's own recordings.
 d2r_sounds("item loop sounds" loot "gold" "potion" "scroll" "rune" "gem" "normal equipment" "magic equipment" "rare equipment" "legendary equipment"
 	"chest" "quest item" "corpse" "weapon rack" "stash")
-# "doorway" is a tester's creaking-wood recording (2026-10-20), mono, padded to a two-second pass.
+# "doorway" is a tester's creaking-wood recording (2026-10-20), mono, cut to the creak before its
+# clacks (2026-10-21: they flapped on every pass) and padded to a two-second pass.
 d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "stone door" "slime door"
 	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well" "doorway")
 # Taken from the author's Last Epoch accessibility mod: its gold loop and the game's
@@ -75,8 +82,9 @@ d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "s
 d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")
 d2r_sounds("one shot sounds" exploration "discovered")
 d2r_sounds("one shot sounds" tutorial "message" "step done")
-# The click of the units walked, made with ffmpeg: a 40 ms 1250 Hz tick, peak -1 dB, fading from 6 ms.
-d2r_sounds("one shot sounds" movement "step")
+# The sounds of the units walked, made with ffmpeg: "step" a 40 ms 1250 Hz beep, peak -1 dB, fading
+# from 6 ms; "click" 30 ms of white noise decaying at exp(-220 t), band 900-6500 Hz, soft-clipped.
+d2r_sounds("one shot sounds" movement "step" "click")
 # The Diablo IV low-life start and heartbeat, from the author's Last Epoch mod (src/low_life_audio.cpp).
 d2r_sounds("one shot sounds" vitals "low life start")
 d2r_sounds("item loop sounds" vitals "low life")

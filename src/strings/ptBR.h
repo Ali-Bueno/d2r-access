@@ -367,6 +367,10 @@ inline constexpr Table ptBR {
 	.stepClicksOn = "Cliques de distância percorrida: ligados",
 	.stepClicksOff = "Cliques de distância percorrida: desligados",
 	.stepClickInterval = "Unidades por clique: %d",
+	.stepBeepOn = "Som da distância percorrida: bipe",
+	.stepBeepOff = "Som da distância percorrida: clique",
+	.menuNewsOn = "Novidades do menu principal: ligadas",
+	.menuNewsOff = "Novidades do menu principal: desligadas",
 	.wallTonesOn = "Tons das paredes: ligados",
 	.wallTonesOff = "Tons das paredes: desligados",
 	.enemyClassSoundsOn = "Sons das classes de inimigos: em camadas",
@@ -394,6 +398,8 @@ inline constexpr Table ptBR {
 	.guidanceVolume = "Volume da guia: %d por cento",
 	.lowLifeVolume = "Volume do batimento de vida baixa %d por cento",
 	.stepVolume = "Volume do clique de distância %d por cento",
+	.doorVolume = "Volume das portas %d por cento",
+	.doorwayVolume = "Volume das passagens %d por cento",
 	.manaAlerts = {"Alertas de mana: cada mudança", "Alertas de mana: só mana baixa", "Alertas de mana: desligados"},
 	.itemSoundSets = {"Sons dos itens: Diablo IV", "Sons dos itens: ouro e poções do Last Epoch", "Sons dos itens: quedas do Diablo II"},
 	.settingsGroups = {"Sons", "Inimigos e NPCs", "Navegação", "Itens e menus", "Alertas", "Controle", "Glossário de sons", "Volumes", "Sons de queda do Diablo II", "Lista de ajustes", "Filtro de saque", "Velocidade dos loops", "Prioridade da fala"},
@@ -491,7 +497,7 @@ inline constexpr Table ptBR {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fonte das arqueiras",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão", "Tutorial"},
+	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão", "Tutorial", "Chegadas ao destino"},
 	.speechPriorityLevels = {"espera a vez", "interrompe se for urgente", "interrompe", "interrompe e não pode ser cortado"},
 };
 

@@ -367,6 +367,10 @@ inline constexpr Table zhTW {
 	.stepClicksOn = "行走距離提示音已開啟",
 	.stepClicksOff = "行走距離提示音已關閉",
 	.stepClickInterval = "每 %d 格提示一次",
+	.stepBeepOn = "行走距離提示音：嗶聲",
+	.stepBeepOff = "行走距離提示音：喀噠",
+	.menuNewsOn = "主選單新聞已開啟",
+	.menuNewsOff = "主選單新聞已關閉",
 	.wallTonesOn = "牆壁音調已開啟",
 	.wallTonesOff = "牆壁音調已關閉",
 	.enemyClassSoundsOn = "敵人類別音效：分層",
@@ -394,6 +398,8 @@ inline constexpr Table zhTW {
 	.guidanceVolume = "引導音量 %d 百分比",
 	.lowLifeVolume = "低生命心跳音量 %d 百分比",
 	.stepVolume = "行走距離提示音音量 %d 百分比",
+	.doorVolume = "門音量 %d 百分比",
+	.doorwayVolume = "門洞音量 %d 百分比",
 	.manaAlerts = {"法力提示：每次變化", "法力提示：僅法力不足時", "法力提示已關閉"},
 	.itemSoundSets = {"物品音效：暗黑破壞神IV", "物品音效：Last Epoch的金幣和藥水", "物品音效：暗黑破壞神II掉落聲"},
 	.settingsGroups = {"音效", "敵人與NPC", "導航", "物品與選單", "提示", "控制器", "音效詞彙表", "音量", "暗黑破壞神II掉落聲", "設定清單", "戰利品過濾", "循環速度", "朗讀優先順序"},
@@ -491,7 +497,7 @@ inline constexpr Table zhTW {
 	.radiantObject = "發光的%s",
 	.rogueFountain = "羅格噴泉",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"狀態開始", "狀態結束", "生命和法力警報", "首領生命", "敵人名稱", "遊戲訊息", "任務進度", "地點", "地上的物品", "教學"},
+	.speechPriorityKinds = {"狀態開始", "狀態結束", "生命和法力警報", "首領生命", "敵人名稱", "遊戲訊息", "任務進度", "地點", "地上的物品", "教學", "抵達目標"},
 	.speechPriorityLevels = {"排隊等候", "緊急時打斷", "打斷", "打斷且不可被打斷"},
 };
 

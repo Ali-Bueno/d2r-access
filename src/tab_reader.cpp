@@ -1,4 +1,5 @@
 #include "tab_reader.h"
+#include "localization.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 
@@ -22,6 +23,12 @@ std::unordered_map<uintptr_t, Selection> g_dialogueTab;
 bool g_observing = false;
 std::string g_detail;
 constexpr std::string_view SwitcherTabs = "UISwitcherTabs";
+// The waypoint window's act tabs are captioned I to V; there they are said as the game's own
+// "Act 1" to "Act 5" (levels table, "act1"; a tester, 2026-10-20).
+constexpr std::string_view WaypointsPanelPrefix = "WaypointsPanel";
+std::string ActName(int index) {
+	return index < 0 ? std::string{} : UiText::Clean(Localization::Text("act" + std::to_string(index + 1)));
+}
 
 void Append(std::string& text, const std::string& part) {
 	if (part.empty()) return;
@@ -57,12 +64,14 @@ std::string Update(std::span<const uintptr_t> panels, NativeUi::Focus focus, boo
 	std::unordered_map<uintptr_t, Selection> next;
 	std::string changed;
 	for (const auto& panel : g_panels) {
+		const bool waypoints = NativeWidgets::ReadName(panel.id).starts_with(WaypointsPanelPrefix);
 		for (uintptr_t tab : panel.tabs) {
 			const std::string caption = NativeUi::SelectedTabText(tab);
 			Selection now { NativeUi::SelectedTab(tab), UiText::Clean(caption) };
 			// A tab with no caption at all (the shared stash's pages; a tester, 2026-10-14) is said
 			// by its number; one whose caption is a controller glyph stays unnamed.
 			if (caption.empty() && NativeUi::Visible(tab)) now.text = PageName(now.index);
+			if (waypoints && !now.text.empty()) if (auto act = ActName(now.index); !act.empty()) now.text = std::move(act);
 			if (now.text.empty() || next.contains(tab)) continue;
 			const auto prior = g_selected.find(tab);
 			const bool isSwitcher = NativeWidgets::ReadName(tab) == SwitcherTabs;

@@ -367,6 +367,10 @@ inline constexpr Table deDE {
 	.stepClicksOn = "Klicks für die gelaufene Strecke an",
 	.stepClicksOff = "Klicks für die gelaufene Strecke aus",
 	.stepClickInterval = "Einheiten pro Klick: %d",
+	.stepBeepOn = "Streckenton: Piepton",
+	.stepBeepOff = "Streckenton: Klick",
+	.menuNewsOn = "Neuigkeiten im Hauptmenü an",
+	.menuNewsOff = "Neuigkeiten im Hauptmenü aus",
 	.wallTonesOn = "Wandtöne an",
 	.wallTonesOff = "Wandtöne aus",
 	.enemyClassSoundsOn = "Gegnerklassen-Klänge: geschichtet",
@@ -394,6 +398,8 @@ inline constexpr Table deDE {
 	.guidanceVolume = "Lautstärke Führung %d Prozent",
 	.lowLifeVolume = "Lautstärke des Herzschlags bei wenig Leben %d Prozent",
 	.stepVolume = "Lautstärke des Streckenklicks %d Prozent",
+	.doorVolume = "Lautstärke Türen %d Prozent",
+	.doorwayVolume = "Lautstärke Durchgänge %d Prozent",
 	.manaAlerts = {"Mana-Meldungen: jede Änderung", "Mana-Meldungen: nur bei wenig Mana", "Mana-Meldungen aus"},
 	.itemSoundSets = {"Gegenstandsklänge: Diablo IV", "Gegenstandsklänge: Gold und Tränke aus Last Epoch", "Gegenstandsklänge: Diablo-II-Fallgeräusche"},
 	.settingsGroups = {"Klänge", "Gegner und NPCs", "Navigation", "Gegenstände und Menüs", "Meldungen", "Controller", "Klangglossar", "Lautstärken", "Diablo-II-Fallgeräusche", "Einstellungsliste", "Beutefilter", "Schleifentempo", "Sprachpriorität"},
@@ -491,7 +497,7 @@ inline constexpr Table deDE {
 	.radiantObject = "Strahlende %s",
 	.rogueFountain = "Brunnen der Jägerinnen",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden", "Tutorial"},
+	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden", "Tutorial", "Ankunft am Ziel"},
 	.speechPriorityLevels = {"wartet, bis es dran ist", "unterbricht, wenn dringend", "unterbricht", "unterbricht und wird nicht unterbrochen"},
 };
 

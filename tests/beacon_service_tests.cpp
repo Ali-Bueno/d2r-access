@@ -16,6 +16,7 @@
 #include "radar_config.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
 #include "zone_transitions.h"
@@ -176,6 +177,7 @@ std::string DistancePhrase(double, const Settings&, const Strings::Table&) { ret
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::RadarTrace { void Collision(const D2RL::PluginContext*, const Radar::World&, int, uint64_t) {} }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }
+namespace D2RAccess::SpeechPriority { void Say(Kind, std::string_view text, bool) { speech.emplace_back(text); } }
 
 int main() {
 	using Kind = D2RL::Lifecycle::GameplayEventKind;
@@ -344,6 +346,18 @@ int main() {
 	BeaconService::Tick(&context);
 	Check(speech.back() == Format(strings.beaconArrived, "unexplored room 2"),
 		"stepping into the unexplored room arrives, wherever its centre lies");
+	playerAt = {10, 10};
+	remembering = true;
+	BeaconService::Offer(unexplored, 0, GetTickCount64());
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back().starts_with("Route to unexplored room 2"), "fixture: a route into the unexplored room");
+	playerAt = {90, 45}; // inside it, far from the way's end
+	Sleep(300);
+	BeaconService::Tick(&context);
+	Check(speech.back() == Format(strings.beaconArrived, "unexplored room 2"),
+		"the route's room is reached anywhere in it, as the beacon's (a tester, 2026-10-20)");
+	remembering = false;
 	playerAt = {10, 10};
 	blocked = {};
 

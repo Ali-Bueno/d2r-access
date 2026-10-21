@@ -2,6 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build 2026-10-20 — 2026-10-21 (not released)
+
+From `d2r access test build 2026-10-20 notes, feedback and logs.7z` ([decisions](docs/decisions.md)):
+- Grave doorway (Tower Cellar 4) and Den props: the routes went round them; the follower said a
+  turn at once after a first leg of 3 units or less, cutting the route off. A turn now waits for
+  half its leg ([route](docs/route-description.md#following-it)).
+- Unexplored rooms: the route's "Arrived" only at its end cell; now anywhere in the room (`InRoom`).
+- Arrivals hold 1.5 s (speech kind Arrivals): the Cathedral door's name had cut them off.
+- Walked distance: own volume past the mix headroom (above 125 % did nothing), a click as the
+  default sound (`step-beep` keeps the beep), 5 units by default.
+- Doorway creak cut before its clacks, +6 dB; `door-volume`, `doorway-volume` in Volumes
+  ([ground items](docs/ground-items.md#doorways-2026-10-20)).
+- Main menu news behind `main-menu-news` (on); waypoint act tabs said "Act 1" to "Act 5".
+- The tutorial in every language: one header each in `src/tutorial_strings/`, the ten beyond
+  Spanish and English machine-translated; `tutorial_tests` holds each to the English `{tokens}`.
+
+125/125 CTest; installed by the build. **Unverified live.**
+**Next step:** the tester walks a short-first-leg route (the grave), into unexplored rooms away
+from the way's end, to the Cathedral doors, and Tower Cellar 5 with doorways on (`[route] follow`,
+`[items] doorways nearby: N level=25`).
+
 ## New-character tutorial built — 2026-10-21 (not released)
 
 [Tutorial](docs/tutorial.md): `TutorialService` (steps and history pure in `tutorial.*`, words in

@@ -25,7 +25,7 @@ double PanScale();
 void SetPanScale(double scale);
 constexpr bool IsOneShot(GroundItems::Sound sound) {
 	return sound == GroundItems::Sound::InsideUnexploredRoom || sound == GroundItems::Sound::Discovered
-		|| sound == GroundItems::Sound::Step || sound == GroundItems::Sound::TutorialMessage
+		|| sound == GroundItems::Sound::Step || sound == GroundItems::Sound::StepClick || sound == GroundItems::Sound::TutorialMessage
 		|| sound == GroundItems::Sound::TutorialStepDone;
 }
 constexpr bool SameSource(const GroundItems::Voice& a, const GroundItems::Voice& b) {
@@ -38,8 +38,8 @@ void UpdateExploration(std::vector<GroundItems::Voice> voices);
 void PlayExplorationArrival(GroundItems::Voice voice);
 // One centered cue for a find the radar has just announced; its own voice, apart from exploration.
 void PlayDiscovery();
-// One click of the units walked, on its own voice at its own volume (SoundVolume::Family::Steps).
-void PlayStep();
+// One sound of the units walked (Step or StepClick), on its own voice at its own volume (SoundVolume::Family::Steps).
+void PlayStep(GroundItems::Sound sound);
 // The tutorial's message cue and its step-done cue, centred, each on its own voice.
 void PlayTutorialMessage();
 void PlayTutorialStep();

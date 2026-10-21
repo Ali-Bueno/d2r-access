@@ -367,6 +367,10 @@ inline constexpr Table koKR {
 	.stepClicksOn = "이동 거리 클릭 켜짐",
 	.stepClicksOff = "이동 거리 클릭 꺼짐",
 	.stepClickInterval = "클릭당 %d칸",
+	.stepBeepOn = "이동 거리 소리: 삑",
+	.stepBeepOff = "이동 거리 소리: 클릭",
+	.menuNewsOn = "메인 메뉴 소식 켜짐",
+	.menuNewsOff = "메인 메뉴 소식 꺼짐",
 	.wallTonesOn = "벽 소리 켜짐",
 	.wallTonesOff = "벽 소리 꺼짐",
 	.enemyClassSoundsOn = "적 등급 소리: 레이어",
@@ -394,6 +398,8 @@ inline constexpr Table koKR {
 	.guidanceVolume = "안내 음량 %d퍼센트",
 	.lowLifeVolume = "낮은 생명력 심장 소리 음량 %d퍼센트",
 	.stepVolume = "이동 거리 클릭 음량 %d퍼센트",
+	.doorVolume = "문 음량 %d퍼센트",
+	.doorwayVolume = "출입구 음량 %d퍼센트",
 	.manaAlerts = {"마나 알림: 모든 변화", "마나 알림: 마나 부족 시만", "마나 알림 꺼짐"},
 	.itemSoundSets = {"아이템 소리: 디아블로 IV", "아이템 소리: Last Epoch 골드와 물약", "아이템 소리: 디아블로 II 떨어지는 소리"},
 	.settingsGroups = {"소리", "적과 NPC", "길 안내", "아이템과 메뉴", "알림", "컨트롤러", "소리 용어집", "음량", "디아블로 II 떨어지는 소리", "설정 목록", "전리품 필터", "반복 속도", "음성 우선순위"},
@@ -491,7 +497,7 @@ inline constexpr Table koKR {
 	.radiantObject = "빛나는 %s",
 	.rogueFountain = "궁수 석상 분수",
 	.speechPriority = "%s: %s",
-	.speechPriorityKinds = {"상태 이상 시작", "상태 이상 종료", "생명력과 마나 경고", "보스 생명력", "적 이름", "게임 메시지", "퀘스트 진행", "장소", "바닥의 아이템", "튜토리얼"},
+	.speechPriorityKinds = {"상태 이상 시작", "상태 이상 종료", "생명력과 마나 경고", "보스 생명력", "적 이름", "게임 메시지", "퀘스트 진행", "장소", "바닥의 아이템", "튜토리얼", "목표 도착"},
 	.speechPriorityLevels = {"차례를 기다림", "긴급할 때만 끼어듦", "끼어듦", "끼어들고 끊기지 않음"},
 };
 
