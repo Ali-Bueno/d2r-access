@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Beacon ways end where the body fits — 2026-10-21
+## Beacon ways end where the body fits — 2026-10-21 (released as test-2026-10-21 from d64065d)
+
+Release: 124/124 CTest, 29 entries, 62,815,997 bytes, SHA-256 `d179e0f2…6209a9`; news
+`../tester-news-draft-2026-10-21.txt`.
 
 The cause of the user's three `lead=no-way way_cells=0` failures ([beacon](docs/beacon.md)):
 - Stairs set in the wall: `Guidance` planned the remembered way to within 1 cell, where no body
