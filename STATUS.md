@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build 2026-10-20 — 2026-10-21 (not released)
+## The tester's list on build 2026-10-20 — 2026-10-21 (released as test-2026-10-21-2 from 083ce69)
+
+Release: 125/125 CTest, 29 entries, 62,930,893 bytes, SHA-256 `f60bca7d…3bc708`; news
+`../tester-news-draft-2026-10-21b.txt` (the tutorial and this list).
 
 From `d2r access test build 2026-10-20 notes, feedback and logs.7z` ([decisions](docs/decisions.md)):
 - Grave doorway (Tower Cellar 4) and Den props: the routes went round them; the follower said a
@@ -23,7 +26,7 @@ From `d2r access test build 2026-10-20 notes, feedback and logs.7z` ([decisions]
 from the way's end, to the Cathedral doors, and Tower Cellar 5 with doorways on (`[route] follow`,
 `[items] doorways nearby: N level=25`).
 
-## New-character tutorial built — 2026-10-21 (not released)
+## New-character tutorial built — 2026-10-21 (released in test-2026-10-21-2)
 
 [Tutorial](docs/tutorial.md): `TutorialService` (steps and history pure in `tutorial.*`, words in
 `tutorial_text.*`, Spanish and English), two one-shot sounds made for it, speech kind `Tutorial`,
