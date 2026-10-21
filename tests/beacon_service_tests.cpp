@@ -166,7 +166,7 @@ std::string FindArea(std::string_view) { return {}; }
 }
 namespace D2RAccess::ZoneTransitions {
 std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
-bool Crosses(const EntityRadar::Entity&) { return false; }
+bool Crosses(const EntityRadar::Entity& entity) { return entity.destinationLevel != 0; }
 bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) { return false; }
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
@@ -411,6 +411,25 @@ int main() {
 	Event(Kind::LevelChanged, 26);
 	BeaconService::Tick(&context);
 	Check(status().find(strings.beaconNothing) != std::string::npos, "a released lock does not come back");
+
+	// Lut Gholein, 2026-10-20: before its gate was seen, the border to the Rocky Waste
+	// was led to round the middle of the shared edge, here walled 20 subtiles deep
+	// and more; the gate is a corridor at its far end.
+	actAreas = {{40, 0, 0, 20, 10}, {41, 20, 0, 20, 10}};
+	Event(Kind::LevelChanged, 40);
+	BeaconService::Tick(&context);
+	remembering = true;
+	playerAt = {10, 10};
+	blocked = {79, 0, 99, 45};
+	EntityRadar::Entity waste{.id = 902, .kind = EntityRadar::Kind::Exit, .position = {99, 25}, .name = "Rocky Waste"};
+	waste.destinationLevel = 41;
+	BeaconService::Offer(waste, 40, GetTickCount64());
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back().starts_with("Route to Rocky Waste") && speech.back().find("; then ") != std::string::npos,
+		"an unseen border crossing is led to anywhere along the shared edge, through the gap far from its middle");
+	blocked = {};
+	remembering = false;
 
 	BeaconService::Unregister();
 	Passed();

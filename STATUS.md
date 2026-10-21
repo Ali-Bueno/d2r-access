@@ -2,7 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Live play by the user — 2026-10-20 (build e280447): beacon bug open
+## Beacon ways end where the body fits — 2026-10-21
+
+The cause of the user's three `lead=no-way way_cells=0` failures ([beacon](docs/beacon.md)):
+- Stairs set in the wall: `Guidance` planned the remembered way to within 1 cell, where no body
+  fits. The way may now end within the arrival distance (3) that the beacon's own test and
+  `WayEnd` already used (`Recall::around`, `ArrivalMargin`); the loaded floor's check keeps 1 so
+  nothing counts as reached through a wall, and at a corner of the way's end the loaded floor
+  takes the last steps. Test: `StairsInAWall`.
+- Lut Gholein's exit before the gate was seen: the goal was a box round the edge's middle, with no
+  floor; the gate is 40 subtiles off. Now the whole shared edge (`LevelAreas::Crossing::first`/`last`).
+  The service test fails against the old box.
+
+124/124 CTest; installed by the build. **Unverified live.**
+**Next step:** the user walks to stairs and to Lut Gholein's Rocky Waste exit and sends the log
+(`[beacon] lead=`, `[beacon] refused`).
+
+## Live play by the user — 2026-10-20 (build e280447): beacon bug found (section above)
 
 Log kept outside the repo: `../logs/d2r-access-2026-10-20-user.log` (the game overwrites its own).
 - **Beacon "no route through explored areas" still happens**, 3 times, `lead=no-way way_cells=0`:
@@ -10,7 +26,7 @@ Log kept outside the repo: `../logs/d2r-access-2026-10-20-user.log` (the game ov
   over 6 levels: the room list does not grow, so PR #4 is not the cause ([beacon](docs/beacon.md)).
 - Identify: not a bug. The user tried it on items Cain had just identified; it works by holding A
   on the tome ([character panel](docs/character-panel.md)).
-**Next step:** find why the remembered map has no way (stairs and level-edge exits).
+**Next step:** done 2026-10-21 (section above).
 
 ## PR #4 merged, its map growth wired to a fresh room read — 2026-10-20 (released as test-2026-10-20 from e280447)
 
@@ -303,7 +319,8 @@ entry (`NativeHover`, RVA 0x2A41630, READ not measured) or a clearly nearest sto
 Tester's log of 2026-10-14 ("the beacon loses the route"): the Stony Field was refused eight times
 in the Cold Plains, 129 to 334 units away, after the tester had walked across it: the way went to the
 border's middle, in its trees. Crossings seen are now kept for the game (`CrossingMemory`); an unseen
-border is led to within 20 units of its middle ([area borders](docs/beacon.md#area-borders)).
+border is led to within 20 units of its middle ([area borders](docs/beacon.md#area-borders); since
+2026-10-21, to its whole shared edge).
 
 Tester's finder request: `passage-map-sides` (on, the user's choice) turns the finder's
 stick 45 degrees clockwise and says passages by the room's walls, NE/SE/SW/NW = 2/4/8/10 o'clock

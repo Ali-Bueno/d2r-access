@@ -68,6 +68,9 @@ int main() {
 	// last subtile of this area, so it stands in one of this level's rooms.
 	Check(near[0].position.x == 1156 * SubtilesPerTile - 1, "a neighbour to the east is crossed at this area's last subtile");
 	Check(near[0].position.y == 1100 * SubtilesPerTile, "and in the middle of the span the two areas share");
+	Check(near[0].first.x == near[0].position.x && near[0].last.x == near[0].position.x
+		&& near[0].first.y == 1080 * SubtilesPerTile && near[0].last.y == 1120 * SubtilesPerTile - 1,
+		"the whole shared span runs along that last subtile");
 	const auto back = LevelAreas::Neighbours(areas, 2);
 	Check(back.size() == 1 && back[0].position.x == 1156 * SubtilesPerTile,
 		"a neighbour to the west is crossed at this area's first subtile");

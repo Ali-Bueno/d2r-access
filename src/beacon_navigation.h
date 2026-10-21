@@ -60,13 +60,17 @@ struct Recall {
 	// centre can be in a wall), or the stretch of an area border whose crossing
 	// is not known yet.
 	std::optional<LevelRoute::Area> area;
+	// Otherwise how many cells round `target` the way may end in, walked to from
+	// it, never fewer than `margin`: a stair set in a wall has no cell the body
+	// fits within one of it (the user's log, 2026-10-20).
+	int around = 0;
 };
 
 // A null visited list retains full assistance; an empty list grants no exploration route.
 // With a visited list the remembered way prefers explored ground and may guess
 // past it; the first unexplored room it crosses joins the floor followed, as
 // the target's own room does, so the ping leads into it.
-// `margin` is how many cells around the target count as reaching it.
+// `margin` is how many cells around the target count as reaching it on the loaded floor.
 // `built` is the terrain grid of this same `world` at the full radius when the
 // caller has one already; with full assistance it is used instead of building
 // the grid a second time.

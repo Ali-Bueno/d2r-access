@@ -70,7 +70,7 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	Guidance result;
 	result.target = target;
 	const bool remembered = recall.memory && recall.way;
-	const auto arrival = recall.area ? *recall.area : LevelRoute::Area::Around(target, margin);
+	const auto arrival = recall.area ? *recall.area : LevelRoute::Area::Around(target, std::max(margin, recall.around));
 	LevelRoute::Way way;
 	RoomGraph::Graph restricted;
 	if (visited) {
@@ -106,6 +106,9 @@ Guidance Prepare(Radar::World world, Radar::Position target, const RoomGraph::Gr
 	if (remembered) {
 		// The map's way turns where the floor turns; the room graph only knows which rooms touch.
 		if (!visited) way = recall.way->From(*recall.memory, nullptr, result.world.player, arrival, result.world.bodyPattern, recall.now);
+		// At the end of a way to a point: a corner of its box can be further than the
+		// beacon's arrival distance, so the loaded floor's own route takes the last steps.
+		if (way.path.empty() && !recall.area && arrival.Contains(result.world.player)) return result;
 		result.remembered = true;
 		result.guess = way.guess;
 		result.wayCells = way.path.size();

@@ -31,6 +31,7 @@ namespace D2RAccess::LevelAreas {
 struct Crossing {
 	uint32_t        level = 0;
 	Radar::Position position;   // subtiles, this area's last step toward the neighbour
+	Radar::Position first, last; // subtiles, the ends of that last step along the span both share
 	int             gapTiles = 0; // 0 when the areas touch or overlap
 };
 

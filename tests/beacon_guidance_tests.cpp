@@ -143,6 +143,59 @@ void BeyondTheWindow() {
 	Check(!deadEnd, "and none of them leads into the dead end under the wall");
 }
 
+// A stair set in a wall, beyond the loaded window (the user's log, 2026-10-20: the
+// Stony Tomb's and the Halls of the Dead's stairs). No cell the body fits lies
+// within one of it, so a way that had to end that near had nowhere to end; the
+// service now lets the way end within the beacon's own arrival distance
+// (Recall::around, ArrivalMargin). The loaded floor still reaches a target only
+// from beside it, so nothing behind a thin wall counts as reached from its far side.
+void StairsInAWall() {
+	Level level;
+	level.Fill(Left, Top, Left + Width - 1, Top + 20, Wall);
+	const auto graph = RoomGraph::Build(level.Rooms());
+	auto memory = Seen(level);
+	const Position target{Left + 100.0, Top + 20.0}; // in the wall's last row
+	Position player{Left + 100.0, Top + 180.0};
+	const World first = level.Loaded(player, 1);
+	BeaconNavigation::RememberedWay beside;
+	const auto close = BeaconNavigation::Prepare(first, target, &graph, nullptr, Margin, nullptr, {&memory, &beside, 0});
+	Check(close.remembered && !close.hasWaypoint && close.wayCells == 0, "no way ends within one cell of the stair: the live failure");
+	const Beacon::Settings s;
+	const BeaconNavigation::Recall arriving{&memory, nullptr, 0, std::nullopt, static_cast<int>(std::ceil(s.arrivalDistance))};
+	const auto recall = [&](BeaconNavigation::RememberedWay& way, uint64_t now) {
+		auto copy = arriving;
+		copy.way = &way;
+		copy.now = now;
+		return copy;
+	};
+	BeaconNavigation::RememberedWay way;
+	const auto guidance = BeaconNavigation::Prepare(first, target, &graph, nullptr, Margin, nullptr, recall(way, 0));
+	Check(guidance.remembered && guidance.hasWaypoint && !guidance.guess && guidance.wayCells > 0,
+		"a way ends where the beacon would say it has arrived");
+	Beacon::Tracker tracker;
+	tracker.Lock(0);
+	bool arrived = false;
+	for (uint64_t now = 2000; now < 2000 * 60 && !arrived; now += 2000) {
+		const auto step = BeaconNavigation::Prepare(level.Loaded(player, 1), target, &graph, nullptr, Margin, nullptr, recall(way, now));
+		arrived = Follow(tracker, step, now, s).arrived;
+		const auto route = Beacon::FindRoute(step.world, step.hasWaypoint ? step.waypoint : target, s);
+		if (route.path.empty()) break;
+		player = route.path[std::min<size_t>(7, route.path.size() - 1)];
+	}
+	Check(arrived, "and walking it arrives at the stair");
+
+	// The way's box has corners further than the arrival distance: there the loaded
+	// floor's own route takes the last steps instead of falling silent.
+	const Position corner{Left + 97.0, Top + 23.0};
+	BeaconNavigation::RememberedWay last;
+	const auto atCorner = BeaconNavigation::Prepare(level.Loaded(corner, 1), target, &graph, nullptr, Margin, nullptr, recall(last, 0));
+	Check(!atCorner.remembered && !atCorner.hasWaypoint, "at a corner of the way's end the loaded floor leads");
+	const auto update = Settled(atCorner, s);
+	Check(!update.arrived && update.routed && update.ping, "not arrived there, and the ping leads on");
+	const auto rest = Beacon::FindRoute(atCorner.world, target, s);
+	Check(Beacon::Reaches(atCorner.world, rest, target, s), "to a cell the beacon counts as arrived at");
+}
+
 // Exploration plans over explored rooms alone, so the shortcut through an
 // unexplored room is not given away.
 void ExploredOnly() {
@@ -329,6 +382,7 @@ int main() {
 	AroundTheWall();
 	NoKnownRoute();
 	BeyondTheWindow();
+	StairsInAWall();
 	ExploredOnly();
 	RoomWithAWalledCentre();
 	RoomAcrossTheLevel();

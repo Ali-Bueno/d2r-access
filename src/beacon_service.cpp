@@ -135,37 +135,48 @@ Beacon::Settings SettingsFor(const EntityRadar::Entity& entity) {
 	settings.requireKnownRoute = !Unrestricted(entity);
 	return settings;
 }
-// Whether `to` is an area the player walks into from `from` across their shared edge.
-bool AcrossBorder(int from, int to) {
-	std::vector<NativeLevelAreas::Area> areas;
-	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return false;
-	const auto neighbours = LevelAreas::Neighbours(areas, static_cast<uint32_t>(to));
-	return std::any_of(neighbours.begin(), neighbours.end(),
-		[from](const LevelAreas::Crossing& crossing) { return crossing.level == static_cast<uint32_t>(from); });
+// The cells round a target a way over the map may end in, for the beacon's guidance
+// and the route it describes alike: within the arrival distance, and never closer
+// than a step beside the footprint. A stair set in a wall has no cell the body fits
+// within one of it (the user's log, 2026-10-20). docs/beacon.md
+int ArrivalMargin(const EntityRadar::Entity& entity) {
+	return std::max(1 + static_cast<int>(std::ceil(HalfFootprint(entity))),
+		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
 }
-// Policy: an area border whose crossing has not been seen is led to anywhere this
-// near the middle of its edge, which is often in the trees or cliffs lining it.
-// The crossing loads long before (the game keeps two rooms round the player),
-// and the target then moves to it.
-constexpr int BorderReach = 20;
-enum class Border { None, Crossing, Unknown };
+// The crossing from area `level` into `neighbour`, when they share an edge.
+std::optional<LevelAreas::Crossing> SharedEdge(int level, int neighbour) {
+	std::vector<NativeLevelAreas::Area> areas;
+	if (!NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return std::nullopt;
+	for (const auto& crossing : LevelAreas::Neighbours(areas, static_cast<uint32_t>(level)))
+		if (crossing.level == static_cast<uint32_t>(neighbour)) return crossing;
+	return std::nullopt;
+}
+// Whether `to` is an area the player walks into from `from` across their shared edge.
+bool AcrossBorder(int from, int to) { return SharedEdge(to, from).has_value(); }
+// Where an area border is walked across: at a crossing seen, or, before one is,
+// anywhere along the edge both areas share (`edge`, this area's last cells).
+struct Border {
+	enum class Kind { None, Crossing, Unknown } kind = Kind::None;
+	LevelRoute::Area edge;
+};
 // An area border is walked across where both levels' floor meets, rarely at the
 // middle of the shared edge that names it: the crossing loaded now, else one seen
 // this game (CrossingMemory). docs/beacon.md#area-borders
 Border ToCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar::Entity& entity) {
-	if (!ZoneTransitions::Crosses(entity)) return Border::None;
+	if (!ZoneTransitions::Crosses(entity)) return {};
 	if (NativeLevelExits::Layout layout; NativeEntities::ReadLayout(state.player, true, layout)) {
 		const auto crossings = ZoneTransitions::Find(world, layout, Navigation::MaxRadius);
 		CrossingMemory::Note(state.session, state.level, crossings);
-		if (ZoneTransitions::MoveToCrossing(entity, crossings)) return Border::Crossing;
+		if (ZoneTransitions::MoveToCrossing(entity, crossings)) return {Border::Kind::Crossing};
 	}
 	if (const auto known = CrossingMemory::Find(state.session, state.level, entity.destinationLevel, world.player)) {
 		entity.position = *known;
-		return Border::Crossing;
+		return {Border::Kind::Crossing};
 	}
 	// A warp unit is where it is; only an edge between two areas is walked across anywhere along it.
-	if (entity.unit != EntityRadar::Entity::NoUnit || !AcrossBorder(state.level, static_cast<int>(entity.destinationLevel)))
-		return Border::None;
+	if (entity.unit != EntityRadar::Entity::NoUnit) return {};
+	const auto edge = SharedEdge(state.level, static_cast<int>(entity.destinationLevel));
+	if (!edge) return {};
 	// The middle of the edge can fall just inside the other area: the nearest cell of this one stands for it.
 	const auto* graph = Rooms(state);
 	if (graph && NativeRooms::Containing(graph->rooms, entity.position) == NativeRooms::None) {
@@ -181,7 +192,9 @@ Border ToCrossing(const Lifecycle& state, const Radar::World& world, EntityRadar
 			}
 		}
 	}
-	return Border::Unknown;
+	const auto cell = [](double coordinate) { return static_cast<int>(std::lround(coordinate)); };
+	return {Border::Kind::Unknown, {cell(std::min(edge->first.x, edge->last.x)), cell(std::min(edge->first.y, edge->last.y)),
+		cell(std::max(edge->first.x, edge->last.x)), cell(std::max(edge->first.y, edge->last.y))}};
 }
 // The rooms a way to `entity` may cross in exploration: the explored ones, and
 // the target's own room. Nothing when the player stands in no room of the level.
@@ -201,12 +214,16 @@ std::optional<std::vector<NativeRooms::Room>> ExploredFor(const Lifecycle& state
 // Where a way to `entity` may end other than round it: a room's own rectangle,
 // reached at the first step inside since its centre may be in a wall, or the
 // stretch of a border whose crossing is not known yet.
-std::optional<LevelRoute::Area> GoalArea(const Lifecycle& state, const EntityRadar::Entity& entity, Border border) {
-	if (border == Border::Unknown) {
-		// Anywhere near the border will do: the crossing is not known yet.
-		auto bounds = LevelRoute::Area::Around(entity.position, BorderReach);
-		bounds.walked = false;
-		return bounds;
+std::optional<LevelRoute::Area> GoalArea(const Lifecycle& state, const EntityRadar::Entity& entity, const Border& border) {
+	if (border.kind == Border::Kind::Unknown) {
+		// Policy: anywhere a crossing on the shared edge would be reached from. The
+		// gap through the palisade, trees or cliffs lining it is seldom at its middle:
+		// Lut Gholein's gate is 40 subtiles off, past a box round the middle that held
+		// no floor (the user's log, 2026-10-20). Once the crossing loads (the game keeps
+		// two rooms round the player) the target moves to it.
+		const int margin = ArrivalMargin(entity);
+		return LevelRoute::Area{border.edge.minX - margin, border.edge.minY - margin,
+			border.edge.maxX + margin, border.edge.maxY + margin, false};
 	}
 	const auto* graph = entity.kind == EntityRadar::Kind::Room ? Rooms(state) : nullptr;
 	if (!graph) return std::nullopt;
@@ -216,6 +233,8 @@ std::optional<LevelRoute::Area> GoalArea(const Lifecycle& state, const EntityRad
 }
 std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now,
 	BeaconNavigation::RememberedWay& way) {
+	// The loaded floor reaches a target from beside it; a way over the map may end
+	// anywhere the beacon arrives (ArrivalMargin), on the target's side of any wall.
 	const int margin = 1 + static_cast<int>(std::ceil(HalfFootprint(entity)));
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return std::nullopt;
@@ -223,7 +242,8 @@ std::optional<BeaconNavigation::Guidance> Guidance(const Lifecycle& state, Entit
 	const Radar::Position target = entity.position;
 	const auto* graph = Rooms(state);
 	// The walks' own map, learnt from the whole world before exploration masks it.
-	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now, GoalArea(state, entity, border)};
+	const BeaconNavigation::Recall recall{KeyboardService::RememberedMap(world), &way, now, GoalArea(state, entity, border),
+		ArrivalMargin(entity)};
 	if (Unrestricted(entity)) return BeaconNavigation::Prepare(std::move(world), target, graph, nullptr, margin, nullptr, recall);
 	if (!graph) return std::nullopt;
 	auto explored = ExploredFor(state, *graph, world.player, entity);
@@ -531,11 +551,9 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 }
 // Where a way to `entity` ends: where guidance would say it has arrived, at the
 // first step into a room, or near a border whose crossing is not known yet.
-LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity, Border border) {
+LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity, const Border& border) {
 	if (const auto area = GoalArea(state, entity, border)) return *area;
-	const int margin = std::max(1 + static_cast<int>(std::ceil(HalfFootprint(entity))),
-		static_cast<int>(std::ceil(SettingsFor(entity).arrivalDistance)));
-	return LevelRoute::Area::Around(entity.position, margin);
+	return LevelRoute::Area::Around(entity.position, ArrivalMargin(entity));
 }
 // The way to `entity` from where the player stands, as legs: what a sighted
 // player plans off the map. docs/route-description.md

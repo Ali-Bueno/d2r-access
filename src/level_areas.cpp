@@ -4,6 +4,7 @@
 #include "room_graph.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace D2RAccess::LevelAreas {
 namespace {
@@ -25,6 +26,16 @@ double Leaving(int loA, int sizeA, int loB, int sizeB) {
 	return static_cast<double>(loA + sizeA <= loB ? (loA + sizeA) * Subtiles - 1 : loA * Subtiles);
 }
 
+// The whole stretch Leaving takes the middle of: the shared span's first and
+// last subtiles where the areas overlap, and otherwise A's last subtile alone.
+std::pair<double, double> Stretch(int loA, int sizeA, int loB, int sizeB) {
+	constexpr int Subtiles = LevelExitLayout::SubtilesPerTile;
+	const int lo = std::max(loA, loB), hi = std::min(loA + sizeA, loB + sizeB);
+	if (lo < hi) return {static_cast<double>(lo * Subtiles), static_cast<double>(hi * Subtiles - 1)};
+	const double edge = Leaving(loA, sizeA, loB, sizeB);
+	return {edge, edge};
+}
+
 }
 
 std::vector<Crossing> Neighbours(const std::vector<NativeLevelAreas::Area>& areas, uint32_t currentLevel) {
@@ -44,6 +55,10 @@ std::vector<Crossing> Neighbours(const std::vector<NativeLevelAreas::Area>& area
 		crossing.level = area.level;
 		crossing.position = {Leaving(here->tileX, here->tileWidth, area.tileX, area.tileWidth),
 			Leaving(here->tileY, here->tileHeight, area.tileY, area.tileHeight)};
+		const auto [firstX, lastX] = Stretch(here->tileX, here->tileWidth, area.tileX, area.tileWidth);
+		const auto [firstY, lastY] = Stretch(here->tileY, here->tileHeight, area.tileY, area.tileHeight);
+		crossing.first = {firstX, firstY};
+		crossing.last = {lastX, lastY};
 		crossing.gapTiles = std::max({gapX, gapY, 0});
 		result.push_back(crossing);
 	}

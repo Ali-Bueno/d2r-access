@@ -115,9 +115,11 @@ units, once the crossing loaded. Every crossing `ZoneTransitions::Find` gives
 (scanner passes, beacon updates) is now kept per area for the game
 (`CrossingMemory`), and the beacon, the route and the scanner's distance use
 the one seen nearest the player when none is loaded. A border never seen
-loaded is led to anywhere within 20 units of its edge's middle
-(`BorderReach`, a `Recall::area`), moved into this area when the middle falls
-just outside it; the crossing loads before the player gets there.
+loaded is led to anywhere along the edge the two areas share, within the
+arrival margin of it (`LevelAreas::Crossing::first`/`last`, a `Recall::area`);
+the crossing loads before the player gets there. Until 2026-10-21 it was
+anywhere within 20 units of the edge's middle, which missed Lut Gholein's gate
+(below).
 
 **Stepping across a border keeps the lock (2026-09-28).** A route can run along
 an area border. Monastery Gate is 18 tiles tall. Its eastern entrance opens into
@@ -196,6 +198,36 @@ the Dead 1, and the empty way came back three times:
 
 With no room added, every room was inside the map's bounds, so the cause is
 elsewhere. All three targets are exits: one at a level's edge, two stairs.
+
+**The cause: ways that had to end where no body fits (2026-10-21).** The
+log's collision, decoded, puts both stairs inside the wall: 15117,5005 in the
+wall's last row, 15205,5047 with wall at x ≤ 15205. `Guidance` planned the
+remembered way to within **1** cell of an exit (`1 + ceil(HalfFootprint)`), and
+no cell that near fits the body (`Standing`, the five-cell cross), so the way
+had no cell to end on. Everything else already counted arrival at 3: the
+beacon's own test (`Settings::arrivalDistance`) and the route description
+(`WayEnd`). The way now ends anywhere within that distance (`Recall::around`,
+from `ArrivalMargin`, the same function `WayEnd` uses), on cells walked to from
+the target, so never on the far side of a wall. The loaded floor's own check
+(`ReachableNow`) keeps one cell: at three, a target behind a thin wall would
+count as reached from the wrong side. At the end of the way a corner of its box
+can lie further than the arrival distance (3,3 is 4.2 away), and there the
+loaded floor's route takes the last steps (`lead=direct`) instead of leaving
+the beacon silent. The lock 21 s later came from the fallback search on the
+loaded floor, once the stairs' room had loaded. Pinned by
+`tests/beacon_guidance_tests.cpp`, `StairsInAWall`: with margin 1 the way is
+empty, as in the log; with the arrival margin it leads there, the walk arrives,
+and the corner hands over (that check fails without the hand-over).
+
+Lut Gholein failed in a different way. With its gate not yet seen, the border
+was led to a 41×41 box round the middle of the shared edge (5000,5140). That
+part of the town holds no floor, and the gate is 40 subtiles off, at 5000,5100.
+A border whose crossing is unknown is now led to its whole shared edge, widened
+by the arrival margin, with `walked` off. In a seen town only the gate reaches
+the edge; on ground not seen yet the way guesses toward the nearest stretch,
+and the target moves to the crossing once it loads. Pinned by
+`tests/beacon_service_tests.cpp` (it fails against the old box) and
+`tests/native_level_areas_tests.cpp` for the span. Unverified live.
 
 ## Exploration mode
 
