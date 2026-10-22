@@ -2,10 +2,12 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's addendum on builds 2026-10-20 and 20-2 — 2026-10-21 (not released, not committed)
+## The tester's addendum on builds 2026-10-20 and 20-2 — 2026-10-21 (released as test-2026-10-22 from 3f13f86)
 
-From `tutorial and builds -20 and -20-2 feedback.7z` ([decisions](docs/decisions.md)); news draft
-`../tester-news-draft-2026-10-21d.txt`. 125/125 CTest; installed by the build. **Unverified live.**
+Release: 125/125 CTest, 29 entries, 62,969,716 bytes, SHA-256 `c72439ae…1cf1808`; news
+`../tester-news-draft-2026-10-21d.txt`. **Unverified live.**
+
+From `tutorial and builds -20 and -20-2 feedback.7z` ([decisions](docs/decisions.md)):
 - Doorways from the walls' gaps (`Rooms::Doorways`), not the streamed rooms' seams; gaps at door
   objects left to the doors ([ground items](docs/ground-items.md#doorways-2026-10-20)).
 - Mod+B: drawn walkable tiles over walkable tiles (`AutomapCells::DrawnWalkable`, per-room walkable
