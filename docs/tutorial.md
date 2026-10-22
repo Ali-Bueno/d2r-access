@@ -36,7 +36,32 @@ to it, so a step that changes always leaves the player on the newest message.
 - Browsing works in play only, interrupts, and says "First message" / "Last message" before the
   text when it cannot move further. New messages queue (speech kind `Tutorial`, "waits its turn").
 - The history is rebuilt from the step reached when a game resumes the tutorial, so only the step
-  is saved.
+  is saved. A sound's name in it carries its sound: read back, the name is said and the sound
+  plays after it (`ReadMs`), so any sound taught can be heard again later.
+
+## Hearing a lesson's sounds (2026-10-21, a tester)
+
+The tester: "whenever you introduce a sound, add an option to immediately replay it before allowing
+the player to hear the next one", and the sounds should be the ones the player chose. Three steps
+play sounds, each after its name (`Tutorial::Audition`, pure and tested; one `Audition` action in
+the queue): the radar's (step 1), the world's (step 2) and the monsters' (step 9, in the camp
+before leaving it). The step's message ends with how to steer them (`auditionAgain` or
+`auditionWait`).
+
+| While a lesson's sounds play | Pad | Keyboard |
+|---|---|---|
+| the last sound again; the lesson then holds | BACK + right stick left | K |
+| on: the next name and sound, or past a hold | BACK + right stick right | L |
+
+- They play one after another (the user's choice: nothing need be pressed), `CueGapMs` apart.
+  "Again" stops speech, plays the last sound heard and holds; "next" goes on, saying again a name
+  the replay cut. With the switch `tutorial-sound-wait` (Alerts, off) every sound holds.
+- While a lesson's sounds play, the world's keep quiet (`Tutorial::QuietWorld`), so the monsters'
+  lesson is not mixed with the camp's NPCs and stash.
+- **The item sounds chosen** (`item-sound-set`: Diablo IV, Last Epoch's gold and potions, or the
+  game's own drop sounds) are the only sound set the mod has. The world's lesson now plays gold, a
+  minor healing potion and a short sword (`gld`, `hp1`, `ssd`) through `GroundItems::Heard`, the
+  same choice the items on the ground make, read when each plays.
 
 ## When it starts and stops
 
@@ -44,7 +69,10 @@ to it, so a step that changes always leaves the player on the newest message.
   Ctrl+S list, default on) is on: the character's name and the roster (`ReadRosterCorpses`); with
   other players in the game it is not offered. A character with a record resumes at its step; one
   without a record begins only at character level 1 (`PlayerExperience`).
-- Records: `<pluginDirectory>/d2r-access/tutorial.txt`, `name@created=step`, 16 meaning finished;
+- Records (`tutorial_records.*`): `<pluginDirectory>/d2r-access/tutorial.txt`, `name@created=step`,
+  18 meaning finished, and `#version=2`. A file without the version (16 steps, before the Den's
+  rooms and the waypoint) is brought up to date once (`Tutorial::FromVersion1`: the Den's step
+  begins again at its rooms, the way back and the reward move on one, finished stays finished);
   `created` is when the character's save (`<Saved Games>/Diablo II Resurrected/<name>.d2s`) was
   made, in Unix seconds, so a character deleted and made again under the same name starts afresh
   (the user, 2026-10-21: the new one resumed at the old one's Akara step). The game keeps a save's
@@ -63,6 +91,14 @@ to it, so a step that changes always leaves the player on the newest message.
 - Turning the switch off stops it; on again, the next poll resumes it.
 - New messages wait outside play (menus, NPC dialogue, pause) and while the game's own text is
   read (`uiOwnsSpeech`). Not built: waiting while enemies are in sight; a "skip this step" entry.
+- **Patience** (a tester, 2026-10-21: "the last few messages since entering the Den of Evil didn't
+  fire"): a message waits for a pause in speech at most `PatienceMs` (10 s), then goes in line behind
+  what is said, logged `[tutorial] no pause in speech`. In a long fight speech may never pause for
+  1.5 s. The tester's own case was most likely the fight step, which waited for gold that never
+  dropped (no log was sent).
+- **Ahead of the tutorial** (`Tutorial::PassedBy`): the Den cleared or done passes the steps on the
+  way to it (leaving the camp to the Den's rooms), and the reward taken passes the way back. Passed
+  steps are kept in the history, not said.
 - **Arrival:** the first message waits `ArrivalMs` (3 s), and every message (its chime) waits until
   no speech has begun for `QuietMs` (1.5 s, `ScreenReader::LastSpoken`). The first live test
   (2026-10-21): the NPC announcer named Warriv at 0.5 s, the welcome was queued behind it, and the
@@ -111,14 +147,26 @@ default buttons (A talks and picks up, B closes).
 | 6 | Camp | the route (BACK + right stick down, or BACK+A with `pad-route-on-a` / Ctrl+E) | a route to Akara is asked |
 | 7 | Camp | the beacon (BACK+LB / Ctrl+B), walking it yourself | the beacon arrives at Akara |
 | 8 | Camp | the first quest | her menu is open with her the nearest town NPC, or the Den's quest runs |
-| 9 | Camp | the same tools for a way out | the player is in the Blood Moor |
-| 10 | Blood Moor | ways out of this area (BACK+Y / Ctrl+Y), terrain overview (BACK+B / Ctrl+O); the pad's also names the area's words | both asked |
-| 11 | Blood Moor | enemy sounds and attacking; potions; picking up | gold taken outside the camp |
-| 12 | Blood Moor | finding a place not yet seen | the player is in the Den of Evil |
-| 13 | Den of Evil | room sounds, the monster counter | the Den's quest: reward pending, goal done or completed |
-| 14 | Den of Evil | the town portal scroll, or walking back | the player is in the camp |
-| 15 | Camp | the reward and the skill tree | the Den's quest completed |
-| 16 | Camp | farewell: the settings list | — |
+| 9 | Camp | the monsters' sounds (monster, ranged, resurrecting shaman, elite, in reach), each after its name; then the same tools for a way out | the player is in the Blood Moor |
+| 10 | Blood Moor | terrain overview (BACK+B / Ctrl+O); the pad's also names the area's words | the overview asked |
+| 11 | Blood Moor | attacking, potions, picking up; gold comes as you walk over it | a monster killed: experience rising outside the camp |
+| 12 | Blood Moor | finding a place not yet seen; the Den by its name among the scanner's exits | the player is in the Den of Evil |
+| 13 | Den of Evil | the ways out of this room (BACK+Y / Ctrl+Y) | asked |
+| 14 | Den of Evil | room sounds, the monster counter | the Den's quest: reward pending, goal done or completed |
+| 15 | Den of Evil | the town portal scroll, or walking back; with a pad, the button the town portal is bound to | the player is in the camp |
+| 16 | Camp | the reward and the skill tree | the Den's quest completed |
+| 17 | anywhere | waypoints keep the way: the Cold Plains' | a waypoint's menu open outside the camp |
+| 18 | Camp | farewell: the settings list; right stick down in menus | — |
+
+The tester (2026-10-21): Ctrl+Y says the ways out of a room, and a room is a maze level's cell
+(`docs/rooms.md`), so outdoors it says nothing: it moved into the Den. Gold is picked up by walking
+over it (the game's Auto-Gold Pickup, on by default per the tester) and may not drop for long, so
+the fight ends on a kill. "Go into the cave" became the Den's name among the scanner's exits. The
+waypoint step answers the doc's open question: the game keeps quests, not the way back.
+
+The way back with a pad adds the button the town portal is on when a bar holds it
+(`SkillBarService::ButtonOf`, skills.txt 359, 219 or 220, the main bar before LT's): the tester
+plays with LT X, the game's default on a new character.
 
 Step 1's sounds (2026-10-21): passage, unexplored passage, floor, unexplored floor, wall, door, small
 obstacle, each after its name and meaning; the unexplored ones are the radar's double pip
@@ -162,6 +210,20 @@ and that an unidentified item cannot be worn until identified with a scroll of i
 through its menus holds the other back; one only said in play does not. Log: `[tutorial] inventory
 lesson begins|given`.
 
+**The level-up lesson's skills** (a tester, 2026-10-21): the binding message says passive skills
+(the masteries) need no button and cannot have one, and that the General Skills page (ui.json
+`GeneralSkills`, reached with LT and RT past the class's branches: INFERRED, to confirm) holds
+Town Portal and Identify, bound the same way. Back in play it asks to try the new skill once and
+hear it; whether it was used is not read (no skill-use signal is known), so nothing waits for it.
+
+**The gold and shop lessons** (a tester, 2026-10-21), once per character (`#gold`, `#shop`): the
+first gold picked up outside the camp, at the next calm moment in play, says gold comes by walking
+over it, that death takes part of what is carried (the game's "Death takes its toll of %d Gold")
+and that the stash keeps it. The first shop (`VendorPanelLayout`) says, there, to buy the
+Tome of Town Portal and the Tome of Identify: twenty scrolls in one cell each, while loose scrolls fill the
+inventory. How gold is deposited with the pad is left to the stash's own reading (not measured).
+The tomes' and pages' names are the game's own (`Localization::Text`: `tbk`, `ibk`).
+
 **Words in a menu** (fixed 2026-10-21): the first level-up test heard nothing in the sheet. In a
 menu the reader of what has focus always owns speech (`GameTextReader::Tick` returns true while the
 interaction reader has focus), so a menu message waited for `uiOwnsSpeech` to clear, which it never
@@ -192,7 +254,9 @@ The radar's sounds are audition cues (`CueSource::audition`), which no radar rea
 | TalkedToWarriv, TalkedToAkara | `NpcDialogPanel` open with that NPC the nearest town NPC (`NativeEntities::Read` with town NPCs, which gives their identity), or the Den's quest running or done |
 | InTown, InBloodMoor, InDen | `LevelChanged`: Levels.txt rows 1, 2 and 8 (`src/generated/level_flags.h`) |
 | DenCleared, DenDone | `NativeQuestFlags::Read(1)`: row 1 inferred from the save's order (the Tower is 5, Act II begins at 8); bits 1 and 13, and `QuestDoneBits` |
-| Gold | `NativeGroundItems::PlayerGold()` rising outside the camp |
+| Kill | `NativeStatus::PlayerExperience()->total` rising outside the camp |
+| Waypoint | a `WaypointsPanel*` open outside the camp |
+| (gold lesson) | `NativeGroundItems::PlayerGold()` rising outside the camp |
 
 ## To check live
 
@@ -212,4 +276,6 @@ The radar's sounds are audition cues (`CueSource::audition`), which no radar rea
 
 ## Open
 
-- Whether it ends at the Den or also teaches the Cold Plains waypoint.
+- A lesson for gems, runes, sockets and the stash's tabs (the tester's suggestion): the game's
+  strings name no dedicated gem or rune tab, so the controls are not known; the farewell points to
+  right stick down in every menu instead.

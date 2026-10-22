@@ -259,6 +259,8 @@ inline constexpr Table plPL {
 	.routePromptsOff = "Zapowiedzi zakrętów trasy: wyłączone",
 	.tutorialOn = "Samouczek: włączony",
 	.tutorialOff = "Samouczek: wyłączony",
+	.tutorialSoundWaitOn = "Samouczek: każdy dźwięk czeka na ciebie",
+	.tutorialSoundWaitOff = "Samouczek: dźwięki odtwarzane jeden po drugim",
 	.routeTotalOn = "Całkowita długość trasy: włączona",
 	.routeTotalOff = "Całkowita długość trasy: wyłączona",
 	.routeLegsOn = "Odcinki trasy: włączone",

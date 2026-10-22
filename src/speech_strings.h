@@ -311,6 +311,8 @@ struct Table {
 	const char* routePromptsOff;
 	const char* tutorialOn; // the tutorial's messages and cues
 	const char* tutorialOff;
+	const char* tutorialSoundWaitOn; // a lesson's sounds wait for the player after each one
+	const char* tutorialSoundWaitOff;
 	const char* routeTotalOn; // a route asked for says its whole length before its legs
 	const char* routeTotalOff;
 	const char* routeLegsOn; // a route asked for says its legs
@@ -601,7 +603,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

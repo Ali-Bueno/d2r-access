@@ -259,6 +259,8 @@ inline constexpr Table zhCN {
 	.routePromptsOff = "路线转弯提示已关闭",
 	.tutorialOn = "教程已开启",
 	.tutorialOff = "教程已关闭",
+	.tutorialSoundWaitOn = "教程：每个声音等你操作",
+	.tutorialSoundWaitOff = "教程：声音依次播放",
 	.routeTotalOn = "路线总距离已开启",
 	.routeTotalOff = "路线总距离已关闭",
 	.routeLegsOn = "路线分段已开启",

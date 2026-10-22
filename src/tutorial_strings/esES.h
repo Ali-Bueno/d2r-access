@@ -18,12 +18,14 @@ inline constexpr Texts esES{
 		{"Primer paso: tu estado. Pulsa {view} y {x} para oír tu vida y tu maná.",
 			"Primer paso: tu estado. Pulsa Z para oír tu vida, y X para tu maná."},
 		{"El radar suena en cuatro direcciones cuando cambia lo que te rodea; abajo, más grave. Ahora te reproduzco "
-			"sus sonidos, cada uno después de su nombre y de lo que significa; no tienes que pulsar nada.",
+			"sus sonidos, cada uno después de su nombre y de lo que significa.",
 			"El radar suena en cuatro direcciones cuando cambia lo que te rodea; abajo, más grave. Ahora te reproduzco "
-			"sus sonidos, cada uno después de su nombre y de lo que significa; no tienes que pulsar nada."},
-		{"Además del radar, lo que hay cerca suena desde donde está, más fuerte cuanto más cerca. Hasta ahora lo "
+			"sus sonidos, cada uno después de su nombre y de lo que significa."},
+		{"Además del radar, lo que hay cerca suena desde donde está, más fuerte cuanto más cerca: personas, lugares y "
+			"lo que hay en el suelo, los objetos con los sonidos que elegiste en la lista de ajustes. Hasta ahora lo "
 			"tenía callado para que oyeras el radar solo. Te reproduzco cada sonido después de su nombre.",
-			"Además del radar, lo que hay cerca suena desde donde está, más fuerte cuanto más cerca. Hasta ahora lo "
+			"Además del radar, lo que hay cerca suena desde donde está, más fuerte cuanto más cerca: personas, lugares y "
+			"lo que hay en el suelo, los objetos con los sonidos que elegiste en la lista de ajustes. Hasta ahora lo "
 			"tenía callado para que oyeras el radar solo. Te reproduzco cada sonido después de su nombre."},
 		{"El escáner. Lista lo que hay en el mapa por categorías: salidas, PNJ, puntos de viaje y más, del más "
 			"cercano al más lejano, con su distancia y dirección. Con {rs}, arriba y abajo cambian de categoría, e "
@@ -51,49 +53,63 @@ inline constexpr Texts esES{
 			"Cuando termine, cierra el diálogo con {b}.",
 			"Habla con Akara: a su lado, pulsa D. Tiene una misión para ti. "
 			"Cuando termine, cierra el diálogo con Escape."},
-		{"Ahora sal del campamento tú solo, con lo aprendido: entre las salidas del escáner, busca {moor}, pide la "
-			"ruta, sigue la baliza y cruza la salida.",
-			"Ahora sal del campamento tú solo, con lo aprendido: entre las salidas del escáner, busca {moor}, pide la "
-			"ruta, sigue la baliza y cruza la salida."},
-		{"Estás en la zona {moor}. Tres consultas te sitúan: {view} y {y} dicen las salidas de la zona donde "
-			"estás; {view} y {b}, un resumen del terreno; {view} y {rs} hacia arriba, la descripción del área. "
-			"Prueba las dos primeras.",
-			"Estás en la zona {moor}. Dos consultas te sitúan: Control más Y dice las salidas de la zona donde "
-			"estás, y Control más O, un resumen del terreno. Prueba las dos."},
-		{"Aquí hay monstruos. Gruñen al acercarse, y el escáner los lista en su propia categoría. Ataca con {a}; tus "
-			"otras habilidades van en los botones que les diste. Si la vida baja, bebe una poción con {dpad}. Mata algún "
-			"monstruo y recoge el oro que suelte: acércate y pulsa {a}.",
-			"Aquí hay monstruos. Gruñen al acercarse, y el escáner los lista en su propia categoría. Tabulador elige el "
-			"monstruo siguiente; mantén A para atacar con tu habilidad izquierda, y W con la derecha. Si la vida baja, "
-			"las pociones van en las teclas del 1 al 4. Mata algún monstruo y recoge su oro: Punto elige el objeto del "
-			"suelo siguiente y Coma el anterior, y D lo recoge."},
+		{"Fuera del campamento hay monstruos, y cada clase suena a su manera desde donde está. Antes de salir, te los "
+			"reproduzco, cada uno después de su nombre.",
+			"Fuera del campamento hay monstruos, y cada clase suena a su manera desde donde está. Antes de salir, te los "
+			"reproduzco, cada uno después de su nombre."},
+		{"Estás en la zona {moor}. Al aire libre, dos consultas te sitúan: {view} y {b} dan un resumen del terreno, y "
+			"{view} y {rs} hacia arriba, la descripción del área. Prueba el resumen.",
+			"Estás en la zona {moor}. Control más O te da un resumen del terreno que te rodea. Pruébalo."},
+		{"Aquí hay monstruos: suenan como los oíste en el campamento, y el escáner los lista en su propia categoría. "
+			"Ataca con {a}; tus otras habilidades van en los botones que les diste. Si la vida baja, bebe una poción con "
+			"{dpad}. Lo que suelten suena desde donde cae: acércate y pulsa {a} para recogerlo; el oro se recoge al pasar "
+			"por encima. Mata algún monstruo.",
+			"Aquí hay monstruos: suenan como los oíste en el campamento, y el escáner los lista en su propia categoría. "
+			"Tabulador elige el monstruo siguiente; mantén A para atacar con tu habilidad izquierda, y W con la derecha. "
+			"Si la vida baja, las pociones van en las teclas del 1 al 4. Lo que suelten suena desde donde cae: Punto elige "
+			"el objeto del suelo siguiente, Coma el anterior, y D lo recoge; el oro se recoge al pasar por encima. Mata "
+			"algún monstruo."},
 		{"Busca {den}. El mapa se genera de nuevo en cada partida, así que su entrada puede estar cerca o lejos. "
 			"Guíate por los sonidos del radar, o por los tonos de las paredes si los tienes activados: los pasajes y el "
 			"suelo sin explorar llevan a terreno nuevo, y el radar avisa cuando registra una salida nueva, que el "
-			"escáner lista después entre sus salidas. Si te pierdes, la categoría sala inexplorada del escáner te dice "
-			"adónde ir. Entra en la cueva.",
+			"escáner lista después entre sus salidas. Busca ahí {den}: en cuanto aparezca, la ruta y la baliza te llevan "
+			"a su entrada. Si te pierdes, la categoría sala inexplorada del escáner te dice adónde ir.",
 			"Busca {den}. El mapa se genera de nuevo en cada partida, así que su entrada puede estar cerca o lejos. "
 			"Guíate por los sonidos del radar, o por los tonos de las paredes si los tienes activados: los pasajes y el "
 			"suelo sin explorar llevan a terreno nuevo, y el radar avisa cuando registra una salida nueva, que el "
-			"escáner lista después entre sus salidas. Si te pierdes, la categoría sala inexplorada del escáner te dice "
-			"adónde ir. Entra en la cueva."},
-		{"Estás en {den}. Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los "
-			"monstruos de la cueva; el juego dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a "
-			"no dejarte ninguno.",
-			"Estás en {den}. Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los "
-			"monstruos de la cueva; el juego dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a "
-			"no dejarte ninguno."},
-		{"La cueva está limpia. Vuelve al campamento: abre el inventario, usa el pergamino de portal y entra en el "
-			"portal con {a}. También puedes volver andando con la ruta y la baliza.",
-			"La cueva está limpia. Vuelve al campamento: abre el inventario con I, ve al pergamino de portal y pulsa D "
+			"escáner lista después entre sus salidas. Busca ahí {den}: en cuanto aparezca, la ruta y la baliza te llevan "
+			"a su entrada. Si te pierdes, la categoría sala inexplorada del escáner te dice adónde ir."},
+		{"Estás en {den}. En cuevas y mazmorras el mod conoce las salas: {view} y {y} dicen las salidas de la sala "
+			"donde estás. Pruébalo ahora.",
+			"Estás en {den}. En cuevas y mazmorras el mod conoce las salas: Control más Y dice las salidas de la sala "
+			"donde estás. Pruébalo ahora."},
+		{"Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los monstruos de {den}; el juego "
+			"dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a no dejarte ninguno.",
+			"Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los monstruos de {den}; el juego "
+			"dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a no dejarte ninguno."},
+		{"Ya no quedan monstruos en {den}. Vuelve al campamento: abre el inventario, usa el pergamino de portal y entra "
+			"en el portal con {a}. También puedes volver andando con la ruta y la baliza.",
+			"Ya no quedan monstruos en {den}. Vuelve al campamento: abre el inventario con I, ve al pergamino de portal y "
+			"pulsa D "
 			"para leerlo; cierra el inventario y pulsa D junto al portal. También puedes volver andando con la ruta y "
 			"la baliza."},
 		{"Habla con Akara para recibir tu recompensa, un punto de habilidad. Después abre el árbol de habilidades con "
 			"{menu} y gástalo.",
 			"Habla con Akara para recibir tu recompensa, un punto de habilidad. Después abre el árbol de habilidades con "
 			"T y gástalo."},
-		{"Tutorial completado. Ya sabes orientarte: escáner, ruta, baliza y radar. En la lista de ajustes, con {view} "
-			"y {rb}, eliges qué dice y qué suena el mod. Desde aquí, el juego es tuyo.",
+		{"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. El juego guarda las misiones "
+			"que has hecho, pero cada vez que vuelves empiezas en el campamento, y a una zona lejana se llega por su punto "
+			"de viaje, que solo es tuyo cuando lo has tocado. El primero fuera del campamento está en {plains}, pasada la "
+			"zona {moor}. Búscalo en la categoría de puntos de viaje del escáner, acércate y pulsa {a}: se abre su menú, "
+			"y ya es tuyo. Cierra el menú con {b}.",
+			"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. El juego guarda las misiones "
+			"que has hecho, pero cada vez que vuelves empiezas en el campamento, y a una zona lejana se llega por su punto "
+			"de viaje, que solo es tuyo cuando lo has tocado. El primero fuera del campamento está en {plains}, pasada la "
+			"zona {moor}. Búscalo en la categoría de puntos de viaje del escáner, acércate y pulsa D: se abre su menú, "
+			"y ya es tuyo. Cierra el menú con Escape."},
+		{"Tutorial completado. Ya sabes orientarte: escáner, ruta, baliza y radar. En la mayoría de los menús, {rs} "
+			"hacia abajo te dice qué hacen allí los botones: pruébalo en cada menú nuevo para ti, como el alijo. En la "
+			"lista de ajustes, con {view} y {rb}, eliges qué dice y qué suena el mod. Desde aquí, el juego es tuyo.",
 			"Tutorial completado. Ya sabes orientarte: escáner, ruta, baliza y radar. En la lista de ajustes, con "
 			"Control más S, eliges qué dice y qué suena el mod. El teclado tiene además atajos que caminan por ti: H va "
 			"a la sala sin explorar más cercana, y Mayúsculas más Inicio a lo que nombró el escáner. "
@@ -108,12 +124,51 @@ inline constexpr Texts esES{
 		"Puerta: se abre para pasar", "Obstáculo pequeño: algo pequeño que te corta el paso y que puedes rodear"},
 	.worldCues = {"PNJ, alguien con quien hablar", "PNJ con una exclamación: tiene algo para ti",
 		"Alijo, el cofre donde guardas tus objetos", "Escaleras, entrada o portal", "Borde de zona, el paso a otra zona",
-		"Sala sin explorar"},
+		"Sala sin explorar", "Oro en el suelo", "Una poción en el suelo",
+		"Un objeto en el suelo que te puedes poner, como un arma"},
 	.worldTask = {
 		"Ahora sonarán los que tienes alrededor. Si no sabes qué es un sonido, el escáner te dice lo que hay, y cada "
 		"sonido se puede apagar en la lista de ajustes.",
 		"Ahora sonarán los que tienes alrededor. Si no sabes qué es un sonido, el escáner te dice lo que hay, y cada "
 		"sonido se puede apagar en la lista de ajustes."},
+	.enemyCues = {"Monstruo: los más cercanos gruñen desde donde están", "Monstruo que ataca de lejos, como un arquero",
+		"Chamán que devuelve la vida a los monstruos muertos: mátalo primero", "Élite: un campeón, un monstruo único o un jefe",
+		"A tu alcance: un monstruo ha entrado en el alcance de tu ataque"},
+	.leaveTask = {
+		"Ahora sal del campamento tú solo, con lo aprendido: entre las salidas del escáner, busca {moor}, pide la "
+		"ruta, sigue la baliza y cruza la salida.",
+		"Ahora sal del campamento tú solo, con lo aprendido: entre las salidas del escáner, busca {moor}, pide la "
+		"ruta, sigue la baliza y cruza la salida."},
+	.auditionAgain = {
+		"Van uno tras otro; no tienes que pulsar nada. Para oír un sonido otra vez, pulsa {view} y {rs} a la izquierda: "
+		"el siguiente espera entonces hasta {view} y {rs} a la derecha. Más tarde, al recorrer estos mensajes hacia "
+		"atrás, cada sonido vuelve a sonar.",
+		"Van uno tras otro; no tienes que pulsar nada. Para oír un sonido otra vez, pulsa K: el siguiente espera "
+		"entonces hasta L. Más tarde, al recorrer estos mensajes hacia atrás, cada sonido vuelve a sonar."},
+	.auditionWait = {
+		"Después de cada sonido, {view} y {rs} a la izquierda lo repiten, y {view} y {rs} a la derecha pasan al "
+		"siguiente. Más tarde, al recorrer estos mensajes hacia atrás, cada sonido vuelve a sonar.",
+		"Después de cada sonido, K lo repite, y L pasa al siguiente. Más tarde, al recorrer estos mensajes hacia "
+		"atrás, cada sonido vuelve a sonar."},
+	.portalButton = {
+		"Más rápido: {portal} abre un portal al momento, sin pasar por el inventario, mientras lleves un pergamino o "
+		"un tomo de portal.",
+		"Más rápido: {portal} abre un portal al momento, sin pasar por el inventario, mientras lleves un pergamino o "
+		"un tomo de portal."},
+	.gold = {
+		"Has recogido oro; se recoge al pasar por encima. Al morir pierdes parte del oro que llevas encima, pero el del "
+		"alijo está a salvo. De vuelta en el campamento, abre el alijo y deposita el que no necesites.",
+		"Has recogido oro; se recoge al pasar por encima. Al morir pierdes parte del oro que llevas encima, pero el del "
+		"alijo está a salvo. De vuelta en el campamento, abre el alijo y deposita el que no necesites."},
+	.shop = {
+		"Una tienda. En cuanto tengas el oro, compra un {portaltome} y un {idtome}: cada uno guarda hasta 20 "
+		"pergaminos en una sola casilla, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
+		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
+		"qué es un objeto sin identificar: úsalo y elige el objeto.",
+		"Una tienda. En cuanto tengas el oro, compra un {portaltome} y un {idtome}: cada uno guarda hasta 20 "
+		"pergaminos en una sola casilla, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
+		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
+		"qué es un objeto sin identificar: úsalo y elige el objeto."},
 	.levelUp = {
 		"Has subido de nivel: tienes puntos de atributo y un punto de habilidad para gastar. Pulsa {menu} para abrir "
 		"tu ficha; te guío dentro.",
@@ -142,10 +197,14 @@ inline constexpr Texts esES{
 		"Aún te queda el punto de habilidad. Pulsa T para abrir el árbol de habilidades."},
 	.levelUpBind = {
 		"Para usar una habilidad, ponla en un botón: en el árbol de habilidades, sobre ella, pulsa {x} y después el "
-		"botón en el que la quieras. La lectura de cada habilidad dice en qué botón está.",
+		"botón en el que la quieras. La lectura de cada habilidad dice en qué botón está. Las habilidades pasivas, como "
+		"las maestrías, actúan solas: no necesitan botón ni pueden tenerlo. Con LT y RT, pasadas las ramas de tu "
+		"clase, la página {general} tiene lo que tiene todo personaje, como el portal y la identificación; los pones en "
+		"botones del mismo modo.",
 		"Para usar una habilidad, ponla en una mano: S abre la lista de habilidades de la mano derecha, y Mayúsculas "
 		"más S la de la izquierda; las flechas eligen una y A la pone en esa mano. Con una lista abierta, F1 a F8 "
-		"asignan a esa tecla la habilidad que tiene el cursor."},
+		"asignan a esa tecla la habilidad que tiene el cursor. Las habilidades pasivas, como las maestrías, actúan "
+		"solas: no están en estas listas y no necesitan nada más."},
 	.kit = {
 		"Has recogido algo que te puedes poner. Pulsa {menu} para abrir los menús; se abren en tu inventario, y te "
 		"guío dentro.",
@@ -166,15 +225,21 @@ inline constexpr Texts esES{
 		"Hecho. Lo que recojas, en el inventario te lo pones. Volvemos a lo que estabas haciendo:",
 		"Hecho. Lo que recojas, en el inventario te lo pones. Volvemos a lo que estabas haciendo:"},
 	.levelUpDone = {
-		"Hecho. Cada vez que subas de nivel, {menu} abre tu ficha. Volvemos a lo que estabas haciendo:",
-		"Hecho. Cada vez que subas de nivel, C abre tu ficha y T el árbol de habilidades. Volvemos a lo que estabas "
-		"haciendo:"},
+		"Hecho. Prueba ahora tu nueva habilidad una vez: pulsa el botón en el que la pusiste y escucha cómo suena. Cada "
+		"vez que subas de nivel, {menu} abre tu ficha. Volvemos a lo que estabas haciendo:",
+		"Hecho. Prueba ahora tu nueva habilidad una vez: A usa la habilidad de tu mano izquierda y W la de la derecha; "
+		"escucha cómo suena. Cada vez que subas de nivel, C abre tu ficha y T el árbol de habilidades. Volvemos a lo "
+		"que estabas haciendo:"},
 	.routeStick = "{view} y {rs} hacia abajo",
 	.routeButton = "{view} y {a}",
 	.firstMessage = "Primer mensaje",
 	.lastMessage = "Último mensaje",
-	// Spain's names (game-data/local/lng/strings/levels.json); Mexico's are Guarida del Mal and Páramo Sangriento.
+	// Spain's names (game-data/local/lng/strings/levels.json, item-names.json, ui.json); Mexico's differ.
 	.den = "Cubil del Mal",
 	.moor = "Landa de Sangre",
+	.plains = "Llanuras Frías",
+	.portalTome = "Tomo del portal de la ciudad",
+	.identifyTome = "Tomo de identificación",
+	.generalSkills = "Habilidades generales",
 };
 }

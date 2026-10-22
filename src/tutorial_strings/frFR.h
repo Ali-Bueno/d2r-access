@@ -17,14 +17,18 @@ inline constexpr Texts frFR{
 	.steps = {
 		{"Première étape : votre état. Appuyez sur {view} et {x} pour entendre votre vie et votre mana.",
 			"Première étape : votre état. Appuyez sur Z pour entendre votre vie, et sur X pour votre mana."},
-		{"Le radar sonne dans quatre directions quand votre environnement change ; vers le bas, il sonne plus grave. Je vais maintenant jouer "
-			"ses sons, chacun après son nom et sa signification ; vous n'avez aucune touche à presser.",
-			"Le radar sonne dans quatre directions quand votre environnement change ; vers le bas, il sonne plus grave. Je vais maintenant jouer "
-			"ses sons, chacun après son nom et sa signification ; vous n'avez aucune touche à presser."},
-		{"En plus du radar, les éléments proches sonnent depuis l'endroit où ils se trouvent, plus fort quand ils sont plus près. Jusqu'ici je les ai "
-			"gardés discrets pour que vous entendiez le radar seul. Je vais jouer chacun après son nom.",
-			"En plus du radar, les éléments proches sonnent depuis l'endroit où ils se trouvent, plus fort quand ils sont plus près. Jusqu'ici je les ai "
-			"gardés discrets pour que vous entendiez le radar seul. Je vais jouer chacun après son nom."},
+		{"Le radar sonne dans quatre directions quand votre environnement change ; vers le bas, il sonne plus grave. "
+			"Je vais maintenant jouer ses sons, chacun après son nom et sa signification.",
+			"Le radar sonne dans quatre directions quand votre environnement change ; vers le bas, il sonne plus grave. "
+			"Je vais maintenant jouer ses sons, chacun après son nom et sa signification."},
+		{"En plus du radar, les éléments proches sonnent depuis l'endroit où ils se trouvent, plus fort quand ils "
+			"sont plus près : les personnes, les lieux et ce qui se trouve au sol, les objets avec les sons que vous "
+			"avez choisis dans la liste des réglages. Jusqu'ici je les ai gardés discrets pour que vous entendiez le "
+			"radar seul. Je vais jouer chacun après son nom.",
+			"En plus du radar, les éléments proches sonnent depuis l'endroit où ils se trouvent, plus fort quand ils "
+			"sont plus près : les personnes, les lieux et ce qui se trouve au sol, les objets avec les sons que vous "
+			"avez choisis dans la liste des réglages. Jusqu'ici je les ai gardés discrets pour que vous entendiez le "
+			"radar seul. Je vais jouer chacun après son nom."},
 		{"Le scanner. Il liste ce qui se trouve sur la carte par catégorie : sorties, PNJ, points de passage et plus, le plus proche en "
 			"premier, avec la distance et la direction. Avec {rs}, haut et bas changent la catégorie, et gauche et droite la parcourent. "
 			"Trouvez Warriv dans la catégorie des PNJ : c'est le plus proche de vous.",
@@ -53,46 +57,71 @@ inline constexpr Texts frFR{
 			"Quand elle a fini, fermez le dialogue avec {b}.",
 			"Parlez à Akara : à côté d'elle, appuyez sur D. Elle a une quête pour vous. "
 			"Quand elle a fini, fermez le dialogue avec Échap."},
-		{"Maintenant quittez le camp par vous-même, avec ce que vous avez appris : parmi les sorties du scanner, trouvez {moor}, "
-			"demandez l'itinéraire, suivez le guidage et franchissez la sortie.",
-			"Maintenant quittez le camp par vous-même, avec ce que vous avez appris : parmi les sorties du scanner, trouvez {moor}, "
-			"demandez l'itinéraire, suivez le guidage et franchissez la sortie."},
-		{"Zone actuelle : {moor}. Trois questions vous situent : {view} et {y} disent les issues de la zone où vous êtes ; "
-			"{view} et {b}, un aperçu du terrain ; {view} et {rs} vers le haut, la description de la zone. Essayez les deux premières.",
-			"Zone actuelle : {moor}. Deux questions vous situent : Ctrl plus Y dit les issues de la zone où vous êtes, "
-			"et Ctrl plus O, un aperçu du terrain. Essayez les deux."},
-		{"Il y a des monstres ici. Ils grognent en approchant, et le scanner les liste dans leur propre catégorie. "
-			"Attaquez avec {a} ; vos autres compétences sont sur les boutons que vous leur avez donnés. Si votre vie baisse, buvez une potion "
-			"avec {dpad}. Tuez un monstre et ramassez l'or qu'il laisse : approchez-vous et appuyez sur {a}.",
-			"Il y a des monstres ici. Ils grognent en approchant, et le scanner les liste dans leur propre catégorie. "
-			"Tab choisit le monstre suivant ; maintenez A pour attaquer avec votre compétence gauche, et W pour la droite. Si votre vie "
-			"baisse, les potions sont sur les touches 1 à 4. Tuez un monstre et ramassez son or : point choisit l'objet suivant "
-			"au sol et virgule le précédent, et D le ramasse."},
-		{"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez les sons du "
-			"radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol inexploré mènent à du terrain nouveau, et le "
-			"radar vous prévient quand il note une nouvelle sortie, que le scanner liste alors parmi ses sorties. Si vous vous perdez, "
-			"la catégorie des salles inexplorées du scanner vous montre où aller. Entrez dans la grotte.",
-			"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez les sons du "
-			"radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol inexploré mènent à du terrain nouveau, et le "
-			"radar vous prévient quand il note une nouvelle sortie, que le scanner liste alors parmi ses sorties. Si vous vous perdez, "
-			"la catégorie des salles inexplorées du scanner vous montre où aller. Entrez dans la grotte."},
-		{"Zone actuelle : {den}. En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
-			"monstres de la grotte ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous aide à n'en oublier aucun.",
-			"Zone actuelle : {den}. En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
-			"monstres de la grotte ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous aide à n'en oublier aucun."},
-		{"La grotte est nettoyée. Retournez au camp : ouvrez l'inventaire, utilisez le parchemin de portail de retour en ville, et entrez dans le "
-			"portail avec {a}. Vous pouvez aussi revenir à pied avec l'itinéraire et le guidage.",
-			"La grotte est nettoyée. Retournez au camp : ouvrez l'inventaire avec I, allez au parchemin de portail de retour en ville et appuyez sur D "
-			"pour le lire ; fermez l'inventaire et appuyez sur D à côté du portail. Vous pouvez aussi revenir à pied avec l'itinéraire et "
-			"le guidage."},
+		{"Hors du camp, il y a des monstres, et chaque espèce sonne à sa manière depuis l'endroit où elle se trouve. "
+			"Avant de partir, je vais les jouer, chacun après son nom.",
+			"Hors du camp, il y a des monstres, et chaque espèce sonne à sa manière depuis l'endroit où elle se trouve. "
+			"Avant de partir, je vais les jouer, chacun après son nom."},
+		{"Zone actuelle : {moor}. En extérieur, deux questions vous situent : {view} et {b} donnent un aperçu du "
+			"terrain, et {view} et {rs} vers le haut, la description de la zone. Essayez l'aperçu.",
+			"Zone actuelle : {moor}. Ctrl plus O vous donne un aperçu du terrain autour de vous. Essayez-le."},
+		{"Il y a des monstres ici : ils sonnent comme vous les avez entendus au camp, et le scanner les liste dans "
+			"leur propre catégorie. Attaquez avec {a} ; vos autres compétences sont sur les boutons que vous leur avez "
+			"donnés. Si votre vie baisse, buvez une potion avec {dpad}. Ce qu'ils laissent tomber sonne depuis l'endroit "
+			"où cela se trouve : approchez-vous et appuyez sur {a} pour le ramasser ; l'or se ramasse en marchant "
+			"dessus. Tuez un monstre.",
+			"Il y a des monstres ici : ils sonnent comme vous les avez entendus au camp, et le scanner les liste dans "
+			"leur propre catégorie. Tab choisit le monstre suivant ; maintenez A pour attaquer avec votre compétence "
+			"gauche, et W pour la droite. Si votre vie baisse, les potions sont sur les touches 1 à 4. Ce qu'ils "
+			"laissent tomber sonne depuis l'endroit où cela se trouve : point choisit l'objet suivant au sol, virgule le "
+			"précédent, et D le ramasse ; l'or se ramasse en marchant dessus. Tuez un monstre."},
+		{"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez "
+			"les sons du radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol "
+			"inexploré mènent à du terrain nouveau, et le radar vous prévient quand il note une nouvelle sortie, que le "
+			"scanner liste alors parmi ses sorties. Cherchez-y {den} : une fois dans la liste, l'itinéraire et le "
+			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des salles inexplorées du scanner vous "
+			"montre où aller.",
+			"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez "
+			"les sons du radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol "
+			"inexploré mènent à du terrain nouveau, et le radar vous prévient quand il note une nouvelle sortie, que le "
+			"scanner liste alors parmi ses sorties. Cherchez-y {den} : une fois dans la liste, l'itinéraire et le "
+			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des salles inexplorées du scanner vous "
+			"montre où aller."},
+		{"Zone actuelle : {den}. Dans les grottes et les donjons, le mod connaît les salles : {view} et {y} disent "
+			"les issues de la salle où vous êtes. Essayez maintenant.",
+			"Zone actuelle : {den}. Dans les grottes et les donjons, le mod connaît les salles : Ctrl plus Y dit les "
+			"issues de la salle où vous êtes. Essayez maintenant."},
+		{"En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
+			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous "
+			"aide à n'en oublier aucun.",
+			"En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
+			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous "
+			"aide à n'en oublier aucun."},
+		{"Plus aucun monstre dans {den}. Retournez au camp : ouvrez l'inventaire, utilisez le parchemin de portail de "
+			"retour en ville, et entrez dans le portail avec {a}. Vous pouvez aussi revenir à pied avec l'itinéraire et "
+			"le guidage.",
+			"Plus aucun monstre dans {den}. Retournez au camp : ouvrez l'inventaire avec I, allez au parchemin de "
+			"portail de retour en ville et appuyez sur D pour le lire ; fermez l'inventaire et appuyez sur D à côté du "
+			"portail. Vous pouvez aussi revenir à pied avec l'itinéraire et le guidage."},
 		{"Parlez à Akara pour votre récompense, un point de compétence. Ouvrez ensuite l'arbre de compétences avec {menu} et dépensez-le.",
 			"Parlez à Akara pour votre récompense, un point de compétence. Ouvrez ensuite l'arbre de compétences avec T et dépensez-le."},
-		{"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la liste des réglages, "
-			"avec {view} et {rb}, vous choisissez ce que le mod dit et joue. À partir de maintenant, le jeu est à vous.",
-			"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la liste des réglages, "
-			"avec Ctrl plus S, vous choisissez ce que le mod dit et joue. Le clavier a aussi des raccourcis qui marchent "
-			"à votre place : H va à la salle inexplorée la plus proche, et Maj plus Origine à ce que le scanner a nommé. "
-			"À partir de maintenant, le jeu est à vous."}},
+		{"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Le jeu garde les "
+			"quêtes que vous avez faites, mais chaque fois que vous revenez, vous commencez au camp, et une zone "
+			"lointaine s'atteint par son point de passage, qui n'est à vous qu'une fois touché. Le premier hors du camp "
+			"se trouve dans {plains}, après {moor}. Trouvez-le dans la catégorie des points de passage du scanner, "
+			"approchez-vous et appuyez sur {a} : son menu s'ouvre, et il est à vous. Fermez le menu avec {b}.",
+			"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Le jeu garde les "
+			"quêtes que vous avez faites, mais chaque fois que vous revenez, vous commencez au camp, et une zone "
+			"lointaine s'atteint par son point de passage, qui n'est à vous qu'une fois touché. Le premier hors du camp "
+			"se trouve dans {plains}, après {moor}. Trouvez-le dans la catégorie des points de passage du scanner, "
+			"approchez-vous et appuyez sur D : son menu s'ouvre, et il est à vous. Fermez le menu avec Échap."},
+		{"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la plupart des "
+			"menus, {rs} vers le bas dit ce que font les boutons : essayez-le dans chaque menu nouveau pour vous, comme "
+			"le coffre personnel. Dans la liste des réglages, avec {view} et {rb}, vous choisissez ce que le mod dit et "
+			"joue. À partir de maintenant, le jeu est à vous.",
+			"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la liste des "
+			"réglages, avec Ctrl plus S, vous choisissez ce que le mod dit et joue. Le clavier a aussi des raccourcis "
+			"qui marchent à votre place : H va à la salle inexplorée la plus proche, et Maj plus Origine à ce que le "
+			"scanner a nommé. À partir de maintenant, le jeu est à vous."}},
 	.radarTask = {
 		"Marchez maintenant avec {ls} jusqu'à entendre un mur.",
 		"Marchez maintenant avec les touches fléchées jusqu'à entendre un mur."},
@@ -101,14 +130,62 @@ inline constexpr Texts frFR{
 		"Sol libre : vous pouvez marcher dans cette direction ; plus loin il peut y avoir n'importe quoi, un passage aussi",
 		"Sol inexploré : le sol avec les deux bips ; un terrain que vous n'avez pas encore vu se trouve dans cette direction", "Mur : il vous barre la route",
 		"Porte : elle s'ouvre pour vous laisser passer", "Petit obstacle : quelque chose de petit sur votre chemin que vous pouvez contourner"},
-	.worldCues = {"PNJ, quelqu'un à qui parler", "PNJ avec un point d'exclamation : il a quelque chose pour vous",
-		"Coffre personnel, le coffre où vous gardez vos objets", "Escalier, entrée ou portail", "Bord de la zone, le passage vers une autre zone",
-		"Salle inexplorée"},
+	.worldCues = {"PNJ, quelqu'un à qui parler",
+		"PNJ avec un point d'exclamation : il a quelque chose pour vous",
+		"Coffre personnel, le coffre où vous gardez vos objets",
+		"Escalier, entrée ou portail",
+		"Bord de la zone, le passage vers une autre zone",
+		"Salle inexplorée",
+		"De l'or au sol",
+		"Une potion au sol",
+		"Un objet au sol que vous pouvez porter, comme une arme"},
 	.worldTask = {
 		"Maintenant, ceux qui vous entourent vont sonner. Si vous ne savez pas ce qu'est un son, le scanner vous dit ce qui se trouve là, "
 		"et chaque son peut être désactivé dans la liste des réglages.",
 		"Maintenant, ceux qui vous entourent vont sonner. Si vous ne savez pas ce qu'est un son, le scanner vous dit ce qui se trouve là, "
 		"et chaque son peut être désactivé dans la liste des réglages."},
+	.enemyCues = {"Monstre : les plus proches grognent depuis l'endroit où ils se trouvent",
+		"Monstre qui attaque de loin, comme un archer",
+		"Chaman qui ressuscite les monstres morts : tuez-le en premier",
+		"Élite : un champion, un monstre unique ou un boss",
+		"À portée : un monstre est à portée de votre attaque"},
+	.leaveTask = {
+		"Maintenant quittez le camp par vous-même, avec ce que vous avez appris : parmi les sorties du scanner, "
+		"trouvez {moor}, demandez l'itinéraire, suivez le guidage et franchissez la sortie.",
+		"Maintenant quittez le camp par vous-même, avec ce que vous avez appris : parmi les sorties du scanner, "
+		"trouvez {moor}, demandez l'itinéraire, suivez le guidage et franchissez la sortie."},
+	.auditionAgain = {
+		"Ils se suivent ; vous n'avez aucune touche à presser. Pour réentendre un son, appuyez sur {view} et {rs} à "
+		"gauche : le suivant attend alors jusqu'à {view} et {rs} à droite. Plus tard, en revenant en arrière dans "
+		"ces messages, chaque son est rejoué.",
+		"Ils se suivent ; vous n'avez aucune touche à presser. Pour réentendre un son, appuyez sur K : le suivant "
+		"attend alors jusqu'à L. Plus tard, en revenant en arrière dans ces messages, chaque son est rejoué."},
+	.auditionWait = {
+		"Après chaque son, {view} et {rs} à gauche le rejouent, et {view} et {rs} à droite passent au suivant. Plus "
+		"tard, en revenant en arrière dans ces messages, chaque son est rejoué.",
+		"Après chaque son, K le rejoue, et L passe au suivant. Plus tard, en revenant en arrière dans ces messages, "
+		"chaque son est rejoué."},
+	.portalButton = {
+		"Plus rapide : {portal} ouvre aussitôt un portail de retour en ville, sans passer par l'inventaire, tant que "
+		"vous portez un parchemin ou un tome de portail de retour en ville.",
+		"Plus rapide : {portal} ouvre aussitôt un portail de retour en ville, sans passer par l'inventaire, tant que "
+		"vous portez un parchemin ou un tome de portail de retour en ville."},
+	.gold = {
+		"Vous avez ramassé de l'or ; il se ramasse en marchant dessus. Si vous mourez, vous perdez une partie de "
+		"l'or que vous portez, mais l'or du coffre est à l'abri. De retour au camp, ouvrez le coffre personnel et "
+		"déposez ce dont vous n'avez pas besoin.",
+		"Vous avez ramassé de l'or ; il se ramasse en marchant dessus. Si vous mourez, vous perdez une partie de "
+		"l'or que vous portez, mais l'or du coffre est à l'abri. De retour au camp, ouvrez le coffre personnel et "
+		"déposez ce dont vous n'avez pas besoin."},
+	.shop = {
+		"Une boutique. Dès que vous avez l'or, achetez un {portaltome} et un {idtome} : chacun contient jusqu'à 20 "
+		"parchemins dans une seule case, et les parchemins de son type que vous achetez ensuite y vont. Les "
+		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
+		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet.",
+		"Une boutique. Dès que vous avez l'or, achetez un {portaltome} et un {idtome} : chacun contient jusqu'à 20 "
+		"parchemins dans une seule case, et les parchemins de son type que vous achetez ensuite y vont. Les "
+		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
+		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet."},
 	.levelUp = {
 		"Vous avez gagné un niveau : vous avez des points de caractéristiques et un point de compétence à dépenser. Appuyez sur {menu} pour ouvrir votre "
 		"écran de personnage ; je vous guiderai à l'intérieur.",
@@ -136,11 +213,17 @@ inline constexpr Texts frFR{
 		"Vous avez encore votre point de compétence. Appuyez sur {menu} : une fois les caractéristiques dépensées, il ouvre l'arbre de compétences.",
 		"Vous avez encore votre point de compétence. Appuyez sur T pour ouvrir l'arbre de compétences."},
 	.levelUpBind = {
-		"Pour utiliser une compétence, placez-la sur un bouton : dans l'arbre de compétences, sur la compétence, appuyez sur {x} puis sur le bouton "
-		"voulu. La lecture de chaque compétence dit sur quel bouton elle se trouve.",
-		"Pour utiliser une compétence, placez-la dans une main : S ouvre la liste des compétences pour la main droite, et Maj plus S celle "
-		"pour la main gauche ; les touches fléchées en choisissent une et A la place dans cette main. Une liste ouverte, F1 à F8 associent la compétence "
-		"sous le curseur à cette touche."},
+		"Pour utiliser une compétence, placez-la sur un bouton : dans l'arbre de compétences, sur la compétence, "
+		"appuyez sur {x} puis sur le bouton voulu. La lecture de chaque compétence dit sur quel bouton elle se "
+		"trouve. Les compétences passives, comme les maîtrises, agissent d'elles-mêmes : elles n'ont besoin d'aucun "
+		"bouton et ne peuvent pas en avoir. Avec LT et RT, après les branches de votre classe, la page {general} "
+		"contient ce que tout personnage possède, comme Portail retour et Identifier ; vous les placez sur des "
+		"boutons de la même façon.",
+		"Pour utiliser une compétence, placez-la dans une main : S ouvre la liste des compétences pour la main "
+		"droite, et Maj plus S celle pour la main gauche ; les touches fléchées en choisissent une et A la place "
+		"dans cette main. Une liste ouverte, F1 à F8 associent la compétence sous le curseur à cette touche. Les "
+		"compétences passives, comme les maîtrises, agissent d'elles-mêmes : elles ne figurent pas dans ces listes "
+		"et n'ont besoin de rien d'autre."},
 	.kit = {
 		"Vous avez ramassé quelque chose à porter. Appuyez sur {menu} pour ouvrir les menus ; ils s'ouvrent sur votre inventaire, et je "
 		"vous guiderai à l'intérieur.",
@@ -160,14 +243,21 @@ inline constexpr Texts frFR{
 		"Terminé. Quoi que vous ramassiez, l'inventaire est l'endroit où vous l'équipez. Retour à ce que vous faisiez :",
 		"Terminé. Quoi que vous ramassiez, l'inventaire est l'endroit où vous l'équipez. Retour à ce que vous faisiez :"},
 	.levelUpDone = {
-		"Terminé. Chaque fois que vous gagnez un niveau, {menu} ouvre votre écran de personnage. Retour à ce que vous faisiez :",
-		"Terminé. Chaque fois que vous gagnez un niveau, C ouvre votre écran de personnage et T l'arbre de compétences. Retour à ce que vous "
-		"faisiez :"},
+		"Terminé. Essayez maintenant votre nouvelle compétence une fois : appuyez sur le bouton où vous l'avez "
+		"placée et écoutez comment elle sonne. Chaque fois que vous gagnez un niveau, {menu} ouvre votre écran de "
+		"personnage. Retour à ce que vous faisiez :",
+		"Terminé. Essayez maintenant votre nouvelle compétence une fois : A utilise la compétence de la main gauche "
+		"et W celle de la droite ; écoutez comment elle sonne. Chaque fois que vous gagnez un niveau, C ouvre votre "
+		"écran de personnage et T l'arbre de compétences. Retour à ce que vous faisiez :"},
 	.routeStick = "{view} et {rs} vers le bas",
 	.routeButton = "{view} et {a}",
 	.firstMessage = "Premier message",
 	.lastMessage = "Dernier message",
 	.den = "Le Repaire du Mal",
 	.moor = "La Lande sanglante",
+	.plains = "Les Plaines gelées",
+	.portalTome = "Tome de portail de retour en ville",
+	.identifyTome = "Tome d’identification",
+	.generalSkills = "Compétences générales",
 };
 }

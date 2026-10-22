@@ -6,8 +6,10 @@
 #include "corpse_memory.h"
 #include "entity_cue_audio.h"
 #include "entity_radar.h"
+#include "ground_items.h"
 #include "input_direction.h"
 #include "item_audio.h"
+#include "localization.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_quest_flags.h"
@@ -19,12 +21,12 @@
 #include "radar_audio.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
-#include "settings_file.h"
-#include "settings_store.h"
+#include "skill_bar_service.h"
 #include "speech_priority.h"
 #include "speech_strings.h"
 #include "town_npcs.h"
 #include "tutorial.h"
+#include "tutorial_records.h"
 #include "tutorial_text.h"
 
 #include <D2RLPlugin/inventory.h>
@@ -44,6 +46,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace D2RAccess::TutorialService {
@@ -55,14 +58,33 @@ using Tutorial::Step;
 enum class Command { None, On, Off, Previous, Next, First };
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0; int level = -1; };
 // Chime plays the message sound and keeps the text, Keep only keeps it; Say speaks it; Do runs `run`:
-// one sound of a lesson, the world's sounds let in, a step's own signal.
-enum class ActionKind { Chime, Keep, Say, Do, StepDone };
+// the world's sounds let in, a step's own signal. Audition plays a lesson's `cues`, each after its name.
+enum class ActionKind { Chime, Keep, Say, Do, StepDone, Audition };
+struct Cue { std::string name; std::function<void()> play; };
 // A `menu` action is said in the menu it is about; the rest wait for play.
-struct Action { ActionKind kind; uint64_t delay = 0; std::string text; std::function<void()> run; bool menu = false; };
+struct Action {
+	ActionKind kind;
+	uint64_t delay = 0;
+	std::string text;
+	std::function<void()> run;
+	bool menu = false;
+	std::vector<Cue> cues;
+};
 
 // Levels.txt rows (src/generated/level_flags.h): Act 1 - Town; Act 1 - Wilderness 1, the
-// Blood Moor; Act 1 - Cave 1, the Den of Evil.
-constexpr int RogueEncampment = 1, BloodMoor = 2, DenOfEvil = 8;
+// Blood Moor; Act 1 - Wilderness 2, the Cold Plains; Act 1 - Cave 1, the Den of Evil.
+constexpr int RogueEncampment = 1, BloodMoor = 2, ColdPlains = 3, DenOfEvil = 8;
+// game-data/global/excel/skills.txt Ids: TownPortal, the pseudo-skill a bar holds, and the
+// scroll's and the tome's, which the bar's getter turns it into (docs/skill-bar.md).
+constexpr int TownPortalSkill = 359, PortalScrollSkill = 219, PortalTomeSkill = 220;
+// The game's own names (item-names.json, ui.json), so Spain's and Mexico's Spanish each read theirs.
+constexpr std::string_view PortalTomeKey = "tbk", IdentifyTomeKey = "ibk", GeneralSkillsKey = "GeneralSkills";
+// The waypoint menu (WaypointsPanelExpansion, src/interaction_reader.cpp) and a shop's.
+constexpr std::string_view WaypointPanelPrefix = "WaypointsPanel", VendorPanel = "VendorPanelLayout";
+// Items of the world's lesson, in the player's item sounds (misc.txt, weapons.txt): gold, a
+// minor healing potion, a short sword.
+constexpr uint32_t GoldCode = D2RL::Items::MakeItemCode("gld"), PotionCode = D2RL::Items::MakeItemCode("hp1"),
+	SwordCode = D2RL::Items::MakeItemCode("ssd");
 // Akara's and Act I's Warriv's rows in game-data/global/excel/monstats.txt.
 constexpr uint32_t AkaraMonStats = 148, WarrivMonStats = 155;
 // The Den of Evil's quest record row: Act I's intro is row 0 in the save's order (docs/quests.md).
@@ -85,14 +107,14 @@ constexpr std::string_view LevelUpSuffix = "#levelup";
 // up, and that an unidentified item cannot be worn, once the player picks up a weapon, armour, ring
 // or amulet and it is calm. Kept as <key>#inventory=1.
 constexpr std::string_view InventorySuffix = "#inventory";
+// Gold picked up the first time outside the camp: the stash keeps it from death (a tester,
+// 2026-10-21); a shop opened the first time: the tomes. Kept as <key>#gold=1 and <key>#shop=1.
+constexpr std::string_view GoldSuffix = "#gold", ShopSuffix = "#shop";
 constexpr std::string_view InventoryPanels[]{"PlayerInventoryExpansionLayout", "PlayerInventoryOriginalLayout"};
 constexpr uint32_t WornTypes[]{D2RL::Items::MakeItemCode("weap"), D2RL::Items::MakeItemCode("armo"),
 	D2RL::Items::MakeItemCode("ring"), D2RL::Items::MakeItemCode("amul")};
-// A FILETIME counts 100 ns from 1601; Unix seconds count from 1970, 11644473600 s later.
-constexpr uint64_t FileTimeTicksPerSecond = 10'000'000, FileTimeUnixEpochSeconds = 11'644'473'600;
-// Quest flags, gold and the roster are read at most this often; outside a game, whether a
-// recorded character's save is still there.
-constexpr uint64_t PollMs = 500, DeletedPollMs = 1000;
+// Quest flags, gold and the roster are read at most this often.
+constexpr uint64_t PollMs = 500;
 // The step-done sound, then the next message; a message's chime, then its words.
 constexpr uint64_t AfterStepMs = 1500, ChimeMs = 600;
 // After the wall that ends the radar step, the radar's sounds die down before the world's
@@ -103,7 +125,9 @@ constexpr uint64_t SettleMs = 4000, ListenMs = 8000;
 // 0.5 to 4.5 s after the player was ready, and the area's name cut the welcome off
 // (MEASURED 2026-10-21). The first message waits past most of it, and every message
 // waits for other speech to pause, so it is queued behind what is said, not cut by it.
-constexpr uint64_t ArrivalMs = 3000, QuietMs = 1500;
+// In a fight speech may never pause that long: a message waits PatienceMs at most, then goes in
+// line behind it (a tester, 2026-10-21: the Den's messages never came).
+constexpr uint64_t ArrivalMs = 3000, QuietMs = 1500, PatienceMs = 10000;
 // What the tutorial says lasts about a screen reader's default pace, which news waits out. A
 // lesson's sounds wait for the words before them guessed a little faster (the user, 2026-10-21:
 // the wait before the radar's sounds was long), at least CueAfterNameMs; then CueGapMs to the next.
@@ -119,15 +143,21 @@ std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
 std::atomic<bool> g_enabled{true};
-std::filesystem::path g_file;
-std::map<std::string, int> g_records; // Key(character) -> the step reached
+// A lesson's sounds wait for the player after each one (tutorial-sound-wait, a tester, 2026-10-21);
+// off, they play in turn, as the user chose, and "again" holds them.
+std::atomic<bool> g_waitSounds{false};
 
 Tutorial::Guide g_guide;
 Tutorial::History g_history;
+std::map<size_t, std::function<void()>> g_sounds; // a history message's sound, played when it is read back
+Tutorial::Audition g_audition;
+size_t g_named = 0; // the audition's names kept in the history, so one said again is kept once
+struct Later { uint64_t due = 0; std::function<void()> play; };
+Later g_browseSound; // a message read back plays its sound after its words
 std::deque<Action> g_queue;
 uint64_t g_due = 0, g_session = 0, g_lastPoll = 0;
-uint64_t g_speechEnd = 0, g_lastDeletedPoll = 0; // when what the tutorial said should be over, guessed
-std::set<std::string> g_missing; // records whose save was gone at the last poll
+uint64_t g_speechEnd = 0; // when what the tutorial said should be over, guessed
+uint64_t g_heldSince = 0; // since a message has waited for a pause in speech
 bool g_active = false, g_decided = false;
 bool g_worldQuiet = false; // the world's sounds wait for their lesson (Tutorial::QuietWorld)
 // The level-up lesson: waiting for its moment; said; in the character sheet; the sheet shut before
@@ -143,9 +173,14 @@ Kit g_kit = Kit::Waiting;
 std::set<uint32_t> g_knownItems; // the player's items when the lesson was armed and since
 bool g_kitArmed = false, g_toldWorn = false;
 uint32_t g_newItem = 0; // what was picked up to wear, 0 while nothing is
+// The gold lesson: waiting for gold; gold taken, waiting for calm; given. The shop's is said in the shop.
+enum class News { Waiting, Armed, Given };
+News g_goldNews = News::Waiting;
+bool g_shopGiven = false;
 std::string g_name, g_key;
 Tutorial::Signals g_states = 0;
 int g_gold = -1;
+std::optional<uint64_t> g_experience;
 std::string g_questLog; // Act I's quest rows last logged
 
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
@@ -166,11 +201,18 @@ auto OnKey(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, vo
 
 const TutorialText::Texts& Texts() { return TutorialText::For(Strings::Selected()); }
 
-// The pad's words while a pad is connected, the keyboard's otherwise; the places by the game's own names.
+bool Pad() { return InputDirection::LeftStick().connected; }
+// The pad button the town portal is on, as the tester has it (LT X on a new character); empty when unbound.
+std::string PortalButton() { return SkillBarService::ButtonOf({TownPortalSkill, PortalScrollSkill, PortalTomeSkill}); }
+
+// The pad's words while a pad is connected, the keyboard's otherwise; places and things by the game's own names.
 std::string Render(const TutorialText::Lines& lines) {
-	const bool pad = InputDirection::LeftStick().connected;
-	const TutorialText::Places places{NativeEntities::LevelName(DenOfEvil), NativeEntities::LevelName(BloodMoor)};
-	return TutorialText::Render(pad ? lines.pad : lines.keys, Texts(), InputDirection::RouteOnA(), places,
+	const std::string_view text = Pad() ? lines.pad : lines.keys;
+	TutorialText::Names names{NativeEntities::LevelName(DenOfEvil), NativeEntities::LevelName(BloodMoor),
+		NativeEntities::LevelName(ColdPlains), Localization::Text(PortalTomeKey), Localization::Text(IdentifyTomeKey),
+		Localization::Text(GeneralSkillsKey), {}};
+	if (text.find("{portal}") != std::string_view::npos) names.portal = PortalButton();
+	return TutorialText::Render(text, Texts(), InputDirection::RouteOnA(), names,
 		[](uint32_t glyph) { return std::string(ControllerText::Button(glyph)); });
 }
 const TutorialText::Lines& StepLines(Step step) { return Texts().steps[static_cast<size_t>(step)]; }
@@ -179,8 +221,10 @@ void Push(Action action) {
 	if (g_queue.empty()) g_due = GetTickCount64() + action.delay;
 	g_queue.push_back(std::move(action));
 }
-// Said in the menu it is about, ahead of whatever waits for play.
-void MenuMessage(std::string text) {
+// Said in the menu it is about, ahead of whatever waits for play; `said` runs once it is, and is
+// dropped with it if the menu shuts first.
+void MenuMessage(std::string text, std::function<void()> said = {}) {
+	if (said) g_queue.push_front({ActionKind::Do, 0, {}, std::move(said), true});
 	g_queue.push_front({ActionKind::Say, ChimeMs, text, {}, true});
 	g_queue.push_front({ActionKind::Chime, 0, std::move(text), {}, true});
 	g_due = GetTickCount64();
@@ -204,46 +248,109 @@ std::function<void()> RadarCue(Radar::State state, bool unexplored = false, bool
 }
 std::function<void()> EntityCue(EntityCueAudio::Sound sound) { return [=] { EntityCueAudio::Play(sound, {}); }; }
 std::function<void()> PlaceCue(GroundItems::Sound sound) { return [=] { ItemAudio::Preview(sound); }; }
-
-// In the order of TutorialText::Texts::cues and worldCues.
-std::array<std::function<void()>, TutorialText::CueCount> RadarCues() {
-	using S = Radar::State;
-	return {RadarCue(S::Exit), RadarCue(S::Exit, true), RadarCue(S::Open), RadarCue(S::Open, true), RadarCue(S::Blocked),
-		RadarCue(S::Door), RadarCue(S::Blocked, false, true)};
+// An item as it sounds in the item sounds chosen when it plays (a tester, 2026-10-21).
+std::function<void()> ItemCue(uint32_t code, GroundItems::Base base) {
+	return [=] { ItemAudio::Preview(GroundItems::Heard(code, static_cast<uint32_t>(D2RL::Items::Quality::Normal), base)); };
 }
-std::array<std::function<void()>, TutorialText::WorldCueCount> WorldCues() {
+
+template <size_t N>
+std::vector<Cue> Named(const char* const (&names)[N], std::array<std::function<void()>, N> sounds) {
+	std::vector<Cue> cues;
+	for (size_t at = 0; at < N; ++at) cues.push_back({names[at], std::move(sounds[at])});
+	return cues;
+}
+// The sounds a step teaches, in the order of TutorialText::Texts::cues, worldCues and enemyCues.
+std::vector<Cue> SoundsOf(Step step) {
+	using S = Radar::State;
 	using E = EntityCueAudio::Sound;
 	using G = GroundItems::Sound;
-	return {EntityCue(E::Npc), EntityCue(E::NpcAlert), PlaceCue(G::Stash), PlaceCue(G::Portal), PlaceCue(G::ZoneTransition),
-		PlaceCue(G::UnexploredRoom)};
-}
-
-// Each sound after its name and meaning, the first once the message before is said.
-template <size_t N>
-void Audition(const char* const (&names)[N], const std::array<std::function<void()>, N>& sounds, uint64_t spoken) {
-	for (size_t at = 0; at < N; ++at) {
-		Push({ActionKind::Say, at == 0 ? spoken : CueGapMs, names[at]});
-		Push({ActionKind::Do, ReadMs(names[at]), {}, sounds[at]});
-	}
-}
-
-// A step's message. The radar's and the world's sounds' also play their sounds, then say what to
-// do; the world's then lets the sounds around the player in and, after a while, ends its step.
-void QueueStep(Step step, uint64_t delay, bool chime = true) {
+	using B = GroundItems::Base;
 	const auto& texts = Texts();
-	const auto text = Render(StepLines(step));
+	switch (step) {
+	case Step::Radar:
+		return Named(texts.cues, std::array<std::function<void()>, TutorialText::CueCount>{RadarCue(S::Exit),
+			RadarCue(S::Exit, true), RadarCue(S::Open), RadarCue(S::Open, true), RadarCue(S::Blocked), RadarCue(S::Door),
+			RadarCue(S::Blocked, false, true)});
+	case Step::Sounds:
+		return Named(texts.worldCues, std::array<std::function<void()>, TutorialText::WorldCueCount>{EntityCue(E::Npc),
+			EntityCue(E::NpcAlert), PlaceCue(G::Stash), PlaceCue(G::Portal), PlaceCue(G::ZoneTransition),
+			PlaceCue(G::UnexploredRoom), ItemCue(GoldCode, B::Gold), ItemCue(PotionCode, B::HealthPotion),
+			ItemCue(SwordCode, B::Equipment)});
+	case Step::LeaveTown:
+		return Named(texts.enemyCues, std::array<std::function<void()>, TutorialText::EnemyCueCount>{EntityCue(E::Ordinary),
+			EntityCue(E::Ranged), EntityCue(E::Resurrector), EntityCue(E::Important), EntityCue(E::Reach)});
+	default: return {};
+	}
+}
+bool HasSounds(Step step) { return step == Step::Radar || step == Step::Sounds || step == Step::LeaveTown; }
+// What to do once a step's sounds are heard.
+const TutorialText::Lines* TaskAfterSounds(Step step) {
+	const auto& texts = Texts();
+	return step == Step::Radar ? &texts.radarTask : step == Step::Sounds ? &texts.worldTask
+		: step == Step::LeaveTown ? &texts.leaveTask : nullptr;
+}
+// A step's words; one that plays sounds also says how to hear them again.
+std::string StepText(Step step) {
+	auto text = Render(StepLines(step));
+	if (HasSounds(step)) text += " " + Render(g_waitSounds ? Texts().auditionWait : Texts().auditionAgain);
+	return text;
+}
+void KeepCue(Cue cue) {
+	g_history.Add(std::move(cue.name));
+	g_sounds[g_history.Size() - 1] = std::move(cue.play);
+}
+// A step already given, kept unspoken for reading back, its sounds with it.
+void KeepStep(Step step) {
+	g_history.Add(StepText(step));
+	for (auto& cue : SoundsOf(step)) KeepCue(std::move(cue));
+	if (const auto* task = TaskAfterSounds(step)) g_history.Add(Render(*task));
+}
+
+// A step's message. One with sounds plays them, each after its name, then says what to do; the
+// world's then lets the sounds around the player in and, after a while, ends its step.
+void QueueStep(Step step, uint64_t delay, bool chime = true) {
+	const auto text = StepText(step);
 	Message(text, delay, chime);
-	if (step == Step::Radar) {
-		Audition(texts.cues, RadarCues(), ReadMs(text));
-		Message(Render(texts.radarTask), CueGapMs);
+	if (auto cues = SoundsOf(step); !cues.empty()) {
+		Push({.kind = ActionKind::Audition, .delay = ReadMs(text), .cues = std::move(cues)});
+		const auto task = Render(*TaskAfterSounds(step));
+		Message(task, 0);
+		if (step == Step::Sounds) {
+			Push({ActionKind::Do, ReadMs(task), {}, [] { g_worldQuiet = false; }});
+			Push({ActionKind::Do, ListenMs, {}, [] { Tutorial::Post(Signal::HeardSounds); }});
+		}
 	}
-	if (step == Step::Sounds) {
-		Audition(texts.worldCues, WorldCues(), ReadMs(text));
-		const auto task = Render(texts.worldTask);
-		Message(task, CueGapMs);
-		Push({ActionKind::Do, ReadMs(task), {}, [] { g_worldQuiet = false; }});
-		Push({ActionKind::Do, ListenMs, {}, [] { Tutorial::Post(Signal::HeardSounds); }});
+	// The quick way back, on the button the game bound it to (a tester, 2026-10-21).
+	if (step == Step::ReturnToTown && Pad() && !PortalButton().empty()) Message(Render(Texts().portalButton), 0, false);
+}
+
+// The front action's sounds at their own pace, each name kept for reading back; true once all are heard.
+bool Audit(Action& action, uint64_t now) {
+	if (g_audition.Idle()) {
+		std::vector<uint64_t> reads;
+		for (const auto& cue : action.cues) reads.push_back(ReadMs(cue.name));
+		g_audition.Start(std::move(reads), now, CueGapMs, g_waitSounds);
+		g_named = 0;
 	}
+	const auto due = g_audition.Tick(now);
+	if (due.cue == Tutorial::Audition::Cue::Name) {
+		const auto& cue = action.cues[due.index];
+		SpeechPriority::Say(SpeechPriority::Kind::Tutorial, cue.name);
+		g_speechEnd = std::max(g_speechEnd, now) + cue.name.size() * MsPerCharacter;
+		if (due.index == g_named) { KeepCue(cue); ++g_named; }
+	}
+	if (due.cue == Tutorial::Audition::Cue::Sound) action.cues[due.index].play();
+	if (!g_audition.Done()) return false;
+	g_audition.Reset();
+	return true;
+}
+// "Previous" plays the last sound again and holds the lesson; "next" goes on.
+void Steer(Command command, Action& action, uint64_t now) {
+	if (command == Command::Next) { g_audition.Next(now); return; }
+	const auto heard = g_audition.Again();
+	if (!heard) return;
+	ScreenReader::Stop();
+	action.cues[*heard].play();
 }
 
 void Perform(const Action& action) {
@@ -259,21 +366,23 @@ void Perform(const Action& action) {
 	}
 }
 
-void Write() {
-	if (!g_file.empty() && !SettingsStore::Save(g_file, SettingsStore::Encode(g_records)))
-		AsyncLog::Warn(g_context, "[tutorial] could not save the tutorial records.");
-}
 // The step reached by the tutorial running now.
 void Save() {
 	if (g_key.empty() || !g_active) return;
-	g_records[g_key] = static_cast<int>(g_guide.Current());
-	Write();
+	TutorialRecords::SetStep(g_key, static_cast<int>(g_guide.Current()));
+}
+
+void ClearHistory() {
+	g_history.Clear();
+	g_sounds.clear();
+	g_browseSound = {};
 }
 
 void Stop() {
 	g_active = false;
 	g_queue.clear();
-	g_speechEnd = 0;
+	g_audition.Reset();
+	g_speechEnd = g_heldSince = 0;
 	Tutorial::SetQuietWorld(false);
 	Tutorial::SetBusy(false);
 }
@@ -281,18 +390,22 @@ void Stop() {
 void Begin(Step step) {
 	g_active = true;
 	g_worldQuiet = step <= Step::Sounds;
-	g_lesson = g_records.contains(g_key + std::string(LevelUpSuffix)) ? Lesson::Given : Lesson::Waiting;
+	g_lesson = TutorialRecords::Given(g_key, LevelUpSuffix) ? Lesson::Given : Lesson::Waiting;
 	g_calmSince = 0;
 	g_sawPoints = g_toldSwitch = false;
 	g_sawSkillPoints = g_toldBind = false;
-	g_kit = g_records.contains(g_key + std::string(InventorySuffix)) ? Kit::Given : Kit::Waiting;
+	g_kit = TutorialRecords::Given(g_key, InventorySuffix) ? Kit::Given : Kit::Waiting;
 	g_knownItems.clear();
 	g_kitArmed = g_toldWorn = false;
 	g_newItem = 0;
+	g_goldNews = TutorialRecords::Given(g_key, GoldSuffix) ? News::Given : News::Waiting;
+	g_shopGiven = TutorialRecords::Given(g_key, ShopSuffix);
 	g_guide.Start(step);
-	g_history.Clear();
+	ClearHistory();
 	g_queue.clear();
+	g_audition.Reset();
 	g_gold = -1;
+	g_experience.reset();
 	(void)Tutorial::TakePosted();
 	const auto& texts = Texts();
 	// A resumed tutorial keeps the messages already given, unspoken, for reading back.
@@ -300,68 +413,12 @@ void Begin(Step step) {
 	if (fresh) Message(Render(texts.welcome), ArrivalMs);
 	else {
 		g_history.Add(Render(texts.welcome));
-		for (size_t done = 0; done < static_cast<size_t>(step); ++done) {
-			g_history.Add(Render(StepLines(static_cast<Step>(done))));
-			if (static_cast<Step>(done) == Step::Radar) g_history.Add(Render(texts.radarTask));
-			if (static_cast<Step>(done) == Step::Sounds) g_history.Add(Render(texts.worldTask));
-		}
+		for (size_t done = 0; done < static_cast<size_t>(step); ++done) KeepStep(static_cast<Step>(done));
 	}
 	QueueStep(step, fresh ? 0 : ArrivalMs, !fresh);
 	Save();
 	AsyncLog::InfoF(g_context, "[tutorial] %s at step %u for %s", step == Step::Vitals ? "begins" : "resumes",
 		static_cast<unsigned>(step), g_name.c_str());
-}
-
-// The character's save, <Saved Games>\Diablo II Resurrected\<name>.d2s; empty when the folder is unknown.
-std::wstring SavePath(const std::string& name) {
-	const std::wstring directory = SettingsFile::SavedGamesDirectory();
-	const int length = MultiByteToWideChar(CP_UTF8, 0, name.data(), static_cast<int>(name.size()), nullptr, 0);
-	if (directory.empty() || length <= 0) return {};
-	std::wstring wide(static_cast<size_t>(length), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, name.data(), static_cast<int>(name.size()), wide.data(), length);
-	return directory + L"\\" + wide + L".d2s";
-}
-
-// A character's record is kept under its name and when its save was created: one deleted
-// and made again under the same name is another character, which had resumed the old one's
-// tutorial (the user, 2026-10-21). The game keeps a save's creation time as it writes it
-// (MEASURED: yarkey.d2s created 2026-09-14, last written 2026-10-20). The name alone where
-// there is no local save. Made again within 15 s, a save keeps the deleted one's creation
-// time (Windows's file name tunnelling), which DropDeleted covers.
-std::string Key(const std::string& name) {
-	const std::wstring path = SavePath(name);
-	WIN32_FILE_ATTRIBUTE_DATA data{};
-	if (path.empty() || !GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &data)) return name;
-	const uint64_t ticks = static_cast<uint64_t>(data.ftCreationTime.dwHighDateTime) << 32 | data.ftCreationTime.dwLowDateTime;
-	return name + "@" + std::to_string(ticks / FileTimeTicksPerSecond - FileTimeUnixEpochSeconds);
-}
-
-// Outside a game, a record whose save is gone is dropped: the character was deleted. Deleted and
-// made again within seconds, the new save carried the old one's creation time and so its key
-// (MEASURED 2026-10-21: the new arwen.d2s was created 10:04:23, the deleted one's time), but the
-// character select screen leaves the name without a save for longer than a poll. Gone on two
-// polls in a row, so a save being rewritten is not taken for a deletion.
-void DropDeleted(uint64_t now) {
-	if (g_records.empty() || now - g_lastDeletedPoll < DeletedPollMs) return;
-	g_lastDeletedPoll = now;
-	std::set<std::string> missing;
-	for (const auto& [key, step] : g_records) {
-		const auto at = key.rfind('@');
-		if (at == std::string::npos) continue; // no local save to look for
-		const std::wstring path = SavePath(key.substr(0, at));
-		if (path.empty()) return;
-		if (GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND) missing.insert(key);
-	}
-	size_t dropped = 0;
-	for (const auto& key : missing)
-		if (g_missing.contains(key)) {
-			g_records.erase(key);
-			++dropped;
-			AsyncLog::InfoF(g_context, "[tutorial] %s was deleted: its record is dropped", key.c_str());
-		}
-	g_missing = std::move(missing);
-	for (auto it = g_missing.begin(); it != g_missing.end();) it = g_records.contains(*it) ? std::next(it) : g_missing.erase(it);
-	if (dropped) Write();
 }
 
 // Once per game: the character's record, else a fresh level 1 character playing alone.
@@ -376,20 +433,12 @@ void Decide(const Lifecycle& state) {
 		return;
 	}
 	g_name = self->name;
-	g_key = Key(g_name);
-	// Records of an earlier character of this name, or from before the key had its time, go.
-	const auto before = g_records.size();
-	std::erase_if(g_records, [&](const auto& record) {
-		const auto base = std::string_view(record.first).substr(0, record.first.find('#'));
-		return base != g_key && (base == g_name || base.starts_with(g_name + "@"));
-	});
-	if (g_records.size() != before) {
-		AsyncLog::InfoF(g_context, "[tutorial] %zu record(s) of an earlier %s dropped", before - g_records.size(), g_name.c_str());
-		Write(); // no tutorial runs yet: Save would record this character as finished
-	}
-	if (const auto record = g_records.find(g_key); record != g_records.end()) {
+	g_key = TutorialRecords::Key(g_name);
+	if (const auto dropped = TutorialRecords::DropEarlier(g_name, g_key))
+		AsyncLog::InfoF(g_context, "[tutorial] %zu record(s) of an earlier %s dropped", dropped, g_name.c_str());
+	if (const auto step = TutorialRecords::Step(g_key)) {
 		g_decided = true;
-		if (record->second < static_cast<int>(Step::Finished)) Begin(static_cast<Step>(record->second));
+		if (*step < static_cast<int>(Step::Finished)) Begin(static_cast<Step>(*step));
 		return;
 	}
 	const auto experience = NativeStatus::PlayerExperience();
@@ -455,12 +504,39 @@ void WatchDialogue(const Lifecycle& state) {
 	if (nearest->placeId == TownNpcs::Identity(AkaraMonStats)) Tutorial::Post(Signal::TalkedToAkara);
 }
 
-// Gold taken outside the camp, where selling would count too.
+// Experience gained outside the camp: a monster killed, as nothing else gives it there so early.
+// The fight step waited for gold, which may not drop for long (a tester, 2026-10-21).
+void WatchKill(const Lifecycle& state) {
+	const auto experience = NativeStatus::PlayerExperience();
+	if (!experience) return;
+	if (g_experience && experience->total > *g_experience && state.level != RogueEncampment) Tutorial::Post(Signal::Kill);
+	g_experience = experience->total;
+}
+
+// Gold taken outside the camp, where selling would count too, arms the stash's lesson.
 void WatchGold(const Lifecycle& state) {
 	const int gold = NativeGroundItems::PlayerGold();
 	if (gold < 0) return;
-	if (g_gold >= 0 && gold > g_gold && state.level != RogueEncampment) Tutorial::Post(Signal::Gold);
+	if (g_gold >= 0 && gold > g_gold && state.level != RogueEncampment && g_goldNews == News::Waiting) g_goldNews = News::Armed;
 	g_gold = gold;
+}
+
+bool PanelOpen(std::string_view prefix) {
+	const auto& panels = PanelState::OpenPanels();
+	return std::any_of(panels.begin(), panels.end(), [&](const auto& panel) { return std::string_view(panel).starts_with(prefix); });
+}
+
+// A waypoint's menu opens as it is touched; the camp's is the player's from the start.
+void WatchWaypoint(const Lifecycle& state) {
+	if (state.level != RogueEncampment && PanelOpen(WaypointPanelPrefix)) Tutorial::Post(Signal::Waypoint);
+}
+
+// The first shop: the tomes, said there (a tester, 2026-10-21: twenty loose scrolls fill the inventory).
+void WatchShop() {
+	if (g_shopGiven || !PanelOpen(VendorPanel)) return;
+	g_shopGiven = true;
+	MenuMessage(Render(Texts().shop), [] { TutorialRecords::Give(g_key, ShopSuffix); });
+	AsyncLog::InfoF(g_context, "[tutorial] shop lesson for %s", g_name.c_str());
 }
 
 // Unread counts as not calm: the lesson never starts on a guess.
@@ -510,10 +586,7 @@ void WatchLesson(uint64_t now) {
 		return;
 	}
 	g_lesson = Lesson::Given;
-	if (!g_key.empty()) {
-		g_records[g_key + std::string(LevelUpSuffix)] = 1;
-		Write();
-	}
+	TutorialRecords::Give(g_key, LevelUpSuffix);
 	// Not said in the tree (no point seen spent there): said now, before the lesson ends.
 	if (!g_toldBind) Message(Render(texts.levelUpBind), AfterStepMs);
 	Message(Render(texts.levelUpDone), AfterStepMs);
@@ -585,10 +658,7 @@ void WatchKit(uint64_t now) {
 	}
 	if (g_kit != Kit::Open || !RadarUi::InPlay()) return;
 	g_kit = Kit::Given;
-	if (!g_key.empty()) {
-		g_records[g_key + std::string(InventorySuffix)] = 1;
-		Write();
-	}
+	TutorialRecords::Give(g_key, InventorySuffix);
 	Message(Render(Texts().kitDone), AfterStepMs);
 	if (!g_guide.Finished()) Message(Render(StepLines(g_guide.Current())), 0, false);
 	AsyncLog::InfoF(g_context, "[tutorial] inventory lesson given to %s", g_name.c_str());
@@ -600,7 +670,8 @@ void WatchCalm(const Lifecycle& state, uint64_t now) {
 	const auto experience = NativeStatus::PlayerExperience();
 	const bool levelUp = g_lesson == Lesson::Waiting && experience && experience->level >= FirstLevelUp;
 	const bool kit = g_kit == Kit::Waiting && g_newItem;
-	if ((!levelUp && !kit) || EnemyInSight(state)) g_calmSince = 0;
+	const bool gold = g_goldNews == News::Armed;
+	if ((!levelUp && !kit && !gold) || EnemyInSight(state)) g_calmSince = 0;
 	else if (!g_calmSince) g_calmSince = now;
 }
 
@@ -614,6 +685,14 @@ bool LessonDue(uint64_t now) {
 	return g_lesson == Lesson::Waiting && experience && experience->level >= FirstLevelUp && Calm(now);
 }
 bool KitDue(uint64_t now) { return g_kit == Kit::Waiting && g_newItem && Calm(now); }
+bool GoldDue(uint64_t now) { return g_goldNews == News::Armed && Calm(now); }
+
+void TellGold() {
+	g_goldNews = News::Given;
+	TutorialRecords::Give(g_key, GoldSuffix);
+	Message(Render(Texts().gold), 0);
+	AsyncLog::InfoF(g_context, "[tutorial] gold lesson given to %s", g_name.c_str());
+}
 
 void TellKit() {
 	g_kit = Kit::Told;
@@ -629,6 +708,11 @@ void TellLesson() {
 
 void Advance() {
 	g_guide.Advance();
+	// A step the player is already past is kept for reading back, not said (Tutorial::PassedBy).
+	while (g_guide.Passed(g_states)) {
+		KeepStep(g_guide.Current());
+		g_guide.Advance();
+	}
 	Save();
 	Push({ActionKind::StepDone, 0});
 	AsyncLog::InfoF(g_context, "[tutorial] step %u reached", static_cast<unsigned>(g_guide.Current()));
@@ -649,7 +733,10 @@ void Browse(Command command) {
 	if (reading->edge == Tutorial::History::Edge::Last) text = std::string(texts.lastMessage) + ". ";
 	text += reading->text;
 	ScreenReader::Speak(text, true);
-	g_speechEnd = GetTickCount64() + text.size() * MsPerCharacter;
+	const uint64_t now = GetTickCount64();
+	g_speechEnd = now + text.size() * MsPerCharacter;
+	const auto sound = g_sounds.find(reading->at);
+	g_browseSound = sound == g_sounds.end() ? Later{} : Later{now + ReadMs(text), sound->second};
 }
 
 // The settings list says the change itself; on, the next poll decides again.
@@ -690,9 +777,8 @@ bool Register(const D2RL::PluginContext* context) {
 			else AsyncLog::WarnF(context, "[tutorial] key %s not registered.", action.logicalId);
 		}
 	}
-	g_file = std::filesystem::path(context->pluginDirectory) / "d2r-access" / "tutorial.txt";
-	if (const auto text = SettingsStore::Load(g_file)) g_records = SettingsStore::Decode(*text);
-	AsyncLog::InfoF(context, "[tutorial] registered, %zu character record(s)", g_records.size());
+	const auto records = TutorialRecords::Load(context, std::filesystem::path(context->pluginDirectory) / "d2r-access" / "tutorial.txt");
+	AsyncLog::InfoF(context, "[tutorial] registered, %zu character record(s)", records);
 	return true;
 }
 
@@ -713,12 +799,12 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (!state.ready || state.session != g_session) {
 		Stop();
 		g_decided = false;
-		g_history.Clear();
+		ClearHistory();
 		g_name.clear();
 		g_key.clear();
 		g_questLog.clear();
 		g_session = state.session;
-		if (!state.ready) { DropDeleted(GetTickCount64()); return; }
+		if (!state.ready) { TutorialRecords::DropDeleted(GetTickCount64()); return; }
 	}
 	const uint64_t now = GetTickCount64();
 	// Read in a dialogue too: talking to Akara is a step.
@@ -728,19 +814,32 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (g_active) {
 			g_states = States(state);
 			WatchDialogue(state);
+			WatchKill(state);
 			WatchGold(state);
+			WatchWaypoint(state);
+			WatchShop();
 			WatchLesson(now);
 			WatchKit(now);
 			WatchCalm(state, now);
 		}
 	}
 	if (g_active) g_guide.Notice(posted);
-	Tutorial::SetQuietWorld(g_active && g_worldQuiet);
+	// While a lesson's sounds play, the world's keep quiet so they are heard alone, and previous and
+	// next steer them; otherwise those browse the messages.
+	const bool auditioning = g_active && !g_queue.empty() && g_queue.front().kind == ActionKind::Audition && !g_audition.Idle();
+	Tutorial::SetQuietWorld(g_active && (g_worldQuiet || auditioning));
 	Tutorial::SetBusy(g_active && (!g_queue.empty() || now < g_speechEnd));
 	// The in-play gate walks the panel tree: only when there is something to do.
 	if (command == Command::None && !g_active) return;
 	const bool inPlay = RadarUi::InPlay();
-	if (command != Command::None && inPlay) Browse(command);
+	if (command != Command::None && inPlay) {
+		if (auditioning && command != Command::First) Steer(command, g_queue.front(), now);
+		else Browse(command);
+	}
+	if (g_browseSound.play && now >= g_browseSound.due) {
+		if (inPlay) g_browseSound.play();
+		g_browseSound = {};
+	}
 	if (!g_active) return;
 	// New words wait for play, the lesson's for its menu. In play they wait while the game's own text
 	// is read; in a menu the reader of what has focus always owns speech (GameTextReader::Tick), so
@@ -753,8 +852,20 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			if (!g_queue.empty()) g_due = now + g_queue.front().delay;
 			continue;
 		}
+		if (g_queue.front().kind == ActionKind::Audition) {
+			if (!Audit(g_queue.front(), now)) break;
+			g_queue.pop_front();
+			if (!g_queue.empty()) g_due = now + g_queue.front().delay;
+			continue;
+		}
 		const auto kind = g_queue.front().kind;
-		if ((kind == ActionKind::Chime || kind == ActionKind::Keep) && now - ScreenReader::LastSpoken() < QuietMs) break;
+		if ((kind == ActionKind::Chime || kind == ActionKind::Keep) && now - ScreenReader::LastSpoken() < QuietMs) {
+			if (!g_heldSince) g_heldSince = now;
+			if (now - g_heldSince < PatienceMs) break;
+			AsyncLog::InfoF(context, "[tutorial] no pause in speech for %llu ms: the message goes in line",
+				static_cast<unsigned long long>(now - g_heldSince));
+		}
+		g_heldSince = 0;
 		const Action action = std::move(g_queue.front());
 		g_queue.pop_front();
 		Perform(action);
@@ -765,6 +876,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (g_guide.Done(g_states)) Advance();
 	else if (LessonDue(now)) TellLesson();
 	else if (KitDue(now)) TellKit();
+	else if (GoldDue(now)) TellGold();
 }
 
 bool Enabled() { return g_enabled; }
@@ -772,6 +884,8 @@ void SetEnabled(bool on) {
 	g_enabled = on;
 	g_command = on ? Command::On : Command::Off;
 }
+bool WaitForSounds() { return g_waitSounds; }
+void SetWaitForSounds(bool on) { g_waitSounds = on; }
 
 void Scanned(const EntityRadar::Entity& entity) {
 	if (entity.kind != EntityRadar::Kind::Npc) return;
@@ -795,8 +909,8 @@ void Unregister() {
 	g_actions.clear();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }
 	Stop();
-	g_history.Clear();
-	g_records.clear();
+	ClearHistory();
+	TutorialRecords::Clear();
 	g_context = nullptr; g_lifecycle = nullptr; g_input = nullptr;
 	g_command = Command::None;
 	g_enabled = true;
@@ -806,6 +920,7 @@ void Unregister() {
 	g_key.clear();
 	g_states = 0;
 	g_gold = -1;
+	g_experience.reset();
 	g_questLog.clear();
 }
 }

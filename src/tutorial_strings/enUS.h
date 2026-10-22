@@ -18,13 +18,15 @@ inline constexpr Texts enUS{
 		{"First step: your state. Press {view} and {x} to hear your life and mana.",
 			"First step: your state. Press Z to hear your life, and X for your mana."},
 		{"The radar sounds in four directions as your surroundings change; down sounds lower. I will now play its "
-			"sounds, each after its name and what it means; you do not need to press anything.",
+			"sounds, each after its name and what it means.",
 			"The radar sounds in four directions as your surroundings change; down sounds lower. I will now play its "
-			"sounds, each after its name and what it means; you do not need to press anything."},
-		{"Besides the radar, things nearby sound from where they are, louder the closer they are. Until now I kept "
-			"them quiet so you could hear the radar alone. I will play each one after its name.",
-			"Besides the radar, things nearby sound from where they are, louder the closer they are. Until now I kept "
-			"them quiet so you could hear the radar alone. I will play each one after its name."},
+			"sounds, each after its name and what it means."},
+		{"Besides the radar, things nearby sound from where they are, louder the closer they are: people, places and "
+			"what lies on the ground, the items in the sounds you chose in the settings list. Until now I kept them "
+			"quiet so you could hear the radar alone. I will play each one after its name.",
+			"Besides the radar, things nearby sound from where they are, louder the closer they are: people, places and "
+			"what lies on the ground, the items in the sounds you chose in the settings list. Until now I kept them "
+			"quiet so you could hear the radar alone. I will play each one after its name."},
 		{"The scanner. It lists what is on the map by category: exits, NPCs, waypoints and more, nearest first, with "
 			"how far and which way. With {rs}, up and down change the category, and left and right go through it. "
 			"Find Warriv in the NPC category: he is the one nearest you.",
@@ -52,42 +54,60 @@ inline constexpr Texts enUS{
 			"When she is done, close the dialogue with {b}.",
 			"Talk to Akara: beside her, press D. She has a quest for you. "
 			"When she is done, close the dialogue with Escape."},
-		{"Now leave the camp on your own, with what you have learned: among the scanner's exits, find {moor}, "
-			"ask for the route, follow the beacon and cross the exit.",
-			"Now leave the camp on your own, with what you have learned: among the scanner's exits, find {moor}, "
-			"ask for the route, follow the beacon and cross the exit."},
-		{"You are in {moor}. Three questions place you: {view} and {y} say the ways out of the area you are in; "
-			"{view} and {b}, an overview of the terrain; {view} and {rs} up, the area's description. Try the first two.",
-			"You are in {moor}. Two questions place you: Control plus Y says the ways out of the area you are in, "
-			"and Control plus O, an overview of the terrain. Try both."},
-		{"There are monsters here. They growl as they come near, and the scanner lists them in their own category. "
-			"Attack with {a}; your other skills are on the buttons you gave them. If your life drops, drink a potion "
-			"with {dpad}. Kill a monster and pick up the gold it drops: go up to it and press {a}.",
-			"There are monsters here. They growl as they come near, and the scanner lists them in their own category. "
-			"Tab picks the next monster; hold A to attack with your left skill, and W with your right one. If your life "
-			"drops, the potions are on keys 1 to 4. Kill a monster and pick up its gold: full stop picks the next item "
-			"on the ground and comma the previous one, and D picks it up."},
+		{"Outside the camp there are monsters, and each kind sounds in its own way from where it is. Before you go, "
+			"I will play them, each after its name.",
+			"Outside the camp there are monsters, and each kind sounds in its own way from where it is. Before you go, "
+			"I will play them, each after its name."},
+		{"You are in {moor}. Outdoors, two questions place you: {view} and {b} give an overview of the terrain, and "
+			"{view} and {rs} up the area's description. Try the overview.",
+			"You are in {moor}. Control plus O gives you an overview of the terrain around you. Try it."},
+		{"There are monsters here: they sound as you heard in the camp, and the scanner lists them in their own "
+			"category. Attack with {a}; your other skills are on the buttons you gave them. If your life drops, drink a "
+			"potion with {dpad}. What they drop sounds from where it lies: walk up to it and press {a} to pick it up; "
+			"gold is picked up as you walk over it. Kill a monster.",
+			"There are monsters here: they sound as you heard in the camp, and the scanner lists them in their own "
+			"category. Tab picks the next monster; hold A to attack with your left skill, and W with your right one. If "
+			"your life drops, the potions are on keys 1 to 4. What they drop sounds from where it lies: full stop picks "
+			"the next item on the ground, comma the previous one, and D picks it up; gold is picked up as you walk over "
+			"it. Kill a monster."},
 		{"Find {den}. The map is made anew for each game, so its entrance may be near or far. Follow the radar's "
 			"sounds, or the wall tones if you have them on: unexplored passages and floor lead to new ground, and the "
-			"radar tells you when it logs a new exit, which the scanner then lists among its exits. If you get lost, "
-			"the scanner's unexplored room category shows you where to go. Go into the cave.",
+			"radar tells you when it logs a new exit, which the scanner then lists among its exits. Look there for "
+			"{den}: once it is listed, the route and the beacon take you to its entrance. If you get lost, the scanner's "
+			"unexplored room category shows you where to go.",
 			"Find {den}. The map is made anew for each game, so its entrance may be near or far. Follow the radar's "
 			"sounds, or the wall tones if you have them on: unexplored passages and floor lead to new ground, and the "
-			"radar tells you when it logs a new exit, which the scanner then lists among its exits. If you get lost, "
-			"the scanner's unexplored room category shows you where to go. Go into the cave."},
-		{"You are in {den}. As you enter each room you will hear whether parts of it are still unexplored. Kill every "
-			"monster in the cave; the game says how many are left. The scanner's unexplored room category helps you miss none.",
-			"You are in {den}. As you enter each room you will hear whether parts of it are still unexplored. Kill every "
-			"monster in the cave; the game says how many are left. The scanner's unexplored room category helps you miss none."},
-		{"The cave is clear. Go back to the camp: open the inventory, use the town portal scroll, and step into the "
+			"radar tells you when it logs a new exit, which the scanner then lists among its exits. Look there for "
+			"{den}: once it is listed, the route and the beacon take you to its entrance. If you get lost, the scanner's "
+			"unexplored room category shows you where to go."},
+		{"You are in {den}. In caves and dungeons the mod knows the rooms: {view} and {y} say the ways out of the room "
+			"you are in. Try it now.",
+			"You are in {den}. In caves and dungeons the mod knows the rooms: Control plus Y says the ways out of the "
+			"room you are in. Try it now."},
+		{"As you enter each room you will hear whether parts of it are still unexplored. Kill every monster in {den}; "
+			"the game says how many are left. The scanner's unexplored room category helps you miss none.",
+			"As you enter each room you will hear whether parts of it are still unexplored. Kill every monster in {den}; "
+			"the game says how many are left. The scanner's unexplored room category helps you miss none."},
+		{"{den} is clear. Go back to the camp: open the inventory, use the town portal scroll, and step into the "
 			"portal with {a}. You can also walk back with the route and the beacon.",
-			"The cave is clear. Go back to the camp: open the inventory with I, go to the town portal scroll and press D "
+			"{den} is clear. Go back to the camp: open the inventory with I, go to the town portal scroll and press D "
 			"to read it; close the inventory and press D beside the portal. You can also walk back with the route and "
 			"the beacon."},
 		{"Talk to Akara for your reward, a skill point. Then open the skill tree with {menu} and spend it.",
 			"Talk to Akara for your reward, a skill point. Then open the skill tree with T and spend it."},
-		{"Tutorial complete. You know how to find your way: scanner, route, beacon and radar. In the settings list, "
-			"with {view} and {rb}, you choose what the mod says and plays. From here on, the game is yours.",
+		{"One more thing the game does not tell you: waypoints keep your way. The game keeps the quests you have done, "
+			"but each time you come back you start in the camp, and a far area is reached through its waypoint, which is "
+			"yours only once you have touched it. The first one outside the camp is in {plains}, past {moor}. Find it in "
+			"the scanner's waypoint category, walk up to it and press {a}: its menu opens, and it is yours. Close the "
+			"menu with {b}.",
+			"One more thing the game does not tell you: waypoints keep your way. The game keeps the quests you have done, "
+			"but each time you come back you start in the camp, and a far area is reached through its waypoint, which is "
+			"yours only once you have touched it. The first one outside the camp is in {plains}, past {moor}. Find it in "
+			"the scanner's waypoint category, walk up to it and press D: its menu opens, and it is yours. Close the "
+			"menu with Escape."},
+		{"Tutorial complete. You know how to find your way: scanner, route, beacon and radar. In most menus, {rs} down "
+			"tells you what the buttons do there: try it in every menu new to you, such as the stash. In the settings "
+			"list, with {view} and {rb}, you choose what the mod says and plays. From here on, the game is yours.",
 			"Tutorial complete. You know how to find your way: scanner, route, beacon and radar. In the settings list, "
 			"with Control plus S, you choose what the mod says and plays. The keyboard also has shortcuts that walk "
 			"for you: H goes to the nearest unexplored room, and Shift plus Home to what the scanner named. "
@@ -102,12 +122,49 @@ inline constexpr Texts enUS{
 		"Door: it opens to let you through", "Small obstacle: something small in your way that you can walk around"},
 	.worldCues = {"NPC, someone to talk to", "NPC with an exclamation mark: they have something for you",
 		"Stash, the chest where you keep your items", "Stairs, entrance or portal", "Area border, the way into another area",
-		"Unexplored room"},
+		"Unexplored room", "Gold on the ground", "A potion on the ground",
+		"An item on the ground that you can wear, such as a weapon"},
 	.worldTask = {
 		"Now the ones around you will sound. If you do not know what a sound is, the scanner tells you what is there, "
 		"and each sound can be turned off in the settings list.",
 		"Now the ones around you will sound. If you do not know what a sound is, the scanner tells you what is there, "
 		"and each sound can be turned off in the settings list."},
+	.enemyCues = {"Monster: the nearest ones growl from where they are", "Monster that attacks from afar, such as an archer",
+		"Shaman that brings dead monsters back to life: kill it first", "Elite: a champion, a unique monster or a boss",
+		"In reach: a monster has come within reach of your attack"},
+	.leaveTask = {
+		"Now leave the camp on your own, with what you have learned: among the scanner's exits, find {moor}, "
+		"ask for the route, follow the beacon and cross the exit.",
+		"Now leave the camp on your own, with what you have learned: among the scanner's exits, find {moor}, "
+		"ask for the route, follow the beacon and cross the exit."},
+	.auditionAgain = {
+		"They come one after another; you do not need to press anything. To hear a sound again, press {view} and {rs} "
+		"left: the next one then waits until {view} and {rs} right. Later, going back through these messages plays "
+		"each sound again.",
+		"They come one after another; you do not need to press anything. To hear a sound again, press K: the next one "
+		"then waits until L. Later, going back through these messages plays each sound again."},
+	.auditionWait = {
+		"After each sound, {view} and {rs} left plays it again, and {view} and {rs} right goes on to the next. Later, "
+		"going back through these messages plays each sound again.",
+		"After each sound, K plays it again, and L goes on to the next. Later, going back through these messages plays "
+		"each sound again."},
+	.portalButton = {
+		"Quicker: {portal} opens a town portal at once, without the inventory, while you carry a town portal scroll "
+		"or tome.",
+		"Quicker: {portal} opens a town portal at once, without the inventory, while you carry a town portal scroll "
+		"or tome."},
+	.gold = {
+		"You picked up gold; it is picked up as you walk over it. When you die, you lose part of the gold you carry, "
+		"but gold in the stash is safe. Back in the camp, open the stash and deposit what you do not need.",
+		"You picked up gold; it is picked up as you walk over it. When you die, you lose part of the gold you carry, "
+		"but gold in the stash is safe. Back in the camp, open the stash and deposit what you do not need."},
+	.shop = {
+		"A shop. As soon as you have the gold, buy a {portaltome} and a {idtome}: each holds up to 20 scrolls in a "
+		"single cell, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
+		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item.",
+		"A shop. As soon as you have the gold, buy a {portaltome} and a {idtome}: each holds up to 20 scrolls in a "
+		"single cell, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
+		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item."},
 	.levelUp = {
 		"You have gone up a level: you have attribute points and a skill point to spend. Press {menu} to open your "
 		"character sheet; I will guide you inside.",
@@ -136,10 +193,13 @@ inline constexpr Texts enUS{
 		"You still have your skill point. Press T to open the skill tree."},
 	.levelUpBind = {
 		"To use a skill, put it on a button: in the skill tree, on the skill, press {x} and then the button you "
-		"want it on. Each skill's reading says which button it is on.",
+		"want it on. Each skill's reading says which button it is on. Passive skills, such as the masteries, work on "
+		"their own: they need no button and cannot have one. With LT and RT, past your class's branches, the {general} "
+		"page holds what every character has, such as Town Portal and Identify; you put them on buttons the same way.",
 		"To use a skill, put it in a hand: S opens the list of skills for the right hand, and Shift plus S the one "
 		"for the left; the arrow keys pick one and A puts it in that hand. With a list open, F1 to F8 bind the skill "
-		"under the cursor to that key."},
+		"under the cursor to that key. Passive skills, such as the masteries, work on their own: they are not in "
+		"these lists and need nothing more."},
 	.kit = {
 		"You have picked up something to wear. Press {menu} to open the menus; they open on your inventory, and I "
 		"will guide you inside.",
@@ -159,14 +219,19 @@ inline constexpr Texts enUS{
 		"Done. Whatever you pick up, the inventory is where you put it on. Back to what you were doing:",
 		"Done. Whatever you pick up, the inventory is where you put it on. Back to what you were doing:"},
 	.levelUpDone = {
-		"Done. Whenever you go up a level, {menu} opens your character sheet. Back to what you were doing:",
-		"Done. Whenever you go up a level, C opens your character sheet and T the skill tree. Back to what you were "
-		"doing:"},
+		"Done. Try your new skill once now: press the button you put it on, and hear how it sounds. Whenever you go up "
+		"a level, {menu} opens your character sheet. Back to what you were doing:",
+		"Done. Try your new skill once now: A uses your left hand's skill and W your right's; hear how it sounds. "
+		"Whenever you go up a level, C opens your character sheet and T the skill tree. Back to what you were doing:"},
 	.routeStick = "{view} and {rs} down",
 	.routeButton = "{view} and {a}",
 	.firstMessage = "First message",
 	.lastMessage = "Last message",
 	.den = "Den of Evil",
 	.moor = "Blood Moor",
+	.plains = "Cold Plains",
+	.portalTome = "Tome of Town Portal",
+	.identifyTome = "Tome of Identify",
+	.generalSkills = "General Skills",
 };
 }

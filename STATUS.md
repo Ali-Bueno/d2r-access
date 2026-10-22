@@ -2,6 +2,26 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's tutorial list — 2026-10-21 (not released)
+
+From `Tutorial feedback list.txt` ([tutorial](docs/tutorial.md)); news `../tester-news-draft-2026-10-21c.txt`:
+- Fight ends on a kill (experience rising), not gold; the Den cleared passes the steps on the way
+  (`Tutorial::PassedBy`); a message waits for a pause in speech 10 s at most (`PatienceMs`). The
+  tester's "Den messages never came" was most likely the gold step (no log).
+- Ctrl+Y moved into the Den (new step `DenRooms`); "go into the cave" names the Den; a waypoint step
+  after the reward. Records carry `#version=2`; older ones are remapped (`FromVersion1`).
+- Lessons' sounds: BACK + right stick left (K) plays the last again and holds, right (L) goes on;
+  switch `tutorial-sound-wait`; read back, a sound's message plays it. Monsters' sounds before
+  leaving the camp; gold, potion and weapon in the chosen item sounds (`GroundItems::Heard`).
+- The town portal's button read from the bars (`SkillBarService::ButtonOf`); passives and the
+  General Skills page (INFERRED: LT/RT) in the skill lesson; gold and shop lessons.
+- Records moved to `tutorial_records.*`. 125/125 CTest; installed by the build. **Unverified live.**
+- Known: `tutorial_service.cpp` is ~930 lines; the side lessons (level-up, inventory, gold, shop)
+  belong in a file of their own. Not built: a gems/runes/stash-tabs lesson (controls unknown).
+
+**Next step:** a new character through the whole tutorial with a pad: K/L on the sounds, the kill,
+Ctrl+Y in the Den, the portal's button, the waypoint step; send the log (`[tutorial]`).
+
 ## The tester's list on build 2026-10-20 — 2026-10-21 (released as test-2026-10-21-2 from 083ce69)
 
 Release: 125/125 CTest, 29 entries, 62,930,893 bytes, SHA-256 `f60bca7d…3bc708`; news
@@ -2105,7 +2125,7 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 | Dynamic text (modals, popup rows) | done (front end) | `native_widgets.cpp`: D2RCore slot table → game FindPanel/FindChildWidget; text box text at +0x88. Pending: ButtonWidget labels (modal Confirm/Dismiss probed), legends, runtime tooltips |
 | Performance | done — improvement confirmed by user | Scoped native reads and immediate capture on selection change installed; user reports improvement. `docs/inventory-npc-followup.md` |
 | In-game text (tutorials, auto hints, NPC dialogue, area names) | wip — Charsi dialogue observed in logs | Native visible-tree/focus reader at 30 Hz, full speech text, diff-gating; lifecycle starts after LocalPlayerReady. No SetText hook needed. `docs/test-ingame-text.md` |
-| New-character tutorial (mod commands, radar, scanner, through the Den of Evil) | built 2026-10-21; played through live 2026-10-21 | 16 steps, message history (BACK + right stick left/right, BACK + D-pad up kept from the game; K, L, Shift+K), two sounds. `docs/tutorial.md` |
+| New-character tutorial (mod commands, radar, scanner, through the Den of Evil and a waypoint) | built 2026-10-21; v1 played through live 2026-10-21, tester list reworked it the same day | 18 steps, sound lessons with again/next, side lessons (level-up, inventory, gold, shop), message history (BACK + right stick left/right, BACK + D-pad up; K, L, Shift+K). `docs/tutorial.md` |
 | NPC menus / dialogue topics | wip — Charsi menu/topics observed in logs | Actual focused ListItem/Button text, heading + initial option, option-only navigation, return from dialogue; hidden templates excluded. Log includes introduction, gossip, trade/repair and cancel; explicit dialogue validation pending |
 | Area entry banners | wip — camp entry confirmed | User confirmed hearing Campamento de las Arpías; boundary/dungeon checks remain |
 | System notices / G graphics restriction | done — repeated G delivery confirmed by user | Native message identity rearms a newly delivered identical warning; stationary/older notices remain silent. `docs/test-ingame-text.md`, `GEMINI.md` |

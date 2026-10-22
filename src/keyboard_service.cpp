@@ -1934,6 +1934,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
 		{TutorialService::Enabled, TutorialService::SetEnabled, phrase(&T::tutorialOn, &T::tutorialOff), false, "tutorial"},
+		{TutorialService::WaitForSounds, TutorialService::SetWaitForSounds, phrase(&T::tutorialSoundWaitOn, &T::tutorialSoundWaitOff), false, "tutorial-sound-wait"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
 		{ModalReader::MenuNews, ModalReader::SetMenuNews, phrase(&T::menuNewsOn, &T::menuNewsOff), false, "main-menu-news"},
 	}});

@@ -65,15 +65,21 @@ using Bar = std::array<NativeSkillBar::Binding, NativeSkillBar::Buttons>;
 bool g_binding = false;
 std::optional<Bar> g_beforeMain, g_beforeLt;
 
+// A bar's slot as the player presses it: ControllerHelpSkill1..6 name SkillButton1..6, LT before the LT bar's.
+std::string SlotButton(int slot, bool lt) {
+	std::string button(ControllerText::FirstButton(Localization::Text("ControllerHelpSkill" + std::to_string(slot + 1))));
+	if (lt && !button.empty()) button = std::string(ControllerText::Button(LeftTriggerGlyph)) + " " + button;
+	return button;
+}
+
 std::string BoundPhrase(const std::optional<Bar>& before, const std::optional<Bar>& after, bool lt) {
 	if (!before || !after) return {};
 	for (int i = 0; i < NativeSkillBar::Buttons; ++i) {
 		const auto& now = (*after)[i];
 		if (!now.bound || now.skill == (*before)[i].skill) continue;
 		const std::string name = now.name.empty() ? NativeSkillBar::SkillName(now.skill) : now.name;
-		std::string button(ControllerText::FirstButton(Localization::Text("ControllerHelpSkill" + std::to_string(i + 1))));
+		const std::string button = SlotButton(i, lt);
 		if (name.empty() || button.empty()) continue;
-		if (lt) button = std::string(ControllerText::Button(LeftTriggerGlyph)) + " " + button;
 		char phrase[256]{};
 		std::snprintf(phrase, sizeof(phrase), Strings::Current().skillBound, name.c_str(), button.c_str());
 		return phrase;
@@ -133,4 +139,14 @@ void Tick(const D2RL::PluginContext* context) {
 // and the same change the console command makes.
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_enabled = enabled; }
+
+std::string ButtonOf(std::initializer_list<int> skills) {
+	for (const bool main : {true, false}) {
+		const auto bar = NativeSkillBar::AlternateBar(main);
+		if (!bar) continue;
+		for (int i = 0; i < NativeSkillBar::Buttons; ++i)
+			if ((*bar)[i].bound && std::find(skills.begin(), skills.end(), (*bar)[i].skill) != skills.end()) return SlotButton(i, !main);
+	}
+	return {};
+}
 }

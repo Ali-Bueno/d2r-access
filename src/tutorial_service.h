@@ -11,6 +11,9 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
 void Unregister();
 bool Enabled();
 void SetEnabled(bool on);
+// tutorial-sound-wait: a lesson's sounds wait for the player after each one.
+bool WaitForSounds();
+void SetWaitForSounds(bool on);
 
 // What the scanner named, the route described and the beacon reached, from the UI thread.
 void Scanned(const EntityRadar::Entity& entity);

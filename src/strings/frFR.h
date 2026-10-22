@@ -259,6 +259,8 @@ inline constexpr Table frFR {
 	.routePromptsOff = "Annonces des virages de l'itinéraire : désactivé",
 	.tutorialOn = "Tutoriel : activé",
 	.tutorialOff = "Tutoriel : désactivé",
+	.tutorialSoundWaitOn = "Tutoriel : chaque son vous attend",
+	.tutorialSoundWaitOff = "Tutoriel : les sons se suivent",
 	.routeTotalOn = "Distance totale de l'itinéraire : activée",
 	.routeTotalOff = "Distance totale de l'itinéraire : désactivée",
 	.routeLegsOn = "Étapes de l'itinéraire : activées",

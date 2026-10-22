@@ -259,6 +259,8 @@ inline constexpr Table koKR {
 	.routePromptsOff = "경로 방향 전환 안내 꺼짐",
 	.tutorialOn = "튜토리얼 켜짐",
 	.tutorialOff = "튜토리얼 꺼짐",
+	.tutorialSoundWaitOn = "튜토리얼 소리마다 기다림",
+	.tutorialSoundWaitOff = "튜토리얼 소리 이어서 재생",
 	.routeTotalOn = "경로 총 거리 켜짐",
 	.routeTotalOff = "경로 총 거리 꺼짐",
 	.routeLegsOn = "경로 구간 켜짐",

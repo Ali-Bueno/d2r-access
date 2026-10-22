@@ -46,11 +46,19 @@ const Texts& For(Strings::Language language) {
 	}
 }
 
-std::string Render(std::string_view text, const Texts& texts, bool routeOnA, const Places& places,
+std::string Render(std::string_view text, const Texts& texts, bool routeOnA, const Names& names,
 	const std::function<std::string(uint32_t)>& button) {
 	std::string result(text);
-	ReplaceAll(result, "{den}", places.den.empty() ? std::string_view(texts.den) : std::string_view(places.den));
-	ReplaceAll(result, "{moor}", places.moor.empty() ? std::string_view(texts.moor) : std::string_view(places.moor));
+	const auto name = [&](std::string_view token, const std::string& game, const char* own) {
+		ReplaceAll(result, token, game.empty() ? std::string_view(own) : std::string_view(game));
+	};
+	name("{den}", names.den, texts.den);
+	name("{moor}", names.moor, texts.moor);
+	name("{plains}", names.plains, texts.plains);
+	name("{portaltome}", names.portalTome, texts.portalTome);
+	name("{idtome}", names.identifyTome, texts.identifyTome);
+	name("{general}", names.generalSkills, texts.generalSkills);
+	ReplaceAll(result, "{portal}", names.portal);
 	ReplaceAll(result, "{route}", routeOnA ? texts.routeButton : texts.routeStick);
 	for (const auto& [token, glyph] : Tokens)
 		if (result.find(token) != std::string::npos) ReplaceAll(result, token, button(glyph));

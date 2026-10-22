@@ -259,6 +259,8 @@ inline constexpr Table zhTW {
 	.routePromptsOff = "路線轉彎提示已關閉",
 	.tutorialOn = "教學已開啟",
 	.tutorialOff = "教學已關閉",
+	.tutorialSoundWaitOn = "教學：每個聲音等你操作",
+	.tutorialSoundWaitOff = "教學：聲音依序播放",
 	.routeTotalOn = "路線總距離已開啟",
 	.routeTotalOff = "路線總距離已關閉",
 	.routeLegsOn = "路線分段已開啟",

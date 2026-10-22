@@ -259,6 +259,8 @@ inline constexpr Table ruRU {
 	.routePromptsOff = "Подсказки поворотов маршрута: выключено",
 	.tutorialOn = "Обучение: включено",
 	.tutorialOff = "Обучение: выключено",
+	.tutorialSoundWaitOn = "Обучение: каждый звук ждёт тебя",
+	.tutorialSoundWaitOff = "Обучение: звуки идут один за другим",
 	.routeTotalOn = "Общая длина маршрута: включено",
 	.routeTotalOff = "Общая длина маршрута: выключено",
 	.routeLegsOn = "Отрезки маршрута: включено",

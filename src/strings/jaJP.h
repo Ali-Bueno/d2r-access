@@ -259,6 +259,8 @@ inline constexpr Table jaJP {
 	.routePromptsOff = "ルートの曲がり角の案内 オフ",
 	.tutorialOn = "チュートリアル オン",
 	.tutorialOff = "チュートリアル オフ",
+	.tutorialSoundWaitOn = "チュートリアル 音ごとに待つ",
+	.tutorialSoundWaitOff = "チュートリアル 音を続けて再生",
 	.routeTotalOn = "ルートの総距離 オン",
 	.routeTotalOff = "ルートの総距離 オフ",
 	.routeLegsOn = "ルートの区間 オン",

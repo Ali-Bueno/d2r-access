@@ -259,6 +259,8 @@ inline constexpr Table enUS {
 	.routePromptsOff = "Route turn prompts off",
 	.tutorialOn = "Tutorial on",
 	.tutorialOff = "Tutorial off",
+	.tutorialSoundWaitOn = "Tutorial: each sound waits for you",
+	.tutorialSoundWaitOff = "Tutorial: sounds play one after another",
 	.routeTotalOn = "Route total distance on",
 	.routeTotalOff = "Route total distance off",
 	.routeLegsOn = "Route legs on",

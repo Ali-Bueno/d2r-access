@@ -23,6 +23,7 @@ add_library(d2r-access SHARED
 	src/boss_life.cpp
 	src/boss_life_service.cpp
 	src/tutorial.cpp
+	src/tutorial_records.cpp
 	src/tutorial_service.cpp
 	src/tutorial_text.cpp
 	src/native_preset_map.cpp

@@ -259,6 +259,8 @@ inline constexpr Table itIT {
 	.routePromptsOff = "Avvisi di svolta del percorso: disattivo",
 	.tutorialOn = "Tutorial: attivo",
 	.tutorialOff = "Tutorial: disattivo",
+	.tutorialSoundWaitOn = "Tutorial: ogni suono ti aspetta",
+	.tutorialSoundWaitOff = "Tutorial: i suoni si susseguono",
 	.routeTotalOn = "Distanza totale del percorso: attiva",
 	.routeTotalOff = "Distanza totale del percorso: disattiva",
 	.routeLegsOn = "Tratti del percorso: attivi",

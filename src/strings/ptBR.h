@@ -259,6 +259,8 @@ inline constexpr Table ptBR {
 	.routePromptsOff = "Avisos de curva da rota: desligado",
 	.tutorialOn = "Tutorial: ligado",
 	.tutorialOff = "Tutorial: desligado",
+	.tutorialSoundWaitOn = "Tutorial: cada som espera por você",
+	.tutorialSoundWaitOff = "Tutorial: os sons tocam em sequência",
 	.routeTotalOn = "Distância total da rota: ligada",
 	.routeTotalOff = "Distância total da rota: desligada",
 	.routeLegsOn = "Trechos da rota: ligados",

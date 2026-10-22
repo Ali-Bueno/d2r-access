@@ -84,6 +84,11 @@ Sound Classify(uint32_t quality, Base base, bool quest, bool lastEpoch) {
 	default: return Sound::Normal;
 	}
 }
+Sound Heard(uint32_t code, uint32_t quality, Base base) {
+	if (DropSounds())
+		if (const auto drop = DropSoundOf(code)) return *drop;
+	return Classify(quality, base, false, LastEpochSounds());
+}
 Voice Spatialize(const Item& item, Point player) {
 	const double dx = item.position.x - player.x, dy = item.position.y - player.y;
 	const double distance = std::hypot(dx, dy);

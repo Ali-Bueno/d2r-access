@@ -259,6 +259,8 @@ inline constexpr Table esMX {
 	.routePromptsOff = "Avisos de giro de la ruta desactivados",
 	.tutorialOn = "Tutorial activado",
 	.tutorialOff = "Tutorial desactivado",
+	.tutorialSoundWaitOn = "Tutorial: cada sonido te espera",
+	.tutorialSoundWaitOff = "Tutorial: los sonidos van seguidos",
 	.routeTotalOn = "Distancia total de la ruta activada",
 	.routeTotalOff = "Distancia total de la ruta desactivada",
 	.routeLegsOn = "Tramos de la ruta activados",

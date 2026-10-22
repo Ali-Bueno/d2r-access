@@ -259,6 +259,8 @@ inline constexpr Table deDE {
 	.routePromptsOff = "Abbiegehinweise der Route aus",
 	.tutorialOn = "Tutorial an",
 	.tutorialOff = "Tutorial aus",
+	.tutorialSoundWaitOn = "Tutorial: jeder Klang wartet auf dich",
+	.tutorialSoundWaitOff = "Tutorial: Klänge spielen nacheinander",
 	.routeTotalOn = "Gesamtlänge der Route an",
 	.routeTotalOff = "Gesamtlänge der Route aus",
 	.routeLegsOn = "Teilstrecken der Route an",

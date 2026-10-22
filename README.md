@@ -9,10 +9,13 @@ the [architecture guide](docs/architecture.md).
 
 - **Tutorial for a new character (built; live validation pending):** a level 1 character playing
   alone is guided through the mod's tools (vitals, radar, scanner, route, beacon, the area
-  questions) until the Den of Evil's reward, each step waiting for the player to do it. A chime
+  questions) through the Den of Evil's reward and the first waypoint, each step waiting for the
+  player to do it, with short lessons on levelling up, the inventory, gold and shops. A chime
   opens each message and another marks a step done. BACK + right stick left/right (K, L) reads the
-  messages again and BACK + D-pad up (Shift+K) the first, kept from the game. Switch `tutorial`
-  in the Ctrl+S list; spoken in every language the mod speaks. See [tutorial](docs/tutorial.md).
+  messages again, a sound's message playing its sound, and BACK + D-pad up (Shift+K) the first,
+  kept from the game; while a lesson plays its sounds, left plays the last one again and right goes
+  on. Switches `tutorial` and `tutorial-sound-wait` (each sound waits for the player) in the Ctrl+S
+  list; spoken in every language the mod speaks. See [tutorial](docs/tutorial.md).
 - Screen changes and panels are announced with the game's own localized titles (title screen,
   main menu, character select/create, options tabs, cinematics, calibration, modals). The main
   menu's news ("Reign of the Warlock available now!") is read as it opens (`main-menu-news`, on).

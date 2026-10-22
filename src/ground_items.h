@@ -155,6 +155,8 @@ private:
 };
 
 Sound Classify(uint32_t quality, Base base, bool quest = false, bool lastEpoch = false);
+// The sound an item makes in the chosen set: by its class, or with the Diablo II drops its own drop sound.
+Sound Heard(uint32_t code, uint32_t quality, Base base);
 bool IsPotion(Sound sound);
 bool IsGold(Sound sound);
 Voice Spatialize(const Item& item, Point player);

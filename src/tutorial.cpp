@@ -21,15 +21,34 @@ Signals Needs(Step step) {
 	case Step::Beacon: return Bit(Signal::AtAkara);
 	case Step::Talk: return Bit(Signal::TalkedToAkara);
 	case Step::LeaveTown: return Bit(Signal::InBloodMoor);
-	case Step::Surroundings: return Bit(Signal::RoomWays) | Bit(Signal::Terrain);
-	case Step::Fight: return Bit(Signal::Gold);
+	case Step::Surroundings: return Bit(Signal::Terrain);
+	case Step::Fight: return Bit(Signal::Kill);
 	case Step::FindDen: return Bit(Signal::InDen);
+	case Step::DenRooms: return Bit(Signal::RoomWays);
 	case Step::ClearDen: return Bit(Signal::DenCleared);
 	case Step::ReturnToTown: return Bit(Signal::InTown);
 	case Step::Reward: return Bit(Signal::DenDone);
+	case Step::Waypoint: return Bit(Signal::Waypoint);
 	case Step::Finished: break;
 	}
 	return 0;
+}
+
+Signals PassedBy(Step step) {
+	const Signals cleared = Bit(Signal::DenCleared) | Bit(Signal::DenDone);
+	switch (step) {
+	case Step::LeaveTown: case Step::Surroundings: case Step::Fight: case Step::FindDen: case Step::DenRooms: return cleared;
+	case Step::ReturnToTown: return Bit(Signal::DenDone);
+	default: return 0;
+	}
+}
+
+Step FromVersion1(int step) {
+	// Version 1 had no DenRooms nor Waypoint: its ClearDen (13) now begins at the Den's rooms.
+	constexpr int OldReturnToTown = 14, OldFinished = 16;
+	if (step < 0 || step >= OldFinished) return Step::Finished;
+	if (step >= OldReturnToTown) return static_cast<Step>(step + 1);
+	return static_cast<Step>(step);
 }
 
 void Post(Signal signal) { g_posted.fetch_or(Bit(signal), std::memory_order_relaxed); }
@@ -50,13 +69,60 @@ void Guide::Notice(Signals events) { m_seen |= events; }
 
 bool Guide::Done(Signals states) const {
 	const Signals needs = Needs(m_step);
-	return !Finished() && needs && ((m_seen | states) & needs) == needs;
+	return !Finished() && ((needs && ((m_seen | states) & needs) == needs) || Passed(states));
 }
+
+bool Guide::Passed(Signals states) const { return !Finished() && (states & PassedBy(m_step)) != 0; }
 
 void Guide::Advance() {
 	if (Finished()) return;
 	m_step = static_cast<Step>(static_cast<size_t>(m_step) + 1);
 	m_seen = 0;
+}
+
+void Audition::Start(std::vector<uint64_t> reads, uint64_t now, uint64_t gap, bool wait) {
+	m_reads = std::move(reads);
+	m_due = now;
+	m_gap = gap;
+	m_next = 0;
+	m_heard.reset();
+	m_wait = wait;
+	m_phase = m_reads.empty() ? Phase::Done : Phase::Name;
+}
+
+Audition::Due Audition::Tick(uint64_t now) {
+	if (now < m_due) return {};
+	switch (m_phase) {
+	case Phase::Name:
+		m_phase = Phase::Sound;
+		m_due = now + m_reads[m_next];
+		return {Cue::Name, m_next};
+	case Phase::Sound:
+		m_heard = m_next++;
+		Heard(now);
+		return {Cue::Sound, *m_heard};
+	case Phase::Gap: m_phase = m_next < m_reads.size() ? Phase::Name : Phase::Done; break;
+	default: break;
+	}
+	return {};
+}
+
+void Audition::Heard(uint64_t now) {
+	if (m_wait) m_phase = Phase::Hold;
+	else { m_phase = Phase::Gap; m_due = now + m_gap; }
+}
+
+std::optional<size_t> Audition::Again() {
+	if (!m_heard || m_phase == Phase::Idle || m_phase == Phase::Done) return std::nullopt;
+	// A name already said for the next sound is said again when the lesson goes on.
+	m_phase = Phase::Hold;
+	return m_heard;
+}
+
+void Audition::Next(uint64_t now) {
+	if (m_phase == Phase::Idle || m_phase == Phase::Done) return;
+	if (m_phase == Phase::Hold) m_phase = m_next < m_reads.size() ? Phase::Name : Phase::Done;
+	m_due = now;
 }
 
 void History::Add(std::string text) {
@@ -71,19 +137,21 @@ void History::Clear() {
 
 std::optional<History::Reading> History::Previous() {
 	if (Empty()) return std::nullopt;
-	if (m_cursor == 0) return Reading{m_messages[m_cursor], Edge::First};
-	return Reading{m_messages[--m_cursor]};
+	if (m_cursor == 0) return At(Edge::First);
+	--m_cursor;
+	return At();
 }
 
 std::optional<History::Reading> History::Next() {
 	if (Empty()) return std::nullopt;
-	if (m_cursor + 1 >= m_messages.size()) return Reading{m_messages[m_cursor], Edge::Last};
-	return Reading{m_messages[++m_cursor]};
+	if (m_cursor + 1 >= m_messages.size()) return At(Edge::Last);
+	++m_cursor;
+	return At();
 }
 
 std::optional<History::Reading> History::First() {
 	if (Empty()) return std::nullopt;
 	m_cursor = 0;
-	return Reading{m_messages[m_cursor]};
+	return At();
 }
 }

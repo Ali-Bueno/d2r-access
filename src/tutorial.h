@@ -12,7 +12,7 @@ namespace D2RAccess::Tutorial {
 // What the player did that a step can wait for.
 enum class Signal : uint8_t {
 	Vitals, Wall, HeardSounds, ScannedWarriv, TalkedToWarriv, ScannedAkara, RouteToAkara, AtAkara, TalkedToAkara, InBloodMoor,
-	RoomWays, Terrain, Gold, InDen, DenCleared, InTown, DenDone, Count };
+	RoomWays, Terrain, Kill, InDen, DenCleared, InTown, DenDone, Waypoint, Count };
 using Signals = uint32_t;
 static_assert(static_cast<size_t>(Signal::Count) <= sizeof(Signals) * 8);
 constexpr Signals Bit(Signal signal) { return Signals{1} << static_cast<unsigned>(signal); }
@@ -20,11 +20,18 @@ constexpr Signals Bit(Signal signal) { return Signals{1} << static_cast<unsigned
 // The steps in order; Finished is past the last and has the farewell.
 enum class Step : uint8_t {
 	Vitals, Radar, Sounds, Scanner, MeetWarriv, FindAkara, Route, Beacon, Talk, LeaveTown, Surroundings, Fight, FindDen,
-	ClearDen, ReturnToTown, Reward, Finished };
+	DenRooms, ClearDen, ReturnToTown, Reward, Waypoint, Finished };
 inline constexpr size_t StepCount = static_cast<size_t>(Step::Finished);
 
 // The signals that complete a step.
 Signals Needs(Step step);
+// The states that show the player is already past a step: the Den cleared passes the steps
+// on the way to it, so a player ahead of the tutorial is not held at one (a tester, 2026-10-21).
+Signals PassedBy(Step step);
+
+// Records saved before the Den's rooms and the waypoint had steps of their own (version 1):
+// the step the same place has now.
+Step FromVersion1(int step);
 
 // From any thread: a signal for the service's next tick.
 void Post(Signal signal);
@@ -40,7 +47,7 @@ bool QuietWorld();
 void SetBusy(bool busy);
 bool Busy();
 
-// Steps go in order. An event (a key, a scan, gold taken) counts once its step
+// Steps go in order. An event (a key, a scan, a kill) counts once its step
 // is current, so each step asks for its own action; a state (where the player
 // is, the quest's progress) counts while it holds, so a quest already further
 // on passes its steps.
@@ -49,6 +56,8 @@ public:
 	void Start(Step step);
 	void Notice(Signals events);
 	bool Done(Signals states) const;
+	// Done only because the player is already past it (PassedBy): its words are not said.
+	bool Passed(Signals states) const;
 	void Advance();
 	Step Current() const { return m_step; }
 	bool Finished() const { return m_step == Step::Finished; }
@@ -58,12 +67,42 @@ private:
 	Signals m_seen = 0;
 };
 
+// A lesson's sounds, each after its name: one after another, or with `wait` one at a time, on
+// when the player asks. "Again" plays the last sound heard once more and holds the lesson there
+// until "next" (a tester, 2026-10-21: hear a sound again before the next one comes).
+class Audition {
+public:
+	enum class Cue : uint8_t { None, Name, Sound };
+	struct Due { Cue cue = Cue::None; size_t index = 0; };
+	// `reads[i]`: how long the i-th name takes to say, after which its sound plays; the next
+	// name comes `gap` after it. The first name is due at once.
+	void Start(std::vector<uint64_t> reads, uint64_t now, uint64_t gap, bool wait);
+	Due Tick(uint64_t now);
+	// The last sound heard, to play again; none before the first.
+	std::optional<size_t> Again();
+	void Next(uint64_t now);
+	void Reset() { m_phase = Phase::Idle; }
+	bool Idle() const { return m_phase == Phase::Idle; }
+	bool Holding() const { return m_phase == Phase::Hold; }
+	bool Done() const { return m_phase == Phase::Done; }
+
+private:
+	enum class Phase : uint8_t { Idle, Name, Sound, Gap, Hold, Done };
+	void Heard(uint64_t now);
+	std::vector<uint64_t> m_reads;
+	uint64_t m_due = 0, m_gap = 0;
+	size_t m_next = 0; // the next cue to name
+	std::optional<size_t> m_heard;
+	bool m_wait = false;
+	Phase m_phase = Phase::Idle;
+};
+
 // Every message said, in order, and the one the player is reading.
 class History {
 public:
 	// Where a move stopped because there is nothing further that way.
 	enum class Edge { None, First, Last };
-	struct Reading { std::string_view text; Edge edge = Edge::None; };
+	struct Reading { std::string_view text; Edge edge = Edge::None; size_t at = 0; };
 
 	void Add(std::string text); // the cursor goes to it
 	void Clear();
@@ -74,6 +113,7 @@ public:
 	std::optional<Reading> First();
 
 private:
+	Reading At(Edge edge = Edge::None) const { return {m_messages[m_cursor], edge, m_cursor}; }
 	std::vector<std::string> m_messages;
 	size_t m_cursor = 0;
 };
