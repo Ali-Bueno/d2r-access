@@ -257,7 +257,7 @@ bool OnScreen(const NativeUi::Rect& rect) {
 }
 
 bool NotMenu(std::string_view name) {
-	return name.starts_with("HUD") || name.starts_with(MessageLog) || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
+	return PanelState::Hud(name) || name.starts_with(MessageLog) || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
 }
 
 GridJump::Grid ReadGrid(uintptr_t widget) {

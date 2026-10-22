@@ -514,6 +514,13 @@ void NewPortalOfTheSameOwnerReplacesTheOld() {
 	bool danis = false;
 	for (const auto& entity : registry.Entities()) danis |= entity.id == 10;
 	Check(danis, "another owner's portal is untouched");
+	bool moved = false;
+	for (const auto& entity : registry.Entities()) moved |= entity.owner == "Host" && entity.id == 12 && entity.position.x == 70;
+	Check(moved, "the old entry takes the new portal's unit and place");
+	Check(EntityRadar::Recreated(TownPortal(11, "Host", "Host's portal", 20, 20), TownPortal(12, "Host", "Host's portal", 70, 70)),
+		"the beacon following the old one is led to the new one (a tester, 2026-10-22)");
+	Check(!EntityRadar::Recreated(TownPortal(13, "", "Catacombs Level 4", 20, 20), TownPortal(14, "", "Catacombs Level 4", 70, 70)),
+		"portals with no owner, the event and shrine ones, stay apart");
 }
 
 void RosterDropsAPortalItNoLongerNames() {

@@ -336,7 +336,10 @@ start await a follow-up listening check.
 **Doors:** a shut door loops `wooden door`, `metal door`, `stone door` or
 `slime door`, chosen by the sound the game itself plays when that door opens,
 and falls silent once opened, unless `open-door-sounds` (off) keeps it. In the Crypt, the
-Mausoleum and the Tower Cellar every doorway between two rooms creaks (`doorway-sounds`, on).
+Mausoleum and the Tower Cellar, in Tristram and in Act I's cottages and the Tower's ruin every
+doorway creaks (`doorway-sounds`, on) and is listed in the scanner with the doors
+(`doorways-listed`, on). Walking past a Jail secret door says "You feel a cool draft." once
+(`secret-drafts`, on; [secret doors](docs/secret-doors.md)).
 Doors and doorways have their own volumes (`door-volume`, `doorway-volume`).
 A click every 1, 5 or 10 units walked tells distance (`step-clicks`, off; `step-click-interval`,
 5; `step-beep` for the first beep instead of the click; `step-volume`). Scrolls, runes and gems on the ground have their
@@ -382,8 +385,10 @@ time a described area is entered, its name is followed by how to hear them (swit
 "Name = words" line each; updates never replace it. It is read again a second after you save
 it, while the game runs, and `descriptions-names.txt` beside it lists every name it answers to; an
 area can also be written as its banner says it ("The Cave Level 1"). See [descriptions](docs/descriptions.md).
-Town portals are named like the game's label, with whose they are: "Tower Cellar Level 1,
-TankMan's portal" ([town portals](docs/portals.md)).
+A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
+off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
+The desert's cliff stairs are one entry, "stairs", halfway up; the Countess's Gilded Cistern of
+Virgins in Tower Cellar Level 5 is listed too ([places](docs/places.md)).
 
 **Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
 game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.

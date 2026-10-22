@@ -1823,6 +1823,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
 		{GroundItemService::OpenDoorSounds, GroundItemService::SetOpenDoorSounds, phrase(&T::openDoorSoundsOn, &T::openDoorSoundsOff), false, "open-door-sounds"},
 		{GroundItemService::DoorwaySounds, GroundItemService::SetDoorwaySounds, phrase(&T::doorwaySoundsOn, &T::doorwaySoundsOff), false, "doorway-sounds"},
+		{GroundItemService::SecretDrafts, GroundItemService::SetSecretDrafts, phrase(&T::secretDraftsOn, &T::secretDraftsOff), false, "secret-drafts"},
 		{GroundItemService::StepClicks, GroundItemService::SetStepClicks, phrase(&T::stepClicksOn, &T::stepClicksOff), false, "step-clicks"},
 		StepClickInterval(),
 		{GroundItemService::StepBeep, GroundItemService::SetStepBeep, phrase(&T::stepBeepOn, &T::stepBeepOff), false, "step-beep"},
@@ -1901,6 +1902,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
 		{MapSurveyService::UnexploredSpread, MapSurveyService::SetUnexploredSpread, phrase(&T::unexploredSpreadOn, &T::unexploredSpreadOff), false, "unexplored-spread"},
+		{MapSurveyService::DoorwaysListed, MapSurveyService::SetDoorwaysListed, phrase(&T::doorwaysListedOn, &T::doorwaysListedOff), false, "doorways-listed"},
 	}});
 	groups.push_back({GroupName(G::Items), {
 		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},

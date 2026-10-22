@@ -7,6 +7,7 @@
 #include <functional>
 #include <span>
 #include <string_view>
+#include <vector>
 
 // Named places inside one map piece: the piece's own LvlPrest name, the interior
 // the game's HD layout marks (an acoustic or lighting volume), and the landmark
@@ -79,10 +80,24 @@ struct Spot {
 };
 uint64_t MapKey(int32_t def, int tileX, int tileY);
 // A landmark the scanner lists too, not only the walk-in announcer: a way across a
-// level that has no unit, such as the desert's cliff stairs (a tester, 2026-10-17).
+// level that has no unit, such as the desert's cliff stairs (a tester, 2026-10-17),
+// or one that tells the way, the Countess's cistern by her doors (2026-10-22).
 bool Tracked(PlaceFeature kind);
 // The two landings of one cliff stairway: walking from one to the other is not news.
 bool Stairway(PlaceFeature kind);
+// The landmark a kind is said as: either landing of a cliff stairway is the stairs
+// (a tester, 2026-10-22: which end is rarely needed).
+PlaceFeature Spoken(PlaceFeature kind);
+
+// A tracked landmark as the scanner lists it, in preset-local subtiles, `side` cells
+// across. A cliff stairway is one, halfway between its landings and as wide as the
+// way from one to the other, so a route to it ends on the stairs.
+struct Listing {
+	PlaceFeature kind = PlaceFeature::Count; // as spoken
+	double       x = 0, y = 0;
+	int          side = 0;
+};
+std::vector<Listing> Listings(const Piece& piece);
 
 // No landmark in reach inside the same interior keeps the last one: the floor
 // between two landmarks is not leaving either.

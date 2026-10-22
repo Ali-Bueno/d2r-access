@@ -3,6 +3,7 @@
 #include "test_support.h"
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 #include <vector>
 
@@ -243,6 +244,36 @@ void WhatIsSpoken() {
 	const auto back = Places::Compare(Places::HeldStairway(top, Places::StairwayHoldMs), top);
 	Check(back.feature, "walking away and back to the top names the stairs again");
 	Check(Places::Tracked(PlaceFeature::CliffStairs) && Places::Tracked(PlaceFeature::CliffStairsTop), "both landings are in the scanner");
+	Check(Places::Spoken(PlaceFeature::CliffStairs) == PlaceFeature::Stairs && Places::Spoken(PlaceFeature::CliffStairsTop) == PlaceFeature::Stairs
+		&& Places::Spoken(PlaceFeature::Forge) == PlaceFeature::Forge, "either landing is said as the stairs (a tester, 2026-10-22)");
+}
+
+// The scanner lists a cliff stairway once, halfway between its landings (a tester, 2026-10-22:
+// the route to the top landing was lost on the stairs' bend).
+void StairwaysListedOnce() {
+	const auto* cliff = Places::Find("Act2/BigCliff/CliffLP.ds1");
+	Check(cliff != nullptr, "the Dry Hills' cliff piece has its stairs");
+	const auto listed = Places::Listings(Places::PieceOf(*cliff));
+	Check(listed.size() == 1 && listed[0].kind == PlaceFeature::Stairs, "its two landings are one listing, the stairs");
+	const auto piece = Places::PieceOf(*cliff);
+	const auto centre = [](const PlaceSeed& seed) { return std::pair{(seed.minX + seed.maxX) / 2.0, (seed.minY + seed.maxY) / 2.0}; };
+	const auto [bx, by] = centre(piece.seeds[0]);
+	const auto [tx, ty] = centre(piece.seeds[1]);
+	Check(!listed.empty() && listed[0].x == (bx + tx) / 2 && listed[0].y == (by + ty) / 2, "halfway between the landings");
+	Check(!listed.empty() && listed[0].side >= static_cast<int>(std::hypot(bx - tx, by - ty)), "as wide as the way from one to the other");
+
+	const PlaceSeed lone[] = {Point(4, 4, PlaceFeature::CliffStairsTop), Point(9, 9, PlaceFeature::Forge)};
+	const auto alone = Places::Listings({lone, {}});
+	Check(alone.size() == 1 && alone[0].kind == PlaceFeature::Stairs && alone[0].x == 4.5, "a landing without its pair is still listed");
+
+	for (const auto* path : {"Act1/Crypt/CryptCountess1.ds1", "Act1/Crypt/CryptCountess2.ds1"}) {
+		const auto* countess = Places::Find(path);
+		const auto cisterns = countess ? Places::Listings(Places::PieceOf(*countess)) : std::vector<Places::Listing>{};
+		Check(cisterns.size() == 1 && cisterns[0].kind == PlaceFeature::BloodCistern && cisterns[0].side > 1,
+			"the Countess's cistern is listed in both her layouts, as wide as its platform");
+	}
+	const auto* copy = Places::Find("Act1/Crypt/CryptNWarpNext.ds1");
+	Check(!copy || Places::Listings(Places::PieceOf(*copy)).empty(), "the unused copy of her room is not");
 }
 
 void CarryAndHysteresis() {
@@ -268,6 +299,7 @@ int main() {
 	BlockedPropsAndTies();
 	InteriorsKeepTheirProps();
 	WhatIsSpoken();
+	StairwaysListedOnce();
 	CorridorsSpoken();
 	CarryAndHysteresis();
 	Passed();

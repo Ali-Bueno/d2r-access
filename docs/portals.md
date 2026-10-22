@@ -26,8 +26,8 @@ checked by the mod, which says the owner whenever one is found):
    portal's unit id (lookup `0x136670`), its name at +0 (the game shows the display name at +0xAA);
 2. else the name the ownership packet left at `ObjectData+0x34` (char[0x3D], setter `0x1CB070`).
 
-Spoken as `portalOwned`: "Tower Cellar Level 1, TankMan's portal". Fingerprints:
-`EntityLayout::PortalOwnerChecks` (`[scan] Portal owners verified`).
+Spoken as `portalOwned`: "TankMan's portal" (until 2026-10-22 "Tower Cellar Level 1, TankMan's
+portal"; see below). Fingerprints: `EntityLayout::PortalOwnerChecks` (`[scan] Portal owners verified`).
 
 ## Remembered portals in multiplayer
 
@@ -52,3 +52,19 @@ On a town portal, in town and in the field, single player and online: the scanne
 whether the owner comes from the roster or +0x34. In multiplayer: host opens a second portal
 while the client stays away; the client's log should show `[scan] portal dropped`. Unread: the label's format string at
 `exe+0x1CC2F74` (the `.rdata` of the rebuilt image does not match the live process).
+
+## One portal per owner, named by its owner (2026-10-22)
+
+The tester's two-player log (`portal_dani_*`, `portal_tank_man_*` in the user's Downloads,
+`d2r access test build 2026-10-22 notes.7z`): the host opened a portal from the Dry Hills, then a
+new one from the Far Oasis while the client was far off in town. For about 100 s the client still
+listed "Dry Hills, TankMan's portal" (the old unit, id 50, not loaded, so rule 1 waited for the new
+unit to load) and its beacon kept a frozen copy of it until 13:51:49; no `[scan] portal dropped`
+line, so the client's roster ids were not refreshed or were zero (rule 2 never fired).
+
+At the tester's request the scanner now names an owned portal by its owner alone, "TankMan's
+portal": where it leads is read off the portal itself on reaching it (the game's own label, through
+the target reader). A portal with no owner (Andariel's, a Portal shrine's, the red ones) keeps its
+destination as its name. `EntityRadar::Recreated` takes another portal of the same owner for the
+same one, so the registry's entry and the beacon's lock move to the new unit as soon as the client
+loads it. Not changed: whether the client can know of the new portal before loading it.

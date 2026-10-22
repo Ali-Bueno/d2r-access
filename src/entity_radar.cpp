@@ -49,6 +49,9 @@ bool SameTarget(const Entity& a, const Entity& b) {
 }
 
 bool Recreated(const Entity& known, const Entity& loaded) {
+	// A player has one town portal: another of the same owner is it, wherever it now stands.
+	if (known.category == Category::Portal && !known.owner.empty())
+		return loaded.category == Category::Portal && loaded.owner == known.owner && loaded.id != known.id;
 	if (known.kind != loaded.kind || known.placeId || loaded.placeId || known.id == loaded.id
 		|| known.category != loaded.category || known.name != loaded.name) return false;
 	double within = 0;

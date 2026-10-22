@@ -27,6 +27,10 @@ void Opened(std::string_view panel) {
 	g_open.emplace_back(panel);
 }
 
+bool Hud(std::string_view panel) {
+	return panel.starts_with("HUD") || panel == "PaladinAuraPanel";
+}
+
 bool Closed(std::string_view panel) {
 	const auto it = Find(panel);
 	if (it == g_open.end()) {

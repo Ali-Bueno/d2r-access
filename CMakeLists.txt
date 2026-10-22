@@ -30,6 +30,8 @@ add_library(d2r-access SHARED
 	src/passages.cpp
 	src/places.cpp
 	src/place_service.cpp
+	src/doorways.cpp
+	src/secret_doors.cpp
 	src/inventory_arrivals.cpp
 	src/inventory_arrival_service.cpp
 	src/cube_state.cpp
@@ -317,6 +319,9 @@ if(BUILD_TESTING)
 	add_test(NAME passages COMMAND passages-tests)
 	d2r_test(places-tests tests/places_tests.cpp src/places.cpp)
 	add_test(NAME places COMMAND places-tests)
+	d2r_test(doorways-tests tests/doorways_tests.cpp src/doorways.cpp src/secret_doors.cpp src/rooms.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	target_link_libraries(doorways-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	add_test(NAME doorways COMMAND doorways-tests)
 	# Full-resolution native body connectivity, shared with the reactive radar.
 	d2r_test(beacon-tests tests/beacon_tests.cpp src/beacon.cpp src/radar_grid.cpp)
 	add_test(NAME beacon COMMAND beacon-tests)

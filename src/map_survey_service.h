@@ -24,5 +24,8 @@ bool TownNpcsEverywhere();
 void SetTownNpcsEverywhere(bool on);
 bool UnexploredSpread();
 void SetUnexploredSpread(bool on);
+// Doorways listed with the doors, on by default (docs/ground-items.md#doorways-2026-10-20).
+bool DoorwaysListed();
+void SetDoorwaysListed(bool on);
 
 }

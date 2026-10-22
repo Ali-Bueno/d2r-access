@@ -1019,6 +1019,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_lastNativeFallbackPoll = now;
 			const NativeMemory::ReadScope scope;
 			const UiText::Snapshot snapshot = NativeUi::Snapshot(focused.panel, focused.widget);
+			if (PanelState::Hud(snapshot.name)) return;
 			const auto readout = FrontendNativeFallback::Describe(snapshot);
 			if (!readout.text.empty()) {
 				const bool contextChanged = g_lastNativeFallbackContext != readout.context;

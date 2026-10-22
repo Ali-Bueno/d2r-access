@@ -213,3 +213,23 @@ over the whole level). It is an object placed at runtime, a target in no mode, s
 cannot name it. `NativeEntities` reads it anyway as a map landmark (`EntityLayout::RogueFountainClass`,
 "Rogue fountain"): it is listed in the scanner, found ("The radar has located a new place") and
 guided to like the desert's cliff stairs. Unverified live: that the fountain is that object.
+
+## One stairway, and the Countess's cistern (2026-10-22)
+
+**The cliff stairs.** The tester's log (`precious_*`): the route to "stairs up" (the bottom
+landing's centre, 4395,5529 in the Dry Hills) went "off the route" five times on the stairs' bend,
+with legs of 1 to 6 units, while routes to items dropped by either landing worked. At their
+request a stairway is now one scanner entry, "stairs" (`Places::Listings`): halfway between the
+two landings' centres, with a footprint as wide as the way between them, so the beacon's arrival
+distance (3 plus half the footprint, `BeaconService::SettingsFor`) takes either end and the middle.
+The walk-in announcer says either landing as "stairs" (`Places::Spoken`) from two tiles off
+(`Reach`), and still not again when walking from one landing to the other.
+
+**The Gilded Cistern of Virgins.** The tester asked for the Countess's blood-filled vessel in Tower
+Cellar Level 5 as a landmark: the doors on either side of it lead to her room. Its only candidate in
+her two layouts (`act1/crypt/cryptcountess1.ds1`, `cryptcountess2.ds1`, LvlPrest Def 159) is the
+model `act1_crypt_countess/ritual_platform01`, with the room's blood pool and bloodstain decals
+round it; nothing is named bath, basin or chalice. Feature `BloodCistern`, padded 7 subtiles (the
+platform is about 14 across and blocks; its seed is one point), skipped in `cryptnwarpnext.ds1`,
+which keeps an unused copy of the room. It is tracked: listed in the scanner and routed to, a route
+ending beside the platform. Unverified live: that the platform is the vessel of the screenshot.

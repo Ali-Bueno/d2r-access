@@ -7,12 +7,11 @@
 #include "native_world.h"
 #include "entity_cue_audio.h"
 #include "item_audio.h"
-#include "level_exit_layout.h"
+#include "doorways.h"
 #include "panel_state.h"
-#include "generated/level_flags.h"
 #include "radar_config.h"
 #include "radar_ui.h"
-#include "rooms.h"
+#include "secret_doors.h"
 #include "screen_reader.h"
 #include "speech_priority.h"
 #include "speech_strings.h"
@@ -55,9 +54,9 @@ std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{
 // Into StepCounter::Intervals: 5 units (a tester, 2026-10-21: 1 is spam, 10 too coarse indoors).
 std::atomic<int> g_stepInterval{1};
 StepCounter::Odometer g_odometer;
-// LvlTypes.txt row "Act 1 - Crypt" (Levels.txt LevelType of the Crypt, the Mausoleum and the
-// Tower Cellar): its doorways break the automap's walls; other tile sets follow once heard.
-constexpr int32_t CryptLevelType = 4;
+// The Jail's secret doors, felt as a draft when walked past (docs/secret-doors.md).
+std::atomic<bool> g_secretDrafts{true};
+SecretDoors::Draft g_draft;
 std::vector<std::string> g_nearbyLabels;
 uint64_t g_labelsUpdated = 0;
 // Every loaded ground item's name, for the pickup click, and the target last clicked for.
@@ -214,18 +213,10 @@ std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity
 	}
 	return result;
 }
-// The doorways in a crypt's walls, at their middle; a door object's own gap has its door's sound.
+// The doorways in the walls, at their middle (Doorways::Find).
 std::vector<GroundItems::Item> DoorwaySources(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
 	std::vector<GroundItems::Item> result;
-	if (Generated::FindLevelFlags(world.level).levelType != CryptLevelType) return result;
-	const auto doored = [&](const Rooms::Doorway& doorway) {
-		return std::any_of(entities.begin(), entities.end(), [&](const EntityRadar::Entity& entity) {
-			return entity.kind == EntityRadar::Kind::Object
-				&& (entity.shutDoor != Generated::DoorSound::None || entity.openedDoor != Generated::DoorSound::None)
-				&& std::abs(entity.position.x - doorway.centre.x) + std::abs(entity.position.y - doorway.centre.y)
-					<= LevelExitLayout::SubtilesPerTile; }); };
-	for (const auto& doorway : Rooms::Doorways(world)) {
-		if (doored(doorway)) continue;
+	for (const auto& doorway : Doorways::Find(world, entities)) {
 		GroundItems::Item source;
 		source.id = (static_cast<uint32_t>(doorway.centre.x) << 16) | (static_cast<uint32_t>(doorway.centre.y) & 0xFFFF);
 		source.position = {doorway.centre.x, doorway.centre.y};
@@ -396,8 +387,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_nearbyLabels.clear();
 	g_labelsUpdated = now;
 	// Fixed exits, containers, quest objects and doors share one slower unit read.
-	const bool shrines = g_shrineSounds.load();
-	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines || doorways) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
+	const bool shrines = g_shrineSounds.load(), drafts = g_secretDrafts.load();
+	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines || doorways || drafts) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
 		g_entitiesRead = now;
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
@@ -426,6 +417,15 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		auto wells = read && shrines ? ShrineSources(entities) : std::vector<GroundItems::Item>{};
 		if (wells.size() != g_shrines.size()) AsyncLog::InfoF(context, "[items] shrines and wells nearby: %zu", wells.size());
 		g_shrines = std::move(wells);
+		if (read && drafts) {
+			std::vector<Radar::Position> secrets;
+			for (const auto& entity : entities) if (entity.secretDoor) secrets.push_back(entity.position);
+			if (g_draft.Felt(secrets, {snapshot.player.x, snapshot.player.y}) && !uiOwnsSpeech) {
+				AsyncLog::InfoF(context, "[items] secret door felt: %zu shut loaded, one at %.0f,%.0f", secrets.size(),
+					secrets.front().x, secrets.front().y);
+				ScreenReader::Speak(Strings::Current().secretDraft, false);
+			}
+		}
 	}
 	snapshot.landmarks = g_landmarks;
 	if (const bool stashOpen = StashOpen(); stashOpen != g_stashOpen) {
@@ -460,6 +460,7 @@ void Unregister() {
 	g_listeners.clear(); g_actions.clear();
 	ItemAudio::Stop();
 	g_tracker.Reset();
+	g_draft.Reset();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 	g_supported = g_exitsSupported = g_boundariesSupported = false;
@@ -475,6 +476,8 @@ void NoteWorldTarget(std::string_view label) {
 }
 bool ShrineSounds() { return g_shrineSounds.load(); }
 void SetShrineSounds(bool enabled) { g_shrineSounds = enabled; }
+bool SecretDrafts() { return g_secretDrafts.load(); }
+void SetSecretDrafts(bool enabled) { g_secretDrafts = enabled; }
 bool DoorwaySounds() { return g_doorwaySounds.load(); }
 void SetDoorwaySounds(bool enabled) { g_doorwaySounds = enabled; }
 bool OpenDoorSounds() { return g_openDoorSounds.load(); }

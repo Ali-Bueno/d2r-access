@@ -110,7 +110,7 @@ if(BUILD_TESTING)
 	add_dependencies(item-audio-tests d2r-access)
 	add_executable(ground-item-service-tests tests/ground_item_service_tests.cpp src/ground_item_service.cpp
 		src/ground_items.cpp src/ground_item_text.cpp src/speech_strings.cpp src/async_log.cpp src/radar_config.cpp src/speech_priority.cpp
-		src/step_counter.cpp src/tutorial.cpp)
+		src/step_counter.cpp src/tutorial.cpp src/secret_doors.cpp)
 	foreach(target ground-item-tests native-ground-item-tests item-audio-tests ground-item-service-tests)
 		target_link_libraries(${target} PRIVATE D2RLPlugin::D2RLPlugin version)
 		target_include_directories(${target} PRIVATE src)

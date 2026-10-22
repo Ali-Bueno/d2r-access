@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace D2RL {
@@ -25,6 +26,11 @@ namespace D2RAccess::ModalReader {
 void Tick(const D2RL::PluginContext* context);
 
 void Reset();
+
+// The delete-character modal's count, from five, as the tester saw it (2026-10-22; unmeasured).
+inline constexpr int DeleteHoldSeconds = 5;
+// The number to say after A has been held `heldMs` on that modal, 0 once the count is over.
+int HoldCountdown(uint64_t heldMs);
 
 // Text said once, queued behind the title screen's own announcement.
 void SetTitleAnnouncement(std::string text);

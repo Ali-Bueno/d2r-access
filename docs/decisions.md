@@ -3,6 +3,29 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-22 — The tester's list on build test-2026-10-22
+
+From `d2r access test build 2026-10-22 notes.7z` (the user's Downloads: the list, five logs, the
+Countess's vessel and a secret door before and after). Built and unit-tested only.
+- **"Paladin Aura" at loading** was the focus reader's fallback reading the HUD's aura widget, which
+  the game focuses while loading a paladin's game. HUD panels (`PanelState::Hud`) are never read by
+  it. Rejected: silencing the fallback for the whole load screen (it names real menus elsewhere).
+- **The delete countdown is the mod's own**, from the press, five seconds as the tester counted; the
+  Confirm button's text is logged to learn whether the game writes it there.
+- **One "stairs" per cliff stairway**, at the tester's suggestion: halfway, wide enough that either
+  end counts as arrived. Rejected: fixing the route to the bottom landing alone, the bend stays.
+- **Doorways listed with the doors** and **in Act I's buildings and Tristram**. Outdoors only inside
+  a building's map piece, since the gap rule would take a gap between trees for a doorway. They
+  are not told as found: a crypt has dozens.
+- **The cistern** is the only Countess-specific model in her layouts (`ritual_platform01`);
+  unconfirmed that it is the vessel. Named as the tester wrote it, in every language.
+- **Portals by owner only**, the tester's own fix, plus one portal per owner in the beacon too
+  (`Recreated`). Rejected: polling the roster for the new portal (its ids never refreshed on the
+  client in this log).
+- **Secret doors as a draft, not a door**: never listed while shut, felt once within 10 units. Not
+  built: routing through them (their collision is unread) or hiding the loot behind them.
+- Not acted on: the tester's note that legs under 5 units are hard to walk; they will keep watching.
+
 ## 2026-10-21 — The tester's addendum on builds 2026-10-20 and 20-2
 
 From `tutorial and builds -20 and -20-2 feedback.7z` (the user's Downloads: the addendum, three

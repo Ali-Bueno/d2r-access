@@ -234,7 +234,7 @@ std::vector<std::string> Towards(const Lifecycle& state, const Reading& reading)
 		if (target.empty() && !reading.piece.seeds.empty()) {
 			const int interior = Places::InteriorAt(reading.piece, end.x - reading.originX, end.y - reading.originY);
 			const auto feature = Places::Nearest(reading.piece, reading.originX, reading.originY, end.x, end.y, interior, open, FeatureRadius);
-			if (feature.seed != Places::None) target = strings.placeFeatures[static_cast<size_t>(feature.kind)];
+			if (feature.seed != Places::None) target = strings.placeFeatures[static_cast<size_t>(Places::Spoken(feature.kind))];
 		}
 		if (target.empty()) continue;
 		char text[256]{};
@@ -262,7 +262,7 @@ std::string Phrase(const Reading& reading, const Places::Change& change, const s
 		for (const auto& target : towards) add(target);
 	}
 	if (change.feature) {
-		const std::string_view name = strings.placeFeatures[static_cast<size_t>(spot.feature)];
+		const std::string_view name = strings.placeFeatures[static_cast<size_t>(Places::Spoken(spot.feature))];
 		told = Descriptions::FirstTime(name, spot.feature == Places::PlaceFeature::HangmanTree ? strings.hangmanTreeDescription : "");
 		add(told.empty() ? name : std::string_view(told));
 	}
@@ -465,17 +465,35 @@ std::vector<EntityRadar::Entity> MapLandmarks() {
 		const auto* places = Places::Find(map.path);
 		if (!places) continue;
 		const int originX = map.tileX * LevelExitLayout::SubtilesPerTile, originY = map.tileY * LevelExitLayout::SubtilesPerTile;
-		for (const auto& seed : Places::PieceOf(*places).seeds) {
-			if (!Places::Tracked(seed.feature)) continue;
+		for (const auto& listing : Places::Listings(Places::PieceOf(*places))) {
 			EntityRadar::Entity entity;
 			entity.kind = EntityRadar::Kind::Object;
 			entity.category = EntityRadar::Category::Interactable;
-			entity.position = {originX + (seed.minX + seed.maxX) / 2.0, originY + (seed.minY + seed.maxY) / 2.0};
+			entity.position = {originX + listing.x, originY + listing.y};
 			entity.placeId = NativeLevelExits::Identity(entity.position);
-			entity.name = Strings::Current().placeFeatures[static_cast<size_t>(seed.feature)];
+			entity.name = Strings::Current().placeFeatures[static_cast<size_t>(listing.kind)];
+			// A route ends beside it, never inside the cistern or halfway down a cliff.
+			entity.footprint = {static_cast<uint32_t>(listing.side), static_cast<uint32_t>(listing.side)};
 			entity.mapLandmark = true;
 			found.push_back(std::move(entity));
 		}
+	}
+	return found;
+}
+
+std::vector<Doorways::Box> Buildings() {
+	std::vector<Doorways::Box> found;
+	if (!g_supported) return found;
+	std::vector<uint64_t> maps;
+	for (const uintptr_t room : NativeWorld::LoadedRooms()) {
+		NativePresetMap::Map map;
+		if (!NativePresetMap::Read(room, map)) continue;
+		const uint64_t key = Places::MapKey(map.def, map.tileX, map.tileY);
+		if (std::find(maps.begin(), maps.end(), key) != maps.end()) continue;
+		maps.push_back(key);
+		if (!Places::Separate(Places::NameOf(map.def, map.path))) continue;
+		constexpr int Sub = LevelExitLayout::SubtilesPerTile;
+		found.push_back({map.tileX * Sub, map.tileY * Sub, (map.tileX + map.tileWidth) * Sub, (map.tileY + map.tileHeight) * Sub});
 	}
 	return found;
 }

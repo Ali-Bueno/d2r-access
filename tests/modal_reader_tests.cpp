@@ -28,7 +28,8 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 }
 
 namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
-namespace D2RAccess::InputDirection { bool FaceButtonHeld(FaceButton) { return false; } }
+bool aHeld = false;
+namespace D2RAccess::InputDirection { bool FaceButtonHeld(FaceButton button) { return button == FaceButton::A && aHeld; } }
 namespace D2RAccess::NativeUi {
 Focus GameFocus() { return {}; } // these panels open with nothing focused
 bool Visible(uintptr_t) { return promptShown; }
@@ -156,5 +157,24 @@ int main() {
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 1, "and not with its switch off");
 	ModalReader::SetMenuNews(true);
+
+	// Deleting a character: A held, the modal counts down from five (a tester, 2026-10-22).
+	Check(ModalReader::HoldCountdown(0) == 5 && ModalReader::HoldCountdown(999) == 5 && ModalReader::HoldCountdown(1000) == 4
+		&& ModalReader::HoldCountdown(4999) == 1 && ModalReader::HoldCountdown(5000) == 0, "the count runs from five to one over the hold");
+	speech.clear();
+	active = "DeleteCharacterModal"; tree = {};
+	Node(-1, Kind::Other, active);
+	ModalReader::Tick(nullptr);
+	aHeld = true;
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1 && speech[0].text == "5" && speech[0].interrupt, "holding A says five at once");
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1, "and nothing more within that second");
+	aHeld = false;
+	ModalReader::Tick(nullptr);
+	aHeld = true;
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 2 && speech[1].text == "5", "letting go and holding again starts the count over");
+	aHeld = false;
 	Passed();
 }

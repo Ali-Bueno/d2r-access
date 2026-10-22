@@ -1,6 +1,7 @@
 #include "places.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <deque>
 #include <string>
@@ -36,11 +37,17 @@ long long Area(const Generated::PlaceVolume& volume) {
 
 // How far a landmark is told from: `radius`, or for one seen across the whole
 // map piece it stands in, from anywhere in that piece. The Crypt's burning star
-// was told when almost stepping on its points (a tester, 2026-10-19).
+// was told when almost stepping on its points (a tester, 2026-10-19). A cliff
+// stairway is told from the ground walked past either landing (2026-10-22).
 int Reach(PlaceFeature kind, int radius) {
 	constexpr int AcrossPiece = 40; // subtiles: the 8x8 tiles of a Crypt or Catacombs piece
-	return kind == PlaceFeature::FireStar ? std::max(radius, AcrossPiece) : radius;
+	constexpr int PastStairs = 10;  // subtiles: two tiles, about the stairway's own width
+	if (kind == PlaceFeature::FireStar) return std::max(radius, AcrossPiece);
+	return Stairway(kind) ? std::max(radius, PastStairs) : radius;
 }
+
+double CentreX(const Generated::PlaceSeed& seed) { return (seed.minX + seed.maxX) / 2.0; }
+double CentreY(const Generated::PlaceSeed& seed) { return (seed.minY + seed.maxY) / 2.0; }
 
 uint64_t CellKey(int x, int y) {
 	return static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32 | static_cast<uint32_t>(y);
@@ -153,8 +160,35 @@ int Padding(PresetPlace place) {
 	return 0;
 }
 
-bool Tracked(PlaceFeature kind) { return Stairway(kind); }
+bool Tracked(PlaceFeature kind) { return Stairway(kind) || kind == PlaceFeature::BloodCistern; }
 bool Stairway(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs || kind == PlaceFeature::CliffStairsTop; }
+PlaceFeature Spoken(PlaceFeature kind) { return Stairway(kind) ? PlaceFeature::Stairs : kind; }
+
+std::vector<Listing> Listings(const Piece& piece) {
+	std::vector<Listing> listed;
+	std::vector<bool> paired(piece.seeds.size());
+	// Each bottom landing with the nearest top one: the generator places them in pairs.
+	for (size_t bottom = 0; bottom < piece.seeds.size(); ++bottom) {
+		if (piece.seeds[bottom].feature != PlaceFeature::CliffStairs) continue;
+		size_t top = piece.seeds.size();
+		double nearest = 0;
+		for (size_t i = 0; i < piece.seeds.size(); ++i) {
+			if (piece.seeds[i].feature != PlaceFeature::CliffStairsTop || paired[i]) continue;
+			const double apart = std::hypot(CentreX(piece.seeds[i]) - CentreX(piece.seeds[bottom]), CentreY(piece.seeds[i]) - CentreY(piece.seeds[bottom]));
+			if (top == piece.seeds.size() || apart < nearest) { top = i; nearest = apart; }
+		}
+		if (top == piece.seeds.size()) continue;
+		paired[bottom] = paired[top] = true;
+		listed.push_back({PlaceFeature::Stairs, (CentreX(piece.seeds[bottom]) + CentreX(piece.seeds[top])) / 2,
+			(CentreY(piece.seeds[bottom]) + CentreY(piece.seeds[top])) / 2, static_cast<int>(std::ceil(nearest))});
+	}
+	for (size_t i = 0; i < piece.seeds.size(); ++i) {
+		const auto& seed = piece.seeds[i];
+		if (paired[i] || !Tracked(seed.feature)) continue;
+		listed.push_back({Spoken(seed.feature), CentreX(seed), CentreY(seed), std::max(seed.maxX - seed.minX, seed.maxY - seed.minY)});
+	}
+	return listed;
+}
 
 Spot Carry(const Spot& current, Spot observed) {
 	if (current.valid && observed.feature == PlaceFeature::Count && observed.map == current.map

@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 31;
+inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 32;
 
 
 
@@ -348,6 +348,12 @@ struct Table {
 	const char* glossarySound; // %s = what a sound of the glossary means
 	const char* faultMemory; // the UI update ran out of memory; the mod stopped its own movement
 	const char* faultAction; // the UI update failed; the mod stopped its own movement
+	const char* doorway; // a doorway with no door, as the scanner lists it (doorways.h)
+	const char* secretDraft; // passing a shut secret door (secret_doors.h)
+	const char* secretDraftsOn;
+	const char* secretDraftsOff;
+	const char* doorwaysListedOn; // doorways in the scanner with the doors
+	const char* doorwaysListedOff;
 	std::array<const char*, GlossarySoundCount> glossarySounds;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
@@ -543,7 +549,7 @@ struct Table {
 	const char* descriptionsOff;
 	const char* areaDescriptionHint; // %s = the button held with the right stick for an area's description
 	const char* noAreaDescription; // %s = the area that has no description
-	const char* portalOwned; // %s = where a town portal leads, %s = the player who cast it
+	const char* portalOwned; // %s = the player who cast a town portal; where it leads is read on reaching it
 	const char* skillAuraActive; // %s = an aura's skill name, running on the player (the life report)
 	const char* skillActive; // %s = a skill's name, running on the player (Bone Armor, a shape)
 	const char* skillReportOn; // the running skills in the life report (BACK+X)
@@ -605,7 +611,8 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction};
+		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
+		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

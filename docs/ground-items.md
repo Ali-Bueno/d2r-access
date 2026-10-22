@@ -264,6 +264,16 @@ tile figures are INFERRED from the crypt's tiles, not measured: check them by ea
 DS1 notes (5x5 cells per DS1 cell, orientations 8/9) were not used: the mod reads no DS1 files,
 and the arches' gaps are in the collision already.
 
+**Listed, and in Act I's buildings, 2026-10-22.** The tester heard all five Tower Cellar levels
+without a misfire and asked for two things. Doorways are now scanner entries with the doors
+("doorway", category Interactable, no unit, `Entity::doorway`), so they are found and routed to as
+doors are; they are not told as discoveries nor stored for later games (`MapSurvey::Fixed`).
+Switch `doorways-listed` (Ctrl+S Navigation, on). And the same gaps creak and are listed beyond the
+crypt (`Doorways::Select`): everywhere in Tristram (LvlTypes "Act 1 - Tristram"), and elsewhere
+inside a loaded map piece that is one building (`Places::Separate`: a cottage, a stable, a burning
+cottage, the Tower's ruin; `PlaceService::Buildings`). Whether the rule finds the cottages' and
+Tristram's doorways, and not their fences, is unchecked. Act III's huts are next once these are heard.
+
 ## Walked distance click (2026-10-20)
 
 A tester's request, to judge distances: a click every 1, 5 or 10 units walked (units as the

@@ -124,3 +124,12 @@ button whose `ConfirmLegend` / `DismissLegend` child is empty by its action's
 pad button, A for select and B for back (`LegendGlyph` in
 `src/modal_reader.cpp`): "A: SÍ, B: NO". That is the default binding, not read
 from the game; the hold's length is not measured.
+
+## The hold's count (2026-10-22)
+
+A tester: holding A to delete counts down from five on screen, and nothing said it. While the
+modal is active and A is held, the mod says 5, 4, 3, 2, 1, one a second from the press, each
+cutting the last (`ModalReader::HoldCountdown`, `DeleteHoldSeconds`); letting go starts it over.
+The five seconds are the tester's count, not measured. Whether the game writes the count into the
+Confirm button is unknown: its text is logged while A is held, `[modal] delete: Confirm reads
+"..." after N ms held`, and `[modal] delete: A let go after N ms`. A keyboard's hold is not counted.

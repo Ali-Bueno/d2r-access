@@ -106,6 +106,40 @@ void PollDeath(const D2RL::PluginContext* context, const std::string& active) {
 	ScreenReader::Speak(text, true);
 }
 
+// Deleting a character takes A held while the modal counts down on screen (a tester,
+// 2026-10-22). The count is said from the hold; the Confirm button's live text is logged
+// to learn whether the game shows it there. docs/delete-character-modal.md
+constexpr std::string_view DeletePanel = "DeleteCharacterModal";
+constexpr std::string_view DeleteConfirm = "Confirm";
+uint64_t g_deleteHeldSince = 0;
+int g_deleteSaid = 0;
+std::string g_deleteFace;
+
+void PollDeleteHold(const D2RL::PluginContext* context) {
+	const uint64_t now = GetTickCount64();
+	if (!InputDirection::FaceButtonHeld(InputDirection::FaceButton::A)) {
+		if (g_deleteHeldSince) AsyncLog::InfoF(context, "[modal] delete: A let go after %llu ms",
+			static_cast<unsigned long long>(now - g_deleteHeldSince));
+		g_deleteHeldSince = 0;
+		g_deleteSaid = 0;
+		return;
+	}
+	if (!g_deleteHeldSince) g_deleteHeldSince = now;
+	const uintptr_t panel = NativeWidgets::FindPanel(DeletePanel);
+	if (const uintptr_t confirm = panel ? NativeWidgets::FindChild(panel, DeleteConfirm) : 0) {
+		if (std::string face = NativeWidgets::ReadText(confirm); face != g_deleteFace) {
+			AsyncLog::InfoF(context, "[modal] delete: Confirm reads \"%s\" after %llu ms held", face.c_str(),
+				static_cast<unsigned long long>(now - g_deleteHeldSince));
+			g_deleteFace = std::move(face);
+		}
+	}
+	const int left = HoldCountdown(now - g_deleteHeldSince);
+	if (left > 0 && left != g_deleteSaid) {
+		g_deleteSaid = left;
+		ScreenReader::Speak(std::to_string(left), true);
+	}
+}
+
 bool Speakable(const UiText::Node& node) {
 	if (node.text.empty() || !node.enabled) return false;
 	switch (node.kind) {
@@ -184,6 +218,11 @@ void PollTitlePrompt(const D2RL::PluginContext* context, const std::string& acti
 	ScreenReader::Speak(text, false);
 }
 
+int HoldCountdown(uint64_t heldMs) {
+	const uint64_t whole = heldMs / 1000;
+	return whole >= static_cast<uint64_t>(DeleteHoldSeconds) ? 0 : DeleteHoldSeconds - static_cast<int>(whole);
+}
+
 void Reset() { g_lastPanel.clear(); g_titleSpoken = g_deathSpoken = false; }
 
 void SetTitleAnnouncement(std::string text) { g_titleAnnouncement = std::move(text); }
@@ -197,8 +236,12 @@ void Tick(const D2RL::PluginContext* context) {
 		if (active == TitlePanel && !g_titleSpoken) PollTitlePrompt(context, active);
 		if (active == TitlePanel) PassTitle(context, GetTickCount64());
 		if (active == DeathPanel && !g_deathSpoken) PollDeath(context, active);
+		if (active == DeletePanel) PollDeleteHold(context);
 		return;
 	}
+	g_deleteHeldSince = 0;
+	g_deleteSaid = 0;
+	g_deleteFace.clear();
 	if (g_lastPanel == TitlePanel && g_titlePadPress)
 		AsyncLog::InfoF(context, "[modal] title: the game took the pad press in %llu ms (now %s)",
 			static_cast<unsigned long long>(GetTickCount64() - g_titlePadPress), active.c_str());

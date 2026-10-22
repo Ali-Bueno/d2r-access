@@ -82,6 +82,8 @@ FEATURES = [
     # The sewers' round floor grate with its steam (manhole01; a tester, 2026-10-19). The flat
     # water_channel_grate01 along the channels is not it.
     ("SewerGrate", "model", r"act2_sewer_manholes/manhole"),
+    # The Countess's gilded vessel of blood, by the doors to her room (a tester, 2026-10-22).
+    ("BloodCistern", "model", r"act1_crypt_countess/ritual_platform"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -89,10 +91,12 @@ FEATURE_NAMES = [f[0] for f in FEATURES] + DERIVED_FEATURES
 # A feature's seeds drop another feature's seeds on the same spot.
 SUPERSEDES = {"BloodFountain": ("Fountain",)}
 # Files whose own preset name already says what the feature would (a cottage on fire).
-FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.ds1$")}
+FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.ds1$"),
+                         # cryptnwarpnext.ds1 keeps an unused copy of the Countess's room.
+                         "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)")}
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
-FEATURE_PADDING = {"HangmanTree": 5}
+FEATURE_PADDING = {"HangmanTree": 5, "BloodCistern": 7}
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
 # HD height: nodes within one subtile of the lowest top (highest base) are one landing, the stairway's full width.
 STAIRS_LANDING_SLACK = HD_PER_SUBTILE

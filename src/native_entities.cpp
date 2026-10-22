@@ -565,6 +565,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 		entity.doorSpan = std::max(width, height);
 	entity.questObject = Generated::QuestItemObject(classId) || Generated::QuestMechanismStep(classId, mode);
 	if (operate == TeleportPadOperateFn) entity.padClass = static_cast<uint16_t>(classId);
+	entity.secretDoor = operate == SecretDoorOperateFn && mode == ObjectNeutral;
 	if (CairnStones::Index(classId) && operate == CairnStoneOperateFn) {
 		entity.cairnStone = static_cast<uint8_t>(*CairnStones::Index(classId) + 1);
 		entity.questObject = mode == ObjectNeutral;
@@ -599,9 +600,11 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 			entity.nameKey = LevelKey(tables, levelId, LevelNameKey);
 			entity.destinationLevel = levelId;
 			entity.owner = PortalOwner(data, entity.id);
-			if (const auto& owner = entity.owner; !owner.empty() && !entity.name.empty()) {
+			// A player's portal is listed by its owner alone; where it leads is read on reaching it,
+			// so one opened anew is never listed twice under two names (a tester, 2026-10-22).
+			if (const auto& owner = entity.owner; !owner.empty()) {
 				char text[512]{};
-				std::snprintf(text, sizeof text, Strings::Current().portalOwned, entity.name.c_str(), owner.c_str());
+				std::snprintf(text, sizeof text, Strings::Current().portalOwned, owner.c_str());
 				entity.name = text;
 				entity.nameKey.clear(); // composed
 			}

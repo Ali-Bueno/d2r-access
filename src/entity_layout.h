@@ -85,6 +85,9 @@ inline constexpr uint32_t RogueFountainClass = 12;
 // Its handler (0x1405E9DA0) warps the player through the room's warp tile, which
 // is NoInteract, once the stairs are in mode 2, the only mode they can be selected in.
 inline constexpr uint8_t RoomWarpOperateFn = 44;
+// objects.txt HiddenDoor2 (129, "secret door 1"), the Jail's wall panel that opens a room, and
+// no other row; IsDoor 0, selectable only while shut (docs/secret-doors.md).
+inline constexpr uint8_t SecretDoorOperateFn = 18;
 // The handlers whose rows are the containers a player opens for loot, read off
 // the game's own objects.txt rather than guessed (tools/objects_containers.py,
 // which also proves every offset above against its named column on all 587

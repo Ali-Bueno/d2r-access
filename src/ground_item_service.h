@@ -17,7 +17,10 @@ void SetPickupClick(bool enabled);
 // A loop for every usable shrine and well nearby (a tester), on by default.
 bool ShrineSounds();
 void SetShrineSounds(bool enabled);
-// A creak at each doorway of a crypt's rooms (a tester, 2026-10-20), on by default.
+// "You feel a cool draft" passing a shut secret door, on by default (docs/secret-doors.md).
+bool SecretDrafts();
+void SetSecretDrafts(bool enabled);
+// A creak at each doorway with no door (Doorways::Find; a tester, 2026-10-20), on by default.
 bool DoorwaySounds();
 void SetDoorwaySounds(bool enabled);
 // Opened doors keep their loop (a tester, 2026-10-20), off by default.

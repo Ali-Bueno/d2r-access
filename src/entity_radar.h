@@ -91,6 +91,8 @@ struct Entity {
 	uint16_t padClass = 0;
 	uint8_t seal = 0; // a Chaos Sanctuary seal's number (Generated::SealOrdinal), zero otherwise
 	bool mapLandmark = false; // a landmark of the map itself, no unit: the desert's cliff stairs (PlaceService::MapLandmarks)
+	bool doorway = false; // a doorway with no door (Doorways::Listed): listed and led to, never told as found nor stored
+	bool secretDoor = false; // a shut wall panel that opens a room (EntityLayout::SecretDoorOperateFn): never listed
 	std::string owner; // a town portal's owner as the game names them, empty for anything else (docs/portals.md)
 };
 // A party roster entry's town portal unit ids (EntityLayout::RosterPortal / RosterRemotePortal).
@@ -102,7 +104,8 @@ bool SameTarget(const Entity& a, const Entity& b);
 // (MEASURED 10:40: five "Large Axe" and two "Bardiche, magic" listed on one spot).
 // Objects and items never move: the same name within a step is it. Whether a
 // monster keeps its id is NOT measured; one of the same name within the scan's
-// range is taken for it, which changes nothing while ids are kept.
+// range is taken for it, which changes nothing while ids are kept. A player's town portal
+// opened anew is the same portal: one per owner (docs/portals.md).
 bool Recreated(const Entity& known, const Entity& loaded);
 // The name to say, followed by an enemy's plate when it has one.
 std::string SpokenName(const Entity& entity, std::string_view separator);

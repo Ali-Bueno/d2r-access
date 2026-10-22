@@ -17,6 +17,7 @@
 #include "native_level_areas.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
+#include "doorways.h"
 #include "drlg_layout.h"
 #include "keyboard_menu.h"
 #include "keyboard_service.h"
@@ -130,6 +131,7 @@ bool                 g_fullAssistance = true;
 std::atomic<bool>    g_reachFilter{ false };
 std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
+std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
 size_t               g_cutLogged = 0;
@@ -296,12 +298,17 @@ void LogTownNpcs(const D2RL::PluginContext* context, const Lifecycle& state, con
 		scene.townNpcs.size(), seen, listed.c_str(), NativeEntities::TownPresets().c_str());
 }
 
-bool Collect(const Lifecycle& state, Scene& scene) {
+bool Collect(const Lifecycle& state, const Radar::World& world, Scene& scene) {
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeEntities::Read(state.player, state.session, entities, true, true, true, true)) return false;
 	// The map's own landmarks with no unit: the desert's cliff stairs (a tester, 2026-10-17).
 	const auto mapLandmarks = PlaceService::MapLandmarks();
 	entities.insert(entities.end(), mapLandmarks.begin(), mapLandmarks.end());
+	// Doorways with the doors, found and routed to alike (a tester, 2026-10-22).
+	if (g_doorwaysListed.load())
+		for (const auto& doorway : Doorways::Find(world, entities)) entities.push_back(Doorways::Listed(doorway));
+	// A shut secret door is a wall to the eye: felt as a draft, never listed (docs/secret-doors.md).
+	std::erase_if(entities, [](const EntityRadar::Entity& entity) { return entity.secretDoor; });
 	scene = MapSurvey::Split(std::move(entities));
 	return true;
 }
@@ -455,7 +462,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
 	Scene scene;
-	if (Collect(state, scene)) Observe(state, world, grid, scene);
+	if (Collect(state, world, scene)) Observe(state, world, grid, scene);
 	g_rooms.Observe(state.level, NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level),
 		CurrentRooms(state.level, state.session), world.player);
 	std::vector<EntityRadar::Entity> catalogued = g_registry.Entities();
@@ -611,6 +618,8 @@ bool ReachFilter() { return g_reachFilter.load(); }
 bool TownNpcsEverywhere() { return g_townNpcsEverywhere.load(); }
 void SetTownNpcsEverywhere(bool on) { g_townNpcsEverywhere = on; }
 bool UnexploredSpread() { return g_unexploredSpread.load(); }
+bool DoorwaysListed() { return g_doorwaysListed.load(); }
+void SetDoorwaysListed(bool on) { g_doorwaysListed = on; }
 void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
 void SetReachFilter(bool on) { g_reachFilter = on; }
 
@@ -715,7 +724,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_registry.Select(state.level, !g_fullAssistance);
 	const auto read = Clock::now();
 	Scene scene;
-	if (!Collect(state, scene)) return;
+	if (!Collect(state, world, scene)) return;
 	LogAreas(context, state);
 	const auto collected = Clock::now();
 	const auto grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);

@@ -2,6 +2,30 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-22 — 2026-10-22 (not released)
+
+From `d2r access test build 2026-10-22 notes.7z` ([decisions](docs/decisions.md)). 126/126 CTest;
+installed by the build. **Unverified live.**
+- "Paladin Aura" at loading: the focus fallback read the HUD's aura widget; HUD panels are skipped
+  (`PanelState::Hud`).
+- Delete-character hold: 5 to 1 said while A is held (`ModalReader::HoldCountdown`); the Confirm
+  button's text logged (`[modal] delete:`) ([modal](docs/delete-character-modal.md)).
+- Cliff stairs: one "stairs" entry halfway, arrival at either end (`Places::Listings`); the
+  announcer says "stairs" from two tiles. Countess's cistern: `BloodCistern` from
+  `ritual_platform01` (INFERRED to be the vessel), listed and routable ([places](docs/places.md)).
+- Doorways: scanner entries (`Doorways::Listed`, switch `doorways-listed`), and in Tristram and
+  Act I's building pieces (`Doorways::Select`, `PlaceService::Buildings`) ([ground items](docs/ground-items.md)).
+- Portals: named by owner only; `Recreated` takes the owner's new portal for the old one, in the
+  registry and the beacon ([portals](docs/portals.md)).
+- Jail secret doors (objects.txt OperateFn 18): never listed while shut; "You feel a cool draft."
+  within 10 units (`SecretDoors::Draft`, switch `secret-drafts`) ([secret doors](docs/secret-doors.md)).
+- Known: doorway detection now also runs in the survey's pass (cost unmeasured); the cottages'
+  and Tristram's doorways and the secret door's collision are unchecked.
+
+**Next step:** release on the user's word; then live: a paladin loading in, a delete hold, the Dry
+Hills stairs route, a cottage and Tristram (`[items] doorways nearby`), Jail 2's secret room
+(`[items] secret door felt`), a two-player portal swap.
+
 ## The tester's addendum on builds 2026-10-20 and 20-2 — 2026-10-21 (released as test-2026-10-22 from 3f13f86)
 
 Release: 125/125 CTest, 29 entries, 62,969,716 bytes, SHA-256 `c72439ae…1cf1808`; news

@@ -22,6 +22,10 @@ std::string_view Active();
 // Every open panel, oldest first (the active one is last).
 const std::vector<std::string>& OpenPanels();
 
+// A panel of the in-game HUD, open all game and never a menu, by its layout name. The game
+// gives the paladin's aura panel focus while loading into a game (a tester, 2026-10-22).
+bool Hud(std::string_view panel);
+
 // The title the window announcer has just spoken for a panel it opened. The
 // controller's menu switcher then reports the same panel as a tab change, and
 // saying that name a second time -- with interrupt -- cut off whatever had
