@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Crosshair beep and melee contact ping — 2026-10-22 (not released)
+## Crosshair beep and melee contact ping — 2026-10-22 (released as test-2026-10-22-2 from 28523c9)
+
+Release: 127/127 CTest, 29 entries, 62,967,852 bytes, SHA-256 `cbe8dca3…6f170a68d`; news
+`../tester-news-draft-2026-10-22.txt`.
 
 The tester: the reach ping fired mid-screen for a Warlock and a Sorceress alike and ignored how
 many are near; the pad's auto-target takes the nearest, never the shaman behind. Raine: a beep when
@@ -25,7 +28,7 @@ tables in `game-data/hd/global/excel/`. 127/127 CTest; installed by the build.
 **Next step:** the tester's word on the beep's rate with the repeat rule, with a Sorceress and
 a Warlock; then the quick enemy list.
 
-## The tester's list on build test-2026-10-22 — 2026-10-22 (not released)
+## The tester's list on build test-2026-10-22 — 2026-10-22 (released in test-2026-10-22-2)
 
 From `d2r access test build 2026-10-22 notes.7z` ([decisions](docs/decisions.md)). 126/126 CTest;
 installed by the build. **Unverified live.**
@@ -49,7 +52,7 @@ installed by the build. **Unverified live.**
 - Known: doorway detection now also runs in the survey's pass (cost unmeasured); the cottages'
   and Tristram's doorways and the secret door's collision are unchecked.
 
-**Next step:** release on the user's word; then live: a paladin loading in, a delete hold, the Dry
+**Next step:** live: a paladin loading in, a delete hold, the Dry
 Hills stairs route, a cottage and Tristram (`[items] doorways nearby`), Jail 2's secret room
 (`[items] secret door felt`), a two-player portal swap, a route through a shut Jail door
 (`[route] shut doors noted`).
