@@ -3,6 +3,31 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-21 — The tester's addendum on builds 2026-10-20 and 20-2
+
+From `tutorial and builds -20 and -20-2 feedback.7z` (the user's Downloads: the addendum, three
+logs, Tower Cellar doorway screenshots; its tutorial list was the one already done). Built and
+unit-tested only.
+- **"Unexplored area", not "room"**, in every language: the user's choice on the tester's case
+  (outdoors there are no rooms; one hall of the game is several streamed rooms). The room
+  announcer's passages keep "room".
+- **Unexplored areas one per direction in turn**, behind `unexplored-spread` (on): only the order
+  changes, so nothing past explored ground is revealed. Rejected: a different set per direction.
+- **Doorways from the walls' gaps**, not the streamed rooms' seams, which run through halls and
+  corridors. Rejected: the tester's DS1 offset (the mod reads no DS1; the seams, not a scale, were
+  wrong) and the automap's yellow doorway marks (their cell numbers are unknown; worth a look if
+  the collision rule misplaces arches).
+- **Mod+B counts drawn walkable tiles**, not rooms: one drawn tile charted a whole room, so a new
+  level read 20 % and a walked maze 100 % with blank tracts. Rooms never streamed are estimated
+  from the others' density.
+- **Map landmarks (outdoor stairs) are routable**: the route took only unit ids and silently kept
+  the last offer. A scan that cannot be routed now clears the old offer.
+- **Town NPCs without a preset (Jerhyn) are remembered once seen**; the presets do not place him.
+- **A party member's portal: replaced by its owner's new one, dropped when the roster names
+  another**. Whether a client's roster ids follow the host is unverified; the drop is logged.
+- **The eclipse waits for a pause in speech** rather than a new priority level.
+- Not built: synthetic 5-unit footsteps (the tester's mid-term idea, for the user to decide).
+
 ## 2026-10-21 — The tester's list on build 2026-10-20
 
 From `d2r access test build 2026-10-20 notes, feedback and logs.7z` (the user's Downloads: list,
@@ -24,7 +49,7 @@ three logs, screenshots of the Tower Cellar grave doorway). Built and unit-teste
 - **The main menu's news behind a switch, on by default**: it is what a sighted player sees.
 - **"Act 1" from the game's levels table** rather than our own words, so it follows the language.
 - **Doorway recording trimmed here, not replaced by the stash sound**, as the tester allowed.
-- **"Unexplored room" kept** for now; "area" is the tester's vocabulary question, left to the user.
+- **"Unexplored room" kept** for now; "area" is the tester's vocabulary question, left to the user (became "area" in the next list).
 
 ## 2026-10-20 — The tester's list on builds 2026-10-19 and 19-3
 

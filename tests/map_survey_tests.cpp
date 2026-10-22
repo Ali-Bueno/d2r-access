@@ -471,6 +471,68 @@ void TownNpcsListedOnceSeen() {
 	Check(sightings.Seen(40, {fara}).empty(), "a new game starts with nobody seen");
 }
 
+void SeenNpcWithoutPresetIsRemembered() {
+	constexpr double Far = 900;
+	auto jerhyn = Make(1156, 40, 40, EntityRadar::Kind::Npc);
+	jerhyn.category = EntityRadar::Category::Npc; jerhyn.placeId = 202; jerhyn.name = "Jerhyn"; jerhyn.unit = 1;
+	TownNpcSightings sightings;
+	Check(sightings.Listed(40, {}, true).empty(), "an NPC never seen and not listed is not there");
+	sightings.Found(40, {jerhyn});
+	auto moved = jerhyn;
+	moved.position = {Far, Far};
+	sightings.Found(40, {moved});
+	const auto gone = sightings.Listed(40, {}, true);
+	Check(gone.size() == 1 && gone.front().name == "Jerhyn" && gone.front().position.x == Far
+		&& gone.front().unit == EntityRadar::Entity::NoUnit && gone.front().placeId == 202,
+		"a seen NPC out of the loaded rooms stays, at its last place, with no unit to command");
+	Check(sightings.Listed(40, {}, false).size() == 1 && sightings.Listed(1, {}, true).empty(),
+		"it is listed with the switch off too, and only in its own town");
+	auto loaded = jerhyn;
+	loaded.id = 77; loaded.position = {45, 45};
+	const auto live = sightings.Listed(40, {loaded}, true);
+	Check(live.size() == 1 && live.front().id == 77 && live.front().position.x == 45, "loaded again, the live unit replaces the remembered one");
+	sightings.Clear();
+	Check(sightings.Listed(40, {}, true).empty(), "a new game forgets it");
+}
+
+EntityRadar::Entity TownPortal(uint32_t id, const char* owner, const char* level, double x = 38, double y = 38) {
+	auto portal = Make(id, x, y, EntityRadar::Kind::Object);
+	portal.category = EntityRadar::Category::Portal; portal.owner = owner; portal.name = level;
+	return portal;
+}
+
+void NewPortalOfTheSameOwnerReplacesTheOld() {
+	const Navigation::Grid grid = GridFor(OpenWorld());
+	Registry registry;
+	registry.Observe(1, {TownPortal(10, "Raine", "Maggot Lair"), TownPortal(11, "Host", "Lost City", 20, 20)}, grid);
+	Check(registry.Entities().size() == 2, "two owners, two portals");
+	const std::vector<EntityRadar::Entity> now{TownPortal(12, "Host", "Tower", 70, 70)};
+	registry.Observe(1, now, grid, {}, &now);
+	int host = 0;
+	for (const auto& entity : registry.Entities()) host += entity.owner == "Host";
+	Check(registry.Entities().size() == 2 && host == 1, "a player's new portal replaces the old one wherever it stood");
+	bool danis = false;
+	for (const auto& entity : registry.Entities()) danis |= entity.id == 10;
+	Check(danis, "another owner's portal is untouched");
+}
+
+void RosterDropsAPortalItNoLongerNames() {
+	const Navigation::Grid grid = GridFor(OpenWorld());
+	Registry registry;
+	registry.Observe(1, {TownPortal(10, "Host", "Lost City")}, grid);
+	const std::vector<EntityRadar::Entity> none;
+	Check(registry.DropStalePortals({{"Host", 10, 0}}, none).empty(), "the roster's local id names it: kept");
+	Check(registry.DropStalePortals({{"Host", 0, 10}}, none).empty(), "the roster's remote id names it: kept");
+	Check(registry.DropStalePortals({{"Host", 0, 0}}, none).empty(), "no ids at all says nothing: kept");
+	Check(registry.DropStalePortals({{"Other", 5, 6}}, none).empty(), "another member's ids say nothing: kept");
+	const std::vector<EntityRadar::Entity> loaded{TownPortal(10, "Host", "Lost City")};
+	Check(registry.DropStalePortals({{"Host", 20, 21}}, loaded).empty(), "a portal the game has loaded is never dropped");
+	const auto dropped = registry.DropStalePortals({{"Host", 20, 21}}, none);
+	Check(dropped.size() == 1 && dropped.front().id == 10 && dropped.front().local == 20 && dropped.front().remote == 21
+		&& registry.Entities().empty(), "ids naming another portal drop the remembered one, said once");
+	Check(registry.DropStalePortals({{"Host", 20, 21}}, none).empty(), "nothing is dropped twice");
+}
+
 void TownNpcSwitchListsEveryoneOrTheSeen() {
 	auto fara = Make(1, 30, 30, EntityRadar::Kind::Npc);
 	fara.category = EntityRadar::Category::Npc; fara.placeId = 200;
@@ -489,9 +551,30 @@ void TownNpcSwitchListsEveryoneOrTheSeen() {
 }
 
 
+// Unexplored areas one per direction in turn: three up and one each right and down
+// read up, right, down, then the other two up (a tester, 2026-10-21).
+void SpreadTakesOneWayAtATime() {
+	const auto at = [](uint32_t id, double x, double y) {
+		MapSurvey::Landmark landmark;
+		landmark.entity.id = id;
+		landmark.offset = {x, y};
+		return landmark;
+	};
+	const std::vector<MapSurvey::Landmark> nearestFirst{
+		at(1, -1, -1), at(2, -2, -2), at(3, -3, -3), at(4, 4, -4), at(5, 5, 5)};
+	const auto spread = MapSurvey::SpreadByDirection(nearestFirst);
+	std::vector<uint32_t> order;
+	for (const auto& landmark : spread) order.push_back(landmark.entity.id);
+	Check(order == std::vector<uint32_t>{1, 4, 5, 2, 3}, "the nearest of each direction first, then the next round");
+	Check(MapSurvey::SpreadByDirection({}).empty(), "nothing to spread is nothing");
+}
+
 int main() {
 	TownNpcsListedOnceSeen();
 	TownNpcSwitchListsEveryoneOrTheSeen();
+	SeenNpcWithoutPresetIsRemembered();
+	NewPortalOfTheSameOwnerReplacesTheOld();
+	RosterDropsAPortalItNoLongerNames();
 	StepsGoAroundWalls();
 	UnreachableIsReportedAsSuch();
 	NearestByStepsNotByStraightLine();
@@ -513,6 +596,7 @@ int main() {
 	ScannerSplitsLandmarksFromLiveEnemies();
 	ChartedRoomsAdmitLandmarksOutOfSight();
 	FixedPlacesAreTheLayoutsOwn();
+	SpreadTakesOneWayAtATime();
 	Passed();
 	return 0;
 }

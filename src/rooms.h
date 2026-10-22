@@ -31,8 +31,14 @@ struct Room {
 // footprint patterns: 0 is a point, 1/3/5 a five-cell cross, 2/4 a 3x3 square.
 int PassableWidth(int bodyPattern);
 
-// Every gap between two streamed rooms, once: each is seen from both of its rooms.
-std::vector<Opening> Doorways(const Radar::World& world);
+// A doorway as a sighted player sees one: a gap in a straight wall with open
+// ground widening past it, whatever streamed room it lies in. `docs/ground-items.md`
+struct Doorway {
+	Position centre{}; // middle of the gap, halfway through the wall, in collision subtiles
+	int width = 0;     // gap width in cells
+};
+// Every doorway the streamed rooms show, once.
+std::vector<Doorway> Doorways(const Radar::World& world);
 
 // A room as the announcer keys it: the origin of its own rectangle. Invalid
 // means off-grid, which is not a room change.

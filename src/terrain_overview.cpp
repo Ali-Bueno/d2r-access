@@ -94,9 +94,22 @@ Summary Describe(const Layout& layout, Position player) {
 	if (RoomAt(layout, tileX, tileY) == nullptr) return summary;
 	summary.box = Bounds(layout.rooms);
 	summary.place = Place(summary.box, player);
-	size_t explored = 0;
-	for (const auto& room : layout.rooms) explored += room.explored ? 1 : 0;
-	summary.percent = static_cast<int>(explored * 100 / layout.rooms.size());
+	size_t explored = 0, known = 0, measuredArea = 0, unmeasuredArea = 0;
+	for (const auto& room : layout.rooms) {
+		explored += room.explored ? 1 : 0;
+		const size_t area = static_cast<size_t>(std::max(room.rect.width, 0)) * static_cast<size_t>(std::max(room.rect.height, 0));
+		if (!room.measured) { unmeasuredArea += area; continue; }
+		known += room.walkable;
+		summary.drawnTiles += room.drawn;
+		measuredArea += area;
+	}
+	// Rooms never streamed are estimated at the known rooms' mean walkable density.
+	if (measuredArea > 0) summary.estimatedTiles = (known * unmeasuredArea + measuredArea / 2) / measuredArea;
+	summary.walkableTiles = known + summary.estimatedTiles;
+	summary.byTiles = summary.walkableTiles > 0;
+	summary.percent = summary.byTiles
+		? static_cast<int>(std::min<size_t>(summary.drawnTiles * 100 / summary.walkableTiles, 100))
+		: static_cast<int>(explored * 100 / layout.rooms.size());
 	for (size_t d = 0; d < SideCount; ++d)
 		summary.legs[d] = Walk(layout, summary.box, tileX, tileY, static_cast<Side>(d));
 	summary.valid = true;

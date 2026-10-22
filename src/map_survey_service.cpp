@@ -129,6 +129,7 @@ bool                 g_fullAssistance = true;
 // works out of play too.
 std::atomic<bool>    g_reachFilter{ false };
 std::atomic<bool>    g_townNpcsEverywhere{ true };
+std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
 size_t               g_cutLogged = 0;
@@ -389,6 +390,9 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	present.insert(present.end(), items.begin(), items.end());
 	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
 	g_registry.ForgetEnemies(NativeEntities::TakeDeadMonsters());
+	if (std::vector<EntityRadar::RosterPortals> roster; g_registry.HasPortals() && NativeEntities::ReadRosterPortals(roster))
+		for (const auto& drop : g_registry.DropStalePortals(roster, present))
+			AsyncLog::InfoF(g_context, "[scan] portal dropped: owner=%s tracked=%u roster=%u/%u", drop.owner.c_str(), drop.id, drop.local, drop.remote);
 	KeyboardService::NotePads(world, scene.landmarks);
 	// A border is kept where it is walked across (the corridor mouth), not at the point that names it.
 	auto remembered = discovered;
@@ -515,7 +519,8 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 		g_category = MapSurvey::StepCategory(landmarks, g_category, 0);
 	}
 
-	const std::vector<MapSurvey::Landmark> members = MapSurvey::OfCategory(landmarks, g_category);
+	auto members = MapSurvey::OfCategory(landmarks, g_category);
+	if (g_category == EntityRadar::Category::UnexploredRoom && g_unexploredSpread) members = MapSurvey::SpreadByDirection(members);
 	if (members.empty()) {
 		ScreenReader::Speak(Format(strings.surveyEmpty, CategoryName(g_category)), true);
 		return;
@@ -605,6 +610,8 @@ void Repeat() { g_request.store(Request::Repeat); }
 bool ReachFilter() { return g_reachFilter.load(); }
 bool TownNpcsEverywhere() { return g_townNpcsEverywhere.load(); }
 void SetTownNpcsEverywhere(bool on) { g_townNpcsEverywhere = on; }
+bool UnexploredSpread() { return g_unexploredSpread.load(); }
+void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
 void SetReachFilter(bool on) { g_reachFilter = on; }
 
 bool Register(const D2RL::PluginContext* context) {

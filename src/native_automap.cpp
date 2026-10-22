@@ -119,6 +119,13 @@ std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<Na
 	return g_reveal.revealed;
 }
 
+std::optional<std::vector<size_t>> DrawnWalkable(const std::vector<std::vector<AutomapCells::Point>>& rooms) {
+	const Snapshot full = Read(true);
+	if (full.status != Status::Ok || full.layer.trees[0] != AutomapCells::TreeStatus::Ok || full.layer.trees[1] != AutomapCells::TreeStatus::Ok)
+		return std::nullopt;
+	return AutomapCells::DrawnWalkable(full.cells, rooms);
+}
+
 const char* StatusName(Status status) {
 	switch (status) {
 	case Status::Unavailable: return "unavailable";

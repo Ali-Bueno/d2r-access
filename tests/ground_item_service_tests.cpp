@@ -120,7 +120,7 @@ void Stop() { voices.clear(); }
 bool Available() { return true; }
 void PlayStep(GroundItems::Sound) {}
 }
-namespace D2RAccess::Rooms { std::vector<Opening> Doorways(const Radar::World&) { return {}; } }
+namespace D2RAccess::Rooms { std::vector<Doorway> Doorways(const Radar::World&) { return {}; } }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
 std::vector<std::string> openPanels;
 namespace D2RAccess::PanelState { const std::vector<std::string>& OpenPanels() { return openPanels; } }

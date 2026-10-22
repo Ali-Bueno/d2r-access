@@ -47,3 +47,10 @@ changes (§9 of the playbook). "You are fortified" stays queued so it follows th
 Each entry is saved as `priority-<kind>` in `settings.txt`. A status effect's end is now said
 `StatusEffects::EndHoldMs` (500 ms, was 1 s) after the state goes, the window in which a re-applied
 chill or poison still counts as the same effect.
+
+**The eclipse waits for a pause (2026-10-21).** On reaching the Lost City the area's name and the
+Tainted Sun's own news came with "An unnatural darkness blankets the land" and the tester could not
+tell whether it was said. It now waits until speech has paused `SpeechPriority::QuietMs` (10 s at
+most, `PatienceMs`, the tutorial's wait, now shared as `SpeechPriority::Pause`), then is said as
+Quest updates are. A player who wants quest news never cut off sets Quest updates to "cuts in and
+cannot be cut off". Log: `[quest] eclipse said`.

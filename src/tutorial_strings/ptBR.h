@@ -75,21 +75,21 @@ inline constexpr Texts ptBR{
 			"radar, ou os tons das paredes se você os ligou: passagens inexploradas e chão inexplorado levam a terreno "
 			"novo, e o radar avisa quando registra uma nova saída, que o scanner então lista entre as suas saídas. "
 			"Procure ali {den}: quando ela aparecer na lista, a rota e a guia levam você até a entrada. Se você se "
-			"perder, a categoria sala inexplorada do scanner mostra para onde ir.",
+			"perder, a categoria área inexplorada do scanner mostra para onde ir.",
 			"Encontre {den}. O mapa é refeito a cada jogo, então a entrada pode estar perto ou longe. Siga os sons do "
 			"radar, ou os tons das paredes se você os ligou: passagens inexploradas e chão inexplorado levam a terreno "
 			"novo, e o radar avisa quando registra uma nova saída, que o scanner então lista entre as suas saídas. "
 			"Procure ali {den}: quando ela aparecer na lista, a rota e a guia levam você até a entrada. Se você se "
-			"perder, a categoria sala inexplorada do scanner mostra para onde ir."},
+			"perder, a categoria área inexplorada do scanner mostra para onde ir."},
 		{"Você está em {den}. Em cavernas e masmorras o mod conhece as salas: {view} e {y} dizem as saídas da sala em "
 			"que você está. Experimente agora.",
 			"Você está em {den}. Em cavernas e masmorras o mod conhece as salas: Ctrl mais Y diz as saídas da sala em "
 			"que você está. Experimente agora."},
 		{"Ao entrar em cada sala, você ouvirá se partes dela ainda estão inexploradas. Mate todos os monstros em "
-			"{den}; o jogo diz quantos restam. A categoria sala inexplorada do scanner ajuda você a não deixar nenhum "
+			"{den}; o jogo diz quantos restam. A categoria área inexplorada do scanner ajuda você a não deixar nenhum "
 			"para trás.",
 			"Ao entrar em cada sala, você ouvirá se partes dela ainda estão inexploradas. Mate todos os monstros em "
-			"{den}; o jogo diz quantos restam. A categoria sala inexplorada do scanner ajuda você a não deixar nenhum "
+			"{den}; o jogo diz quantos restam. A categoria área inexplorada do scanner ajuda você a não deixar nenhum "
 			"para trás."},
 		{"Não restam monstros em {den}. Volte ao acampamento: abra o inventário, use o pergaminho do Portal da Cidade "
 			"e entre no portal com {a}. Você também pode voltar andando com a rota e a guia.",
@@ -112,7 +112,7 @@ inline constexpr Texts ptBR{
 			"baixo diz o que os botões fazem ali: experimente em todo menu novo para você, como o baú pessoal. Na lista "
 			"de ajustes, com {view} e {rb}, você escolhe o que o mod diz e toca. A partir daqui, o jogo é seu.",
 			"Tutorial concluído. Você sabe se orientar: scanner, rota, guia e radar. Na lista de ajustes, com Ctrl mais "
-			"S, você escolhe o que o mod diz e toca. O teclado também tem atalhos que andam por você: H vai até a sala "
+			"S, você escolhe o que o mod diz e toca. O teclado também tem atalhos que andam por você: H vai até a área "
 			"inexplorada mais próxima, e Shift mais Home até o que o scanner nomeou. A partir daqui, o jogo é seu."}},
 	.radarTask = {
 		"Agora ande com {ls} até ouvir uma parede.",
@@ -127,7 +127,7 @@ inline constexpr Texts ptBR{
 		"Baú pessoal, o baú onde você guarda os seus itens",
 		"Escada, entrada ou portal",
 		"Limite da área, o caminho para outra área",
-		"Sala inexplorada",
+		"Área inexplorada",
 		"Ouro no chão",
 		"Uma poção no chão",
 		"Um item no chão que você pode vestir, como uma arma"},

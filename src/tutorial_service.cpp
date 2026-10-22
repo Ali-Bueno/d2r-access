@@ -127,7 +127,8 @@ constexpr uint64_t SettleMs = 4000, ListenMs = 8000;
 // waits for other speech to pause, so it is queued behind what is said, not cut by it.
 // In a fight speech may never pause that long: a message waits PatienceMs at most, then goes in
 // line behind it (a tester, 2026-10-21: the Den's messages never came).
-constexpr uint64_t ArrivalMs = 3000, QuietMs = 1500, PatienceMs = 10000;
+constexpr uint64_t ArrivalMs = 3000;
+using SpeechPriority::QuietMs, SpeechPriority::PatienceMs;
 // What the tutorial says lasts about a screen reader's default pace, which news waits out. A
 // lesson's sounds wait for the words before them guessed a little faster (the user, 2026-10-21:
 // the wait before the radar's sounds was long), at least CueAfterNameMs; then CueGapMs to the next.
@@ -157,7 +158,7 @@ Later g_browseSound; // a message read back plays its sound after its words
 std::deque<Action> g_queue;
 uint64_t g_due = 0, g_session = 0, g_lastPoll = 0;
 uint64_t g_speechEnd = 0; // when what the tutorial said should be over, guessed
-uint64_t g_heldSince = 0; // since a message has waited for a pause in speech
+SpeechPriority::Pause g_pause{QuietMs, PatienceMs}; // a message waits for a pause in speech
 bool g_active = false, g_decided = false;
 bool g_worldQuiet = false; // the world's sounds wait for their lesson (Tutorial::QuietWorld)
 // The level-up lesson: waiting for its moment; said; in the character sheet; the sheet shut before
@@ -382,7 +383,7 @@ void Stop() {
 	g_active = false;
 	g_queue.clear();
 	g_audition.Reset();
-	g_speechEnd = g_heldSince = 0;
+	g_speechEnd = g_pause.heldSince = 0;
 	Tutorial::SetQuietWorld(false);
 	Tutorial::SetBusy(false);
 }
@@ -859,13 +860,13 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			continue;
 		}
 		const auto kind = g_queue.front().kind;
-		if ((kind == ActionKind::Chime || kind == ActionKind::Keep) && now - ScreenReader::LastSpoken() < QuietMs) {
-			if (!g_heldSince) g_heldSince = now;
-			if (now - g_heldSince < PatienceMs) break;
-			AsyncLog::InfoF(context, "[tutorial] no pause in speech for %llu ms: the message goes in line",
-				static_cast<unsigned long long>(now - g_heldSince));
+		if (kind == ActionKind::Chime || kind == ActionKind::Keep) {
+			uint64_t waited = 0;
+			if (!g_pause.Due(now, ScreenReader::LastSpoken(), &waited)) break;
+			if (waited) AsyncLog::InfoF(context, "[tutorial] no pause in speech for %llu ms: the message goes in line",
+				static_cast<unsigned long long>(waited));
 		}
-		g_heldSince = 0;
+		g_pause.heldSince = 0;
 		const Action action = std::move(g_queue.front());
 		g_queue.pop_front();
 		Perform(action);

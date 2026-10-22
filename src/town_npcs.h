@@ -25,9 +25,10 @@ using NameOf = std::function<std::string(uint32_t)>;
 // One identity for a row's live unit and its stand-in: the row + 1, as zero means none.
 uint64_t Identity(uint32_t monster);
 
-// Gives the live units of every NPC row the presets place exactly once that row's
-// identity, and appends a stand-in for each such row with no live unit. A spawn
-// around the player without its unit has none: the NPC is not there.
+// Gives the live units of every NPC row the presets place exactly once, and the only
+// loaded unit of an NPC row they never place, that row's identity. Appends a stand-in
+// for each placed row with no live unit. A spawn around the player without its unit
+// has none: the NPC is not there.
 void Merge(const std::vector<Spawn>& spawns, const std::vector<Live>& live, const NameOf& name,
 	std::vector<EntityRadar::Entity>& entities);
 }

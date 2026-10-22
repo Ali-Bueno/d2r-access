@@ -49,6 +49,9 @@ bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t 
 // when unreadable or unverified. The second form is factored for tests.
 bool ReadRosterCorpses(uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);
 bool ReadRosterCorpses(uintptr_t head, uint32_t playerId, std::vector<CorpseMemory::Owner>& owners);
+// Every roster entry's town portal ids, readable ones only; false when none or unverified (docs/portals.md).
+bool ReadRosterPortals(std::vector<EntityRadar::RosterPortals>& roster);
+bool ReadRosterPortals(uintptr_t head, std::vector<EntityRadar::RosterPortals>& roster);
 // The current level's room layout around the verified local player, for the
 // terrain overview; `neighbours` also reads the bordering rooms of other levels.
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);

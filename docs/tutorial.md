@@ -106,7 +106,7 @@ before leaving it). The step's message ends with how to steer them (`auditionAga
   the radar's new places followed at 4.5 s. Queued behind such news, the message is no longer cut.
 - **The radar alone:** until the world's sounds have had their own lesson (steps 0 to 2) they keep
   quiet: NPC loops and the "!" (`EntityCueService`), the stash, exits and other ground-item loops
-  (`GroundItemService`), unexplored rooms (`ExplorationCueService`), all through
+  (`GroundItemService`), unexplored areas (`ExplorationCueService`), all through
   `Tutorial::QuietWorld`. The user, 2026-10-21: Warriv's and the stash's sounds played over the radar's
   lesson, and "people have to hear well what each sound means". Speech (the NPC announcer) is not
   silenced; the tutorial's own one-shot sounds are a separate channel. Their lesson (step 2) begins
@@ -140,7 +140,7 @@ default buttons (A talks and picks up, B closes).
 |---|---|---|---|
 | 0 | Camp | welcome, the message controls; life and mana (BACK+X / Z, X) | the vitals readout was asked |
 | 1 | Camp | the radar: its five sounds, each after its name, then walking until a wall | the radar plays a wall cue |
-| 2 | Camp | the world's sounds, each after its name (NPC, NPC with "!", stash, stairs or portal, area border, unexplored room), then let in around the player | 8 s after they are let in (`ListenMs`) |
+| 2 | Camp | the world's sounds, each after its name (NPC, NPC with "!", stash, stairs or portal, area border, unexplored area), then let in around the player | 8 s after they are let in (`ListenMs`) |
 | 3 | Camp | the scanner's categories and objects | the scanner names Warriv, the NPC nearest the start |
 | 4 | Camp | talking (A / D beside him), walking to him yourself | his menu is open with him the nearest town NPC, or the Den's quest runs |
 | 5 | Camp | the scanner again, for someone farther | the scanner names Akara |
@@ -232,7 +232,7 @@ did. Menu messages now wait only for a pause in speech.
 **No spoilers** (the user, 2026-10-21): the welcome says "until the first quest is done", Warriv's
 step only to walk up to him and listen to what he has to say, and Akara "has a quest for you"; the Den is named only once she has given it. **Finding the Den** says the
 map is made anew each game, so the entrance may be near or far: follow the radar (or the wall tones
-if on), its new-exit news and then the scanner's exits, and the unexplored room category if lost.
+if on), its new-exit news and then the scanner's exits, and the unexplored area category if lost.
 
 Warriv comes first because he stands a few steps from where a new character begins and greets
 them (the user, 2026-10-21); the route and the beacon are taught on Akara, who is far enough for

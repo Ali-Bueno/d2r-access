@@ -91,7 +91,10 @@ struct Entity {
 	uint16_t padClass = 0;
 	uint8_t seal = 0; // a Chaos Sanctuary seal's number (Generated::SealOrdinal), zero otherwise
 	bool mapLandmark = false; // a landmark of the map itself, no unit: the desert's cliff stairs (PlaceService::MapLandmarks)
+	std::string owner; // a town portal's owner as the game names them, empty for anything else (docs/portals.md)
 };
+// A party roster entry's town portal unit ids (EntityLayout::RosterPortal / RosterRemotePortal).
+struct RosterPortals { std::string owner; uint32_t local = 0, remote = 0; };
 bool SameTarget(const Entity& a, const Entity& b);
 // `loaded` is `known` made again under a new unit id: the game gives an object a
 // new id when its room is loaded again (MEASURED 2026-09-28: the Refilling Shrine

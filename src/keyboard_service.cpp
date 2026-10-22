@@ -1900,6 +1900,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
+		{MapSurveyService::UnexploredSpread, MapSurveyService::SetUnexploredSpread, phrase(&T::unexploredSpreadOn, &T::unexploredSpreadOff), false, "unexplored-spread"},
 	}});
 	groups.push_back({GroupName(G::Items), {
 		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},

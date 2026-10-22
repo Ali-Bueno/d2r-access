@@ -50,6 +50,8 @@ struct Settings {
 	double forgetWithin = EntityRadar::Settings{}.range;
 };
 
+struct DroppedPortal { std::string owner; uint32_t id = 0, local = 0, remote = 0; };
+
 // What has been seen on the current level. Entities come and go as the world
 // window moves, so this accumulates them instead of trusting one frame, and
 // drops one only when the map can currently see its last known place, within
@@ -64,6 +66,10 @@ public:
 
 	// Enemies the game now holds dead, wherever they lay.
 	void ForgetEnemies(const std::vector<uint32_t>& dead);
+	// Drops each remembered portal not in `present` whose owner's roster ids name another
+	// portal; returns the dropped ones (docs/portals.md).
+	std::vector<DroppedPortal> DropStalePortals(const std::vector<EntityRadar::RosterPortals>& roster,
+		const std::vector<EntityRadar::Entity>& present);
 	void Clear();
 	// A return visit retains fixed places; enemies and loot are transient.
 	void KeepLandmarks();
@@ -94,24 +100,29 @@ public:
 	const std::vector<EntityRadar::Entity>& Entities() const;
 	// Enemies the game now holds dead, on every level kept.
 	void ForgetEnemies(const std::vector<uint32_t>& dead);
+	// Registry::DropStalePortals on the current level.
+	std::vector<DroppedPortal> DropStalePortals(const std::vector<EntityRadar::RosterPortals>& roster,
+		const std::vector<EntityRadar::Entity>& present);
+	bool HasPortals() const;
 	void Clear();
 private:
 	int m_level = 0;
 	std::map<int, Registry> m_levels;
 };
 
-// The town NPCs the player has seen, by place identity: once found, one is
-// listed from anywhere in its town for the rest of the game.
+// The town NPCs the player has seen, by place identity, with where each was last
+// seen: once found, one is listed from anywhere in its town for the rest of the game.
 class TownNpcSightings {
 public:
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
-	// The ones of `townNpcs` seen on this level.
+	// The seen NPCs of this level: the ones of `townNpcs` that were, and a stand-in at
+	// the last known place for each seen one `townNpcs` lacks (no preset, not loaded).
 	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;
-	// What the scanner lists: all of `townNpcs` when `everywhere`, else the seen ones.
+	// What the scanner lists: all of `townNpcs` when `everywhere` (plus those remembered), else the seen ones.
 	std::vector<EntityRadar::Entity> Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere) const;
 	void Clear() { m_seen.clear(); }
 private:
-	std::map<int, std::set<uint64_t>> m_seen;
+	std::map<int, std::map<uint64_t, EntityRadar::Entity>> m_seen;
 };
 
 // Distance and direction for everything known, nearest first: walking steps
@@ -148,6 +159,9 @@ std::vector<Landmark> OfKind(const std::vector<Landmark>& landmarks, EntityRadar
 
 // Everything of one category, in Survey order (nearest on foot first).
 std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category);
+// The same places, one per screen direction in turn, nearest first within each round: a player
+// picks a way to explore, not three neighbours one way (a tester, 2026-10-21). `landmarks` nearest first.
+std::vector<Landmark> SpreadByDirection(const std::vector<Landmark>& landmarks);
 
 // The categories actually present, in a fixed order that puts what a stranded
 // player most needs -- a way out, then a way onward -- before the scenery.

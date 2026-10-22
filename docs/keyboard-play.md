@@ -22,7 +22,7 @@ In play:
 | Tab, Shift+Tab | next / previous monster |
 | D | walk up to the nearest usable thing and use it |
 | Shift+Home | walk to what the scanner named |
-| H | walk to the nearest unexplored room |
+| H | walk to the nearest unexplored area |
 | Ctrl+R | retreat: walk back to the way you came into the level, and stop beside it |
 | End | stop |
 | Ctrl+Y | the ways out of this room |

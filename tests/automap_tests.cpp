@@ -267,7 +267,22 @@ void Revealed() {
 	Check(AutomapCells::RevealedRooms({}, rooms).empty(), "an empty automap reveals no room");
 }
 
+void DrawnWalkable() {
+	auto floor = [](int x, int y) { Cell c{Tree::Floor}; c.x = x; c.y = y; c.lattice = true; return c; };
+	Cell wall = floor(9, 1);
+	wall.tree = Tree::Wall;
+	Cell off = floor(2, 0);
+	off.lattice = false;
+	Cell object{Tree::Object};
+	object.x = 3; object.y = 0;
+	const std::vector<std::vector<AutomapCells::Point>> rooms{{{0, 0}, {1, 0}, {2, 0}, {3, 0}}, {{8, 1}, {9, 1}}, {}};
+	const auto drawn = AutomapCells::DrawnWalkable({floor(0, 0), floor(1, 0), floor(5, 5), wall, off, object}, rooms);
+	Check(drawn.size() == 3 && drawn[0] == 2 && drawn[1] == 1 && drawn[2] == 0,
+		"only drawn floor and wall cells on a walkable tile count; off-lattice, object and unwalkable cells do not");
+}
+
 int main() {
+	DrawnWalkable();
 	Conversions();
 	Walks();
 	Layers();

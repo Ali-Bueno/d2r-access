@@ -333,7 +333,7 @@ int main() {
 
 	blocked = {70, 20, 79, 29}; // the unexplored room's centre is walled in
 	visitedRooms = {levelRooms[0]};
-	EntityRadar::Entity unexplored{2, EntityRadar::Kind::Room, {74.5, 24.5}, "unexplored room 2"};
+	EntityRadar::Entity unexplored{2, EntityRadar::Kind::Room, {74.5, 24.5}, "unexplored area 2"};
 	unexplored.category = EntityRadar::Category::UnexploredRoom;
 	unexplored.placeId = levelRooms[1].id;
 	BeaconService::Offer(unexplored, 0, GetTickCount64());
@@ -344,18 +344,18 @@ int main() {
 	playerAt = {55, 10};
 	Sleep(160);
 	BeaconService::Tick(&context);
-	Check(speech.back() == Format(strings.beaconArrived, "unexplored room 2"),
+	Check(speech.back() == Format(strings.beaconArrived, "unexplored area 2"),
 		"stepping into the unexplored room arrives, wherever its centre lies");
 	playerAt = {10, 10};
 	remembering = true;
 	BeaconService::Offer(unexplored, 0, GetTickCount64());
 	Command("route");
 	BeaconService::Tick(&context);
-	Check(speech.back().starts_with("Route to unexplored room 2"), "fixture: a route into the unexplored room");
+	Check(speech.back().starts_with("Route to unexplored area 2"), "fixture: a route into the unexplored room");
 	playerAt = {90, 45}; // inside it, far from the way's end
 	Sleep(300);
 	BeaconService::Tick(&context);
-	Check(speech.back() == Format(strings.beaconArrived, "unexplored room 2"),
+	Check(speech.back() == Format(strings.beaconArrived, "unexplored area 2"),
 		"the route's room is reached anywhere in it, as the beacon's (a tester, 2026-10-20)");
 	remembering = false;
 	playerAt = {10, 10};
@@ -444,6 +444,21 @@ int main() {
 	Check(speech.back().starts_with("Route to Rocky Waste") && speech.back().find("; then ") != std::string::npos,
 		"an unseen border crossing is led to anywhere along the shared edge, through the gap far from its middle");
 	blocked = {};
+
+	// A map landmark has a place id and no unit id, and is still offered and routed to.
+	EntityRadar::Entity stairs{.kind = EntityRadar::Kind::Object, .position = {60, 10}, .name = "stairs up", .placeId = 7};
+	stairs.mapLandmark = true;
+	BeaconService::Offer(stairs, 40, GetTickCount64());
+	EntityRadar::Entity offered;
+	Check(BeaconService::Offered(offered, 40) && offered.placeId == 7, "an offer with a place id and no unit id is kept");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back().starts_with("Route to stairs up"), "the route goes to the landmark, not to an earlier offer");
+	BeaconService::Offer(EntityRadar::Entity{.kind = EntityRadar::Kind::Object, .name = "nothing"}, 40, GetTickCount64());
+	Check(!BeaconService::Offered(offered, 40), "an offer that cannot be routed clears the old one");
+	Command("route");
+	BeaconService::Tick(&context);
+	Check(speech.back() == strings.beaconNothing, "and no stale target is spoken");
 	remembering = false;
 
 	BeaconService::Unregister();

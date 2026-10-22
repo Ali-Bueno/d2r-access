@@ -77,21 +77,21 @@ inline constexpr Texts itIT{
 			"Segui i suoni del radar, o i toni dei muri se li hai attivi: i passaggi inesplorati e il pavimento "
 			"inesplorato portano a terreno nuovo, e il radar ti avvisa quando registra una nuova uscita, che lo scanner "
 			"poi elenca tra le sue uscite. Cerca lì {den}: una volta in elenco, il percorso e la guida ti portano al suo "
-			"ingresso. Se ti perdi, la categoria stanza inesplorata dello scanner ti mostra dove andare.",
+			"ingresso. Se ti perdi, la categoria area inesplorata dello scanner ti mostra dove andare.",
 			"Trova {den}. La mappa viene rifatta a ogni partita, quindi il suo ingresso può essere vicino o lontano. "
 			"Segui i suoni del radar, o i toni dei muri se li hai attivi: i passaggi inesplorati e il pavimento "
 			"inesplorato portano a terreno nuovo, e il radar ti avvisa quando registra una nuova uscita, che lo scanner "
 			"poi elenca tra le sue uscite. Cerca lì {den}: una volta in elenco, il percorso e la guida ti portano al suo "
-			"ingresso. Se ti perdi, la categoria stanza inesplorata dello scanner ti mostra dove andare."},
+			"ingresso. Se ti perdi, la categoria area inesplorata dello scanner ti mostra dove andare."},
 		{"Sei in {den}. Nelle caverne e nei sotterranei la mod conosce le stanze: {view} e {y} dicono le vie d'uscita "
 			"della stanza in cui ti trovi. Provalo ora.",
 			"Sei in {den}. Nelle caverne e nei sotterranei la mod conosce le stanze: Ctrl più Y dice le vie d'uscita "
 			"della stanza in cui ti trovi. Provalo ora."},
 		{"Entrando in ogni stanza sentirai se parti di essa sono ancora inesplorate. Uccidi tutti i mostri in {den}; "
-			"il gioco dice quanti ne restano. La categoria stanza inesplorata dello scanner ti aiuta a non perderne "
+			"il gioco dice quanti ne restano. La categoria area inesplorata dello scanner ti aiuta a non perderne "
 			"nessuno.",
 			"Entrando in ogni stanza sentirai se parti di essa sono ancora inesplorate. Uccidi tutti i mostri in {den}; "
-			"il gioco dice quanti ne restano. La categoria stanza inesplorata dello scanner ti aiuta a non perderne "
+			"il gioco dice quanti ne restano. La categoria area inesplorata dello scanner ti aiuta a non perderne "
 			"nessuno."},
 		{"Non ci sono più mostri in {den}. Torna al campo: apri l'inventario, usa la pergamena del Portale Cittadino "
 			"ed entra nel portale con {a}. Puoi anche tornare a piedi con il percorso e la guida.",
@@ -116,7 +116,7 @@ inline constexpr Texts itIT{
 			"gioco è tuo.",
 			"Tutorial completato. Sai come orientarti: scanner, percorso, guida e radar. Nell'elenco delle impostazioni, "
 			"con Ctrl più S, scegli cosa dice e riproduce la mod. La tastiera ha anche scorciatoie che camminano al "
-			"posto tuo: H va alla stanza inesplorata più vicina, e Maiusc più Home a ciò che lo scanner ha nominato. Da "
+			"posto tuo: H va all'area inesplorata più vicina, e Maiusc più Home a ciò che lo scanner ha nominato. Da "
 			"qui in poi il gioco è tuo."}},
 	.radarTask = {
 		"Ora cammina con {ls} finché non senti un muro.",
@@ -131,7 +131,7 @@ inline constexpr Texts itIT{
 		"Scrigno personale, il forziere dove tieni i tuoi oggetti",
 		"Scale, ingresso o portale",
 		"Bordo dell'area, la via verso un'altra area",
-		"Stanza inesplorata",
+		"Area inesplorata",
 		"Oro a terra",
 		"Una pozione a terra",
 		"Un oggetto a terra che puoi indossare, come un'arma"},

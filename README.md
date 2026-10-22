@@ -349,7 +349,7 @@ own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
 right stick up or down to change category, and left or right to step through
 it, nearest first. It lists what a sighted player finds on the automap: exits,
 portals, waypoints, NPCs, the stash, shrines, objects, quest objects (their own category),
-visited rooms and, in their own category, the unexplored rooms sharing an
+visited areas and, in their own category, the unexplored areas sharing an
 open edge with what you have explored. It also lists the enemies in sight right now and, in multiplayer,
 the other players nearby and party members anywhere on the same level, by
 name, walls or not. Exits, waypoints and the stash you have found stay listed
@@ -395,7 +395,7 @@ same target cancels. See [distant exits](docs/distant-exits.md) and
 soon as you step into it. The scanner lists every landmark in an explored room
 (stood in, underfoot, or drawn by the game's automap, including parts drawn in
 earlier games), anything that has come into range with a clear line of sight,
-the rooms you have stood in, and the unexplored rooms at the edge of explored
+the areas you have stood in, and the unexplored areas at the edge of explored
 ground, loaded or not, but never what they contain. It gives their
 straight-line distance and direction. Whatever it lists can be routed to and
 followed: the beacon prefers explored ground, otherwise guesses across rooms
@@ -403,7 +403,7 @@ never entered and leads into the first of them; a room is reached at your
 first step inside. With no known or guessable way it says there is no route
 through explored areas and stays silent. Another player is always followed. See
 the [automap reader](docs/automap-reader.md) and [exploration mode](docs/beacon.md#exploration-mode).
-**Full assistance** restores routes through unexplored rooms and the whole
+**Full assistance** restores routes through unexplored areas and the whole
 generated catalogue: add `full_assistance = true` under `[navigation]` in
 `d2rloader/config/d2r-access.toml` and restart, or switch for the session with
 `access-beacon full` (`access-beacon exploration` switches back). See
@@ -555,7 +555,7 @@ vitals report lists the states while active. When a shrine's blessing wears off,
 
 **Loop speeds:** a group of the Ctrl+S settings list beside the volumes paces every loop that
 pulses rather than plays steadily, 50 to 300 percent of its own rhythm: doors, scrolls/runes/gems,
-chests/corpses/weapon racks/the stash, shrines and wells, quest items, unexplored rooms and the
+chests/corpses/weapon racks/the stash, shrines and wells, quest items, unexplored areas and the
 Last Epoch set (`door-loop-speed`, `small-item-loop-speed`, `container-loop-speed`,
 `shrine-loop-speed`, `quest-loop-speed`, `room-loop-speed`, `epoch-loop-speed`), with the drop
 sounds' speed, the wall knock's repeat and the corpse rattle's interval moved there. There too,

@@ -74,20 +74,20 @@ inline constexpr Texts enUS{
 			"sounds, or the wall tones if you have them on: unexplored passages and floor lead to new ground, and the "
 			"radar tells you when it logs a new exit, which the scanner then lists among its exits. Look there for "
 			"{den}: once it is listed, the route and the beacon take you to its entrance. If you get lost, the scanner's "
-			"unexplored room category shows you where to go.",
+			"unexplored area category shows you where to go.",
 			"Find {den}. The map is made anew for each game, so its entrance may be near or far. Follow the radar's "
 			"sounds, or the wall tones if you have them on: unexplored passages and floor lead to new ground, and the "
 			"radar tells you when it logs a new exit, which the scanner then lists among its exits. Look there for "
 			"{den}: once it is listed, the route and the beacon take you to its entrance. If you get lost, the scanner's "
-			"unexplored room category shows you where to go."},
+			"unexplored area category shows you where to go."},
 		{"You are in {den}. In caves and dungeons the mod knows the rooms: {view} and {y} say the ways out of the room "
 			"you are in. Try it now.",
 			"You are in {den}. In caves and dungeons the mod knows the rooms: Control plus Y says the ways out of the "
 			"room you are in. Try it now."},
 		{"As you enter each room you will hear whether parts of it are still unexplored. Kill every monster in {den}; "
-			"the game says how many are left. The scanner's unexplored room category helps you miss none.",
+			"the game says how many are left. The scanner's unexplored area category helps you miss none.",
 			"As you enter each room you will hear whether parts of it are still unexplored. Kill every monster in {den}; "
-			"the game says how many are left. The scanner's unexplored room category helps you miss none."},
+			"the game says how many are left. The scanner's unexplored area category helps you miss none."},
 		{"{den} is clear. Go back to the camp: open the inventory, use the town portal scroll, and step into the "
 			"portal with {a}. You can also walk back with the route and the beacon.",
 			"{den} is clear. Go back to the camp: open the inventory with I, go to the town portal scroll and press D "
@@ -110,7 +110,7 @@ inline constexpr Texts enUS{
 			"list, with {view} and {rb}, you choose what the mod says and plays. From here on, the game is yours.",
 			"Tutorial complete. You know how to find your way: scanner, route, beacon and radar. In the settings list, "
 			"with Control plus S, you choose what the mod says and plays. The keyboard also has shortcuts that walk "
-			"for you: H goes to the nearest unexplored room, and Shift plus Home to what the scanner named. "
+			"for you: H goes to the nearest unexplored area, and Shift plus Home to what the scanner named. "
 			"From here on, the game is yours."}},
 	.radarTask = {
 		"Now walk with {ls} until you hear a wall.",
@@ -122,7 +122,7 @@ inline constexpr Texts enUS{
 		"Door: it opens to let you through", "Small obstacle: something small in your way that you can walk around"},
 	.worldCues = {"NPC, someone to talk to", "NPC with an exclamation mark: they have something for you",
 		"Stash, the chest where you keep your items", "Stairs, entrance or portal", "Area border, the way into another area",
-		"Unexplored room", "Gold on the ground", "A potion on the ground",
+		"Unexplored area", "Gold on the ground", "A potion on the ground",
 		"An item on the ground that you can wear, such as a weapon"},
 	.worldTask = {
 		"Now the ones around you will sound. If you do not know what a sound is, the scanner tells you what is there, "

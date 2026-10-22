@@ -307,7 +307,9 @@ void Release(const char* reason) {
 	g_lead.reset();
 	BeaconAudio::Silence(reason);
 }
-bool Parked() { return g_parked.entity.id != 0; }
+// A unit has an id; a fixed place or map landmark has only its placeId.
+bool Identified(const EntityRadar::Entity& entity) { return entity.id || entity.placeId; }
+bool Parked() { return Identified(g_parked.entity); }
 // A lifecycle change ends the lock, except a step into a neighbouring area: a
 // route along a border may cross it, so the lock waits there for the way back.
 void OnLifecycle(const Lifecycle& state, uint64_t now) {
@@ -361,7 +363,7 @@ void AnnounceArrival(const std::string& name) {
 	SpeechPriority::Say(SpeechPriority::Kind::Arrivals, Named(Strings::Current().beaconArrived, name), true);
 }
 bool Lockable(const Target& offer, const Lifecycle& state, uint64_t now) {
-	if (!offer.entity.id || offer.level != state.level) return false;
+	if (!Identified(offer.entity) || offer.level != state.level) return false;
 	const auto kind = offer.entity.kind;
 	const bool fleeting = kind == EntityRadar::Kind::Enemy || kind == EntityRadar::Kind::Corpse || kind == EntityRadar::Kind::Player;
 	return !fleeting || now - offer.offeredMs <= OfferWindowMs;
@@ -438,6 +440,11 @@ bool Refresh(Target& target, const Lifecycle& state, uint64_t now) {
 	// catalogue said it was, so there is nothing to re-read and nothing that
 	// could be reported lost on arrival.
 	if (target.entity.kind == EntityRadar::Kind::Room) {
+		target.seenMs = now;
+		return true;
+	}
+	// A map landmark has no unit to re-read either.
+	if (target.entity.mapLandmark) {
 		target.seenMs = now;
 		return true;
 	}
@@ -642,7 +649,7 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	EntityRadar::Entity entity;
 	if (g_tracker.Locked()) entity = g_target.entity;
-	else if (g_offer.entity.id && g_offer.level == state.level) {
+	else if (Identified(g_offer.entity) && g_offer.level == state.level) {
 		// Named any time ago: another player, an NPC or a monster has walked on since (a tester, 2026-10-19).
 		auto offer = g_offer;
 		if (Refresh(offer, state, now)) g_offer.entity = offer.entity;
@@ -762,12 +769,11 @@ void FollowRoute(const Lifecycle& state, uint64_t now) {
 }
 
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
-	if (!entity.id) return;
-	g_offer = {entity, level, now, now};
+	g_offer = Identified(entity) ? Target{entity, level, now, now} : Target{};
 }
 
 bool Offered(EntityRadar::Entity& entity, int level) {
-	if (!g_offer.entity.id || g_offer.level != level) return false;
+	if (!Identified(g_offer.entity) || g_offer.level != level) return false;
 	entity = g_offer.entity;
 	return true;
 }

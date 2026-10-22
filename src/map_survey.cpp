@@ -1,6 +1,7 @@
 #include "map_survey.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <tuple>
 
@@ -94,7 +95,14 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 			found = std::find_if(m_tracked.begin(), m_tracked.end(), [&entity, &loaded](const Tracked& tracked) {
 				return EntityRadar::Recreated(tracked.entity, entity) && !loaded(tracked.entity);
 			});
-		if (found == m_tracked.end()) {
+		// A player has one town portal: a new one of the same owner replaces an old one no longer loaded.
+		const bool isNew = found == m_tracked.end();
+		if (isNew && entity.category == EntityRadar::Category::Portal && !entity.owner.empty())
+			std::erase_if(m_tracked, [&](const Tracked& tracked) {
+				return tracked.entity.category == EntityRadar::Category::Portal && tracked.entity.owner == entity.owner
+					&& tracked.entity.id != entity.id && !loaded(tracked.entity);
+			});
+		if (isNew) {
 			m_tracked.push_back({entity, 0});
 		} else {
 			found->entity = entity;
@@ -136,6 +144,39 @@ void Registry::ForgetEnemies(const std::vector<uint32_t>& dead) {
 	});
 	m_entities.clear();
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+std::vector<DroppedPortal> Registry::DropStalePortals(const std::vector<EntityRadar::RosterPortals>& roster,
+	const std::vector<EntityRadar::Entity>& present) {
+	std::vector<DroppedPortal> dropped;
+	for (const Tracked& tracked : m_tracked) {
+		const auto& portal = tracked.entity;
+		if (portal.category != EntityRadar::Category::Portal || portal.owner.empty()) continue;
+		if (std::any_of(present.begin(), present.end(), [&](const auto& entity) { return EntityRadar::SameTarget(portal, entity); })) continue;
+		const auto member = std::find_if(roster.begin(), roster.end(), [&](const auto& entry) { return entry.owner == portal.owner; });
+		// Both ids zero says nothing: the member may have no portal, or the client may not have it.
+		if (member == roster.end() || (!member->local && !member->remote)) continue;
+		if (member->local != portal.id && member->remote != portal.id) dropped.push_back({portal.owner, portal.id, member->local, member->remote});
+	}
+	if (dropped.empty()) return dropped;
+	std::erase_if(m_tracked, [&](const Tracked& tracked) {
+		return std::any_of(dropped.begin(), dropped.end(), [&](const auto& drop) {
+			return tracked.entity.category == EntityRadar::Category::Portal && tracked.entity.id == drop.id; });
+	});
+	m_entities.clear();
+	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+	return dropped;
+}
+
+std::vector<DroppedPortal> Memory::DropStalePortals(const std::vector<EntityRadar::RosterPortals>& roster,
+	const std::vector<EntityRadar::Entity>& present) {
+	const auto found = m_levels.find(m_level);
+	return found == m_levels.end() ? std::vector<DroppedPortal>{} : found->second.DropStalePortals(roster, present);
+}
+
+bool Memory::HasPortals() const {
+	const auto& entities = Entities();
+	return std::any_of(entities.begin(), entities.end(), [](const auto& entity) { return entity.category == EntityRadar::Category::Portal && !entity.owner.empty(); });
 }
 
 void Memory::ForgetEnemies(const std::vector<uint32_t>& dead) {
@@ -274,7 +315,7 @@ std::vector<EntityRadar::Entity> Charted(const Radar::World& world,
 
 void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& found) {
 	for (const auto& npc : found)
-		if (npc.placeId) m_seen[level].insert(npc.placeId);
+		if (npc.placeId) m_seen[level][npc.placeId] = npc;
 }
 
 std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const {
@@ -283,11 +324,23 @@ std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::ve
 	if (seen == m_seen.end()) return result;
 	for (const auto& npc : townNpcs)
 		if (seen->second.contains(npc.placeId)) result.push_back(npc);
+	for (const auto& [placeId, npc] : seen->second) {
+		const bool listed = std::any_of(townNpcs.begin(), townNpcs.end(), [&](const auto& other) { return other.placeId == placeId; });
+		if (listed) continue;
+		auto standIn = npc;
+		standIn.unit = EntityRadar::Entity::NoUnit;
+		standIn.id = static_cast<uint32_t>(placeId);
+		result.push_back(std::move(standIn));
+	}
 	return result;
 }
 
 std::vector<EntityRadar::Entity> TownNpcSightings::Listed(int level, const std::vector<EntityRadar::Entity>& townNpcs, bool everywhere) const {
-	return everywhere ? townNpcs : Seen(level, townNpcs);
+	auto result = Seen(level, townNpcs);
+	if (!everywhere) return result;
+	for (const auto& npc : townNpcs)
+		if (std::none_of(result.begin(), result.end(), [&](const auto& other) { return other.placeId == npc.placeId; })) result.push_back(npc);
+	return result;
 }
 
 std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityRadar::Category category) {
@@ -295,6 +348,21 @@ std::vector<Landmark> OfCategory(const std::vector<Landmark>& landmarks, EntityR
 	for (const Landmark& landmark : landmarks) {
 		if (landmark.entity.category == category) result.push_back(landmark);
 	}
+	return result;
+}
+
+std::vector<Landmark> SpreadByDirection(const std::vector<Landmark>& landmarks) {
+	std::vector<int> sectors, rank;
+	std::array<int, Radar::ScreenSectors> counts{};
+	for (const Landmark& landmark : landmarks) {
+		sectors.push_back(Radar::ScreenSector(landmark.offset));
+		rank.push_back(counts[static_cast<size_t>(sectors.back())]++);
+	}
+	std::vector<Landmark> result;
+	result.reserve(landmarks.size());
+	for (int round = 0; result.size() < landmarks.size(); ++round)
+		for (size_t i = 0; i < landmarks.size(); ++i)
+			if (rank[i] == round) result.push_back(landmarks[i]);
 	return result;
 }
 

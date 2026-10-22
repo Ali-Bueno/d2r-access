@@ -69,6 +69,8 @@ LayerStatus ReadLayer(ReadMemory read, uintptr_t layer, int32_t expected, bool w
 bool InRooms(const Cell& cell, const std::vector<NativeRooms::Room>& rooms);
 // The rooms holding at least one floor or wall cell: ground the automap has drawn.
 std::vector<NativeRooms::Room> RevealedRooms(const std::vector<Cell>& cells, const std::vector<NativeRooms::Room>& rooms);
+// For each room's walkable tiles, how many the automap has drawn as a floor or wall cell.
+std::vector<size_t> DrawnWalkable(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms);
 
 const char* TreeName(Tree tree);
 const char* StatusName(TreeStatus status);

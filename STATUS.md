@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's addendum on builds 2026-10-20 and 20-2 — 2026-10-21 (not released, not committed)
+
+From `tutorial and builds -20 and -20-2 feedback.7z` ([decisions](docs/decisions.md)); news draft
+`../tester-news-draft-2026-10-21d.txt`. 125/125 CTest; installed by the build. **Unverified live.**
+- Doorways from the walls' gaps (`Rooms::Doorways`), not the streamed rooms' seams; gaps at door
+  objects left to the doors ([ground items](docs/ground-items.md#doorways-2026-10-20)).
+- Mod+B: drawn walkable tiles over walkable tiles (`AutomapCells::DrawnWalkable`, per-room walkable
+  cache in `terrain_service.cpp`) ([terrain overview](docs/terrain-overview.md)).
+- Map landmarks (Dry Hills stairs, id 0) routable: `BeaconService` `Identified`; an unroutable scan
+  clears the offer.
+- Jerhyn (no preset) remembered once seen (`TownNpcs::Merge`, `TownNpcSightings`); portals replaced
+  by owner and dropped by the roster's portal ids, `[scan] portal dropped` ([portals](docs/portals.md)).
+- The eclipse waits for a pause in speech (`SpeechPriority::Pause`, shared with the tutorial).
+- "Unexplored area" in all 13 languages; `unexplored-spread` (Navigation, on) orders them one per
+  direction (`MapSurvey::SpreadByDirection`).
+- Known: room walkable counts are taken once, when first streamed; the doorway tile figures are
+  INFERRED; whether a client's roster portal ids follow the host is unchecked.
+
+**Next step:** live: Tower Cellar 1/3/4 halls (doorways where the screenshots show), Mod+B on entering
+Catacombs 2 (`[terrain] ... drawn D of W`), a route to the Dry Hills stairs, Jerhyn from Atma's, and
+a two-player portal swap (`[scan] portal dropped` on the client).
+
 ## The tester's tutorial list — 2026-10-21 (released as test-2026-10-21-3 from 0f0dd60)
 
 Release: 125/125 CTest, 29 entries, 62,952,885 bytes, SHA-256 `17d6cbc8…f0ddae`; news

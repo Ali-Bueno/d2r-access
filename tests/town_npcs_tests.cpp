@@ -81,7 +81,26 @@ void NoLiveIndexOutOfRange() {
 }
 }
 
+void LoadedNpcWithoutPresetIsIdentified() {
+	constexpr uint32_t Jerhyn = 201, Twin = 202;
+	const auto names = [](uint32_t monster) { return monster == Jerhyn || monster == Twin ? std::string("NPC") : Name(monster); };
+	std::vector<EntityRadar::Entity> entities{LiveUnit(5, "Jerhyn", {50, 50}), LiveUnit(6, "Akara", {60, 60})};
+	TownNpcs::Merge({{Akara, {300, 260}}}, {{0, Jerhyn}, {1, Akara}}, names, entities);
+	Check(entities.size() == 2 && entities[0].placeId == TownNpcs::Identity(Jerhyn),
+		"the only loaded unit of an NPC row no preset places gets the row's identity");
+	std::vector<EntityRadar::Entity> twins{LiveUnit(7, "A", {1, 1}), LiveUnit(8, "B", {2, 2})};
+	TownNpcs::Merge({}, {{0, Twin}, {1, Twin}}, names, twins);
+	Check(twins[0].placeId == 0 && twins[1].placeId == 0, "two loaded units of one unplaced row have no single identity");
+	std::vector<EntityRadar::Entity> critter{LiveUnit(9, "Cow", {3, 3})};
+	TownNpcs::Merge({}, {{0, Critter}}, names, critter);
+	Check(critter[0].placeId == 0, "a row that is no NPC is left alone");
+	std::vector<EntityRadar::Entity> guards{LiveUnit(10, "Guard", {4, 4})};
+	TownNpcs::Merge({{Guard, {10, 10}}, {Guard, {20, 20}}}, {{0, Guard}}, names, guards);
+	Check(guards[0].placeId == 0, "a row the presets place more than once stays unidentified");
+}
+
 int main() {
+	LoadedNpcWithoutPresetIsIdentified();
 	FarNpcsGetStandIns();
 	LiveUnitSupersedesItsStandIn();
 	SpawnAroundThePlayerWithoutItsUnit();

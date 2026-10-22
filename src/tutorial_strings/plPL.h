@@ -75,20 +75,20 @@ inline constexpr Texts plPL{
 			"Podążaj za dźwiękami radaru albo za tonami ścian, jeśli masz je włączone: niezbadane przejścia i niezbadana "
 			"podłoga prowadzą do nowego terenu, a radar mówi ci, gdy zapisze nowe wyjście, które skaner potem wymienia "
 			"wśród swoich wyjść. Szukaj tam: {den}. Gdy znajdzie się na liście, trasa i prowadzenie zaprowadzą cię do "
-			"wejścia. Jeśli się zgubisz, kategoria niezbadany pokój skanera pokaże ci, dokąd iść.",
+			"wejścia. Jeśli się zgubisz, kategoria niezbadany obszar skanera pokaże ci, dokąd iść.",
 			"Znajdź: {den}. Mapa jest tworzona od nowa w każdej grze, więc jej wejście może być blisko lub daleko. "
 			"Podążaj za dźwiękami radaru albo za tonami ścian, jeśli masz je włączone: niezbadane przejścia i niezbadana "
 			"podłoga prowadzą do nowego terenu, a radar mówi ci, gdy zapisze nowe wyjście, które skaner potem wymienia "
 			"wśród swoich wyjść. Szukaj tam: {den}. Gdy znajdzie się na liście, trasa i prowadzenie zaprowadzą cię do "
-			"wejścia. Jeśli się zgubisz, kategoria niezbadany pokój skanera pokaże ci, dokąd iść."},
+			"wejścia. Jeśli się zgubisz, kategoria niezbadany obszar skanera pokaże ci, dokąd iść."},
 		{"Jesteś w: {den}. W jaskiniach i lochach mod zna pokoje: {view} i {y} podają wyjścia z pokoju, w którym "
 			"jesteś. Wypróbuj to teraz.",
 			"Jesteś w: {den}. W jaskiniach i lochach mod zna pokoje: Ctrl plus Y podaje wyjścia z pokoju, w którym "
 			"jesteś. Wypróbuj to teraz."},
 		{"Gdy wejdziesz do każdego pokoju, usłyszysz, czy jego części są jeszcze niezbadane. Zabij każdego potwora w: "
-			"{den}; gra mówi, ilu zostało. Kategoria niezbadany pokój skanera pomaga ci nie pominąć żadnego.",
+			"{den}; gra mówi, ilu zostało. Kategoria niezbadany obszar skanera pomaga ci nie pominąć żadnego.",
 			"Gdy wejdziesz do każdego pokoju, usłyszysz, czy jego części są jeszcze niezbadane. Zabij każdego potwora w: "
-			"{den}; gra mówi, ilu zostało. Kategoria niezbadany pokój skanera pomaga ci nie pominąć żadnego."},
+			"{den}; gra mówi, ilu zostało. Kategoria niezbadany obszar skanera pomaga ci nie pominąć żadnego."},
 		{"Brak już potworów w: {den}. Wróć do obozu: otwórz ekwipunek, użyj zwoju miejskiego portalu i wejdź do "
 			"portalu przez {a}. Możesz też wrócić pieszo z trasą i prowadzeniem.",
 			"Brak już potworów w: {den}. Wróć do obozu: otwórz ekwipunek przez I, przejdź do zwoju miejskiego portalu i "
@@ -112,7 +112,7 @@ inline constexpr Texts plPL{
 			"Od teraz gra należy do ciebie.",
 			"Samouczek ukończony. Wiesz, jak odnajdywać drogę: skaner, trasa, prowadzenie i radar. Na liście ustawień, "
 			"przez Ctrl plus S, wybierasz, co mod mówi i odtwarza. Klawiatura ma też skróty, które idą za ciebie: H "
-			"idzie do najbliższego niezbadanego pokoju, a Shift plus Home do tego, co wskazał skaner. Od teraz gra "
+			"idzie do najbliższego niezbadanego obszaru, a Shift plus Home do tego, co wskazał skaner. Od teraz gra "
 			"należy do ciebie."}},
 	.radarTask = {
 		"Teraz idź przez {ls}, aż usłyszysz ścianę.",
@@ -127,7 +127,7 @@ inline constexpr Texts plPL{
 		"Skrzynia osobista, skrzynia, w której trzymasz swoje przedmioty",
 		"Schody, wejście lub portal",
 		"Krawędź obszaru, droga do innego obszaru",
-		"Niezbadany pokój",
+		"Niezbadany obszar",
 		"Złoto na ziemi",
 		"Mikstura na ziemi",
 		"Przedmiot na ziemi, który możesz założyć, na przykład broń"},

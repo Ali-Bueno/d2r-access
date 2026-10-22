@@ -1,5 +1,7 @@
 #include "rooms.h"
 
+#include "level_exit_layout.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -83,16 +85,69 @@ bool Describe(const Radar::World& world, Position position, Room& out) {
 	return true;
 }
 
-std::vector<Opening> Doorways(const Radar::World& world) {
-	std::vector<Opening> result, openings;
-	for (const auto& room : world.rooms) {
-		openings.clear();
-		Openings(world, room, openings);
-		for (const auto& opening : openings) {
-			// From the other room the same gap's centre is one cell across the border.
-			const bool known = std::any_of(result.begin(), result.end(), [&](const Opening& seen) {
-				return std::abs(seen.centre.x - opening.centre.x) + std::abs(seen.centre.y - opening.centre.y) <= 2; });
-			if (!known) result.push_back(opening);
+std::vector<Doorway> Doorways(const Radar::World& world) {
+	// A doorway's wall is one wall tile from each side at most, and its gap at most two tiles
+	// wide; a pillar is narrower than a tile, so a gap between pillars has no wall on its flanks
+	// (INFERRED from the crypt tile set's tiles, 2026-10-21).
+	constexpr int Tile = LevelExitLayout::SubtilesPerTile, MaxWidth = 2 * Tile, Depth = 2 * Tile, Flank = Tile;
+	// The open ground past a wall reaches this far beyond each edge of its gap: a single cell
+	// is the jag of a wall's collision, not a room.
+	constexpr int Widens = 2;
+	const int passable = PassableWidth(world.bodyPattern);
+	struct Face { int row = 0, from = 0, to = 0, side = 0; bool used = false; };
+	std::vector<Doorway> result;
+	for (const bool columns : {false, true}) {
+		// `along` runs along the wall, `row` across it: rows of x for a wall along x, columns of y for one along y.
+		const auto state = [&](int along, int row) {
+			return columns ? world.Cell(row, along, Radar::Layer::Terrain) : world.Cell(along, row, Radar::Layer::Terrain); };
+		const auto open = [&](int along, int row) { return state(along, row) == Radar::State::Open; };
+		std::vector<Face> faces;
+		for (const auto& room : world.rooms) {
+			const int first = columns ? room.y : room.x, length = columns ? room.height : room.width;
+			const int top = columns ? room.x : room.y, rows = columns ? room.width : room.height;
+			for (int row = top; row < top + rows; ++row)
+				for (int along = first; along < first + length; ++along) {
+					if (!open(along, row) || open(along - 1, row)) continue;
+					int to = along;
+					while (open(to + 1, row)) ++to;
+					const int from = along;
+					along = to;
+					if (to - from + 1 < passable || to - from + 1 > MaxWidth) continue;
+					if (state(from - 1, row) != Radar::State::Blocked || state(to + 1, row) != Radar::State::Blocked) continue;
+					bool walled = true;
+					for (int k = 0; k < Flank && walled; ++k) walled = !open(from - 1 - k, row) && !open(to + 1 + k, row);
+					if (!walled) continue;
+					for (const int side : {-1, 1}) {
+						bool widens = true;
+						for (int at = from - Widens; at <= to + Widens && widens; ++at) widens = open(at, row + side);
+						if (widens) faces.push_back({row, from, to, side});
+					}
+				}
+		}
+		// Pair the two faces of one gap through a thick wall; a lone face opens on a passage that runs on.
+		for (auto& face : faces) {
+			if (face.used) continue;
+			face.used = true;
+			const int middle = (face.from + face.to) / 2;
+			double row = face.row, centre = (face.from + face.to) / 2.0;
+			bool through = true;
+			for (int depth = 0; depth <= Depth; ++depth) {
+				const int at = face.row - face.side * depth;
+				if (depth > 0 && !open(middle, at)) { through = false; break; }
+				const auto other = std::find_if(faces.begin(), faces.end(), [&](const Face& candidate) {
+					return !candidate.used && candidate.row == at && candidate.side == -face.side
+						&& candidate.from <= face.to && face.from <= candidate.to; });
+				if (other == faces.end()) continue;
+				other->used = true;
+				row = (face.row + at) / 2.0;
+				centre = (face.from + face.to + other->from + other->to) / 4.0;
+				break;
+			}
+			if (!through) continue;
+			const Position at = columns ? Position{row, centre} : Position{centre, row};
+			const bool known = std::any_of(result.begin(), result.end(), [&](const Doorway& seen) {
+				return std::abs(seen.centre.x - at.x) + std::abs(seen.centre.y - at.y) <= passable; });
+			if (!known) result.push_back({at, face.to - face.from + 1});
 		}
 	}
 	return result;

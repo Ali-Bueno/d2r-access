@@ -59,10 +59,10 @@ int main() {
 
 	// Names and identity.
 	registry.Observe(7, Seed, Level, {5, 5});
-	const auto entities = RoomCatalogue::Entities(registry.Entries(), "room %d", "unexplored room %d");
+	const auto entities = RoomCatalogue::Entities(registry.Entries(), "area %d", "unexplored area %d");
 	Check(entities.size() == 2, "one catalogue entity per room");
-	Check(entities[0].name == "room 1", "an explored room is named by its number");
-	Check(entities[1].name == "unexplored room 2", "a room never entered says so, and still says where it is");
+	Check(entities[0].name == "area 1", "an explored room is named by its number");
+	Check(entities[1].name == "unexplored area 2", "a room never entered says so, and still says where it is");
 	Check(entities[0].category == EntityRadar::Category::Room && entities[0].kind == EntityRadar::Kind::Room, "rooms are their own kind and category");
 	Check(entities[0].placeId == Level[0].id && entities[0].placeId != entities[1].placeId, "identity is the room's rectangle, so it survives a rebuilt list");
 	Check(entities[0].position.x == 19.5, "the entity sits at the room centre for bearing and ordering");
@@ -89,9 +89,9 @@ int main() {
 	listed = RoomCatalogue::Exploration(row.Entries(), {}, {Row[2]});
 	Check(listed.size() == 3 && listed[1].number == 2 && listed[2].number == 4,
 		"a room the automap drew is known ground: its neighbours are the edge, it is not unexplored");
-	const auto edge = RoomCatalogue::Entities(listed, "room %d", "unexplored room %d");
+	const auto edge = RoomCatalogue::Entities(listed, "area %d", "unexplored area %d");
 	Check(edge[0].category == EntityRadar::Category::Room && edge[2].category == EntityRadar::Category::UnexploredRoom
-		&& edge[2].name == "unexplored room 4", "the edge rooms keep their level-wide numbers");
+		&& edge[2].name == "unexplored area 4", "the edge rooms keep their level-wide numbers");
 	// Only a shared edge leads into a room, and not one the collision shows walled off.
 	RoomCatalogue::Registry corner;
 	corner.Observe(10, Seed, {Room(0, 0), Room(8, 8), Room(13, 0)}, {5, 5});
@@ -116,6 +116,6 @@ int main() {
 	Check(registry.Entries().empty() && registry.Level() == 0 && registry.Remembered() == 0, "clearing forgets every level, not just this one");
 	registry.Observe(8, Seed, {}, {0, 0});
 	Check(registry.Entries().empty(), "a level whose rooms cannot be read simply has no rooms");
-	Check(RoomCatalogue::Entities({}, "room %d", "unexplored room %d").empty(), "no rooms, no entities");
+	Check(RoomCatalogue::Entities({}, "area %d", "unexplored area %d").empty(), "no rooms, no entities");
 	Passed();
 }

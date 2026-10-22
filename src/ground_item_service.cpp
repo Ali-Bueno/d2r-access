@@ -7,6 +7,7 @@
 #include "native_world.h"
 #include "entity_cue_audio.h"
 #include "item_audio.h"
+#include "level_exit_layout.h"
 #include "panel_state.h"
 #include "generated/level_flags.h"
 #include "radar_config.h"
@@ -213,11 +214,18 @@ std::vector<GroundItems::Item> DoorSources(const std::vector<EntityRadar::Entity
 	}
 	return result;
 }
-// The gaps between a crypt's rooms, at their middle.
-std::vector<GroundItems::Item> DoorwaySources(const Radar::World& world) {
+// The doorways in a crypt's walls, at their middle; a door object's own gap has its door's sound.
+std::vector<GroundItems::Item> DoorwaySources(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
 	std::vector<GroundItems::Item> result;
 	if (Generated::FindLevelFlags(world.level).levelType != CryptLevelType) return result;
+	const auto doored = [&](const Rooms::Doorway& doorway) {
+		return std::any_of(entities.begin(), entities.end(), [&](const EntityRadar::Entity& entity) {
+			return entity.kind == EntityRadar::Kind::Object
+				&& (entity.shutDoor != Generated::DoorSound::None || entity.openedDoor != Generated::DoorSound::None)
+				&& std::abs(entity.position.x - doorway.centre.x) + std::abs(entity.position.y - doorway.centre.y)
+					<= LevelExitLayout::SubtilesPerTile; }); };
 	for (const auto& doorway : Rooms::Doorways(world)) {
+		if (doored(doorway)) continue;
 		GroundItems::Item source;
 		source.id = (static_cast<uint32_t>(doorway.centre.x) << 16) | (static_cast<uint32_t>(doorway.centre.y) & 0xFFFF);
 		source.position = {doorway.centre.x, doorway.centre.y};
@@ -412,7 +420,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		auto doors = read && g_doors ? DoorSources(entities, g_openDoorSounds.load()) : std::vector<GroundItems::Item>{};
 		if (doors.size() != g_shutDoors.size()) AsyncLog::InfoF(context, "[items] shut doors nearby: %zu", doors.size());
 		g_shutDoors = std::move(doors);
-		auto gaps = worldRead && doorways ? DoorwaySources(world) : std::vector<GroundItems::Item>{};
+		auto gaps = worldRead && doorways ? DoorwaySources(world, entities) : std::vector<GroundItems::Item>{};
 		if (gaps.size() != g_doorways.size()) AsyncLog::InfoF(context, "[items] doorways nearby: %zu level=%d", gaps.size(), world.level);
 		g_doorways = std::move(gaps);
 		auto wells = read && shrines ? ShrineSources(entities) : std::vector<GroundItems::Item>{};

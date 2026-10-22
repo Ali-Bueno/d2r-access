@@ -78,23 +78,23 @@ inline constexpr Texts deDE{
 			"den Klängen des Radars oder den Wandtönen, wenn du sie an hast: Unerkundete Durchgänge und unerkundeter "
 			"Boden führen zu neuem Gebiet, und das Radar sagt dir, wenn es einen neuen Ausgang verzeichnet, den der "
 			"Scanner dann unter seinen Ausgängen listet. Suche dort nach {den}: Sobald sie gelistet ist, bringen dich "
-			"der Weg und die Zielführung zu ihrem Eingang. Wenn du dich verirrst, zeigt dir die Kategorie unerkundeter "
-			"Raum des Scanners, wohin du gehen sollst.",
+			"der Weg und die Zielführung zu ihrem Eingang. Wenn du dich verirrst, zeigt dir die Kategorie unerkundetes "
+			"Gebiet des Scanners, wohin du gehen sollst.",
 			"Finde {den}. Die Karte wird für jedes Spiel neu erzeugt, also kann ihr Eingang nah oder fern sein. Folge "
 			"den Klängen des Radars oder den Wandtönen, wenn du sie an hast: Unerkundete Durchgänge und unerkundeter "
 			"Boden führen zu neuem Gebiet, und das Radar sagt dir, wenn es einen neuen Ausgang verzeichnet, den der "
 			"Scanner dann unter seinen Ausgängen listet. Suche dort nach {den}: Sobald sie gelistet ist, bringen dich "
-			"der Weg und die Zielführung zu ihrem Eingang. Wenn du dich verirrst, zeigt dir die Kategorie unerkundeter "
-			"Raum des Scanners, wohin du gehen sollst."},
+			"der Weg und die Zielführung zu ihrem Eingang. Wenn du dich verirrst, zeigt dir die Kategorie unerkundetes "
+			"Gebiet des Scanners, wohin du gehen sollst."},
 		{"Du bist in {den}. In Höhlen und Verliesen kennt die Mod die Räume: {view} und {y} nennen die Wege aus dem "
 			"Raum, in dem du bist. Probiere es jetzt aus.",
 			"Du bist in {den}. In Höhlen und Verliesen kennt die Mod die Räume: Strg plus Y nennt die Wege aus dem Raum, "
 			"in dem du bist. Probiere es jetzt aus."},
 		{"Wenn du einen Raum betrittst, hörst du, ob Teile davon noch unerkundet sind. Töte jedes Monster in {den}; "
-			"das Spiel sagt, wie viele noch übrig sind. Die Kategorie unerkundeter Raum des Scanners hilft dir, keines "
+			"das Spiel sagt, wie viele noch übrig sind. Die Kategorie unerkundetes Gebiet des Scanners hilft dir, keines "
 			"zu übersehen.",
 			"Wenn du einen Raum betrittst, hörst du, ob Teile davon noch unerkundet sind. Töte jedes Monster in {den}; "
-			"das Spiel sagt, wie viele noch übrig sind. Die Kategorie unerkundeter Raum des Scanners hilft dir, keines "
+			"das Spiel sagt, wie viele noch übrig sind. Die Kategorie unerkundetes Gebiet des Scanners hilft dir, keines "
 			"zu übersehen."},
 		{"{den} ist leer. Geh zurück ins Lager: Öffne das Inventar, benutze die Schriftrolle des Stadtportals und "
 			"tritt mit {a} in das Portal. Du kannst auch mit dem Weg und der Zielführung zurücklaufen.",
@@ -119,7 +119,7 @@ inline constexpr Texts deDE{
 			"sagt und abspielt. Ab jetzt gehört das Spiel dir.",
 			"Tutorial abgeschlossen. Du weißt, wie du dich zurechtfindest: Scanner, Weg, Zielführung und Radar. In der "
 			"Einstellungsliste, mit Strg plus S, wählst du, was die Mod sagt und abspielt. Die Tastatur hat auch "
-			"Kurzbefehle, die für dich laufen: H geht zum nächsten unerkundeten Raum, und Umschalt plus Pos1 zu dem, was "
+			"Kurzbefehle, die für dich laufen: H geht zum nächsten unerkundeten Gebiet, und Umschalt plus Pos1 zu dem, was "
 			"der Scanner genannt hat. Ab jetzt gehört das Spiel dir."}},
 	.radarTask = {
 		"Geh jetzt mit {ls}, bis du eine Wand hörst.",
@@ -134,7 +134,7 @@ inline constexpr Texts deDE{
 		"Persönliche Truhe, die Truhe, in der du deine Gegenstände aufbewahrst",
 		"Treppe, Eingang oder Portal",
 		"Gebietsgrenze, der Weg in ein anderes Gebiet",
-		"Unerkundeter Raum",
+		"Unerkundetes Gebiet",
 		"Gold am Boden",
 		"Ein Trank am Boden",
 		"Ein Gegenstand am Boden, den du anlegen kannst, etwa eine Waffe"},

@@ -250,6 +250,20 @@ went from 15 dB under its peak to 9.5, with the metal door. Doors and doorways e
 Volumes (`door-volume`, `doorway-volume`, `SoundVolume::Family::Doors`/`Doorways`), applied to
 their voices past the mix headroom (`ItemAudio::OwnVolume`).
 
+**In the walls, 2026-10-21.** The tester's screenshots (Tower Cellar 1, 3 and 4): every creak sat
+about ten units off the arch, and one in an open corridor with no wall near. The streamed rooms'
+seams are not where the arches are: a hall of the crypt is two streamed rooms, its seam runs
+through its middle, and a corridor crosses seams too. A doorway is now what a sighted player sees,
+read from the collision (`Rooms::Doorways`, any streamed room): a run of open cells in a row or
+column, 3 cells (the body) to two tiles wide, with a wall cell at each end and wall going on at
+least a tile past each (a pillar is narrower), and open ground two cells wider than the gap
+beside it. A gap through a thick wall has such a face on each side, at most two tiles apart: the
+creak sits halfway. A lone face is a corridor's mouth, kept when the corridor runs on two tiles
+(a recess is dropped). Gaps within a tile of a door object are left to the door's own loop. The
+tile figures are INFERRED from the crypt's tiles, not measured: check them by ear. The tester's
+DS1 notes (5x5 cells per DS1 cell, orientations 8/9) were not used: the mod reads no DS1 files,
+and the arches' gaps are in the collision already.
+
 ## Walked distance click (2026-10-20)
 
 A tester's request, to judge distances: a click every 1, 5 or 10 units walked (units as the

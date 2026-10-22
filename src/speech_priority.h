@@ -28,6 +28,25 @@ inline constexpr uint64_t HoldMs = 1500;
 
 struct Delivery { bool interrupt = false; uint64_t holdMs = 0; };
 
+// A pause in speech that news has waited out, and how long a message waits for one at most: in
+// a fight speech may never pause (the tutorial's, MEASURED 2026-10-21; docs/tutorial.md).
+inline constexpr uint64_t QuietMs = 1500, PatienceMs = 10000;
+
+// Holds a message until other speech has paused `quietMs`, but `patienceMs` at most: then it
+// goes in line behind what is said.
+struct Pause {
+	uint64_t quietMs = QuietMs, patienceMs = PatienceMs, heldSince = 0;
+	// True when the message may go now; `waited` gets how long it was held when patience ran out.
+	bool Due(uint64_t now, uint64_t lastSpoken, uint64_t* waited = nullptr) {
+		if (now - lastSpoken >= quietMs) { heldSince = 0; return true; }
+		if (!heldSince) heldSince = now;
+		if (now - heldSince < patienceMs) return false;
+		if (waited) *waited = now - heldSince;
+		heldSince = 0;
+		return true;
+	}
+};
+
 // What `level` makes of a phrase the mod would cut in with when `urgent`.
 constexpr Delivery For(Level level, bool urgent) {
 	switch (level) {

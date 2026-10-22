@@ -1,6 +1,7 @@
 #include "rooms.h"
 #include "test_support.h"
 
+#include <cmath>
 #include <vector>
 
 using namespace D2RAccess;
@@ -180,6 +181,79 @@ void TypicalWidth() {
 	Check(Rooms::TypicalOpeningWidth(Level({Cell(0, 0, 12)}, {5, 6})) == 0, "a level with no opening loaded has no typical width yet");
 }
 
+// Doorways as a sighted player sees them: gaps in a wall, wherever the streamed rooms' borders run.
+Radar::RoomGrid Floor(int x, int y, int width, int height) {
+	return {x, y, width, height, std::vector<uint16_t>(static_cast<size_t>(width) * height, 0)};
+}
+void Block(Radar::RoomGrid& room, int x0, int y0, int x1, int y1) { // inclusive, world cells
+	for (int y = y0; y <= y1; ++y)
+		for (int x = x0; x <= x1; ++x) room.cells[static_cast<size_t>(y - room.y) * room.width + (x - room.x)] = Wall;
+}
+bool Near(const Rooms::Doorway& doorway, double x, double y) {
+	return std::abs(doorway.centre.x - x) < 0.01 && std::abs(doorway.centre.y - y) < 0.01;
+}
+void WallDoorways() {
+	// An arch in a wall across one streamed room: heard in the arch, not on a border.
+	auto hall = Floor(0, 0, 30, 30);
+	Block(hall, 0, 15, 12, 15);
+	Block(hall, 16, 15, 29, 15);
+	auto doorways = Rooms::Doorways(Level({hall}, {5, 5}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 14, 15) && doorways.front().width == 3,
+		"a gap in a thin wall is one doorway at its middle");
+
+	// The same arch through a wall four cells thick: halfway through it.
+	auto thick = Floor(0, 0, 30, 30);
+	Block(thick, 0, 14, 12, 17);
+	Block(thick, 16, 14, 29, 17);
+	doorways = Rooms::Doorways(Level({thick}, {5, 5}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 14, 15.5), "a passage through a thick wall is one doorway halfway");
+
+	// A wall along y: the same rule turned.
+	auto turned = Floor(0, 0, 30, 30);
+	Block(turned, 15, 0, 15, 12);
+	Block(turned, 15, 16, 15, 29);
+	doorways = Rooms::Doorways(Level({turned}, {5, 5}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 15, 14), "a gap in a wall along y is found too");
+
+	// A corridor running across two streamed rooms has no doorway where they meet.
+	auto west = Floor(0, 0, 20, 20), east = Floor(20, 0, 20, 20);
+	Block(west, 0, 0, 19, 7);
+	Block(west, 0, 13, 19, 19);
+	Block(east, 20, 0, 39, 7);
+	Block(east, 20, 13, 39, 19);
+	doorways = Rooms::Doorways(Level({west, east}, {5, 10}, 2));
+	Check(doorways.empty(), "a corridor's seam between streamed rooms is no doorway");
+
+	// A corridor opening into a room: the doorway is in the room's wall, at the corridor's mouth.
+	auto mouth = Floor(0, 0, 30, 40);
+	Block(mouth, 0, 0, 12, 19);
+	Block(mouth, 16, 0, 29, 19);
+	doorways = Rooms::Doorways(Level({mouth}, {14, 30}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 14, 19), "a corridor's mouth is a doorway in the room's wall");
+
+	// Two pillars with a gap between them are no wall.
+	auto pillars = Floor(0, 0, 30, 30);
+	Block(pillars, 9, 14, 11, 16);
+	Block(pillars, 15, 14, 17, 16);
+	doorways = Rooms::Doorways(Level({pillars}, {5, 5}, 2));
+	Check(doorways.empty(), "a gap between two pillars is not a doorway");
+
+	// A recess in a wall leads nowhere.
+	auto recess = Floor(0, 0, 30, 30);
+	Block(recess, 0, 0, 29, 15);
+	for (int y = 12; y <= 15; ++y)
+		for (int x = 13; x <= 15; ++x) recess.cells[static_cast<size_t>(y) * 30 + x] = 0;
+	doorways = Rooms::Doorways(Level({recess}, {5, 25}, 2));
+	Check(doorways.empty(), "a dead-end recess is not a doorway");
+
+	// Wider than two tiles is an open side, not a doorway.
+	auto wide = Floor(0, 0, 40, 30);
+	Block(wide, 0, 15, 8, 15);
+	Block(wide, 20, 15, 39, 15);
+	doorways = Rooms::Doorways(Level({wide}, {5, 5}, 2));
+	Check(doorways.empty(), "an opening wider than two tiles is not a doorway");
+}
+
 void Geometry() {
 	Rooms::Room room{4, 8, 12, 12, {}};
 	Check(room.Contains({4, 8}) && room.Contains({15.9, 19.9}), "the rectangle includes its own first and last cell");
@@ -198,5 +272,6 @@ int main() {
 	Settling();
 	TypicalWidth();
 	Geometry();
+	WallDoorways();
 	Passed();
 }

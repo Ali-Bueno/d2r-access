@@ -148,7 +148,38 @@ void Explored() {
 
 }
 
+// The share is drawn walkable tiles over walkable tiles, rooms never streamed estimated by density.
+void Tiles() {
+	constexpr size_t RoomArea = RoomTiles * RoomTiles;
+	// Entry state: three of nine rooms charted, a sliver of each drawn, the rest unmeasured.
+	auto entry = Level({{100, 100}, {104, 100}, {108, 100}});
+	for (size_t i = 0; i < entry.rooms.size(); ++i) {
+		auto& room = entry.rooms[i];
+		room.measured = i < 3;
+		room.walkable = room.measured ? RoomArea : 0;
+		room.drawn = room.measured ? 2 : 0;
+	}
+	const auto first = TerrainOverview::Describe(entry, At(Origin, Origin));
+	Check(first.byTiles && first.walkableTiles == 9 * RoomArea && first.estimatedTiles == 6 * RoomArea && first.drawnTiles == 6,
+		"unmeasured rooms are estimated at the measured rooms' density");
+	Check(first.percent == 4, "a few drawn tiles of charted rooms read well under the room share (33 percent)");
+
+	auto half = Level({});
+	for (auto& room : half.rooms) { room.explored = true; room.measured = true; room.walkable = RoomArea; room.drawn = RoomArea / 2; }
+	Check(TerrainOverview::Describe(half, At(Origin, Origin)).percent == 50, "rooms all visited but half drawn read about half");
+
+	auto sparse = half;
+	for (auto& room : sparse.rooms) room.walkable = RoomArea / 2;
+	sparse.rooms.back().measured = false;
+	const auto estimated = TerrainOverview::Describe(sparse, At(Origin, Origin));
+	Check(estimated.estimatedTiles == RoomArea / 2 && estimated.walkableTiles == 9 * RoomArea / 2,
+		"the estimate follows the mean walkable density, not the room area");
+	Check(TerrainOverview::Describe(Level({{100, 100}}), At(Origin, Origin)).percent == 11 && !TerrainOverview::Describe(Level({}), At(Origin, Origin)).byTiles,
+		"with no measured room the room count is kept");
+}
+
 int main() {
+	Tiles();
 	Extent();
 	Places();
 	Spoken();

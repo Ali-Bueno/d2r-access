@@ -20,5 +20,13 @@ void Merge(const std::vector<Spawn>& spawns, const std::vector<Live>& live, cons
 		entities.push_back({static_cast<uint32_t>(identity), EntityRadar::Kind::Npc, spawn.position, std::move(npcName), identity,
 			false, EntityRadar::Category::Npc});
 	}
+	// A loaded NPC the presets never place (Jerhyn) is identified by its row when it is the only one.
+	for (const auto& [index, monster] : live) {
+		if (index >= entities.size() || name(monster).empty()) continue;
+		const auto sameRow = [&](const Live& other) { return other.second == monster; };
+		const auto placed = [&](const Spawn& spawn) { return spawn.monster == monster; };
+		if (std::count_if(live.begin(), live.end(), sameRow) == 1 && std::none_of(spawns.begin(), spawns.end(), placed))
+			entities[index].placeId = Identity(monster);
+	}
 }
 }

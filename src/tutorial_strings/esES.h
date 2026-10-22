@@ -73,20 +73,20 @@ inline constexpr Texts esES{
 			"Guíate por los sonidos del radar, o por los tonos de las paredes si los tienes activados: los pasajes y el "
 			"suelo sin explorar llevan a terreno nuevo, y el radar avisa cuando registra una salida nueva, que el "
 			"escáner lista después entre sus salidas. Busca ahí {den}: en cuanto aparezca, la ruta y la baliza te llevan "
-			"a su entrada. Si te pierdes, la categoría sala inexplorada del escáner te dice adónde ir.",
+			"a su entrada. Si te pierdes, la categoría zona sin explorar del escáner te dice adónde ir.",
 			"Busca {den}. El mapa se genera de nuevo en cada partida, así que su entrada puede estar cerca o lejos. "
 			"Guíate por los sonidos del radar, o por los tonos de las paredes si los tienes activados: los pasajes y el "
 			"suelo sin explorar llevan a terreno nuevo, y el radar avisa cuando registra una salida nueva, que el "
 			"escáner lista después entre sus salidas. Busca ahí {den}: en cuanto aparezca, la ruta y la baliza te llevan "
-			"a su entrada. Si te pierdes, la categoría sala inexplorada del escáner te dice adónde ir."},
+			"a su entrada. Si te pierdes, la categoría zona sin explorar del escáner te dice adónde ir."},
 		{"Estás en {den}. En cuevas y mazmorras el mod conoce las salas: {view} y {y} dicen las salidas de la sala "
 			"donde estás. Pruébalo ahora.",
 			"Estás en {den}. En cuevas y mazmorras el mod conoce las salas: Control más Y dice las salidas de la sala "
 			"donde estás. Pruébalo ahora."},
 		{"Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los monstruos de {den}; el juego "
-			"dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a no dejarte ninguno.",
+			"dice cuántos quedan. La categoría zona sin explorar del escáner te ayuda a no dejarte ninguno.",
 			"Al entrar en cada sala oirás si le quedan partes sin explorar. Mata a todos los monstruos de {den}; el juego "
-			"dice cuántos quedan. La categoría sala inexplorada del escáner te ayuda a no dejarte ninguno."},
+			"dice cuántos quedan. La categoría zona sin explorar del escáner te ayuda a no dejarte ninguno."},
 		{"Ya no quedan monstruos en {den}. Vuelve al campamento: abre el inventario, usa el pergamino de portal y entra "
 			"en el portal con {a}. También puedes volver andando con la ruta y la baliza.",
 			"Ya no quedan monstruos en {den}. Vuelve al campamento: abre el inventario con I, ve al pergamino de portal y "
@@ -112,7 +112,7 @@ inline constexpr Texts esES{
 			"lista de ajustes, con {view} y {rb}, eliges qué dice y qué suena el mod. Desde aquí, el juego es tuyo.",
 			"Tutorial completado. Ya sabes orientarte: escáner, ruta, baliza y radar. En la lista de ajustes, con "
 			"Control más S, eliges qué dice y qué suena el mod. El teclado tiene además atajos que caminan por ti: H va "
-			"a la sala sin explorar más cercana, y Mayúsculas más Inicio a lo que nombró el escáner. "
+			"a la zona sin explorar más cercana, y Mayúsculas más Inicio a lo que nombró el escáner. "
 			"Desde aquí, el juego es tuyo."}},
 	.radarTask = {
 		"Ahora camina con {ls} hasta oír una pared.",
@@ -124,7 +124,7 @@ inline constexpr Texts esES{
 		"Puerta: se abre para pasar", "Obstáculo pequeño: algo pequeño que te corta el paso y que puedes rodear"},
 	.worldCues = {"PNJ, alguien con quien hablar", "PNJ con una exclamación: tiene algo para ti",
 		"Alijo, el cofre donde guardas tus objetos", "Escaleras, entrada o portal", "Borde de zona, el paso a otra zona",
-		"Sala sin explorar", "Oro en el suelo", "Una poción en el suelo",
+		"Zona sin explorar", "Oro en el suelo", "Una poción en el suelo",
 		"Un objeto en el suelo que te puedes poner, como un arma"},
 	.worldTask = {
 		"Ahora sonarán los que tienes alrededor. Si no sabes qué es un sonido, el escáner te dice lo que hay, y cada "

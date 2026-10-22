@@ -1,6 +1,7 @@
 #include "automap_cells.h"
 #include "automap_layout.h"
 #include "level_exit_layout.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <unordered_set>
@@ -175,6 +176,18 @@ std::vector<NativeRooms::Room> RevealedRooms(const std::vector<Cell>& cells, con
 		if (drawn) result.push_back(room);
 	}
 	return result;
+}
+
+std::vector<size_t> DrawnWalkable(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms) {
+	std::unordered_set<uint64_t> tiles;
+	for (const auto& cell : cells)
+		if (Tiles(cell.tree) && cell.lattice) tiles.insert(TileKey(cell.x, cell.y));
+	std::vector<size_t> drawn;
+	drawn.reserve(rooms.size());
+	for (const auto& room : rooms)
+		drawn.push_back(static_cast<size_t>(std::count_if(room.begin(), room.end(),
+			[&](const Point& tile) { return tiles.contains(TileKey(tile.x, tile.y)); })));
+	return drawn;
 }
 
 const char* TreeName(Tree tree) {

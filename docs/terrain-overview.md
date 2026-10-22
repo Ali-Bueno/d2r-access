@@ -89,6 +89,24 @@ and 11 tracker rooms still undiscovered: outdoors the game streams most of the
 level around the player (94/94 streamed, 48 stood in). The log line gives both:
 `rooms=E/N (charted C, streamed S)`.
 
+## The spoken percentage counts tiles (2026-10-21)
+
+A tester heard 20 percent on entering Catacombs Level 2 and 100 percent in a Sewers level
+with tracts still blank: a room counted as explored once one automap tile was drawn in it or
+the player stepped in, and the rooms are 12x12 tiles. The share is now the walkable tiles
+drawn on the automap over the level's walkable tiles (`TerrainOverview::Describe`):
+
+- A tile is walkable when any of its subtiles is open terrain collision. `TerrainService::RecordWalkable`
+  keeps each streamed room's walkable tiles for the session, so unloaded rooms still count.
+- Drawn is a walkable tile that has a floor or wall cell (`AutomapCells::DrawnWalkable`).
+- Rooms never streamed are estimated at the known rooms' mean walkable density times their area.
+  With no streamed room, or no readable automap, the old room count is spoken.
+- The per-room explored flags (side legs, beacon, scanner) are unchanged. The log line gives
+  `percent=P (drawn D of W walkable tiles, estimated E)`.
+
+Live check: Mod+B on arrival in a maze level reads low, then climbs as the automap fills; in
+the Sewers it no longer says 100 while the automap shows blank ground.
+
 ## Limits
 
 - The walk steps a tile at a time along a world axis, so distances are

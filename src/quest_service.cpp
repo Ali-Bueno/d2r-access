@@ -70,6 +70,10 @@ constexpr int TaintedSunRow = 11;
 constexpr int LostCityLevel = 44;
 std::atomic<int> g_level{0};
 std::optional<bool> g_eclipse; // whether the quest ran at the last read; empty until this game's first
+// The eclipse waits for the area's name and the quest's own news to be said: they cut it off
+// (a tester, 2026-10-21).
+bool g_eclipsePending = false;
+SpeechPriority::Pause g_eclipsePause;
 uint64_t g_session = 0, g_nextWatch = 0;
 uint32_t g_player = 0;
 Strings::Language g_language = Strings::Language::enUS;
@@ -221,15 +225,20 @@ void Note(const char* command) {
 	g_nextWatch = now + QuestProgress::SettleMs;
 }
 
-// The eclipse is said once, as the Tainted Sun begins in the Lost City.
-void TickEclipse(const D2RL::PluginContext* context) {
-	const auto flags = NativeQuestFlags::Read(TaintedSunRow);
-	if (!flags) return;
-	const bool running = EntityRadar::QuestRunning(*flags);
-	const bool began = g_eclipse && !*g_eclipse && running && g_level.load() == LostCityLevel;
-	g_eclipse = running;
-	if (!began) return;
-	AsyncLog::InfoF(context, "[quest] Tainted Sun began: flags=%04X", *flags);
+// The eclipse is said once, as the Tainted Sun begins in the Lost City, after a pause in speech.
+void TickEclipse(const D2RL::PluginContext* context, bool canSpeak) {
+	if (const auto flags = NativeQuestFlags::Read(TaintedSunRow)) {
+		const bool running = EntityRadar::QuestRunning(*flags);
+		if (g_eclipse && !*g_eclipse && running && g_level.load() == LostCityLevel) {
+			AsyncLog::InfoF(context, "[quest] Tainted Sun began: flags=%04X", *flags);
+			g_eclipsePending = true;
+		}
+		g_eclipse = running;
+	}
+	uint64_t waited = 0;
+	if (!g_eclipsePending || !canSpeak || !g_eclipsePause.Due(GetTickCount64(), ScreenReader::LastSpoken(), &waited)) return;
+	g_eclipsePending = false;
+	AsyncLog::InfoF(context, "[quest] eclipse said%s", waited ? " without a pause in speech" : "");
 	SpeechPriority::Say(SpeechPriority::Kind::QuestAlerts, Strings::Current().questEclipse);
 }
 
@@ -255,7 +264,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		}
 	if (!g_ready || !g_enabled) return;
 	if (g_language != Strings::Selected()) Reset(); // Never announce a locale change as progress.
-	TickEclipse(context);
+	const bool canSpeak = !uiOwnsSpeech && RadarUi::Inspect(foreground) == RadarUi::State::Playing;
+	TickEclipse(context, canSpeak);
 	const uint64_t now = GetTickCount64();
 	if (now >= g_nextWatch) {
 		g_nextWatch = now + WatchMs;
@@ -284,7 +294,6 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			}
 		}
 	}
-	const bool canSpeak = !uiOwnsSpeech && RadarUi::Inspect(foreground) == RadarUi::State::Playing;
 	const auto announcement = g_reader.Update(g_sample, now, canSpeak);
 	std::string text;
 	if (announcement.kind == QuestProgress::Kind::Updated) text = Strings::Current().questUpdated;
@@ -307,6 +316,8 @@ void Reset() {
 	g_sample = {};
 	g_seen = false;
 	g_eclipse.reset();
+	g_eclipsePending = false;
+	g_eclipsePause = {};
 	g_nextWatch = 0;
 	g_language = Strings::Selected();
 	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);

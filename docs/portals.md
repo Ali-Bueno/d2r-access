@@ -29,8 +29,26 @@ checked by the mod, which says the owner whenever one is found):
 Spoken as `portalOwned`: "Tower Cellar Level 1, TankMan's portal". Fingerprints:
 `EntityLayout::PortalOwnerChecks` (`[scan] Portal owners verified`).
 
+## Remembered portals in multiplayer
+
+The registry keeps a portal out of the loaded rooms at its last place and name
+(`MapSurvey::Registry`). A party member's new portal is a new unit the client loads only
+when near it, so the old one stayed (tester, 2026-10-21: Raine kept the Maggot Lair portal
+after the host opened one from the Lost City). Two rules, both on `Entity::owner`:
+1. A newly seen portal replaces any tracked, unloaded portal of the same owner on the level
+   (a player has one town portal).
+2. While not loaded, a tracked portal is dropped when its owner's roster entry
+   (`RosterPortal` +0x80 / `RosterRemotePortal` +0x84, read by `NativeEntities::ReadRosterPortals`)
+   is readable, not both zero, and neither id is the portal's unit id. Logged once:
+   `[scan] portal dropped: owner=... tracked=... roster=local/remote`.
+
+Not verified: that a client's roster refreshes those ids when a member opens another portal
+(only the writer `0x136940` is known). If the log never shows the drop line while the old
+portal lingers, the ids are not refreshed and only rule 1 applies.
+
 ## Live check
 
 On a town portal, in town and in the field, single player and online: the scanner's name, and
-whether the owner comes from the roster or +0x34. Unread: the label's format string at
+whether the owner comes from the roster or +0x34. In multiplayer: host opens a second portal
+while the client stays away; the client's log should show `[scan] portal dropped`. Unread: the label's format string at
 `exe+0x1CC2F74` (the `.rdata` of the rebuilt image does not match the live process).

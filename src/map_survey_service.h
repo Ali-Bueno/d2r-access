@@ -22,5 +22,7 @@ void SetReachFilter(bool on);
 // default (the user, 2026-10-12). Off keeps the 2026-09-28 rule: only those seen.
 bool TownNpcsEverywhere();
 void SetTownNpcsEverywhere(bool on);
+bool UnexploredSpread();
+void SetUnexploredSpread(bool on);
 
 }

@@ -66,15 +66,18 @@ automap; enemies are the one live category.
   A party member's corpse is placed even unseen, on any level, from the party
   roster at the moment it appears (`CorpseMemory`, `docs/player-corpse-re.md`).
 - **Rooms** are logical rooms of the level, read whether or not the game has
-  them loaded (`NativeRooms::Read`). *Room* lists the rooms stood in.
-  *Unexplored room* comes right after the ways out. In exploration mode it
+  them loaded (`NativeRooms::Read`). *Area* lists the areas stood in.
+  *Unexplored area* comes right after the ways out. In exploration mode it
   lists only the rooms sharing an edge with explored ground that loaded
   collision does not prove walled off (`RoomCatalogue::Exploration`,
   `RoomGraph::Touching`/`Border`, `docs/room-routing.md`). Explored ground is a room stood in, drawn on the automap,
   or underfoot (`TerrainService::ExploredRooms`). This is the edge of the known
   map, so a lost player can head somewhere new. Nothing inside an unexplored
   room is revealed: its exits appear once charted, like any landmark. Full
-  assistance lists every room never stood in.
+  assistance lists every room never stood in. With `unexplored-spread` (Ctrl+S,
+  on; a tester, 2026-10-21) the list takes one per screen direction in turn,
+  nearest first in each round (`MapSurvey::SpreadByDirection`): the same areas,
+  only the order changes, so a player picks a way rather than three neighbours.
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
@@ -119,6 +122,15 @@ loaded, with Fara, Cain and Meshif presets in them and no unit read. Switch
 all; off, only those seen (`TownNpcSightings::Listed`). NPCs that wander
 (Warriv, Gheed, Ormus) are found near their spawn. Code: `src/town_npcs.{h,cpp}`,
 `NativeEntities::AddTownNpcs`.
+
+An NPC the presets never place (Jerhyn, MonStats row 201: no `201xN` in the
+`[survey] town NPCs on level 40` presets list, yet loaded at 5152,5200 in the
+2026-10-21 explo log) takes the row's identity while it is the only loaded unit of
+that row. `TownNpcSightings` keeps the last seen entity per identity, so once seen
+it stays listed from anywhere, at its last place, as a stand-in with no unit; the
+live unit takes over when loaded again. Unseen, it cannot be listed: no preset
+says where it is. Live check: stand at Atma, `[survey] town NPCs` should name
+Jerhyn as `Jerhyn@x,y/spawn` once he was met and is out of range.
 
 ### Presets of rooms not built yet (fixed 2026-10-12)
 

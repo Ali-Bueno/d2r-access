@@ -78,23 +78,23 @@ inline constexpr Texts frFR{
 			"les sons du radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol "
 			"inexploré mènent à du terrain nouveau, et le radar vous prévient quand il note une nouvelle sortie, que le "
 			"scanner liste alors parmi ses sorties. Cherchez-y {den} : une fois dans la liste, l'itinéraire et le "
-			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des salles inexplorées du scanner vous "
+			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des zones inexplorées du scanner vous "
 			"montre où aller.",
 			"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez "
 			"les sons du radar, ou les tons des murs si vous les avez activés : les passages inexplorés et le sol "
 			"inexploré mènent à du terrain nouveau, et le radar vous prévient quand il note une nouvelle sortie, que le "
 			"scanner liste alors parmi ses sorties. Cherchez-y {den} : une fois dans la liste, l'itinéraire et le "
-			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des salles inexplorées du scanner vous "
+			"guidage vous mènent à son entrée. Si vous vous perdez, la catégorie des zones inexplorées du scanner vous "
 			"montre où aller."},
 		{"Zone actuelle : {den}. Dans les grottes et les donjons, le mod connaît les salles : {view} et {y} disent "
 			"les issues de la salle où vous êtes. Essayez maintenant.",
 			"Zone actuelle : {den}. Dans les grottes et les donjons, le mod connaît les salles : Ctrl plus Y dit les "
 			"issues de la salle où vous êtes. Essayez maintenant."},
 		{"En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
-			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous "
+			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des zones inexplorées du scanner vous "
 			"aide à n'en oublier aucun.",
 			"En entrant dans chaque salle, vous entendrez si des parties en sont encore inexplorées. Tuez tous les "
-			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des salles inexplorées du scanner vous "
+			"monstres dans {den} ; le jeu dit combien il en reste. La catégorie des zones inexplorées du scanner vous "
 			"aide à n'en oublier aucun."},
 		{"Plus aucun monstre dans {den}. Retournez au camp : ouvrez l'inventaire, utilisez le parchemin de portail de "
 			"retour en ville, et entrez dans le portail avec {a}. Vous pouvez aussi revenir à pied avec l'itinéraire et "
@@ -120,7 +120,7 @@ inline constexpr Texts frFR{
 			"joue. À partir de maintenant, le jeu est à vous.",
 			"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la liste des "
 			"réglages, avec Ctrl plus S, vous choisissez ce que le mod dit et joue. Le clavier a aussi des raccourcis "
-			"qui marchent à votre place : H va à la salle inexplorée la plus proche, et Maj plus Origine à ce que le "
+			"qui marchent à votre place : H va à la zone inexplorée la plus proche, et Maj plus Origine à ce que le "
 			"scanner a nommé. À partir de maintenant, le jeu est à vous."}},
 	.radarTask = {
 		"Marchez maintenant avec {ls} jusqu'à entendre un mur.",
@@ -135,7 +135,7 @@ inline constexpr Texts frFR{
 		"Coffre personnel, le coffre où vous gardez vos objets",
 		"Escalier, entrée ou portail",
 		"Bord de la zone, le passage vers une autre zone",
-		"Salle inexplorée",
+		"Zone inexplorée",
 		"De l'or au sol",
 		"Une potion au sol",
 		"Un objet au sol que vous pouvez porter, comme une arme"},

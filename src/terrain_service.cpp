@@ -93,6 +93,31 @@ uint32_t g_checkedLevel = 0; // grid-origin cross-check done for this level
 Frontier::FrameMarks g_frontier{};
 int g_frontierLevel = 0;
 
+// The walkable tiles of every room the game has streamed, by level then room
+// identity, kept after the room unloads. Cleared with the exploration memory.
+std::map<uint32_t, std::map<uint64_t, std::vector<AutomapCells::Point>>> g_walkable;
+
+// Caller holds g_mutex. Records the walkable tiles of each streamed room not yet measured:
+// a tile is walkable when any of its subtiles is open terrain.
+void RecordWalkable(const Radar::World& world) {
+	constexpr int Sub = LevelExitLayout::SubtilesPerTile;
+	auto& level = g_walkable[static_cast<uint32_t>(world.level)];
+	for (const auto& grid : world.rooms) {
+		const int tileX = grid.x / Sub, tileY = grid.y / Sub;
+		const uint64_t id = NativeRooms::Identity(tileX, tileY);
+		if (level.contains(id)) continue;
+		std::vector<AutomapCells::Point> tiles;
+		for (int y = 0; y < grid.height / Sub; ++y)
+			for (int x = 0; x < grid.width / Sub; ++x) {
+				bool open = false;
+				for (int dy = 0; dy < Sub && !open; ++dy)
+					for (int dx = 0; dx < Sub && !open; ++dx)
+						open = world.Cell(grid.x + x * Sub + dx, grid.y + y * Sub + dy, Radar::Layer::Terrain) == Radar::State::Open;
+				if (open) tiles.push_back({tileX + x, tileY + y});
+			}
+		level.emplace(id, std::move(tiles));
+	}
+}
 // Caller holds g_mutex.
 void SaveAll(const D2RL::PluginContext* context) {
 	if ((!g_explored.Dirty() && g_places.empty()) || g_directory.empty()) return;
@@ -148,6 +173,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 		g_explored.Forget();
 		g_keys.clear();
 		g_places.clear();
+		g_walkable.clear();
 		g_surveyedLevel = g_cameFrom = 0;
 		g_heldFinds.clear();
 		g_loggedLevel = 0;
@@ -214,11 +240,25 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 	// overview said 100 percent with a dozen rooms still blank (a tester, 2026-10-17).
 	const auto charted = NativeAutomap::RevealedRooms(rooms);
 	const auto explored = NavigationPolicy::Explored(VisitedRoomsLocked(state.level, rooms), charted ? &*charted : nullptr, rooms, world.player);
+	RecordWalkable(world);
+	// The spoken share counts walkable tiles drawn on the automap; without the automap it falls back to rooms.
+	const auto& measured = g_walkable[native.level];
+	std::vector<std::vector<AutomapCells::Point>> walkable;
+	walkable.reserve(rooms.size());
+	for (const auto& room : rooms) {
+		const auto found = measured.find(room.id);
+		walkable.push_back(found == measured.end() ? std::vector<AutomapCells::Point>{} : found->second);
+	}
+	const auto drawn = NativeAutomap::DrawnWalkable(walkable);
 	TerrainOverview::Layout layout;
 	layout.rooms.reserve(native.rooms.size());
-	for (const auto& room : rooms)
-		layout.rooms.push_back({{room.tileX, room.tileY, room.tileWidth, room.tileHeight},
-			std::any_of(explored.begin(), explored.end(), [&](const NativeRooms::Room& known) { return known.id == room.id; })});
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		const auto& room = rooms[i];
+		TerrainOverview::Room entry{{room.tileX, room.tileY, room.tileWidth, room.tileHeight},
+			std::any_of(explored.begin(), explored.end(), [&](const NativeRooms::Room& known) { return known.id == room.id; })};
+		if (drawn && measured.contains(room.id)) { entry.measured = true; entry.walkable = walkable[i].size(); entry.drawn = (*drawn)[i]; }
+		layout.rooms.push_back(entry);
+	}
 	for (const auto& neighbour : native.neighbours)
 		layout.neighbours.push_back({neighbour.rect, LevelName(neighbour.level, strings)});
 	const auto summary = TerrainOverview::Describe(layout, world.player);
@@ -242,10 +282,11 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			leg.hasUnexplored ? leg.unexplored : 0.0, leg.border.empty() ? "-" : leg.border.c_str());
 		legs += entry;
 	}
-	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu (charted %zu, streamed %zu) percent=%d landmarks=%zu%s -> %s",
+	AsyncLog::InfoF(context, "[terrain] at=%.0f,%.0f level=%u box=%d,%d %dx%d place=%zu rooms=%zu/%zu (charted %zu, streamed %zu) percent=%d (drawn %zu of %zu walkable tiles, estimated %zu%s) landmarks=%zu%s -> %s",
 		world.player.x, world.player.y, native.level, summary.box.x, summary.box.y,
 		summary.box.width, summary.box.height, summary.place, explored.size(), native.rooms.size(),
-		charted ? charted->size() : 0, g_explored.Count(native.level), summary.percent, landmarks.size(), legs.c_str(), text.c_str());
+		charted ? charted->size() : 0, g_explored.Count(native.level), summary.percent, summary.drawnTiles, summary.walkableTiles, summary.estimatedTiles,
+		summary.byTiles ? "" : ", by rooms", landmarks.size(), legs.c_str(), text.c_str());
 }
 // The rooms never streamed, as subtile rectangles, for the frontier.
 std::vector<NativeRooms::Bounds> Unseen(const NativeLevelExits::Layout& native) {
@@ -275,6 +316,7 @@ void Track(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		ExplorationCueService::Update(context, native, world.player, g_explored, RoomService::Maze(native.level));
 	else ExplorationCueService::Silence();
 	if (located) {
+		RecordWalkable(world);
 		const int tileX = static_cast<int>(std::floor(world.player.x / LevelExitLayout::SubtilesPerTile));
 		const int tileY = static_cast<int>(std::floor(world.player.y / LevelExitLayout::SubtilesPerTile));
 		for (const auto& room : native.rooms) {
@@ -578,6 +620,7 @@ void Unregister() {
 	g_explored.Forget();
 	g_keys.clear();
 	g_places.clear();
+	g_walkable.clear();
 	g_state = {};
 	g_asked = false;
 	g_supported = false;

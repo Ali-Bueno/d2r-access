@@ -41,5 +41,8 @@ const char* StatusName(Status status);
 // Of `rooms` (the current level's), those the automap has drawn in; nothing when
 // the automap cannot be read. Game thread only; cached until the floors or walls grow.
 std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>& rooms);
+// Per room, how many of its walkable tiles the automap has drawn; nothing when the
+// automap cannot be read. Game thread only.
+std::optional<std::vector<size_t>> DrawnWalkable(const std::vector<std::vector<AutomapCells::Point>>& rooms);
 
 }

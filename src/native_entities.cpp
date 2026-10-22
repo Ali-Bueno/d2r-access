@@ -598,7 +598,8 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 			entity.name = LevelText(tables, levelId, LevelNameKey);
 			entity.nameKey = LevelKey(tables, levelId, LevelNameKey);
 			entity.destinationLevel = levelId;
-			if (const auto owner = PortalOwner(data, entity.id); !owner.empty() && !entity.name.empty()) {
+			entity.owner = PortalOwner(data, entity.id);
+			if (const auto& owner = entity.owner; !owner.empty() && !entity.name.empty()) {
 				char text[512]{};
 				std::snprintf(text, sizeof text, Strings::Current().portalOwned, entity.name.c_str(), owner.c_str());
 				entity.name = text;
@@ -979,6 +980,25 @@ bool ReadRosterCorpses(uintptr_t head, uint32_t playerId, std::vector<CorpseMemo
 		if (!Peek(entry + RosterNext, entry)) return false;
 	}
 	return true;
+}
+bool ReadRosterPortals(uintptr_t head, std::vector<EntityRadar::RosterPortals>& roster) {
+	const NativeMemory::ReadScope scope;
+	roster.clear();
+	uintptr_t entry = head;
+	for (size_t i = 0; entry && i < MaxRosterEntries; ++i) {
+		EntityRadar::RosterPortals member;
+		if (Peek(entry + RosterPortal, member.local) && Peek(entry + RosterRemotePortal, member.remote)) {
+			member.owner = UiText::Clean(CString(entry + RosterName, PlayerNameBytes));
+			if (!member.owner.empty()) roster.push_back(std::move(member));
+		}
+		if (!Peek(entry + RosterNext, entry)) break;
+	}
+	return !roster.empty();
+}
+bool ReadRosterPortals(std::vector<EntityRadar::RosterPortals>& roster) {
+	uintptr_t head = 0;
+	roster.clear();
+	return g_base && g_portalOwnersSupported && g_rosterSupported && Peek(g_base + RosterHead, head) && head && ReadRosterPortals(head, roster);
 }
 bool ReadRosterCorpses(uint32_t playerId, std::vector<CorpseMemory::Owner>& owners) {
 	uintptr_t head = 0;
