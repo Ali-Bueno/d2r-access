@@ -281,12 +281,12 @@ lanes across the body, the farthest winning; off the map counts as a wall. Its o
 ## Spoken directions (2026-10-13)
 
 Every direction the mod says goes through `SpokenDirection` (`src/spoken_direction.h`): the
-scanner, the NPC announcer, room exits, the exit finder, the terrain overview, the radar
+scanner, the NPC announcer, room exits, the terrain overview, the radar
 readout and its sound test, the keyboard's target lines and the route description. They are
 still screen directions, named two ways (Ctrl+S, Navigation, `direction-style`):
 
 - **Compass points** (default): north is the top of the screen, east its right. Eight points
-  for a bearing (`Radar::ScreenSector`), four for a side (radar rays, finder, overview).
+  for a bearing (`Radar::ScreenSector`), four for a side (radar rays, overview).
 - **Clock hours**: twelve is the top, three the right. A bearing is one of twelve hours
   (30 degrees, finer than the eight points); a side is 12, 9, 3 or 6.
 

@@ -146,10 +146,11 @@ bool Memory::Learn(const Radar::World& world) {
 				// A blank cell of a loaded room is no floor, and no route here crosses
 				// one (Beacon, Navigation): shut, or a way would be planned through it
 				// for ever. A shut door's cells carry DOOR, which opening it clears
-				// (docs/collision-semantics.md); whether they carry OBJECT too is not
-				// measured, so either counts as the door's own.
+				// (docs/collision-semantics.md), or OBJECT alone beside a door noted
+				// (NoteDoor); OBJECT alone elsewhere is a chest or a barrel.
+				const bool door = (shut & Radar::Collision::Door) || (shut == Radar::Collision::Object && NearDoor(x, y));
 				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
-					: (shut & Radar::Collision::Door) ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
+					: door ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
 				if (cell == ground) continue;
 				cell = ground;
@@ -159,6 +160,19 @@ bool Memory::Learn(const Radar::World& world) {
 	}
 	if (changed) ++revision_;
 	return changed;
+}
+
+bool Memory::NoteDoor(Position at, int reach) {
+	const NotedDoor door{Cell(at.x), Cell(at.y), reach};
+	if (cells_.empty() || std::any_of(doors_.begin(), doors_.end(),
+		[&](const NotedDoor& known) { return known.x == door.x && known.y == door.y; })) return false;
+	doors_.push_back(door);
+	return true;
+}
+
+bool Memory::NearDoor(int x, int y) const {
+	return std::any_of(doors_.begin(), doors_.end(),
+		[&](const NotedDoor& door) { return std::abs(x - door.x) <= door.reach && std::abs(y - door.y) <= door.reach; });
 }
 
 Area Area::Around(Position place, int margin) {

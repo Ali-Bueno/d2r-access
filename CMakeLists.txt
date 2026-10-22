@@ -133,7 +133,7 @@ add_library(d2r-access SHARED
 	src/corpse_memory.cpp
 	src/rooms.cpp
 	src/room_service.cpp
-	src/exit_review.cpp
+	src/room_sides.cpp
 	src/explored_rooms.cpp
 	src/explored_store.cpp
 	src/explored_store_worker.cpp
@@ -342,8 +342,8 @@ if(BUILD_TESTING)
 	add_test(NAME navigation-grid COMMAND navigation-grid-tests)
 	d2r_test(rooms-tests tests/rooms_tests.cpp src/rooms.cpp src/radar_grid.cpp)
 	add_test(NAME rooms COMMAND rooms-tests)
-	d2r_test(exit-review-tests tests/exit_review_tests.cpp src/exit_review.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
-	add_test(NAME exit-review COMMAND exit-review-tests)
+	d2r_test(room-sides-tests tests/room_sides_tests.cpp src/room_sides.cpp src/spoken_direction.cpp src/speech_strings.cpp)
+	add_test(NAME room-sides COMMAND room-sides-tests)
 	d2r_test(terrain-overview-tests tests/terrain_overview_tests.cpp src/terrain_overview.cpp src/spoken_direction.cpp src/explored_rooms.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME terrain-overview COMMAND terrain-overview-tests)
 	# The sonar radar: passage scan, sensor state machine, structural filtering,

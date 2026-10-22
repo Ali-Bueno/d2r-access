@@ -374,6 +374,27 @@ int main() {
 		level.Fill(Left + 50, Top + 60, Left + 52, Top + 62, 0); // the door opened
 		(void)memory.Learn(level.Loaded({Left + 51.0, Top + 61.0}, 0));
 		Check(!LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "an opened door is a way");
+
+		// The Jail's doors carry OBJECT alone, no DOOR (a tester's log, 2026-10-22: no route until
+		// the door was opened by hand). Once the door is noted, its cells are a door's.
+		Level jail;
+		jail.Fill(Left, Top + 60, Left + Width - 1, Top + 62, Wall);
+		jail.Fill(Left + 50, Top + 60, Left + 52, Top + 62, Object);
+		LevelRoute::Memory cells;
+		Check(cells.Begin(1, 1, jail.Rooms()), "fixture: the map begins");
+		const auto learnAll = [&] {
+			for (int row = 0; row < Down; ++row)
+				for (int column = 0; column < Across; ++column)
+					(void)cells.Learn(jail.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
+		};
+		learnAll();
+		Check(cells.At(Left + 51, Top + 61) == Ground::Blocked && LevelRoute::Plan().From(cells, player, place, 1, 1, true).path.empty(),
+			"a door marked as an object reads as a wall until it is noted");
+		Check(cells.NoteDoor({Left + 51.0, Top + 61.0}, 3) && !cells.NoteDoor({Left + 51.0, Top + 61.0}, 3), "a door is noted once");
+		learnAll();
+		Check(cells.At(Left + 51, Top + 61) == Ground::Door && cells.At(Left + 50, Top + 60) == Ground::Door
+			&& cells.At(Left + 48, Top + 61) == Ground::Blocked, "noted, its cells are a door's and the wall beside it stays a wall");
+		Check(!LevelRoute::Plan().From(cells, player, place, 1, 1, true).path.empty(), "and a way the player opens as they go passes it");
 	}
 	{
 		// The Arcane Sanctuary's pads, as measured 2026-10-02: each gap is crossed

@@ -120,12 +120,6 @@ In play:
   pause of 10 seconds it starts again at the mercenary.
 - BACK+LT: the main skill bar, as holding LT reads the other one.
 - BACK+Y: the passages out of the room you are in.
-- BACK+A: passage finder on or off. While on, the right stick names the
-  passages on one wall of the room instead of scanning: flick up-right for the
-  northeast wall (2 o'clock), down-right southeast (4), down-left southwest
-  (8), up-left northwest (10). The room's exit line names passages by the same
-  walls. "Passages by the map's sides" (Ctrl+S, Navigation, on) turned off
-  gives the screen's sides instead.
 - BACK+B: area overview: the area, where you stand in it ("northeast edge",
   "centre", "south corner"), how much you have seen, then each side of the
   area (northeast, southeast, southwest, northwest: Diablo's areas are
@@ -217,7 +211,7 @@ which helps to find the last ones when an area must be cleared.
 
 Exits are the ways out of an area: stairs, cave entrances, area borders,
 portals. Passages are the openings between rooms inside one area (doorways,
-cave necks); the room announcements and the exit finder use that word.
+cave necks); the room announcements use that word.
 
 
 SETTINGS
@@ -235,9 +229,8 @@ knowing:
   legs, without the whole length first.
 - Route legs (Navigation, on): turn it off and a route says only its target and
   its whole length, without the legs ("east, 11; then ...").
-- Passages by the map's sides (Navigation, on): the passage finder and the
-  room's exit line by the room's walls, northeast, southeast, southwest and
-  northwest, and the finder's stick turned to match.
+- Passages by the map's sides (Navigation, on): the room's exit line by the
+  room's walls, northeast, southeast, southwest and northwest.
 - Enemy class sounds: layered (the default) or classic. Every enemy now
   growls at the same pitch, so pitch only tells north or south; a champion adds a
   raspy buzz, a boss a metallic ring, a shaman a wail, an archer a whistle.
@@ -298,8 +291,8 @@ knowing:
   ... into inventory" or, with Y from a stash tab, "Moved 3 Chipped Topaz to
   Cube"; Transmute says "New item in Cube: Flawed Topaz". A stash tab beside a
   carried, open cube says "Runes - Cube open".
-- Route on BACK+A (Controller, off): swaps them: BACK+A says the route and
-  BACK + right stick down turns the passage finder on or off.
+- Route on BACK+A (Controller, off): BACK+A says the route instead of
+  BACK + right stick down.
 - Experience in the life report (on): BACK+X also says how far you are into
   your level, as the bar between the orbs shows.
 - Mercenary's lines named (on): "Mercenary says: I feel much stronger now".

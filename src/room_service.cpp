@@ -1,15 +1,13 @@
 #include "room_service.h"
 #include "async_log.h"
-#include "beacon_service.h"
 #include "entity_radar.h"
-#include "exit_review.h"
 #include "generated/level_flags.h"
 #include "input_direction.h"
 #include "level_exit_layout.h"
 #include "native_entities.h"
-#include "native_level_exits.h"
 #include "native_world.h"
 #include "radar_ui.h"
+#include "room_sides.h"
 #include "rooms.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -47,33 +45,16 @@ const D2RL::InputService* g_input = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<Command> g_command{Command::None};
-std::atomic<bool> g_enabled{true}, g_asked{false}, g_finderToggle{false};
-// The exit finder: while on, in a dungeon room, a right-stick push names the
-// ways out on that side. Off by default, for the session.
-std::atomic<bool> g_finder{false};
+std::atomic<bool> g_enabled{true}, g_asked{false};
 // Ways out told by the map's sides, the room's own walls, instead of the
 // screen's: a tester's request of 2026-10-14, on by default (the user).
 std::atomic<bool> g_mapSides{true};
-ExitReview::Sides Sides() { return g_mapSides.load(std::memory_order_relaxed) ? ExitReview::Sides::Map : ExitReview::Sides::Screen; }
+bool MapSidesOn() { return g_mapSides.load(std::memory_order_relaxed); }
 bool g_supported = false;
 Rooms::Hysteresis g_rooms;
-// Distances are spoken by the same rule as the entity scan and the catalogue.
-const EntityRadar::Settings g_scan;
-// The finder's place on one side of one room: the next push that way names
-// the next way out, until the side, the room or the level changes.
-ExitReview::Cycle g_cycle;
-Radar::Direction g_cycleSide = Radar::Direction::Up;
-ExitReview::Sides g_cycleSides = ExitReview::Sides::Screen;
-Rooms::RoomKey g_cycleRoom;
-int g_cycleLevel = 0;
 uint64_t g_nextPoll = 0;
 
-void Forget() {
-	g_rooms.Forget();
-	g_cycle.Reset();
-	g_cycleRoom = {};
-	g_cycleLevel = 0;
-}
+void Forget() { g_rooms.Forget(); }
 
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
@@ -87,17 +68,11 @@ void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::Gamep
 }
 const char* Where(Radar::Position player, Radar::Position target) {
 	const Radar::Position offset{target.x - player.x, target.y - player.y};
-	return SpokenDirection::Of(Sides() == ExitReview::Sides::Map ? ExitReview::MapSide(offset) : offset, Strings::Current());
+	return SpokenDirection::Of(MapSidesOn() ? RoomSides::MapSide(offset) : offset, Strings::Current());
 }
 // A passage is said by its wall on the map's sides, by its bearing on the screen's.
 const char* Where(Radar::Position player, const Rooms::Opening& opening) {
-	return Sides() == ExitReview::Sides::Map ? SpokenDirection::Of(ExitReview::Wall(opening), Strings::Current())
-		: Where(player, opening.centre);
-}
-// A finder side in the log, which is English diagnosis, not speech.
-const char* SideName(Radar::Direction side) {
-	constexpr const char* Names[] = {"up", "left", "right", "down"};
-	return Names[static_cast<size_t>(side)];
+	return MapSidesOn() ? SpokenDirection::Of(RoomSides::Wall(opening), Strings::Current()) : Where(player, opening.centre);
 }
 // A way out never taken is tagged: an opening into a chamber never stood in,
 // an exit into a level with no room seen yet. `docs/exploration.md`
@@ -171,90 +146,12 @@ void Layout(const Lifecycle& state) {
 	TagOpenings(world, state.level, room);
 	Announce(state, world, room, "asked");
 }
-// The level exits standing inside this room.
-std::vector<EntityRadar::Entity> ExitsIn(const Lifecycle& state, const Rooms::Room& room) {
-	std::vector<EntityRadar::Entity> entities, exits;
-	if (!NativeEntities::Read(state.player, state.session, entities)) return exits;
-	for (auto& entity : entities)
-		if (entity.kind == EntityRadar::Kind::Exit && room.Contains(entity.position)) exits.push_back(std::move(entity));
-	return exits;
-}
-// A plain opening is not a unit guidance can re-read, so it is offered as a
-// fixed place: the room kind, which guidance never re-locates.
-EntityRadar::Entity Place(const ExitReview::Item& item) {
-	EntityRadar::Entity entity;
-	entity.kind = EntityRadar::Kind::Room;
-	entity.position = item.point;
-	entity.name = item.label;
-	entity.placeId = NativeLevelExits::Identity(item.point);
-	entity.id = static_cast<uint32_t>(entity.placeId) | 1u; // never zero: guidance ignores id 0
-	return entity;
-}
-bool SideOf(InputDirection::StickPush push, Radar::Direction& side) {
-	switch (push) {
-	case InputDirection::StickPush::Up:    side = Radar::Direction::Up; return true;
-	case InputDirection::StickPush::Left:  side = Radar::Direction::Left; return true;
-	case InputDirection::StickPush::Right: side = Radar::Direction::Right; return true;
-	case InputDirection::StickPush::Down:  side = Radar::Direction::Down; return true;
-	default: return false;
-	}
-}
-// One push of the right stick, taken before the level scanner sees it -- but
-// only in a dungeon room. Anywhere else the finder does nothing and the push is
-// left for the scanner (the user: "no-op the mode outside of a dungeon").
-// The way out named is offered to guidance, so BACK+LB or Ctrl+B leads to it.
-void Find(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
-	Radar::Direction side = Radar::Direction::Up;
-	const auto sides = Sides();
-	// On the map's sides the stick is read turned: a flick up-right asks for the northeast wall.
-	if (!SideOf(sides == ExitReview::Sides::Map ? InputDirection::PeekTurnedRightStickPush()
-		: InputDirection::PeekRightStickPush(), side)) return;
-	Radar::World world;
-	Rooms::Room room;
-	if (!NativeWorld::Read(state.player, state.session, state.level, world)
-		|| !Rooms::Describe(world, world.player, room)) return;
-	(void)InputDirection::TakeRightStickPush("exit finder");
-	TagOpenings(world, state.level, room);
-	const auto& strings = Strings::Current();
-	const Rooms::RoomKey key{room.x, room.y, true};
-	if (!(key == g_cycleRoom) || state.level != g_cycleLevel || side != g_cycleSide || sides != g_cycleSides) {
-		g_cycleSides = sides;
-		g_cycle.Reset();
-		g_cycleRoom = key;
-		g_cycleLevel = state.level;
-		g_cycleSide = side;
-	}
-	const auto items = ExitReview::Toward(
-		ExitReview::Collect(world.player, room.openings, ExitsIn(state, room), strings, UnexploredExit), world.player, side, sides);
-	const size_t index = g_cycle.Next(items);
-	if (index == ExitReview::NoItem) {
-		const auto text = ExitReview::Nothing(side, strings, sides);
-		ScreenReader::Speak(text, true);
-		AsyncLog::InfoF(context, "[room] finder %s%s: none of %zu openings -> %s", SideName(side),
-			sides == ExitReview::Sides::Map ? " (map)" : "", room.openings.size(), text.c_str());
-		return;
-	}
-	const auto& item = items[index];
-	const auto text = ExitReview::Describe(item, g_scan, strings);
-	ScreenReader::Speak(text, true);
-	BeaconService::Offer(item.named ? item.entity : Place(item), state.level, now);
-	AsyncLog::InfoF(context, "[room] finder %s%s: %zu of %zu at=%.0f,%.0f named=%u unexplored=%u -> %s",
-		SideName(side), sides == ExitReview::Sides::Map ? " (map)" : "", index + 1, items.size(),
-		item.point.x, item.point.y, item.named ? 1u : 0u, item.unexplored ? 1u : 0u, text.c_str());
-}
-auto FinderToggle(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {
-	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)
-		|| event->kind != D2RL::Input::ActionEventKind::Pressed) return D2RL::Input::ActionResult::Ignored;
-	g_finderToggle = true;
-	return D2RL::Input::ActionResult::Handled;
-}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
 	if (arg == "on") g_command = Command::On;
 	else if (arg == "off") g_command = Command::Off;
 	else if (arg == "layout") g_asked = true;
-	else if (arg == "finder") g_finderToggle = true;
 	else if (arg.empty() || arg == "status") g_command = Command::Status;
 	else return D2RL::ConsoleCommandResult::InvalidArguments;
 	return D2RL::ConsoleCommandResult::Handled;
@@ -278,16 +175,13 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_supported = NativeWorld::Initialize(context) && NativeEntities::Initialize(context);
 	(void)context->RegisterConsoleCommand("access-rooms",
-		Console, "Room ways out: on|off|status, layout to hear the room you are in, finder to toggle the exit finder. Ctrl+M, Ctrl+V; BACK+Y and BACK+A on the pad.");
+		Console, "Room ways out: on|off|status, layout to hear the room you are in. Ctrl+M; BACK+Y on the pad.");
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		const D2RL::Input::ActionRegistration actions[]{
 			{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = "rooms-toggle", .displayName = "Toggle room exit announcements", .category = "Accessibility",
-				.defaultPrimary = {D2RL::Input::Key::M, D2RL::Input::Modifier::Control}, .callback = Toggle},
-			{.structSize = D2RL::Input::ActionRegistrationSize,
-				.logicalId = "exit-finder-toggle", .displayName = "Toggle the exit finder", .category = "Accessibility",
-				.defaultPrimary = {D2RL::Input::Key::V, D2RL::Input::Modifier::Control}, .callback = FinderToggle}};
+				.defaultPrimary = {D2RL::Input::Key::M, D2RL::Input::Modifier::Control}, .callback = Toggle}};
 		for (const auto& action : actions) {
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
 			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
@@ -312,7 +206,6 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	// Both sources are taken every tick, in a menu too, so a press made there
 	// cannot be answered later.
 	const bool asked = InputDirection::TakeBackWith(InputDirection::FaceButton::Y) || g_asked.exchange(false);
-	const bool toggle = InputDirection::TakeBackWith(InputDirection::FaceButton::A) || g_finderToggle.exchange(false);
 	if (command != Command::None) {
 		if (command != Command::Status) {
 			g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
@@ -326,7 +219,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		return;
 	}
 	if (!g_supported) {
-		if (asked || toggle) ScreenReader::Speak(Strings::Current().roomsUnavailable, true);
+		if (asked) ScreenReader::Speak(Strings::Current().roomsUnavailable, true);
 		return;
 	}
 	const uint64_t now = GetTickCount64();
@@ -337,21 +230,6 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	if (asked && state.ready && RadarUi::InPlay()) {
 		std::lock_guard lock(g_mutex);
 		Layout(state);
-	}
-	// BACK+A or Ctrl+V: the exit finder on or off, only in play.
-	if (toggle && state.ready && RadarUi::InPlay()) {
-		g_finder = !g_finder;
-		std::lock_guard lock(g_mutex);
-		g_cycle.Reset();
-		ScreenReader::Speak(g_finder ? Strings::Current().finderEnabled : Strings::Current().finderDisabled, true);
-		AsyncLog::InfoF(context, "[room] exit finder %s", g_finder ? "on" : "off");
-	}
-	// Peek first: the in-play gate walks the panel tree, and the stick is idle
-	// on all but a few ticks. The maze check keeps it off everywhere else.
-	if (g_finder && state.ready && Maze(state.level)
-		&& InputDirection::PeekRightStickPush() != InputDirection::StickPush::None && RadarUi::InPlay()) {
-		std::lock_guard lock(g_mutex);
-		Find(context, state, now);
 	}
 	if (!g_enabled || uiOwnsSpeech || now - g_nextPoll < PollMs) return;
 	g_nextPoll = now;
@@ -375,7 +253,7 @@ void Unregister() {
 	std::lock_guard lock(g_mutex);
 	Forget();
 	g_state = {};
-	g_enabled = true; g_asked = false; g_finderToggle = false; g_finder = false; g_mapSides = true; g_supported = false; g_nextPoll = 0;
+	g_enabled = true; g_asked = false; g_mapSides = true; g_supported = false; g_nextPoll = 0;
 	g_lifecycle = nullptr; g_input = nullptr; g_context = nullptr;
 }
 
@@ -383,8 +261,6 @@ void Unregister() {
 // and the same change the console command makes.
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
-bool Finder() { return g_finder; }
 bool MapSides() { return g_mapSides.load(std::memory_order_relaxed); }
 void SetMapSides(bool enabled) { g_mapSides.store(enabled, std::memory_order_relaxed); }
-void SetFinder(bool enabled) { if (g_finder != enabled) g_finderToggle = true; }
 }

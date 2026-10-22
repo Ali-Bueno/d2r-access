@@ -448,11 +448,8 @@ See [quest-log implementation and remaining work](docs/quests.md),
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again. The exit
-finder, switched with **Ctrl+V** (BACK+A on the pad), names them one screen side at a time on the
-right stick (PageUp, PageDown and Ctrl+PageUp, Ctrl+PageDown on the keyboard), nearest first, with
-the distance in units. A short left-stick click, or **Ctrl+B** right after, guides to the one just
-named. **Ctrl+M** toggles the announcements.
+stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again.
+**Ctrl+M** toggles the announcements.
 See [room exits](docs/rooms.md).
 
 **Named places (built; live validation pending):** walking into a named part of the map speaks it,
@@ -479,8 +476,8 @@ See [terrain overview](docs/terrain-overview.md).
 pips when the way leads to ground you have not covered: an opening into a chamber you have
 never stood in, stairs to a level you have never seen, open ground towards the frontier of what the
 game has streamed. The base cues are untouched and nothing new sounds on its own; the tail rides on
-the cue that was going to play. The room entry line and the exit finder tag each way out never
-taken (`abertura, sin explorar`); the terrain overview says how much of the
+the cue that was going to play. The room entry line tags each way out never
+taken (`izquierda, sin explorar`); the terrain overview says how much of the
 level is filled in (`explorado 22 por ciento`). What you have seen and where you have stood is kept
 in one compact archive, limited to 4 MiB, with separate records per map seed and layout.
 Existing exploration files are migrated automatically, so progress survives quitting. `access-radar

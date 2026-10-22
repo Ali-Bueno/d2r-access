@@ -19,12 +19,17 @@ installed by the build. **Unverified live.**
   registry and the beacon ([portals](docs/portals.md)).
 - Jail secret doors (objects.txt OperateFn 18): never listed while shut; "You feel a cool draft."
   within 10 units (`SecretDoors::Draft`, switch `secret-drafts`) ([secret doors](docs/secret-doors.md)).
+- Route to the Jail 3 stairs: a Jail door's cells carry OBJECT alone, so the kept map took it
+  for a wall; shut door units are now noted into it (`Memory::NoteDoor`) ([route](docs/route-description.md)).
+- Passage finder removed (Ctrl+V, BACK+A, `exit-finder`); `ExitReview` cut to `RoomSides`; the
+  combination it used is free ([rooms](docs/rooms.md)).
 - Known: doorway detection now also runs in the survey's pass (cost unmeasured); the cottages'
   and Tristram's doorways and the secret door's collision are unchecked.
 
 **Next step:** release on the user's word; then live: a paladin loading in, a delete hold, the Dry
 Hills stairs route, a cottage and Tristram (`[items] doorways nearby`), Jail 2's secret room
-(`[items] secret door felt`), a two-player portal swap.
+(`[items] secret door felt`), a two-player portal swap, a route through a shut Jail door
+(`[route] shut doors noted`).
 
 ## The tester's addendum on builds 2026-10-20 and 20-2 — 2026-10-21 (released as test-2026-10-22 from 3f13f86)
 

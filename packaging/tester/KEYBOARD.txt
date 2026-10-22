@@ -84,7 +84,6 @@ Ctrl+F: footstep filter.
 Ctrl+U: scanner filter: only list what can be reached on foot.
 Ctrl+N: NPC announcer.
 Ctrl+M: room announcements.
-Ctrl+V: passage finder.
 Ctrl+I: speech for nearby items.
 Ctrl+L: item sounds.
 Ctrl+P: exit sounds.

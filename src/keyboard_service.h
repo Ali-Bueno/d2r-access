@@ -61,6 +61,9 @@ std::vector<bool> CutOff(const Radar::World& world, const std::vector<const Enti
 // The teleport pads among `entities`, read in the level `world` is of, are kept
 // with that level's map, to work out where each leads (pad_links.h).
 void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+// The shut doors among `entities` into the level's kept map, so a way passes one whose cells the
+// game marks as an object's, not a door's (LevelRoute::Memory::NoteDoor).
+void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
 // The map of the level `world` is of that the walks plan on (level_route.h),
 // learnt from `world` first, for the beacon to plan on too. Null when it is not
 // kept. Valid until the next call into this service.

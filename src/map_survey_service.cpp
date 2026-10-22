@@ -401,6 +401,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 		for (const auto& drop : g_registry.DropStalePortals(roster, present))
 			AsyncLog::InfoF(g_context, "[scan] portal dropped: owner=%s tracked=%u roster=%u/%u", drop.owner.c_str(), drop.id, drop.local, drop.remote);
 	KeyboardService::NotePads(world, scene.landmarks);
+	KeyboardService::NoteDoors(world, scene.landmarks);
 	// A border is kept where it is walked across (the corridor mouth), not at the point that names it.
 	auto remembered = discovered;
 	for (auto& entity : remembered)

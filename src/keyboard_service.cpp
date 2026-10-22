@@ -1894,7 +1894,6 @@ std::vector<SettingsList::Group> SettingGroups() {
 		std::move(strengths[3]),
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},
 		{[] { return RoomService::Enabled(); }, [](bool on) { RoomService::SetEnabled(on); }, phrase(&T::roomsEnabled, &T::roomsDisabled), true, "rooms"},
-		{RoomService::Finder, RoomService::SetFinder, phrase(&T::finderEnabled, &T::finderDisabled), true, "exit-finder"},
 		{RoomService::MapSides, RoomService::SetMapSides, phrase(&T::mapSidesOn, &T::mapSidesOff), false, "passage-map-sides"},
 		{PlaceService::Enabled, PlaceService::SetEnabled, phrase(&T::placesEnabled, &T::placesDisabled), true, "places"},
 		{Descriptions::Enabled, Descriptions::SetEnabled, phrase(&T::descriptionsOn, &T::descriptionsOff), false, "descriptions"},
@@ -2524,6 +2523,19 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	auto* kept = Kept(state);
+	if (!kept) return;
+	size_t noted = 0;
+	for (const auto& entity : entities)
+		if (entity.kind == EntityRadar::Kind::Object && entity.shutDoor != Generated::DoorSound::None
+			&& kept->memory.NoteDoor(entity.position, std::max<int>(1, static_cast<int>(entity.doorSpan)))) ++noted;
+	if (noted) AsyncLog::InfoF(g_context, "[route] shut doors noted on level %d: %zu", state.level, noted);
 }
 
 const LevelRoute::Memory* RememberedMap(const Radar::World& world) {

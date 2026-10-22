@@ -1,7 +1,7 @@
 # Room exits (2026-09-20)
 
-> Since 2026-09-21 each way out never taken is tagged `sin explorar` in the entry line and in the
-> exit finder: `docs/exploration.md`.
+> Since 2026-09-21 each way out never taken is tagged `sin explorar` in the entry line:
+> `docs/exploration.md`. The exit finder was removed on 2026-10-22 (below).
 
 Walking into a room in a dungeon speaks the ways out of it:
 
@@ -66,7 +66,7 @@ leads to more dungeon and has nothing to be named after.
 
 ### The map's sides (2026-10-14, a switch)
 
-A tester working the finder through the Underground Passage asked for the
+A tester working the exit finder through the Underground Passage asked for the
 room's own layout: D2 draws the world axes, along which every wall runs, at
 the screen diagonals, at 2, 4, 8 and 10 o'clock on its 2:1 projection. With
 `passage-map-sides` on (Ctrl+S, Navigation; on by default, the user's choice
@@ -75,19 +75,9 @@ of 2026-10-14; off gives the screen sides below):
 - **The room line** says each passage by its wall: northeast (world -Y),
   southeast (+X), southwest (+Y), northwest (-X), or 2, 4, 8 and 10 o'clock.
   A level exit standing in the room is said by the wall it lies toward.
-- **The finder's input is turned 45 degrees clockwise**: a flick up-right asks
-  for the northeast wall, down-right the southeast, down-left the southwest,
-  up-left the northwest. The stick's quarter decides, not its dominant axis
-  (`InputDirection::PeekTurnedRightStickPush`). The keyboard's four keys turn
-  the same way: up is northeast, right southeast, down southwest, left
-  northwest. A passage belongs to its wall's side wherever the player stands in
-  the room; a level exit to the quarter of world-axis directions it lies in
-  (`ExitReview::Sides::Map`). "northeast: nothing" when the wall has none.
-
 The game turns the left stick the same 45 degrees into the world
 ([decisions 2026-09-25](decisions.md)), so the stick diagonal that names a wall
-is also the one that walks toward it. Tests: `tests/exit_review_tests.cpp`
-(`MapSides`). Log: `[room] finder up (map): ...`.
+is also the one that walks toward it. Tests: `tests/room_sides_tests.cpp`.
 
 ## Exit review
 
@@ -95,27 +85,13 @@ Entering a room gives one line. Asking gives the detail:
 
 - **Ctrl+Y** (pad: BACK+Y, console `access-rooms layout`) says the ways out of
   the room you stand in again, whether or not it was announced.
-- **The exit finder**, switched on and off with **Ctrl+V** (pad: BACK+A,
-  console `access-rooms finder`, or `exit-finder` in the Ctrl+S list), takes the
-  right stick while you stand in a maze room. Each push names the next way out
-  on that screen side, nearest first, the way the scan speaks:
-  *"abertura, 12 pasos"*, or *"Nada a la izquierda"*. On the keyboard the pushes
-  are PageUp and PageDown (left and right) and Ctrl+PageUp and Ctrl+PageDown
-  (up and down). Outside a maze room the push is left to the scanner.
-
-The finder never says a position in the list (`src/exit_review.h`). A new side
-or a new room starts again at the nearest.
-
-- **The label.** A plain opening has no name to give, so it is the passage word
-  (`roomOpening`); a stairway, portal or waypoint keeps the game's own name.
-- **The list.** The room's openings plus the level exits standing inside it,
-  kept to the quarter of the plane centred on the pushed side
-  (`ExitReview::Toward`).
-- **It is offered to the beacon**, so a short left-stick click (or Ctrl+B) right
-  after locks onto it and pings the way there. An opening is not a unit, so the
-  beacon takes it as a fixed point (`docs/beacon.md`).
-- **Never re-announced as you walk.** The review is on demand only; grimdark
-  found the alternative "reads as noise".
+**The exit finder is gone (2026-10-22).** It took the right stick in a maze room and named the
+ways out on one side per push (Ctrl+V, BACK+A, `exit-finder`). A tester: the room line, the
+asked-for line (BACK+Y) and the running passage announcements already say the passages, so it
+was a third system, and its toggle was a pad combination better spent elsewhere. The user agreed.
+Removed with it: `ExitReview`'s list, sides and cycle (what the room line still needs is
+`RoomSides`), the stick read turned 45 degrees, and the strings `finder*` and `roomOpening`. The
+combination it used (BACK+A, or BACK + right stick down with `pad-route-on-a`) is free.
 
 ## Timing and silence
 

@@ -104,11 +104,6 @@ bool TakeLeftStickPushIf(StickPush wanted, const char* claimant);
 // survives ticks until it is claimed or a later push replaces it, so a reader
 // that declines it costs the player nothing but the next tick.
 StickPush PeekRightStickPush();
-// The same pending push read in the frame turned 45 degrees clockwise, the way
-// D2's walls lie on screen: a flick up-right is Up, down-right Right, down-left
-// Down, up-left Left (the stick's quarter, not its dominant axis). A posted
-// key's push is itself. None when nothing is pending. Claimed with the push.
-StickPush PeekTurnedRightStickPush();
 
 // What became of a push, written when it is resolved and not before: claimed
 // by a reader, or replaced by a later push while still pending. A push still
@@ -154,7 +149,8 @@ bool TakeBackWithDpadUp();
 bool TakeBackWithTrigger(bool right);
 
 // BACK+A and BACK+down trade places (a tester, 2026-10-14, switch `pad-route-on-a`):
-// BACK+A then gives the route and BACK+down the exit finder, to whichever reads them.
+// BACK+A then gives the route; the other of the two is free since the passage finder
+// went (2026-10-22), so nothing takes it.
 bool RouteOnA();
 void SetRouteOnA(bool on);
 

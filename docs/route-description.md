@@ -10,7 +10,7 @@ request ([decisions](decisions.md)); it is asked for, never spoken on its own.
 
 - **BACK + right stick down** (pad), **Ctrl+E** (keyboard), console
   `access-beacon route`: the route to what the beacon follows, else to what the
-  scanner or the exit finder named last on this level (the beacon's offer, any
+  scanner named last on this level (the beacon's offer, any
   age). Every press plans again from where the player stands, so asking on the
   way gives the rest of it, and to where the target stands now: what the
   scanner named is read again first (`Refresh`), as the beacon does for its
@@ -145,3 +145,19 @@ Each route asked for also logs the raw collision 24 cells around the player
 would not walk can be replayed from the log. The case that asked for it: a Tower Cellar doorway
 whose lower half an open grave closes; the route led through it into the corner past the grave
 (screenshots `edge_case_1/2`, no log yet).
+
+## Doors that read as objects (2026-10-22)
+
+A tester's log (`no_route_d2r-access.log`, the user's Downloads): in Jail Level 2, "No route
+through explored areas to To The Jail Level 3" three times (`[route] none ... here=0 map=1
+restricted=1`), from the room next to the stairs' room, then a route at once after the tester
+opened a door by hand. The collision dumps show that door, three cells at 17875,6644-6646,
+carrying OBJECT (0x0400) and no DOOR (0x0800) while shut, and nothing once open. The kept map
+(`LevelRoute::Memory::Learn`) took OBJECT alone for a chest or a barrel, seen shut, so no way,
+not even one opened as it goes, passed the door; the only way to the stairs went through it.
+
+Now the survey hands the kept map every shut door unit it reads (`KeyboardService::NoteDoors`,
+logged `[route] shut doors noted on level L: N`), and a cell shut by OBJECT alone within the
+door's length of one is learnt as a door's: the route says "door" there and walks through.
+OBJECT alone anywhere else stays shut. Barrels the tester broke on the way were in open floor and
+not the cause.

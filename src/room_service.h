@@ -3,9 +3,8 @@
 #include <D2RLPlugin/api.h>
 
 // Speaks the ways out of the native room the player walks into, in maze
-// levels only, and on request with BACK+Y; and the exit finder, BACK+A or
-// Ctrl+V, which names them by side on the right stick (exit_review.h).
-// Lifecycle and speech plumbing around Rooms::Describe; `docs/rooms.md`.
+// levels only, and on request with BACK+Y (Ctrl+Y). Lifecycle and speech
+// plumbing around Rooms::Describe; `docs/rooms.md`.
 namespace D2RAccess::RoomService {
 bool Register(const D2RL::PluginContext* context);
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech);
@@ -19,10 +18,8 @@ bool Outdoor(int level);
 // and the same change the console command makes.
 bool Enabled();
 void SetEnabled(bool enabled);
-bool Finder();
-void SetFinder(bool enabled); // in play only, as BACK+A is
 // Ways out told by the map's sides (the room's walls, NE/SE/SW/NW) instead of
-// the screen's, in the room line and the finder. On by default. docs/rooms.md
+// the screen's (room_sides.h). On by default. docs/rooms.md
 bool MapSides();
 void SetMapSides(bool enabled);
 }

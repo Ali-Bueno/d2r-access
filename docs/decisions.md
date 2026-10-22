@@ -25,6 +25,11 @@ Countess's vessel and a secret door before and after). Built and unit-tested onl
 - **Secret doors as a draft, not a door**: never listed while shut, felt once within 10 units. Not
   built: routing through them (their collision is unread) or hiding the loot behind them.
 - Not acted on: the tester's note that legs under 5 units are hard to walk; they will keep watching.
+- **Jail doors marked as objects** count as doors where a shut door unit stands. Rejected: every
+  OBJECT-only cell as openable (a route would run into chests, racks and statues).
+- **The passage finder is removed** (the tester's proposal, the user agreed): the room line, BACK+Y
+  and the running announcements already say passages. Its combination is left free rather than
+  given a new job now; `pad-route-on-a` stays, so the route keeps the button each player chose.
 
 ## 2026-10-21 — The tester's addendum on builds 2026-10-20 and 20-2
 

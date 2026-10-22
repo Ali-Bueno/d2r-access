@@ -58,6 +58,10 @@ public:
 	bool Begin(uint64_t session, int level, const std::vector<NativeRooms::Room>& rooms);
 	// Copies in the rooms the game has loaded now. True when a cell changed.
 	bool Learn(const Radar::World& world);
+	// A shut door whose cells the game marks OBJECT alone, not DOOR (the Jail's: a tester's
+	// log, 2026-10-22): a cell shut by OBJECT alone within `reach` of `at` is learnt as the
+	// door's from now on. Kept for the map; true when the door is new to it.
+	bool NoteDoor(Position at, int reach);
 	// Grows the map to rooms added to the level's list since Begin, keeping every
 	// cell already learnt: no way crosses ground outside the bounds, not even as
 	// a guess (docs/beacon.md, 2026-10-20). True when it grew.
@@ -77,9 +81,12 @@ public:
 	int Width() const { return width_; }
 	int Height() const { return height_; }
 private:
+	struct NotedDoor { int x = 0, y = 0, reach = 0; };
+	bool NearDoor(int x, int y) const;
 	uint64_t session_ = 0, revision_ = 0;
 	int level_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0;
 	std::vector<Ground> cells_;
+	std::vector<NotedDoor> doors_;
 };
 
 // The cells of an area that count as being there, on the ground a memory has:

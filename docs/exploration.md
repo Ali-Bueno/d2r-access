@@ -107,8 +107,6 @@ Directional lowering applies to both pips. Live listening remains pending.
 
 - **Room entry line** (maze levels): each way out never taken gets the tag: `Salidas: izquierda,
   sin explorar, derecha`. Level exits inside the room: `Den of Evil, sin explorar adelante`.
-- **Exit review** (Ctrl+V): the unexplored ways out come first, nearest first within each
-  half; the label carries the tag: `abertura, sin explorar, 8 pasos, a las 12, recto, 1 de 3`.
 - **Terrain overview** (Ctrl+O): the place is followed by the share of the level's rooms
   seen: `Blood Moor, centro, explorado 22 por ciento. adelante: …`. For maze and outdoor levels every
   logical room exists once the level is generated, so the denominator is the whole level.

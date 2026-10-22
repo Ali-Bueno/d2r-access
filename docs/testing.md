@@ -31,7 +31,7 @@ Procedure, verified 2026-09-20:
    first, preselected) and **JOLINE** (level 2 Sorceress). Click the character, then Play.
 3. Movement is bound to the game's own keys: F9 up, F10 right, F11 down, F13 left (F13 avoids
    Steam's F12 screenshot action — see `tools/computer_use/README.md`).
-4. Diagnostics: **Ctrl+T** dumps the radar snapshot, **Ctrl+V** reviews exits, **Ctrl+B** locks the
+4. Diagnostics: **Ctrl+T** dumps the radar snapshot, **Ctrl+B** locks the
    beacon (key equivalents of the controller gestures in `docs/rooms.md` / `docs/beacon.md`).
 5. **Guardrail: stay in the Rogue Encampment.** No Blood Moor, no waypoint, no NPCs, no settings —
    keep the unattended session inside camp only.

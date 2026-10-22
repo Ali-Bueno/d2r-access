@@ -115,7 +115,6 @@ game's code, not pressed in a test).
 | Ctrl+U | the scanner's filter for what cannot be reached: on, it lists only what the player can get to on foot from where they stand (the user, 2026-10-02: Ctrl+F if free, else the first Ctrl key that makes sense; Ctrl+F is the footstep filter). Off until switched on; also in the Ctrl+S list |
 | Ctrl+N | NPC announcer |
 | Ctrl+M | room announcements |
-| Ctrl+V | exit finder |
 | Ctrl+I | speech for items nearby |
 | Ctrl+L | sounds for items |
 | Ctrl+P | sounds for ways out |

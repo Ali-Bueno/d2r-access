@@ -45,7 +45,10 @@ WATER is `0x00C0` (MISSILE|PLAYER), not a bit of its own. An out-of-room query r
   2/4 = the 3x3 box. A* expands 8 neighbours testing only the destination cell. The cross implicitly
   covers both corner cells, so a cross body cannot cut a diagonal corner; a point body can.
 - Doors: a closed door's cells carry DOOR and block; opening one clears its bits. The live grid
-  already encodes door state, so we never model doors separately.
+  already encodes door state, so we never model doors separately. **Except** the Jail's (MEASURED
+  2026-10-22, a tester's log, Jail Level 2 at 17875,6644-6646): a three-cell shut door whose cells
+  carry OBJECT alone, cleared when opened. The kept map tells it from a chest by the shut door
+  units nearby (`LevelRoute::Memory::NoteDoor`, docs/route-description.md).
 
 ## Player path type: STRAIGHT
 
