@@ -2,9 +2,12 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's tutorial list — 2026-10-21 (not released)
+## The tester's tutorial list — 2026-10-21 (released as test-2026-10-21-3 from 0f0dd60)
 
-From `Tutorial feedback list.txt` ([tutorial](docs/tutorial.md)); news `../tester-news-draft-2026-10-21c.txt`:
+Release: 125/125 CTest, 29 entries, 62,952,885 bytes, SHA-256 `17d6cbc8…f0ddae`; news
+`../tester-news-draft-2026-10-21c.txt`.
+
+From `Tutorial feedback list.txt` ([tutorial](docs/tutorial.md)):
 - Fight ends on a kill (experience rising), not gold; the Den cleared passes the steps on the way
   (`Tutorial::PassedBy`); a message waits for a pause in speech 10 s at most (`PatienceMs`). The
   tester's "Den messages never came" was most likely the gold step (no log).
