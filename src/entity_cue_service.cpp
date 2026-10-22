@@ -3,8 +3,10 @@
 #include "entity_cue_audio.h"
 #include "entity_cues.h"
 #include "attack_reach.h"
+#include "crosshair.h"
 #include "native_attack.h"
 #include "native_entities.h"
+#include "native_hover.h"
 #include "native_world.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -24,7 +26,7 @@
 namespace D2RAccess::EntityCueService {
 namespace {
 using EventKind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Status, NpcOn, NpcOff, EnemyOn, EnemyOff, RangedOn, RangedOff, OrdinaryOn, OrdinaryOff, ReachOn, ReachOff, AttackAuto, AttackMelee, AttackRanged };
+enum class Command { None, On, Off, Status, NpcOn, NpcOff, EnemyOn, EnemyOff, RangedOn, RangedOff, OrdinaryOn, OrdinaryOff, ReachOn, ReachOff, CrosshairOn, CrosshairOff, AttackAuto, AttackMelee, AttackRanged };
 struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0, revision = 0; int level = 0; };
 constexpr uint64_t PollMs = 100;
 
@@ -40,8 +42,12 @@ AttackReach::Settings g_reachSettings;
 AttackReach::Tracker g_reachTracker;
 std::optional<AttackReach::Style> g_style;
 std::optional<double> g_reach;
+std::optional<AttackReach::Contact> g_contact;
 std::string g_reachLogged;
 bool g_reachCue = true;
+bool g_crosshairCue = true;
+bool g_hoverSeen = false; // logged once per game: whether the pad's target reaches the hover entry is unmeasured
+Crosshair::Tracker g_crosshair;
 uint64_t g_lastLoadout = 0;
 constexpr uint64_t LoadoutMs = 1000;
 bool g_enabled = true, g_supported = false, g_audioStarted = false, g_suspended = true;
@@ -58,6 +64,7 @@ void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	EntityCueAudio::Silence();
 	g_tracker.Reset();
 	g_reachTracker.Reset();
+	g_crosshair.Reset();
 	AsyncLog::InfoF(context, "[entity-cues] suspended: %s", reason);
 	g_suspended = true;
 }
@@ -97,6 +104,8 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 	else if (arg == "ordinary-off") next = Command::OrdinaryOff;
 	else if (arg == "reach-on") next = Command::ReachOn;
 	else if (arg == "reach-off") next = Command::ReachOff;
+	else if (arg == "crosshair-on") next = Command::CrosshairOn;
+	else if (arg == "crosshair-off") next = Command::CrosshairOff;
 	else if (arg == "attack-auto") next = Command::AttackAuto;
 	else if (arg == "attack-melee") next = Command::AttackMelee;
 	else if (arg == "attack-ranged") next = Command::AttackRanged;
@@ -108,14 +117,17 @@ auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, voi
 // The reach is published even while the cues are off: the HUD name gate uses it too.
 void RefreshReach(const D2RL::PluginContext* context) {
 	const auto loadout = NativeAttack::ReadLoadout(context);
-	if (!loadout && g_reachSettings.mode == AttackReach::Mode::Auto) { g_style.reset(); g_reach.reset(); return; }
+	if (!loadout && g_reachSettings.mode == AttackReach::Mode::Auto) { g_style.reset(); g_reach.reset(); g_contact.reset(); return; }
 	const auto inHand = loadout.value_or(AttackReach::Loadout{});
 	g_style = AttackReach::Resolve(g_reachSettings.mode, inHand);
 	g_reach = AttackReach::Reach(*g_style, inHand, g_reachSettings);
-	char line[160]{};
-	std::snprintf(line, sizeof line, "style=%s reach=%.1f mode=%d skills=%zu missile=%u adder=%d",
+	const auto playerClass = NativeEntities::LastPlayerClass();
+	g_contact = AttackReach::Contact{AttackReach::MeleeRange(inHand, playerClass)};
+	char line[192]{};
+	std::snprintf(line, sizeof line, "style=%s reach=%.1f mode=%d skills=%zu missile=%u adder=%d melee=%d class=%d",
 		*g_style == AttackReach::Style::Melee ? "melee" : "ranged", *g_reach, static_cast<int>(g_reachSettings.mode),
-		inHand.skills.size(), static_cast<unsigned>(inHand.missileWeapon), inHand.rangeAdder);
+		inHand.skills.size(), static_cast<unsigned>(inHand.missileWeapon), inHand.rangeAdder, g_contact->meleeRange,
+		playerClass ? static_cast<int>(*playerClass) : -1);
 	if (g_reachLogged == line) return;
 	g_reachLogged = line;
 	AsyncLog::InfoF(context, "[attack-reach] %s", line);
@@ -141,6 +153,7 @@ std::string StatusText() {
 	result += ". "; result += g_settings.ranged ? strings.entityCueRangedEnabled : strings.entityCueRangedDisabled;
 	result += ". "; result += g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
 	result += ". "; result += g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
+	result += ". "; result += g_crosshairCue ? strings.crosshairOn : strings.crosshairOff;
 	if (const auto reach = ReachText(); !reach.empty()) { result += ". "; result += reach; }
 	if (!g_supported) { result += ". "; result += strings.entityCueReaderUnavailable; }
 	if (!g_audioStarted || !EntityCueAudio::Available()) { result += ". "; result += strings.entityCueAudioUnavailable; }
@@ -158,6 +171,7 @@ std::string ChangeText(Command command) {
 	case Command::EnemyOn: case Command::EnemyOff: return g_settings.enemies ? strings.entityCueEnemiesEnabled : strings.entityCueEnemiesDisabled;
 	case Command::OrdinaryOn: case Command::OrdinaryOff: return g_settings.ordinary ? strings.entityCueOrdinaryEnabled : strings.entityCueOrdinaryDisabled;
 	case Command::ReachOn: case Command::ReachOff: return g_reachCue ? strings.entityCueReachEnabled : strings.entityCueReachDisabled;
+	case Command::CrosshairOn: case Command::CrosshairOff: return g_crosshairCue ? strings.crosshairOn : strings.crosshairOff;
 	case Command::AttackAuto: case Command::AttackMelee: case Command::AttackRanged:
 		if (auto reach = ReachText(); !reach.empty()) return reach;
 		return command == Command::AttackAuto ? strings.attackModeAuto : strings.attackModeFixed;
@@ -190,11 +204,12 @@ bool Register(const D2RL::PluginContext* context) {
 	g_settings.maxVoices = config.maxVoices.value_or(g_settings.maxVoices);
 	g_settings.ordinary = config.ordinary.value_or(g_settings.ordinary);
 	g_reachCue = config.reach.value_or(g_reachCue);
+	g_crosshairCue = config.crosshair.value_or(g_crosshairCue);
 	g_reachSettings.mode = config.attack.value_or(g_reachSettings.mode);
 	g_reachSettings.meleeReach = config.meleeReach.value_or(g_reachSettings.meleeReach);
 	g_reachSettings.rangedReach = config.rangedReach.value_or(g_reachSettings.rangedReach);
 	(void)context->RegisterConsoleCommand("access-entity-cues", Console,
-		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|attack-auto|attack-melee|attack-ranged.");
+		"Entity cues: on|off|status|npc-on|npc-off|enemy-on|enemy-off|ranged-on|ranged-off|ordinary-on|ordinary-off|reach-on|reach-off|crosshair-on|crosshair-off|attack-auto|attack-melee|attack-ranged.");
 	g_audioStarted = EntityCueAudio::Start(context, static_cast<double>(config.volume.value_or(100)) / 100.0,
 		RadarConfig::StrengthScale(config.panStrength), RadarConfig::StrengthScale(config.pitchStrength));
 	AsyncLog::InfoF(context, "[entity-cues] registered enabled=%u native=%u audio=%u range=%.1f on_screen=%u voices=%zu npc=%u enemy=%u ranged=%u",
@@ -219,6 +234,8 @@ void Tick(const D2RL::PluginContext* context) {
 	case Command::OrdinaryOff: g_settings.ordinary = false; break;
 	case Command::ReachOn: g_reachCue = true; break;
 	case Command::ReachOff: g_reachCue = false; break;
+	case Command::CrosshairOn: g_crosshairCue = true; break;
+	case Command::CrosshairOff: g_crosshairCue = false; break;
 	case Command::AttackAuto: g_reachSettings.mode = AttackReach::Mode::Auto; break;
 	case Command::AttackMelee: g_reachSettings.mode = AttackReach::Mode::Melee; break;
 	case Command::AttackRanged: g_reachSettings.mode = AttackReach::Mode::Ranged; break;
@@ -232,10 +249,11 @@ void Tick(const D2RL::PluginContext* context) {
 		g_revision = state.revision;
 		g_tracker.Reset(); g_corpses.Reset(); { std::lock_guard lock(g_alertMutex); g_alerts.Reset(); }
 		Suspend(context, "lifecycle changed");
-		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset();
+		g_lastPoll = g_lastLoadout = 0; g_reachTracker.Reset(); g_style.reset(); g_reach.reset(); g_contact.reset();
+		g_crosshair.Reset(); g_hoverSeen = false;
 	}
 	const uint64_t now = GetTickCount64();
-	if (!state.ready || !g_supported) { g_style.reset(); g_reach.reset(); }
+	if (!state.ready || !g_supported) { g_style.reset(); g_reach.reset(); g_contact.reset(); }
 	else if (!g_lastLoadout || now - g_lastLoadout >= LoadoutMs) { g_lastLoadout = now; RefreshReach(context); }
 	if (command != Command::None) {
 		ScreenReader::Speak(changed ? ChangeText(command) : StatusText(), true);
@@ -269,11 +287,27 @@ void Tick(const D2RL::PluginContext* context) {
 			return;
 		}
 	}
-	if (g_reachCue && g_reach) {
-		if (const auto target = g_reachTracker.Update(world, entities, *g_reach, g_reachSettings.release)) {
-			AsyncLog::InfoF(context, "[attack-reach] in reach id=%u distance=%.2f reach=%.1f",
-				target->id, target->bearing.distance, *g_reach);
+	// Melee contact by the game's own rule, whatever the attack (a tester, 2026-10-22: a shot's
+	// "reach" pinged from mid-screen, and the game puts no distance on a ranged cast).
+	if (g_reachCue && g_contact) {
+		if (const auto target = g_reachTracker.Update(world, entities, *g_contact)) {
+			AsyncLog::InfoF(context, "[attack-reach] in contact id=%u distance=%.2f game=%d melee=%d",
+				target->id, target->bearing.distance, target->distance, g_contact->meleeRange);
 			EntityCueAudio::Play(EntityCueAudio::Sound::Reach, {target->bearing.right, target->bearing.front});
+			return;
+		}
+	}
+	// The game's own target landing on an enemy, what a sighted player sees outlined (Raine, 2026-10-22).
+	if (g_crosshairCue) {
+		std::optional<Crosshair::Aim> aim;
+		if (const auto hovered = NativeHover::Read()) {
+			aim = Crosshair::Aim{hovered->type, hovered->id};
+			if (!g_hoverSeen) AsyncLog::InfoF(context, "[crosshair] the game's target is read: type=%u id=%u", hovered->type, hovered->id);
+			g_hoverSeen = true;
+		}
+		if (const auto lock = g_crosshair.Update(world, entities, aim, now)) {
+			AsyncLog::InfoF(context, "[crosshair] id=%u distance=%.2f", lock->id, lock->bearing.distance);
+			EntityCueAudio::Play(EntityCueAudio::Sound::Sight, {lock->bearing.right, lock->bearing.front});
 			return;
 		}
 	}
@@ -308,7 +342,8 @@ void Unregister() {
 	{ std::lock_guard lock(g_mutex); g_lifecycleState = {}; }
 	g_context = nullptr; g_lifecycle = nullptr;
 	g_command = Command::None;
-	g_reachTracker.Reset(); g_reachSettings = {}; g_style.reset(); g_reach.reset(); g_reachLogged.clear(); g_reachCue = true; g_lastLoadout = 0;
+	g_reachTracker.Reset(); g_reachSettings = {}; g_style.reset(); g_reach.reset(); g_contact.reset(); g_reachLogged.clear(); g_reachCue = true; g_lastLoadout = 0;
+	g_crosshair.Reset(); g_crosshairCue = true; g_hoverSeen = false;
 	g_settings = {}; g_enabled = true; g_supported = g_audioStarted = false; g_suspended = true;
 	g_revision = g_lastPoll = 0;
 }
@@ -322,7 +357,8 @@ std::optional<double> NamingReach() {
 // and the same change the console command makes.
 bool Enabled(Cue cue) {
 	return cue == Cue::All ? g_enabled : cue == Cue::Npcs ? g_settings.npcs
-		: cue == Cue::Enemies ? g_settings.enemies : cue == Cue::Ordinary ? g_settings.ordinary : cue == Cue::Reach ? g_reachCue : g_settings.ranged;
+		: cue == Cue::Enemies ? g_settings.enemies : cue == Cue::Ordinary ? g_settings.ordinary : cue == Cue::Reach ? g_reachCue
+		: cue == Cue::Crosshair ? g_crosshairCue : g_settings.ranged;
 }
 void SetEnabled(Cue cue, bool enabled) {
 	g_command = cue == Cue::All ? (enabled ? Command::On : Command::Off)
@@ -330,6 +366,7 @@ void SetEnabled(Cue cue, bool enabled) {
 		: cue == Cue::Enemies ? (enabled ? Command::EnemyOn : Command::EnemyOff)
 		: cue == Cue::Ordinary ? (enabled ? Command::OrdinaryOn : Command::OrdinaryOff)
 		: cue == Cue::Reach ? (enabled ? Command::ReachOn : Command::ReachOff)
+		: cue == Cue::Crosshair ? (enabled ? Command::CrosshairOn : Command::CrosshairOff)
 		: (enabled ? Command::RangedOn : Command::RangedOff);
 }
 bool NpcAlerts() { return g_npcAlerts.load(); }

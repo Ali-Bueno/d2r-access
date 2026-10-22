@@ -89,6 +89,7 @@ pan_strength = 100
 pitch_strength = 100
 volume = 100
 reach = true
+crosshair = true
 attack = "auto"
 melee_reach = 3
 ranged_reach = 15

@@ -38,6 +38,7 @@ add_library(d2r-access SHARED
 	src/cube_notice.cpp
 	src/item_hand.cpp
 	src/attack_reach.cpp
+	src/crosshair.cpp
 	src/native_attack.cpp
 	src/async_log.cpp
 	src/auto_detail.cpp
@@ -305,6 +306,8 @@ if(BUILD_TESTING)
 	endif()
 	d2r_test(attack-reach-tests tests/attack_reach_tests.cpp src/attack_reach.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME attack-reach COMMAND attack-reach-tests)
+	d2r_test(crosshair-tests tests/crosshair_tests.cpp src/crosshair.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	add_test(NAME crosshair COMMAND crosshair-tests)
 	d2r_test(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
 	add_test(NAME death-place COMMAND death-place-tests)
 	d2r_test(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
@@ -411,7 +414,7 @@ if(BUILD_TESTING)
 	d2r_test(entity-cue-audio-tests tests/entity_cue_audio_tests.cpp src/entity_cue_synth.cpp src/radar_synth.cpp)
 	target_link_libraries(entity-cue-audio-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME entity-cue-audio COMMAND entity-cue-audio-tests)
-	d2r_test(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/async_log.cpp src/tutorial.cpp)
+	d2r_test(entity-cue-service-tests tests/entity_cue_service_tests.cpp src/entity_cue_service.cpp src/attack_reach.cpp src/crosshair.cpp src/entity_cues.cpp src/combat_target.cpp src/auto_walk.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/async_log.cpp src/tutorial.cpp)
 	target_link_libraries(entity-cue-service-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME entity-cue-service COMMAND entity-cue-service-tests)
 	d2r_test(entity-radar-tests tests/entity_radar_tests.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)

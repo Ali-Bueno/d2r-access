@@ -42,6 +42,8 @@ struct UsableCorpses {
 	std::vector<Radar::Position> corpses;
 };
 UsableCorpses LastUsableCorpses();
+// The player's charstats.txt row (7 the Warlock) as the last Read found it; nothing before one.
+std::optional<uint32_t> LastPlayerClass();
 // Factored for tests over constructed native memory.
 // `roster` is the first party roster entry; zero skips distant party members.
 bool ReadPlayer(uintptr_t player, uintptr_t tables, uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits = false, bool levelBearings = false, bool includeCorpse = true, bool includePlayers = true, uintptr_t roster = 0, bool wholeLevel = false, bool townNpcs = false);

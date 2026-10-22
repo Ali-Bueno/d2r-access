@@ -1,8 +1,6 @@
 #include "attack_reach.h"
 #include "test_support.h"
 
-#include <limits>
-
 using namespace D2RAccess;
 using namespace AttackReach;
 namespace {
@@ -40,47 +38,69 @@ void Styles() {
 
 void Reaches() {
 	const Settings settings;
-	Check(Reach(Style::Melee, {}, settings) == settings.meleeReach, "melee reach starts at contact");
+	Check(Reach(Style::Melee, {}, settings) == settings.meleeReach, "the naming reach starts at contact");
 	Check(Reach(Style::Melee, {.rangeAdder = 2}, settings) == settings.meleeReach + 2,
-		"a polearm's rangeadder lengthens the melee reach");
+		"a polearm's rangeadder lengthens the naming reach");
 	Check(Reach(Style::Melee, {.rangeAdder = -4}, settings) == settings.meleeReach, "a malformed rangeadder never shortens it");
 	Check(Reach(Style::Ranged, {.rangeAdder = 2}, settings) == settings.rangedReach, "ranged reach ignores the melee weapon");
-	Check(settings.rangedReach == EntityRadar::Settings{}.range, "a shot reaches every enemy the presence cues play");
+}
+
+// The worked cases of docs/controller-targeting.md#melee-reach.
+void GameRule() {
+	const auto strikes = [](int dx, int dy, int meleeRange) {
+		return InMeleeRange(UnitDistance(dx, dy, PlayerSize, MonsterSize), meleeRange);
+	};
+	Check(strikes(3, 0, 0) && strikes(3, 1, 0) && strikes(2, 2, 0), "bare-handed, a size-2 monster is struck three subtiles straight or two diagonally");
+	Check(!strikes(3, 3, 0) && !strikes(4, 0, 0), "but not three diagonally or four straight");
+	Check(strikes(-3, 0, 0) && strikes(0, -3, 0) && !strikes(0, -4, 0), "the rule is the same on every side");
+	Check(strikes(4, 0, 2) && !strikes(5, 0, 2), "each rangeadder point is about half a subtile");
+	Check(UnitDistance(0, 0, PlayerSize, MonsterSize) == 0 && UnitDistance(1, 1, PlayerSize, MonsterSize) == 0,
+		"overlapping footprints are at no distance");
+	Check(UnitDistance(4, 0, PlayerSize, 3) == UnitDistance(4, 0, PlayerSize, MonsterSize) - 1,
+		"a size-3 monster stands half a subtile nearer");
+	Check(UnitDistance(4, 0, PlayerSize, 1) == UnitDistance(4, 0, PlayerSize, MonsterSize) + 1,
+		"a size-1 monster stands half a subtile further");
+	Check(UnitDistance(10, 3, PlayerSize, MonsterSize) == 2 * 8 + 1, "far apart, the footprints' gap counts twice along its longer side");
+	Check(UnitDistance(5, 0, PlayerSize, 4) == 2 * 2, "a size-4 monster leaves the table");
+	Check(MeleeRange({}, std::nullopt) == 0 && MeleeRange({.rangeAdder = 3}, 1u) == 3, "the weapon's rangeadder is the melee range");
+	Check(MeleeRange({.rangeAdder = 1}, WarlockClass) == 1 + WarlockMeleeBonus, "a Warlock reaches two further");
+	Check(MeleeRange({.rangeAdder = -2}, std::nullopt) == 0, "a malformed rangeadder never shortens it");
 }
 
 void Nearest() {
 	auto world = World();
-	Check(!AttackReach::Nearest(world, {Enemy(1, 34, 30)}, 3), "an enemy beyond reach is not in reach");
-	const auto near = AttackReach::Nearest(world, {Enemy(1, 34, 30), Enemy(2, 32, 30)}, 3);
-	Check(near && near->id == 2 && near->bearing.distance == 2, "the nearest enemy within reach is reported");
+	const Contact bare;
+	Check(!AttackReach::Nearest(world, {Enemy(1, 34.5, 30)}, bare), "an enemy beyond melee range is not in contact");
+	const auto near = AttackReach::Nearest(world, {Enemy(1, 33.5, 30), Enemy(2, 32.2, 30)}, bare);
+	Check(near && near->id == 2 && near->distance == 0, "the nearest enemy in contact is reported");
+	Check(AttackReach::Nearest(world, {Enemy(1, 34.5, 30)}, Contact{2}).has_value(), "a polearm reaches the next subtile");
 	EntityRadar::Entity npc = Enemy(3, 31, 30); npc.kind = EntityRadar::Kind::Npc;
-	Check(!AttackReach::Nearest(world, {npc}, 3), "a friendly NPC is never a target");
+	Check(!AttackReach::Nearest(world, {npc}, bare), "a friendly NPC is never a target");
 	for (int x = 0; x < Size; ++x) world.rooms[0].cells[32 * Size + x] = 1;
-	Check(!AttackReach::Nearest(world, {Enemy(4, 30, 33)}, 5), "an enemy behind a wall is not within reach");
-	Check(!AttackReach::Nearest(World(), {Enemy(5, 31, 30)}, std::numeric_limits<double>::quiet_NaN()),
-		"an invalid reach finds nothing");
+	Check(!AttackReach::Nearest(world, {Enemy(4, 30, 33)}, bare), "an enemy behind a wall is not in contact");
 }
 
 void Tracking() {
 	const auto world = World();
+	const Contact contact; // bare hands: the game strikes at distance 1, the ping lets go beyond 3
 	Tracker tracker;
-	Check(!tracker.Update(world, {Enemy(1, 36, 30)}, 3, 1), "an approaching enemy is silent beyond reach");
-	const auto entered = tracker.Update(world, {Enemy(1, 32.5, 30)}, 3, 1);
+	Check(!tracker.Update(world, {Enemy(1, 36, 30)}, contact), "an approaching enemy is silent beyond reach");
+	const auto entered = tracker.Update(world, {Enemy(1, 33.5, 30)}, contact);
 	Check(entered && entered->id == 1 && entered->bearing.right > 0, "entering reach pings once, placed toward the enemy");
-	Check(!tracker.Update(world, {Enemy(1, 32, 30)}, 3, 1), "staying in reach does not ping again");
-	Check(!tracker.Update(world, {Enemy(1, 32, 30), Enemy(2, 31, 30)}, 3, 1), "a second enemy joining does not ping");
-	Check(!tracker.Update(world, {Enemy(1, 33.5, 30)}, 3, 1), "stepping just past the edge keeps the spell");
-	Check(!tracker.Update(world, {Enemy(1, 32.9, 30)}, 3, 1), "so returning across the edge does not ping");
-	Check(!tracker.Update(world, {Enemy(1, 34.5, 30)}, 3, 1), "backing off past the release ends the spell silently");
-	Check(tracker.Update(world, {Enemy(1, 32, 30)}, 3, 1).has_value(), "a fresh approach pings again");
-	Check(!tracker.Update(world, {}, 3, 1), "killing the last enemy ends the spell");
-	Check(tracker.Update(world, {Enemy(3, 31, 30)}, 3, 1).has_value(), "the next enemy to arrive pings");
+	Check(!tracker.Update(world, {Enemy(1, 32, 30)}, contact), "staying in reach does not ping again");
+	Check(!tracker.Update(world, {Enemy(1, 32, 30), Enemy(2, 31, 30)}, contact), "a second enemy joining does not ping");
+	Check(!tracker.Update(world, {Enemy(1, 34.5, 30)}, contact), "stepping just past the edge keeps the spell");
+	Check(!tracker.Update(world, {Enemy(1, 33.5, 30)}, contact), "so returning across the edge does not ping");
+	Check(!tracker.Update(world, {Enemy(1, 35.5, 30)}, contact), "backing off past the release ends the spell silently");
+	Check(tracker.Update(world, {Enemy(1, 32, 30)}, contact).has_value(), "a fresh approach pings again");
+	Check(!tracker.Update(world, {}, contact), "killing the last enemy ends the spell");
+	Check(tracker.Update(world, {Enemy(3, 31, 30)}, contact).has_value(), "the next enemy to arrive pings");
 	tracker.Reset();
-	Check(tracker.Update(world, {Enemy(3, 31, 30)}, 3, 1).has_value(), "a reset, as after a menu, pings for an enemy still in reach");
+	Check(tracker.Update(world, {Enemy(3, 31, 30)}, contact).has_value(), "a reset, as after a menu, pings for an enemy still in reach");
 }
 }
 
 int main() {
-	Styles(); Reaches(); Nearest(); Tracking();
+	Styles(); Reaches(); GameRule(); Nearest(); Tracking();
 	Passed();
 }

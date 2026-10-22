@@ -16,7 +16,7 @@ std::optional<double> CurrentReach();
 std::optional<double> NamingReach();
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
-enum class Cue { All, Npcs, Enemies, Ranged, Ordinary, Reach };
+enum class Cue { All, Npcs, Enemies, Ranged, Ordinary, Reach, Crosshair };
 bool Enabled(Cue cue);
 void SetEnabled(Cue cue, bool enabled);
 // A bell when a town NPC's "!" appears, and after its name wherever it is said.

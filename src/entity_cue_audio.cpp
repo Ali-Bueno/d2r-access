@@ -144,7 +144,8 @@ void Play(Sound sound, Placement placement) {
 		std::lock_guard lock(g_mutex);
 		if (!g_running || !g_available || !ModSounds::Enabled()) return;
 		const auto feedback = [](Sound cue) {
-			return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge || cue == Sound::NpcAlert || cue == Sound::Corpse;
+			return cue == Sound::Reach || cue == Sound::Pickup || cue == Sound::Edge || cue == Sound::NpcAlert || cue == Sound::Corpse
+				|| cue == Sound::Sight;
 		};
 		if (g_pending.pending && feedback(g_pending.sound) && !feedback(sound)) return;
 		placement.panScale = g_panScale; placement.pitchScale = g_pitchScale; placement.classLayers = g_classLayers;

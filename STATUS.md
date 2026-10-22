@@ -2,6 +2,29 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Crosshair beep and melee contact ping — 2026-10-22 (not released)
+
+The tester: the reach ping fired mid-screen for a Warlock and a Sorceress alike and ignored how
+many are near; the pad's auto-target takes the nearest, never the shaman behind. Raine: a beep when
+something is in the crosshairs. RE of the game's rules ([controller targeting](docs/controller-targeting.md));
+tables in `game-data/hd/global/excel/`. 127/127 CTest; installed by the build.
+- Crosshair beep: the game's own target (hover entry `0x2A41630`) landing on an enemy in sight,
+  switch `crosshair` ([crosshair](docs/crosshair.md)). A monster that was the target within 3 s
+  does not beep again (`Settings::repeatMs`).
+- Live 2026-10-22 (user, barbarian, pad, 2 h): the target read in every game, the beep on the
+  plate's monster, contact pings all by the rule. Without the repeat rule: 2077 beeps, 26 in
+  10 s at peak (target trading); replayed with it, 1166. The rule itself is not heard yet.
+- Reach ping: melee contact by the game's rule for every attack, Warlock +2; monsters assumed
+  size 2 ([attack reach](docs/attack-reach.md#the-reach-ping)).
+- Not done: the contact count (tester), the quick enemy list on RS down, the selected-enemy beep.
+- First install crashed (13:04): the DLL's `speech_strings.cpp.obj` was from 08:12 and Ninja had
+  no header deps for it, so the new `Strings::Table` fields shifted every string read elsewhere.
+  All DLL objects rebuilt clean; `ninja -t deps` now VALID. After adding a `Strings::Table` field,
+  check that object's time.
+
+**Next step:** the tester's word on the beep's rate with the repeat rule, with a Sorceress and
+a Warlock; then the quick enemy list.
+
 ## The tester's list on build test-2026-10-22 — 2026-10-22 (not released)
 
 From `d2r access test build 2026-10-22 notes.7z` ([decisions](docs/decisions.md)). 126/126 CTest;

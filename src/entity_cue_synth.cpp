@@ -68,6 +68,13 @@ constexpr unsigned RattleMs = 150;
 constexpr double RattleHz[] = {620, 520, 440};
 constexpr double RattleDecaySeconds = 0.012, RattleLevel = 0.34, RattleNoise = 0.4;
 
+// The game's target on an enemy (Raine, 2026-10-22, after Shades of Doom's targeting
+// sensor): two flat electronic blips, odd harmonics like a square wave, unlike the
+// reach ping's two rising sine notes and the pickup's single noisy tick.
+constexpr unsigned SightMs = 64;
+constexpr double SightHz = 1175, SightBlipSeconds = 0.024, SightGapSeconds = 0.016, SightLevel = 0.2;
+constexpr double SightHarmonics[] = {1, 3, 5}, SightWeights[] = {1, 0.33, 0.2};
+
 struct WhooshTimbre { double startHz, endHz, shimmerRatio; };
 WhooshTimbre Voice(Sound sound) {
 	switch (sound) {
@@ -165,6 +172,16 @@ double Chime(double seconds, double pitch) {
 	return ChimeLevel * Envelope(local, length) * std::exp(-local / ChimeDecaySeconds) * tone;
 }
 
+double Sight(double seconds, double pitch) {
+	constexpr double Period = SightBlipSeconds + SightGapSeconds;
+	const double local = seconds >= Period ? seconds - Period : seconds;
+	if (local >= SightBlipSeconds) return 0;
+	double tone = 0;
+	for (size_t i = 0; i < std::size(SightHarmonics); ++i)
+		tone += SightWeights[i] * std::sin(2 * std::numbers::pi * SightHz * SightHarmonics[i] * pitch * local);
+	return SightLevel * Envelope(local, SightBlipSeconds) * tone;
+}
+
 double Ding(double seconds, double pitch) {
 	double bell = 0;
 	for (size_t i = 0; i < std::size(DingRatios); ++i)
@@ -208,7 +225,7 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 	const bool growl = sound == Sound::Ordinary || (enemy && placement.classLayers);
 	const unsigned milliseconds = npc ? NpcCueMs : growl ? GrowlMs : sound == Sound::Reach ? ChimeMs
 		: sound == Sound::Pickup ? ClickMs : sound == Sound::Edge ? KnockMs : sound == Sound::NpcAlert ? DingMs
-		: sound == Sound::Corpse ? RattleMs : WhooshMs;
+		: sound == Sound::Corpse ? RattleMs : sound == Sound::Sight ? SightMs : WhooshMs;
 	const size_t frames = milliseconds * SampleRate / 1000;
 	double growlPhase = 0;
 	const double textureBlend = 1 - std::exp(-2 * std::numbers::pi * TextureCutoffHz * pitch / SampleRate);
@@ -234,6 +251,8 @@ std::vector<int16_t> Synthesize(Sound sound, Placement placement, double gain) {
 			sample = Chime(seconds, pitch);
 		} else if (sound == Sound::NpcAlert) {
 			sample = Ding(seconds, pitch);
+		} else if (sound == Sound::Sight) {
+			sample = Sight(seconds, pitch);
 		} else if (sound == Sound::Pickup || sound == Sound::Edge || sound == Sound::Corpse) {
 			texture += textureBlend * (Noise(frame) - texture);
 			sample = sound == Sound::Pickup ? Click(seconds, texture) : sound == Sound::Corpse ? Rattle(seconds, texture, pitch)

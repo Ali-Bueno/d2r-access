@@ -8,7 +8,8 @@ announce themselves, and a sound when the target is in reach would do the rest.
 - Every enemy now has a presence cue: the three nearest ordinary enemies growl,
   each on its own, as in Diablo 1's diablo-access ([entity cues](entity-cues.md)).
 - A **reach ping** says when an enemy in sight comes within reach of the
-  player's attacks.
+  player's attacks. Since 2026-10-22 it is melee contact for every attack, by the
+  game's own rule (below).
 - The **monster plate** names a monster only within that reach, and never
   repeats a name the auto-target keeps trading.
 
@@ -32,6 +33,10 @@ monster at contact) plus the weapon's `rangeadder`. Both are sound-design
 defaults, not game constants: the game decides contact from unit sizes this
 mod does not read. `attack = "melee"|"ranged"` or the `attack-melee` /
 `attack-ranged` commands fix the style when the rule guesses wrong.
+
+This style and these distances now serve only the monster plate below. The
+ping uses the game's own melee rule, and a ranged cast has no distance check in
+the game ([controller targeting](controller-targeting.md)).
 
 Known misreads, each fixable with the fixed mode: a whirlwind barbarian with War
 Cry bound reads ranged (War Cry carries damage); a paladin with Zeal and Holy
@@ -62,14 +67,38 @@ keep their missile in `srvmissilea`, and Battle Orders has one too.
 
 ## The reach ping
 
-`AttackReach::Tracker` pings for the nearest enemy in sight within reach when
-none was, then stays quiet until every enemy is beyond reach plus `release`
-(1 subtile), so one pacing at the edge does not ping on every step. A menu or a
-level change resets it: closing a menu with an enemy still in reach pings again.
-The ping is a 96 ms rising two-note sine (1320 then 1760 Hz), far above every
-other cue, placed and pitched like them. A pending ping is never replaced by a
-presence pulse. Log: `[attack-reach] style=… reach=…` on every change of style,
-and `[attack-reach] in reach id=… distance=…` per ping.
+The tester, 2026-10-22: the ping fired from mid-screen for a Warlock, whose
+demons do the fighting, and for a Sorceress, whose spells reach past the screen.
+For a ranged attack, "reach" was the 15-subtile sound-design default, not the
+spell's. The game puts no distance on a ranged cast; the auto-target's own limit
+is 20-22 subtiles ([controller targeting](controller-targeting.md)). So the ping
+is now **melee contact for every attack**: an enemy the player could strike in
+melee from where both stand.
+
+The rule is the game's (`0x348650`, `AttackReach::InMeleeRange`): the distance
+between the two footprints (`UnitDistance`, half-subtiles from the game's table)
+is at most the player's melee range plus one. Melee range is the weapon's
+`rangeadder`, plus two for a Warlock (`MeleeRange`; the class from
+`NativeEntities::LastPlayerClass`). Bare-handed, a Fallen is in contact three
+subtiles straight or two diagonally. Two inputs are not the game's:
+
+- Every monster counts as size 2, as the Fallen, their shamans and zombies are:
+  MonStats2 `SizeX` is not read. A size-3 monster is struck half a subtile
+  sooner than the ping says, a size-1 one half a subtile later.
+- The radar's line of sight stands in for the game's collision test (mask 0x804).
+
+`AttackReach::Tracker` pings for the nearest enemy in contact when none was,
+then stays quiet until every enemy is beyond the range plus `release` (2
+half-subtiles, sound design), so one pacing at the edge does not ping on every
+step. A menu or a level change resets it: closing a menu with an enemy still in
+contact pings again. The ping is a 96 ms rising two-note sine (1320 then
+1760 Hz), far above every other cue, placed and pitched like them. A pending ping
+is never replaced by a presence pulse. Log: `[attack-reach] style=… reach=…
+melee=… class=…` on every change, and `[attack-reach] in contact id=…
+distance=… game=… melee=…` per ping.
+
+Not yet: how many enemies are in contact. The tester asked for it (2026-10-22);
+the burst that would say it is a sound design still to be settled.
 
 ## The monster plate
 
@@ -114,11 +143,13 @@ still say a monster's rank, nature, enchantments and immunities after its name
 `status` ends with the reach ("Alcance a distancia, 15 pasos, automático"), and
 an attack mode command says the new reach. The Ctrl+S settings list holds
 `enemy-growls` and `attack-reach`.
-`radar.toml` `[entity_cues]`: `reach`, `attack`, `melee_reach`, `ranged_reach`.
+`radar.toml` `[entity_cues]`: `reach`, and for the plate `attack`, `melee_reach`, `ranged_reach`.
+The game's own target has its beep beside it ([crosshair](crosshair.md)).
 
 ## Validation
 
-Automated: `attack-reach` (style rules, reach, sight, the ping's hysteresis),
+Automated: `attack-reach` (style rules, reach, the game's melee rule and its
+worked cases, sight, the ping's hysteresis),
 `monster-names` (the 2026-09-29 trading pattern, flicker, edge, clock),
 `interaction-reader` (plate gating end to end), `entity-cue-service` (loadout
 cadence, ping before growl, commands), `entity-cue-audio` (the ping's band,

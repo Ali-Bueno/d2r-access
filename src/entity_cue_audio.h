@@ -11,7 +11,8 @@ inline constexpr unsigned SampleRate = 48000, Channels = 2;
 // inventory cursor pushed against the grid's edge. Important is an elite enemy;
 // a boss shares its sound only with the class layers off.
 // NpcAlert: the "!" over a town NPC, a small bell. Corpse: usable corpses near a Necromancer.
-enum class Sound { Npc, Important, Resurrector, Ranged, Ordinary, Reach, Pickup, Edge, Boss, NpcAlert, Corpse };
+// Sight: the game's own target has landed on an enemy (docs/crosshair.md).
+enum class Sound { Npc, Important, Resurrector, Ranged, Ordinary, Reach, Pickup, Edge, Boss, NpcAlert, Corpse, Sight };
 
 // Screen coordinates: -1 right is left, +1 right is right; +1 front is
 // ahead and -1 front is behind. Rear cues use a lower pitch.
@@ -29,7 +30,7 @@ double PanScale();
 double PitchScale();
 bool ClassLayers();
 void SetClassLayers(bool on);
-// A pending Reach, Pickup, Edge, NpcAlert or Corpse cue is never replaced by a presence pulse.
+// A pending Reach, Pickup, Edge, NpcAlert, Corpse or Sight cue is never replaced by a presence pulse.
 void Play(Sound sound, Placement placement);
 void Silence();
 void Stop();

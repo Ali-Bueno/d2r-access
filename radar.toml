@@ -82,11 +82,14 @@ pan_strength = 100
 pitch_strength = 100
 # 0-100 percent of the soft synthesized level, independent of radar volume.
 volume = 100
-# A ping when an enemy in sight comes within reach of your attacks.
+# A ping when an enemy in sight comes within melee reach, by the game's own rule.
 reach = true
-# "auto" follows the bound skills and the weapon in hand; "melee" or "ranged" fixes it.
+# A beep when the game's own target lands on an enemy in sight.
+crosshair = true
+# For the monster plate's names only: "auto" follows the bound skills and the weapon
+# in hand; "melee" or "ranged" fixes it.
 attack = "auto"
-# Subtiles. Melee is contact (plus the weapon's rangeadder); ranged is independent of `range`.
+# Subtiles, for the plate's names only. Melee is contact (plus the weapon's rangeadder).
 melee_reach = 3
 ranged_reach = 15
 

@@ -26,6 +26,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -61,6 +62,8 @@ bool g_portalOwnersSupported = false; // PortalOwnerChecks passed: a town portal
 bool g_widePortalLevel = false; // the loader keeps a portal level's high byte at ObjPortalLevelHigh
 std::mutex g_usableMutex;
 UsableCorpses g_usable;
+constexpr uint32_t NoClass = UINT32_MAX;
+std::atomic<uint32_t> g_playerClass{NoClass};
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -688,7 +691,7 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } return false; }
+	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } g_playerClass = NoClass; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = false;
@@ -795,7 +798,9 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	if (const auto all = NativePets::All()) for (const auto& pet : *all) pets.insert(pet.id);
 	UsableCorpses usable;
 	uint32_t playerClass = 0;
-	usable.necromancer = g_usableCorpsesSupported && Peek(player + UnitClass, playerClass) && playerClass == NecromancerClass
+	const bool classRead = Peek(player + UnitClass, playerClass);
+	if (classRead) g_playerClass = playerClass;
+	usable.necromancer = g_usableCorpsesSupported && classRead && playerClass == NecromancerClass
 		&& DynamicPosition(player, room, usable.player);
 	usable.playerId = playerId;
 	usable.readMs = GetTickCount64();
@@ -884,6 +889,10 @@ std::vector<uint32_t> TakeDeadMonsters() {
 UsableCorpses LastUsableCorpses() {
 	std::lock_guard lock(g_usableMutex);
 	return g_usable;
+}
+std::optional<uint32_t> LastPlayerClass() {
+	const uint32_t playerClass = g_playerClass.load();
+	return playerClass == NoClass ? std::nullopt : std::optional<uint32_t>(playerClass);
 }
 
 bool Read(uint32_t playerId, uint64_t session, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool wholeLevel, bool townNpcs) {

@@ -1871,6 +1871,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		std::move(strengths[1]),
 		{cue(Cue::Ranged), setCue(Cue::Ranged), phrase(&T::entityCueRangedEnabled, &T::entityCueRangedDisabled), true, "entity-cues-ranged"},
 		{cue(Cue::Reach), setCue(Cue::Reach), phrase(&T::entityCueReachEnabled, &T::entityCueReachDisabled), true, "attack-reach"},
+		{cue(Cue::Crosshair), setCue(Cue::Crosshair), phrase(&T::crosshairOn, &T::crosshairOff), true, "crosshair"},
 		{BossLifeService::Enabled, BossLifeService::SetEnabled, phrase(&T::bossLifeEnabled, &T::bossLifeDisabled), true, "boss-life"},
 		{cue(Cue::Npcs), setCue(Cue::Npcs), phrase(&T::entityCueNpcsEnabled, &T::entityCueNpcsDisabled), true, "entity-cues-npcs"},
 		{EntityRadarService::NpcEnabled, EntityRadarService::SetNpcEnabled, phrase(&T::npcEnabled, &T::npcDisabled), true, "npc-announcer"},

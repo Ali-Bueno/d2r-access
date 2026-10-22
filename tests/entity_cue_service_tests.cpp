@@ -3,6 +3,7 @@
 #include "entity_radar.h"
 #include "native_attack.h"
 #include "native_entities.h"
+#include "native_hover.h"
 #include "native_world.h"
 #include "radar_config.h"
 #include "radar_ui.h"
@@ -78,6 +79,7 @@ bool Read(uint32_t player, uint64_t generation, int level, Radar::World& world, 
 namespace D2RAccess::NativeEntities {
 bool Initialize(const D2RL::PluginContext*) { return nativeReady; }
 UsableCorpses LastUsableCorpses() { return {}; }
+std::optional<uint32_t> LastPlayerClass() { return std::nullopt; }
 bool Read(uint32_t player, uint64_t generation, std::vector<EntityRadar::Entity>& output, bool distantExits, bool levelBearings, bool, bool) {
 	++entityReads;
 	Check(player == 42 && generation == session && !distantExits && !levelBearings,
@@ -95,6 +97,8 @@ std::optional<AttackReach::Loadout> ReadLoadout(const D2RL::PluginContext*) { ++
 }
 namespace D2RAccess::RadarConfig { EntityCueSettings ReadEntityCues(const D2RL::PluginContext*) { return {}; } }
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
+std::optional<NativeHover::Target> hovered;
+namespace D2RAccess::NativeHover { std::optional<Target> Read() noexcept { return hovered; } }
 namespace D2RAccess::EntityCueAudio {
 bool Start(const D2RL::PluginContext*, double, double, double) { ++starts; return audioStartSucceeds; }
 void Play(Sound sound, Placement place) { plays.push_back({sound, place}); }
@@ -210,6 +214,18 @@ int main() {
 	Check(!EntityCueService::NamingReach(), "a ranged attack names whatever the auto-target picks, at any distance");
 	Command("attack-melee");
 	Check(EntityCueService::NamingReach() == EntityCueService::CurrentReach(), "a melee attack names only what it reaches");
+	hovered = NativeHover::Target{1, 9};
+	Poll();
+	Check(plays.back().sound == EntityCueAudio::Sound::Sight && plays.back().place.right == 0,
+		"the game's target landing on an enemy beeps, toward it");
+	const auto locked = plays.size();
+	Poll();
+	Check(plays.size() == locked, "the same target held beeps once");
+	Command("crosshair-off");
+	Check(speech.back() == "Crosshair beep off", "switching the beep off says only that");
+	hovered.reset(); Poll(); hovered = NativeHover::Target{1, 9}; Poll();
+	Check(plays.size() == locked, "with the beep off a new lock is silent");
+	Command("crosshair-on"); hovered.reset();
 	Command("attack-auto"); Command("reach-on"); Command("ordinary-on");
 	entities = {{.id = 7, .kind = EntityRadar::Kind::Npc, .position = {1, -1}, .name = "Kashya"}};
 	Poll();

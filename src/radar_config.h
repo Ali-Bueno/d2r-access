@@ -75,7 +75,7 @@ Switch ParseBossLife(std::string_view config);
 Switch ReadBossLife(const D2RL::PluginContext* context);
 
 struct EntityCueSettings {
-	std::optional<bool> enabled, npcs, enemies, ranged, ordinary, reach, onScreen;
+	std::optional<bool> enabled, npcs, enemies, ranged, ordinary, reach, crosshair, onScreen;
 	std::optional<AttackReach::Mode> attack;
 	std::optional<double> range, meleeReach, rangedReach;
 	std::optional<unsigned> volume;

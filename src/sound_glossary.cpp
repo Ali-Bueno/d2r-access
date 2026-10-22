@@ -44,7 +44,7 @@ std::vector<std::function<void()>> Players() {
 		Radar(RS::Blocked, false, true), [] { RadarAudio::Bump(0, {.eventMs = GetTickCount64(), .audition = true}); },
 		Beacon(BS::Locked), Beacon(BS::Ping), Beacon(BS::Arrived), Beacon(BS::Cleared),
 		Cue(ES::Npc), Cue(ES::NpcAlert), Cue(ES::Boss), Cue(ES::Important), Cue(ES::Resurrector), Cue(ES::Ranged),
-		Cue(ES::Ordinary), Cue(ES::Reach), Cue(ES::Edge),
+		Cue(ES::Ordinary), Cue(ES::Reach), Cue(ES::Sight), Cue(ES::Edge),
 		Loot(Item::Gold), Loot(Item::Potion), Loot(Item::Scroll), Loot(Item::Rune), Loot(Item::Gem), Loot(Item::Normal),
 		Loot(Item::Magic), Loot(Item::Rare), Loot(Item::Legendary), Loot(Item::Portal), Loot(Item::Chest), Loot(Item::Quest),
 		Loot(Item::Corpse), Loot(Item::WeaponRack), Loot(Item::Stash), Loot(Item::WoodenDoor), Loot(Item::MetalDoor),

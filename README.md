@@ -494,14 +494,19 @@ fixed screen directions. A single target repeats about every 0.2 seconds nearby
 or 0.5 seconds at maximum range. Dialogue and menu/focus gating suspend the sounds.
 
 **Attack reach.** A bright rising two-note ping, placed toward the enemy, plays
-when an enemy in sight comes within reach of your attacks, once until every
-enemy is out of reach again. The reach follows the skills bound to the controller
-bars (on the keyboard, the selected hand skills) and the weapon in hand (bow or
-crossbow, ranged skills, melee skills, damaging spells), read from the game's own
-skill and weapon tables; ranged reaches as far as the enemy sounds, melee is
-contact plus the weapon's `rangeadder`. `attack-melee` / `attack-ranged` fix it by
-hand, `attack-auto` returns to the automatic choice, and `status` says the current
-reach.
+when an enemy in sight comes within melee reach, once until every enemy is out of
+reach again. It uses the game's own melee rule for every character: the distance
+between the two bodies against the weapon's `rangeadder` (two more for a
+Warlock). The monster plate's names follow the skills bound to the controller
+bars (on the keyboard, the selected hand skills) and the weapon in hand;
+`attack-melee` / `attack-ranged` fix that by hand, `attack-auto` returns to the
+automatic choice, and `status` says the current reach.
+
+**Crosshair beep.** Two short electronic blips, placed toward the enemy, play
+when the game's own target lands on an enemy in sight: the monster a sighted
+player sees outlined, which the next attack takes. Holding the same target stays
+quiet. `crosshair` in the Ctrl+S list, `crosshair-on|crosshair-off`
+([crosshair](docs/crosshair.md)).
 
 The monster health plate names a monster only once it is within that reach
 (bosses and elites from first sight), without interrupting other speech, and a
@@ -510,8 +515,9 @@ been off the plate for ten seconds. The scanner and the keyboard's target keys
 still add the monster's rank, nature, enchantments and immunities.
 
 Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
-`enemy-off`, `ranged-off`, `ordinary-off` and `reach-off` switches (and matching
-`*-on`); the growls and the ping are also `enemy-growls` and `attack-reach` in the
+`enemy-off`, `ranged-off`, `ordinary-off`, `reach-off` and `crosshair-off` switches (and
+matching `*-on`); the growls, the ping and the beep are also `enemy-growls`, `attack-reach`
+and `crosshair` in the
 Ctrl+S settings list. Persistent range, volume, switches and the attack reach live
 under `[entity_cues]` in the plugin TOML. This is independent of the existing NPC
 speech toggle. See [entity cue behavior and controls](docs/entity-cues.md) and

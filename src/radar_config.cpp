@@ -265,6 +265,7 @@ EntityCueSettings ParseEntityCues(std::string_view config) {
 			else if (key == "ranged") slot = &result.ranged;
 			else if (key == "ordinary") slot = &result.ordinary;
 			else if (key == "reach") slot = &result.reach;
+			else if (key == "crosshair") slot = &result.crosshair;
 			else if (key == "on_screen") slot = &result.onScreen;
 			else return Line::Ignored;
 			bool flag = false;

@@ -179,6 +179,20 @@ void NewCues() {
 	Check(Crossings(rearPing, 50, 650) < Crossings(ping, 50, 650), "a ping behind is lower than one ahead");
 	const auto left = Synthesize(Sound::Reach, {-0.75, 1});
 	Check(Rms(left, 0) > 2 * Rms(left, 1), "the ping is placed toward the enemy");
+
+	const auto sight = Synthesize(Sound::Sight, {});
+	const size_t sightFrames = sight.size() / Channels;
+	Check(sightFrames * 1000 / SampleRate <= 100 && Peak(sight) > 0 && Peak(sight) < 32767,
+		"the crosshair beep fits the cue spacing without clipping");
+	Check(sight != ping && Synthesize(Sound::Sight, {}) == sight, "the crosshair beep is its own sound, the same every time");
+	const size_t blip = sightFrames * 24 / 64, second = sightFrames * 40 / 64; // 24 ms blips, 40 ms apart
+	Check(Rms(sight, 0, 0, blip) > 4 * Rms(sight, 0, blip + 10, second - 10), "two blips with silence between them");
+	Check(Crossings(sight, 50, blip - 50) == Crossings(sight, second + 50, second + blip - 50),
+		"both blips are the same note, unlike the ping's rising two");
+	const auto rearSight = Synthesize(Sound::Sight, {0, -1});
+	Check(Crossings(rearSight, 50, blip - 50) < Crossings(sight, 50, blip - 50), "a target behind beeps lower");
+	const auto leftSight = Synthesize(Sound::Sight, {-0.75, 1});
+	Check(Rms(leftSight, 0) > 2 * Rms(leftSight, 1), "the beep is placed toward the target");
 }
 
 void DifferentFromRadarBreath() {
